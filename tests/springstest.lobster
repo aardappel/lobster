@@ -22,13 +22,13 @@ run_test("springs"):
     def wiggleverts():
         let disps = map(verts): xy_0
         for(verts) v:
-            for(verts) (w, i):
+            for(verts) w, i:
                 let tow = w - v
                 let dist = magnitude(tow)
                 if(dist < 1 and v != w):
                     disps[i] += tow * (1 / dist) * (1 - dist)
         var totaldisp = 0.0
-        for(disps) (d, i):
+        for(disps) d, i:
             verts[i] += d
             totaldisp += magnitude(d)
         return totaldisp
@@ -44,8 +44,8 @@ run_test("springs"):
         i2:int
         dist:float
     var pedges = []
-    for(verts) (v, i):
-        for(verts) (w, j):
+    for(verts) v, i:
+        for(verts) w, j:
             if(i < j):
                 let dist = magnitude(w - v)
                 if(dist < 2):
@@ -64,7 +64,7 @@ run_test("springs"):
             atan2(verts[a] - verts[i]) < atan2(verts[b] - verts[i])
     let tris = []::[int]
     quads = []
-    for(verts) (v, i):
+    for(verts) v, i:
         for(vnbs[i]) j:
             let shape = [ i, j ]
             var p = i
@@ -83,13 +83,13 @@ run_test("springs"):
                 if shape.length == 4:
                     if (!exists(quads): equal(_, shape)):
                         quads.push(shape)
-                else: if shape.length == 3:
+                elif shape.length == 3:
                     if (!exists(tris): equal(_, shape)):
                         tris.push(shape)
     while(tris.length):
         var besti = -1
         var bestqc = -1
-        for(tris) (t, i):
+        for(tris) t, i:
             var qc = 0
             for(t) vi1:
                 for(quads) q:
@@ -110,9 +110,9 @@ run_test("springs"):
                         found = true
                         if t[0] == ni and t[1] == vi:
                             quads.push([ vi, t[2], ni, li ])
-                        else: if t[1] == ni and t[2] == vi:
+                        elif t[1] == ni and t[2] == vi:
                             quads.push([ vi, t[0], ni, li ])
-                        else: if t[2] == ni and t[0] == vi:
+                        elif t[2] == ni and t[0] == vi:
                             quads.push([ vi, t[1], ni, li ])
                         else:
                             found = false

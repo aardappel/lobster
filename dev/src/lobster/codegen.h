@@ -1077,6 +1077,14 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
+void Block::Generate(CodeGen &cg, size_t retval) const {
+    for (auto c : children) {
+        auto rv = c != children.back() ? 0 : retval;
+        cg.Gen(c, rv);
+        if (rv) cg.TakeTemp(retval != 0, true);
+    }
+}
+
 void List::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
     assert(false);  // Handled by individual parents.
 }
@@ -1095,14 +1103,6 @@ void Coercion::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
 
 void BinOp::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
     assert(false);  // Handled by individual parents.
-}
-
-void Inlined::Generate(CodeGen &cg, size_t retval) const {
-    for (auto c : children) {
-        auto rv = c != children.back() ? 0 : retval;
-        cg.Gen(c, rv);
-        if (rv) cg.TakeTemp(retval != 0, true);
-    }
 }
 
 void Seq::Generate(CodeGen &cg, size_t retval) const {
@@ -1148,26 +1148,29 @@ void Not::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
-void If::Generate(CodeGen &cg, size_t retval) const {
+void IfThen::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
-    bool has_else = !Is<DefaultVal>(falsepart);
-    cg.Emit(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, 0);
+    cg.Emit(IL_JUMPFAIL, 0);
     auto loc = cg.Pos();
-    if (has_else) {
-        cg.Gen(truepart, retval);
-        if (retval) cg.TakeTemp(1, true);
-        cg.Emit(IL_JUMP, 0);
-        auto loc2 = cg.Pos();
-        cg.SetLabel(loc);
-        cg.Gen(falsepart, retval);
-        if (retval) cg.TakeTemp(1, true);
-        cg.SetLabel(loc2);
-    } else {
-        assert(!retval);
-        cg.Gen(truepart, 0);
-        cg.SetLabel(loc);
-    }
+    assert(!retval); (void)retval;
+    cg.Gen(truepart, 0);
+    cg.SetLabel(loc);
+}
+
+void IfElse::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(condition, 1);
+    cg.TakeTemp(1, false);
+    cg.Emit(IL_JUMPFAIL, 0);
+    auto loc = cg.Pos();
+    cg.Gen(truepart, retval);
+    if (retval) cg.TakeTemp(1, true);
+    cg.Emit(IL_JUMP, 0);
+    auto loc2 = cg.Pos();
+    cg.SetLabel(loc);
+    cg.Gen(falsepart, retval);
+    if (retval) cg.TakeTemp(1, true);
+    cg.SetLabel(loc2);
 }
 
 void While::Generate(CodeGen &cg, size_t retval) const {

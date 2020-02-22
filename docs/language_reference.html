@@ -96,7 +96,7 @@ struct xyz : xy
 <p>You can use either <code>class</code> or <code>struct</code> to define these, with the latter being more restrictive: it does not allow fields to be modified (assigned to) after it has been constructed, they are stored in-inline in their parent and copied. This makes sense for small objects such as the one in this example, and can be used to enforce a more functional style of programming.</p>
 <p>You specify a list of fields using indentation.</p>
 <p>Optionally, you specify a supertype, which has the effect of adding all the fields of the supertype to the current type, thus making it an extension of the former.</p>
-<p>The above example uses ints directly, but you can also define types more generically, and then define specializations of them:</p>
+<p>The above example uses ints directly, but you can also define types more generically, and then define named specializations of them:</p>
 <pre><code>struct xy&lt;T&gt;:
     x:T
     y:T
@@ -104,7 +104,8 @@ struct xyz : xy
 struct xy_i = xy&lt;int&gt;
 struct xy_f = xy&lt;float&gt;</code></pre>
 <p>You construct values of these types you use a similar syntax:</p>
-<pre><code>let v = xyz { 1, 0, 0 }</code></pre>
+<pre><code>let v = xy { 1, 0 }</code></pre>
+<p>(Or use <code>xy_f { 1, 0 }</code> / <code>xy&lt;bool&gt; { true, false }</code> to explicitly pick a particular specialization).</p>
 <p>The type ensures that the right number of values are given, and they can now be accessed as <code>v.x</code> etc. in addition to <code>v[0]</code>.</p>
 <pre><code>struct xy:
     x = 0.0
@@ -168,22 +169,25 @@ print mat[pos]</code></pre>
 <p>You can also create anonymous (nameless) functions as values. In the most general case, this has the syntax:</p>
 <pre><code>let f = def(arg1, arg2): body</code></pre>
 <p>You call these just like any other function, e.g. <code>f(1, 2)</code>. You currently must call them using a variable (not any expression, not even a field).</p>
-<p>The full <code>function</code> syntax is infrequently used however, because most function values are created to be passed to other functions, and Lobster has a special syntax for this situation that is meant to mimic control structures in other languages. Any function call may be followed by one or more function values, where the <code>def</code> keyword is omitted:</p>
-<pre><code>for(10) (i): print(i)</code></pre>
-<p>Here, the function <code>for</code> is called with 2 arguments, the first is <code>10</code>, and the second is the function value <code>def(i): print(i)</code>. Lobster allows three more levels of further simplification of the syntax if the arguments do not contain type annotations:</p>
-<pre><code>for(10) i: print(i)
-for(10): print(_)
-for 10: print _</code></pre>
+<p>The full <code>def</code> syntax is infrequently used however, because most function values are created to be passed to other functions, and Lobster has a special syntax for this situation that is meant to mimic control structures in other languages. Any function call may be followed by one or more function values, where the <code>def</code> keyword is omitted:</p>
+<pre><code>g(10) (i): print(i)</code></pre>
+<p>Here, the function <code>g</code> is called with 2 arguments, the first is <code>10</code>, and the second is the function value <code>def(i): print(i)</code>. Lobster allows three more levels of further simplification of the syntax if the arguments do not contain type annotations:</p>
+<pre><code>g(10) i: print(i)
+g(10): print(_)
+g 10: print _</code></pre>
 <p>You can leave out the parentheses, and you may use anonymous arguments, which are variable names starting with an <code>_</code> that will automatically be declared as arguments for you. If you use multiple such arguments (e.g. <code>_a</code> and <code>_b</code>), they will become arguments in the order they appear in the body. Using anonymous variables is only recommended for very simple function bodies.</p>
 <p>As mentioned above, you may drop the parentheses entirely if the body doesn’t have any argument declarations.</p>
-<p>This style of syntax is intended to make each function that takes a function as argument (a <em>higher order function</em>) have the convenient syntax of a control structure, since that’s what those functions usually are meant to be anyway. In fact, Lobster’s built-in control structures <code>if</code> <code>for</code> and <code>while</code> are actually parsed just like any other function, and have no special syntactical status (you’ll notice they’re not part of the language grammar above).</p>
-<p>As an example of how to pass more than one function value, let’s see an example for <code>if</code>:</p>
-<pre><code>var nat = if a &lt; 0: 0 else: a</code></pre>
-<p>Here we see that all except the first function value must be preceded by the name of the argument they’re specifying. In Lobster, <code>else</code> is not a keyword, it simply is the name of the 3rd argument of <code>if</code>. Similarly, with indentation:</p>
-<pre><code>if a &lt; 0:
+<p>This style of syntax is intended to make each function that takes a function as argument (a <em>higher order function</em>) have the convenient syntax of a control structure, since that’s what those functions usually are meant to be anyway. Lobster’s built-in control structures <code>if</code> <code>for</code> and <code>while</code> have syntax that is closely compatible with this function call syntax (and in the case of <code>for</code> allow the same argument simplifications).</p>
+<p>As an example of how to pass more than one function value, let’s see an example that is similar to <code>if</code>:</p>
+<pre><code>var nat = ifnot a &gt;= 0: 0 otherwise: a</code></pre>
+<p>Similarly, with indentation:</p>
+<pre><code>ifnot a &gt;= 0:
     print &quot;negative numbers are scary!&quot;
 else:
     print &quot;a = &quot; + a</code></pre>
+<p>Here we see that all except the first function value must be preceded by the name of the argument they’re specifying. You’d define <code>ifnot</code> like:</p>
+<pre><code>def ifnot(cond, then, otherwise):
+    if not cond: then() else: otherwise()</code></pre>
 <p>Writing your own functions that take function values is the key to getting the most out of Lobster. It allows you to refactor pretty much any code into something that has no redundancy yet is easy to create, use and modify.</p>
 <p>Typically, to write a function that takes a function value argument, simply use an argument with no type:</p>
 <pre><code>def twice(f):
@@ -296,9 +300,23 @@ x = nil</code></pre>
 <p>Lobster deals with this by detecting that such objects are left over at the end of the program, and alerting the programmer that there are leaks. It then outputs a “leak report” with all leaks in somewhat readable form (with types and values), making it easier for the programmer to figure out what caused the leak. The programmer can then easily fix the leak by setting the reference causing the cycle to <code>nil</code>, like clearing the enemy field when a unit dies, or by writing <code>x.r = nil</code> in the above simplified example.</p>
 <p>More details on Lobster’s <a href="memory_management.html">memory management</a>.</p>
 <h2 id="control-structures">Control Structures</h2>
-<p>As notes, all of these follow general function syntax (except <code>switch</code>), but are otherwise treated specially by the language.</p>
-<p>We’ve already seen <code>if</code>, and it functions quite like you expect. The second function argument is optional.</p>
-<p>The loop constructs <code>for</code> (built-in), <code>map</code>, <code>filter</code>, and <code>exists</code> all function similarly in that the iteration argument can be an int N (iterate 0..N-1), a string (each byte value), or a vector (each element). They all supply 0, 1 (the element) or 2 (element, index) values to the function value, depending on the function value. <code>for</code> returns void, <code>map</code> simply returns all return values in a vector, <code>filter</code> returns a vector of all elements for which the call returned a true value, and exists returns the first element for which the call returns true (and doesn’t iterate further!) or <code>false</code> otherwise.</p>
+<p>As noted, all of these follow closely the function call syntax introduced above as much as possible, but are otherwise treated specially by the language.</p>
+<p><code>if</code> may be followed by multiple <code>elif</code> blocks and a single <code>else</code> block:</p>
+<pre><code>if a &lt; 0:
+    print &quot;negativity not allowed!&quot;
+elif a &lt; 10:
+    print &quot;single digit!&quot;
+elif a &lt; 100:
+    print &quot;double digit!&quot;
+else:
+    print &quot;way too big!&quot;</code></pre>
+<p><code>elif</code> is simply short for writing <code>else: if</code>. You can also write these on a single line, which is only recommended when very short, e.g. <code>if a &lt; 0: 0 else: a</code></p>
+<p><code>for</code> is the only built-in construct taking 0 to 2 arguments to the block: the element being iterated over, and iteration index.</p>
+<p>We can iterate over vectors (each element), strings (each byte), or integers (values 0..N-1):</p>
+<pre><code>for(&quot;hello&quot;) a, i:
+    print i + &quot;: &quot; + a</code></pre>
+<p>Here <code>a</code> will contain the 5 characters and <code>i</code> will be just <code>0</code> to <code>4</code>.</p>
+<p>The module <code>std</code> contains further useful loop constructs on top of <code>for</code>, like <code>map</code>, <code>filter</code>, and <code>exists</code> etc.</p>
 <p><code>while</code> is an odd function, since it is an exception to the rule of Lobster syntax:</p>
 <pre><code>while a &lt; 10: a++</code></pre>
 <p>That looks perfectly normal, but one thing should stand out: while takes not one, but 2 function values. Normally, in Lobster, this would make more sense:</p>
@@ -307,9 +325,9 @@ x = nil</code></pre>
 do:
     a++</code></pre>
 <p>but since people are so used to the way while loops work from other languages, the first argument has a special type that automatically converts an expression into a function value. When you think about it, even in languages like C the condition of a while is the only part of the language that can be executed more than once yet does not use / cannot use the block <code>{}</code> syntax. This exception is carried over in Lobster. This is not great for readability so isn’t generally used elsewhere.</p>
-<p><code>while</code> returns void. A similar function <code>collectwhile</code> returns a vector of all body return values.</p>
+<p><code>while</code> returns void. A similar function int module <code>std</code> called <code>collectwhile</code> returns a vector of all body return values.</p>
 <p>Many other functions that look like regular functions are actually also control structures, like many of the graphics function that change the current rendering state. An example is <code>gl_translate</code>, that optionally takes a body, and will run the body and restore the previous transform afterwards.</p>
-<p><code>switch</code> has its own special syntax, since it does a lot of things different:</p>
+<p><code>switch</code> has special syntax, since it does a lot of things different:</p>
 <pre><code>var st = switch i:
         case 1: &quot;no&quot;
         case 2, 3:
@@ -320,7 +338,7 @@ do:
 <p>The value you switch on may be int, float or string. Cases may test for multiple values, even ranges (which are inclusive)</p>
 <p>There is currently no <code>break</code> or <code>continue</code>. To add these would be a little more complicated than most languages, since they’d need to work with any custom control structure. For now, use <code>return</code> (or <code>return</code> <code>from</code>), e.g.:</p>
 <pre><code>do():
-    for(10):
+    for 10:
         if x: return false from do
     true</code></pre>
 <p>Instead of using <code>do</code> (defined in <code>std.lobster</code>), you can also use a regular <code>return</code> from any named function definition (which can be nested in any code block).</p>

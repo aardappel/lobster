@@ -1411,7 +1411,6 @@ VM_INS_RET VM::U_PUSHLOCV(int i, int l) {
 GJUMP(JUMP       ,                  , true     ,                 )
 GJUMP(JUMPFAIL   , auto x = VM_POP(), !x.True(),                 )
 GJUMP(JUMPFAILR  , auto x = VM_POP(), !x.True(), VM_PUSH(x)      )
-GJUMP(JUMPFAILN  , auto x = VM_POP(), !x.True(), VM_PUSH(Value()))
 GJUMP(JUMPNOFAIL , auto x = VM_POP(),  x.True(),                 )
 GJUMP(JUMPNOFAILR, auto x = VM_POP(),  x.True(), VM_PUSH(x)      )
 

@@ -87,7 +87,6 @@ namespace lobster {
     TOK(T_STRTYPE, "string") \
     TOK(T_ANYTYPE, "any") \
     TOK(T_VOIDTYPE, "void") \
-    TOK(T_LAZYEXP, "lazy_expression") \
     TOK(T_FROM, "from") \
     TOK(T_PROGRAM, "program") \
     TOK(T_PRIVATE, "private") \
@@ -97,6 +96,11 @@ namespace lobster {
     TOK(T_VAR, "var") \
     TOK(T_CONST, "let") \
     TOK(T_PAKFILE, "pakfile") \
+    TOK(T_IF, "if") \
+    TOK(T_ELSE, "else") \
+    TOK(T_ELIF, "elif") \
+    TOK(T_WHILE, "while") \
+    TOK(T_FOR, "for") \
     TOK(T_SWITCH, "switch") \
     TOK(T_CASE, "case") \
     TOK(T_DEFAULT, "default") \

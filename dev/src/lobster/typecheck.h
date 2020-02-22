@@ -86,7 +86,6 @@ struct TypeChecker {
         }
         AssertIs<Call>(parser.root)->sf->reqret = retreq;
         TT(parser.root, retreq, LT_KEEP);
-        AssertIs<Call>(parser.root);
         CleanUpFlow(0);
         assert(borrowstack.empty());
         assert(scopes.empty());
@@ -796,7 +795,7 @@ struct TypeChecker {
             : type_void;
         auto start_borrowed_vars = borrowstack.size();
         auto start_promoted_vars = flowstack.size();
-        TypeCheckList(sf.body, true, 0, LT_ANY);
+        sf.body->TypeCheck(*this, 0);
         CleanUpFlow(start_promoted_vars);
         if (!sf.num_returns) {
             if (!sf.returngiventype.utr.Null() && sf.returngiventype.utr->t != V_VOID)
@@ -855,7 +854,7 @@ struct TypeChecker {
         sf->SetParent(*csf->parent, csf->parent->overloads[i]);
         // Any changes here make sure this corresponds what happens in Inline() in the optimizer.
         st.CloneIds(*sf, *csf);
-        sf->body = (List *)csf->body->Clone();
+        sf->body = AssertIs<Block>(csf->body->Clone());
         sf->freevarchecked = true;
         sf->returngiventype = csf->returngiventype;
         sf->returntype = csf->returntype;
@@ -1487,12 +1486,12 @@ struct TypeChecker {
         }
     }
 
-    TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Node *&bodycall,
-                            bool reqret, Lifetime recip) {
+    TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *body, size_t reqret) {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
-        TT(bodycall, reqret, recip);
+        assert(reqret <= 1);
+        body->TypeCheck(*this, reqret);
         CleanUpFlow(flowstart);
-        return bodycall->exptype;
+        return body->exptype;
     }
 
     void CheckFlowTypeIdOrDot(const Node &n, TypeRef type) {
@@ -1651,6 +1650,15 @@ struct TypeChecker {
         }
     }
 
+    optional<Value> TypeCheckCondition(Node *&condition, Node *context, const char *name) {
+        TT(condition, 1, LT_BORROW);
+        NoStruct(*condition, name);
+        DecBorrowers(condition->lt, *context);
+        Value cval;
+        if (condition->ConstVal(*this, cval)) return cval;
+        return {};
+    }
+
     void CheckLval(Node *n) {
         if (auto dot = Is<Dot>(n)) {
             auto type = dot->children[0]->exptype;
@@ -1717,48 +1725,9 @@ struct TypeChecker {
         }
     }
 
-    bool NeverReturns(const Node *n) {
-        if (auto call = Is<Call>(n)) {
-            // Have to be conservative for recursive calls since we're not done typechecking it.
-            if (call->sf->isrecursivelycalled ||
-                call->sf->method_of ||
-                call->sf->iscoroutine ||
-                call->sf->parent->istype) return false;
-            if (!call->sf->num_returns) return true;
-            if (call->sf->num_returns == 1) {
-                auto ret = AssertIs<Return>(call->sf->body->children.back());
-                assert(ret->sf == call->sf);
-                return NeverReturns(ret->child);
-            }
-            // TODO: could also check num_returns > 1, but then have to scan all children.
-        } else if (auto ifthen = Is<If>(n)) {
-            auto tp = Is<Call>(ifthen->truepart);
-            auto fp = Is<Call>(ifthen->falsepart);
-            return tp && fp && NeverReturns(tp) && NeverReturns(fp);
-        } else if (auto sw = Is<Switch>(n)) {
-            auto have_default = false;
-            for (auto c : sw->cases->children) {
-                auto cas = AssertIs<Case>(c);
-                if (cas->pattern->children.empty()) have_default = true;
-                if (!NeverReturns(cas->body)) return false;
-            }
-            return have_default;
-        } else if (auto nc = Is<NativeCall>(n)) {
-            // A function may end in "assert false" and have only its previous return statements
-            // taken into account.
-            Value cval;
-            if (nc->nf->IsAssert() && nc->children[0]->ConstVal(*this, cval) && !cval.True())
-                return true;
-        }
-        // TODO: Other situations?
-        return false;
-    }
-
-    void TypeCheckList(List *n, bool onlylast, size_t reqret, Lifetime lt) {
+    void TypeCheckList(List *n, Lifetime lt) {
         for (auto &c : n->children) {
-            auto tovoid = onlylast && c != n->children.back();
-            TT(c, tovoid ? 0 : reqret,
-                  tovoid ? LT_ANY : lt);
+            TT(c, 1, lt);
         }
     }
 
@@ -2031,8 +2000,17 @@ struct TypeChecker {
     }
 };
 
+Node *Block::TypeCheck(TypeChecker &tc, size_t reqret) {
+    for (auto &c : children) {
+        tc.TT(c, c != children.back() ? 0 : reqret, LT_ANY);
+    }
+    lt = children.back()->lt;
+    exptype = children.back()->exptype;
+    return this;
+}
+
 Node *List::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
-    assert(false);  // Parent calls TypeCheckList.
+    assert(false);  // Parents call TypeCheckList
     return this;
 }
 
@@ -2043,11 +2021,6 @@ Node *Unary::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 
 Node *BinOp::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     assert(false);
-    return this;
-}
-
-Node *Inlined::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
-    assert(false);  // Generated after type-checker in optimizer.
     return this;
 }
 
@@ -2063,66 +2036,54 @@ Node *And::TypeCheck(TypeChecker &tc, size_t reqret) {
     return this;
 }
 
-Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
-    tc.TT(condition, 1, LT_BORROW);
-    tc.NoStruct(*condition, "if");
-    tc.DecBorrowers(condition->lt, *this);
-    Value cval;
-    bool isconst = condition->ConstVal(tc, cval);
-    if (!Is<DefaultVal>(falsepart)) {
-        if (!isconst) {
-            auto tleft = tc.TypeCheckBranch(true, condition, truepart, reqret, LT_ANY);
-            auto tright = tc.TypeCheckBranch(false, condition, falsepart, reqret, LT_ANY);
-            // FIXME: this is a bit of a hack. Much better if we had an actual type
-            // to signify NORETURN, to be taken into account in more places.
-            auto truec = AssertIs<Call>(truepart);
-            auto falsec = AssertIs<Call>(falsepart);
-            if (tc.NeverReturns(truec)) {
-                exptype = tright;
-                lt = falsepart->lt;
-            } else if (tc.NeverReturns(falsec)) {
-                exptype = tleft;
-                lt = truepart->lt;
-            } else {
-                exptype = tc.Union(tleft, tright, "then branch", "else branch", true, this);
-                // These will potentially make either body from T_CALL into some
-                // coercion.
-                tc.SubType(truepart, exptype, "then branch", *this);
-                tc.SubType(falsepart, exptype, "else branch", *this);
-                lt = tc.LifetimeUnion(truepart, falsepart, false);
-            }
-        } else if (cval.True()) {
-            // Ignore the else part, optimizer guaranteed to cull it.
-            exptype = tc.TypeCheckBranch(true, condition, truepart, reqret, LT_ANY);
+Node *IfThen::TypeCheck(TypeChecker &tc, size_t) {
+    auto constant = tc.TypeCheckCondition(condition, this, "if");
+    if (!constant || constant->True()) {
+        tc.TypeCheckBranch(true, condition, truepart, 0);
+    } else {
+        // constant == false: this if-then will get optimized out entirely, ignore it.
+    }
+    // No else: this always returns void.
+    truepart->exptype = type_void;
+    exptype = type_void;
+    lt = LT_ANY;
+    return this;
+}
+
+Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret) {
+    auto constant = tc.TypeCheckCondition(condition, this, "if");
+    if (!constant) {
+        auto tleft = tc.TypeCheckBranch(true, condition, truepart, reqret);
+        auto tright = tc.TypeCheckBranch(false, condition, falsepart, reqret);
+        // FIXME: this is a bit of a hack. Much better if we had an actual type
+        // to signify NORETURN, to be taken into account in more places.
+        if (truepart->ReturnsOutOf()) {
+            exptype = tright;
+            lt = falsepart->lt;
+        } else if (falsepart->ReturnsOutOf()) {
+            exptype = tleft;
             lt = truepart->lt;
         } else {
-            // Ignore the then part, optimizer guaranteed to cull it.
-            exptype = tc.TypeCheckBranch(false, condition, falsepart, reqret, LT_ANY);
-            lt = falsepart->lt;
+            exptype = tc.Union(tleft, tright, "then branch", "else branch", true, this);
+            tc.SubType(truepart->children.back(), exptype, "then branch", *this);
+            tc.SubType(falsepart->children.back(), exptype, "else branch", *this);
+            lt = tc.LifetimeUnion(truepart->children.back(), falsepart->children.back(), false);
         }
+    } else if (constant->True()) {
+        // Ignore the else part, optimizer guaranteed to cull it.
+        exptype = tc.TypeCheckBranch(true, condition, truepart, reqret);
+        lt = truepart->lt;
     } else {
-        // No else: this always returns void.
-        if (!isconst || cval.True()) {
-            tc.TypeCheckBranch(true, condition, truepart, 0, LT_ANY);
-            truepart->exptype = type_void;
-        } else {
-            // constant == false: this if-then will get optimized out entirely, ignore it.
-        }
-        falsepart->exptype = type_void;
-        exptype = type_void;
-        lt = LT_ANY;
+        // Ignore the then part, optimizer guaranteed to cull it.
+        exptype = tc.TypeCheckBranch(false, condition, falsepart, reqret);
+        lt = falsepart->lt;
     }
     return this;
 }
 
 Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(condition, 1, LT_BORROW);
-    tc.NoStruct(*condition, "while");
-    tc.DecBorrowers(condition->lt, *this);
-    // FIXME: this is caused by call forced to LT_KEEP.
-    auto condc = AssertIs<Call>(Forward<ToLifetime>(condition));
-    auto condexp = AssertIs<Return>(condc->sf->body->children.back());
-    tc.TypeCheckBranch(true, condexp->child, body, 0, LT_ANY);
+    tc.TypeCheckCondition(condition, this, "while");
+    tc.TypeCheckBranch(true, condition, body, 0);
     exptype = type_void;
     lt = LT_ANY;
     return this;
@@ -2140,12 +2101,12 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         itertype = itertype->Element();
     else tc.TypeError(cat("for can only iterate over int / string / vector, not \"",
                           TypeName(itertype), "\""), *this);
-    auto bodyc = AssertIs<Call>(body);
-    auto &args = bodyc->children;
-    if (args.size()) {
-        args[0]->exptype = itertype;  // ForLoopElem
+    auto def = Is<Define>(body->children[0]);
+    if (def) {
+        auto fle = Is<ForLoopElem>(def->child);
+        if (fle) fle->exptype = itertype;
     }
-    tc.TT(body, 0, LT_ANY);
+    body->TypeCheck(tc, 0);
     tc.DecBorrowers(iter->lt, *this);
     // Currently always return V_NIL
     exptype = type_void;
@@ -2194,17 +2155,15 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
                 }
             }
         }
-        auto body = AssertIs<Call>(cas->body);
-        if (!tc.NeverReturns(body)) {
-            exptype = exptype.Null() ? body->exptype
-                                     : tc.Union(exptype, body->exptype, "switch type", "case type",
+        if (!cas->body->ReturnsOutOf()) {
+            exptype = exptype.Null() ? cas->body->exptype
+                                     : tc.Union(exptype, cas->body->exptype, "switch type", "case type",
                                                 true, cas);
         }
     }
     for (auto n : cases->children) {
         auto cas = AssertIs<Case>(n);
-        auto body = AssertIs<Call>(cas->body);
-        if (!tc.NeverReturns(body)) {
+        if (!cas->body->ReturnsOutOf()) {
             assert(!exptype.Null());
             tc.SubType(cas->body, exptype, "", "case block");
         }
@@ -2226,7 +2185,7 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
     // FIXME: Since string constants are the real use case, LT_KEEP would be more
     // natural here, as this will introduce a lot of keeprefs. Alternatively make sure
     // string consts don't introduce keeprefs.
-    tc.TypeCheckList(pattern, false, 1, LT_BORROW);
+    tc.TypeCheckList(pattern, LT_BORROW);
     tc.TT(body, reqret, LT_KEEP);
     exptype = body->exptype;
     lt = LT_KEEP;
@@ -2568,7 +2527,7 @@ Node *DefaultVal::TypeCheck(TypeChecker &tc, size_t reqret) {
 Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     STACK_PROFILE;
     // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
-    tc.TypeCheckList(this, false, 1, LT_ANY);
+    tc.TypeCheckList(this, LT_ANY);
     auto nf = tc.parser.natreg.FindNative(name);
     auto fld = tc.st.FieldUse(name);
     TypeRef type;
@@ -2841,7 +2800,7 @@ Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     tc.UpdateCurrentSid(sid);
     tc.TypeCheckId(sid);
     //if (sid->type->IsFunction()) sid->type = &tc.PreSpecializeFunction(sid->type->sf)->thistype;
-    tc.TypeCheckList(this, false, 1, LT_ANY);
+    tc.TypeCheckList(this, LT_ANY);
     tie(exptype, lt) = tc.TypeCheckDynCall(sid, this, sf, reqret);
     return this;
 }
@@ -2892,7 +2851,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             tc.TypeError(cat("return from \"", sf->parent->name,
                              "\" called out of context"), *this);
     }
-    auto never_returns = tc.NeverReturns(child);
+    auto never_returns = child->ReturnsOutOf();
     if (never_returns && make_void && sf->num_returns) {
         // A return with other returns inside of it that always bypass this return,
         // so should not contribute to return types.
@@ -2940,7 +2899,7 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckList(this, false, 1, LT_KEEP);
+    tc.TypeCheckList(this, LT_KEEP);
     if (giventype.utr.Null()) {
         if (Arity()) {
             // No type was specified.. first find union of all elements.
@@ -3107,7 +3066,7 @@ Node *EnumCoercion::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckList(this, false, 1, LT_ANY);
+    tc.TypeCheckList(this, LT_ANY);
     exptype = tc.st.NewTuple(children.size());
     for (auto [i, mrc] : enumerate(children))
         exptype->Set(i, mrc->exptype.get(), mrc->lt);
@@ -3163,6 +3122,54 @@ bool IsType::ConstVal(TypeChecker &tc, Value &val) const {
 
 bool EnumCoercion::ConstVal(TypeChecker &tc, Value &val) const {
     return child->ConstVal(tc, val);
+}
+
+bool Return::ReturnsOutOf() const {
+    return true;
+}
+
+bool Block::ReturnsOutOf() const {
+    return children.back()->ReturnsOutOf();
+}
+
+bool IfElse::ReturnsOutOf() const {
+    return truepart->ReturnsOutOf() && falsepart->ReturnsOutOf();
+}
+
+bool Switch::ReturnsOutOf() const {
+    auto have_default = false;
+    for (auto c : cases->children) {
+        auto cas = AssertIs<Case>(c);
+        if (cas->pattern->children.empty()) have_default = true;
+        if (!cas->body->ReturnsOutOf()) return false;
+    }
+    return have_default;
+}
+
+bool NativeCall::ReturnsOutOf() const {
+    // A function may end in "assert false" and have only its previous return statements
+    // taken into account.
+    if (nf->IsAssert()) {
+        auto i = Is<IntConstant>(children[0]);
+        return i && !i->integer;
+    }
+    return false;
+}
+
+bool Call::ReturnsOutOf() const {
+    // Have to be conservative for recursive calls since we're not done typechecking it.
+    if (sf->isrecursivelycalled ||
+        sf->method_of ||
+        sf->iscoroutine ||
+        sf->parent->istype) return false;
+    if (!sf->num_returns) return true;
+    if (sf->num_returns == 1) {
+        auto ret = AssertIs<Return>(sf->body->children.back());
+        assert(ret->sf == sf);
+        return ret->child->ReturnsOutOf();
+    }
+    // TODO: could also check num_returns > 1, but then have to scan all children.
+    return false;
 }
 
 }  // namespace lobster

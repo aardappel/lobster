@@ -34,7 +34,7 @@ def select(n:node):
 
 def unparent(n::node):
     parent = nil
-    for(children): _.unparent()
+    for children: _.unparent()
 
 select(root)
 

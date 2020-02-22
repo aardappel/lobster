@@ -26,7 +26,7 @@ struct NativeFun;
 struct SymbolTable;
 
 struct Node;
-struct List;
+struct Block;
 
 struct Function;
 struct SubFunction;
@@ -39,7 +39,6 @@ struct Ident : Named {
     bool single_assignment = true;  // not declared const but def only, exp may or may not be const
     bool constant = false;          // declared const
     bool static_constant = false;   // not declared const but def only, exp is const.
-    bool anonymous_arg = false;
     bool logvar = false;
 
     SpecIdent *cursid = nullptr;
@@ -311,7 +310,7 @@ struct SubFunction {
     ArgVector coyieldsave { 0 };
     TypeRef coresumetype;
     type_elem_t cotypeinfo = (type_elem_t)-1;
-    List *body = nullptr;
+    Block *body = nullptr;
     SubFunction *next = nullptr;
     Function *parent = nullptr;
     int subbytecodestart = 0;
@@ -486,20 +485,15 @@ struct SymbolTable {
         return ident;
     }
 
-    Ident *LookupDef(string_view name, Lex &lex, bool anonymous_arg, bool islocal,
-                     bool withtype) {
+    Ident *LookupDef(string_view name, Lex &lex, bool islocal, bool withtype) {
         auto sf = defsubfunctionstack.back();
-        auto existing_ident = Lookup(name);
-        if (anonymous_arg && existing_ident && existing_ident->cursid->sf_def == sf)
-            return existing_ident;
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
         ident = NewId(name, sf);
-        ident->anonymous_arg = anonymous_arg;
         (islocal ? sf->locals : sf->args).v.push_back(
             Arg(ident->cursid, type_any, withtype ? AF_WITHTYPE : AF_NONE));
-        if (existing_ident) {
+        if (Lookup(name)) {
             lex.Error("identifier redefinition / shadowing: " + ident->name);
         }
         idents[ident->name /* must be in value */] = ident;
@@ -542,16 +536,12 @@ struct SymbolTable {
         defsubfunctionstack.back()->logvarcallgraph = true;
     }
 
-    SubFunction *ScopeStart() {
+    void BlockScopeStart() {
         scopelevels.push_back(identstack.size());
         withstacklevels.push_back(withstack.size());
-        auto sf = CreateSubFunction();
-        defsubfunctionstack.push_back(sf);
-        return sf;
     }
 
-    void ScopeCleanup() {
-        defsubfunctionstack.pop_back();
+    void BlockScopeCleanup() {
         while (identstack.size() > scopelevels.back()) {
             auto ident = identstack.back();
             auto it = idents.find(ident->name);
@@ -563,6 +553,18 @@ struct SymbolTable {
         scopelevels.pop_back();
         while (withstack.size() > withstacklevels.back()) withstack.pop_back();
         withstacklevels.pop_back();
+    }
+
+    SubFunction *FunctionScopeStart() {
+        BlockScopeStart();
+        auto sf = CreateSubFunction();
+        defsubfunctionstack.push_back(sf);
+        return sf;
+    }
+
+    void FunctionScopeCleanup() {
+        defsubfunctionstack.pop_back();
+        BlockScopeCleanup();
     }
 
     void UnregisterStruct(const UDT *st, Lex &lex) {

@@ -211,13 +211,6 @@ run_test("misc"):
     try():
         recursive_exceptions(10)
 
-    // Define your own HOFs with lazy expressions, much like the built-in while loop:
-    def whilenot(cond:lazy_expression, body):
-        while not cond(): body()
-    var wnt = 0
-    whilenot wnt == 10: wnt++
-    assert wnt == 10
-
     let starttime = seconds_elapsed()
     for 10:
         7.factorial

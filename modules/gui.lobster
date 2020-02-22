@@ -263,9 +263,9 @@ private def button(id, f, do, dofocus, focusf):
                         // we're going to give this button focus on touch, and on desktop merely on hover.
                         focus_id = id
                         focusf()
-                    else: if mouse1 == 0 or key == 0:
+                    elif mouse1 == 0 or key == 0:
                         if actionsfxr: play_sfxr(actionsfxr)
-                        else: if actionwav: play_wav(actionwav)
+                        elif actionwav: play_wav(actionwav)
                         do()
 
 def button(f:fun, do:fun):                       button(hash(f), f, do, false): nil

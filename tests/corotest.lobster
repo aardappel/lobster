@@ -60,7 +60,7 @@ run_test("coro"):
 
     def refcoro(borrow, f):
         let ss = [ "A", "B", "C" ]
-        for(ss): f(_)
+        for ss: f(_)
         return "D"
     let borrow = "E"
     assert (coroutine_for(coroutine refcoro(borrow)): assert(_ + "_" is string)) == "D"

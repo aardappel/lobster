@@ -13,7 +13,7 @@ run_test("gradient"):
         let y = map(N): 0.0
         var w0 = 0.0
         var w1 = 0.0
-        for(n_epochs):
+        for n_epochs:
             var grad0 = 0.0
             var grad1 = 0.0
             for(N) i:

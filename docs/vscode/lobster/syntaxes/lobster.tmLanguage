@@ -52,7 +52,7 @@
             <key>name</key>
             <string>keyword.control.source.lobster</string>
             <key>match</key>
-            <string>\b(else)\b</string>
+            <string>\b(else|elif)\b</string>
         </dict>
         <dict>
             <key>name</key>

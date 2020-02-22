@@ -109,7 +109,7 @@ var color_domain_hi = log(M / N * 3)
 
 def reshuffle():
     for(N) i: for(N) j: matrix[N*i + j] = 0
-    for(M):
+    for M:
         let array = map(N): _
         shuffle(array)
         for(array) i, j:

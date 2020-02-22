@@ -67,7 +67,7 @@ run_test("smallpt"):
         let n = normalize(x-obj.p)
         let nl = if n.dot(r.d)<0: n else: n*-1
         var f = obj.c
-        let p = if f.x>f.y and f.x>f.z: f.x else: if f.y>f.z: f.y else: f.z // max refl
+        let p = if f.x>f.y and f.x>f.z: f.x elif f.y>f.z: f.y else: f.z // max refl
         if ++depth>5: if rnd_float()<p: f = f*(1/p) else: return obj.e  //R.R.
         if obj.refl == DIFF:                  // Ideal DIFFUSE reflection
             let r1 = 360*rnd_float()
@@ -78,7 +78,7 @@ run_test("smallpt"):
             let v = w.cross(u)
             let d = normalize(u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2))
             return obj.e + f * radiance(Ray { x, d },depth)
-        else: if obj.refl == SPEC:            // Ideal SPECULAR reflection
+        elif obj.refl == SPEC:            // Ideal SPECULAR reflection
             return obj.e + f * radiance(Ray { x, r.d-n*2*n.dot(r.d) },depth)
         let reflRay = Ray {x, r.d-n*2*n.dot(r.d)}     // Ideal dielectric REFRACTION
         let into = n.dot(nl)>0                // Ray from outside going in?

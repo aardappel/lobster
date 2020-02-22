@@ -445,25 +445,25 @@ let f = def(arg1, arg2): body
 You call these just like any other function, e.g. `f(1, 2)`. You currently
 must call them using a variable (not any expression, not even a field).
 
-The full `function` syntax is infrequently used however, because most function
+The full `def` syntax is infrequently used however, because most function
 values are created to be passed to other functions, and Lobster has a special
 syntax for this situation that is meant to mimic control structures in other
 languages. Any function call may be followed by one or more function values,
 where the `def` keyword is omitted:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-for(10) (i): print(i)
+g(10) (i): print(i)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here, the function `for` is called with 2 arguments, the first is `10`, and the
+Here, the function `g` is called with 2 arguments, the first is `10`, and the
 second is the function value `def(i): print(i)`. Lobster allows three more
 levels of further simplification of the syntax if the arguments do not contain
 type annotations:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-for(10) i: print(i)
-for(10): print(_)
-for 10: print _
+g(10) i: print(i)
+g(10): print(_)
+g 10: print _
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can leave out the parentheses, and you may use anonymous arguments, which
@@ -477,27 +477,33 @@ have any argument declarations.
 
 This style of syntax is intended to make each function that takes a function as
 argument (a *higher order function*) have the convenient syntax of a control
-structure, since that's what those functions usually are meant to be anyway. In
-fact, Lobster's  built-in control structures `if` `for` and `while` are actually
-parsed just like any other function, and have no special syntactical status
-(you'll notice they're not part of the language grammar above).
+structure, since that's what those functions usually are meant to be anyway.
+Lobster's  built-in control structures `if` `for` and `while` have syntax
+that is closely compatible with this function call syntax (and in the case of
+`for` allow the same argument simplifications).
 
 As an example of how to pass more than one function value, let's see an example
-for `if`:
+that is similar to `if`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var nat = if a < 0: 0 else: a
+var nat = ifnot a >= 0: 0 otherwise: a
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here we see that all except the first function value must be preceded by the
-name of the argument they're specifying. In Lobster, `else` is not a keyword, it
-simply is the name of the 3rd argument of `if`. Similarly, with indentation:
+Similarly, with indentation:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if a < 0:
+ifnot a >= 0:
     print "negative numbers are scary!"
 else:
     print "a = " + a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here we see that all except the first function value must be preceded by the
+name of the argument they're specifying. You'd define `ifnot` like:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def ifnot(cond, then, otherwise):
+    if not cond: then() else: otherwise()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Writing your own functions that take function values is the key to getting the
@@ -878,21 +884,40 @@ More details on Lobster's [memory management](memory_management.html).
 Control Structures
 -----------------
 
-As notes, all of these follow general function syntax (except `switch`),
-but are otherwise treated specially by the language.
+As noted, all of these follow closely the function call syntax introduced above
+as much as possible, but are otherwise treated specially by the language.
 
-We've already seen `if`, and it functions quite like you expect. The second
-function argument is optional.
+`if` may be followed by multiple `elif` blocks and a single `else` block:
 
-The loop constructs `for` (built-in), `map`, `filter`, and `exists` all function similarly
-in that the iteration argument can be an int N (iterate 0..N-1), a string (each
-byte value), or a vector (each element). They all supply 0, 1 (the element) or 2
-(element, index) values to the function value, depending on the function value.
-`for` returns void, `map` simply
-returns all return values in a vector, `filter` returns a vector of all elements
-for which the call returned a true value, and exists returns the first element
-for which the call returns true (and doesn't iterate further!) or `false`
-otherwise.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if a < 0:
+    print "negativity not allowed!"
+elif a < 10:
+    print "single digit!"
+elif a < 100:
+    print "double digit!"
+else:
+    print "way too big!"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`elif` is simply short for writing `else: if`. You can also write these on a single
+line, which is only recommended when very short, e.g. `if a < 0: 0 else: a`
+
+`for` is the only built-in construct taking 0 to 2 arguments to the block: the element
+being iterated over, and iteration index.
+
+We can iterate over vectors (each element), strings (each byte), or integers (values
+0..N-1):
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+for("hello") a, i:
+    print i + ": " + a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here `a` will contain the 5 characters and `i` will be just `0` to `4`.
+
+The module `std` contains further useful loop constructs on top of `for`, like
+`map`, `filter`, and `exists` etc.
 
 `while` is an odd function, since it is an exception to the rule of Lobster
 syntax:
@@ -919,15 +944,15 @@ than once yet does not use / cannot use the block `{}` syntax. This exception is
 carried over in Lobster. This is not great for readability so isn't generally
 used elsewhere.
 
-`while` returns void. A
-similar function `collectwhile` returns a vector of all body return values.
+`while` returns void. A similar function int module `std` called `collectwhile`
+returns a vector of all body return values.
 
 Many other functions that look like regular functions are actually also control
 structures, like many of the graphics function that change the current rendering
 state. An example is `gl_translate`, that optionally takes a body, and will
 run the body and restore the previous transform afterwards.
 
-`switch` has its own special syntax, since it does a lot of things different:
+`switch` has special syntax, since it does a lot of things different:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 var st = switch i:
@@ -948,7 +973,7 @@ control structure. For now, use `return` (or `return` `from`), e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 do():
-    for(10):
+    for 10:
         if x: return false from do
     true
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

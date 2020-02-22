@@ -299,21 +299,24 @@ struct Lex : LoadedFile {
                             if (sattr == "default") return T_DEFAULT;
                             break;
                         case 'e':
+                            if (sattr == "else") return T_ELSE;
+                            if (sattr == "elif") return T_ELIF;
                             if (sattr == "enum") return T_ENUM;
                             if (sattr == "enum_flags") return T_ENUM_FLAGS;
                             break;
                         case 'f':
                             if (sattr == "float") return T_FLOATTYPE;
+                            if (sattr == "for") return T_FOR;
                             if (sattr == "from") return T_FROM;
                             break;
                         case 'i':
                             if (sattr == "int") return T_INTTYPE;
+                            if (sattr == "if") return T_IF;
                             if (sattr == "import") return T_INCLUDE;
                             if (sattr == "is") return T_IS;
                             break;
                         case 'l':
                             if (sattr == "let") return T_CONST;
-                            if (sattr == "lazy_expression") return T_LAZYEXP;
                             break;
                         case 'n':
                             if (sattr == "nil") return T_NIL;
@@ -343,6 +346,9 @@ struct Lex : LoadedFile {
                         case 'v':
                             if (sattr == "void") return T_VOIDTYPE;
                             if (sattr == "var") return T_VAR;
+                            break;
+                        case 'w':
+                            if (sattr == "while") return T_WHILE;
                             break;
                     }
                     return T_IDENT;

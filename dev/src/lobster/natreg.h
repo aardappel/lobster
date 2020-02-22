@@ -217,16 +217,15 @@ TypeRef WrapKnown(TypeRef elem, ValueType with);
 
 enum ArgFlags {
     AF_NONE               = 0,
-    AF_EXPFUNVAL          = 1 << 0,
-    NF_SUBARG1            = 1 << 1,
-    NF_SUBARG2            = 1 << 2,
-    NF_SUBARG3            = 1 << 3,
-    NF_ANYVAR             = 1 << 4,
-    NF_CORESUME           = 1 << 5,
-    AF_WITHTYPE           = 1 << 6,
-    NF_CONVERTANYTOSTRING = 1 << 7,
-    NF_PUSHVALUEWIDTH     = 1 << 8,
-    NF_BOOL               = 1 << 9,
+    NF_SUBARG1            = 1 << 0,
+    NF_SUBARG2            = 1 << 1,
+    NF_SUBARG3            = 1 << 2,
+    NF_ANYVAR             = 1 << 3,
+    NF_CORESUME           = 1 << 4,
+    AF_WITHTYPE           = 1 << 5,
+    NF_CONVERTANYTOSTRING = 1 << 6,
+    NF_PUSHVALUEWIDTH     = 1 << 7,
+    NF_BOOL               = 1 << 8,
 };
 DEFINE_BITWISE_OPERATORS_FOR_ENUM(ArgFlags)
 
@@ -273,7 +272,6 @@ struct Narg : Typed {
                 case '2': flags = flags | NF_SUBARG2; break;
                 case '3': flags = flags | NF_SUBARG3; break;
                 case '*': flags = flags | NF_ANYVAR; break;
-                case '@': flags = flags | AF_EXPFUNVAL; break;
                 case '%': flags = flags | NF_CORESUME; break; // FIXME: make a vm op.
                 case 's': flags = flags | NF_CONVERTANYTOSTRING; break;
                 case 'w': flags = flags | NF_PUSHVALUEWIDTH; break;

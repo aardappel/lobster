@@ -31,6 +31,8 @@ struct Parser {
     vector<ForwardFunctionCall> forwardfunctioncalls;
     bool call_noparens = false;
     set<string> pakfiles;
+    struct BlockScope { Block *block; int for_nargs; };
+    vector<BlockScope> block_stack;
 
     Parser(NativeRegistry &natreg, string_view _src, SymbolTable &_st, string_view _stringsource)
         : natreg(natreg), lex(_src, _st.filenames, _stringsource), st(_st) {}
@@ -48,24 +50,24 @@ struct Parser {
     }
 
     void Parse() {
-        auto sf = st.ScopeStart();
+        auto sf = st.FunctionScopeStart();
         st.toplevel = sf;
         auto &f = st.CreateFunction("__top_level_expression", "");
         f.overloads.push_back(nullptr);
         sf->SetParent(f, f.overloads[0]);
         f.anonymous = true;
         lex.Include("stdtype.lobster");
-        sf->body = ParseStatements(T_ENDOFFILE);
+        sf->body = new Block(lex);
+        ParseStatements(sf->body, T_ENDOFFILE);
         ImplicitReturn(sf);
-        st.ScopeCleanup();
+        st.FunctionScopeCleanup();
         root = new Call(lex, sf);
         assert(forwardfunctioncalls.empty());
     }
 
-    List *ParseStatements(TType terminator) {
-        auto list = new List(lex);
+    void ParseStatements(Block *block, TType terminator) {
         for (;;) {
-            ParseTopExp(list);
+            ParseTopExp(block);
             if (lex.token == T_ENDOFINCLUDE) {
                 st.EndOfInclude();
                 lex.PopIncludeContinue();
@@ -75,16 +77,15 @@ struct Parser {
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
         Expect(terminator);
-        auto b = list->children.back();
+        auto b = block->children.back();
         if (Is<EnumRef>(b) || Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
-            if (terminator == T_ENDOFFILE) list->Add(new IntConstant(lex, 0));
+            if (terminator == T_ENDOFFILE) block->Add(new IntConstant(lex, 0));
             else Error("last expression in list can\'t be a definition");
         }
-        CleanupStatements(list);
-        return list;
+        CleanupStatements(block);
     }
 
-    void CleanupStatements(List *list) {
+    void CleanupStatements(Block *list) {
         ResolveForwardFunctionCalls();
         for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
@@ -109,7 +110,7 @@ struct Parser {
         };
     }
 
-    void ParseTopExp(List *list, bool isprivate = false) {
+    void ParseTopExp(Block *list, bool isprivate = false) {
         switch(lex.token) {
             case T_NAMESPACE:
                 if (st.scopelevels.size() != 1 || isprivate)
@@ -196,7 +197,7 @@ struct Parser {
             case T_CONST: {
                 auto isconst = lex.token == T_CONST;
                 lex.Next();
-                auto def = new Define(lex, nullptr, nullptr);
+                auto def = new Define(lex, nullptr);
                 for (;;) {
                     auto idname = ExpectId();
                     bool withtype = lex.token == T_TYPEIN;
@@ -205,7 +206,7 @@ struct Parser {
                         lex.Next();
                         type = ParseType(withtype);
                     }
-                    auto id = st.LookupDef(idname, lex, false, true, withtype);
+                    auto id = st.LookupDef(idname, lex, true, withtype);
                     if (isconst)  id->constant = true;
                     if (isprivate) id->isprivate = true;
                     def->sids.push_back({ id->cursid, type });
@@ -243,7 +244,7 @@ struct Parser {
         }
     }
 
-    void ParseTypeDecl(bool is_struct, bool isprivate, List *parent_list) {
+    void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list) {
         lex.Next();
         auto sname = st.MaybeNameSpace(ExpectId(), !isprivate);
         UDT *udt = &st.StructDecl(sname, lex, is_struct);
@@ -392,7 +393,7 @@ struct Parser {
         auto idname = st.MaybeNameSpace(ExpectId(), !isprivate && !self);
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
-        return ParseFunction(&idname, isprivate, true, true, "", false, false, self);
+        return ParseFunction(&idname, isprivate, true, true, "", self);
     }
 
     void ImplicitReturn(SubFunction *sf) {
@@ -425,11 +426,20 @@ struct Parser {
         sf->giventypes.push_back({ &ng->thistype });
     }
 
-    Node *ParseFunction(string_view *name,
-                        bool isprivate, bool parens, bool parseargs,
-                        string_view context,
-                        bool expfunval = false, bool parent_noparens = false, UDT *self = nullptr) {
-        auto sf = st.ScopeStart();
+    void ParseBody(Block *block, int for_nargs) {
+        block_stack.push_back({ block, for_nargs });
+        if (IsNext(T_INDENT)) {
+            return ParseStatements(block, T_DEDENT);
+        } else {
+            block->children.push_back(ParseExpStat());
+            CleanupStatements(block);
+        }
+        block_stack.pop_back();
+    }
+
+    Node *ParseFunction(string_view *name, bool isprivate, bool parens, bool parseargs,
+                        string_view context, UDT *self = nullptr) {
+        auto sf = st.FunctionScopeStart();
         st.bound_typevars_stack.push_back(&sf->generics);
         if (name) {
             // Parse generic params if any.
@@ -449,7 +459,7 @@ struct Parser {
         size_t nargs = 0;
         if (self) {
             nargs++;
-            auto id = st.LookupDef("this", lex, false, false, true);
+            auto id = st.LookupDef("this", lex, false, true);
             auto &arg = sf->args.v.back();
             arg.type = &self->unspecialized_type;
             sf->giventypes.push_back({ arg.type });
@@ -461,28 +471,22 @@ struct Parser {
             for (;;) {
                 ExpectId();
                 nargs++;
-                auto id = st.LookupDef(lastid, lex, false, false, false);
-                auto &arg = sf->args.v.back();
                 bool withtype = lex.token == T_TYPEIN;
+                auto id = st.LookupDef(lastid, lex, false, withtype);
+                auto &arg = sf->args.v.back();
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
-                    arg.type = ParseType(withtype, nullptr, &sf->args.v.back()).utr;
-                    if (arg.type == type_function_null) {
-                        // FIXME: needed just for T_LAZYEXP.
-                        GenImplicitGenericForLastArg();
-                    } else {
-                        if (withtype) st.AddWithStruct(arg.type, id, lex, sf);
-                        if (nargs == 1 && arg.type->t == V_UUDT) {
-                            non_inline_method = true;
-                            self = arg.type->spec_udt->udt;
-                            st.bound_typevars_stack.push_back(&self->generics);
-                        }
-                        sf->giventypes.push_back({ arg.type });
+                    arg.type = ParseType(withtype, nullptr).utr;
+                    if (withtype) st.AddWithStruct(arg.type, id, lex, sf);
+                    if (nargs == 1 && arg.type->t == V_UUDT) {
+                        non_inline_method = true;
+                        self = arg.type->spec_udt->udt;
+                        st.bound_typevars_stack.push_back(&self->generics);
                     }
+                    sf->giventypes.push_back({ arg.type });
                 } else {
                     GenImplicitGenericForLastArg();
                 }
-                if (withtype) arg.flags |= AF_WITHTYPE;
                 if (!IsNext(T_COMMA)) break;
             }
         }
@@ -500,30 +504,28 @@ struct Parser {
         }
         f.overloads.push_back(nullptr);
         sf->SetParent(f, f.overloads.back());
-        if (!expfunval) {
-            if (IsNext(T_CODOT)) {  // Return type decl.
-                sf->returngiventype = ParseTypes(sf, LT_KEEP);
-                sf->returntype = sf->returngiventype.utr;
+        if (IsNext(T_CODOT)) {  // Return type decl.
+            sf->returngiventype = ParseTypes(sf, LT_KEEP);
+            sf->returntype = sf->returngiventype.utr;
+        }
+        if (!IsNext(T_COLON)) {
+            // This must be a function type.
+            if (lex.token == T_IDENT || !name) Expect(T_COLON);
+            if (f.istype || f.overloads.size() > 1)
+                Error("redefinition of function type: " + *name);
+            f.istype = true;
+            sf->typechecked = true;
+            for (auto [i, arg] : enumerate(sf->args.v)) {
+                if (st.IsGeneric(sf->giventypes[i]))
+                    Error("function type arguments can't be generic");
+                // No idea what the function is going to be, so have to default to borrow.
+                arg.sid->lt = LT_BORROW;
             }
-            if (!IsNext(T_COLON)) {
-                // This must be a function type.
-                if (lex.token == T_IDENT || !name) Expect(T_COLON);
-                if (f.istype || f.overloads.size() > 1)
-                    Error("redefinition of function type: " + *name);
-                f.istype = true;
-                sf->typechecked = true;
-                for (auto [i, arg] : enumerate(sf->args.v)) {
-                    if (st.IsGeneric(sf->giventypes[i]))
-                        Error("function type arguments can't be generic");
-                    // No idea what the function is going to be, so have to default to borrow.
-                    arg.sid->lt = LT_BORROW;
-                }
-                if (sf->returngiventype.utr.Null())
-                    Error("missing return type or : in function definition header");
-                if (!sf->generics.empty())
-                    Error("function type cannot have generics");
-                sf->reqret = sf->returntype->NumValues();
-            }
+            if (sf->returngiventype.utr.Null())
+                Error("missing return type or : in function definition header");
+            if (!sf->generics.empty())
+                Error("function type cannot have generics");
+            sf->reqret = sf->returntype->NumValues();
         }
         if (name) {
             if (f.overloads.size() > 1) {
@@ -547,29 +549,14 @@ struct Parser {
         }
         // Parse the body.
         if (!f.istype) {
-            if (expfunval) {
-                sf->body = (new List(lex))->Add(ParseExp(parent_noparens));
-            } else if (IsNext(T_INDENT)) {
-                sf->body = ParseStatements(T_DEDENT);
-            } else {
-                sf->body = new List(lex);
-                sf->body->children.push_back(ParseExpStat());
-                CleanupStatements(sf->body);
-            }
+            sf->body = new Block(lex);
+            ParseBody(sf->body, -1);
             ImplicitReturn(sf);
-        }
-        for (auto &arg : sf->args.v) {
-            if (arg.sid->id->anonymous_arg) {
-                if (name) Error("cannot use anonymous argument: " + arg.sid->id->name +
-                    " in named function: " + f.name, sf->body);
-                if (nargs) Error("cannot mix anonymous argument: " + arg.sid->id->name +
-                    " with declared arguments in function", sf->body);
-            }
         }
         if (name) functionstack.pop_back();
         if (non_inline_method) st.bound_typevars_stack.pop_back();
         st.bound_typevars_stack.pop_back();
-        st.ScopeCleanup();
+        st.FunctionScopeCleanup();
         return new FunRef(lex, sf);
     }
 
@@ -587,8 +574,7 @@ struct Parser {
         return dest;
     }
 
-    UnresolvedTypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr,
-                                Arg *funarg = nullptr) {
+    UnresolvedTypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr) {
         TypeRef dest;
         switch(lex.token) {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
@@ -596,14 +582,6 @@ struct Parser {
             case T_STRTYPE:   dest = type_string;     lex.Next(); break;
             case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
-            case T_LAZYEXP: {
-                lex.Next();
-                if (!funarg) {
-                  Error("lazy_expression cannot be used outside function signature");
-                }
-                funarg->flags = ArgFlags(funarg->flags | AF_EXPFUNVAL);
-                return { type_function_null };
-            }
             case T_IDENT: {
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {
@@ -705,13 +683,7 @@ struct Parser {
         }
         if (needscomma) Expect(T_COMMA);
         CheckArg(args, thisarg, fname);
-        if (args && (args->GetFlags(thisarg) & AF_EXPFUNVAL)) {
-            list->Add(ParseFunction(nullptr, false, false, false, args->GetName(thisarg), true,
-                                    noparens));
-        } else {
-            list->Add(ParseExp(noparens));
-        }
-
+        list->Add(ParseExp(noparens));
         if (noparens) {
             if (lex.token == T_COLON)
                 ParseTrailingFunctionValues(list, coroutine, args, thisarg + 1, fname);
@@ -911,26 +883,6 @@ struct Parser {
         }
     }
 
-    Node *BuiltinControlClosure(Node *funval, size_t maxargs) {
-        size_t clnargs = 0;
-        auto fr = Is<FunRef>(funval);
-        if (fr)
-            clnargs = fr->sf->parent->nargs();
-        else if (!Is<DefaultVal>(funval))
-            Error("illegal body", funval);
-        if (clnargs > maxargs)
-            Error(cat("body has ", clnargs - maxargs, " parameters too many"), funval);
-        if (Is<DefaultVal>(funval)) return funval;
-        assert(fr);
-        auto call = new Call(lex, fr->sf);
-        delete fr;
-        if (clnargs > 0) {
-            call->Add(new ForLoopElem(lex));
-            if (clnargs > 1) call->Add(new ForLoopCounter(lex));
-        }
-        return call;
-    }
-
     Node *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
                             bool coroutine, bool noparens,
         vector<UnresolvedTypeRef> *specializers = nullptr) {
@@ -959,24 +911,6 @@ struct Parser {
                 }
             }
             argsok:
-            // Special formats for these functions, for better type checking and performance
-            auto convertnc = [&](Node *e) {
-                nc->children.clear();
-                delete nc;
-                return e;
-            };
-            if (nf->name == "if") {
-                return convertnc(new If(lex, nc->children[0],
-                                             BuiltinControlClosure(nc->children[1], 0),
-                                             BuiltinControlClosure(nc->children[2], 0)));
-
-            } else if (nf->name == "while") {
-                return convertnc(new While(lex, BuiltinControlClosure(nc->children[0], 0),
-                                                BuiltinControlClosure(nc->children[1], 0)));
-            } else if (nf->name == "for") {
-                return convertnc(new For(lex, nc->children[0],
-                                              BuiltinControlClosure(nc->children[1], 2)));
-            }
             return nc;
         }
         auto id = st.Lookup(idname);
@@ -1230,6 +1164,27 @@ struct Parser {
                 pakfiles.insert(s);
                 return new StringConstant(lex, s);
             }
+            case T_IF: {
+                lex.Next();
+                return ParseIf();
+            }
+            case T_WHILE: {
+                lex.Next();
+                auto cond = ParseExp(true);
+                return new While(lex, cond, ParseBlock());
+            }
+            case T_FOR: {
+                lex.Next();
+                Node *iter;
+                if (IsNext(T_LEFTPAREN)) {
+                    iter = ParseExp(true);
+                    Expect(T_RIGHTPAREN);
+                    return new For(lex, iter, ParseBlock(0, true));
+                } else {
+                    iter = ParseExp(true);
+                    return new For(lex, iter, ParseBlock(0));
+                }
+            }
             case T_SWITCH: {
                 lex.Next();
                 auto value = ParseExp(true);
@@ -1256,9 +1211,7 @@ struct Parser {
                             Expect(T_COMMA);
                         }
                     }
-                    auto body = BuiltinControlClosure(
-                        ParseFunction(nullptr, false, false, false, "case"), 0);
-                    cases->Add(new Case(lex, pattern, body));
+                    cases->Add(new Case(lex, pattern, ParseBlock()));
                     if (!IsNext(T_LINEFEED)) break;
                     if (lex.token == T_DEDENT) break;
                 }
@@ -1269,6 +1222,56 @@ struct Parser {
                 Error("illegal start of expression: " + lex.TokStr());
                 return nullptr;
         }
+    }
+
+    Node *ParseIf() {
+        auto cond = ParseExp(true);
+        auto thenp = ParseBlock();
+        auto islf = IsNext(T_LINEFEED);
+        if (IsNext(T_ELIF)) {
+            return new IfElse(lex, cond, thenp, (new Block(lex))->Add(ParseIf()));
+        } else if (IsNext(T_ELSE)) {
+            return new IfElse(lex, cond, thenp, ParseBlock());
+        } else {
+            lex.PushCur();
+            if (islf) lex.Push(T_LINEFEED);
+            lex.Next();
+            return new IfThen(lex, cond, thenp);
+        }
+    }
+
+    Block *ParseBlock(int for_args = -1, bool parse_args = false) {
+        st.BlockScopeStart();
+        auto block = new Block(lex);
+        if (parse_args && lex.token != T_COLON) {
+            auto parens = IsNext(T_LEFTPAREN);
+            for (;;) {
+                ExpectId();
+                for_args++;
+                bool withtype = lex.token == T_TYPEIN;
+                auto id = st.LookupDef(lastid, lex, true, withtype);
+                id->single_assignment = false;  // Mostly to stop warning that it is constant.
+                UnresolvedTypeRef type = { nullptr };
+                if (parens && (lex.token == T_COLON || withtype)) {
+                    lex.Next();
+                    type = ParseType(withtype, nullptr);
+                    if (withtype) st.AddWithStruct(type.utr, id, lex, st.defsubfunctionstack.back());
+                }
+                Node *init = nullptr;
+                if (for_args == 1) init = new ForLoopElem(lex);
+                else if (for_args == 2) init = new ForLoopCounter(lex);
+                else Error("for loop takes at most an element and index variable");
+                auto def = new Define(lex, init);
+                def->sids.push_back({ id->cursid, type });
+                block->Add(def);
+                if (!IsNext(T_COMMA)) break;
+            }
+            if (parens) Expect(T_RIGHTPAREN);
+        }
+        Expect(T_COLON);
+        ParseBody(block, for_args);
+        st.BlockScopeCleanup();
+        return block;
     }
 
     void ParseVector(const function<void()> &f, TType closing) {
@@ -1376,9 +1379,35 @@ struct Parser {
             return ParseFunctionCall(f, nf, idname, nullptr, false, false, &specializers);
         // Check for implicit variable.
         if (idname[0] == '_') {
-            auto id = st.LookupDef(idname, lex, true, false, false);
-            if (st.defsubfunctionstack.back()->args.v.back().type == type_any)
-                GenImplicitGenericForLastArg();
+            auto &bs = block_stack.back();
+            auto id = st.Lookup(idname);
+            auto sf = st.defsubfunctionstack.back();
+            if (!id || id->cursid->sf_def != sf) {
+                if (bs.for_nargs >= 0) {
+                    id = st.LookupDef(idname, lex, true, false);
+                    if (bs.for_nargs > 0) {
+                        Error("cannot add implicit argument to for with existing arguments: " +
+                              idname);
+                    }
+                    id->constant = true;
+                    auto def = new Define(lex, new ForLoopElem(lex));
+                    def->sids.push_back({ id->cursid, type });
+                    bs.block->children.insert(bs.block->children.begin(), def);
+                    bs.for_nargs++;
+                } else {
+                    id = st.LookupDef(idname, lex, false, false);
+                    if (st.defsubfunctionstack.size() <= 1)
+                        Error("cannot add implicit argument to top level: " + idname);
+                    if (!sf->parent->anonymous)
+                        Error("cannot use implicit argument: " + idname +
+                            " in named function: " + sf->parent->name, sf->body);
+                    if (sf->args.v[0].sid->id->name[0] != '_')
+                        Error("cannot mix implicit argument: " + idname +
+                            " with declared arguments in function", sf->body);
+                    if (st.defsubfunctionstack.back()->args.v.back().type == type_any)
+                        GenImplicitGenericForLastArg();
+                }
+            }
             return new IdentRef(lex, id->cursid);
         }
         auto id = st.Lookup(idname);

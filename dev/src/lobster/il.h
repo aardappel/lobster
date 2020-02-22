@@ -92,7 +92,7 @@ enum MathOp {
 
 #define ILJUMPNAMES \
     F(JUMP, 1) \
-    F(JUMPFAIL, 1) F(JUMPFAILR, 1) F(JUMPFAILN, 1) \
+    F(JUMPFAIL, 1) F(JUMPFAILR, 1) \
     F(JUMPNOFAIL, 1) F(JUMPNOFAILR, 1) \
     F(IFOR, 1) F(SFOR, 1) F(VFOR, 1)
 

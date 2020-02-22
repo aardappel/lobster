@@ -127,34 +127,6 @@ nfr("get_line", "", "", "S",
         return Value(vm.NewString(buf));
     });
 
-nfr("if", "cond,then,else", "ALL?", "A",
-    "evaluates then or else depending on cond, else is optional",
-    [](VM &, Value &c, Value &t, Value &e) {
-        assert(0);  // Special case implementation in the VM
-        (void)c;
-        (void)t;
-        (void)e;
-        return Value();
-    });
-
-nfr("while", "cond,do", "L@L", "A",
-    "evaluates body while cond (converted to a function) holds true, returns last body value",
-    [](VM &, Value &c, Value &b) {
-        assert(0);  // Special case implementation in the VM
-        (void)c;
-        (void)b;
-        return Value();
-    });
-
-nfr("for", "iter,do", "AL", "",
-    "iterates over int/vector/string, body may take [ element [ , index ] ] arguments",
-    [](VM &, Value &iter, Value &body) {
-        assert(0);  // Special case implementation in the VM
-        (void)iter;
-        (void)body;
-        return Value();
-    });
-
 nfr("append", "xs,ys", "A]*A]*1", "A]1",
     "creates a new vector by appending all elements of 2 input vectors",
     [](VM &vm, Value &v1, Value &v2) {

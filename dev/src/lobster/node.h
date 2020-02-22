@@ -32,6 +32,7 @@ struct Node {
     virtual Node **Children() { return nullptr; }
     virtual Node *Clone() = 0;
     virtual bool IsConstInit() const { return false; }
+    virtual bool ReturnsOutOf() const { return false; }
     virtual string_view Name() const = 0;
     virtual void Dump(string &sd) const { sd += Name(); }
     void Iterate(IterateFun f) {
@@ -56,7 +57,7 @@ struct Node {
     // Also sets correct scalar values.
     virtual bool ConstVal(TypeChecker &, Value &) const { return false; }
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
-    virtual Node *Optimize(Optimizer &opt, Node *parent_maybe);
+    virtual Node *Optimize(Optimizer &opt);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
   protected:
     Node(const Line &ln) : line(ln) {}
@@ -88,12 +89,13 @@ template<typename T> T *DoClone(T *dest, T *src) {
 }
 
 #define SHARED_SIGNATURE_NO_TT(NAME, STR, SE) \
+  protected: \
+    NAME() {}; \
+  public: \
     string_view Name() const { return STR; } \
     bool SideEffect() const { return SE; } \
     void Generate(CodeGen &cg, size_t retval) const; \
-    Node *Clone() { return DoClone<NAME>(new NAME(), this); } \
-  protected: \
-    NAME() {};  // Only used by clone.
+    Node *Clone() { return DoClone<NAME>(new NAME(), this); }
 #define SHARED_SIGNATURE(NAME, STR, SE) \
     Node *TypeCheck(TypeChecker &tc, size_t reqret); \
     SHARED_SIGNATURE_NO_TT(NAME, STR, SE)
@@ -148,16 +150,19 @@ struct NAME : BinOp { \
     METHODS \
 };
 
-#define TERNARY_NODE(NAME, STR, SE, A, B, C, METHODS) \
+#define TERNARY_NODE_T(NAME, STR, SE, AT, A, BT, B, CT, C, METHODS) \
 struct NAME : Node { \
-    Node *A, *B, *C; \
-    NAME(const Line &ln, Node *_a, Node *_b, Node *_c) : Node(ln), A(_a), B(_b), C(_c) {} \
+    AT *A; BT *B; CT *C; \
+    NAME(const Line &ln, AT *_a, BT *_b, CT *_c) : Node(ln), A(_a), B(_b), C(_c) {} \
     ~NAME() { delete A; delete B; delete C; } \
     size_t Arity() const { return 3; } \
     Node **Children() { return &A; } \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
 };
+
+#define TERNARY_NODE(NAME, STR, SE, A, B, C, METHODS) \
+    TERNARY_NODE_T(NAME, STR, SE, Node, A, Node, B, Node, C, METHODS)
 
 #define NARY_NODE(NAME, STR, SE, METHODS) \
 struct NAME : Node { \
@@ -178,8 +183,9 @@ struct TypeAnnotation : Node {
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
 
+#define RETURNSMETHOD bool ReturnsOutOf() const;
 #define CONSTVALMETHOD bool ConstVal(TypeChecker &tc, Value &val) const;
-#define OPTMETHOD Node *Optimize(Optimizer &opt, Node *parent_maybe);
+#define OPTMETHOD Node *Optimize(Optimizer &opt);
 
 // generic node types
 NARY_NODE(List, "list", false, )
@@ -231,13 +237,14 @@ COER_NODE(ToFloat, "tofloat")
 COER_NODE(ToString, "tostring")
 COER_NODE(ToBool, "tobool")
 COER_NODE(ToInt, "toint")
-TERNARY_NODE(If, "if", false, condition, truepart, falsepart, OPTMETHOD)
-BINARY_NODE(While, "while", false, condition, body, )
-BINARY_NODE(For, "for", false, iter, body, )
+NARY_NODE(Block, "block", false, RETURNSMETHOD)
+BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, OPTMETHOD)
+TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, OPTMETHOD RETURNSMETHOD)
+BINARY_NODE_T(While, "while", false, Node, condition, Block, body, )
+BINARY_NODE_T(For, "for", false, Node, iter, Block, body, )
 ZERO_NODE(ForLoopElem, "for loop element", false, )
 ZERO_NODE(ForLoopCounter, "for loop counter", false, )
-NARY_NODE(Inlined, "inlined", false, )
-BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, )
+BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, RETURNSMETHOD)
 BINARY_NODE_T(Case, "case", false, List, pattern, Node, body, )
 BINARY_NODE(Range, "range", false, start, end, )
 
@@ -352,6 +359,7 @@ struct Call : GenericCall {
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(Call, "call", true)
     OPTMETHOD
+    RETURNSMETHOD
 };
 
 struct DynCall : List {
@@ -373,6 +381,7 @@ struct NativeCall : GenericCall {
     void Dump(string &sd) const { sd += nf->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
+    RETURNSMETHOD
 };
 
 struct Return : Unary {
@@ -381,6 +390,7 @@ struct Return : Unary {
     Return(const Line &ln, Node *_a, SubFunction *sf, bool make_void)
         : Unary(ln, _a), sf(sf), make_void(make_void) {}
     SHARED_SIGNATURE(Return, TName(T_RETURN), true)
+    RETURNSMETHOD
 };
 
 struct MultipleReturn : List {
@@ -397,9 +407,7 @@ struct AssignList : List {
 
 struct Define : Unary {
     vector<pair<SpecIdent *, UnresolvedTypeRef>> sids;
-    Define(const Line &ln, SpecIdent *sid, Node *_a) : Unary(ln, _a) {
-        if (sid) sids.push_back({ sid, { nullptr }});
-    }
+    Define(const Line &ln, Node *_a) : Unary(ln, _a) {}
     void Dump(string &sd) const {
         for (auto p : sids) append(sd, p.first->id->name, " ");
         sd += Name();
@@ -441,11 +449,6 @@ struct ToLifetime : Coercion {
     void Dump(string &sd) const { append(sd, Name(), "<", incref, "|", decref, ">"); }
     SHARED_SIGNATURE_NO_TT(ToLifetime, "lifetime change", true)
 };
-
-template<typename T> Node *Forward(Node *n) {
-    if (auto t = Is<T>(n)) return t->child;
-    return n;
-}
 
 inline string DumpNode(Node &n, int indent, bool single_line) {
     string sd;
