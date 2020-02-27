@@ -2857,10 +2857,12 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (ir) {
         tc.UpdateCurrentSid(ir->sid);  // Ahead of time, because ir not typechecked yet.
         if (ir->sid->lt == LT_KEEP &&
+            IsRefNil(ir->sid->type->t) &&
             ir->sid->sf_def == sf &&
             sf->num_returns == 0 &&
             reqret &&
             sf->body->children.back() == this) {
+            // NOTE: see also Call::Optimize where we potentially have to undo this when inlined.
             reqlt = LT_BORROW;  // Fake that we're cool borrowing this.
             ir->sid->consume_on_last_use = true;  // Don't decref this one when going out of scope.
         }

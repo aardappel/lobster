@@ -192,6 +192,19 @@ Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
     if (ret->sf == sf) {
         assert(ret->child->exptype->NumValues() <= 1);
         assert(sf->num_returns <= 1);
+        // This is not great: having to undo the optimization in Return::TypeCheck where this
+        // flag was set.
+        // Since the caller generally expects to keep the return value of the now inlined
+        // function, and since the variables of this function are not dead yet (they can be called
+        // multiple times if inside a loop body or inlined multiple times, which may cause the
+        // var to be decreffed when overwritten on second use), we have to incref.
+        // TODO: investigate if setting them to null at scope exit would be an alternative?
+        auto ir = Is<IdentRef>(ret->child);
+        if (ir && ir->sid->consume_on_last_use) {
+            ir->sid->consume_on_last_use = false;
+            ret->child = opt.Typed(ret->child->exptype, LT_KEEP,
+                new ToLifetime(ret->child->line, ret->child, 1, 0));
+        }
         list->children.back() = ret->child;
         ret->child = nullptr;
         delete ret;
