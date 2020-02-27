@@ -107,6 +107,7 @@ Node *IsType::Optimize(Optimizer &opt, Node *parent_maybe) {
 Node *DynCall::Optimize(Optimizer &opt, Node *parent_maybe) {
     Node::Optimize(opt, parent_maybe);
     if (!sf) return this;
+    assert(sf->numcallers > 0);
     // This optimization MUST run, to remove redundant arguments.
     // Note that sf is not necessarily the same as sid->type->sf, since a
     // single function variable may have 1 specialization per call.
@@ -118,9 +119,6 @@ Node *DynCall::Optimize(Optimizer &opt, Node *parent_maybe) {
     }
     children.resize(sf->parent->nargs());
     // Now convert it to a Call if possible. This also allows it to be inlined.
-    // We rely on all these DynCalls being converted in the first pass, and only
-    // potentially inlined in the second for this increase to not cause problems.
-    sf->numcallers++;
     if (sf->parent->istype) return this;
     auto c = new Call(line, sf);
     c->children.insert(c->children.end(), children.begin(), children.end());
@@ -133,6 +131,7 @@ Node *DynCall::Optimize(Optimizer &opt, Node *parent_maybe) {
 
 Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
     Node::Optimize(opt, parent_maybe);
+    assert(sf->numcallers > 0);
     // Check if we should inline this call.
     // FIXME: Reduce these requirements where possible.
     // FIXME: currently a function called 10x whose body is only a gigantic for loop will be inlined,
@@ -169,7 +168,7 @@ Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
     }
     // TODO: triple-check this similar in semantics to what happens in CloneFunction() in the
     // typechecker.
-    if (sf->numcallers <= 1) {
+    if (sf->numcallers == 1) {
         list->children.insert(list->children.end(), sf->body->children.begin(),
                               sf->body->children.end());
         sf->body->children.clear();
@@ -182,10 +181,11 @@ Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
             list->children.push_back(nc);
             nc->Iterate([](Node *i) {
                 if (auto call = Is<Call>(i)) call->sf->numcallers++;
+                if (auto dcall = Is<DynCall>(i)) if (dcall->sf) dcall->sf->numcallers++;
             });
         }
-        sf->numcallers--;
     }
+    sf->numcallers--;
     // Remove single return statement pointing to function that is now gone.
     auto ret = Is<Return>(list->children.back());
     assert(ret);

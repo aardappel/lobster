@@ -1446,6 +1446,7 @@ struct TypeChecker {
             ftype = &fspec->thistype;
             return { type, fspec->ltret };
         } else if (ftype->t == V_YIELD) {
+            fspec = nullptr;
             // V_YIELD must have perculated up from a coroutine call.
             if (nargs != 1)
                 TypeError("coroutine yield call must have exactly one argument", *args);

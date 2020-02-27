@@ -311,7 +311,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     Parser parser(nfr, fn, st, stringsource);
     parser.Parse();
     TypeChecker tc(parser, st, return_value);
-    // Optimizer is not optional, must always run at least one pass, since TypeChecker and CodeGen
+    // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc);
     if (parsedump) *parsedump = parser.DumpAll(true);
