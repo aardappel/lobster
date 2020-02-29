@@ -174,7 +174,7 @@ struct TypeChecker {
                    string_view context = "") {
         TypeError(cat("\"", (context.size() ? context : NiceName(n)), "\" ",
                       (argname.size() ? "(" + argname + " argument) " : ""),
-                      "requires type: ", required, ", got: ", TypeName(got)), n);
+                      "requires type \"", required, "\", got: \"", TypeName(got), "\""), n);
     }
 
     void TypeError(string err, const Node &n) {
@@ -316,19 +316,24 @@ struct TypeChecker {
         return true;
     }
 
-    TypeRef Union(TypeRef at, TypeRef bt, bool coercions, const Node *err) {
+    TypeRef Union(TypeRef at, TypeRef bt, string_view aname, string_view bname, bool coercions,
+                  const Node *err) {
         if (ConvertsTo(at, bt, coercions)) return bt;
         if (ConvertsTo(bt, at, coercions)) return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
-            auto et = Union(at->Element(), bt->Element(), false, err);
+            auto et = Union(at->Element(), bt->Element(), aname, bname, false, nullptr);
+            if (err && et == type_undefined) goto error;
             return st.Wrap(et, V_VECTOR);
         }
         if (at->t == V_CLASS && bt->t == V_CLASS) {
             auto sstruc = st.CommonSuperType(at->udt, bt->udt);
             if (sstruc) return &sstruc->thistype;
         }
-        if (err)
-            TypeError(cat(TypeName(at), " and ", TypeName(bt), " have no common supertype"), *err);
+        error:
+        if (err) {
+            TypeError(cat("\"", TypeName(at), " (", aname, ") and ", TypeName(bt), " (", bname,
+                          ") have no common supertype"), *err);
+        }
         return type_undefined;
     }
 
@@ -376,7 +381,7 @@ struct TypeChecker {
     }
 
     void StorageType(TypeRef type, const Node &context) {
-        if (type->HasValueType(V_VOID)) TypeError("cannot store value of type void", context);
+        if (type->HasValueType(V_VOID)) TypeError("cannot store value of type \"void\"", context);
     }
 
     void SubTypeLR(TypeRef bound, BinOp &n) {
@@ -516,19 +521,15 @@ struct TypeChecker {
                 TypeError(err, n.left->exptype, n, "left");
             if (MathCheck(n.right->exptype, n, unionchecked, typechangeallowed))
                 TypeError(err, n.right->exptype, n, "right");
-            TypeError("can\'t use \"" +
-                      NiceName(n) +
-                      "\" on " +
-                      TypeName(n.left->exptype) +
-                      " and " +
-                      TypeName(n.right->exptype), n);
+            TypeError(cat("can\'t use \"", NiceName(n), "\" on \"", TypeName(n.left->exptype),
+                          "\" and \"", TypeName(n.right->exptype), "\""), n);
         }
     }
 
     void TypeCheckMathOp(BinOp &n) {
         TT(n.left, 1, LT_BORROW);
         TT(n.right, 1, LT_BORROW);
-        n.exptype = Union(n.left->exptype, n.right->exptype, true, nullptr);
+        n.exptype = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", true, nullptr);
         bool unionchecked = false;
         MathError(n.exptype, n, unionchecked, true);
         if (!unionchecked) SubTypeLR(n.exptype, n);
@@ -560,7 +561,7 @@ struct TypeChecker {
         TT(n.left, 1, LT_BORROW);
         TT(n.right, 1, LT_BORROW);
         n.exptype = &st.default_bool_type->thistype;
-        auto u = Union(n.left->exptype, n.right->exptype, true, nullptr);
+        auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", true, nullptr);
         if (!u->Numeric() && u->t != V_STRING) {
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
                 // Comparison with one result, but still by value for structs.
@@ -591,7 +592,7 @@ struct TypeChecker {
     void TypeCheckBitOp(BinOp &n) {
         TT(n.left, 1, LT_BORROW);
         TT(n.right, 1, LT_BORROW);
-        auto u = Union(n.left->exptype, n.right->exptype, true, nullptr);
+        auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", true, nullptr);
         if (u->t != V_INT) u = type_int;
         SubTypeLR(u, n);
         n.exptype = u;
@@ -749,7 +750,8 @@ struct TypeChecker {
                 // be callers dependent on the return type so far, so any others must be subtypes.
                 if (!sf->isrecursivelycalled) {
                     // We can safely generalize the type if needed, though not with coercions.
-                    sf->returntype = Union(type, sf->returntype, false, &err);
+                    sf->returntype = Union(type, sf->returntype, "return expression",
+                                           "function return type", false, &err);
                 }
             } else {
                 // The caller doesn't want return values.
@@ -810,7 +812,7 @@ struct TypeChecker {
         while (borrowstack.size() > start_borrowed_vars) {
             auto &b = borrowstack.back();
             if (b.refc) {
-                TypeError(cat("variable ", b.Name(), " still has ", b.refc,
+                TypeError(cat("variable \"", b.Name(), "\" still has ", b.refc,
                               " borrowers"), *sf.body->children.back());
             }
             borrowstack.pop_back();
@@ -1091,8 +1093,8 @@ struct TypeChecker {
             BindTypeVar(sf->giventypes[i], c->exptype, generics);
         }
         for (auto &btv : generics) if (btv.resolvedtype.Null())
-            TypeError("Cannot implicitly bind type variable " + btv.tv->name + " in call to " +
-                      f.name + " (argument doesn't match?)",
+            TypeError(cat("Cannot implicitly bind type variable \"", btv.tv->name,
+                          "\" in call to \"", f.name, "\" (argument doesn't match?)"),
                       call_args);
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
@@ -1217,7 +1219,7 @@ struct TypeChecker {
                 }
                 if (best < 0) {
                     if (sub->constructed) {
-                        TypeError("no implementation for " + sub->name + "." + csf->parent->name,
+                        TypeError("no implementation for: " + sub->name + "." + csf->parent->name,
                                   call_args);
                     } else {
                         // This UDT is unused, so we're ok there not being an implementation
@@ -1258,8 +1260,8 @@ struct TypeChecker {
                     for (auto [j, arg] : enumerate(sf->args.v)) {
                         if (j && arg.type != last_sf->args.v[j].type &&
                             !st.IsGeneric(sf->giventypes[j]))
-                            TypeError("argument " + to_string(j + 1) + " of " + f.name +
-                                " overload type mismatch", call_args);
+                            TypeError("argument " + to_string(j + 1) + " of \"" + f.name +
+                                      "\" overload type mismatch", call_args);
                     }
                 }
                 call_args.children[0]->exptype = &udt->thistype;
@@ -1278,17 +1280,17 @@ struct TypeChecker {
                     // Typically in recursive calls, but can happen otherwise also?
                     if (!ConvertsTo(u, de->returntype, false))
                         // FIXME: not a great error, but should be rare.
-                        TypeError("dynamic dispatch for " + f.name +
-                            " return value type " +
-                            TypeName(sf->returntype) +
-                            " doesn\'t match other case returning " +
-                            TypeName(de->returntype), *sf->body);
+                        TypeError(cat("dynamic dispatch for \"", f.name, "\" return value type \"",
+                                      TypeName(sf->returntype),
+                                      "\" doesn\'t match other case returning \"",
+                                      TypeName(de->returntype), "\""), *sf->body);
                 } else {
                     if (i) {
                         // We have to be able to take the union of all retvals without
                         // coercion, since we're not fixing up any previously typechecked
                         // functions.
-                        u = Union(u, de->returntype, false, &call_args);
+                        u = Union(u, de->returntype, "function return type", "other overloads",
+                                  false, &call_args);
                         // Ensure we didn't accidentally widen the type from a scalar.
                         assert(IsRef(de->returntype->t) || !IsRef(u->t));
                     }
@@ -1351,8 +1353,8 @@ struct TypeChecker {
             for (auto [i, isf] : enumerate(f.overloads)) {
                 if (ExactType(type0, isf->args.v[0].type)) {
                     if (overload_idx >= 0)
-                        TypeError("multiple overloads have the same type: " + f.name +
-                                  ", first arg: " + TypeName(type0), call_args);
+                        TypeError(cat("multiple overloads have the same type: \"", f.name,
+                                      "\", first arg \"", TypeName(type0), "\""), call_args);
                     overload_idx = (int)i;
                 }
             }
@@ -1370,12 +1372,14 @@ struct TypeChecker {
                                 if (dist < odist) overload_idx = (int)i;
                                 else if (odist < dist) { /* keep old one */ }
                                 else {
-                                    TypeError("multiple overloads have the same class: " + f.name +
-                                              ", first arg: " + TypeName(type0), call_args);
+                                    TypeError(cat("multiple overloads have the same class: \"",
+                                                  f.name, "\", first arg: \"", TypeName(type0),
+                                                  "\""), call_args);
                                 }
                             } else {
-                                TypeError("multiple overloads apply: " + f.name + ", first arg: " +
-                                    TypeName(type0), call_args);
+                                TypeError(cat("multiple overloads apply: \"", f.name,
+                                              "\", first arg \"", TypeName(type0), "\""),
+                                          call_args);
                             }
                         } else {
                             overload_idx = (int)i;
@@ -1388,16 +1392,16 @@ struct TypeChecker {
                 for (auto [i, isf] : enumerate(f.overloads)) {
                     if (ConvertsTo(type0, isf->args.v[0].type, true, false)) {
                         if (overload_idx >= 0) {
-                            TypeError("multiple overloads can coerce: " + f.name +
-                                      ", first arg: " + TypeName(type0), call_args);
+                            TypeError(cat("multiple overloads can coerce: \"", f.name,
+                                      "\", first arg \"", TypeName(type0), "\""), call_args);
                         }
                         overload_idx = (int)i;
                     }
                 }
             }
             if (overload_idx < 0)
-                TypeError("no overloads apply: " + f.name + ", first arg: " + TypeName(type0),
-                          call_args);
+                TypeError(cat("no overloads apply: \"", f.name, "\", first arg \"", TypeName(type0),
+                              "\""), call_args);
         }
         LOG_DEBUG("static dispatch: ", Signature(*f.overloads[overload_idx]));
         return TypeCheckCallStatic(csf, call_args, reqret, specializers,
@@ -1477,8 +1481,8 @@ struct TypeChecker {
             TypeError("yield function called outside scope of coroutine", *args);
             return { type_void, LT_ANY };
         } else {
-            TypeError("dynamic function call value doesn\'t have a function type: " +
-                      TypeName(ftype), *args);
+            TypeError(cat("dynamic function call value doesn\'t have a function type: \"",
+                          TypeName(ftype), "\""), *args);
             return { type_void, LT_ANY };
         }
     }
@@ -1613,7 +1617,7 @@ struct TypeChecker {
             ao.lt = ao.right->lt;
             DecBorrowers(ao.left->lt, ao);
         } else {
-            ao.exptype = Union(tleft, tright, false, nullptr);
+            ao.exptype = Union(tleft, tright, "lhs", "rhs", false, nullptr);
             if (ao.exptype->t == V_UNDEFINED) {
                 // Special case: unlike elsewhere, we allow merging scalar and reference types,
                 // since they are just tested and thrown away. To make this work, we force all
@@ -1651,7 +1655,7 @@ struct TypeChecker {
         if (auto dot = Is<Dot>(n)) {
             auto type = dot->children[0]->exptype;
             if (IsStruct(type->t))
-                TypeError("cannot write to field of value: " + type->udt->name, *n);
+                TypeError(cat("cannot write to field of value \"", type->udt->name, "\""), *n);
         }
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
@@ -1664,13 +1668,13 @@ struct TypeChecker {
             // All others should have been specialized to LT_KEEP when a var is not
             // single_assignment.
             // This is not particularly elegant but should be rare.
-            TypeError(cat("cannot assign to borrowed argument: ", lv.sid->id->name), *n);
+            TypeError(cat("cannot assign to borrowed argument \"", lv.sid->id->name, "\""), *n);
         }
         // FIXME: make this faster.
         for (auto &b : reverse(borrowstack)) {
             if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
-            TypeError(cat("cannot assign to ", lv.Name(), " while borrowed"), *n);
+            TypeError(cat("cannot assign to \"", lv.Name(), "\" while borrowed"), *n);
         }
     }
 
@@ -1831,8 +1835,8 @@ struct TypeChecker {
                ", ", b.refc, " remain");
         // FIXME: this should really just not be possible, but hard to guarantee.
         if (b.refc < 0)
-            TypeError(cat(b.sid->id->name, " used in ", NiceName(context),
-                          " without being borrowed"), context);
+            TypeError(cat("\"", b.sid->id->name, "\" used in \"", NiceName(context),
+                          "\" without being borrowed"), context);
         assert(b.refc >= 0);
         (void)context;
     }
@@ -1908,7 +1912,8 @@ struct TypeChecker {
         n->exptype = rt;
         auto nret = rt->NumValues();
         if (nret < reqret) {
-            TypeError(cat(NiceName(*n), " returns ", nret, " values, ", reqret, " needed"), *n);
+            TypeError(cat("\"", NiceName(*n), "\" returns ", nret, " values, ", reqret, " needed"),
+                      *n);
         } else if (nret > reqret) {
             for (size_t i = reqret; i < nret; i++) {
                 // This value will be dropped.
@@ -1985,11 +1990,13 @@ struct TypeChecker {
         // Sadly, we can't allow to return a vector type instead of a struct, so we error out,
         // and rely on the user to specify more precise types.
         // Not sure if there is a better solution.
-        if (!test_overloads)
-            TypeError("cannot deduce struct type for " +
-            (argn ? cat("argument ", argn) : "return value") +
-                " of " + nf->name + (!etype.Null() ? ", got: " + TypeName(etype) : ""),
+        if (!test_overloads) {
+            TypeError(cat("cannot deduce struct type for ",
+                          (argn ? cat("argument ", argn) : "return value"),
+                          " of \"", nf->name,
+                          (!etype.Null() ? "\", got: \"" + TypeName(etype) + "\"" : "\"")),
                 errorn);
+        }
         return type;
     };
 
@@ -2077,7 +2084,7 @@ Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
                 exptype = tleft;
                 lt = truepart->lt;
             } else {
-                exptype = tc.Union(tleft, tright, true, this);
+                exptype = tc.Union(tleft, tright, "then branch", "else branch", true, this);
                 // These will potentially make either body from T_CALL into some
                 // coercion.
                 tc.SubType(truepart, exptype, "then branch", *this);
@@ -2131,8 +2138,8 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         itertype = type_int;
     else if (itertype->t == V_VECTOR)
         itertype = itertype->Element();
-    else tc.TypeError("for can only iterate over int / string / vector, not: " +
-        TypeName(itertype), *this);
+    else tc.TypeError(cat("for can only iterate over int / string / vector, not \"",
+                          TypeName(itertype), "\""), *this);
     auto bodyc = AssertIs<Call>(body);
     auto &args = bodyc->children;
     if (args.size()) {
@@ -2190,7 +2197,8 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         auto body = AssertIs<Call>(cas->body);
         if (!tc.NeverReturns(body)) {
             exptype = exptype.Null() ? body->exptype
-                                     : tc.Union(exptype, body->exptype, true, cas);
+                                     : tc.Union(exptype, body->exptype, "switch type", "case type",
+                                                true, cas);
         }
     }
     for (auto n : cases->children) {
@@ -2598,8 +2606,10 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             fc->TypeCheckSpecialized(tc, reqret);
             r = fc;
         } else {
-            if (fld && dotnoparens)
-                tc.TypeError("type " + TypeName(type) + " does not have field: " + fld->name, *this);
+            if (fld && dotnoparens) {
+                tc.TypeError(cat("type \"", TypeName(type), "\" does not have field \"", fld->name,
+                                 "\""), *this);
+            }
             tc.TypeError("unknown field/function reference: " + name, *this);
         }
     }
@@ -2716,8 +2726,8 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             auto fsf = actualtype->sf;
             if (fsf->args.v.size()) {
                 // we have no idea what args.
-                tc.TypeError("function passed to " + nf->name +
-                             " cannot take any arguments", *this);
+                tc.TypeError("function passed to \"" + nf->name +
+                             "\" cannot take any arguments", *this);
             }
             auto chosen = fsf;
             List args(c->line);  // If any error, on same line as c.
@@ -2754,8 +2764,8 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
 
                 if (ret.type->t == V_NIL) {
                     if (!tc.st.IsNillable(type))
-                        tc.TypeError(cat("argument ", sa + 1, " to ", nf->name,
-                                    " has to be a reference type"), *this);
+                        tc.TypeError(cat("argument ", sa + 1, " to \"", nf->name,
+                                    "\" has to be a reference type"), *this);
                     type = tc.st.Wrap(type, V_NIL);
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
                     if (type->t == V_VECTOR) type = type->sub;
@@ -2766,7 +2776,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                         type = csf->returntype;
                     } else {
                         // This can happen when typechecking a multimethod with a coroutine arg.
-                        tc.TypeError(cat("cannot call ", nf->name, " on generic coroutine type"),
+                        tc.TypeError(cat("cannot call \"", nf->name, "\" on generic coroutine type"),
                                          *this);
                     }
                 }
@@ -2879,8 +2889,8 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (nsf != sf) {
         // This is a non-local "return from".
         if (!sf->typechecked)
-            tc.parser.Error("return from " + sf->parent->name +
-                            " called out of context", this);
+            tc.TypeError(cat("return from \"", sf->parent->name,
+                             "\" called out of context"), *this);
     }
     auto never_returns = tc.NeverReturns(child);
     if (never_returns && make_void && sf->num_returns) {
@@ -2936,7 +2946,8 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             // No type was specified.. first find union of all elements.
             TypeRef u(nullptr);
             for (auto c : children) {
-                u = u.Null() ? c->exptype : tc.Union(u, c->exptype, true, c);
+                u = u.Null() ? c->exptype : tc.Union(u, c->exptype, "constructor",
+                                                     "constructor element", true, c);
             }
             exptype = tc.st.Wrap(u, V_VECTOR);
             tc.StorageType(exptype, *this);
@@ -3003,7 +3014,7 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     auto udt = stype->udt;
     auto fieldidx = udt->Has(fld);
     if (fieldidx < 0)
-        tc.TypeError("type " + udt->name + " has no field named " + fld->name, *this);
+        tc.TypeError("type \"" + udt->name + "\" has no field named " + fld->name, *this);
     exptype = udt->fields.v[fieldidx].resolvedtype;
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) exptype = tc.UseFlow(fi);

@@ -125,7 +125,7 @@ inline string_view BaseTypeName(ValueType t) {
         "struct_ref",
         "resource", "coroutine", "string", "class", "vector",
         "nil", "int", "float", "function", "yield_function", "struct_scalar",
-        "variable", "type_variable", "typeid", "void",
+        "unknown", "type_variable", "typeid", "void",
         "tuple", "unresolved_udt", "undefined",
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES) {
