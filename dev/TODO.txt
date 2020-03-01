@@ -254,6 +254,14 @@
   - once we have mixed scalar/ref: make accessor handles into structs.
   - Make builder offset struct into specialized structs for the type? Maybe not necessary?
 
+- It often crashes in creating the stack trace when values are corrupt.
+  If this results in another error, it perculates up the exception, but no such help for asserts.
+  - Would be good to print to stack trace incrementally rather than accumulating in a string first,
+    with some kind of callback? so output can happen before the crash.
+  - Make reading values more robust.
+    - If VM is in an "error" state, ignore any bad values and just return empty defaults.
+      - this has to sadly be done at every callsite since Error is not expected to return.
+
 - --to-cpp mode: VS /LTCG is very weak in terms on inlining, doesn't appear to inline any of
   the VM ops, gets only 30% or so speedup vs interpreted (compared to LLVM LTO getting 2.5x).
   Even including vm.cpp in the compiled code and __forceinline does nothing.

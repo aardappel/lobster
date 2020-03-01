@@ -287,55 +287,64 @@ LString *VM::ResizeString(LString *s, intp size, int c, bool back) {
 
 // This function is now way less important than it was when the language was still dynamically
 // typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
-Value VM::Error(string err, const RefObj *a, const RefObj *b) {
-    if (trace == TraceMode::TAIL && trace_output.size()) {
-        string s;
-        for (size_t i = trace_ring_idx; i < trace_output.size(); i++) s += trace_output[i];
-        for (size_t i = 0; i < trace_ring_idx; i++) s += trace_output[i];
-        s += err;
-        THROW_OR_ABORT(s);
+Value VM::Error(string err) {
+    if (error_has_occured) {
+        // We're calling this function recursively, not good. Try to get back to a reasonable
+        // state by throwing an exception to be caught by the original error.
+        THROW_OR_ABORT(err);
     }
+    error_has_occured = true;
     string sd;
+    if (trace == TraceMode::TAIL && trace_output.size()) {
+        for (size_t i = trace_ring_idx; i < trace_output.size(); i++) sd += trace_output[i];
+        for (size_t i = 0; i < trace_ring_idx; i++) sd += trace_output[i];
+        sd += err;
+        THROW_OR_ABORT(sd);
+    }
     #ifndef VM_COMPILED_CODE_MODE
         DumpFileLine(ip, sd);
         sd += ": ";
     #endif
     append(sd, "VM error: ", err);
-    if (a) { sd += "\n   arg: "; RefToString(*this, sd, a, debugpp); }
-    if (b) { sd += "\n   arg: "; RefToString(*this, sd, b, debugpp); }
-    while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart)) {
-        // Sadly can't print this properly.
-        sd += "\n   stack: ";
-        to_string_hex(sd, (size_t)VM_TOP().any());
-        if (pool.pointer_is_in_allocator(VM_TOP().any())) {
-            sd += ", maybe: ";
-            RefToString(*this, sd, VM_TOP().ref(), debugpp);
-        }
-        VM_POP();  // We don't DEC here, as we can't know what type it is.
-                // This is ok, as we ignore leaks in case of an error anyway.
+    if (error_vm_inconsistent_state) {
+        // Don't do any variable dumping, to avoid triggering more errors.
+        THROW_OR_ABORT(sd);
     }
-    for (;;) {
-        if (!stackframes.size()) break;
-        int deffun = *(stackframes.back().funstart);
-        if (deffun >= 0) {
-            append(sd, "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view());
-        } else {
-            sd += "\nin block";
+    try {
+        while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart)) {
+            // Sadly can't print this properly.
+            sd += "\n   stack: ";
+            to_string_hex(sd, (size_t)VM_TOP().any());
+            if (pool.pointer_is_in_allocator(VM_TOP().any())) {
+                sd += ", maybe: ";
+                RefToString(*this, sd, VM_TOP().ref(), debugpp);
+            }
+            VM_POP();  // We don't DEC here, as we can't know what type it is.
+                    // This is ok, as we ignore leaks in case of an error anyway.
         }
-        #ifndef VM_COMPILED_CODE_MODE
-        sd += " -> ";
-        DumpFileLine(ip, sd);
-        #endif
-        VarCleanup<1>(sd.size() < 10000 ? &sd : nullptr, -2 /* clean up temps always */);
+        for (;;) {
+            if (!stackframes.size()) break;
+            int deffun = *(stackframes.back().funstart);
+            if (deffun >= 0) {
+                append(sd, "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view());
+            } else {
+                sd += "\nin block";
+            }
+            #ifndef VM_COMPILED_CODE_MODE
+            sd += " -> ";
+            DumpFileLine(ip, sd);
+            #endif
+            VarCleanup<1>(sd.size() < 10000 ? &sd : nullptr, -2 /* clean up temps always */);
+        }
+    } catch (string &s) {
+        // Error happened while we were building this stack trace.
+        append(sd, "\nRECURSIVE ERROR:\n", s);
     }
     THROW_OR_ABORT(sd);
 }
 
 void VM::VMAssert(const char *what)  {
-    Error(string("VM internal assertion failure: ") + what);
-}
-void VM::VMAssert(const char *what, const RefObj *a, const RefObj *b)  {
-    Error(string("VM internal assertion failure: ") + what, a, b);
+    SeriousError(string("VM internal assertion failure: ") + what);
 }
 
 #if !defined(NDEBUG) && RTT_ENABLED
@@ -472,7 +481,8 @@ void VM::FunIntro(VM_OP_ARGS) {
         // per function call increment should be small
         // FIXME: not safe for untrusted scripts, could simply add lots of locals
         // could record max number of locals? not allow more than N locals?
-        if (stacksize >= maxstacksize) Error("stack overflow! (use set_max_stack_size() if needed)");
+        if (stacksize >= maxstacksize)
+            SeriousError("stack overflow! (use set_max_stack_size() if needed)");
         auto nstack = new Value[stacksize *= 2];
         t_memcpy(nstack, stack, sp + 1);
         delete[] stack;
@@ -509,8 +519,8 @@ void VM::FunOut(int towhere, int nrv) {
     ts_memcpy(retvalstemp, VM_TOPPTR(), nrv);
     for(;;) {
         if (!stackframes.size()) {
-            Error("\"return from " + bcf->functions()->Get(towhere)->name()->string_view() +
-                    "\" outside of function");
+            SeriousError("\"return from " + bcf->functions()->Get(towhere)->name()->string_view() +
+                         "\" outside of function");
         }
         if (VarCleanup<0>(nullptr, towhere)) break;
     }
@@ -541,7 +551,7 @@ void VM::CoNonRec(const int *varip) {
     for (auto co = curcoroutine; co; co = co->parent) if (co->varip == varip) {
         // if allowed, inner coro would save vars of outer, and then possibly restore them outside
         // of scope of parent
-        Error("cannot create coroutine recursively");
+        SeriousError("cannot create coroutine recursively");
     }
     // this check guarantees all saved stack vars are undef.
 }
@@ -778,7 +788,7 @@ void VM::EvalProgramInner() {
             #endif
             #ifndef NDEBUG
                 if (op < 0 || op >= IL_MAX_OPS)
-                    Error(cat("bytecode format problem: ", op));
+                    SeriousError(cat("bytecode format problem: ", op));
             #endif
             #ifdef VM_ERROR_RET_EXPERIMENT
                 bool terminate =
@@ -1435,12 +1445,15 @@ VM_INS_RET VM::U_LOGWRITE(int vidx, int lidx) {
 }
 
 VM_INS_RET VM::U_ABORT() {
-    Error("VM internal error: abort");
+    SeriousError("VM internal error: abort");
     VM_RET;
 }
 
 void VM::IDXErr(intp i, intp n, const RefObj *v) {
-    Error(cat("index ", i, " out of range ", n), v);
+    string sd;
+    append(sd, "index ", i, " out of range ", n, " of: ");
+    RefToString(*this, sd, v, debugpp);
+    Error(sd);
 }
 #define RANGECHECK(I, BOUND, VEC) if ((uintp)I >= (uintp)BOUND) IDXErr(I, BOUND, VEC);
 

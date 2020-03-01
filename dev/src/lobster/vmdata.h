@@ -812,6 +812,11 @@ struct VM : VMArgs {
     vector<thread> workers;
     TupleSpace *tuple_space = nullptr;
 
+    // A runtime error triggers code that does extensive stack trace & variable dumping, which
+    // for certain errors could trigger yet more errors. These vars ensure that we don't.
+    bool error_has_occured = false;  // Don't error again.
+    bool error_vm_inconsistent_state = false;  // Don't trust the contents of vm state.
+
     VM(VMArgs &&args);
     ~VM();
 
@@ -844,10 +849,10 @@ struct VM : VMArgs {
     LString *NewString(string_view s1, string_view s2);
     LString *ResizeString(LString *s, intp size, int c, bool back);
 
-    Value Error(string err, const RefObj *a = nullptr, const RefObj *b = nullptr);
+    Value Error(string err);
     Value BuiltinError(string err) { return Error(err); }
+    Value SeriousError(string err) { error_vm_inconsistent_state = true; return Error(err); }
     void VMAssert(const char *what);
-    void VMAssert(const char *what, const RefObj *a, const RefObj *b);
 
     int DumpVar(string &sd, const Value &x, size_t idx);
 
