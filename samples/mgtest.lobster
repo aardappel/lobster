@@ -4,10 +4,11 @@
 import vec
 import color
 import util3d
+import gl
 
 print "generating models... this may take some time!"
 
-fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800))
+fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800, gl_window_init_linear_color))
 
 camera_position = xyz { 10.0, 10.0, 10.0 }
 camera_yaw = 135

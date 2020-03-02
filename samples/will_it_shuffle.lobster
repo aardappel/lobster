@@ -123,7 +123,7 @@ def reshuffle():
 
 var shuffling = true
 
-fatal(gl_window("Will It Shuffle?", 640, 480, gl_window_init_no_srgb /* FIXME!!! */))
+fatal(gl_window("Will It Shuffle?", 640, 480))
 check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "cannot load gl font")
 
 def shuffle_routine(next):

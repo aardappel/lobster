@@ -4,6 +4,7 @@ import vec
 import color
 import texture
 import util3d
+import gl
 
 let vrmode = vr_init()
 

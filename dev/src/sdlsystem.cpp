@@ -275,7 +275,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
     SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 1);    // because we redraw the screen each frame
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     #ifndef __EMSCRIPTEN__ // FIXME: https://github.com/emscripten-ports/SDL2/issues/86
-        if (!(flags & INIT_NO_SRGB)) SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
+        if (flags & INIT_LINEAR_COLOR) SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     #endif
 
     LOG_INFO("SDL about to figure out display mode...");
@@ -362,7 +362,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
 
     lasttime = -0.02f;    // ensure first frame doesn't get a crazy delta
 
-    OpenGLInit(samples, !(flags & INIT_NO_SRGB));
+    OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
 
     return "";
 }

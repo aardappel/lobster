@@ -5,7 +5,7 @@ import color
 
 def branch(n, max, scale, len):
     let poly = [ xy_x, -xy_x, xy { -scale, len }, xy { scale, len } ]
-    gl_color(color { n / max, 0.6, n / max, 1 })
+    gl_color(color { n / max, 0.8, n / max, 1 })
     gl_polygon(poly)
     gl_color(color { 0.3, 0.1, 0, 0.7 })
     for(2) i:
@@ -21,7 +21,7 @@ fatal(gl_window("Pythagoras tree in Lobster", 1024, 768))
 
 while gl_frame():
     if gl_button("escape") == 1: return
-    gl_clear(color_dark_grey)
+    gl_clear(color_grey)
     rnd_seed(0)
     gl_translate(float(gl_window_size()) / xy { 2.0, 1.0 })
     gl_rotate_z(xy { -1.0, 0.0 })

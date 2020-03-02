@@ -5,8 +5,9 @@ import color
 import texture
 import util3d
 import physics
+import gl
 
-fatal(gl_window("Physics demo : water", 1024, 768))
+fatal(gl_window("Physics demo : water", 1024, 768, gl_window_init_linear_color))
 
 let worldsize = xy { 60.0, 40.0 }
 

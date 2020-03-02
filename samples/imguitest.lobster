@@ -5,7 +5,7 @@ import color
 import imgui
 import gl
 
-fatal(gl_window("imgui demo", 1280, 1024, gl_window_init_no_srgb /* FIXME!!! */))
+fatal(gl_window("imgui demo", 1280, 1024))
 
 im_init(false)
 assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
