@@ -200,7 +200,7 @@ class CPPGenerator : public NativeGenerator {
             else sd += "0";
             sd += ",\n";
         }
-        sd += "};\n";
+        sd += "    0\n};\n";  // Make sure table is never empty.
     }
 
     void FileEnd(int start_id, string_view bytecode_buffer) override {
@@ -209,8 +209,8 @@ class CPPGenerator : public NativeGenerator {
         sd += "\nstatic const int bytecodefb[] = {";
         auto bytecode_ints = (const int *)bytecode_buffer.data();
         for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
-            if ((i & 0xF) == 0) sd += "\n  ";
-            append(sd, bytecode_ints[i], ", ");
+            if ((i & 0xF) == 0) sd += "\n ";
+            append(sd, " ", bytecode_ints[i], ",");
         }
         sd += "\n};\n\n";
         sd += "int main(int argc, char *argv[]){\n";

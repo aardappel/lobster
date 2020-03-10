@@ -176,23 +176,25 @@ Rather than directly executing or compiling to bytecode, Lobster can also be
 translated to C++, for a further speed boost. This is useful when releasing a
 shipping build to customers, but hopefully not necessary during development.
 
-With the `--cpp` option on the command-line, the compiler will generate a
-`compiled_lobster.cpp` file. This file contains a `main()` and is otherwise
+With the `--cpp` option on the command-line, the compiler will generate
+`dev/compiled_lobster/src/compiled_lobster.cpp` (currently, you MUST compile
+it from the root of the repo, e.g. `bin/lobster --cpp somepath/my.lobster`,
+otherwise this will likely fail).
+This file contains a `main()` and is otherwise
 self-contained such that when you compile it with the build files for any
 platform (see instructions above) substituting it for the standard `main.cpp`,
 you’ll end up with an executable that runs only that specific program.
 
-Currently, this process is a bit clunky, you must run the compiler with
-the repo root as you current directory, and the compiled file will always be
-written to `dev/compiled_lobster/`
-
-On Windows, there are project files in that same directory that will
+On Windows, there are project files in `dev/compiled_lobster` that will
 automatically pick up the compiled lobster code.
 
 On Linux, create a `build` directory anywhere, for example in
 `dev/compiled_lobster/build`, go there, then
 `cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release ../..` will automatically
 substitute the compiled lobster main program. Build with `make -j8` or similar.
+
+For Emscripten, there's a `lobster_cppout` make target that works similar to
+the WebAssembly mode described below.
 
 
 Compiling Lobster code to WebAssembly
