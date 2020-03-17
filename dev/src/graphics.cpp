@@ -251,7 +251,7 @@ nfr("gl_grab", "on", "B", "B",
 nfr("gl_button", "name", "S", "I",
     "returns the state of a key/mousebutton/finger."
     " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
-    " (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc."
+    " (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1/joy1 etc."
     " mouse11 and on are additional fingers)",
     [](VM &, Value &name) {
         auto ks = GetKS(name.sval()->strv());

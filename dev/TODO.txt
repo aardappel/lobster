@@ -1,12 +1,7 @@
-- is SharedField still needed?
-
-- how does keepvar work with inlined functions?
+- remove multiple lambda args -> move function arg checking to tc.
 
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
-
-- SRGB support:
-  - Update imgui once this merges: https://github.com/ocornut/imgui/pull/2943
 
 - jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
@@ -118,6 +113,8 @@
     the function? It seems to already work for some calls:
     def foo(fun):
       fun() x: print x
+  - SharedField can be removed, only needed in deciding how to parse x.y and x.y(
+
 
 - kriskowal: a non-allocating version of copy() with a second destination arg.
 
@@ -161,6 +158,9 @@
 
 - remove logvars?
 
+- consider adding optional {}.. it really seems to bother people.
+  make it such you can only use one style per file
+
 - run coverage to see where more tests are needed.
 
 - Remove exceptions completely by making each function call always check for a target function,
@@ -197,8 +197,19 @@
     and assign them to "locals" to really speed up Wasm/C++ modes.
     - This may need to first change how we deal with variables on the stack in the first place.
 
+- Good errors are increasingly an important programming language feature, should at some point
+  invest in an overhaul. See Rust and Elm in particular.
+  https://blog.rust-lang.org/2016/08/10/Shape-of-errors-to-come.html
+  https://elm-lang.org/news/the-syntax-cliff
+  - Make line refs ranges rather than locations.
+  - Allow printing of not just one but multiple references to what errors refer to.
+  - Somehow collect stats on what errors occur a lot, and add more detail to them.
+
 - Should add template arg types also to regular functions.
   - an example is gui_multiselect called with enum type for selected.
+
+- SRGB support:
+  - Update imgui once this merges: https://github.com/ocornut/imgui/pull/2943
 
 - Optimize out variables that are not used.
   This in particular will be good for vec/color.lobster that create a lot of globals,
@@ -213,6 +224,7 @@
         state -= dx
   Is going to produce hard to understand bugs, yet also natural to write code this way.
   Built-ins like gl_translate also suffer from this issue.
+  https://github.com/aardappel/lobster/issues/93
   Solutions:
   - a "defer" statement. Simple, but requires the programmer to remember to use it, does not
     stop the above natural code being written.
@@ -223,7 +235,7 @@
     At least it stops the user of this code making mistakes, but still requires the
     programmer to know when to use it.
     Also it would be a bit weird if some global error function can't be called from within
-    a translate..
+    a translate.. (actually could still allow `return from program`)
   - Just leave it as is. Prefer not to write HOFs that modify state, and if they do, well,
     the user needs to be aware changes don't get undone with non-local returns.
 
@@ -317,6 +329,9 @@
 
 - We support implicit this.member in multi-assign, but not explicit.
   See mretfields test.
+
+- should support scalar op vector, not just vector op scalar
+  - that requires yet more vector vm ops, at least for - /
 
 - detect a + b + c etc and emit better string concat op in codegen
 
@@ -414,6 +429,9 @@
 
 - factor out TypeCheckDynCall for DynCall to be part of GenericCall so it can be made into
   Call/Yield/CallType
+  - Also, when optimizer inlines a function that has an arg used as a function for DynCall
+    but called statically, it still introduces this unused variable.
+    - probably want to remove this arg generally.
 
 - should have slaballoc use indices so allocation granularity can always be smaller?
   especially when using 32-bit emulation.
@@ -423,9 +441,6 @@
 
 - contribute Lobster syntax highlighting to:
   https://github.com/github/linguist/blob/master/CONTRIBUTING.md#fixing-syntax-highlighting
-
-- should support scalar op vector, not just vector op scalar
-  - that requires yet more vector vm ops, at least for - /
 
 - add support for pure functions.
   introduce functions with e.g. "fun" instead of "def" to indicate they are pure (much like
