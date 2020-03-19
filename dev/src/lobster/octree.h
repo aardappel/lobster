@@ -30,13 +30,17 @@ public:
 struct OcTree {
     vector<OcVal> nodes;
     vector<int> freelist;
+    vector<uchar> dirty;
     int world_bits;
     int fix_bits;
+    bool all_dirty = true;
     enum {
         OCTREE_SUBDIV = 8,  // This one is kind of a given..
         PARENT_INDEX = OCTREE_SUBDIV,
         ELEMENTS_PER_NODE = OCTREE_SUBDIV + 1,  // Last is parent pointer.
-        ROOT_INDEX = 1  // Such that index 0 means "no parent".
+        ROOT_INDEX = 1,  // Such that index 0 means "no parent".
+        NUM_NEW_NODES_PER_RESIZE = 10000,
+        NODES_PER_DIRTY_BIT = 64
     };
 
     OcTree(int world_bits, int fix_bits = 0) : world_bits(world_bits), fix_bits(fix_bits) {
@@ -60,6 +64,17 @@ struct OcTree {
     int ToParent(int i) { return i - ((i - ROOT_INDEX) % ELEMENTS_PER_NODE); }
     int Deref(int children) { return nodes[children + PARENT_INDEX].NodeIdx(); }
 
+    void Dirty(int i) {
+        // FIXME: simplify representation to simplify this.
+        // ROOT_INDEX could be remove in favor of -1
+        // node should be a struct of 9 elements.
+        i -= ROOT_INDEX;
+        i /= ELEMENTS_PER_NODE;
+        i /= NODES_PER_DIRTY_BIT;
+        if (i >= (int)dirty.size()) dirty.resize(i + 1, false);
+        dirty[i] = true;
+    }
+
     void Set(const int3 &pos, OcVal val) {
         int cur = ROOT_INDEX;
         for (auto bit = world_bits - 1; ; bit--) {
@@ -74,16 +89,26 @@ struct OcTree {
                     int ncur;
                     OcVal parent(ccur);
                     if (freelist.empty()) {
-                        ncur = (int)nodes.size();
-                        for (int i = 0; i < OCTREE_SUBDIV; i++) nodes.push_back(oval);
-                        nodes.push_back(parent);
-                    } else {
-                        ncur = freelist.back();
-                        freelist.pop_back();
-                        for (int i = 0; i < OCTREE_SUBDIV; i++) nodes[ncur + i] = oval;
-                        nodes[ncur + OCTREE_SUBDIV] = parent;
+                        auto newsize = nodes.size() + NUM_NEW_NODES_PER_RESIZE * ELEMENTS_PER_NODE;
+                        if (newsize >= 0x80000000) {
+                            THROW_OR_ABORT("OcTree: grown too big (>2GB)");
+                        }
+                        freelist.resize(NUM_NEW_NODES_PER_RESIZE);
+                        for (int i = 0; i < NUM_NEW_NODES_PER_RESIZE; i++) {
+                            // Backwards, so they get consumed forwards.
+                            freelist[NUM_NEW_NODES_PER_RESIZE - 1 - i] =
+                                (int)nodes.size() + i * ELEMENTS_PER_NODE;
+                        }
+                        nodes.resize(newsize);
+                        all_dirty = true;
                     }
+                    ncur = freelist.back();
+                    freelist.pop_back();
+                    for (int i = 0; i < OCTREE_SUBDIV; i++) nodes[ncur + i] = oval;
+                    nodes[ncur + OCTREE_SUBDIV] = parent;
+                    Dirty(ncur);
                     nodes[ccur].SetNodeIdx(ncur);
+                    Dirty(ccur);
                     cur = ncur;
                 } else {
                     cur = oval.NodeIdx();
@@ -91,6 +116,7 @@ struct OcTree {
             } else {  // Bottom level.
                 assert(val.IsLeaf());
                 nodes[ccur] = val;
+                Dirty(ccur);
                 // Try to merge this level all the way to the top.
                 for (int pbit = 1 + fix_bits; pbit < world_bits; pbit++) {
                     auto parent = Deref(cur);
@@ -100,6 +126,7 @@ struct OcTree {
                     }
                     // Merge.
                     nodes[parent] = nodes[children];
+                    Dirty(parent);
                     freelist.push_back(children);
                     cur = ToParent(parent);
                 }
@@ -136,7 +163,13 @@ struct OcTree {
     OcVal Merge(int cur, int fbitsr) {
         for (int i = 0; i < OCTREE_SUBDIV; i++) {
             auto &n = nodes[cur + i];
-            if (!n.IsLeaf()) n = Merge(n.NodeIdx(), fbitsr - 1);
+            if (!n.IsLeaf()) {
+                auto nn = Merge(n.NodeIdx(), fbitsr - 1);
+                if (n != nn) {
+                    n = nn;
+                    Dirty(cur);
+                }
+            }
         }
         OcVal ov(cur);
         if (!nodes[cur].IsLeaf()) return ov;

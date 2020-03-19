@@ -18,6 +18,8 @@
 
 #include "lobster/octree.h"
 
+#include "lobster/glinterface.h"
+
 namespace lobster {
 
 inline ResourceType *GetOcTreeType() {
@@ -130,4 +132,31 @@ nfr("oc_get", "octree,pos", "RI}:3", "I", "",
         vm.Push(ocworld.nodes[ocworld.Get(pos).first].LeafData());
     });
 
+nfr("oc_buffer_update", "octree,uname,ssbo", "RSI", "I", "",
+    [](VM &vm) {
+        auto ssbo = vm.Pop().True();
+        auto name = vm.Pop().sval()->strv();
+        auto &ocworld = GetOcTree(vm, vm.Pop());
+        extern Shader *currentshader;
+        intp num_updates = 0;
+        if (ocworld.all_dirty) {
+            // Can't do partial update.
+            UniformBufferObject(currentshader, ocworld.nodes.data(),
+                sizeof(OcVal) * ocworld.nodes.size(), -1, name, ssbo, 0);
+            num_updates = -1;
+            ocworld.all_dirty = false;
+        } else {
+            for (auto [i, is_dirty] : enumerate(ocworld.dirty)) {
+                if (!is_dirty) continue;
+                num_updates++;
+                // TODO: experiment with uploading more data per call.
+                auto offset = i * OcTree::NODES_PER_DIRTY_BIT * OcTree::ELEMENTS_PER_NODE + OcTree::ROOT_INDEX;
+                auto size = min((size_t)OcTree::NODES_PER_DIRTY_BIT * OcTree::ELEMENTS_PER_NODE, ocworld.nodes.size() - offset);
+                UniformBufferObject(currentshader, ocworld.nodes.data() + offset,
+                    sizeof(OcVal) * size, offset * sizeof(OcVal), name, ssbo, 0);
+            }
+        }
+        ocworld.dirty.clear();
+        vm.Push(num_updates);
+    });
 }
