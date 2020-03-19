@@ -112,7 +112,7 @@ Geometry::~Geometry() {
 }
 
 void Geometry::BindAsSSBO(Shader *sh, string_view name) {
-    UniformBufferObject(sh, nullptr, 0, name, true, vbo1);
+    UniformBufferObject(sh, nullptr, 0, -1, name, true, vbo1);
     assert(!vbo2);
 }
 

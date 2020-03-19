@@ -851,7 +851,7 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I", "I",
         for (int i = 0; i < vec.vval()->len; i++)
             vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
         auto id = UniformBufferObject(currentshader, vals.data()->data(),
-                                      4 * sizeof(float) * vals.size(),
+                                      4 * sizeof(float) * vals.size(), -1,
                                       name.sval()->strv(), ssbo.True(), 0);
         return Value((int)id);
     });
@@ -865,7 +865,7 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SSI", "I",
     [](VM &vm, Value &name, Value &vec, Value &ssbo) {
     TestGL(vm);
     auto id = UniformBufferObject(currentshader, vec.sval()->strv().data(),
-                                  vec.sval()->strv().size(),
+                                  vec.sval()->strv().size(), -1,
                                   name.sval()->strv(), ssbo.True(), 0);
     return Value((int)id);
 });
@@ -886,7 +886,7 @@ nfr("gl_bind_mesh_to_compute", "mesh,name", "R?S", "",
     [](VM &vm, Value &mesh, Value &name) {
         TestGL(vm);
         if (mesh.True()) GetMesh(vm, mesh).geom->BindAsSSBO(currentshader, name.sval()->strv());
-        else UniformBufferObject(currentshader, nullptr, 0, name.sval()->strv(), true, 0);
+        else UniformBufferObject(currentshader, nullptr, 0, -1, name.sval()->strv(), true, 0);
         return Value();
     });
 

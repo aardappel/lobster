@@ -170,7 +170,7 @@ extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(uint textureunit, const Texture &tex, int tf);
-extern uint UniformBufferObject(Shader *sh, const void *data, size_t len,
+extern uint UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
                                 string_view uniformblockname, bool ssbo, uint bo);
 
 // These must correspond to the constants in color.lobster
