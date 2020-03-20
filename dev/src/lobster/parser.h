@@ -820,6 +820,11 @@ struct Parser {
             case T_MULTEQ:  CheckOpEq(e); return new MultiplyEq(lex, e, ParseExp());
             case T_DIVEQ:   CheckOpEq(e); return new DivideEq(lex, e, ParseExp());
             case T_MODEQ:   CheckOpEq(e); return new ModEq(lex, e, ParseExp());
+            case T_ANDEQ:   CheckOpEq(e); return new AndEq(lex, e, ParseExp());
+            case T_OREQ:    CheckOpEq(e); return new OrEq(lex, e, ParseExp());
+            case T_XOREQ:   CheckOpEq(e); return new XorEq(lex, e, ParseExp());
+            case T_ASLEQ:   CheckOpEq(e); return new ShiftLeftEq(lex, e, ParseExp());
+            case T_ASREQ:   CheckOpEq(e); return new ShiftRightEq(lex, e, ParseExp());
             default:        return e;
         }
     }

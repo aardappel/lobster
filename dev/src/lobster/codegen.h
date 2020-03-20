@@ -792,6 +792,21 @@ void DivideEq::Generate(CodeGen &cg, size_t retval) const {
 void ModEq::Generate(CodeGen &cg, size_t retval) const {
     cg.GenAssign(left, LVO_IMOD, retval, right, 1);
 }
+void AndEq::Generate(CodeGen &cg, size_t retval) const {
+    cg.GenAssign(left, LVO_BINAND, retval, right, 1);
+}
+void OrEq::Generate(CodeGen &cg, size_t retval) const {
+    cg.GenAssign(left, LVO_BINOR, retval, right, 1);
+}
+void XorEq::Generate(CodeGen &cg, size_t retval) const {
+    cg.GenAssign(left, LVO_XOR, retval, right, 1);
+}
+void ShiftLeftEq::Generate(CodeGen &cg, size_t retval) const {
+    cg.GenAssign(left, LVO_ASL, retval, right, 1);
+}
+void ShiftRightEq::Generate(CodeGen &cg, size_t retval) const {
+    cg.GenAssign(left, LVO_ASR, retval, right, 1);
+}
 
 void PostDecr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IMMP, retval, nullptr, 0); }
 void PostIncr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IPPP, retval, nullptr, 0); }

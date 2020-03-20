@@ -233,14 +233,14 @@ struct Lex : LoadedFile {
             case '*':                      cont = true; second('=', T_MULTEQ); return T_MULT;
             case '%':                      cont = true; second('=', T_MODEQ); return T_MOD;
 
-            case '<': cont = true; second('=', T_LTEQ); second('<', T_ASL); return T_LT;
+            case '<': cont = true; second('=', T_LTEQ); secondb('<', T_ASL, second('=', T_ASLEQ)); return T_LT;
             case '=': cont = true; second('=', T_EQ);   return T_ASSIGN;
             case '!': cont = true; second('=', T_NEQ);  cont = false; return T_NOT;
-            case '>': cont = true; second('=', T_GTEQ); second('>', T_ASR); return T_GT;
+            case '>': cont = true; second('=', T_GTEQ); secondb('>', T_ASR, second('=', T_ASREQ)); return T_GT;
 
-            case '&': cont = true; second('&', T_AND); return T_BITAND;
-            case '|': cont = true; second('|', T_OR);  return T_BITOR;
-            case '^': cont = true; return T_XOR;
+            case '&': cont = true; second('&', T_AND); second('=', T_ANDEQ); return T_BITAND;
+            case '|': cont = true; second('|', T_OR);  second('=', T_OREQ); return T_BITOR;
+            case '^': cont = true; second('=', T_XOREQ); return T_XOR;
             case '~': cont = true; return T_NEG;
 
             case '?': cont = true; second('=', T_LOGASSIGN); cont = false;

@@ -24,11 +24,6 @@ namespace lobster {
     TOK(T_MULT, "*") \
     TOK(T_DIV, "/") \
     TOK(T_MOD, "%") \
-    TOK(T_PLUSEQ, "+=") \
-    TOK(T_MINUSEQ, "-=") \
-    TOK(T_MULTEQ, "*=") \
-    TOK(T_DIVEQ, "/=") \
-    TOK(T_MODEQ, "%=") \
     TOK(T_AND, "and") \
     TOK(T_OR, "or") \
     TOK(T_NOT, "not") \
@@ -48,6 +43,16 @@ namespace lobster {
     TOK(T_ASR, ">>") \
     TOK(T_ASSIGN, "=") \
     TOK(T_LOGASSIGN, "?=") \
+    TOK(T_PLUSEQ, "+=") \
+    TOK(T_MINUSEQ, "-=") \
+    TOK(T_MULTEQ, "*=") \
+    TOK(T_DIVEQ, "/=") \
+    TOK(T_MODEQ, "%=") \
+    TOK(T_ANDEQ, "&=") \
+    TOK(T_OREQ, "|=") \
+    TOK(T_XOREQ, "^=") \
+    TOK(T_ASLEQ, "<<=") \
+    TOK(T_ASREQ, ">>=") \
     TOK(T_DOT, ".") \
     TOK(T_DOTDOT, "..") \
     TOK(T_CODOT, "->") \

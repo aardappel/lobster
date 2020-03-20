@@ -537,6 +537,11 @@ struct TypeChecker {
         n.lt = LT_KEEP;
     }
 
+    void TypeCheckMathOpEqBit(BinOp &n) {
+        TypeCheckBitOp(n);
+        CheckLval(n.left);
+    }
+
     void TypeCheckMathOpEq(BinOp &n) {
         TT(n.left, 1, LT_BORROW);
         DecBorrowers(n.left->lt, n);
@@ -2377,6 +2382,31 @@ Node *DivideEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 
 Node *ModEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TypeCheckMathOpEq(*this);
+    return this;
+}
+
+Node *AndEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TypeCheckMathOpEqBit(*this);
+    return this;
+}
+
+Node *OrEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TypeCheckMathOpEqBit(*this);
+    return this;
+}
+
+Node *XorEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TypeCheckMathOpEqBit(*this);
+    return this;
+}
+
+Node *ShiftLeftEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TypeCheckMathOpEqBit(*this);
+    return this;
+}
+
+Node *ShiftRightEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TypeCheckMathOpEqBit(*this);
     return this;
 }
 
