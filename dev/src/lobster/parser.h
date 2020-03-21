@@ -1182,7 +1182,7 @@ struct Parser {
                 lex.Next();
                 Node *iter;
                 if (IsNext(T_LEFTPAREN)) {
-                    iter = ParseExp(true);
+                    iter = ParseExp(false);
                     Expect(T_RIGHTPAREN);
                     return new For(lex, iter, ParseBlock(0, true));
                 } else {
