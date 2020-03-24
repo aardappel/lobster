@@ -1342,14 +1342,16 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     assert(!retval);
     (void)retval;
     assert(!cg.rettypes.size());
+    auto typestackbackup = cg.temptypestack;
     if (cg.temptypestack.size()) {
         // We have temps on the stack from an enclosing for.
-        // We can't actually remove these from the stack as the parent nodes still
+        // We can't actually remove these from the stack permanently as the parent nodes still
         // expect them to be there.
         // Check that these temps are actually from for loops, to not mask bugs.
         assert(cg.temptypestack.size() == cg.nested_fors * 2);
-        for (int i = (int)cg.temptypestack.size() - 1; i >= 0; i--) {
-            cg.GenPop(cg.temptypestack[i]);
+        while (!cg.temptypestack.empty()) {
+            cg.GenPop(cg.temptypestack.back());
+            cg.temptypestack.pop_back();
         }
     }
     auto nretvals = make_void ? 0 : sf->returntype->NumValues();
@@ -1373,6 +1375,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     // of the functions in between here and the function returned to.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
     cg.Emit(IL_RETURN, sf->parent->idx, nretslots);
+    cg.temptypestack = typestackbackup;
 }
 
 void CoClosure::Generate(CodeGen &cg, size_t retval) const {
