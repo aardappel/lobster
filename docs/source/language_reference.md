@@ -87,7 +87,7 @@ body = ( expstat \| indent stats dedent )
 type = `int` \| `float` \| `string` \| `[` type `]` \| `coroutine` \| `resource` \| `void`
     \| ident
 
-call = specializers `(` [ list( exp ) ] `)` [ block [ ident block … ] ]
+call = specializers `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
 expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program`
 \| ident ) ]
@@ -103,7 +103,7 @@ unary = ( `-` \| `!` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 \| `++` \| `--` \| `is` type ]
 
-factor = constant \| `(` exp `)` \| constructor \| `def` functionargsbody \|
+factor = constant \| `(` exp `)` \| constructor \| `fn` functionargsbody \|
 `coroutine` ident call \| ident [ call ]
 
 constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list(
@@ -439,34 +439,39 @@ You can also create anonymous (nameless) functions as values. In the most
 general case, this has the syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-let f = def(arg1, arg2): body
+let f = fn(a:type, n:type): body
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Or, if you are not specifying any types:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let f = fn a, b: body
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You call these just like any other function, e.g. `f(1, 2)`. You currently
 must call them using a variable (not any expression, not even a field).
 
-The full `def` syntax is infrequently used however, because most function
+The full `fn` syntax is infrequently used however, because most function
 values are created to be passed to other functions, and Lobster has a special
 syntax for this situation that is meant to mimic control structures in other
 languages. Any function call may be followed by one or more function values,
-where the `def` keyword is omitted:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-g(10) (i): print(i)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Here, the function `g` is called with 2 arguments, the first is `10`, and the
-second is the function value `def(i): print(i)`. Lobster allows three more
-levels of further simplification of the syntax if the arguments do not contain
-type annotations:
+where the `fn` keyword is omitted:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 g(10) i: print(i)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here, the function `g` is called with 2 arguments, the first is `10`, and the
+second is the function value `fn i: print(i)` (as before, we left out the
+the `()` around the arguments). Lobster allows yet further simplification of
+the syntax:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 g(10): print(_)
 g 10: print _
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can leave out the parentheses, and you may use anonymous arguments, which
+You may use anonymous arguments, which
 are variable names starting with an `_` that will automatically be declared as
 arguments for you. If you use multiple such arguments (e.g. `_a` and `_b`), they
 will become arguments in the order they appear in the body. Using anonymous
@@ -482,29 +487,19 @@ Lobster's  built-in control structures `if` `for` and `while` have syntax
 that is closely compatible with this function call syntax (and in the case of
 `for` allow the same argument simplifications).
 
-As an example of how to pass more than one function value, let's see an example
-that is similar to `if`:
+Though not recommend (as readability suffers), it is even possible to pass
+multiple function values to a function, but then every function value except the
+first can't omit the `fn` keyword:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var nat = ifnot a >= 0: 0 otherwise: a
+g(10) i:
+    print i
+fn:
+    print "reached the end"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Similarly, with indentation:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ifnot a >= 0:
-    print "negative numbers are scary!"
-else:
-    print "a = " + a
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Here we see that all except the first function value must be preceded by the
-name of the argument they're specifying. You'd define `ifnot` like:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def ifnot(cond, then, otherwise):
-    if not cond: then() else: otherwise()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+For example, to pass an additional function to do something special at the end of
+an iteration.
 
 Writing your own functions that take function values is the key to getting the
 most out of Lobster. It allows you to refactor pretty much any code into

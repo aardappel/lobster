@@ -54,12 +54,12 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
 def astar_graph(startnode, endnode, costf, distancef, neighbors):
     return astar_generic(startnode) n:
         n == endnode
-    generatenewstates n, f:
+    fn n, f:
         neighbors(n) nn:
             let cost = costf(n, nn)
             if cost > 0:
                 f(nn.state - n.state, cost, nn)
-    heuristic state:
+    fn state:
         distancef(state - endnode.state)
 
 // specialized to a 2D grid (specialized case of a graph)
@@ -99,7 +99,7 @@ def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endconditio
     let existingnodes = [ goap_node { H: H, F: H, state: initstate } ]
     return astar_generic(existingnodes[0]):
         endcondition(_.state)
-    generatenewstates n, f:
+    fn n, f:
         for(goapactions) act:
             let pre = act.precondition
             if pre(n.state):
@@ -111,4 +111,4 @@ def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endconditio
                     i = existingnodes.length
                     existingnodes.push(goap_node { nstate })
                 f(act, 1, existingnodes[i])
-    heuristic: heuristic(_)
+    fn: heuristic(_)

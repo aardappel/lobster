@@ -129,8 +129,8 @@ run_test("misc"):
     def factorial(n): return 1 > n or factorial(n - 1) * n
     assert 7.factorial == 5040
 
-    let applyto4 = def(f): f(4)
-    assert 16 == applyto4(def(x): x * x)
+    let applyto4 = fn f: f(4)
+    assert 16 == applyto4(fn x: x * x)
 
     assert ensure_size("abc", 3, 'z') == "abc"
     assert ensure_size("abc", 5, 'z') == "abczz"
@@ -205,7 +205,7 @@ run_test("misc"):
         try():
             if n: recursive_exceptions(n - 1)
             else: throw 0
-        catch v:
+        fn v:
             assert v == n
             throw n + 1
     try():

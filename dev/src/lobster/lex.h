@@ -307,6 +307,7 @@ struct Lex : LoadedFile {
                         case 'f':
                             if (sattr == "float") return T_FLOATTYPE;
                             if (sattr == "for") return T_FOR;
+                            if (sattr == "fn") return T_LAMBDA;
                             if (sattr == "from") return T_FROM;
                             break;
                         case 'i':

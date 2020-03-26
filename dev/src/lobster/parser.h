@@ -20,7 +20,6 @@ struct Parser {
     Node *root = nullptr;
     SymbolTable &st;
     vector<Function *> functionstack;
-    vector<string_view> trailingkeywordedfunctionvaluestack;
     struct ForwardFunctionCall {
         size_t maxscopelevel;
         string call_namespace;
@@ -52,7 +51,7 @@ struct Parser {
     void Parse() {
         auto sf = st.FunctionScopeStart();
         st.toplevel = sf;
-        auto &f = st.CreateFunction("__top_level_expression", "");
+        auto &f = st.CreateFunction("__top_level_expression");
         f.overloads.push_back(nullptr);
         sf->SetParent(f, f.overloads[0]);
         f.anonymous = true;
@@ -393,7 +392,7 @@ struct Parser {
         auto idname = st.MaybeNameSpace(ExpectId(), !isprivate && !self);
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
-        return ParseFunction(&idname, isprivate, true, true, "", self);
+        return ParseFunction(&idname, isprivate, true, true, self);
     }
 
     void ImplicitReturn(SubFunction *sf) {
@@ -438,7 +437,7 @@ struct Parser {
     }
 
     Node *ParseFunction(string_view *name, bool isprivate, bool parens, bool parseargs,
-                        string_view context, UDT *self = nullptr) {
+                        UDT *self = nullptr) {
         auto sf = st.FunctionScopeStart();
         st.bound_typevars_stack.push_back(&sf->generics);
         if (name) {
@@ -492,7 +491,7 @@ struct Parser {
         }
         if (parens) Expect(T_RIGHTPAREN);
         sf->method_of = self;
-        auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("", context);
+        auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("");
         if (name && self) {
             for (auto isf : f.overloads) {
                 if (isf->method_of == self) {
@@ -657,94 +656,59 @@ struct Parser {
         return { dest };
     }
 
-    void ParseFunArgs(List *list, bool coroutine, Node *derefarg, string_view fname = "",
-                      GenericArgs *args = nullptr, bool noparens = false) {
+    void ParseFunArgs(List *list, Node *derefarg, bool noparens) {
         if (derefarg) {
-            CheckArg(args, 0, fname);
             list->Add(derefarg);
-            if (IsNext(T_LEFTPAREN)) {
-                ParseFunArgsRec(list, false, false, args, 1, fname, noparens);
-            }
+            if (!IsNext(T_LEFTPAREN)) return;
         } else {
             if (!noparens) Expect(T_LEFTPAREN);
-            ParseFunArgsRec(list, coroutine, false, args, 0, fname, noparens);
         }
-    }
-
-    void ParseFunArgsRec(List *list, bool coroutine, bool needscomma, GenericArgs *args,
-                         size_t thisarg, string_view fname, bool noparens /* this call */) {
-        if (!noparens && IsNext(T_RIGHTPAREN)) {
-            if (call_noparens) {  // This call is an arg to a call that has no parens.
-                // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
-                return;
+        // Parse regular arguments.
+        bool needscomma = false;
+        for (;;) {
+            if (!noparens && IsNext(T_RIGHTPAREN)) {
+                if (call_noparens) {  // This call is an arg to a call that has no parens.
+                    // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
+                    return;
+                }
+                break;
             }
-            ParseTrailingFunctionValues(list, coroutine, args, thisarg, fname);
-            return;
-        }
-        if (needscomma) Expect(T_COMMA);
-        CheckArg(args, thisarg, fname);
-        list->Add(ParseExp(noparens));
-        if (noparens) {
-            if (lex.token == T_COLON)
-                ParseTrailingFunctionValues(list, coroutine, args, thisarg + 1, fname);
-        } else {
-            ParseFunArgsRec(list, coroutine, !noparens, args, thisarg + 1, fname, noparens);
-        }
-    }
-
-    void CheckArg(GenericArgs *args, size_t thisarg, string_view fname) {
-        if (args && thisarg == args->size())
-            Error("too many arguments passed to function " + fname);
-    }
-
-    void ParseTrailingFunctionValues(List *list, bool coroutine, GenericArgs *args, size_t thisarg,
-                                     string_view fname) {
-        if (args && thisarg + 1 < args->size())
-            trailingkeywordedfunctionvaluestack.push_back(args->GetName(thisarg + 1));
-        auto name = args && thisarg < args->size() ? args->GetName(thisarg) : "";
-        Node *e = nullptr;
-        switch (lex.token) {
-            case T_COLON:
-                e = ParseFunction(nullptr, false, false, false, name);
-                break;
-            case T_IDENT:
-                // skip if this function value starts with an ID that's equal to the parents next
-                // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
-                // FIXME: if you forget : after else, it is going to try to declare any following
-                // identifier as the first arg of a new function, leading to weird errors.
-                // Should ideally know here how many args to expect.
-                if (trailingkeywordedfunctionvaluestack.empty() ||
-                    trailingkeywordedfunctionvaluestack.back() != lex.sattr)
-                    e = ParseFunction(nullptr, false, false, true, name);
-                break;
-            case T_LEFTPAREN:
-                e = ParseFunction(nullptr, false, true, true, name);
-                break;
-            default:
-                break;
-        }
-        if (args && thisarg + 1 < args->size()) trailingkeywordedfunctionvaluestack.pop_back();
-        if (!e) {
-            if (coroutine) {
-                e = new CoClosure(lex);
-                coroutine = false;
-            } else {
+            if (needscomma) Expect(T_COMMA);
+            list->Add(ParseExp(noparens));
+            if (noparens) {
+                if (lex.token == T_COLON)
+                    break;
                 return;
+            } else {
+                needscomma = true;
             }
         }
-        list->Add(e);
-        CheckArg(args, thisarg, fname);
-        thisarg++;
-        bool islf = lex.token == T_LINEFEED;
-        if (args && thisarg < args->size() && (lex.token == T_IDENT || islf)) {
-            if (islf) lex.Next();
-            if (lex.token == T_IDENT && args->GetName(thisarg) == lex.sattr) {
-                lex.Next();
-                ParseTrailingFunctionValues(list, coroutine, args, thisarg, fname);
-            } else {
+        // Parse trailing function values.
+        for (;;) {
+            Node *e = nullptr;
+            switch (lex.token) {
+                case T_COLON:
+                    e = ParseFunction(nullptr, false, false, false);
+                    break;
+                case T_IDENT:
+                    e = ParseFunction(nullptr, false, false, true);
+                    break;
+                case T_LEFTPAREN:
+                    e = ParseFunction(nullptr, false, true, true);
+                    break;
+                default:
+                    return;
+            }
+            list->Add(e);
+            auto islf = IsNext(T_LINEFEED);
+            if (!islf && lex.token != T_LAMBDA) {
+                return;
+            }
+            if (!IsNext(T_LAMBDA)) {
                 lex.PushCur();
                 if (islf) lex.Push(T_LINEFEED);
                 lex.Next();
+                return;
             }
         }
     }
@@ -888,9 +852,9 @@ struct Parser {
         }
     }
 
-    Node *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
-                            bool coroutine, bool noparens,
-        vector<UnresolvedTypeRef> *specializers = nullptr) {
+    List *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
+                            bool noparens, size_t extra_args = 0,
+                            vector<UnresolvedTypeRef> *specializers = nullptr) {
         auto wse = st.GetWithStackBack();
         // FIXME: move more of the code below into the type checker, and generalize the remaining
         // code to be as little dependent as possible on wether nf or f are available.
@@ -899,7 +863,7 @@ struct Parser {
         // We give precedence to builtins, unless we're calling a known function in a :: context.
         if (nf && (!f || !wse.id)) {
             auto nc = new GenericCall(lex, idname, nullptr, false, specializers);
-            ParseFunArgs(nc, coroutine, firstarg, idname, &nf->args, noparens);
+            ParseFunArgs(nc, firstarg, noparens);
             for (auto [i, arg] : enumerate(nf->args.v)) {
                 if (i >= nc->Arity()) {
                     auto &type = arg.type;
@@ -923,24 +887,21 @@ struct Parser {
         // Note: <, because functions are inside their own scope.
         if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type: " + f->name);
-            auto bestf = f;
-            for (auto fi = f->sibf; fi; fi = fi->sibf)
-                if (fi->nargs() > bestf->nargs()) bestf = fi;
             auto call = new GenericCall(lex, idname, nullptr, false, specializers);
             if (!firstarg) firstarg = SelfArg(f, wse);
-            ParseFunArgs(call, coroutine, firstarg, idname, &bestf->overloads.back()->args, noparens);
-            auto nargs = call->Arity();
+            ParseFunArgs(call, firstarg, noparens);
+            auto nargs = call->Arity() + extra_args;  // FIXME!
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
             call->sf = f->overloads.back();
             return call;
         }
         if (id) {
             auto dc = new DynCall(lex, nullptr, id->cursid);
-            ParseFunArgs(dc, coroutine, firstarg);
+            ParseFunArgs(dc, firstarg, false);
             return dc;
         } else {
             auto call = new GenericCall(lex, idname, nullptr, false, specializers);
-            ParseFunArgs(call, coroutine, firstarg);
+            ParseFunArgs(call, firstarg, false);
             ForwardFunctionCall ffc = {
                 st.scopelevels.size(), st.current_namespace, call, !!firstarg, wse
             };
@@ -1034,7 +995,7 @@ struct Parser {
                             n = dot;
                         } else {
                             auto specializers = ParseSpecializers(f && !nf);
-                            n = ParseFunctionCall(f, nf, idname, n, false, false, &specializers);
+                            n = ParseFunctionCall(f, nf, idname, n, false, 0, &specializers);
                         }
                     } else {
                         Error("unknown field/function: " + idname);
@@ -1118,16 +1079,18 @@ struct Parser {
                 }
                 return constructor;
             }
-            case T_FUN: {
+            case T_LAMBDA: {
                 lex.Next();
-                return ParseFunction(nullptr, false, true, true, "");
+                return ParseFunction(nullptr, false, lex.token == T_LEFTPAREN,
+                    lex.token != T_COLON);
             }
             case T_COROUTINE: {
                 lex.Next();
                 auto idname = ExpectId();
                 auto specializers = ParseSpecializers(true);
-                auto n = ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr, true,
-                                           false, &specializers);
+                auto n = ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr,
+                                           false, 1, &specializers);
+                n->Add(new CoClosure(lex));
                 return new CoRoutine(lex, n);
             }
             case T_FLOATTYPE:
@@ -1377,11 +1340,11 @@ struct Parser {
                 Expect(T_RIGHTPAREN);
                 return ec;
             }
-            return ParseFunctionCall(f, nf, idname, nullptr, false, false);
+            return ParseFunctionCall(f, nf, idname, nullptr, false);
         }
         auto specializers = ParseSpecializers(f && !nf && !e);
         if (!specializers.empty())
-            return ParseFunctionCall(f, nf, idname, nullptr, false, false, &specializers);
+            return ParseFunctionCall(f, nf, idname, nullptr, false, 0, &specializers);
         // Check for implicit variable.
         if (idname[0] == '_') {
             auto &bs = block_stack.back();
@@ -1418,7 +1381,7 @@ struct Parser {
         auto id = st.Lookup(idname);
         // Check for function call without ().
         if (!id && (nf || f) && lex.whitespacebefore > 0 && lex.token != T_LINEFEED) {
-            return ParseFunctionCall(f, nf, idname, nullptr, false, true);
+            return ParseFunctionCall(f, nf, idname, nullptr, true);
         }
         // Check for enum value.
         auto ev = st.EnumValLookup(idname, lex, false);

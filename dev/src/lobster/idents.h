@@ -708,8 +708,8 @@ struct SymbolTable {
         return sf;
     }
 
-    Function &CreateFunction(string_view name, string_view context) {
-        auto fname = name.length() ? string(name) : cat("function", functiontable.size(), context);
+    Function &CreateFunction(string_view name) {
+        auto fname = name.length() ? string(name) : cat("function", functiontable.size());
         auto f = new Function(fname, (int)functiontable.size(), scopelevels.size());
         functiontable.push_back(f);
         return *f;
@@ -725,7 +725,7 @@ struct SymbolTable {
                 if (f->nargs() == nargs)
                     return *f;
         }
-        auto &f = CreateFunction(name, "");
+        auto &f = CreateFunction(name);
         if (fit != functions.end()) {
             f.sibf = fit->second->sibf;
             fit->second->sibf = &f;

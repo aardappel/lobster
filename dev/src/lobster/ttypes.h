@@ -64,6 +64,7 @@ namespace lobster {
     TOK(T_IDENT, "identifier") \
     TOK(T_CLASS, "class") \
     TOK(T_FUN, "def") \
+    TOK(T_LAMBDA, "fn") \
     TOK(T_RETURN, "return") \
     TOK(T_IS, "is") \
     TOK(T_TYPEOF, "typeof") \
