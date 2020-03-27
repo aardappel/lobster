@@ -44,15 +44,6 @@ enum Lifetime {
 inline bool IsBorrow(Lifetime lt) { return lt >= LT_BORROW; }
 inline Lifetime LifetimeType(Lifetime lt) { return IsBorrow(lt) ? LT_BORROW : lt; }
 
-struct Named {
-    string name;
-    int idx = -1;
-    bool isprivate = false;
-
-    Named() = default;
-    Named(string_view _name, int _idx = 0) : name(_name), idx(_idx) {}
-};
-
 struct SubFunction;
 
 struct Enum;
@@ -215,42 +206,41 @@ extern TypeRef type_undefined;
 
 TypeRef WrapKnown(TypeRef elem, ValueType with);
 
-enum ArgFlags {
-    AF_NONE               = 0,
+struct Named {
+    string name;
+    int idx = -1;
+    bool isprivate = false;
+
+    Named() = default;
+    Named(string_view _name, int _idx = 0) : name(_name), idx(_idx) {}
+};
+
+enum NArgFlags {
+    NF_NONE               = 0,
     NF_SUBARG1            = 1 << 0,
     NF_SUBARG2            = 1 << 1,
     NF_SUBARG3            = 1 << 2,
     NF_ANYVAR             = 1 << 3,
     NF_CORESUME           = 1 << 4,
-    AF_WITHTYPE           = 1 << 5,
     NF_CONVERTANYTOSTRING = 1 << 6,
     NF_PUSHVALUEWIDTH     = 1 << 7,
     NF_BOOL               = 1 << 8,
 };
-DEFINE_BITWISE_OPERATORS_FOR_ENUM(ArgFlags)
+DEFINE_BITWISE_OPERATORS_FOR_ENUM(NArgFlags)
 
 struct Ident;
 struct SpecIdent;
 
-struct Typed {
+struct Narg {
     TypeRef type = type_undefined;
-    ArgFlags flags = AF_NONE;
-
-    Typed() = default;
-    Typed(const Typed &o) : type(o.type), flags(o.flags) {}
-    Typed(TypeRef _type, ArgFlags _flags) : type(_type), flags(_flags) {}
-};
-
-struct Narg : Typed {
+    NArgFlags flags = NF_NONE;
+    string_view name;
     char fixed_len = 0;
     Lifetime lt = LT_UNDEF;
 
-    Narg() = default;
-    Narg(const Narg &o) : Typed(o), fixed_len(o.fixed_len), lt(o.lt) {}
-
     void Set(const char *&tid, Lifetime def) {
         char t = *tid++;
-        flags = AF_NONE;
+        flags = NF_NONE;
         lt = def;
         switch (t) {
             case 'A': type = type_any; break;
@@ -298,35 +288,6 @@ struct Narg : Typed {
     }
 };
 
-struct GenericArgs {
-    virtual string_view GetName(size_t i) const = 0;
-    virtual TypeRef GetType(size_t i) const = 0;
-    virtual size_t size() const = 0;
-};
-
-struct NargVector : GenericArgs {
-    vector<Narg> v;
-    const char *idlist;
-
-    NargVector(size_t nargs, const char *_idlist) : v(nargs), idlist(_idlist) {}
-
-    size_t size() const { return v.size(); }
-    TypeRef GetType(size_t i) const { return v[i].type; }
-    string_view GetName(size_t i) const {
-        auto ids = idlist;
-        for (;;) {
-            const char *idend = strchr(ids, ',');
-            if (!idend) {
-                // if this fails, you're not specifying enough arg names in the comma separated list
-                assert(!i);
-                idend = ids + strlen(ids);
-            }
-            if (!i--) return string_view(ids, idend - ids);
-            ids = idend + 1;
-        }
-    }
-};
-
 typedef void  (*builtinfV)(VM &vm);
 typedef Value (*builtinf0)(VM &vm);
 typedef Value (*builtinf1)(VM &vm, Value &);
@@ -366,11 +327,10 @@ struct BuiltinPtr {
 struct NativeFun : Named {
     BuiltinPtr fun;
 
-    NargVector args, retvals;
+    vector<Narg> args, retvals;
 
     builtinfV cont1;
 
-    const char *idlist;
     const char *help;
 
     int subsystemid = -1;
@@ -385,23 +345,28 @@ struct NativeFun : Named {
 
     NativeFun(const char *name, BuiltinPtr f, const char *ids, const char *typeids,
               const char *rets, const char *help, builtinfV cont1)
-        : Named(name, 0), fun(f), args(TypeLen(typeids), ids), retvals(0, nullptr),
+        : Named(name, 0), fun(f), args(TypeLen(typeids)), retvals(TypeLen(rets)),
           cont1(cont1), help(help) {
-        auto nretvalues = TypeLen(rets);
-        assert((int)args.v.size() == f.fnargs || f.fnargs < 0);
+        assert((int)args.size() == f.fnargs || f.fnargs < 0);
         auto StructArgsVararg = [&](const Narg &arg) {
             assert(!arg.fixed_len || IsRef(arg.type->sub->t) || f.fnargs < 0);
             (void)arg;
         };
-        for (size_t i = 0; i < args.v.size(); i++) {
-            args.GetName(i);  // Call this just to trigger the assert.
-            args.v[i].Set(typeids, LT_BORROW);
-            StructArgsVararg(args.v[i]);
+        for (auto [i, arg] : enumerate(args)) {
+            const char *idend = strchr(ids, ',');
+            if (!idend) {
+                // if this fails, you're not specifying enough arg names in the comma separated list
+                assert(i == args.size() - 1);
+                idend = ids + strlen(ids);
+            }
+            arg.name = string_view(ids, idend - ids);
+            ids = idend + 1;
+            arg.Set(typeids, LT_BORROW);
+            StructArgsVararg(arg);
         }
-        for (int i = 0; i < nretvalues; i++) {
-            retvals.v.push_back(Narg());
-            retvals.v[i].Set(rets, LT_KEEP);
-            StructArgsVararg(retvals.v[i]);
+        for (auto &ret : retvals) {
+            ret.Set(rets, LT_KEEP);
+            StructArgsVararg(ret);
         }
     }
 

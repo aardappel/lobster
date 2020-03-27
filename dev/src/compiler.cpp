@@ -270,11 +270,11 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
         }
         s += cat("<tr class=\"a\" valign=top><td class=\"a\"><tt><b>", nf->name, "</b>(");
         int last_non_nil = -1;
-        for (auto [i, a] : enumerate(nf->args.v)) {
+        for (auto [i, a] : enumerate(nf->args)) {
             if (a.type->t != V_NIL) last_non_nil = (int)i;
         }
-        for (auto [i, a] : enumerate(nf->args.v)) {
-            auto argname = nf->args.GetName(i);
+        for (auto [i, a] : enumerate(nf->args)) {
+            auto argname = nf->args[i].name;
             if (i) s +=  ", ";
             s += argname;
             s += "<font color=\"#666666\">";
@@ -289,13 +289,13 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
                 s += a.type->sub->Numeric() ? " = 0" : " = nil";
         }
         s += ")";
-        if (nf->retvals.v.size()) {
+        if (nf->retvals.size()) {
             s += " -> ";
-            for (auto [i, a] : enumerate(nf->retvals.v)) {
+            for (auto [i, a] : enumerate(nf->retvals)) {
                 s += "<font color=\"#666666\">";
                 s += TypeName(a.type, a.fixed_len, &st);
                 s += "</font>";
-                if (i < nf->retvals.v.size() - 1) s += ", ";
+                if (i < nf->retvals.size() - 1) s += ", ";
             }
         }
         s += cat("</tt></td><td class=\"a\">", nf->help, "</td></tr>\n");

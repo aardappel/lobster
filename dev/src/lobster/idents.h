@@ -119,16 +119,6 @@ struct Field {
     ~Field();
 };
 
-struct FieldVector : GenericArgs {
-    vector<Field> v;
-
-    FieldVector(size_t nargs) : v(nargs) {}
-
-    size_t size() const { return v.size(); }
-    TypeRef GetType(size_t i) const { return v[i].resolvedtype; }
-    string_view GetName(size_t i) const { return v[i].id->name; }
-};
-
 struct TypeVariable {
     string_view name;
     Type thistype;
@@ -155,7 +145,7 @@ struct DispatchEntry {
 };
 
 struct UDT : Named {
-    FieldVector fields{ 0 };
+    vector<Field> fields;
     vector<BoundTypeVariable> generics;
     UDT *next = nullptr, *first = this;  // Specializations
     TypeRef given_superclass = nullptr;
@@ -187,7 +177,7 @@ struct UDT : Named {
     }
 
     int Has(SharedField *fld) {
-        for (auto &uf : fields.v) if (uf.id == fld) return int(&uf - &fields.v[0]);
+        for (auto &uf : fields) if (uf.id == fld) return int(&uf - &fields[0]);
         return -1;
     }
 
@@ -227,7 +217,7 @@ struct UDT : Named {
         if (numslots >= 0) return true;
         if (depth > 16) return false;  // Simple protection against recursive references.
         int size = 0;
-        for (auto &uf : fields.v) {
+        for (auto &uf : fields) {
             assert(!uf.resolvedtype.Null());
             uf.slot = size;
             if (IsStruct(uf.resolvedtype->t)) {
@@ -243,7 +233,7 @@ struct UDT : Named {
 
     flatbuffers::Offset<bytecode::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
         vector<flatbuffers::Offset<bytecode::Field>> fieldoffsets;
-        for (auto f : fields.v)
+        for (auto f : fields)
             fieldoffsets.push_back(
                 bytecode::CreateField(fbb, fbb.CreateString(f.id->name), f.slot));
         return bytecode::CreateUDT(fbb, fbb.CreateString(name), idx,
@@ -254,7 +244,7 @@ struct UDT : Named {
 inline int ValWidth(TypeRef type) { return IsStruct(type->t) ? type->udt->numslots : 1; }
 
 inline const Field *FindSlot(const UDT &udt, int i) {
-    for (auto &f : udt.fields.v) {
+    for (auto &f : udt.fields) {
         if (i >= f.slot && i < f.slot + ValWidth(f.resolvedtype)) {
             return IsStruct(f.resolvedtype->t) ? FindSlot(*f.resolvedtype->udt, i - f.slot) : &f;
         }
@@ -263,39 +253,24 @@ inline const Field *FindSlot(const UDT &udt, int i) {
     return nullptr;
 }
 
-struct Arg : Typed {
+struct Arg {
+    TypeRef type = type_undefined;
     SpecIdent *sid = nullptr;
+    bool withtype = false;
 
     Arg() = default;
-    Arg(const Arg &o) : Typed(o), sid(o.sid) {}
-    Arg(SpecIdent *_sid, TypeRef _type, ArgFlags _flags) : Typed(_type, _flags), sid(_sid) {}
-};
-
-struct ArgVector : GenericArgs {
-    vector<Arg> v;
-
-    ArgVector(size_t nargs) : v(nargs) {}
-
-    size_t size() const { return v.size(); }
-    TypeRef GetType(size_t i) const { return v[i].type; }
-    string_view GetName(size_t i) const { return v[i].sid->id->name; }
-
-    bool Add(const Arg &in) {
-        for (auto &arg : v)
-            if (arg.sid->id == in.sid->id)
-                return false;
-        v.push_back(in);
-        return true;
-    }
+    Arg(const Arg &o) = default;
+    Arg(SpecIdent *_sid, TypeRef _type, bool _withtype)
+        : type(_type), sid(_sid), withtype(_withtype) {}
 };
 
 struct Function;
 
 struct SubFunction {
     int idx;
-    ArgVector args { 0 };
-    ArgVector locals { 0 };
-    ArgVector freevars { 0 };       // any used from outside this scope
+    vector<Arg> args;
+    vector<Arg> locals;
+    vector<Arg> freevars;       // any used from outside this scope
     vector<UnresolvedTypeRef> giventypes;  // before specialization, includes typevars. FIXME: Only needed once per overload
     UnresolvedTypeRef returngiventype = { nullptr };
     TypeRef returntype = type_undefined;
@@ -305,7 +280,7 @@ struct SubFunction {
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
     bool isrecursivelycalled = false;
     bool iscoroutine = false;
-    ArgVector coyieldsave { 0 };
+    vector<Arg> coyieldsave { 0 };
     TypeRef coresumetype;
     type_elem_t cotypeinfo = (type_elem_t)-1;
     Block *body = nullptr;
@@ -330,6 +305,14 @@ struct SubFunction {
         link = this;
     }
 
+    bool Add(vector<Arg> &v, const Arg &in) {
+        for (auto &arg : v)
+            if (arg.sid->id == in.sid->id)
+                return false;
+        v.push_back(in);
+        return true;
+    }
+
     ~SubFunction();
 };
 
@@ -352,7 +335,7 @@ struct Function : Named {
         : Named(_name, _idx), scopelevel(_sl) {}
     ~Function() {}
 
-    size_t nargs() const { return overloads[0]->args.v.size(); }
+    size_t nargs() const { return overloads[0]->args.size(); }
 
     int NumSubf() {
         int sum = 0;
@@ -489,8 +472,8 @@ struct SymbolTable {
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
         ident = NewId(name, sf);
-        (islocal ? sf->locals : sf->args).v.push_back(
-            Arg(ident->cursid, type_any, withtype ? AF_WITHTYPE : AF_NONE));
+        (islocal ? sf->locals : sf->args).push_back(
+            Arg(ident->cursid, type_any, withtype));
         if (Lookup(name)) {
             lex.Error("identifier redefinition / shadowing: " + ident->name);
         }
@@ -748,8 +731,8 @@ struct SymbolTable {
         return sid;
     }
 
-    void CloneSids(ArgVector &av, SubFunction *sf) {
-        for (auto &a : av.v) {
+    void CloneSids(vector<Arg> &av, SubFunction *sf) {
+        for (auto &a : av) {
             a.sid = NewSid(a.sid->id, sf);
         }
     }
@@ -971,6 +954,45 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
             return string(BaseTypeName(type->t));
     }
 }
+
+inline void FormatArg(string &r, string_view name, size_t i, TypeRef type) {
+    if (i) r += ", ";
+    r += name;
+    if (type->t != V_ANY) {
+        r += ":";
+        r += TypeName(type);
+    }
+}
+
+inline string Signature(const NativeFun &nf) {
+    string r = nf.name;
+    r += "(";
+    for (auto [i, arg] : enumerate(nf.args)) {
+        FormatArg(r, arg.name, i, arg.type);
+    }
+    r += ")";
+    return r;
+}
+
+inline string Signature(const UDT &udt) {
+    string r = udt.name;
+    r += "{";
+    for (auto [i, f] : enumerate(udt.fields)) {
+        FormatArg(r, f.id->name, i, f.resolvedtype);
+    }
+    r += "}";
+    return r;
+}
+
+inline string Signature(const SubFunction &sf) {
+    string r = sf.parent->name;
+    r += "(";
+    for (auto [i, arg] : enumerate(sf.args)) {
+        FormatArg(r, arg.sid->id->name, i, arg.type);
+    }
+    return r + ")";
+}
+
 
 }  // namespace lobster
 

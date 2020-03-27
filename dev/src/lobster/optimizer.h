@@ -148,13 +148,13 @@ Node *Call::Optimize(Optimizer &opt) {
         (sf->numcallers > 1 && sf->body->Count() >= 8)) { // FIXME: configurable.
         return this;
     }
-    auto AddToLocals = [&](const ArgVector &av) {
-        for (auto &arg : av.v) {
+    auto AddToLocals = [&](const vector<Arg> &av) {
+        for (auto &arg : av) {
             // We have to check if the sid already exists, since inlining the same function
             // multiple times in the same parent can cause this. This variable is shared
             // between the copies in the parent, second use overwrites the first etc.
-            for (auto &loc : opt.cursf->locals.v) if (loc.sid == arg.sid) goto already;
-            opt.cursf->locals.v.push_back(arg);
+            for (auto &loc : opt.cursf->locals) if (loc.sid == arg.sid) goto already;
+            opt.cursf->locals.push_back(arg);
             arg.sid->sf_def = opt.cursf;
             already:;
         }
@@ -164,7 +164,7 @@ Node *Call::Optimize(Optimizer &opt) {
     int ai = 0;
     auto list = new Block(line);
     for (auto c : children) {
-        auto &arg = sf->args.v[ai];
+        auto &arg = sf->args[ai];
         auto def = new Define(line, c);
         def->sids.push_back({ arg.sid, { arg.type } });
         list->Add(opt.Typed(type_void, LT_ANY, def));

@@ -272,7 +272,7 @@ struct Parser {
                         // but given that typevars can be a subtype of a fields type, this is
                         // now a bit odd.
                         auto def = ParseFactor();
-                        for (auto &field : udt->fields.v) {
+                        for (auto &field : udt->fields) {
                             if (field.giventype.utr->t == V_TYPEVAR &&
                                 field.giventype.utr->tv == udt->generics[j].tv) {
                                 if (field.defaultval) Error("field already has a default value");
@@ -329,8 +329,8 @@ struct Parser {
                 if (!udt->generics.empty())
                     Error("unimplemented: cannot add generics to generic base");
                 udt->generics = sup->generics;
-                for (auto &fld : sup->fields.v) {
-                    udt->fields.v.push_back(fld);
+                for (auto &fld : sup->fields) {
+                    udt->fields.push_back(fld);
                 }
                 parse_specializers();
                 if (udt->FullyBound()) {
@@ -359,14 +359,14 @@ struct Parser {
                         Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
                         if (type.utr->t == V_ANY && !defaultval)
                             Error("must specify either type or default value");
-                        udt->fields.v.push_back(Field(&sfield, type, defaultval));
+                        udt->fields.push_back(Field(&sfield, type, defaultval));
                     }
                     if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
                 Expect(T_DEDENT);
                 st.bound_typevars_stack.pop_back();
             }
-            if (udt->fields.v.empty() && udt->is_struct)
+            if (udt->fields.empty() && udt->is_struct)
                 Error("structs cannot be empty");
         } else {
             // A pre-declaration.
@@ -423,7 +423,7 @@ struct Parser {
         }
         auto ng = st.NewGeneric(nn);
         sf->generics.push_back({ ng, { nullptr } });
-        sf->args.v.back().type = &ng->thistype;
+        sf->args.back().type = &ng->thistype;
         sf->giventypes.push_back({ &ng->thistype });
     }
 
@@ -461,11 +461,11 @@ struct Parser {
         if (self) {
             nargs++;
             auto id = st.LookupDef("this", lex, false, true);
-            auto &arg = sf->args.v.back();
+            auto &arg = sf->args.back();
             arg.type = &self->unspecialized_type;
             sf->giventypes.push_back({ arg.type });
             st.AddWithStruct(arg.type, id, lex, sf);
-            arg.flags |= AF_WITHTYPE;
+            arg.withtype = true;
         }
         bool non_inline_method = false;
         if (lex.token != T_RIGHTPAREN && parseargs) {
@@ -474,7 +474,7 @@ struct Parser {
                 nargs++;
                 bool withtype = lex.token == T_TYPEIN;
                 auto id = st.LookupDef(lastid, lex, false, withtype);
-                auto &arg = sf->args.v.back();
+                auto &arg = sf->args.back();
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
                     arg.type = ParseType(withtype, nullptr).utr;
@@ -516,7 +516,7 @@ struct Parser {
                 Error("redefinition of function type: " + *name);
             f.istype = true;
             sf->typechecked = true;
-            for (auto [i, arg] : enumerate(sf->args.v)) {
+            for (auto [i, arg] : enumerate(sf->args)) {
                 if (st.IsGeneric(sf->giventypes[i]))
                     Error("function type arguments can't be generic");
                 // No idea what the function is going to be, so have to default to borrow.
@@ -534,7 +534,7 @@ struct Parser {
                 // detecting what is a legit overload or not, this is in general better left to the
                 // type checker.
                 if (!f.nargs()) Error("double declaration: " + f.name);
-                for (auto [i, arg] : enumerate(sf->args.v)) {
+                for (auto [i, arg] : enumerate(sf->args)) {
                     if (!i && st.IsGeneric(sf->giventypes[i]))
                         Error("first argument of overloaded function must not be generic: " +
                               f.name);
@@ -866,7 +866,7 @@ struct Parser {
         if (nf && (!f || !wse.id)) {
             auto nc = new GenericCall(lex, idname, nullptr, false, specializers);
             ParseFunArgs(nc, firstarg, noparens);
-            for (auto [i, arg] : enumerate(nf->args.v)) {
+            for (auto [i, arg] : enumerate(nf->args)) {
                 if (i >= nc->Arity()) {
                     auto &type = arg.type;
                     if (type->t == V_NIL) {
@@ -875,7 +875,7 @@ struct Parser {
                         auto nargs = nc->Arity();
                         for (auto ol = nf->overloads; ol; ol = ol->overloads) {
                             // Typechecker will deal with it.
-                            if (ol->args.v.size() == nargs) goto argsok;
+                            if (ol->args.size() == nargs) goto argsok;
                         }
                         Error("missing arg to builtin function: " + idname);
                     }
@@ -918,10 +918,10 @@ struct Parser {
             // arg of the same type we pass it in automatically.
             // This is maybe a bit very liberal, should maybe restrict it?
             for (auto sf : f->overloads) {
-                auto &arg0 = sf->args.v[0];
+                auto &arg0 = sf->args[0];
                 if (arg0.type->t == V_UUDT &&
                     wse.udt == arg0.type->spec_udt->udt &&
-                    arg0.flags & AF_WITHTYPE) {
+                    arg0.withtype) {
                     if (wse.id && wse.sf->parent != f) {  // Not in recursive calls.
                         return new IdentRef(lex, wse.id->cursid);
                     }
@@ -1303,7 +1303,7 @@ struct Parser {
                 // An initializer without a tag. Find first field without a default thats not
                 // set yet.
                 for (size_t i = 0; i < exps.size(); i++) {
-                    if (!exps[i] && !udt->fields.v[i].defaultval) {
+                    if (!exps[i] && !udt->fields[i].defaultval) {
                         exps[i] = ParseExp();
                         return;
                     }
@@ -1316,10 +1316,10 @@ struct Parser {
             auto constructor = new Constructor(lex, type);
             for (size_t i = 0; i < exps.size(); i++) {
                 if (!exps[i]) {
-                    if (udt->fields.v[i].defaultval)
-                        exps[i] = udt->fields.v[i].defaultval->Clone();
+                    if (udt->fields[i].defaultval)
+                        exps[i] = udt->fields[i].defaultval->Clone();
                     else
-                        Error("field not initialized: " + udt->fields.v[i].id->name);
+                        Error("field not initialized: " + udt->fields[i].id->name);
                 }
                 constructor->Add(exps[i]);
             }
@@ -1371,10 +1371,10 @@ struct Parser {
                     if (!sf->parent->anonymous)
                         Error("cannot use implicit argument: " + idname +
                             " in named function: " + sf->parent->name, sf->body);
-                    if (sf->args.v[0].sid->id->name[0] != '_')
+                    if (sf->args[0].sid->id->name[0] != '_')
                         Error("cannot mix implicit argument: " + idname +
                             " with declared arguments in function", sf->body);
-                    if (st.defsubfunctionstack.back()->args.v.back().type == type_any)
+                    if (st.defsubfunctionstack.back()->args.back().type == type_any)
                         GenImplicitGenericForLastArg();
                 }
             }
@@ -1454,7 +1454,7 @@ struct Parser {
                 for (; sf; sf = sf->next) {
                     if (!onlytypechecked || sf->typechecked) {
                         s += "FUNCTION: " + f->name + "(";
-                        for (auto &arg : sf->args.v) {
+                        for (auto &arg : sf->args) {
                             s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
                         }
                         s += ") -> ";

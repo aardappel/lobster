@@ -70,7 +70,7 @@ struct CodeGen  {
     const size_t ti_num_udt_per_field = 2;
 
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
-        for (auto &field : udt->fields.v) {
+        for (auto &field : udt->fields) {
             auto ti = GetTypeTableOffset(field.resolvedtype);
             if (IsStruct(field.resolvedtype->t)) {
                 PushFields(field.resolvedtype->udt, tt, ti);
@@ -280,8 +280,8 @@ struct CodeGen  {
             }
             code[nvarspos] = nvars;
         };
-        emitvars(sf.args.v);
-        emitvars(sf.locals.v);
+        emitvars(sf.args);
+        emitvars(sf.locals);
         auto keepvarspos = Pos();
         Emit(0);
         // FIXME: don't really want to emit these.. instead should ensure someone takes
@@ -474,7 +474,7 @@ struct CodeGen  {
             assert(IsUDT(stype->t));  // Ensured by typechecker.
             auto idx = stype->udt->Has(dot->fld);
             assert(idx >= 0);
-            auto &field = stype->udt->fields.v[idx];
+            auto &field = stype->udt->fields[idx];
             Gen(dot->children[0], 1);
             TakeTemp(take_temp + 1, true);
             Emit(GENLVALOP(FLD, lvalop), field.slot); GenStructIns(field.resolvedtype);
@@ -595,7 +595,7 @@ struct CodeGen  {
                 assert(IsUDT(sstype->t));
                 auto idx = sstype->udt->Has(dot->fld);
                 assert(idx >= 0);
-                auto &field = sstype->udt->fields.v[idx];
+                auto &field = sstype->udt->fields[idx];
                 assert(field.slot >= 0);
                 GenPushField(retval, dot->children[0], sstype, ftype, field.slot + offset);
                 return;
@@ -643,7 +643,7 @@ struct CodeGen  {
                     etype = etype->Element();
                 } else {
                     auto &udt = *index->exptype->udt;
-                    for (auto &field : udt.fields.v) {
+                    for (auto &field : udt.fields) {
                         (void)field;
                         etype = etype->Element();
                     }
@@ -714,7 +714,7 @@ void Dot::Generate(CodeGen &cg, size_t retval) const {
     assert(IsUDT(stype->t));
     auto idx = stype->udt->Has(fld);
     assert(idx >= 0);
-    auto &field = stype->udt->fields.v[idx];
+    auto &field = stype->udt->fields[idx];
     assert(field.slot >= 0);
     cg.GenPushField(retval, children[0], stype, field.resolvedtype, field.slot);
 }
@@ -974,7 +974,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     for (auto [i, c] : enumerate(children)) {
         cg.Gen(c, 1);
         if ((IsStruct(c->exptype->t) ||
-             nf->args.v[i].flags & NF_PUSHVALUEWIDTH) &&
+             nf->args[i].flags & NF_PUSHVALUEWIDTH) &&
             !Is<DefaultVal>(c)) {
             cg.GenValueSize(c->exptype);
             cg.temptypestack.push_back({ type_int, LT_ANY });
@@ -1012,7 +1012,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         auto tlt = TypeLT { nattype->Get(last), nattype->GetLifetime(last, natlt) };
         // FIXME: simplify.
         auto val_width_1 = !IsStruct(tlt.type->t) || tlt.type->udt->numslots == 1;
-        auto var_width_void = nf->fun.fnargs < 0 && nf->retvals.v.empty();
+        auto var_width_void = nf->fun.fnargs < 0 && nf->retvals.empty();
         if (!retval && val_width_1 && !var_width_void) {
             // Generate version that never produces top of stack (but still may have
             // additional return values)
@@ -1025,13 +1025,13 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
             cg.GenPop(tlt);
         }
     }
-    if (nf->retvals.v.size() > 1) {
-        assert(nf->retvals.v.size() == nattype->NumValues());
+    if (nf->retvals.size() > 1) {
+        assert(nf->retvals.size() == nattype->NumValues());
         for (size_t i = 0; i < nattype->NumValues(); i++) {
             cg.rettypes.push_back({ nattype->Get(i), nattype->GetLifetime(i, natlt) });
         }
     } else {
-        assert(nf->retvals.v.size() >= retval);
+        assert(nf->retvals.size() >= retval);
     }
     if (!retval) {
         // Top of stack has already been removed by op, but still need to pop any
@@ -1392,7 +1392,7 @@ void CoRoutine::Generate(CodeGen &cg, size_t retval) const {
     // each function.
     auto num = cg.Pos();
     cg.Emit(0);
-    for (auto &arg : sf->coyieldsave.v) {
+    for (auto &arg : sf->coyieldsave) {
         auto n = ValWidth(arg.sid->type);
         for (int i = 0; i < n; i++) {
             cg.Emit(arg.sid->Idx() + i);

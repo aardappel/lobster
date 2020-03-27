@@ -1690,14 +1690,14 @@ void VM::BCallRetCheck(const NativeFun *nf) {
         // other function types return intermediary values that don't correspond to final return
         // values.
         if (!nf->cont1) {
-            for (size_t i = 0; i < nf->retvals.v.size(); i++) {
+            for (size_t i = 0; i < nf->retvals.size(); i++) {
                 #ifndef NDEBUG
-                auto t = (VM_TOPPTR() - nf->retvals.v.size() + i)->type;
-                auto u = nf->retvals.v[i].type->t;
+                auto t = (VM_TOPPTR() - nf->retvals.size() + i)->type;
+                auto u = nf->retvals[i].type->t;
                 assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && IsUDT(t)));
                 #endif
             }
-            assert(nf->retvals.v.size() || VM_TOP().type == V_NIL);
+            assert(nf->retvals.size() || VM_TOP().type == V_NIL);
         }
     #else
         (void)nf;
