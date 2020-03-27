@@ -88,12 +88,14 @@ struct Parser {
         ResolveForwardFunctionCalls();
         for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
-                st.UnregisterEnum(er->e);
+                st.Unregister(er->e, st.enums);
             } else if (auto sr = Is<UDTRef>(def)) {
-                st.UnregisterStruct(sr->udt, lex);
+                if (sr->udt->predeclaration)
+                    lex.Error("pre-declared struct never defined: " + sr->udt->name);
+                st.Unregister(sr->udt, st.udts);
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
-                if (!f->anonymous) st.UnregisterFun(f);
+                if (!f->anonymous) st.Unregister(f, st.functions);
             } else if (auto d = Is<Define>(def)) {
                 for (auto p : d->sids) {
                     auto id = p.first->id;
@@ -171,7 +173,7 @@ struct Parser {
                 int64_t cur = incremental ? 0 : 1;
                 auto enumname = st.MaybeNameSpace(ExpectId(), !isprivate);
                 auto def = st.EnumLookup(enumname, lex, true);
-                def->isprivate = isprivate;  // FIXME: not used?
+                def->isprivate = isprivate;
                 Expect(T_COLON);
                 Expect(T_INDENT);
                 for (;;) {
@@ -181,7 +183,7 @@ struct Parser {
                         Expect(T_INT);
                     }
                     auto ev = st.EnumValLookup(evname, lex, true);
-                    ev->isprivate = isprivate;  // FIXME: not used?
+                    ev->isprivate = isprivate;
                     ev->val = cur;
                     ev->e = def;
                     def->vals.emplace_back(ev);

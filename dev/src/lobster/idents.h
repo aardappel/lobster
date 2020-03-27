@@ -126,7 +126,6 @@ struct FieldVector : GenericArgs {
 
     size_t size() const { return v.size(); }
     TypeRef GetType(size_t i) const { return v[i].resolvedtype; }
-    ArgFlags GetFlags(size_t) const { return AF_NONE; }
     string_view GetName(size_t i) const { return v[i].id->name; }
 };
 
@@ -279,7 +278,6 @@ struct ArgVector : GenericArgs {
 
     size_t size() const { return v.size(); }
     TypeRef GetType(size_t i) const { return v[i].type; }
-    ArgFlags GetFlags(size_t i) const { return v[i].flags; }
     string_view GetName(size_t i) const { return v[i].sid->id->name; }
 
     bool Add(const Arg &in) {
@@ -567,38 +565,36 @@ struct SymbolTable {
         BlockScopeCleanup();
     }
 
-    void UnregisterStruct(const UDT *st, Lex &lex) {
-        if (st->predeclaration) lex.Error("pre-declared struct never defined: " + st->name);
-        auto it = udts.find(st->name);
-        if (it != udts.end()) udts.erase(it);
-    }
-
-    void UnregisterFun(Function *f) {
-        auto it = functions.find(f->name);
-        if (it != functions.end())  // it can already have been removed by another variation
-            functions.erase(it);
-    }
-
-    void UnregisterEnum(Enum *e) {
+    void Unregister(const Enum *e, unordered_map<string_view, Enum *> &dict) {
         for (auto &ev : e->vals) {
             auto it = enumvals.find(ev->name);
             assert(it != enumvals.end());
             enumvals.erase(it);
         }
-        auto it = enums.find(e->name);
-        assert(it != enums.end());
-        enums.erase(it);
+        auto it = dict.find(e->name);
+        if (it != dict.end()) dict.erase(it);
+    }
+
+    template<typename T> void Unregister(const T *x, unordered_map<string_view, T *> &dict) {
+        auto it = dict.find(x->name);
+        if (it != dict.end()) dict.erase(it);
+    }
+
+    template<typename T> void ErasePrivate(unordered_map<string_view, T *> &dict) {
+        auto it = dict.begin();
+        while (it != dict.end()) {
+            auto n = it->second;
+            it++;
+            if (n->isprivate) Unregister(n, dict);
+        }
     }
 
     void EndOfInclude() {
         current_namespace.clear();
-        auto it = idents.begin();
-        while (it != idents.end()) {
-            if (it->second->isprivate) {
-                idents.erase(it++);
-            } else
-                it++;
-        }
+        ErasePrivate(idents);
+        ErasePrivate(udts);
+        ErasePrivate(functions);
+        ErasePrivate(enums);
     }
 
     Enum *EnumLookup(string_view name, Lex &lex, bool decl) {
