@@ -243,6 +243,13 @@ template<typename T, int N> inline vec<T,N> rpow(const vec<T,N> &a, const vec<T,
     DOVECR(rpowf(a[i], b[i]));
 }
 
+template<typename T, int N> inline vec<T, N> from_srgb(const vec<T, N> &a) {
+    DOVECR(powf(a[i], 2.2f));
+}
+template<typename T, int N> inline vec<T, N> to_srgb(const vec<T, N> &a) {
+    DOVECR(powf(a[i], 1.0f / 2.2f));
+}
+
 template<typename T, int N> inline T min(const vec<T,N> &a) {
     DOVECF(FLT_MAX, std::min(a[i], _));
 }

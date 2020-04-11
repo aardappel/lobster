@@ -195,7 +195,7 @@ nfr("cg_sample_down", "scale,world", "IR", "", "",
                             for (int zd = 0; zd < sc; zd++) {
                                 auto d = int3(xd, yd, zd);
                                 auto c = v.grid.Get(pos * sc + d);
-                                acc += int4(v.palette[c]);
+                                acc += int4(v.palette[c]);  // FIXME: not SRGB aware.
                             }
                         }
                     }
@@ -475,8 +475,8 @@ nfr("cg_get_buf", "block", "R", "S",
 nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 	[](VM &vm) {
 		auto &v = GetVoxels(vm, vm.Pop());
-		int3 col(0);
-		int nsurf = 0;
+		float3 col(0.0f);
+		float nsurf = 0;
 		int nvol = 0;
 		int3 neighbors[] = {
 			int3(0, 0, 1),  int3(0, 1, 0),  int3(1, 0, 0),
@@ -493,7 +493,7 @@ nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 						for (int i = 0; i < 6; i++) {
 							auto p = pos + neighbors[i];
 							if (!(p >= 0) || !(p < v.grid.dim) || !v.grid.Get(p)) {
-								col += int3(v.palette[c].xyz());
+								col += from_srgb(float3(v.palette[c].xyz()) / 255.0f);
 								nsurf++;
 								break;
 							}
@@ -503,8 +503,7 @@ nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 			}
 		}
 		if (nsurf) col /= nsurf;
-		vm.PushVec(nvol < v.grid.dim.volume() / 2 ? float4(0.0f)
-												  : float4(float3(col) / 255.0f, 1.0f));
+		vm.PushVec(nvol < v.grid.dim.volume() / 2 ? float4(0.0f) : float4(col, 1.0f));
 	});
 
 nfr("cg_rotate", "block,n", "RI", "R",
