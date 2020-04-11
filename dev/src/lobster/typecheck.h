@@ -892,6 +892,11 @@ struct TypeChecker {
                     if (static_dispatch || i)
                         SubType(c, arg.type, ArgName(i), f.name);
                     AdjustLifetime(c, arg.sid->lt);
+                    // We really don't want to specialize functions on variables, so we simply
+                    // disallow them. This should happen only infrequently.
+                    if (/*sf->isrecursivelycalled &&*/ arg.type->HasValueType(V_VAR))
+                        TypeError(cat("can\'t infer ", ArgName(i), " argument of call to ", f.name),
+                                  call_args);
                 }
             }
             // This has to happen even to dead args:
