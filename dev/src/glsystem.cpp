@@ -123,6 +123,13 @@ void OpenGLFrameStart(const int2 &ssize) {
     lights.clear();
 }
 
+void OpenGLFrameEnd() {
+    //uchar pixel[4];
+    //glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
+    //glFlush();
+    //glFinish();
+}
+
 void OpenGLInit(int samples, bool srgb) {
     GL_CHECK("before_init");
     // If not called, flashes red framebuffer on OS X before first gl_clear() is called.

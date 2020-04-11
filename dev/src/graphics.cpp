@@ -75,6 +75,7 @@ void GraphicsShutDown() {
 bool GraphicsFrameStart() {
     extern void CullFonts(); CullFonts();
     extern void SteamUpdate(); SteamUpdate();
+    OpenGLFrameEnd();
     bool cb = SDLFrame();
     lastframehitsize = lasthitsize;
     lasthitsize = float3_0;

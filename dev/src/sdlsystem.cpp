@@ -341,7 +341,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
     LOG_INFO("SDL OpenGL context created...");
 
     #ifndef __IOS__
-        SDL_GL_SetSwapInterval(flags & INIT_NO_VSYNC ? 0 : 1);
+        if (SDL_GL_SetSwapInterval(flags & INIT_NO_VSYNC ? 0 : -1) < 0) SDL_GL_SetSwapInterval(1);
     #endif
 
     SDL_JoystickEventState(SDL_ENABLE);
@@ -389,15 +389,6 @@ void SDLUpdateTime(double delta) {
 vector<float> &SDLGetFrameTimeLog() { return frametimelog; }
 
 bool SDLFrame() {
-    auto millis = GetSeconds();
-    SDLUpdateTime(millis - lasttime);
-
-    for (auto &it : keymap) it.second.FrameReset();
-
-    mousewheeldelta = 0;
-    clearfingers(true);
-    dropped_file.clear();
-
     if (minimized) {
         SDL_Delay(10);  // save CPU/battery
     } else {
@@ -406,7 +397,14 @@ bool SDLFrame() {
         #endif
     }
 
-    //SDL_Delay(1000);
+    auto millis = GetSeconds();
+    SDLUpdateTime(millis - lasttime);
+
+    for (auto &it : keymap) it.second.FrameReset();
+
+    mousewheeldelta = 0;
+    clearfingers(true);
+    dropped_file.clear();
 
     if (!cursor) clearfingers(false);
 

@@ -150,6 +150,7 @@ struct Light {
 extern void OpenGLInit(int samples, bool srgb);
 extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
+extern void OpenGLFrameEnd();
 extern void LogGLError(const char *file, int line, const char *call);
 
 extern void Set2DMode(const int2 &ssize, bool lh, bool depthtest = false);
