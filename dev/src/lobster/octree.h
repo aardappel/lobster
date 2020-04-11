@@ -43,6 +43,10 @@ struct OcTree {
         NODES_PER_DIRTY_BIT = 64
     };
 
+    size_t NumNodes() {
+        return nodes.size() / ELEMENTS_PER_NODE - freelist.size();
+    }
+
     OcTree(int world_bits, int fix_bits = 0) : world_bits(world_bits), fix_bits(fix_bits) {
         nodes.push_back(OcVal());  // Unused element before root at offset 0.
         RecInit(fix_bits, 0);
@@ -54,7 +58,7 @@ struct OcTree {
         nodes.push_back({ parent });
         if (fbitsr) {
             for (int i = 0; i < OCTREE_SUBDIV; i++) {
-                auto child = RecInit(fbitsr - 1, cur);
+                auto child = RecInit(fbitsr - 1, cur + i);
                 nodes[cur + i].SetNodeIdx(child);
             }
         }
@@ -119,15 +123,15 @@ struct OcTree {
                 Dirty(ccur);
                 // Try to merge this level all the way to the top.
                 for (int pbit = 1 + fix_bits; pbit < world_bits; pbit++) {
-                    auto parent = Deref(cur);
-                    auto children = nodes[parent].NodeIdx();
                     for (int i = 1; i < OCTREE_SUBDIV; i++) {  // If all 8 are the same..
-                        if (nodes[children] != nodes[children + i]) return;
+                        if (nodes[cur] != nodes[cur + i]) return;
                     }
                     // Merge.
-                    nodes[parent] = nodes[children];
+                    auto parent = Deref(cur);
+                    assert(cur == nodes[parent].NodeIdx());
+                    nodes[parent] = nodes[cur];
                     Dirty(parent);
-                    freelist.push_back(children);
+                    freelist.push_back(cur);
                     cur = ToParent(parent);
                 }
                 return;
@@ -155,6 +159,19 @@ struct OcTree {
                 cur = oval.NodeIdx();
             }
         }
+    }
+
+    int Copy(vector<OcVal> &dest, int src, int parent) {
+        int cur = (int)dest.size();
+        for (int i = 0; i < OCTREE_SUBDIV; i++) {
+            dest.push_back(nodes[src + i]);
+        }
+        dest.push_back(parent);
+        for (int i = 0; i < OCTREE_SUBDIV; i++) {
+            auto v = nodes[src + i];
+            if (!v.IsLeaf()) dest[cur + i] = Copy(dest, v.NodeIdx(), cur + i);
+        }
+        return cur;
     }
 
     // This function is only needed when creating nodes without Set, as Set already merges

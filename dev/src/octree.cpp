@@ -77,6 +77,25 @@ nfr("oc_buf", "octree", "R", "S", "",
         return Value(s);
     });
 
+nfr("oc_optimize", "octree", "R", "", "",
+    [](VM &vm, Value &oc) {
+        auto &ocworld = GetOcTree(vm, oc);
+        auto numnodes1 = ocworld.NumNodes();
+        ocworld.Merge();  // This should in theory not change anything.
+        auto numnodes2 = ocworld.NumNodes();
+        vector<OcVal> dest;
+        dest.reserve(ocworld.nodes.size());
+        dest.push_back(OcVal());
+        ocworld.Copy(dest, OcTree::ROOT_INDEX, 0);
+        ocworld.nodes = dest;
+        ocworld.freelist.clear();
+        ocworld.dirty.clear();
+        ocworld.all_dirty = true;
+        auto numnodes3 = ocworld.NumNodes();
+        LOG_INFO("oc_optimize: ", numnodes1, ", ", numnodes2, ", ", numnodes3, ", ");
+        return Value();
+    });
+
 nfr("oc_load", "name", "S", "R?", "",
     [](VM &vm, Value &name) {
         string buf;
