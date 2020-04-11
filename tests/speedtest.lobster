@@ -9,7 +9,7 @@ class test:
     t:testf
     runs:int
     min:float
-var tests = []
+let tests = []
 var number_of_runs = 1
 current_test_runner = fn(name:string, t:testf):
     tests.push(test { name, t, number_of_runs, 999999.9 })
@@ -18,28 +18,28 @@ print "VM MODE: " + (if vm_compiled_mode(): "compiled" else: "interpreted")
 
 // Balance these numbers to get a good blend of what kind of code we're optimizing for.
 
-number_of_runs = 1  // FIXME
+number_of_runs = 10000
 import structtest
 
-number_of_runs = 5000
+number_of_runs = 6000
 import misctest
 
-number_of_runs = 1500
+number_of_runs = 6000
 import typetest
 
 number_of_runs = 4000
 import corotest
 
-number_of_runs = 100
+number_of_runs = 150
 import astartest
 
-number_of_runs = 200
+number_of_runs = 400
 import goaptest
 
-number_of_runs = 100
+number_of_runs = 200
 import knightstest
 
-number_of_runs = 500
+number_of_runs = 5750
 import parsertest
 
 number_of_runs = 100
@@ -48,13 +48,13 @@ import floodtest
 number_of_runs = 10
 import watertest
 
-number_of_runs = 10
+number_of_runs = 6
 import gradienttest
 
-number_of_runs = 10
+number_of_runs = 5
 import springstest
 
-number_of_runs = 10
+number_of_runs = 3
 import smallpttest
 
 
@@ -64,11 +64,11 @@ let meta_runs = 17
 var total_time_taken = 0.0
 for meta_runs:
     for(tests) t:
-        var starttime = seconds_elapsed()
+        let starttime = seconds_elapsed()
         for t.runs:
-            var f = t.t
+            let f = t.t
             f()
-        var time_taken = seconds_elapsed() - starttime
+        let time_taken = seconds_elapsed() - starttime
         t.min = min(t.min, time_taken)
 for(tests) t:
     total_time_taken += meta_runs * t.min
