@@ -159,4 +159,78 @@ nfr("oc_buffer_update", "octree,uname,ssbo", "RSI", "I", "",
         ocworld.dirty.clear();
         vm.Push(num_updates);
     });
+
+nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
+    [](VM &vm) {
+        auto cam = vm.PopVec<float3>();
+        auto values = vm.Pop().vval();
+        auto positions = vm.Pop().vval();
+        struct S {
+            float3 lo;
+            int left_or_val;
+            float3 hi;
+            int fail;
+        };
+        struct N {
+            N *left, *right;
+            intp val;
+            float3 lo, hi, center;
+            N *insert(N *nn, vector<N> &nodes) {
+                if (left) {
+                    if (squaredlength(left->center - nn->center) <
+                        squaredlength(right->center - nn->center)) {
+                        left = left->insert(nn, nodes);
+                    } else {
+                        right = right->insert(nn, nodes);
+                    }
+                    lo = min(left->lo, right->lo);
+                    hi = max(left->hi, right->hi);
+                    center = (lo + hi) / 2;
+                    return this;
+                } else {
+                    auto nlo = min(lo, nn->lo);
+                    auto nhi = max(hi, nn->hi);
+                    nodes.emplace_back(N { this, nn, -1, nlo, nhi, (nlo + nhi) / 2 });
+                    return &nodes.back();
+                }
+            }
+            void balance(float3 cam) {
+                if (!left) return;
+                left->balance(cam);
+                right->balance(cam);
+                if (squaredlength(left->center - cam) > squaredlength(right->center - cam)) {
+                    swap(left, right);
+                }
+            };
+            int serialize(int fail, S *&p, int &i) {
+                if (left) {
+                    auto b = right->serialize(fail, p, i);
+                    auto a = left->serialize(b, p, i);
+                    *p++ = { lo, a, hi, fail };
+                } else {
+                    *p++ = { lo, -(int)val, hi, fail };
+                }
+                return i++;
+            }
+        };
+        vector<N> nodes;
+        nodes.reserve(positions->len + positions->len - 1);
+        N *root = nodes.data();
+        for (intp i = 0; i < positions->len; i++) {
+            auto pos = ValueToFLT<3>(positions->AtSt(i), positions->width);
+            nodes.emplace_back(N {
+                nullptr, nullptr, i < values->len ? values->At(i).ival() : 0,
+                pos - 0.5, pos + 0.5, pos
+            });
+            if (!i) continue;
+            root = root->insert(&nodes.back(), nodes);
+        }
+        root->balance(cam);
+        auto s = vm.NewString(nodes.size() * sizeof(S));
+        auto p = (S *)s->data();
+        int i = 0;
+        root->serialize(-1, p, i);
+        vm.Push(s);
+    });
 }
+
