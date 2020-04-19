@@ -14,6 +14,8 @@
   rnd only works in 32-bit currently. could make it use 64-bit, but this will change the
   results for existing code..
 
+- NEWVEC can defeat the STACKMARGIN check if called with sufficient args.
+
 - jg/jcorbin: should allow function values to be other than just variables, any exp.
   currently not even `f()` works if `f` is a member variable.
   _ as function value doesn't even work even though explicit var does for loop.

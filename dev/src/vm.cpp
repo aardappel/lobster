@@ -31,11 +31,11 @@ namespace lobster {
 
 enum {
     // *8 bytes each
-    INITSTACKSIZE   =   4 * 1024,
+    INITSTACKSIZE   =  32 * 1024,
     // *8 bytes each, modest on smallest handheld we support (iPhone 3GS has 256MB).
-    DEFMAXSTACKSIZE = 128 * 1024,
+    DEFMAXSTACKSIZE = 512 * 1024,
     // *8 bytes each, max by which the stack could possibly grow in a single call.
-    STACKMARGIN     =   1 * 1024
+    STACKMARGIN     =   8 * 1024
 };
 
 #define MEASURE_INSTRUCTION_COMBINATIONS 0
