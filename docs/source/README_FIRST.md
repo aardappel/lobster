@@ -4,12 +4,16 @@ title: Welcome to Lobster!
 
 <img src="./lobster.svg" height=250>
 
-This document is the starting point for all the Lobster documentation.
+Lobster is a statically typed programming language with a Python-esque
+syntax that combines the advantages of an expressive type system and
+compile-time memory management with a very lightweight, friendly and
+terse syntax, by doing most of the heavy lifting for you.
 
-Lobster [home page](http://strlen.com/lobster/) on the web,
-[GitHub](https://github.com/aardappel/lobster).
+The homepage has more on [the "why" of Lobster](http://strlen.com/lobster/).
 
 Chat on [Discord](https://discord.gg/szJPYdX) or [Gitter](https://gitter.im/lobster_programming_language/community).
+
+This document is the starting point for all the Lobster documentation.
 
 Using the compiler
 ------------------

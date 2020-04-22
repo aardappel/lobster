@@ -2,8 +2,32 @@
 title: Quick Getting Started Guide.
 ---
 
-Linux
------
+
+Get pre-built binaries (Windows, Mac, Linux)
+-------------------------------------------
+
+### Latest version from CI
+
+If you don't want to deal with building it yourself, go to
+[github CI](https://github.com/aardappel/lobster/actions?query=workflow%3ACI)
+(click on the latest succesful run to get a list of binaries).
+These are 64-bit for all platforms.
+
+Now get https://github.com/aardappel/lobster (download zip).
+This has all the data files and examples. Place the binary
+you obtained in `bin`.
+
+### Releases
+
+You can also get both from https://github.com/aardappel/lobster/releases
+(`lobster_<date>_<platform>.zip` and `Source code (zip)`), but these are
+usually way behind using the most recent builds above, so not recommended.
+
+
+Or, build it yourself!
+---------------------
+
+### Linux
 
 Pre-Requirements: Git, CMake, a C++17 compiler, Mesa dev files
 (`apt-get install mesa-common-dev`).
@@ -17,69 +41,32 @@ cd ..
 bin/lobster samples/pythtree.lobster
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For more advanced usage check the rest of [the docs](README_FIRST.html)
-
-
-Windows
--------
-
-### Building it yourself (best)
+### Windows
 
 Pre-Requirements: VS2019 Community edition or better, C++ desktop tools installed.
 
-Get https://github.com/aardappel/lobster using your favorite git tool (best), or just download
-a `.zip` from there otherwise.
+Get https://github.com/aardappel/lobster using your favorite git tool (best),
+or just download a `.zip` from there otherwise.
 
 Open `dev\lobster\lobster.sln`, ensure `Release` is selected in the top bar,
 `Build -> Build Solution`, then close if no errors.
 
-### Alternatively: getting latest pre-built
-
-If you don't want to deal with building it yourself, you may be able to use
-a pre-built executable, though these can be out of date.
-
-On https://github.com/aardappel/lobster/releases, for the last release that has a
-`lobster_<date>_windows.zip` also get `Source code (zip)` (this has all the data files
-and examples). Unpack both, and place the exe you find in the first inside the top
-`bin` dir you find in the second.
-
-### Running it
-
-You now have a `bin\lobster.exe`. You can run this with any Lobster file
-as argument to run it, for example `bin\lobster.exe samples\pythtree.lobster`
-should work.
-
-For more advanced usage, including how to run it from an editor,
-check the rest of [the docs](README_FIRST.html)
-
-
-OS X
-----
-
-### Building it yourself (best)
+### Mac
 
 Pre-Requirements: Latest XCode.
 
-Get https://github.com/aardappel/lobster using your favorite git tool (best), or just download
-a `.zip` otherwise.
+Get https://github.com/aardappel/lobster using your favorite git tool (best),
+or just download a `.zip` otherwise.
 
 Open `dev/xcode/lobster/lobster.xcodeproj`, ensure `lobster_release > My Mac` is selected
 as scheme in the top bar, `Product -> Build`, then close if no errors.
 
-### Alternatively: getting latest pre-built
+Running it
+----------
 
-If you don't want to deal with building it yourself, you may be able to use
-a pre-built executable, though these can be out of date.
-
-On https://github.com/aardappel/lobster/releases, for the last release that has a
-`lobster_<date>_osx.zip` also get `Source code (zip)` (this has all the data files
-and examples). Unpack both, and place the executable you find in the first inside the top
-`bin` dir you find in the second.
-
-### Running it
-
-You now have a `bin/lobster` executable. You can run this with any Lobster file
-as argument to run it, for example `bin/lobster samples/pythtree.lobster`
+You now have a `lobster` executable in your `bin` folder.
+You can run this with any Lobster file as argument to run it, for example
+`bin/lobster.exe samples/pythtree.lobster` should work.
 
 For more advanced usage, including how to run it from an editor,
 check the rest of [the docs](README_FIRST.html)

@@ -48,13 +48,13 @@
 <p>args = [ list( ident [ ( <code>:</code> | <code>::</code> ) type ] ) ]</p>
 <p>body = ( expstat | indent stats dedent )</p>
 <p>type = <code>int</code> | <code>float</code> | <code>string</code> | <code>[</code> type <code>]</code> | <code>coroutine</code> | <code>resource</code> | <code>void</code> | ident</p>
-<p>call = specializers <code>(</code> [ list( exp ) ] <code>)</code> [ block [ ident block … ] ]</p>
+<p>call = specializers <code>(</code> [ list( exp ) ] <code>)</code> [ block [ <code>fn</code> block … ] ]</p>
 <p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list( opexp ) ] ) [ <code>from</code> ( <code>program</code> | ident ) ]</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> | <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
 <p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> | <code>&amp;&amp;</code> | <code>||</code> | <code>and</code> | <code>or</code> | ^ | <code>&lt;&lt;</code> | <code>&gt;&gt;</code>) unary</p>
 <p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> | ~ | <code>not</code> ) unary | deref</p>
 <p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ call ] | <code>-&gt;</code> ident | <code>++</code> | <code>--</code> | <code>is</code> type ]</p>
-<p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>def</code> functionargsbody | <code>coroutine</code> ident call | ident [ call ]</p>
+<p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>fn</code> functionargsbody | <code>coroutine</code> ident call | ident [ call ]</p>
 <p>constructor = <code>[</code> [ list( exp ) ] <code>]</code> [ <code>::</code> type ] | ident <code>{</code> [ list( exp ) ] <code>}</code></p>
 <p>constant = numeric_constant | string_constant | character_constant | <code>nil</code> [ <code>::</code> type ]</p>
 <p>indlist(e) = indent list(e) [ linefeed ] dedent linefeed</p>
@@ -167,27 +167,24 @@ print mat[pos]</code></pre>
 <p>Optionally, you may also call functions without any parentheses at all, e.g. <code>print &quot;hi!&quot;</code>. This is only allowed for known functions (that are not ambiguous with variables) that have 1 expression argument (followed by any number of function value arguments that don’t take arguments themselves, see below). It is up to the programmer to use good judgement on when to use this, the recommended use case is for calls used as statements (no nesting) that don’t cause additional parentheses to be needed elsewhere. In case of doubt, use the standard call syntax.</p>
 <h3 id="function-values">Function Values</h3>
 <p>You can also create anonymous (nameless) functions as values. In the most general case, this has the syntax:</p>
-<pre><code>let f = def(arg1, arg2): body</code></pre>
+<pre><code>let f = fn(a:type, n:type): body</code></pre>
+<p>Or, if you are not specifying any types:</p>
+<pre><code>let f = fn a, b: body</code></pre>
 <p>You call these just like any other function, e.g. <code>f(1, 2)</code>. You currently must call them using a variable (not any expression, not even a field).</p>
-<p>The full <code>def</code> syntax is infrequently used however, because most function values are created to be passed to other functions, and Lobster has a special syntax for this situation that is meant to mimic control structures in other languages. Any function call may be followed by one or more function values, where the <code>def</code> keyword is omitted:</p>
-<pre><code>g(10) (i): print(i)</code></pre>
-<p>Here, the function <code>g</code> is called with 2 arguments, the first is <code>10</code>, and the second is the function value <code>def(i): print(i)</code>. Lobster allows three more levels of further simplification of the syntax if the arguments do not contain type annotations:</p>
-<pre><code>g(10) i: print(i)
-g(10): print(_)
+<p>The full <code>fn</code> syntax is infrequently used however, because most function values are created to be passed to other functions, and Lobster has a special syntax for this situation that is meant to mimic control structures in other languages. Any function call may be followed by one or more function values, where the <code>fn</code> keyword is omitted:</p>
+<pre><code>g(10) i: print(i)</code></pre>
+<p>Here, the function <code>g</code> is called with 2 arguments, the first is <code>10</code>, and the second is the function value <code>fn i: print(i)</code> (as before, we left out the the <code>()</code> around the arguments). Lobster allows yet further simplification of the syntax:</p>
+<pre><code>g(10): print(_)
 g 10: print _</code></pre>
-<p>You can leave out the parentheses, and you may use anonymous arguments, which are variable names starting with an <code>_</code> that will automatically be declared as arguments for you. If you use multiple such arguments (e.g. <code>_a</code> and <code>_b</code>), they will become arguments in the order they appear in the body. Using anonymous variables is only recommended for very simple function bodies.</p>
+<p>You may use anonymous arguments, which are variable names starting with an <code>_</code> that will automatically be declared as arguments for you. If you use multiple such arguments (e.g. <code>_a</code> and <code>_b</code>), they will become arguments in the order they appear in the body. Using anonymous variables is only recommended for very simple function bodies.</p>
 <p>As mentioned above, you may drop the parentheses entirely if the body doesn’t have any argument declarations.</p>
 <p>This style of syntax is intended to make each function that takes a function as argument (a <em>higher order function</em>) have the convenient syntax of a control structure, since that’s what those functions usually are meant to be anyway. Lobster’s built-in control structures <code>if</code> <code>for</code> and <code>while</code> have syntax that is closely compatible with this function call syntax (and in the case of <code>for</code> allow the same argument simplifications).</p>
-<p>As an example of how to pass more than one function value, let’s see an example that is similar to <code>if</code>:</p>
-<pre><code>var nat = ifnot a &gt;= 0: 0 otherwise: a</code></pre>
-<p>Similarly, with indentation:</p>
-<pre><code>ifnot a &gt;= 0:
-    print &quot;negative numbers are scary!&quot;
-else:
-    print &quot;a = &quot; + a</code></pre>
-<p>Here we see that all except the first function value must be preceded by the name of the argument they’re specifying. You’d define <code>ifnot</code> like:</p>
-<pre><code>def ifnot(cond, then, otherwise):
-    if not cond: then() else: otherwise()</code></pre>
+<p>Though not recommend (as readability suffers), it is even possible to pass multiple function values to a function, but then every function value except the first can’t omit the <code>fn</code> keyword:</p>
+<pre><code>g(10) i:
+    print i
+fn:
+    print &quot;reached the end&quot;</code></pre>
+<p>For example, to pass an additional function to do something special at the end of an iteration.</p>
 <p>Writing your own functions that take function values is the key to getting the most out of Lobster. It allows you to refactor pretty much any code into something that has no redundancy yet is easy to create, use and modify.</p>
 <p>Typically, to write a function that takes a function value argument, simply use an argument with no type:</p>
 <pre><code>def twice(f):
