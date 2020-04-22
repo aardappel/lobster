@@ -20,7 +20,7 @@ android {
         externalNativeBuild {
             ndkBuild {
                 arguments "APP_PLATFORM=android-18", "-j8"  // ES3.0
-                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+                abiFilters 'arm64-v8a'//, 'armeabi-v7a', 'x86', 'x86_64'
             }
         }
     }

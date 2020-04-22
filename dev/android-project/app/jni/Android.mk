@@ -21,7 +21,8 @@ LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/$(FREETYPE_PATH)/include \
     $(LOBSTER_PATH)/dev/src \
     $(LOCAL_PATH)/$(LOBSTER_PATH)/include \
-    $(LOCAL_PATH)/$(IMGUI_PATH)
+    $(LOCAL_PATH)/$(IMGUI_PATH) \
+	$(ANDROID_NDK_ROOT)/sources/android/cpufeatures
 
 LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/src/main.cpp \
