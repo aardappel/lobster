@@ -25,7 +25,7 @@ map<string, BitmapFont *> fontcache;
 BitmapFont *curfont = nullptr;
 int curfontsize = -1;
 float curoutlinesize = 0;
-int maxfontsize = 128;
+int maxfontsize = 256;
 
 map<string, OutlineFont *, less<>> loadedfaces;
 OutlineFont *curface = nullptr;
@@ -112,7 +112,7 @@ nfr("gl_set_font_size", "size,outlinesize", "IF?", "B",
 
 nfr("gl_set_max_font_size", "size", "I", "",
     "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize"
-    " will still work but cause scaled rendering. default 128",
+    " will still work but cause scaled rendering. default 256",
     [](VM &, Value &fontsize) {
         maxfontsize = fontsize.intval();
         return Value();

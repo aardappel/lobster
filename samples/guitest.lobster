@@ -16,7 +16,6 @@ while gl_frame():
 
     let fontsize = gl_window_size().y / 10
     gl_set_font_size(fontsize, fontsize / 40.0)
-    //gl_set_max_font_size(512)
 
     gl_clear(color_grey)
     gl_color(color_white)
@@ -29,7 +28,7 @@ while gl_frame():
                 //   gui_text(unicode_to_string(map(500): _))
 
             gui_text("A")
-            gui_fontscale(5):
+            gui_fontscale(2):
                 gui_text("B")
             gui_vblock(2, 0):
                 gui_text("1")
