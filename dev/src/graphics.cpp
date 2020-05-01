@@ -624,7 +624,7 @@ nfr("gl_ortho", "rh,depth", "I?I?", "",
     " Pass true to rh have (0,0) bottom-left instead."
     " Pass true to depth to have depth testing/writing on.",
     [](VM &, Value &rh, Value &depth) {
-        Set2DMode(GetScreenSize(), !rh.True(), depth.True());
+        Set2DMode(GetFrameBufferSize(GetScreenSize()), !rh.True(), depth.True());
         return Value();
     });
 
@@ -1034,7 +1034,7 @@ nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex"
                                        Value &depthtex) {
         TestGL(vm);
         auto tex = GetTexture(vm, t);
-        return Value(SwitchToFrameBuffer(tex.id ? tex : Texture(0, GetScreenSize()),
+        return Value(SwitchToFrameBuffer(tex, GetScreenSize(),
                                          depth.True(), tf.intval(), GetTexture(vm, retex),
                                          GetTexture(vm, depthtex)));
     });

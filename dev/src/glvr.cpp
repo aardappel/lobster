@@ -178,7 +178,7 @@ void VREye(int eye, float znear, float zfar) {
     auto mstf = retf | TF_MULTISAMPLE;
     if (!mstex[eye].id) mstex[eye] = CreateBlankTexture(rtsize, float4_0, mstf);
     if (!retex[eye].id) retex[eye] = CreateBlankTexture(rtsize, float4_0, retf);
-    SwitchToFrameBuffer(mstex[eye], true, mstf, retex[eye]);
+    SwitchToFrameBuffer(mstex[eye], GetScreenSize(), true, mstf, retex[eye]);
     auto proj =
         FromOpenVR(vrsys->GetProjectionMatrix((vr::EVREye)eye, znear, zfar, vr::API_OpenGL));
     Set3DMode(80, 1, znear, zfar);
@@ -197,7 +197,7 @@ void VREye(int eye, float znear, float zfar) {
 void VRFinish() {
     #ifdef PLATFORM_VR
     if (!vrsys) return;
-    SwitchToFrameBuffer(Texture(0, GetScreenSize()));
+    SwitchToFrameBuffer(Texture(), GetScreenSize());
     for (int i = 0; i < 2; i++) {
         vr::Texture_t vrtex = { (void *)(size_t)retex[i].id, vr::API_OpenGL, vr::ColorSpace_Gamma };
         auto err = vr::VRCompositor()->Submit((vr::EVREye)i, &vrtex);

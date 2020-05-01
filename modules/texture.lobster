@@ -74,12 +74,13 @@ def render_to_texture_from(tex, shader, srctex):
         gl_set_shader(shader)
         gl_rect(float(gl_texture_size(srctex)))
 
-// Same but renders to the screen.
-def post_process(tex, size, shader, depth, f):
-    let texture_format = texture_format_clamp | texture_format_nomipmap
+// Same but renders to the framebuffer.
+def post_process(tex, size, shader, depth, texture_format, f):
+    texture_format |= texture_format_clamp | texture_format_nomipmap
     tex = render_to_texture(tex, size, depth, nil, texture_format, f)
-    gl_set_primitive_texture(0, tex, texture_format)
+    gl_blend(0)
+    gl_ortho(true, false)
     gl_set_shader(shader)
-    gl_translate(xy_f { 0, size.y }):
-        gl_rect(xy_f { size.x, -size.y })
+    gl_set_primitive_texture(0, tex, texture_format)
+    gl_rect(float(size))
     return tex

@@ -37,7 +37,7 @@ struct Texture {
 
 struct Shader {
     uint vs = 0, ps = 0, cs = 0, program = 0;
-    int mvp_i, col_i, camera_i, light1_i, lightparams1_i, texturesize_i,
+    int mvp_i, col_i, camera_i, light1_i, lightparams1_i, framebuffer_size_i,
         bones_i, pointscale_i;
     int max_tex_defined = 0;
 
@@ -198,9 +198,11 @@ extern void DeleteTexture(Texture &id);
 extern void SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
 extern uchar *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
-extern bool SwitchToFrameBuffer(const Texture &tex, bool depth = false, int tf = 0,
+extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,
+                                bool depth = false, int tf = 0,
                                 const Texture &resolvetex = Texture(),
                                 const Texture &depthtex = Texture());
+extern int2 GetFrameBufferSize(const int2 &screensize);
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 

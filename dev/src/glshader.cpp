@@ -170,15 +170,15 @@ string ParseMaterialFile(string_view mbuf) {
                 for (;;) {
                     word();
                     if (last.empty()) break;
-                    else if (last == "mvp")          decl += "uniform mat4 mvp;\n";
-                    else if (last == "col")          decl += "uniform vec4 col;\n";
-                    else if (last == "camera")       decl += "uniform vec3 camera;\n";
-                    else if (last == "light1")       decl += "uniform vec3 light1;\n";
-                    else if (last == "lightparams1") decl += "uniform vec2 lightparams1;\n";
-                    else if (last == "texturesize")  decl += "uniform vec2 texturesize;\n";
+                    else if (last == "mvp")              decl += "uniform mat4 mvp;\n";
+                    else if (last == "col")              decl += "uniform vec4 col;\n";
+                    else if (last == "camera")           decl += "uniform vec3 camera;\n";
+                    else if (last == "light1")           decl += "uniform vec3 light1;\n";
+                    else if (last == "lightparams1")     decl += "uniform vec2 lightparams1;\n";
+                    else if (last == "framebuffer_size") decl += "uniform vec2 framebuffer_size;\n";
                     // FIXME: Make configurable.
-                    else if (last == "bones")        decl += "uniform vec4 bones[230];\n";
-                    else if (last == "pointscale")   decl += "uniform float pointscale;\n";
+                    else if (last == "bones")            decl += "uniform vec4 bones[230];\n";
+                    else if (last == "pointscale")       decl += "uniform float pointscale;\n";
                     else if (last.substr(0, 3) == "tex") {
                         auto tp = last;
                         tp.remove_prefix(3);
@@ -308,14 +308,14 @@ void Shader::Link(const char *name) {
         GLSLError(program, true, nullptr);
         THROW_OR_ABORT(string_view("linking failed for shader: ") + name);
     }
-    mvp_i          = glGetUniformLocation(program, "mvp");
-    col_i          = glGetUniformLocation(program, "col");
-    camera_i       = glGetUniformLocation(program, "camera");
-    light1_i       = glGetUniformLocation(program, "light1");
-    lightparams1_i = glGetUniformLocation(program, "lightparams1");
-    texturesize_i  = glGetUniformLocation(program, "texturesize");
-    bones_i        = glGetUniformLocation(program, "bones");
-    pointscale_i   = glGetUniformLocation(program, "pointscale");
+    mvp_i              = glGetUniformLocation(program, "mvp");
+    col_i              = glGetUniformLocation(program, "col");
+    camera_i           = glGetUniformLocation(program, "camera");
+    light1_i           = glGetUniformLocation(program, "light1");
+    lightparams1_i     = glGetUniformLocation(program, "lightparams1");
+    framebuffer_size_i = glGetUniformLocation(program, "framebuffer_size");
+    bones_i            = glGetUniformLocation(program, "bones");
+    pointscale_i       = glGetUniformLocation(program, "pointscale");
     Activate();
     for (int i = 0; i < MAX_SAMPLERS; i++) {
         auto loc = glGetUniformLocation(program, cat("tex", i).c_str());
@@ -360,8 +360,9 @@ void Shader::Set() {
         if (lightparams1_i >= 0)
             GL_CALL(glUniform2fv(lightparams1_i, 1, lights[0].params.begin()));
     }
-    if (texturesize_i >= 0)
-        GL_CALL(glUniform2fv(texturesize_i, 1, float2(GetScreenSize()).begin()));
+    if (framebuffer_size_i >= 0)
+        GL_CALL(glUniform2fv(framebuffer_size_i, 1,
+                             float2(GetFrameBufferSize(GetScreenSize())).begin()));
 }
 
 void Shader::SetAnim(float3x4 *bones, int num) {

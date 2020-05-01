@@ -1,16 +1,16 @@
 SHADER fxaa
     VERTEX
         INPUTS apos:4 atc:2
-        UNIFORMS mvp texturesize
+        UNIFORMS mvp framebuffer_size
         const float FXAA_SUBPIX_SHIFT = 1.0 / 4.0;
         gl_Position = mvp * apos;
-        vec2 rcpFrame = vec2(1.0) / texturesize;
+        vec2 rcpFrame = vec2(1.0) / framebuffer_size;
         ipos.xy = atc.xy;
         ipos.zw = atc.xy - (rcpFrame * (0.5 + FXAA_SUBPIX_SHIFT));
     PIXEL
         INPUTS ipos:4
-        UNIFORMS tex0 texturesize
-        vec2 rcpFrame = vec2(1.0) / texturesize;
+        UNIFORMS tex0 framebuffer_size
+        vec2 rcpFrame = vec2(1.0) / framebuffer_size;
         const float FXAA_REDUCE_MIN = 1.0 / 128.0;
         const float FXAA_SPAN_MAX = 8.0;
         const float FXAA_REDUCE_MUL = 1.0 / 8.0;
