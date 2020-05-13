@@ -1414,6 +1414,14 @@ GJUMP(JUMPFAILR  , auto x = VM_POP(), !x.True(), VM_PUSH(x)      )
 GJUMP(JUMPNOFAIL , auto x = VM_POP(),  x.True(),                 )
 GJUMP(JUMPNOFAILR, auto x = VM_POP(),  x.True(), VM_PUSH(x)      )
 
+VM_INS_RET VM::U_JUMP_TABLE(int mini, int maxi, int table_start) {
+    auto val = VM_POP().ival();
+    if (val < mini || val > maxi) val = maxi + 1;
+    auto target = vtables[table_start + val - mini];
+    JumpTo(target);
+    VM_RET;
+}
+
 VM_INS_RET VM::U_ISTYPE(int ty) {
     auto to = (type_elem_t)ty;
     auto v = VM_POP();

@@ -1238,10 +1238,82 @@ void ForLoopCounter::Generate(CodeGen &cg, size_t /*retval*/) const {
 }
 
 void Switch::Generate(CodeGen &cg, size_t retval) const {
-    // TODO: create specialized version for dense range of ints with jump table.
     cg.Gen(value, 1);
     cg.TakeTemp(1, false);
-    auto valtlt = TypeLT { *value, 0 };
+    // See if we should do a jump table version.
+    if (value->exptype->t == V_INT) {
+        int64_t mini = INT64_MAX / 2, maxi = INT64_MIN / 2;
+        int64_t num = 0;
+        auto get_range = [&](Node *c) -> pair<IntConstant *, IntConstant *> {
+            auto start = c;
+            auto end = c;
+            if (auto r = Is<Range>(c)) {
+                start = r->start;
+                end = r->end;
+            }
+            return { Is<IntConstant>(start), Is<IntConstant>(end) };
+        };
+        for (auto n : cases->children) {
+            auto cas = AssertIs<Case>(n);
+            for (auto c : cas->pattern->children) {
+                auto [istart, iend] = get_range(c);
+                if (!istart || !iend || istart->integer > iend->integer)
+                    goto no_jump_table;
+                num += iend->integer - istart->integer + 1;
+                mini = min(mini, istart->integer);
+                maxi = max(maxi, iend->integer);
+            }
+        }
+        // Decide if jump table is economic.
+        const int64_t min_vals = 3;  // Minimum to do jump table.
+        // TODO: This should be slightly non-linear? More values means you really want the
+        // jump table, typically.
+        const int64_t min_load_factor = 5;
+        int64_t range = maxi - mini + 1;
+        if (num < min_vals ||
+            range / num > min_load_factor ||
+            mini < INT32_MIN ||
+            maxi >= INT32_MAX)
+            goto no_jump_table;
+        // Emit jump table version.
+        // We use vtable storage, as these are essentially bytecode address tables.
+        int table_start = (int)cg.vtables.size();
+        cg.Emit(IL_JUMP_TABLE, (int)mini, (int)maxi, table_start);
+        // Store the default case at end of range.
+        // TODO: Could make it an immediate, but native backends need to handle it.
+        cg.vtables.insert(cg.vtables.end(), range + 1, -1);
+        vector<int> exitswitch;
+        int default_pos = -1;
+        for (auto n : cases->children) {
+            auto cas = AssertIs<Case>(n);
+            for (auto c : cas->pattern->children) {
+                auto [istart, iend] = get_range(c);
+                assert(istart && iend);
+                for (auto i = istart->integer; i <= iend->integer; i++) {
+                    cg.vtables[table_start + (int)i - (int)mini] = cg.Pos();
+                }
+            }
+            if (cas->pattern->children.empty()) default_pos = cg.Pos();
+            cg.SplitAttr(cg.Pos());
+            cg.Gen(cas->body, retval);
+            if (retval) cg.TakeTemp(1, true);
+            if (n != cases->children.back()) {
+                cg.Emit(IL_JUMP, 0);
+                exitswitch.push_back(cg.Pos());
+            }
+        }
+        for (auto loc : exitswitch) cg.SetLabel(loc);
+        if (default_pos >= 0) {
+            for (int i = 0; i < (int)range + 1; i++) {
+                if (cg.vtables[table_start + i] == -1)
+                    cg.vtables[table_start + i] = default_pos;
+            }
+        }
+        return;
+    }
+    no_jump_table:
+    // Do slow fall-back for sparse integers, expressions and strings.
+    auto valtlt = TypeLT{ *value, 0 };
     vector<int> nextcase, thiscase, exitswitch;
     bool have_default = false;
     for (auto n : cases->children) {

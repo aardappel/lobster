@@ -148,7 +148,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                 ng.EmitCall(block_ids[args[0]]);
                 already_returned = true;
             } else if (opc == IL_CALLV || opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
-                       opc == IL_DDCALL ||
+                       opc == IL_DDCALL || opc == IL_JUMP_TABLE ||
                        // FIXME: make resume a vm op.
                        (ISBCALL(opc) &&
                         natreg.nfuns[args[0]]->CanChangeControlFlow())) {
