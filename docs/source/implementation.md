@@ -20,10 +20,8 @@ out of the box with no further external dependencies.
 All source code and other files related to building Lobster for all platforms
 sit in the `dev` folder.
 
-Lobster can be built for 32 or 64-bit on all platforms. On 64-bit, all
-Lobster values will take double the size (and precision), and thus use more
-memory. Despite that, for most programs, 64-bit is still a speed-up (the VM
-benefits a lot from extra registers).
+Lobster can be built for 32 or 64-bit platforms. This does not affect Lobster
+data type sizes, e.g. `int` and `float` types are 64-bit on all platforms.
 
 ### Windows
 

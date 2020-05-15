@@ -121,9 +121,9 @@ Types
 Lobster is statically typed, and any variable, argument or vector element can be
 a value of one of the following types:
 
--   Scalar types (32 or 64 bit depending on the host architecture):
+-   Scalar types (64-bit on all platforms):
 
-    -   `int` : a 32/64bit signed integer. Constructed using:
+    -   `int` : a signed integer. Constructed using:
 
         -   integer constants : `123`
 
@@ -133,7 +133,7 @@ a value of one of the following types:
 
         -   default boolean values `true` and `false` (same as `1` and `0`)
 
-    -   `float` : 32/64bit IEEE floating point number
+    -   `float` : an IEEE floating point number
 
     -   a function value, can be called just like normal functions. See below.
 

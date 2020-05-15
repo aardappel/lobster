@@ -806,9 +806,6 @@ VM_INS_RET VM::U_PUSHFLT(int x) { int2float i2f; i2f.i = x; VM_PUSH(Value(i2f.f)
 VM_INS_RET VM::U_PUSHNIL() { VM_PUSH(Value()); VM_RET; }
 
 VM_INS_RET VM::U_PUSHINT64(int a, int b) {
-    #if !VALUE_MODEL_64
-        Error("Code containing 64-bit constants cannot run on a 32-bit build.");
-    #endif
     auto v = Int64FromInts(a, b);
     VM_PUSH(Value(v));
     VM_RET;

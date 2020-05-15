@@ -116,27 +116,21 @@ Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, const Value &schema,
 
 void AddFile(NativeRegistry &nfr) {
 
-nfr("scan_folder", "folder,divisor", "SI", "S]?I]?",
+nfr("scan_folder", "folder", "S", "S]?I]?",
     "returns two vectors representing all elements in a folder, the first vector containing all"
-    " names, the second vector containing sizes (or -1 if a directory)."
-    " Specify 1 as divisor to get sizes in bytes, 1024 for kb etc. Values > 0x7FFFFFFF will be"
-    " clamped in 32-bit builds. Returns nil if folder couldn't be scanned.",
-    [](VM &vm, Value &fld, Value &divisor) {
+    " names, the second vector containing sizes in bytes (or -1 if a directory)."
+    " Returns nil if folder couldn't be scanned.",
+    [](VM &vm, Value &fld) {
         vector<pair<string, int64_t>> dir;
         auto ok = ScanDirAbs(fld.sval()->strv(), dir);
         if (!ok) {
             vm.Push(Value());
             return Value();
         }
-        if (divisor.ival() <= 0) divisor.setival(1);
         auto nlist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto slist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
         for (auto &[name, size] : dir) {
             nlist->Push(vm, Value(vm.NewString(name)));
-            if (size >= 0) {
-                size /= divisor.ival();
-                if (sizeof(intp) == sizeof(int) && size > 0x7FFFFFFF) size = 0x7FFFFFFF;
-            }
             slist->Push(vm, Value(size));
         }
         vm.Push(Value(nlist));

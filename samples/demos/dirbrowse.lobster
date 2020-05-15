@@ -21,7 +21,7 @@ def fullpath(n::node):
 
 def scan(n:node):
     entries = []
-    let names, sizes = scan_folder(n.fullpath, 1024)
+    let names, sizes = scan_folder(n.fullpath)
     if names and sizes:
         for(names) name, i:
             entries.push(node { name, sizes[i], nil })
@@ -84,7 +84,7 @@ def render_sizes(old_width):
     var width = 0.0
     for(entries) e:
         gl_color color_dark_green:
-            let text = if e.size < 0: "---" else: e.size + 1 + "K"
+            let text = if e.size < 0: "---" else: string(e.size)
             let size = gl_text_size(text)
             width = max(width, size.x)
             gl_translate xy { old_width - size.x - column_margin, 0.0 }:

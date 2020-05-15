@@ -345,6 +345,19 @@
       - now spacing doesn't matter
       - but we don't even want to allow `for (` necessarily.
 
+- Now that the language is always 64-bit:
+  - can further improve type simplicity by:
+    - getting rid of unsigned where possible.
+      - adopt ssize_t over size_t by calling ssize()/intsize() instead of .size() on STL containers.
+    - change bytecode from int to LEB. this will make it more compact, though mildly slower
+      to read. would solve issues with 64-bit contants etc. would read into ssize_t or int64_t,
+      depending. Can still hard-code instruction into 16-bit. Or make it a 16-bit LEB?
+  - Can think of features that would allow use of smaller sizes as opt-in.
+    - Should definitely add support for 8/16/32-bit int arrays and maybe struct fields.
+    - Maybe allow special structs that pack multiple things in a single 64-bit value? :)
+      - or you could introduce bit-fields, essentially: multiple fields that share the same
+        64-bit struct entry.
+
 - remove V_NIL from elemtypes and ElemTypeS, no users need this information, in fact all are
   working around it.
   - Also maybe replace uses that just want to know if its a ref or not by a table that lists
@@ -513,8 +526,6 @@
   - Use it in some compute heavy samples like smallpt.
 
 - binary string ops:
-  - Need to have a way such that reading 64-bit values doesn't truncate when using 32-bit
-    version of Lobster (which would be nice to permanently remove)
   - memcpy, memmove
   - write_string
   - ops for doing things with unsigned values stored inside signed ones?
@@ -700,12 +711,6 @@
   (not types) for doing unsigned semantics on signed bits.
   We should adopt this for Lobster by providing the exact same unsigned ops as special functions
   (e.g. udiv, ucmp or ulessthan etc.)
-- while we're at it, would be nice to remove unsigned as much as possible from the C++ code
-  base, and reduce a ton of casts.
-  - add ssize (machine size) and intsize for stl containers, which are the number one source
-    of unsigned. Even overloaded for any size_t.
-  - that still leaves the mess of size of int types though, would be good to finally lock
-    down how the VM deals with ints in 64bit.
 
 - Make includes explicitly depend on eachother.
 
@@ -782,10 +787,6 @@
 
 - make extensions (and --tocpp code) into DLLs rather than statically linked?
   - check performance consequences for --tocpp
-
-- 64bit mode improvements:
-  - pushflt64?
-  - Optimizer can't use 32bit values.
 
 - Can turn exceptions back on in emscripten once this fix lands:
   https://github.com/emscripten-core/emscripten/issues/7399
@@ -1273,203 +1274,6 @@
     Or better yet, change the encoding of "any" such that it is a generic object that just
     bundles a type and a generic value, and is like a built-in value type. This can be used
     for "any" and dynamic dispatch.
-
-- Simplify scalar use in the project.
-  Current code is a mess of use of int (because, bytecode), size_t (stl), intp (lobster int type),
-  int64_t etc, because of the desire to support both 32/64 bit platforms well, and allow the
-  language to function with those sizes, possibly independently from platform.
-  We can greatly simplify this, driving as much as possible towards signed 64 as the one true int :)
-  This has multiple sub-project which would benefit from all being done together (so code
-  cleanup doesn't need multiple iterations):
-  - adopt ssize_t over size_t by calling ssize() instead of .size() on STL containers.
-  - change bytecode from int to LEB. this will make it more compact, though mildly slower
-    to read. would solve issues with 64-bit contants etc. would read into ssize_t or int64_t,
-    depending. Can still hard-code instruction into 16-bit. Or make it a 16-bit LEB?
-  - Change Value to always be 64-bit (see below).
-  - Finally, deprecate 32-bit platforms, like older Android architectures, and push for wasm64.
-
-- Re-evaluating what to do about 32 vs 64 bits for the language.
-  - Can actually do a 64-bit memory model easily, even in wasm-32, just truncate the i64 into an i32
-    and do regular load. Since it won't give you give you more than 4 gigs this is safe, and then
-    when wasm64 comes around it will be easy to upgrade.
-  - Basically on a 32-bit build, represent a pointer in Value as a uint64_t and cast that to a
-    pointer to force the truncation op. See points 2 & 3 here:
-    https://en.cppreference.com/w/cpp/language/reinterpret_cast
-    In fact, all of this is completely independent of target bit-ness. It would also work for,
-    say, a 32-bit Android build if still required.
-  - On ARM/x86, this truncation is a no-op, even though in Wasm it will cost some instructions
-    space. And this op only has to be done when reading a pointer from a value, most other pointer
-    uses are still native.
-  - Going all-64 may be ok for Lobster, given that lobster data structures represent such a small
-    part of total memory.
-    - Should definitely add support for 8/16/32-bit int arrays and maybe struct fields though.
-    - Maybe allow special structs that pack multiple things in a single 64-bit value? :)
-      - or you could introduce bit-fields, essentially: multiple fields that share the same
-        64-bit struct entry.
-  - 64-bit is low cost, simpler, with nice extra precision, less overflows, and more future-proof.
-    Once we do this can stop thinking about it entirely.
-    There are quite a few places in Lobster where supporting both means surpring truncations
-    and precision loss.
-  - 32-bit seems nice but it may be a false optimisation, and will continue to create issues when
-    at some point someone wants more precision/address space etc.
-  - Previous thoughts on the topic follow:
-- 32-bit pointers in 64-bit
-  - exampler: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
-  - If all objects are 8-byte aligned, and if a << 3 is ok, can address 32GB.
-    - Not only that, this only has to store program objects (and maybe code), not things like
-      textures, geometry, etc which are stored in GPU memory. So for a graphically rich game
-      where typically 90% of memory usage is such assets, this 32-bit model can grow until
-      320 GB of memory usage for a game is not sufficient. It thus defers the need for 64-bit
-      so significantly that it becomes practical to target the language to be 32-bit only for
-      the foreseeable future, with all the efficiency and simplicity that brings.
-  - if the base address is a multiple of 4GB, then compressing can be a simple truncate
-    instead of add/substract, and no conditional to compress a nullptr.
-  - needs a conditional to decompress nullptr, unless base address can be 0. That's a huge win,
-    which may be possible be we can assume a 32GB range.
-    - though we have seperate accessors for pointers that can be null, so if the majority is not of
-      that type, it may be ok.
-    - still, not having a base address may be a win by itself.
-    - can simply iterate with mmap to find a large block as low in memory as possible.
-      that should generally not fail?
-      - On Windows, simply turning of ASLR (/HIGHENTROPYVA:NO) allows compressed pointers to
-        work without additional work.
-  - can avoid a conditional to decompress nullptr if we manage to make all tests for null to
-    be (== baseaddr) instead.
-    That may be tricky since we use the fact that int/float/ptr all have 0 bits as false
-    representation to be able to check them without knowing the type with True()
-  - A base of 0 with <<3 is very efficient, which on VS win64 was 7% faster than native 64-bit!
-    Using clang it was about the same speed.
-  - on platforms where we cannot interact with the system to constrain our address space, can
-    create a really dumb allocator that simply re-allocs a buffer containing all memory when
-    needed. This is bad because:
-    - Such big reallocs may cause a pause (speed of memmove is typically only a few GB/sec),
-      though typically only happen once or twice during a game run, hopefully during loading.
-      If using realloc(), you may get lucky and no memmove is needed :)
-    - You temporarily are using 3x as much memory as allocated (current mem + new 2x size block).
-      Should not be an issue on 64-bit.
-    - May cause issues with fragmentation causing such big allocs to fail, though since this
-      technique is only used on 64-bit systems that should be unlikely.
-    So in total this is acceptable, and then on a per platform basis it can be replaced by
-    a more efficient strategy.
-  - will NOT work in the default trampoline compiled mode, since we store function pointers in
-    values there. Have to use the switch mode instead.
-  - More good tips in the comments here:
-    https://stackoverflow.com/questions/50429365/what-is-the-most-reliable-portable-way-to-allocate-memory-at-low-addresses-on
-  - it would be nice to make a distinction where we use compressed pointers only when stored in
-    structs/vectors (so those can be 32-bit always, or still 32-bit even when we allow different
-    sized scalars in these data types).
-    The stack is a really small amount of memory, so keeping that 64-bit should have no effect
-    on cache usage, yet it is the highest frequency access, so naked pointers are a small
-    speedup, allow for 64-bit datatypes, easier to debug etc.
-    - the big question with this model is float conversion speed.
-      http://quick-bench.com/T_FhqmN-7RG_oIEsf4Ur-rCFww8
-      Shows that having everything in float, or everything in doubles, or stored in floats
-      and accumulate into doubles are all equally fast, but what is 3x slower (both gcc and clang)
-      is stored in doubles and accumulate into floats, as that requires an explicit cvtsd2s
-      instruction.
-      So that should be acceptable as that is the least likely case, happens only when writing
-      results back into fields/vectors.
-      - vector ops can still be all-float
-  - Could remove the need for a base address by making everything a relative offset
-    That way, your only concern is to keep all memory within an arbitrary 4GB (or 32GB) range,
-    which should be easier, and doesn't require OS support.
-    The one issue is that it still needs a special case for null.
-    - you can make that actually 0, assuming pointers never point at themselves, such that
-      a null-check can happen before unpacking, and hopefully code that knows something is not
-      null can avoid this check entirely.
-    - the alternative would be an offset towards the base address, but that is way more
-      expensive to check.
-    NOTE: relative offsets will not work unless we disable copy constructor on Value, and track
-    down each and every memcpy or whatever of values
-- Improve 64bit builds.
-  We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives
-  bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out
-  of these values.
-  Suprisingly, for our unit-test path-finding benchmark, 64-bit mode this way is actually
-  23% faster (VM mode, only 16% in C++ compilation mode), despite using more memory, that is
-  apparently how much the VM code benefits from extra regs etc.
-  Now this benchmark probably touches so little memory it all fits in cache, but for most
-  Lobster programs that don't touch a ton of data, 64-bit mode is thus not a problem, in fact,
-  it is a speedup.
-  We can still improve this situation in two ways:
-  1) Could allow types of different sizes at least in vectors and structs where they take the most space, and
-     leave them uniform on the stack. Start with vectors as that's easiest and most impactful.
-     Have a way to specify bit-width for both scalar types (only allowed to be smaller or equal to machine type).
-     default would always be machine size everywhere.
-     If we're lazy and don't want to deal with different sizes in structs, can at least allow size to specified
-     for struct as a whole if all elements are scalar. This not only simplifies things by keeping
-     indexing the as-is, but it allows faster vector ops by only having to check the bit-width
-     once rather than every element.
-     The advantage of the stack staying 64-bit is that you can then actually make use of 64-bit
-     precision when you want to, something which is not the case in 2)
-     How to implement:
-     - Vectors can be created with an annotation to their desired bit-width, which becomes part of
-       its type.
-       - We have to ensure these get checked thru-out, so maybe safer to have special VECTOR_INT
-         types etc.
-     - Similarly, structs can be declared with a particular bit-width. They can be specialized into
-       other bit-widths.
-       - sub-typing check, cannot allow these specializations to be compatible with eachother.
-     - In both cases, the bitwitdth is actually stored in the header of the object.
-     - For direct loads and stores, we use specialized VM instructions, causing no overhead.
-     - For generic code (builtins) that wants to read vector/struct elements, we provide a generic
-       accessor function that dynamically loads the right size.
-       - Sadly, there's no "read an int of n bytes" instruction in C++.
-         Edit: there kinda is, see use of __movsb in flexbuffers.h
-         on x86 you could read an int64 from the memory location, then use shifts to clear the unused bits
-         that preserves the sign (>> is an ASR):
-         value = ((value << 32) >> 32)
-         to convert 32 to 64.
-         though note: http://blog.regehr.org/archives/738
-         On arm, unaligned access is allowed for single scalars on most v6 and all v7 architectures, so maybe its
-         a non-problem.
-         It will be slower, but since it only occurs for vectors that try to save memory, its probably ok.
-         Can we avoid the unnecessary shifts when reading default size value (shifts will be 0) ?
-         Still need a conditional for floats since the shift trick doesn't work there. Worse, now we generically need
-         a conditional to check for floats.
-         Maybe allow bit sizes only for ints?
-         If its only for ints, how useful is it to have it at all? We already have a [byte], namely string, so it
-         would only be for 16/32 bit int vectors.
-       - frankly, a generic accessor function is a bad idea. Pretty much all builtins take a statically typed
-         2/3/4 int/float structs, so we should be able to change the accessors to directly access these.
-         Only problem is requiring them to be one size, e.g. 32bit. Even though we can maybe make the
-         default specializations 32bit, people might expect to be able to specialize xyz for 64bit and
-         still have all these functions work.
-         We could overload all these functions..
-       - Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
-       can still allow them to work on these vectors.
-     - For compact structs, currently will be wasteful that in RefObj refc & ti can be 64-bits.
-     1b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
-         and store the buffers inside strings.. doesn't need a new type, and allows all sorts of fun optimized
-         data structures.
-         Also cool for serialization.
-         And helps more generally combat the heavy nature of non-inline objects.
-         Then again, would be even better if structs could be separated from vectors more so we can add these
-         features (variable data sizes, inline structs, trailing vectors) to regular structs.
-     Hmm, trailing vectors means reallocation, so not good to have in regular structs.
-         Actually, no need to separate them, can just disallow them to be passed to generic vector functions.
-         Only valid for structs that look like a vector.
-  2) Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
-     pointers in 32bit).
-     This would generally be good, since using less memory in 64bit could be quite a speedup.
-     Problem is, there's no super elegant way of doing this.
-     - Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
-       no support for this.
-       Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
-       and then use that incrementally. Means we must have our own large block allocator however.
-       On Windows VirtualAlloc can do the same.
-     - could track all allocations in the allocator, but means also tracking "large" allocs individually,
-       finding these in the table will slow things down, and means code can't run with the base allocator anymore.
-     - simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
-       in it and towards it are offsets, this can work.
-       Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
-       as iOS whenever it goes full 64bit.
-       Also means we can't use the base allocator anymore.
-     - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
-       though for small objects.
-     The problem with this approach is that there is no way to do operate on 64bit datatypes in any way this way.
-     Another problem: the ip's stored in Value are native function pointers in C++ mode and would need to
-     be indirected.
 
 - make more args const
 
@@ -1994,6 +1798,168 @@ CURRENT SOLUTION FROM TRADEOFS:
     - could we piggyback on coroutine resume? almost, but not quite.. it wouldn't restore the free vars upon ending the function, for example
       hmm that could maybe be fixed with a special cleanup instruction
     - so in summary the implementation effort is a simplified version of what coroutines currently do
+
+OBSOLETE
+========
+- 32-bit compressed pointers in 64-bit
+  - exampler: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
+  - If all objects are 8-byte aligned, and if a << 3 is ok, can address 32GB.
+    - Not only that, this only has to store program objects (and maybe code), not things like
+      textures, geometry, etc which are stored in GPU memory. So for a graphically rich game
+      where typically 90% of memory usage is such assets, this 32-bit model can grow until
+      320 GB of memory usage for a game is not sufficient. It thus defers the need for 64-bit
+      so significantly that it becomes practical to target the language to be 32-bit only for
+      the foreseeable future, with all the efficiency and simplicity that brings.
+  - if the base address is a multiple of 4GB, then compressing can be a simple truncate
+    instead of add/substract, and no conditional to compress a nullptr.
+  - needs a conditional to decompress nullptr, unless base address can be 0. That's a huge win,
+    which may be possible be we can assume a 32GB range.
+    - though we have seperate accessors for pointers that can be null, so if the majority is not of
+      that type, it may be ok.
+    - still, not having a base address may be a win by itself.
+    - can simply iterate with mmap to find a large block as low in memory as possible.
+      that should generally not fail?
+      - On Windows, simply turning of ASLR (/HIGHENTROPYVA:NO) allows compressed pointers to
+        work without additional work.
+  - can avoid a conditional to decompress nullptr if we manage to make all tests for null to
+    be (== baseaddr) instead.
+    That may be tricky since we use the fact that int/float/ptr all have 0 bits as false
+    representation to be able to check them without knowing the type with True()
+  - A base of 0 with <<3 is very efficient, which on VS win64 was 7% faster than native 64-bit!
+    Using clang it was about the same speed.
+  - on platforms where we cannot interact with the system to constrain our address space, can
+    create a really dumb allocator that simply re-allocs a buffer containing all memory when
+    needed. This is bad because:
+    - Such big reallocs may cause a pause (speed of memmove is typically only a few GB/sec),
+      though typically only happen once or twice during a game run, hopefully during loading.
+      If using realloc(), you may get lucky and no memmove is needed :)
+    - You temporarily are using 3x as much memory as allocated (current mem + new 2x size block).
+      Should not be an issue on 64-bit.
+    - May cause issues with fragmentation causing such big allocs to fail, though since this
+      technique is only used on 64-bit systems that should be unlikely.
+    So in total this is acceptable, and then on a per platform basis it can be replaced by
+    a more efficient strategy.
+  - will NOT work in the default trampoline compiled mode, since we store function pointers in
+    values there. Have to use the switch mode instead.
+  - More good tips in the comments here:
+    https://stackoverflow.com/questions/50429365/what-is-the-most-reliable-portable-way-to-allocate-memory-at-low-addresses-on
+  - it would be nice to make a distinction where we use compressed pointers only when stored in
+    structs/vectors (so those can be 32-bit always, or still 32-bit even when we allow different
+    sized scalars in these data types).
+    The stack is a really small amount of memory, so keeping that 64-bit should have no effect
+    on cache usage, yet it is the highest frequency access, so naked pointers are a small
+    speedup, allow for 64-bit datatypes, easier to debug etc.
+    - the big question with this model is float conversion speed.
+      http://quick-bench.com/T_FhqmN-7RG_oIEsf4Ur-rCFww8
+      Shows that having everything in float, or everything in doubles, or stored in floats
+      and accumulate into doubles are all equally fast, but what is 3x slower (both gcc and clang)
+      is stored in doubles and accumulate into floats, as that requires an explicit cvtsd2s
+      instruction.
+      So that should be acceptable as that is the least likely case, happens only when writing
+      results back into fields/vectors.
+      - vector ops can still be all-float
+  - Could remove the need for a base address by making everything a relative offset
+    That way, your only concern is to keep all memory within an arbitrary 4GB (or 32GB) range,
+    which should be easier, and doesn't require OS support.
+    The one issue is that it still needs a special case for null.
+    - you can make that actually 0, assuming pointers never point at themselves, such that
+      a null-check can happen before unpacking, and hopefully code that knows something is not
+      null can avoid this check entirely.
+    - the alternative would be an offset towards the base address, but that is way more
+      expensive to check.
+    NOTE: relative offsets will not work unless we disable copy constructor on Value, and track
+    down each and every memcpy or whatever of values
+  - older notes:
+    Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
+     pointers in 32bit).
+     This would generally be good, since using less memory in 64bit could be quite a speedup.
+     Problem is, there's no super elegant way of doing this.
+     - Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
+       no support for this.
+       Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
+       and then use that incrementally. Means we must have our own large block allocator however.
+       On Windows VirtualAlloc can do the same.
+     - could track all allocations in the allocator, but means also tracking "large" allocs individually,
+       finding these in the table will slow things down, and means code can't run with the base allocator anymore.
+     - simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
+       in it and towards it are offsets, this can work.
+       Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
+       as iOS whenever it goes full 64bit.
+       Also means we can't use the base allocator anymore.
+     - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
+       though for small objects.
+     The problem with this approach is that there is no way to do operate on 64bit datatypes in any way this way.
+     Another problem: the ip's stored in Value are native function pointers in C++ mode and would need to
+     be indirected.
+
+- Improve 64bit builds.
+  We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives
+  bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out
+  of these values.
+  Suprisingly, for our unit-test path-finding benchmark, 64-bit mode this way is actually
+  23% faster (VM mode, only 16% in C++ compilation mode), despite using more memory, that is
+  apparently how much the VM code benefits from extra regs etc.
+  Now this benchmark probably touches so little memory it all fits in cache, but for most
+  Lobster programs that don't touch a ton of data, 64-bit mode is thus not a problem, in fact,
+  it is a speedup.
+  We can still improve this situation in two ways:
+  1) Could allow types of different sizes at least in vectors and structs where they take the most space, and
+     leave them uniform on the stack. Start with vectors as that's easiest and most impactful.
+     Have a way to specify bit-width for both scalar types (only allowed to be smaller or equal to machine type).
+     default would always be machine size everywhere.
+     If we're lazy and don't want to deal with different sizes in structs, can at least allow size to specified
+     for struct as a whole if all elements are scalar. This not only simplifies things by keeping
+     indexing the as-is, but it allows faster vector ops by only having to check the bit-width
+     once rather than every element.
+     The advantage of the stack staying 64-bit is that you can then actually make use of 64-bit
+     precision when you want to, something which is not the case in 2)
+     How to implement:
+     - Vectors can be created with an annotation to their desired bit-width, which becomes part of
+       its type.
+       - We have to ensure these get checked thru-out, so maybe safer to have special VECTOR_INT
+         types etc.
+     - Similarly, structs can be declared with a particular bit-width. They can be specialized into
+       other bit-widths.
+       - sub-typing check, cannot allow these specializations to be compatible with eachother.
+     - In both cases, the bitwitdth is actually stored in the header of the object.
+     - For direct loads and stores, we use specialized VM instructions, causing no overhead.
+     - For generic code (builtins) that wants to read vector/struct elements, we provide a generic
+       accessor function that dynamically loads the right size.
+       - Sadly, there's no "read an int of n bytes" instruction in C++.
+         Edit: there kinda is, see use of __movsb in flexbuffers.h
+         on x86 you could read an int64 from the memory location, then use shifts to clear the unused bits
+         that preserves the sign (>> is an ASR):
+         value = ((value << 32) >> 32)
+         to convert 32 to 64.
+         though note: http://blog.regehr.org/archives/738
+         On arm, unaligned access is allowed for single scalars on most v6 and all v7 architectures, so maybe its
+         a non-problem.
+         It will be slower, but since it only occurs for vectors that try to save memory, its probably ok.
+         Can we avoid the unnecessary shifts when reading default size value (shifts will be 0) ?
+         Still need a conditional for floats since the shift trick doesn't work there. Worse, now we generically need
+         a conditional to check for floats.
+         Maybe allow bit sizes only for ints?
+         If its only for ints, how useful is it to have it at all? We already have a [byte], namely string, so it
+         would only be for 16/32 bit int vectors.
+       - frankly, a generic accessor function is a bad idea. Pretty much all builtins take a statically typed
+         2/3/4 int/float structs, so we should be able to change the accessors to directly access these.
+         Only problem is requiring them to be one size, e.g. 32bit. Even though we can maybe make the
+         default specializations 32bit, people might expect to be able to specialize xyz for 64bit and
+         still have all these functions work.
+         We could overload all these functions..
+       - Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
+       can still allow them to work on these vectors.
+     - For compact structs, currently will be wasteful that in RefObj refc & ti can be 64-bits.
+     1b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
+         and store the buffers inside strings.. doesn't need a new type, and allows all sorts of fun optimized
+         data structures.
+         Also cool for serialization.
+         And helps more generally combat the heavy nature of non-inline objects.
+         Then again, would be even better if structs could be separated from vectors more so we can add these
+         features (variable data sizes, inline structs, trailing vectors) to regular structs.
+     Hmm, trailing vectors means reallocation, so not good to have in regular structs.
+         Actually, no need to separate them, can just disallow them to be passed to generic vector functions.
+         Only valid for structs that look like a vector.
 
 NOTES:
 ======

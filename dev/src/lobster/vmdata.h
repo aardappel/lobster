@@ -38,29 +38,11 @@ namespace lobster {
 
 #define DELETE_DELAY 0
 
-// Typedefs to make pointers and scalars the same size.
-#if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__
-    #if !defined(VM_COMPILED_CODE_MODE) || VM_DISPATCH_METHOD != VM_DISPATCH_TRAMPOLINE
-        //#define FORCE_32_BIT_MODEL
-    #endif
-    #ifndef FORCE_32_BIT_MODEL
-        #define VALUE_MODEL_64 1
-    #else
-        #define VALUE_MODEL_64 0
-    #endif
-#else
-    #define VALUE_MODEL_64 0
-#endif
-
-#if VALUE_MODEL_64
-    typedef int64_t intp;
-    typedef uint64_t uintp;
-    typedef double floatp;
-#else
-    typedef int32_t intp;
-    typedef uint32_t uintp;
-    typedef float floatp;
-#endif
+// Typedefs representing values in the language.
+// We are now always 64-bit, even on 32-bit platforms.
+typedef int64_t intp;
+typedef uint64_t uintp;
+typedef double floatp;
 
 typedef vec<floatp, 2> floatp2;
 typedef vec<floatp, 3> floatp3;
@@ -204,13 +186,6 @@ struct PrintPrefs {
         : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals) {}
 };
 
-typedef void *(*block_base_t)(VM &);
-#if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
-    typedef block_base_t block_t;
-#elif VM_DISPATCH_METHOD == VM_DISPATCH_SWITCH_GOTO
-    typedef intp block_t;
-#endif
-
 // ANY memory allocated by the VM must inherit from this, so we can identify leaked memory
 struct DynAlloc {
     type_elem_t tti;  // offset into the VM's typetable
@@ -320,23 +295,6 @@ struct LResource : RefObj {
     }
 };
 
-struct InsPtr {
-    #ifdef VM_COMPILED_CODE_MODE
-        block_t f;
-        explicit InsPtr(block_t _f) : f(_f) {}
-        static_assert(sizeof(block_t) == sizeof(intp), "");
-    #else
-        intp f;
-        explicit InsPtr(intp _f) : f(_f) {}
-        #ifdef FORCE_32_BIT_MODEL
-            explicit InsPtr(ptrdiff_t _f) : f((intp)_f) {}
-        #endif
-    #endif
-    InsPtr() : f(0) {}
-    bool operator==(const InsPtr o) const { return f == o.f; }
-    bool operator!=(const InsPtr o) const { return f != o.f; }
-};
-
 #if RTT_ENABLED
     #define TYPE_INIT(t) type(t),
     #define TYPE_ASSERT(c) assert(c)
@@ -345,48 +303,59 @@ struct InsPtr {
     #define TYPE_ASSERT(c)
 #endif
 
+typedef void *(*block_base_t)(VM &);
+
 // These pointer types are for use inside Value below. In most other parts of the code we
 // use naked pointers.
-#ifndef FORCE_32_BIT_MODEL
-    // We use regular pointers of the current architecture.
+#if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__
+    // We use regular pointers.
     typedef LString *LStringPtr;
     typedef LVector *LVectorPtr;
-    typedef LObject *LStructPtr;
+    typedef LObject *LObjectPtr;
     typedef LCoRoutine *LCoRoutinePtr;
     typedef LResource *LResourcePtr;
     typedef RefObj *RefObjPtr;
+    typedef TypeInfo *TypeInfoPtr;
+    typedef block_base_t BlockPtr;
 #else
-    // We use a compressed pointer to fit in 32-bit on a 64-bit build.
-    // These are shifted by COMPRESS_BITS, so for 3 we can address the bottom 32GB of the
-    // address space. The memory allocator for these values must guarantee we only allocate
-    // from that region, by using mmap or similar.
-    template<typename T> class CompressedPtr {
-        uint32_t c;
-        enum { COMPRESS_BITS = 3, COMPRESS_MASK = (1 << COMPRESS_BITS) - 1 };
+    // We use this special pointer type to represent a 32-bit pointer inside a
+    // 64-bit value.
+    // This is necessary because we want all values to be exactly the same size,
+    // to be able to test for 0, etc, so we can't have unused bits in the union.
+    template<typename T> class ExpandedPtr {
+        uint64_t c;
       public:
-        CompressedPtr(const T *p) {
-            auto bits = (size_t)p;
-            assert(!(bits & COMPRESS_MASK));  // Must not have low bits set.
-            bits >>= COMPRESS_BITS;
-            assert(!(bits >> 32));  // Must not have high bits set.
-            c = (uint32_t)bits;
-        }
-        T *get() const { return (T *)(((size_t)c) << COMPRESS_BITS); }
-        operator T *() const { return get(); }
-        T *operator->() const { return get(); }
+        ExpandedPtr(const T p) : c((uint64_t)p) {}
+        T get() const { return (T)c; }
+        operator T () const { return (T)c; }
+        T operator->() const { return (T)c; }
     };
-    typedef CompressedPtr<LString> LStringPtr;
-    typedef CompressedPtr<LVector> LVectorPtr;
-    typedef CompressedPtr<LObject> LStructPtr;
-    typedef CompressedPtr<LCoRoutine> LCoRoutinePtr;
-    typedef CompressedPtr<LResource> LResourcePtr;
-    typedef CompressedPtr<BoxedInt> BoxedIntPtr;
-    typedef CompressedPtr<BoxedFloat> BoxedFloatPtr;
-    typedef CompressedPtr<RefObj> RefObjPtr;
+    typedef ExpandedPtr<LString *> LStringPtr;
+    typedef ExpandedPtr<LVector *> LVectorPtr;
+    typedef ExpandedPtr<LObject *> LObjectPtr;
+    typedef ExpandedPtr<LCoRoutine *> LCoRoutinePtr;
+    typedef ExpandedPtr<LResource *> LResourcePtr;
+    typedef ExpandedPtr<RefObj *> RefObjPtr;
+    typedef ExpandedPtr<TypeInfo *> TypeInfoPtr;
+    typedef ExpandedPtr<block_base_t> BlockPtr;
 #endif
 
 static_assert(sizeof(intp) == sizeof(floatp) && sizeof(intp) == sizeof(RefObjPtr),
               "typedefs need fixing");
+
+#if defined(VM_COMPILED_CODE_MODE) && VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
+    typedef BlockPtr block_t;
+#else
+    typedef intp block_t;
+#endif
+
+struct InsPtr {
+    block_t f;
+    InsPtr() : f(0) {}
+    explicit InsPtr(block_t _f) : f(_f) {}
+    bool operator==(const InsPtr o) const { return f == o.f; }
+    bool operator!=(const InsPtr o) const { return f != o.f; }
+};
 
 struct Value {
     #if RTT_ENABLED
@@ -395,8 +364,7 @@ struct Value {
 
     private:
     union {
-        // All these types can be defined to be either all 32 or 64-bit, depending on the
-        // compilation mode.
+        // All these types must all be exactly 64-bits.
 
         // Non-reference values.
         intp ival_;      // scalars stored as pointer-sized versions.
@@ -406,7 +374,7 @@ struct Value {
         // Reference values (includes NULL if nillable version).
         LStringPtr sval_;
         LVectorPtr vval_;
-        LStructPtr oval_;
+        LObjectPtr oval_;
         LCoRoutinePtr cval_;
         LResourcePtr xval_;
 
@@ -414,7 +382,7 @@ struct Value {
         RefObjPtr ref_;
 
         // Temp: for inline structs.
-        TypeInfo *ti_;
+        TypeInfoPtr ti_;
     };
     public:
 

@@ -27,7 +27,7 @@
 <p>Lobster uses recent C++17 features, so will need Visual Studio 2019 (the free community edition will do), Xcode 10.x, or a recent GCC (7+) / Clang (6+) to be compiled.</p>
 <p>Lobster uses OpenGL, SDL 2.x and FreeType, these are included in the repo, so should compile out of the box with no further external dependencies.</p>
 <p>All source code and other files related to building Lobster for all platforms sit in the <code>dev</code> folder.</p>
-<p>Lobster can be built for 32 or 64-bit on all platforms. On 64-bit, all Lobster values will take double the size (and precision), and thus use more memory. Despite that, for most programs, 64-bit is still a speed-up (the VM benefits a lot from extra registers).</p>
+<p>Lobster can be built for 32 or 64-bit platforms. This does not affect Lobster data type sizes, e.g. <code>int</code> and <code>float</code> types are 64-bit on all platforms.</p>
 <h3 id="windows">Windows</h3>
 <p>Open up <code>dev\lobster\lobster.sln</code> with Visual Studio, and ensure <code>Release</code> mode is selected. The project is set up to build lobster.exe in the <code>bin</code> folder, and will be ready for use as described either from the <a href="command_line_usage.html">command line</a> or <a href="vscode_ide.html">VS Code</a> / <a href="sublime_ide.html">SublimeText</a> / <a href="notepadpp_ide.html">Notepad++</a>.</p>
 <h3 id="os-x-ios">OS X &amp; iOS</h3>

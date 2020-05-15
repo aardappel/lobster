@@ -50,8 +50,6 @@
       <Item Condition="type==V_STRUCT" Name="stval">stval_</Item>
       <Item Condition="type==V_VECTOR" Name="vval">vval_</Item>
       <Item Condition="type==V_COROUTINE" Name="cval">cval_</Item>
-      <Item Condition="type==V_BOXEDFLOAT" Name="bfval">bfval_</Item>
-      <Item Condition="type==V_BOXEDINT" Name="bival">bival_</Item>
       <Item Name="ref">ref_</Item>
     </Expand>
   </Type>
