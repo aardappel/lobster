@@ -184,6 +184,10 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
         auto cam = vm.PopVec<float3>();
         auto values = vm.Pop().vval();
         auto positions = vm.Pop().vval();
+        if (!positions->len) {
+            vm.Push(vm.NewString(0));
+            return;
+        }
         struct S {
             float3 lo;
             int left_or_val;

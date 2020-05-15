@@ -1,5 +1,3 @@
-- remove multiple lambda args -> move function arg checking to tc.
-
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
 
@@ -27,6 +25,10 @@
   forbid free variables when something becomes a dynamic function value, since there are plenty
   of useful cases of accessing top level variables etc.
   Maybe somehow tie the scope of free variables to the function type?
+
+- remove restrictions or make clearer errors:
+  - call on function value must be single var, not member
+  - cannot derive function value from named function.
 
 - General order of typechecking is:
   * child TT
@@ -69,6 +71,12 @@
 - docs: explain about unbound variables, and what causes:
   type variable does not have field: size
 
+- Move checking for functions/builtins/selfarg etc to type checker.
+  This is quite hard, it requires reworking a lot of stuff:
+  - all the withstack related functionality, which in turn requires not only calls and derefs to
+    be generic, but also individual idents since they can become derefs.
+  - there are still parsing decisions being made based on wether something could be a function,
+    in particular calls without parens.
 - It would be better if we could leave the decision wether something is a builtin or a user
   defined function to the type checker, since that would allow user defined types to have
   a length function, or anything else that clashes with builtins.
@@ -146,9 +154,37 @@
 
 - jcorbin: a basis_spline equivalent of cardinal_spline
 
+- CMake LTO:
+  - supported in 3.9:
+    https://stackoverflow.com/questions/31355692/how-do-i-enable-link-time-optimization-lto-with-cmake
+  - can replace the current LTO setting for CMake which apparently don't work on mac.
+- Move all platforms to CMake
+  - Support in VS seems good now, worth trying.
+  - Once we have this, we can also modularize some of the larger dependencies:
+    - add them via git submodule.
+    - make building them in CMake conditional on them existing.
+      https://cmake.org/cmake/help/v3.5/command/find_file.html
+    - now someone can use git submodule to decide if they want a lean or full fat Lobster!
+      There are ways to init and de-init individual submodules!
+      You can even go further: have CMake control which submodules are installed:
+      https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
+    - We can now add new optional modules:
+      - Bullet physics
+    - We can now may make existing things optional:
+      - imgui
+      - box2d/liquidfun
+    - We can even make the engine a modular add-on to Lobster itself!
+      - create easy way to build Lobster as console-only language.
+        -> this already available for Linux/CMake: just turn off the LOBSTER_ENGINE option.
+  - Do it all with VCPKG?
+    - that is actually not even that necessary, mostly useful if you have many projects
+      that share these dependencies.
 - Upgrade CI to more recent compilers, to support e.g. to_chars.
-- Move CI to github actions?
-  - Currently still on Clang 6, gcc 7.4??
+
+- Built simple Web-IDE:
+  - Build Lobster with Wasm like currently, except make it take a text buffer from JS
+    and somehow make it output to a JS provided canvas.
+  - Bundle a simple JS editor and a selector for many example sources.
 
 - See if a tail-call based interpreter would be a speed-up:
   https://github.com/soundandform/m3
@@ -857,6 +893,8 @@
     - make public headers explicitly depend on it.
     - try to reduce the scope of it.
 
+- Add an optional mouse smoothing feature?
+
 - Have a simpler/better C++ binding interface.
   - for starters, should allow current binding system to be loaded from a DLL/so such that
     extensions don't have to be compiled into the main binary.
@@ -942,6 +980,28 @@
   function argument saying: make all compatible function signatures go thru the same
   specialization. Or maybe more sane, do that by default, and have an annotation to inline
   for the few functions where that matters.
+
+- Transition to a more modern graphics API + platform layer? Options:
+  - Stay with OpenGL+SDL
+    + Easiest, pretty solid, simple, doesn't require pulling in huge libs.
+    - Advanced features only work on Win/Linux.
+  - https://github.com/floooh/sokol
+    + By far the smallest / simplest option.
+    + Gets us DX11/Metal level features.
+    + Also replaces SDL.
+    + Well integrated with Wasm/Web.
+    - Requires external shader compile to target all of these :(
+  - https://github.com/bkaradzic/bgfx
+    - Big and bulky compared to sokol, brings in stuff we may not need.
+    + Brings Vulkan level functionality.
+    - Probably also needs some shader compiler.
+  - WebGPU native.
+    + Could be a well-specced, solid API that's simpler and more portable
+      than Vulkan.
+    + Easy integration with Wasm/Web.
+    - Native implementation is bulky (Dawn) or depend on Rust (gfx-rs).
+    - Spec not settled, shader situation is a mess.
+  - Vulkan, haha.
 
 - function call optimization and simplication.
   - make a micro-benchmark to compare against other languages.
@@ -1163,10 +1223,6 @@
 - remove last cases of RenderArraySlow
   - cache for text VBOs, and cache for arbitrary polygons, cleared if not used in a frame.
 
-- create easy way to build Lobster as console-only language.
-  -> this already available for Linux/CMake: just turn off the LOBSTER_ENGINE option.
-  Not sure if it makes much sense for the other platforms?
-
 - This doesn't parse well (see std.lobster):
   for xs: acc1, acc2 = fun(acc1, acc2, _)
 
@@ -1248,6 +1304,8 @@
     part of total memory.
     - Should definitely add support for 8/16/32-bit int arrays and maybe struct fields though.
     - Maybe allow special structs that pack multiple things in a single 64-bit value? :)
+      - or you could introduce bit-fields, essentially: multiple fields that share the same
+        64-bit struct entry.
   - 64-bit is low cost, simpler, with nice extra precision, less overflows, and more future-proof.
     Once we do this can stop thinking about it entirely.
     There are quite a few places in Lobster where supporting both means surpring truncations
@@ -1989,6 +2047,8 @@ C++64-MSVC: immediates: secs 12.4 direct immediates in native code VM calls
 C++64-MSVC: dd        : secs 11.9
 VM64-MSVC:            : secs 16.0 (newer VS, better release settings??)
 VM64-MSVC:            : secs 14.5 (newer VS, "for/if/while" compiled slightly differently)
+VM64-MSVC:            : secs 15.1 (newer VS?)
+C++64-MSVC:           : secs 10.0 (newer VS?)
 
 compiletime speed:
 

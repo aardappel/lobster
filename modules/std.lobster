@@ -59,6 +59,10 @@ def fold2(xs, acc1, acc2, fun):
         acc1, acc2 = fun(acc1, acc2, _)
     return acc1, acc2
 
+def fold_reverse(xs, acc, fun):
+    for xs.length: acc = fun(acc, xs[xs.length - 1 - _])
+    return acc
+
 def reduce(xs, fun):
     assert xs.length
     var acc = xs[0]

@@ -79,6 +79,7 @@ becoming more mainstream:
   [Cone](http://cone.jondgoodwin.com/memory.html)
   [Scopes](https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1)
   [Pure RC GC](https://researcher.watson.ibm.com/researcher/files/us-bacon/Bacon03Pure.pdf)
+  [Mitten](https://github.com/doctorn/micro-mitten)
 
 I personally think this general direction is the future of memory management.
 It just needs to be made more friendly than Rust for most programmers to
