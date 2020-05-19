@@ -1111,7 +1111,9 @@ struct TypeChecker {
                     LOG_DEBUG("re-using: ", Signature(*sf));
                     for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
                     ReplayReturns(sf, call_args);
-                    return TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic);
+                    auto rtype = TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic);
+                    if (!sf->isrecursivelycalled) ReplayAssigns(sf);
+                    return rtype;
                 }
                 fail:;
             }
@@ -1172,6 +1174,7 @@ struct TypeChecker {
                     assert(SpecializationIsCompatible(*sf, reqret));
                     for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
                     ReplayReturns(sf, call_args);
+                    ReplayAssigns(sf);
                 }
                 // Type check this as if it is a static dispatch to just the root function.
                 TypeCheckMatchingCall(csf = disp.sf, call_args, true, false);
@@ -1653,6 +1656,24 @@ struct TypeChecker {
             TypeError("function-call cannot be an l-value", *n);
         Borrow lv(*n);
         if (!lv.IsValid()) return;  // FIXME: force these to LT_KEEP?
+        if (IsRefNil(n->exptype->t)) {
+            // If any of the functions this assign sits in is reused, we need to be able to replay
+            // checking the errors in CheckLvalBorrowed, since the contents of the borrowstack
+            // may be different.
+            for (auto &sc : reverse(scopes)) {
+                // we could uniqueify this vector, but that would entails comparing `n`
+                // structurally (construct a Borrow for each?), which would probably be
+                // slower than the redundant calls to CheckLvalBorrowed this causes later?
+                // Especially since this uniqueifying cost is paid always, even when there
+                // are no actual repeated assigns in a scope, which is not that common.
+                sc.sf->reuse_assign_events.push_back(n);
+                if (sc.sf == lv.sid->sf_def) break;  // Don't go further than where defined.
+            }
+        }
+        CheckLvalBorrowed(n, lv);
+    }
+
+    void CheckLvalBorrowed(Node *n, Borrow &lv) {
         if (lv.derefs.empty() && LifetimeType(lv.sid->lt) == LT_BORROW) {
             // This should only happen for multimethods and anonymous functions used with istype
             // where we can't avoid arguments being LT_BORROW.
@@ -1665,7 +1686,15 @@ struct TypeChecker {
         for (auto &b : reverse(borrowstack)) {
             if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
-            TypeError(cat("cannot assign to \"", lv.Name(), "\" while borrowed"), *n);
+            TypeError(cat("cannot assign to \"", lv.Name(), "\" while borrowed (in ",
+                          lv.sid->sf_def->parent->name, ")"), *n);
+        }
+    }
+
+    void ReplayAssigns(SubFunction *sf) {
+        for (auto n : sf->reuse_assign_events) {
+            Borrow lv(*n);
+            CheckLvalBorrowed(n, lv);
         }
     }
 
@@ -2113,6 +2142,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     // TODO: much like If, should only typecheck one case if the value is constant, and do
     // the corresponding work in the optimizer.
     tc.TT(value, 1, LT_BORROW);
+    tc.DecBorrowers(value->lt, *this);
     auto ptype = value->exptype;
     if (!ptype->Numeric() && ptype->t != V_STRING)
         tc.TypeError("switch value must be int / float / string", *this);
@@ -2159,7 +2189,6 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
                 tc.TypeError("enum value not tested in switch: " + ev->name, *value);
         }
     }
-    tc.DecBorrowers(value->lt, *this);
     lt = LT_KEEP;
     return this;
 }

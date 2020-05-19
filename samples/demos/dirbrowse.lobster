@@ -61,6 +61,7 @@ def render_tree(n:node):
     return width
 
 def render_entries():
+    var newsel = nil
     for(entries) e:
         gl_color(if e.size < 0: color_blue else: color_black):
             let text = e.name
@@ -69,15 +70,15 @@ def render_entries():
                 if gl_button("mouse1") == 1:
                     let dups = filter selected.children: _.name == e.name
                     if dups.length:
-                        select(dups[0])
+                        newsel = dups[0]
                     else:
-                        let n = node { e.name, e.size, selected }
-                        selected.children.push(n)
-                        select(n)
+                        newsel = node { e.name, e.size, selected }
+                        selected.children.push(newsel)
                 gl_color color_light_grey:
                     gl_rect(size)
             gl_text(e.name)
             gl_translate xy { 0.0, fontsize }
+    if newsel: select(newsel)
 
 def render_sizes(old_width):
     var width = 0.0
