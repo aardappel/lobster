@@ -78,7 +78,7 @@ Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zof
             for (int z = 0; z < v.grid.dim.z; z++) {
                 auto pos = int3(x, y, z);
                 auto spos = pos + off;
-                uchar np = transparant;
+                uint8_t np = transparant;
                 if (spos >= 0 && spos < grid.dim) {
                     auto &dgc = grid.Get(spos);
                     np = v.Color2Palette(float4(color2vec(dgc.color).xyz(), dgc.dist <= 0));
@@ -120,7 +120,7 @@ nfr("cg_set", "block,pos,size,paletteindex", "RI}:3I}:3I", "",
         auto color = vm.Pop().ival();
         auto size = vm.PopVec<int3>();
         auto pos = vm.PopVec<int3>();
-        GetVoxels(vm, vm.Pop()).Set(pos, size, (uchar)color);
+        GetVoxels(vm, vm.Pop()).Set(pos, size, (uint8_t)color);
     });
 
 nfr("cg_get", "block,pos", "RI}:3", "I",
@@ -166,7 +166,7 @@ nfr("cg_color_to_palette", "block,color", "RF}:4", "I",
 nfr("cg_palette_to_color", "block,paletteindex", "RI", "F}:4",
     "converts a palette index to a color. empty space (index 0) will have 0 alpha",
     [](VM &vm) {
-        auto p = uchar(vm.Pop().ival());
+        auto p = uint8_t(vm.Pop().ival());
         vm.PushVec(color2vec(GetVoxels(vm, vm.Pop()).palette[p]));
     });
 
@@ -253,7 +253,7 @@ nfr("cg_create_mesh", "block", "R", "R",
         bool optimize_verts = false;
         struct VKey {
             vec<short, 3> pos;
-            uchar pal, dir;
+            uint8_t pal, dir;
             bool operator==(const VKey &o) const {
                 return pos == o.pos && pal == o.pal && dir == o.dir;
             };
@@ -284,7 +284,7 @@ nfr("cg_create_mesh", "block", "R", "R",
                                         vpos[d] = (face[vn] & (1 << (2 - d))) != 0;
                                     }
                                     vpos += pos;
-                                    VKey vkey { vec<short, 3>(vpos), c, (uchar)n };
+                                    VKey vkey { vec<short, 3>(vpos), c, (uint8_t)n };
                                     if (optimize_verts) {
                                         auto it = vertlookup.find(vkey);
                                         if (it != vertlookup.end()) {
@@ -312,7 +312,7 @@ nfr("cg_create_mesh", "block", "R", "R",
             }
         }
         normalize_mesh(make_span(triangles), verts.data(), verts.size(),
-                       sizeof(cvert), (uchar *)&verts.data()->normal - (uchar *)&verts.data()->pos,
+                       sizeof(cvert), (uint8_t *)&verts.data()->normal - (uint8_t *)&verts.data()->pos,
                        false);
         LOG_INFO("cubegen verts = ", verts.size(), ", tris = ", triangles.size() / 3);
         auto m = new Mesh(new Geometry(make_span(verts), "PNC"),
@@ -329,7 +329,7 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
         auto &v = GetVoxels(vm, wid);
         auto mipsizes = 0;
         for (auto d = v.grid.dim; d.x; d /= 2) mipsizes += d.volume();
-        auto buf = new uchar[mipsizes];
+        auto buf = new uint8_t[mipsizes];
         v.grid.ToContinousGrid(buf);
         auto mipb = buf;
         for (auto db = v.grid.dim; db.x > 1; db /= 2) {
@@ -406,7 +406,7 @@ nfr("cg_load_vox", "name", "S", "R?",
                 if (!voxels) return Value();
                 auto numvoxels = *((int *)p);
                 for (int i = 0; i < numvoxels; i++) {
-                    auto vox = byte4((uchar *)(p + i * 4 + 4));
+                    auto vox = byte4((uint8_t *)(p + i * 4 + 4));
                     auto pos = int3(vox.xyz());
                     if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
                 }
@@ -468,7 +468,7 @@ nfr("cg_get_buf", "block", "R", "S",
     [](VM &vm, Value &wid) {
         auto &v = GetVoxels(vm, wid);
         auto buf = vm.NewString(v.grid.dim.volume());
-        v.grid.ToContinousGrid((uchar *)buf->strv().data());
+        v.grid.ToContinousGrid((uint8_t *)buf->strv().data());
         return Value(buf);
     });
 
@@ -486,7 +486,7 @@ nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 			for (int y = 0; y < v.grid.dim.y; y++) {
 				for (int z = 0; z < v.grid.dim.z; z++) {
 					auto pos = int3(x, y, z);
-					uchar c = v.grid.Get(pos);
+					uint8_t c = v.grid.Get(pos);
 					if (c) {
 						nvol++;
 						// Only count voxels that lay on the surface for color average.
@@ -518,7 +518,7 @@ nfr("cg_rotate", "block,n", "RI", "R",
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
                 for (int z = 0; z < v.grid.dim.z; z++) {
-                    uchar c = v.grid.Get(int3(x, y, z));
+                    uint8_t c = v.grid.Get(int3(x, y, z));
 					switch (n) {
                         case 1:
 							d.grid.Get(int3(v.grid.dim.y - y - 1, x, z)) = c;
@@ -553,10 +553,10 @@ nfr("cg_simplex", "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,
         auto sz = vm.PopVec<int3>();
         auto p = vm.PopVec<int3>();
         auto &v = GetVoxels(vm, vm.Pop());
-        v.Do(p, sz, [&](const int3 &pos, uchar &vox) {
+        v.Do(p, sz, [&](const int3 &pos, uint8_t &vox) {
             auto sp = (float3(pos - p) + 0.5) / float3(sz) * ssize + spos;
             auto fun = SimplexNoise(octaves, persistence, scale, sp) + sp.z * zscale - zbias;
-            vox = uchar((fun < 0) * solidcol);
+            vox = uint8_t((fun < 0) * solidcol);
         });
     });
 
@@ -579,7 +579,7 @@ nfr("cg_bounding_box", "world,minsolids", "RF", "I}:3I}:3",
                     if (mm) tmin[c] = tmax[c] - 1;
                     else tmax[c] = tmin[c] + 1;
                     int solid = 0;
-                    v.Do(tmin, tmax - tmin, [&](const int3 &, uchar &vox) {
+                    v.Do(tmin, tmax - tmin, [&](const int3 &, uint8_t &vox) {
                         if (vox) solid++;
                     });
                     auto total = (tmax - tmin).volume();
@@ -613,7 +613,7 @@ nfr("cg_randomize", "world,rnd_range,cutoff,paletteindex,filter", "RIIII", "", "
                     auto pos = int3(x, y, z);
                     auto &p = v.grid.Get(pos);
                     if (p != filter.ival() && cg_rnd(rnd_range.intval()) < cutoff.intval())
-                        p = (uchar)paletteindex.ival();
+                        p = (uint8_t)paletteindex.ival();
                 }
             }
         }
@@ -630,7 +630,7 @@ nfr("cg_erode", "world,minsolid,maxsolid", "RII", "R", "",
                     auto pos = int3(x, y, z);
                     auto p = v.grid.Get(pos);
                     int nsolid = 0;
-                    uchar last_solid = 0;
+                    uint8_t last_solid = 0;
                     for (int xd = -1; xd <= 1; xd++) {
                         for (int yd = -1; yd <= 1; yd++) {
                             for (int zd = -1; zd <= 1; zd++) {

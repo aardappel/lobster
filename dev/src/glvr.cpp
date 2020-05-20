@@ -59,7 +59,7 @@ static Texture retex[2];
 static float4x4 hmdpose = float4x4_1;
 struct MotionController {
     float4x4 mat;
-    uint device;
+    uint32_t device;
     #ifdef PLATFORM_VR
         vr::VRControllerState_t state, laststate;
     #endif
@@ -100,7 +100,7 @@ bool VRInit() {
                              vr::VR_GetVRInitErrorAsEnglishDescription(err));
         return false;
     }
-    vrsys->GetRecommendedRenderTargetSize((uint *)&rtsize.x, (uint *)&rtsize.y);
+    vrsys->GetRecommendedRenderTargetSize((uint32_t *)&rtsize.x, (uint32_t *)&rtsize.y);
     auto devicename = GetTrackedDeviceString(vr::k_unTrackedDeviceIndex_Hmd,
                                              vr::Prop_TrackingSystemName_String);
     auto displayname = GetTrackedDeviceString(vr::k_unTrackedDeviceIndex_Hmd,
@@ -149,7 +149,7 @@ void VRStart() {
                                            trackeddeviceposes, vr::k_unMaxTrackedDeviceCount);
                                            */
     size_t mcn = 0;
-    for (uint device = 0; device < vr::k_unMaxTrackedDeviceCount; device++) {
+    for (uint32_t device = 0; device < vr::k_unMaxTrackedDeviceCount; device++) {
         if (vrsys->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller)
             continue;
         if (mcn == motioncontrollers.size()) {
@@ -209,7 +209,7 @@ void VRFinish() {
     #endif  // PLATFORM_VR
 }
 
-Mesh *VRCreateMesh(uint device) {
+Mesh *VRCreateMesh(uint32_t device) {
     #ifdef PLATFORM_VR
     if (!vrsys) return 0;
     auto name = GetTrackedDeviceString(device, vr::Prop_RenderModelName_String);
@@ -240,7 +240,7 @@ Mesh *VRCreateMesh(uint device) {
                                    "PNT"), PRIM_TRIS);
     auto nindices = model->unTriangleCount * 3;
     vector<int> indices(nindices);
-    for (uint i = 0; i < nindices; i += 3) {
+    for (uint32_t i = 0; i < nindices; i += 3) {
         indices[i + 0] = model->rIndexData[i + 0];
         indices[i + 1] = model->rIndexData[i + 2];
         indices[i + 2] = model->rIndexData[i + 1];

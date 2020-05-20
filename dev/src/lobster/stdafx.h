@@ -72,15 +72,6 @@ using namespace gsl;
 
 #include "flatbuffers/flatbuffers.h"
 
-typedef unsigned char uchar;
-typedef unsigned short ushort;
-typedef unsigned int uint;
-
-#ifdef nullptr
-#undef nullptr
-#endif
-#define nullptr nullptr
-
 // Our universally used headers.
 #include "wentropy.h"
 #include "tools.h"

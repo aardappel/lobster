@@ -112,7 +112,7 @@ bool IsCompressed(string_view filename) {
     return ext == ".lbc" || ext == ".lobster" || ext == ".materials";
 }
 
-static const uchar *magic = (uchar *)"LPAK";
+static const uint8_t *magic = (uint8_t *)"LPAK";
 static const size_t magic_size = 4;
 static const size_t header_size = magic_size + sizeof(int64_t) * 3;
 static const char *bcname = "bytecode.lbc";
@@ -132,7 +132,7 @@ void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
         LOG_INFO("adding to pakfile: ", filename);
         if (IsCompressed(filename)) {
             string out;
-            WEntropyCoder<true>((uchar *)buf.data(), buf.length(), buf.length(), out);
+            WEntropyCoder<true>((uint8_t *)buf.data(), buf.length(), buf.length(), out);
             pakfile += out;
             uncompressed.push_back(buf.length());
         } else {
@@ -169,19 +169,19 @@ void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
         pakfile.insert(pakfile.end(), filename.c_str(), filename.c_str() + filename.length() + 1);
     }
     // Then the starting offsets and other data:
-    pakfile.insert(pakfile.end(), (uchar *)uncompressed.data(),
-        (uchar *)(uncompressed.data() + uncompressed.size()));
-    pakfile.insert(pakfile.end(), (uchar *)filestarts.data(),
-        (uchar *)(filestarts.data() + filestarts.size()));
-    pakfile.insert(pakfile.end(), (uchar *)namestarts.data(),
-        (uchar *)(namestarts.data() + namestarts.size()));
+    pakfile.insert(pakfile.end(), (uint8_t *)uncompressed.data(),
+        (uint8_t *)(uncompressed.data() + uncompressed.size()));
+    pakfile.insert(pakfile.end(), (uint8_t *)filestarts.data(),
+        (uint8_t *)(filestarts.data() + filestarts.size()));
+    pakfile.insert(pakfile.end(), (uint8_t *)namestarts.data(),
+        (uint8_t *)(namestarts.data() + namestarts.size()));
     auto num = LE(filestarts.size());
     // Finally the "header" (or do we call this a "tailer" ? ;)
     auto header_start = pakfile.size();
     auto version = LE(1);
-    pakfile.insert(pakfile.end(), (uchar *)&num, (uchar *)(&num + 1));
-    pakfile.insert(pakfile.end(), (uchar *)&dirstart, (uchar *)(&dirstart + 1));
-    pakfile.insert(pakfile.end(), (uchar *)&version, (uchar *)(&version + 1));
+    pakfile.insert(pakfile.end(), (uint8_t *)&num, (uint8_t *)(&num + 1));
+    pakfile.insert(pakfile.end(), (uint8_t *)&dirstart, (uint8_t *)(&dirstart + 1));
+    pakfile.insert(pakfile.end(), (uint8_t *)&version, (uint8_t *)(&version + 1));
     pakfile.insert(pakfile.end(), magic, magic + magic_size);
     assert(pakfile.size() - header_start == header_size);
     (void)header_start;
@@ -202,7 +202,7 @@ bool LoadPakDir(const char *lpak) {
         memcpy(&r, p, sizeof(int64_t));
         return LE(r);
     };
-    auto num = (size_t)read_unaligned64(header.c_str());
+    auto num = read_unaligned64(header.c_str());
     auto dirstart = read_unaligned64((int64_t *)header.c_str() + 1);
     auto version = read_unaligned64((int64_t *)header.c_str() + 2);
     if (version > 1) return false;
@@ -213,7 +213,7 @@ bool LoadPakDir(const char *lpak) {
     auto namestarts = (int64_t *)(dir.c_str() + dir.length()) - num;
     auto filestarts = namestarts - num;
     auto uncompressed = filestarts - num;
-    for (size_t i = 0; i < num; i++) {
+    for (int64_t i = 0; i < num; i++) {
         auto name = string_view(dir.c_str() + (read_unaligned64(namestarts + i) - dirstart));
         auto off = read_unaligned64(filestarts + i);
         auto end = i < num + 1 ? read_unaligned64(filestarts + i + 1) : dirstart;
@@ -226,7 +226,7 @@ bool LoadPakDir(const char *lpak) {
 
 bool LoadByteCode(string &bytecode) {
     if (LoadFile(bcname, &bytecode) < 0) return false;
-    flatbuffers::Verifier verifier((const uchar *)bytecode.c_str(), bytecode.length());
+    flatbuffers::Verifier verifier((const uint8_t *)bytecode.c_str(), bytecode.length());
     auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
     assert(ok);
     return ok;

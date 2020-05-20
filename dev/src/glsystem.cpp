@@ -108,8 +108,8 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar) {
 bool Is2DMode() { return mode2d; }
 bool IsSRGBMode() { return mode_srgb; }
 
-uchar *ReadPixels(const int2 &pos, const int2 &size) {
-    uchar *pixels = new uchar[size.x * size.y * 3];
+uint8_t *ReadPixels(const int2 &pos, const int2 &size) {
+    auto pixels = new uint8_t[size.x * size.y * 3];
     for (int y = 0; y < size.y; y++)
         GL_CALL(glReadPixels(pos.x, pos.y + size.y - y - 1, size.x, 1, GL_RGB, GL_UNSIGNED_BYTE,
                              pixels + y * (size.x * 3)));
@@ -124,7 +124,7 @@ void OpenGLFrameStart(const int2 &ssize) {
 }
 
 void OpenGLFrameEnd() {
-    //uchar pixel[4];
+    //uint8_t pixel[4];
     //glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
     //glFlush();
     //glFinish();

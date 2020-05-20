@@ -60,13 +60,13 @@ void SteamShutDown() {
     #endif  // PLATFORM_STEAMWORKS
 }
 
-int SteamInit(uint appid, bool screenshots) {
+int SteamInit(iint appid, bool screenshots) {
     SteamShutDown();
     #ifdef PLATFORM_STEAMWORKS
         #ifndef NDEBUG
             (void)appid;
         #else
-            if (appid && SteamAPI_RestartAppIfNecessary(appid)) {
+            if (appid && SteamAPI_RestartAppIfNecessary((uint32_t)appid)) {
                 LOG_INFO("Not started from Steam");
                 return -1;
             }
@@ -150,7 +150,7 @@ nfr("steam_init", "appid,allowscreenshots", "IB", "I",
     " called even if steam isn't active."
     " allowscreenshots automatically uploads screenshots to steam (triggered by steam).",
     [](VM &, Value &appid, Value &ss) {
-        return Value(SteamInit((uint)appid.ival(), ss.True()));
+        return Value(SteamInit(appid.ival(), ss.True()));
     });
 
 nfr("steam_overlay", "", "", "B",

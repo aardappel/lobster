@@ -838,7 +838,7 @@ struct SymbolTable {
     }
 
     void Serialize(vector<int> &code,
-                   vector<uchar> &code_attr,
+                   vector<uint8_t> &code_attr,
                    vector<type_elem_t> &typetable,
                    vector<type_elem_t> &vint_typeoffsets,
                    vector<type_elem_t> &vfloat_typeoffsets,

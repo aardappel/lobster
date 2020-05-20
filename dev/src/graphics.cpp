@@ -146,7 +146,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?", "S?",
     [](VM &vm, Value &title, Value &xs, Value &ys, Value &flags, Value &samples) {
         if (graphics_initialized)
             vm.BuiltinError("cannot call gl_window() twice");
-        string err = SDLInit(title.sval()->strv(), int2(intp2(xs.ival(), ys.ival())),
+        string err = SDLInit(title.sval()->strv(), int2(iint2(xs.ival(), ys.ival())),
                              (InitFlags)flags.intval(), max(1, samples.intval()));
         if (err.empty()) {
             err = LoadMaterialFile("data/shaders/default.materials");
@@ -483,7 +483,7 @@ nfr("gl_origin", "", "", "F}:2",
     "returns a vector representing the current transform origin in pixels."
     " only makes sense in 2D mode (no gl_perspective called).",
     [](VM &vm) {
-        auto pos = floatp2(otransforms.object2view[3].x, otransforms.object2view[3].y);
+        auto pos = double2(otransforms.object2view[3].x, otransforms.object2view[3].y);
         vm.PushVec(pos);
     });
 
@@ -491,7 +491,7 @@ nfr("gl_scaling", "", "", "F}:2",
     "returns a vector representing the current transform scale in pixels."
     " only makes sense in 2D mode (no gl_perspective called).",
     [](VM &vm) {
-        auto sc = floatp2(otransforms.object2view[0].x, otransforms.object2view[1].y);
+        auto sc = double2(otransforms.object2view[0].x, otransforms.object2view[1].y);
         vm.PushVec(sc);
     });
 
@@ -663,7 +663,7 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
         if (nattr > (int)min(fmt.find_first_not_of("PCTN"), fmt.size()) || fmt[0] != 'P')
             vm.BuiltinError("newmesh: illegal format characters (only PCTN allowed), P must be"
                                " first");
-        intp nverts = positions.vval()->len;
+        iint nverts = positions.vval()->len;
         vector<int> idxs;
         if (indices.True()) {
             for (int i = 0; i < indices.vval()->len; i++) {
@@ -675,8 +675,8 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
         }
         size_t vsize = AttribsSize(fmt);
         size_t normal_offset = 0;
-        auto verts = new uchar[nverts * vsize];
-        for (intp i = 0; i < nverts; i++) {
+        auto verts = new uint8_t[nverts * vsize];
+        for (iint i = 0; i < nverts; i++) {
             auto start = &verts[i * vsize];
             auto p = start;
             float3 pos;
@@ -720,7 +720,7 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
             // if no normals were specified, generate them.
             normalize_mesh(make_span(idxs), verts, nverts, vsize, normal_offset);
         }
-        auto m = new Mesh(new Geometry(make_span(verts, nverts * vsize), fmt, span<uchar>(), vsize),
+        auto m = new Mesh(new Geometry(make_span(verts, nverts * vsize), fmt, span<uint8_t>(), vsize),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface(make_span(idxs)));
         delete[] verts;
@@ -973,7 +973,7 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R",
         auto ys = mat->len;
         auto xs = mat->At(0).vval()->len;
         auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
-        auto buf = new uchar[xs * ys * sz];
+        auto buf = new uint8_t[xs * ys * sz];
         memset(buf, 0, xs * ys * sz);
         for (int i = 0; i < ys; i++) {
             auto row = mat->At(i).vval();
@@ -984,7 +984,7 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R",
                 else                      ((byte4  *)buf)[idx] = quantizec(col);
             }
         }
-        auto tex = CreateTexture(buf, int2(intp2(xs, ys)).data(), tf.intval());
+        auto tex = CreateTexture(buf, int2(iint2(xs, ys)).data(), tf.intval());
         delete[] buf;
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     });
@@ -1065,7 +1065,7 @@ nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
         if (len != tile->len)
             vm.BuiltinError("rendertiles: vectors of different size");
         vector<SpriteVert> vbuf(len * 6);
-        for (intp i = 0; i < len; i++) {
+        for (iint i = 0; i < len; i++) {
             auto p = ValueToFLT<2>(pos->AtSt(i), pos->width);
             auto t = float2(ValueToI<2>(tile->AtSt(i), tile->width)) / msize;
             vbuf[i * 6 + 0].pos = p;
@@ -1092,7 +1092,7 @@ nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
         TestGL(vm);
         auto thickness = vm.Pop().fltval();
         auto dist = vm.PopVec<float3>();
-        auto num = vm.PopVec<intp3>();
+        auto num = vm.PopVec<iint3>();
         float3 cp = otransforms.view2object[3].xyz();
         auto m = float3(num);
         auto step = dist;

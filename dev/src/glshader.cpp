@@ -30,7 +30,7 @@ void ShaderShutDown() {
         delete it.second;
 }
 
-string GLSLError(uint obj, bool isprogram, const char *source) {
+string GLSLError(int obj, bool isprogram, const char *source) {
     GLint length = 0;
     if (isprogram) GL_CALL(glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &length));
     else           GL_CALL(glGetShaderiv (obj, GL_INFO_LOG_LENGTH, &length));
@@ -53,8 +53,8 @@ string GLSLError(uint obj, bool isprogram, const char *source) {
     return "";
 }
 
-uint CompileGLSLShader(GLenum type, uint program, const GLchar *source, string &err)  {
-    uint obj = glCreateShader(type);
+int CompileGLSLShader(GLenum type, int program, const GLchar *source, string &err)  {
+    int obj = glCreateShader(type);
     GL_CALL(glShaderSource(obj, 1, &source, nullptr));
     GL_CALL(glCompileShader(obj));
     GLint success;
@@ -338,7 +338,7 @@ Shader::~Shader() {
 }
 
 // FIXME: unlikely to cause ABA problem, but still better to reset once per frame just in case.
-static uint last_program = 0;
+static int last_program = 0;
 
 void Shader::Activate() {
     if (program != last_program) {
@@ -416,15 +416,15 @@ void DispatchCompute(const int3 &groups) {
 // Simple function for getting some uniform / shader storage attached to a shader. Should ideally
 // be split up for more flexibility.
 // Use this for reusing BO's for now:
-struct BOEntry { uint bo; uint bpi; size_t size; };
+struct BOEntry { int bo; int bpi; size_t size; };
 map<string, BOEntry, less<>> ubomap;
 // Note that bo_binding_point_index is assigned automatically based on unique block names.
 // You can also specify these in the shader using `binding=`, but GL doesn't seem to have a way
 // to retrieve these programmatically.
 // If data is nullptr, bo is used instead.
 // If offset < 0 then its a buffer replacement/creation.
-uint UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
-                         string_view uniformblockname, bool ssbo, uint bo) {
+int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
+                         string_view uniformblockname, bool ssbo, int bo) {
     #ifdef PLATFORM_WINNIX
         if (sh && glGetProgramResourceIndex && glShaderStorageBlockBinding && glBindBufferBase &&
                   glUniformBlockBinding && glGetUniformBlockIndex) {
@@ -440,9 +440,9 @@ uint UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t off
             else glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
             if (idx != GL_INVALID_INDEX && len <= size_t(maxsize)) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
-                static uint binding_point_index_alloc = 0;
+                static int binding_point_index_alloc = 0;
                 auto it = ubomap.find(uniformblockname);
-                uint bo_binding_point_index = 0;
+                int bo_binding_point_index = 0;
                 if (it == ubomap.end()) {
                     assert(offset < 0);
                     if (data) bo = GenBO_(type, len, data);

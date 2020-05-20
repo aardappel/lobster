@@ -30,7 +30,7 @@ public:
 struct OcTree {
     vector<OcVal> nodes;
     vector<int> freelist;
-    vector<uchar> dirty;
+    vector<uint8_t> dirty;
     int world_bits;
     int fix_bits;
     bool all_dirty = true;

@@ -27,7 +27,7 @@ enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 
 // Meant to be passed by value.
 struct Texture {
-    uint id = 0;
+    int id = 0;
     int3 size { 0 };
 
     Texture() = default;
@@ -36,7 +36,7 @@ struct Texture {
 };
 
 struct Shader {
-    uint vs = 0, ps = 0, cs = 0, program = 0;
+    int vs = 0, ps = 0, cs = 0, program = 0;
     int mvp_i, col_i, camera_i, light1_i, lightparams1_i, framebuffer_size_i,
         bones_i, pointscale_i;
     int max_tex_defined = 0;
@@ -70,7 +70,7 @@ struct Textured {
 
 struct Surface : Textured {
     size_t numidx;
-    uint ibo;
+    int ibo;
     string name;
     Primitive prim;
 
@@ -101,7 +101,7 @@ struct SpriteVert {   // "pT"
 class Geometry  {
     const size_t vertsize1, vertsize2;
     string fmt;
-    uint vbo1 = 0, vbo2 = 0, vao = 0;
+    int vbo1 = 0, vbo2 = 0, vao = 0;
 
     public:
     const size_t nverts;
@@ -170,9 +170,9 @@ extern Shader *LookupShader(string_view name);
 extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
-extern void SetImageTexture(uint textureunit, const Texture &tex, int tf);
-extern uint UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
-                                string_view uniformblockname, bool ssbo, uint bo);
+extern void SetImageTexture(int textureunit, const Texture &tex, int tf);
+extern int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
+                               string_view uniformblockname, bool ssbo, int bo);
 
 // These must correspond to the constants in color.lobster
 enum TextureFlag {
@@ -191,12 +191,12 @@ enum TextureFlag {
     TF_DEPTH = 4096
 };
 
-extern Texture CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE);
+extern Texture CreateTexture(const uint8_t *buf, const int *dim, int tf = TF_NONE);
 extern Texture CreateTextureFromFile(string_view name, int tf = TF_NONE);
 extern Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
 extern void SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
-extern uchar *ReadTexture(const Texture &tex);
+extern uint8_t *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
 extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,
                                 bool depth = false, int tf = 0,
@@ -204,14 +204,14 @@ extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,
                                 const Texture &depthtex = Texture());
 extern int2 GetFrameBufferSize(const int2 &screensize);
 
-extern uchar *ReadPixels(const int2 &pos, const int2 &size);
+extern uint8_t *ReadPixels(const int2 &pos, const int2 &size);
 
-extern uint GenBO_(uint type, size_t bytesize, const void *data);
-template <typename T> uint GenBO(uint type, span<T> d) {
+extern int GenBO_(int type, size_t bytesize, const void *data);
+template <typename T> int GenBO(int type, span<T> d) {
     return GenBO_(type, sizeof(T) * d.size(), d.data());
 }
-extern void DeleteBO(uint id);
-extern void RenderArray(Primitive prim, Geometry *geom, uint ibo = 0, size_t tcount = 0);
+extern void DeleteBO(int id);
+extern void RenderArray(Primitive prim, Geometry *geom, int ibo = 0, size_t tcount = 0);
 
 template<typename T, typename U = float>
 void RenderArraySlow(Primitive prim, span<T> vbuf1, string_view fmt,
@@ -228,9 +228,9 @@ void RenderArraySlow(Primitive prim, span<T> vbuf1, string_view fmt,
 struct GeometryCache {
     Geometry *quadgeom[2] = { nullptr, nullptr };
     Geometry *cube_geom[2] = { nullptr, nullptr };
-    uint cube_ibo[2] = { 0, 0 };
+    int cube_ibo[2] = { 0, 0 };
     map<int, Geometry *> circlevbos;
-    map<pair<int, float>, pair<Geometry *, uint>> opencirclevbos;
+    map<pair<int, float>, pair<Geometry *, int>> opencirclevbos;
 
     ~GeometryCache();
 

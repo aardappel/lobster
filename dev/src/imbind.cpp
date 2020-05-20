@@ -115,7 +115,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
             if (ImGui::TreeNodeEx(*l ? l : "[]", flags)) {
                 auto &sti = vm.GetTypeInfo(ti.subt);
                 auto vec = v->vval();
-                for (intp i = 0; i < vec->len; i++) {
+                for (iint i = 0; i < vec->len; i++) {
                     ValToGUI(vm, vec->AtSt(i), sti, to_string(i), false);
                 }
                 ImGui::TreePop();
@@ -134,7 +134,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                 if (ti.elemtypes[0] == TYPE_ELEM_INT) {
                     auto nums = ValueToI<4>(v, ti.len);
                     if (ImGui::InputScalarN(
-                            l, sizeof(intp) == sizeof(int) ? ImGuiDataType_S32 : ImGuiDataType_S64,
+                            l, ImGuiDataType_S64,
                             (void *)nums.data(), ti.len, NULL, NULL, "%d", flags)) {
                         ToValue(v, ti.len, nums);
                     }
@@ -151,7 +151,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                         // FIXME: format configurable.
                         if (ImGui::InputScalarN(
                                 l,
-                                sizeof(floatp) == sizeof(float) ? ImGuiDataType_Float
+                                sizeof(double) == sizeof(float) ? ImGuiDataType_Float
                                                                 : ImGuiDataType_Double,
                                 (void *)nums.data(), ti.len, NULL, NULL, "%.3f", flags)) {
                             ToValue(v, ti.len, nums);
@@ -190,7 +190,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
 
 void VarsToGUI(VM &vm) {
     auto DumpVars = [&](bool constants) {
-        for (uint i = 0; i < vm.bcf->specidents()->size(); i++) {
+        for (uint32_t i = 0; i < vm.bcf->specidents()->size(); i++) {
             auto &val = vm.vars[i];
             auto sid = vm.bcf->specidents()->Get(i);
             auto id = vm.bcf->idents()->Get(sid->ididx());
@@ -337,7 +337,7 @@ nfr("im_radio", "labels,active,horiz", "S]II", "I", "",
     [](VM &vm, Value &strs, Value &active, Value &horiz) {
         IsInit(vm);
         int sel = active.intval();
-        for (intp i = 0; i < strs.vval()->len; i++) {
+        for (iint i = 0; i < strs.vval()->len; i++) {
             if (i && horiz.True()) ImGui::SameLine();
             ImGui::RadioButton(strs.vval()->At(i).sval()->data(), &sel, (int)i);
         }
@@ -349,7 +349,7 @@ nfr("im_combo", "label,labels,active", "SS]I", "I", "",
         IsInit(vm);
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
-        for (intp i = 0; i < strs.vval()->len; i++) {
+        for (iint i = 0; i < strs.vval()->len; i++) {
             items[i] = strs.vval()->At(i).sval()->data();
         }
         ImGui::Combo(text.sval()->data(), &sel, items.data(), (int)items.size());
@@ -361,7 +361,7 @@ nfr("im_listbox", "label,labels,active,height", "SS]II", "I", "",
         IsInit(vm);
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
-        for (intp i = 0; i < strs.vval()->len; i++) {
+        for (iint i = 0; i < strs.vval()->len; i++) {
             items[i] = strs.vval()->At(i).sval()->data();
         }
         ImGui::ListBox(text.sval()->data(), &sel, items.data(), (int)items.size(), height.intval());

@@ -660,7 +660,7 @@ Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly)
     auto gridsize = int3(scenesize * gridscale + float3(2.001f));
     auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;
     auto distgrid = new DistGrid(gridsize, DistVert());
-    ThreadPool threadpool(NumHWThreads());
+    ThreadPool threadpool((size_t)NumHWThreads());
     root->FillGrid(int3(0), gridsize, distgrid, float3(gridscale), gridtrans, float3x3_1,
         threadpool);
     if (do_poly) {

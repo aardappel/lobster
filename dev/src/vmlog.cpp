@@ -23,7 +23,7 @@ namespace lobster {
 
 VMLog::VMLog(VM &_vm) : vm(_vm) {}
 
-void VMLog::LogInit(const uchar *bcfb) {
+void VMLog::LogInit(const uint8_t *bcfb) {
     auto bcf = bytecode::GetBytecodeFile(bcfb);
     logvars.resize(bcf->logvars()->size());
     flatbuffers::uoffset_t i = 0;

@@ -89,8 +89,8 @@ template<typename ...Ts> void LogOutput(OutputType ot, const Ts&... args) {
 extern double SecondsSinceStart();
 
 // CPU:
-extern uint NumHWThreads();
-extern uint NumHWCores();
+extern int NumHWThreads();
+extern int NumHWCores();
 
 // Misc:
 extern void ConditionalBreakpoint(bool shouldbreak);

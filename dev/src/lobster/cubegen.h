@@ -15,12 +15,12 @@
 #ifndef LOBSTER_CUBEGEN_H
 #define LOBSTER_CUBEGEN_H
 
-const uchar transparant = 0;
+const uint8_t transparant = 0;
 
 struct Voxels {
     vector<byte4> palette;
     bool is_default_palette;
-    Chunk3DGrid<uchar> grid;
+    Chunk3DGrid<uint8_t> grid;
     int idx = 0;
 
     Voxels(const int3 &dim) : is_default_palette(true), grid(dim, transparant) {}
@@ -36,12 +36,12 @@ struct Voxels {
         }
     }
 
-    void Set(const int3 &p, const int3 &sz, uchar pi) {
-        Do(p, sz, [&](const int3 &, uchar &vox) { vox = pi; });
+    void Set(const int3 &p, const int3 &sz, uint8_t pi) {
+        Do(p, sz, [&](const int3 &, uint8_t &vox) { vox = pi; });
     }
 
     void Copy(const int3 &p, const int3 &sz, const int3 &dest, const int3 &flip) {
-        Do(p, sz, [&](const int3 &pos, uchar &vox) {
+        Do(p, sz, [&](const int3 &pos, uint8_t &vox) {
             auto d = (pos - p) * flip + dest;
             if (d >= int3_0 && d < grid.dim) grid.Get(d) = vox;
         });
@@ -49,13 +49,13 @@ struct Voxels {
 
     void Clone(const int3 &p, const int3 &sz, Voxels *dest) {
         assert(dest->grid.dim == sz);
-        Do(p, sz, [&](const int3 &pos, uchar &vox) {
+        Do(p, sz, [&](const int3 &pos, uint8_t &vox) {
             dest->grid.Get(pos - p) = vox;
         });
     }
 
-    uchar Color2Palette(const float4 &color) const {
-        uchar pi = transparant;
+    uint8_t Color2Palette(const float4 &color) const {
+        uint8_t pi = transparant;
         if (color.w >= 0.5f) {
             if (is_default_palette) {  // Fast path.
                 auto ic = byte4((int4(quantizec(color)) + (0x33 / 2)) / 0x33);
@@ -66,7 +66,7 @@ struct Voxels {
                 float error = 999999;
                 for (size_t i = 1; i < palette.size(); i++) {
                     auto err = squaredlength(color2vec(palette[i]) - color);
-                    if (err < error) { error = err; pi = (uchar)i; }
+                    if (err < error) { error = err; pi = (uint8_t)i; }
                 }
             }
         }

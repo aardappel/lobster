@@ -159,7 +159,7 @@ nfr("gl_text_size", "text", "S", "I}:2",
 nfr("gl_get_glyph_name", "i", "I", "S",
     "the name of a glyph index, or empty string if the font doesn\'t have names",
     [](VM &vm, Value &i) {
-        return Value(vm.NewString(curface ? curface->GetName((uint)i.ival()) : ""));
+        return Value(vm.NewString(curface ? curface->GetName(i.intval()) : ""));
     });
 
 nfr("gl_get_char_code", "name", "S", "I",

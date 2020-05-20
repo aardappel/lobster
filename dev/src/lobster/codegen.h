@@ -19,7 +19,7 @@ namespace lobster {
 
 struct CodeGen  {
     vector<int> code;
-    vector<uchar> code_attr;
+    vector<uint8_t> code_attr;
     vector<bytecode::LineInfo> lineinfo;
     vector<bytecode::SpecIdent> sids;
     Parser &parser;
@@ -66,8 +66,8 @@ struct CodeGen  {
         SplitAttr(Pos());
     }
 
-    const size_t ti_num_udt_fields = 4;
-    const size_t ti_num_udt_per_field = 2;
+    const int ti_num_udt_fields = 4;
+    const int ti_num_udt_per_field = 2;
 
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
         for (auto &field : udt->fields) {
@@ -75,7 +75,7 @@ struct CodeGen  {
             if (IsStruct(field.resolvedtype->t)) {
                 PushFields(field.resolvedtype->udt, tt, ti);
             } else {
-                tt.insert(tt.begin() + (tt.size() - ti_num_udt_fields) / ti_num_udt_per_field +
+                tt.insert(tt.begin() + (ssize(tt) - ti_num_udt_fields) / ti_num_udt_per_field +
                           ti_num_udt_fields, ti);
                 tt.push_back(parent);
             }
@@ -121,8 +121,7 @@ struct CodeGen  {
                 type->udt->typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
                 assert(type->udt->numslots >= 0);
-                auto ttsize =
-                    (size_t)(type->udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
+                auto ttsize = (type->udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
                 type_table.insert(type_table.end(), ttsize, (type_elem_t)0);
                 tt.push_back((type_elem_t)type->udt->idx);
                 tt.push_back((type_elem_t)type->udt->numslots);

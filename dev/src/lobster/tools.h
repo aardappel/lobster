@@ -12,15 +12,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Mixing of signed and unsigned is an endless source of problems in C++.
+// So, try to make as much as possible signed.
+// Also, make types 64-bit as much as possible, to reduce on casts that are
+// only necessary for (rapidly dwindling) 64-bit builds.
+// So, code should use this type as much as possible for locals/args,
+// and use the more verbose uint32_t etc for when unsigned and/or 32-bit is
+// necessary.
+typedef int64_t iint;
 
+// Sadly, the STL on 32-bit platform has a 32-bit size_t for most of its
+// args and indexing, so using the 64-bit type above would introduce a lot
+// of casts. Best we can do is a signed version of that, until we can
+// stop targetting 32-bit entirely.
+// This may also be defined in Posix (sys/types.h), but in C++
+// redefining typedefs is totally cool:
+typedef ptrdiff_t ssize_t;
+
+// Size of any STL container.
+
+// Version for always-64-bit:
+template<typename T> iint isize(const T &c) { return (iint)c.size(); }
+template<typename T> iint isizeof() { return (iint)sizeof(T); }
+template<typename T> iint ialignof() { return (iint)alignof(T); }
+
+// Signed variable size versions.
+// Since ssize may or may not be already in the STL (C++20),
+// simply provide overloads for the types we actually use for now.
+inline ssize_t ssize(const string &c) { return (ssize_t)c.size(); }
+inline ssize_t ssize(const string_view &c) { return (ssize_t)c.size(); }
+template<typename T> ssize_t ssize(const vector<T> &c) { return (ssize_t)c.size(); }
+template<typename T> ssize_t ssizeof() { return (ssize_t)sizeof(T); }
+template<typename T> ssize_t salignof() { return (ssize_t)alignof(T); }
+
+
+// Typed versions of memcpy.
 template<typename T, typename S> void t_memcpy(T *dest, const T *src, S n) {
-    memcpy(dest, src, n * sizeof(T));
+    memcpy(dest, src, (size_t)n * sizeof(T));
 }
 
 template<typename T, typename S> void t_memmove(T *dest, const T *src, S n) {
-    memmove(dest, src, n * sizeof(T));
+    memmove(dest, src, (size_t)n * sizeof(T));
 }
 
+// memcpy's that are intended to be faster if `n` is typically very small,
+// since the tests for size can branch predicted better.
 template<typename T, typename S> void ts_memcpy(T *dest, const T *src, S n) {
     if (n) {
         *dest++ = *src++;
@@ -141,31 +177,31 @@ template<typename T> T *Prev(T *n) { return (T *)n->prev; }
     for (auto n = (L).Prev(), p = Prev(n); n != (void *)&(L); (n = p),(p = Prev(n)))
 
 class MersenneTwister          {
-    const static uint N = 624;
-    const static uint M = 397;
-    const static uint K = 0x9908B0DFU;
+    const static uint32_t N = 624;
+    const static uint32_t M = 397;
+    const static uint32_t K = 0x9908B0DFU;
 
-    uint hiBit(uint u) { return u & 0x80000000U; }
-    uint loBit(uint u) { return u & 0x00000001U; }
-    uint loBits(uint u) { return u & 0x7FFFFFFFU; }
+    uint32_t hiBit(uint32_t u) { return u & 0x80000000U; }
+    uint32_t loBit(uint32_t u) { return u & 0x00000001U; }
+    uint32_t loBits(uint32_t u) { return u & 0x7FFFFFFFU; }
 
-    uint mixBits(uint u, uint v) { return hiBit(u) | loBits(v); }
+    uint32_t mixBits(uint32_t u, uint32_t v) { return hiBit(u) | loBits(v); }
 
-    uint state[N + 1];
-    uint *next;
+    uint32_t state[N + 1];
+    uint32_t *next;
     int left = -1;
 
     public:
 
-    void Seed(uint seed) {
-        uint x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
+    void Seed(uint32_t seed) {
+        uint32_t x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
         int j;
         for (left = 0, *s++ = x, j = N; --j; *s++ = (x *= 69069U) & 0xFFFFFFFFU)
             ;
     }
 
-    uint Reload() {
-        uint *p0 = state, *p2 = state + 2, *pM = state + M, s0, s1;
+    uint32_t Reload() {
+        uint32_t *p0 = state, *p2 = state + 2, *pM = state + M, s0, s1;
         int j;
         if (left < -1) Seed(4357U);
         left = N - 1;
@@ -182,17 +218,16 @@ class MersenneTwister          {
         return (s1 ^ (s1 >> 18));
     }
 
-    uint Random() {
-        uint y;
+    uint32_t Random() {
         if (--left < 0) return (Reload());
-        y = *next++;
+        uint32_t y = *next++;
         y ^= (y >> 11);
         y ^= (y << 7) & 0x9D2C5680U;
         y ^= (y << 15) & 0xEFC60000U;
         return (y ^ (y >> 18));
     }
 
-    void ReSeed(uint seed) {
+    void ReSeed(uint32_t seed) {
         Seed(seed);
         left = 0;
         Reload();
@@ -227,7 +262,7 @@ class PCG32 {
 template<typename T> struct RandomNumberGenerator {
     T rnd;
 
-    void seed(uint s) { rnd.ReSeed(s); }
+    void seed(uint32_t s) { rnd.ReSeed(s); }
 
     int operator()(int max) { return rnd.Random() % max; }
     int operator()() { return rnd.Random(); }
@@ -424,7 +459,7 @@ template <typename T> class Accumulator {
     }
 };
 
-typedef Accumulator<uchar> ByteAccumulator;
+typedef Accumulator<uint8_t> ByteAccumulator;
 
 // Easy "dynamic scope" helper: replace any variable by a new value, and at the end of the scope
 // put the old value back.
@@ -752,10 +787,10 @@ template<typename T> class TimeBool {
 
 typedef TimeBool<char> TimeBool8;
 
-inline uint FNV1A(string_view s) {
-    uint hash = 0x811C9DC5;
+inline uint32_t FNV1A(string_view s) {
+    uint32_t hash = 0x811C9DC5;
     for (auto c : s) {
-        hash ^= (uchar)c;
+        hash ^= (uint8_t)c;
         hash *= 0x01000193;
     }
     return hash;
@@ -804,7 +839,7 @@ inline int PopCount(uint64_t val) {
         #ifdef _WIN64
             return (int)__popcnt64(val);
         #else
-            return (int)(__popcnt((uint)val) + __popcnt((uint)(val >> 32)));
+            return (int)(__popcnt((uint32_t)val) + __popcnt((uint32_t)(val >> 32)));
         #endif
     #else
         return __builtin_popcountll(val);
@@ -909,13 +944,13 @@ template<typename T> T ReadMem(const void *p) {
     return dest;
 }
 
-template<typename T> T ReadMemInc(const uchar *&p) {
+template<typename T> T ReadMemInc(const uint8_t *&p) {
     T dest = ReadMem<T>(p);
     p += sizeof(T);
     return dest;
 }
 
-template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
+template<typename T> void WriteMemInc(uint8_t *&dest, const T &src) {
     memcpy(dest, &src, sizeof(T));
     dest += sizeof(T);
 }

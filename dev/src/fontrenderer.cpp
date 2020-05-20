@@ -106,7 +106,7 @@ bool BitmapFont::CacheChars(string_view text) {
                         } else {
                             auto cur_alpha = image[off].w;
                             auto max_alpha = max(cur_alpha, alpha);
-                            auto col = (uchar)mix(0x00, 0xFF, alpha / 255.0f);
+                            auto col = (uint8_t)mix(0x00, 0xFF, alpha / 255.0f);
                             image[off] = { col, col, col, max_alpha };
                         }
                     } else {
@@ -204,20 +204,20 @@ OutlineFont::~OutlineFont() {
     FT_Done_Face((FT_Face)fthandle);
 }
 
-string OutlineFont::GetName(uint i) {
+string OutlineFont::GetName(int i) {
     char buf[256];
-    FT_Get_Glyph_Name((FT_Face)fthandle, i, buf, sizeof(buf));
+    FT_Get_Glyph_Name((FT_Face)fthandle, (uint32_t)i, buf, sizeof(buf));
     return buf;
 }
 
-uint OutlineFont::GetCharCode(string_view name) {
+int OutlineFont::GetCharCode(string_view name) {
     auto glyphi = FT_Get_Name_Index((FT_Face)fthandle, (char *)null_terminated(name));
     if (!glyphi) return 0;
     if (glyph_to_char.empty()) {
-        uint cgi = 0;
+        uint32_t cgi = 0;
         auto c = FT_Get_First_Char((FT_Face)fthandle, &cgi);
         while (cgi) {
-            glyph_to_char[cgi] = c;
+            glyph_to_char[cgi] = (int)c;
             c = FT_Get_Next_Char((FT_Face)fthandle, c, &cgi);
         }
     }

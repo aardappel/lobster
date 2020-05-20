@@ -101,15 +101,15 @@ double SecondsSinceStart() {
     return double(end.QuadPart - time_start.QuadPart) / double(time_frequency.QuadPart);
 }
 
-uint hwthreads = 2, hwcores = 1;
+int hwthreads = 2, hwcores = 1;
 void InitCPU() {
     // This can fail and return 0, so default to 2 threads:
-    hwthreads = max(2U, thread::hardware_concurrency());
+    hwthreads = max(2, (int)thread::hardware_concurrency());
     // As a baseline, assume desktop CPUs are hyperthreaded, and mobile ones are not.
     #ifdef PLATFORM_ES3
         hwcores = hwthreads;
     #else
-        hwcores = max(1U, hwthreads / 2);
+        hwcores = max(1, hwthreads / 2);
     #endif
     // On Windows, we can do better and actually count cores.
     #ifdef _WIN32
@@ -117,7 +117,7 @@ void InitCPU() {
         if (!GetLogicalProcessorInformation(nullptr, &buflen) && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
             vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buf(buflen / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
             if (GetLogicalProcessorInformation(buf.data(), &buflen)) {
-                uint cores = 0;
+                int cores = 0;
                 for (auto &lpi : buf) {
                     if (lpi.Relationship == RelationProcessorCore) cores++;
                 }
@@ -128,8 +128,8 @@ void InitCPU() {
     #endif
 }
 
-uint NumHWThreads() { return hwthreads; }
-uint NumHWCores() { return hwcores; }
+int NumHWThreads() { return hwthreads; }
+int NumHWCores() { return hwcores; }
 
 
 string_view StripFilePart(string_view filepath) {
@@ -159,7 +159,7 @@ string GetMainDirFromExePath(const char *argv_0) {
     #endif
     #ifdef __linux__
         char path[PATH_MAX];
-        ssize_t length = readlink("/proc/self/exe", path, sizeof(path)-1);
+        iint length = readlink("/proc/self/exe", path, sizeof(path)-1);
         if (length != -1) {
           path[length] = '\0';
           md = string(path);
@@ -316,7 +316,7 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
         if (l >= 0) {
             if (funcompressed >= 0) {
                 string uncomp;
-                WEntropyCoder<false>((const uchar *)dest->c_str(), dest->length(),
+                WEntropyCoder<false>((const uint8_t *)dest->c_str(), dest->length(),
                                      (size_t)funcompressed, uncomp);
                 dest->swap(uncomp);
                 TextModeConvert(*dest, binary);
@@ -374,8 +374,8 @@ bool ScanDirAbs(string_view absdir, vector<pair<string, int64_t>> &dest) {
         if (fh != INVALID_HANDLE_VALUE) {
             do {
                 if (strcmp(fdata.cFileName, ".") && strcmp(fdata.cFileName, "..")) {
-                    ULONGLONG size =
-                        (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) |
+                    auto size =
+                        (static_cast<uint64_t>(fdata.nFileSizeHigh) << (sizeof(uint32_t) * 8)) |
                         fdata.nFileSizeLow;
                     dest.push_back(
                         { fdata.cFileName,

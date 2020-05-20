@@ -34,10 +34,10 @@ union int2float { int i; float f; };
 union int2float64 { int64_t i; double f; };
 inline void default_debug_value(float   &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
 inline void default_debug_value(double  &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
-inline void default_debug_value(int     &a) { a = 0x1BADCAFE; }
 inline void default_debug_value(int64_t &a) { a = 0x1BADCAFEABADD00D; }
-inline void default_debug_value(short   &a) { a = 0x1BAD; }
-inline void default_debug_value(uchar   &a) { a = 0x1B; }
+inline void default_debug_value(int32_t &a) { a = 0x1BADCAFE; }
+inline void default_debug_value(uint16_t&a) { a = 0x1BAD; }
+inline void default_debug_value(uint8_t &a) { a = 0x1B; }
 
 template<typename T, int C, int R> class matrix;
 
@@ -305,7 +305,15 @@ typedef vec<int, 2> int2;
 typedef vec<int, 3> int3;
 typedef vec<int, 4> int4;
 
-typedef vec<uchar,4> byte4;
+typedef vec<double, 2> double2;
+typedef vec<double, 3> double3;
+typedef vec<double, 4> double4;
+
+typedef vec<iint, 2> iint2;
+typedef vec<iint, 3> iint3;
+typedef vec<iint, 4> iint4;
+
+typedef vec<uint8_t, 4> byte4;
 
 const float4 float4_0 = float4(0.0f);
 const float4 float4_1 = float4(1.0f);
@@ -327,9 +335,17 @@ const int2 int2_1 = int2(1);
 const int3 int3_0 = int3(0);
 const int3 int3_1 = int3(1);
 
+const double4 double4_0 = double4(0.0);
+const double3 double3_0 = double3(0.0);
+const double2 double2_0 = double2(0.0);
 
-const byte4 byte4_0   = byte4((uchar)0);
-const byte4 byte4_255 = byte4((uchar)255);
+const iint2 iint2_0 = iint2((iint)0);
+const iint2 iint2_1 = iint2((iint)1);
+const iint3 iint3_0 = iint3((iint)0);
+
+const byte4 byte4_0   = byte4((uint8_t)0);
+const byte4 byte4_255 = byte4((uint8_t)255);
+
 
 template<typename T> vec<T, 3> cross(const vec<T, 3> &a, const vec<T, 3> &b) {
     return vec<T, 3>(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
@@ -896,18 +912,18 @@ inline bool clamp_bb(const float3 &bbmin, const float3 &bbmax, const float3 &ray
 inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t vsize,
                            size_t normaloffset, bool ignore_bad_tris = true) {
     for (size_t i = 0; i < vertlen; i++) {
-        *(float3 *)((uchar *)verts + i * vsize + normaloffset) = float3_0;
+        *(float3 *)((uint8_t *)verts + i * vsize + normaloffset) = float3_0;
     }
     for (size_t t = 0; t < idxs.size(); t += 3) {
         int v1i = idxs[t + 0];
         int v2i = idxs[t + 1];
         int v3i = idxs[t + 2];
-        float3 &v1p = *(float3 *)((uchar *)verts + v1i * vsize);
-        float3 &v2p = *(float3 *)((uchar *)verts + v2i * vsize);
-        float3 &v3p = *(float3 *)((uchar *)verts + v3i * vsize);
-        float3 &v1n = *(float3 *)((uchar *)verts + v1i * vsize + normaloffset);
-        float3 &v2n = *(float3 *)((uchar *)verts + v2i * vsize + normaloffset);
-        float3 &v3n = *(float3 *)((uchar *)verts + v3i * vsize + normaloffset);
+        float3 &v1p = *(float3 *)((uint8_t *)verts + v1i * vsize);
+        float3 &v2p = *(float3 *)((uint8_t *)verts + v2i * vsize);
+        float3 &v3p = *(float3 *)((uint8_t *)verts + v3i * vsize);
+        float3 &v1n = *(float3 *)((uint8_t *)verts + v1i * vsize + normaloffset);
+        float3 &v2n = *(float3 *)((uint8_t *)verts + v2i * vsize + normaloffset);
+        float3 &v3n = *(float3 *)((uint8_t *)verts + v3i * vsize + normaloffset);
         if (v1p != v2p && v1p != v3p && v2p != v3p) {
             float3 v12 = normalize(v2p - v1p);
             float3 v13 = normalize(v3p - v1p);
@@ -922,7 +938,7 @@ inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t v
         }
     }
     for (size_t i = 0; i < vertlen; i++) {
-        float3 &norm = *(float3 *)((uchar *)verts + i * vsize + normaloffset);
+        float3 &norm = *(float3 *)((uint8_t *)verts + i * vsize + normaloffset);
         if (norm != float3_0)
             norm = normalize(norm);
     }

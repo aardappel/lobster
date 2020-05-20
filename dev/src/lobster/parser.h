@@ -795,7 +795,7 @@ struct Parser {
         }
     }
 
-    Node *ParseOpExp(uint level = 6) {
+    Node *ParseOpExp(int level = 6) {
         static TType ops[][4] = {
             { T_MULT, T_DIV, T_MOD, T_NONE },
             { T_PLUS, T_MINUS, T_NONE, T_NONE },

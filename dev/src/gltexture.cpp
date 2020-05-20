@@ -31,9 +31,9 @@
 const int nummultisamples = 4;
 #endif
 
-Texture CreateTexture(const uchar *buf, const int *dim, int tf) {
-    uint id;
-    GL_CALL(glGenTextures(1, &id));
+Texture CreateTexture(const uint8_t *buf, const int *dim, int tf) {
+    int id;
+    GL_CALL(glGenTextures(1, (GLuint *)&id));
     assert(id);
     GLenum textype =
         #ifdef PLATFORM_WINNIX
@@ -61,7 +61,7 @@ Texture CreateTexture(const uchar *buf, const int *dim, int tf) {
         ? GL_R8
         : (IsSRGBMode() ? GL_SRGB8_ALPHA8 : GL_RGBA8);
     auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
-    auto buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(uchar) : sizeof(byte4);
+    auto buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(uint8_t) : sizeof(byte4);
     auto buffercomponent = GL_UNSIGNED_BYTE;
     if ((tf & TF_SINGLE_CHANNEL) && (dim[0] & 0x3)) {
         GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));  // Defaults to 4.
@@ -128,7 +128,7 @@ Texture CreateTextureFromFile(string_view name, int tf) {
         return Texture();
     int2 dim;
     int comp;
-    auto buf = stbi_load_from_memory((uchar *)fbuf.c_str(), (int)fbuf.length(), &dim.x, &dim.y,
+    auto buf = stbi_load_from_memory((uint8_t *)fbuf.c_str(), (int)fbuf.length(), &dim.x, &dim.y,
                                      &comp, 4);
     if (!buf)
         return Texture();
@@ -142,7 +142,7 @@ Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
         return CreateTexture(nullptr, size.data(), tf);  // No buffer required.
     } else {
         auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
-        auto buf = new uchar[size.x * size.y * sz];
+        auto buf = new uint8_t[size.x * size.y * sz];
         for (int y = 0; y < size.y; y++) for (int x = 0; x < size.x; x++) {
             auto idx = y * size.x + x;
             if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
@@ -155,7 +155,7 @@ Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
 }
 
 void DeleteTexture(Texture &tex) {
-    if (tex.id) GL_CALL(glDeleteTextures(1, &tex.id));
+    if (tex.id) GL_CALL(glDeleteTextures(1, (GLuint *)&tex.id));
     tex.id = 0;
 }
 
@@ -165,10 +165,10 @@ void SetTexture(int textureunit, const Texture &tex, int tf) {
                                           : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), tex.id));
 }
 
-uchar *ReadTexture(const Texture &tex) {
+uint8_t *ReadTexture(const Texture &tex) {
     #ifndef PLATFORM_ES3
         GL_CALL(glBindTexture(GL_TEXTURE_2D, tex.id));
-        auto pixels = new uchar[tex.size.x * tex.size.y * 4];
+        auto pixels = new uint8_t[tex.size.x * tex.size.y * 4];
         GL_CALL(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
         return pixels;
     #else
@@ -176,7 +176,7 @@ uchar *ReadTexture(const Texture &tex) {
     #endif
 }
 
-void SetImageTexture(uint textureunit, const Texture &tex, int tf) {
+void SetImageTexture(int textureunit, const Texture &tex, int tf) {
     #ifdef PLATFORM_WINNIX
         if (glBindImageTexture)
             GL_CALL(glBindImageTexture(textureunit, tex.id, 0, GL_TRUE, 0,
@@ -192,13 +192,13 @@ void SetImageTexture(uint textureunit, const Texture &tex, int tf) {
 // from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards
 int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); return mts; }
 
-uint CreateFrameBuffer(const Texture &tex, int tf) {
+int CreateFrameBuffer(const Texture &tex, int tf) {
 	#ifdef PLATFORM_WINNIX
 		if (!glGenFramebuffers)
 			return 0;
 	#endif
-	uint fb = 0;
-    GL_CALL(glGenFramebuffers(1, &fb));
+	int fb = 0;
+    GL_CALL(glGenFramebuffers(1, (GLuint *)&fb));
     GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, fb));
     auto target =
         #ifdef PLATFORM_WINNIX
@@ -210,8 +210,8 @@ uint CreateFrameBuffer(const Texture &tex, int tf) {
 }
 
 #ifndef __EMSCRIPTEN__
-static uint fb = 0;
-static uint rb = 0;
+static int fb = 0;
+static int rb = 0;
 static Texture retex;  // Texture to resolve to at the end when fb refers to a multisample texture.
 static int retf = 0;
 static bool hasdepthtex = false;
@@ -239,23 +239,23 @@ bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize, bool depth, i
         }
         if (rb) {
 			GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
-			GL_CALL(glDeleteRenderbuffers(1, &rb));
+			GL_CALL(glDeleteRenderbuffers(1, (GLuint *)&rb));
 			rb = 0;
 		}
 		if (fb) {
 			if (retex.id) {
-				uint refb = CreateFrameBuffer(retex, retf);
+				int refb = CreateFrameBuffer(retex, retf);
 				GL_CALL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb));
 				GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb));
 				GL_CALL(glBlitFramebuffer(0, 0, retex.size.x, retex.size.y,
 								          0, 0, retex.size.x, retex.size.y,
                                           GL_COLOR_BUFFER_BIT, GL_NEAREST));
-				GL_CALL(glDeleteFramebuffers(1, &refb));
+				GL_CALL(glDeleteFramebuffers(1, (GLuint *)&refb));
 				retex = Texture();
 				retf = 0;
 			}
 			GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-			GL_CALL(glDeleteFramebuffers(1, &fb));
+			GL_CALL(glDeleteFramebuffers(1, (GLuint *)&fb));
 			fb = 0;
             framebuffersize = int2_0;
 		}
@@ -272,7 +272,7 @@ bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize, bool depth, i
                                                depthtex.id, 0));
                 hasdepthtex = true;
             } else {
-                GL_CALL(glGenRenderbuffers(1, &rb));
+                GL_CALL(glGenRenderbuffers(1, (GLuint *)&rb));
                 GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, rb));
                 if (tf & TF_MULTISAMPLE) {
                     GL_CALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples,

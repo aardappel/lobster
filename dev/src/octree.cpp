@@ -50,7 +50,7 @@ template<typename T> bool FileWriteVec(FILE *f, const T &v) {
         fwrite(v.data(), sizeof(typename T::value_type), v.size(), f) == v.size();
 }
 
-template<typename T> void ReadVec(const uchar *&p, T &v) {
+template<typename T> void ReadVec(const uint8_t *&p, T &v) {
     auto len = ReadMemInc<uint64_t>(p);
     v.resize((size_t)len);
     auto blen = sizeof(typename T::value_type) * v.size();
@@ -101,7 +101,7 @@ nfr("oc_load", "name", "S", "R?", "",
         string buf;
         auto r = LoadFile(name.sval()->strv(), &buf);
         if (r < 0) return Value();
-        auto p = (const uchar *)buf.c_str();
+        auto p = (const uint8_t *)buf.c_str();
         if (strncmp((const char *)p, magic, strlen(magic))) return Value();
         p += strlen(magic);
         auto version = ReadMemInc<int>(p);
@@ -157,7 +157,7 @@ nfr("oc_buffer_update", "octree,uname,ssbo", "RSI", "I", "",
         auto name = vm.Pop().sval()->strv();
         auto &ocworld = GetOcTree(vm, vm.Pop());
         extern Shader *currentshader;
-        intp num_updates = 0;
+        iint num_updates = 0;
         if (ocworld.all_dirty) {
             // Can't do partial update.
             UniformBufferObject(currentshader, ocworld.nodes.data(),
@@ -196,7 +196,7 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
         };
         struct N {
             N *left, *right;
-            intp val;
+            iint val;
             float3 lo, hi, center;
             N *insert(N *nn, vector<N> &nodes) {
                 if (left) {
@@ -239,7 +239,7 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
         vector<N> nodes;
         nodes.reserve(positions->len + positions->len - 1);
         N *root = nodes.data();
-        for (intp i = 0; i < positions->len; i++) {
+        for (iint i = 0; i < positions->len; i++) {
             auto pos = ValueToFLT<3>(positions->AtSt(i), positions->width);
             nodes.emplace_back(N {
                 nullptr, nullptr, i < values->len ? values->At(i).ival() : 0,

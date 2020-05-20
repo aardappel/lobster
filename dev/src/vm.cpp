@@ -45,7 +45,7 @@ int last_instruction_opc = -1;
 #endif
 
 VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZE) {
-    auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
+    auto bcfb = (uint8_t *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
     auto bcs = static_bytecode ? static_size : bytecode_buffer.size();
     flatbuffers::Verifier verifier(bcfb, bcs);
     auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
@@ -59,11 +59,11 @@ VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZ
         codestart = (const int *)bcf->bytecode()->Data();
         typetable = (const type_elem_t *)bcf->typetable()->Data();
     } else {
-        for (uint i = 0; i < codelen; i++)
+        for (uint32_t i = 0; i < codelen; i++)
             codebigendian.push_back(bcf->bytecode()->Get(i));
         codestart = codebigendian.data();
 
-        for (uint i = 0; i < bcf->typetable()->Length(); i++)
+        for (uint32_t i = 0; i < bcf->typetable()->Length(); i++)
             typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
         typetable = typetablebigendian.data();
     }
@@ -218,21 +218,21 @@ void VM::OnAlloc(RefObj *ro) {
 
 #undef new
 
-LVector *VM::NewVec(intp initial, intp max, type_elem_t tti) {
+LVector *VM::NewVec(iint initial, iint max, type_elem_t tti) {
     assert(GetTypeInfo(tti).t == V_VECTOR);
     auto v = new (pool.alloc_small(sizeof(LVector))) LVector(*this, initial, max, tti);
     OnAlloc(v);
     return v;
 }
 
-LObject *VM::NewObject(intp max, type_elem_t tti) {
+LObject *VM::NewObject(iint max, type_elem_t tti) {
     assert(IsUDT(GetTypeInfo(tti).t));
-    auto s = new (pool.alloc(sizeof(LObject) + sizeof(Value) * max)) LObject(tti);
+    auto s = new (pool.alloc(ssizeof<LObject>() + ssizeof<Value>() * max)) LObject(tti);
     OnAlloc(s);
     return s;
 }
-LString *VM::NewString(size_t l) {
-    auto s = new (pool.alloc(sizeof(LString) + l + 1)) LString((int)l);
+LString *VM::NewString(iint l) {
+    auto s = new (pool.alloc(ssizeof<LString>() + l + 1)) LString(l);
     OnAlloc(s);
     return s;\
 }
@@ -272,15 +272,15 @@ LString *VM::NewString(string_view s1, string_view s2) {
     return s;
 }
 
-LString *VM::ResizeString(LString *s, intp size, int c, bool back) {
+LString *VM::ResizeString(LString *s, iint size, int c, bool back) {
     auto ns = NewString(size);
     auto sdest = (char *)ns->data();
     auto cdest = sdest;
     auto remain = size - s->len;
     if (back) sdest += remain;
     else cdest += s->len;
-    memcpy(sdest, s->data(), s->len);
-    memset(cdest, c, remain);
+    memcpy(sdest, s->data(), (size_t)s->len);
+    memset(cdest, c, (size_t)remain);
     s->Dec(*this);
     return ns;
 }
@@ -360,15 +360,15 @@ void VM::VMAssert(const char *what)  {
     #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); }
 #endif
 
-int VM::DumpVar(string &sd, const Value &x, size_t idx) {
-    auto sid = bcf->specidents()->Get((uint)idx);
+int VM::DumpVar(string &sd, const Value &x, int idx) {
+    auto sid = bcf->specidents()->Get((uint32_t)idx);
     auto id = bcf->idents()->Get(sid->ididx());
     // FIXME: this is not ideal, it filters global "let" declared vars.
     // It should probably instead filter global let vars whose values are entirely
     // constructors, and which are never written to.
     if (id->readonly() && id->global()) return 1;
     auto name = id->name()->string_view();
-    auto &ti = GetVarTypeInfo((int)idx);
+    auto &ti = GetVarTypeInfo(idx);
     #if RTT_ENABLED
         if (ti.t != x.type) return 1;  // Likely uninitialized.
     #endif
@@ -669,7 +669,7 @@ void VM::EndEval(const Value &ret, const TypeInfo &ti) {
         }
         struct LineRange { int line, lastline, fileidx; uint64_t count; };
         vector<LineRange> uniques;
-        for (uint i = 0; i < bcf->lineinfo()->size(); i++) {
+        for (uint32_t i = 0; i < bcf->lineinfo()->size(); i++) {
             uint64_t c = lineprofilecounts[i];
             if (c > total / fraction) {
                 auto li = bcf->lineinfo()->Get(i);
@@ -949,7 +949,7 @@ VM_INS_RET VM::U_CONT1(int nfi) {
     VM_RET;
 }
 
-VM_JMP_RET VM::ForLoop(intp len) {
+VM_JMP_RET VM::ForLoop(iint len) {
     #ifndef VM_COMPILED_CODE_MODE
         auto cont = *ip++;
     #endif
@@ -983,7 +983,7 @@ VM_JMP_RET VM::U_SFOR() { return ForLoop(VM_TOP().sval()->len); VM_RET; }
 VM_INS_RET VM::U_IFORELEM()    { FORELEM(iter.ival()); (void)iter; VM_PUSH(i); VM_RET; }
 VM_INS_RET VM::U_VFORELEM()    { FORELEM(iter.vval()->len); iter.vval()->AtVW(*this, i); VM_RET; }
 VM_INS_RET VM::U_VFORELEMREF() { FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); VM_PUSH(el); VM_RET; }
-VM_INS_RET VM::U_SFORELEM()    { FORELEM(iter.sval()->len); VM_PUSH(Value((int)((uchar *)iter.sval()->data())[i])); VM_RET; }
+VM_INS_RET VM::U_SFORELEM()    { FORELEM(iter.sval()->len); VM_PUSH(Value(((uint8_t *)iter.sval()->data())[i])); VM_RET; }
 
 VM_INS_RET VM::U_FORLOOPI() {
     auto &i = VM_TOPM(1);  // This relies on for being inlined, otherwise it would be 2.
@@ -1088,7 +1088,7 @@ VM_INS_RET VM::U_DUP()    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 #define GETARGS() Value b = VM_POP(); Value a = VM_POP()
 #define TYPEOP(op, extras, av, bv, res) \
     if constexpr ((extras & 1) != 0) if (bv == 0) Div0(); \
-    if constexpr ((extras & 2) != 0) res = fmod((floatp)av, (floatp)bv); else res = av op bv;
+    if constexpr ((extras & 2) != 0) res = fmod((double)av, (double)bv); else res = av op bv;
 
 #define _IOP(op, extras) \
     Value res; \
@@ -1414,7 +1414,7 @@ GJUMP(JUMPNOFAILR, auto x = VM_POP(),  x.True(), VM_PUSH(x)      )
 VM_INS_RET VM::U_JUMP_TABLE(int mini, int maxi, int table_start) {
     auto val = VM_POP().ival();
     if (val < mini || val > maxi) val = maxi + 1;
-    auto target = vtables[table_start + val - mini];
+    auto target = vtables[(ssize_t)(table_start + val - mini)];
     JumpTo(target);
     VM_RET;
 }
@@ -1453,15 +1453,15 @@ VM_INS_RET VM::U_ABORT() {
     VM_RET;
 }
 
-void VM::IDXErr(intp i, intp n, const RefObj *v) {
+void VM::IDXErr(iint i, iint n, const RefObj *v) {
     string sd;
     append(sd, "index ", i, " out of range ", n, " of: ");
     RefToString(*this, sd, v, debugpp);
     Error(sd);
 }
-#define RANGECHECK(I, BOUND, VEC) if ((uintp)I >= (uintp)BOUND) IDXErr(I, BOUND, VEC);
+#define RANGECHECK(I, BOUND, VEC) if ((uint64_t)I >= (uint64_t)BOUND) IDXErr(I, BOUND, VEC);
 
-void VM::PushDerefIdxVector(intp i) {
+void VM::PushDerefIdxVector(iint i) {
     Value r = VM_POP();
     VMASSERT(r.ref());
     auto v = r.vval();
@@ -1469,7 +1469,7 @@ void VM::PushDerefIdxVector(intp i) {
     v->AtVW(*this, i);
 }
 
-void VM::PushDerefIdxVectorSub(intp i, int width, int offset) {
+void VM::PushDerefIdxVectorSub(iint i, int width, int offset) {
     Value r = VM_POP();
     VMASSERT(r.ref());
     auto v = r.vval();
@@ -1477,21 +1477,21 @@ void VM::PushDerefIdxVectorSub(intp i, int width, int offset) {
     v->AtVWSub(*this, i, width, offset);
 }
 
-void VM::PushDerefIdxStruct(intp i, int l) {
+void VM::PushDerefIdxStruct(iint i, int l) {
     VM_POPN(l);
     auto val = *(VM_TOPPTR() + i);
     VM_PUSH(val);
 }
 
-void VM::PushDerefIdxString(intp i) {
+void VM::PushDerefIdxString(iint i) {
     Value r = VM_POP();
     VMASSERT(r.ref());
     // Allow access of the terminating 0-byte.
     RANGECHECK(i, r.sval()->len + 1, r.sval());
-    VM_PUSH(Value((int)((uchar *)r.sval()->data())[i]));
+    VM_PUSH(Value(((uint8_t *)r.sval()->data())[i]));
 }
 
-Value &VM::GetFieldLVal(intp i) {
+Value &VM::GetFieldLVal(iint i) {
     Value vec = VM_POP();
     #ifndef NDEBUG
         RANGECHECK(i, vec.oval()->Len(*this), vec.oval());
@@ -1499,13 +1499,13 @@ Value &VM::GetFieldLVal(intp i) {
     return vec.oval()->AtS(i);
 }
 
-Value &VM::GetFieldILVal(intp i) {
+Value &VM::GetFieldILVal(iint i) {
     Value vec = VM_POP();
     RANGECHECK(i, vec.oval()->Len(*this), vec.oval());
     return vec.oval()->AtS(i);
 }
 
-Value &VM::GetVecLVal(intp i) {
+Value &VM::GetVecLVal(iint i) {
     Value vec = VM_POP();
     auto v = vec.vval();
     RANGECHECK(i, v->len, v);
@@ -1709,7 +1709,7 @@ void VM::BCallRetCheck(const NativeFun *nf) {
     #endif
 }
 
-intp VM::GrabIndex(int len) {
+iint VM::GrabIndex(int len) {
     auto &v = VM_TOPM(len);
     for (len--; ; len--) {
         auto sidx = VM_POP().ival();
@@ -1723,11 +1723,11 @@ string_view VM::StructName(const TypeInfo &ti) {
     return bcf->udts()->Get(ti.structidx)->name()->string_view();
 }
 
-string_view VM::ReverseLookupType(uint v) {
-    return bcf->udts()->Get(v)->name()->string_view();
+string_view VM::ReverseLookupType(int v) {
+    return bcf->udts()->Get((flatbuffers::uoffset_t)v)->name()->string_view();
 }
 
-string_view VM::EnumName(intp val, int enumidx) {
+string_view VM::EnumName(iint val, int enumidx) {
     auto &vals = *bcf->enums()->Get(enumidx)->vals();
     // FIXME: can store a bool that says wether this enum is contiguous, so we just index instead.
     for (auto v : vals)
@@ -1748,13 +1748,13 @@ optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
     return {};
 }
 
-void VM::StartWorkers(size_t numthreads) {
+void VM::StartWorkers(iint numthreads) {
     if (is_worker) Error("workers can\'t start more worker threads");
     if (tuple_space) Error("workers already running");
     // Stop bad values from locking up the machine :)
-    numthreads = min(numthreads, (size_t)256);
+    numthreads = min(numthreads, (iint)256);
     tuple_space = new TupleSpace(bcf->udts()->size());
-    for (size_t i = 0; i < numthreads; i++) {
+    for (iint i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
         // from this one.
         // We share nfr and programname for now since they're fully read-only.

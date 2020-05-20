@@ -36,8 +36,8 @@
 
 namespace lobster {
 
-template<typename T, bool B> T Read(VM &vm, intp i, const LString *s) {
-    if ((uintp)i > (uintp)s->len - sizeof(T)) vm.IDXErr(i, s->len - sizeof(T), s);
+template<typename T, bool B> T Read(VM &vm, iint i, const LString *s) {
+    if ((uint64_t)i > (uint64_t)s->len - sizeof(T)) vm.IDXErr(i, s->len - sizeof(T), s);
     return ReadValLE<T, B>(s, i);
 }
 
@@ -46,11 +46,11 @@ template<typename T, bool B> Value WriteVal(VM &vm, const Value &str, const Valu
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
     vm.Push(WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T>()));
-    return Value(i + (intp)sizeof(T));
+    return Value(i + ssizeof<T>());
 }
 
 template<bool B> Value WriteStr(VM &vm, const Value &str, const Value &idx, LString *s,
-                                intp extra) {
+                                iint extra) {
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
     vm.Push(WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
@@ -61,7 +61,7 @@ template<typename T, bool B> Value ReadVal(VM &vm, const Value &str, const Value
     auto i = idx.ival();
     auto val = Read<T, B>(vm, i, str.sval());
     vm.Push(val);
-    return Value(i + (intp)sizeof(T));
+    return Value(i + ssizeof<T>());
 }
 
 template<typename T, bool IF, bool OF, bool ST>
@@ -71,7 +71,7 @@ Value ReadField(VM &vm, const Value &str, const Value &idx, const Value &vidx, c
     auto vi = i - vtable;
     auto vtable_size = Read<flatbuffers::voffset_t, false>(vm, vi, str.sval());
     auto vo = vidx.ival();
-    if ((uintp)vo < (uintp)vtable_size) {
+    if ((uint64_t)vo < (uint64_t)vtable_size) {
         auto field_offset = Read<flatbuffers::voffset_t, false>(vm, vi + vo, str.sval());
         if (field_offset) {
             auto start = i + field_offset;
@@ -84,10 +84,10 @@ Value ReadField(VM &vm, const Value &str, const Value &idx, const Value &vidx, c
     return def;
 }
 
-LString *GetString(VM &vm, intp fi, LString *buf) {
+LString *GetString(VM &vm, iint fi, LString *buf) {
     if (fi) {
         auto len = Read<flatbuffers::uoffset_t, false>(vm, fi, buf);
-        auto fdata = fi + (intp)sizeof(flatbuffers::uoffset_t);
+        auto fdata = fi + ssizeof<flatbuffers::uoffset_t>();
         // Read zero terminator just to make sure all string data is in bounds.
         Read<char, false>(vm, fdata + len, buf);
         return vm.NewString(buf->strv().substr(fdata, len));
@@ -99,7 +99,7 @@ LString *GetString(VM &vm, intp fi, LString *buf) {
 Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, const Value &schema,
                    const Value &includes) {
     vector<string> dirs_storage;
-    for (intp i = 0; i < includes.vval()->len; i++) {
+    for (iint i = 0; i < includes.vval()->len; i++) {
         auto dir = flatbuffers::ConCatPathFileName(string(ProjectDir()),
                                                    string(includes.vval()->At(i).sval()->strv()));
         dirs_storage.push_back(dir);
@@ -283,7 +283,7 @@ nfr("flatbuffers_field_vector", "string,tablei,vo", "SII", "I",
     [](VM &vm, Value &str, Value &idx, Value &vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
-        Value ret(fi ? fi + (intp)sizeof(flatbuffers::uoffset_t) : 0);
+        Value ret(fi ? fi + ssizeof<flatbuffers::uoffset_t>() : 0);
         return ret;
     });
 

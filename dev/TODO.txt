@@ -1,3 +1,11 @@
+- go thru uses of .size()
+- wasm binary writer?
+- iint versions of memcpy and friends
+- casts of all types
+- uses of int
+- uses of int64_t -> iint
+
+
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
 
@@ -347,10 +355,14 @@
 
 - Now that the language is always 64-bit:
   - can further improve type simplicity by:
-    - getting rid of unsigned where possible.
-      - adopt ssize_t over size_t by calling ssize()/intsize() instead of .size() on STL containers.
+    - Would be nice to move everything to using 64-bit, but this is hampered by the STL on
+      32-bit platforms wanting size_t everywhere, which means most values still needing to
+      be at least ssize_t not require casts, which still requires casts between it and any
+      always-64-bit values, limiting the amount of cleanup you can do.
+      There is some of this (see iint and ssize_t in tools.h), but converting more code
+      only makes sense once we can drop 32-bit platforms entirely.
     - change bytecode from int to LEB. this will make it more compact, though mildly slower
-      to read. would solve issues with 64-bit contants etc. would read into ssize_t or int64_t,
+      to read. would solve issues with 64-bit contants etc. would read into iint or int64_t,
       depending. Can still hard-code instruction into 16-bit. Or make it a 16-bit LEB?
   - Can think of features that would allow use of smaller sizes as opt-in.
     - Should definitely add support for 8/16/32-bit int arrays and maybe struct fields.
@@ -790,15 +802,6 @@
 
 - Can turn exceptions back on in emscripten once this fix lands:
   https://github.com/emscripten-core/emscripten/issues/7399
-
-- Since in Lobster values only signed ints get used, and STL uses size_t, there's a fair bit
-  of unfortunate casting going on that be nice to remove. Many (including the C++ standards
-  committee) seem to agree unsigned size_t was a mistake, so would be nice to move the whole
-  codebase towards default-signed for everything, with less casts, and less possible gotchas.
-  Could do this by having a global ssize() for STL containers that returns signed.
-  Could repurpose the already existing "intp" type, but that might not always be pointer sized,
-  so maybe better a new type (like gsl::index).
-  Proposed for C++20: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1227r1.html
 
 - This doesn't typecheck correctly:
   if !lhs:

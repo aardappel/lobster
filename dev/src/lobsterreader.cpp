@@ -67,15 +67,15 @@ struct ValueParser {
             }
         }
         if (ti.t == V_CLASS) {
-            auto vec = vm.NewObject((intp)NumElems(), typeoff);
-            if (NumElems()) vec->Init(vm, vm.TopPtr() - NumElems(), (intp)NumElems(), false);
+            auto vec = vm.NewObject(NumElems(), typeoff);
+            if (NumElems()) vec->Init(vm, vm.TopPtr() - NumElems(), NumElems(), false);
             vm.PopN(NumElems());
             allocated.push_back(vec);
             vm.Push(vec);
         } else if (ti.t == V_VECTOR) {
             auto &sti = vm.GetTypeInfo(ti.subt);
             auto width = IsStruct(sti.t) ? sti.len : 1;
-            auto n = (intp)(NumElems() / width);
+            auto n = NumElems() / width;
             auto vec = vm.NewVec(n, n, typeoff);
             if (NumElems()) vec->Init(vm, vm.TopPtr() - NumElems(), false);
             vm.PopN(NumElems());

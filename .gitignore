@@ -37,6 +37,8 @@
 
 /dev/lobster/ARM/
 /dev/lobster/.vs/
+dev/lobster/Debug
+dev/lobster/Release
 
 /dev/emscripten/assets/
 /dev/emscripten/*.js
@@ -103,3 +105,4 @@ dev/android-project/app/build
 dev/android-project/app/src/main/assets/default.lpak
 
 *.exp.log
+dev/CTestTestfile.cmake

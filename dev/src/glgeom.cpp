@@ -16,16 +16,16 @@
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 
-uint GenBO_(GLenum type, size_t bytesize, const void *data) {
-    uint bo;
-    GL_CALL(glGenBuffers(1, &bo));
+int GenBO_(int type, size_t bytesize, const void *data) {
+    int bo;
+    GL_CALL(glGenBuffers(1, (GLuint *)&bo));
     GL_CALL(glBindBuffer(type, bo));
     GL_CALL(glBufferData(type, bytesize, data, GL_STATIC_DRAW));
     return bo;
 }
 
-void DeleteBO(uint id) {
-    GL_CALL(glDeleteBuffers(1, &id));
+void DeleteBO(int id) {
+    GL_CALL(glDeleteBuffers(1, (GLuint *)&id));
 }
 
 size_t AttribsSize(string_view fmt) {
@@ -62,14 +62,14 @@ void Surface::Render(Shader *sh) {
 }
 
 Surface::~Surface() {
-    GL_CALL(glDeleteBuffers(1, &ibo));
+    GL_CALL(glDeleteBuffers(1, (GLuint *)&ibo));
 }
 
 void Geometry::Init(const void *verts1, const void *verts2) {
     vbo1 = GenBO_(GL_ARRAY_BUFFER, vertsize1 * nverts, verts1);
     if (verts2) vbo2 = GenBO_(GL_ARRAY_BUFFER, vertsize2 * nverts, verts2);
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
-    GL_CALL(glGenVertexArrays(1, &vao));
+    GL_CALL(glGenVertexArrays(1, (GLuint *)&vao));
     GL_CALL(glBindVertexArray(vao));
     size_t offset = 0;
     size_t vs = vertsize1;
@@ -106,9 +106,9 @@ void Geometry::RenderSetup() {
 }
 
 Geometry::~Geometry() {
-    GL_CALL(glDeleteBuffers(1, &vbo1));
-    if (vbo2) GL_CALL(glDeleteBuffers(1, &vbo2));
-    GL_CALL(glDeleteVertexArrays(1, &vao));
+    GL_CALL(glDeleteBuffers(1, (GLuint *)&vbo1));
+    if (vbo2) GL_CALL(glDeleteBuffers(1, (GLuint *)&vbo2));
+    GL_CALL(glDeleteVertexArrays(1, (GLuint *)&vao));
 }
 
 void Geometry::BindAsSSBO(Shader *sh, string_view name) {
@@ -168,7 +168,7 @@ bool Geometry::WritePLY(string &s, size_t nindices) {
     s += cat("element face ", nindices / 3, "\n"
              "property list int int vertex_index\n"
              "end_header\n");
-    vector<uchar> vdata(nverts * vertsize1);
+    vector<uint8_t> vdata(nverts * vertsize1);
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
     GL_CALL(glGetBufferSubData(GL_ARRAY_BUFFER, 0, vdata.size(), vdata.data()));
     s.insert(s.end(), vdata.begin(), vdata.end());
@@ -222,11 +222,11 @@ void SetPointSprite(float scale) {
     #endif
 }
 
-void RenderArray(Primitive prim, Geometry *geom, uint ibo, size_t tcount) {
+void RenderArray(Primitive prim, Geometry *geom, int ibo, size_t tcount) {
     GLenum glprim = GetPrimitive(prim);
     geom->RenderSetup();
     if (ibo) {
-        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, (GLuint)ibo));
         GL_CALL(glDrawElements(glprim, (GLsizei)tcount, GL_UNSIGNED_INT, 0));
     } else {
         GL_CALL(glDrawArrays(glprim, 0, (GLsizei)geom->nverts));
