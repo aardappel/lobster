@@ -339,9 +339,9 @@ const double4 double4_0 = double4(0.0);
 const double3 double3_0 = double3(0.0);
 const double2 double2_0 = double2(0.0);
 
-const iint2 iint2_0 = iint2((iint)0);
-const iint2 iint2_1 = iint2((iint)1);
-const iint3 iint3_0 = iint3((iint)0);
+const iint2 iint2_0 = iint2(0_L);
+const iint2 iint2_1 = iint2(1_L);
+const iint3 iint3_0 = iint3(0_L);
 
 const byte4 byte4_0   = byte4((uint8_t)0);
 const byte4 byte4_255 = byte4((uint8_t)255);

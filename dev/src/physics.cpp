@@ -308,7 +308,7 @@ nfr("ph_raycast", "p1,p2,n", "F}:2F}:2I", "I]",
         auto n = vm.Pop().ival();
         auto p2v = PopB2(vm);
         auto p1v = PopB2(vm);
-        auto v = vm.NewVec(0, max(n, (iint)1), TYPE_ELEM_VECTOR_OF_INT);
+        auto v = vm.NewVec(0, max(n, 1_L), TYPE_ELEM_VECTOR_OF_INT);
         if (!particlesystem) { vm.Push(v); return; }
         struct callback : b2RayCastCallback {
             LVector *v;

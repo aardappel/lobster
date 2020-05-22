@@ -29,6 +29,12 @@ typedef int64_t iint;
 // redefining typedefs is totally cool:
 typedef ptrdiff_t ssize_t;
 
+// Custom _L suffix, since neither L (different size on win/nix) or LL
+// (does not convert to int64_t on nix!) is portable.
+inline constexpr iint operator"" _L(unsigned long long int c) {
+    return (iint)c;
+}
+
 // Size of any STL container.
 
 // Version for always-64-bit:

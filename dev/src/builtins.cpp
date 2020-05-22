@@ -222,7 +222,7 @@ nfr("remove", "xs,i,n", "A]*II?", "A1",
         auto n = vm.Pop().ival();
         auto i = vm.Pop().ival();
         auto l = vm.Pop().vval();
-        auto amount = max(n, (iint)1);
+        auto amount = max(n, 1_L);
         if (n < 0 || amount > l->len || i < 0 || i > l->len - amount)
             vm.BuiltinError(cat("remove: index (", i, ") or n (", amount,
                                     ") out of range (", l->len, ")"));
