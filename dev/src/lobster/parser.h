@@ -188,7 +188,8 @@ struct Parser {
                     ev->e = def;
                     def->vals.emplace_back(ev);
                     if (incremental) cur++; else cur *= 2;
-                    if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
+                    if ((!IsNext(T_LINEFEED) && !IsNext(T_COMMA)) ||
+                        Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
                 Expect(T_DEDENT);
                 list->Add(new EnumRef(lex, def));
