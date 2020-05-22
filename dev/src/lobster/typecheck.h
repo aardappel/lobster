@@ -1686,7 +1686,7 @@ struct TypeChecker {
         for (auto &b : reverse(borrowstack)) {
             if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
-            TypeError(cat("cannot assign to \"", lv.Name(), "\" while borrowed (in ",
+            TypeError(cat("cannot modify \"", lv.Name(), "\" while borrowed (in ",
                           lv.sid->sf_def->parent->name, ")"), *n);
         }
     }
@@ -2069,10 +2069,10 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret) {
         auto tright = tc.TypeCheckBranch(false, condition, falsepart, reqret);
         // FIXME: this is a bit of a hack. Much better if we had an actual type
         // to signify NORETURN, to be taken into account in more places.
-        if (truepart->ReturnsOutOf()) {
+        if (truepart->Terminal(tc)) {
             exptype = tright;
             lt = falsepart->lt;
-        } else if (falsepart->ReturnsOutOf()) {
+        } else if (falsepart->Terminal(tc)) {
             exptype = tleft;
             lt = truepart->lt;
         } else {
@@ -2168,7 +2168,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
                 }
             }
         }
-        if (!cas->body->ReturnsOutOf()) {
+        if (!cas->body->Terminal(tc)) {
             exptype = exptype.Null() ? cas->body->exptype
                                      : tc.Union(exptype, cas->body->exptype, "switch type", "case type",
                                                 true, cas);
@@ -2176,7 +2176,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     }
     for (auto n : cases->children) {
         auto cas = AssertIs<Case>(n);
-        if (!cas->body->ReturnsOutOf()) {
+        if (!cas->body->Terminal(tc)) {
             assert(!exptype.Null());
             tc.SubType(cas->body, exptype, "", "case block");
         }
@@ -2888,7 +2888,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             tc.TypeError(cat("return from \"", sf->parent->name,
                              "\" called out of context"), *this);
     }
-    auto never_returns = child->ReturnsOutOf();
+    auto never_returns = child->Terminal(tc);
     if (never_returns && make_void && sf->num_returns) {
         // A return with other returns inside of it that always bypass this return,
         // so should not contribute to return types.
@@ -3161,29 +3161,37 @@ bool EnumCoercion::ConstVal(TypeChecker &tc, Value &val) const {
     return child->ConstVal(tc, val);
 }
 
-bool Return::ReturnsOutOf() const {
+bool Return::Terminal(TypeChecker &tc) const {
     return true;
 }
 
-bool Block::ReturnsOutOf() const {
-    return children.back()->ReturnsOutOf();
+bool Block::Terminal(TypeChecker &tc) const {
+    return children.back()->Terminal(tc);
 }
 
-bool IfElse::ReturnsOutOf() const {
-    return truepart->ReturnsOutOf() && falsepart->ReturnsOutOf();
+bool IfElse::Terminal(TypeChecker &tc) const {
+    return truepart->Terminal(tc) && falsepart->Terminal(tc);
 }
 
-bool Switch::ReturnsOutOf() const {
+bool While::Terminal(TypeChecker &tc) const {
+    // NOTE: if body is terminal, that does not entail the loop is, since
+    // condition may be false on first iteration.
+    // Instead, it is only terminal if this is an infinite loop.
+    Value val;
+    return condition->ConstVal(tc, val) && val.True();
+}
+
+bool Switch::Terminal(TypeChecker &tc) const {
     auto have_default = false;
     for (auto c : cases->children) {
         auto cas = AssertIs<Case>(c);
         if (cas->pattern->children.empty()) have_default = true;
-        if (!cas->body->ReturnsOutOf()) return false;
+        if (!cas->body->Terminal(tc)) return false;
     }
     return have_default;
 }
 
-bool NativeCall::ReturnsOutOf() const {
+bool NativeCall::Terminal(TypeChecker &) const {
     // A function may end in "assert false" and have only its previous return statements
     // taken into account.
     if (nf->IsAssert()) {
@@ -3193,7 +3201,7 @@ bool NativeCall::ReturnsOutOf() const {
     return false;
 }
 
-bool Call::ReturnsOutOf() const {
+bool Call::Terminal(TypeChecker &tc) const {
     // Have to be conservative for recursive calls since we're not done typechecking it.
     if (sf->isrecursivelycalled ||
         sf->method_of ||
@@ -3203,7 +3211,7 @@ bool Call::ReturnsOutOf() const {
     if (sf->num_returns == 1) {
         auto ret = AssertIs<Return>(sf->body->children.back());
         assert(ret->sf == sf);
-        return ret->child->ReturnsOutOf();
+        return ret->child->Terminal(tc);
     }
     // TODO: could also check num_returns > 1, but then have to scan all children.
     return false;

@@ -32,7 +32,8 @@ struct Node {
     virtual Node **Children() { return nullptr; }
     virtual Node *Clone() = 0;
     virtual bool IsConstInit() const { return false; }
-    virtual bool ReturnsOutOf() const { return false; }
+    // Does control flow continue beyond this node?
+    virtual bool Terminal(TypeChecker &tc) const { return false; }
     virtual string_view Name() const = 0;
     virtual void Dump(string &sd) const { sd += Name(); }
     void Iterate(IterateFun f) {
@@ -183,7 +184,7 @@ struct TypeAnnotation : Node {
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
 
-#define RETURNSMETHOD bool ReturnsOutOf() const;
+#define RETURNSMETHOD bool Terminal(TypeChecker &tc) const;
 #define CONSTVALMETHOD bool ConstVal(TypeChecker &tc, Value &val) const;
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
 
@@ -245,7 +246,7 @@ COER_NODE(ToInt, "toint")
 NARY_NODE(Block, "block", false, RETURNSMETHOD)
 BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, OPTMETHOD)
 TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, OPTMETHOD RETURNSMETHOD)
-BINARY_NODE_T(While, "while", false, Node, condition, Block, body, )
+BINARY_NODE_T(While, "while", false, Node, condition, Block, body, RETURNSMETHOD)
 BINARY_NODE_T(For, "for", false, Node, iter, Block, body, )
 ZERO_NODE(ForLoopElem, "for loop element", false, )
 ZERO_NODE(ForLoopCounter, "for loop counter", false, )
