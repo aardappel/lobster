@@ -22,7 +22,6 @@ namespace lobster {
 class CPPGenerator : public NativeGenerator {
     string &sd;
     const int dispatch = VM_DISPATCH_METHOD;
-    int current_block_id = -1;
     int tail_calls_in_a_row = 0;
 
     string_view Block() {
