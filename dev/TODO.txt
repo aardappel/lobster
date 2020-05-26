@@ -1,9 +1,13 @@
-- go thru uses of .size()
-- wasm binary writer?
-- iint versions of memcpy and friends
-- casts of all types
-- uses of int
-- uses of int64_t -> iint
+- print seconds_elapsed - 1
+
+- why are we not inlining named functions?
+  -> in speedtest, produces a return whose retval is needed?
+
+- the compiled C++ code under VS is really dumb: keeps loading things over the VM pointer.
+  for this to inline nicely, we have to:
+  a) make sp a pointer, not an index,
+  b) pass sp and the var array to every VM function so it can sit in a register.
+
 
 
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
@@ -1979,45 +1983,56 @@ From (1) on they are on an actual 8700K, and also bumped iterations 10x.
 At (2) bumped iterations 20% because a bug in GOAP was fixed that made it faster.
 At (3) completely reworked benchmarks to add a lot more variety, but balanced to
 still take the same total time for comparison.
+At (4) Here we switch from the 8700K to an AMD 3950x. Though in benchmarks it is faster single-core
+than the 8700K, it is way slower at running Lobster, possibly branch mispredictions are a heavier
+penalty? All score above (4) have been updated to reflect this speed difference, to make
+future scores comparable with past ones.
 
-VM: last_dyn_typed    : secs 57.1, ins 599572240, fcall 57534476, bcall 2534535, totalalloc 4501531
-VM: last_switch       : secs 43.2, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-VM: over fun ptr      : secs 39.5, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-C++: first comp       : secs 33.9, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-VM: first inline      : secs 37.0, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054
-C++: first inline     : secs 30.1, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054
-VM: inlined for       : secs 29.3, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342
-C++: inlined for      : secs 20.0, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342
-VM: inlined for       : secs 29.2, 1.77x vs 2600K (1)
-C++: inlined for      : secs 20.0, 1.43x vs 2600K
-VM64: inlined for     : secs 23.8, 1.23x vs 32bit
-C++64: inlined for    : secs 17.2, 1.16x vs 32bit
-VM: vec/struct        : secs 26.4
-VM64: vec/struct      : secs 21.1
-VM64: may 2018        : secs 21.5
-VM64: compr_ptr       : secs 20.2, 1.07x vs native pointers
-VM64-MSVC: oct 2018   : secs 21.8
-VM64-LLVM: oct 2018   : secs 20.8, 1.05x MSVC (without -flto, which doesn't work)
-VM64-LLVM: compr_ptr  : secs 21.1, 0.98x vs native pointers, unlike MSVC!
-VM64-LLVM: dec 2018   : secs 20.5, return value related refactorings.
-VM64-LLVM: lifetime1  : secs 20.8, lifetime off (4649 alloc, 105402 decr)
-VM64-LLVM: lifetime1  : secs 18.6, first ever lifetime, few optimisations (4649 alloc, 7175 decr)
-VM64-LLVM: lifetime2  : secs 19.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
-VM64-LLVM: lifetime2  : secs 18.8 (2)
-VM64-LLVM: lifetime2  : secs 18.9, strings pooled (3945 alloc, 13126 decr)
-VM64-LLVM: lifetime2  : secs 18.9 (3) (332258 alloc, 636280 decr)
-C++64-LLVM: lifetime3 : secs 15.7 (with LLVM, LTCG doesn't appear to work under VS)
-C++64-MSVC: lifetime3 : secs 13.8 (LTCG on)
-VM64-MSVC: lvalinl    : secs 18.4 Inlined the LvalOp function, one less switch()
-C++64-MSVC: lvalinl   : secs 12.8 Inlined the LvalOp function, one less switch()
-VM64-MSVC: inlinestr  : secs 16.8 inline structs v1
-C++64-MSVC: inlinestr : secs 13.0 inline structs v1
-C++64-MSVC: immediates: secs 12.4 direct immediates in native code VM calls
-C++64-MSVC: dd        : secs 11.9
-VM64-MSVC:            : secs 16.0 (newer VS, better release settings??)
-VM64-MSVC:            : secs 14.5 (newer VS, "for/if/while" compiled slightly differently)
-VM64-MSVC:            : secs 15.1 (newer VS?)
-C++64-MSVC:           : secs 10.0 (newer VS?)
+VM: last_dyn_typed    : secs 72.2
+VM: last_switch       : secs 64.6
+VM: over fun ptr      : secs 50.0
+C++: first comp       : secs 40.0
+VM: first inline      : secs 46.8
+C++: first inline     : secs 35.5
+VM: inlined for       : secs 37.1
+C++: inlined for      : secs 23.6
+--
+VM: inlined for       : secs 36.9, 1.77x vs 2600K (1)
+C++: inlined for      : secs 23.6, 1.43x vs 2600K
+VM64: inlined for     : secs 30.1, 1.23x vs 32bit
+C++64: inlined for    : secs 20.3, 1.16x vs 32bit
+VM: vec/struct        : secs 33.4
+VM64: vec/struct      : secs 26.7
+VM64: may 2018        : secs 27.2
+VM64: compr_ptr       : secs 25.6, 1.07x vs native pointers
+VM64-MSVC: oct 2018   : secs 27.6
+VM64-LLVM: oct 2018   : secs 26.3, 1.05x MSVC (without -flto, which doesn't work)
+VM64-LLVM: compr_ptr  : secs 26.7, 0.98x vs native pointers, unlike MSVC!
+VM64-LLVM: dec 2018   : secs 25.9, return value related refactorings.
+VM64-LLVM: lifetime1  : secs 26.3, lifetime off (4649 alloc, 105402 decr)
+VM64-LLVM: lifetime1  : secs 23.5, first ever lifetime, few optimisations (4649 alloc, 7175 decr)
+VM64-LLVM: lifetime2  : secs 24.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
+VM64-LLVM: lifetime2  : secs 23.8 (2)
+VM64-LLVM: lifetime2  : secs 23.9, strings pooled (3945 alloc, 13126 decr)
+VM64-LLVM: lifetime2  : secs 23.9 (3) (332258 alloc, 636280 decr)
+C++64-LLVM: lifetime3 : secs 18.5 (with LLVM, LTCG doesn't appear to work under VS)
+C++64-MSVC: lifetime3 : secs 16.3 (LTCG on)
+VM64-MSVC: lvalinl    : secs 23.3 Inlined the LvalOp function, one less switch()
+C++64-MSVC: lvalinl   : secs 15.1 Inlined the LvalOp function, one less switch()
+VM64-MSVC: inlinestr  : secs 21.3 inline structs v1
+C++64-MSVC: inlinestr : secs 15.3 inline structs v1
+C++64-MSVC: immediates: secs 14.6 direct immediates in native code VM calls
+C++64-MSVC: dd        : secs 14.0
+VM64-MSVC:            : secs 20.2 (newer VS, better release settings??)
+VM64-MSVC:            : secs 18.3 (newer VS, "for/if/while" compiled slightly differently)
+VM64-MSVC:            : secs 19.1 (newer VS?)
+C++64-MSVC:           : secs 11.8 (newer VS?)
+--
+VM64-MSVC:            : secs 19.1, 1.265x slower than 8700K (4)
+C++64-MSVC:           : secs 11.8, 1.18x slower than 8700K
+VM64-MSVC:            : secs 19.1, stack pointer instead of index, no change
+C++64-MSVC:           : secs  8.9, stack pointer instead of index, 32% faster!
+
 
 compiletime speed:
 

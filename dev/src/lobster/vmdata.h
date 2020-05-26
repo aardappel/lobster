@@ -642,7 +642,7 @@ struct VMLog {
 struct StackFrame {
     InsPtr retip;
     const int *funstart;
-    int spstart;
+    iint spstart;
 };
 
 struct NativeFun;
@@ -688,7 +688,7 @@ struct VM : VMArgs {
     Value *stack = nullptr;
     int stacksize = 0;
     int maxstacksize;
-    int sp = -1;
+    Value *sp = nullptr;
 
     Value retvalstemp[MAX_RETURN_VALUES];
 
@@ -717,7 +717,7 @@ struct VM : VMArgs {
     string evalret;
 
     int currentline = -1;
-    int maxsp = -1;
+    iint maxsp = -1;
 
     PrintPrefs debugpp { 2, 50, true, -1 };
 
@@ -943,22 +943,22 @@ struct VM : VMArgs {
     void BCallRetCheck(const NativeFun *nf);
     iint GrabIndex(int len);
 
-    #define VM_PUSH(v) (stack[++sp] = (v))
-    #define VM_TOP() (stack[sp])
-    #define VM_TOPM(n) (stack[sp - (n)])
-    #define VM_POP() (stack[sp--])
+    #define VM_PUSH(v) (*++sp = (v))
+    #define VM_TOP() (*sp)
+    #define VM_TOPM(n) (*(sp - (n)))
+    #define VM_POP() (*sp--)
     #define VM_POPN(n) (sp -= (n))
     #define VM_PUSHN(n) (sp += (n))
-    #define VM_TOPPTR() (stack + sp + 1)
+    #define VM_TOPPTR() (sp + 1)
 
     void Push(const Value &v) { VM_PUSH(v); }
     Value Pop() { return VM_POP(); }
     Value Top() { return VM_TOP(); }
     Value *TopPtr() { return VM_TOPPTR(); }
-    void PushN(int n) { VM_PUSHN(n); }
-    void PopN(int n) { VM_POPN(n); }
-    pair<Value *, int> PopVecPtr() {
-        auto width = VM_POP().intval();
+    void PushN(iint n) { VM_PUSHN(n); }
+    void PopN(iint n) { VM_POPN(n); }
+    pair<Value *, iint> PopVecPtr() {
+        auto width = VM_POP().ival();
         VM_POPN(width);
         return { VM_TOPPTR(), width };
     }
@@ -1120,16 +1120,16 @@ void EscapeAndQuote(string_view s, string &sd);
 struct LCoRoutine : RefObj {
     bool active = true;  // Goes to false when it has hit the end of the coroutine instead of a yield.
 
-    int stackstart;    // When currently running, otherwise -1
+    iint stackstart;    // When currently running, otherwise -1
     Value *stackcopy = nullptr;
-    int stackcopylen = 0;
-    int stackcopymax = 0;
+    iint stackcopylen = 0;
+    iint stackcopymax = 0;
 
-    int stackframestart;  // When currently running, otherwise -1
+    iint stackframestart;  // When currently running, otherwise -1
     StackFrame *stackframescopy = nullptr;
-    int stackframecopylen = 0;
-    int stackframecopymax = 0;
-    int top_at_suspend = -1;
+    iint stackframecopylen = 0;
+    iint stackframecopymax = 0;
+    iint top_at_suspend = -1;
 
     InsPtr returnip;
     const int *varip;
@@ -1144,7 +1144,7 @@ struct LCoRoutine : RefObj {
         return stackcopy[stackcopylen - 1].LTINCTYPE(vm.GetTypeInfo(ti(vm).yieldtype).t);
     }
 
-    void Resize(VM &vm, int newlen) {
+    void Resize(VM &vm, iint newlen) {
         if (newlen > stackcopymax) {
             if (stackcopy) DeallocSubBuf(vm, stackcopy, stackcopymax);
             stackcopy = AllocSubBuf<Value>(vm, stackcopymax = newlen, TYPE_ELEM_VALUEBUF);
@@ -1152,7 +1152,7 @@ struct LCoRoutine : RefObj {
         stackcopylen = newlen;
     }
 
-    void ResizeFrames(VM &vm, int newlen) {
+    void ResizeFrames(VM &vm, iint newlen) {
         if (newlen > stackframecopymax) {
             if (stackframescopy) DeallocSubBuf(vm, stackframescopy, stackframecopymax);
             stackframescopy = AllocSubBuf<StackFrame>(vm, stackframecopymax = newlen,
@@ -1161,27 +1161,27 @@ struct LCoRoutine : RefObj {
         stackframecopylen = newlen;
     }
 
-    int Suspend(VM &vm, int top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip,
+    iint Suspend(VM &vm, iint top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip,
                 LCoRoutine *&curco) {
         assert(stackstart >= 0);
         swap(rip, returnip);
         assert(curco == this);
         curco = parent;
         parent = nullptr;
-        ResizeFrames(vm, (int)stackframes.size() - stackframestart);
+        ResizeFrames(vm, (iint)stackframes.size() - stackframestart);
         t_memcpy(stackframescopy, stackframes.data() + stackframestart, stackframecopylen);
         stackframes.erase(stackframes.begin() + stackframestart, stackframes.end());
         stackframestart = -1;
         top_at_suspend = top;
         Resize(vm, top - stackstart);
         t_memcpy(stackcopy, stack + stackstart, stackcopylen);
-        int ss = stackstart;
+        auto ss = stackstart;
         stackstart = -1;
         return ss;
     }
 
-    void AdjustStackFrames(int top) {
-        int topdelta = (top + stackcopylen) - top_at_suspend;
+    void AdjustStackFrames(iint top) {
+        auto topdelta = (top + stackcopylen) - top_at_suspend;
         if (topdelta) {
             for (int i = 0; i < stackframecopylen; i++) {
                 stackframescopy[i].spstart += topdelta;
@@ -1189,7 +1189,7 @@ struct LCoRoutine : RefObj {
         }
     }
 
-    int Resume(int top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip, LCoRoutine *p) {
+    iint Resume(iint top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip, LCoRoutine *p) {
         assert(stackstart < 0);
         swap(rip, returnip);
         assert(!parent);

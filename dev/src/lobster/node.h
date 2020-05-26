@@ -33,7 +33,7 @@ struct Node {
     virtual Node *Clone() = 0;
     virtual bool IsConstInit() const { return false; }
     // Does control flow continue beyond this node?
-    virtual bool Terminal(TypeChecker &tc) const { return false; }
+    virtual bool Terminal(TypeChecker &) const { return false; }
     virtual string_view Name() const = 0;
     virtual void Dump(string &sd) const { sd += Name(); }
     void Iterate(IterateFun f) {

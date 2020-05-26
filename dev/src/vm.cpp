@@ -74,6 +74,7 @@ VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZ
     #endif
     vars = new Value[bcf->specidents()->size()];
     stack = new Value[stacksize = INITSTACKSIZE];
+    sp = stack - 1;
     #ifdef VM_PROFILER
         byteprofilecounts = new uint64_t[codelen];
         memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
@@ -239,7 +240,7 @@ LString *VM::NewString(iint l) {
 LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t cti) {
     assert(GetTypeInfo(cti).t == V_COROUTINE);
     auto c = new (pool.alloc(sizeof(LCoRoutine)))
-       LCoRoutine(sp + 2 /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p, cti);
+       LCoRoutine((int)(sp - stack + 2) /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p, cti);
     OnAlloc(c);
     return c;
 }
@@ -311,7 +312,7 @@ Value VM::Error(string err) {
         THROW_OR_ABORT(sd);
     }
     try {
-        while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart)) {
+        while (sp >= stack && (!stackframes.size() || sp - stack != stackframes.back().spstart)) {
             // Sadly can't print this properly.
             sd += "\n   stack: ";
             to_string_hex(sd, (size_t)VM_TOP().any());
@@ -383,7 +384,7 @@ int VM::DumpVar(string &sd, const Value &x, int idx) {
 }
 
 void VM::FinalStackVarsCleanup() {
-    VMASSERT(sp < 0 && !stackframes.size());
+    VMASSERT(sp < stack && !stackframes.size());
     #ifndef NDEBUG
         LOG_INFO("stack at its highest was: ", maxsp);
     #endif
@@ -408,7 +409,7 @@ InsPtr VM::GetIP() {
 template<int is_error> int VM::VarCleanup(string *error, int towhere) {
     (void)error;
     auto &stf = stackframes.back();
-    if constexpr (!is_error) VMASSERT(sp == stf.spstart);
+    if constexpr (!is_error) VMASSERT(sp - stack == stf.spstart);
     auto fip = stf.funstart;
     fip++;  // function id.
     auto nargs = *fip++;
@@ -446,7 +447,7 @@ template<int is_error> int VM::VarCleanup(string *error, int towhere) {
     if (!lastunwind) {
         // This kills any temps on the stack. If these are refs these should not be
         // owners, since a var or keepvar owns them instead.
-        sp = stackframes.size() ? stackframes.back().spstart : -1;
+        sp = (stackframes.size() ? stackframes.back().spstart : -1) + stack;
     }
     return lastunwind;
 }
@@ -477,21 +478,23 @@ void VM::FunIntro(VM_OP_ARGS) {
     #endif
     auto funstart = ip;
     ip++;  // definedfunction
-    if (sp > stacksize - STACKMARGIN) {
+    if (sp - stack > stacksize - STACKMARGIN) {
         // per function call increment should be small
         // FIXME: not safe for untrusted scripts, could simply add lots of locals
         // could record max number of locals? not allow more than N locals?
         if (stacksize >= maxstacksize)
             SeriousError("stack overflow! (use set_max_stack_size() if needed)");
         auto nstack = new Value[stacksize *= 2];
-        t_memcpy(nstack, stack, sp + 1);
+        t_memcpy(nstack, stack, sp - stack + 1);
+        sp = sp - stack + nstack;
         delete[] stack;
         stack = nstack;
+
 
         LOG_DEBUG("stack grew to: ", stacksize);
     }
     auto nargs_fun = *ip++;
-    for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], stack[sp - nargs_fun + i + 1]);
+    for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], *(sp - nargs_fun + i + 1));
     ip += nargs_fun;
     auto ndef = *ip++;
     for (int i = 0; i < ndef; i++) {
@@ -506,9 +509,9 @@ void VM::FunIntro(VM_OP_ARGS) {
     ip += nownedvars;
     auto &stf = stackframes.back();
     stf.funstart = funstart;
-    stf.spstart = sp;
+    stf.spstart = sp - stack;
     #ifndef NDEBUG
-        if (sp > maxsp) maxsp = sp;
+        if (sp - stack > maxsp) maxsp = sp - stack;
     #endif
 }
 
@@ -531,12 +534,12 @@ void VM::FunOut(int towhere, int nrv) {
 void VM::CoVarCleanup(LCoRoutine *co) {
     // Convenient way to copy everything back onto the stack.
     InsPtr tip(0);
-    auto copylen = co->Resume(sp + 1, stack, stackframes, tip, nullptr);
+    auto copylen = co->Resume(sp - stack + 1, stack, stackframes, tip, nullptr);
     auto startsp = sp;
     sp += copylen;
-    for (int i = co->stackframecopylen - 1; i >= 0 ; i--) {
+    for (auto i = co->stackframecopylen - 1; i >= 0 ; i--) {
         auto &stf = stackframes.back();
-        sp = stf.spstart;  // Kill any temps on top of the stack.
+        sp = stf.spstart + stack;  // Kill any temps on top of the stack.
         // Save the ip, because VarCleanup will jump to it.
         auto bip = GetIP();
         VarCleanup<0>(nullptr, !i ? *stf.funstart : -2);
@@ -576,9 +579,9 @@ void VM::CoNew(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
 }
 
 void VM::CoSuspend(InsPtr retip) {
-    int newtop = curcoroutine->Suspend(*this, sp + 1, stack, stackframes, retip, curcoroutine);
+    auto newtop = curcoroutine->Suspend(*this, sp - stack + 1, stack, stackframes, retip, curcoroutine);
     JumpTo(retip);
-    sp = newtop - 1; // top of stack is now coro value from create or resume
+    sp = newtop - 1 + stack; // top of stack is now coro value from create or resume
 }
 
 void VM::CoClean() {
@@ -622,7 +625,7 @@ void VM::CoResume(LCoRoutine *co) {
     VM_PUSH(Value(co));
     CoNonRec(co->varip);
     auto rip = GetIP();
-    sp += co->Resume(sp + 1, stack, stackframes, rip, curcoroutine);
+    sp += co->Resume(sp - stack + 1, stack, stackframes, rip, curcoroutine);
     JumpTo(rip);
     curcoroutine = co;
     // must be, since those vars got backed up in it before
@@ -643,7 +646,7 @@ void VM::EndEval(const Value &ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
-    assert(sp == -1);
+    assert(sp == stack - 1);
     FinalStackVarsCleanup();
     vml.LogCleanup();
     for (auto s : constant_strings) {
@@ -760,12 +763,12 @@ void VM::EvalProgramInner() {
                 if (trace != TraceMode::OFF) {
                     auto &sd = TraceStream();
                     DisAsmIns(nfr, sd, ip, codestart, typetable, bcf);
-                    append(sd, " [", sp + 1, "] -");
+                    append(sd, " [", sp - stack + 1, "] -");
                     #if RTT_ENABLED
                     #if DELETE_DELAY
                         append(sd, " ", (size_t)VM_TOP().any());
                     #endif
-                    for (int i = 0; i < 3 && sp - i >= 0; i++) {
+                    for (int i = 0; i < 3 && sp - i >= stack; i++) {
                         auto x = VM_TOPM(i);
                         sd += ' ';
                         x.ToStringBase(*this, sd, x.type, debugpp);
@@ -933,7 +936,7 @@ VM_INS_RET VM::U_ENDSTATEMENT(int line, int fileidx) {
             if (trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
         }
     #endif
-    assert(sp == stackframes.back().spstart);
+    assert(sp == stackframes.back().spstart + stack);
     VM_RET;
 }
 

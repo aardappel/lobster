@@ -3161,7 +3161,7 @@ bool EnumCoercion::ConstVal(TypeChecker &tc, Value &val) const {
     return child->ConstVal(tc, val);
 }
 
-bool Return::Terminal(TypeChecker &tc) const {
+bool Return::Terminal(TypeChecker &) const {
     return true;
 }
 
