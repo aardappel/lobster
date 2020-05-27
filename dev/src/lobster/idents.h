@@ -275,6 +275,7 @@ struct SubFunction {
     UnresolvedTypeRef returngiventype = { nullptr };
     TypeRef returntype = type_undefined;
     size_t num_returns = 0;
+    size_t num_returns_non_local = 0;
     size_t reqret = 0;  // Do the caller(s) want values to be returned?
     const Lifetime ltret = LT_KEEP;
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
@@ -345,11 +346,12 @@ struct Function : Named {
     }
 
     bool RemoveSubFunction(SubFunction *sf) {
-        for (auto &sfh : overloads) {
+        for (auto [i, sfh] : enumerate(overloads)) {
             for (auto sfp = &sfh; *sfp; sfp = &(*sfp)->next) {
                 if (*sfp == sf) {
                     *sfp = sf->next;
                     sf->next = nullptr;
+                    if (!sfh) overloads.erase(overloads.begin() + i);
                     return true;
                 }
             }

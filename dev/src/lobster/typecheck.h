@@ -721,6 +721,7 @@ struct TypeChecker {
             }
         }
         sf->num_returns++;
+        if (sf != scopes.back().sf) sf->num_returns_non_local++;
         if (sf->returngiventype.utr.Null()) {
             if (sf->reqret) {
                 // If this is a recursive call we must be conservative because there may already
@@ -2892,7 +2893,11 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (never_returns && make_void && sf->num_returns) {
         // A return with other returns inside of it that always bypass this return,
         // so should not contribute to return types.
-        assert(child->exptype->t == V_VOID || child->exptype->t == V_VAR);
+        if (child->exptype->t == V_VAR) tc.UnifyVar(type_void, child->exptype);
+        assert(child->exptype->t == V_VOID);
+        // Call this for correct counting of number of returns, with existing type, should
+        // have no effect on the type.
+        tc.RetVal(sf->returntype, sf, *this);
         return this;
     }
     if (never_returns && sf->reqret && sf->parent->anonymous) {

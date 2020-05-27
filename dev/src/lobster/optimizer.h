@@ -141,12 +141,15 @@ Node *Call::Optimize(Optimizer &opt) {
     assert(sf->numcallers > 0);
     // Check if we should inline this call.
     // FIXME: Reduce these requirements where possible.
-    if (!sf->parent->anonymous ||
-        sf->num_returns > 1 ||       // Implied by anonymous, but here for clarity.
+    if (sf->isrecursivelycalled ||
+        sf->num_returns > 1 ||
+        // This may happen even if num_returns==1 when body of sf is a non-local return also,
+        // See e.g. exception_handler
+        sf->num_returns_non_local > 0 ||
         vtable_idx >= 0 ||
         sf->iscoroutine ||
         sf->returntype->NumValues() > 1 ||
-        (sf->numcallers > 1 && sf->body->Count() >= 8)) { // FIXME: configurable.
+        (sf->numcallers > 1 && sf->body->Count() >= 16)) { // FIXME: configurable.
         return this;
     }
     auto AddToLocals = [&](const vector<Arg> &av) {
@@ -154,6 +157,8 @@ Node *Call::Optimize(Optimizer &opt) {
             // We have to check if the sid already exists, since inlining the same function
             // multiple times in the same parent can cause this. This variable is shared
             // between the copies in the parent, second use overwrites the first etc.
+            // We generally have to keep using this sid rather than creating a new one, since
+            // this function may call others that may refer to this sid, etc.
             for (auto &loc : opt.cursf->locals) if (loc.sid == arg.sid) goto already;
             opt.cursf->locals.push_back(arg);
             arg.sid->sf_def = opt.cursf;
@@ -166,6 +171,13 @@ Node *Call::Optimize(Optimizer &opt) {
     auto list = new Block(line);
     for (auto c : children) {
         auto &arg = sf->args[ai];
+        // NOTE: this introduces locals which potentially borrow, which the typechecker so far
+        // never introduces.
+        // We can't just force these to LT_KEEP, since the sids maybe shared with non-inlined
+        // instances (e.g. in dynamic dispatch).
+        // Borrowing could be problematic if 2 copies of the same function get inlined, since
+        // that creates an overwite of a borrowed variable, but the codegen ensures the overwrite
+        // does not decref.
         auto def = new Define(line, c);
         def->sids.push_back({ arg.sid, { arg.type } });
         list->Add(opt.Typed(type_void, LT_ANY, def));
@@ -196,6 +208,7 @@ Node *Call::Optimize(Optimizer &opt) {
     if (ret->sf == sf) {
         assert(ret->child->exptype->NumValues() <= 1);
         assert(sf->num_returns <= 1);
+        assert(sf->num_returns_non_local == 0);
         // This is not great: having to undo the optimization in Return::TypeCheck where this
         // flag was set.
         // Since the caller generally expects to keep the return value of the now inlined
@@ -206,8 +219,7 @@ Node *Call::Optimize(Optimizer &opt) {
         auto ir = Is<IdentRef>(ret->child);
         if (ir && ir->sid->consume_on_last_use) {
             ir->sid->consume_on_last_use = false;
-            ret->child = opt.Typed(ret->child->exptype, LT_KEEP,
-                new ToLifetime(ret->child->line, ret->child, 1, 0));
+            opt.tc.MakeLifetime(ret->child, LT_KEEP, 1, 0);
         }
         list->children.back() = ret->child;
         ret->child = nullptr;

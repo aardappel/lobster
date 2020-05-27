@@ -401,6 +401,10 @@
   - that requires yet more vector vm ops, at least for - /
 
 - detect a + b + c etc and emit better string concat op in codegen
+  Also, does sit make sense to allow += to modify strings in place?
+  This is different semantics from += generally, but would be very nice to have.
+  And combined with the above feature s += a + b can also be alloc-less.
+  And then same for vectors?
 
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
   - AssignList with instance variables probably doesn't work.
