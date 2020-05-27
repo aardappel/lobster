@@ -130,9 +130,10 @@ Node *DynCall::Optimize(Optimizer &opt) {
     c->children.insert(c->children.end(), children.begin(), children.end());
     children.clear();
     auto r = opt.Typed(exptype, lt, c);
-    delete this;
+    r = r->Optimize(opt);
+    delete this;  // Do this after, since Optimize may touch this same call.
     opt.Changed();
-    return r->Optimize(opt);
+    return r;
 }
 
 Node *Call::Optimize(Optimizer &opt) {
@@ -214,9 +215,10 @@ Node *Call::Optimize(Optimizer &opt) {
     }
     auto r = opt.Typed(exptype, sf->ltret, list);
     children.clear();
-    delete this;
+    r = r->Optimize(opt);
+    delete this;  // Do this after, since Optimize may touch this same call.
     opt.Changed();
-    return r->Optimize(opt);
+    return r;
 }
 
 }  // namespace lobster
