@@ -37,7 +37,7 @@ const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
 }
 
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
-                            const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
+                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
     auto li = LookupLine(ip, code, bcf);
@@ -142,7 +142,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             is_struct = 1;
         case IL_PUSHVAR:
         var:
-            sd += IdName(bcf, *ip++);
+            sd += IdName(bcf, *ip++, typetable, is_struct);
             if (is_struct) append(sd, " ", *ip++);
             break;
 
@@ -160,14 +160,14 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             sd += (fidx >= 0 ? bcf->functions()->Get(fidx)->name()->string_view() : "__dummy");
             sd += "(";
             int n = *ip++;
-            while (n--) append(sd, IdName(bcf, *ip++), " ");
+            while (n--) append(sd, IdName(bcf, *ip++, typetable, false), " ");
             n = *ip++;
             sd += "=> ";
-            while (n--) append(sd, IdName(bcf, *ip++), " ");
+            while (n--) append(sd, IdName(bcf, *ip++, typetable, false), " ");
             auto keepvars = *ip++;
             if (keepvars) append(sd, "K:", keepvars, " ");
             n = *ip++;  // owned
-            while (n--) append(sd, "O:", IdName(bcf, *ip++), " ");
+            while (n--) append(sd, "O:", IdName(bcf, *ip++, typetable, false), " ");
             sd += ")";
             break;
         }

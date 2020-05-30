@@ -22,18 +22,23 @@
 
 namespace lobster {
 
-inline string IdName(const bytecode::BytecodeFile *bcf, int i) {
+inline string IdName(const bytecode::BytecodeFile *bcf, int i, const type_elem_t *typetable, bool is_whole_struct) {
     auto idx = bcf->specidents()->Get(i)->ididx();
-    int j = i;
-    // FIXME: this theoretically can span 2 specializations of the same var.
-    while (j && bcf->specidents()->Get(j - 1)->ididx() == idx) j--;
     auto basename = bcf->idents()->Get(idx)->name()->
     #ifdef __ANDROID__
         str();
     #else
         string_view();
     #endif
-    return j == i ? string(basename) : cat(basename, '+', i - j);
+    auto ti = (TypeInfo *)(typetable + bcf->specidents()->Get(i)->typeidx());
+    if (is_whole_struct || !IsStruct(ti->t)) {
+        return string(basename);
+    } else {
+        int j = i;
+        // FIXME: this theoretically can span 2 specializations of the same var.
+        while (j && bcf->specidents()->Get(j - 1)->ididx() == idx) j--;
+        return cat(basename, "+", i - j);
+    }
 }
 
 const bytecode::LineInfo *LookupLine(const int *ip, const int *code,

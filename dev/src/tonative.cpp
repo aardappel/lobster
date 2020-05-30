@@ -52,11 +52,11 @@ int ParseOpAndGetArity(int opc, const int *&ip) {
 }
 
 string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
-              string_view bytecode_buffer) {
+                string_view bytecode_buffer) {
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
-    //auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
+    auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
     map<int, const bytecode::Function *> function_lookup;
     for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
         auto f = bcf->functions()->Get(i);
@@ -78,7 +78,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
         }
         if ((false)) {  // Debug corrupt bytecode.
             string sd;
-            DisAsmIns(natreg, sd, ip, code, (const type_elem_t *)bcf->typetable()->Data(), bcf);
+            DisAsmIns(natreg, sd, ip, code, typetable, bcf);
             LOG_DEBUG(sd);
         }
         int opc = *ip++;
@@ -131,9 +131,9 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             if (ISBCALL(opc)) {
                 ng.Annotate(natreg.nfuns[args[0]]->name);
             } else if (opc == IL_PUSHVAR) {
-                ng.Annotate(IdName(bcf, args[0]));
+                ng.Annotate(IdName(bcf, args[0], typetable, false));
             } else if (ISLVALVARINS(opc)) {
-                ng.Annotate(IdName(bcf, args[0]));
+                ng.Annotate(IdName(bcf, args[0], typetable, false));
             } else if (opc == IL_PUSHSTR) {
                 string cs;
                 EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), cs);
