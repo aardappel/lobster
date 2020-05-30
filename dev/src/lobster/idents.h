@@ -294,6 +294,7 @@ struct SubFunction {
     bool mustspecialize = false;
     bool logvarcallgraph = false;
     bool isdynamicfunctionvalue = false;
+    bool optimized = false;
     UDT *method_of = nullptr;
     int numcallers = 0;
     Type thistype { V_FUNCTION, this };  // convenient place to store the type corresponding to this

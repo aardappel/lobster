@@ -19,24 +19,36 @@ struct Optimizer {
     SymbolTable &st;
     TypeChecker &tc;
     size_t total_changes = 0;
-    SubFunction *cursf = nullptr;
+    vector<SubFunction *> sfstack;
+    bool functions_removed = false;
 
     Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc)
         : parser(_p), st(_st), tc(_tc) {
         // We don't optimize parser.root, it only contains a single call.
         for (auto f : parser.st.functiontable) {
+            again:
             for (auto sf : f->overloads) {
                 if (sf && sf->typechecked) {
-                    for (; sf; sf = sf->next) if (sf->body) {
-                        cursf = sf;
-                        auto nb = sf->body->Optimize(*this);
-                        assert(nb == sf->body);
-                        (void)nb;
+                    for (; sf; sf = sf->next) {
+                        functions_removed = false;
+                        OptimizeFunction(*sf);
+                        if (functions_removed) goto again;
                     }
                 }
             }
         }
         LOG_INFO("optimizer: ", total_changes, " optimizations");
+    }
+
+    void OptimizeFunction(SubFunction &sf) {
+        if (sf.optimized) return;
+        sf.optimized = true;
+        if (!sf.body) return;
+        sfstack.push_back(&sf);
+        auto nb = sf.body->Optimize(*this);
+        assert(nb == sf.body);
+        (void)nb;
+        sfstack.pop_back();
     }
 
     void Changed() { total_changes++; }
@@ -117,13 +129,15 @@ Node *DynCall::Optimize(Optimizer &opt) {
     // This optimization MUST run, to remove redundant arguments.
     // Note that sf is not necessarily the same as sid->type->sf, since a
     // single function variable may have 1 specialization per call.
+    auto nargs = sf->parent->nargs();
+    assert(children.size() >= nargs);
     for (auto[i, c] : enumerate(children)) {
-        if (i >= sf->parent->nargs()) {
+        if (i >= nargs) {
             opt.Changed();
             delete c;
         }
     }
-    children.resize(sf->parent->nargs());
+    children.resize(nargs);
     // Now convert it to a Call if possible. This also allows it to be inlined.
     if (sf->parent->istype) return this;
     auto c = new Call(line, sf);
@@ -139,16 +153,21 @@ Node *DynCall::Optimize(Optimizer &opt) {
 Node *Call::Optimize(Optimizer &opt) {
     Node::Optimize(opt);
     assert(sf->numcallers > 0);
-    // Check if we should inline this call.
     // FIXME: Reduce these requirements where possible.
-    if (sf->isrecursivelycalled ||
-        sf->num_returns > 1 ||
+    bool is_inlinable =
+        !sf->isrecursivelycalled &&
+        sf->num_returns <= 1 &&
         // This may happen even if num_returns==1 when body of sf is a non-local return also,
         // See e.g. exception_handler
-        sf->num_returns_non_local > 0 ||
-        vtable_idx >= 0 ||
-        sf->iscoroutine ||
-        sf->returntype->NumValues() > 1 ||
+        sf->num_returns_non_local == 0 &&
+        vtable_idx < 0 &&
+        !sf->iscoroutine &&
+        sf->returntype->NumValues() <= 1;
+    // Attempt to optimize function we're calling first, that way if it shrinks (or grows) it's
+    // more or less likely to be inlined.
+    if (is_inlinable) opt.OptimizeFunction(*sf);
+    // Check if we should inline this call.
+    if (!is_inlinable ||
         (sf->numcallers > 1 && sf->body->Count() >= 16)) { // FIXME: configurable.
         return this;
     }
@@ -159,9 +178,10 @@ Node *Call::Optimize(Optimizer &opt) {
             // between the copies in the parent, second use overwrites the first etc.
             // We generally have to keep using this sid rather than creating a new one, since
             // this function may call others that may refer to this sid, etc.
-            for (auto &loc : opt.cursf->locals) if (loc.sid == arg.sid) goto already;
-            opt.cursf->locals.push_back(arg);
-            arg.sid->sf_def = opt.cursf;
+            auto parent = opt.sfstack.back();
+            for (auto &loc : parent->locals) if (loc.sid == arg.sid) goto already;
+            parent->locals.push_back(arg);
+            arg.sid->sf_def = parent;
             already:;
         }
     };
@@ -189,9 +209,8 @@ Node *Call::Optimize(Optimizer &opt) {
         list->children.insert(list->children.end(), sf->body->children.begin(),
                               sf->body->children.end());
         sf->body->children.clear();
-        bool wasremoved = sf->parent->RemoveSubFunction(sf);
-        assert(wasremoved);
-        (void)wasremoved;
+        opt.functions_removed = sf->parent->RemoveSubFunction(sf);
+        assert(opt.functions_removed);
     } else {
         for (auto c : sf->body->children) {
             auto nc = c->Clone();
