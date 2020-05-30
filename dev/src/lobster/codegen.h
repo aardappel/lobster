@@ -897,24 +897,24 @@ void ToInt::Generate(CodeGen &cg, size_t retval) const {
 
 void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
-    for (size_t i = 0; i < retval; i++) {
+    int stack_offset = 0;
+    for (int fi = 0; fi < (int)retval; fi++) {
         // We have to check for reftype again, since typechecker allowed V_VAR values that may
         // have become scalars by now.
+        auto i = (int)(retval - fi - 1);
+        assert(i < cg.temptypestack.size());
+        auto type = cg.temptypestack[cg.temptypestack.size() - 1 - fi].type;
         if (IsRefNil(child->exptype->Get(i)->t)) {
-            assert(i < cg.temptypestack.size());
-            auto fi = (int)(retval - i - 1);
-            auto type = cg.temptypestack[cg.temptypestack.size() - 1 - fi].type;
             if (incref & (1LL << i)) {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask?
-                    // FIXME: offset incorrect if 2 struct retvals or scalar after struct?
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t))
-                            cg.Emit(IL_INCREF, fi + j);
+                            cg.Emit(IL_INCREF, stack_offset + j);
                     }
                 } else {
-                    cg.Emit(IL_INCREF, fi);
+                    cg.Emit(IL_INCREF, stack_offset);
                 }
             }
             if (decref & (1LL << i)) {
@@ -922,16 +922,16 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 int stack_depth = cg.StackDepth();
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask?
-                    // FIXME: offset incorrect if 2 struct retvals or scalar after struct?
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t))
-                            cg.Emit(IL_KEEPREF, fi + j, cg.keepvars++ + stack_depth);
+                            cg.Emit(IL_KEEPREF, stack_offset + j, cg.keepvars++ + stack_depth);
                     }
                 } else {
-                    cg.Emit(IL_KEEPREF, fi, cg.keepvars++ + stack_depth);
+                    cg.Emit(IL_KEEPREF, stack_offset, cg.keepvars++ + stack_depth);
                 }
             }
         }
+        stack_offset += ValWidth(type);
     }
     // We did not consume these, so we have to pass them on.
     for (size_t i = 0; i < retval; i++) {
