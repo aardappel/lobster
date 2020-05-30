@@ -851,8 +851,13 @@ VM_INS_RET VM::U_INCREF(int off) {
     VM_RET;
 }
 
+VM_INS_RET VM::U_KEEPREFLOOP(int off, int ki) {
+    VM_TOPM(ki).LTDECRTNIL(*this);
+    VM_TOPM(ki) = VM_TOPM(off);
+    VM_RET;
+}
+
 VM_INS_RET VM::U_KEEPREF(int off, int ki) {
-    VM_TOPM(ki).LTDECRTNIL(*this);  // FIXME: this is only here for inlined for bodies!
     VM_TOPM(ki) = VM_TOPM(off);
     VM_RET;
 }
@@ -870,9 +875,7 @@ VM_INS_RET VM::U_CALL(int f VM_COMMA VM_OP_ARGS_CALL) {
     VM_RET;
 }
 
-VM_INS_RET VM::U_CALLVCOND(int keepvar VM_COMMA VM_OP_ARGS_CALL) {
-    // This we do regardless, since a string is on the stack.
-    U_KEEPREF(1, keepvar);
+VM_INS_RET VM::U_CALLVCOND(VM_OP_ARGS_CALL) {
     // FIXME: don't need to check for function value again below if false
     if (!VM_TOP().True()) {
         VM_POP();

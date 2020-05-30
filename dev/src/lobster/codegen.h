@@ -29,7 +29,7 @@ struct CodeGen  {
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
     vector<TypeLT> rettypes, temptypestack;
-    size_t nested_fors = 0;
+    size_t nested_fors = 0, nested_whiles = 0;
     vector<string_view> stringtable;  // sized strings.
     vector<const Node *> node_context;
     vector<int> speclogvars;  // Index into specidents.
@@ -574,6 +574,11 @@ struct CodeGen  {
             : (dec ? LVO_WRITEREF : LVO_WRITE);
     }
 
+    void EmitKeep(int stack_offset, int keep_index_add) {
+        int opc = nested_fors || nested_whiles ? IL_KEEPREFLOOP : IL_KEEPREF;
+        Emit(opc, stack_offset, keepvars++ + StackDepth() + keep_index_add);
+    }
+
     void GenPushVar(size_t retval, TypeRef type, int offset) {
         if (!retval) return;
         if (IsStruct(type->t)) {
@@ -919,15 +924,14 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
             }
             if (decref & (1LL << i)) {
                 assert(IsRefNil(type->t));
-                int stack_depth = cg.StackDepth();
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask?
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t))
-                            cg.Emit(IL_KEEPREF, stack_offset + j, cg.keepvars++ + stack_depth);
+                            cg.EmitKeep(stack_offset + j, 0);
                     }
                 } else {
-                    cg.Emit(IL_KEEPREF, stack_offset, cg.keepvars++ + stack_depth);
+                    cg.EmitKeep(stack_offset, 0);
                 }
             }
         }
@@ -1004,7 +1008,8 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
             // decide to pass a nil lambda even if statically one is given.
             // These functions return the function they're passed + a string (if the function)
             // isn't nil), so we must store the string in a keepvar.
-            cg.Emit(IL_CALLVCOND, cg.keepvars++ + cg.StackDepth() + 2);
+            cg.EmitKeep(1, 2);
+            cg.Emit(IL_CALLVCOND);
             cg.SplitAttr(cg.Pos());
             assert(lastarg->exptype->t == V_FUNCTION);
             assert(!lastarg->exptype->sf->reqret);  // We never use the retval.
@@ -1213,11 +1218,13 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
 void While::Generate(CodeGen &cg, size_t retval) const {
     cg.SplitAttr(cg.Pos());
     auto loopback = cg.Pos();
+    cg.nested_whiles++;
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
     cg.Emit(IL_JUMPFAIL, 0);
     auto jumpout = cg.Pos();
     cg.Gen(body, 0);
+    cg.nested_whiles--;
     cg.Emit(IL_JUMP, loopback);
     cg.SetLabel(jumpout);
     cg.Dummy(retval);
