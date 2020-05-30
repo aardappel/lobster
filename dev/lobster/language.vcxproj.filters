@@ -80,6 +80,7 @@
     <None Include="..\src\bytecode.fbs">
       <Filter>common</Filter>
     </None>
+    <None Include="..\..\.editorconfig" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="NatvisFile.natvis" />

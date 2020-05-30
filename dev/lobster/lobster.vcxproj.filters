@@ -1194,6 +1194,7 @@
     <None Include="..\..\data\shaders\aa.materials">
       <Filter>engine\shaders</Filter>
     </None>
+    <None Include="..\..\.editorconfig" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="NatvisFile.natvis" />

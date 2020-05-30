@@ -1070,6 +1070,7 @@
     <ClCompile Include="..\src\steamworks.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\.editorconfig" />
     <None Include="..\..\data\shaders\aa.materials" />
     <None Include="..\..\data\shaders\default.materials" />
     <None Include="..\TODO.txt" />

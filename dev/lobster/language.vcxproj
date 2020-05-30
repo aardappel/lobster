@@ -178,6 +178,7 @@
     <ClCompile Include="..\src\vmlog.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\.editorconfig" />
     <None Include="..\src\bytecode.fbs" />
     <None Include="..\TODO.txt" />
   </ItemGroup>
