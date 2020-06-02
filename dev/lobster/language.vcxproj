@@ -223,6 +223,7 @@
     <ClInclude Include="..\src\lobster\typecheck.h" />
     <ClInclude Include="..\src\lobster\unicode.h" />
     <ClInclude Include="..\src\lobster\vmdata.h" />
+    <ClInclude Include="..\src\lobster\vmops.h" />
     <ClInclude Include="..\src\lobster\wasm_binary_writer.h" />
     <ClInclude Include="..\src\lobster\wentropy.h" />
     <ClInclude Include="..\src\lobster\wfc.h" />

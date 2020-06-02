@@ -2036,7 +2036,9 @@ VM64-MSVC:            : secs 19.1, 1.265x slower than 8700K (4)
 C++64-MSVC:           : secs 11.8, 1.18x slower than 8700K
 VM64-MSVC:            : secs 19.1, stack pointer instead of index, no change
 C++64-MSVC:           : secs  8.9, stack pointer instead of index, 32% faster!
-
+VM64-MSVC:            : secs 17.8, named inlining.
+C++64-MSVC:           : secs  7.6, named inlining.
+C++64-MSVC:           : secs  7.4, __force_inline on VM functions.
 
 compiletime speed:
 

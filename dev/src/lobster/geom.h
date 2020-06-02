@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_GEOM
+#define LOBSTER_GEOM
+
 namespace geom {
 
 #define PI 3.14159265f
@@ -946,3 +949,4 @@ inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t v
 
 }  // namespace geom
 
+#endif  // LOBSTER_GEOM

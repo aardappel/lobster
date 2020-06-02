@@ -739,18 +739,29 @@ struct VM : VMArgs {
     int64_t vm_count_bcalls = 0;
     int64_t vm_count_decref = 0;
 
+    #ifdef VM_COMPILED_CODE_MODE
+        #ifdef _WIN32
+            #define VM_STORAGE_MOD __forceinline
+        #else
+            #define VM_STORAGE_MOD inline __attribute__((always_inline))
+        #endif
+    #else
+        #define VM_STORAGE_MOD inline
+    #endif
+
     //#define VM_ERROR_RET_EXPERIMENT
     #if defined(VM_ERROR_RET_EXPERIMENT) && !defined(VM_COMPILED_CODE_MODE)
-        #define VM_INS_RET bool
+        #define VM_INS_RETF bool
         #define VM_RET return false
         #define VM_TERMINATE return true
     #else
-        #define VM_INS_RET void
+        #define VM_INS_RETF void
         #define VM_RET
         #define VM_TERMINATE
     #endif
+    #define VM_INS_RET VM_STORAGE_MOD VM_INS_RETF
 
-    typedef VM_INS_RET (VM::* f_ins_pointer)();
+    typedef VM_INS_RETF (VM::* f_ins_pointer)();
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
 
     const void *compiled_code_ip = nullptr;
@@ -816,15 +827,16 @@ struct VM : VMArgs {
         #define VM_OP_ARGS_CALL block_t fcont
         #define VM_IP_PASS_THRU ip
         #define VM_FC_PASS_THRU fcont
-        #define VM_JMP_RET bool
+        #define VM_JMP_RETF bool
     #else
         #define VM_COMMA
         #define VM_OP_ARGS
         #define VM_OP_ARGS_CALL
         #define VM_IP_PASS_THRU
         #define VM_FC_PASS_THRU
-        #define VM_JMP_RET VM_INS_RET
+        #define VM_JMP_RETF VM_INS_RETF
     #endif
+    #define VM_JMP_RET VM_STORAGE_MOD VM_JMP_RETF
 
     void JumpTo(InsPtr j);
     InsPtr GetIP();
@@ -884,34 +896,46 @@ struct VM : VMArgs {
     #define VM_CCOMMA_9 VM_COMMA
     #define VM_CCOMMA_IF(N) VM_CCOMMA_##N
 
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A)); \
-                    VM_INS_RET F_##N(VM_OP_ARGS) { \
-                        VM_OP_DEFSN(A); \
-                        return U_##N(VM_OP_PASSN(A)); \
-                    }
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A));
         LVALOPNAMES
     #undef F
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A)); \
-                    VM_INS_RET F_##N(VM_OP_ARGS) { \
-                        VM_OP_DEFSN(A); \
-                        return U_##N(VM_OP_PASSN(A)); \
-                    }
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A));
         ILBASENAMES
     #undef F
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A) VM_CCOMMA_IF(A) VM_OP_ARGS_CALL); \
-                    VM_INS_RET F_##N(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) { \
-                        VM_OP_DEFSN(A); \
-                        return U_##N(VM_OP_PASSN(A) VM_CCOMMA_IF(A) VM_FC_PASS_THRU); \
-                    }
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A) VM_CCOMMA_IF(A) VM_OP_ARGS_CALL);
              ILCALLNAMES
     #undef F
-    #define F(N, A) VM_JMP_RET U_##N(); VM_JMP_RET F_##N() { return U_##N(); }
+    #define F(N, A) VM_JMP_RET U_##N();
         ILJUMPNAMES
     #undef F
 
+    #ifndef VM_COMPILED_CODE_MODE
+        #define F(N, A) VM_INS_RETF F_##N(VM_OP_ARGS) { \
+                            VM_OP_DEFSN(A); \
+                            return U_##N(VM_OP_PASSN(A)); \
+                        }
+            LVALOPNAMES
+        #undef F
+        #define F(N, A) VM_INS_RETF F_##N(VM_OP_ARGS) { \
+                            VM_OP_DEFSN(A); \
+                            return U_##N(VM_OP_PASSN(A)); \
+                        }
+            ILBASENAMES
+        #undef F
+        #define F(N, A) VM_INS_RETF F_##N(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) { \
+                            VM_OP_DEFSN(A); \
+                            return U_##N(VM_OP_PASSN(A) VM_CCOMMA_IF(A) VM_FC_PASS_THRU); \
+                        }
+                 ILCALLNAMES
+        #undef F
+        #define F(N, A) VM_JMP_RETF F_##N() { return U_##N(); }
+            ILJUMPNAMES
+        #undef F
+    #endif
+
     #pragma push_macro("LVAL")
     #undef LVAL
-    #define LVAL(N, V) void LV_##N(Value &a VM_COMMA_IF(V) VM_OP_ARGSN(V));
+    #define LVAL(N, V) VM_STORAGE_MOD void LV_##N(Value &a VM_COMMA_IF(V) VM_OP_ARGSN(V));
         LVALOPNAMES
     #undef LVAL
     #pragma pop_macro("LVAL")
@@ -921,15 +945,15 @@ struct VM : VMArgs {
 
     VM_JMP_RET ForLoop(iint len);
 
-    Value &GetFieldLVal(iint i);
-    Value &GetFieldILVal(iint i);
-    Value &GetLocLVal(int i);
-    Value &GetVecLVal(iint i);
+    VM_STORAGE_MOD Value &GetFieldLVal(iint i);
+    VM_STORAGE_MOD Value &GetFieldILVal(iint i);
+    VM_STORAGE_MOD Value &GetLocLVal(int i);
+    VM_STORAGE_MOD Value &GetVecLVal(iint i);
 
-    void PushDerefIdxVector(iint i);
-    void PushDerefIdxVectorSub(iint i, int width, int offset);
-    void PushDerefIdxStruct(iint i, int l);
-    void PushDerefIdxString(iint i);
+    VM_STORAGE_MOD void PushDerefIdxVector(iint i);
+    VM_STORAGE_MOD void PushDerefIdxVectorSub(iint i, int width, int offset);
+    VM_STORAGE_MOD void PushDerefIdxStruct(iint i, int l);
+    VM_STORAGE_MOD void PushDerefIdxString(iint i);
     void LvalueIdxVector(int lvalop, iint i);
     void LvalueIdxStruct(int lvalop, iint i);
     void LvalueField(int lvalop, iint i);
@@ -1275,6 +1299,16 @@ struct LCoRoutine : RefObj {
         return vt;
     }
 };
+
+#if !defined(NDEBUG) && RTT_ENABLED
+    #define STRINGIFY(x) #x
+    #define TOSTRING(x) STRINGIFY(x)
+    #define VMASSERT(test) { if (!(test)) VMAssert(__FILE__ ": " TOSTRING(__LINE__) ": " #test); }
+#else
+    #define VMASSERT(test) {}
+#endif
+
+#define RANGECHECK(I, BOUND, VEC) if ((uint64_t)I >= (uint64_t)BOUND) IDXErr(I, BOUND, VEC);
 
 }  // namespace lobster
 

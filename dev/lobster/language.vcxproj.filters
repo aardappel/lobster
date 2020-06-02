@@ -200,5 +200,8 @@
     <ClInclude Include="..\src\lobster\wasm_binary_writer.h">
       <Filter>tonative</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\vmops.h">
+      <Filter>dvm</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -44,6 +44,7 @@ class CPPGenerator : public NativeGenerator {
         sd +=
             "#include \"lobster/stdafx.h\"\n"
             "#include \"lobster/vmdata.h\"\n"
+            "#include \"lobster/vmops.h\"\n"
             #if LOBSTER_ENGINE
                 "#include \"lobster/engine.h\"\n"
             #else
@@ -119,7 +120,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitConditionalJump(int opc, int id) override {
-        append(sd, "if (vm.F_", ILNames()[opc], "()) ");
+        append(sd, "if (vm.U_", ILNames()[opc], "()) ");
         EmitJump(id);
     }
 
