@@ -267,8 +267,6 @@ class WASMGenerator : public NativeGenerator {
 };
 
 string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecode_buffer) {
-    if (VM_DISPATCH_METHOD != VM_DISPATCH_TRAMPOLINE)
-        return "WASM codegen: can only use trampoline mode";
     WASMGenerator wasmgen(dest);
     return ToNative(natreg, wasmgen, bytecode_buffer);
 }

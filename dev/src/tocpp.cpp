@@ -21,20 +21,7 @@ namespace lobster {
 
 class CPPGenerator : public NativeGenerator {
     string &sd;
-    const int dispatch = VM_DISPATCH_METHOD;
     int tail_calls_in_a_row = 0;
-
-    string_view Block() {
-        return dispatch == VM_DISPATCH_TRAMPOLINE ? "block" : "";
-    }
-
-    void JumpInsVar() {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            sd += "return (void *)vm.next_call_target;";
-        } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            sd += "{ ip = vm.next_call_target; continue; }";
-        }
-    }
 
   public:
 
@@ -62,18 +49,11 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void DeclareBlock(int id) override {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            append(sd, "static void *block", id, "(lobster::VM &);\n");
-        }
+        append(sd, "static void *block", id, "(lobster::VM &);\n");
     }
 
-    void BeforeBlocks(int start_id, string_view /*bytecode_buffer*/) override {
+    void BeforeBlocks(int /*start_id*/, string_view /*bytecode_buffer*/) override {
         sd += "\n";
-        if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            append(sd, "static void *one_gigantic_function(lobster::VM &vm) {\n",
-                       "  lobster::block_t ip = ", start_id,
-                       ";\n  for(;;) switch(ip) {\n    default: assert(false); continue;\n");
-        }
     }
 
     void FunStart(const bytecode::Function *f) override {
@@ -82,11 +62,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void BlockStart(int id) override {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            append(sd, "static void *block", id, "(lobster::VM &vm) {\n");
-        } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            append(sd, "  case ", id, ": block_label", id, ":\n");
-        }
+        append(sd, "static void *block", id, "(lobster::VM &vm) {\n");
     }
 
     void InstStart() override {
@@ -94,28 +70,24 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitJump(int id) override {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            // FIXME: if we make all forward calls tail calls, then under
-            // WASM/Emscripten/V8, we occasionally run out of stack.
-            // This bounds the number of tail calls in a simple way,
-            // but this is not correct, in that call targets are not necessarily
-            // in linear order, though it should catch most long runs of calls.
-            // We really need to do this with an algorithm that better understands
-            // the call structure instead. Hopefully this bounding will allow
-            // us to keep some of the performance advantage of tail calls vs
-            // not doing them at all.
-            if (tail_calls_in_a_row > 10 || id <= current_block_id) {
-                // A backwards jump, go via the trampoline to be safe
-                // (just in-case the compiler doesn't optimize tail calls).
-                append(sd, "return (void *)block", id, ";");
-                tail_calls_in_a_row = 0;
-            } else {
-                // A forwards call, should be safe to tail-call.
-                append(sd, "return block", id, "(vm);");
-                tail_calls_in_a_row++;
-            }
-        } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            append(sd, "goto block_label", id, ";");
+        // FIXME: if we make all forward calls tail calls, then under
+        // WASM/Emscripten/V8, we occasionally run out of stack.
+        // This bounds the number of tail calls in a simple way,
+        // but this is not correct, in that call targets are not necessarily
+        // in linear order, though it should catch most long runs of calls.
+        // We really need to do this with an algorithm that better understands
+        // the call structure instead. Hopefully this bounding will allow
+        // us to keep some of the performance advantage of tail calls vs
+        // not doing them at all.
+        if (tail_calls_in_a_row > 10 || id <= current_block_id) {
+            // A backwards jump, go via the trampoline to be safe
+            // (just in-case the compiler doesn't optimize tail calls).
+            append(sd, "return (void *)block", id, ";");
+            tail_calls_in_a_row = 0;
+        } else {
+            // A forwards call, should be safe to tail-call.
+            append(sd, "return block", id, "(vm);");
+            tail_calls_in_a_row++;
         }
     }
 
@@ -136,7 +108,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void SetNextCallTarget(int id) override {
-        append(sd, "vm.next_call_target = ", Block(), id, "; ");
+        append(sd, "vm.next_call_target = block", id, "; ");
     }
 
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
@@ -151,7 +123,7 @@ class CPPGenerator : public NativeGenerator {
         }
         if (target >= 0) {
             if (arity) sd += ", ";
-            append(sd, Block(), target);
+            append(sd, "block", target);
         }
         sd += ");";
     }
@@ -162,13 +134,11 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitCallIndirect() override {
-        sd += " ";
-        JumpInsVar();
+        sd += " return (void *)vm.next_call_target;";
     }
 
     void EmitCallIndirectNull() override {
-        sd += " if (vm.next_call_target) ";
-        JumpInsVar();
+        sd += " if (vm.next_call_target) return (void *)vm.next_call_target; ";
     }
 
     void InstEnd() override {
@@ -176,27 +146,22 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void BlockEnd(int id, bool already_returned, bool is_exit) override {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            if (!already_returned) {
-                sd += "    { ";
-                if (is_exit) JumpInsVar(); else EmitJump(id);
-                sd += " }\n";
-            }
-            sd += "}\n";
+        if (!already_returned) {
+            sd += "    { ";
+            if (is_exit) sd += "return (void *)vm.next_call_target;"; else EmitJump(id);
+            sd += " }\n";
         }
+        sd += "}\n";
     }
 
     void CodeEnd() override {
-        if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            sd += "}\n}\n";  // End of gigantic function.
-        }
     }
 
     void VTables(vector<int> &vtables) override {
         sd += "\nstatic const lobster::block_t vtables[] = {\n";
         for (auto id : vtables) {
             sd += "    ";
-            if (id >= 0) append(sd, Block(), id);
+            if (id >= 0) append(sd, "block", id);
             else sd += "0";
             sd += ",\n";
         }
@@ -221,11 +186,7 @@ class CPPGenerator : public NativeGenerator {
             sd += "ConsoleRunCompiledCodeMain";
         #endif
         sd += "(argc, argv, (void *)";
-        if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            sd += "one_gigantic_function";
-        } else if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            append(sd, Block(), start_id);
-        }
+        append(sd, "block", start_id);
         append(sd, ", bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
     }
 

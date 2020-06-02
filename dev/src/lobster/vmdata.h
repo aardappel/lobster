@@ -29,11 +29,6 @@ namespace lobster {
 #define RTT_TYPE_ERRORS 0
 #endif
 
-// These are used with VM_COMPILED_CODE_MODE
-#define VM_DISPATCH_TRAMPOLINE 1
-#define VM_DISPATCH_SWITCH_GOTO 2
-#define VM_DISPATCH_METHOD VM_DISPATCH_TRAMPOLINE
-
 #define STRING_CONSTANTS_KEEP 0
 
 #define DELETE_DELAY 0
@@ -320,7 +315,7 @@ typedef void *(*block_base_t)(VM &);
 static_assert(sizeof(iint) == sizeof(double) && sizeof(iint) == sizeof(RefObjPtr),
               "typedefs need fixing");
 
-#if defined(VM_COMPILED_CODE_MODE) && VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
+#ifdef VM_COMPILED_CODE_MODE
     typedef BlockPtr block_t;
 #else
     typedef iint block_t;
