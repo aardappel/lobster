@@ -3135,7 +3135,7 @@ Node *Coercion::TypeCheck(TypeChecker &tc, size_t reqret) {
 }
 
 bool And::ConstVal(TypeChecker &tc, Value &val) const {
-    return left->ConstVal(tc, val) && (!val.True() || right->ConstVal(tc, val));
+    return left->ConstVal(tc, val) && (val.False() || right->ConstVal(tc, val));
 }
 
 bool Or::ConstVal(TypeChecker &tc, Value &val) const {
@@ -3144,7 +3144,7 @@ bool Or::ConstVal(TypeChecker &tc, Value &val) const {
 
 bool Not::ConstVal(TypeChecker &tc, Value &val) const {
     auto isconst = child->ConstVal(tc, val);
-    val = Value(!val.True());
+    val = Value(val.False());
     return isconst;
 }
 

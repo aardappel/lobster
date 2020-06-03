@@ -111,7 +111,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
             return;
         }
         case V_VECTOR:
-            if (!v->True()) break;
+            if (v->False()) break;
             if (ImGui::TreeNodeEx(*l ? l : "[]", flags)) {
                 auto &sti = vm.GetTypeInfo(ti.subt);
                 auto vec = v->vval();
@@ -122,7 +122,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
             }
             return;
         case V_CLASS:
-            if (!v->True()) break;
+            if (v->False()) break;
             v = v->oval()->Elems();  // To iterate it like a struct.
         case V_STRUCT_R:
         case V_STRUCT_S: {
@@ -175,7 +175,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
             return;
         }
         case V_STRING: {
-            if (!v->True()) break;
+            if (v->False()) break;
             *v = LStringInputText(vm, l, v->sval());
             return;
         }

@@ -92,7 +92,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitConditionalJump(int opc, int id) override {
-        append(sd, "if (vm.U_", ILNames()[opc], "(sp)) ");
+        append(sd, "vm.U_", ILNames()[opc], "(sp); if (VM_POP().False()) ");
         EmitJump(id);
     }
 

@@ -403,6 +403,7 @@ struct Value {
     inline Value(TypeInfo *ti)       : TYPE_INIT(V_STRUCT_S)   ti_(ti)          {}
 
     inline bool True() const { return ival_ != 0; }
+    inline bool False() const { return ival_ == 0; }
 
     inline Value &LTINCRT() {
         TYPE_ASSERT(IsRef(type) && ref_);
@@ -823,7 +824,6 @@ struct VM : VMArgs {
         #define VM_SP_PASS_THRU sp
         #define VM_IP_PASS_THRU ip
         #define VM_FC_PASS_THRU fcont
-        #define VM_JMP_RETF bool
         #define VM_OP_STATE Value *&sp
         #define VM_OP_STATEC Value *&sp,
     #else
@@ -833,11 +833,9 @@ struct VM : VMArgs {
         #define VM_SP_PASS_THRU
         #define VM_IP_PASS_THRU
         #define VM_FC_PASS_THRU
-        #define VM_JMP_RETF VM_INS_RETF
         #define VM_OP_STATE
         #define VM_OP_STATEC
     #endif
-    #define VM_JMP_RET VM_STORAGE_MOD VM_JMP_RETF
 
     void JumpTo(InsPtr j);
     InsPtr GetIP();
@@ -907,7 +905,7 @@ struct VM : VMArgs {
     #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE VM_CCOMMA_IF(A) VM_OP_ARGSN(A) VM_COMMA VM_OP_ARGS_CALL);
         ILCALLNAMES
     #undef F
-    #define F(N, A) VM_JMP_RET U_##N(VM_OP_STATE);
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE);
         ILJUMPNAMES
     #undef F
 
@@ -930,7 +928,7 @@ struct VM : VMArgs {
                         }
                  ILCALLNAMES
         #undef F
-        #define F(N, A) VM_JMP_RETF F_##N() { return U_##N(); }
+        #define F(N, A) VM_INS_RETF F_##N() { return U_##N(); }
             ILJUMPNAMES
         #undef F
     #endif
@@ -945,7 +943,7 @@ struct VM : VMArgs {
     void EvalProgram();
     void EvalProgramInner();
 
-    VM_JMP_RET ForLoop(iint len);
+    VM_INS_RET ForLoop(iint len);
 
     VM_STORAGE_MOD Value &GetFieldLVal(iint i);
     VM_STORAGE_MOD Value &GetFieldILVal(iint i);
@@ -1110,7 +1108,7 @@ inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {
 }
 
 template<typename T> inline T GetResourceDec(VM &vm, const Value &val, const ResourceType *type) {
-    if (!val.True())
+    if (val.False())
         return nullptr;
     auto x = val.xval();
     if (x->type != type)

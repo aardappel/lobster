@@ -400,7 +400,11 @@ InsPtr VM::GetIP() {
 template<int is_error> int VM::VarCleanup(string *error, int towhere) {
     (void)error;
     auto &stf = stackframes.back();
-    if constexpr (!is_error) VMASSERT(sp - stack == stf.spstart);
+    if constexpr (!is_error) {
+        auto depth = sp - stack;
+        VMASSERT(depth == stf.spstart);
+        (void)depth;
+    }
     auto fip = stf.funstart;
     fip++;  // function id.
     auto nargs = *fip++;
@@ -1014,7 +1018,7 @@ block_t CVM_GetNextCallTarget(VM *vm) {
 #undef F
 #define F(N, A) \
     bool CVM_##N(VM *vm) { \
-        CHECKJ(N); return vm->U_##N(vm->sp); }
+        CHECKJ(N); vm->U_##N(vm->sp); return (*vm->sp--).False(); }  // FIXME: clean up!
     ILJUMPNAMES
 #undef F
 

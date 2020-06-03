@@ -624,7 +624,7 @@ nfr("gl_ortho", "rh,depth", "I?I?", "",
     " Pass true to rh have (0,0) bottom-left instead."
     " Pass true to depth to have depth testing/writing on.",
     [](VM &, Value &rh, Value &depth) {
-        Set2DMode(GetFrameBufferSize(GetScreenSize()), !rh.True(), depth.True());
+        Set2DMode(GetFrameBufferSize(GetScreenSize()), rh.False(), depth.True());
         return Value();
     });
 

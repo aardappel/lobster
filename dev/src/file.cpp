@@ -142,7 +142,7 @@ nfr("read_file", "file,textmode", "SI?", "S?",
     " you may use either \\ or / as path separators",
     [](VM &vm, Value &file, Value &textmode) {
         string buf;
-        auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, !textmode.True());
+        auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, textmode.False());
         if (l < 0) return Value();
         auto s = vm.NewString(buf);
         return Value(s);
@@ -151,7 +151,7 @@ nfr("read_file", "file,textmode", "SI?", "S?",
 nfr("write_file", "file,contents,textmode", "SSI?", "B",
     "creates a file with the contents of a string, returns false if writing wasn't possible",
     [](VM &, Value &file, Value &contents, Value &textmode) {
-        auto ok = WriteFile(file.sval()->strv(), !textmode.True(), contents.sval()->strv());
+        auto ok = WriteFile(file.sval()->strv(), textmode.False(), contents.sval()->strv());
         return Value(ok);
     });
 
@@ -326,7 +326,7 @@ nfr("flatbuffers_binary_to_json", "schemas,binary,includedirs", "SSS]", "SS?",
         flatbuffers::Parser parser;
         auto err = ParseSchemas(vm, parser, schema, includes);
         string json;
-        if (!err.True() && !GenerateText(parser, binary.sval()->data(), &json)) {
+        if (err.False() && !GenerateText(parser, binary.sval()->data(), &json)) {
             err = vm.NewString("unable to generate text for FlatBuffer binary");
         }
         vm.Push(vm.NewString(json));
@@ -341,7 +341,7 @@ nfr("flatbuffers_json_to_binary", "schema,json,includedirs", "SSS]", "SS?",
         flatbuffers::Parser parser;
         auto err = ParseSchemas(vm, parser, schema, includes);
         string binary;
-        if (!err.True()) {
+        if (err.False()) {
             if (!parser.Parse(json.sval()->data())) {
                 err = vm.NewString(parser.error_);
             } else {

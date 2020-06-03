@@ -326,7 +326,7 @@ nfr("all", "xs", "A]*", "B",
     [](VM &, Value &v) {
         Value r(true);
         for (iint i = 0; i < v.vval()->len; i++) {
-            if (!v.vval()->At(i).True()) { r = Value(false); break; }
+            if (v.vval()->At(i).False()) { r = Value(false); break; }
         }
         return r;
     });
@@ -1148,7 +1148,7 @@ nfr("seconds_elapsed", "", "", "F",
 nfr("assert", "condition", "A*", "Ab1",
     "halts the program with an assertion failure if passed false. returns its input",
     [](VM &vm, Value &c) {
-        if (!c.True()) vm.BuiltinError("assertion failed");
+        if (c.False()) vm.BuiltinError("assertion failed");
         return c;
     });
 

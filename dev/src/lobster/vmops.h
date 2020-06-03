@@ -103,7 +103,7 @@ VM_INS_RET VM::U_CALL(VM_OP_STATEC int f VM_COMMA VM_OP_ARGS_CALL) {
 
 VM_INS_RET VM::U_CALLVCOND(VM_OP_STATEC VM_OP_ARGS_CALL) {
     // FIXME: don't need to check for function value again below if false
-    if (!VM_TOP().True()) {
+    if (VM_TOP().False()) {
         VM_POP();
         #ifdef VM_COMPILED_CODE_MODE
             next_call_target = 0;
@@ -181,7 +181,7 @@ VM_INS_RET VM::U_CONT1(VM_OP_STATEC int nfi) {
     VM_RET;
 }
 
-VM_JMP_RET VM::ForLoop(iint len) {
+VM_INS_RET VM::ForLoop(iint len) {
     #ifndef VM_COMPILED_CODE_MODE
         auto cont = *ip++;
     #endif
@@ -190,7 +190,7 @@ VM_JMP_RET VM::ForLoop(iint len) {
     i.setival(i.ival() + 1);
     if (i.ival() < len) {
         #ifdef VM_COMPILED_CODE_MODE
-            return true;
+            VM_PUSH(false);
         #else
             ip = cont + codestart;
         #endif
@@ -198,7 +198,7 @@ VM_JMP_RET VM::ForLoop(iint len) {
         (void)VM_POP(); /* iter */
         (void)VM_POP(); /* i */
         #ifdef VM_COMPILED_CODE_MODE
-            return false;
+            VM_PUSH(true);
         #endif
     }
 }
@@ -208,9 +208,9 @@ VM_JMP_RET VM::ForLoop(iint len) {
     auto i = VM_TOPM(1).ival(); \
     assert(i < L); \
 
-VM_JMP_RET VM::U_IFOR(VM_OP_STATE) { return ForLoop(VM_TOP().ival()); VM_RET; }
-VM_JMP_RET VM::U_VFOR(VM_OP_STATE) { return ForLoop(VM_TOP().vval()->len); VM_RET; }
-VM_JMP_RET VM::U_SFOR(VM_OP_STATE) { return ForLoop(VM_TOP().sval()->len); VM_RET; }
+VM_INS_RET VM::U_IFOR(VM_OP_STATE) { return ForLoop(VM_TOP().ival()); VM_RET; }
+VM_INS_RET VM::U_VFOR(VM_OP_STATE) { return ForLoop(VM_TOP().vval()->len); VM_RET; }
+VM_INS_RET VM::U_SFOR(VM_OP_STATE) { return ForLoop(VM_TOP().sval()->len); VM_RET; }
 
 VM_INS_RET VM::U_IFORELEM(VM_OP_STATE)    { FORELEM(iter.ival()); (void)iter; VM_PUSH(i); VM_RET; }
 VM_INS_RET VM::U_VFORELEM(VM_OP_STATE)    { FORELEM(iter.vval()->len); iter.vval()->AtVW(*this, i); VM_RET; }
@@ -273,7 +273,7 @@ BCALLOP(7, auto a6 = VM_POP();auto a5 = VM_POP();auto a4 = VM_POP();auto a3 = VM
 VM_INS_RET VM::U_ASSERTR(VM_OP_STATEC int line, int fileidx, int stringidx) {
     (void)line;
     (void)fileidx;
-    if (!VM_TOP().True()) {
+    if (VM_TOP().False()) {
         Error(cat(
             #ifdef VM_COMPILED_CODE_MODE
                 bcf->filenames()->Get(fileidx)->string_view(), "(", line, "): ",
@@ -509,7 +509,7 @@ VM_INS_RET VM::U_FVUMINUS(VM_OP_STATEC int len) {
 
 VM_INS_RET VM::U_LOGNOT(VM_OP_STATE) {
     Value a = VM_POP();
-    VM_PUSH(!a.True());
+    VM_PUSH(a.False());
     VM_RET;
 }
 VM_INS_RET VM::U_LOGNOTREF(VM_OP_STATE) {
@@ -630,18 +630,18 @@ VM_INS_RET VM::U_PUSHLOCV(VM_OP_STATEC int i, int l) {
 }
 
 #ifdef VM_COMPILED_CODE_MODE
-    #define GJUMP(N, V, C, P) VM_JMP_RET VM::U_##N(VM_OP_STATE) \
-        { V; if (C) { P; return true; } else { return false; } }
+VM_INS_RET VM::U_JUMP(VM_OP_STATE) { VM_PUSH(false); }
+VM_INS_RET VM::U_JUMPFAIL(VM_OP_STATE) { }
+VM_INS_RET VM::U_JUMPFAILR(VM_OP_STATE) { auto x = VM_TOP(); if (x.False()) VM_PUSH(x); }
+VM_INS_RET VM::U_JUMPNOFAIL(VM_OP_STATE) { auto x = VM_POP(); VM_PUSH(x.False()); }
+VM_INS_RET VM::U_JUMPNOFAILR(VM_OP_STATE) { auto x = VM_POP(); if (x.True()) VM_PUSH(x); VM_PUSH(x.False()); }
 #else
-    #define GJUMP(N, V, C, P) VM_JMP_RET VM::U_##N() \
-        { V; auto nip = *ip++; if (C) { ip = codestart + nip; P; } VM_RET; }
+VM_INS_RET VM::U_JUMP() { auto nip = *ip++; ip = codestart + nip; VM_RET; }
+VM_INS_RET VM::U_JUMPFAIL() { auto x = VM_POP(); auto nip = *ip++; if (x.False()) { ip = codestart + nip; } VM_RET; }
+VM_INS_RET VM::U_JUMPFAILR() { auto x = VM_POP(); auto nip = *ip++; if (x.False()) { ip = codestart + nip; VM_PUSH(x); } VM_RET; }
+VM_INS_RET VM::U_JUMPNOFAIL() { auto x = VM_POP(); auto nip = *ip++; if (x.True()) { ip = codestart + nip; } VM_RET; }
+VM_INS_RET VM::U_JUMPNOFAILR() { auto x = VM_POP(); auto nip = *ip++; if (x.True()) { ip = codestart + nip; VM_PUSH(x); } VM_RET; }
 #endif
-
-GJUMP(JUMP       ,                  , true     ,                 )
-GJUMP(JUMPFAIL   , auto x = VM_POP(), !x.True(),                 )
-GJUMP(JUMPFAILR  , auto x = VM_POP(), !x.True(), VM_PUSH(x)      )
-GJUMP(JUMPNOFAIL , auto x = VM_POP(),  x.True(),                 )
-GJUMP(JUMPNOFAILR, auto x = VM_POP(),  x.True(), VM_PUSH(x)      )
 
 VM_INS_RET VM::U_JUMP_TABLE(VM_OP_STATEC int mini, int maxi, int table_start) {
     auto val = VM_POP().ival();
