@@ -550,7 +550,7 @@ void VM::CoNonRec(const int *varip) {
     // this check guarantees all saved stack vars are undef.
 }
 
-void VM::CoNew(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
+void VM::CoNew(VM_OP_STATEC VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
     #ifdef VM_COMPILED_CODE_MODE
         ip++;
         InsPtr returnip(fcont);
@@ -999,22 +999,22 @@ block_t CVM_GetNextCallTarget(VM *vm) {
 
 #define F(N, A) \
     void CVM_##N(VM *vm VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(VM_OP_PASSN(A)); }
+        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(vm->sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
     LVALOPNAMES
 #undef F
 #define F(N, A) \
     void CVM_##N(VM *vm VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(VM_OP_PASSN(A)); }
+        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(vm->sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
     ILBASENAMES
 #undef F
 #define F(N, A) \
     void CVM_##N(VM *vm VM_COMMA_IF(A) VM_OP_ARGSN(A), block_t fcont) { \
-        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
+        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(vm->sp VM_COMMA VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
     ILCALLNAMES
 #undef F
 #define F(N, A) \
     bool CVM_##N(VM *vm) { \
-        CHECKJ(N); return vm->U_##N(); }
+        CHECKJ(N); return vm->U_##N(vm->sp); }
     ILJUMPNAMES
 #undef F
 

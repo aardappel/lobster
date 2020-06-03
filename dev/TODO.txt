@@ -246,6 +246,27 @@
   - and for more speed, analyze functions that are not participating in being free vars etc,
     and assign them to "locals" to really speed up Wasm/C++ modes.
     - This may need to first change how we deal with variables on the stack in the first place.
+- the compiled C++ code under VS is really dumb: keeps loading things over the VM pointer.
+  for this to inline nicely, we have to pass important state as arguments:
+  - "vars" would be easiest since it is never modified, but initial tests showed a tiny slowdown
+    when passing just this var, since it is only used by very few ops (even though PUSHVAR is very
+    frequent)
+  - "sp" would be even more fruitful, but simple passing requires it to be passed as &, and
+    that causes VS to load and store it to memory on every access, just like when it was loaded
+    over "vm", and is not actually any faster either.
+    Passing "sp" as non-ref does appear to improve code significantly (often half size in x64 ins),
+    but this requires that ALL functions correctly pass it on and return it as well, which is very
+    significant refactoring.
+  - The second biggest gains after "sp" would come from "ip", but again there would need to be
+    passed as return value.
+    Actually, not sure this is a gain at all, since C++ compiled code doesn't access it on every
+    instruction.
+  - This is also made worse by VS not having an efficient way to return
+    2 values: std::pair becomes a reference argument which is again inefficient (gcc and clang
+    can instead return 2 regiters)
+  - This is probably better to re-evaluate after making function calling an local control flow
+    not use the trampoline, which will make a lot of these instances of passing on state simpler
+    and more effective.
 
 - Good errors are increasingly an important programming language feature, should at some point
   invest in an overhaul. See Rust and Elm in particular.

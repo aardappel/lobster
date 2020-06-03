@@ -820,16 +820,22 @@ struct VM : VMArgs {
         #define VM_COMMA ,
         #define VM_OP_ARGS const int *ip
         #define VM_OP_ARGS_CALL block_t fcont
+        #define VM_SP_PASS_THRU sp
         #define VM_IP_PASS_THRU ip
         #define VM_FC_PASS_THRU fcont
         #define VM_JMP_RETF bool
+        #define VM_OP_STATE Value *&sp
+        #define VM_OP_STATEC Value *&sp,
     #else
         #define VM_COMMA
         #define VM_OP_ARGS
         #define VM_OP_ARGS_CALL
+        #define VM_SP_PASS_THRU
         #define VM_IP_PASS_THRU
         #define VM_FC_PASS_THRU
         #define VM_JMP_RETF VM_INS_RETF
+        #define VM_OP_STATE
+        #define VM_OP_STATEC
     #endif
     #define VM_JMP_RET VM_STORAGE_MOD VM_JMP_RETF
 
@@ -843,7 +849,7 @@ struct VM : VMArgs {
 
     void CoVarCleanup(LCoRoutine *co);
     void CoNonRec(const int *varip);
-    void CoNew(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL);
+    void CoNew(VM_OP_STATEC VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL);
     void CoSuspend(InsPtr retip);
     void CoClean();
     void CoYield(VM_OP_ARGS_CALL);
@@ -888,19 +894,20 @@ struct VM : VMArgs {
     #define VM_CCOMMA_0
     #define VM_CCOMMA_1 VM_COMMA
     #define VM_CCOMMA_2 VM_COMMA
+    #define VM_CCOMMA_3 VM_COMMA
     #define VM_CCOMMA_9 VM_COMMA
     #define VM_CCOMMA_IF(N) VM_CCOMMA_##N
 
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A));
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE VM_CCOMMA_IF(A) VM_OP_ARGSN(A));
         LVALOPNAMES
     #undef F
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A));
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE VM_CCOMMA_IF(A) VM_OP_ARGSN(A));
         ILBASENAMES
     #undef F
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A) VM_CCOMMA_IF(A) VM_OP_ARGS_CALL);
-             ILCALLNAMES
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE VM_CCOMMA_IF(A) VM_OP_ARGSN(A) VM_COMMA VM_OP_ARGS_CALL);
+        ILCALLNAMES
     #undef F
-    #define F(N, A) VM_JMP_RET U_##N();
+    #define F(N, A) VM_JMP_RET U_##N(VM_OP_STATE);
         ILJUMPNAMES
     #undef F
 

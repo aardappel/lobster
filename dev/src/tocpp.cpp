@@ -62,7 +62,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void BlockStart(int id) override {
-        append(sd, "static void *block", id, "(lobster::VM &vm) {\n");
+        append(sd, "static void *block", id, "(lobster::VM &vm) {\n    auto &sp = vm.sp;\n");
     }
 
     void InstStart() override {
@@ -92,7 +92,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitConditionalJump(int opc, int id) override {
-        append(sd, "if (vm.U_", ILNames()[opc], "()) ");
+        append(sd, "if (vm.U_", ILNames()[opc], "(sp)) ");
         EmitJump(id);
     }
 
@@ -112,17 +112,17 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
-        append(sd, "vm.U_", ILNames()[opc], "(");
+        append(sd, "vm.U_", ILNames()[opc], "(sp");
         if (is_vararg) {
-            sd += "args";
+            sd += ", args";
         } else {
             for (int i = 0; i < arity; i++) {
-                if (i) sd += ", ";
+                sd += ", ";
                 append(sd, args[i]);
             }
         }
         if (target >= 0) {
-            if (arity) sd += ", ";
+            sd += ", ";
             append(sd, "block", target);
         }
         sd += ");";
