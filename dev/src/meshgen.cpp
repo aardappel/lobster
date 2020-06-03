@@ -680,7 +680,7 @@ void AddMeshGen(NativeRegistry &nfr) {
 
 nfr("mg_sphere", "radius", "F", "",
     "a sphere",
-    [](VM &, Value &rad) {
+    [](StackPtr &, VM &, Value &rad) {
         auto s = new IFSphere();
         s->rad = rad.fltval();
         return AddShape(s);
@@ -688,15 +688,15 @@ nfr("mg_sphere", "radius", "F", "",
 
 nfr("mg_cube", "extents", "F}:3", "",
     "a cube (extents are size from center)",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         auto c = new IFCube();
-        c->extents = vm.PopVec<float3>();
-        vm.Push(AddShape(c));
+        c->extents = PopVec<float3>(sp);
+        Push(sp,  AddShape(c));
     });
 
 nfr("mg_cylinder", "radius,height", "FF", "",
     "a unit cylinder (height is from center)",
-    [](VM &, Value &radius, Value &height) {
+    [](StackPtr &, VM &, Value &radius, Value &height) {
         auto c = new IFCylinder();
         c->radius = radius.fltval();
         c->height = height.fltval();
@@ -705,7 +705,7 @@ nfr("mg_cylinder", "radius,height", "FF", "",
 
 nfr("mg_tapered_cylinder", "bot,top,height", "FFF", "",
     "a cyclinder where you specify the top and bottom radius (height is from center)",
-    [](VM &, Value &bot, Value &top, Value &height) {
+    [](StackPtr &, VM &, Value &bot, Value &top, Value &height) {
         auto tc = new IFTaperedCylinder();
         tc->bot = bot.fltval();
         tc->top = top.fltval();
@@ -716,37 +716,37 @@ nfr("mg_tapered_cylinder", "bot,top,height", "FFF", "",
 nfr("mg_superquadric", "exponents,scale", "F}:3F}:3", "",
     "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
     " squares",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         auto sq = new IFSuperQuadric();
-        sq->scale = vm.PopVec<float3>();
-        sq->exp = vm.PopVec<float3>();
+        sq->scale = PopVec<float3>(sp);
+        sq->exp = PopVec<float3>(sp);
         AddShape(sq);
     });
 
 nfr("mg_superquadric_non_uniform", "posexponents,negexponents,posscale,negscale", "F}:3F}:3F}:3F}:3", "",
     "a superquadric that allows you to specify exponents and sizes in all 6 directions"
     " independently for maximum modelling possibilities",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         auto sq = new IFSuperQuadricNonUniform();
-        sq->scaleneg = max(float3(0.01f), vm.PopVec<float3>());
-        sq->scalepos = max(float3(0.01f), vm.PopVec<float3>());
-        sq->expneg   = vm.PopVec<float3>();
-        sq->exppos   = vm.PopVec<float3>();
+        sq->scaleneg = max(float3(0.01f), PopVec<float3>(sp));
+        sq->scalepos = max(float3(0.01f), PopVec<float3>(sp));
+        sq->expneg   = PopVec<float3>(sp);
+        sq->exppos   = PopVec<float3>(sp);
         AddShape(sq);
     });
 
 nfr("mg_supertoroid", "R,exponents", "FF}:3", "",
     "a super toroid. R is the distance from the origin to the center of the ring.",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         auto t = new IFSuperToroid();
-        t->exp = vm.PopVec<float3>();
-        t->r = vm.Pop().fltval();
+        t->exp = PopVec<float3>(sp);
+        t->r = Pop(sp).fltval();
         AddShape(t);
     });
 
 nfr("mg_landscape", "zscale,xyscale", "FF", "",
     "a simplex landscape of unit size",
-    [](VM &, Value &zscale, Value &xyscale) {
+    [](StackPtr &, VM &, Value &zscale, Value &xyscale) {
         auto ls = new IFLandscape();
         ls->zscale = zscale.fltval();
         ls->xyscale = xyscale.fltval();
@@ -759,7 +759,7 @@ nfr("mg_set_polygon_reduction", "polyreductionpasses,epsilon,maxtricornerdot", "
     " determines how flat adjacent triangles must be to be reduced, use 0.98 as a good"
     " tradeoff, lower to get more compression. maxtricornerdot avoid very thin triangles, use"
     " 0.95 as a good tradeoff, up to 0.99 to get more compression",
-    [](VM &, Value &_polyreductionpasses, Value &_epsilon,
+    [](StackPtr &, VM &, Value &_polyreductionpasses, Value &_epsilon,
                                         Value &_maxtricornerdot) {
         polyreductionpasses = _polyreductionpasses.intval();
         epsilon = _epsilon.fltval();
@@ -770,7 +770,7 @@ nfr("mg_set_polygon_reduction", "polyreductionpasses,epsilon,maxtricornerdot", "
 nfr("mg_set_color_noise", "noiseintensity,noisestretch", "FF", "",
     "applies simplex noise to the colors of the model. try 0.3 for intensity."
     " stretch scales the pattern over the model",
-    [](VM &, Value &_noiseintensity, Value &_noisestretch) {
+    [](StackPtr &, VM &, Value &_noiseintensity, Value &_noisestretch) {
         noisestretch = _noisestretch.fltval();
         noiseintensity = _noiseintensity.fltval();
         return Value();
@@ -780,14 +780,14 @@ nfr("mg_set_vertex_randomize", "factor", "F", "",
     "randomizes all verts produced to give a more organic look and to hide the inherent messy"
     " polygons produced by the algorithm. try 0.15. note that any setting other than 0 will"
     " likely counteract the polygon reduction algorithm",
-    [](VM &, Value &factor) {
+    [](StackPtr &, VM &, Value &factor) {
         randomizeverts = factor.fltval();
         return Value();
     });
 
 nfr("mg_set_point_mode", "on", "B", "",
     "generates a point mesh instead of polygons",
-    [](VM &, Value &aspoints) {
+    [](StackPtr &, VM &, Value &aspoints) {
         pointmode = aspoints.True();
         return Value();
     });
@@ -797,7 +797,7 @@ nfr("mg_polygonize", "subdiv", "I", "R",
     " subdiv determines detail and number of polygons (relative to the largest dimension of the"
     " model), try 30.. 300 depending on the subject."
     " values much higher than that will likely make you run out of memory (or take very long).",
-    [](VM &vm, Value &subdiv) {
+    [](StackPtr &, VM &vm, Value &subdiv) {
         return eval_and_polygonize(vm, subdiv.intval(), 0, true);
     });
 
@@ -805,88 +805,88 @@ nfr("mg_convert_to_cubes", "subdiv,zoffset", "II", "R",
     "returns a cubegen block (see cg_ functions) from past mg_ commands."
     " subdiv determines detail and number of cubes (relative to the largest dimension of the"
     " model).",
-    [](VM &vm, Value &subdiv, Value &zoffset) {
+    [](StackPtr &, VM &vm, Value &subdiv, Value &zoffset) {
         return eval_and_polygonize(vm, subdiv.intval(), zoffset.intval(), false);
     });
 
 nfr("mg_translate", "vec,body", "F}:3L?", "",
     "translates the current coordinate system along a vector. when a body is given,"
     " restores the previous transform afterwards",
-    [](VM &vm) {
-        auto body = vm.Pop();
-        auto v = vm.PopVec<float3>();
-        if (body.True()) vm.PushAnyAsString(curorig);
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto v = PopVec<float3>(sp);
+        if (body.True()) PushAnyAsString(sp, vm, curorig);
         // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
         curorig += currot * (v * cursize);
-        vm.Push(body);
-    }, [](VM &vm) {
-        vm.PopAnyFromString(curorig);
+        Push(sp,  body);
+    }, [](StackPtr &sp, VM &) {
+        PopAnyFromString(sp, curorig);
     });
 
 nfr("mg_scale", "f,body", "FL?", "",
     "scales the current coordinate system by the given factor."
     " when a body is given, restores the previous transform afterwards",
-    [](VM &vm) {
-        auto body = vm.Pop();
-        auto f = vm.Pop().fltval();
-        if (body.True()) vm.PushAnyAsString(cursize);
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto f = Pop(sp).fltval();
+        if (body.True()) PushAnyAsString(sp, vm, cursize);
         cursize *= f;
-        vm.Push(body);
-    }, [](VM &vm) {
-        vm.PopAnyFromString(cursize);
+        Push(sp,  body);
+    }, [](StackPtr &sp, VM &) {
+        PopAnyFromString(sp, cursize);
     });
 
 nfr("mg_scale_vec", "vec,body", "F}:3L?", "",
     "non-unimformly scales the current coordinate system using individual factors per axis."
     " when a body is given, restores the previous transform afterwards",
-    [](VM &vm) {
-        auto body = vm.Pop();
-        auto v = vm.PopVec<float3>();
-        if (body.True()) vm.PushAnyAsString(cursize);
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto v = PopVec<float3>(sp);
+        if (body.True()) PushAnyAsString(sp, vm, cursize);
         cursize *= v;
-        vm.Push(body);
-    }, [](VM &vm) {
-        vm.PopAnyFromString(cursize);
+        Push(sp,  body);
+    }, [](StackPtr &sp, VM &) {
+        PopAnyFromString(sp, cursize);
     });
 
 nfr("mg_rotate", "axis,angle,body", "F}:3FL?", "",
     "rotates using axis/angle. when a body is given, restores the previous transform"
     " afterwards",
-    [](VM &vm) {
-        auto body = vm.Pop();
-        auto angle = vm.Pop().fltval();
-        auto axis = vm.PopVec<float3>();
-        if (body.True()) vm.PushAnyAsString(currot);
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto angle = Pop(sp).fltval();
+        auto axis = PopVec<float3>(sp);
+        if (body.True()) PushAnyAsString(sp, vm, currot);
         currot *= float3x3(angle * RAD, axis);
-        vm.Push(body);
-    }, [](VM &vm) {
-        vm.PopAnyFromString(currot);
+        Push(sp,  body);
+    }, [](StackPtr &sp, VM &) {
+        PopAnyFromString(sp, currot);
     });
 
 nfr("mg_color", "color,body", "F}:4L?", "",
     "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
     " substracts them (carves). when a body is given, restores the previous color afterwards.",
-    [](VM &vm) {
-        auto body = vm.Pop();
-        auto v = vm.PopVec<float4>();
-        if (body.True()) vm.PushAnyAsString(curcol);
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto v = PopVec<float4>(sp);
+        if (body.True()) PushAnyAsString(sp, vm, curcol);
         curcol = v;
-        vm.Push(body);
-    }, [](VM &vm) {
-        vm.PopAnyFromString(curcol);
+        Push(sp,  body);
+    }, [](StackPtr &sp, VM &) {
+        PopAnyFromString(sp, curcol);
     });
 
 nfr("mg_smooth", "smooth,body", "FL?", "",
     "sets the smoothness in terms of the range of distance from the shape smoothing happens."
     " when a body is given, restores the previous value afterwards.",
-    [](VM &vm) {
-        auto body = vm.Pop();
-        auto smooth = vm.Pop().fltval();
-        if (body.True()) vm.PushAnyAsString(cursmoothmink);
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto smooth = Pop(sp).fltval();
+        if (body.True()) PushAnyAsString(sp, vm, cursmoothmink);
         cursmoothmink = smooth;
-        vm.Push(body);
-    }, [](VM &vm) {
-        vm.PopAnyFromString(cursmoothmink);
+        Push(sp,  body);
+    }, [](StackPtr &sp, VM &) {
+        PopAnyFromString(sp, cursmoothmink);
     });
 
 }  // AddMeshGen

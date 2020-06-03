@@ -323,7 +323,8 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     if (dump_names) DumpBuiltins(nfr, true, st);
 }
 
-Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<string> &args) {
+Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringiscode,
+                 const vector<string> &args) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
     #ifdef USE_EXCEPTION_HANDLING
     try
@@ -342,12 +343,12 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
         VM vm(std::move(vmargs));
         vm.EvalProgram();
         auto ret = vm.evalret;
-        parent_vm.Push(Value(parent_vm.NewString(ret)));
+        Push(parent_sp, Value(parent_vm.NewString(ret)));
         return Value();
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        parent_vm.Push(Value(parent_vm.NewString("nil")));
+        Push(parent_sp, Value(parent_vm.NewString("nil")));
         return Value(parent_vm.NewString(s));
     }
     #endif
@@ -361,14 +362,14 @@ nfr("compile_run_code", "code,args", "SS]", "SS?",
     " with an error string as second return value, or nil if none. using parse_data(),"
     " two program can communicate more complex data structures even if they don't have the same"
     " version of struct definitions.",
-    [](VM &vm, Value &filename, Value &args) {
-        return CompileRun(vm, filename, true, ValueToVectorOfStrings(args));
+    [](StackPtr &sp, VM &vm, Value &filename, Value &args) {
+        return CompileRun(vm, sp, filename, true, ValueToVectorOfStrings(args));
     });
 
 nfr("compile_run_file", "filename,args", "SS]", "SS?",
     "same as compile_run_code(), only now you pass a filename.",
-    [](VM &vm, Value &filename, Value &args) {
-        return CompileRun(vm, filename, false, ValueToVectorOfStrings( args));
+    [](StackPtr &sp, VM &vm, Value &filename, Value &args) {
+        return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings( args));
     });
 
 }
@@ -381,7 +382,7 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
 }
 
 VMArgs CompiledInit(int argc, char *argv[], const void *entry_point, const void *bytecodefb,
-                    size_t static_size, const lobster::block_t *vtables, FileLoader loader,
+                    size_t static_size, const lobster::block_base_t *vtables, FileLoader loader,
                     NativeRegistry &nfr) {
     min_output_level = OUTPUT_INFO;
     InitPlatform("../../", "", false, loader);  // FIXME: path.
@@ -395,7 +396,7 @@ VMArgs CompiledInit(int argc, char *argv[], const void *entry_point, const void 
 
 extern "C" int ConsoleRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
                                           const void *bytecodefb, size_t static_size,
-                                          const lobster::block_t *vtables) {
+                                          const lobster::block_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif

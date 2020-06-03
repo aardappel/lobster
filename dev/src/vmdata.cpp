@@ -96,11 +96,11 @@ void LVector::Append(VM &vm, LVector *from, iint start, iint amount) {
     len += amount;
 }
 
-void LVector::Remove(VM &vm, iint i, iint n, iint decfrom, bool stack_ret) {
+void LVector::Remove(StackPtr &sp, VM &vm, iint i, iint n, iint decfrom, bool stack_ret) {
     assert(n >= 0 && n <= len && i >= 0 && i <= len - n);
     if (stack_ret) {
-        tsnz_memcpy(vm.TopPtr(), v + i * width, width);
-        vm.PushN((int)width);
+        tsnz_memcpy(TopPtr(sp), v + i * width, width);
+        PushN(sp,  (int)width);
     }
     auto et = ElemType(vm).t;
     if (IsRefNil(et)) {
@@ -110,17 +110,17 @@ void LVector::Remove(VM &vm, iint i, iint n, iint decfrom, bool stack_ret) {
     len -= n;
 }
 
-void LVector::AtVW(VM &vm, iint i) const {
+void LVector::AtVW(StackPtr &sp, iint i) const {
     auto src = AtSt(i);
     // TODO: split this up for the width==1 case?
-    tsnz_memcpy(vm.TopPtr(), src, width);
-    vm.PushN((int)width);
+    tsnz_memcpy(TopPtr(sp), src, width);
+    PushN(sp, (int)width);
 }
 
-void LVector::AtVWSub(VM &vm, iint i, int w, int off) const {
+void LVector::AtVWSub(StackPtr &sp, iint i, int w, int off) const {
     auto src = AtSt(i);
-    tsnz_memcpy(vm.TopPtr(), src + off, w);
-    vm.PushN(w);
+    tsnz_memcpy(TopPtr(sp), src + off, w);
+    PushN(sp,  w);
 }
 
 void LVector::DeleteSelf(VM &vm) {
@@ -256,12 +256,12 @@ iint Value::Hash(VM &vm, ValueType vtype) {
     switch (vtype) {
         case V_INT: return ival_;
         case V_FLOAT: return ReadMem<iint>(&fval_);
-        case V_FUNCTION: return (iint)ip_.f;
+        case V_FUNCTION: return ival_;
         default: return refnil() ? ref()->Hash(vm) : 0;
     }
 }
 
-Value Value::Copy(VM &vm) {
+Value Value::Copy(VM &vm, StackPtr &sp) {
     if (!refnil()) return Value();
     auto &ti = ref()->ti(vm);
     switch (ti.t) {
@@ -282,7 +282,7 @@ Value Value::Copy(VM &vm) {
         return Value(s);
     }
     case V_COROUTINE:
-        vm.Error("cannot copy coroutine");
+        vm.Error(sp, "cannot copy coroutine");
         return Value();
     default:
         assert(false);

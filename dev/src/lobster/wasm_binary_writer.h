@@ -33,6 +33,11 @@
 
 namespace WASM {
 
+enum class Target {
+    Wasm32,
+    Wasm64
+};
+
 enum class Section {
     None = -1,
     Custom = 0,
@@ -61,6 +66,7 @@ enum {
 
 class BinaryWriter {
     std::vector<uint8_t> &buf;
+    Target target = Target::Wasm32;
     Section cur_section = Section::None;
     Section last_known_section = Section::None;
     size_t section_size = 0;
@@ -212,6 +218,8 @@ class BinaryWriter {
         Chars(std::string_view("\0asm", 4));
         UInt32(1);
     }
+
+    int32_t GetPtrSize() { return target == Target::Wasm32 ? 4 : 8; }
 
     // Call Begin/EndSection pairs for each segment type, in order.
     // In between, call the Add functions below corresponding to the section

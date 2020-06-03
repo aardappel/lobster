@@ -28,27 +28,31 @@
 using namespace lobster;
 
 void RegisterCoreEngineBuiltins(NativeRegistry &nfr) {
-    lobster::RegisterCoreLanguageBuiltins(nfr);
+    RegisterCoreLanguageBuiltins(nfr);
 
-    extern void AddGraphics(NativeRegistry &nfr); lobster::RegisterBuiltin(nfr, "graphics",  AddGraphics);
-    extern void AddFont(NativeRegistry &nfr);     lobster::RegisterBuiltin(nfr, "font",      AddFont);
-    extern void AddSound(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "sound",     AddSound);
-    extern void AddPhysics(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "physics",   AddPhysics);
-    extern void AddNoise(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "noise",     AddNoise);
-    extern void AddMeshGen(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "meshgen",   AddMeshGen);
-    extern void AddCubeGen(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "cubegen",   AddCubeGen);
-    extern void AddOcTree(NativeRegistry &nfr);   lobster::RegisterBuiltin(nfr, "octree",    AddOcTree);
-    extern void AddVR(NativeRegistry &nfr);       lobster::RegisterBuiltin(nfr, "vr",        AddVR);
-    extern void AddSteam(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "steam",     AddSteam);
-    extern void AddIMGUI(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "imgui",     AddIMGUI);
+    extern void AddGraphics(NativeRegistry &nfr); RegisterBuiltin(nfr, "graphics",  AddGraphics);
+    extern void AddFont(NativeRegistry &nfr);     RegisterBuiltin(nfr, "font",      AddFont);
+    extern void AddSound(NativeRegistry &nfr);    RegisterBuiltin(nfr, "sound",     AddSound);
+    extern void AddPhysics(NativeRegistry &nfr);  RegisterBuiltin(nfr, "physics",   AddPhysics);
+    extern void AddNoise(NativeRegistry &nfr);    RegisterBuiltin(nfr, "noise",     AddNoise);
+    extern void AddMeshGen(NativeRegistry &nfr);  RegisterBuiltin(nfr, "meshgen",   AddMeshGen);
+    extern void AddCubeGen(NativeRegistry &nfr);  RegisterBuiltin(nfr, "cubegen",   AddCubeGen);
+    extern void AddOcTree(NativeRegistry &nfr);   RegisterBuiltin(nfr, "octree",    AddOcTree);
+    extern void AddVR(NativeRegistry &nfr);       RegisterBuiltin(nfr, "vr",        AddVR);
+    extern void AddSteam(NativeRegistry &nfr);    RegisterBuiltin(nfr, "steam",     AddSteam);
+    extern void AddIMGUI(NativeRegistry &nfr);    RegisterBuiltin(nfr, "imgui",     AddIMGUI);
 }
 
-void EngineSuspendIfNeeded() {
+void EngineSuspendIfNeeded(StackPtr sp, VM &vm) {
     #ifdef USE_MAIN_LOOP_CALLBACK
-    // Here we have to something hacky: emscripten requires us to not take over the main
-    // loop. So we use this exception to suspend the VM right inside the gl_frame() call.
-    // FIXME: do this at the start of the frame instead?
-    THROW_OR_ABORT(string("SUSPEND-VM-MAINLOOP"));
+        // Here we have to something hacky: emscripten requires us to not take over the main
+        // loop. So we use this exception to suspend the VM right inside the gl_frame() call.
+        // FIXME: do this at the start of the frame instead?
+        vm.SuspendSP(sp);
+        THROW_OR_ABORT(string("SUSPEND-VM-MAINLOOP"));
+    #else
+        (void)sp;
+        (void)vm;
     #endif
 }
 
@@ -70,7 +74,7 @@ void one_frame_callback(void *arg) {
     {
         GraphicsFrameStart();
         vm.vml.LogFrame();
-        vm.OneMoreFrame();
+        vm.OneMoreFrame(vm.ResumeSP());
         // If this returns, we didn't hit a gl_frame() again and exited normally.
         EngineExit(0);
     }
@@ -125,7 +129,7 @@ void EngineRunByteCode(VMArgs &&vmargs) {
 
 extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
                                          const void *bytecodefb, size_t static_size,
-                                         const lobster::block_t *vtables) {
+                                         const lobster::block_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif

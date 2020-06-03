@@ -49,7 +49,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void DeclareBlock(int id) override {
-        append(sd, "static void *block", id, "(lobster::VM &);\n");
+        append(sd, "static void *block", id, "(lobster::VM &, lobster::StackPtr &);\n");
     }
 
     void BeforeBlocks(int /*start_id*/, string_view /*bytecode_buffer*/) override {
@@ -62,7 +62,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void BlockStart(int id) override {
-        append(sd, "static void *block", id, "(lobster::VM &vm) {\n    auto &sp = vm.sp;\n");
+        append(sd, "static void *block", id, "(lobster::VM &vm, lobster::StackPtr &sp) {\n");
     }
 
     void InstStart() override {
@@ -86,13 +86,13 @@ class CPPGenerator : public NativeGenerator {
             tail_calls_in_a_row = 0;
         } else {
             // A forwards call, should be safe to tail-call.
-            append(sd, "return block", id, "(vm);");
+            append(sd, "return block", id, "(vm, sp);");
             tail_calls_in_a_row++;
         }
     }
 
     void EmitConditionalJump(int opc, int id) override {
-        append(sd, "vm.U_", ILNames()[opc], "(sp); if (VM_POP().False()) ");
+        append(sd, "sp = U_", ILNames()[opc], "(vm, sp); if (Pop(sp).False()) ");
         EmitJump(id);
     }
 
@@ -112,7 +112,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
-        append(sd, "vm.U_", ILNames()[opc], "(sp");
+        append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
         if (is_vararg) {
             sd += ", args";
         } else {
@@ -158,7 +158,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void VTables(vector<int> &vtables) override {
-        sd += "\nstatic const lobster::block_t vtables[] = {\n";
+        sd += "\nstatic const lobster::block_base_t vtables[] = {\n";
         for (auto id : vtables) {
             sd += "    ";
             if (id >= 0) append(sd, "block", id);

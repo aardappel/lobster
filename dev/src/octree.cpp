@@ -27,8 +27,8 @@ inline ResourceType *GetOcTreeType() {
     return &voxel_type;
 }
 
-inline OcTree &GetOcTree(VM &vm, const Value &res) {
-    return *GetResourceDec<OcTree *>(vm, res, GetOcTreeType());
+inline OcTree &GetOcTree(StackPtr &sp, VM &vm, const Value &res) {
+    return *GetResourceDec<OcTree *>(sp, vm, res, GetOcTreeType());
 }
 
 const int cur_version = 3;
@@ -65,21 +65,21 @@ static const char *magic = "CWFF";
 void AddOcTree(NativeRegistry &nfr) {
 
 nfr("oc_world_bits", "octree", "R", "I", "",
-    [](VM &vm, Value &oc) {
-        return Value(GetOcTree(vm, oc).world_bits);
+    [](StackPtr &sp, VM &vm, Value &oc) {
+        return Value(GetOcTree(sp, vm, oc).world_bits);
     });
 
 nfr("oc_buf", "octree", "R", "S", "",
-    [](VM &vm, Value &oc) {
-        auto &ocworld = GetOcTree(vm, oc);
+    [](StackPtr &sp, VM &vm, Value &oc) {
+        auto &ocworld = GetOcTree(sp, vm, oc);
         auto s = vm.NewString(string_view((char *)ocworld.nodes.data(),
                                           ocworld.nodes.size() * sizeof(OcVal)));
         return Value(s);
     });
 
 nfr("oc_optimize", "octree", "R", "", "",
-    [](VM &vm, Value &oc) {
-        auto &ocworld = GetOcTree(vm, oc);
+    [](StackPtr &sp, VM &vm, Value &oc) {
+        auto &ocworld = GetOcTree(sp, vm, oc);
         auto numnodes1 = ocworld.NumNodes();
         ocworld.Merge();  // This should in theory not change anything.
         auto numnodes2 = ocworld.NumNodes();
@@ -97,7 +97,7 @@ nfr("oc_optimize", "octree", "R", "", "",
     });
 
 nfr("oc_load", "name", "S", "R?", "",
-    [](VM &vm, Value &name) {
+    [](StackPtr &, VM &vm, Value &name) {
         string buf;
         auto r = LoadFile(name.sval()->strv(), &buf);
         if (r < 0) return Value();
@@ -115,8 +115,8 @@ nfr("oc_load", "name", "S", "R?", "",
     });
 
 nfr("oc_save", "octree,name", "RS", "B", "",
-    [](VM &vm, Value &oc, Value &name) {
-        auto &ocworld = GetOcTree(vm, oc);
+    [](StackPtr &sp, VM &vm, Value &oc, Value &name) {
+        auto &ocworld = GetOcTree(sp, vm, oc);
         auto f = OpenForWriting(name.sval()->strv(), true);
         if (!f) return Value(false);
         auto ok = FileWriteBytes(f, magic, strlen(magic)) &&
@@ -129,33 +129,33 @@ nfr("oc_save", "octree,name", "RS", "B", "",
     });
 
 nfr("oc_new", "world_bits,fix_bits", "II?", "R", "",
-    [](VM &vm, Value &world_bits, Value &fix_bits) {
+    [](StackPtr &, VM &vm, Value &world_bits, Value &fix_bits) {
         auto ocworld = new OcTree(world_bits.intval(), fix_bits.intval());
         return Value(vm.NewResource(ocworld, GetOcTreeType()));
     });
 
 nfr("oc_set", "octree,pos,val", "RI}:3I", "", "",
-    [](VM &vm) {
-        auto val = vm.Pop().intval();
-        auto pos = vm.PopVec<int3>();
-        auto &ocworld = GetOcTree(vm, vm.Pop());
+    [](StackPtr &sp, VM &vm) {
+        auto val = Pop(sp).intval();
+        auto pos = PopVec<int3>(sp);
+        auto &ocworld = GetOcTree(sp, vm, Pop(sp));
         OcVal v;
         v.SetLeafData(max(val, 0));
         ocworld.Set(pos, v);
     });
 
 nfr("oc_get", "octree,pos", "RI}:3", "I", "",
-    [](VM &vm) {
-        auto pos = vm.PopVec<int3>();
-        auto &ocworld = GetOcTree(vm, vm.Pop());
-        vm.Push(ocworld.nodes[ocworld.Get(pos).first].LeafData());
+    [](StackPtr &sp, VM &vm) {
+        auto pos = PopVec<int3>(sp);
+        auto &ocworld = GetOcTree(sp, vm, Pop(sp));
+        Push(sp,  ocworld.nodes[ocworld.Get(pos).first].LeafData());
     });
 
 nfr("oc_buffer_update", "octree,uname,ssbo", "RSI", "I", "",
-    [](VM &vm) {
-        auto ssbo = vm.Pop().True();
-        auto name = vm.Pop().sval()->strv();
-        auto &ocworld = GetOcTree(vm, vm.Pop());
+    [](StackPtr &sp, VM &vm) {
+        auto ssbo = Pop(sp).True();
+        auto name = Pop(sp).sval()->strv();
+        auto &ocworld = GetOcTree(sp, vm, Pop(sp));
         extern Shader *currentshader;
         iint num_updates = 0;
         if (ocworld.all_dirty) {
@@ -176,16 +176,16 @@ nfr("oc_buffer_update", "octree,uname,ssbo", "RSI", "I", "",
             }
         }
         ocworld.dirty.clear();
-        vm.Push(num_updates);
+        Push(sp,  num_updates);
     });
 
 nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
-    [](VM &vm) {
-        auto cam = vm.PopVec<float3>();
-        auto values = vm.Pop().vval();
-        auto positions = vm.Pop().vval();
+    [](StackPtr &sp, VM &vm) {
+        auto cam = PopVec<float3>(sp);
+        auto values = Pop(sp).vval();
+        auto positions = Pop(sp).vval();
         if (!positions->len) {
-            vm.Push(vm.NewString(0));
+            Push(sp,  vm.NewString(0));
             return;
         }
         struct S {
@@ -253,7 +253,7 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
         auto p = (S *)s->data();
         int i = 0;
         root->serialize(-1, p, i);
-        vm.Push(s);
+        Push(sp,  s);
     });
 }
 

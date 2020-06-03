@@ -81,8 +81,8 @@ inline ResourceType *GetVoxelType() {
     return &voxel_type;
 }
 
-inline Voxels &GetVoxels(VM &vm, const Value &res) {
-    return *GetResourceDec<Voxels *>(vm, res, GetVoxelType());
+inline Voxels &GetVoxels(StackPtr &sp, VM &vm, const Value &res) {
+    return *GetResourceDec<Voxels *>(sp, vm, res, GetVoxelType());
 }
 
 Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset);

@@ -27,7 +27,7 @@ namespace lobster {
 class WASMGenerator : public NativeGenerator {
     WASM::BinaryWriter bw;
 
-    size_t import_erccm  = 0, import_snct = 0, import_gnct = 0;
+    size_t import_erccm  = 0, import_snct = 0, import_gnct = 0, import_drop = 0;
 
     const bytecode::Function *next_block = nullptr;
   public:
@@ -67,17 +67,17 @@ class WASMGenerator : public NativeGenerator {
         bw.EndSection(WASM::Section::Type);
 
         bw.BeginSection(WASM::Section::Import);
-        #define S_ARGS0 TI_V_I
-        #define S_ARGS1 TI_V_II
-        #define S_ARGS2 TI_V_III
-        #define S_ARGS3 TI_V_IIII
-        #define S_ARGS9 TI_V_II  // ILUNKNOWNARITY
+        #define S_ARGS0 TI_I_II
+        #define S_ARGS1 TI_I_III
+        #define S_ARGS2 TI_I_IIII
+        #define S_ARGS3 TI_I_IIIII
+        #define S_ARGS9 TI_I_III  // ILUNKNOWNARITY
         #define S_ARGSN(N) S_ARGS##N
-        #define C_ARGS0 TI_V_II
-        #define C_ARGS1 TI_V_III
-        #define C_ARGS2 TI_V_IIII
-        #define C_ARGS3 TI_V_IIIII
-        #define C_ARGS9 TI_V_III  // ILUNKNOWNARITY
+        #define C_ARGS0 TI_I_III
+        #define C_ARGS1 TI_I_IIII
+        #define C_ARGS2 TI_I_IIIII
+        #define C_ARGS3 TI_I_IIIIII
+        #define C_ARGS9 TI_I_IIII  // ILUNKNOWNARITY
         #define C_ARGSN(N) C_ARGS##N
         #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
             LVALOPNAMES
@@ -88,12 +88,13 @@ class WASMGenerator : public NativeGenerator {
         #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, C_ARGSN(A));
             ILCALLNAMES
         #undef F
-        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_I);
+        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_II);
             ILJUMPNAMES
         #undef F
         import_erccm = bw.AddImportLinkFunction("EngineRunCompiledCodeMain", TI_I_IIIIII);
         import_snct = bw.AddImportLinkFunction("CVM_SetNextCallTarget", TI_V_II);
         import_gnct = bw.AddImportLinkFunction("CVM_GetNextCallTarget", TI_I_I);
+        import_drop = bw.AddImportLinkFunction("CVM_Drop", TI_I_I);
         bw.EndSection(WASM::Section::Import);
 
         bw.BeginSection(WASM::Section::Function);
@@ -102,7 +103,7 @@ class WASMGenerator : public NativeGenerator {
     }
 
     void DeclareBlock(int /*id*/) override {
-        bw.AddFunction(TI_I_I);
+        bw.AddFunction(TI_I_II);
     }
 
     void BeforeBlocks(int start_id, string_view bytecode_buffer) override {
@@ -150,29 +151,50 @@ class WASMGenerator : public NativeGenerator {
     }
 
     void BlockStart(int id) override {
-        bw.AddCode({}, "block" + std::to_string(id) +
+        bw.AddCode({ WASM::I32 }, "block" + std::to_string(id) +
                        (next_block ? "_" + next_block->name()->string_view() : ""), true);
         next_block = nullptr;
+        bw.EmitGetLocal(1 /*SPRef*/);
+        bw.EmitI32Load(0);  // Load SP ref.
+        bw.EmitSetLocal(2 /*SP*/);
     }
 
     void InstStart() override {
+    }
+
+    void SaveSPBeforeReturn() {
+        bw.EmitGetLocal(1 /*SPRef*/);
+        bw.EmitGetLocal(2 /*SP*/);
+        bw.EmitI32Store(0);
     }
 
     void EmitJump(int id) override {
         if (id <= current_block_id) {
             // A backwards jump, go via the trampoline.
             bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + id);
+            SaveSPBeforeReturn();
         } else {
             // A forwards call, should be safe to tail-call.
+            SaveSPBeforeReturn();
             bw.EmitGetLocal(0 /*VM*/);
+            bw.EmitGetLocal(1 /*SP*/);
             bw.EmitCall(bw.GetNumFunctionImports() + id);
         }
         bw.EmitReturn();
     }
 
     void EmitConditionalJump(int opc, int id) override {
+        // FIXME: this is very clumsy, shorten this for common cases!
         bw.EmitGetLocal(0 /*VM*/);
+        bw.EmitGetLocal(2 /*SP*/);
         bw.EmitCall((size_t)opc);
+        bw.EmitTeeLocal(2 /*SP*/);
+        bw.EmitI64Load(0);  // False if we should jump.
+        bw.EmitGetLocal(2 /*SP*/);
+        bw.EmitCall(import_drop);  // FIXME: don't know sizeof(Value) here (!)
+        bw.EmitSetLocal(2 /*SP*/);
+        bw.EmitI64Const(0);
+        bw.EmitI64Eq();
         bw.EmitIf(WASM::VOID);
         EmitJump(id);
         bw.EmitEnd();
@@ -180,6 +202,7 @@ class WASMGenerator : public NativeGenerator {
 
     void EmitOperands(const char *base, const int *args, int arity, bool is_vararg) override {
         bw.EmitGetLocal(0 /*VM*/);
+        bw.EmitGetLocal(2 /*SP*/);
         if (is_vararg) {
             if (arity) bw.EmitI32ConstDataRef(1, (const char *)args - base);
             else bw.EmitI32Const(0);  // nullptr
@@ -198,6 +221,7 @@ class WASMGenerator : public NativeGenerator {
         }
         if (target >= 0) { bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + target); }
         bw.EmitCall((size_t)opc);  // Opcodes are the 0..N of imports.
+        bw.EmitSetLocal(2 /*SP*/);
     }
 
     void EmitCall(int id) override {
@@ -207,6 +231,7 @@ class WASMGenerator : public NativeGenerator {
     void EmitCallIndirect() override {
         bw.EmitGetLocal(0 /*VM*/);
         bw.EmitCall(import_gnct);
+        SaveSPBeforeReturn();
         bw.EmitReturn();
     }
 
@@ -216,6 +241,7 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitIf(WASM::VOID);
         bw.EmitGetLocal(0 /*VM*/);
         bw.EmitCall(import_gnct);
+        SaveSPBeforeReturn();
         bw.EmitReturn();
         bw.EmitEnd();
     }
@@ -228,6 +254,7 @@ class WASMGenerator : public NativeGenerator {
             if (is_exit) {
                 bw.EmitGetLocal(0 /*VM*/);
                 bw.EmitCall(import_gnct);
+                SaveSPBeforeReturn();
                 bw.EmitReturn();
             } else {
                 EmitJump(id);

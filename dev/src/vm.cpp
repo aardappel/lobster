@@ -16,9 +16,7 @@
 
 #include "lobster/disasm.h"
 
-//#ifndef VM_COMPILED_CODE_MODE
-    #include "lobster/vmops.h"
-//#endif
+#include "lobster/vmops.h"
 
 namespace lobster {
 
@@ -78,13 +76,20 @@ VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZ
     #endif
     vars = new Value[bcf->specidents()->size()];
     stack = new Value[stacksize = INITSTACKSIZE];
-    sp = stack - 1;
     #ifdef VM_PROFILER
         byteprofilecounts = new uint64_t[codelen];
         memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
     #endif
     vml.LogInit(bcfb);
-    InstructionPointerInit();
+
+    #ifdef VM_COMPILED_CODE_MODE
+        #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
+    #else
+        #define F(N, A) f_ins_pointers[IL_##N] = &F_##N;
+    #endif
+    ILNAMES
+    #undef F
+
     constant_strings.resize(bcf->stringtable()->size());
     #ifdef VM_COMPILED_CODE_MODE
         assert(native_vtables);
@@ -106,17 +111,17 @@ VM::~VM() {
     if (byteprofilecounts) delete[] byteprofilecounts;
 }
 
-void VM::OneMoreFrame() {
+void VM::OneMoreFrame(StackPtr sp) {
     // We just landed back into the VM after being suspended inside a gl_frame() call.
     // Emulate the return of gl_frame():
-    VM_PUSH(Value(1));  // We're not terminating yet.
+    Push(sp, Value(1));  // We're not terminating yet.
     #ifdef VM_COMPILED_CODE_MODE
         // Native code generators ensure that next_call_target is set before
         // a native function call, and that it is returned to the trampoline
         // after, so do the same thing here.
         compiled_code_ip = (const void *)next_call_target;
     #endif
-    EvalProgram();   // Continue execution as if nothing happened.
+    EvalProgram(sp);   // Continue execution as if nothing happened.
 }
 
 const TypeInfo &VM::GetVarTypeInfo(int varidx) {
@@ -236,23 +241,27 @@ LObject *VM::NewObject(iint max, type_elem_t tti) {
     OnAlloc(s);
     return s;
 }
+
 LString *VM::NewString(iint l) {
     auto s = new (pool.alloc(ssizeof<LString>() + l + 1)) LString(l);
     OnAlloc(s);
     return s;\
 }
-LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t cti) {
+
+LCoRoutine *VM::NewCoRoutine(StackPtr &sp, InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t cti) {
     assert(GetTypeInfo(cti).t == V_COROUTINE);
     auto c = new (pool.alloc(sizeof(LCoRoutine)))
        LCoRoutine((int)(sp - stack + 2) /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p, cti);
     OnAlloc(c);
     return c;
 }
+
 LResource *VM::NewResource(void *v, const ResourceType *t) {
     auto r = new (pool.alloc(sizeof(LResource))) LResource(v, t);
     OnAlloc(r);
     return r;
 }
+
 #ifdef _WIN32
 #ifndef NDEBUG
 #define new DEBUG_NEW
@@ -290,16 +299,13 @@ LString *VM::ResizeString(LString *s, iint size, int c, bool back) {
     return ns;
 }
 
-// This function is now way less important than it was when the language was still dynamically
-// typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
-Value VM::Error(string err) {
+void VM::ErrorBase(string &sd, const string &err) {
     if (error_has_occured) {
         // We're calling this function recursively, not good. Try to get back to a reasonable
         // state by throwing an exception to be caught by the original error.
         THROW_OR_ABORT(err);
     }
     error_has_occured = true;
-    string sd;
     if (trace == TraceMode::TAIL && trace_output.size()) {
         for (size_t i = trace_ring_idx; i < trace_output.size(); i++) sd += trace_output[i];
         for (size_t i = 0; i < trace_ring_idx; i++) sd += trace_output[i];
@@ -311,20 +317,23 @@ Value VM::Error(string err) {
         sd += ": ";
     #endif
     append(sd, "VM error: ", err);
-    if (error_vm_inconsistent_state) {
-        // Don't do any variable dumping, to avoid triggering more errors.
-        THROW_OR_ABORT(sd);
-    }
+}
+
+// This function is now way less important than it was when the language was still dynamically
+// typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
+Value VM::Error(StackPtr sp, string err) {
+    string sd;
+    ErrorBase(sd, err);
     try {
         while (sp >= stack && (!stackframes.size() || sp - stack != stackframes.back().spstart)) {
             // Sadly can't print this properly.
             sd += "\n   stack: ";
-            to_string_hex(sd, (size_t)VM_TOP().any());
-            if (pool.pointer_is_in_allocator(VM_TOP().any())) {
+            to_string_hex(sd, (size_t)Top(sp).any());
+            if (pool.pointer_is_in_allocator(Top(sp).any())) {
                 sd += ", maybe: ";
-                RefToString(*this, sd, VM_TOP().ref(), debugpp);
+                RefToString(*this, sd, Top(sp).ref(), debugpp);
             }
-            VM_POP();  // We don't DEC here, as we can't know what type it is.
+            Pop(sp);  // We don't DEC here, as we can't know what type it is.
                     // This is ok, as we ignore leaks in case of an error anyway.
         }
         for (;;) {
@@ -339,12 +348,20 @@ Value VM::Error(string err) {
             sd += " -> ";
             DumpFileLine(ip, sd);
             #endif
-            VarCleanup<1>(sd.size() < 10000 ? &sd : nullptr, -2 /* clean up temps always */);
+            VarCleanup<1>(sp, sd.size() < 10000 ? &sd : nullptr, -2 /* clean up temps always */);
         }
     } catch (string &s) {
         // Error happened while we were building this stack trace.
         append(sd, "\nRECURSIVE ERROR:\n", s);
     }
+    THROW_OR_ABORT(sd);
+}
+
+// Unlike Error above, this one does not attempt any variable dumping since the VM may already be
+// in an inconsistent state.
+Value VM::SeriousError(string err) {
+    string sd;
+    ErrorBase(sd, err);
     THROW_OR_ABORT(sd);
 }
 
@@ -374,10 +391,12 @@ int VM::DumpVar(string &sd, const Value &x, int idx) {
     }
 }
 
-void VM::FinalStackVarsCleanup() {
-    VMASSERT(sp < stack && !stackframes.size());
+void VM::FinalStackVarsCleanup(StackPtr &sp) {
+    VMASSERT((*this), sp == stack - 1 && !stackframes.size());
     #ifndef NDEBUG
         LOG_INFO("stack at its highest was: ", maxsp);
+    #else
+        (void)sp;
     #endif
 }
 
@@ -397,12 +416,14 @@ InsPtr VM::GetIP() {
     #endif
 }
 
-template<int is_error> int VM::VarCleanup(string *error, int towhere) {
+template<int is_error> int VM::VarCleanup(StackPtr &sp, string *error, int towhere) {
     (void)error;
     auto &stf = stackframes.back();
     if constexpr (!is_error) {
         auto depth = sp - stack;
-        VMASSERT(depth == stf.spstart);
+        if (depth != stf.spstart) {
+            VMASSERT((*this), false);
+        }
         (void)depth;
     }
     auto fip = stf.funstart;
@@ -425,16 +446,16 @@ template<int is_error> int VM::VarCleanup(string *error, int towhere) {
             j += DumpVar(*error, vars[i], i);
         }
     }
-    for (int i = 0; i < nkeepvars; i++) VM_POP().LTDECRTNIL(*this);
+    for (int i = 0; i < nkeepvars; i++) Pop(sp).LTDECRTNIL(*this);
     auto ownedvars = *fip++;
     for (int i = 0; i < ownedvars; i++) vars[*fip++].LTDECRTNIL(*this);
     while (ndef--) {
         auto i = *--defvars;
-        vars[i] = VM_POP();
+        vars[i] = Pop(sp);
     }
     while (nargs--) {
         auto i = *--freevars;
-        vars[i] = VM_POP();
+        vars[i] = Pop(sp);
     }
     JumpTo(stf.retip);
     bool lastunwind = towhere == *stf.funstart;
@@ -454,20 +475,20 @@ void VM::StartStackFrame(InsPtr retip) {
     stf.retip = retip;
 }
 
-void VM::FunIntroPre(InsPtr fun) {
+void VM::FunIntroPre(StackPtr &sp, InsPtr fun) {
     JumpTo(fun);
     #ifdef VM_COMPILED_CODE_MODE
         // We don't call FunIntro() here, instead the compiled code for FUNSTART/FUNMULTI actually
         // does that.
     #else
-        VMASSERT(*ip == IL_FUNSTART);
+        VMASSERT((*this), *ip == IL_FUNSTART);
         ip++;
-        FunIntro();
+        FunIntro(sp);
     #endif
 }
 
 // Only valid to be called right after StartStackFrame, with no bytecode in-between.
-void VM::FunIntro(VM_OP_ARGS) {
+void VM::FunIntro(StackPtr &sp VM_COMMA VM_OP_ARGS) {
     #ifdef VM_PROFILER
         vm_count_fcalls++;
     #endif
@@ -495,11 +516,11 @@ void VM::FunIntro(VM_OP_ARGS) {
     for (int i = 0; i < ndef; i++) {
         // for most locals, this just saves an nil, only in recursive cases it has an actual value.
         auto varidx = *ip++;
-        VM_PUSH(vars[varidx]);
+        Push(sp, vars[varidx]);
         vars[varidx] = Value();
     }
     auto nkeepvars = *ip++;
-    for (int i = 0; i < nkeepvars; i++) VM_PUSH(Value());
+    for (int i = 0; i < nkeepvars; i++) Push(sp, Value());
     auto nownedvars = *ip++;
     ip += nownedvars;
     auto &stf = stackframes.back();
@@ -510,23 +531,23 @@ void VM::FunIntro(VM_OP_ARGS) {
     #endif
 }
 
-void VM::FunOut(int towhere, int nrv) {
+void VM::FunOut(StackPtr &sp, int towhere, int nrv) {
     sp -= nrv;
     // Have to store these off the stack, since VarCleanup() may cause stack activity if coroutines
     // are destructed.
-    ts_memcpy(retvalstemp, VM_TOPPTR(), nrv);
+    ts_memcpy(retvalstemp, TopPtr(sp), nrv);
     for(;;) {
         if (!stackframes.size()) {
             SeriousError("\"return from " + bcf->functions()->Get(towhere)->name()->string_view() +
                          "\" outside of function");
         }
-        if (VarCleanup<0>(nullptr, towhere)) break;
+        if (VarCleanup<0>(sp, nullptr, towhere)) break;
     }
-    ts_memcpy(VM_TOPPTR(), retvalstemp, nrv);
+    ts_memcpy(TopPtr(sp), retvalstemp, nrv);
     sp += nrv;
 }
 
-void VM::CoVarCleanup(LCoRoutine *co) {
+void VM::CoVarCleanup(StackPtr &sp, LCoRoutine *co) {
     // Convenient way to copy everything back onto the stack.
     InsPtr tip(0);
     auto copylen = co->Resume(sp - stack + 1, stack, stackframes, tip, nullptr);
@@ -537,7 +558,7 @@ void VM::CoVarCleanup(LCoRoutine *co) {
         sp = stf.spstart + stack;  // Kill any temps on top of the stack.
         // Save the ip, because VarCleanup will jump to it.
         auto bip = GetIP();
-        VarCleanup<0>(nullptr, !i ? *stf.funstart : -2);
+        VarCleanup<0>(sp, nullptr, !i ? *stf.funstart : -2);
         JumpTo(bip);
     }
     assert(sp == startsp);
@@ -554,7 +575,8 @@ void VM::CoNonRec(const int *varip) {
     // this check guarantees all saved stack vars are undef.
 }
 
-void VM::CoNew(VM_OP_STATEC VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
+void VM::CoNew(StackPtr &sp VM_COMMA VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
+    CleanupDelayDeleteCoroutines(sp);  // As good a place as any.
     #ifdef VM_COMPILED_CODE_MODE
         ip++;
         InsPtr returnip(fcont);
@@ -563,23 +585,23 @@ void VM::CoNew(VM_OP_STATEC VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
     #endif
     auto ctidx = (type_elem_t)*ip++;
     CoNonRec(ip);
-    curcoroutine = NewCoRoutine(returnip, ip, curcoroutine, ctidx);
+    curcoroutine = NewCoRoutine(sp, returnip, ip, curcoroutine, ctidx);
     curcoroutine->BackupParentVars(*this, vars);
     int nvars = *ip++;
     ip += nvars;
     // Always have the active coroutine at top of the stack, retaining 1 refcount. This is
     // because it is not guaranteed that there any other references, and we can't have this drop
     // to 0 while active.
-    VM_PUSH(Value(curcoroutine));
+    Push(sp, Value(curcoroutine));
 }
 
-void VM::CoSuspend(InsPtr retip) {
+void VM::CoSuspend(StackPtr &sp, InsPtr retip) {
     auto newtop = curcoroutine->Suspend(*this, sp - stack + 1, stack, stackframes, retip, curcoroutine);
     JumpTo(retip);
     sp = newtop - 1 + stack; // top of stack is now coro value from create or resume
 }
 
-void VM::CoClean() {
+void VM::CoClean(StackPtr &sp) {
     // This function is like yield, except happens implicitly when the coroutine returns.
     // It will jump back to the resume (or create) that invoked it.
     for (int i = 1; i <= *curcoroutine->varip; i++) {
@@ -587,62 +609,67 @@ void VM::CoClean() {
         var = curcoroutine->stackcopy[i - 1];
     }
     auto co = curcoroutine;
-    CoSuspend(InsPtr(0));
-    VMASSERT(co->stackcopylen == 1);
+    CoSuspend(sp, InsPtr(0));
+    VMASSERT((*this), co->stackcopylen == 1);
     co->active = false;
 }
 
-void VM::CoYield(VM_OP_ARGS_CALL) {
+void VM::CoYield(StackPtr &sp VM_COMMA VM_OP_ARGS_CALL) {
     assert(curcoroutine);  // Should not be possible since yield calls are statically checked.
     #ifdef VM_COMPILED_CODE_MODE
         InsPtr retip(fcont);
     #else
         InsPtr retip(ip - codestart);
     #endif
-    auto ret = VM_POP();
+    auto ret = Pop(sp);
     for (int i = 1; i <= *curcoroutine->varip; i++) {
         auto &var = vars[curcoroutine->varip[i]];
-        VM_PUSH(var);
+        Push(sp, var);
         //var.type = V_NIL;
         var = curcoroutine->stackcopy[i - 1];
     }
-    VM_PUSH(ret);  // current value always top of the stack, saved as part of suspended coroutine.
-    CoSuspend(retip);
+    Push(sp, ret);  // current value always top of the stack, saved as part of suspended coroutine.
+    CoSuspend(sp, retip);
     // Actual top of stack here is coroutine itself, that we placed here with CoResume.
 }
 
-void VM::CoResume(LCoRoutine *co) {
+void VM::CoResume(StackPtr &sp, LCoRoutine *co) {
     if (co->stackstart >= 0)
-        Error("cannot resume running coroutine");
+        Error(sp, "cannot resume running coroutine");
     if (!co->active)
-        Error("cannot resume finished coroutine");
+        Error(sp, "cannot resume finished coroutine");
     // This will be the return value for the corresponding yield, and holds the ref for gc.
-    VM_PUSH(Value(co));
+    Push(sp, Value(co));
     CoNonRec(co->varip);
     auto rip = GetIP();
     sp += co->Resume(sp - stack + 1, stack, stackframes, rip, curcoroutine);
     JumpTo(rip);
     curcoroutine = co;
     // must be, since those vars got backed up in it before
-    VMASSERT(curcoroutine->stackcopymax >=  *curcoroutine->varip);
+    VMASSERT((*this), curcoroutine->stackcopymax >=  *curcoroutine->varip);
     curcoroutine->stackcopylen = *curcoroutine->varip;
     //curcoroutine->BackupParentVars(vars);
-    VM_POP().LTDECTYPE(*this, GetTypeInfo(curcoroutine->ti(*this).yieldtype).t);    // previous current value
+    Pop(sp).LTDECTYPE(*this, GetTypeInfo(curcoroutine->ti(*this).yieldtype).t);    // previous current value
     for (int i = *curcoroutine->varip; i > 0; i--) {
         auto &var = vars[curcoroutine->varip[i]];
         // No INC, since parent is still on the stack and hold ref for us.
         curcoroutine->stackcopy[i - 1] = var;
-        var = VM_POP();
+        var = Pop(sp);
     }
     // the builtin call takes care of the return value
 }
 
-void VM::EndEval(const Value &ret, const TypeInfo &ti) {
+void VM::CleanupDelayDeleteCoroutines(StackPtr &sp) {
+    for (auto c : delete_delay_coroutine) c->DelayedDelete(sp, *this);
+    delete_delay_coroutine.clear();
+}
+
+void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
     assert(sp == stack - 1);
-    FinalStackVarsCleanup();
+    FinalStackVarsCleanup(sp);
     vml.LogCleanup();
     for (auto s : constant_strings) {
         if (s) s->Dec(*this);
@@ -652,8 +679,10 @@ void VM::EndEval(const Value &ret, const TypeInfo &ti) {
         delete_delay.pop_back();
         ro->DECDELETENOW(*this);
     }
+    // This one is last, since the above cleanup may result in new delayed coroutines.
+    CleanupDelayDeleteCoroutines(sp);
     DumpLeaks();
-    VMASSERT(!curcoroutine);
+    VMASSERT((*this), !curcoroutine);
     #ifdef VM_PROFILER
         LOG_INFO("Profiler statistics:");
         uint64_t total = 0;
@@ -714,19 +743,18 @@ void VM::EndEval(const Value &ret, const TypeInfo &ti) {
         }
         instruction_combinations.clear();
     #endif
-    #ifndef VM_ERROR_RET_EXPERIMENT
     THROW_OR_ABORT(string("end-eval"));
-    #endif
 }
 
-void VM::EvalProgram() {
+void VM::EvalProgram(StackPtr sp) {
+    if (!sp) sp = stack - 1;
     // Keep exception handling code in seperate function from hot loop in EvalProgramInner()
     // just in case it affects the compiler.
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        EvalProgramInner();
+        EvalProgramInner(sp);
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
@@ -744,10 +772,10 @@ string &VM::TraceStream() {
   return sd;
 }
 
-void VM::EvalProgramInner() {
+void VM::EvalProgramInner(StackPtr sp) {
     for (;;) {
         #ifdef VM_COMPILED_CODE_MODE
-            compiled_code_ip = ((block_t)compiled_code_ip)(*this);
+            compiled_code_ip = ((block_base_t)compiled_code_ip)(*this, sp);
         #else
             #ifndef NDEBUG
                 if (trace != TraceMode::OFF) {
@@ -756,10 +784,10 @@ void VM::EvalProgramInner() {
                     append(sd, " [", sp - stack + 1, "] -");
                     #if RTT_ENABLED
                     #if DELETE_DELAY
-                        append(sd, " ", (size_t)VM_TOP().any());
+                        append(sd, " ", (size_t)Top(sp).any());
                     #endif
                     for (int i = 0; i < 3 && sp - i >= stack; i++) {
-                        auto x = VM_TOPM(i);
+                        auto x = TopM(sp, i);
                         sd += ' ';
                         x.ToStringBase(*this, sd, x.type, debugpp);
                     }
@@ -783,13 +811,7 @@ void VM::EvalProgramInner() {
                 if (op < 0 || op >= IL_MAX_OPS)
                     SeriousError(cat("bytecode format problem: ", op));
             #endif
-            #ifdef VM_ERROR_RET_EXPERIMENT
-                bool terminate =
-            #endif
-            ((*this).*(f_ins_pointers[op]))();
-            #ifdef VM_ERROR_RET_EXPERIMENT
-                if (terminate) return;
-            #endif
+            sp = f_ins_pointers[op](*this, sp);
         #endif
     }
 }
@@ -812,7 +834,7 @@ void VM::BCallProf() {
     #endif
 }
 
-void VM::BCallRetCheck(const NativeFun *nf) {
+void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {
     #if RTT_ENABLED
         // See if any builtin function is lying about what type it returns
         // other function types return intermediary values that don't correspond to final return
@@ -820,33 +842,34 @@ void VM::BCallRetCheck(const NativeFun *nf) {
         if (!nf->cont1) {
             for (size_t i = 0; i < nf->retvals.size(); i++) {
                 #ifndef NDEBUG
-                auto t = (VM_TOPPTR() - nf->retvals.size() + i)->type;
+                auto t = (TopPtr(sp) - nf->retvals.size() + i)->type;
                 auto u = nf->retvals[i].type->t;
                 assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && IsUDT(t)));
                 #endif
             }
-            assert(nf->retvals.size() || VM_TOP().type == V_NIL);
+            assert(nf->retvals.size() || Top(sp).type == V_NIL);
         }
     #else
         (void)nf;
     #endif
+    (void)sp;
 }
 
-iint VM::GrabIndex(int len) {
-    auto &v = VM_TOPM(len);
+iint VM::GrabIndex(StackPtr &sp, int len) {
+    auto &v = TopM(sp, len);
     for (len--; ; len--) {
-        auto sidx = VM_POP().ival();
+        auto sidx = Pop(sp).ival();
         if (!len) return sidx;
-        RANGECHECK(sidx, v.vval()->len, v.vval());
+        RANGECHECK((*this), sidx, v.vval()->len, v.vval());
         v = v.vval()->At(sidx);
     }
 }
 
-void VM::IDXErr(iint i, iint n, const RefObj *v) {
+void VM::IDXErr(StackPtr sp, iint i, iint n, const RefObj *v) {
     string sd;
     append(sd, "index ", i, " out of range ", n, " of: ");
     RefToString(*this, sd, v, debugpp);
-    Error(sd);
+    Error(sp, sd);
 }
 
 string_view VM::StructName(const TypeInfo &ti) {
@@ -878,9 +901,9 @@ optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
     return {};
 }
 
-void VM::StartWorkers(iint numthreads) {
-    if (is_worker) Error("workers can\'t start more worker threads");
-    if (tuple_space) Error("workers already running");
+void VM::StartWorkers(StackPtr &sp, iint numthreads) {
+    if (is_worker) Error(sp, "workers can\'t start more worker threads");
+    if (tuple_space) Error(sp, "workers already running");
     // Stop bad values from locking up the machine :)
     numthreads = min(numthreads, 256_L);
     tuple_space = new TupleSpace(bcf->udts()->size());
@@ -925,17 +948,17 @@ void VM::TerminateWorkers() {
     tuple_space = nullptr;
 }
 
-void VM::WorkerWrite(RefObj *ref) {
+void VM::WorkerWrite(StackPtr &sp, RefObj *ref) {
     if (!tuple_space) return;
-    if (!ref) Error("thread write: nil reference");
+    if (!ref) Error(sp, "thread write: nil reference");
     auto &ti = ref->ti(*this);
-    if (ti.t != V_CLASS) Error("thread write: must be a class");
+    if (ti.t != V_CLASS) Error(sp, "thread write: must be a class");
     auto st = (LObject *)ref;
     auto buf = new Value[ti.len];
     for (int i = 0; i < ti.len; i++) {
         // FIXME: lift this restriction.
         if (IsRefNil(GetTypeInfo(ti.elemtypes[i]).t))
-            Error("thread write: only scalar class members supported for now");
+            Error(sp, "thread write: only scalar class members supported for now");
         buf[i] = st->AtS(i);
     }
     auto &tt = tuple_space->tupletypes[ti.structidx];
@@ -946,9 +969,9 @@ void VM::WorkerWrite(RefObj *ref) {
     tt.condition.notify_one();
 }
 
-LObject *VM::WorkerRead(type_elem_t tti) {
+LObject *VM::WorkerRead(StackPtr &sp, type_elem_t tti) {
     auto &ti = GetTypeInfo(tti);
-    if (ti.t != V_CLASS) Error("thread read: must be a class type");
+    if (ti.t != V_CLASS) Error(sp, "thread read: must be a class type");
     Value *buf = nullptr;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
@@ -977,48 +1000,64 @@ extern "C" {
 
 using namespace lobster;
 
-#ifndef NDEBUG
-    #define CHECKI(B) \
-        if (vm->trace != TraceMode::OFF) { \
-            auto &sd = vm->TraceStream(); \
-            sd += B; \
-            if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd); \
+void CVM_Trace(VM *vm, StackPtr sp, string op) {
+    auto &sd = vm->TraceStream();
+    sd += op;
+    #if RTT_ENABLED
+        if (sp >= vm->stack) {
+            sd += " - ";
+            Top(sp).ToStringBase(*vm, sd, Top(sp).type, vm->debugpp);
+            if (sp > vm->stack) {
+                sd += " - ";
+                TopM(sp, 1).ToStringBase(*vm, sd, TopM(sp, 1).type, vm->debugpp);
+            }
         }
-    // FIXME: add spaces.
-    #define CHECK(N, A) CHECKI(cat(#N, ": ", cat A))
+    #else
+        (void)sp;
+    #endif
+    // append(sd, " / ", (size_t)Top(sp).any());
+    // for (int _i = 0; _i < 7; _i++) { append(sd, " #", (size_t)vm->vars[_i].any()); }
+    if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
+}
+
+#ifndef NDEBUG
+    #define CHECKI(B) if (vm->trace != TraceMode::OFF) CVM_Trace(vm, sp, B);
+    #define CHECK(N, A) CHECKI(cat(#N, cat_parens A))
     #define CHECKJ(N) CHECKI(#N)
 #else
     #define CHECK(N, A)
     #define CHECKJ(N)
 #endif
 
-
-void CVM_SetNextCallTarget(VM *vm, block_t fcont) {
+void CVM_SetNextCallTarget(VM *vm, block_base_t fcont) {
     vm->next_call_target = fcont;
 }
 
-block_t CVM_GetNextCallTarget(VM *vm) {
+block_base_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
 
+// Only here because in compiled code we don't know sizeof(Value) (!)
+StackPtr CVM_Drop(StackPtr sp) { return --sp; }
+
 #define F(N, A) \
-    void CVM_##N(VM *vm VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(vm->sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
+    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
+        CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
     LVALOPNAMES
 #undef F
 #define F(N, A) \
-    void CVM_##N(VM *vm VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(vm->sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
+    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
+        CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
     ILBASENAMES
 #undef F
 #define F(N, A) \
-    void CVM_##N(VM *vm VM_COMMA_IF(A) VM_OP_ARGSN(A), block_t fcont) { \
-        CHECK(N, (VM_OP_PASSN(A))); vm->U_##N(vm->sp VM_COMMA VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
+    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), block_base_t fcont) { \
+        CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
     ILCALLNAMES
 #undef F
 #define F(N, A) \
-    bool CVM_##N(VM *vm) { \
-        CHECKJ(N); vm->U_##N(vm->sp); return (*vm->sp--).False(); }  // FIXME: clean up!
+    StackPtr CVM_##N(VM *vm, StackPtr sp) { \
+        CHECKJ(N); return U_##N(*vm, sp); }
     ILJUMPNAMES
 #undef F
 

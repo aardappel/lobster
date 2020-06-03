@@ -326,7 +326,7 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
             // Simply double the capacity until it works.
             // We choose 15 as minimum bound, since together with the null-terminator, it is most
             // likely to fit in a memory allocator bucket.
-            s.reserve(max(s.capacity(), (size_t)15) * 2);
+             s.reserve(max(s.capacity(), (size_t)15) * 2);
         }
     #else
         // ostringstream gives more consistent cross-platform results than to_string() for floats,
@@ -889,31 +889,67 @@ template<typename T> auto to_string_conv(T i) {
     return [s = to_string(i)]() { return string_view(s); };  // Caches to_string!
 }
 
-inline size_t size_helper() { return 0; }
-template<typename T, typename ...Ts> size_t size_helper(const T &t, const Ts &... args) {
-    return t().size() + size_helper(args...);
+inline size_t size_helper(const char *, const char *, const char *suffix) {
+    return suffix ? strlen(suffix) : 0;
+}
+template<typename T, typename ...Ts>
+size_t size_helper(const char *prefix, const char *infix, const char *suffix,
+                   const T &t, const Ts &... args) {
+    return (prefix ? strlen(prefix) : 0) + t().size() + size_helper(infix, infix, suffix, args...);
 }
 
-inline void cat_helper(string &) {}
-template<typename T, typename ...Ts> void cat_helper(string &s, const T &t, const Ts&... args) {
+inline void cat_helper(string &s, const char *, const char *, const char *suffix) {
+    if (suffix) s += suffix;
+}
+template<typename T, typename ...Ts>
+void cat_helper(string &s, const char *prefix, const char *infix, const char *suffix,
+                const T &t, const Ts&... args) {
+    if (prefix) s += prefix;
     s += t();
-    cat_helper(s, args...);
+    cat_helper(s, infix, infix, suffix, args...);
 }
 
-template<typename ...Ts> void cat_convs(string &s, const Ts &... args) {
-    auto len = size_helper(args...);
-    s.reserve(len);  // Only 1 alloc ever.
-    cat_helper(s, args...);
+template<typename ...Ts>
+void cat_convs(string &s, const char *prefix, const char *infix, const char *suffix,
+               const Ts &... args) {
+    auto len = (prefix ? strlen(prefix) : 0) + size_helper(nullptr, infix, suffix, args...);
+    s.reserve(len);  // Max 1 alloc ever.
+    if (prefix) s += prefix;
+    cat_helper(s, nullptr, infix, suffix, args...);
+    assert(s.size() == len);
 }
 
-template<typename ...Ts> string cat(const Ts&... args) {
+template<typename ...Ts>
+string cat(const Ts&... args) {
     string s;
-    cat_convs(s, to_string_conv(args)...);
+    cat_convs(s, nullptr, nullptr, nullptr, to_string_conv(args)...);
     return s;
 }
 
-template<typename ...Ts> void append(string &sd, const Ts &... args) {
-    cat_helper(sd, to_string_conv(args)...);
+template<typename ...Ts>
+string cat_spaced(const Ts &... args) {
+    string s;
+    cat_convs(s, nullptr, " ", nullptr, to_string_conv(args)...);
+    return s;
+}
+
+template<typename ...Ts>
+string cat_parens(const Ts &... args) {
+    string s;
+    cat_convs(s, "(", ", ", ")", to_string_conv(args)...);
+    return s;
+}
+
+template<typename ...Ts>
+string cat_quoted(const Ts &... args) {
+    string s;
+    cat_convs(s, "\"", "\" \"", "\"", to_string_conv(args)...);
+    return s;
+}
+
+template<typename ...Ts>
+void append(string &sd, const Ts &... args) {
+    cat_helper(sd, nullptr, nullptr, nullptr, to_string_conv(args)...);
 }
 
 // This method is in C++20, but quite essential.
@@ -984,6 +1020,7 @@ template<typename T> void WriteMemInc(uint8_t *&dest, const T &src) {
 inline void unit_test_tools() {
     assert(strcmp(null_terminated<0>(string_view("aa", 1)),
                   null_terminated<1>(string_view("bb", 1))) != 0);
+    assert(cat_parens(1, 2) == "(1, 2)");
 }
 
 

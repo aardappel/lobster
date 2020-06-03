@@ -2060,6 +2060,8 @@ C++64-MSVC:           : secs  8.9, stack pointer instead of index, 32% faster!
 VM64-MSVC:            : secs 17.8, named inlining.
 C++64-MSVC:           : secs  7.6, named inlining.
 C++64-MSVC:           : secs  7.4, __force_inline on VM functions.
+VM64-MSVC:            : secs 16.4, pass stack pointer around explicitly.
+C++64-MSVC:           : secs  6.2, pass stack pointer around explicitly.
 
 compiletime speed:
 

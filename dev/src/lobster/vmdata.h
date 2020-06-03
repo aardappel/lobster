@@ -268,14 +268,16 @@ struct LResource : RefObj {
 };
 
 #if RTT_ENABLED
-    #define TYPE_INIT(t) type(t),
+    #define TYPE_INIT(t) ,type(t)
     #define TYPE_ASSERT(c) assert(c)
 #else
     #define TYPE_INIT(t)
     #define TYPE_ASSERT(c)
 #endif
 
-typedef void *(*block_base_t)(VM &);
+typedef Value *StackPtr;
+
+typedef void *(*block_base_t)(VM &, StackPtr &);
 
 // These pointer types are for use inside Value below. In most other parts of the code we
 // use naked pointers.
@@ -330,10 +332,6 @@ struct InsPtr {
 };
 
 struct Value {
-    #if RTT_ENABLED
-    ValueType type;
-    #endif
-
     private:
     union {
         // All these types must all be exactly 64-bits, even in 32-bit builds.
@@ -357,6 +355,11 @@ struct Value {
         TypeInfoPtr ti_;
     };
     public:
+    #if RTT_ENABLED
+        // This one comes second, since that allows e.g. the Wasm codegen to access the above
+        // data without knowing if we're in debug mode.
+        ValueType type;
+    #endif
 
     // These asserts help track down any invalid code generation issues.
     iint        ival  () const { TYPE_ASSERT(type == V_INT);        return ival_;        }
@@ -382,25 +385,25 @@ struct Value {
     void setival(iint i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
     void setfval(double f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
 
-    inline Value()                   : TYPE_INIT(V_NIL)        ref_(nullptr)    {}
-    inline Value(int32_t i)          : TYPE_INIT(V_INT)        ival_(i)         {}
-    inline Value(uint32_t i)         : TYPE_INIT(V_INT)        ival_((iint)i)   {}
-    inline Value(int64_t i)          : TYPE_INIT(V_INT)        ival_(i)         {}
-    inline Value(uint64_t i)         : TYPE_INIT(V_INT)        ival_((iint)i)   {}
-    inline Value(int i, ValueType t) : TYPE_INIT(t)            ival_(i)         { (void)t; }
-    inline Value(bool b)             : TYPE_INIT(V_INT)        ival_(b)         {}
-    inline Value(float f)            : TYPE_INIT(V_FLOAT)      fval_(f)         {}
-    inline Value(double f)           : TYPE_INIT(V_FLOAT)      fval_((double)f) {}
-    inline Value(InsPtr i)           : TYPE_INIT(V_FUNCTION)   ip_(i)           {}
+    inline Value()                   : ref_(nullptr)    TYPE_INIT(V_NIL)        {}
+    inline Value(int32_t i)          : ival_(i)         TYPE_INIT(V_INT)        {}
+    inline Value(uint32_t i)         : ival_((iint)i)   TYPE_INIT(V_INT)        {}
+    inline Value(int64_t i)          : ival_(i)         TYPE_INIT(V_INT)        {}
+    inline Value(uint64_t i)         : ival_((iint)i)   TYPE_INIT(V_INT)        {}
+    inline Value(int i, ValueType t) : ival_(i)         TYPE_INIT(t)            { (void)t; }
+    inline Value(bool b)             : ival_(b)         TYPE_INIT(V_INT)        {}
+    inline Value(float f)            : fval_(f)         TYPE_INIT(V_FLOAT)      {}
+    inline Value(double f)           : fval_((double)f) TYPE_INIT(V_FLOAT)      {}
+    inline Value(InsPtr i)           : ip_(i)           TYPE_INIT(V_FUNCTION)   {}
 
-    inline Value(LString *s)         : TYPE_INIT(V_STRING)     sval_(s)         {}
-    inline Value(LVector *v)         : TYPE_INIT(V_VECTOR)     vval_(v)         {}
-    inline Value(LObject *s)         : TYPE_INIT(V_CLASS)      oval_(s)         {}
-    inline Value(LCoRoutine *c)      : TYPE_INIT(V_COROUTINE)  cval_(c)         {}
-    inline Value(LResource *r)       : TYPE_INIT(V_RESOURCE)   xval_(r)         {}
-    inline Value(RefObj *r)          : TYPE_INIT(V_NIL)        ref_(r)          { assert(false); }
+    inline Value(LString *s)         : sval_(s)         TYPE_INIT(V_STRING)     {}
+    inline Value(LVector *v)         : vval_(v)         TYPE_INIT(V_VECTOR)     {}
+    inline Value(LObject *s)         : oval_(s)         TYPE_INIT(V_CLASS)      {}
+    inline Value(LCoRoutine *c)      : cval_(c)         TYPE_INIT(V_COROUTINE)  {}
+    inline Value(LResource *r)       : xval_(r)         TYPE_INIT(V_RESOURCE)   {}
+    inline Value(RefObj *r)          : ref_(r)          TYPE_INIT(V_NIL)        { assert(false); }
 
-    inline Value(TypeInfo *ti)       : TYPE_INIT(V_STRUCT_S)   ti_(ti)          {}
+    inline Value(TypeInfo *ti)       : ti_(ti)          TYPE_INIT(V_STRUCT_S)   {}
 
     inline bool True() const { return ival_ != 0; }
     inline bool False() const { return ival_ == 0; }
@@ -436,7 +439,7 @@ struct Value {
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     iint Hash(VM &vm, ValueType vtype);
-    Value Copy(VM &vm);  // Shallow.
+    Value Copy(VM &vm, StackPtr &sp);  // Shallow.
 };
 
 template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti);
@@ -558,7 +561,7 @@ struct LVector : RefObj {
         tsnz_memcpy(v + i * width, vals, width);
     }
 
-    void Remove(VM &vm, iint i, iint n, iint decfrom, bool stack_ret);
+    void Remove(StackPtr &sp, VM &vm, iint i, iint n, iint decfrom, bool stack_ret);
 
     Value *Elems() { return v; }
 
@@ -577,8 +580,8 @@ struct LVector : RefObj {
         return v[i];
     }
 
-    void AtVW(VM &vm, iint i) const;
-    void AtVWSub(VM &vm, iint i, int w, int off) const;
+    void AtVW(StackPtr &sp, iint i) const;
+    void AtVWSub(StackPtr &sp, iint i, int w, int off) const;
 
     void Append(VM &vm, LVector *from, iint start, iint amount);
 
@@ -674,7 +677,7 @@ struct VMArgs {
     const void *static_bytecode = nullptr;
     size_t static_size = 0;
     vector<string> program_args;
-    const lobster::block_t *native_vtables = nullptr;
+    const lobster::block_base_t *native_vtables = nullptr;
     TraceMode trace = TraceMode::OFF;
 };
 
@@ -684,12 +687,12 @@ struct VM : VMArgs {
     Value *stack = nullptr;
     int stacksize = 0;
     int maxstacksize;
-    Value *sp = nullptr;
+    StackPtr sp_suspended = nullptr;
 
     Value retvalstemp[MAX_RETURN_VALUES];
 
     #ifdef VM_COMPILED_CODE_MODE
-        block_t next_call_target = 0;
+        block_base_t next_call_target = 0;
     #else
         const int *ip = nullptr;
     #endif
@@ -725,6 +728,7 @@ struct VM : VMArgs {
     size_t trace_ring_idx = 0;
 
     vector<RefObj *> delete_delay;
+    vector<LCoRoutine *> delete_delay_coroutine;
 
     vector<LString *> constant_strings;
 
@@ -737,27 +741,15 @@ struct VM : VMArgs {
 
     #ifdef VM_COMPILED_CODE_MODE
         #ifdef _WIN32
-            #define VM_STORAGE_MOD __forceinline
+            #define VM_INLINE __forceinline
         #else
-            #define VM_STORAGE_MOD inline __attribute__((always_inline))
+            #define VM_INLINE inline __attribute__((always_inline))
         #endif
     #else
-        #define VM_STORAGE_MOD inline
+        #define VM_INLINE inline
     #endif
 
-    //#define VM_ERROR_RET_EXPERIMENT
-    #if defined(VM_ERROR_RET_EXPERIMENT) && !defined(VM_COMPILED_CODE_MODE)
-        #define VM_INS_RETF bool
-        #define VM_RET return false
-        #define VM_TERMINATE return true
-    #else
-        #define VM_INS_RETF void
-        #define VM_RET
-        #define VM_TERMINATE
-    #endif
-    #define VM_INS_RET VM_STORAGE_MOD VM_INS_RETF
-
-    typedef VM_INS_RETF (VM::* f_ins_pointer)();
+    typedef StackPtr (* f_ins_pointer)(VM &, StackPtr);
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
 
     const void *compiled_code_ip = nullptr;
@@ -767,14 +759,26 @@ struct VM : VMArgs {
     TupleSpace *tuple_space = nullptr;
 
     // A runtime error triggers code that does extensive stack trace & variable dumping, which
-    // for certain errors could trigger yet more errors. These vars ensure that we don't.
+    // for certain errors could trigger yet more errors. This vars ensures that we don't.
     bool error_has_occured = false;  // Don't error again.
-    bool error_vm_inconsistent_state = false;  // Don't trust the contents of vm state.
 
     VM(VMArgs &&args);
     ~VM();
 
-    void OneMoreFrame();
+    void SuspendSP(StackPtr &sp) {
+        assert(!sp_suspended);
+        sp_suspended = sp;
+        sp = nullptr;
+    }
+
+    StackPtr ResumeSP() {
+        assert(sp_suspended);
+        auto sp = sp_suspended;
+        sp_suspended = nullptr;
+        return sp;
+    }
+
+    void OneMoreFrame(StackPtr);
 
     const TypeInfo &GetTypeInfo(type_elem_t offset) {
         return *(TypeInfo *)(typetable + offset);
@@ -796,164 +800,66 @@ struct VM : VMArgs {
     void OnAlloc(RefObj *ro);
     LVector *NewVec(iint initial, iint max, type_elem_t tti);
     LObject *NewObject(iint max, type_elem_t tti);
-    LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t tti);
+    LCoRoutine *NewCoRoutine(StackPtr &sp, InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t tti);
     LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(iint l);
     LString *NewString(string_view s);
     LString *NewString(string_view s1, string_view s2);
     LString *ResizeString(LString *s, iint size, int c, bool back);
 
-    Value Error(string err);
-    Value BuiltinError(string err) { return Error(err); }
-    Value SeriousError(string err) { error_vm_inconsistent_state = true; return Error(err); }
+    Value Error(StackPtr sp, string err);
+    Value BuiltinError(StackPtr sp, string err) { return Error(sp, err); }
+    Value SeriousError(string err);
+    void ErrorBase(string &sd, const string &err);
     void VMAssert(const char *what);
 
     int DumpVar(string &sd, const Value &x, int idx);
 
-    void FinalStackVarsCleanup();
+    void FinalStackVarsCleanup(StackPtr &sp);
 
-    void StartWorkers(iint numthreads);
+    void StartWorkers(StackPtr &sp, iint numthreads);
     void TerminateWorkers();
-    void WorkerWrite(RefObj *ref);
-    LObject *WorkerRead(type_elem_t tti);
+    void WorkerWrite(StackPtr &sp, RefObj *ref);
+    LObject *WorkerRead(StackPtr &sp, type_elem_t tti);
 
     #ifdef VM_COMPILED_CODE_MODE
         #define VM_COMMA ,
         #define VM_OP_ARGS const int *ip
-        #define VM_OP_ARGS_CALL block_t fcont
-        #define VM_SP_PASS_THRU sp
+        #define VM_OP_ARGS_CALL block_base_t fcont
         #define VM_IP_PASS_THRU ip
         #define VM_FC_PASS_THRU fcont
-        #define VM_OP_STATE Value *&sp
-        #define VM_OP_STATEC Value *&sp,
     #else
         #define VM_COMMA
         #define VM_OP_ARGS
         #define VM_OP_ARGS_CALL
-        #define VM_SP_PASS_THRU
         #define VM_IP_PASS_THRU
         #define VM_FC_PASS_THRU
-        #define VM_OP_STATE
-        #define VM_OP_STATEC
     #endif
 
     void JumpTo(InsPtr j);
     InsPtr GetIP();
-    template<int is_error> int VarCleanup(string *error, int towhere);
+    template<int is_error> int VarCleanup(StackPtr &sp, string *error, int towhere);
     void StartStackFrame(InsPtr retip);
-    void FunIntroPre(InsPtr fun);
-    void FunIntro(VM_OP_ARGS);
-    void FunOut(int towhere, int nrv);
+    void FunIntroPre(StackPtr &sp, InsPtr fun);
+    void FunIntro(StackPtr &sp VM_COMMA VM_OP_ARGS);
+    void FunOut(StackPtr &sp, int towhere, int nrv);
 
-    void CoVarCleanup(LCoRoutine *co);
+    void CoVarCleanup(StackPtr &sp, LCoRoutine *co);
     void CoNonRec(const int *varip);
-    void CoNew(VM_OP_STATEC VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL);
-    void CoSuspend(InsPtr retip);
-    void CoClean();
-    void CoYield(VM_OP_ARGS_CALL);
-    void CoResume(LCoRoutine *co);
+    void CoNew(StackPtr &sp VM_COMMA VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL);
+    void CoSuspend(StackPtr &sp, InsPtr retip);
+    void CoClean(StackPtr &sp);
+    void CoYield(StackPtr &sp VM_COMMA VM_OP_ARGS_CALL);
+    void CoResume(StackPtr &sp, LCoRoutine *co);
+    void CleanupDelayDeleteCoroutines(StackPtr &sp);
 
-    void EndEval(const Value &ret, const TypeInfo &ti);
+    void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 
-    void InstructionPointerInit() {
-        #ifdef VM_COMPILED_CODE_MODE
-            #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
-        #else
-            #define F(N, A) f_ins_pointers[IL_##N] = &VM::F_##N;
-        #endif
-        ILNAMES
-        #undef F
-    }
+    void EvalProgram(StackPtr = nullptr);
+    void EvalProgramInner(StackPtr);
 
-    #define VM_OP_ARGS0
-    #define VM_OP_ARGS1 int _a
-    #define VM_OP_ARGS2 int _a, int _b
-    #define VM_OP_ARGS3 int _a, int _b, int _c
-    #define VM_OP_ARGS9 VM_OP_ARGS  // ILUNKNOWNARITY
-    #define VM_OP_ARGSN(N) VM_OP_ARGS##N
-    #define VM_OP_DEFS0
-    #define VM_OP_DEFS1 int _a = *ip++;
-    #define VM_OP_DEFS2 int _a = *ip++; int _b = *ip++;
-    #define VM_OP_DEFS3 int _a = *ip++; int _b = *ip++; int _c = *ip++;
-    #define VM_OP_DEFS9  // ILUNKNOWNARITY
-    #define VM_OP_DEFSN(N) VM_OP_DEFS##N (void)ip;
-    #define VM_OP_PASS0
-    #define VM_OP_PASS1 _a
-    #define VM_OP_PASS2 _a, _b
-    #define VM_OP_PASS3 _a, _b, _c
-    #define VM_OP_PASS9 VM_IP_PASS_THRU  // ILUNKNOWNARITY
-    #define VM_OP_PASSN(N) VM_OP_PASS##N
-    #define VM_COMMA_0
-    #define VM_COMMA_1 ,
-    #define VM_COMMA_2 ,
-    #define VM_COMMA_3 ,
-    #define VM_COMMA_9 ,
-    #define VM_COMMA_IF(N) VM_COMMA_##N
-    #define VM_CCOMMA_0
-    #define VM_CCOMMA_1 VM_COMMA
-    #define VM_CCOMMA_2 VM_COMMA
-    #define VM_CCOMMA_3 VM_COMMA
-    #define VM_CCOMMA_9 VM_COMMA
-    #define VM_CCOMMA_IF(N) VM_CCOMMA_##N
+    VM_INLINE StackPtr ForLoop(StackPtr sp, iint len);
 
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE VM_CCOMMA_IF(A) VM_OP_ARGSN(A));
-        LVALOPNAMES
-    #undef F
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE VM_CCOMMA_IF(A) VM_OP_ARGSN(A));
-        ILBASENAMES
-    #undef F
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE VM_CCOMMA_IF(A) VM_OP_ARGSN(A) VM_COMMA VM_OP_ARGS_CALL);
-        ILCALLNAMES
-    #undef F
-    #define F(N, A) VM_INS_RET U_##N(VM_OP_STATE);
-        ILJUMPNAMES
-    #undef F
-
-    #ifndef VM_COMPILED_CODE_MODE
-        #define F(N, A) VM_INS_RETF F_##N(VM_OP_ARGS) { \
-                            VM_OP_DEFSN(A); \
-                            return U_##N(VM_OP_PASSN(A)); \
-                        }
-            LVALOPNAMES
-        #undef F
-        #define F(N, A) VM_INS_RETF F_##N(VM_OP_ARGS) { \
-                            VM_OP_DEFSN(A); \
-                            return U_##N(VM_OP_PASSN(A)); \
-                        }
-            ILBASENAMES
-        #undef F
-        #define F(N, A) VM_INS_RETF F_##N(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) { \
-                            VM_OP_DEFSN(A); \
-                            return U_##N(VM_OP_PASSN(A) VM_CCOMMA_IF(A) VM_FC_PASS_THRU); \
-                        }
-                 ILCALLNAMES
-        #undef F
-        #define F(N, A) VM_INS_RETF F_##N() { return U_##N(); }
-            ILJUMPNAMES
-        #undef F
-    #endif
-
-    #pragma push_macro("LVAL")
-    #undef LVAL
-    #define LVAL(N, V) VM_STORAGE_MOD void LV_##N(Value &a VM_COMMA_IF(V) VM_OP_ARGSN(V));
-        LVALOPNAMES
-    #undef LVAL
-    #pragma pop_macro("LVAL")
-
-    void EvalProgram();
-    void EvalProgramInner();
-
-    VM_INS_RET ForLoop(iint len);
-
-    VM_STORAGE_MOD Value &GetFieldLVal(iint i);
-    VM_STORAGE_MOD Value &GetFieldILVal(iint i);
-    VM_STORAGE_MOD Value &GetLocLVal(int i);
-    VM_STORAGE_MOD Value &GetVecLVal(iint i);
-
-    VM_STORAGE_MOD void PushDerefIdxVector(iint i);
-    VM_STORAGE_MOD void PushDerefIdxVectorSub(iint i, int width, int offset);
-    VM_STORAGE_MOD void PushDerefIdxStruct(iint i, int l);
-    VM_STORAGE_MOD void PushDerefIdxString(iint i);
     void LvalueIdxVector(int lvalop, iint i);
     void LvalueIdxStruct(int lvalop, iint i);
     void LvalueField(int lvalop, iint i);
@@ -961,55 +867,11 @@ struct VM : VMArgs {
 
     string ProperTypeName(const TypeInfo &ti);
 
-    void Div0() { Error("division by zero"); }
-    void IDXErr(iint i, iint n, const RefObj *v);
+    void Div0(StackPtr sp) { Error(sp, "division by zero"); }
+    void IDXErr(StackPtr sp, iint i, iint n, const RefObj *v);
     void BCallProf();
-    void BCallRetCheck(const NativeFun *nf);
-    iint GrabIndex(int len);
-
-    #define VM_PUSH(v) (*++sp = (v))
-    #define VM_TOP() (*sp)
-    #define VM_TOPM(n) (*(sp - (n)))
-    #define VM_POP() (*sp--)
-    #define VM_POPN(n) (sp -= (n))
-    #define VM_PUSHN(n) (sp += (n))
-    #define VM_TOPPTR() (sp + 1)
-
-    void Push(const Value &v) { VM_PUSH(v); }
-    Value Pop() { return VM_POP(); }
-    Value Top() { return VM_TOP(); }
-    Value *TopPtr() { return VM_TOPPTR(); }
-    void PushN(iint n) { VM_PUSHN(n); }
-    void PopN(iint n) { VM_POPN(n); }
-    pair<Value *, iint> PopVecPtr() {
-        auto width = VM_POP().ival();
-        VM_POPN(width);
-        return { VM_TOPPTR(), width };
-    }
-    template<typename T, int N> void PushVec(const vec<T, N> &v, int truncate = 4) {
-        auto l = min(N, truncate);
-        for (int i = 0; i < l; i++) VM_PUSH(v[i]);
-    }
-    template<typename T> T PopVec(typename T::CTYPE def = 0) {
-        T v;
-        auto l = VM_POP().intval();
-        if (l > T::NUM_ELEMENTS) VM_POPN(l - T::NUM_ELEMENTS);
-        for (int i = T::NUM_ELEMENTS - 1; i >= 0; i--) {
-            v[i] = i < l ? VM_POP().ifval<typename T::CTYPE>() : def;
-        }
-        return v;
-    }
-    template<typename T> void PushAnyAsString(const T &t) {
-        Push(NewString(string_view((char *)&t, sizeof(T))));
-    }
-
-    template<typename T> void PopAnyFromString(T &t) {
-        auto s = Pop();
-        assert(s.type == V_STRING);
-        assert(s.sval()->len == sizeof(T));
-        t = *(T *)s.sval()->strv().data();
-        // No rc dec, these are stored in a keepvar.
-    }
+    void BCallRetCheck(StackPtr sp, const NativeFun *nf);
+    iint GrabIndex(StackPtr &sp, int len);
 
     string_view StructName(const TypeInfo &ti);
     string_view ReverseLookupType(int v);
@@ -1032,6 +894,44 @@ struct VM : VMArgs {
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);
 };
+
+VM_INLINE void Push(StackPtr &sp, Value v) { *++sp = v; }
+VM_INLINE Value Pop(StackPtr &sp) { return *sp--; }
+VM_INLINE Value &Top(StackPtr sp) { return *sp; }
+VM_INLINE Value &TopM(StackPtr sp, iint n) { return *(sp - n); }
+VM_INLINE Value *TopPtr(StackPtr sp) { return sp + 1; }
+VM_INLINE void PushN(StackPtr &sp, iint n) { sp += n; }
+VM_INLINE void PopN(StackPtr &sp, iint n) { sp -= n; }
+
+VM_INLINE pair<Value *, iint> PopVecPtr(StackPtr &sp) {
+    auto width = Pop(sp).ival();
+    PopN(sp, width);
+    return { TopPtr(sp), width };
+}
+template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {
+    auto l = min(N, truncate);
+    for (int i = 0; i < l; i++) Push(sp, v[i]);
+}
+template<typename T> T PopVec(StackPtr &sp, typename T::CTYPE def = 0) {
+    T v;
+    auto l = Pop(sp).intval();
+    if (l > T::NUM_ELEMENTS) PopN(sp, l - T::NUM_ELEMENTS);
+    for (int i = T::NUM_ELEMENTS - 1; i >= 0; i--) {
+        v[i] = i < l ? Pop(sp).ifval<typename T::CTYPE>() : def;
+    }
+    return v;
+}
+template<typename T> void PushAnyAsString(StackPtr &sp, VM &vm, const T &t) {
+    Push(sp, vm.NewString(string_view((char *)&t, sizeof(T))));
+}
+
+template<typename T> void PopAnyFromString(StackPtr &sp, T &t) {
+    auto s = Pop(sp);
+    assert(s.type == V_STRING);
+    assert(s.sval()->len == sizeof(T));
+    t = *(T *)s.sval()->strv().data();
+    // No rc dec, these are stored in a keepvar.
+}
 
 inline int64_t Int64FromInts(int a, int b) {
     int64_t v = (uint32_t)a;
@@ -1100,19 +1000,19 @@ template <typename T, int N> inline void ToValue(Value *dest, iint width, const 
     for (iint i = 0; i < width; i++) dest[i] = i < N ? v[i] : 0;
 }
 
-inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {
+inline iint RangeCheck(StackPtr sp, VM &vm, const Value &idx, iint range, iint bias = 0) {
     auto i = idx.ival();
     if (i < bias || i >= bias + range)
-        vm.BuiltinError(cat("index out of range [", bias, "..", bias + range, "): ", i));
+        vm.BuiltinError(sp, cat("index out of range [", bias, "..", bias + range, "): ", i));
     return i;
 }
 
-template<typename T> inline T GetResourceDec(VM &vm, const Value &val, const ResourceType *type) {
+template<typename T> inline T GetResourceDec(StackPtr sp, VM &vm, const Value &val, const ResourceType *type) {
     if (val.False())
         return nullptr;
     auto x = val.xval();
     if (x->type != type)
-        vm.BuiltinError(string_view("needed resource type: ") + type->name + ", got: " +
+        vm.BuiltinError(sp, string_view("needed resource type: ") + type->name + ", got: " +
             x->type->name);
     return (T)x->val;
 }
@@ -1163,8 +1063,8 @@ struct LCoRoutine : RefObj {
         : RefObj(cti), stackstart(_ss), stackframestart(_sfs), returnip(_rip), varip(_vip),
           parent(_p) {}
 
-    Value &Current(VM &vm) {
-        if (stackstart >= 0) vm.BuiltinError("cannot get value of active coroutine");
+    Value &Current(StackPtr sp, VM &vm) {
+        if (stackstart >= 0) vm.BuiltinError(sp, "cannot get value of active coroutine");
         return stackcopy[stackcopylen - 1].LTINCTYPE(vm.GetTypeInfo(ti(vm).yieldtype).t);
     }
 
@@ -1244,9 +1144,9 @@ struct LCoRoutine : RefObj {
         return stackcopy[stackcopylen - *varip + savedvaridx - 1];
     }
 
-    Value &GetVar(VM &vm, int ididx) {
+    Value &GetVar(VM &vm, StackPtr sp, int ididx) {
         if (stackstart >= 0)
-            vm.BuiltinError("cannot access locals of running coroutine");
+            vm.BuiltinError(sp, "cannot access locals of running coroutine");
         // FIXME: we can probably make it work without this search, but for now no big deal
         for (int i = 1; i <= *varip; i++) {
             if (varip[i] == ididx) {
@@ -1255,11 +1155,17 @@ struct LCoRoutine : RefObj {
         }
         // This one should be really rare, since parser already only allows lexically contained vars
         // for that function, could happen when accessing var that's not in the callchain of yields.
-        vm.BuiltinError("local variable being accessed is not part of coroutine state");
+        vm.BuiltinError(sp, "local variable being accessed is not part of coroutine state");
         return *stackcopy;
     }
 
     void DeleteSelf(VM &vm) {
+        // FIXME: this is because we can be deleted from pretty much anywhere, and we don't know
+        // the sp when this happens, which is needed to unwind coroutines on delete.
+        vm.delete_delay_coroutine.push_back(this);
+    }
+
+    void DelayedDelete(StackPtr &sp, VM &vm) {
         assert(stackstart < 0);
         if (stackcopy) {
             auto curvaltype = vm.GetTypeInfo(ti(vm).yieldtype).t;
@@ -1272,7 +1178,7 @@ struct LCoRoutine : RefObj {
                 }
                 top_at_suspend -= *varip + 1;
                 // This calls Resume() to get the rest back onto the stack, then unwinds it.
-                vm.CoVarCleanup(this);
+                vm.CoVarCleanup(sp, this);
             } else {
                assert(!stackcopylen);
             }
@@ -1303,12 +1209,13 @@ struct LCoRoutine : RefObj {
 #if !defined(NDEBUG) && RTT_ENABLED
     #define STRINGIFY(x) #x
     #define TOSTRING(x) STRINGIFY(x)
-    #define VMASSERT(test) { if (!(test)) VMAssert(__FILE__ ": " TOSTRING(__LINE__) ": " #test); }
+    #define VMASSERT(vm, test) { if (!(test)) vm.VMAssert(__FILE__ ": " TOSTRING(__LINE__) ": " #test); }
 #else
-    #define VMASSERT(test) {}
+    #define VMASSERT(vm, test) { (void)vm; }
 #endif
 
-#define RANGECHECK(I, BOUND, VEC) if ((uint64_t)I >= (uint64_t)BOUND) IDXErr(I, BOUND, VEC);
+#define RANGECHECK(vm, I, BOUND, VEC) \
+    if ((uint64_t)I >= (uint64_t)BOUND) vm.IDXErr(sp, I, BOUND, VEC);
 
 }  // namespace lobster
 

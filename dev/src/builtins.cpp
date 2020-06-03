@@ -36,7 +36,7 @@ static int StringCompare(const Value &a, const Value &b) {
     return (_a > _b) - (_b > _a);
 }
 
-template<typename T> Value BinarySearch(VM &vm, Value &l, Value &key, T comparefun) {
+template<typename T> Value BinarySearch(StackPtr &sp, Value &l, Value &key, T comparefun) {
     iint size = l.vval()->len;
     iint i = 0;
     for (;;) {
@@ -56,7 +56,7 @@ template<typename T> Value BinarySearch(VM &vm, Value &l, Value &key, T comparef
             break;
         }
     }
-    vm.Push(Value(size));
+    Push(sp, Value(size));
     return Value(i);
 }
 
@@ -64,7 +64,7 @@ void AddBuiltins(NativeRegistry &nfr) {
 
 nfr("print", "x", "Ss", "",
     "output any value to the console (with linefeed).",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         vm.s_reuse.clear();
         RefToString(vm, vm.s_reuse, a.refnil(), vm.programprintprefs);
         LOG_PROGRAM(vm.s_reuse);
@@ -74,20 +74,20 @@ nfr("print", "x", "Ss", "",
 // This is now the identity function, but still useful to force a coercion.
 nfr("string", "x", "Ssk", "S",
     "convert any value to string",
-    [](VM &, Value &a) {
+    [](StackPtr &, VM &, Value &a) {
         return a;
     });
 
 nfr("set_print_depth", "depth", "I", "",
     "for printing / string conversion: sets max vectors/objects recursion depth (default 10)",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         vm.programprintprefs.depth = a.ival();
         return Value();
     });
 
 nfr("set_print_length", "len", "I", "",
     "for printing / string conversion: sets max string length (default 100000)",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         vm.programprintprefs.budget = a.ival();
         return Value();
     });
@@ -95,7 +95,7 @@ nfr("set_print_length", "len", "I", "",
 nfr("set_print_quoted", "quoted", "B", "",
     "for printing / string conversion: if the top level value is a string, whether to convert"
     " it with escape codes and quotes (default false)",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         vm.programprintprefs.quoted = a.ival() != 0;
         return Value();
     });
@@ -103,7 +103,7 @@ nfr("set_print_quoted", "quoted", "B", "",
 nfr("set_print_decimals", "decimals", "I", "",
     "for printing / string conversion: number of decimals for any floating point output"
     " (default -1, meaning all)",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         vm.programprintprefs.decimals = a.ival();
         return Value();
     });
@@ -111,14 +111,14 @@ nfr("set_print_decimals", "decimals", "I", "",
 nfr("set_print_indent", "spaces", "I", "",
     "for printing / string conversion: number of spaces to indent with. default is 0:"
     " no indent / no multi-line",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         vm.programprintprefs.indent = a.intval();
         return Value();
     });
 
 nfr("get_line", "", "", "S",
     "reads a string from the console if possible (followed by enter)",
-    [](VM &vm) {
+    [](StackPtr &, VM &vm) {
         const int MAXSIZE = 1000;
         char buf[MAXSIZE];
         if (!fgets(buf, MAXSIZE, stdin)) buf[0] = 0;
@@ -129,7 +129,7 @@ nfr("get_line", "", "", "S",
 
 nfr("append", "xs,ys", "A]*A]*1", "A]1",
     "creates a new vector by appending all elements of 2 input vectors",
-    [](VM &vm, Value &v1, Value &v2) {
+    [](StackPtr &, VM &vm, Value &v1, Value &v2) {
         auto type = v1.vval()->tti;
         auto nv = (LVector *)vm.NewVec(0, v1.vval()->len + v2.vval()->len, type);
         nv->Append(vm, v1.vval(), 0, v1.vval()->len);
@@ -141,26 +141,26 @@ nfr("vector_reserve", "typeid,len", "VI", "A]*",
     "creates a new empty vector much like [] would, except now ensures"
     " it will have space for len push() operations without having to reallocate."
     " pass \"typeof return\" as typeid.",
-    [](VM &vm, Value &type, Value &len) {
+    [](StackPtr &, VM &vm, Value &type, Value &len) {
         return Value(vm.NewVec(0, len.ival(), (type_elem_t)type.ival()));
     });
 
 nfr("length", "x", "I", "I",
     "length of int (identity function, useful in combination with string/vector version)",
-    [](VM &, Value &a) {
+    [](StackPtr &, VM &, Value &a) {
         return a;
     });
 
 nfr("length", "s", "S", "I",
     "length of string",
-    [](VM &, Value &a) {
+    [](StackPtr &, VM &, Value &a) {
         auto len = a.sval()->len;
         return Value(len);
     });
 
 nfr("length", "xs", "A]*", "I",
     "length of vector",
-    [](VM &, Value &a) {
+    [](StackPtr &, VM &, Value &a) {
         auto len = a.vval()->len;
         return Value(len);
     });
@@ -168,76 +168,76 @@ nfr("length", "xs", "A]*", "I",
 nfr("equal", "a,b", "AA", "B",
     "structural equality between any two values (recurses into vectors/objects,"
     " unlike == which is only true for vectors/objects if they are the same object)",
-    [](VM &vm, Value &a, Value &b) {
+    [](StackPtr &, VM &vm, Value &a, Value &b) {
         bool eq = RefEqual(vm, a.refnil(), b.refnil(), true);
         return Value(eq);
     });
 
 nfr("push", "xs,x", "A]*Akw1", "Ab]1",
     "appends one element to a vector, returns existing vector",
-    [](VM &vm) {
-        auto val = vm.PopVecPtr();
-        auto l = vm.Pop().vval();
+    [](StackPtr &sp, VM &vm) {
+        auto val = PopVecPtr(sp);
+        auto l = Pop(sp).vval();
         assert(val.second == l->width);
         l->PushVW(vm, val.first);
-        vm.Push(l);
+        Push(sp,  l);
     });
 
 nfr("pop", "xs", "A]*", "A1",
     "removes last element from vector and returns it",
-    [](VM &vm) {
-        auto l = vm.Pop().vval();
-        if (!l->len) vm.BuiltinError("pop: empty vector");
-        l->PopVW(vm.TopPtr());
-        vm.PushN((int)l->width);
+    [](StackPtr &sp, VM &vm) {
+        auto l = Pop(sp).vval();
+        if (!l->len) vm.BuiltinError(sp, "pop: empty vector");
+        l->PopVW(TopPtr(sp));
+        PushN(sp,  (int)l->width);
     });
 
 nfr("top", "xs", "A]*", "Ab1",
     "returns last element from vector",
-    [](VM &vm) {
-        auto l = vm.Pop().vval();
-        if (!l->len) vm.BuiltinError("top: empty vector");
-        l->TopVW(vm.TopPtr());
-        vm.PushN((int)l->width);
+    [](StackPtr &sp, VM &vm) {
+        auto l = Pop(sp).vval();
+        if (!l->len) vm.BuiltinError(sp, "top: empty vector");
+        l->TopVW(TopPtr(sp));
+        PushN(sp,  (int)l->width);
     });
 
 nfr("insert", "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
     " returns original vector",
-    [](VM &vm) {
-        auto val = vm.PopVecPtr();
-        auto i = vm.Pop().ival();
-        auto l = vm.Pop().vval();
+    [](StackPtr &sp, VM &vm) {
+        auto val = PopVecPtr(sp);
+        auto i = Pop(sp).ival();
+        auto l = Pop(sp).vval();
         if (i < 0 || i > l->len)
-            vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
+            vm.BuiltinError(sp, "insert: index or n out of range");  // note: i==len is legal
         assert(val.second == l->width);
         l->Insert(vm, val.first, i);
-        vm.Push(l);
+        Push(sp,  l);
     });
 
 nfr("remove", "xs,i,n", "A]*II?", "A1",
     "remove element(s) at index i, following elements shift down. pass the number of elements"
     " to remove as an optional argument, default 1. returns the first element removed.",
-    [](VM &vm) {
-        auto n = vm.Pop().ival();
-        auto i = vm.Pop().ival();
-        auto l = vm.Pop().vval();
+    [](StackPtr &sp, VM &vm) {
+        auto n = Pop(sp).ival();
+        auto i = Pop(sp).ival();
+        auto l = Pop(sp).vval();
         auto amount = max(n, 1_L);
         if (n < 0 || amount > l->len || i < 0 || i > l->len - amount)
-            vm.BuiltinError(cat("remove: index (", i, ") or n (", amount,
+            vm.BuiltinError(sp, cat("remove: index (", i, ") or n (", amount,
                                     ") out of range (", l->len, ")"));
-        l->Remove(vm, i, amount, 1, true);
+        l->Remove(sp, vm, i, amount, 1, true);
     });
 
 nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
     "remove all elements equal to obj (==), returns obj.",
-    [](VM &vm, Value &l, Value &o) {
+    [](StackPtr &sp, VM &vm, Value &l, Value &o) {
         iint removed = 0;
         auto vt = vm.GetTypeInfo(l.vval()->ti(vm).subt).t;
         for (iint i = 0; i < l.vval()->len; i++) {
             auto e = l.vval()->At(i);
             if (e.Equal(vm, vt, o, vt, false)) {
-                l.vval()->Remove(vm, i--, 1, 0, false);
+                l.vval()->Remove(sp, vm, i--, 1, 0, false);
                 removed++;
             }
         }
@@ -249,40 +249,40 @@ nfr("binary_search", "xs,key", "I]I", "II",
     " matches were found, and as second the index in the array where the matches start (so you"
     " can read them, overwrite them, or remove them), or if none found, where the key could be"
     " inserted such that the vector stays sorted. This overload is for int vectors and keys.",
-    [](VM &vm, Value &l, Value &key) {
-        auto r = BinarySearch(vm, l, key, IntCompare);
+    [](StackPtr &sp, VM &, Value &l, Value &key) {
+        auto r = BinarySearch(sp, l, key, IntCompare);
         return r;
     });
 
 nfr("binary_search", "xs,key", "F]F", "II",
     "float version.",
-    [](VM &vm, Value &l, Value &key) {
-        auto r = BinarySearch(vm, l, key, FloatCompare);
+    [](StackPtr &sp, VM &, Value &l, Value &key) {
+        auto r = BinarySearch(sp, l, key, FloatCompare);
         return r;
     });
 
 nfr("binary_search", "xs,key", "S]S", "II",
     "string version.",
-    [](VM &vm, Value &l, Value &key) {
-        auto r = BinarySearch(vm, l, key, StringCompare);
+    [](StackPtr &sp, VM &, Value &l, Value &key) {
+        auto r = BinarySearch(sp, l, key, StringCompare);
         return r;
     });
 
 nfr("copy", "xs", "A", "A1",
     "makes a shallow copy of any object.",
-    [](VM &vm, Value &v) {
-        return v.Copy(vm);
+    [](StackPtr &sp, VM &vm, Value &v) {
+        return v.Copy(vm, sp);
     });
 
 nfr("slice", "xs,start,size", "A]*II", "A]1",
     "returns a sub-vector of size elements from index start."
     " size can be negative to indicate the rest of the vector.",
-    [](VM &vm, Value &l, Value &s, Value &e) {
+    [](StackPtr &sp, VM &vm, Value &l, Value &s, Value &e) {
         auto size = e.ival();
         auto start = s.ival();
         if (size < 0) size = l.vval()->len - start;
         if (start < 0 || start + size > l.vval()->len)
-            vm.BuiltinError("slice: values out of range");
+            vm.BuiltinError(sp, "slice: values out of range");
         auto nv = (LVector *)vm.NewVec(0, size, l.vval()->tti);
         nv->Append(vm, l.vval(), start, size);
         return Value(nv);
@@ -290,18 +290,18 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
 
 nfr("any", "xs", "I}", "B",
     "returns wether any elements of the numeric struct are true values",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         auto r = false;
-        auto l = vm.Pop().ival();
+        auto l = Pop(sp).ival();
         for (iint i = 0; i < l; i++) {
-            if (vm.Pop().True()) r = true;
+            if (Pop(sp).True()) r = true;
         }
-        vm.Push(r);
+        Push(sp,  r);
     });
 
 nfr("any", "xs", "A]*", "B",
     "returns wether any elements of the vector are true values",
-    [](VM &, Value &v) {
+    [](StackPtr &, VM &, Value &v) {
         Value r(false);
         iint l = v.vval()->len;
         for (auto i = 0; i < l; i++) {
@@ -312,18 +312,18 @@ nfr("any", "xs", "A]*", "B",
 
 nfr("all", "xs", "I}", "B",
     "returns wether all elements of the numeric struct are true values",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         auto r = true;
-        auto l = vm.Pop().ival();
+        auto l = Pop(sp).ival();
         for (iint i = 0; i < l; i++) {
-            if (!vm.Pop().True()) r = false;
+            if (!Pop(sp).True()) r = false;
         }
-        vm.Push(r);
+        Push(sp,  r);
     });
 
 nfr("all", "xs", "A]*", "B",
     "returns wether all elements of the vector are true values",
-    [](VM &, Value &v) {
+    [](StackPtr &, VM &, Value &v) {
         Value r(true);
         for (iint i = 0; i < v.vval()->len; i++) {
             if (v.vval()->At(i).False()) { r = Value(false); break; }
@@ -334,12 +334,12 @@ nfr("all", "xs", "A]*", "B",
 nfr("substring", "s,start,size", "SII", "S",
     "returns a substring of size characters from index start."
     " size can be negative to indicate the rest of the string.",
-    [](VM &vm, Value &l, Value &s, Value &e) {
+    [](StackPtr &sp, VM &vm, Value &l, Value &s, Value &e) {
         iint size = e.ival();
         iint start = s.ival();
         if (size < 0) size = l.sval()->len - start;
         if (start < 0 || start + size > l.sval()->len)
-            vm.BuiltinError("substring: values out of range");
+            vm.BuiltinError(sp, "substring: values out of range");
 
         auto ns = vm.NewString(string_view(l.sval()->data() + start, (size_t)size));
         return Value(ns);
@@ -348,17 +348,17 @@ nfr("substring", "s,start,size", "SII", "S",
 nfr("string_to_int", "s", "S", "IB",
     "converts a string to an int. returns 0 if no numeric data could be parsed."
     "second return value is true if all characters of the string were parsed",
-    [](VM &vm, Value &s) {
+    [](StackPtr &sp, VM &, Value &s) {
         char *end;
         auto sv = s.sval()->strv();
         auto i = parse_int<iint>(sv, 10, &end);
-        vm.Push(i);
+        Push(sp,  i);
         return Value(end == sv.data() + sv.size());
     });
 
 nfr("string_to_float", "s", "S", "F",
     "converts a string to a float. returns 0.0 if no numeric data could be parsed",
-    [](VM &, Value &s) {
+    [](StackPtr &, VM &, Value &s) {
         auto f = strtod(s.sval()->data(), nullptr);
         return Value(f);
     });
@@ -368,7 +368,7 @@ nfr("tokenize", "s,delimiters,whitespace", "SSS", "S]",
     " terminating delimiter. Segments are stripped of leading and trailing whitespace."
     " Example: \"; A ; B C; \" becomes [ \"\", \"A\", \"B C\" ] with \";\" as delimiter and"
     " \" \" as whitespace.",
-    [](VM &vm, Value &s, Value &delims, Value &whitespace) {
+    [](StackPtr &, VM &vm, Value &s, Value &delims, Value &whitespace) {
         auto v = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto ws = whitespace.sval()->strv();
         auto dl = delims.sval()->strv();
@@ -387,7 +387,7 @@ nfr("tokenize", "s,delimiters,whitespace", "SSS", "S]",
 
 nfr("unicode_to_string", "us", "I]", "S",
     "converts a vector of ints representing unicode values to a UTF-8 string.",
-    [](VM &vm, Value &v) {
+    [](StackPtr &, VM &vm, Value &v) {
         char buf[7];
         string s;
         for (iint i = 0; i < v.vval()->len; i++) {
@@ -400,7 +400,7 @@ nfr("unicode_to_string", "us", "I]", "S",
 
 nfr("string_to_unicode", "s", "S", "I]?",
     "converts a UTF-8 string into a vector of unicode values, or nil upon a decoding error",
-    [](VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value &s) {
         auto v = (LVector *)vm.NewVec(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
         auto p = s.sval()->strv();
         while (!p.empty()) {
@@ -414,9 +414,9 @@ nfr("string_to_unicode", "s", "S", "I]?",
 nfr("number_to_string", "number,base,minchars", "III", "S",
     "converts the (unsigned version) of the input integer number to a string given the base"
     " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).",
-    [](VM &vm, Value &n, Value &b, Value &mc) {
+    [](StackPtr &sp, VM &vm, Value &n, Value &b, Value &mc) {
         if (b.ival() < 2 || b.ival() > 36 || mc.ival() > 32)
-            vm.BuiltinError("number_to_string: values out of range");
+            vm.BuiltinError(sp, "number_to_string: values out of range");
         auto i = (uint64_t)n.ival();
         string s;
         auto from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -429,7 +429,7 @@ nfr("number_to_string", "number,base,minchars", "III", "S",
 
 nfr("lowercase", "s", "S", "S",
     "converts a UTF-8 string from any case to lower case, affecting only A-Z",
-    [](VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value &s) {
         auto ns = vm.NewString(s.sval()->strv());
         for (auto &c : ns->strv()) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
@@ -440,7 +440,7 @@ nfr("lowercase", "s", "S", "S",
 
 nfr("uppercase", "s", "S", "S",
     "converts a UTF-8 string from any case to upper case, affecting only a-z",
-    [](VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value &s) {
         auto ns = vm.NewString(s.sval()->strv());
         for (auto &c : ns->strv()) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
@@ -451,7 +451,7 @@ nfr("uppercase", "s", "S", "S",
 
 nfr("escape_string", "s,set,prefix,postfix", "SSSS", "S",
     "prefixes & postfixes any occurrences or characters in set in string s",
-    [](VM &vm, Value &s, Value &set, Value &prefix, Value &postfix) {
+    [](StackPtr &, VM &vm, Value &s, Value &set, Value &prefix, Value &postfix) {
         string out;
         for (auto p = s.sval()->strv();;) {
             auto loc = p.find_first_of(set.sval()->strv());
@@ -473,7 +473,7 @@ nfr("escape_string", "s,set,prefix,postfix", "SSSS", "S",
 
 nfr("concat_string", "v,sep", "S]S", "S",
     "concatenates all elements of the string vector, separated with sep.",
-    [](VM &vm, Value &v, Value &sep) {
+    [](StackPtr &, VM &vm, Value &v, Value &sep) {
         string s;
         auto sepsv = sep.sval()->strv();
         for (iint i = 0; i < v.vval()->len; i++) {
@@ -486,7 +486,7 @@ nfr("concat_string", "v,sep", "S]S", "S",
 
 nfr("repeat_string", "s,n", "SI", "S",
     "returns a string consisting of n copies of the input string.",
-    [](VM &vm, Value &s, Value &_n) {
+    [](StackPtr &, VM &vm, Value &s, Value &_n) {
         auto n = max(iint(0), _n.ival());
         auto len = s.sval()->len;
         auto ns = vm.NewString(len * n);
@@ -497,8 +497,8 @@ nfr("repeat_string", "s,n", "SI", "S",
     });
 
 #define VECTOROPT(op, typeinfo) \
-    auto len = vm.Pop().ival(); \
-    auto elems = vm.TopPtr() - len; \
+    auto len = Pop(sp).ival(); \
+    auto elems = TopPtr(sp) - len; \
     for (iint i = 0; i < len; i++) { \
         auto f = elems[i]; \
         elems[i] = Value(op); \
@@ -509,137 +509,137 @@ nfr("repeat_string", "s,n", "SI", "S",
 
 nfr("pow", "a,b", "FF", "F",
     "a raised to the power of b",
-    [](VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); });
+    [](StackPtr &, VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); });
 
 nfr("pow", "a,b", "II", "I",
     "a raised to the power of b, for integers, using exponentiation by squaring",
-    [](VM &, Value &a, Value &b) {
+    [](StackPtr &, VM &, Value &a, Value &b) {
         return Value(b.ival() >= 0 ? ipow<iint>(a.ival(), b.ival()) : 0);
     });
 
 nfr("pow", "a,b", "F}F", "F}",
     "vector elements raised to the power of b",
-    [](VM &vm) {
-        auto exp = vm.Pop().fval();
+    [](StackPtr &sp, VM &) {
+        auto exp = Pop(sp).fval();
         VECTOROPF(pow(f.fval(), exp));
     });
 
 nfr("log", "a", "F", "F",
     "natural logaritm of a",
-    [](VM &, Value &a) { return Value(log(a.fval())); });
+    [](StackPtr &, VM &, Value &a) { return Value(log(a.fval())); });
 
 nfr("sqrt", "f", "F", "F",
     "square root",
-    [](VM &, Value &a) { return Value(sqrt(a.fval())); });
+    [](StackPtr &, VM &, Value &a) { return Value(sqrt(a.fval())); });
 
 nfr("ceiling", "f", "F", "I",
     "the nearest int >= f",
-    [](VM &, Value &a) { return Value(fceil(a.fval())); });
+    [](StackPtr &, VM &, Value &a) { return Value(fceil(a.fval())); });
 nfr("ceiling", "v", "F}", "I}",
     "the nearest ints >= each component of v",
-    [](VM &vm) { VECTOROPI(iint(fceil(f.fval()))); });
+    [](StackPtr &sp, VM &) { VECTOROPI(iint(fceil(f.fval()))); });
 
 nfr("floor", "f", "F", "I",
     "the nearest int <= f",
-    [](VM &, Value &a) { return Value(ffloor(a.fval())); });
+    [](StackPtr &, VM &, Value &a) { return Value(ffloor(a.fval())); });
 nfr("floor", "v", "F}", "I}",
     "the nearest ints <= each component of v",
-    [](VM &vm) { VECTOROPI(ffloor(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROPI(ffloor(f.fval())); });
 
 nfr("int", "f", "F", "I",
     "converts a float to an int by dropping the fraction",
-    [](VM &, Value &a) { return Value(iint(a.fval())); });
+    [](StackPtr &, VM &, Value &a) { return Value(iint(a.fval())); });
 nfr("int", "v", "F}", "I}",
     "converts a vector of floats to ints by dropping the fraction",
-    [](VM &vm) { VECTOROPI(iint(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROPI(iint(f.fval())); });
 
 nfr("round", "f", "F", "I",
     "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
     " negative numbers",
-    [](VM &, Value &a) { return Value(iint(a.fval() + 0.5f)); });
+    [](StackPtr &, VM &, Value &a) { return Value(iint(a.fval() + 0.5f)); });
 nfr("round", "v", "F}", "I}",
     "converts a vector of floats to the closest ints",
-    [](VM &vm) { VECTOROPI(iint(f.fval() + 0.5f)); });
+    [](StackPtr &sp, VM &) { VECTOROPI(iint(f.fval() + 0.5f)); });
 
 nfr("fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - int(f)",
-    [](VM &, Value &a) { return Value(a.fval() - int(a.fval())); });
+    [](StackPtr &, VM &, Value &a) { return Value(a.fval() - int(a.fval())); });
 nfr("fraction", "v", "F}", "F}",
     "returns the fractional part of a vector of floats",
-    [](VM &vm) { VECTOROP(f.fval() - int(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROP(f.fval() - int(f.fval())); });
 
 nfr("float", "i", "I", "F",
     "converts an int to float",
-    [](VM &, Value &a) { return Value(double(a.ival())); });
+    [](StackPtr &, VM &, Value &a) { return Value(double(a.ival())); });
 nfr("float", "v", "I}", "F}",
     "converts a vector of ints to floats",
-    [](VM &vm) { VECTOROPF(double(f.ival())); });
+    [](StackPtr &sp, VM &) { VECTOROPF(double(f.ival())); });
 
 nfr("sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)",
-    [](VM &, Value &a) { return Value(sin(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value &a) { return Value(sin(a.fval() * RAD)); });
 nfr("cos", "angle", "F", "F",
     "the x coordinate of the normalized vector indicated by angle (in degrees)",
-    [](VM &, Value &a) { return Value(cos(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value &a) { return Value(cos(a.fval() * RAD)); });
 nfr("tan", "angle", "F", "F",
     "the tangent of an angle (in degrees)",
-    [](VM &, Value &a) { return Value(tan(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value &a) { return Value(tan(a.fval() * RAD)); });
 
 nfr("sincos", "angle", "F", "F}:2",
     "the normalized vector indicated by angle (in degrees), same as xy { cos(angle), sin(angle) }",
-    [](VM &vm) {
-        auto a = vm.Pop().fval();
-        vm.PushVec(double2(cos(a * RAD), sin(a * RAD)));
+    [](StackPtr &sp, VM &) {
+        auto a = Pop(sp).fval();
+        PushVec(sp, double2(cos(a * RAD), sin(a * RAD)));
     });
 
 nfr("asin", "y", "F", "F",
     "the angle (in degrees) indicated by the y coordinate projected to the unit circle",
-    [](VM &, Value &y) { return Value(asin(y.fval()) / RAD); });
+    [](StackPtr &, VM &, Value &y) { return Value(asin(y.fval()) / RAD); });
 nfr("acos", "x", "F", "F",
     "the angle (in degrees) indicated by the x coordinate projected to the unit circle",
-    [](VM &, Value &x) { return Value(acos(x.fval()) / RAD); });
+    [](StackPtr &, VM &, Value &x) { return Value(acos(x.fval()) / RAD); });
 nfr("atan", "x", "F", "F",
     "the angle (in degrees) indicated by the y coordinate of the tangent projected to the unit circle",
-    [](VM &, Value &x) { return Value(atan(x.fval()) / RAD); });
+    [](StackPtr &, VM &, Value &x) { return Value(atan(x.fval()) / RAD); });
 
 nfr("radians", "angle", "F", "F",
     "converts an angle in degrees to radians",
-    [](VM &, Value &a) { return Value(a.fval() * RAD); });
+    [](StackPtr &, VM &, Value &a) { return Value(a.fval() * RAD); });
 nfr("degrees", "angle", "F", "F",
     "converts an angle in radians to degrees",
-    [](VM &, Value &a) { return Value(a.fval() / RAD); });
+    [](StackPtr &, VM &, Value &a) { return Value(a.fval() / RAD); });
 
 nfr("atan2", "vec", "F}" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector",
-    [](VM &vm) {
-        auto v = vm.PopVec<double2>();
-        vm.Push(atan2(v.y, v.x) / RAD);
+    [](StackPtr &sp, VM &) {
+        auto v = PopVec<double2>(sp);
+        Push(sp,  atan2(v.y, v.x) / RAD);
     });
 
 nfr("radians", "angle", "F", "F",
     "converts an angle in degrees to radians",
-    [](VM &, Value &a) { return Value(a.fval() * RAD); });
+    [](StackPtr &, VM &, Value &a) { return Value(a.fval() * RAD); });
 nfr("degrees", "angle", "F", "F",
     "converts an angle in radians to degrees",
-    [](VM &, Value &a) { return Value(a.fval() / RAD); });
+    [](StackPtr &, VM &, Value &a) { return Value(a.fval() / RAD); });
 
 nfr("normalize", "vec",  "F}" , "F}",
     "returns a vector of unit length",
-    [](VM &vm) {
-        switch (vm.Top().ival()) {
+    [](StackPtr &sp, VM &) {
+        switch (Top(sp).ival()) {
             case 2: {
-                auto v = vm.PopVec<double2>();
-                vm.PushVec(v == double2_0 ? v : normalize(v));
+                auto v = PopVec<double2>(sp);
+                PushVec(sp, v == double2_0 ? v : normalize(v));
                 break;
             }
             case 3: {
-                auto v = vm.PopVec<double3>();
-                vm.PushVec(v == double3_0 ? v : normalize(v));
+                auto v = PopVec<double3>(sp);
+                PushVec(sp, v == double3_0 ? v : normalize(v));
                 break;
             }
             case 4: {
-                auto v = vm.PopVec<double4>();
-                vm.PushVec(v == double4_0 ? v : normalize(v));
+                auto v = PopVec<double4>(sp);
+                PushVec(sp, v == double4_0 ? v : normalize(v));
                 break;
             }
             default:
@@ -649,148 +649,148 @@ nfr("normalize", "vec",  "F}" , "F}",
 
 nfr("dot", "a,b", "F}F}", "F",
     "the length of vector a when projected onto b (or vice versa)",
-    [](VM &vm) {
-        auto b = vm.PopVec<double4>();
-        auto a = vm.PopVec<double4>();
-        vm.Push(dot(a, b));
+    [](StackPtr &sp, VM &) {
+        auto b = PopVec<double4>(sp);
+        auto a = PopVec<double4>(sp);
+        Push(sp,  dot(a, b));
     });
 
 nfr("magnitude", "v", "F}", "F",
     "the geometric length of a vector",
-    [](VM &vm) {
-        auto a = vm.PopVec<double4>();
-        vm.Push(length(a));
+    [](StackPtr &sp, VM &) {
+        auto a = PopVec<double4>(sp);
+        Push(sp,  length(a));
     });
 
 nfr("manhattan", "v", "I}", "I",
     "the manhattan distance of a vector",
-    [](VM &vm) {
-        auto a = vm.PopVec<iint4>();
-        vm.Push(manhattan(a));
+    [](StackPtr &sp, VM &) {
+        auto a = PopVec<iint4>(sp);
+        Push(sp,  manhattan(a));
     });
 
 nfr("cross", "a,b", "F}:3F}:3", "F}:3",
     "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)",
-    [](VM &vm) {
-        auto b = vm.PopVec<double3>();
-        auto a = vm.PopVec<double3>();
-        vm.PushVec(cross(a, b));
+    [](StackPtr &sp, VM &) {
+        auto b = PopVec<double3>(sp);
+        auto a = PopVec<double3>(sp);
+        PushVec(sp, cross(a, b));
     });
 
 nfr("rnd", "max", "I", "I",
     "a random value [0..max).",
-    [](VM &, Value &a) { return Value(rnd(max(1, (int)a.ival()))); });
+    [](StackPtr &, VM &, Value &a) { return Value(rnd(max(1, (int)a.ival()))); });
 nfr("rnd", "max", "I}", "I}",
     "a random vector within the range of an input vector.",
-    [](VM &vm) { VECTOROP(rnd(max(1, (int)f.ival()))); });
+    [](StackPtr &sp, VM &) { VECTOROP(rnd(max(1, (int)f.ival()))); });
 nfr("rnd_float", "", "", "F",
     "a random float [0..1)",
-    [](VM &) { return Value(rnd.rnddouble()); });
+    [](StackPtr &, VM &) { return Value(rnd.rnddouble()); });
 nfr("rnd_gaussian", "", "", "F",
     "a random float in a gaussian distribution with mean 0 and stddev 1",
-    [](VM &) { return Value(rnd.rnd_gaussian()); });
+    [](StackPtr &, VM &) { return Value(rnd.rnd_gaussian()); });
 nfr("rnd_seed", "seed", "I", "",
     "explicitly set a random seed for reproducable randomness",
-    [](VM &, Value &seed) { rnd.seed((int)seed.ival()); return Value(); });
+    [](StackPtr &, VM &, Value &seed) { rnd.seed((int)seed.ival()); return Value(); });
 
 nfr("div", "a,b", "II", "F",
     "forces two ints to be divided as floats",
-    [](VM &, Value &a, Value &b) { return Value(double(a.ival()) / double(b.ival())); });
+    [](StackPtr &, VM &, Value &a, Value &b) { return Value(double(a.ival()) / double(b.ival())); });
 
 nfr("clamp", "x,min,max", "III", "I",
     "forces an integer to be in the range between min and max (inclusive)",
-    [](VM &, Value &a, Value &b, Value &c) {
+    [](StackPtr &, VM &, Value &a, Value &b, Value &c) {
         return Value(geom::clamp(a.ival(), b.ival(), c.ival()));
     });
 
 nfr("clamp", "x,min,max", "FFF", "F",
     "forces a float to be in the range between min and max (inclusive)",
-    [](VM &, Value &a, Value &b, Value &c) {
+    [](StackPtr &, VM &, Value &a, Value &b, Value &c) {
         return Value(geom::clamp(a.fval(), b.fval(), c.fval()));
     });
 
 nfr("clamp", "x,min,max", "I}I}I}", "I}",
     "forces an integer vector to be in the range between min and max (inclusive)",
-    [](VM &vm) {
-        auto l = vm.Top().intval();
-        auto c = vm.PopVec<iint4>();
-        auto b = vm.PopVec<iint4>();
-        auto a = vm.PopVec<iint4>();
-        vm.PushVec(geom::clamp(a, b, c), l);
+    [](StackPtr &sp, VM &) {
+        auto l = Top(sp).intval();
+        auto c = PopVec<iint4>(sp);
+        auto b = PopVec<iint4>(sp);
+        auto a = PopVec<iint4>(sp);
+        PushVec(sp, geom::clamp(a, b, c), l);
     });
 
 nfr("clamp", "x,min,max", "F}F}F}", "F}",
     "forces a float vector to be in the range between min and max (inclusive)",
-    [](VM &vm) {
-        auto l = vm.Top().intval();
-        auto c = vm.PopVec<double4>();
-        auto b = vm.PopVec<double4>();
-        auto a = vm.PopVec<double4>();
-        vm.PushVec(geom::clamp(a, b, c), l);
+    [](StackPtr &sp, VM &) {
+        auto l = Top(sp).intval();
+        auto c = PopVec<double4>(sp);
+        auto b = PopVec<double4>(sp);
+        auto a = PopVec<double4>(sp);
+        PushVec(sp, geom::clamp(a, b, c), l);
     });
 
 nfr("in_range", "x,range,bias", "III?", "B",
     "checks if an integer is >= bias and < bias + range. Bias defaults to 0.",
-    [](VM &, Value &x, Value &range, Value &bias) {
+    [](StackPtr &, VM &, Value &x, Value &range, Value &bias) {
         return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
     });
 
 nfr("in_range", "x,range,bias", "FFF?", "B",
     "checks if a float is >= bias and < bias + range. Bias defaults to 0.",
-    [](VM &, Value &x, Value &range, Value &bias) {
+    [](StackPtr &, VM &, Value &x, Value &range, Value &bias) {
         return Value(x.fval() >= bias.fval() && x.fval() < bias.fval() + range.fval());
     });
 
 nfr("in_range", "x,range,bias", "I}I}I}?", "B",
     "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
-    [](VM &vm) {
-        auto bias  = vm.Top().True() ? vm.PopVec<iint3>() : (vm.Pop(), iint3_0);
-        auto range = vm.PopVec<iint3>(1);
-        auto x     = vm.PopVec<iint3>();
-        vm.Push(x >= bias && x < bias + range);
+    [](StackPtr &sp, VM &) {
+        auto bias  = Top(sp).True() ? PopVec<iint3>(sp) : (Pop(sp), iint3_0);
+        auto range = PopVec<iint3>(sp, 1);
+        auto x     = PopVec<iint3>(sp);
+        Push(sp,  x >= bias && x < bias + range);
     });
 
 nfr("in_range", "x,range,bias", "F}F}F}?", "B",
     "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.",
-    [](VM &vm) {
-        auto bias  = vm.Top().True() ? vm.PopVec<double3>() : (vm.Pop(), double3_0);
-        auto range = vm.PopVec<double3>(1);
-        auto x     = vm.PopVec<double3>();
-        vm.Push(x >= bias && x < bias + range);
+    [](StackPtr &sp, VM &) {
+        auto bias  = Top(sp).True() ? PopVec<double3>(sp) : (Pop(sp), double3_0);
+        auto range = PopVec<double3>(sp, 1);
+        auto x     = PopVec<double3>(sp);
+        Push(sp,  x >= bias && x < bias + range);
     });
 
 nfr("abs", "x", "I", "I",
     "absolute value of an integer",
-    [](VM &, Value &a) { return Value(abs(a.ival())); });
+    [](StackPtr &, VM &, Value &a) { return Value(abs(a.ival())); });
 nfr("abs", "x", "F", "F",
     "absolute value of a float",
-    [](VM &, Value &a) { return Value(fabs(a.fval())); });
+    [](StackPtr &, VM &, Value &a) { return Value(fabs(a.fval())); });
 nfr("abs", "x", "I}", "I}",
     "absolute value of an int vector",
-    [](VM &vm) { VECTOROP(abs(f.ival())); });
+    [](StackPtr &sp, VM &) { VECTOROP(abs(f.ival())); });
 nfr("abs", "x", "F}", "F}",
     "absolute value of a float vector",
-    [](VM &vm) { VECTOROP(fabs(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROP(fabs(f.fval())); });
 
 nfr("sign", "x", "I", "I",
     "sign (-1, 0, 1) of an integer",
-    [](VM &, Value &a) { return Value(signum(a.ival())); });
+    [](StackPtr &, VM &, Value &a) { return Value(signum(a.ival())); });
 nfr("sign", "x", "F", "I",
     "sign (-1, 0, 1) of a float",
-    [](VM &, Value &a) { return Value(signum(a.fval())); });
+    [](StackPtr &, VM &, Value &a) { return Value(signum(a.fval())); });
 nfr("sign", "x", "I}", "I}",
     "signs of an int vector",
-    [](VM &vm) { VECTOROP(signum(f.ival())); });
+    [](StackPtr &sp, VM &) { VECTOROP(signum(f.ival())); });
 nfr("sign", "x", "F}", "I}",
     "signs of a float vector",
-    [](VM &vm) { VECTOROPI(signum(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROPI(signum(f.fval())); });
 
 // FIXME: need to guarantee in typechecking that both vectors are the same len.
 #define VECBINOP(name, T) \
-    auto len = vm.Top().intval(); \
-    auto y = vm.PopVec<T>(); \
-    auto x = vm.PopVec<T>(); \
-    vm.PushVec(name(x, y), len);
+    auto len = Top(sp).intval(); \
+    auto y = PopVec<T>(sp); \
+    auto x = PopVec<T>(sp); \
+    PushVec(sp, name(x, y), len);
 
 #define VECSCALAROP(type, init, fun, acc, len, at) \
     type v = init; \
@@ -803,154 +803,154 @@ nfr("sign", "x", "F}", "I}",
 
 #define STSCALAROP(type, init, fun) \
     type v = init; \
-    auto l = vm.Pop().ival(); \
+    auto l = Pop(sp).ival(); \
     for (iint i = 0; i < l; i++) { \
-        auto f = vm.Pop(); \
+        auto f = Pop(sp); \
         fun; \
     } \
-    vm.Push(v);
+    Push(sp,  v);
 
 nfr("min", "x,y", "II", "I",
     "smallest of 2 integers.",
-    [](VM &, Value &x, Value &y) {
+    [](StackPtr &, VM &, Value &x, Value &y) {
         return Value(min(x.ival(), y.ival()));
     });
 nfr("min", "x,y", "FF", "F",
     "smallest of 2 floats.",
-    [](VM &, Value &x, Value &y) {
+    [](StackPtr &, VM &, Value &x, Value &y) {
         return Value(min(x.fval(), y.fval()));
     });
 nfr("min", "x,y", "I}I}", "I}",
     "smallest components of 2 int vectors",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         VECBINOP(min, iint4)
     });
 nfr("min", "x,y", "F}F}", "F}",
     "smallest components of 2 float vectors",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         VECBINOP(min, double4)
     });
 nfr("min", "v", "I}", "I",
     "smallest component of a int vector.",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         STSCALAROP(iint, INT_MAX, v = min(v, f.ival()))
     });
 nfr("min", "v", "F}", "F",
     "smallest component of a float vector.",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         STSCALAROP(double, FLT_MAX, v = min(v, f.fval()))
     });
 nfr("min", "v", "I]", "I",
     "smallest component of a int vector, or INT_MAX if length 0.",
-    [](VM &, Value &x) {
+    [](StackPtr &, VM &, Value &x) {
         VECSCALAROP(iint, INT_MAX, v = min(v, f.ival()), vval, len, At(i))
     });
 nfr("min", "v", "F]", "F",
     "smallest component of a float vector, or FLT_MAX if length 0.",
-    [](VM &, Value &x) {
+    [](StackPtr &, VM &, Value &x) {
         VECSCALAROP(double, FLT_MAX, v = min(v, f.fval()), vval, len, At(i))
     });
 
 nfr("max", "x,y", "II", "I",
     "largest of 2 integers.",
-    [](VM &, Value &x, Value &y) {
+    [](StackPtr &, VM &, Value &x, Value &y) {
         return Value(max(x.ival(), y.ival()));
     });
 nfr("max", "x,y", "FF", "F",
     "largest of 2 floats.",
-    [](VM &, Value &x, Value &y) {
+    [](StackPtr &, VM &, Value &x, Value &y) {
         return Value(max(x.fval(), y.fval()));
     });
 nfr("max", "x,y", "I}I}", "I}",
     "largest components of 2 int vectors",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         VECBINOP(max, iint4)
     });
 nfr("max", "x,y", "F}F}", "F}",
     "largest components of 2 float vectors",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         VECBINOP(max, double4)
     });
 nfr("max", "v", "I}", "I",
     "largest component of a int vector.",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         STSCALAROP(iint, INT_MIN, v = max(v, f.ival()))
     });
 nfr("max", "v", "F}", "F",
     "largest component of a float vector.",
-    [](VM &vm) {
+    [](StackPtr &sp, VM &) {
         STSCALAROP(double, FLT_MIN, v = max(v, f.fval()))
     });
 nfr("max", "v", "I]", "I",
     "largest component of a int vector, or INT_MIN if length 0.",
-    [](VM &, Value &x) {
+    [](StackPtr &, VM &, Value &x) {
         VECSCALAROP(iint, INT_MIN, v = max(v, f.ival()), vval, len, At(i))
     });
 nfr("max", "v", "F]", "F",
     "largest component of a float vector, or FLT_MIN if length 0.",
-    [](VM &, Value &x) {
+    [](StackPtr &, VM &, Value &x) {
         VECSCALAROP(double, FLT_MIN, v = max(v, f.fval()), vval, len, At(i))
     });
 
 nfr("lerp", "x,y,f", "FFF", "F",
     "linearly interpolates between x and y with factor f [0..1]",
-    [](VM &, Value &x, Value &y, Value &f) {
+    [](StackPtr &, VM &, Value &x, Value &y, Value &f) {
         return Value(mix(x.fval(), y.fval(), (float)f.fval()));
     });
 
 nfr("lerp", "a,b,f", "F}F}F", "F}",
     "linearly interpolates between a and b vectors with factor f [0..1]",
-    [](VM &vm) {
-        auto f = vm.Pop().fltval();
-        auto numelems = vm.Top().intval();
-        auto y = vm.PopVec<double4>();
-        auto x = vm.PopVec<double4>();
-        vm.PushVec(mix(x, y, f), numelems);
+    [](StackPtr &sp, VM &) {
+        auto f = Pop(sp).fltval();
+        auto numelems = Top(sp).intval();
+        auto y = PopVec<double4>(sp);
+        auto x = PopVec<double4>(sp);
+        PushVec(sp, mix(x, y, f), numelems);
     });
 
 nfr("smoothmin", "x,y,k", "FFF", "F",
     "k is the influence range",
-    [](VM &, Value &x, Value &y, Value &k) {
+    [](StackPtr &, VM &, Value &x, Value &y, Value &k) {
         return Value(smoothmin(x.fltval(), y.fltval(), k.fltval()));
     });
 
 nfr("smoothstep", "x", "F", "F",
     "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep",
-    [](VM &, Value &x) {
+    [](StackPtr &, VM &, Value &x) {
         return Value(smoothstep(x.fltval()));
     });
 
 nfr("smootherstep", "x", "F", "F",
     "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep",
-    [](VM &, Value &x) {
+    [](StackPtr &, VM &, Value &x) {
         return Value(smootherstep(x.fltval()));
     });
 
 nfr("cardinal_spline", "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
     "computes the position between a and b with factor f [0..1], using z (before a) and c"
     " (after b) to form a cardinal spline (tension at 0.5 is a good default)",
-    [](VM &vm) {
-        auto t = vm.Pop().fval();
-        auto f = vm.Pop().fval();
-        auto c = vm.PopVec<double3>();
-        auto b = vm.PopVec<double3>();
-        auto a = vm.PopVec<double3>();
-        auto z = vm.PopVec<double3>();
-        vm.PushVec(cardinal_spline(z, a, b, c, f, t));
+    [](StackPtr &sp, VM &) {
+        auto t = Pop(sp).fval();
+        auto f = Pop(sp).fval();
+        auto c = PopVec<double3>(sp);
+        auto b = PopVec<double3>(sp);
+        auto a = PopVec<double3>(sp);
+        auto z = PopVec<double3>(sp);
+        PushVec(sp, cardinal_spline(z, a, b, c, f, t));
     });
 
 nfr("line_intersect", "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
     "computes if there is an intersection point between 2 line segments, with the point as"
     " second return value",
-    [](VM &vm) {
-        auto l2b = vm.PopVec<double2>();
-        auto l2a = vm.PopVec<double2>();
-        auto l1b = vm.PopVec<double2>();
-        auto l1a = vm.PopVec<double2>();
+    [](StackPtr &sp, VM &) {
+        auto l2b = PopVec<double2>(sp);
+        auto l2a = PopVec<double2>(sp);
+        auto l1b = PopVec<double2>(sp);
+        auto l1a = PopVec<double2>(sp);
         double2 ipoint(0, 0);
         auto r = line_intersect(l1a, l1b, l2a, l2b, &ipoint);
-        vm.Push(r);
-        vm.PushVec(ipoint);
+        Push(sp,  r);
+        PushVec(sp, ipoint);
     });
 
 nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsize", "FF}:2]F]F}:2]F]I}:2", "I]]",
@@ -964,19 +964,19 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
     " each dimension, e.g. 100 elements would use a 20x20 grid."
     " Efficiency wise this algorithm is fastest if there is not too much variance in the radiuses of"
     " the second set and/or the second set has smaller radiuses than the first.",
-    [](VM &vm) {
-        auto ncelld = vm.PopVec<iint2>();
-        auto radiuses2 = vm.Pop().vval();
-        auto positions2 = vm.Pop().vval();
-        auto radiuses1 = vm.Pop().vval();
-        auto positions1 = vm.Pop().vval();
+    [](StackPtr &sp, VM &vm) {
+        auto ncelld = PopVec<iint2>(sp);
+        auto radiuses2 = Pop(sp).vval();
+        auto positions2 = Pop(sp).vval();
+        auto radiuses1 = Pop(sp).vval();
+        auto positions1 = Pop(sp).vval();
         if (!radiuses2->len) radiuses2 = radiuses1;
         if (!positions2->len) positions2 = positions1;
-        auto qdist = vm.Pop().fval();
+        auto qdist = Pop(sp).fval();
         if (ncelld.x <= 0 || ncelld.y <= 0)
             ncelld = iint2((iint)sqrtf(float(positions2->len + 1) * 4));
         if (radiuses1->len != positions1->len || radiuses2->len != positions2->len)
-            vm.BuiltinError(
+            vm.BuiltinError(sp,
                 "circles_within_range: input vectors size mismatch");
         struct Node { double2 pos; double rad; iint idx; Node *next; };
         vector<Node> nodes(positions2->SLen(), Node());
@@ -1035,7 +1035,7 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
         }
         auto rvec = (LVector *)vm.NewVec(0, positions1->len, TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
         for (auto vec : results) rvec->Push(vm, Value(vec));
-        vm.Push(rvec);
+        Push(sp,  rvec);
     });
 
 nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
@@ -1044,15 +1044,15 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
     " the number of failed neighbor matches, this should"
     " ideally be 0, but can be non-0 for larger maps. Simply call this function"
     " repeatedly until it is 0",
-    [](VM &vm) {
-        auto sz = vm.PopVec<int2>();
-        auto tilemap = vm.Pop();
+    [](StackPtr &sp, VM &vm) {
+        auto sz = PopVec<int2>(sp);
+        auto tilemap = Pop(sp);
         auto rows = tilemap.vval()->SLen();
         vector<const char *> inmap(rows);
         iint cols = 0;
         for (ssize_t i = 0; i < rows; i++) {
             auto sv = tilemap.vval()->At(i).sval()->strv();
-            if (i) { if (ssize(sv) != cols) vm.Error("all columns must be equal length"); }
+            if (i) { if (ssize(sv) != cols) vm.BuiltinError(sp, "all columns must be equal length"); }
             else cols = sv.size();
             inmap[i] = sv.data();
         }
@@ -1063,15 +1063,15 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         auto ok = WaveFunctionCollapse(int2(iint2(cols, ssize(inmap))), inmap.data(), sz, outmap.data(),
                                         rnd, num_contradictions);
         if (!ok)
-            vm.Error("tilemap contained too many tile ids");
-        vm.Push(outstrings);
-        vm.Push(num_contradictions);
+            vm.BuiltinError(sp, "tilemap contained too many tile ids");
+        Push(sp,  outstrings);
+        Push(sp,  num_contradictions);
     });
 
 nfr("resume", "coroutine,return_value", "CkAk%?", "C?",
     "resumes execution of a coroutine, passing a value back or nil",
-    [](VM &vm, Value &co, Value &ret) {
-        vm.CoResume(co.cval());
+    [](StackPtr &sp, VM &vm, Value &co, Value &ret) {
+        vm.CoResume(sp, co.cval());
         // By the time CoResume returns, we're now back in the context of co, meaning that the
         // return value below is what is returned from yield inside co.
         return ret;
@@ -1083,52 +1083,52 @@ nfr("resume", "coroutine,return_value", "CkAk%?", "C?",
 
 nfr("return_value", "coroutine", "C", "A1",
     "gets the last return value of a coroutine",
-    [](VM &vm, Value &co) {
-        Value &rv = co.cval()->Current(vm);
+    [](StackPtr &sp, VM &vm, Value &co) {
+        Value &rv = co.cval()->Current(sp, vm);
         return rv;
     });
 
 nfr("active", "coroutine", "C", "B",
     "wether the given coroutine is still active",
-    [](VM &, Value &co) {
+    [](StackPtr &, VM &, Value &co) {
         bool active = co.cval()->active;
         return Value(active);
     });
 
 nfr("hash", "x", "I", "I",
     "hashes an int value into an int; may be the identity function",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         auto h = a.Hash(vm, V_INT);
         return Value(h);
     });
 nfr("hash", "x", "A", "I",
     "hashes any ref value into an int",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         auto h = a.ref()->Hash(vm);
         return Value(h);
     });
 nfr("hash", "x", "L", "I",
     "hashes a function value into an int",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         auto h = a.Hash(vm, V_FUNCTION);
         return Value(h);
     });
 nfr("hash", "x", "F", "I",
     "hashes a float value into an int",
-    [](VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value &a) {
         auto h = a.Hash(vm, V_FLOAT);
         return Value(h);
     });
 
 nfr("program_name", "", "", "S",
     "returns the name of the main program (e.g. \"foo.lobster\".",
-    [](VM &vm) {
+    [](StackPtr &, VM &vm) {
         return Value(vm.NewString(vm.GetProgramName()));
     });
 
 nfr("vm_compiled_mode", "", "", "B",
     "returns if the VM is running in compiled mode (Lobster -> C++).",
-    [](VM &) {
+    [](StackPtr &, VM &) {
         return Value(
             #ifdef VM_COMPILED_CODE_MODE
                 true
@@ -1141,69 +1141,69 @@ nfr("vm_compiled_mode", "", "", "B",
 nfr("seconds_elapsed", "", "", "F",
     "seconds since program start as a float, unlike gl_time() it is calculated every time it is"
     " called",
-    [](VM &vm) {
+    [](StackPtr &, VM &vm) {
         return Value(vm.Time());
     });
 
 nfr("assert", "condition", "A*", "Ab1",
     "halts the program with an assertion failure if passed false. returns its input",
-    [](VM &vm, Value &c) {
-        if (c.False()) vm.BuiltinError("assertion failed");
+    [](StackPtr &sp, VM &vm, Value &c) {
+        if (c.False()) vm.BuiltinError(sp, "assertion failed");
         return c;
     });
 
 nfr("trace_bytecode", "mode", "I", "",
     "tracing shows each bytecode instruction as it is being executed, not very useful unless"
     " you are trying to isolate a compiler bug. Mode is off(0), on(1) or tail only (2)",
-    [](VM &vm, Value &i) {
+    [](StackPtr &, VM &vm, Value &i) {
         vm.Trace((TraceMode)i.ival());
         return Value();
     });
 
 nfr("set_max_stack_size", "max", "I", "",
     "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1",
-    [](VM &vm, Value &max) {
+    [](StackPtr &, VM &vm, Value &max) {
         vm.SetMaxStack((int)max.ival() * 1024 * 1024 / sizeof(Value));
         return Value();
     });
 
 nfr("reference_count", "val", "A", "I",
     "get the reference count of any value. for compiler debugging, mostly",
-    [](VM &, Value &x) {
+    [](StackPtr &, VM &, Value &x) {
         auto refc = x.refnil() ? x.refnil()->refc - 1 : -1;
         return Value(refc);
     });
 
 nfr("set_console", "on", "B", "",
     "lets you turn on/off the console window (on Windows)",
-    [](VM &, Value &x) {
+    [](StackPtr &, VM &, Value &x) {
         SetConsole(x.True());
         return Value();
     });
 
 nfr("command_line_arguments", "", "", "S]",
     "",
-    [](VM &vm) {
+    [](StackPtr &, VM &vm) {
         return ToValueOfVectorOfStrings(vm, vm.program_args);
     });
 
 nfr("thread_information", "", "", "II",
     "returns the number of hardware threads, and the number of cores",
-    [](VM &vm) {
-        vm.Push(NumHWThreads());
+    [](StackPtr &sp, VM &) {
+        Push(sp,  NumHWThreads());
         return Value(NumHWCores());
     });
 
 nfr("is_worker_thread", "", "", "B",
     "wether the current thread is a worker thread",
-    [](VM &vm) {
+    [](StackPtr &, VM &vm) {
         return Value(vm.is_worker);
     });
 
 nfr("start_worker_threads", "numthreads", "I", "",
     "launch worker threads",
-    [](VM &vm, Value &n) {
-        vm.StartWorkers(n.ival());
+    [](StackPtr &sp, VM &vm, Value &n) {
+        vm.StartWorkers(sp, n.ival());
         return Value();
     });
 
@@ -1211,7 +1211,7 @@ nfr("stop_worker_threads", "", "", "",
     "only needs to be called if you want to stop the worker threads before the end of"
             " the program, or if you want to call start_worker_threads again. workers_alive"
             " will become false inside the workers, which should then exit.",
-    [](VM &vm) {
+    [](StackPtr &, VM &vm) {
         vm.TerminateWorkers();
         return Value();
     });
@@ -1219,28 +1219,28 @@ nfr("stop_worker_threads", "", "", "",
 nfr("workers_alive", "", "", "B",
     "wether workers should continue doing work. returns false after"
             " stop_worker_threads() has been called.",
-    [](VM &vm) {
+    [](StackPtr &, VM &vm) {
         return Value(vm.tuple_space && vm.tuple_space->alive);
     });
 
 nfr("thread_write", "struct", "A", "",
     "put this struct in the thread queue",
-    [](VM &vm, Value &s) {
-        vm.WorkerWrite(s.refnil());
+    [](StackPtr &sp, VM &vm, Value &s) {
+        vm.WorkerWrite(sp, s.refnil());
         return Value();
     });
 
 nfr("thread_read", "type", "T", "A1?",
     "get a struct from the thread queue. pass the typeof struct. blocks if no such"
             "structs available. returns struct, or nil if stop_worker_threads() was called",
-    [](VM &vm, Value &t) {
-        return Value(vm.WorkerRead((type_elem_t)t.ival()));
+    [](StackPtr &sp, VM &vm, Value &t) {
+        return Value(vm.WorkerRead(sp, (type_elem_t)t.ival()));
     });
 
 nfr("log_frame", "", "", "",
     "call this function instead of gl_frame() or gl_log_frame() to simulate a frame based program"
     " from non-graphical code.",
-    [](VM &vm) {
+    [](StackPtr &, VM &vm) {
         vm.vml.LogFrame();
         return Value();
     });

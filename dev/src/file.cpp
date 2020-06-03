@@ -36,47 +36,48 @@
 
 namespace lobster {
 
-template<typename T, bool B> T Read(VM &vm, iint i, const LString *s) {
-    if ((uint64_t)i > (uint64_t)s->len - sizeof(T)) vm.IDXErr(i, s->len - sizeof(T), s);
+template<typename T, bool B> T Read(StackPtr &sp, VM &vm, iint i, const LString *s) {
+    if ((uint64_t)i > (uint64_t)s->len - sizeof(T)) vm.IDXErr(sp, i, s->len - sizeof(T), s);
     return ReadValLE<T, B>(s, i);
 }
 
-template<typename T, bool B> Value WriteVal(VM &vm, const Value &str, const Value &idx,
+template<typename T, bool B> Value WriteVal(StackPtr &sp, VM &vm, const Value &str, const Value &idx,
                                             const Value &val) {
     auto i = idx.ival();
-    if (i < 0) vm.IDXErr(i, 0, str.sval());
-    vm.Push(WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T>()));
+    if (i < 0) vm.IDXErr(sp, i, 0, str.sval());
+    Push(sp,  WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T>()));
     return Value(i + ssizeof<T>());
 }
 
-template<bool B> Value WriteStr(VM &vm, const Value &str, const Value &idx, LString *s,
+template<bool B> Value WriteStr(StackPtr &sp, VM &vm, const Value &str, const Value &idx, LString *s,
                                 iint extra) {
     auto i = idx.ival();
-    if (i < 0) vm.IDXErr(i, 0, str.sval());
-    vm.Push(WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
+    if (i < 0) vm.IDXErr(sp, i, 0, str.sval());
+    Push(sp,  WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
     return Value(i + s->len + extra);
 }
 
-template<typename T, bool B> Value ReadVal(VM &vm, const Value &str, const Value &idx) {
+template<typename T, bool B> Value ReadVal(StackPtr &sp, VM &vm, const Value &str, const Value &idx) {
     auto i = idx.ival();
-    auto val = Read<T, B>(vm, i, str.sval());
-    vm.Push(val);
+    auto val = Read<T, B>(sp, vm, i, str.sval());
+    Push(sp,  val);
     return Value(i + ssizeof<T>());
 }
 
 template<typename T, bool IF, bool OF, bool ST>
-Value ReadField(VM &vm, const Value &str, const Value &idx, const Value &vidx, const Value &def) {
+Value ReadField(StackPtr &sp, VM &vm, const Value &str, const Value &idx, const Value &vidx,
+                const Value &def) {
     auto i = idx.ival();
-    auto vtable = Read<flatbuffers::soffset_t, false>(vm, i, str.sval());
+    auto vtable = Read<flatbuffers::soffset_t, false>(sp, vm, i, str.sval());
     auto vi = i - vtable;
-    auto vtable_size = Read<flatbuffers::voffset_t, false>(vm, vi, str.sval());
+    auto vtable_size = Read<flatbuffers::voffset_t, false>(sp, vm, vi, str.sval());
     auto vo = vidx.ival();
     if ((uint64_t)vo < (uint64_t)vtable_size) {
-        auto field_offset = Read<flatbuffers::voffset_t, false>(vm, vi + vo, str.sval());
+        auto field_offset = Read<flatbuffers::voffset_t, false>(sp, vm, vi + vo, str.sval());
         if (field_offset) {
             auto start = i + field_offset;
             if constexpr (ST) return Value(start);
-            auto val = Read<T, false>(vm, start, str.sval());
+            auto val = Read<T, false>(sp, vm, start, str.sval());
             if constexpr (OF) return Value (val + start);
             return Value(val);
         }
@@ -84,12 +85,12 @@ Value ReadField(VM &vm, const Value &str, const Value &idx, const Value &vidx, c
     return def;
 }
 
-LString *GetString(VM &vm, iint fi, LString *buf) {
+LString *GetString(StackPtr &sp, VM &vm, iint fi, LString *buf) {
     if (fi) {
-        auto len = Read<flatbuffers::uoffset_t, false>(vm, fi, buf);
+        auto len = Read<flatbuffers::uoffset_t, false>(sp, vm, fi, buf);
         auto fdata = fi + ssizeof<flatbuffers::uoffset_t>();
         // Read zero terminator just to make sure all string data is in bounds.
-        Read<char, false>(vm, fdata + len, buf);
+        Read<char, false>(sp, vm, fdata + len, buf);
         return vm.NewString(buf->strv().substr(fdata, len));
     } else {
         return vm.NewString(0);
@@ -120,11 +121,11 @@ nfr("scan_folder", "folder", "S", "S]?I]?",
     "returns two vectors representing all elements in a folder, the first vector containing all"
     " names, the second vector containing sizes in bytes (or -1 if a directory)."
     " Returns nil if folder couldn't be scanned.",
-    [](VM &vm, Value &fld) {
+    [](StackPtr &sp, VM &vm, Value &fld) {
         vector<pair<string, int64_t>> dir;
         auto ok = ScanDirAbs(fld.sval()->strv(), dir);
         if (!ok) {
-            vm.Push(Value());
+            Push(sp,  Value());
             return Value();
         }
         auto nlist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
@@ -133,14 +134,14 @@ nfr("scan_folder", "folder", "S", "S]?I]?",
             nlist->Push(vm, Value(vm.NewString(name)));
             slist->Push(vm, Value(size));
         }
-        vm.Push(Value(nlist));
+        Push(sp,  Value(nlist));
         return Value(slist);
     });
 
 nfr("read_file", "file,textmode", "SI?", "S?",
     "returns the contents of a file as a string, or nil if the file can't be found."
     " you may use either \\ or / as path separators",
-    [](VM &vm, Value &file, Value &textmode) {
+    [](StackPtr &, VM &vm, Value &file, Value &textmode) {
         string buf;
         auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, textmode.False());
         if (l < 0) return Value();
@@ -150,7 +151,7 @@ nfr("read_file", "file,textmode", "SI?", "S?",
 
 nfr("write_file", "file,contents,textmode", "SSI?", "B",
     "creates a file with the contents of a string, returns false if writing wasn't possible",
-    [](VM &, Value &file, Value &contents, Value &textmode) {
+    [](StackPtr &, VM &, Value &file, Value &contents, Value &textmode) {
         auto ok = WriteFile(file.sval()->strv(), textmode.False(), contents.sval()->strv());
         return Value(ok);
     });
@@ -161,7 +162,7 @@ nfr("ensure_size", "string,size,char,extra", "SkIII?", "S",
     " added), with any new characters set to"
     " char. You can specify a negative size to mean relative to the end, i.e. new"
     " characters will be added at the start. ",
-    [](VM &vm, Value &str, Value &size, Value &c, Value &extra) {
+    [](StackPtr &, VM &vm, Value &str, Value &size, Value &c, Value &extra) {
         auto asize = abs(size.ival());
         return str.sval()->len >= asize
             ? str
@@ -177,8 +178,8 @@ auto write_val_desc1 =
 auto write_val_desc2 = "(see write_int64_le)";
 #define WRITEOP(N, T, B, D, S) \
     nfr(#N, "string,i,val", "SkI" S, "SI", D, \
-        [](VM &vm, Value &str, Value &idx, Value &val) { \
-            return WriteVal<T, B>(vm, str, idx, val); \
+        [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &val) { \
+            return WriteVal<T, B>(sp, vm, str, idx, val); \
         });
 WRITEOP(write_int64_le, int64_t, false, write_val_desc1, "I")
 WRITEOP(write_int32_le, int32_t, false, write_val_desc2, "I")
@@ -195,19 +196,19 @@ WRITEOP(write_float32_le_back, float, true, write_val_desc2, "F")
 
 nfr("write_substring", "string,i,substr,nullterm", "SkISI", "SI",
     "writes a substring into another string at i (see also write_int64_le)",
-    [](VM &vm, Value &str, Value &idx, Value &val, Value &term) {
-        return WriteStr<false>(vm, str, idx, val.sval(), term.True());
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &val, Value &term) {
+        return WriteStr<false>(sp, vm, str, idx, val.sval(), term.True());
     });
 
 nfr("write_substring_back", "string,i,substr,nullterm", "SkISI", "SI",
     "",
-    [](VM &vm, Value &str, Value &idx, Value &val, Value &term) {
-        return WriteStr<true>(vm, str, idx, val.sval(), term.True());
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &val, Value &term) {
+        return WriteStr<true>(sp, vm, str, idx, val.sval(), term.True());
     });
 
 nfr("compare_substring", "string_a,i_a,string_b,i_b,len", "SISII", "I",
     "returns if the two substrings are equal (0), or a < b (-1) or a > b (1).",
-    [](VM &vm, Value &str1, Value &idx1, Value &str2, Value &idx2,
+    [](StackPtr &sp, VM &vm, Value &str1, Value &idx1, Value &str2, Value &idx2,
                                     Value &len) {
         auto s1 = str1.sval();
         auto s2 = str2.sval();
@@ -215,7 +216,7 @@ nfr("compare_substring", "string_a,i_a,string_b,i_b,len", "SISII", "I",
         auto i2 = idx2.ival();
         auto l = len.ival();
         if (l < 0 || i1 < 0 || i2 < 0 || i1 + l > s1->len || i2 + l > s2->len)
-            vm.Error("compare_substring: index out of bounds");
+            vm.Error(sp, "compare_substring: index out of bounds");
         auto eq = memcmp(s1->data() + i1, s2->data() + i2, l);
         return Value(eq);
     });
@@ -228,7 +229,7 @@ auto read_val_desc1 =
 auto read_val_desc2 = "(see read_int64_le)";
 #define READOP(N, T, B, D, S) \
     nfr(#N, "string,i", "SI", S "I", D, \
-        [](VM &vm, Value &str, Value &idx) { return ReadVal<T, B>(vm, str, idx); });
+        [](StackPtr &sp, VM &vm, Value &str, Value &idx) { return ReadVal<T, B>(sp, vm, str, idx); });
 READOP(read_int64_le, int64_t, false, read_val_desc1, "I")
 READOP(read_int32_le, int32_t, false, read_val_desc2, "I")
 READOP(read_int16_le, int16_t, false, read_val_desc2, "I")
@@ -249,8 +250,8 @@ auto read_field_desc1 =
 auto read_field_desc2 = "(see flatbuffers_field_int64)";
 #define READFOP(N, T, D, S) \
     nfr(#N, "string,tablei,vo,def", "SII" S, S, D, \
-        [](VM &vm, Value &str, Value &idx, Value &vidx, Value &def) { \
-            auto val = ReadField<T, S[0] == 'F', false, false>(vm, str, idx, vidx, def); \
+        [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &vidx, Value &def) { \
+            auto val = ReadField<T, S[0] == 'F', false, false>(sp, vm, str, idx, vidx, def); \
             return Value(val); \
         });
 READFOP(flatbuffers_field_int64, int64_t, read_field_desc1, "I")
@@ -262,26 +263,26 @@ READFOP(flatbuffers_field_float32, float, read_field_desc2, "F")
 
 nfr("flatbuffers_field_string", "string,tablei,vo", "SII", "S",
     "reads a flatbuffer string field, returns \"\" if not present",
-    [](VM &vm, Value &str, Value &idx, Value &vidx) {
-        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &vidx) {
+        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(sp, vm, str, idx, vidx,
                                                                         Value(0)).ival();
-        auto ret = Value(GetString(vm, fi, str.sval()));
+        auto ret = Value(GetString(sp, vm, fi, str.sval()));
         return ret;
     });
 
 nfr("flatbuffers_field_vector_len", "string,tablei,vo", "SII", "I",
     "reads a flatbuffer vector field length, or 0 if not present",
-    [](VM &vm, Value &str, Value &idx, Value &vidx) {
-        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &vidx) {
+        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(sp, vm, str, idx, vidx,
                                                                         Value(0)).ival();
-        Value ret(fi ? Read<flatbuffers::uoffset_t, false>(vm, fi, str.sval()) : 0);
+        Value ret(fi ? Read<flatbuffers::uoffset_t, false>(sp, vm, fi, str.sval()) : 0);
         return ret;
     });
 
 nfr("flatbuffers_field_vector", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer vector field element start, or 0 if not present",
-    [](VM &vm, Value &str, Value &idx, Value &vidx) {
-        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &vidx) {
+        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(sp, vm, str, idx, vidx,
                                                                         Value(0)).ival();
         Value ret(fi ? fi + ssizeof<flatbuffers::uoffset_t>() : 0);
         return ret;
@@ -289,32 +290,32 @@ nfr("flatbuffers_field_vector", "string,tablei,vo", "SII", "I",
 
 nfr("flatbuffers_field_table", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer table field start, or 0 if not present",
-    [](VM &vm, Value &str, Value &idx, Value &vidx) {
-        auto ret = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
-                                                                            Value(0));
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &vidx) {
+        auto ret = ReadField<flatbuffers::uoffset_t, false, true, false>(sp, vm, str, idx, vidx,
+                                                                         Value(0));
         return ret;
     });
 
 nfr("flatbuffers_field_struct", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer struct field start, or 0 if not present",
-    [](VM &vm, Value &str, Value &idx, Value &vidx) {
-        auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(vm, str, idx, vidx,
-                                                                            Value(0));
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &vidx) {
+        auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(sp, vm, str, idx, vidx,
+                                                                         Value(0));
         return ret;
     });
 
 nfr("flatbuffers_indirect", "string,index", "SI", "I",
     "returns a flatbuffer offset at index relative to itself",
-    [](VM &vm, Value &str, Value &idx) {
-        auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx) {
+        auto off = Read<flatbuffers::uoffset_t, false>(sp, vm, idx.ival(), str.sval());
         return Value(off + idx.ival());
     });
 
 nfr("flatbuffers_string", "string,index", "SI", "S",
     "returns a flatbuffer string whose offset is at given index",
-    [](VM &vm, Value &str, Value &idx) {
-        auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
-        auto ret = GetString(vm, off + idx.ival(), str.sval());
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx) {
+        auto off = Read<flatbuffers::uoffset_t, false>(sp, vm, idx.ival(), str.sval());
+        auto ret = GetString(sp, vm, off + idx.ival(), str.sval());
         return Value(ret);
     });
 
@@ -322,14 +323,14 @@ nfr("flatbuffers_binary_to_json", "schemas,binary,includedirs", "SSS]", "SS?",
     "returns a JSON string generated from the given binary and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error",
-    [](VM &vm, Value &schema, Value &binary, Value &includes) {
+    [](StackPtr &sp, VM &vm, Value &schema, Value &binary, Value &includes) {
         flatbuffers::Parser parser;
         auto err = ParseSchemas(vm, parser, schema, includes);
         string json;
         if (err.False() && !GenerateText(parser, binary.sval()->data(), &json)) {
             err = vm.NewString("unable to generate text for FlatBuffer binary");
         }
-        vm.Push(vm.NewString(json));
+        Push(sp,  vm.NewString(json));
         return err;
     });
 
@@ -337,7 +338,7 @@ nfr("flatbuffers_json_to_binary", "schema,json,includedirs", "SSS]", "SS?",
     "returns a binary flatbuffer generated from the given json and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error",
-    [](VM &vm, Value &schema, Value &json, Value &includes) {
+    [](StackPtr &sp, VM &vm, Value &schema, Value &json, Value &includes) {
         flatbuffers::Parser parser;
         auto err = ParseSchemas(vm, parser, schema, includes);
         string binary;
@@ -349,7 +350,7 @@ nfr("flatbuffers_json_to_binary", "schema,json,includedirs", "SSS]", "SS?",
                                 parser.builder_.GetSize());
             }
         }
-        vm.Push(vm.NewString(binary));
+        Push(sp,  vm.NewString(binary));
         return err;
     });
 
