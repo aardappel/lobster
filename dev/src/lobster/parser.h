@@ -584,6 +584,7 @@ struct Parser {
             case T_STRTYPE:   dest = type_string;     lex.Next(); break;
             case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
+			case T_ANYTYPE:   dest = type_any;        lex.Next(); break;
             case T_IDENT: {
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {

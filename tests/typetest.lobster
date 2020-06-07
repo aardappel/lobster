@@ -29,6 +29,18 @@ run_test("types"):
         assert compile_time_if(1) is int
         assert compile_time_if("") is string
 
+    do():
+        class Box<T>:
+            value: T
+
+        def compile_time_if_generic(x):
+            if x is Box<any>:
+                return 1
+            return 0
+        assert compile_time_if_generic(Box<int>{1}) is int
+        assert compile_time_if_generic("") is string
+		
+
     assert typeof int == 0  // Always the first one added to the typetable.
 
     do():

@@ -219,6 +219,17 @@ struct TypeChecker {
         }
     }
 
+	bool ConvertsToStatically(TypeRef type, TypeRef bound) {
+		if (bound == type || type->t == V_ANY)
+			return true;
+		switch (bound->t) {
+            case V_CLASS:
+                return type->t == V_CLASS &&
+                       (type->tv->thistype == bound->tv->thistype && TypeOfUndefinedGenericSpec(type));
+		}
+		return false;
+	}
+
     bool ConvertsTo(TypeRef type, TypeRef bound, bool coercions, bool unifications = true,
                     bool allow_numeric_nil = false) {
         if (bound == type) return true;
@@ -251,8 +262,7 @@ struct TypeChecker {
                 return (type->t == V_VECTOR &&
                         ConvertsTo(type->Element(), bound->Element(), false, unifications));
             case V_CLASS:
-                return type->t == V_CLASS &&
-                       st.SuperDistance(bound->udt, type->udt) >= 0;
+                return type->t == V_CLASS && st.SuperDistance(bound->udt, type->udt) >= 0; ;
             case V_STRUCT_R:
             case V_STRUCT_S:
                 return type->t == bound->t && type->udt == bound->udt;
@@ -312,6 +322,12 @@ struct TypeChecker {
     bool ExactType(TypeRef a, TypeRef b) {
         return a == b;  // Not inlined for documentation purposes.
     }
+
+	bool TypeOfUndefinedGenericSpec(TypeRef t) {
+		if (t->udt->generics.size() == 0) return false;
+		if (t->udt->generics[0].giventype.utr == type_any) return true;
+		return false;
+	}
 
     void MakeString(Node *&a, Lifetime orig_recip) {
         assert(a->exptype->t != V_STRING);
@@ -3149,10 +3165,10 @@ bool Not::ConstVal(TypeChecker &tc, Value &val) const {
 }
 
 bool IsType::ConstVal(TypeChecker &tc, Value &val) const {
-    if (child->exptype == resolvedtype || resolvedtype->t == V_ANY) {
-        val = Value(true);
-        return true;
-    }
+	if (tc.ConvertsToStatically(resolvedtype, child->exptype)) {
+		val = Value(true);
+		return true;
+	}
     if (!tc.ConvertsTo(resolvedtype, child->exptype, false)) {
         val = Value(false);
         return true;
