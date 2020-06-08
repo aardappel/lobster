@@ -324,6 +324,7 @@ struct TypeChecker {
     }
 
 	bool TypeOfUndefinedGenericSpec(TypeRef t) {
+		if (t->udt == nullptr) return false;
 		if (t->udt->generics.size() == 0) return false;
 		if (t->udt->generics[0].giventype.utr == type_any) return true;
 		return false;
@@ -1506,7 +1507,9 @@ struct TypeChecker {
         condition = SkipCoercions(condition);
         auto type = condition->exptype;
         if (auto c = Is<IsType>(condition)) {
-            if (iftrue) CheckFlowTypeIdOrDot(*c->child, c->resolvedtype);
+			if (!iftrue) return;
+			if (TypeOfUndefinedGenericSpec(c->resolvedtype)) return;
+            CheckFlowTypeIdOrDot(*c->child, c->resolvedtype);
         } else if (auto c = Is<Not>(condition)) {
             CheckFlowTypeChangesSub(!iftrue, c->child);
         } else if (auto eq = Is<Equal>(condition)) {

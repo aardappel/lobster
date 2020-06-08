@@ -35,8 +35,9 @@ run_test("types"):
 
         def compile_time_if_generic(x):
             if x is Box<any>:
-                return 1
-            return 0
+                return x.value
+            else:
+                return x
         assert compile_time_if_generic(Box<int>{1}) is int
         assert compile_time_if_generic("") is string
 		
