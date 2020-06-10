@@ -636,7 +636,8 @@ struct CodeGen  {
         }
     }
 
-    void GenPushIndex(size_t retval, Node *object, Node *index, int width = -1, int offset = -1) {
+    void GenPushIndex(size_t retval, Node *object, Node *index, int struct_elem_sub_width = -1,
+                      int struct_elem_sub_offset = -1) {
         Gen(object, retval);
         Gen(index, retval);
         if (!retval) return;
@@ -653,14 +654,21 @@ struct CodeGen  {
                         etype = etype->Element();
                     }
                 }
-                if (width < 0) {
-                    Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV);
+                auto elemwidth = ValWidth(etype);
+                if (struct_elem_sub_width < 0) {
+                    Emit(index->exptype->t == V_INT
+                        ? (elemwidth == 1 ? IL_VPUSHIDXI : IL_VPUSHIDXI2V)
+                        : IL_VPUSHIDXV);
                     GenStructIns(index->exptype);
                 } else {
                     // We're indexing a sub-part of the element.
-                    Emit(index->exptype->t == V_INT ? IL_VPUSHIDXIS : IL_VPUSHIDXVS);
+                    auto op = index->exptype->t == V_INT
+                        ? (elemwidth == 1 ? IL_VPUSHIDXIS : IL_VPUSHIDXIS2V)
+                        : IL_VPUSHIDXVS;
+                    Emit(op);
                     GenStructIns(index->exptype);
-                    Emit(width, offset);
+                    if (op != IL_VPUSHIDXIS) Emit(struct_elem_sub_width);
+                    Emit(struct_elem_sub_offset);
                 }
                 break;
             }

@@ -42,7 +42,15 @@ namespace lobster {
     #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); (void)vm; }
 #endif
 
-VM_INLINE void PushDerefIdxVector(VM &vm, StackPtr &sp, iint i) {
+VM_INLINE void PushDerefIdxVector1(VM &vm, StackPtr &sp, iint i) {
+    Value r = Pop(sp);
+    VMASSERT(vm, r.ref());
+    auto v = r.vval();
+    RANGECHECK(vm, i, v->len, v);
+    Push(sp, v->At(i));
+}
+
+VM_INLINE void PushDerefIdxVector2V(VM &vm, StackPtr &sp, iint i) {
     Value r = Pop(sp);
     VMASSERT(vm, r.ref());
     auto v = r.vval();
@@ -50,7 +58,15 @@ VM_INLINE void PushDerefIdxVector(VM &vm, StackPtr &sp, iint i) {
     v->AtVW(sp, i);
 }
 
-VM_INLINE void PushDerefIdxVectorSub(VM &vm, StackPtr &sp, iint i, int width, int offset) {
+VM_INLINE void PushDerefIdxVectorSub1(VM &vm, StackPtr &sp, iint i, int offset) {
+    Value r = Pop(sp);
+    VMASSERT(vm, r.ref());
+    auto v = r.vval();
+    RANGECHECK(vm, i, v->len, v);
+    Push(sp, v->AtSub(i, offset));
+}
+
+VM_INLINE void PushDerefIdxVectorSub2V(VM &vm, StackPtr &sp, iint i, int width, int offset) {
     Value r = Pop(sp);
     VMASSERT(vm, r.ref());
     auto v = r.vval();
@@ -699,25 +715,37 @@ VM_INLINE StackPtr U_PUSHFLDV2V(VM &, StackPtr sp, int i, int rl, int l) {
 
 VM_INLINE StackPtr U_VPUSHIDXI(VM &vm, StackPtr sp) {
     auto x = Pop(sp).ival();
-    PushDerefIdxVector(vm, sp, x);
+    PushDerefIdxVector1(vm, sp, x);
+    return sp;
+}
+
+VM_INLINE StackPtr U_VPUSHIDXI2V(VM &vm, StackPtr sp) {
+    auto x = Pop(sp).ival();
+    PushDerefIdxVector2V(vm, sp, x);
     return sp;
 }
 
 VM_INLINE StackPtr U_VPUSHIDXV(VM &vm, StackPtr sp, int l) {
     auto x = vm.GrabIndex(sp, l);
-    PushDerefIdxVector(vm, sp, x);
+    PushDerefIdxVector2V(vm, sp, x);
     return sp;
 }
 
-VM_INLINE StackPtr U_VPUSHIDXIS(VM &vm, StackPtr sp, int w, int o) {
+VM_INLINE StackPtr U_VPUSHIDXIS(VM &vm, StackPtr sp, int o) {
     auto x = Pop(sp).ival();
-    PushDerefIdxVectorSub(vm, sp, x, w, o);
+    PushDerefIdxVectorSub1(vm, sp, x, o);
+    return sp;
+}
+
+VM_INLINE StackPtr U_VPUSHIDXIS2V(VM &vm, StackPtr sp, int w, int o) {
+    auto x = Pop(sp).ival();
+    PushDerefIdxVectorSub2V(vm, sp, x, w, o);
     return sp;
 }
 
 VM_INLINE StackPtr U_VPUSHIDXVS(VM &vm, StackPtr sp, int l, int w, int o) {
     auto x = vm.GrabIndex(sp, l);
-    PushDerefIdxVectorSub(vm, sp, x, w, o);
+    PushDerefIdxVectorSub2V(vm, sp, x, w, o);
     return sp;
 }
 

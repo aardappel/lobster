@@ -570,6 +570,11 @@ struct LVector : RefObj {
         return v[i];
     }
 
+    Value &AtSub(iint i, int off) const {
+        assert(i < len);
+        return v[i * width + off];
+    }
+
     Value *AtSt(iint i) const {
         assert(i < len);
         return v + i * width;

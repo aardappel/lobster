@@ -2063,6 +2063,8 @@ C++64-MSVC:           : secs  7.4, __force_inline on VM functions.
 VM64-MSVC:            : secs 16.4, pass stack pointer around explicitly.
 C++64-MSVC:           : secs  6.2, pass stack pointer around explicitly.
 C++64-MSVC:           : secs  5.7, put sp in a non-ref var.
+C++64-MSVC:           : secs  5.4, vars inline in VM object.
+C++64-MSVC:           : secs  5.0, specialized array indexing for width == 1
 
 compiletime speed:
 
