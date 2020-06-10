@@ -576,7 +576,7 @@ struct Parser {
         return dest;
     }
 
-    UnresolvedTypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr, bool allowWildcardGeneric = false) {
+    UnresolvedTypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr, bool allow_wildcard_generic = false) {
         TypeRef dest;
         switch(lex.token) {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
@@ -613,7 +613,7 @@ struct Parser {
                     if (dest->spec_udt->udt->is_generic) dest->spec_udt->is_generic = true;
                     for (;;) {
                         UnresolvedTypeRef s;
-                        if (allowWildcardGeneric && IsNext(T_QUESTIONMARK)) {
+                        if (allow_wildcard_generic && IsNext(T_QUESTIONMARK)) {
                             s = { type_undefined };
                         } else {
                             s = ParseType(false);
