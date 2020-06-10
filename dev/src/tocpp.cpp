@@ -62,7 +62,8 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void BlockStart(int id) override {
-        append(sd, "static void *block", id, "(lobster::VM &vm, lobster::StackPtr &sp) {\n");
+        append(sd, "static void *block", id,
+                   "(lobster::VM &vm, lobster::StackPtr &spr) {\n    auto sp = spr;\n");
     }
 
     void InstStart() override {
@@ -79,6 +80,7 @@ class CPPGenerator : public NativeGenerator {
         // the call structure instead. Hopefully this bounding will allow
         // us to keep some of the performance advantage of tail calls vs
         // not doing them at all.
+        sd += "{ spr = sp; ";
         if (tail_calls_in_a_row > 10 || id <= current_block_id) {
             // A backwards jump, go via the trampoline to be safe
             // (just in-case the compiler doesn't optimize tail calls).
@@ -86,9 +88,14 @@ class CPPGenerator : public NativeGenerator {
             tail_calls_in_a_row = 0;
         } else {
             // A forwards call, should be safe to tail-call.
-            append(sd, "return block", id, "(vm, sp);");
+            append(sd, "return block", id, "(vm, spr);");
             tail_calls_in_a_row++;
         }
+        sd += " }";
+    }
+
+    void EmitDynJump() {
+        sd += "{ spr = sp; return (void *)vm.next_call_target; }";
     }
 
     void EmitConditionalJump(int opc, int id) override {
@@ -134,11 +141,13 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitCallIndirect() override {
-        sd += " return (void *)vm.next_call_target;";
+        sd += " ";
+        EmitDynJump();
     }
 
     void EmitCallIndirectNull() override {
-        sd += " if (vm.next_call_target) return (void *)vm.next_call_target; ";
+        sd += " if (vm.next_call_target) ";
+        EmitDynJump();
     }
 
     void InstEnd() override {
@@ -148,7 +157,7 @@ class CPPGenerator : public NativeGenerator {
     void BlockEnd(int id, bool already_returned, bool is_exit) override {
         if (!already_returned) {
             sd += "    { ";
-            if (is_exit) sd += "return (void *)vm.next_call_target;"; else EmitJump(id);
+            if (is_exit) EmitDynJump(); else EmitJump(id);
             sd += " }\n";
         }
         sd += "}\n";
