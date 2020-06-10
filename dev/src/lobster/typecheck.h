@@ -262,7 +262,8 @@ struct TypeChecker {
                 return (type->t == V_VECTOR &&
                         ConvertsTo(type->Element(), bound->Element(), false, unifications));
             case V_CLASS:
-                return type->t == V_CLASS && st.SuperDistance(bound->udt, type->udt) >= 0; ;
+                return type->t == V_CLASS &&
+                       st.SuperDistance(bound->udt, type->udt) >= 0;
             case V_STRUCT_R:
             case V_STRUCT_S:
                 return type->t == bound->t && type->udt == bound->udt;
