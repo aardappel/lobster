@@ -46,15 +46,9 @@ map<pair<int, int>, size_t> instruction_combinations;
 int last_instruction_opc = -1;
 #endif
 
-VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZE) {
-    auto bcfb = (uint8_t *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
-    auto bcs = static_bytecode ? static_size : bytecode_buffer.size();
-    flatbuffers::Verifier verifier(bcfb, bcs);
-    auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
-    if (!ok) THROW_OR_ABORT(string("bytecode file failed to verify"));
-    bcf = bytecode::GetBytecodeFile(bcfb);
-    if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
-        THROW_OR_ABORT(string("bytecode is from a different version of Lobster"));
+VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
+    : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZE), bcf(bcf) {
+
     codelen = bcf->bytecode()->Length();
     if (FLATBUFFERS_LITTLEENDIAN) {
         // We can use the buffer directly.
@@ -74,13 +68,12 @@ VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZ
     #else
         ip = codestart;
     #endif
-    vars = new Value[bcf->specidents()->size()];
     stack = new Value[stacksize = INITSTACKSIZE];
     #ifdef VM_PROFILER
         byteprofilecounts = new uint64_t[codelen];
         memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
     #endif
-    vml.LogInit(bcfb);
+    vml.LogInit(bcf);
 
     #ifdef VM_COMPILED_CODE_MODE
         #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
@@ -107,9 +100,43 @@ VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZ
 VM::~VM() {
     TerminateWorkers();
     if (stack) delete[] stack;
-    if (vars)  delete[] vars;
     if (byteprofilecounts) delete[] byteprofilecounts;
 }
+
+VMAllocator::VMAllocator(VMArgs &&args) {
+    // Verify the bytecode.
+    auto bcfb = (uint8_t *)(args.static_bytecode ? args.static_bytecode : args.bytecode_buffer.data());
+    auto bcs = args.static_bytecode ? args.static_size : args.bytecode_buffer.size();
+    flatbuffers::Verifier verifier(bcfb, bcs);
+    auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
+    if (!ok) THROW_OR_ABORT(string("bytecode file failed to verify"));
+    auto bcf = bytecode::GetBytecodeFile(bcfb);
+    if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
+        THROW_OR_ABORT(string("bytecode is from a different version of Lobster"));
+
+    // Allocate enough memory to fit the "vars" array inline.
+    auto size = sizeof(VM) + sizeof(Value) * bcf->specidents()->size();
+    auto mem = malloc(size);
+    assert(mem);
+    memset(mem, 0, size);  // FIXME: this shouldn't be necessary.
+
+    #undef new
+
+    vm = new (mem) VM(std::move(args), bcf);
+
+    #ifdef _WIN32
+    #ifndef NDEBUG
+    #define new DEBUG_NEW
+    #endif
+    #endif
+}
+
+VMAllocator::~VMAllocator() {
+    if (!vm) return;
+    vm->~VM();
+    free(vm);
+}
+
 
 void VM::OneMoreFrame(StackPtr sp) {
     // We just landed back into the VM after being suspended inside a gl_frame() call.
@@ -915,23 +942,23 @@ void VM::StartWorkers(StackPtr &sp, iint numthreads) {
         auto vmargs = *(VMArgs *)this;
         vmargs.program_args.resize(0);
         vmargs.trace = TraceMode::OFF;
-        auto wvm = new VM(std::move(vmargs));
-        wvm->is_worker = true;
-        wvm->tuple_space = tuple_space;
-        workers.emplace_back([wvm] {
+        auto vma = new VMAllocator(std::move(vmargs));
+        vma->vm->is_worker = true;
+        vma->vm->tuple_space = tuple_space;
+        workers.emplace_back([vma] {
             string err;
             #ifdef USE_EXCEPTION_HANDLING
             try
             #endif
             {
-                wvm->EvalProgram();
+                vma->vm->EvalProgram();
             }
             #ifdef USE_EXCEPTION_HANDLING
             catch (string &s) {
                 if (s != "end-eval") err = s;
             }
             #endif
-            delete wvm;
+            delete vma;
             // FIXME: instead return err to main thread?
             if (!err.empty()) LOG_ERROR("worker error: ", err);
         });

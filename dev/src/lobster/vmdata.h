@@ -630,7 +630,7 @@ struct VMLog {
     VM &vm;
     VMLog(VM &_vm);
 
-    void LogInit(const uint8_t *bcf);
+    void LogInit(const bytecode::BytecodeFile *bcf);
     void LogPurge();
     void LogFrame();
     Value LogGet(Value def, int idx);
@@ -701,15 +701,13 @@ struct VM : VMArgs {
 
     LCoRoutine *curcoroutine = nullptr;
 
-    Value *vars = nullptr;
-
     size_t codelen = 0;
     const int *codestart = nullptr;
     vector<int> codebigendian;
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts = nullptr;
 
-    const bytecode::BytecodeFile *bcf = nullptr;
+    const bytecode::BytecodeFile *bcf;
 
     PrintPrefs programprintprefs { 10, 100000, false, -1 };
     const type_elem_t *typetable = nullptr;
@@ -762,7 +760,13 @@ struct VM : VMArgs {
     // for certain errors could trigger yet more errors. This vars ensures that we don't.
     bool error_has_occured = false;  // Don't error again.
 
-    VM(VMArgs &&args);
+    // We stick this in here directly, since the constant offsets into this array in
+    // compiled mode a big win.
+    Value vars[1];
+
+    // NOTE: NO MORE VAR DECLS AFTER "vars"
+
+    VM(VMArgs &&args, const bytecode::BytecodeFile *bcf);
     ~VM();
 
     void SuspendSP(StackPtr &sp) {
@@ -893,6 +897,13 @@ struct VM : VMArgs {
     string_view EnumName(iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);
+};
+
+// This is like a smart-pointer for VM above that dynamically allocates the size of "vars".
+struct VMAllocator {
+    VM *vm = nullptr;
+    VMAllocator(VMArgs &&args);
+    ~VMAllocator();
 };
 
 VM_INLINE void Push(StackPtr &sp, Value v) { *++sp = v; }

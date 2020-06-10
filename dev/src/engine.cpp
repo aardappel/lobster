@@ -90,12 +90,12 @@ void one_frame_callback(void *arg) {
 }
 
 void EngineRunByteCode(VMArgs &&vmargs) {
-    lobster::VM vm(std::move(vmargs));
+    lobster::VMAllocator vma(std::move(vmargs));
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        vm.EvalProgram();
+        vma.vm->EvalProgram();
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
@@ -111,11 +111,11 @@ void EngineRunByteCode(VMArgs &&vmargs) {
             // return from this function until completely done, emulating behavior as if we
             // control the main loop. What it really does is throw a JS exception to escape from
             // C++ execution, leaving this main loop in a frozen state to later return to.
-            emscripten_set_main_loop_arg(one_frame_callback, &vm, 0, true);
+            emscripten_set_main_loop_arg(one_frame_callback, vma.vm, 0, true);
             // When we return here, we're done and exit normally.
             #else
             // Emulate this behavior so we can debug it.
-            while (vm.evalret == "") one_frame_callback(&vm);
+            while (vma.vm->evalret == "") one_frame_callback(&vm);
             #endif
         } else
         #endif

@@ -340,9 +340,9 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
             // interpreted mode anymore.
             THROW_OR_ABORT(string("cannot execute bytecode in compiled mode"));
         #endif
-        VM vm(std::move(vmargs));
-        vm.EvalProgram();
-        auto ret = vm.evalret;
+        VMAllocator vma(std::move(vmargs));
+        vma.vm->EvalProgram();
+        auto ret = vma.vm->evalret;
         Push(parent_sp, Value(parent_vm.NewString(ret)));
         return Value();
     }
@@ -403,9 +403,9 @@ extern "C" int ConsoleRunCompiledCodeMain(int argc, char *argv[], const void *en
     {
         NativeRegistry nfr;
         RegisterCoreLanguageBuiltins(nfr);
-        lobster::VM vm(CompiledInit(argc, argv, entry_point, bytecodefb, static_size, vtables,
-                                    DefaultLoadFile, nfr));
-        vm.EvalProgram();
+        lobster::VMAllocator vma(CompiledInit(argc, argv, entry_point, bytecodefb, static_size,
+                                              vtables, DefaultLoadFile, nfr));
+        vma.vm->EvalProgram();
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
