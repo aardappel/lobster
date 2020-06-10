@@ -323,12 +323,12 @@ struct TypeChecker {
         return a == b;  // Not inlined for documentation purposes.
     }
 
-	bool TypeOfUndefinedGenericSpec(TypeRef t) {
-		if (t->udt == nullptr) return false;
-		if (t->udt->generics.size() == 0) return false;
-		if (t->udt->generics[0].giventype.utr == type_any) return true;
-		return false;
-	}
+    bool TypeOfUndefinedGenericSpec(TypeRef t) {
+        if (!IsUDT(t->t)) return false;
+        if (t->udt->generics.size() == 0) return false;
+        if (t->udt->generics[0].giventype.utr == type_undefined) return true;
+        return false;
+    }
 
     void MakeString(Node *&a, Lifetime orig_recip) {
         assert(a->exptype->t != V_STRING);

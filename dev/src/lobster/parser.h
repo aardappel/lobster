@@ -576,7 +576,7 @@ struct Parser {
         return dest;
     }
 
-    UnresolvedTypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr) {
+    UnresolvedTypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr, bool allowWildcardGeneric = false) {
         TypeRef dest;
         switch(lex.token) {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
@@ -584,7 +584,6 @@ struct Parser {
             case T_STRTYPE:   dest = type_string;     lex.Next(); break;
             case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
-			case T_ANYTYPE:   dest = type_any;        lex.Next(); break;
             case T_IDENT: {
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {
@@ -613,8 +612,13 @@ struct Parser {
                     dest = st.NewSpecUDT(dest->spec_udt->udt);
                     if (dest->spec_udt->udt->is_generic) dest->spec_udt->is_generic = true;
                     for (;;) {
-                        auto s = ParseType(false);
-                        if (st.IsGeneric(s)) dest->spec_udt->is_generic = true;
+                        UnresolvedTypeRef s;
+                        if (allowWildcardGeneric && IsNext(T_QUESTIONMARK)) {
+                            s = { type_undefined };
+                        } else {
+                            s = ParseType(false);
+                            if (st.IsGeneric(s)) dest->spec_udt->is_generic = true;
+                        }
                         dest->spec_udt->specializers.push_back(&*s.utr);
                         if (lex.token == T_GT) {
                             // This may be the end of the line, so make sure Lex doesn't see it
@@ -1030,7 +1034,7 @@ struct Parser {
             case T_IS: {
                 lex.Next();
                 auto is = new IsType(lex, n);
-                is->giventype = ParseType(false);
+                is->giventype = ParseType(false, nullptr, true);
                 is->resolvedtype = is->giventype.utr;
                 return is;
             }

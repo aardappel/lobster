@@ -34,7 +34,7 @@ run_test("types"):
             value: T
 
         def compile_time_if_generic(x):
-            if x is Box<any>:
+            if x is Box<?>:
                 return x.value
             else:
                 return x
