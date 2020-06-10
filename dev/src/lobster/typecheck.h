@@ -219,16 +219,16 @@ struct TypeChecker {
         }
     }
 
-	bool ConvertsToStatically(TypeRef type, TypeRef bound) {
-		if (bound == type || type->t == V_ANY)
-			return true;
-		switch (bound->t) {
+    bool ConvertsToStatically(TypeRef type, TypeRef bound) {
+        if (bound == type || type->t == V_ANY)
+            return true;
+        switch (bound->t) {
             case V_CLASS:
                 return type->t == V_CLASS &&
                        (type->tv->thistype == bound->tv->thistype && TypeOfUndefinedGenericSpec(type));
-		}
-		return false;
-	}
+        }
+        return false;
+    }
 
     bool ConvertsTo(TypeRef type, TypeRef bound, bool coercions, bool unifications = true,
                     bool allow_numeric_nil = false) {
@@ -1507,8 +1507,8 @@ struct TypeChecker {
         condition = SkipCoercions(condition);
         auto type = condition->exptype;
         if (auto c = Is<IsType>(condition)) {
-			if (!iftrue) return;
-			if (TypeOfUndefinedGenericSpec(c->resolvedtype)) return;
+            if (!iftrue) return;
+            if (TypeOfUndefinedGenericSpec(c->resolvedtype)) return;
             CheckFlowTypeIdOrDot(*c->child, c->resolvedtype);
         } else if (auto c = Is<Not>(condition)) {
             CheckFlowTypeChangesSub(!iftrue, c->child);
@@ -1597,7 +1597,7 @@ struct TypeChecker {
     TypeRef UseFlow(const FlowItem &left) {
         if (left.now->Numeric()) return left.now;  // Early out, same as above.
         for (auto flow : reverse(flowstack)) {
-            if (flow.sid == left.sid &&	flow.DerefsEqual(left)) {
+            if (flow.sid == left.sid && flow.DerefsEqual(left)) {
                 return flow.now;
             }
         }
@@ -3168,10 +3168,10 @@ bool Not::ConstVal(TypeChecker &tc, Value &val) const {
 }
 
 bool IsType::ConstVal(TypeChecker &tc, Value &val) const {
-	if (tc.ConvertsToStatically(resolvedtype, child->exptype)) {
-		val = Value(true);
-		return true;
-	}
+    if (tc.ConvertsToStatically(resolvedtype, child->exptype)) {
+        val = Value(true);
+        return true;
+    }
     if (!tc.ConvertsTo(resolvedtype, child->exptype, false)) {
         val = Value(false);
         return true;
