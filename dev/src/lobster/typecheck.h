@@ -225,7 +225,7 @@ struct TypeChecker {
         switch (bound->t) {
             case V_CLASS:
                 return type->t == V_CLASS &&
-                       (type->tv->thistype == bound->tv->thistype && TypeOfUndefinedGenericSpec(type));
+                       (type->udt->first == bound->udt->first && TypeOfUndefinedGenericSpec(type));
         }
         return false;
     }
