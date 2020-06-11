@@ -224,8 +224,14 @@ struct TypeChecker {
             return true;
         switch (bound->t) {
             case V_CLASS:
-                return type->t == V_CLASS &&
-                       (type->udt->first == bound->udt->first && TypeOfUndefinedGenericSpec(type));
+                if (type->t != bound->t) break;
+                if (st.SuperDistance(type->udt, bound->udt) > -1)
+                    return true;
+                if (!TypeOfUndefinedGenericSpec(type)) break;
+                for (auto t = bound->udt; t; t = t->resolved_superclass) {
+                    if (t->first == type->udt->first)
+                        return true;
+                }
         }
         return false;
     }
@@ -326,8 +332,15 @@ struct TypeChecker {
 
     bool TypeOfUndefinedGenericSpec(TypeRef t) {
         if (!IsUDT(t->t)) return false;
-        if (t->udt->generics.size() == 0) return false;
-        if (t->udt->generics[0].giventype.utr == type_undefined) return true;
+        return IsUndefinedGenericSpec(t->udt);
+    }
+
+    bool IsUndefinedGenericSpec(UDT* udt) {
+        for (int i = 0; i < udt->generics.size(); i++) {
+            auto& utr = udt->generics[i].giventype.utr;
+            if (!utr.Null() && utr == type_undefined)
+                return true;
+        }
         return false;
     }
 
@@ -694,7 +707,9 @@ struct TypeChecker {
                 }
                 fail:;
             }
-            TypeError("can't find specialized superclass for: " + udt.name, errn);
+            //do not fail for an undefined generic inside an `is` statement
+            if (!IsUndefinedGenericSpec(&udt))
+                TypeError("can't find specialized superclass for: " + udt.name, errn);
             //udt.given_superclass = nullptr;
             //udt.resolved_superclass = nullptr;
             done:;

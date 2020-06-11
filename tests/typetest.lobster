@@ -30,6 +30,23 @@ run_test("types"):
         assert compile_time_if("") is string
 
     do():
+        //test `is` with childtype passing for parent type statically
+        class Box1:
+            value: int
+
+        class Box2: Box1
+
+        def compile_time_if(x):
+            if x is Box1:
+                return x.value
+            else:
+                return x
+
+        assert compile_time_if(Box2{1}) is int
+        assert compile_time_if("") is string
+
+    do():
+        //test `is` with untyped generic
         class Box<T>:
             value: T
 
@@ -40,7 +57,38 @@ run_test("types"):
                 return x
         assert compile_time_if_generic(Box<int>{1}) is int
         assert compile_time_if_generic("") is string
-		
+
+    do():
+        //calling with untyped generic super class shouldn't pass, subclasses should pass
+        class Box1<T>:
+            value: T
+        class Box2: Box1
+        class Box3: Box2
+
+        def compile_time_if_generic(x):
+            if x is Box2<?>:
+                return x.value
+            else:
+                return x
+        
+        assert compile_time_if_generic(Box1<int>{1}) is Box1<int>
+        assert compile_time_if_generic(Box2<int>{1}) is int
+        assert compile_time_if_generic(Box3<int>{1}) is int
+
+    do():
+        //check for more than one generic arg
+        class Box<T, K>:
+            value1: T
+            value2: K
+        
+        def compile_time_if_generic(x):
+            if x is Box<?, ?>:
+                return x.value1
+            else:
+                return x
+
+        assert compile_time_if_generic(Box<int,int>{1,1}) is int
+        assert compile_time_if_generic("") is string
 
     assert typeof int == 0  // Always the first one added to the typetable.
 
