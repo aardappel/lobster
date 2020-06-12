@@ -611,14 +611,15 @@ struct Parser {
                 if (IsNext(T_LT)) {
                     dest = st.NewSpecUDT(dest->spec_udt->udt);
                     if (dest->spec_udt->udt->is_generic) dest->spec_udt->is_generic = true;
+                    if (allow_wildcard_generic && IsNext(T_QUESTIONMARK)) {
+                        UnresolvedTypeRef s = { type_undefined };
+                        dest->spec_udt->specializers.push_back(&*s.utr);
+                        Expect(T_GT);
+                        goto done;
+                    }
                     for (;;) {
-                        UnresolvedTypeRef s;
-                        if (allow_wildcard_generic && IsNext(T_QUESTIONMARK)) {
-                            s = { type_undefined };
-                        } else {
-                            s = ParseType(false);
-                            if (st.IsGeneric(s)) dest->spec_udt->is_generic = true;
-                        }
+                        auto s = ParseType(false);
+                        if (st.IsGeneric(s)) dest->spec_udt->is_generic = true;
                         dest->spec_udt->specializers.push_back(&*s.utr);
                         if (lex.token == T_GT) {
                             // This may be the end of the line, so make sure Lex doesn't see it

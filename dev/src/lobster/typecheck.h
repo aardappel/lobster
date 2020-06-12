@@ -222,16 +222,15 @@ struct TypeChecker {
     bool ConvertsToStatically(TypeRef type, TypeRef bound) {
         if (bound == type || type->t == V_ANY)
             return true;
-        switch (bound->t) {
-            case V_CLASS:
-                if (type->t != bound->t) break;
-                if (st.SuperDistance(type->udt, bound->udt) > -1)
-                    return true;
-                if (!TypeOfUndefinedGenericSpec(type)) break;
-                for (auto t = bound->udt; t; t = t->resolved_superclass) {
-                    if (t->first == type->udt->first)
-                        return true;
-                }
+        if (bound->t != V_CLASS || type->t != V_CLASS)
+            return false;
+        if (st.SuperDistance(type->udt, bound->udt) > -1)
+            return true;
+        if (!TypeOfUndefinedGenericSpec(type))
+            return false;
+        for (auto t = bound->udt; t; t = t->resolved_superclass) {
+            if (t->first == type->udt->first)
+                return true;
         }
         return false;
     }
@@ -331,14 +330,13 @@ struct TypeChecker {
     }
 
     bool TypeOfUndefinedGenericSpec(TypeRef t) {
-        if (!IsUDT(t->t)) return false;
-        return IsUndefinedGenericSpec(t->udt);
+        return IsUDT(t->t) && IsUndefinedGenericSpec(t->udt);
     }
 
-    bool IsUndefinedGenericSpec(UDT* udt) {
+    bool IsUndefinedGenericSpec(UDT *udt) {
         for (int i = 0; i < udt->generics.size(); i++) {
-            auto& utr = udt->generics[i].giventype.utr;
-            if (!utr.Null() && utr == type_undefined)
+            auto &utr = udt->generics[i].giventype.utr;
+            if (utr == type_undefined) 
                 return true;
         }
         return false;
@@ -1009,6 +1007,14 @@ struct TypeChecker {
                 for (auto s : type->spec_udt->specializers) {
                     auto t = ResolveTypeVars({ s }, errn);
                     types.push_back(&*t);
+                }
+                // in special case of using `is` with wildcard generic
+                // the type has 1 generic argument (<?>) which may
+                // mismatch required count of generic argument for that type
+                if ((types.size() == 1 && types[0]->t == V_UNDEFINED)) {
+                    int size = type->spec_udt->udt->first->generics.size();
+                    while (types.size() != size)
+                        types.push_back(types[0]);
                 }
                 for (auto udti = type->spec_udt->udt->first; udti; udti = udti->next) {
                     if (udti->FullyBound()) {

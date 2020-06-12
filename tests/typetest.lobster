@@ -82,7 +82,7 @@ run_test("types"):
             value2: K
         
         def compile_time_if_generic(x):
-            if x is Box<?, ?>:
+            if x is Box<?>:
                 return x.value1
             else:
                 return x
