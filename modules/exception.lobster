@@ -15,7 +15,7 @@ def throw(v):
 def try(body):
     try body: _
 
-// convenience function: ensure cleanup function "finally" always gets called regardless of wether
+// convenience function: ensure cleanup function "finally" always gets called regardless of whether
 // an exception passes thru body
 def protect(body, finally):
     try(body) v:
