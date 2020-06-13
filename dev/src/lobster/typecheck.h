@@ -1011,7 +1011,7 @@ struct TypeChecker {
                 // in special case of using `is` with wildcard generic
                 // the type has 1 generic argument (<?>) which may
                 // mismatch required count of generic argument for that type
-                if ((types.size() == 1 && types[0]->t == V_UNDEFINED)) {
+                if (types.size() == 1 && types[0]->t == V_UNDEFINED) {
                     int size = type->spec_udt->udt->first->generics.size();
                     while (types.size() != size)
                         types.push_back(types[0]);
