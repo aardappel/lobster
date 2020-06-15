@@ -236,8 +236,6 @@ struct TypeChecker {
                 return type->t == V_INT && coercions;
             case V_INT:
                 return (type->t == V_TYPEID && coercions) || (type->t == V_INT && !bound->e);
-            case V_STRING:
-                return coercions && IsRuntimePrintable(type->t);
             case V_FUNCTION:
                 return type->t == V_FUNCTION && !bound->sf;
             case V_NIL:
