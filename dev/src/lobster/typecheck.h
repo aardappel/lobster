@@ -1373,6 +1373,19 @@ struct TypeChecker {
                     }
                 }
             }
+            // Then see if there's a match if we'd instantiate a generic first arg.
+            if (overload_idx < 0 && IsUDT(type0->t)) {
+                for (auto [i, isf] : enumerate(f.overloads)) {
+                    auto arg0 = isf->args[0].type;
+                    if (arg0->t == V_UUDT && arg0->spec_udt->udt == type0->udt->first) {
+                        if (overload_idx >= 0) {
+                            TypeError(cat("multiple generic overloads can instantiate: \"", f.name,
+                                "\", first arg \"", TypeName(type0), "\""), call_args);
+                        }
+                        overload_idx = (int)i;
+                    }
+                }
+            }
             // Then finally try with coercion.
             if (overload_idx < 0) {
                 for (auto [i, isf] : enumerate(f.overloads)) {

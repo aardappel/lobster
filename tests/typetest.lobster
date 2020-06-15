@@ -88,6 +88,12 @@ run_test("types"):
         assert x.g(3) == 5
         // Recursive dynamic dispatch.
         assert x.r(10) == 0
+        // Static dispatch on generic types!
+        class D<T>:
+            x:T
+        def foo<T>(d:D<T>): return d.x
+        def foo(i:int): return i
+        assert foo(D<int> { 1 }) + foo(2) == 3
 
     do():
         // Flow sensitive checking.
