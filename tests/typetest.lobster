@@ -93,7 +93,9 @@ run_test("types"):
             x:T
         def foo<T>(d:D<T>): return d.x
         def foo(i:int): return i
+        def foo(s:string): return s
         assert foo(D<int> { 1 }) + foo(2) == 3
+        assert foo(D<string> { "ha" }) + foo("llo") == "hallo"
 
     do():
         // Flow sensitive checking.
