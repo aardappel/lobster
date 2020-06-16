@@ -921,7 +921,7 @@ struct Parser {
             for (auto sf : f->overloads) {
                 auto &arg0 = sf->args[0];
                 if (arg0.type->t == V_UUDT &&
-                    wse.udt == arg0.type->spec_udt->udt &&
+                    st.SuperDistance(arg0.type->spec_udt->udt, wse.udt) >= 0 &&
                     arg0.withtype) {
                     if (wse.id && wse.sf->parent != f) {  // Not in recursive calls.
                         return new IdentRef(lex, wse.id->cursid);
