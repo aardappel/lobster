@@ -579,12 +579,13 @@ have a bug. Generally, the less local variable access is, the harder code is to
 follow.
 
 So how do we get rid of all these globals? We could stick all these variables in
-objects. And while that potentially improves some things (we can now initialize
-all state related to one level in a single object, guaranteeing simulatuous
-initialization), in the end we've replaced our globals with a single global that
-holds... more globals. Just because we hide things in an object doesn't make
-them less global, if there's only one copy of the variable and it is used
-everywhere then it is effectively global. The code hasn't really improved.
+objects (see `tut_obj.lobster`). And while that potentially improves some things
+(we can now initialize all state related to one level in a single object,
+guaranteeing simulatuous initialization), in the end we've replaced our globals
+with a single global that holds... more globals. Just because we hide things in
+an object doesn't make them less global, if there's only one copy of the
+variable and it is used everywhere then it is effectively global.
+The code hasn't really improved.
 
 Another trick to get rid of globals is to pass things as arguments instead. But
 looking at the code, there are no opportunities for doing so, since we'd there's
