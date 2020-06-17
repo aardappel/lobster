@@ -650,7 +650,7 @@ struct Parser {
                 Error("illegal type syntax: " + lex.TokStr());
         }
         if (IsNext(T_QUESTIONMARK)) {
-            if (!st.IsNillable(dest))
+            if (!st.IsNillable(dest) && dest->t != V_TYPEVAR)
                 Error("value types can\'t be made nilable");
             dest = st.Wrap(dest, V_NIL);
         }
