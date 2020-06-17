@@ -21,7 +21,7 @@ print "VM MODE: " + (if vm_compiled_mode(): "compiled" else: "interpreted")
 number_of_runs = 10000
 import structtest
 
-number_of_runs = 6000
+number_of_runs = 4000
 import misctest
 
 number_of_runs = 6000

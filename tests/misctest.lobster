@@ -2,6 +2,7 @@ import testing
 import std
 import exception
 import vec
+import dictionary
 
 // Misc small tests that don't fit elsewhere.
 
@@ -236,3 +237,20 @@ run_test("misc"):
     assert (bit ^= 3) == 2
     assert (bit <<= 1) == 4
     assert (bit >>= 1) == 2
+
+    // Dictionary.
+    let dict = dictionary<float, float> { 17 }
+    rnd_seed(0)
+    for(32):
+        let key = rnd_float()  // 0..1
+        dict.set(key, key)
+    rnd_seed(0)
+    for(32):
+        let key = rnd_float()
+        let value = dict.get(key, -1)
+        assert value == key
+    // Test using nil as default value.
+    let dict2 = dictionary<string, string?> { 17 }
+    dict2.set("a", "b")
+    let val = dict2.get("a", nil)
+    assert val and val == "b"
