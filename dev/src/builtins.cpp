@@ -1119,6 +1119,18 @@ nfr("hash", "x", "F", "I",
         auto h = positive_bits(a.Hash(vm, V_FLOAT));
         return Value(h);
     });
+nfr("hash", "v", "I}", "I",
+    "hashes a int vector into a positive int",
+    [](StackPtr &sp, VM &) {
+        auto a = PopVec<iint4>(sp);
+        Push(sp, positive_bits(FNV1A64(string_view((char *)a.data(), sizeof(a)))));
+    });
+nfr("hash", "v", "F}", "I",
+    "hashes a float vector into a positive int",
+    [](StackPtr &sp, VM &) {
+        auto a = PopVec<double4>(sp);
+        Push(sp, positive_bits(FNV1A64(string_view((char *)a.data(), sizeof(a)))));
+    });
 
 nfr("program_name", "", "", "S",
     "returns the name of the main program (e.g. \"foo.lobster\".",

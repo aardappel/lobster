@@ -254,3 +254,7 @@ run_test("misc"):
     dict2.set("a", "b")
     let val = dict2.get("a", nil)
     assert val and val == "b"
+    // Test using structs!
+    let dict3 = dictionary<xyz_i, xyz_i> { 17 }
+    dict3.set(xyz { 1, 2, 3 }, xyz { 4, 5, 6 })
+    assert dict3.get(xyz { 1, 2, 3 }, xyz_0i) == xyz { 4, 5, 6 }
