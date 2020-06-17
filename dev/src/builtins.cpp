@@ -1096,27 +1096,27 @@ nfr("active", "coroutine", "C", "B",
     });
 
 nfr("hash", "x", "I", "I",
-    "hashes an int value into an int; may be the identity function",
+    "hashes an int value into a positive int; may be the identity function",
     [](StackPtr &, VM &vm, Value &a) {
-        auto h = a.Hash(vm, V_INT);
+        auto h = positive_bits(a.Hash(vm, V_INT));
         return Value(h);
     });
 nfr("hash", "x", "A", "I",
-    "hashes any ref value into an int",
+    "hashes any ref value into a positive int",
     [](StackPtr &, VM &vm, Value &a) {
-        auto h = a.ref()->Hash(vm);
+        auto h = positive_bits(a.ref()->Hash(vm));
         return Value(h);
     });
 nfr("hash", "x", "L", "I",
-    "hashes a function value into an int",
+    "hashes a function value into a positive int",
     [](StackPtr &, VM &vm, Value &a) {
-        auto h = a.Hash(vm, V_FUNCTION);
+        auto h = positive_bits(a.Hash(vm, V_FUNCTION));
         return Value(h);
     });
 nfr("hash", "x", "F", "I",
-    "hashes a float value into an int",
+    "hashes a float value into a positive int",
     [](StackPtr &, VM &vm, Value &a) {
-        auto h = a.Hash(vm, V_FLOAT);
+        auto h = positive_bits(a.Hash(vm, V_FLOAT));
         return Value(h);
     });
 

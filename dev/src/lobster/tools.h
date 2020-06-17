@@ -51,6 +51,7 @@ template<typename T> ssize_t ssize(const vector<T> &c) { return (ssize_t)c.size(
 template<typename T> ssize_t ssizeof() { return (ssize_t)sizeof(T); }
 template<typename T> ssize_t salignof() { return (ssize_t)alignof(T); }
 
+inline iint positive_bits(uint64_t i) { return (i << 1) >> 1; }
 
 // Typed versions of memcpy.
 template<typename T, typename S> void t_memcpy(T *dest, const T *src, S n) {
@@ -793,11 +794,20 @@ template<typename T> class TimeBool {
 
 typedef TimeBool<char> TimeBool8;
 
-inline uint32_t FNV1A(string_view s) {
+inline uint32_t FNV1A32(string_view s) {
     uint32_t hash = 0x811C9DC5;
     for (auto c : s) {
         hash ^= (uint8_t)c;
         hash *= 0x01000193;
+    }
+    return hash;
+}
+
+inline uint64_t FNV1A64(string_view s) {
+    uint64_t hash = 0xCBF29CE484222325;
+    for (auto c : s) {
+        hash ^= (uint8_t)c;
+        hash *= 0x100000001B3;
     }
     return hash;
 }

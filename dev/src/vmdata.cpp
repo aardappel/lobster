@@ -249,7 +249,7 @@ iint RefObj::Hash(VM &vm) {
 }
 
 iint LString::Hash() {
-    return (int)FNV1A(strv());
+    return FNV1A64(strv());
 }
 
 iint Value::Hash(VM &vm, ValueType vtype) {
