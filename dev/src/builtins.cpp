@@ -78,42 +78,49 @@ nfr("string", "x", "Ssk", "S",
         return a;
     });
 
-nfr("set_print_depth", "depth", "I", "",
-    "for printing / string conversion: sets max vectors/objects recursion depth (default 10)",
+nfr("set_print_depth", "depth", "I", "I",
+    "for printing / string conversion: sets max vectors/objects recursion depth (default 10), "
+    "returns old value",
     [](StackPtr &, VM &vm, Value &a) {
+        auto old = vm.programprintprefs.depth;
         vm.programprintprefs.depth = a.ival();
-        return Value();
+        return Value(old);
     });
 
-nfr("set_print_length", "len", "I", "",
-    "for printing / string conversion: sets max string length (default 100000)",
+nfr("set_print_length", "len", "I", "I",
+    "for printing / string conversion: sets max string length (default 100000), "
+    "returns old value",
     [](StackPtr &, VM &vm, Value &a) {
+        auto old = vm.programprintprefs.budget;
         vm.programprintprefs.budget = a.ival();
-        return Value();
+        return Value(old);
     });
 
-nfr("set_print_quoted", "quoted", "B", "",
+nfr("set_print_quoted", "quoted", "B", "B",
     "for printing / string conversion: if the top level value is a string, whether to convert"
-    " it with escape codes and quotes (default false)",
+    " it with escape codes and quotes (default false), returns old value",
     [](StackPtr &, VM &vm, Value &a) {
+        auto old = vm.programprintprefs.quoted;
         vm.programprintprefs.quoted = a.ival() != 0;
-        return Value();
+        return Value(old);
     });
 
-nfr("set_print_decimals", "decimals", "I", "",
+nfr("set_print_decimals", "decimals", "I", "I",
     "for printing / string conversion: number of decimals for any floating point output"
-    " (default -1, meaning all)",
+    " (default -1, meaning all), returns old value",
     [](StackPtr &, VM &vm, Value &a) {
+        auto old = vm.programprintprefs.decimals;
         vm.programprintprefs.decimals = a.ival();
-        return Value();
+        return Value(old);
     });
 
-nfr("set_print_indent", "spaces", "I", "",
+nfr("set_print_indent", "spaces", "I", "I",
     "for printing / string conversion: number of spaces to indent with. default is 0:"
-    " no indent / no multi-line",
+    " no indent / no multi-line, returns old value",
     [](StackPtr &, VM &vm, Value &a) {
+        auto old = vm.programprintprefs.indent;
         vm.programprintprefs.indent = a.intval();
-        return Value();
+        return Value(old);
     });
 
 nfr("get_line", "", "", "S",
