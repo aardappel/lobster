@@ -20,6 +20,7 @@ struct Optimizer {
     TypeChecker &tc;
     size_t total_changes = 0;
     vector<SubFunction *> sfstack;
+    vector<SpecIdent *> inc_sids;
     bool functions_removed = false;
 
     Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc)
@@ -37,6 +38,7 @@ struct Optimizer {
                 }
             }
         }
+        for (auto sid : inc_sids) sid->consume_on_last_use = false;
         LOG_INFO("optimizer: ", total_changes, " optimizations");
     }
 
@@ -237,7 +239,8 @@ Node *Call::Optimize(Optimizer &opt) {
         // TODO: investigate if setting them to null at scope exit would be an alternative?
         auto ir = Is<IdentRef>(ret->child);
         if (ir && ir->sid->consume_on_last_use) {
-            ir->sid->consume_on_last_use = false;
+            // Delay resetting the var, since this may be inlined more than once.
+            opt.inc_sids.push_back(ir->sid);
             opt.tc.MakeLifetime(ret->child, LT_KEEP, 1, 0);
         }
         list->children.back() = ret->child;

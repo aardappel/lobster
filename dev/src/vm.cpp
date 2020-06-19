@@ -246,7 +246,7 @@ void VM::DumpLeaks() {
 
 void VM::OnAlloc(RefObj *ro) {
     #if DELETE_DELAY
-        LOG_DEBUG("alloc: ", (size_t)ro);
+        LOG_DEBUG("alloc: ", (size_t)ro, " - ", ro->refc);
         ro->alloc_ip = ip;
     #else
         (void)ro;
