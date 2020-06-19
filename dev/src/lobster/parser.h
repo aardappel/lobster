@@ -752,6 +752,8 @@ struct Parser {
                     sf = functionstack.back()->overloads.back();
             }
             return new Return(lex, rv, sf, false);
+        } else if (IsNext(T_BREAK)) {
+            return new Break(lex);
         }
         auto e = ParseExp();
         while (IsNext(T_SEMICOLON)) {

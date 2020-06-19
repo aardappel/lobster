@@ -253,6 +253,7 @@ ZERO_NODE(ForLoopCounter, "for loop counter", false, )
 BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, RETURNSMETHOD)
 BINARY_NODE_T(Case, "case", false, List, pattern, Node, body, )
 BINARY_NODE(Range, "range", false, start, end, )
+ZERO_NODE(Break, "break", false, RETURNSMETHOD)
 
 struct Nil : Node {
     UnresolvedTypeRef giventype;

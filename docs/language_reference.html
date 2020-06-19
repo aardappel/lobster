@@ -323,6 +323,7 @@ do:
     a++</code></pre>
 <p>but since people are so used to the way while loops work from other languages, the first argument has a special type that automatically converts an expression into a function value. When you think about it, even in languages like C the condition of a while is the only part of the language that can be executed more than once yet does not use / cannot use the block <code>{}</code> syntax. This exception is carried over in Lobster. This is not great for readability so isn’t generally used elsewhere.</p>
 <p><code>while</code> returns void. A similar function int module <code>std</code> called <code>collectwhile</code> returns a vector of all body return values.</p>
+<p>Both <code>for</code> and <code>while</code> can have a break statement inside of them, that exits the enclosing loop.</p>
 <p>Many other functions that look like regular functions are actually also control structures, like many of the graphics function that change the current rendering state. An example is <code>gl_translate</code>, that optionally takes a body, and will run the body and restore the previous transform afterwards.</p>
 <p><code>switch</code> has special syntax, since it does a lot of things different:</p>
 <pre><code>var st = switch i:

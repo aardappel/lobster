@@ -63,7 +63,7 @@ struct Borrow : LValContext {
 struct TypeChecker {
     Parser &parser;
     SymbolTable &st;
-    struct Scope { SubFunction *sf; const Node *call_context; };
+    struct Scope { SubFunction *sf; const Node *call_context; int loop_count = 0; };
     vector<Scope> scopes, named_scopes;
     vector<FlowItem> flowstack;
     vector<Borrow> borrowstack;
@@ -2107,7 +2107,9 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret) {
 
 Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TypeCheckCondition(condition, this, "while");
+    tc.scopes.back().loop_count++;
     tc.TypeCheckBranch(true, condition, body, 0);
+    tc.scopes.back().loop_count--;
     exptype = type_void;
     lt = LT_ANY;
     return this;
@@ -2130,7 +2132,9 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         auto fle = Is<ForLoopElem>(def->child);
         if (fle) fle->exptype = itertype;
     }
+    tc.scopes.back().loop_count++;
     body->TypeCheck(tc, 0);
+    tc.scopes.back().loop_count--;
     tc.DecBorrowers(iter->lt, *this);
     // Currently always return V_NIL
     exptype = type_void;
@@ -2146,6 +2150,14 @@ Node *ForLoopElem::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 
 Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_int;
+    lt = LT_ANY;
+    return this;
+}
+
+Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    if (!tc.scopes.back().loop_count)
+        tc.TypeError("break must occur inside a while or for", *this);
+    exptype = type_void;
     lt = LT_ANY;
     return this;
 }
@@ -3195,6 +3207,10 @@ bool While::Terminal(TypeChecker &tc) const {
     // Instead, it is only terminal if this is an infinite loop.
     Value val;
     return condition->ConstVal(tc, val) && val.True();
+}
+
+bool Break::Terminal(TypeChecker &) const {
+    return true;
 }
 
 bool Switch::Terminal(TypeChecker &tc) const {

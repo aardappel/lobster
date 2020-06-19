@@ -942,6 +942,9 @@ used elsewhere.
 `while` returns void. A similar function int module `std` called `collectwhile`
 returns a vector of all body return values.
 
+Both `for` and `while` can have a break statement inside of them, that
+exits the enclosing loop.
+
 Many other functions that look like regular functions are actually also control
 structures, like many of the graphics function that change the current rendering
 state. An example is `gl_translate`, that optionally takes a body, and will

@@ -28,7 +28,7 @@
             <key>name</key>
             <string>keyword.source.lobster</string>
             <key>match</key>
-            <string>\b(return|struct|class|import|namespace|pakfile|def|is|from|program|private|coroutine|enum|enum_flags|typeof|var|let|not|and|or)\b</string>
+            <string>\b(break|return|struct|class|import|namespace|pakfile|def|is|from|program|private|coroutine|enum|enum_flags|typeof|var|let|not|and|or)\b</string>
         </dict>
         <dict>
             <key>name</key>
@@ -46,7 +46,7 @@
             <key>name</key>
             <string>keyword.control.source.lobster</string>
             <key>match</key>
-            <string>\b(return|from)\b</string>
+            <string>\b(break|return|from)\b</string>
         </dict>
         <dict>
             <key>name</key>

@@ -29,7 +29,8 @@ struct CodeGen  {
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
     vector<TypeLT> rettypes, temptypestack;
-    size_t nested_fors = 0, nested_whiles = 0;
+    vector<const Node *> loops;
+    vector<int> breaks;
     vector<string_view> stringtable;  // sized strings.
     vector<const Node *> node_context;
     vector<int> speclogvars;  // Index into specidents.
@@ -294,6 +295,7 @@ struct CodeGen  {
         }
         else Dummy(sf.reqret);
         assert(temptypestack.empty());
+        assert(breaks.empty());
         code[keepvarspos] = keepvars;
         linenumbernodes.pop_back();
     }
@@ -575,7 +577,7 @@ struct CodeGen  {
     }
 
     void EmitKeep(int stack_offset, int keep_index_add) {
-        int opc = nested_fors || nested_whiles ? IL_KEEPREFLOOP : IL_KEEPREF;
+        int opc = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
         Emit(opc, stack_offset, keepvars++ + StackDepth() + keep_index_add);
     }
 
@@ -683,6 +685,19 @@ struct CodeGen  {
                 break;
             default:
                 assert(false);
+        }
+    }
+
+    size_t LoopTemps() {
+        size_t t = 0;
+        for (auto n : loops) if (Is<For>(n)) t += 2;
+        return t;
+    }
+
+    void ApplyBreaks(size_t level) {
+        while (breaks.size() > level) {
+            SetLabel(breaks.back());
+            breaks.pop_back();
         }
     }
 };
@@ -1087,7 +1102,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
         cg.Emit(IL_YIELD);
         // We may have temps on the stack from an enclosing for.
         // Check that these temps are actually from for loops, to not mask bugs.
-        assert(cg.temptypestack.size() == cg.nested_fors * 2);
+        assert(cg.temptypestack.size() == cg.LoopTemps());
         cg.SplitAttr(cg.Pos());
         if (!retval) cg.GenPop({ exptype, lt });
     } else {
@@ -1226,15 +1241,17 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
 void While::Generate(CodeGen &cg, size_t retval) const {
     cg.SplitAttr(cg.Pos());
     auto loopback = cg.Pos();
-    cg.nested_whiles++;
+    cg.loops.push_back(this);
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
     cg.Emit(IL_JUMPFAIL, 0);
     auto jumpout = cg.Pos();
+    auto break_level = cg.breaks.size();
     cg.Gen(body, 0);
-    cg.nested_whiles--;
+    cg.loops.pop_back();
     cg.Emit(IL_JUMP, loopback);
     cg.SetLabel(jumpout);
+    cg.ApplyBreaks(break_level);
     cg.Dummy(retval);
 }
 
@@ -1242,10 +1259,11 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.Emit(IL_PUSHINT, -1);   // i
     cg.temptypestack.push_back({ type_int, LT_ANY });
     cg.Gen(iter, 1);
-    cg.nested_fors++;
+    cg.loops.push_back(this);
     cg.Emit(IL_JUMP, 0);
     auto startloop = cg.Pos();
     cg.SplitAttr(cg.Pos());
+    auto break_level = cg.breaks.size();
     cg.Gen(body, 0);
     cg.SetLabel(startloop);
     switch (iter->exptype->t) {
@@ -1255,8 +1273,9 @@ void For::Generate(CodeGen &cg, size_t retval) const {
         default:         assert(false);
     }
     cg.Emit(startloop);
-    cg.nested_fors--;
+    cg.loops.pop_back();
     cg.TakeTemp(2, false);
+    cg.ApplyBreaks(break_level);
     cg.Dummy(retval);
 }
 
@@ -1272,6 +1291,20 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
 
 void ForLoopCounter::Generate(CodeGen &cg, size_t /*retval*/) const {
     cg.Emit(IL_FORLOOPI);
+}
+
+void Break::Generate(CodeGen &cg, size_t retval) const {
+    assert(!retval);
+    (void)retval;
+    assert(!cg.rettypes.size());
+    assert(!cg.loops.empty());
+    assert(cg.temptypestack.size() == cg.LoopTemps());
+    if (Is<For>(cg.loops.back())) {
+        cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 1]);
+        cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 2]);
+    }
+    cg.Emit(IL_JUMP, 0);
+    cg.breaks.push_back(cg.Pos());
 }
 
 void Switch::Generate(CodeGen &cg, size_t retval) const {
@@ -1457,7 +1490,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
         // We can't actually remove these from the stack permanently as the parent nodes still
         // expect them to be there.
         // Check that these temps are actually from for loops, to not mask bugs.
-        assert(cg.temptypestack.size() == cg.nested_fors * 2);
+        assert(cg.temptypestack.size() == cg.LoopTemps());
         while (!cg.temptypestack.empty()) {
             cg.GenPop(cg.temptypestack.back());
             cg.temptypestack.pop_back();

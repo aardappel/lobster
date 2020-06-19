@@ -289,6 +289,9 @@ struct Lex : LoadedFile {
                             if (sattr == "and") { cont = true; return T_AND; }
                             if (sattr == "any") return T_ANYTYPE;
                             break;
+                        case 'b':
+                            if (sattr == "break") return T_BREAK;
+                            break;
                         case 'c':
                             if (sattr == "class") return T_CLASS;
                             if (sattr == "case") return T_CASE;

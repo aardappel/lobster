@@ -378,6 +378,14 @@
       - now spacing doesn't matter
       - but we don't even want to allow `for (` necessarily.
 
+- increase abilities of "break"
+  - break out of multiple loops.
+  - break out of loops in higher order functions.
+    - that can be shown the be safe when the lambda the break sits in is guaranteed inlined
+    - the problem is the semantics: you transfer control to the end of the loop inside the
+      HOF, and you don't necessarily know what that does. Though in many cases it will work,
+      e.g. break inside a "map" will just return a shorter list.
+
 - Now that the language is always 64-bit:
   - can further improve type simplicity by:
     - Would be nice to move everything to using 64-bit, but this is hampered by the STL on

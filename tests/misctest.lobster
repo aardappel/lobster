@@ -258,3 +258,15 @@ run_test("misc"):
     let dict3 = dictionary<xyz_i, xyz_i> { 17 }
     dict3.set(xyz { 1, 2, 3 }, xyz { 4, 5, 6 })
     assert dict3.get(xyz { 1, 2, 3 }, xyz_0i) == xyz { 4, 5, 6 }
+
+    // Break.
+    var lc = 0
+    for(10) i:
+        if i == 5: break
+        lc++
+    assert lc == 5
+    while lc:
+        if lc == 1: break
+        lc--
+    assert lc == 1
+
