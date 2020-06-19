@@ -164,7 +164,7 @@ void VRStart() {
             : float4x4_1;
         mc.device = device;
         mc.laststate = mc.state;
-        auto ok = vrsys->GetControllerState(device, &mc.state);
+        auto ok = vrsys->GetControllerState(device, &mc.state, sizeof(mc.state));
         if (!ok) memset(&mc.state, 0, sizeof(vr::VRControllerState_t));
         mcn++;
     }
@@ -180,7 +180,7 @@ void VREye(int eye, float znear, float zfar) {
     if (!retex[eye].id) retex[eye] = CreateBlankTexture(rtsize, float4_0, retf);
     SwitchToFrameBuffer(mstex[eye], GetScreenSize(), true, mstf, retex[eye]);
     auto proj =
-        FromOpenVR(vrsys->GetProjectionMatrix((vr::EVREye)eye, znear, zfar, vr::API_OpenGL));
+        FromOpenVR(vrsys->GetProjectionMatrix((vr::EVREye)eye, znear, zfar));
     Set3DMode(80, 1, znear, zfar);
     view2clip = proj;  // Override the projection set by Set3DMode
     auto eye2head = FromOpenVR(vrsys->GetEyeToHeadTransform((vr::EVREye)eye));
@@ -199,7 +199,11 @@ void VRFinish() {
     if (!vrsys) return;
     SwitchToFrameBuffer(Texture(), GetScreenSize());
     for (int i = 0; i < 2; i++) {
-        vr::Texture_t vrtex = { (void *)(size_t)retex[i].id, vr::API_OpenGL, vr::ColorSpace_Gamma };
+        vr::Texture_t vrtex = {
+            (void *)(size_t)retex[i].id,
+            vr::TextureType_OpenGL,
+            vr::ColorSpace_Gamma
+        };
         auto err = vr::VRCompositor()->Submit((vr::EVREye)i, &vrtex);
         (void)err;
         assert(!err);
