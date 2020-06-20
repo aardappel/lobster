@@ -97,12 +97,20 @@ struct Parser {
                 auto f = fr->sf->parent;
                 if (!f->anonymous) st.Unregister(f, st.functions);
             } else if (auto d = Is<Define>(def)) {
+                // For now, don't warn when declaring multiple vars and they are mixed const,
+                // since there is no way to use var for one and let for the other.
+                bool warn_all = true;
                 for (auto p : d->sids) {
                     auto id = p.first->id;
                     id->static_constant =
                         id->single_assignment && d->child->IsConstInit();
-                    if (id->single_assignment && !id->constant && d->line.fileidx == 0)
-                        Warn("use \'let\' to declare: " + id->name, d);
+                    if (!id->single_assignment || id->constant || d->line.fileidx != 0)
+                        warn_all = false;
+                }
+                if (warn_all) {
+                    for (auto p : d->sids) {
+                        Warn("use \'let\' to declare: " + p.first->id->name, d);
+                    }
                 }
             } else if (auto r = Is<Return>(def)) {
                 if (r != list->children.back())
