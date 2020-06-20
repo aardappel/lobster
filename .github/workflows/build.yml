@@ -33,6 +33,16 @@ jobs:
       with:
         name: Linux Lobster binary ${{ matrix.cxx }}
         path: bin/lobster
+    - name: test cpp generation
+      run: bin/lobster --cpp tests/unittest.lobster
+    - name: cmake cpp output
+      working-directory: dev
+      run: CXX=${{ matrix.cxx }} cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_TOCPP=ON .
+    - name: build cpp output
+      working-directory: dev
+      run: make -j4
+    - name: test cpp output
+      run: bin/compiled_lobster
 
   build-windows:
     name: Build Windows
