@@ -27,7 +27,7 @@ jobs:
       run: sudo apt-get install mesa-common-dev libgl1-mesa-dev libgl1-mesa-glx
     - name: cmake
       working-directory: dev
-      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Release .
+      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON .
     - name: build
       working-directory: dev
       run: make -j4
@@ -42,7 +42,8 @@ jobs:
       run: bin/lobster --cpp tests/unittest.lobster
     - name: cmake cpp output
       working-directory: dev
-      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_TOCPP=ON .
+      # In addition to C++ out, build this one in Debug and without the engine for extra coverage.
+      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Debug -DLOBSTER_WERROR=ON -DLOBSTER_TOCPP=ON -DLOBSTER_ENGINE=OFF .
     - name: build cpp output
       working-directory: dev
       run: make -j4

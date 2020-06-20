@@ -4,6 +4,7 @@ project(Lobster)
 
 option(LOBSTER_ENGINE "Build a Lobster with the default engine included" ON)
 option(LOBSTER_TOCPP "Build Lobster with the output of --to-cpp" OFF)
+option(LOBSTER_WERROR "Treat warnings as errors" OFF)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/..)
@@ -112,6 +113,9 @@ if(LOBSTER_ENGINE)
 endif()
 
 set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value -Wno-multichar") # -fno-exceptions
+if(LOBSTER_WERROR)
+  set(COMMON_GCC_STYLE "${COMMON_GCC_STYLE} -Werror")
+endif()
 
 if(APPLE)
   set(CMAKE_CXX_FLAGS
