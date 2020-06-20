@@ -237,8 +237,8 @@ int main(int argc, char* argv[]) {
             #if LOBSTER_ENGINE
                 EngineRunByteCode(std::move(vmargs));
             #else
-                VM vm(std::move(vmargs));
-                vm.EvalProgram();
+                lobster::VMAllocator vma(std::move(vmargs));
+                vma.vm->EvalProgram();
             #endif
         }
     }
