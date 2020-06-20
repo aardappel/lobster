@@ -1905,8 +1905,24 @@ struct TypeChecker {
         n->exptype = rt;
         auto nret = rt->NumValues();
         if (nret < reqret) {
-            TypeError(cat("\"", NiceName(*n), "\" returns ", nret, " values, ", reqret, " needed"),
-                      *n);
+            if (!n->Terminal(*this)) {
+                TypeError(cat("\"", NiceName(*n), "\" returns ", nret, " values, ", reqret,
+                              " needed"),
+                          *n);
+            } else {
+                // FIXME: would be better to have a general NORETURN type than patching things up
+                // this way.
+                if (reqret == 1) {
+                    rt = type_any;
+                } else {
+                    auto nt = st.NewTuple(reqret);
+                    for (size_t i = 0; i < reqret; i++) {
+                        if (i < nret) nt->Set(i, rt->Get(i), rt->GetLifetime(i, n->lt));
+                        else nt->Set(i, &*type_any, LT_ANY);
+                    }
+                    rt = nt;
+                }
+            }
         } else if (nret > reqret) {
             for (size_t i = reqret; i < nret; i++) {
                 // This value will be dropped.

@@ -1481,8 +1481,6 @@ void EnumCoercion::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Return::Generate(CodeGen &cg, size_t retval) const {
-    assert(!retval);
-    (void)retval;
     assert(!cg.rettypes.size());
     auto typestackbackup = cg.temptypestack;
     if (cg.temptypestack.size()) {
@@ -1518,6 +1516,8 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
     cg.Emit(IL_RETURN, sf->parent->idx, nretslots);
     cg.temptypestack = typestackbackup;
+    // We can promise to be providing whatever retvals the caller wants.
+    for (size_t i = 0; i < retval; i++) cg.rettypes.push_back({ type_undefined, LT_ANY });
 }
 
 void CoClosure::Generate(CodeGen &cg, size_t retval) const {

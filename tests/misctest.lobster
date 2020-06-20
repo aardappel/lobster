@@ -270,3 +270,14 @@ run_test("misc"):
         lc--
     assert lc == 1
 
+    // Non-local control still works with returning values.
+    def outer():
+        def error():
+            assert false
+            return from outer
+        let a = if abs(1) == 1: 1 else: error()
+        let b = switch a:
+                    case 1: 2
+                    default: error()
+        assert a + b == 3
+    outer()
