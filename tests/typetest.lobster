@@ -77,7 +77,7 @@ run_test("types"):
             b:int = 0
             def f(c:int): return 2 + a + b + c
             def g(c): return c + 2
-            def r(c:int): return if c: r(this, c - 1) else: r(C1 {}, c)
+            def r(c:int): return if c: r(c - 1) else: (C1 {}).r(c)
         let x:C1 = C2 {}
         // Must do dynamic dispatch.
         assert x.f(0) == 2

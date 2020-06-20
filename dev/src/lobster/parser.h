@@ -893,9 +893,11 @@ struct Parser {
         if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type: " + f->name);
             auto call = new GenericCall(lex, idname, nullptr, false, specializers);
-            if (!firstarg) firstarg = SelfArg(f, wse);
             ParseFunArgs(call, firstarg, noparens);
             auto nargs = call->Arity() + extra_args;  // FIXME!
+            if (!firstarg) {
+                nargs += SelfArg(f, wse, nargs, call);
+            }
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
             call->sf = f->overloads.back();
             return call;
@@ -915,24 +917,26 @@ struct Parser {
         }
     }
 
-    IdentRef *SelfArg(const Function *f, const SymbolTable::WithStackElem &wse) {
-        if (f->nargs()) {
-            // If we're in the context of a withtype, calling a function that starts with an
-            // arg of the same type we pass it in automatically.
-            // This is maybe a bit very liberal, should maybe restrict it?
-            for (auto sf : f->overloads) {
-                auto &arg0 = sf->args[0];
-                if (arg0.type->t == V_UUDT &&
-                    st.SuperDistance(arg0.type->spec_udt->udt, wse.udt) >= 0 &&
-                    arg0.withtype) {
-                    if (wse.id && wse.sf->parent != f) {  // Not in recursive calls.
-                        return new IdentRef(lex, wse.id->cursid);
-                    }
-                    break;
+    size_t SelfArg(const Function *f, const SymbolTable::WithStackElem &wse, size_t nargs,
+                      GenericCall *call) {
+        if (nargs >= f->nargs()) return 0;
+        // If we're in the context of a withtype, calling a function that starts with an
+        // arg of the same type we pass it in automatically.
+        // This is maybe a bit very liberal, should maybe restrict it?
+        for (auto sf : f->overloads) {
+            auto &arg0 = sf->args[0];
+            if (arg0.type->t == V_UUDT &&
+                st.SuperDistance(arg0.type->spec_udt->udt, wse.udt) >= 0 &&
+                arg0.withtype) {
+                if (wse.id) {
+                    auto self = new IdentRef(lex, wse.id->cursid);
+                    call->children.insert(call->children.begin(), self);
+                    return 1;
                 }
+                break;
             }
         }
-        return nullptr;
+        return 0;
     }
 
     Function *FindFunctionWithNargs(Function *f, size_t nargs, string_view idname, Node *errnode) {
@@ -951,8 +955,7 @@ struct Parser {
                 swap(ffc->call_namespace, st.current_namespace);
                 if (f) {
                     if (!ffc->has_firstarg) {
-                        auto self = SelfArg(f, ffc->wse);
-                        if (self) ffc->n->children.insert(ffc->n->children.begin(), self);
+                        SelfArg(f, ffc->wse, ffc->n->Arity(), ffc->n);
                     }
                     ffc->n->sf = FindFunctionWithNargs(f,
                         ffc->n->Arity(), ffc->n->name, ffc->n)->overloads.back();

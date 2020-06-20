@@ -19,7 +19,7 @@ run_test("parsereval"):
         args:[node]
 
         def pretty():
-            return "(" + (args.fold(atom): _a + " " + pretty(_e)) + ")"
+            return "(" + (args.fold(atom): _a + " " + _e.pretty()) + ")"
 
         def eval():
             return switch atom:
@@ -33,7 +33,7 @@ run_test("parsereval"):
         def compile():
             return switch atom:
                 case "+", "*":
-                    (args.map(): compile(_)).reduce(): "(" + _a + atom + _e + ")"
+                    (args.map(): _.compile()).reduce(): "(" + _a + atom + _e + ")"
                 default:
                     assert false  // Verified by parser.
 
