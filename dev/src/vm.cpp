@@ -907,13 +907,33 @@ string_view VM::ReverseLookupType(int v) {
     return bcf->udts()->Get((flatbuffers::uoffset_t)v)->name()->string_view();
 }
 
-string_view VM::EnumName(iint val, int enumidx) {
-    auto &vals = *bcf->enums()->Get(enumidx)->vals();
-    // FIXME: can store a bool that says wether this enum is contiguous, so we just index instead.
-    for (auto v : vals)
-        if (v->val() == val)
-            return v->name()->string_view();
-    return {};
+bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
+    auto enum_def = bcf->enums()->Get(enumidx);
+    auto &vals = *enum_def->vals();
+    auto lookup = [&](iint val) -> bool {
+        // FIXME: can store a bool that says wether this enum is contiguous, so we just index instead.
+        for (auto v : vals)
+            if (v->val() == val) {
+                sd += v->name()->string_view();
+                return true;
+            }
+        return false;
+    };
+    if (!enum_def->flags() || !enum_val) return lookup(enum_val);
+    auto start = sd.size();
+    auto upto = 64 - HighZeroBits(enum_val);
+    for (int i = 0; i < upto; i++) {
+        auto bit = enum_val & (1LL << i);
+        if (bit) {
+            if (sd.size() != start) sd += "|";
+            if (!lookup(bit)) {
+                // enum contains unknown bits, so can't display this properly.
+                sd.resize(start);
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 string_view VM::EnumName(int enumidx) {

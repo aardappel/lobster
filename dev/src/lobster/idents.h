@@ -85,6 +85,7 @@ struct EnumVal : Named {
 struct Enum : Named {
     vector<unique_ptr<EnumVal>> vals;
     Type thistype;
+    bool flags = false;
 
     Enum(string_view _name, int _idx) : Named(_name, _idx) {
         thistype = Type { this };
@@ -95,7 +96,8 @@ struct Enum : Named {
         for (auto &v : vals)
             valoffsets.push_back(
                 bytecode::CreateEnumVal(fbb, fbb.CreateString(v->name), v->val));
-        return bytecode::CreateEnum(fbb, fbb.CreateString(name), fbb.CreateVector(valoffsets));
+        return bytecode::CreateEnum(fbb, fbb.CreateString(name), fbb.CreateVector(valoffsets),
+               flags);
     }
 };
 

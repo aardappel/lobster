@@ -862,6 +862,14 @@ inline int PopCount(uint64_t val) {
     #endif
 }
 
+inline int HighZeroBits(uint64_t val) {
+    #ifdef _WIN32
+        return (int)__lzcnt64(val);
+    #else
+        return __builtin_clzll(val);
+    #endif
+}
+
 
 // string & string_view helpers.
 

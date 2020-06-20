@@ -45,6 +45,7 @@ table EnumVal {
 table Enum {
     name:string;
     vals:[EnumVal];
+    flags:bool;
 }
 
 table Ident {

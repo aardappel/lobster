@@ -217,13 +217,7 @@ void RefToString(VM &vm, string &sd, const RefObj *ro, PrintPrefs &pp) {
 }
 
 void Value::ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const {
-    if (ti.t == V_INT && ti.enumidx >= 0) {
-        auto name = vm.EnumName(ival(), ti.enumidx);
-        if (!name.empty()) {
-            sd += name;
-            return;
-        }
-    }
+    if (ti.t == V_INT && ti.enumidx >= 0 && vm.EnumName(sd, ival(), ti.enumidx)) return;
     ToStringBase(vm, sd, ti.t, pp);
 }
 

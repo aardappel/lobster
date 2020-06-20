@@ -374,13 +374,17 @@ inline flatbuffers::Offset<EnumVal> CreateEnumValDirect(
 struct Enum FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_NAME = 4,
-    VT_VALS = 6
+    VT_VALS = 6,
+    VT_FLAGS = 8
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
   const flatbuffers::Vector<flatbuffers::Offset<EnumVal>> *vals() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<EnumVal>> *>(VT_VALS);
+  }
+  bool flags() const {
+    return GetField<uint8_t>(VT_FLAGS, 0) != 0;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -389,6 +393,7 @@ struct Enum FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_VALS) &&
            verifier.VerifyVector(vals()) &&
            verifier.VerifyVectorOfTables(vals()) &&
+           VerifyField<uint8_t>(verifier, VT_FLAGS) &&
            verifier.EndTable();
   }
 };
@@ -401,6 +406,9 @@ struct EnumBuilder {
   }
   void add_vals(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<EnumVal>>> vals) {
     fbb_.AddOffset(Enum::VT_VALS, vals);
+  }
+  void add_flags(bool flags) {
+    fbb_.AddElement<uint8_t>(Enum::VT_FLAGS, static_cast<uint8_t>(flags), 0);
   }
   explicit EnumBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -417,21 +425,25 @@ struct EnumBuilder {
 inline flatbuffers::Offset<Enum> CreateEnum(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<EnumVal>>> vals = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<EnumVal>>> vals = 0,
+    bool flags = false) {
   EnumBuilder builder_(_fbb);
   builder_.add_vals(vals);
   builder_.add_name(name);
+  builder_.add_flags(flags);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Enum> CreateEnumDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    const std::vector<flatbuffers::Offset<EnumVal>> *vals = nullptr) {
+    const std::vector<flatbuffers::Offset<EnumVal>> *vals = nullptr,
+    bool flags = false) {
   return bytecode::CreateEnum(
       _fbb,
       name ? _fbb.CreateString(name) : 0,
-      vals ? _fbb.CreateVector<flatbuffers::Offset<EnumVal>>(*vals) : 0);
+      vals ? _fbb.CreateVector<flatbuffers::Offset<EnumVal>>(*vals) : 0,
+      flags);
 }
 
 struct Ident FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

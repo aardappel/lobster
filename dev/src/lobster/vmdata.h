@@ -899,7 +899,7 @@ struct VM : VMArgs {
     }
     void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
 
-    string_view EnumName(iint val, int enumidx);
+    bool EnumName(string &sd, iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);
 };

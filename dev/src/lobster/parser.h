@@ -182,6 +182,7 @@ struct Parser {
                 auto enumname = st.MaybeNameSpace(ExpectId(), !isprivate);
                 auto def = st.EnumLookup(enumname, lex, true);
                 def->isprivate = isprivate;
+                def->flags = !incremental;
                 Expect(T_COLON);
                 Expect(T_INDENT);
                 for (;;) {
