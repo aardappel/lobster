@@ -16,13 +16,18 @@ jobs:
     strategy:
       matrix:
         cxx: [g++-9, clang++-9]
+        include:
+        - cxx: g++-9
+          cc: gcc-9
+        - cxx: clang++-9
+          cc: clang-9
     steps:
     - uses: actions/checkout@v1
     - name: install opengl
       run: sudo apt-get install mesa-common-dev libgl1-mesa-dev libgl1-mesa-glx
     - name: cmake
       working-directory: dev
-      run: CXX=${{ matrix.cxx }} cmake -DCMAKE_BUILD_TYPE=Release .
+      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Release .
     - name: build
       working-directory: dev
       run: make -j4
@@ -37,7 +42,7 @@ jobs:
       run: bin/lobster --cpp tests/unittest.lobster
     - name: cmake cpp output
       working-directory: dev
-      run: CXX=${{ matrix.cxx }} cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_TOCPP=ON .
+      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_TOCPP=ON .
     - name: build cpp output
       working-directory: dev
       run: make -j4
