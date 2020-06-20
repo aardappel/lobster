@@ -436,29 +436,28 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
     TYPE_ASSERT(a.type == V_FLOAT && b.type == V_FLOAT); \
     TYPEOP(op, extras, a.fval(), b.fval(), res)
 
-#define _VOP(op, extras, V_T, field, withscalar, geta) { \
-    if (withscalar) { \
-        auto b = Pop(sp); \
+#define _VOPS(op, extras, V_T, field, geta) { \
+    auto b = Pop(sp); \
+    VMTYPEEQ(b, V_T) \
+    auto veca = geta; \
+    for (int j = 0; j < len; j++) { \
+        auto &a = veca[j]; \
+        VMTYPEEQ(a, V_T) \
+        auto bv = b.field(); \
+        TYPEOP(op, extras, a.field(), bv, a) \
+    } \
+}
+#define _VOPV(op, extras, V_T, field, geta) { \
+    PopN(sp, len); \
+    auto vecb = TopPtr(sp); \
+    auto veca = geta; \
+    for (int j = 0; j < len; j++) { \
+        auto b = vecb[j]; \
         VMTYPEEQ(b, V_T) \
-        auto veca = geta; \
-        for (int j = 0; j < len; j++) { \
-            auto &a = veca[j]; \
-            VMTYPEEQ(a, V_T) \
-            auto bv = b.field(); \
-            TYPEOP(op, extras, a.field(), bv, a) \
-        } \
-    } else { \
-        PopN(sp, len); \
-        auto vecb = TopPtr(sp); \
-        auto veca = geta; \
-        for (int j = 0; j < len; j++) { \
-            auto b = vecb[j]; \
-            VMTYPEEQ(b, V_T) \
-            auto &a = veca[j]; \
-            VMTYPEEQ(a, V_T) \
-            auto bv = b.field(); \
-            TYPEOP(op, extras, a.field(), bv, a) \
-        } \
+        auto &a = veca[j]; \
+        VMTYPEEQ(a, V_T) \
+        auto bv = b.field(); \
+        TYPEOP(op, extras, a.field(), bv, a) \
     } \
 }
 #define STCOMPEN(op, init, andor) { \
@@ -474,24 +473,25 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
     return sp; \
 }
 
-#define _IVOP(op, extras, withscalar, geta) _VOP(op, extras, V_INT, ival, withscalar, geta)
-#define _FVOP(op, extras, withscalar, geta) _VOP(op, extras, V_FLOAT, fval, withscalar, geta)
+#define _IVOPS(op, extras, geta) _VOPS(op, extras, V_INT,   ival, geta)
+#define _IVOPV(op, extras, geta) _VOPV(op, extras, V_INT,   ival, geta)
+#define _FVOPS(op, extras, geta) _VOPS(op, extras, V_FLOAT, fval, geta)
+#define _FVOPV(op, extras, geta) _VOPV(op, extras, V_FLOAT, fval, geta)
 
 #define _SCAT() Value res = vm.NewString(a.sval()->strv(), b.sval()->strv())
 
-#define ACOMPEN(op)        { GETARGS(); Value res = a.any() op b.any();  Push(sp, res); return sp; }
-#define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                Push(sp, res); return sp; }
-#define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                Push(sp, res); return sp; }
+#define ACOMPEN(op)     { GETARGS(); Value res = a.any() op b.any(); Push(sp, res); return sp; }
+#define IOP(op, extras) { GETARGS(); _IOP(op, extras);               Push(sp, res); return sp; }
+#define FOP(op, extras) { GETARGS(); _FOP(op, extras);               Push(sp, res); return sp; }
+#define LOP(op)         { GETARGS(); auto res = a.ip() op b.ip();    Push(sp, res); return sp; }
 
-#define LOP(op)            { GETARGS(); auto res = a.ip() op b.ip();     Push(sp, res); return sp; }
+#define IVVOP(op, extras) { _IVOPV(op, extras, TopPtr(sp) - len); return sp; }
+#define FVVOP(op, extras) { _FVOPV(op, extras, TopPtr(sp) - len); return sp; }
+#define IVSOP(op, extras) { _IVOPS(op, extras, TopPtr(sp) - len); return sp; }
+#define FVSOP(op, extras) { _FVOPS(op, extras, TopPtr(sp) - len); return sp; }
 
-#define IVVOP(op, extras)  { _IVOP(op, extras, false, TopPtr(sp) - len); return sp; }
-#define FVVOP(op, extras)  { _FVOP(op, extras, false, TopPtr(sp) - len); return sp; }
-#define IVSOP(op, extras)  { _IVOP(op, extras, true, TopPtr(sp) - len);  return sp; }
-#define FVSOP(op, extras)  { _FVOP(op, extras, true, TopPtr(sp) - len);  return sp; }
-
-#define SOP(op)            { GETARGS(); Value res = *a.sval() op *b.sval(); Push(sp, res); return sp; }
-#define SCAT()             { GETARGS(); _SCAT();                            Push(sp, res); return sp; }
+#define SOP(op) { GETARGS(); Value res = *a.sval() op *b.sval(); Push(sp, res); return sp; }
+#define SCAT()  { GETARGS(); _SCAT();                            Push(sp, res); return sp; }
 
 // +  += I F Vif S
 // -  -= I F Vif
@@ -850,45 +850,45 @@ VM_INLINE StackPtr U_ABORT(VM &vm, StackPtr sp) {
 #define LVALCASER(N, B) VM_INLINE void LV_##N(VM &vm, StackPtr &sp, Value &fa, int len) { B; }
 #define LVALCASESTR(N, B, B2) VM_INLINE void LV_##N(VM &vm, StackPtr &sp, Value &a) { Value b = Pop(sp); B; a.LTDECRTNIL(vm); B2; }
 
-LVALCASER(IVVADD , _IVOP(+, 0, false, &fa))
-LVALCASER(IVVADDR, _IVOP(+, 0, false, &fa))
-LVALCASER(IVVSUB , _IVOP(-, 0, false, &fa))
-LVALCASER(IVVSUBR, _IVOP(-, 0, false, &fa))
-LVALCASER(IVVMUL , _IVOP(*, 0, false, &fa))
-LVALCASER(IVVMULR, _IVOP(*, 0, false, &fa))
-LVALCASER(IVVDIV , _IVOP(/, 1, false, &fa))
-LVALCASER(IVVDIVR, _IVOP(/, 1, false, &fa))
+LVALCASER(IVVADD , _IVOPV(+, 0, &fa))
+LVALCASER(IVVADDR, _IVOPV(+, 0, &fa))
+LVALCASER(IVVSUB , _IVOPV(-, 0, &fa))
+LVALCASER(IVVSUBR, _IVOPV(-, 0, &fa))
+LVALCASER(IVVMUL , _IVOPV(*, 0, &fa))
+LVALCASER(IVVMULR, _IVOPV(*, 0, &fa))
+LVALCASER(IVVDIV , _IVOPV(/, 1, &fa))
+LVALCASER(IVVDIVR, _IVOPV(/, 1, &fa))
 LVALCASER(IVVMOD,  VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 LVALCASER(IVVMODR, VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 
-LVALCASER(FVVADD , _FVOP(+, 0, false, &fa))
-LVALCASER(FVVADDR, _FVOP(+, 0, false, &fa))
-LVALCASER(FVVSUB , _FVOP(-, 0, false, &fa))
-LVALCASER(FVVSUBR, _FVOP(-, 0, false, &fa))
-LVALCASER(FVVMUL , _FVOP(*, 0, false, &fa))
-LVALCASER(FVVMULR, _FVOP(*, 0, false, &fa))
-LVALCASER(FVVDIV , _FVOP(/, 1, false, &fa))
-LVALCASER(FVVDIVR, _FVOP(/, 1, false, &fa))
+LVALCASER(FVVADD , _FVOPV(+, 0, &fa))
+LVALCASER(FVVADDR, _FVOPV(+, 0, &fa))
+LVALCASER(FVVSUB , _FVOPV(-, 0, &fa))
+LVALCASER(FVVSUBR, _FVOPV(-, 0, &fa))
+LVALCASER(FVVMUL , _FVOPV(*, 0, &fa))
+LVALCASER(FVVMULR, _FVOPV(*, 0, &fa))
+LVALCASER(FVVDIV , _FVOPV(/, 1, &fa))
+LVALCASER(FVVDIVR, _FVOPV(/, 1, &fa))
 
-LVALCASER(IVSADD , _IVOP(+, 0, true,  &fa))
-LVALCASER(IVSADDR, _IVOP(+, 0, true,  &fa))
-LVALCASER(IVSSUB , _IVOP(-, 0, true,  &fa))
-LVALCASER(IVSSUBR, _IVOP(-, 0, true,  &fa))
-LVALCASER(IVSMUL , _IVOP(*, 0, true,  &fa))
-LVALCASER(IVSMULR, _IVOP(*, 0, true,  &fa))
-LVALCASER(IVSDIV , _IVOP(/, 1, true,  &fa))
-LVALCASER(IVSDIVR, _IVOP(/, 1, true,  &fa))
+LVALCASER(IVSADD , _IVOPS(+, 0, &fa))
+LVALCASER(IVSADDR, _IVOPS(+, 0, &fa))
+LVALCASER(IVSSUB , _IVOPS(-, 0, &fa))
+LVALCASER(IVSSUBR, _IVOPS(-, 0, &fa))
+LVALCASER(IVSMUL , _IVOPS(*, 0, &fa))
+LVALCASER(IVSMULR, _IVOPS(*, 0, &fa))
+LVALCASER(IVSDIV , _IVOPS(/, 1, &fa))
+LVALCASER(IVSDIVR, _IVOPS(/, 1, &fa))
 LVALCASER(IVSMOD , VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 LVALCASER(IVSMODR, VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 
-LVALCASER(FVSADD , _FVOP(+, 0, true,  &fa))
-LVALCASER(FVSADDR, _FVOP(+, 0, true,  &fa))
-LVALCASER(FVSSUB , _FVOP(-, 0, true,  &fa))
-LVALCASER(FVSSUBR, _FVOP(-, 0, true,  &fa))
-LVALCASER(FVSMUL , _FVOP(*, 0, true,  &fa))
-LVALCASER(FVSMULR, _FVOP(*, 0, true,  &fa))
-LVALCASER(FVSDIV , _FVOP(/, 1, true,  &fa))
-LVALCASER(FVSDIVR, _FVOP(/, 1, true,  &fa))
+LVALCASER(FVSADD , _FVOPS(+, 0, &fa))
+LVALCASER(FVSADDR, _FVOPS(+, 0, &fa))
+LVALCASER(FVSSUB , _FVOPS(-, 0, &fa))
+LVALCASER(FVSSUBR, _FVOPS(-, 0, &fa))
+LVALCASER(FVSMUL , _FVOPS(*, 0, &fa))
+LVALCASER(FVSMULR, _FVOPS(*, 0, &fa))
+LVALCASER(FVSDIV , _FVOPS(/, 1, &fa))
+LVALCASER(FVSDIVR, _FVOPS(/, 1, &fa))
 
 LVALCASES(IADD   , _IOP(+, 0); a = res;          )
 LVALCASES(IADDR  , _IOP(+, 0); a = res; Push(sp, res))
