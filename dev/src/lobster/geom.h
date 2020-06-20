@@ -437,23 +437,21 @@ template<typename T, int C, int R> class matrix {
     matrix() {}
 
     explicit matrix(T e) {
-        /* this used to be the following code that triggered a codegen bug in VS2017 (version 15.3)
-           release mode. Fixed in 15.4. Can reinstate in the future once 15.3 is unlikely in use anymore?
-            for (int x = 0; x < C; x++)
-                for (int y = 0; y < R; y++)
-                    m[x].c[y] = e * (T)(x == y);
-        */
-        memset(this, 0, sizeof(*this));
-        for (int x = 0; x < std::min(C, R); x++) m[x].c[x] = e;
+        for (int x = 0; x < C; x++)
+            for (int y = 0; y < R; y++)
+                m[x].c[y] = e * (T)(x == y);
     }
 
     explicit matrix(const V &v) {
-        memset(this, 0, sizeof(*this));
-        for (int x = 0; x < std::min(C, R); x++) m[x].c[x] = v[x];
+        for (int x = 0; x < C; x++)
+            for (int y = 0; y < R; y++)
+                m[x].c[y] = x == y ? v[x] : 0;
     }
 
     explicit matrix(const T *mat_data) {
-        memcpy(this, mat_data, sizeof(T) * R * C);
+        for (int x = 0; x < C; x++)
+            for (int y = 0; y < R; y++)
+                m[x].c[y] = *mat_data++;
     }
 
     matrix(V x, V y, V z, V w) { assert(C == 4); m[0] = x; m[1] = y; m[2] = z; m[3] = w; }
