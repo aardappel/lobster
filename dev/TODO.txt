@@ -1,14 +1,7 @@
-- print seconds_elapsed - 1
+- should we replace coroutines with something simpler like: https://github.com/aardappel/lobster/issues/100
+   - memset in VM alloc seems to mask a problem in coroutine cleanup (see unittest).
 
-- why are we not inlining named functions?
-  -> in speedtest, produces a return whose retval is needed?
-
-- the compiled C++ code under VS is really dumb: keeps loading things over the VM pointer.
-  for this to inline nicely, we have to:
-  a) make sp a pointer, not an index,
-  b) pass sp and the var array to every VM function so it can sit in a register.
-
-
+- it's possible to bypass variable initialization with forward calls which will crash.
 
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
@@ -41,6 +34,10 @@
 - remove restrictions or make clearer errors:
   - call on function value must be single var, not member
   - cannot derive function value from named function.
+
+- create xy { "a", "b" } without explicit string specialization gives:
+  error: "constructor" (1st argument) requires type "T", got: "string"
+  should probably ask for an explicit specialization instead.
 
 - General order of typechecking is:
   * child TT
@@ -235,10 +232,20 @@
   - need to see what consequences this has for making the lifetimes of variables longer.
 
 - speed plan:
-  - should really try the "inline all" feature above, especially since the current inlining
-    is not great, and any further optimisations depend on it. Though can first try to more
-    maximally inline traditionally also. Then work on doing better high level optimisation
-    of the remainder.
+  - could try the "inline all" feature above.. though traditional inlining is now better,
+    could first see if there's any unreasonable non-inlined functions left.
+    Important since any further optimisations depend on it.
+    Then work on doing better high level optimisation of the remainder.
+  - For C++ mode speed, probably #1 thing has to be to first get rid of the trampoline.
+    This can maybe be done if we explicitly emit RETURN_IF ops after function calls that
+    can have a return pass thru them, so we can make unwinding entirely under control of
+    the language. Ideally the amount of such ops should be few, since after inlining most
+    returns will be local.
+    Once we have this, we can further unravel function calling in favor of C++ mode.
+    - actually, on some benchmarks it spends as little as 3% in the tramoline. Though, getting
+      rid of it will make other code "flatter" allowing more intra-function optimisation.
+  - some of the vector accesors like the various At functions are not being inlined?
+  - need to make very common builtins also inlinable, like push() etc.
   - then for further speed, if the interpreter loop overhead on VC is only 15% or so, then
     doubling instructions is only a further 15% cost, which can be offsets by the instructions
     being more specialized. Then C++ and Wasm modes can get much faster with inling at
@@ -248,15 +255,7 @@
     - This may need to first change how we deal with variables on the stack in the first place.
 - the compiled C++ code under VS is really dumb: keeps loading things over the VM pointer.
   for this to inline nicely, we have to pass important state as arguments:
-  - "vars" would be easiest since it is never modified, but initial tests showed a tiny slowdown
-    when passing just this var, since it is only used by very few ops (even though PUSHVAR is very
-    frequent)
-  - "sp" would be even more fruitful, but simple passing requires it to be passed as &, and
-    that causes VS to load and store it to memory on every access, just like when it was loaded
-    over "vm", and is not actually any faster either.
-    Passing "sp" as non-ref does appear to improve code significantly (often half size in x64 ins),
-    but this requires that ALL functions correctly pass it on and return it as well, which is very
-    significant refactoring.
+  - NOTE: sp is now an arg, vars is now inline in VM, taking care of the biggest gains.
   - The second biggest gains after "sp" would come from "ip", but again there would need to be
     passed as return value.
     Actually, not sure this is a gain at all, since C++ compiled code doesn't access it on every
@@ -267,6 +266,24 @@
   - This is probably better to re-evaluate after making function calling an local control flow
     not use the trampoline, which will make a lot of these instances of passing on state simpler
     and more effective.
+- speed test:
+  - 10% calls (3 in, 7 out)
+  - 5% alloc
+  - 2% decdeletenow
+  - 2% refequal
+  - 2% new ??
+  - 2% trampoline
+  - 2% in_range
+  - 2% sqrt
+  - 1% push
+  - about 60% in blocks.
+- floodfill:
+  - 13.5% function calling (exit more expensive than entry)
+  - 6% push
+  Almost all the rest in block functions!
+
+- Replacing the use for Terminal() in the type checker by a NORETURN type would simplify the
+  code and probably allow for a larger variety of code structures utilizing this.
 
 - Good errors are increasingly an important programming language feature, should at some point
   invest in an overhaul. See Rust and Elm in particular.
@@ -344,10 +361,6 @@
   - Make reading values more robust.
     - If VM is in an "error" state, ignore any bad values and just return empty defaults.
       - this has to sadly be done at every callsite since Error is not expected to return.
-
-- --to-cpp mode: VS /LTCG is very weak in terms on inlining, doesn't appear to inline any of
-  the VM ops, gets only 30% or so speedup vs interpreted (compared to LLVM LTO getting 2.5x).
-  Even including vm.cpp in the compiled code and __forceinline does nothing.
 
 - think about special casing parsing of if/while/for, that way some crazy syntax features can be
   reduced
@@ -569,6 +582,13 @@
   maybe also add default args while we're at it.
 
 - Improve threads.
+  - Consider spawning the workers from their own source code?
+    - benefit: cleaner separation, simpler code, simpler to forbid stdlib access.
+    - that would not work from a bytecode-only situation, or would require compiling
+      a second .pak for workers.
+      Or, simply a second bytecode in a .pak
+    - would not guarantee same types sent across so needs more complex serialization.
+      - flexbuffers?
   - Would be good to reduce globals, and/or not make builtins that rely on globals available
     to worker threads.
   - Allow any data to be passed between threads.
@@ -729,32 +749,6 @@
     - with the switch based version could do direct jumps, but switch trashes the branch cache?
     - experiment with real gotos?
   - reduce use of ElemType.
-- things that would make VM faster:
-  - biggest cost, in this order:
-    - interpreter dispatch.
-    - PUSHVAR
-      - worth some special purpose ops to combine with PUSHFLD etc?
-      - measure most frequent combinations of 2 ops.
-        instruction PUSHVAR -> PUSHVAR (386796902x)
-        instruction VAR_WRITE -> PUSHVAR (304214388x)
-        instruction PUSHVAR -> PUSHFLD (109119516x)
-        instruction PUSHVAR -> VPUSHIDXI (108954020x)
-        instruction PUSHVAR -> PUSHINT (89963524x)
-        instruction PUSHVARV -> PUSHINT (88875915x)
-        instruction JUMPFAIL -> VFOR (83576250x)
-        instruction VFOR -> VFORELEM (81116180x)
-        instruction JUMPFAIL -> PUSHVAR (63268560x)
-        instruction IFORELEM -> VAR_WRITE (61820330x)
-        instruction IFOR -> IFORELEM (61820330x)
-        instruction PUSHINT -> I2F (59103135x)
-        instruction PUSHVAR -> VAR_WRITE (58856210x)
-        instruction VFORELEM -> VAR_WRITE (58364060x)
-        instruction PUSHFLD -> PUSHVAR (52272552x)
-        instruction FORLOOPI -> VAR_WRITE (51754800x)
-        instruction IEQ -> JUMPFAIL (48308917x)
-        instruction PUSHINT -> BCALLRETV (46829849x)
-        instruction PUSHVAR -> IEQ (45404280x)
-    - function calling.
 
 - The way WASM deals with signed/unsigned is correct, everything signed, with special ops
   (not types) for doing unsigned semantics on signed bits.
@@ -986,8 +980,6 @@
 - make resume into seperate op.
 
 - add options to either show more extensive stacktrace dump to either stdout or file.
-
-- break statement
 
 - Typechecker can actually blow the 1MB Windows stack space on complex programs.
   Set to 16MB for the moment.
@@ -2011,7 +2003,7 @@ SPEED TESTS
 secs measured in release win32 on speedtest.lobster, all other figures in debug.
 
 The first 9 numbers were run on a 2600K, but have numbers by 1.77x/1.43x adjusted for it
-being slower than the 8700K being used now, such that all numbers are comparable.
+being slower than the 8700K being used after that, such that all numbers are comparable.
 From (1) on they are on an actual 8700K, and also bumped iterations 10x.
 At (2) bumped iterations 20% because a bug in GOAP was fixed that made it faster.
 At (3) completely reworked benchmarks to add a lot more variety, but balanced to
@@ -2073,6 +2065,8 @@ C++64-MSVC:           : secs  6.2, pass stack pointer around explicitly.
 C++64-MSVC:           : secs  5.7, put sp in a non-ref var.
 C++64-MSVC:           : secs  5.4, vars inline in VM object.
 C++64-MSVC:           : secs  5.0, specialized array indexing for width == 1
+C++64-Clang10:        : secs  4.9
+C++64-Clang10-LTO     : secs  4.6
 
 compiletime speed:
 
