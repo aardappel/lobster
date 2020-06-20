@@ -128,7 +128,7 @@ struct CodeGen  {
                 tt.push_back((type_elem_t)type->udt->numslots);
                 tt.push_back((type_elem_t)type->udt->vtable_start);
                 PushFields(type->udt, tt);
-                assert(tt.size() == ttsize);
+                assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + type->udt->typeinfo);
                 return type->udt->typeinfo;
             }
@@ -930,7 +930,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
         // We have to check for reftype again, since typechecker allowed V_VAR values that may
         // have become scalars by now.
         auto i = (int)(retval - fi - 1);
-        assert(i < cg.temptypestack.size());
+        assert(i < ssize(cg.temptypestack));
         auto type = cg.temptypestack[cg.temptypestack.size() - 1 - fi].type;
         if (IsRefNil(child->exptype->Get(i)->t)) {
             if (incref & (1LL << i)) {

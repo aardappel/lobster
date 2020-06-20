@@ -15,7 +15,7 @@
 // Mixing of signed and unsigned is an endless source of problems in C++.
 // So, try to make as much as possible signed.
 // Also, make types 64-bit as much as possible, to reduce on casts that are
-// only necessary for (rapidly dwindling) 64-bit builds.
+// only necessary for (rapidly dwindling) 32-bit builds.
 // So, code should use this type as much as possible for locals/args,
 // and use the more verbose uint32_t etc for when unsigned and/or 32-bit is
 // necessary.
