@@ -2680,6 +2680,8 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         if (!cnf)
             tc.NatCallError("arguments match no overloads of ", nf, *this);
     }
+    if (children.size() != nf->args.size())
+        tc.NatCallError("wrong number of many arguments for ", nf, *this);
     vector<TypeRef> argtypes(children.size());
     for (auto [i, c] : enumerate(children)) {
         auto &arg = nf->args[i];
