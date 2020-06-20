@@ -394,9 +394,14 @@ VMArgs CompiledInit(int argc, char *argv[], const void *entry_point, const void 
     return vmargs;
 }
 
-extern "C" int ConsoleRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
-                                          const void *bytecodefb, size_t static_size,
-                                          const lobster::block_base_t *vtables) {
+
+#if LOBSTER_ENGINE
+int UnusedRunCompiledCodeMain
+#else
+extern "C" int RunCompiledCodeMain
+#endif
+(int argc, char *argv[], const void *entry_point, const void *bytecodefb, size_t static_size,
+ const lobster::block_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif

@@ -19,9 +19,6 @@
 
 extern void RegisterCoreEngineBuiltins(lobster::NativeRegistry &natreg);
 extern void EngineRunByteCode(lobster::VMArgs &&vmargs);
-extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
-                                         const void *bytecodefb, size_t static_size,
-                                         const lobster::block_base_t *vtables);
 extern void EngineSuspendIfNeeded(lobster::StackPtr sp, lobster::VM &vm);
 extern void EngineExit(int code);
 

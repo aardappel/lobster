@@ -34,7 +34,7 @@ extern VMArgs CompiledInit(int argc, char *argv[], const void *entry_point, cons
                            size_t static_size, const lobster::block_base_t *vtables, FileLoader loader,
                            NativeRegistry &nfr);
 
-extern "C" int ConsoleRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
+extern "C" int RunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
                                           const void *bytecodefb, size_t static_size,
                                           const lobster::block_base_t *vtables);
 

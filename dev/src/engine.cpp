@@ -25,6 +25,8 @@
 
 #include "lobster/engine.h"
 
+#include "lobster/compiler.h"
+
 using namespace lobster;
 
 void RegisterCoreEngineBuiltins(NativeRegistry &nfr) {
@@ -127,9 +129,9 @@ void EngineRunByteCode(VMArgs &&vmargs) {
     #endif
 }
 
-extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
-                                         const void *bytecodefb, size_t static_size,
-                                         const lobster::block_base_t *vtables) {
+extern "C" int RunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
+                                   const void *bytecodefb, size_t static_size,
+                                   const lobster::block_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif

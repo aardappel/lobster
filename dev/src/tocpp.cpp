@@ -32,11 +32,7 @@ class CPPGenerator : public NativeGenerator {
             "#include \"lobster/stdafx.h\"\n"
             "#include \"lobster/vmdata.h\"\n"
             "#include \"lobster/vmops.h\"\n"
-            #if LOBSTER_ENGINE
-                "#include \"lobster/engine.h\"\n"
-            #else
-                "#include \"lobster/compiler.h\"\n"
-            #endif
+            "#include \"lobster/compiler.h\"\n"
             "\n"
             "#ifndef VM_COMPILED_CODE_MODE\n"
             "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
@@ -188,13 +184,7 @@ class CPPGenerator : public NativeGenerator {
         }
         sd += "\n};\n\n";
         sd += "int main(int argc, char *argv[]){\n";
-        sd += "    return ";
-        #if LOBSTER_ENGINE
-            sd += "EngineRunCompiledCodeMain";
-        #else
-            sd += "ConsoleRunCompiledCodeMain";
-        #endif
-        sd += "(argc, argv, (void *)";
+        sd += "    return RunCompiledCodeMain(argc, argv, (void *)";
         append(sd, "block", start_id);
         append(sd, ", bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
     }

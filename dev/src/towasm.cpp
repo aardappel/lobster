@@ -91,7 +91,7 @@ class WASMGenerator : public NativeGenerator {
         #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_II);
             ILJUMPNAMES
         #undef F
-        import_erccm = bw.AddImportLinkFunction("EngineRunCompiledCodeMain", TI_I_IIIIII);
+        import_erccm = bw.AddImportLinkFunction("RunCompiledCodeMain", TI_I_IIIIII);
         import_snct = bw.AddImportLinkFunction("CVM_SetNextCallTarget", TI_V_II);
         import_gnct = bw.AddImportLinkFunction("CVM_GetNextCallTarget", TI_I_I);
         import_drop = bw.AddImportLinkFunction("CVM_Drop", TI_I_I);
