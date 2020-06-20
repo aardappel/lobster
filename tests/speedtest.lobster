@@ -18,7 +18,7 @@ print "VM MODE: " + (if vm_compiled_mode(): "compiled" else: "interpreted")
 
 // Balance these numbers to get a good blend of what kind of code we're optimizing for.
 
-number_of_runs = 10000
+number_of_runs = 8800
 import structtest
 
 number_of_runs = 3900

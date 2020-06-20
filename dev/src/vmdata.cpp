@@ -112,9 +112,17 @@ void LVector::Remove(StackPtr &sp, VM &vm, iint i, iint n, iint decfrom, bool st
 
 void LVector::AtVW(StackPtr &sp, iint i) const {
     auto src = AtSt(i);
-    // TODO: split this up for the width==1 case?
     tsnz_memcpy(TopPtr(sp), src, width);
     PushN(sp, (int)width);
+}
+
+void LVector::AtVWInc(StackPtr &sp, iint i) const {
+    auto src = AtSt(i);
+    for (int j = 0; j < width; j++) {
+        auto e = src[j];
+        e.LTINCRTNIL();
+        lobster::Push(sp, e);
+    }
 }
 
 void LVector::AtVWSub(StackPtr &sp, iint i, int w, int off) const {

@@ -585,6 +585,7 @@ struct LVector : RefObj {
     }
 
     void AtVW(StackPtr &sp, iint i) const;
+    void AtVWInc(StackPtr &sp, iint i) const;
     void AtVWSub(StackPtr &sp, iint i, int w, int off) const;
 
     void Append(VM &vm, LVector *from, iint start, iint amount);

@@ -315,10 +315,12 @@ VM_INLINE StackPtr U_IFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).
 VM_INLINE StackPtr U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval()->len); return sp; }
 VM_INLINE StackPtr U_SFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).sval()->len); return sp; }
 
-VM_INLINE StackPtr U_IFORELEM(VM &, StackPtr sp)    { FORELEM(iter.ival()); (void)iter; Push(sp, i); return sp; }
-VM_INLINE StackPtr U_VFORELEM(VM &, StackPtr sp)    { FORELEM(iter.vval()->len); iter.vval()->AtVW(sp, i); return sp; }
-VM_INLINE StackPtr U_VFORELEMREF(VM &, StackPtr sp) { FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); Push(sp, el); return sp; }
-VM_INLINE StackPtr U_SFORELEM(VM &, StackPtr sp)    { FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i])); return sp; }
+VM_INLINE StackPtr U_IFORELEM(VM &, StackPtr sp)      { FORELEM(iter.ival()); (void)iter; Push(sp, i); return sp; }
+VM_INLINE StackPtr U_SFORELEM(VM &, StackPtr sp)      { FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i])); return sp; }
+VM_INLINE StackPtr U_VFORELEM(VM &, StackPtr sp)      { FORELEM(iter.vval()->len); Push(sp, iter.vval()->At(i)); return sp; }
+VM_INLINE StackPtr U_VFORELEM2S(VM &, StackPtr sp)    { FORELEM(iter.vval()->len); iter.vval()->AtVW(sp, i); return sp; }
+VM_INLINE StackPtr U_VFORELEMREF(VM &, StackPtr sp)   { FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); Push(sp, el); return sp; }
+VM_INLINE StackPtr U_VFORELEMREF2S(VM &, StackPtr sp) { FORELEM(iter.vval()->len); iter.vval()->AtVWInc(sp, i); return sp; }
 
 VM_INLINE StackPtr U_FORLOOPI(VM &, StackPtr sp) {
     auto &i = TopM(sp, 1);  // This relies on for being inlined, otherwise it would be 2.

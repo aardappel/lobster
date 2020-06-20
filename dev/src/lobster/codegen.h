@@ -1282,10 +1282,13 @@ void For::Generate(CodeGen &cg, size_t retval) const {
 void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
     auto typelt = cg.temptypestack.back();
     switch (typelt.type->t) {
-        case V_INT:       cg.Emit(IL_IFORELEM); break;
-        case V_STRING:    cg.Emit(IL_SFORELEM); break;
-        case V_VECTOR:    cg.Emit(IsRefNil(typelt.type->sub->t) ? IL_VFORELEMREF : IL_VFORELEM); break;
-        default:          assert(false);
+        case V_INT:    cg.Emit(IL_IFORELEM); break;
+        case V_STRING: cg.Emit(IL_SFORELEM); break;
+        case V_VECTOR: cg.Emit(IsRefNil(typelt.type->sub->t)
+            ? (IsStruct(typelt.type->sub->t) ? IL_VFORELEMREF2S : IL_VFORELEMREF)
+            : (IsStruct(typelt.type->sub->t) ? IL_VFORELEM2S : IL_VFORELEM));
+            break;
+        default:       assert(false);
     }
 }
 

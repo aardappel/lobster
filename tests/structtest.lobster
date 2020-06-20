@@ -68,6 +68,9 @@ run_test("struct"):
         assert xy { 1, 2 } == switch manhattan(xy { 1, 1 }):
                                 case 2: xy { 1, 2 }
                                 default: xy { 3, 4 }
+        for([ xy { 1, 2 }, xy { 0, 3 } ]) st: assert st.x + st.y == 3
+        struct xy_s = xy<string>
+        for([ xy { "a", "bb" }, xy { "ab", "b" } ]) st: assert st.x + st.y == "abb"
 
     // Function calls.
     do():
