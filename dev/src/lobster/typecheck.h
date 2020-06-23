@@ -1170,10 +1170,14 @@ struct TypeChecker {
                     // all be compatible if the root is.
                     auto sf = udt->dispatch[i].sf;
                     LOG_DEBUG("re-using dyndispatch: ", Signature(*sf));
-                    assert(SpecializationIsCompatible(*sf, reqret));
-                    for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
-                    ReplayReturns(sf, call_args);
-                    ReplayAssigns(sf);
+                    if (sf->typechecked) {
+                        // If sf is not typechecked here, it means a function before this in
+                        // the list has a recursive call.
+                        assert(SpecializationIsCompatible(*sf, reqret));
+                        for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
+                        ReplayReturns(sf, call_args);
+                        ReplayAssigns(sf);
+                    }
                 }
                 // Type check this as if it is a static dispatch to just the root function.
                 TypeCheckMatchingCall(csf = disp.sf, call_args, true, false);
