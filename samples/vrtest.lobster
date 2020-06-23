@@ -13,7 +13,7 @@ fatal(gl_window(if vrmode: "VR Test" else: "No VR device", 1280, 640,
 
 // Make a quick sample scene out of some trees.
 
-def model_tree(numb, branchl, narrowf, leafs, leafc):
+def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
     if numb:
         mg_translate(xyz_z * branchl):
             mg_tapered_cylinder(1, narrowf, branchl)

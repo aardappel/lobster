@@ -127,7 +127,7 @@ run_test("misc"):
     assert 264 == sum(testvector.map(): _ * _)
 
 
-    def factorial(n): return 1 > n or factorial(n - 1) * n
+    def factorial(n:int) -> int: return 1 > n or factorial(n - 1) * n
     assert 7.factorial == 5040
 
     let applyto4 = fn f: f(4)
@@ -202,7 +202,7 @@ run_test("misc"):
             if i:
                 return from do
 
-    def recursive_exceptions(n):
+    def recursive_exceptions(n) -> void:
         try():
             if n: recursive_exceptions(n - 1)
             else: throw 0

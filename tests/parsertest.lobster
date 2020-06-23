@@ -10,18 +10,18 @@ run_test("parsereval"):
     class integer : node
         i:int
 
-        def pretty(): return string(i)
-        def eval(): return i
-        def compile(): return string(i)
+        def pretty() -> string: return string(i)
+        def eval() -> int: return i
+        def compile() -> string: return string(i)
 
     class inst : node
         atom:string
         args:[node]
 
-        def pretty():
+        def pretty() -> string:
             return "(" + (args.fold(atom): _a + " " + _e.pretty()) + ")"
 
-        def eval():
+        def eval() -> int:
             return switch atom:
                 case "+":
                     args.fold(0): _a + _e.eval()
@@ -30,7 +30,7 @@ run_test("parsereval"):
                 default:
                     assert false  // Verified by parser.
 
-        def compile():
+        def compile() -> string:
             return switch atom:
                 case "+", "*":
                     (args.map(): _.compile()).reduce(): "(" + _a + atom + _e + ")"

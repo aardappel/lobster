@@ -722,13 +722,9 @@ struct TypeChecker {
         if (sf != scopes.back().sf) sf->num_returns_non_local++;
         if (sf->returngiventype.utr.Null()) {
             if (sf->reqret) {
-                // If this is a recursive call we must be conservative because there may already
-                // be callers dependent on the return type so far, so any others must be subtypes.
-                if (!sf->isrecursivelycalled) {
-                    // We can safely generalize the type if needed, though not with coercions.
-                    sf->returntype = Union(type, sf->returntype, "return expression",
-                                           "function return type", false, &err);
-                }
+                // We can safely generalize the type if needed, though not with coercions.
+                sf->returntype = Union(type, sf->returntype, "return expression",
+                                        "function return type", false, &err);
             } else {
                 // The caller doesn't want return values.
                 sf->returntype = type_void;
@@ -893,7 +889,7 @@ struct TypeChecker {
                     AdjustLifetime(c, arg.sid->lt);
                     // We really don't want to specialize functions on variables, so we simply
                     // disallow them. This should happen only infrequently.
-                    if (/*sf->isrecursivelycalled &&*/ arg.type->HasValueType(V_VAR))
+                    if (arg.type->HasValueType(V_VAR))
                         TypeError(cat("can\'t infer ", ArgName(i), " argument of call to ", f.name),
                                   call_args);
                 }
@@ -908,7 +904,13 @@ struct TypeChecker {
             freevar.type = freevar.sid->Current()->type;
         }
         // See if this call is recursive:
-        for (auto &sc : scopes) if (sc.sf == sf) { sf->isrecursivelycalled = true; break; }
+        for (auto &sc : scopes) if (sc.sf == sf) {
+            sf->isrecursivelycalled = true;
+            if (sf->returngiventype.utr.Null())
+                TypeError("recursive function must have explicit return type: " + sf->parent->name,
+                          call_args);
+            break;
+        }
         return sf->returntype;
     };
 
@@ -1237,6 +1239,7 @@ struct TypeChecker {
             de->returntype = NewTypeVar();
             // Typecheck all the individual functions.
             SubFunction *last_sf = nullptr;
+            bool any_recursive = false;
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
                 auto sf = udt->dispatch[vtable_idx].sf;
                 if (!sf) continue;  // Missing implementation for unused UDT.
@@ -1260,14 +1263,15 @@ struct TypeChecker {
                 de = &dispatch_udt.dispatch[vtable_idx];  // May have realloced.
                 sf = csf;
                 sf->method_of->dispatch[vtable_idx].sf = sf;
+                if (sf->isrecursivelycalled) any_recursive = true;
                 // FIXME: Lift these limits?
                 if (sf->returntype->NumValues() > 1)
                     TypeError("dynamic dispatch can currently return only 1 value.", call_args);
                 auto u = sf->returntype;
                 if (de->returntype->IsBoundVar()) {
-                    // Typically in recursive calls, but can happen otherwise also?
+                    // FIXME: can this still happen now that recursive cases use explicit return
+                    // types? If not change into assert?
                     if (!ConvertsTo(u, de->returntype, false))
-                        // FIXME: not a great error, but should be rare.
                         TypeError(cat("dynamic dispatch for \"", f.name, "\" return value type \"",
                                       TypeName(sf->returntype),
                                       "\" doesn\'t match other case returning \"",
@@ -1285,6 +1289,15 @@ struct TypeChecker {
                     de->returntype = u;
                 }
                 last_sf = sf;
+            }
+            if (any_recursive) {
+                for (auto udt : dispatch_udt.subudts) {
+                    auto sf = udt->dispatch[vtable_idx].sf;
+                    if (!sf) continue;
+                    if (sf->returngiventype.utr.Null())
+                        TypeError("recursive dynamic dispatch must have explicit return type: " +
+                                  sf->parent->name, call_args);
+                }
             }
             call_args.children[0]->exptype = &dispatch_udt.thistype;
         }

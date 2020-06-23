@@ -85,7 +85,7 @@ if true:
                         mg_cylinder(0.35, 0.25)
     spaceship = mg_polygonize(density * 2)
 
-def model_tree(numb, branchl, narrowf, leafs, leafc):
+def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
     if numb:
         mg_translate(xyz_z * branchl):
             mg_tapered_cylinder(1, narrowf, branchl)

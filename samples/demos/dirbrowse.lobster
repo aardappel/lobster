@@ -16,7 +16,7 @@ let root = node { "", -1, nil }
 var selected = root
 var entries = []
 
-def fullpath(n::node):
+def fullpath(n::node) -> string:
     return if parent: parent.fullpath() + "/" + name else: name
 
 def scan(n:node):
@@ -32,13 +32,13 @@ def select(n:node):
     selected = n
     scan(n)
 
-def unparent(n::node):
+def unparent(n::node) -> void:
     parent = nil
     for children: _.unparent()
 
 select(root)
 
-def render_tree(n:node):
+def render_tree(n:node) -> float:
     var text = n.name
     if text == "": text = "(root)"
     let size = float(gl_text_size(text))

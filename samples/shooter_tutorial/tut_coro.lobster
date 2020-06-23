@@ -4,7 +4,7 @@ import color
 
 var mode:coroutine? = nil
 
-def menu(lastscore, highscore, frame):
+def menu(lastscore, highscore, frame) -> string?:
     forever():
         frame(nil)
         let msg = "last score: " + lastscore + " - highscore: " + highscore + " - press space to play!"
@@ -12,7 +12,6 @@ def menu(lastscore, highscore, frame):
             gl_text(msg)
         if gl_button("space") == 1:
             mode = coroutine level(highscore)
-    return nil
 
 def level(highscore, lframe):
     var score = 0
@@ -56,7 +55,6 @@ def level(highscore, lframe):
             bullets = filter(bullets) b:
                 b.resume()
                 b.active
-        return nil
 
     def enemy(pos, frame):
         let speed = 3
@@ -78,7 +76,6 @@ def level(highscore, lframe):
                 playerhealth -= gl_delta_time() * 50
             gl_color(lerp(color_red, color_blue, div(hp, maxhp))):
                 renderpointytriangle(pos, playerdir)
-        return nil
 
     def enemyset(frame):
         var enemies = []
@@ -93,7 +90,6 @@ def level(highscore, lframe):
             enemies = filter(enemies) e:
                 e.resume()
                 e.active
-        return nil
 
     while playerhealth > 0:
         lframe(nil)

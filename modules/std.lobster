@@ -131,7 +131,7 @@ def split(l, f):
 def rnd_pick(xs): return xs[rnd(xs.length)]
 def rnd_pick2(xs): return rnd_pick(rnd_pick(xs))
 
-def qsort(xs, lt):
+def qsort<T>(xs:[T], lt) -> [T]:
     if xs.length <= 1:
         return xs
     else:
@@ -142,7 +142,7 @@ def qsort(xs, lt):
                              qsort(f2, lt))
 
 def qsort_in_place(xs, lt):
-    def rec(s, e):
+    def rec(s, e) -> void:
         let l = e - s
         if l > 1:
             let pivot = xs[s]

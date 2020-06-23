@@ -53,7 +53,7 @@ run_test("smallpt"):
         Sphere { bigrad, xyz {  bigrad+1, 40.8,81.6   }, xyz_0,    xyz {.75,.25,.25}, DIFF }  //Left
     ]
 
-    def radiance(r:Ray, depth):
+    def radiance(r:Ray, depth) -> xyz_f:
         var t = 1000000000000.0                            // distance to intersection
         var id = -1                             // id of intersected object
         for(spheres) s, i:
