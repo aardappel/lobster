@@ -528,7 +528,7 @@ struct Parser {
             sf->typechecked = true;
             for (auto [i, arg] : enumerate(sf->args)) {
                 if (st.IsGeneric(sf->giventypes[i]))
-                    Error("function type arguments can't be generic");
+                    Error("function type arguments can't be generic (missing ':' ?)");
                 // No idea what the function is going to be, so have to default to borrow.
                 arg.sid->lt = LT_BORROW;
             }
