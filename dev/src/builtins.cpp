@@ -1208,6 +1208,12 @@ nfr("assert", "condition", "A*", "Ab1",
         return c;
     });
 
+nfr("pass", "", "", "",
+    "does nothing. useful for empty bodies of control structures.",
+    [](StackPtr &, VM &) {
+        return Value();
+    });
+
 nfr("trace_bytecode", "mode", "I", "",
     "tracing shows each bytecode instruction as it is being executed, not very useful unless"
     " you are trying to isolate a compiler bug. Mode is off(0), on(1) or tail only (2)",

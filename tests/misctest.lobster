@@ -281,3 +281,7 @@ run_test("misc"):
                     default: error()
         assert a + b == 3
     outer()
+
+    // Like Python, but actually a built-in function.
+    if false:
+        pass()
