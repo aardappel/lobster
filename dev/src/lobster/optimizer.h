@@ -20,7 +20,6 @@ struct Optimizer {
     TypeChecker &tc;
     size_t total_changes = 0;
     vector<SubFunction *> sfstack;
-    vector<SpecIdent *> inc_sids;
     bool functions_removed = false;
 
     Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc)
@@ -38,7 +37,6 @@ struct Optimizer {
                 }
             }
         }
-        for (auto sid : inc_sids) sid->consume_on_last_use = false;
         LOG_INFO("optimizer: ", total_changes, " optimizations");
     }
 
@@ -237,10 +235,8 @@ Node *Call::Optimize(Optimizer &opt) {
         // multiple times if inside a loop body or inlined multiple times, which may cause the
         // var to be decreffed when overwritten on second use), we have to incref.
         // TODO: investigate if setting them to null at scope exit would be an alternative?
-        auto ir = Is<IdentRef>(ret->child);
-        if (ir && ir->sid->consume_on_last_use) {
-            // Delay resetting the var, since this may be inlined more than once.
-            opt.inc_sids.push_back(ir->sid);
+        if (sf->consumes_vars_on_return) {
+            AssertIs<IdentRef>(ret->child);
             opt.tc.MakeLifetime(ret->child, LT_KEEP, 1, 0);
         }
         list->children.back() = ret->child;

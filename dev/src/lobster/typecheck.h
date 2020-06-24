@@ -2930,7 +2930,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             sf->body->children.back() == this) {
             // NOTE: see also Call::Optimize where we potentially have to undo this when inlined.
             reqlt = LT_BORROW;  // Fake that we're cool borrowing this.
-            ir->sid->consume_on_last_use = true;  // Don't decref this one when going out of scope.
+            sf->consumes_vars_on_return = true;  // Don't decref this one when going out of scope.
         }
     }
     tc.TT(child, reqret, reqlt);

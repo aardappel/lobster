@@ -62,7 +62,6 @@ struct SpecIdent {
     Ident *id;
     TypeRef type;
     Lifetime lt = LT_UNDEF;
-    bool consume_on_last_use = false;
     int logvaridx = -1;
     int idx, sidx = -1;     // Into specidents, and into vm ordering.
     SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
@@ -296,6 +295,7 @@ struct SubFunction {
     bool mustspecialize = false;
     bool logvarcallgraph = false;
     bool isdynamicfunctionvalue = false;
+    bool consumes_vars_on_return = false;
     bool optimized = false;
     UDT *method_of = nullptr;
     int numcallers = 0;

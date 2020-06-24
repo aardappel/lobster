@@ -261,6 +261,8 @@ struct CodeGen  {
         SplitAttr(Pos());
         Emit(IL_FUNSTART);
         Emit(sf.parent->idx);
+        auto ret = AssertIs<Return>(sf.body->children.back());
+        auto ir = sf.consumes_vars_on_return ? AssertIs<IdentRef>(ret->child) : nullptr;
         auto emitvars = [&](const vector<Arg> &v) {
             auto nvarspos = Pos();
             Emit(0);
@@ -273,7 +275,7 @@ struct CodeGen  {
                     if (ShouldDec(IsStruct(arg.sid->type->t)
                                   ? TypeLT { FindSlot(*arg.sid->type->udt, i)->resolvedtype,
                                              arg.sid->lt }
-                                  : TypeLT { *arg.sid }) && !arg.sid->consume_on_last_use) {
+                                  : TypeLT { *arg.sid }) && (!ir || arg.sid != ir->sid)) {
                         ownedvars.push_back(arg.sid->Idx() + i);
                     }
                 }
