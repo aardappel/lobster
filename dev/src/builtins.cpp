@@ -1166,6 +1166,41 @@ nfr("seconds_elapsed", "", "", "F",
         return Value(vm.Time());
     });
 
+nfr("date_time", "utc", "B?", "I]",
+    "a vector of integers representing date & time information (index with date_time.lobster)."
+    " By default returns local time, pass true for UTC instead.",
+    [](StackPtr &, VM &vm, Value &utc) {
+        auto time = std::time(nullptr);
+        const iint num_elems = 8;
+        auto v = vm.NewVec(num_elems, num_elems, TYPE_ELEM_VECTOR_OF_INT);
+        for (iint i = 0; i < num_elems; i++) v->At(i) = -1;
+        if (!time) return Value(v);
+        auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
+        if (!tm) return Value(v);
+        v->At(0) = tm->tm_year;
+        v->At(1) = tm->tm_mon;
+        v->At(2) = tm->tm_mday;
+        v->At(3) = tm->tm_yday;
+        v->At(4) = tm->tm_wday;
+        v->At(5) = tm->tm_hour;
+        v->At(6) = tm->tm_min;
+        v->At(7) = tm->tm_sec;
+        return Value(v);
+    });
+
+nfr("date_time_string", "utc", "B?", "S",
+    "a string representing date & time information in the format: \'Www Mmm dd hh:mm:ss yyyy\'."
+    " By default returns local time, pass true for UTC instead.",
+    [](StackPtr &, VM &vm, Value &utc) {
+        auto time = std::time(nullptr);
+        if (!time) return Value(vm.NewString(""));
+        auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
+        if (!tm) return Value(vm.NewString(""));
+        auto ts = std::asctime(tm);
+        auto s = vm.NewString(string_view(ts, 24));
+        return Value(s);
+    });
+
 nfr("assert", "condition", "A*", "Ab1",
     "halts the program with an assertion failure if passed false. returns its input",
     [](StackPtr &sp, VM &vm, Value &c) {
