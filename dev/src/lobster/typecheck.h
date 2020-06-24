@@ -301,7 +301,7 @@ struct TypeChecker {
         }
         error:
         if (err) {
-            TypeError(cat("\"", TypeName(at), " (", aname, ") and ", TypeName(bt), " (", bname,
+            TypeError(cat(TypeName(at), " (", aname, ") and ", TypeName(bt), " (", bname,
                           ") have no common supertype"), *err);
         }
         return type_undefined;
@@ -1264,9 +1264,6 @@ struct TypeChecker {
                 sf = csf;
                 sf->method_of->dispatch[vtable_idx].sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
-                // FIXME: Lift these limits?
-                if (sf->returntype->NumValues() > 1)
-                    TypeError("dynamic dispatch can currently return only 1 value.", call_args);
                 auto u = sf->returntype;
                 if (de->returntype->IsBoundVar()) {
                     // FIXME: can this still happen now that recursive cases use explicit return

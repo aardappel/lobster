@@ -73,11 +73,13 @@ run_test("types"):
             def f(c:int): return 1 + a + c
             def g(c): return c + 1
             def r(c:int) -> int: return c
+            def mr(): return 1, "a"
         class C2 : C1
             b:int = 0
             def f(c:int): return 2 + a + b + c
             def g(c): return c + 2
             def r(c:int) -> int: return if c: r(c - 1) else: (C1 {}).r(c)
+            def mr(): return 2, "b"
         let x:C1 = C2 {}
         // Must do dynamic dispatch.
         assert x.f(0) == 2
@@ -88,6 +90,9 @@ run_test("types"):
         assert x.g(3) == 5
         // Recursive dynamic dispatch.
         assert x.r(10) == 0
+        // Multiple return:
+        let mr1, mr2 = x.mr()
+        assert mr1 == 2 and mr2 == "b"
         // Static dispatch on generic types!
         class D<T>:
             x:T
