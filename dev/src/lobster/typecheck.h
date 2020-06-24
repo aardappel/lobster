@@ -3038,11 +3038,11 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                     udt = udti;
                 }
             }
-            if (!udt) {
+            if (udt == udt->first) {
                 string s;
                 for (auto &arg : children) s += " " + TypeName(arg->exptype);
-                auto err = "no named explicit specialization of " + udt->first->name +
-                    " matches these types:" + s;
+                auto err = "generic constructor matches no named explicit specialization of " +
+                           udt->first->name + " with types:" + s;
                 for (auto udti = udt->first->next; udti; udti = udti->next) {
                     err += "\n  specialization: ";
                     err += Signature(*udti);
