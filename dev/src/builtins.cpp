@@ -123,9 +123,11 @@ nfr("set_print_indent", "spaces", "I", "I",
         return Value(old);
     });
 
-nfr("get_line", "", "", "S",
-    "reads a string from the console if possible (followed by enter)",
-    [](StackPtr &, VM &vm) {
+nfr("get_line", "prefix", "S", "S",
+    "reads a string from the console if possible (followed by enter). Prefix will be"
+    " printed before the input",
+    [](StackPtr &, VM &vm, Value &prefix) {
+        fputs(prefix.sval()->data(), stdout);
         const int MAXSIZE = 1000;
         char buf[MAXSIZE];
         if (!fgets(buf, MAXSIZE, stdin)) buf[0] = 0;
