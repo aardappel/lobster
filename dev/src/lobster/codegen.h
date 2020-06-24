@@ -1378,11 +1378,10 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
             }
         }
         for (auto loc : exitswitch) cg.SetLabel(loc);
-        if (default_pos >= 0) {
-            for (int i = 0; i < (int)range + 1; i++) {
-                if (cg.vtables[table_start + i] == -1)
-                    cg.vtables[table_start + i] = default_pos;
-            }
+        if (default_pos < 0) default_pos = cg.Pos();
+        for (int i = 0; i < (int)range + 1; i++) {
+            if (cg.vtables[table_start + i] == -1)
+                cg.vtables[table_start + i] = default_pos;
         }
         return;
     }
