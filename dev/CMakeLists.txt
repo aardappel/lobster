@@ -17,7 +17,9 @@ execute_process(
   OUTPUT_VARIABLE GIT_COMMIT_INFO
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-add_definitions("-DGIT_COMMIT_INFOSTR=${GIT_COMMIT_INFO}")
+if(NOT MINGW)
+    add_definitions("-DGIT_COMMIT_INFOSTR=${GIT_COMMIT_INFO}") # this currently breaks MingW compilation...
+endif()
 
 if(LOBSTER_ENGINE)
   file(GLOB LOBSTER_SRCS
@@ -127,15 +129,16 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE}")
 endif()
-
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FS")
   #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
   #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
   add_compile_options("/std:c++latest")
 endif()
-# Valve SDKs only used in VS project for now.
-add_compile_definitions(SKIP_SDKS)
+if(WIN32)
+    # Valve SDKs only used in VS project for now.
+    add_compile_definitions(SKIP_SDKS)
+endif()
 
 find_package(Threads)
 
@@ -163,7 +166,7 @@ if(LOBSTER_ENGINE)
         link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
     endif()
     if(MINGW)
-        SET(CMAKE_CXX_LINK_FLAGS "-lmingw32")
+        SET(CMAKE_CXX_LINK_FLAGS "-mconsole -lmingw32")
     endif()    
   endif()
 endif()
