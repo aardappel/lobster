@@ -134,7 +134,7 @@ if(MSVC)
   #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
   add_compile_options("/std:c++latest")
 endif()
-// Valve SDKs only used in VS project for now.
+# Valve SDKs only used in VS project for now.
 add_compile_definitions(SKIP_SDKS)
 
 find_package(Threads)
