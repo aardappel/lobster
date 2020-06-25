@@ -863,7 +863,7 @@ inline int PopCount(uint64_t val) {
 }
 
 inline int HighZeroBits(uint64_t val) {
-    #ifdef _WIN32
+    #ifdef _MSC_VER
         return (int)__lzcnt64(val);
     #else
         return __builtin_clzll(val);
