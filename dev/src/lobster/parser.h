@@ -334,11 +334,8 @@ struct Parser {
                 if (sup->predeclaration) sup->predeclaration = false;  // Empty base class.
                 udt->resolved_superclass = sup;
                 udt->given_superclass = st.NewSpecUDT(sup);
-                // FIXME: lift this restriction, only here because we overwrite generics, and
-                // because of given_superclass.
-                if (!udt->generics.empty())
-                    Error("unimplemented: cannot add generics to generic base");
-                udt->generics = sup->generics;
+                udt->generics.insert(udt->generics.begin(), sup->generics.begin(),
+                                     sup->generics.end());
                 for (auto &fld : sup->fields) {
                     udt->fields.push_back(fld);
                 }
@@ -504,15 +501,6 @@ struct Parser {
         if (parens) Expect(T_RIGHTPAREN);
         sf->method_of = self;
         auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("");
-        if (name && self) {
-            for (auto isf : f.overloads) {
-                if (isf->method_of == self) {
-                    // FIXME: this currently disallows static overloads on the other args, that
-                    // would be nice to add.
-                    Error("method " + *name + " already declared for type: " + self->name);
-                }
-            }
-        }
         f.overloads.push_back(nullptr);
         sf->SetParent(f, f.overloads.back());
         if (IsNext(T_CODOT)) {  // Return type decl.
@@ -544,11 +532,6 @@ struct Parser {
                 // detecting what is a legit overload or not, this is in general better left to the
                 // type checker.
                 if (!f.nargs()) Error("double declaration: " + f.name);
-                for (auto [i, arg] : enumerate(sf->args)) {
-                    if (!i && st.IsGeneric(sf->giventypes[i]))
-                        Error("first argument of overloaded function must not be generic: " +
-                              f.name);
-                }
                 if (isprivate != f.isprivate)
                     Error("inconsistent private annotation of multiple function implementations"
                           " for: " + *name);

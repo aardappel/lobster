@@ -143,6 +143,7 @@ struct DispatchEntry {
     bool is_dispatch_root = false;
     // Shared return type if root of dispatch.
     TypeRef returntype = nullptr;
+    size_t subudts_size = 0;  // At time of creation.
 };
 
 struct UDT : Named {
@@ -199,8 +200,10 @@ struct UDT : Named {
     }
 
     bool FullyBound() {
-        // FIXME! This does not deal with any generics being typevars from elsewhere.
-        return generics.empty() || !generics.back().giventype.utr.Null();
+        for (auto &g : generics) {
+            if (g.giventype.utr.Null() || g.giventype.utr->t == V_TYPEVAR) return false;
+        }
+        return true;
     }
 
     bool IsSpecialization(UDT *other) {

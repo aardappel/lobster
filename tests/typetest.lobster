@@ -80,7 +80,11 @@ run_test("types"):
             def g(c): return c + 2
             def r(c:int) -> int: return if c: r(c - 1) else: (C1 {}).r(c)
             def mr(): return 2, "b"
+        class C3<T> : C1
+            b:T
+            def f(c:int): return c + length(b)
         let x:C1 = C2 {}
+        let x2:C1 = C3<string> { "hello" }
         // Must do dynamic dispatch.
         assert x.f(0) == 2
         // Static dispatch, there are no sub-classes.
@@ -88,6 +92,7 @@ run_test("types"):
         // Dynamic dispatch mixed with specialization (!)
         assert x.g("hi") == "hi2"
         assert x.g(3) == 5
+        assert x2.f(10) == 15  // Generic "this"
         // Recursive dynamic dispatch.
         assert x.r(10) == 0
         // Multiple return:
@@ -99,8 +104,10 @@ run_test("types"):
         def foo<T>(d:D<T>): return d.x
         def foo(i:int): return i
         def foo(s:string): return s
+        def foo<T>(t:T): return t + 1
         assert foo(D<int> { 1 }) + foo(2) == 3
         assert foo(D<string> { "ha" }) + foo("llo") == "hallo"
+        assert foo(1.0) == 2.0
 
     do():
         // Flow sensitive checking.

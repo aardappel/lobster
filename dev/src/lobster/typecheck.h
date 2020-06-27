@@ -688,8 +688,10 @@ struct TypeChecker {
                 PromoteStructIdx(field.resolvedtype, udt.resolved_superclass, udt);
             }
         }
-        for (auto u = &udt; u; u = u->resolved_superclass) {
-            u->subudts.push_back(&udt);
+        if (udt.FullyBound()) {
+            for (auto u = &udt; u; u = u->resolved_superclass) {
+                u->subudts.push_back(&udt);
+            }
         }
         for (auto [i, f] : enumerate(udt.fields)) {
             // FIXME: this is a temp limitation, remove.
@@ -1167,6 +1169,10 @@ struct TypeChecker {
                     if (i && !ConvertsTo(c->exptype, arg.type, false, false))
                         goto fail;
                 }
+                // If this ever fails, that means new types got added during typechecking..
+                // which means we'd just have to create a new vtable entry instead, or somehow
+                // avoid the new type.
+                assert(disp.subudts_size == dispatch_udt.subudts.size());
                 for (auto udt : dispatch_udt.subudts) {
                     // Since all functions were specialized with the same args, they should
                     // all be compatible if the root is.
@@ -1194,14 +1200,17 @@ struct TypeChecker {
         // hierarchy will be rare.
         // Find subclasses and max vtable size.
         {
-            vector<int> overload_idxs;
+            vector<pair<int, bool>> overload_idxs;
             for (auto sub : dispatch_udt.subudts) {
                 int best = -1;
-                int bestdist = 0;
+                int bestdist = -1;
                 for (auto [i, sf] : enumerate(csf->parent->overloads)) {
                     if (sf->method_of) {
-                        auto sdist = st.SuperDistance(sf->method_of, sub);
-                        if (sdist >= 0 && (best < 0 || bestdist > sdist)) {
+                        auto sdist = st.SuperDistance(sf->method_of, sub->first);
+                        if (sdist >= 0 && (best < 0 || bestdist >= sdist)) {
+                            if (bestdist == sdist)
+                                TypeError(cat("more than implementation of ", f.name,
+                                              " applies to ", sub->name), call_args);
                             best = (int)i;
                             bestdist = sdist;
                         }
@@ -1216,7 +1225,7 @@ struct TypeChecker {
                         // for it.. like e.g. an abstract base class.
                     }
                 }
-                overload_idxs.push_back(best);
+                overload_idxs.push_back({ best, bestdist == 0 });
                 vtable_idx = max(vtable_idx, (int)sub->dispatch.size());
             }
             // Add functions to all vtables.
@@ -1226,9 +1235,9 @@ struct TypeChecker {
                 // FIXME: this is not great, wasting space, but only way to do this
                 // on the fly without tracking lots of things.
                 while ((int)dt.size() < vtable_idx) dt.push_back({});
-                dt.push_back({ overload_idxs[i] < 0
+                dt.push_back({ overload_idxs[i].first < 0
                                 ? nullptr
-                                : csf->parent->overloads[overload_idxs[i]] });
+                                : csf->parent->overloads[overload_idxs[i].first] });
             }
             // FIXME: if any of the overloads below contain recursive calls, it may run into
             // issues finding an existing dispatch above? would be good to guarantee..
@@ -1237,14 +1246,16 @@ struct TypeChecker {
             auto de = &dispatch_udt.dispatch[vtable_idx];
             de->is_dispatch_root = true;
             de->returntype = NewTypeVar();
+            de->subudts_size = dispatch_udt.subudts.size();
             // Typecheck all the individual functions.
             SubFunction *last_sf = nullptr;
             bool any_recursive = false;
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
                 auto sf = udt->dispatch[vtable_idx].sf;
-                if (!sf) continue;  // Missing implementation for unused UDT.
-                // FIXME: this possible runs the code below multiple times for the same sf,
-                // we rely on it finding the same specialization.
+                // Missing implementation for unused UDT.
+                if (!sf) continue;
+                // Skip if it is using a superclass method.
+                if (!overload_idxs[i].second) continue;
                 if (last_sf) {
                     // FIXME: good to have this check here so it only occurs for functions
                     // participating in the dispatch, but error now appears at the call site!
@@ -1256,12 +1267,17 @@ struct TypeChecker {
                     }
                 }
                 call_args.children[0]->exptype = &udt->thistype;
+                // FIXME: this has the side effect of giving call_args types relative to the last
+                // overload type-checked, which is strictly speaking not correct, but may not
+                // matter. Could call TypeCheckCallStatic once more at the end of this loop
+                // to fix that?
                 // FIXME: return value?
                 /*auto rtype =*/
                 TypeCheckCallStatic(csf, call_args, reqret, specializers,
-                                    overload_idxs[i], false, !last_sf);
+                                    overload_idxs[i].first, false, !last_sf);
                 de = &dispatch_udt.dispatch[vtable_idx];  // May have realloced.
                 sf = csf;
+                sf->method_of = udt;
                 sf->method_of->dispatch[vtable_idx].sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
                 auto u = sf->returntype;
@@ -1321,20 +1337,15 @@ struct TypeChecker {
             if (type->t == V_CLASS) dispatch_udt = type->udt;
         }
         if (dispatch_udt) {
-            size_t num_methods = 0;
-            for (auto isf : csf->parent->overloads) if (isf->method_of) num_methods++;
-            if (num_methods > 1) {
-                // Go thru all other overloads, and see if any of them have this one as superclass.
-                for (auto isf : csf->parent->overloads) {
-                    if (isf->method_of && st.SuperDistance(dispatch_udt, isf->method_of) > 0) {
-                        LOG_DEBUG("dynamic dispatch: ", Signature(*isf));
-                        return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
-                                                     reqret, specializers, vtable_idx);
-                    }
+            // Go thru all other overloads, and see if any of them have this one as superclass.
+            for (auto isf : csf->parent->overloads) {
+                if (isf->method_of && st.SuperDistance(dispatch_udt, isf->method_of) > 0) {
+                    LOG_DEBUG("dynamic dispatch: ", Signature(*isf));
+                    return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
+                                                 reqret, specializers, vtable_idx);
                 }
-                // Yay there are no sub-class implementations, we can just statically dispatch.
             }
-            // Yay only one method, we can statically dispatch.
+            // Yay there are no sub-class implementations, we can just statically dispatch.
         }
         // Do a static dispatch, if there are overloads, figure out from first arg which to pick,
         // much like dynamic dispatch. Unlike dynamic dispatch, we also include non-class types.
@@ -1354,6 +1365,19 @@ struct TypeChecker {
                         TypeError(cat("multiple overloads have the same type: \"", f.name,
                                       "\", first arg \"", TypeName(type0), "\""), call_args);
                     overload_idx = (int)i;
+                }
+            }
+            // Then see if there's a match if we'd instantiate a generic UDT  first arg.
+            if (overload_idx < 0 && IsUDT(type0->t)) {
+                for (auto [i, isf] : enumerate(f.overloads)) {
+                    auto arg0 = isf->giventypes[0].utr;  // Want unresolved type.
+                    if (arg0->t == V_UUDT && arg0->spec_udt->udt == type0->udt->first) {
+                        if (overload_idx >= 0) {
+                            TypeError(cat("multiple generic overloads can instantiate: \"", f.name,
+                                "\", first arg \"", TypeName(type0), "\""), call_args);
+                        }
+                        overload_idx = (int)i;
+                    }
                 }
             }
             // Then see if there's a match by subtyping.
@@ -1385,11 +1409,11 @@ struct TypeChecker {
                     }
                 }
             }
-            // Then see if there's a match if we'd instantiate a generic first arg.
-            if (overload_idx < 0 && IsUDT(type0->t)) {
+            // Then see if there's a match if we'd instantiate a fully generic first arg.
+            if (overload_idx < 0) {
                 for (auto [i, isf] : enumerate(f.overloads)) {
                     auto arg0 = isf->giventypes[0].utr;  // Want unresolved type.
-                    if (arg0->t == V_UUDT && arg0->spec_udt->udt == type0->udt->first) {
+                    if (arg0->t == V_TYPEVAR) {
                         if (overload_idx >= 0) {
                             TypeError(cat("multiple generic overloads can instantiate: \"", f.name,
                                 "\", first arg \"", TypeName(type0), "\""), call_args);
