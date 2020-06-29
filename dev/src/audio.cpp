@@ -43,28 +43,28 @@ nfr("play_sfxr", "filename,loops", "SI?", "I",
     });
 
 nfr("sound_halt", "channel", "I", "",
-    "terminates a specific channel. if channel is omitted terminates all channels.",
+    "terminates a specific sound channel.",
     [](StackPtr &, VM &, Value &ch) {
         int ch_idx = ch.intval();
-        if (ch_idx >= 0)
+        if (ch_idx > 0) // we disallow 0 (which would then be -1; all channels in SDL_Mixer) because it is our error value!
             SDLHaltSound(ch_idx);
         return Value();
     });
 
 nfr("sound_pause", "channel", "I", "",
-    "pauses sound channel.",
+    "pauses the specified sound channel.",
     [](StackPtr &, VM &, Value &ch) {
         int ch_idx = ch.intval();
-        if (ch_idx >= 0)
+        if (ch_idx > 0)
             SDLPauseSound(ch_idx);
         return Value();
     });
 
 nfr("sound_resume", "channel", "I", "",
-    "resumes any sounds that were paused.",
+    "resumes a sound that was paused.",
     [](StackPtr &, VM &, Value &ch) {
         int ch_idx = ch.intval();
-        if (ch_idx >= 0)
+        if (ch_idx > 0)
             SDLResumeSound(ch_idx);
         return Value();
     });
@@ -73,7 +73,7 @@ nfr("sound_volume", "channel,volume", "IF", "",
     "sets the channel volume in the range 0..1.",
     [](StackPtr &, VM &, Value &ch, Value &vol) {
         int ch_idx = ch.intval();
-        if (ch_idx >= 0)
+        if (ch_idx > 0)
             SDLSetVolume(ch_idx, vol.fval());
         return Value();
     });
