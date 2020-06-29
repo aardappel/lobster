@@ -28,7 +28,7 @@ nfr("play_wav", "filename,loops", "SI?", "I",
     " loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats)."
     " returns the assigned channel number (1..8) or 0 on error",
     [](StackPtr &, VM &, Value &ins, Value &loops) {
-        int ch = SDLPlaySound(ins.sval()->strv(), false, 1.0, loops.True() ? loops.intval() : 0);
+        int ch = SDLPlaySound(ins.sval()->strv(), false, 1.0, loops.intval());
         return Value(ch);
     });
 
@@ -38,57 +38,44 @@ nfr("play_sfxr", "filename,loops", "SI?", "I",
     " loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats)."
     " returns the assigned channel number (1..8) or 0 on error",
     [](StackPtr &, VM &, Value &ins, Value &loops) {
-        int ch = SDLPlaySound(ins.sval()->strv(), true, 1.0, loops.True() ? loops.intval() : 0);
+        int ch = SDLPlaySound(ins.sval()->strv(), true, 1.0, loops.intval());
         return Value(ch);
     });
 
-nfr("sound_halt", "channel", "I", "B",
-    "terminates sound channel. returns false on error",
-    [](StackPtr &, VM &, Value &ch) {
-        bool ok = SDLHaltSound(ch.True() ? ch.intval() : -1);
-        return Value(ok);
-    });
-
-nfr("sound_pause", "channel", "I", "B",
-    "pauses sound channel. returns false on error",
+nfr("sound_halt", "channel", "I", "",
+    "terminates a specific channel. if channel is omitted terminates all channels.",
     [](StackPtr &, VM &, Value &ch) {
         int ch_idx = ch.intval();
-        bool ok = false;
-        if (ch_idx != -1)
-            ok = SDLPauseSound(ch_idx);
-        return Value(ok);
+        if (ch_idx >= 0)
+            SDLHaltSound(ch_idx);
+        return Value();
     });
 
-/* not needed since user pauses and can track this by themselves 
-nfr("sound_ispaused", "channel", "I", "B",
-    "returns true if sound channel is paused, otherwise (or on error) returns false",
+nfr("sound_pause", "channel", "I", "",
+    "pauses sound channel.",
     [](StackPtr &, VM &, Value &ch) {
         int ch_idx = ch.intval();
-        bool ok = false;
-        if (ch_idx != -1)
-            ok = SDLIsPausedSound(ch_idx);
-        return Value(ok);
+        if (ch_idx >= 0)
+            SDLPauseSound(ch_idx);
+        return Value();
     });
-*/
 
-nfr("sound_resume", "channel", "I", "B",
-    "resumes any sounds that were paused. returns false on error",
+nfr("sound_resume", "channel", "I", "",
+    "resumes any sounds that were paused.",
     [](StackPtr &, VM &, Value &ch) {
         int ch_idx = ch.intval();
-        bool ok = false;
-        if (ch_idx != -1)
-            ok = SDLResumeSound(ch_idx);
-        return Value(ok);
+        if (ch_idx >= 0)
+            SDLResumeSound(ch_idx);
+        return Value();
     });
 
-nfr("sound_volume", "channel,volume", "IF", "B",
-    "sets the channel volume in the range 0.0..1.0. returns false on error",
+nfr("sound_volume", "channel,volume", "IF", "",
+    "sets the channel volume in the range 0..1.",
     [](StackPtr &, VM &, Value &ch, Value &vol) {
         int ch_idx = ch.intval();
-        bool ok = false;
-        if (ch_idx != -1)        
-            ok = SDLSetVolume(ch_idx, vol.fval());
-        return Value(ok);
+        if (ch_idx >= 0)
+            SDLSetVolume(ch_idx, vol.fval());
+        return Value();
     });
 
 }

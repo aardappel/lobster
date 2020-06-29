@@ -374,8 +374,13 @@ Sound *LoadSound(string_view filename, bool sfxr) {
     return &(sound_files.insert({ string(filename), std::move(snd) }).first->second);
 }
 
-bool SDLSoundInit() {
+bool SDLSoundInit() {    
     if (sound_init) return true;
+
+    #ifdef __EMSCRIPTEN__
+    // Distorted in firefox and no audio at all in chrome, disable for now.
+        return false;
+    #endif
 
     for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
         LOG_INFO("Audio driver available ", SDL_GetAudioDriver(i));
@@ -418,84 +423,34 @@ void SDLSoundClose() {
 }
 
 int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops) {
-    #ifdef __EMSCRIPTEN__
-    // Distorted in firefox and no audio at all in chrome, disable for now.
-        return 0;
-    #endif
-
-    if (!SDLSoundInit())
-        return 0;
+    if (!SDLSoundInit()) return 0;
 
     auto snd = LoadSound(filename, sfxr);
-    int ch = -1;
-    if (snd) {
-        ch = Mix_PlayChannel(-1, snd->chunk.get(), loops);
-        if (ch >= 0)
-        {
-            Mix_Volume(ch, (int)(MIX_MAX_VOLUME*vol));
-        }
-    }
+    if (!snd) return 0;
+
+    int ch = Mix_PlayChannel(-1, snd->chunk.get(), loops);
+    if (ch >= 0) Mix_Volume(ch, (int)(MIX_MAX_VOLUME * vol)); // set channel to default volume (max)
     return ++ch; // we return channel numbers 1..8 rather than 0..7
 }
 
-bool SDLHaltSound(int ch) {
-    #ifdef __EMSCRIPTEN__
-    // Distorted in firefox and no audio at all in chrome, disable for now.
-        return false;
-    #endif
-
-    if (!SDLSoundInit())
-        return false;
-
+void SDLHaltSound(int ch) {
     ch--; // SDL_Mixer enmerates channels from 0, Lobster from 1
     Mix_Resume(ch); // fix SDL bug not clearing the paused flag on halt by resuming (even if not paused) right before halt
     Mix_HaltChannel(ch);
-    return true;
 }
 
-bool SDLPauseSound(int ch) {
-    #ifdef __EMSCRIPTEN__
-    // Distorted in firefox and no audio at all in chrome, disable for now.
-        return false;
-    #endif
-
-    if (!SDLSoundInit())
-        return false;
-
-    Mix_Pause(--ch);
-    return true;
+void SDLPauseSound(int ch) {
+    Mix_Pause(ch - 1);
 }
 
-bool SDLIsPausedSound(int ch) {
-    #ifdef __EMSCRIPTEN__
-    // Distorted in firefox and no audio at all in chrome, disable for now.
-        return false;
-    #endif
-
-    if (!SDLSoundInit())
-        return false;
-    
-    return Mix_Paused(--ch) > 0;
+int SDLIsPausedSound(int ch) {
+    return Mix_Paused(ch - 1) > 0;
 }
 
-bool SDLResumeSound(int ch) {
-    if (SDLIsPausedSound(ch)) // this already tests for SDLSoundInit() etc.
-    {
-        Mix_Resume(--ch);
-        return true;
-    }
-    return false;
+void SDLResumeSound(int ch) {
+    if (SDLIsPausedSound(ch)) Mix_Resume(ch - 1); // this already tests for SDLSoundInit() etc.
 }
 
-bool SDLSetVolume(int ch, float vol) {
-    #ifdef __EMSCRIPTEN__
-    // Distorted in firefox and no audio at all in chrome, disable for now.
-        return false;
-    #endif
-
-    if (!SDLSoundInit())
-        return false;
-    
-    Mix_Volume(--ch, (int)(MIX_MAX_VOLUME*vol));
-    return true;
+void SDLSetVolume(int ch, float vol) {
+    Mix_Volume(ch - 1, (int)(MIX_MAX_VOLUME * vol));
 }
