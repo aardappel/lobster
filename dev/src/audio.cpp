@@ -74,7 +74,7 @@ nfr("sound_volume", "channel,volume", "IF", "",
     [](StackPtr &, VM &, Value &ch, Value &vol) {
         int ch_idx = ch.intval();
         if (ch_idx > 0)
-            SDLSetVolume(ch_idx, vol.fval());
+            SDLSetVolume(ch_idx, vol.fltval());
         return Value();
     });
 
