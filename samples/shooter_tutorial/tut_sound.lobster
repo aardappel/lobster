@@ -69,7 +69,7 @@ while gl_frame() and gl_button("escape") != 1:
         // time management
         if !paused:
             delta_time = gl_delta_time()
-            game_time = game_time + delta_time
+            game_time += delta_time
         else:
             delta_time = 0
             
