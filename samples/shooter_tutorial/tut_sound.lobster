@@ -27,7 +27,7 @@ class bullet:
 let firerate = 0.1
 let bulletspeed = 15
 var bullets = []
-var lastbullet = gl_time()
+var lastbullet = 0.0
 
 class enemy:
     pos:xy_f
@@ -37,13 +37,13 @@ var enemyrate = 1.0
 let enemyspeed = 3
 let enemymaxhp = 5
 var enemies = []
-var lastenemy = gl_time()
+var lastenemy = 0.0
 var closest_enemy_dist = 9999.0
 
 var score = 0
 var highscore = 0
 var playing = false
-var paused = true
+var paused = false
 var game_time = 0.0
 var delta_time = 0.0
 
@@ -55,7 +55,6 @@ def renderpointytriangle(pos, dir):
 while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
-    let t_gl = gl_time()
     if playing:
         // pause logic
         if gl_button("space") == 1:
@@ -114,6 +113,7 @@ while gl_frame() and gl_button("escape") != 1:
                     if playerhealth <= 0:
                         playerhealth = 0
                         highscore = max(highscore, score)
+                        sound_pause(ufobuzz)
                         playing = false
                 gl_color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
                     renderpointytriangle(e.pos, playerdir)
@@ -143,23 +143,18 @@ while gl_frame() and gl_button("escape") != 1:
         let msg = "press space to play!"
         gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
-        if not paused:
-            sound_pause(bgmusic)
-            sound_volume(ufobuzz, 0)
-            paused = true
         if gl_button("space") == 1:
             score = 0
             playerhealth = 100.0
             playerpos = xy_0
             bullets = []
-            lastbullet = gl_time()
             enemyrate = 1.0
             enemies = []
-            lastenemy = gl_time()
             playing = true
             paused = false
             sound_resume(bgmusic)
             sound_resume(ufobuzz)
+            sound_volume(ufobuzz, 0)
 
     // status banner
     if !paused:
