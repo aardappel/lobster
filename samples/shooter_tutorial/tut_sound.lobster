@@ -56,7 +56,9 @@ while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
     if playing:
-        // pause logic
+        // status banner
+        gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore + " - space: un(pause)")
+        // check if user pauses
         if gl_button("space") == 1:
             paused = not paused
             if paused:
@@ -65,7 +67,7 @@ while gl_frame() and gl_button("escape") != 1:
             else:
                 sound_resume(bgmusic)
                 sound_resume(ufobuzz)
-        // time management
+        // pause time management
         if !paused:
             delta_time = gl_delta_time()
             game_time += delta_time
@@ -155,9 +157,3 @@ while gl_frame() and gl_button("escape") != 1:
             sound_resume(bgmusic)
             sound_resume(ufobuzz)
             sound_volume(ufobuzz, 0)
-
-    // status banner
-    if !paused:
-        gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore + " - space to pause")
-    else:
-        gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore + " - space to unpause")
