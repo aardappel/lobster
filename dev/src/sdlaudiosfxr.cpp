@@ -374,8 +374,13 @@ Sound *LoadSound(string_view filename, bool sfxr) {
     return &(sound_files.insert({ string(filename), std::move(snd) }).first->second);
 }
 
-bool SDLSoundInit() {
+bool SDLSoundInit() {    
     if (sound_init) return true;
+
+    #ifdef __EMSCRIPTEN__
+    // Distorted in firefox and no audio at all in chrome, disable for now.
+        return false;
+    #endif
 
     for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
         LOG_INFO("Audio driver available ", SDL_GetAudioDriver(i));
@@ -417,18 +422,35 @@ void SDLSoundClose() {
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-bool SDLPlaySound(string_view filename, bool sfxr, int vol) {
-    #ifdef __EMSCRIPTEN__
-    // Distorted in firefox and no audio at all in chrome, disable for now.
-    return false;
-    #endif
-
-    if (!SDLSoundInit())
-        return false;
+int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops) {
+    if (!SDLSoundInit()) return 0;
 
     auto snd = LoadSound(filename, sfxr);
-    if (snd) {
-        Mix_Volume(Mix_PlayChannel(-1, snd->chunk.get(), 0), vol);
-    }
-    return !!snd;
+    if (!snd) return 0;
+
+    int ch = Mix_PlayChannel(-1, snd->chunk.get(), loops);
+    if (ch >= 0) Mix_Volume(ch, (int)(MIX_MAX_VOLUME * vol)); // set channel to default volume (max)
+    return ++ch; // we return channel numbers 1..8 rather than 0..7
+}
+
+void SDLHaltSound(int ch) {
+    ch--; // SDL_Mixer enmerates channels from 0, Lobster from 1
+    Mix_Resume(ch); // fix SDL bug not clearing the paused flag on halt by resuming (even if not paused) right before halt
+    Mix_HaltChannel(ch);
+}
+
+void SDLPauseSound(int ch) {
+    Mix_Pause(ch - 1);
+}
+
+int SDLIsPausedSound(int ch) {
+    return Mix_Paused(ch - 1) > 0;
+}
+
+void SDLResumeSound(int ch) {
+    if (SDLIsPausedSound(ch)) Mix_Resume(ch - 1); // this already tests for SDLSoundInit() etc.
+}
+
+void SDLSetVolume(int ch, float vol) {
+    Mix_Volume(ch - 1, (int)(MIX_MAX_VOLUME * vol));
 }

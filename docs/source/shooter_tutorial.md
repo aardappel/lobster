@@ -567,6 +567,11 @@ here should be fun and easy. Some ideas of things you could add:
 -   Game structure: different levels the player can try to beat, permanent
     upgrades the player can buy, etc.
 
+Also, at this point, our game has no sound at all. If you'd like to see how to
+add some anbient or enemy sounds, have a look at the use of the `play_` and
+`sound_` functions in `tut_sound.lobster`. This example also shows how to to
+dynamically adjust the volume and pause or resume individual sounds.
+
 ### 8: Advanced Topics: Coroutines
 
 If you look at the finished code of tut6.lobster, you can notice one problem

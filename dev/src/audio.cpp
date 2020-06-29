@@ -22,21 +22,60 @@ using namespace lobster;
 
 void AddSound(NativeRegistry &nfr) {
 
-nfr("play_wav", "filename,volume", "SI?", "B",
+nfr("play_wav", "filename,loops", "SI?", "I",
     "plays a sound defined by a wav file (RAW or MS-ADPCM, any bitrate other than 22050hz 16bit"
-    " will automatically be converted on first load). volume in range 1..128, or omit for max."
-    " returns false on error",
-    [](StackPtr &, VM &, Value &ins, Value &vol) {
-        bool ok = SDLPlaySound(ins.sval()->strv(), false, vol.True() ? vol.intval() : 128);
-        return Value(ok);
+    " will automatically be converted on first load). the default volume is the max volume (1.0)"
+    " loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats)."
+    " returns the assigned channel number (1..8) or 0 on error",
+    [](StackPtr &, VM &, Value &ins, Value &loops) {
+        int ch = SDLPlaySound(ins.sval()->strv(), false, 1.0, loops.intval());
+        return Value(ch);
     });
 
-nfr("play_sfxr", "filename,volume", "SI?", "B",
+nfr("play_sfxr", "filename,loops", "SI?", "I",
     "plays a synth sound defined by a .sfs file (use http://www.drpetter.se/project_sfxr.html"
-    " to generate these). volume in range 1..128, or omit for max. returns false on error",
-    [](StackPtr &, VM &, Value &ins, Value &vol) {
-        bool ok = SDLPlaySound(ins.sval()->strv(), true, vol.True() ? vol.intval() : 128);
-        return Value(ok);
+    " to generate these). the default volume is the max volume (1.0)"
+    " loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats)."
+    " returns the assigned channel number (1..8) or 0 on error",
+    [](StackPtr &, VM &, Value &ins, Value &loops) {
+        int ch = SDLPlaySound(ins.sval()->strv(), true, 1.0, loops.intval());
+        return Value(ch);
+    });
+
+nfr("sound_halt", "channel", "I", "",
+    "terminates a specific sound channel.",
+    [](StackPtr &, VM &, Value &ch) {
+        int ch_idx = ch.intval();
+        if (ch_idx > 0) // we disallow 0 (which would then be -1; all channels in SDL_Mixer) because it is our error value!
+            SDLHaltSound(ch_idx);
+        return Value();
+    });
+
+nfr("sound_pause", "channel", "I", "",
+    "pauses the specified sound channel.",
+    [](StackPtr &, VM &, Value &ch) {
+        int ch_idx = ch.intval();
+        if (ch_idx > 0)
+            SDLPauseSound(ch_idx);
+        return Value();
+    });
+
+nfr("sound_resume", "channel", "I", "",
+    "resumes a sound that was paused.",
+    [](StackPtr &, VM &, Value &ch) {
+        int ch_idx = ch.intval();
+        if (ch_idx > 0)
+            SDLResumeSound(ch_idx);
+        return Value();
+    });
+
+nfr("sound_volume", "channel,volume", "IF", "",
+    "sets the channel volume in the range 0..1.",
+    [](StackPtr &, VM &, Value &ch, Value &vol) {
+        int ch_idx = ch.intval();
+        if (ch_idx > 0)
+            SDLSetVolume(ch_idx, vol.fval());
+        return Value();
     });
 
 }
