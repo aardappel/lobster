@@ -1,0 +1,12 @@
+SOUND/MUSIC AUTHORSHIP/ORIGIN INFORMATION
+=========================================
+THE SOUND FILES IN THIS FOLDER ARE THE ORIGINAL
+OR MODIFIED WORKS OF THE FOLLOWING PERSONS
+
+FILENAME , TITLE/NAME , SOURCE , AUTHOR
+
+"ufo hit.wav" modified from "Sci-Fi Force Field Impact 15", https://freesound.org/people/StormwaveAudio/sounds/330629/, by StormwaveAudio
+
+"Cyber-Dream-Loop short.wav" modified "CYBER DREAM LOOP", https://soundimage.org/looping-music/, by Eric Matyas
+
+"alien_buzz2.wav" modified from "Slender", https://freesound.org/people/CommanderDerp/sounds/167921/, by CommderDerp
