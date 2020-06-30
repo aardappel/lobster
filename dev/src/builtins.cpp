@@ -1171,20 +1171,21 @@ nfr("date_time", "utc", "B?", "I]",
     " By default returns local time, pass true for UTC instead.",
     [](StackPtr &, VM &vm, Value &utc) {
         auto time = std::time(nullptr);
-        const iint num_elems = 8;
+        const iint num_elems = 9;
         auto v = vm.NewVec(num_elems, num_elems, TYPE_ELEM_VECTOR_OF_INT);
         for (iint i = 0; i < num_elems; i++) v->At(i) = -1;
         if (!time) return Value(v);
+        v->At(0) = (iint)time; // unix epoch in seconds
         auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
         if (!tm) return Value(v);
-        v->At(0) = tm->tm_year;
-        v->At(1) = tm->tm_mon;
-        v->At(2) = tm->tm_mday;
-        v->At(3) = tm->tm_yday;
-        v->At(4) = tm->tm_wday;
-        v->At(5) = tm->tm_hour;
-        v->At(6) = tm->tm_min;
-        v->At(7) = tm->tm_sec;
+        v->At(1) = tm->tm_year;
+        v->At(2) = tm->tm_mon;
+        v->At(3) = tm->tm_mday;
+        v->At(4) = tm->tm_yday;
+        v->At(5) = tm->tm_wday;
+        v->At(6) = tm->tm_hour;
+        v->At(7) = tm->tm_min;
+        v->At(8) = tm->tm_sec;
         return Value(v);
     });
 
