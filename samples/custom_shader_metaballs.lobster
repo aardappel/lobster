@@ -2,7 +2,7 @@ import vec
 import color
 import texture
 
-// Example of how to do run a custom shader.
+// Example of how to do run a custom shader on a full window rectangle.
 // In this case, a simple metaballs example adapted from
 // https://www.shadertoy.com/view/XssSzN
 

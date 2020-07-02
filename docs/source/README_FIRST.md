@@ -49,6 +49,12 @@ Building Lobster
 Read about the [implementation](implementation.html) to be able to compile,
 extend or use Lobster for your own C++ projects.
 
+Using the engine
+----------------
+
+Lobster comes with [built-in functionality for drawing](engine.html)
+and many other things.
+
 About Lobster
 -------------
 
