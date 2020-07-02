@@ -190,7 +190,7 @@ fn:
 <pre><code>def twice(f):
     for(2): f()</code></pre>
 <p>Sometimes, you may want to be explicit about the function type. You can declare new function types, and then use them as a type:</p>
-<pre><code>def function_type(int) -&gt; int
+<pre><code>def function_type(i:int) -&gt; int
 def g(f:function_type): return 1 + f(2)</code></pre>
 <p>Besides enforcing the type of function that can be passed (which makes for more readable errors when it fails), it also forces the function passed to not be inlined (which may reduce code-bloat if functions taking this function type are called many times, at a minimal hit in speed). Function values called over a generic variable are always inlined, to ensure higher order functions are competitive in speed with hard-coded equivalents.</p>
 <p>Lobster really wants you to be able to use function values everywhere at no cost, so besides guaranteed inlining, the other way they differ from other languages is that they are always <em>non-escaping</em>. What that means is, that while function values may use free variables (refer to variables from enclosing scopes), they are not “closures”, i.e. they do not close over (capture) these variables, they merely refer to them. This means these function values cannot be called from an environment where those free variables are not available anymore (this will typically result in a compile-time error). This makes a function value in Lobster a single code pointer without any variable information attached, and thus extremely cheap. The downside is that they can’t be used for things like certain kinds of callbacks, though you probably shouldn’t be using those in game-like contexts anyway ;)</p>

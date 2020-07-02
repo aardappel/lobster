@@ -517,7 +517,7 @@ Sometimes, you may want to be explicit about the function type. You can declare
 new function types, and then use them as a type:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def function_type(int) -> int
+def function_type(i:int) -> int
 def g(f:function_type): return 1 + f(2)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
