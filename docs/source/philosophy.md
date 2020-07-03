@@ -214,6 +214,21 @@ Strongly typed enums and bools got added, and multi-methods got replaced by a ve
 flexible overloading / dispatching system.
 See the [language reference](language_reference.html).
 
+In July 2020, co-routines were removed, along with the lesser known "frame log"
+feature. A full explanation of why is
+[here](https://github.com/aardappel/lobster/issues/100)
+The summary: it is a feature that seems very attractive for game programming,
+but in practice never got used (and in most cases works just as well with
+classes), and they put a big complexity strain on the implementation that
+makes it harder to make the language faster.
+The last version of the language that does contain co-routines is marked
+with the label `last_coroutine` in git, and the diff showing exactly what
+was all removed (and thus gives a good picture on how it used to work) is
+[here](https://github.com/aardappel/lobster/commit/9483b7026419fdce5421d22b2181e77e666daf82).
+Similarly, the last version that has frame log functionality is `last_frame_log`
+and the diff is
+[here](https://github.com/aardappel/lobster/commit/274f76ca1f36742469090befbdb7d7eaa108af8f)
+
 ### What Lobster will be (Future Plans)
 
 I've collected many random scribbles about what I think Lobster still needs in
