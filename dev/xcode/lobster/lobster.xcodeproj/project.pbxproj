@@ -625,9 +625,6 @@
 		33D163E51BABA50800BAD84D /* SDL_uikitview.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D163D91BABA50800BAD84D /* SDL_uikitview.m */; };
 		33D163E61BABA50800BAD84D /* SDL_uikitviewcontroller.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D163DB1BABA50800BAD84D /* SDL_uikitviewcontroller.m */; };
 		33D163E71BABA50800BAD84D /* SDL_uikitwindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D163DD1BABA50800BAD84D /* SDL_uikitwindow.m */; };
-		33D4B5961DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D4B5971DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D4B5981DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33DAC5591E5CC7250003767C /* include in Resources */ = {isa = PBXBuildFile; fileRef = 33DAC5581E5CC7250003767C /* include */; };
 		33DAC55A1E5CC7250003767C /* include in Resources */ = {isa = PBXBuildFile; fileRef = 33DAC5581E5CC7250003767C /* include */; };
 		33DAC55C1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC55B1E5CC7BE0003767C /* SDL_coreaudio.m */; };
@@ -1268,7 +1265,6 @@
 		33D163DB1BABA50800BAD84D /* SDL_uikitviewcontroller.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_uikitviewcontroller.m; sourceTree = "<group>"; };
 		33D163DC1BABA50800BAD84D /* SDL_uikitwindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_uikitwindow.h; sourceTree = "<group>"; };
 		33D163DD1BABA50800BAD84D /* SDL_uikitwindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_uikitwindow.m; sourceTree = "<group>"; };
-		33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vmlog.cpp; sourceTree = "<group>"; };
 		33D4C5F41488BFDC0019C311 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
 		33DAC5581E5CC7250003767C /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; name = include; path = ../../external/SDL/include; sourceTree = "<group>"; };
 		33DAC55B1E5CC7BE0003767C /* SDL_coreaudio.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_coreaudio.m; sourceTree = "<group>"; };
@@ -1756,7 +1752,6 @@
 				332249F622482B13009BDE0E /* tonative.cpp */,
 				332249F522482B13009BDE0E /* towasm.cpp */,
 				33FDF160220A59C400D7B010 /* disasm.cpp */,
-				33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */,
 				3342B79E1B2B4CE500FA2F0B /* main.cpp */,
 				3342B79B1B2B4CE500FA2F0B /* compiler.cpp */,
 				3395A8BF176140650047BE1F /* builtins */,
@@ -3071,7 +3066,6 @@
 				33D162081BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */,
 				3331457217596E1100D488CC /* meshgen.cpp in Sources */,
 				8C76033A195E457400EADF6F /* b2CollidePolygon.cpp in Sources */,
-				33D4B5981DE0CF8300C6FEB9 /* vmlog.cpp in Sources */,
 				33878CFB1F7B201D007BB196 /* effect_position.c in Sources */,
 				33D1610C1BAB9A2200BAD84D /* SDL_power.c in Sources */,
 				8C76035E195E457400EADF6F /* b2Math.cpp in Sources */,
@@ -3340,7 +3334,6 @@
 				33D162071BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */,
 				33F7F3E417236720005B7988 /* sdlaudiosfxr.cpp in Sources */,
 				8C760339195E457400EADF6F /* b2CollidePolygon.cpp in Sources */,
-				33D4B5971DE0CF8300C6FEB9 /* vmlog.cpp in Sources */,
 				33878CFA1F7B201D007BB196 /* effect_position.c in Sources */,
 				33D1610B1BAB9A2200BAD84D /* SDL_power.c in Sources */,
 				8C76035D195E457400EADF6F /* b2Math.cpp in Sources */,
@@ -3442,7 +3435,6 @@
 				3375EB0E20DDBD6000EBAB26 /* engine.cpp in Sources */,
 				33D162E11BAB9A2200BAD84D /* SDL_stretch.c in Sources */,
 				33D15C9F1BAB7D3C00BAD84D /* ftstroke.c in Sources */,
-				33D4B5961DE0CF8300C6FEB9 /* vmlog.cpp in Sources */,
 				33D163DF1BABA50800BAD84D /* SDL_uikitevents.m in Sources */,
 				3342B7A41B2B4CE500FA2F0B /* main.cpp in Sources */,
 				3342B7A11B2B4CE500FA2F0B /* compiler.cpp in Sources */,
