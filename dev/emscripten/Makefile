@@ -68,7 +68,6 @@ CPPSRCS= \
 	../src/towasm.cpp \
     ../src/vm.cpp \
 	../src/vmdata.cpp \
-	../src/vmlog.cpp \
     $(wildcard ../include/Box2D/Collision/*.cpp) \
     $(wildcard ../include/Box2D/Collision/Shapes/*.cpp) \
     $(wildcard ../include/Box2D/Common/*.cpp) \
