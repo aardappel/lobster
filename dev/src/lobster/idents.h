@@ -851,7 +851,7 @@ struct SymbolTable {
         vector<flatbuffers::Offset<bytecode::UDT>> udtoffsets;
         for (auto u : udttable) udtoffsets.push_back(u->Serialize(fbb));
         vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
-        for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->cursid->sf_def == toplevel));
+        for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->scopelevel == 1));
         vector<flatbuffers::Offset<bytecode::Enum>> enumoffsets;
         for (auto e : enumtable) enumoffsets.push_back(e->Serialize(fbb));
         auto bcf = bytecode::CreateBytecodeFile(fbb,
