@@ -1,3 +1,11 @@
+- docs only show switch used as exp
+
+- let x:T = vector_reserve(typeof U, ) may crash if U is not compatible with T.
+  Maybe at least in the docs mark this function as private, people should use `map` instead.
+  Or re-think this feature entirely?
+
+
+
 - should we replace coroutines with something simpler like: https://github.com/aardappel/lobster/issues/100
    - memset in VM alloc seems to mask a problem in coroutine cleanup (see unittest).
 
@@ -5,6 +13,13 @@
 
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
+
+- it be really easy to bring full "any" back for builtin functions, and mixed type varargs
+  at the same time by prefixing each value on the stack by a ti value, and possibly a length.
+  what is this useful for?
+  - more efficient print and to string?
+  - formatted printing?
+  - serialization?
 
 - jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
@@ -134,6 +149,10 @@
       fun() x: print x
   - SharedField can be removed, only needed in deciding how to parse x.y and x.y(
 
+- Would be good to finally make SDL modular, and get rid of that silly main-redef
+  There's this: https://wiki.libsdl.org/SDL_SetMainReady
+  But elsewhere it still claims that things may fail or give you bad error messages if not used
+  https://stackoverflow.com/questions/34079288/im-using-the-sdl-functions-without-the-sdl-main-be-defined-is-that-fine
 
 - kriskowal: a non-allocating version of copy() with a second destination arg.
 
@@ -160,6 +179,35 @@
     Fundamentally, state that survives a frame needs to be carefully managed regardless.
     Co-routines have also been an endless source of complexity in the VM, and don't fit
     with Lobster's new focus on efficiency.
+
+- should really support proper tail calls, e.g. https://www.lua.org/pil/6.3.html
+  Once "return" is gets compiled such that it jumps to its own stack unwinding code, there
+  can be a version where there's additionally a function value on the stack that gets called on
+  the "return values" at the end of unwinding.
+  - can reduce some of the downsides we have in the typechecker for recursive functions (which
+    can be avoided to be marked recursive).
+  - can do simple state machines.
+  - must check that the function being called does not use free variables of the function that
+    just returned!
+    - as such, maybe tail calls are better off as explicit syntactical feature, since optimizing
+      unsuspecting non-recursive calls into tail calls is not actually faster.
+      - we don't want people requiring a tail call that then silently doesn't become one because
+        of free variables.
+      - especially since it avoid the function being inlined, and we don't that arbitrarily making
+        things non-tail calls either.
+  - can go even further, and can make this into a feature that emulates co-routines?
+    Instead of at the end of unwind calling the function, it can be regarded as a little struct
+    return value (a closure that doesn't close over anything), which can be called at any time
+    later!
+    - problem is that doesn't give a way to resume with an arg?
+      maybe a way to overwrite any arg would be simplest?
+      resume with an arg is much less frequent than returning on yield, so maybe not a big deal.
+    - also work with anonymous functions being tail called, maybe with auto parameter passing?
+    See: https://github.com/aardappel/lobster/issues/100
+  - imagine if you could push multiple of such closures, to be called in sequence, potentially
+    consuming values from previous such calls?
+    this way you could make the recursive quicksort non-recursive, by returning 2 quicksort calls
+    and 1 append_it_all call. though of course this still uses unbounded stack memory, just less so.
 
 - jcorbin: a basis_spline equivalent of cardinal_spline
 
@@ -852,6 +900,16 @@
 
 - a file with only an include statement in it gives: error: linefeed expected, found: end of file
 
+- Swift's weak pointer feature has some merit.
+  It's not a real weak pointer in the sense that it still holds an object alive, more like a
+  "2nd class" refc.
+  So an object would have 2 refc. If you have the classical cycle, of root -> A, A -> B, and
+  B -> A, A would have refc=2 which is the problem. But here, A would have 1 strong, and 1 weak,
+  allowing the deallocation to continue. At first strong drops to 0, but weak does not, so it
+  is kept alive. Then once the weak also drops to zero it gets deallocated.
+  - Also see: Nim is using the annotation .cursor for weak refs.
+    https://www.youtube.com/watch?v=aUJcYTnPWCg
+
 - font rendering:
   - it is possible when only very few chars are cached, that they are placed higher in the bitmap
     if all their bounding boxes are small.
@@ -861,6 +919,8 @@
 
 - also allow explicit a.x, a.y = f() multi assign, this should be easy now that AssignList
   takes lvalues because of with defs.
+
+- A "warning: expression has no effect" would be nice, for when you mistype `a += 1` as `a + 1`
 
 - if we make assert a language feature rather than a builtin, we can make it understand
   equality operators directly, and create specialized asserts that have better errors, i.e.
