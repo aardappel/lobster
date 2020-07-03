@@ -534,7 +534,6 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_SPECIDENTS = 24,
     VT_DEFAULT_INT_VECTOR_TYPES = 26,
     VT_DEFAULT_FLOAT_VECTOR_TYPES = 28,
-    VT_LOGVARS = 30,
     VT_ENUMS = 32,
     VT_VTABLES = 34
   };
@@ -577,9 +576,6 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *default_float_vector_types() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_DEFAULT_FLOAT_VECTOR_TYPES);
   }
-  const flatbuffers::Vector<int32_t> *logvars() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_LOGVARS);
-  }
   const flatbuffers::Vector<flatbuffers::Offset<Enum>> *enums() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Enum>> *>(VT_ENUMS);
   }
@@ -618,8 +614,6 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(default_int_vector_types()) &&
            VerifyOffset(verifier, VT_DEFAULT_FLOAT_VECTOR_TYPES) &&
            verifier.VerifyVector(default_float_vector_types()) &&
-           VerifyOffset(verifier, VT_LOGVARS) &&
-           verifier.VerifyVector(logvars()) &&
            VerifyOffset(verifier, VT_ENUMS) &&
            verifier.VerifyVector(enums()) &&
            verifier.VerifyVectorOfTables(enums()) &&
@@ -671,9 +665,6 @@ struct BytecodeFileBuilder {
   void add_default_float_vector_types(flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_float_vector_types) {
     fbb_.AddOffset(BytecodeFile::VT_DEFAULT_FLOAT_VECTOR_TYPES, default_float_vector_types);
   }
-  void add_logvars(flatbuffers::Offset<flatbuffers::Vector<int32_t>> logvars) {
-    fbb_.AddOffset(BytecodeFile::VT_LOGVARS, logvars);
-  }
   void add_enums(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Enum>>> enums) {
     fbb_.AddOffset(BytecodeFile::VT_ENUMS, enums);
   }
@@ -707,13 +698,11 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
     flatbuffers::Offset<flatbuffers::Vector<const SpecIdent *>> specidents = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_int_vector_types = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_float_vector_types = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> logvars = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Enum>>> enums = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> vtables = 0) {
   BytecodeFileBuilder builder_(_fbb);
   builder_.add_vtables(vtables);
   builder_.add_enums(enums);
-  builder_.add_logvars(logvars);
   builder_.add_default_float_vector_types(default_float_vector_types);
   builder_.add_default_int_vector_types(default_int_vector_types);
   builder_.add_specidents(specidents);
@@ -745,7 +734,6 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
     const std::vector<SpecIdent> *specidents = nullptr,
     const std::vector<int32_t> *default_int_vector_types = nullptr,
     const std::vector<int32_t> *default_float_vector_types = nullptr,
-    const std::vector<int32_t> *logvars = nullptr,
     const std::vector<flatbuffers::Offset<Enum>> *enums = nullptr,
     const std::vector<int32_t> *vtables = nullptr) {
   return bytecode::CreateBytecodeFile(
@@ -763,7 +751,6 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
       specidents ? _fbb.CreateVectorOfStructs<SpecIdent>(*specidents) : 0,
       default_int_vector_types ? _fbb.CreateVector<int32_t>(*default_int_vector_types) : 0,
       default_float_vector_types ? _fbb.CreateVector<int32_t>(*default_float_vector_types) : 0,
-      logvars ? _fbb.CreateVector<int32_t>(*logvars) : 0,
       enums ? _fbb.CreateVector<flatbuffers::Offset<Enum>>(*enums) : 0,
       vtables ? _fbb.CreateVector<int32_t>(*vtables) : 0);
 }

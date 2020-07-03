@@ -57,7 +57,6 @@ LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/src/tonative.cpp \
 	$(LOBSTER_PATH)/src/towasm.cpp \
 	$(LOBSTER_PATH)/src/vmdata.cpp \
-	$(LOBSTER_PATH)/src/vmlog.cpp \
 	$(LOBSTER_PATH)/src/vm.cpp \
 	$(subst $(LOCAL_PATH)/,, \
 	$(wildcard $(LOCAL_PATH)/$(BOX2D_PATH)/Collision/*.cpp) \

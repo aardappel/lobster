@@ -73,7 +73,6 @@ VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
         byteprofilecounts = new uint64_t[codelen];
         memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
     #endif
-    vml.LogInit(bcf);
 
     #ifdef VM_COMPILED_CODE_MODE
         #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
@@ -697,7 +696,6 @@ void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
     ret.LTDECTYPE(*this, ti.t);
     assert(sp == stack - 1);
     FinalStackVarsCleanup(sp);
-    vml.LogCleanup();
     for (auto s : constant_strings) {
         if (s) s->Dec(*this);
     }

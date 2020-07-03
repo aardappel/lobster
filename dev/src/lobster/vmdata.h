@@ -624,25 +624,6 @@ struct LVector : RefObj {
     }
 };
 
-struct VMLog {
-    struct LogVar {
-        vector<Value> values;
-        size_t read;
-        const TypeInfo *type;
-    };
-    vector<LogVar> logvars;
-
-    VM &vm;
-    VMLog(VM &_vm);
-
-    void LogInit(const bytecode::BytecodeFile *bcf);
-    void LogPurge();
-    void LogFrame();
-    Value LogGet(Value def, int idx);
-    void LogWrite(Value newval, int idx);
-    void LogCleanup();
-};
-
 struct StackFrame {
     InsPtr retip;
     const int *funstart;
@@ -722,8 +703,6 @@ struct VM : VMArgs {
     iint maxsp = -1;
 
     PrintPrefs debugpp { 2, 50, true, -1 };
-
-    VMLog vml { *this };
 
     string s_reuse;
 

@@ -830,17 +830,6 @@ VM_INLINE StackPtr U_COEND(VM &vm, StackPtr sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_LOGREAD(VM &vm, StackPtr sp, int vidx) {
-    auto val = Pop(sp);
-    Push(sp, vm.vml.LogGet(val, vidx));
-    return sp;
-}
-
-VM_INLINE StackPtr U_LOGWRITE(VM &vm, StackPtr sp, int vidx, int lidx) {
-    vm.vml.LogWrite(vm.vars[vidx], lidx);
-    return sp;
-}
-
 VM_INLINE StackPtr U_ABORT(VM &vm, StackPtr sp) {
     vm.SeriousError("VM internal error: abort");
     return sp;

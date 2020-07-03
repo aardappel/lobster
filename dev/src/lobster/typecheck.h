@@ -833,7 +833,6 @@ struct TypeChecker {
         sf->freevarchecked = true;
         sf->returngiventype = csf->returngiventype;
         sf->returntype = csf->returntype;
-        sf->logvarcallgraph = csf->logvarcallgraph;
         sf->method_of = csf->method_of;
         sf->generics = csf->generics;
         sf->giventypes = csf->giventypes;
@@ -1058,13 +1057,6 @@ struct TypeChecker {
         STACK_PROFILE;
         Function &f = *sf->parent;
         sf = f.overloads[overload_idx];
-        if (sf->logvarcallgraph) {
-            // Mark call-graph up to here as using logvars, if it hasn't been already.
-            for (auto sc : reverse(scopes)) {
-                if (sc.sf->logvarcallgraph) break;
-                sc.sf->logvarcallgraph = true;
-            }
-        }
         // Collect generic type values.
         vector<BoundTypeVariable> generics = sf->generics;
         for (auto &btv : generics) btv.resolvedtype = nullptr;
@@ -1088,7 +1080,7 @@ struct TypeChecker {
         };
         // Check if any existing specializations match.
         for (sf = f.overloads[overload_idx]; sf; sf = sf->next) {
-            if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
+            if (sf->typechecked && !sf->mustspecialize) {
                 // We check against f.nargs because HOFs are allowed to call a function
                 // value with more arguments than it needs (if we're called from
                 // TypeCheckDynCall). Optimizer always removes these.
@@ -2351,11 +2343,6 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         sid->type = var.type;
         sid->lt = var.lt;
         LOG_DEBUG("var: ", sid->id->name, ":", TypeName(var.type));
-        if (sid->id->logvar) {
-            for (auto &sc : tc.scopes)
-                if (sc.sf->iscoroutine)
-                    tc.TypeError("can\'t use log variable inside coroutine", *this);
-        }
     }
     exptype = type_void;
     lt = LT_ANY;

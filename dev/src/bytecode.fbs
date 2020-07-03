@@ -80,7 +80,7 @@ table BytecodeFile {
     default_int_vector_types:[int];
     default_float_vector_types:[int];
 
-    logvars:[int];  // Index into specidents.
+    logvars:[int] (deprecated);
 
     enums:[Enum];
 

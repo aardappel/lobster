@@ -70,7 +70,6 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             break;
         }
 
-        case IL_LOGWRITE:
         case IL_KEEPREF:
         case IL_KEEPREFLOOP:
             append(sd, *ip++, " ");

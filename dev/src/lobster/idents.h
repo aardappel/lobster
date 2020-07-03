@@ -39,7 +39,6 @@ struct Ident : Named {
     bool single_assignment = true;  // not declared const but def only, exp may or may not be const
     bool constant = false;          // declared const
     bool static_constant = false;   // not declared const but def only, exp is const.
-    bool logvar = false;
 
     SpecIdent *cursid = nullptr;
 
@@ -62,7 +61,6 @@ struct SpecIdent {
     Ident *id;
     TypeRef type;
     Lifetime lt = LT_UNDEF;
-    int logvaridx = -1;
     int idx, sidx = -1;     // Into specidents, and into vm ordering.
     SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
 
@@ -296,7 +294,6 @@ struct SubFunction {
     bool typechecked = false;
     bool freevarchecked = false;
     bool mustspecialize = false;
-    bool logvarcallgraph = false;
     bool isdynamicfunctionvalue = false;
     bool consumes_vars_on_return = false;
     bool optimized = false;
@@ -519,11 +516,6 @@ struct SymbolTable {
         return withstack.size()
             ? withstack.back()
             : WithStackElem();
-    }
-
-    void MakeLogVar(Ident *id) {
-        id->logvar = true;
-        defsubfunctionstack.back()->logvarcallgraph = true;
     }
 
     void BlockScopeStart() {
@@ -853,7 +845,6 @@ struct SymbolTable {
                    vector<bytecode::LineInfo> &linenumbers,
                    vector<bytecode::SpecIdent> &sids,
                    vector<string_view> &stringtable,
-                   vector<int> &speclogvars,
                    string &bytecode,
                    vector<int> &vtables) {
         flatbuffers::FlatBufferBuilder fbb;
@@ -885,7 +876,6 @@ struct SymbolTable {
             fbb.CreateVectorOfStructs(sids),
             fbb.CreateVector((vector<int> &)vint_typeoffsets),
             fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
-            fbb.CreateVector(speclogvars),
             fbb.CreateVector(enumoffsets),
             fbb.CreateVector(vtables));
         bytecode::FinishBytecodeFileBuffer(fbb, bcf);

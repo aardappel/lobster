@@ -223,11 +223,7 @@ struct Parser {
                     def->sids.push_back({ id->cursid, type });
                     if (!IsNext(T_COMMA)) break;
                 }
-                if (IsNext(T_LOGASSIGN)) {
-                    for (auto p : def->sids) st.MakeLogVar(p.first->id);
-                } else {
-                    Expect(T_ASSIGN);
-                }
+                Expect(T_ASSIGN);
                 def->child = ParseMultiRet(ParseOpExp());
                 list->Add(def);
                 break;

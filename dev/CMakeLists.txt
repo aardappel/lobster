@@ -68,7 +68,6 @@ else()
      src/towasm.cpp
      src/vm.cpp
      src/vmdata.cpp
-     src/vmlog.cpp
   )
   add_definitions(-DLOBSTER_ENGINE=0)
 endif()
@@ -167,7 +166,7 @@ if(LOBSTER_ENGINE)
     endif()
     if(MINGW)
         SET(CMAKE_CXX_LINK_FLAGS "-mconsole -lmingw32")
-    endif()    
+    endif()
   endif()
 endif()
 

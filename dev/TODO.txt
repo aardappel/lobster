@@ -251,8 +251,6 @@
 
 - default/tagged args for functions.
 
-- remove logvars?
-
 - consider adding optional {}.. it really seems to bother people.
   make it such you can only use one style per file
 

@@ -50,9 +50,6 @@
     <ClCompile Include="..\src\compiler.cpp">
       <Filter>compiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\vmlog.cpp">
-      <Filter>dvm</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\flatbuffers\src\idl_gen_text.cpp">
       <Filter>compiler\builtins\flatbuffers</Filter>
     </ClCompile>

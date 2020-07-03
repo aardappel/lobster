@@ -75,7 +75,6 @@ void one_frame_callback(void *arg) {
     #endif
     {
         GraphicsFrameStart();
-        vm.vml.LogFrame();
         vm.OneMoreFrame(vm.ResumeSP());
         // If this returns, we didn't hit a gl_frame() again and exited normally.
         EngineExit(0);

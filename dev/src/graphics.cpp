@@ -189,19 +189,7 @@ nfr("gl_frame", "", "", "B",
         vm.CleanupDelayDeleteCoroutines(sp);
         EngineSuspendIfNeeded(sp, vm);
         auto cb = GraphicsFrameStart();
-        vm.vml.LogFrame();
         return Value(!cb);
-    });
-
-nfr("gl_log_frame", "delta", "F", "",
-    "call this function instead of gl_frame() to simulate a frame based program from"
-    " non-graphical code. does not require gl_window(). manages frame log state much like"
-    " gl_frame(). allows gl_time and gl_delta_time to work. pass a desired delta time,"
-    " e.g. 1.0/60.0",
-    [](StackPtr &, VM &vm, Value &delta) {
-        SDLUpdateTime(delta.fval());
-        vm.vml.LogFrame();
-        return Value();
     });
 
 nfr("gl_shutdown", "", "", "",

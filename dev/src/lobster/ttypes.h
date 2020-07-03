@@ -42,7 +42,6 @@ namespace lobster {
     TOK(T_ASL, "<<") \
     TOK(T_ASR, ">>") \
     TOK(T_ASSIGN, "=") \
-    TOK(T_LOGASSIGN, "?=") \
     TOK(T_PLUSEQ, "+=") \
     TOK(T_MINUSEQ, "-=") \
     TOK(T_MULTEQ, "*=") \
