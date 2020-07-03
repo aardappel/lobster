@@ -39,7 +39,6 @@ def py_triples(n, f):
                     if x * x + y * y == z * z:
                         yield():
                             f([ x, y, z ])
-    return []  // Needed for co-routine use below.
 
 // Note that the language guarantees that lambdas get inlined (and so do named single use / small
 // functions), so the above code mostly compiles to a bunch of nested loops, so this code should
@@ -68,9 +67,3 @@ py_triples(100) t:
 [26, 168, 170]
 
 */
-
-// Oh, want more magic? How about the above as a co-routine?
-let c = coroutine py_triples(100)
-while c.active:
-    print c.return_value
-    c.resume

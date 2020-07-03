@@ -54,7 +54,7 @@ namespace lobster {
     TOK(T_ASREQ, ">>=") \
     TOK(T_DOT, ".") \
     TOK(T_DOTDOT, "..") \
-    TOK(T_CODOT, "->") \
+    TOK(T_RETURNTYPE, "->") \
     TOK(T_INT, "integer literal") \
     TOK(T_FLOAT, "floating point literal") \
     TOK(T_STR, "string literal") \
@@ -67,7 +67,6 @@ namespace lobster {
     TOK(T_RETURN, "return") \
     TOK(T_IS, "is") \
     TOK(T_TYPEOF, "typeof") \
-    TOK(T_COROUTINE, "coroutine") \
     TOK(T_LINEFEED, "linefeed") \
     TOK(T_ENDOFINCLUDE, "end of include") \
     TOK(T_ENDOFFILE, "end of file") \

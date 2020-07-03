@@ -254,11 +254,6 @@ struct TypeChecker {
             case V_STRUCT_R:
             case V_STRUCT_S:
                 return type->t == bound->t && type->udt == bound->udt;
-            case V_COROUTINE:
-                return type->t == V_COROUTINE &&
-                       (bound->sf == type->sf ||
-                        (!bound->sf && type->sf &&
-                         ConvertsTo(type->sf->coresumetype, NewNilTypeVar(), false)));
             case V_TUPLE:
                 return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *bound->tup);
             case V_TYPEID:
@@ -762,7 +757,6 @@ struct TypeChecker {
         };
         for (auto &arg : sf.args) enter_scope(arg);
         for (auto &local : sf.locals) enter_scope(local);
-        sf.coresumetype = sf.iscoroutine ? NewNilTypeVar() : type_undefined;
         sf.returntype = sf.reqret
             ? (!sf.returngiventype.utr.Null()
                 ? ResolveTypeVars(sf.returngiventype, &call_context)
@@ -859,9 +853,6 @@ struct TypeChecker {
     void CheckReturnPast(const SubFunction *sf, const SubFunction *sf_to, const Node &context) {
         // Special case for returning out of top level, which is always allowed.
         if (sf_to == st.toplevel) return;
-        if (sf->iscoroutine) {
-            TypeError("cannot return out of coroutine", context);
-        }
         if (sf->isdynamicfunctionvalue) {
             // This is because the function has been typechecked against one context, but
             // can be called again in a different context that does not have the same callers.
@@ -1076,7 +1067,7 @@ struct TypeChecker {
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
         auto AllowAnyLifetime = [&](const Arg &arg) {
-            return arg.sid->id->single_assignment && !sf->iscoroutine;
+            return arg.sid->id->single_assignment;
         };
         // Check if any existing specializations match.
         for (sf = f.overloads[overload_idx]; sf; sf = sf->next) {
@@ -1123,11 +1114,6 @@ struct TypeChecker {
         if (sf->method_of)
             st.bound_typevars_stack.push_back(&call_args.children[0]->exptype->udt->generics);
         st.bound_typevars_stack.push_back(&sf->generics);
-        // See if this is going to be a coroutine.
-        for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) /* see above */ {
-            if (Is<CoClosure>(c))
-                sf->iscoroutine = true;
-        }
         for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) /* see above */ {
             auto &arg = sf->args[i];
             arg.sid->lt = AllowAnyLifetime(arg) ? c->lt : LT_KEEP;
@@ -1461,57 +1447,23 @@ struct TypeChecker {
                                              size_t reqret) {
         auto &ftype = fval->type;
         auto nargs = args->Arity();
-        // FIXME: split this up in a Call, a Yield and a DynCall(istype = true) node, just like
-        // GenericCall does.
-        if (ftype->IsFunction()) {
-            // We can statically typecheck this dynamic call. Happens for almost all non-escaping
-            // closures.
-            fspec = ftype->sf;
-            if (nargs < fspec->parent->nargs())
-                TypeError("function value called with too few arguments", *args);
-            // In the case of too many args, TypeCheckCall will ignore them (and optimizer will
-            // remove them).
-            int vtable_idx = -1;
-            auto type = TypeCheckCall(fspec, *args, reqret, vtable_idx, nullptr);
-            assert(vtable_idx < 0);
-            ftype = &fspec->thistype;
-            return { type, fspec->ltret };
-        } else if (ftype->t == V_YIELD) {
-            fspec = nullptr;
-            // V_YIELD must have perculated up from a coroutine call.
-            if (nargs != 1)
-                TypeError("coroutine yield call must have exactly one argument", *args);
-            NoStruct(*args->children[0], "yield");  // FIXME: implement.
-            AdjustLifetime(args->children[0], LT_KEEP);
-            for (auto scope : reverse(named_scopes)) {
-                auto sf = scope.sf;
-                if (!sf->iscoroutine) continue;
-                // What yield returns to return_value(). If no arg, then it will return nil.
-                auto type = args->children[0]->exptype;
-                RetVal(type, sf, *args);
-                SubTypeT(type, sf->returntype, *args, "", "yield value");
-                // Now collect all ids between coroutine and yield, so that we can save these in the
-                // VM.
-                bool foundstart = false;
-                for (auto savescope = scopes.begin(); savescope != scopes.end(); ++savescope) {
-                    auto ssf = savescope->sf;
-                    if (ssf == sf) foundstart = true;
-                    if (!foundstart) continue;
-                    for (auto &arg : ssf->args)
-                        sf->Add(sf->coyieldsave, arg);
-                    for (auto &loc : ssf->locals)
-                        sf->Add(sf->coyieldsave, Arg(loc.sid, loc.sid->type, loc.withtype));
-                }
-                for (auto &cys : sf->coyieldsave) UpdateCurrentSid(cys.sid);
-                return { sf->coresumetype, LT_KEEP };
-            }
-            TypeError("yield function called outside scope of coroutine", *args);
-            return { type_void, LT_ANY };
-        } else {
+        if (!ftype->IsFunction()) {
             TypeError(cat("dynamic function call value doesn\'t have a function type: \"",
-                          TypeName(ftype), "\""), *args);
+                TypeName(ftype), "\""), *args);
             return { type_void, LT_ANY };
         }
+        // We can statically typecheck this dynamic call. Happens for almost all non-escaping
+        // closures.
+        fspec = ftype->sf;
+        if (nargs < fspec->parent->nargs())
+            TypeError("function value called with too few arguments", *args);
+        // In the case of too many args, TypeCheckCall will ignore them (and optimizer will
+        // remove them).
+        int vtable_idx = -1;
+        auto type = TypeCheckCall(fspec, *args, reqret, vtable_idx, nullptr);
+        assert(vtable_idx < 0);
+        ftype = &fspec->thistype;
+        return { type, fspec->ltret };
     }
 
     TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *body, size_t reqret) {
@@ -1818,7 +1770,6 @@ struct TypeChecker {
             if (auto dot = Is<Dot>(lval)) return LvalueLifetime(*dot->children[0], deref);
             if (auto idx = Is<Indexing>(lval)) return LvalueLifetime(*idx->object, deref);
         }
-        if (auto cod = Is<CoDot>(lval)) return AssertIs<IdentRef>(cod->variable)->sid->lt;
         return LT_KEEP;
     }
 
@@ -2284,32 +2235,10 @@ Node *Range::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *CoDot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(coroutine, 1, LT_BORROW);
-    // Leave right ident untypechecked.
-    tc.SubType(coroutine, type_coroutine, "coroutine", *this);
-    auto sf = coroutine->exptype->sf;
-    Arg *uarg = nullptr;
-    // This ident is not necessarily the right one.
-    auto var = AssertIs<IdentRef>(variable);
-    auto &name = var->sid->id->name;
-    for (auto &arg : sf->coyieldsave) if (arg.sid->id->name == name) {
-        if (uarg) tc.TypeError("multiple coroutine variables named: " + name, *this);
-        uarg = &arg;
-    }
-    if (!uarg) tc.TypeError("no coroutine variables named: " + name, *this);
-    var->sid = uarg->sid;
-    var->exptype = exptype = uarg->type;
-    // FIXME: this really also borrows from the actual variable, in case the coroutine is run
-    // again?
-    lt = coroutine->lt;
-    return this;
-}
-
 Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     for (auto &p : sids) {
         tc.UpdateCurrentSid(p.first);
-        // We have to set these here just in case the init exp is a function/coroutine call that
+        // We have to set these here just in case the init exp is a function call that
         // tries use/assign this variable, type_undefined will force that to be an error.
         // TODO: could make this a specialized error, but probably not worth it because it is rare.
         p.first->type = type_undefined;
@@ -2745,24 +2674,6 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             else if (argtype->t == V_ANY) argtype = tc.NewTypeVar();
             else assert(0);
         }
-        if (arg.flags & NF_CORESUME) {
-            // Specialized typechecking for resume()
-            assert(argtypes[0]->t == V_COROUTINE);
-            auto csf = argtypes[0]->sf;
-            if (csf) {
-                tc.SubType(c, csf->coresumetype, "resume value", *c);
-            } else {
-                if (!Is<DefaultVal>(c))
-                    tc.TypeError("cannot resume a generic coroutine type with an argument",
-                                 *this);
-            }
-            if (c->exptype->t == V_VAR) {
-                // No value supplied to resume, and none expected at yield either.
-                // nil will be supplied, so make type reflect that.
-                tc.UnifyVar(tc.NewNilTypeVar(), c->exptype);
-            }
-            typed = true;
-        }
         if (argtype->t == V_ANY) {
             if (!arg.flags) {
                 // Special purpose type checking to allow any reference type for functions like
@@ -2832,16 +2743,11 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                     type = tc.st.Wrap(type, V_NIL);
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
                     if (type->t == V_VECTOR) type = type->sub;
-                } else if (nftype->t == V_COROUTINE || nftype->t == V_FUNCTION) {
+                } else if (nftype->t == V_FUNCTION) {
                     auto csf = type->sf;
-                    if (csf) {
-                        // In theory it is possible this hasn't been generated yet..
-                        type = csf->returntype;
-                    } else {
-                        // This can happen when typechecking a multimethod with a coroutine arg.
-                        tc.TypeError(cat("cannot call \"", nf->name, "\" on generic coroutine type"),
-                                         *this);
-                    }
+                    assert(csf);
+                    // In theory it is possible this hasn't been generated yet..
+                    type = csf->returntype;
                 }
                 if (rlt == LT_BORROW) {
                     auto alt = nf->args[sa].lt;
@@ -3133,28 +3039,6 @@ Node *Seq::TypeCheck(TypeChecker &tc, size_t reqret) {
     return this;
 }
 
-Node *CoClosure::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
-    exptype = type_function_cocl;
-    lt = LT_ANY;
-    return this;
-}
-
-Node *CoRoutine::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(call, 1, LT_KEEP);
-    tc.NoStruct(*call, "coroutine call return value");  // FIXME
-    if (auto fc = Is<Call>(call)) {
-        auto sf = fc->sf;
-        assert(sf->iscoroutine);
-        auto ct = tc.st.NewType();
-        *ct = Type(V_COROUTINE, sf);
-        exptype = ct;
-    } else {
-        tc.TypeError("coroutine constructor must be regular function call", *call);
-    }
-    lt = LT_KEEP;
-    return this;
-}
-
 Node *TypeOf::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.DecBorrowers(child->lt, *this);
@@ -3280,7 +3164,6 @@ bool Call::Terminal(TypeChecker &tc) const {
     // Have to be conservative for recursive calls since we're not done typechecking it.
     if (sf->isrecursivelycalled ||
         sf->method_of ||
-        sf->iscoroutine ||
         sf->parent->istype) return false;
     if (!sf->num_returns) return true;
     if (sf->num_returns == 1) {

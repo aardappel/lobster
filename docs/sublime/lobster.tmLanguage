@@ -28,13 +28,13 @@
             <key>name</key>
             <string>keyword.source.lobster</string>
             <key>match</key>
-            <string>\b(break|return|struct|class|import|namespace|pakfile|def|is|from|program|private|coroutine|enum|enum_flags|typeof|var|let|not|and|or)\b</string>
+            <string>\b(break|return|struct|class|import|namespace|pakfile|def|is|from|program|private|enum|enum_flags|typeof|var|let|not|and|or)\b</string>
         </dict>
         <dict>
             <key>name</key>
             <string>storage.type.source.lobster</string>
             <key>match</key>
-            <string>\b(int|float|string|vector|coroutine|bool|void|resource)\b</string>
+            <string>\b(int|float|string|vector|bool|void|resource)\b</string>
         </dict>
         <dict>
             <key>name</key>

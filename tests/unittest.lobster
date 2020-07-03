@@ -10,7 +10,6 @@ import structtest
 import misctest
 import mischtest
 import typetest
-import corotest
 import astartest
 import goaptest
 import knightstest

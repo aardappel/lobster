@@ -499,7 +499,7 @@ struct Parser {
         auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("");
         f.overloads.push_back(nullptr);
         sf->SetParent(f, f.overloads.back());
-        if (IsNext(T_CODOT)) {  // Return type decl.
+        if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
             sf->returntype = sf->returngiventype.utr;
         }
@@ -570,7 +570,6 @@ struct Parser {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
             case T_FLOATTYPE: dest = type_float;      lex.Next(); break;
             case T_STRTYPE:   dest = type_string;     lex.Next(); break;
-            case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
             case T_IDENT: {
                 auto f = st.FindFunction(lex.sattr);
@@ -761,7 +760,7 @@ struct Parser {
     }
 
     void CheckOpEq(Node *e) {
-        if (!Is<IdentRef>(e) && !Is<CoDot>(e) && !Is<Indexing>(e) && !Is<GenericCall>(e))
+        if (!Is<IdentRef>(e) && !Is<Indexing>(e) && !Is<GenericCall>(e))
             Error("illegal left hand side of assignment");
         Modify(e);
         lex.Next();
@@ -965,37 +964,25 @@ struct Parser {
         // FIXME: it would be good to narrow the kind of factors these derefs can attach to,
         // since for some of them it makes no sense (e.g. function call with lambda args).
         for (;;) switch (lex.token) {
-            case T_DOT:
-            case T_CODOT: {
-                auto op = lex.token;
+            case T_DOT: {
                 lex.Next();
                 auto idname = ExpectId();
-                if (op == T_CODOT) {
-                    // Here we just look up ANY var with this name, only in the typechecker can we
-                    // know if it exists inside the coroutine. Can cause error if used before
-                    // coroutine is defined, error hopefully hints at that.
-                    auto id = st.LookupAny(idname);
-                    if (!id)
-                        Error("coroutines have no variable named: " + idname);
-                    n = new CoDot(lex, n, new IdentRef(lex, id->cursid));
-                } else {
-                    auto fld = st.FieldUse(idname);
-                    auto f = st.FindFunction(idname);
-                    auto nf = natreg.FindNative(idname);
-                    if (fld || f || nf) {
-                        if (fld && lex.token != T_LEFTPAREN) {
-                            auto dot = new GenericCall(lex, idname,
-                                                       f ? f->overloads.back() : nullptr,
-                                                       true, nullptr);
-                            dot->Add(n);
-                            n = dot;
-                        } else {
-                            auto specializers = ParseSpecializers(f && !nf);
-                            n = ParseFunctionCall(f, nf, idname, n, false, 0, &specializers);
-                        }
+                auto fld = st.FieldUse(idname);
+                auto f = st.FindFunction(idname);
+                auto nf = natreg.FindNative(idname);
+                if (fld || f || nf) {
+                    if (fld && lex.token != T_LEFTPAREN) {
+                        auto dot = new GenericCall(lex, idname,
+                                                    f ? f->overloads.back() : nullptr,
+                                                    true, nullptr);
+                        dot->Add(n);
+                        n = dot;
                     } else {
-                        Error("unknown field/function: " + idname);
+                        auto specializers = ParseSpecializers(f && !nf);
+                        n = ParseFunctionCall(f, nf, idname, n, false, 0, &specializers);
                     }
+                } else {
+                    Error("unknown field/function: " + idname);
                 }
                 break;
             }
@@ -1079,15 +1066,6 @@ struct Parser {
                 lex.Next();
                 return ParseFunction(nullptr, false, lex.token == T_LEFTPAREN,
                     lex.token != T_COLON);
-            }
-            case T_COROUTINE: {
-                lex.Next();
-                auto idname = ExpectId();
-                auto specializers = ParseSpecializers(true);
-                auto n = ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr,
-                                           false, 1, &specializers);
-                n->Add(new CoClosure(lex));
-                return new CoRoutine(lex, n);
             }
             case T_FLOATTYPE:
             case T_INTTYPE:

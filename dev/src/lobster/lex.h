@@ -229,7 +229,7 @@ struct Lex : LoadedFile {
 
             case '+': second('+', T_INCR); cont = true; second('=', T_PLUSEQ); return T_PLUS;
             case '-': second('-', T_DECR); cont = true; second('=', T_MINUSEQ);
-                                                        second('>', T_CODOT); return T_MINUS;
+                                                        second('>', T_RETURNTYPE); return T_MINUS;
             case '*':                      cont = true; second('=', T_MULTEQ); return T_MULT;
             case '%':                      cont = true; second('=', T_MODEQ); return T_MOD;
 
@@ -294,7 +294,6 @@ struct Lex : LoadedFile {
                         case 'c':
                             if (sattr == "class") return T_CLASS;
                             if (sattr == "case") return T_CASE;
-                            if (sattr == "coroutine") return T_COROUTINE;
                             break;
                         case 'd':
                             if (sattr == "def") return T_FUN;

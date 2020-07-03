@@ -97,22 +97,6 @@ struct CodeGen  {
             case V_FUNCTION:
                 tt.push_back((type_elem_t)type->sf->idx);
                 break;
-            case V_COROUTINE:
-                if (type->sf) {
-                    if (type->sf->cotypeinfo >= 0)
-                        return type->sf->cotypeinfo;
-                    type->sf->cotypeinfo = (type_elem_t)type_table.size();
-                    // Reserve space, so other types can be added afterwards safely.
-                    type_table.insert(type_table.end(), 3, (type_elem_t)0);
-                    tt.push_back((type_elem_t)type->sf->idx);
-                    tt.push_back(GetTypeTableOffset(type->sf->returntype));
-                    std::copy(tt.begin(), tt.end(), type_table.begin() + type->sf->cotypeinfo);
-                    return type->sf->cotypeinfo;
-                } else {
-                    tt.push_back((type_elem_t)-1);
-                    tt.push_back(TYPE_ELEM_ANY);
-                }
-                break;
             case V_CLASS:
             case V_STRUCT_R:
             case V_STRUCT_S: {
@@ -141,7 +125,7 @@ struct CodeGen  {
                 assert(IsRuntime(type->t));
                 break;
         }
-        // For everything that's not a struct / known coroutine:
+        // For everything that's not a struct:
         auto it = type_lookup.find(tt);
         if (it != type_lookup.end()) return it->second;
         auto offset = (type_elem_t)type_table.size();
@@ -471,11 +455,6 @@ struct CodeGen  {
             Gen(dot->children[0], 1);
             TakeTemp(take_temp + 1, true);
             Emit(GENLVALOP(FLD, lvalop), field.slot); GenStructIns(field.resolvedtype);
-        } else if (auto cod = Is<CoDot>(lval)) {
-            auto ir = AssertIs<IdentRef>(cod->variable);
-            Gen(cod->coroutine, 1);
-            TakeTemp(take_temp + 1, true);
-            Emit(GENLVALOP(LOC, lvalop), ir->sid->Idx()); GenStructIns(ir->sid->type);
         } else if (auto indexing = Is<Indexing>(lval)) {
             Gen(indexing->object, 1);
             Gen(indexing->index, 1);
@@ -598,9 +577,6 @@ struct CodeGen  {
                 assert(field.slot >= 0);
                 GenPushField(retval, dot->children[0], sstype, ftype, field.slot + offset);
                 return;
-            } else if (auto cod = Is<CoDot>(object)) {
-                // This is already a very slow op, so not worth further optimizing for now.
-                (void)cod;
             } else if (auto indexing = Is<Indexing>(object)) {
                 // For now only do this for vectors.
                 if (indexing->object->exptype->t == V_VECTOR) {
@@ -745,20 +721,6 @@ void Indexing::Generate(CodeGen &cg, size_t retval) const {
 
 void GenericCall::Generate(CodeGen &, size_t /*retval*/) const {
     assert(false);
-}
-
-void CoDot::Generate(CodeGen &cg, size_t retval) const {
-    cg.Gen(coroutine, retval);
-    if (retval) {
-        cg.TakeTemp(1, false);
-        auto sid = AssertIs<IdentRef>(variable)->sid;
-        if (IsStruct(sid->type->t)) {
-            cg.Emit(IL_PUSHLOCV, sid->Idx());
-            cg.GenStructIns(sid->type);
-        } else {
-            cg.Emit(IL_PUSHLOC, sid->Idx());
-        }
-    }
 }
 
 void AssignList::Generate(CodeGen &cg, size_t retval) const {
@@ -1077,45 +1039,26 @@ void Call::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void DynCall::Generate(CodeGen &cg, size_t retval) const {
-    if (sid->type->t == V_YIELD) {
-        if (Arity()) {
-            for (auto c : children) {
-                cg.Gen(c, 1);
-            }
-            size_t nargs = children.size();
-            cg.TakeTemp(nargs, false);
-            assert(nargs == 1);
-        } else {
-            cg.Emit(IL_PUSHNIL);
-        }
-        cg.Emit(IL_YIELD);
-        // We may have temps on the stack from an enclosing for.
-        // Check that these temps are actually from for loops, to not mask bugs.
-        assert(cg.temptypestack.size() == cg.LoopTemps());
-        cg.SplitAttr(cg.Pos());
-        if (!retval) cg.GenPop({ exptype, lt });
+    assert(sf && sf == sid->type->sf);
+    // FIXME: in the future, we can make a special case for istype calls.
+    if (!sf->parent->istype) {
+        // We statically know which function this is calling.
+        // We can now turn this into a normal call.
+        cg.GenCall(*sf, -1, this, retval);
     } else {
-        assert(sf && sf == sid->type->sf);
-        // FIXME: in the future, we can make a special case for istype calls.
-        if (!sf->parent->istype) {
-            // We statically know which function this is calling.
-            // We can now turn this into a normal call.
-            cg.GenCall(*sf, -1, this, retval);
+        for (auto c : children) {
+            cg.Gen(c, 1);
+        }
+        size_t nargs = children.size();
+        assert(nargs == sf->args.size());
+        cg.Emit(IL_PUSHVAR, sid->Idx());
+        cg.TakeTemp(nargs, true);
+        cg.Emit(IL_CALLV);
+        cg.SplitAttr(cg.Pos());
+        if (sf->reqret) {
+            if (!retval) cg.GenPop({ exptype, lt });
         } else {
-            for (auto c : children) {
-                cg.Gen(c, 1);
-            }
-            size_t nargs = children.size();
-            assert(nargs == sf->args.size());
-            cg.Emit(IL_PUSHVAR, sid->Idx());
-            cg.TakeTemp(nargs, true);
-            cg.Emit(IL_CALLV);
-            cg.SplitAttr(cg.Pos());
-            if (sf->reqret) {
-                if (!retval) cg.GenPop({ exptype, lt });
-            } else {
-                cg.Dummy(retval);
-            }
+            cg.Dummy(retval);
         }
     }
 }
@@ -1509,35 +1452,6 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     cg.temptypestack = typestackbackup;
     // We can promise to be providing whatever retvals the caller wants.
     for (size_t i = 0; i < retval; i++) cg.rettypes.push_back({ type_undefined, LT_ANY });
-}
-
-void CoClosure::Generate(CodeGen &cg, size_t retval) const {
-    if (retval) cg.Emit(IL_COCL);
-}
-
-void CoRoutine::Generate(CodeGen &cg, size_t retval) const {
-    cg.Emit(IL_CORO, 0);
-    auto loc = cg.Pos();
-    auto sf = exptype->sf;
-    assert(exptype->t == V_COROUTINE && sf);
-    cg.Emit(cg.GetTypeTableOffset(exptype));
-    // TODO: We shouldn't need to store this table for each call, instead do it once for
-    // each function.
-    auto num = cg.Pos();
-    cg.Emit(0);
-    for (auto &arg : sf->coyieldsave) {
-        auto n = ValWidth(arg.sid->type);
-        for (int i = 0; i < n; i++) {
-            cg.Emit(arg.sid->Idx() + i);
-            cg.code[num]++;
-        }
-    }
-    cg.temptypestack.push_back(TypeLT { *this, 0 });
-    cg.Gen(call, 1);
-    cg.TakeTemp(2, false);
-    cg.Emit(IL_COEND);
-    cg.SetLabel(loc);
-    if (!retval) cg.Emit(IL_POPREF);
 }
 
 void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {

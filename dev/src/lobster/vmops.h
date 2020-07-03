@@ -111,12 +111,6 @@ VM_INLINE Value &GetVecLVal(VM &vm, StackPtr &sp, iint i) {
     return *v->AtSt(i);
 }
 
-VM_INLINE Value &GetLocLVal(VM &vm, StackPtr &sp, int i) {
-    Value coro = Pop(sp);
-    VMTYPEEQ(coro, V_COROUTINE);
-    return coro.cval()->GetVar(vm, sp, i);
-}
-
 VM_INLINE StackPtr U_PUSHINT(VM &, StackPtr sp, int x) {
     Push(sp, Value(x));
     return sp;
@@ -763,21 +757,6 @@ VM_INLINE StackPtr U_SPUSHIDXI(VM &vm, StackPtr sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_PUSHLOC(VM &vm, StackPtr sp, int i) {
-    auto coro = Pop(sp).cval();
-    auto v = coro->GetVar(vm, sp, i);
-    Push(sp, v);
-    return sp;
-}
-
-VM_INLINE StackPtr U_PUSHLOCV(VM &vm, StackPtr sp, int i, int l) {
-    auto coro = Pop(sp).cval();
-    auto v = &coro->GetVar(vm, sp, i);
-    tsnz_memcpy(TopPtr(sp), v, l);
-    PushN(sp, l);
-    return sp;
-}
-
 #ifdef VM_COMPILED_CODE_MODE
 VM_INLINE StackPtr U_JUMP(VM &, StackPtr sp) { Push(sp, false); return sp; }
 VM_INLINE StackPtr U_JUMPFAIL(VM &, StackPtr sp) { return sp; }
@@ -806,27 +785,6 @@ VM_INLINE StackPtr U_ISTYPE(VM &vm, StackPtr sp, int ty) {
     // Optimizer guarantees we don't have to deal with scalars.
     if (v.refnil()) Push(sp, v.ref()->tti == to);
     else Push(sp, vm.GetTypeInfo(to).t == V_NIL);  // FIXME: can replace by fixed type_elem_t ?
-    return sp;
-}
-
-VM_INLINE StackPtr U_YIELD(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS_CALL) {
-    vm.CoYield(sp VM_COMMA VM_FC_PASS_THRU);
-    return sp;
-}
-
-// This value never gets used anywhere, just a placeholder.
-VM_INLINE StackPtr U_COCL(VM &, StackPtr sp) {
-    Push(sp, Value(0, V_YIELD));
-    return sp;
-}
-
-VM_INLINE StackPtr U_CORO(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
-    vm.CoNew(sp VM_COMMA VM_IP_PASS_THRU VM_COMMA VM_FC_PASS_THRU);
-    return sp;
-}
-
-VM_INLINE StackPtr U_COEND(VM &vm, StackPtr sp) {
-    vm.CoClean(sp);
     return sp;
 }
 
@@ -966,11 +924,6 @@ PPOP(FMMPR, true , -, false, fval)
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N, V) VM_INLINE StackPtr U_LOC_##N(VM &vm, StackPtr sp, int i VM_COMMA_IF(V) VM_OP_ARGSN(V)) \
-    { auto &x = GetLocLVal(vm, sp, i); LV_##N(vm, sp, x VM_COMMA_IF(V) VM_OP_PASSN(V)); return sp; }
-    LVALOPNAMES
-#undef LVAL
-
 #define LVAL(N, V) VM_INLINE StackPtr U_IDXVI_##N(VM &vm, StackPtr sp VM_COMMA_IF(V) VM_OP_ARGSN(V)) \
     { auto x = Pop(sp).ival(); auto &y = GetVecLVal(vm, sp, x); LV_##N(vm, sp, y VM_COMMA_IF(V) VM_OP_PASSN(V)); return sp; }
     LVALOPNAMES
@@ -1005,7 +958,7 @@ PPOP(FMMPR, true , -, false, fval)
                         VM_OP_DEFSN(A); \
                         return U_##N(vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A) VM_CCOMMA_IF(A) VM_FC_PASS_THRU); \
                     }
-                ILCALLNAMES
+        ILCALLNAMES
     #undef F
     #define F(N, A) StackPtr F_##N(VM &vm, StackPtr sp) { return U_##N(vm, sp); }
         ILJUMPNAMES

@@ -36,7 +36,7 @@ Lexical definition
     for the first character).
 
 -   Keywords: `nil return class struct import int float string any void
-    def is from program private coroutine resource enum enum_flags typeof
+    def is from program private resource enum enum_flags typeof
     var let pakfile switch case default namespace not and or`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
@@ -84,7 +84,7 @@ args = [ list( ident [ ( `:` \| `::` ) type ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `[` type `]` \| `coroutine` \| `resource` \| `void`
+type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` \| `void`
     \| ident
 
 call = specializers `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
@@ -104,7 +104,7 @@ deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 \| `++` \| `--` \| `is` type ]
 
 factor = constant \| `(` exp `)` \| constructor \| `fn` functionargsbody \|
-`coroutine` ident call \| ident [ call ]
+ident [ call ]
 
 constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list(
 exp ) ] `}`
@@ -156,9 +156,6 @@ a value of one of the following types:
 
     -   `class` / `struct` : a user defined data structure, see below.
 
-    -   `coroutine` : a special object that contains a suspended computation,
-        see the section on coroutines below.
-
     -   `nil` : a special value of any reference type above, that indicates the
         absence of a legal value. `nil` is only allowed if the type is
         "nilable", for more on that see the document on type checking,
@@ -174,7 +171,7 @@ as the `not and or` operators (see below) or the builtin function `if`, the valu
 `0 0.0 nil` (which includes the enum value `false`) are all considered to be false,
 and all other values are true.
 
-The vector / `class` and `coroutine` types are the only mutable objects (can
+The vector and `class` types are the only mutable objects (can
 change after creation), and have reference semantics (multiple values can refer
 to the same object in memory, and thus changes can be observed from each).
 
@@ -337,7 +334,7 @@ The next lower level of precedence are the comparison operators `< > <= >=`
 which work on `int`, `float` and `string` and structs (returning a struct of
 ints, use builtin functions `any` and `all` to test these), and then the
 equality operators `==` and `!=` which additionally work on all other types, but
-in particular for `vector` and `coroutine` compare *by reference*, i.e they will
+in particular for `vector` and `class` compare *by reference*, i.e they will
 give true only if both sides refer to the same object (*object identity*). To
 test for *structural identity* instead, use the built-in function `equal`.
 
@@ -741,59 +738,6 @@ enum bool:
 Because they are enums, they have the same typing rules: a `bool` can be used anywhere
 an `int` is expected, but not the other way around. Similarly, you can use e.g. `bool(1)`
 to convert ints.
-
-Coroutines
-----------
-
-The higher order functions (function that take a function argument) we saw above
-often perform iteration, and then call the function value back 0..N times. But
-what if you want to iterate, but you don't want to run all iterations all at
-once? For example, what if you want the iteration to happen across frames in a
-game? In most languages, that means writing iteration code that is a lot
-clumsier than the nice functions you already have. In Lobster however, you can
-turn any such function into a coroutine, which is a higher order function that
-can be resumed on demand. Kind of like a separate thread that only runs when you
-want to (*cooperative multitasking*). For example:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var co = coroutine cofor(10)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Normally, `cofor` takes two arguments, the range to iterate over, and the
-function value to call for each value. When we prefix a call to for by
-`coroutine`, it transforms the call into an object that can have its iteration
-triggered manually. A coroutine *suspends* (yields) when it would normally call
-the function value (which here is supplied by `coroutine` automatically). We can
-check the last value the object produced using `co.return_value` (which after the
-above call should be `0`) and we can cause the next iteration step to happen
-with `co.resume` (or `co.resume(x)`, where `x` is the value to be returned from
-the function value call inside the coroutine). At some point, the coroutine may
-end naturally (when the loop is over), at which point it can't be resumed
-anymore, and trying to resume it would be an error. To test whether you can
-still iterate a coroutine further, you can call `co.active`. Putting that
-together, a typical loop to exhaust a coroutine looks like:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-while co.active:
-    print co.return_value
-    co.resume
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Which would print 0..9. However, noone would ever write such a loop, since in
-that case it would have been easier to just call the function this coroutine is
-based on! Typical use of a coroutine object is therefore to resume it once per
-frame in a game loop (for programming animations or game objects that act over
-time), or once every time new data arrives from a file, a network, or another
-thread.
-
-Calling co.return_value when co.active has turned false will get you the return
-value of the coroutine call as a whole.
-
-If you create a coroutine object based on a function that contains local
-variables, you can access those local variables even when the coroutine is not
-running, using the `->` operator: `co->local` accesses a particular local
-variable in a coroutine object. You can use these variables just like you can
-any other variable (assign to them etc.).
 
 Programs Structure
 ------------------

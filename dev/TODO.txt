@@ -4,11 +4,6 @@
   Maybe at least in the docs mark this function as private, people should use `map` instead.
   Or re-think this feature entirely?
 
-
-
-- should we replace coroutines with something simpler like: https://github.com/aardappel/lobster/issues/100
-   - memset in VM alloc seems to mask a problem in coroutine cleanup (see unittest).
-
 - it's possible to bypass variable initialization with forward calls which will crash.
 
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
@@ -23,8 +18,6 @@
 
 - jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
-  - a good lobster choice may be to abstract them as coroutines, or at least a
-    higher order `def generator(consume):` protocol
   - especially so since insatiable random generators (to get multiple
     independent streams) would be great in addition to / instead of a shared
     global generator
@@ -163,23 +156,6 @@
   This is probably unexpected, but how to do this better?
   Maybe specialized warning for this case since it makes no sense?
 
-- replace co-routines by stackless object syntactic sugar? how to resume? how to store temps?
-  - unlikely to work: even if you can guarantee to inline all the hofs a yield may sit in,
-    there's loop temps, keepvars, and other stack tracking stuff we'd now have to back up in
-    a struct to be able to resume, making this more complicated than the current solution.
-  - if co-routines ever become an obstruction to optimisation, this will force us to have
-    a "slow" fall-back for stack frames, similar to what we have now.
-  - Should we consider removing co-routines? They're a "sexy" feature everyone always seems
-    excited about, but in practice in games they are not all that useful.
-    I end up never using them, and when I do, it is for uses that can easily be replaced by
-    a class with an update function.
-    Having cross-frame state in locals is really not as nice as in member vars.
-    It could be cool in complex multi-stage animations.. but even for those it is questionable,
-    as code that interrupts/changes these animations then becomes more complex.
-    Fundamentally, state that survives a frame needs to be carefully managed regardless.
-    Co-routines have also been an endless source of complexity in the VM, and don't fit
-    with Lobster's new focus on efficiency.
-
 - should really support proper tail calls, e.g. https://www.lua.org/pil/6.3.html
   Once "return" is gets compiled such that it jumps to its own stack unwinding code, there
   can be a version where there's additionally a function value on the stack that gets called on
@@ -208,6 +184,8 @@
     consuming values from previous such calls?
     this way you could make the recursive quicksort non-recursive, by returning 2 quicksort calls
     and 1 append_it_all call. though of course this still uses unbounded stack memory, just less so.
+
+- New co-routines with some of the ideas above or in https://github.com/aardappel/lobster/issues/100
 
 - jcorbin: a basis_spline equivalent of cardinal_spline
 
@@ -535,7 +513,7 @@
     lose their reference count (but stay heap allocated). Instead if incref they error.
   - optimize other remaining/related features.
   - should really centrally organize the concept of const vs owner vs refc, since besides for
-    structs, will need these concepts for strings/vectors/coroutines as well (will especially be
+    structs, will need these concepts for strings/vectors as well (will especially be
     nice to separate out the default const string from niche mutable use). We also have const/var
     variables. We were also thinking about mut argument annotations which would still also be nice
     being able to say an arg is mut without specifying the type.
@@ -619,10 +597,6 @@
     - though codegen dropping is recursive, e.g. it drops 1+2, though not sure how useful that is
   - we have 2 types in nodes, do we actually need them?
     - see below how we didn't decide to remove coercion nodes.
-  - would be nice to remove the "return nil" at the end of coroutines.
-    - this is because yield implicitly returns it.
-    - allowing it to return 0 or N values requires quite a bit of weaving thru the VM, so may
-      not be worth it for now?
 
 - tagged arguments in Lobster for function calls.
   maybe also add default args while we're at it.
@@ -971,7 +945,7 @@
 - Should we consider default-const?
   Bit odd for a language without type annotations, but if the syntax for mutation was light,
   it be a very nice feature to have, especially since the vast majority of args don't need it.
-  Only needed on struct/vector/coroutine.
+  Only needed on struct/vector.
   Syntax could be a single char token attached to any ident decl?
   def f(a, @b): b[0] = a
   @a := g()
@@ -1480,12 +1454,6 @@
   regexps generally do. And easy string extraction functions.
   Could use a HOF to be the stack context of these functions ... can even write it in Lobster itself (with private DS
   variables) if speed isn't an issue.
-  can support coroutines as a source too.
-
-- coroutines:
-  - having convenient syntax for resuming coroutines at a variety of entry points to simulate methods would be very cool
-  - speedup local access
-  - state tags: allowing blocks to be tagged such that its easy to query externally which "state" a coroutine is in
 
 - transforms:
     - cannot use matrix functionality for own matmuls etc -> need loadmatrix etc
@@ -1606,9 +1574,6 @@
 
 - hiding the console unless there's output for graphical applications
   note this screws up notepad++ capturing output
-
-- force coroutines to be top level functions to protect people against running into an undefined on resume if they use
-  a free var?
 
 - multiple errors
 
@@ -1799,6 +1764,16 @@ TYPECHECKER NOTES:
 
 CURRENT SOLUTION FROM TRADEOFS:
 ===============================
+- We removed co-routines. They're a "sexy" feature everyone always seems
+  excited about, but in practice in games they are not all that useful.
+  I end up never using them, and when I do, it is for uses that can easily be replaced by
+  a class with an update function.
+  Having cross-frame state in locals is really not as nice as in member vars.
+  It could be cool in complex multi-stage animations.. but even for those it is questionable,
+  as code that interrupts/changes these animations then becomes more complex.
+  Fundamentally, state that survives a frame needs to be carefully managed regardless.
+  Co-routines have also been an endless source of complexity in the VM, and don't fit
+  with Lobster's new focus on efficiency.
 - decided against:
   - change V_MULTIPLE into types always being a vector:
     - while it simplifies some cases that currently have to check against V_MULTIPLE, it
@@ -1876,7 +1851,6 @@ CURRENT SOLUTION FROM TRADEOFS:
     - alternatively since all troubles are caused by element insertion/deletion, have special functionality for turning things on/off, i.e. gui_if() instead of if()
   - call em afterwards: problematic because variables not available
   - call em afterwards & force it to take an arg. not elegant, but atleast the arg will remind people to pass values this way
-  - wrap in coroutine so the variable is captured... hard to do since you want to continue with other code after the yield
   - implement full closures for escaping situations
     - don't really want another programming language feature just for this
     - to create closure, would need syntax at the call site which is clumsy if it gets forgotten, and some new data structure to hold vars
@@ -1885,9 +1859,7 @@ CURRENT SOLUTION FROM TRADEOFS:
       still, there has to be some indication on the stack that we're returning from a closure
       though I suppose it can work like coroutines, where upon returning from the function it hits a special instruction that does the cleanup
     - maybe also have a static type for it so no syntax is needed at the call site
-    - could we piggyback on coroutine resume? almost, but not quite.. it wouldn't restore the free vars upon ending the function, for example
-      hmm that could maybe be fixed with a special cleanup instruction
-    - so in summary the implementation effort is a simplified version of what coroutines currently do
+    - so in summary the implementation effort is a simplified version of coroutines.
 
 OBSOLETE
 ========

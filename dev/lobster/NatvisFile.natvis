@@ -23,14 +23,14 @@
     <Expand>
       <Item Condition="type->t==V_VECTOR||type->t==V_NIL||type->t==V_VAR" Name="sub">type->sub</Item>
       <Item Condition="type->t==V_STRUCT" Name="struc">type->struc</Item>
-      <Item Condition="type->t==V_FUNCTION||type->t==V_COROUTINE" Name="sf">type->sf</Item>
+      <Item Condition="type->t==V_FUNCTION" Name="sf">type->sf</Item>
     </Expand>
   </Type>
   <Type Name="lobster::Type">
     <DisplayString>Type: {t}</DisplayString>
     <Expand>
       <Item Condition="t==V_STRUCT" Name="struc">struc</Item>
-      <Item Condition="t==V_FUNCTION||t==V_COROUTINE" Name="sf">sf</Item>
+      <Item Condition="t==V_FUNCTION" Name="sf">sf</Item>
       <Item Condition="t==V_VECTOR||t==V_NIL||t==V_VAR" Name="sub">sub</Item>
     </Expand>
   </Type>
@@ -49,7 +49,6 @@
       <Item Condition="type==V_STRING" Name="sval">sval_</Item>
       <Item Condition="type==V_STRUCT" Name="stval">stval_</Item>
       <Item Condition="type==V_VECTOR" Name="vval">vval_</Item>
-      <Item Condition="type==V_COROUTINE" Name="cval">cval_</Item>
       <Item Name="ref">ref_</Item>
     </Expand>
   </Type>

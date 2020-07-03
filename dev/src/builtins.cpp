@@ -279,8 +279,8 @@ nfr("binary_search", "xs,key", "S]S", "II",
 
 nfr("copy", "xs", "A", "A1",
     "makes a shallow copy of any object.",
-    [](StackPtr &sp, VM &vm, Value &v) {
-        return v.Copy(vm, sp);
+    [](StackPtr &, VM &vm, Value &v) {
+        return v.Copy(vm);
     });
 
 nfr("slice", "xs,start,size", "A]*II", "A]1",
@@ -1075,33 +1075,6 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
             vm.BuiltinError(sp, "tilemap contained too many tile ids");
         Push(sp,  outstrings);
         Push(sp,  num_contradictions);
-    });
-
-nfr("resume", "coroutine,return_value", "CkAk%?", "C?",
-    "resumes execution of a coroutine, passing a value back or nil",
-    [](StackPtr &sp, VM &vm, Value &co, Value &ret) {
-        vm.CoResume(sp, co.cval());
-        // By the time CoResume returns, we're now back in the context of co, meaning that the
-        // return value below is what is returned from yield inside co.
-        return ret;
-        // The actual return value from this call to resume (in the caller) will be the coroutine
-        // itself (which is holding the refcount while active, hence the "k").
-        // The argument to the next call to yield (or the coroutine return value) will instead
-        // be captured in the dormant coroutine stack and available over return_value() below.
-    });
-
-nfr("return_value", "coroutine", "C", "A1",
-    "gets the last return value of a coroutine",
-    [](StackPtr &sp, VM &vm, Value &co) {
-        Value &rv = co.cval()->Current(sp, vm);
-        return rv;
-    });
-
-nfr("active", "coroutine", "C", "B",
-    "wether the given coroutine is still active",
-    [](StackPtr &, VM &, Value &co) {
-        bool active = co.cval()->active;
-        return Value(active);
     });
 
 nfr("hash", "x", "I", "I",

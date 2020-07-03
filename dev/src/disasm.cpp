@@ -172,14 +172,6 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             break;
         }
 
-        case IL_CORO: {
-            append(sd, *ip++);
-            ip++;  // typeinfo
-            int n = *ip++;
-            for (int i = 0; i < n; i++) append(sd, " v", *ip++);
-            break;
-        }
-
         default:
             for (int i = 0; i < arity; i++) {
                 if (i) sd += ' ';

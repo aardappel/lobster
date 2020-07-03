@@ -161,7 +161,6 @@ Node *Call::Optimize(Optimizer &opt) {
         // See e.g. exception_handler
         sf->num_returns_non_local == 0 &&
         vtable_idx < 0 &&
-        !sf->iscoroutine &&
         sf->returntype->NumValues() <= 1;
     // Attempt to optimize function we're calling first, that way if it shrinks (or grows) it's
     // more or less likely to be inlined.

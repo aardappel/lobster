@@ -37,8 +37,6 @@ const Type g_type_vector_any(V_VECTOR, &g_type_any);
 const Type g_type_vector_int(V_VECTOR, &g_type_int);
 const Type g_type_vector_float(V_VECTOR, &g_type_float);
 const Type g_type_function_null(V_FUNCTION);
-const Type g_type_function_cocl(V_YIELD);
-const Type g_type_coroutine(V_COROUTINE);
 const Type g_type_resource(V_RESOURCE);
 const Type g_type_typeid(V_TYPEID, &g_type_any);
 const Type g_type_typeid_vec(V_TYPEID, &g_type_vector_any);
@@ -52,8 +50,6 @@ TypeRef type_any = &g_type_any;
 TypeRef type_vector_int = &g_type_vector_int;
 TypeRef type_vector_float = &g_type_vector_float;
 TypeRef type_function_null = &g_type_function_null;
-TypeRef type_function_cocl = &g_type_function_cocl;
-TypeRef type_coroutine = &g_type_coroutine;
 TypeRef type_resource = &g_type_resource;
 TypeRef type_typeid = &g_type_typeid;
 TypeRef type_typeid_vec = &g_type_typeid_vec;
@@ -91,7 +87,6 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
             case V_STRING:    { static const Type t(V_NIL, &g_type_string); return &t; }
             case V_FUNCTION:  { static const Type t(V_NIL, &g_type_function_null); return &t; }
             case V_RESOURCE:  { static const Type t(V_NIL, &g_type_resource); return &t; }
-            case V_COROUTINE: { static const Type t(V_NIL, &g_type_coroutine); return &t; }
             case V_VECTOR: switch (elem->sub->t) {
                 case V_INT:    { static const Type t(V_NIL, &g_type_vector_int); return elem->sub->e ? nullptr : &t; }
                 case V_FLOAT:  { static const Type t(V_NIL, &g_type_vector_float); return &t; }

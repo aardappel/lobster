@@ -69,7 +69,7 @@ struct Type {
 
     union {
         const Type *sub;         // V_VECTOR | V_NIL | V_VAR | V_TYPEID
-        SubFunction *sf;         // V_FUNCTION | V_COROUTINE
+        SubFunction *sf;         // V_FUNCTION
         SpecUDT *spec_udt;       // V_UUDT
         UDT *udt;                // V_CLASS | V_STRUCT_*
         Enum *e;                 // V_INT
@@ -197,7 +197,6 @@ extern TypeRef type_vector_int;
 extern TypeRef type_vector_float;
 extern TypeRef type_function_null;
 extern TypeRef type_function_cocl;
-extern TypeRef type_coroutine;
 extern TypeRef type_resource;
 extern TypeRef type_typeid;
 extern TypeRef type_typeid_vec;
@@ -221,10 +220,9 @@ enum NArgFlags {
     NF_SUBARG2            = 1 << 1,
     NF_SUBARG3            = 1 << 2,
     NF_ANYVAR             = 1 << 3,
-    NF_CORESUME           = 1 << 4,
-    NF_CONVERTANYTOSTRING = 1 << 6,
-    NF_PUSHVALUEWIDTH     = 1 << 7,
-    NF_BOOL               = 1 << 8,
+    NF_CONVERTANYTOSTRING = 1 << 4,
+    NF_PUSHVALUEWIDTH     = 1 << 5,
+    NF_BOOL               = 1 << 6,
 };
 DEFINE_BITWISE_OPERATORS_FOR_ENUM(NArgFlags)
 
@@ -249,7 +247,6 @@ struct Narg {
             case 'F': type = type_float; break;
             case 'S': type = type_string; break;
             case 'L': type = type_function_null; break;
-            case 'C': type = type_coroutine; break;
             case 'R': type = type_resource; break;
             case 'T': type = type_typeid; break;
             case 'V': type = type_typeid_vec; break;
@@ -262,7 +259,6 @@ struct Narg {
                 case '2': flags = flags | NF_SUBARG2; break;
                 case '3': flags = flags | NF_SUBARG3; break;
                 case '*': flags = flags | NF_ANYVAR; break;
-                case '%': flags = flags | NF_CORESUME; break; // FIXME: make a vm op.
                 case 's': flags = flags | NF_CONVERTANYTOSTRING; break;
                 case 'w': flags = flags | NF_PUSHVALUEWIDTH; break;
                 case 'k': lt = LT_KEEP; break;

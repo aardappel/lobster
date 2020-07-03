@@ -186,7 +186,6 @@ nfr("gl_frame", "", "", "B",
     " returns false if the closebutton on the window was pressed",
     [](StackPtr &sp, VM &vm) {
         TestGL(sp, vm);
-        vm.CleanupDelayDeleteCoroutines(sp);
         EngineSuspendIfNeeded(sp, vm);
         auto cb = GraphicsFrameStart();
         return Value(!cb);

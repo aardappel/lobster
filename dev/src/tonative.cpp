@@ -28,13 +28,6 @@ int ParseOpAndGetArity(int opc, const int *&ip) {
             ip += arity;
             break;
         }
-        case IL_CORO: {
-            ip += 2;
-            int n = *ip++;
-            ip += n;
-            arity = int(ip - ips);
-            break;
-        }
         case IL_FUNSTART: {
             ip++;  // function idx.
             int n = *ip++;
@@ -121,10 +114,9 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                 ng.SetNextCallTarget(block_ids[ip - code]);
             }
             int target = -1;
-            if (opc == IL_CALL || opc == IL_CALLV || opc == IL_CALLVCOND ||
-                opc == IL_YIELD || opc == IL_DDCALL) {
+            if (opc == IL_CALL || opc == IL_CALLV || opc == IL_CALLVCOND || opc == IL_DDCALL) {
                 target = block_ids[ip - code];
-            } else if (opc == IL_PUSHFUN || opc == IL_CORO) {
+            } else if (opc == IL_PUSHFUN) {
                 target = block_ids[args[0]];
             }
             ng.EmitGenericInst(opc, args, arity, is_vararg, target);
@@ -147,7 +139,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             if (opc == IL_CALL) {
                 ng.EmitCall(block_ids[args[0]]);
                 already_returned = true;
-            } else if (opc == IL_CALLV || opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
+            } else if (opc == IL_CALLV || opc == IL_RETURN ||
                        opc == IL_DDCALL || opc == IL_JUMP_TABLE ||
                        // FIXME: make resume a vm op.
                        (ISBCALL(opc) &&

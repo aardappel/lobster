@@ -211,7 +211,6 @@ void VM::DumpLeaks() {
                 case V_STACKFRAMEBUF:
                     break;
                 case V_STRING:
-                case V_COROUTINE:
                 case V_RESOURCE:
                 case V_VECTOR:
                 case V_CLASS: {
@@ -272,14 +271,6 @@ LString *VM::NewString(iint l) {
     auto s = new (pool.alloc(ssizeof<LString>() + l + 1)) LString(l);
     OnAlloc(s);
     return s;\
-}
-
-LCoRoutine *VM::NewCoRoutine(StackPtr &sp, InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t cti) {
-    assert(GetTypeInfo(cti).t == V_COROUTINE);
-    auto c = new (pool.alloc(sizeof(LCoRoutine)))
-       LCoRoutine((int)(sp - stack + 2) /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p, cti);
-    OnAlloc(c);
-    return c;
 }
 
 LResource *VM::NewResource(void *v, const ResourceType *t) {
@@ -573,123 +564,6 @@ void VM::FunOut(StackPtr &sp, int towhere, int nrv) {
     sp += nrv;
 }
 
-void VM::CoVarCleanup(StackPtr &sp, LCoRoutine *co) {
-    // Convenient way to copy everything back onto the stack.
-    InsPtr tip(0);
-    auto copylen = co->Resume(sp - stack + 1, stack, stackframes, tip, nullptr);
-    auto startsp = sp;
-    sp += copylen;
-    for (auto i = co->stackframecopylen - 1; i >= 0 ; i--) {
-        auto &stf = stackframes.back();
-        sp = stf.spstart + stack;  // Kill any temps on top of the stack.
-        // Save the ip, because VarCleanup will jump to it.
-        auto bip = GetIP();
-        VarCleanup<0>(sp, nullptr, !i ? *stf.funstart : -2);
-        JumpTo(bip);
-    }
-    assert(sp == startsp);
-    (void)startsp;
-}
-
-void VM::CoNonRec(const int *varip) {
-    // probably could be skipped in a "release" mode
-    for (auto co = curcoroutine; co; co = co->parent) if (co->varip == varip) {
-        // if allowed, inner coro would save vars of outer, and then possibly restore them outside
-        // of scope of parent
-        SeriousError("cannot create coroutine recursively");
-    }
-    // this check guarantees all saved stack vars are undef.
-}
-
-void VM::CoNew(StackPtr &sp VM_COMMA VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
-    CleanupDelayDeleteCoroutines(sp);  // As good a place as any.
-    #ifdef VM_COMPILED_CODE_MODE
-        ip++;
-        InsPtr returnip(fcont);
-    #else
-        InsPtr returnip(*ip++);
-    #endif
-    auto ctidx = (type_elem_t)*ip++;
-    CoNonRec(ip);
-    curcoroutine = NewCoRoutine(sp, returnip, ip, curcoroutine, ctidx);
-    curcoroutine->BackupParentVars(*this, vars);
-    int nvars = *ip++;
-    ip += nvars;
-    // Always have the active coroutine at top of the stack, retaining 1 refcount. This is
-    // because it is not guaranteed that there any other references, and we can't have this drop
-    // to 0 while active.
-    Push(sp, Value(curcoroutine));
-}
-
-void VM::CoSuspend(StackPtr &sp, InsPtr retip) {
-    auto newtop = curcoroutine->Suspend(*this, sp - stack + 1, stack, stackframes, retip, curcoroutine);
-    JumpTo(retip);
-    sp = newtop - 1 + stack; // top of stack is now coro value from create or resume
-}
-
-void VM::CoClean(StackPtr &sp) {
-    // This function is like yield, except happens implicitly when the coroutine returns.
-    // It will jump back to the resume (or create) that invoked it.
-    for (int i = 1; i <= *curcoroutine->varip; i++) {
-        auto &var = vars[curcoroutine->varip[i]];
-        var = curcoroutine->stackcopy[i - 1];
-    }
-    auto co = curcoroutine;
-    CoSuspend(sp, InsPtr(0));
-    VMASSERT((*this), co->stackcopylen == 1);
-    co->active = false;
-}
-
-void VM::CoYield(StackPtr &sp VM_COMMA VM_OP_ARGS_CALL) {
-    assert(curcoroutine);  // Should not be possible since yield calls are statically checked.
-    #ifdef VM_COMPILED_CODE_MODE
-        InsPtr retip(fcont);
-    #else
-        InsPtr retip(ip - codestart);
-    #endif
-    auto ret = Pop(sp);
-    for (int i = 1; i <= *curcoroutine->varip; i++) {
-        auto &var = vars[curcoroutine->varip[i]];
-        Push(sp, var);
-        //var.type = V_NIL;
-        var = curcoroutine->stackcopy[i - 1];
-    }
-    Push(sp, ret);  // current value always top of the stack, saved as part of suspended coroutine.
-    CoSuspend(sp, retip);
-    // Actual top of stack here is coroutine itself, that we placed here with CoResume.
-}
-
-void VM::CoResume(StackPtr &sp, LCoRoutine *co) {
-    if (co->stackstart >= 0)
-        Error(sp, "cannot resume running coroutine");
-    if (!co->active)
-        Error(sp, "cannot resume finished coroutine");
-    // This will be the return value for the corresponding yield, and holds the ref for gc.
-    Push(sp, Value(co));
-    CoNonRec(co->varip);
-    auto rip = GetIP();
-    sp += co->Resume(sp - stack + 1, stack, stackframes, rip, curcoroutine);
-    JumpTo(rip);
-    curcoroutine = co;
-    // must be, since those vars got backed up in it before
-    VMASSERT((*this), curcoroutine->stackcopymax >=  *curcoroutine->varip);
-    curcoroutine->stackcopylen = *curcoroutine->varip;
-    //curcoroutine->BackupParentVars(vars);
-    Pop(sp).LTDECTYPE(*this, GetTypeInfo(curcoroutine->ti(*this).yieldtype).t);    // previous current value
-    for (int i = *curcoroutine->varip; i > 0; i--) {
-        auto &var = vars[curcoroutine->varip[i]];
-        // No INC, since parent is still on the stack and hold ref for us.
-        curcoroutine->stackcopy[i - 1] = var;
-        var = Pop(sp);
-    }
-    // the builtin call takes care of the return value
-}
-
-void VM::CleanupDelayDeleteCoroutines(StackPtr &sp) {
-    for (auto c : delete_delay_coroutine) c->DelayedDelete(sp, *this);
-    delete_delay_coroutine.clear();
-}
-
 void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret, ti, programprintprefs);
@@ -704,10 +578,7 @@ void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
         delete_delay.pop_back();
         ro->DECDELETENOW(*this);
     }
-    // This one is last, since the above cleanup may result in new delayed coroutines.
-    CleanupDelayDeleteCoroutines(sp);
     DumpLeaks();
-    VMASSERT((*this), !curcoroutine);
     #ifdef VM_PROFILER
         LOG_INFO("Profiler statistics:");
         uint64_t total = 0;

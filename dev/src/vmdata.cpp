@@ -156,7 +156,6 @@ void LResource::DeleteSelf(VM &vm) {
 void RefObj::DECDELETENOW(VM &vm) {
     switch (ti(vm).t) {
         case V_STRING:     ((LString *)this)->DeleteSelf(vm); break;
-        case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(vm); break;
         case V_VECTOR:     ((LVector *)this)->DeleteSelf(vm); break;
         case V_CLASS:      ((LObject *)this)->DeleteSelf(vm); break;
         case V_RESOURCE:   ((LResource *)this)->DeleteSelf(vm); break;
@@ -186,7 +185,6 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
     if (a->tti != b->tti) return false;
     switch (a->ti(vm).t) {
         case V_STRING:      return *((LString *)a) == *((LString *)b);
-        case V_COROUTINE:   return false;
         case V_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
         case V_CLASS:       return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
         default:            assert(0); return false;
@@ -208,7 +206,6 @@ void RefToString(VM &vm, string &sd, const RefObj *ro, PrintPrefs &pp) {
     auto &roti = ro->ti(vm);
     switch (roti.t) {
         case V_STRING:    ((LString *)ro)->ToString(sd, pp);          break;
-        case V_COROUTINE: sd += "(coroutine)";                        break;
         case V_VECTOR:    ((LVector *)ro)->ToString(vm, sd, pp);      break;
         case V_CLASS:     ((LObject *)ro)->ToString(vm, sd, pp);      break;
         case V_RESOURCE:  ((LResource *)ro)->ToString(sd);            break;
@@ -263,7 +260,7 @@ iint Value::Hash(VM &vm, ValueType vtype) {
     }
 }
 
-Value Value::Copy(VM &vm, StackPtr &sp) {
+Value Value::Copy(VM &vm) {
     if (!refnil()) return Value();
     auto &ti = ref()->ti(vm);
     switch (ti.t) {
@@ -283,9 +280,6 @@ Value Value::Copy(VM &vm, StackPtr &sp) {
         auto s = vm.NewString(sval()->strv());
         return Value(s);
     }
-    case V_COROUTINE:
-        vm.Error(sp, "cannot copy coroutine");
-        return Value();
     default:
         assert(false);
         return Value();

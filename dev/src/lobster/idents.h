@@ -283,10 +283,6 @@ struct SubFunction {
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
     vector<Node *> reuse_assign_events;
     bool isrecursivelycalled = false;
-    bool iscoroutine = false;
-    vector<Arg> coyieldsave { 0 };
-    TypeRef coresumetype;
-    type_elem_t cotypeinfo = (type_elem_t)-1;
     Block *body = nullptr;
     SubFunction *next = nullptr;
     Function *parent = nullptr;
@@ -930,10 +926,6 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
             return type->Element()->t == V_VAR
                 ? "nil"
                 : TypeName(type->Element(), flen, st) + "?";
-        case V_COROUTINE:
-            return type->sf
-                ? "coroutine(" + type->sf->parent->name + ")"
-                : "coroutine";
         case V_TUPLE: {
             string s = "(";
             for (auto [i, te] : enumerate(*type->tup)) {

@@ -20,7 +20,7 @@
 
 namespace lobster {
 
-const int LOBSTER_BYTECODE_FORMAT_VERSION = 16;
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 17;
 const int MAX_RETURN_VALUES = 64;
 
 // Any type specialized ops below must always have this ordering.
@@ -43,7 +43,6 @@ enum MathOp {
     F(VPUSHIDXIS, 1) F(VPUSHIDXIS2V, 2) F(VPUSHIDXVS, 3) \
     F(NPUSHIDXI, 1) F(SPUSHIDXI, 0) \
     F(PUSHFLD, 1) F(PUSHFLDMREF, 1) F(PUSHFLDV, 2) F(PUSHFLD2V, 2) F(PUSHFLDV2V, 3) \
-    F(PUSHLOC, 1) F(PUSHLOCV, 2) \
     F(BCALLRETV, 1) F(BCALLREFV, 1) F(BCALLUNBV, 1) \
     F(BCALLRET0, 1) F(BCALLREF0, 1) F(BCALLUNB0, 1) \
     F(BCALLRET1, 1) F(BCALLREF1, 1) F(BCALLUNB1, 1) \
@@ -83,14 +82,13 @@ enum MathOp {
     F(BINAND, 0) F(BINOR, 0) F(XOR, 0) F(ASL, 0) F(ASR, 0) F(NEG, 0) \
     F(I2F, 0) F(A2S, 1) F(E2B, 0) F(E2BREF, 0) F(ST2S, 1) \
     F(RETURN, 2) \
-    F(ISTYPE, 1) F(COCL, 0) F(COEND, 0) \
+    F(ISTYPE, 1) \
     F(FORLOOPI, 0) F(IFORELEM, 0) F(SFORELEM, 0) F(VFORELEM, 0) F(VFORELEMREF, 0) \
     F(VFORELEM2S, 0) F(VFORELEMREF2S, 0) \
     F(INCREF, 1) F(KEEPREF, 2) F(KEEPREFLOOP, 2) \
     F(JUMP_TABLE, 3)
 #define ILCALLNAMES \
-    F(CALL, 1) F(CALLV, 0) F(CALLVCOND, 0) F(DDCALL, 2) \
-    F(PUSHFUN, 1) F(CORO, ILUNKNOWNARITY) F(YIELD, 0)
+    F(CALL, 1) F(CALLV, 0) F(CALLVCOND, 0) F(DDCALL, 2) F(PUSHFUN, 1)
 
 #define ILJUMPNAMES \
     F(JUMP, 1) \
@@ -122,14 +120,14 @@ enum LVALOP {
     #undef LVAL
 };
 
-#define NUMBASELVALOPS 6  // HAS to match LVAL below!
+#define NUMBASELVALOPS 5  // HAS to match LVAL below!
 #define GENLVALOP(LV, OP) (IL_##LV##_WRITE + (OP) * NUMBASELVALOPS)  // WRITE assumed to be first!
 #define ILADD00 0
 #define ILADD01 1
 #define ILADD10 1
 #define ILADD11 2
 #define ILADD(X, Y) ILADD##X##Y
-#define LVAL(N, V) F(VAR_##N, ILADD(1, V)) F(FLD_##N, ILADD(1, V)) F(LOC_##N, ILADD(1, V)) \
+#define LVAL(N, V) F(VAR_##N, ILADD(1, V)) F(FLD_##N, ILADD(1, V)) \
                    F(IDXVI_##N, ILADD(0, V)) F(IDXVV_##N, ILADD(1, V)) F(IDXNI_##N, ILADD(0, V))
 // This assumes VAR is first!
 #define ISLVALVARINS(O) O >= IL_VAR_WRITE && O <= IL_VAR_FMMPR && (O % NUMBASELVALOPS) == 0

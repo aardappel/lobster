@@ -207,19 +207,6 @@ def collect(hof):
     hof(): list.push(_)
     return list
 
-// coroutine utility functions:
-
-// generally don't want to use this function, since you'd be better off directly using the HOF the coroutine is based on
-def coroutine_for(co, f):
-    while co.active:
-        f(co.return_value)
-        co.resume
-    return co.return_value
-
-// builtin for() made useful as a coroutine.
-def cofor(n, f):
-    for n: f(_)
-
 // error checking
 
 def fatal_exit(msg):

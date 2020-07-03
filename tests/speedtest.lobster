@@ -27,9 +27,6 @@ import misctest
 number_of_runs = 6000
 import typetest
 
-number_of_runs = 4000
-import corotest
-
 number_of_runs = 150
 import astartest
 

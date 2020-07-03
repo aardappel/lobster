@@ -35,13 +35,12 @@ namespace lobster {
 
 enum ValueType : int {
     // refc types are negative
-    V_MINVMTYPES = -10,
-    V_ANY = -9,         // any other reference type.
-    V_STACKFRAMEBUF = -8,
-    V_VALUEBUF = -7,    // only used as memory type for vector/coro buffers, not used by Value.
-    V_STRUCT_R = -6,
-    V_RESOURCE = -5,
-    V_COROUTINE = -4,
+    V_MINVMTYPES = -9,
+    V_ANY = -8,         // any other reference type.
+    V_STACKFRAMEBUF = -7,
+    V_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, not used by Value.
+    V_STRUCT_R = -5,
+    V_RESOURCE = -4,
     V_STRING = -3,
     V_CLASS = -2,
     V_VECTOR = -1,
@@ -49,7 +48,6 @@ enum ValueType : int {
     V_INT,
     V_FLOAT,
     V_FUNCTION,
-    V_YIELD,
     V_STRUCT_S,
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEVAR,          // [typechecker only] refers to an explicit type variable in code, e.g. "T".
@@ -76,8 +74,8 @@ inline string_view BaseTypeName(ValueType t) {
     static const char *typenames[] = {
         "any", "<stackframe_buffer>", "<value_buffer>",
         "struct_ref",
-        "resource", "coroutine", "string", "class", "vector",
-        "nil", "int", "float", "function", "yield_function", "struct_scalar",
+        "resource", "string", "class", "vector",
+        "nil", "int", "float", "function", "struct_scalar",
         "unknown", "type_variable", "typeid", "void",
         "tuple", "unresolved_udt", "undefined",
     };
@@ -120,10 +118,6 @@ struct TypeInfo {
         };
         int enumidx;       // V_INT, -1 if not an enum.
         int sfidx;         // V_FUNCTION;
-        struct {           // V_COROUTINE
-            int cofunidx;
-            type_elem_t yieldtype;
-        };
     };
 
     TypeInfo() = delete;
@@ -142,7 +136,6 @@ struct Value;
 struct LString;
 struct LVector;
 struct LObject;
-struct LCoRoutine;
 
 struct PrintPrefs {
     iint depth;
@@ -285,7 +278,6 @@ typedef void *(*block_base_t)(VM &, StackPtr &);
     typedef LString *LStringPtr;
     typedef LVector *LVectorPtr;
     typedef LObject *LObjectPtr;
-    typedef LCoRoutine *LCoRoutinePtr;
     typedef LResource *LResourcePtr;
     typedef RefObj *RefObjPtr;
     typedef TypeInfo *TypeInfoPtr;
@@ -306,7 +298,6 @@ typedef void *(*block_base_t)(VM &, StackPtr &);
     typedef ExpandedPtr<LString *> LStringPtr;
     typedef ExpandedPtr<LVector *> LVectorPtr;
     typedef ExpandedPtr<LObject *> LObjectPtr;
-    typedef ExpandedPtr<LCoRoutine *> LCoRoutinePtr;
     typedef ExpandedPtr<LResource *> LResourcePtr;
     typedef ExpandedPtr<RefObj *> RefObjPtr;
     typedef ExpandedPtr<TypeInfo *> TypeInfoPtr;
@@ -344,7 +335,6 @@ struct Value {
         LStringPtr sval_;
         LVectorPtr vval_;
         LObjectPtr oval_;
-        LCoRoutinePtr cval_;
         LResourcePtr xval_;
 
         // Generic reference access.
@@ -368,7 +358,6 @@ struct Value {
     LString    *sval  () const { TYPE_ASSERT(type == V_STRING);     return sval_;        }
     LVector    *vval  () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;        }
     LObject    *oval  () const { TYPE_ASSERT(type == V_CLASS);      return oval_;        }
-    LCoRoutine *cval  () const { TYPE_ASSERT(type == V_COROUTINE);  return cval_;        }
     LResource  *xval  () const { TYPE_ASSERT(type == V_RESOURCE);   return xval_;        }
     RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
     RefObj     *refnil() const { TYPE_ASSERT(IsRefNil(type));       return ref_;         }
@@ -398,7 +387,6 @@ struct Value {
     inline Value(LString *s)         : sval_(s)         TYPE_INIT(V_STRING)     {}
     inline Value(LVector *v)         : vval_(v)         TYPE_INIT(V_VECTOR)     {}
     inline Value(LObject *s)         : oval_(s)         TYPE_INIT(V_CLASS)      {}
-    inline Value(LCoRoutine *c)      : cval_(c)         TYPE_INIT(V_COROUTINE)  {}
     inline Value(LResource *r)       : xval_(r)         TYPE_INIT(V_RESOURCE)   {}
     inline Value(RefObj *r)          : ref_(r)          TYPE_INIT(V_NIL)        { assert(false); }
 
@@ -438,7 +426,7 @@ struct Value {
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     iint Hash(VM &vm, ValueType vtype);
-    Value Copy(VM &vm, StackPtr &sp);  // Shallow.
+    Value Copy(VM &vm);  // Shallow.
 };
 
 template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti);
@@ -685,8 +673,6 @@ struct VM : VMArgs {
 
     vector<StackFrame> stackframes;
 
-    LCoRoutine *curcoroutine = nullptr;
-
     size_t codelen = 0;
     const int *codestart = nullptr;
     vector<int> codebigendian;
@@ -710,7 +696,6 @@ struct VM : VMArgs {
     size_t trace_ring_idx = 0;
 
     vector<RefObj *> delete_delay;
-    vector<LCoRoutine *> delete_delay_coroutine;
 
     vector<LString *> constant_strings;
 
@@ -788,7 +773,6 @@ struct VM : VMArgs {
     void OnAlloc(RefObj *ro);
     LVector *NewVec(iint initial, iint max, type_elem_t tti);
     LObject *NewObject(iint max, type_elem_t tti);
-    LCoRoutine *NewCoRoutine(StackPtr &sp, InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t tti);
     LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(iint l);
     LString *NewString(string_view s);
@@ -831,15 +815,6 @@ struct VM : VMArgs {
     void FunIntroPre(StackPtr &sp, InsPtr fun);
     void FunIntro(StackPtr &sp VM_COMMA VM_OP_ARGS);
     void FunOut(StackPtr &sp, int towhere, int nrv);
-
-    void CoVarCleanup(StackPtr &sp, LCoRoutine *co);
-    void CoNonRec(const int *varip);
-    void CoNew(StackPtr &sp VM_COMMA VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL);
-    void CoSuspend(StackPtr &sp, InsPtr retip);
-    void CoClean(StackPtr &sp);
-    void CoYield(StackPtr &sp VM_COMMA VM_OP_ARGS_CALL);
-    void CoResume(StackPtr &sp, LCoRoutine *co);
-    void CleanupDelayDeleteCoroutines(StackPtr &sp);
 
     void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 
@@ -1035,171 +1010,6 @@ inline Value ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) 
 }
 
 void EscapeAndQuote(string_view s, string &sd);
-
-struct LCoRoutine : RefObj {
-    bool active = true;  // Goes to false when it has hit the end of the coroutine instead of a yield.
-
-    iint stackstart;    // When currently running, otherwise -1
-    Value *stackcopy = nullptr;
-    iint stackcopylen = 0;
-    iint stackcopymax = 0;
-
-    iint stackframestart;  // When currently running, otherwise -1
-    StackFrame *stackframescopy = nullptr;
-    iint stackframecopylen = 0;
-    iint stackframecopymax = 0;
-    iint top_at_suspend = -1;
-
-    InsPtr returnip;
-    const int *varip;
-    LCoRoutine *parent;
-
-    LCoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, LCoRoutine *_p, type_elem_t cti)
-        : RefObj(cti), stackstart(_ss), stackframestart(_sfs), returnip(_rip), varip(_vip),
-          parent(_p) {}
-
-    Value &Current(StackPtr sp, VM &vm) {
-        if (stackstart >= 0) vm.BuiltinError(sp, "cannot get value of active coroutine");
-        return stackcopy[stackcopylen - 1].LTINCTYPE(vm.GetTypeInfo(ti(vm).yieldtype).t);
-    }
-
-    void Resize(VM &vm, iint newlen) {
-        if (newlen > stackcopymax) {
-            if (stackcopy) DeallocSubBuf(vm, stackcopy, stackcopymax);
-            stackcopy = AllocSubBuf<Value>(vm, stackcopymax = newlen, TYPE_ELEM_VALUEBUF);
-        }
-        stackcopylen = newlen;
-    }
-
-    void ResizeFrames(VM &vm, iint newlen) {
-        if (newlen > stackframecopymax) {
-            if (stackframescopy) DeallocSubBuf(vm, stackframescopy, stackframecopymax);
-            stackframescopy = AllocSubBuf<StackFrame>(vm, stackframecopymax = newlen,
-                                                      TYPE_ELEM_STACKFRAMEBUF);
-        }
-        stackframecopylen = newlen;
-    }
-
-    iint Suspend(VM &vm, iint top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip,
-                LCoRoutine *&curco) {
-        assert(stackstart >= 0);
-        swap(rip, returnip);
-        assert(curco == this);
-        curco = parent;
-        parent = nullptr;
-        ResizeFrames(vm, (iint)stackframes.size() - stackframestart);
-        t_memcpy(stackframescopy, stackframes.data() + stackframestart, stackframecopylen);
-        stackframes.erase(stackframes.begin() + stackframestart, stackframes.end());
-        stackframestart = -1;
-        top_at_suspend = top;
-        Resize(vm, top - stackstart);
-        t_memcpy(stackcopy, stack + stackstart, stackcopylen);
-        auto ss = stackstart;
-        stackstart = -1;
-        return ss;
-    }
-
-    void AdjustStackFrames(iint top) {
-        auto topdelta = (top + stackcopylen) - top_at_suspend;
-        if (topdelta) {
-            for (int i = 0; i < stackframecopylen; i++) {
-                stackframescopy[i].spstart += topdelta;
-            }
-        }
-    }
-
-    iint Resume(iint top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip, LCoRoutine *p) {
-        assert(stackstart < 0);
-        swap(rip, returnip);
-        assert(!parent);
-        parent = p;
-        stackframestart = (int)stackframes.size();
-        AdjustStackFrames(top);
-        stackframes.insert(stackframes.end(), stackframescopy, stackframescopy + stackframecopylen);
-        stackstart = top;
-        // FIXME: assume that it fits, which is not guaranteed with recursive coros
-        t_memcpy(stack + top, stackcopy, stackcopylen);
-        return stackcopylen;
-    }
-
-    void BackupParentVars(VM &vm, Value *vars) {
-        // stored here while coro is active
-        Resize(vm, *varip);
-        for (int i = 1; i <= *varip; i++) {
-            auto &var = vars[varip[i]];
-            // we don't INC, since parent var is still on the stack and will hold ref
-            stackcopy[i - 1] = var;
-        }
-    }
-
-    Value &AccessVar(int savedvaridx) {
-        assert(stackstart < 0);
-        // Variables are always saved on top of the stack before the stackcopy gets made, so they
-        // are last, followed by the retval (thus -1).
-        return stackcopy[stackcopylen - *varip + savedvaridx - 1];
-    }
-
-    Value &GetVar(VM &vm, StackPtr sp, int ididx) {
-        if (stackstart >= 0)
-            vm.BuiltinError(sp, "cannot access locals of running coroutine");
-        // FIXME: we can probably make it work without this search, but for now no big deal
-        for (int i = 1; i <= *varip; i++) {
-            if (varip[i] == ididx) {
-                return AccessVar(i - 1);
-            }
-        }
-        // This one should be really rare, since parser already only allows lexically contained vars
-        // for that function, could happen when accessing var that's not in the callchain of yields.
-        vm.BuiltinError(sp, "local variable being accessed is not part of coroutine state");
-        return *stackcopy;
-    }
-
-    void DeleteSelf(VM &vm) {
-        // FIXME: this is because we can be deleted from pretty much anywhere, and we don't know
-        // the sp when this happens, which is needed to unwind coroutines on delete.
-        vm.delete_delay_coroutine.push_back(this);
-    }
-
-    void DelayedDelete(StackPtr &sp, VM &vm) {
-        assert(stackstart < 0);
-        if (stackcopy) {
-            auto curvaltype = vm.GetTypeInfo(ti(vm).yieldtype).t;
-            auto &ts = stackcopy[--stackcopylen];
-            ts.LTDECTYPE(vm, curvaltype);
-            if (active) {
-                for (int i = *varip; i > 0; i--) {
-                    auto &vti = vm.GetVarTypeInfo(varip[i]);
-                    stackcopy[--stackcopylen].LTDECTYPE(vm, vti.t);
-                }
-                top_at_suspend -= *varip + 1;
-                // This calls Resume() to get the rest back onto the stack, then unwinds it.
-                vm.CoVarCleanup(sp, this);
-            } else {
-               assert(!stackcopylen);
-            }
-            DeallocSubBuf(vm, stackcopy, stackcopymax);
-        }
-        if (stackframescopy) DeallocSubBuf(vm, stackframescopy, stackframecopymax);
-        vm.pool.dealloc(this, sizeof(LCoRoutine));
-    }
-
-    ValueType ElemType(VM &vm, int i) {
-        assert(i < *varip);
-        auto varidx = varip[i + 1];
-        auto &vti = vm.GetVarTypeInfo(varidx);
-        auto vt = vti.t;
-        if (vt == V_NIL) vt = vm.GetTypeInfo(vti.subt).t;
-        #if RTT_ENABLED
-        auto &var = AccessVar(i);
-        // FIXME: For testing.
-        if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && IsUDT(var.type))) {
-            LOG_INFO("coro elem ", vti.Debug(vm), " != ", BaseTypeName(var.type));
-            assert(false);
-        }
-        #endif
-        return vt;
-    }
-};
 
 #if !defined(NDEBUG) && RTT_ENABLED
     #define STRINGIFY(x) #x
