@@ -244,7 +244,27 @@ VM_INLINE StackPtr U_FUNSTART(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS) {
 }
 
 VM_INLINE StackPtr U_RETURN(VM &vm, StackPtr sp, int df, int nrv) {
-    vm.FunOut(sp, df, nrv);
+    vm.ret_unwind_to = df;  // FIXME: most returns don't need this.
+    vm.ret_nrv = nrv;
+    vm.FunOut(sp, nrv);
+    return sp;
+}
+
+VM_INLINE StackPtr U_RETURNANY(VM &vm, StackPtr sp) {
+    vm.FunOut(sp, vm.ret_nrv);
+    return sp;
+}
+
+VM_INLINE StackPtr U_SAVERETS(VM &vm, StackPtr sp) {
+    // Only some POP instructions appear between this and RESTORERETS.
+    sp -= vm.ret_nrv;
+    vm.savedrets = TopPtr(sp);
+    return sp;
+}
+
+VM_INLINE StackPtr U_RESTORERETS(VM &vm, StackPtr sp) {
+    ts_memcpy(TopPtr(sp), vm.savedrets, vm.ret_nrv);
+    sp += vm.ret_nrv;
     return sp;
 }
 
@@ -763,13 +783,25 @@ VM_INLINE StackPtr U_JUMPFAIL(VM &, StackPtr sp) { return sp; }
 VM_INLINE StackPtr U_JUMPFAILR(VM &, StackPtr sp) { auto x = Top(sp); if (x.False()) Push(sp, x); return sp; }
 VM_INLINE StackPtr U_JUMPNOFAIL(VM &, StackPtr sp) { auto x = Pop(sp); Push(sp, x.False()); return sp; }
 VM_INLINE StackPtr U_JUMPNOFAILR(VM &, StackPtr sp) { auto x = Pop(sp); if (x.True()) Push(sp, x); Push(sp, x.False()); return sp; }
+VM_INLINE StackPtr U_JUMPIFUNWOUND(VM &vm, StackPtr sp, int df) {
+    Push(sp, vm.ret_unwind_to != df);
+    return sp;
+}
 #else
 VM_INLINE StackPtr U_JUMP(VM &vm, StackPtr sp) { auto nip = *vm.ip++; vm.ip = vm.codestart + nip; return sp; }
 VM_INLINE StackPtr U_JUMPFAIL(VM &vm, StackPtr sp) { auto x = Pop(sp); auto nip = *vm.ip++; if (x.False()) { vm.ip = vm.codestart + nip; } return sp; }
 VM_INLINE StackPtr U_JUMPFAILR(VM &vm, StackPtr sp) { auto x = Pop(sp); auto nip = *vm.ip++; if (x.False()) { vm.ip = vm.codestart + nip; Push(sp, x); } return sp; }
 VM_INLINE StackPtr U_JUMPNOFAIL(VM &vm, StackPtr sp) { auto x = Pop(sp); auto nip = *vm.ip++; if (x.True()) { vm.ip = vm.codestart + nip; } return sp; }
 VM_INLINE StackPtr U_JUMPNOFAILR(VM &vm, StackPtr sp) { auto x = Pop(sp); auto nip = *vm.ip++; if (x.True()) { vm.ip = vm.codestart + nip; Push(sp, x); } return sp; }
+VM_INLINE StackPtr U_JUMPIFUNWOUND(VM &vm, StackPtr sp, int df) {
+    auto nip = *vm.ip++;
+    if (vm.ret_unwind_to == df) {
+        vm.ip = vm.codestart + nip;
+    }
+    return sp;
+}
 #endif
+
 
 VM_INLINE StackPtr U_JUMP_TABLE(VM &vm, StackPtr sp, int mini, int maxi, int table_start) {
     auto val = Pop(sp).ival();
@@ -961,7 +993,10 @@ PPOP(FMMPR, true , -, false, fval)
         ILCALLNAMES
     #undef F
     #define F(N, A) StackPtr F_##N(VM &vm, StackPtr sp) { return U_##N(vm, sp); }
-        ILJUMPNAMES
+        ILJUMPNAMES1
+    #undef F
+    #define F(N, A) StackPtr F_##N(VM &vm, StackPtr sp) { return U_##N(vm, sp, *vm.ip++); }
+        ILJUMPNAMES2
     #undef F
 #endif
 

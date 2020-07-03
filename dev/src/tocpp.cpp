@@ -38,7 +38,7 @@ class CPPGenerator : public NativeGenerator {
             "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"
             "    #include \"lobster/sdlincludes.h\"\n"
             "    #include \"lobster/sdlinterface.h\"\n"
-            "#endif\n"         
+            "#endif\n"
             "\n"
             "#ifndef VM_COMPILED_CODE_MODE\n"
             "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
@@ -100,8 +100,10 @@ class CPPGenerator : public NativeGenerator {
         sd += "{ spr = sp; return (void *)vm.next_call_target; }";
     }
 
-    void EmitConditionalJump(int opc, int id) override {
-        append(sd, "sp = U_", ILNames()[opc], "(vm, sp); if (Pop(sp).False()) ");
+    void EmitConditionalJump(int opc, int id, int df) override {
+        append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
+        if (df >= 0) append(sd, ", ", df);
+        append(sd, "); if (Pop(sp).False()) ");
         EmitJump(id);
     }
 

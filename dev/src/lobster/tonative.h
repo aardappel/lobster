@@ -31,7 +31,7 @@ struct NativeGenerator {
     virtual void BlockStart(int id) = 0;
     virtual void InstStart() = 0;
     virtual void EmitJump(int id) = 0;
-    virtual void EmitConditionalJump(int opc, int id) = 0;
+    virtual void EmitConditionalJump(int opc, int id, int df) = 0;
     virtual void EmitOperands(const char *base, const int *args, int arity, bool is_vararg) = 0;
     virtual void SetNextCallTarget(int id) = 0;
     virtual void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) = 0;

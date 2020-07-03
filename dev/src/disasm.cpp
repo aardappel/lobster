@@ -78,8 +78,8 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
 
         case IL_RETURN: {
             auto id = *ip++;
-            ip++;  // retvals
-            sd += bcf->functions()->Get(id)->name()->string_view();
+            auto nrets = *ip++;
+            append(sd, bcf->functions()->Get(id)->name()->string_view(), " ", nrets);
             break;
         }
 
@@ -192,6 +192,7 @@ void DisAsm(NativeRegistry &nfr, string &sd, string_view bytecode_buffer) {
     auto len = bcf->bytecode()->Length();
     const int *ip = code;
     while (ip < code + len) {
+        if (*ip == IL_FUNSTART) sd += "------- ------- ---\n";
         ip = DisAsmIns(nfr, sd, ip, code, typetable, bcf);
         sd += "\n";
         if (!ip) break;

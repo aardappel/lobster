@@ -662,14 +662,15 @@ struct VM : VMArgs {
     int stacksize = 0;
     int maxstacksize;
     StackPtr sp_suspended = nullptr;
-
-    Value retvalstemp[MAX_RETURN_VALUES];
+    StackPtr savedrets = nullptr;
 
     #ifdef VM_COMPILED_CODE_MODE
         block_base_t next_call_target = 0;
     #else
         const int *ip = nullptr;
     #endif
+    int ret_unwind_to = -1;
+    int ret_nrv = -1;
 
     vector<StackFrame> stackframes;
 
@@ -814,7 +815,7 @@ struct VM : VMArgs {
     void StartStackFrame(InsPtr retip);
     void FunIntroPre(StackPtr &sp, InsPtr fun);
     void FunIntro(StackPtr &sp VM_COMMA VM_OP_ARGS);
-    void FunOut(StackPtr &sp, int towhere, int nrv);
+    void FunOut(StackPtr &sp, int nrv);
 
     void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 

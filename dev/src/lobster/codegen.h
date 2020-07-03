@@ -304,6 +304,21 @@ struct CodeGen  {
         if (!code[pos]) call_fixups.push_back({ pos, sf });
     }
 
+    void GenUnwind(const SubFunction &sf) {
+        SplitAttr(Pos());
+        Emit(IL_JUMPIFUNWOUND, sf.parent->idx, 0);
+        auto loc = Pos();
+        if (!temptypestack.empty()) {
+            Emit(IL_SAVERETS);
+            for (auto &tse : reverse(temptypestack)) {
+                GenPop(tse);
+            }
+            Emit(IL_RESTORERETS);
+        }
+        Emit(IL_RETURNANY);
+        SetLabel(loc);
+    }
+
     void GenCall(const SubFunction &sf, int vtable_idx, const List *args, size_t retval) {
         auto &f = *sf.parent;
         for (auto c : args->children) {
@@ -317,10 +332,23 @@ struct CodeGen  {
         if (vtable_idx < 0) {
             Emit(IL_CALL, sf.subbytecodestart);
             GenFixup(&sf);
+            if (sf.returned_thru) {
+                GenUnwind(sf);
+            }
         } else {
             int stack_depth = -1;
             for (auto c : args->children) stack_depth += ValWidth(c->exptype);
             Emit(IL_DDCALL, vtable_idx, stack_depth);
+            // We get the dispatch from arg 0, since sf is an arbitrary overloads and
+            // doesn't necessarily point to the dispatch root (which may not even have an sf).
+            auto dispatch_type = args->children[0]->exptype;
+            assert(IsUDT(dispatch_type->t));
+            auto &de = dispatch_type->udt->dispatch[vtable_idx];
+            assert(de.is_dispatch_root && !de.returntype.Null() && de.subudts_size);
+            if (de.returned_thru) {
+                // This works because all overloads of a DD sit under a single Function.
+                GenUnwind(sf);
+            }
         }
         SplitAttr(Pos());
         auto nretvals = sf.returntype->NumValues();
@@ -1428,25 +1456,24 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
             cg.temptypestack.pop_back();
         }
     }
-    auto nretvals = make_void ? 0 : sf->returntype->NumValues();
     int nretslots = 0;
-    if (!make_void) {
-        for (size_t i = 0; i < nretvals; i++) {
-            nretslots += ValWidth(sf->returntype->Get(i));
-        }
-    }
-    if (nretslots > MAX_RETURN_VALUES) cg.parser.Error("too many return values");
     if (sf->reqret) {
-        if (!Is<DefaultVal>(child)) { cg.Gen(child, nretvals); cg.TakeTemp(nretvals, true); }
-        else { cg.Emit(IL_PUSHNIL); assert(nretvals == 1); }
+        auto nretvals = make_void ? 0 : sf->returntype->NumValues();
+        if (!Is<DefaultVal>(child)) {
+            cg.Gen(child, nretvals);
+            cg.TakeTemp(nretvals, true);
+        } else {
+            cg.Emit(IL_PUSHNIL);
+            assert(nretvals == 1);
+        }
+        nretslots = ValWidthMulti(sf->returntype, nretvals);
     } else {
         if (!Is<DefaultVal>(child)) cg.Gen(child, 0);
-        nretvals = 0;
-        nretslots = 0;
     }
     // FIXME: we could change the VM to instead work with SubFunction ids.
     // Note: this can only work as long as the type checker forces specialization
     // of the functions in between here and the function returned to.
+    // Actually, doesn't work with DDCALL and RETURN_THRU.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
     cg.Emit(IL_RETURN, sf->parent->idx, nretslots);
     cg.temptypestack = typestackbackup;

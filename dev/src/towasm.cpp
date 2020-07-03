@@ -89,7 +89,10 @@ class WASMGenerator : public NativeGenerator {
             ILCALLNAMES
         #undef F
         #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_II);
-            ILJUMPNAMES
+            ILJUMPNAMES1
+        #undef F
+        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_III);
+            ILJUMPNAMES2
         #undef F
         import_erccm = bw.AddImportLinkFunction("RunCompiledCodeMain", TI_I_IIIIII);
         import_snct = bw.AddImportLinkFunction("CVM_SetNextCallTarget", TI_V_II);
@@ -183,10 +186,11 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitReturn();
     }
 
-    void EmitConditionalJump(int opc, int id) override {
+    void EmitConditionalJump(int opc, int id, int df) override {
         // FIXME: this is very clumsy, shorten this for common cases!
         bw.EmitGetLocal(0 /*VM*/);
         bw.EmitGetLocal(2 /*SP*/);
+        if (df >= 0) bw.EmitI32Const(df);
         bw.EmitCall((size_t)opc);
         bw.EmitTeeLocal(2 /*SP*/);
         bw.EmitI64Load(0);  // False if we should jump.

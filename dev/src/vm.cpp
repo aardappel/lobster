@@ -365,7 +365,40 @@ Value VM::Error(StackPtr sp, string err) {
             sd += " -> ";
             DumpFileLine(ip, sd);
             #endif
-            VarCleanup<1>(sp, sd.size() < 10000 ? &sd : nullptr, -2 /* clean up temps always */);
+            auto &stf = stackframes.back();
+            auto fip = stf.funstart;
+            fip++;  // function id.
+            auto nargs = *fip++;
+            auto freevars = fip + nargs;
+            fip += nargs;
+            auto ndef = *fip++;
+            fip += ndef;
+            auto defvars = fip;
+            auto nkeepvars = *fip++;
+            if (sd.size() < 10000) {
+                // FIXME: merge with loops below.
+                for (int j = 0; j < ndef; ) {
+                    auto i = *(defvars - j - 1);
+                    j += DumpVar(sd, vars[i], i);
+                }
+                for (int j = 0; j < nargs; ) {
+                    auto i = *(freevars - j - 1);
+                    j += DumpVar(sd, vars[i], i);
+                }
+            }
+            sp -= nkeepvars;
+            fip++;  // Owned vars.
+            while (ndef--) {
+                auto i = *--defvars;
+                vars[i] = Pop(sp);
+            }
+            while (nargs--) {
+                auto i = *--freevars;
+                vars[i] = Pop(sp);
+            }
+            JumpTo(stf.retip);
+            stackframes.pop_back();
+            sp = (stackframes.size() ? stackframes.back().spstart : -1) + stack;
         }
     } catch (string &s) {
         // Error happened while we were building this stack trace.
@@ -433,58 +466,6 @@ InsPtr VM::GetIP() {
     #endif
 }
 
-template<int is_error> int VM::VarCleanup(StackPtr &sp, string *error, int towhere) {
-    (void)error;
-    auto &stf = stackframes.back();
-    if constexpr (!is_error) {
-        auto depth = sp - stack;
-        if (depth != stf.spstart) {
-            VMASSERT((*this), false);
-        }
-        (void)depth;
-    }
-    auto fip = stf.funstart;
-    fip++;  // function id.
-    auto nargs = *fip++;
-    auto freevars = fip + nargs;
-    fip += nargs;
-    auto ndef = *fip++;
-    fip += ndef;
-    auto defvars = fip;
-    auto nkeepvars = *fip++;
-    if constexpr (is_error) {
-        // Do this first, since values may get deleted below.
-        for (int j = 0; j < ndef; ) {
-            auto i = *(defvars - j - 1);
-            j += DumpVar(*error, vars[i], i);
-        }
-        for (int j = 0; j < nargs; ) {
-            auto i = *(freevars - j - 1);
-            j += DumpVar(*error, vars[i], i);
-        }
-    }
-    for (int i = 0; i < nkeepvars; i++) Pop(sp).LTDECRTNIL(*this);
-    auto ownedvars = *fip++;
-    for (int i = 0; i < ownedvars; i++) vars[*fip++].LTDECRTNIL(*this);
-    while (ndef--) {
-        auto i = *--defvars;
-        vars[i] = Pop(sp);
-    }
-    while (nargs--) {
-        auto i = *--freevars;
-        vars[i] = Pop(sp);
-    }
-    JumpTo(stf.retip);
-    bool lastunwind = towhere == *stf.funstart;
-    stackframes.pop_back();
-    if (!lastunwind) {
-        // This kills any temps on the stack. If these are refs these should not be
-        // owners, since a var or keepvar owns them instead.
-        sp = (stackframes.size() ? stackframes.back().spstart : -1) + stack;
-    }
-    return lastunwind;
-}
-
 // Initializes only 3 fields of the stack frame, FunIntro must be called right after.
 void VM::StartStackFrame(InsPtr retip) {
     stackframes.push_back(StackFrame());
@@ -548,19 +529,40 @@ void VM::FunIntro(StackPtr &sp VM_COMMA VM_OP_ARGS) {
     #endif
 }
 
-void VM::FunOut(StackPtr &sp, int towhere, int nrv) {
+void VM::FunOut(StackPtr &sp, int nrv) {
     sp -= nrv;
-    // Have to store these off the stack, since VarCleanup() may cause stack activity if coroutines
-    // are destructed.
-    ts_memcpy(retvalstemp, TopPtr(sp), nrv);
-    for(;;) {
-        if (!stackframes.size()) {
-            SeriousError("\"return from " + bcf->functions()->Get(towhere)->name()->string_view() +
-                         "\" outside of function");
-        }
-        if (VarCleanup<0>(sp, nullptr, towhere)) break;
+    // This is ok, since VarCleanup doesn't ever push any values.
+    auto rets = TopPtr(sp);
+    // This is guaranteed by the typechecker.
+    assert(stackframes.size());
+    auto &stf = stackframes.back();
+    auto depth = sp - stack;
+    if (depth != stf.spstart) {
+        VMASSERT((*this), false);
     }
-    ts_memcpy(TopPtr(sp), retvalstemp, nrv);
+    auto fip = stf.funstart;
+    fip++;  // function id.
+    auto nargs = *fip++;
+    auto freevars = fip + nargs;
+    fip += nargs;
+    auto ndef = *fip++;
+    fip += ndef;
+    auto defvars = fip;
+    auto nkeepvars = *fip++;
+    for (int i = 0; i < nkeepvars; i++) Pop(sp).LTDECRTNIL(*this);
+    auto ownedvars = *fip++;
+    for (int i = 0; i < ownedvars; i++) vars[*fip++].LTDECRTNIL(*this);
+    while (ndef--) {
+        auto i = *--defvars;
+        vars[i] = Pop(sp);
+    }
+    while (nargs--) {
+        auto i = *--freevars;
+        vars[i] = Pop(sp);
+    }
+    JumpTo(stf.retip);
+    stackframes.pop_back();
+    ts_memcpy(TopPtr(sp), rets, nrv);
     sp += nrv;
 }
 
@@ -972,9 +974,12 @@ StackPtr CVM_Drop(StackPtr sp) { return --sp; }
     ILCALLNAMES
 #undef F
 #define F(N, A) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp) { \
-        CHECKJ(N); return U_##N(*vm, sp); }
-    ILJUMPNAMES
+    StackPtr CVM_##N(VM *vm, StackPtr sp) { CHECKJ(N); return U_##N(*vm, sp); }
+    ILJUMPNAMES1
+#undef F
+#define F(N, A) \
+    StackPtr CVM_##N(VM *vm, StackPtr sp, int df) { CHECKJ(N); return U_##N(*vm, sp, df); }
+    ILJUMPNAMES2
 #undef F
 
 }  // extern "C"

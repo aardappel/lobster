@@ -144,6 +144,7 @@ struct DispatchEntry {
     bool is_dispatch_root = false;
     // Shared return type if root of dispatch.
     TypeRef returntype = nullptr;
+    bool returned_thru = false;
     size_t subudts_size = 0;  // At time of creation.
 };
 
@@ -246,7 +247,17 @@ struct UDT : Named {
     }
 };
 
-inline int ValWidth(TypeRef type) { return IsStruct(type->t) ? type->udt->numslots : 1; }
+inline int ValWidth(TypeRef type) {
+    return IsStruct(type->t) ? type->udt->numslots : 1;
+}
+
+inline int ValWidthMulti(TypeRef type, size_t nvals) {
+    int n = 0;
+    for (size_t i = 0; i < nvals; i++) {
+        n += ValWidth(type->Get(i));
+    }
+    return n;
+}
 
 inline const Field *FindSlot(const UDT &udt, int i) {
     for (auto &f : udt.fields) {
@@ -296,6 +307,7 @@ struct SubFunction {
     bool isdynamicfunctionvalue = false;
     bool consumes_vars_on_return = false;
     bool optimized = false;
+    bool returned_thru = false;  // there exist return statements that may skip the caller.
     UDT *method_of = nullptr;
     int numcallers = 0;
     Type thistype { V_FUNCTION, this };  // convenient place to store the type corresponding to this

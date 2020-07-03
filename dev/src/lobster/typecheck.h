@@ -850,7 +850,7 @@ struct TypeChecker {
         return true;
     }
 
-    void CheckReturnPast(const SubFunction *sf, const SubFunction *sf_to, const Node &context) {
+    void CheckReturnPast(SubFunction *sf, const SubFunction *sf_to, const Node &context) {
         // Special case for returning out of top level, which is always allowed.
         if (sf_to == st.toplevel) return;
         if (sf->isdynamicfunctionvalue) {
@@ -858,6 +858,8 @@ struct TypeChecker {
             // can be called again in a different context that does not have the same callers.
             TypeError("cannot return out of dynamic function value", context);
         }
+        // Marke any functions we may be returning thru as such.
+        sf->returned_thru = true;
     }
 
     TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
@@ -928,10 +930,16 @@ struct TypeChecker {
                     // out in the previous one.
                     SubTypeT(type, isc.sf->returntype, call_context, "",
                         "reused return value");
-                    break;
+                    goto destination_found;
                 }
                 CheckReturnPast(isc.sf, isf, call_context);
             }
+            // This error should hopefully be rare, but still possible if this call is in
+            // a very different context.
+            TypeError(cat("return out of call to \"", sf->parent->name,
+                          "\" can\'t find destination ", isf->parent->name),
+                      call_context);
+            destination_found:;
         }
     };
 
@@ -1229,6 +1237,7 @@ struct TypeChecker {
             // Typecheck all the individual functions.
             SubFunction *last_sf = nullptr;
             bool any_recursive = false;
+            bool any_returned_thru = false;
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
                 auto sf = udt->dispatch[vtable_idx].sf;
                 // Missing implementation for unused UDT.
@@ -1259,6 +1268,7 @@ struct TypeChecker {
                 sf->method_of = udt;
                 sf->method_of->dispatch[vtable_idx].sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
+                if (sf->returned_thru) any_returned_thru = true;
                 auto u = sf->returntype;
                 if (de->returntype->IsBoundVar()) {
                     // FIXME: can this still happen now that recursive cases use explicit return
@@ -1290,6 +1300,9 @@ struct TypeChecker {
                         TypeError("recursive dynamic dispatch must have explicit return type: " +
                                   sf->parent->name, call_args);
                 }
+            }
+            if (any_returned_thru) {
+                dispatch_udt.dispatch[vtable_idx].returned_thru = true;
             }
             call_args.children[0]->exptype = &dispatch_udt.thistype;
         }
@@ -2819,13 +2832,16 @@ Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret) {
 Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     exptype = type_void;
     lt = LT_ANY;
+    // Ensure what we're returning from is going to be on the stack at runtime.
     for (auto isc : reverse(tc.scopes)) {
         if (isc.sf->parent == sf->parent) {
             sf = isc.sf;  // Take specialized version.
-            break;
+            goto destination_found;
         }
         tc.CheckReturnPast(isc.sf, sf, *this);
     }
+    tc.TypeError(cat("return from \"", sf->parent->name, "\" called out of context"), *this);
+    destination_found:
     // TODO: LT_KEEP here is to keep it simple for now, since ideally we want to also allow
     // LT_BORROW, but then we have to prove that we don't outlive the owner.
     // Additionally, we have to do this for reused specializations on new SpecIdents.
@@ -2854,13 +2870,6 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         // return from program
         if (child->exptype->NumValues() > 1)
             tc.TypeError("cannot return multiple values from top level", *this);
-    }
-    auto nsf = tc.TopScope(tc.named_scopes);
-    if (nsf != sf) {
-        // This is a non-local "return from".
-        if (!sf->typechecked)
-            tc.TypeError(cat("return from \"", sf->parent->name,
-                             "\" called out of context"), *this);
     }
     auto never_returns = child->Terminal(tc);
     if (never_returns && make_void && sf->num_returns) {

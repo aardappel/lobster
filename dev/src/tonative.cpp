@@ -102,11 +102,15 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
         if (opc == IL_JUMP) {
             already_returned = true;
             ng.EmitJump(block_ids[args[0]]);
+        } else if (opc == IL_JUMPIFUNWOUND) {
+            auto id = block_ids[args[1]];
+            assert(id >= 0);
+            ng.EmitConditionalJump(opc, id, args[0]);
         } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILR) ||
                    (opc >= IL_IFOR && opc <= IL_VFOR)) {
             auto id = block_ids[args[0]];
             assert(id >= 0);
-            ng.EmitConditionalJump(opc, id);
+            ng.EmitConditionalJump(opc, id, -1);
         } else {
             ng.EmitOperands(bytecode_buffer.data(), args, arity, is_vararg);
             if (ISBCALL(opc) &&
@@ -139,7 +143,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             if (opc == IL_CALL) {
                 ng.EmitCall(block_ids[args[0]]);
                 already_returned = true;
-            } else if (opc == IL_CALLV || opc == IL_RETURN ||
+            } else if (opc == IL_CALLV || opc == IL_RETURN || opc == IL_RETURNANY ||
                        opc == IL_DDCALL || opc == IL_JUMP_TABLE ||
                        // FIXME: make resume a vm op.
                        (ISBCALL(opc) &&

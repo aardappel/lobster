@@ -136,7 +136,7 @@ struct Parser {
                 break;
             case T_INCLUDE: {
                 if (isprivate)
-                    Error("include cannot be private");
+                    Error("import cannot be private");
                 lex.Next();
                 if (IsNext(T_FROM)) {
                     auto fn = lex.StringVal();
