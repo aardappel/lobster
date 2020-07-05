@@ -58,19 +58,52 @@ struct Optimizer {
         n->lt = lt;
         return n;
     }
+
+    Node *FilterSideEffects(Node *r, Node *n) {
+        if (n->SideEffect()) {
+            n->exptype = type_void;
+            r = Typed(r->exptype, LT_ANY, new Seq(n->line, n, r));
+        } else {
+            auto ch = n->Children();
+            if (ch) {
+                for (size_t i = 0; i < n->Arity(); i++) {
+                    r = FilterSideEffects(r, ch[i]);
+                }
+                n->ClearChildren();
+            }
+            delete n;
+        }
+        return r;
+    }
 };
 
 Node *Node::Optimize(Optimizer &opt) {
-    for (size_t i = 0; i < Arity(); i++)
+    for (size_t i = 0; i < Arity(); i++) {
         Children()[i] = Children()[i]->Optimize(opt);
-    return this;
+    }
+    Value cval;
+    auto t = ConstVal(opt.tc, cval);
+    if (t == V_VOID) return this;
+    // Don't regenerate these.
+    if (Is<IntConstant>(this) || Is<FloatConstant>(this) || Is<Nil>(this)) return this;
+    Node *r;
+    switch (t) {
+        case V_INT:   r = new IntConstant(line, cval.ival()); break;
+        case V_FLOAT: r = new FloatConstant(line, cval.fval()); break;
+        case V_NIL:   r = new Nil(line, { exptype }); break;
+        default:      assert(false); return this;
+    }
+    r = opt.Typed(exptype, LT_ANY, r);
+    r = opt.FilterSideEffects(r, this);
+    opt.Changed();
+    return r->Optimize(opt);
 }
 
 Node *IfThen::Optimize(Optimizer &opt) {
     // This optimzation MUST run, since it deletes untypechecked code.
     condition = condition->Optimize(opt);
     Value cval;
-    if (condition->ConstVal(opt.tc, cval)) {
+    if (condition->ConstVal(opt.tc, cval) != V_VOID) {
         Node *r = nullptr;
         if (cval.True()) {
             r = truepart->Optimize(opt);
@@ -91,7 +124,7 @@ Node *IfElse::Optimize(Optimizer &opt) {
     // This optimzation MUST run, since it deletes untypechecked code.
     condition = condition->Optimize(opt);
     Value cval;
-    if (condition->ConstVal(opt.tc, cval)) {
+    if (condition->ConstVal(opt.tc, cval) != V_VOID) {
         auto &branch = cval.True() ? truepart : falsepart;
         auto r = branch->Optimize(opt);
         branch = nullptr;
@@ -103,23 +136,6 @@ Node *IfElse::Optimize(Optimizer &opt) {
         falsepart = AssertIs<Block>(falsepart->Optimize(opt));
         return this;
     }
-}
-
-Node *IsType::Optimize(Optimizer &opt) {
-    Value cval;
-    child = child->Optimize(opt);
-    if (ConstVal(opt.tc, cval)) {
-        auto r = opt.Typed(exptype, LT_ANY, new IntConstant(line, cval.ival()));
-        if (child->HasSideEffects()) {
-            child->exptype = type_void;
-            r = opt.Typed(exptype, LT_ANY, new Seq(line, child, r));
-            child = nullptr;
-        }
-        delete this;
-        opt.Changed();
-        return r->Optimize(opt);
-    }
-    return this;
 }
 
 Node *DynCall::Optimize(Optimizer &opt) {

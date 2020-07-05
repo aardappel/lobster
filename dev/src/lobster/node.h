@@ -30,6 +30,7 @@ struct Node {
     virtual ~Node() {};
     virtual size_t Arity() const { return 0; }
     virtual Node **Children() { return nullptr; }
+    virtual void ClearChildren() {}
     virtual Node *Clone() = 0;
     virtual bool IsConstInit() const { return false; }
     // Does control flow continue beyond this node?
@@ -43,11 +44,6 @@ struct Node {
     }
     // Used in the optimizer to see if this node can be discarded without consequences.
     virtual bool SideEffect() const = 0;  // Just this node.
-    bool HasSideEffects() {  // Transitively.
-        bool se = false;
-        Iterate([&](Node *n) { se = se || n->SideEffect(); });
-        return se;
-    }
     size_t Count() {
         size_t count = 0;
         Iterate([&](Node *) { count++; });
@@ -56,7 +52,7 @@ struct Node {
     // Used by type-checker to and optimizer.
     // If it returns true, sets val to a value that gives the correct True().
     // Also sets correct scalar values.
-    virtual bool ConstVal(TypeChecker &, Value &) const { return false; }
+    virtual ValueType ConstVal(TypeChecker &, Value &) const { return V_VOID; }
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
     virtual Node *Optimize(Optimizer &opt);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
@@ -115,6 +111,7 @@ struct NAME : Node { \
     ~NAME() { delete A; } \
     size_t Arity() const { return 1; } \
     Node **Children() { return &A; } \
+    void ClearChildren() { A = nullptr; } \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
 };
@@ -125,10 +122,11 @@ struct NAME : Unary { \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
 };
-#define COER_NODE(NAME, STR) \
+#define COER_NODE(NAME, STR, METHODS) \
 struct NAME : Coercion { \
     NAME(const Line &ln, Node *_a) : Coercion(ln, _a) {} \
     SHARED_SIGNATURE_NO_TT(NAME, STR, false) \
+    METHODS \
 };
 
 #define BINARY_NODE_T(NAME, STR, SE, AT, A, BT, B, METHODS) \
@@ -138,6 +136,7 @@ struct NAME : Node { \
     ~NAME() { delete A; delete B; } \
     size_t Arity() const { return 2; } \
     Node **Children() { return (Node **)&A; } \
+    void ClearChildren() { A = nullptr; B = nullptr; } \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
 };
@@ -158,6 +157,7 @@ struct NAME : Node { \
     ~NAME() { delete A; delete B; delete C; } \
     size_t Arity() const { return 3; } \
     Node **Children() { return &A; } \
+    void ClearChildren() { A = nullptr; B = nullptr; C = nullptr; } \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
 };
@@ -172,6 +172,7 @@ struct NAME : Node { \
     ~NAME() { for (auto n : children) delete n; } \
     size_t Arity() const { return children.size(); } \
     Node **Children() { return children.data(); } \
+    void ClearChildren() { children.clear(); } \
     NAME *Add(Node *a) { children.push_back(a); return this; }; \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
@@ -185,7 +186,7 @@ struct TypeAnnotation : Node {
 };
 
 #define RETURNSMETHOD bool Terminal(TypeChecker &tc) const;
-#define CONSTVALMETHOD bool ConstVal(TypeChecker &tc, Value &val) const;
+#define CONSTVALMETHOD ValueType ConstVal(TypeChecker &tc, Value &val) const;
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
 
 // generic node types
@@ -235,10 +236,10 @@ BINARY_NODE(Indexing, "indexing operation", false, object, index, )
 UNOP_NODE(PostIncr, TName(T_INCR), true, )
 UNOP_NODE(PostDecr, TName(T_DECR), true, )
 UNARY_NODE(UnaryMinus, TName(T_MINUS), false, child, )
-COER_NODE(ToFloat, "tofloat")
-COER_NODE(ToString, "tostring")
-COER_NODE(ToBool, "tobool")
-COER_NODE(ToInt, "toint")
+COER_NODE(ToFloat, "tofloat", CONSTVALMETHOD)
+COER_NODE(ToString, "tostring", )
+COER_NODE(ToBool, "tobool", CONSTVALMETHOD)
+COER_NODE(ToInt, "toint", CONSTVALMETHOD)
 NARY_NODE(Block, "block", false, RETURNSMETHOD)
 BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, OPTMETHOD)
 TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, OPTMETHOD RETURNSMETHOD)
@@ -254,9 +255,9 @@ ZERO_NODE(Break, "break", false, RETURNSMETHOD)
 struct Nil : Node {
     UnresolvedTypeRef giventype;
     Nil(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
-    bool ConstVal(TypeChecker &, Value &val) const {
+    ValueType ConstVal(TypeChecker &, Value &val) const {
         val = Value();
-        return true;
+        return V_NIL;
     }
     SHARED_SIGNATURE(Nil, TName(T_NIL), false)
 };
@@ -276,9 +277,9 @@ struct IntConstant : Node {
     IntConstant(const Line &ln, int64_t i) : Node(ln), integer(i), from(nullptr) {}
     bool IsConstInit() const { return true; }
     void Dump(string &sd) const { if (from) sd += from->name; else append(sd, integer); }
-    bool ConstVal(TypeChecker &, Value &val) const {
-        val = Value(integer);  // FIXME: this clips.
-        return true;
+    ValueType ConstVal(TypeChecker &, Value &val) const {
+        val = Value(integer);
+        return V_INT;
     }
     SHARED_SIGNATURE(IntConstant, TName(T_INT), false)
 };
@@ -288,9 +289,9 @@ struct FloatConstant : Node {
     FloatConstant(const Line &ln, double f) : Node(ln), flt(f) {}
     bool IsConstInit() const { return true; }
     void Dump(string &sd) const { sd += to_string_float(flt); }
-    bool ConstVal(TypeChecker &, Value &val) const {
+    ValueType ConstVal(TypeChecker &, Value &val) const {
         val = Value(flt);
-        return true;
+        return V_FLOAT;
     }
     SHARED_SIGNATURE(FloatConstant, TName(T_FLOAT), false)
 };
@@ -434,7 +435,6 @@ struct IsType : Unary {
     void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype.utr)); }
     CONSTVALMETHOD
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
-    OPTMETHOD
 };
 
 struct EnumCoercion : Unary {
