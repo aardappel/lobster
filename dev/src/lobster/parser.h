@@ -1321,6 +1321,8 @@ struct Parser {
             return ParseFunctionCall(f, nf, idname, nullptr, false, 0, &specializers);
         // Check for implicit variable.
         if (idname[0] == '_') {
+            if (block_stack.empty())
+                Error("cannot add implicit argument at top level: " + idname);
             auto &bs = block_stack.back();
             auto id = st.Lookup(idname);
             auto sf = st.defsubfunctionstack.back();
