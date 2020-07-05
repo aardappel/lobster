@@ -105,15 +105,14 @@ struct SharedField : Named {
 };
 
 struct Field {
-    UnresolvedTypeRef giventype = { nullptr };
-    TypeRef resolvedtype = nullptr;
-    SharedField *id = nullptr;
-    Node *defaultval = nullptr;
+    UnresolvedTypeRef giventype;
+    TypeRef resolvedtype;
+    SharedField *id;
+    Node *defaultval;
     int slot = -1;
-    bool isprivate = false;
+    bool isprivate;
     Line defined_in;
 
-    Field() = default;
     Field(SharedField *_id, UnresolvedTypeRef _type, Node *_defaultval, bool isprivate,
           const Line &defined_in)
         : giventype(_type), resolvedtype(_type.utr), id(_id), defaultval(_defaultval),
