@@ -13,14 +13,14 @@
 
 import std
 
-class chain<K,V>:
+private class chain<K,V>:
     next:chain?
     key:K
     value:V
 
 class dictionary<K,V>:
-    buckets:[chain<K,V>?] = []
-    size:int
+    private buckets:[chain<K,V>?] = []
+    private size:int
 
     def set(key:K, value:V):
         if not buckets.length:

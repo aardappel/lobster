@@ -767,7 +767,8 @@ You can use `import from "path/to/"` to provide additional such starting directo
 statements (recursively) can use.
 
 You may use the keyword `private` at the top level in a file to prefix structs,
-variables, and functions that you don't want to be visible outside that file.
+variables, functions, enums, fields and methods that you don't want to be
+visible outside that file.
 
 Memory Management
 -----------------

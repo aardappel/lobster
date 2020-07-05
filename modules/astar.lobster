@@ -3,9 +3,9 @@
 import vec
 
 class astar_node<N,S,D>:
-    G = 0.0
-    H = 0.0
-    F = 0.0
+    private G = 0.0
+    private H = 0.0
+    private F = 0.0
     previous:N = nil
     state:S
     delta:D

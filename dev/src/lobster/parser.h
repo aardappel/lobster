@@ -347,9 +347,10 @@ struct Parser {
                 bool fieldsdone = false;
                 st.bound_typevars_stack.push_back(&udt->generics);
                 for (;;) {
+                    bool member_private = IsNext(T_PRIVATE);
                     if (IsNext(T_FUN)) {
                         fieldsdone = true;
-                        parent_list->Add(ParseNamedFunctionDefinition(false, udt));
+                        parent_list->Add(ParseNamedFunctionDefinition(member_private, udt));
                     }
                     else {
                         if (fieldsdone) Error("fields must be declared before methods");
@@ -362,7 +363,7 @@ struct Parser {
                         Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
                         if (type.utr->t == V_ANY && !defaultval)
                             Error("must specify either type or default value");
-                        udt->fields.push_back(Field(&sfield, type, defaultval));
+                        udt->fields.push_back(Field(&sfield, type, defaultval, member_private, lex));
                     }
                     if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }

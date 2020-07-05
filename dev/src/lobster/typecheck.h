@@ -984,7 +984,8 @@ struct TypeChecker {
                 // No existing specialization found, create a new one.
                 auto udt = new UDT("", (int)st.udttable.size(), type->spec_udt->udt->is_struct);
                 st.udttable.push_back(udt);
-                udt = type->spec_udt->udt->first->CloneInto(udt, type->spec_udt->udt->first->name, st.udttable);
+                udt = type->spec_udt->udt->first->CloneInto(udt, type->spec_udt->udt->first->name,
+                                                            st.udttable);
                 udt->unnamed_specialization = true;
                 assert(udt->generics.size() == types.size());
                 udt->unspecialized.specializers.clear();
@@ -2988,7 +2989,10 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     auto fieldidx = udt->Has(fld);
     if (fieldidx < 0)
         tc.TypeError("type \"" + udt->name + "\" has no field named " + fld->name, *this);
-    exptype = udt->fields[fieldidx].resolvedtype;
+    auto &field = udt->fields[fieldidx];
+    if (field.isprivate && line.fileidx != field.defined_in.fileidx)
+        tc.TypeError(cat("field ", field.id->name, " is private"), *this);
+    exptype = field.resolvedtype;
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
     lt = tc.PushBorrow(this);

@@ -110,10 +110,14 @@ struct Field {
     SharedField *id = nullptr;
     Node *defaultval = nullptr;
     int slot = -1;
+    bool isprivate = false;
+    Line defined_in;
 
     Field() = default;
-    Field(SharedField *_id, UnresolvedTypeRef _type, Node *_defaultval)
-        : giventype(_type), resolvedtype(_type.utr), id(_id), defaultval(_defaultval) {}
+    Field(SharedField *_id, UnresolvedTypeRef _type, Node *_defaultval, bool isprivate,
+          const Line &defined_in)
+        : giventype(_type), resolvedtype(_type.utr), id(_id), defaultval(_defaultval),
+          isprivate(isprivate), defined_in(defined_in) {}
     Field(const Field &o);
     ~Field();
 };
@@ -172,7 +176,7 @@ struct UDT : Named {
 
     UDT(string_view _name, int _idx, bool is_struct)
         : Named(_name, _idx), is_struct(is_struct), unspecialized(this),
-        unspecialized_type(&unspecialized) {
+          unspecialized_type(&unspecialized) {
         thistype = is_struct ? Type { V_STRUCT_R, this } : Type { V_CLASS, this };
     }
 
