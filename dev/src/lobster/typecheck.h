@@ -2272,8 +2272,12 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             // Have to subtype the initializer value, as that node may contain
             // unbound vars (a:[int] = []) or values that that need to be coerced
             // (a:float = 1)
-            // FIXME: this doesn't look like it would work for multi-return..
-            tc.SubType(child, var.type, "initializer", "definition");
+            if (sids.size() == 1) {
+                tc.SubType(child, var.type, "initializer", "definition");
+            } else {
+                // FIXME: no coercion when mult-return?
+                tc.SubTypeT(child->exptype->Get(i), var.type, *this, p.first->id->name);
+            }
             // In addition, the initializer may already cause the type to be promoted.
             // a:string? = ""
             FlowItem fi(p.first, var.type, child->exptype);
