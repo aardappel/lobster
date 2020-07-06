@@ -68,6 +68,7 @@ struct Parser {
         for (;;) {
             ParseTopExp(block);
             if (lex.token == T_ENDOFINCLUDE) {
+                ResolveForwardFunctionCalls(false);
                 st.EndOfInclude();
                 lex.PopIncludeContinue();
             } else if (!IsNext(T_LINEFEED)) {
@@ -85,7 +86,7 @@ struct Parser {
     }
 
     void CleanupStatements(Block *list) {
-        ResolveForwardFunctionCalls();
+        ResolveForwardFunctionCalls(true);
         for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
                 st.Unregister(er->e, st.enums);
@@ -935,7 +936,7 @@ struct Parser {
         return nullptr;
     }
 
-    void ResolveForwardFunctionCalls() {
+    void ResolveForwardFunctionCalls(bool error_on_not_found) {
         for (auto ffc = forwardfunctioncalls.begin(); ffc != forwardfunctioncalls.end(); ) {
             if (ffc->maxscopelevel >= st.scopelevels.size()) {
                 swap(ffc->call_namespace, st.current_namespace);
@@ -950,10 +951,13 @@ struct Parser {
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 } else {
-                    if (st.scopelevels.size() == 1)
-                        Error("call to unknown function: " + ffc->n->name, ffc->n);
-                    // Prevent it being found in sibling scopes.
-                    ffc->maxscopelevel = st.scopelevels.size() - 1;
+                    if (st.scopelevels.size() == 1) {
+                        if (error_on_not_found)
+                            Error("call to unknown function: " + ffc->n->name, ffc->n);
+                    } else {
+                        // Prevent it being found in sibling scopes.
+                        ffc->maxscopelevel = st.scopelevels.size() - 1;
+                    }
                 }
             }
             ffc++;
