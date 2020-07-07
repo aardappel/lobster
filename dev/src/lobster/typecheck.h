@@ -2075,6 +2075,10 @@ Node *IfThen::TypeCheck(TypeChecker &tc, size_t) {
     auto constant = tc.TypeCheckCondition(condition, this, "if");
     if (!constant || constant->True()) {
         tc.TypeCheckBranch(true, condition, truepart, 0);
+        if (truepart->Terminal(tc)) {
+            // This is an if ..: return, we should leave promotions for code after the if.
+            tc.CheckFlowTypeChanges(false, condition);
+        }
     } else {
         // constant == false: this if-then will get optimized out entirely, ignore it.
     }
