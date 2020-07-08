@@ -297,6 +297,17 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
         return Value(nv);
     });
 
+nfr("any", "xs", "A]*", "B",
+    "returns wether any elements of the vector are true values",
+    [](StackPtr &, VM &, Value &v) {
+        Value r(false);
+        iint l = v.vval()->len;
+        for (auto i = 0; i < l; i++) {
+            if (v.vval()->At(i).True()) { r = Value(true); break; }
+        }
+        return r;
+    });
+
 nfr("any", "xs", "I}", "B",
     "returns wether any elements of the numeric struct are true values",
     [](StackPtr &sp, VM &) {
@@ -308,13 +319,12 @@ nfr("any", "xs", "I}", "B",
         Push(sp,  r);
     });
 
-nfr("any", "xs", "A]*", "B",
-    "returns wether any elements of the vector are true values",
+nfr("all", "xs", "A]*", "B",
+    "returns wether all elements of the vector are true values",
     [](StackPtr &, VM &, Value &v) {
-        Value r(false);
-        iint l = v.vval()->len;
-        for (auto i = 0; i < l; i++) {
-            if (v.vval()->At(i).True()) { r = Value(true); break; }
+        Value r(true);
+        for (iint i = 0; i < v.vval()->len; i++) {
+            if (v.vval()->At(i).False()) { r = Value(false); break; }
         }
         return r;
     });
@@ -328,16 +338,6 @@ nfr("all", "xs", "I}", "B",
             if (!Pop(sp).True()) r = false;
         }
         Push(sp,  r);
-    });
-
-nfr("all", "xs", "A]*", "B",
-    "returns wether all elements of the vector are true values",
-    [](StackPtr &, VM &, Value &v) {
-        Value r(true);
-        for (iint i = 0; i < v.vval()->len; i++) {
-            if (v.vval()->At(i).False()) { r = Value(false); break; }
-        }
-        return r;
     });
 
 nfr("substring", "s,start,size", "SII", "S",
