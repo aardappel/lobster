@@ -247,6 +247,17 @@ nfr("gl_button", "name", "S", "I",
         return Value(ks.Step());
     });
 
+nfr("gl_pressedkeys", "", "", "S]",
+    "returns the names of the keys currently pressed.",
+    [](StackPtr &sp, VM &vm) {
+        auto klist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+        auto pkset = GetKeyPressInfo();
+        set<string>::iterator iter;
+        for (iter = pkset.begin(); iter != pkset.end(); ++iter)
+            klist->Push(vm, Value(vm.NewString(*iter))); // cout << *iter << " ";
+        return Value(klist);
+    });
+
 nfr("gl_touchscreen", "", "", "B",
     "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)",
     [](StackPtr &, VM &) {

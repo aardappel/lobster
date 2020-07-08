@@ -31,6 +31,7 @@ extern const int2 &GetFinger(int i, bool delta);
 extern TimeBool8 GetKS(string_view name);
 extern double GetKeyTime(string_view name, int on);
 extern int2 GetKeyPos(string_view name, int on);
+extern set<string> &GetKeyPressInfo();
 extern float GetJoyAxis(int i);
 extern string &GetDroppedFile();
 

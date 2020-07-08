@@ -65,6 +65,7 @@ struct KeyState {
 };
 
 map<string, KeyState, less<>> keymap;
+set<string> pressedkeys;
 
 int mousewheeldelta = 0;
 
@@ -99,7 +100,6 @@ struct Finger {
 const int MAXFINGERS = 10;
 Finger fingers[MAXFINGERS];
 
-
 void updatebutton(string &name, bool on, int posfinger) {
     auto &ks = keymap[name];
     ks.button.Set(on);
@@ -112,6 +112,20 @@ void updatemousebutton(int button, int finger, bool on) {
     name += '0' + (char)button;
     if (finger) name += '0' + (char)finger;
     updatebutton(name, on, finger);
+}
+
+void updatepressedkeys(string kname, Uint8 state)
+{
+    switch (state) {
+        case SDL_RELEASED:
+            pressedkeys.erase(kname);
+            break;
+        case SDL_PRESSED:
+            pressedkeys.insert(kname);
+            break;
+        default:
+            break;
+    }
 }
 
 void clearfingers(bool delta) {
@@ -427,6 +441,7 @@ bool SDLFrame() {
                 string name = kn;
                 std::transform(name.begin(), name.end(), name.begin(),
                                [](char c) { return (char)::tolower(c); });
+                updatepressedkeys(name, event.key.state);
                 updatebutton(name, event.key.state==SDL_PRESSED, 0);
                 if (event.type == SDL_KEYDOWN) {
                     // Built-in key-press functionality.
@@ -613,6 +628,8 @@ int2 GetKeyPos(string_view name, int on) {
     auto ks = keymap.find(name);
     return ks == keymap.end() ? int2(-1, -1) : ks->second.lastpos[on];
 }
+
+set<string>& GetKeyPressInfo() { return pressedkeys; }
 
 void SDLTitle(string_view title) { SDL_SetWindowTitle(_sdl_window, null_terminated(title)); }
 
