@@ -247,6 +247,48 @@ nfr("gl_button", "name", "S", "I",
         return Value(ks.Step());
     });
 
+nfr("gl_key_repeat", "name", "S", "B",
+    "returns if a key was a key repeat (went down, or is down with a key repeat)",
+    [](StackPtr &, VM &, Value &name) {
+        auto ks = GetKS(name.sval()->strv());
+        return Value(ks.Step() == 1 || (ks.Step() > 1 && KeyRepeat(name.sval()->strv())));
+    });
+
+nfr("gl_start_text_input", "pos,size", "I}:2I}:2", "",
+    "starts text input. unlike gl_button which gets you keyboard keys, this is for input of"
+    " strings, that can deal with unicode IME etc. pos & size are a hint where the string"
+    " being edited is being displayed, such that an IME can popup a box next to it, if needed.",
+    [](StackPtr &sp, VM &) {
+        auto pos = PopVec<int2>(sp);
+        auto size = PopVec<int2>(sp);
+        SDLStartTextInput(pos, size);
+    });
+
+nfr("gl_text_input_state", "", "", "SSII",
+    "returns the string that has been input since text input started, followed by any candinate"
+    " text (partial characters in case of IME editing), and the cursor & selection size for it",
+    [](StackPtr &sp, VM &vm) {
+        auto &ti = SDLTextInputState();
+        Push(sp, vm.NewString(ti.text));
+        Push(sp, vm.NewString(ti.editing));
+        Push(sp, ti.cursor);
+        Push(sp, ti.len);
+    });
+
+nfr("gl_set_text_input", "text", "S", "",
+    "overwrites the current text string being accumulated",
+    [](StackPtr &, VM &, Value &text) {
+        SDLTextInputSet(text.sval()->strv());
+        return Value();
+    });
+
+nfr("gl_end_text_input", "", "", "",
+    "stops accumulating text input",
+    [](StackPtr &, VM &) {
+        SDLEndTextInput();
+        return Value();
+    });
+
 nfr("gl_touchscreen", "", "", "B",
     "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)",
     [](StackPtr &, VM &) {

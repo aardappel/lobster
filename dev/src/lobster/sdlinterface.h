@@ -29,6 +29,7 @@ extern const int2 &GetScreenSize();
 
 extern const int2 &GetFinger(int i, bool delta);
 extern TimeBool8 GetKS(string_view name);
+extern bool KeyRepeat(string_view name);
 extern double GetKeyTime(string_view name, int on);
 extern int2 GetKeyPos(string_view name, int on);
 extern float GetJoyAxis(int i);
@@ -61,6 +62,18 @@ extern bool ScreenShot(string_view filename);
 extern void SDLTestMode();
 
 extern int SDLScreenDPI(int screen);
+
+struct TextInput {
+    string text;
+    string editing;
+    int cursor = 0;
+    int len = 0;
+};
+
+extern void SDLStartTextInput(int2 pos, int2 size);
+extern TextInput &SDLTextInputState();
+extern void SDLTextInputSet(string_view t);
+extern void SDLEndTextInput();
 
 extern bool GraphicsFrameStart();
 extern void GraphicsShutDown();

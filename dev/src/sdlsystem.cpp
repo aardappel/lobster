@@ -50,6 +50,7 @@ right meta left meta left super right super alt gr compose help print screen sys
 
 struct KeyState {
     TimeBool8 button;
+    bool repeat = false;
 
     double lasttime[2];
     int2 lastpos[2];
@@ -61,10 +62,13 @@ struct KeyState {
 
     void FrameReset() {
         button.Advance();
+        repeat = false;
     }
 };
 
 map<string, KeyState, less<>> keymap;
+
+TextInput textinput;
 
 int mousewheeldelta = 0;
 
@@ -100,18 +104,19 @@ const int MAXFINGERS = 10;
 Finger fingers[MAXFINGERS];
 
 
-void updatebutton(string &name, bool on, int posfinger) {
+void updatebutton(string &name, bool on, int posfinger, bool repeat) {
     auto &ks = keymap[name];
     ks.button.Set(on);
     ks.lasttime[on] = lasttime;
     ks.lastpos[on] = fingers[posfinger].mousepos;
+    ks.repeat = repeat;
 }
 
 void updatemousebutton(int button, int finger, bool on) {
     string name = "mouse";
     name += '0' + (char)button;
     if (finger) name += '0' + (char)finger;
-    updatebutton(name, on, finger);
+    updatebutton(name, on, finger, false);
 }
 
 void clearfingers(bool delta) {
@@ -427,7 +432,7 @@ bool SDLFrame() {
                 string name = kn;
                 std::transform(name.begin(), name.end(), name.begin(),
                                [](char c) { return (char)::tolower(c); });
-                updatebutton(name, event.key.state==SDL_PRESSED, 0);
+                updatebutton(name, event.key.state==SDL_PRESSED, 0, event.key.repeat);
                 if (event.type == SDL_KEYDOWN) {
                     // Built-in key-press functionality.
                     switch (event.key.keysym.sym) {
@@ -521,7 +526,7 @@ bool SDLFrame() {
             case SDL_JOYBUTTONUP: {
                 string name = "joy";
                 name += '0' + (char)event.jbutton.button;
-                updatebutton(name, event.jbutton.state == SDL_PRESSED, 0);
+                updatebutton(name, event.jbutton.state == SDL_PRESSED, 0, false);
                 break;
             }
 
@@ -559,6 +564,16 @@ bool SDLFrame() {
             case SDL_DROPFILE:
                 dropped_file = event.drop.file;
                 SDL_free(event.drop.file);
+                break;
+
+            case SDL_TEXTINPUT:
+                textinput.text += event.text.text;
+                break;
+
+            case SDL_TEXTEDITING:
+                textinput.editing = event.edit.text;
+                textinput.cursor = event.edit.start;
+                textinput.len = event.edit.length;
                 break;
         }
     }
@@ -602,6 +617,12 @@ TimeBool8 GetKS(string_view name) {
     #else
         return ks->second.button;
     #endif
+}
+
+bool KeyRepeat(string_view name) {
+    auto ks = keymap.find(name);
+    if (ks == keymap.end()) return {};
+    return ks->second.repeat;
 }
 
 double GetKeyTime(string_view name, int on) {
@@ -686,4 +707,23 @@ int SDLScreenDPI(int screen) {
     return screen >= screens
            ? 0  // Screen not present.
            : (int)(ddpi + 0.5f);
+}
+
+void SDLStartTextInput(int2 pos, int2 size) {
+    SDL_StartTextInput();
+    SDL_Rect rect = { pos.x, pos.y, size.x, size.y };
+    SDL_SetTextInputRect(&rect);
+    textinput = TextInput();
+}
+
+TextInput &SDLTextInputState() {
+    return textinput;
+}
+
+void SDLTextInputSet(string_view t) {
+    textinput.text = t;
+}
+
+void SDLEndTextInput() {
+    SDL_StopTextInput();
 }

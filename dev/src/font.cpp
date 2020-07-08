@@ -87,6 +87,7 @@ nfr("gl_set_font_size", "size,outlinesize", "IF?", "B",
     " time this size is used, flushes from cache if this size is not used an entire frame. font"
     " rendering will look best if using 1:1 pixels (careful with gl_scale/gl_translate)."
     " an optional outlinesize will give the font a black outline."
+    " make sure to call this every frame."
     " returns true if success",
     [](StackPtr &sp, VM &vm, Value &fontsize, Value &outlinesize) {
         if (!curface) vm.BuiltinError(sp, "gl_set_font_size: no current font set with gl_set_font_name");
@@ -130,7 +131,7 @@ nfr("gl_text", "text", "S", "Sb",
     "renders a text with the current font (at the current coordinate origin)",
     [](StackPtr &sp, VM &vm, Value &s) {
         auto f = curfont;
-        if (!f) return vm.BuiltinError(sp, "gl_text: no font size set");
+        if (!f) return vm.BuiltinError(sp, "gl_text: no font / font size set");
         if (!s.sval()->len) return s;
         float4x4 oldobject2view;
         if (curfontsize > maxfontsize) {
@@ -148,7 +149,7 @@ nfr("gl_text_size", "text", "S", "I}:2",
     "the x/y size in pixels the given text would need",
     [](StackPtr &sp, VM &vm) {
         auto f = curfont;
-        if (!f) vm.BuiltinError(sp, "gl_text_size: no font size set");
+        if (!f) vm.BuiltinError(sp, "gl_text_size: no font / font size set");
         auto size = f->TextSize(Pop(sp).sval()->strv());
         if (curfontsize > maxfontsize) {
             size = fceil(float2(size) * float(curfontsize) / float(maxfontsize));
