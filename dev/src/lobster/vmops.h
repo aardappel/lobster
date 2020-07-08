@@ -182,10 +182,11 @@ VM_INLINE StackPtr U_KEEPREF(VM &, StackPtr sp, int off, int ki) {
     return sp;
 }
 
-VM_INLINE StackPtr U_CALL(VM &vm, StackPtr sp, int f VM_COMMA VM_OP_ARGS_CALL) {
+VM_INLINE StackPtr U_CALL(VM &vm, StackPtr sp, int f) {
     #ifdef VM_COMPILED_CODE_MODE
         (void)f;
         block_base_t fun = 0;  // Dynamic calls need this set, but for CALL it is ignored.
+        block_base_t fcont = 0;  // Not used for retip.
     #else
         auto fun = f;
         auto fcont = vm.ip - vm.codestart;
@@ -195,18 +196,20 @@ VM_INLINE StackPtr U_CALL(VM &vm, StackPtr sp, int f VM_COMMA VM_OP_ARGS_CALL) {
     return sp;
 }
 
-VM_INLINE StackPtr U_CALLV(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS_CALL) {
+VM_INLINE StackPtr U_CALLV(VM &vm, StackPtr sp) {
     Value fun = Pop(sp);
     VMTYPEEQ(fun, V_FUNCTION);
     #ifndef VM_COMPILED_CODE_MODE
         auto fcont = vm.ip - vm.codestart;
+    #else
+        block_base_t fcont = 0;  // Not used for retip.
     #endif
     vm.StartStackFrame(InsPtr(fcont));
     vm.FunIntroPre(sp, fun.ip());
     return sp;
 }
 
-VM_INLINE StackPtr U_CALLVCOND(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS_CALL) {
+VM_INLINE StackPtr U_CALLVCOND(VM &vm, StackPtr sp) {
     // FIXME: don't need to check for function value again below if false
     if (Top(sp).False()) {
         Pop(sp);
@@ -214,17 +217,18 @@ VM_INLINE StackPtr U_CALLVCOND(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS_CALL) {
             vm.next_call_target = 0;
         #endif
     } else {
-        sp = U_CALLV(vm, sp VM_COMMA VM_FC_PASS_THRU);
+        sp = U_CALLV(vm, sp);
     }
     return sp;
 }
 
-VM_INLINE StackPtr U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx VM_COMMA VM_OP_ARGS_CALL) {
+VM_INLINE StackPtr U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     auto self = TopM(sp, stack_idx);
     VMTYPEEQ(self, V_CLASS);
     auto start = self.oval()->ti(vm).vtable_start;
     auto fun = vm.vtables[start + vtable_idx];
     #ifdef VM_COMPILED_CODE_MODE
+        block_base_t fcont = 0;  // Not used for retip.
     #else
         auto fcont = vm.ip - vm.codestart;
         assert(fun.f >= 0);
@@ -777,6 +781,11 @@ VM_INLINE StackPtr U_SPUSHIDXI(VM &vm, StackPtr sp) {
     return sp;
 }
 
+VM_INLINE StackPtr U_NATIVEHINT(VM &, StackPtr sp, int) {
+    assert(false);
+    return sp;
+}
+
 #ifdef VM_COMPILED_CODE_MODE
 VM_INLINE StackPtr U_JUMP(VM &, StackPtr sp) { Push(sp, false); return sp; }
 VM_INLINE StackPtr U_JUMPFAIL(VM &, StackPtr sp) { return sp; }
@@ -803,11 +812,22 @@ VM_INLINE StackPtr U_JUMPIFUNWOUND(VM &vm, StackPtr sp, int df) {
 #endif
 
 
-VM_INLINE StackPtr U_JUMP_TABLE(VM &vm, StackPtr sp, int mini, int maxi, int table_start) {
-    auto val = Pop(sp).ival();
-    if (val < mini || val > maxi) val = maxi + 1;
-    auto target = vm.vtables[(ssize_t)(table_start + val - mini)];
-    vm.JumpTo(target);
+VM_INLINE StackPtr U_JUMP_TABLE(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS) {
+    #ifdef VM_COMPILED_CODE_MODE
+        (void)vm;
+        (void)ip;
+        assert(false);
+    #else
+        auto mini = *vm.ip++;
+        auto maxi = *vm.ip++;
+        auto n = maxi - mini + 2;
+        auto jstart = vm.ip;
+        vm.ip += n;
+        auto val = Pop(sp).ival();
+        if (val < mini || val > maxi) val = maxi + 1;
+        auto target = jstart[val - mini];
+        vm.JumpTo(InsPtr(target));
+    #endif
     return sp;
 }
 

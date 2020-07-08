@@ -301,7 +301,7 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
 
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
     string *parsedump, string *pakfile, bool dump_builtins, bool dump_names, bool return_value,
-    int runtime_checks) {
+    int runtime_checks, bool nativemode) {
     SymbolTable st;
     Parser parser(nfr, fn, st, stringsource);
     parser.Parse();
@@ -310,9 +310,9 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc);
     if (parsedump) *parsedump = parser.DumpAll(true);
-    CodeGen cg(parser, st, return_value, runtime_checks);
+    CodeGen cg(parser, st, return_value, runtime_checks, nativemode);
     st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
-        cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables);
+        cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables, nativemode);
     if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
     if (dump_builtins) DumpBuiltins(nfr, false, st);
     if (dump_names) DumpBuiltins(nfr, true, st);
@@ -326,14 +326,14 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
     #endif
     {
         auto vmargs = VMArgs {
-            parent_vm.nfr, fn, {}, nullptr, nullptr, 0, args
+            parent_vm.nfr, fn, {}, nullptr, 0, args
         };
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                vmargs.bytecode_buffer, nullptr, nullptr, false, false, true, RUNTIME_ASSERT);
+                vmargs.bytecode_buffer, nullptr, nullptr, false, false, true, RUNTIME_ASSERT, false);
         #ifdef VM_COMPILED_CODE_MODE
             // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
             // interpreted mode anymore.
-            THROW_OR_ABORT(string("cannot execute bytecode in compiled mode"));
+            THROW_OR_ABORT("cannot execute bytecode in compiled mode");
         #endif
         VMAllocator vma(std::move(vmargs));
         vma.vm->EvalProgram();
@@ -376,13 +376,13 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "parsedata", AddReader);
 }
 
-VMArgs CompiledInit(int argc, char *argv[], const void *entry_point, const void *bytecodefb,
+VMArgs CompiledInit(int argc, char *argv[], const void *bytecodefb,
                     size_t static_size, const lobster::block_base_t *vtables, FileLoader loader,
                     NativeRegistry &nfr) {
     min_output_level = OUTPUT_INFO;
     InitPlatform("../../", "", false, loader);  // FIXME: path.
     auto vmargs = VMArgs {
-        nfr, StripDirPart(argv[0]), {}, entry_point, bytecodefb, static_size, {},
+        nfr, StripDirPart(argv[0]), {}, bytecodefb, static_size, {},
         vtables, TraceMode::OFF
     };
     for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
@@ -395,7 +395,7 @@ int UnusedRunCompiledCodeMain
 #else
 extern "C" int RunCompiledCodeMain
 #endif
-(int argc, char *argv[], const void *entry_point, const void *bytecodefb, size_t static_size,
+(int argc, char *argv[], const void *bytecodefb, size_t static_size,
  const lobster::block_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING
     try
@@ -403,7 +403,7 @@ extern "C" int RunCompiledCodeMain
     {
         NativeRegistry nfr;
         RegisterCoreLanguageBuiltins(nfr);
-        lobster::VMAllocator vma(CompiledInit(argc, argv, entry_point, bytecodefb, static_size,
+        lobster::VMAllocator vma(CompiledInit(argc, argv, bytecodefb, static_size,
                                               vtables, DefaultLoadFile, nfr));
         vma.vm->EvalProgram();
     }

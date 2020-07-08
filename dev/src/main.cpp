@@ -68,6 +68,7 @@ int main(int argc, char* argv[]) {
         bool disasm = false;
         bool to_cpp = false;
         bool to_wasm = false;
+        bool to_native = false;
         bool dump_builtins = false;
         bool dump_names = false;
         bool compile_only = false;
@@ -108,8 +109,8 @@ int main(int argc, char* argv[]) {
                 string a = argv[arg];
                 if      (a == "--wait") { wait = true; }
                 else if (a == "--pak") { lpak = default_lpak; }
-                else if (a == "--cpp") { to_cpp = true; }
-                else if (a == "--wasm") { to_wasm = true; }
+                else if (a == "--cpp") { to_cpp = true; to_native = true; }
+                else if (a == "--wasm") { to_wasm = true; to_native = true; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--disasm") { disasm = true; }
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
@@ -153,7 +154,7 @@ int main(int argc, char* argv[]) {
                     DefaultLoadFile
                 #endif
             ))
-            THROW_OR_ABORT(string("cannot find location to read/write data on this platform!"));
+            THROW_OR_ABORT("cannot find location to read/write data on this platform!");
 
         NativeRegistry nfr;
         #if LOBSTER_ENGINE
@@ -169,13 +170,15 @@ int main(int argc, char* argv[]) {
         vmargs.trace = trace;
 
         if (!fn) {
+            if (to_native)
+                THROW_OR_ABORT("compile to native target: no arguments given");
             if (!LoadPakDir(default_lpak))
                 THROW_OR_ABORT("Lobster programming language compiler/runtime (version "
                                GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load "
                                + (default_lpak + helptext));
             // This will now come from the pakfile.
             if (!LoadByteCode(vmargs.bytecode_buffer))
-                THROW_OR_ABORT(string("Cannot load bytecode from pakfile!"));
+                THROW_OR_ABORT("Cannot load bytecode from pakfile!");
         } else {
             LOG_INFO("compiling...");
             string dump;
@@ -188,7 +191,7 @@ int main(int argc, char* argv[]) {
                 vmargs.bytecode_buffer.clear();
                 Compile(nfr, StripDirPart(fn), {}, vmargs.bytecode_buffer,
                         parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr, dump_builtins,
-                        dump_names, false, runtime_checks);
+                        dump_names, false, runtime_checks, to_native);
             }
             if (compile_bench) {
                 auto compile_time = (SecondsSinceStart() - start_time);

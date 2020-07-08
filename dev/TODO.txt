@@ -1,3 +1,49 @@
+- stefandd: DLL builtins loading.
+  - make sure to put in checks for debug/compiled/32-bit mode, and maybe some other compatibility checks
+  - maybe use __TIMESTAMP__ of vmdata.h as version?
+
+- natgen refactor
+  - use more hints to remove special case checking in to_native
+  - can finally remove exceptions? could instead execute a return from -3 or whatever.
+    - should re-test how much it affects the interpreter.. or first create a JIT.
+  - do we still need this splitattr thing? blocks? remove usused blocks and gotos?
+  - look if any compiled mode stuff can be simplified.
+  - look at disasm for opcodes that generate long sequences and de-inline them.
+  - benchmark!
+  - Should really move away from a Makefile for Wasm, there's been plenty of cases where bugs
+    appeared because certain files weren't recompiled.
+  - Graphical code with asyncify does not work with the direct to Wasm backend!
+    - Some memory corruption that doesn't seem to be possible to find with Asan or SAFE_HEAP.
+    - DOES work in C++ mode, so subtle bug in Wasm output? Though unit test runs fine,
+      so may be some unintended interplay with asyncify.
+  - With asyncify, still instruments functions it shouldn't, mainly in the SDL.
+    Try with --pass-arg=asyncify-verbose
+    https://github.com/WebAssembly/binaryen/commit/f632c1fd62a588c83237d2d7018745c3f20eff66
+
+- Should consider a simple JIT, as a way to run in between the interpreter and the C++ mode.
+  As ops get lighter weight, the gain compared to the interpreter will get bigger.
+  It will still be a lot slower than the C++ mode though, since it lacks all the inlining,
+  unless we do that manually for the most frequent ops.
+  - Though first finish reworking the C++ mode.
+  - If we have a simple JIT, we could retire the interpreter entirely.
+    There's a lot of differences between how the interpreter and the backends work that would
+    be great to clean up.
+    - Also removes the pressure to not split up bytecodes even further.
+    - And could make the bytecode more high-level, with actual control structures instead of
+      jumps, which would simplify the Wasm backend and make C++ backend more readable (though
+      complicate the JIT slightly).
+    - We may already have to require compilation for Wasm, and we could do the same for iOS.
+    - Desktop can use the JIT.
+    - Android could use JIT, but maybe simpler to only have x86 JIT.
+    - Future macOS will need arm JIT if its to remain a "development" platform.
+
+- stefandd: multiple assign doesn't work on fields.
+
+- Fix `is`, see https://github.com/aardappel/lobster/issues/99
+
+- See if audio works again under emscripten:
+  https://github.com/emscripten-ports/SDL2/commit/865eaddffed50dbd13e6564c3f73902472cf74e8
+
 - docs only show switch used as exp
 
 - let x:T = vector_reserve(typeof U, ) may crash if U is not compatible with T.
@@ -82,8 +128,6 @@
     Workaround is to subclass instead.
   - Also using nested classes might not work well with generics since we resolved in non-nested
     fashion field types at the beginning of the type checker.
-
-- kriskowal: adopt Python's "pass" statement, a void nop (better than nil idiom).
 
 - kriskowal: maybe replace gl_button string with an enum.
 
@@ -601,7 +645,6 @@
     - see below how we didn't decide to remove coercion nodes.
 
 - tagged arguments in Lobster for function calls.
-  maybe also add default args while we're at it.
 
 - Improve threads.
   - Consider spawning the workers from their own source code?
@@ -881,8 +924,10 @@
   B -> A, A would have refc=2 which is the problem. But here, A would have 1 strong, and 1 weak,
   allowing the deallocation to continue. At first strong drops to 0, but weak does not, so it
   is kept alive. Then once the weak also drops to zero it gets deallocated.
+  - Note: apparently Swift uses a global hash map to clear backpointers, which is terrible.
   - Also see: Nim is using the annotation .cursor for weak refs.
     https://www.youtube.com/watch?v=aUJcYTnPWCg
+  - Vale has good ideas: https://vale.dev/blog/raii-next-steps
 
 - font rendering:
   - it is possible when only very few chars are cached, that they are placed higher in the bitmap
@@ -1011,8 +1056,6 @@
 
 - replace typeof return with something better directly part of the syntax.
 
-- make resume into seperate op.
-
 - add options to either show more extensive stacktrace dump to either stdout or file.
 
 - Typechecker can actually blow the 1MB Windows stack space on complex programs.
@@ -1083,7 +1126,6 @@
     - though given that the switch/jump method is slower, maybe not a priority.
   - change var access to be relative to top of stack
   - cleanup of id/sid/arg..
-  - make resume a VM op.
 
 - experiment more with frame state now that its faster & cleaner.
   - currently doesn't work well in loops
@@ -2099,6 +2141,7 @@ C++64-MSVC:           : secs  5.4, vars inline in VM object.
 C++64-MSVC:           : secs  5.0, specialized array indexing for width == 1
 C++64-Clang10:        : secs  4.9
 C++64-Clang10-LTO     : secs  4.6
+C++64-Clang10-LTO     : secs  4.1, removed trampoline
 
 compiletime speed:
 

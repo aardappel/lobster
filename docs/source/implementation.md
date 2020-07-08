@@ -120,18 +120,22 @@ Before you build, gather your lobster distribution files (see below) and place
 them in `dev/emscripten/assets`. They will be automatically picked up by the
 build process this way.
 
-To build, go to `dev/emscripten`, and type `make -j8`. This should produce a
+The Wasm implementation does not support the interpreter, so you should first
+compile your `.lobster` code to C++ or directly to Wasm, as described in the
+sections "Compiling Lobster code to C++" or "Compiling Lobster code to WebAssembly"
+below.
+
+To build, go to `dev/emscripten`, and type `make -j8` (if using the C++ output)
+or `make -j8 wasm` (if using the direct Wasm output). This should produce a
 lobster.[wasm\|js\|html\|data] in the same directory (the latter containing whatever
 you placed in `assets`).
 
 You can now run it with `emrun --browser chrome lobster.html --verbose` or
-similar. Note that just loading up the html in your browser directly may not
+if that doesn't work, `emrun --no_browser lobster.html --verbose` and
+manually navigate to `http://localhost:6931/lobster.html?--verbose` in your
+browser. Note that just loading up the html in your browser directly may not
 work because of security restrictions. Alternatively place all the generated
 files on a webserver, and load from there.
-
-Note: the above compiles the bytecode *interpreter* to wasm. To instead
-compile the lobster bytecode to wasm directly, see
-"Compiling Lobster code to WebAssembly" below.
 
 Distributing Lobster programs.
 ------------------------------
@@ -191,15 +195,18 @@ On Linux, create a `build` directory anywhere, for example in
 `cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release ../..` will automatically
 substitute the compiled lobster main program. Build with `make -j8` or similar.
 
-For Emscripten, there's a `lobster_cppout` make target that works similar to
+For Emscripten, there's a `cpp` make target that works similar to
 the WebAssembly mode described below.
 
 
 Compiling Lobster code to WebAssembly
 -------------------------------------
-Note: this is about *generating wasm code from lobster bytecode* directly.
-If you just want to build the bytecode interpreter for wasm, see the
-"WebAssembly / Emscripten" section above.
+This mode *generates wasm code from lobster bytecode* directly. It is otherwise
+very similar to the C++ mode, but generates Wasm without the help of LLVM.
+There is not any particular reason to use this mode other than curiosity, since
+you still need to compile the rest of the runtime with LLVM, so it isn't
+actually any faster to build, and may be slightly slower to run (since
+LLVM optimizes more aggressively).
 
 Similarly to compiling to C++, with `--wasm` the compiler with generate
 `dev/emscripten/compiled_lobster_wasm.o` file, from e.g.
@@ -215,7 +222,7 @@ To compile the project and link in the `.o` we just generated, we build
 similarly to described in the `WebAssembly / Emscripten` section above,
 except we use a special make target to indicate it should link in our
 compiled code as the main program instead of the default:
-`make -j8 lobster_wasmout`.
+`make -j8 wasm`.
 
 Don't forget to place needed files in the `assets` dir as described above.
 You can even place an `lpak` file there (which currently will contain bytecode,

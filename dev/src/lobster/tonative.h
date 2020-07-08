@@ -25,10 +25,11 @@ struct NativeGenerator {
     virtual ~NativeGenerator() {}
 
     virtual void FileStart() = 0;
+    virtual void DeclareFun(int id) = 0;
     virtual void DeclareBlock(int id) = 0;
     virtual void BeforeBlocks(int start_id, string_view bytecode_buffer) = 0;
-    virtual void FunStart(const bytecode::Function *f) = 0;
-    virtual void BlockStart(int id) = 0;
+    virtual void FunStart(const bytecode::Function *f, int id) = 0;
+    virtual void BlockStart(int id, int ip) = 0;
     virtual void InstStart() = 0;
     virtual void EmitJump(int id) = 0;
     virtual void EmitConditionalJump(int opc, int id, int df) = 0;
@@ -38,8 +39,13 @@ struct NativeGenerator {
     virtual void EmitCall(int id) = 0;
     virtual void EmitCallIndirect() = 0;
     virtual void EmitCallIndirectNull() = 0;
+    virtual void EmitExternCall(string_view name) = 0;
+    virtual void EmitJumpTable(const int *args, vector<int> &block_ids) = 0;
+    virtual void EmitHint(NativeHint h) = 0;
+    virtual void EmitReturn() = 0;
     virtual void InstEnd() = 0;
-    virtual void BlockEnd(int id, bool already_returned, bool is_exit) = 0;
+    virtual void BlockEnd(int id, bool isexit) = 0;
+    virtual void FunEnd() = 0;
     virtual void CodeEnd() = 0;
     virtual void VTables(vector<int> &vtables) = 0;
     virtual void FileEnd(int start_id, string_view bytecode_buffer) = 0;

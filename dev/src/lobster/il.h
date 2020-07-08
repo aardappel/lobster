@@ -85,10 +85,12 @@ enum MathOp {
     F(FORLOOPI, 0) F(IFORELEM, 0) F(SFORELEM, 0) F(VFORELEM, 0) F(VFORELEMREF, 0) \
     F(VFORELEM2S, 0) F(VFORELEMREF2S, 0) \
     F(INCREF, 1) F(KEEPREF, 2) F(KEEPREFLOOP, 2) \
-    F(JUMP_TABLE, 3) \
-    F(SAVERETS, 0) F(RESTORERETS, 0)
+    F(JUMP_TABLE, ILUNKNOWNARITY) \
+    F(SAVERETS, 0) F(RESTORERETS, 0) \
+    F(CALL, 1) F(CALLV, 0) F(CALLVCOND, 0) F(DDCALL, 2) \
+    F(NATIVEHINT, 1)
 #define ILCALLNAMES \
-    F(CALL, 1) F(CALLV, 0) F(CALLVCOND, 0) F(DDCALL, 2) F(PUSHFUN, 1)
+    F(PUSHFUN, 1)
 
 #define ILJUMPNAMES1 \
     F(JUMP, 1) \
@@ -157,6 +159,38 @@ inline const int *ILArity() {
         static const int ilarity[] = { ILNAMES };
     #undef F
     return ilarity;
+}
+
+#define NATIVEHINTS \
+    NH(NONE) \
+    NH(JUMPTABLE_END) \
+    NH(JUMPTABLE_TO_CASE) \
+    NH(LOOP_BACK) \
+    NH(LOOP_REMOVE) \
+    NH(JUMPOUT_START) \
+    NH(JUMPOUT_END) \
+    NH(COND_JUMP) \
+    NH(SWITCH_RANGE_BLOCK) \
+    NH(SWITCH_RANGE_JUMP) \
+    NH(SWITCH_RANGE_END) \
+    NH(SWITCH_THISCASE_BLOCK) \
+    NH(SWITCH_THISCASE_JUMP) \
+    NH(SWITCH_THISCASE_END) \
+    NH(SWITCH_NEXTCASE_BLOCK) \
+    NH(SWITCH_NEXTCASE_JUMP) \
+    NH(SWITCH_NEXTCASE_END)
+
+enum NativeHint {
+    #define NH(N) NH_##N,
+        NATIVEHINTS
+    #undef NH
+};
+
+inline const char **NHNames() {
+    #define NH(N) #N,
+        static const char *nhnames[] = { NATIVEHINTS };
+    #undef F
+    return nhnames;
 }
 
 }

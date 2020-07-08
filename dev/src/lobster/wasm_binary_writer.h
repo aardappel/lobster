@@ -199,7 +199,8 @@ class BinaryWriter {
     };
 
 
-    void RelocULEB(uint8_t reloc_type, size_t sym_index, size_t target_index, bool is_function) {
+    void RelocULEB(uint8_t reloc_type, size_t sym_index, size_t target_index, bool is_function,
+                   bool is_typeindex) {
         code_relocs.push_back({ reloc_type,
                                 buf.size() - section_data,
                                 sym_index,
@@ -209,7 +210,7 @@ class BinaryWriter {
         // this value is stored in the relocation itself. But putting
         // a meaningful value here will help with reading the output of
         // objdump.
-        PatchULEB(PatchableLEB(), is_function ? sym_index : target_index);
+        PatchULEB(PatchableLEB(), is_function || is_typeindex ? sym_index : target_index);
     }
 
   public:
@@ -411,12 +412,12 @@ class BinaryWriter {
     // fun_idx is 0..N-1 imports followed by N..M-1 defined functions.
     void EmitCall(size_t fun_idx) {
         UInt8(0x10);
-        RelocULEB(R_WASM_FUNCTION_INDEX_LEB, fun_idx, 0, true);
+        RelocULEB(R_WASM_FUNCTION_INDEX_LEB, fun_idx, 0, true, false);
     }
 
     void EmitCallIndirect(size_t type_index) {
         UInt8(0x11);
-        RelocULEB(R_WASM_TYPE_INDEX_LEB, 0, type_index, false);
+        RelocULEB(R_WASM_TYPE_INDEX_LEB, type_index, 0, false, true);
         ULEB(0);
     }
 
@@ -473,13 +474,13 @@ class BinaryWriter {
     // Getting the address of data in a data segment, encoded as a i32.const + reloc.
     void EmitI32ConstDataRef(size_t segment, size_t addend) {
         UInt8(0x41);
-        RelocULEB(R_WASM_MEMORY_ADDR_SLEB, segment, addend, false );
+        RelocULEB(R_WASM_MEMORY_ADDR_SLEB, segment, addend, false, false);
     }
 
     // fun_idx is 0..N-1 imports followed by N..M-1 defined functions.
     void EmitI32ConstFunctionRef(size_t fun_idx) {
         UInt8(0x41);
-        RelocULEB(R_WASM_TABLE_INDEX_SLEB, fun_idx, 0, true);
+        RelocULEB(R_WASM_TABLE_INDEX_SLEB, fun_idx, 0, true, false);
     }
 
     // --- COMPARISON OPERATORS ---

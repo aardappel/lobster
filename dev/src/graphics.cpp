@@ -90,6 +90,15 @@ void TestGL(StackPtr sp, VM &vm) {
         vm.BuiltinError(sp, "graphics system not initialized yet, call gl_window() first");
 }
 
+// This function can also be called directly from the native backends, to avoid
+// an indirect call (which is important in Wasm).
+extern "C" StackPtr GLFrame(StackPtr sp, VM &vm) {
+    TestGL(sp, vm);
+    auto cb = GraphicsFrameStart();
+    Push(sp, Value(!cb));
+    return sp;
+}
+
 float2 localpos(const int2 &pos) {
     return (otransforms.view2object * float4(float3(float2(pos), 0), 1)).xyz().xy();
 }
@@ -186,10 +195,8 @@ nfr("gl_frame", "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
     " returns false if the closebutton on the window was pressed",
     [](StackPtr &sp, VM &vm) {
-        TestGL(sp, vm);
-        EngineSuspendIfNeeded(sp, vm);
-        auto cb = GraphicsFrameStart();
-        return Value(!cb);
+        // Native backends call this directly rather than going thru the function pointer.
+        sp = GLFrame(sp, vm);
     });
 
 nfr("gl_shutdown", "", "", "",

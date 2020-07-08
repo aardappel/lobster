@@ -269,7 +269,10 @@ struct LResource : RefObj {
 
 typedef Value *StackPtr;
 
-typedef void *(*block_base_t)(VM &, StackPtr &);
+typedef StackPtr(*block_base_t)(VM &, StackPtr);
+#ifdef VM_COMPILED_CODE_MODE
+    extern "C" StackPtr compiled_entry_point(VM & vm, StackPtr sp);
+#endif
 
 // These pointer types are for use inside Value below. In most other parts of the code we
 // use naked pointers.
@@ -617,7 +620,9 @@ struct LVector : RefObj {
 };
 
 struct StackFrame {
-    InsPtr retip;
+    #ifndef VM_COMPILED_CODE_MODE
+        InsPtr retip;
+    #endif
     const int *funstart;
     iint spstart;
 };
@@ -651,7 +656,6 @@ struct VMArgs {
     NativeRegistry &nfr;
     string_view programname;
     string bytecode_buffer;
-    const void *entry_point = nullptr;
     const void *static_bytecode = nullptr;
     size_t static_size = 0;
     vector<string> program_args;
@@ -711,20 +715,21 @@ struct VM : VMArgs {
     int64_t vm_count_bcalls = 0;
     int64_t vm_count_decref = 0;
 
-    #ifdef VM_COMPILED_CODE_MODE
+    #if defined(VM_COMPILED_CODE_MODE) && defined(NDEBUG)
+        // Inlining the base VM ops allows for a great deal of optimisation,
+        // collapsing a lot of code.
         #ifdef _WIN32
             #define VM_INLINE __forceinline
         #else
             #define VM_INLINE inline __attribute__((always_inline))
         #endif
     #else
-        #define VM_INLINE inline
+        // Inlining things causes a code explosion in debug, so use static instead.
+        #define VM_INLINE static
     #endif
 
     typedef StackPtr (* f_ins_pointer)(VM &, StackPtr);
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
-
-    const void *compiled_code_ip = nullptr;
 
     bool is_worker = false;
     vector<thread> workers;
@@ -755,8 +760,6 @@ struct VM : VMArgs {
         sp_suspended = nullptr;
         return sp;
     }
-
-    void OneMoreFrame(StackPtr);
 
     const TypeInfo &GetTypeInfo(type_elem_t offset) {
         return *(TypeInfo *)(typetable + offset);
@@ -826,8 +829,6 @@ struct VM : VMArgs {
     void EvalProgram(StackPtr = nullptr);
     void EvalProgramInner(StackPtr);
 
-    VM_INLINE StackPtr ForLoop(StackPtr sp, iint len);
-
     void LvalueIdxVector(int lvalop, iint i);
     void LvalueIdxStruct(int lvalop, iint i);
     void LvalueField(int lvalop, iint i);
@@ -870,6 +871,13 @@ struct VMAllocator {
     ~VMAllocator();
 };
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4505) // C4505: unreferenced local function has been removed
+#endif
+
+VM_INLINE StackPtr ForLoop(VM &vm, StackPtr sp, iint len);
+
 VM_INLINE void Push(StackPtr &sp, Value v) { *++sp = v; }
 VM_INLINE Value Pop(StackPtr &sp) { return *sp--; }
 VM_INLINE Value &Top(StackPtr sp) { return *sp; }
@@ -883,6 +891,11 @@ VM_INLINE pair<Value *, iint> PopVecPtr(StackPtr &sp) {
     PopN(sp, width);
     return { TopPtr(sp), width };
 }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
 template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {
     auto l = min(N, truncate);
     for (int i = 0; i < l; i++) Push(sp, v[i]);

@@ -21,7 +21,7 @@ namespace lobster {
 
 class CPPGenerator : public NativeGenerator {
     string &sd;
-    int tail_calls_in_a_row = 0;
+    vector<const int *> jumptables;
 
   public:
 
@@ -38,6 +38,7 @@ class CPPGenerator : public NativeGenerator {
             "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"
             "    #include \"lobster/sdlincludes.h\"\n"
             "    #include \"lobster/sdlinterface.h\"\n"
+            "    extern \"C\" lobster::StackPtr GLFrame(lobster::StackPtr sp, lobster::VM &vm);\n"
             "#endif\n"
             "\n"
             "#ifndef VM_COMPILED_CODE_MODE\n"
@@ -50,54 +51,51 @@ class CPPGenerator : public NativeGenerator {
             "\n";
     }
 
-    void DeclareBlock(int id) override {
-        append(sd, "static void *block", id, "(lobster::VM &, lobster::StackPtr &);\n");
+    void DeclareFun(int id) override {
+        append(sd, "static lobster::StackPtr fun_", id, "(lobster::VM &, lobster::StackPtr);\n");
+    }
+
+    void DeclareBlock(int /*id*/) override {
     }
 
     void BeforeBlocks(int /*start_id*/, string_view /*bytecode_buffer*/) override {
         sd += "\n";
     }
 
-    void FunStart(const bytecode::Function *f) override {
+    void FunStart(const bytecode::Function *f, int id) override {
         sd += "\n";
         if (f) append(sd, "// ", f->name()->string_view(), "\n");
+        append(sd, "static lobster::StackPtr fun_", id,
+            "(lobster::VM &vm, lobster::StackPtr sp) {\n");
     }
 
-    void BlockStart(int id) override {
-        append(sd, "static void *block", id,
-                   "(lobster::VM &vm, lobster::StackPtr &spr) {\n    auto sp = spr;\n");
+    void BlockStart(int id, int ip) override {
+        append(sd, "    block", id, ":\n");
+        if (!jumptables.empty()) {
+            auto t = jumptables.back();
+            auto mini = *t++;
+            auto maxi = *t++;
+            for (auto i = mini; i <= maxi; i++) {
+                if (*t++ == ip) {
+                    append(sd, "    case ", i, ":\n");
+                }
+            }
+            if (*t++ == ip) {
+                append(sd, "    default:\n");
+            }
+        }
     }
 
     void InstStart() override {
-        sd += "    { ";
+        sd += "    ";
     }
 
     void EmitJump(int id) override {
-        // FIXME: if we make all forward calls tail calls, then under
-        // WASM/Emscripten/V8, we occasionally run out of stack.
-        // This bounds the number of tail calls in a simple way,
-        // but this is not correct, in that call targets are not necessarily
-        // in linear order, though it should catch most long runs of calls.
-        // We really need to do this with an algorithm that better understands
-        // the call structure instead. Hopefully this bounding will allow
-        // us to keep some of the performance advantage of tail calls vs
-        // not doing them at all.
-        sd += "{ spr = sp; ";
-        if (tail_calls_in_a_row > 10 || id <= current_block_id) {
-            // A backwards jump, go via the trampoline to be safe
-            // (just in-case the compiler doesn't optimize tail calls).
-            append(sd, "return (void *)block", id, ";");
-            tail_calls_in_a_row = 0;
-        } else {
-            // A forwards call, should be safe to tail-call.
-            append(sd, "return block", id, "(vm, spr);");
-            tail_calls_in_a_row++;
-        }
-        sd += " }";
+        append(sd, "goto block", id, ";");
     }
 
     void EmitDynJump() {
-        sd += "{ spr = sp; return (void *)vm.next_call_target; }";
+        sd += "sp = vm.next_call_target(vm, sp);";
     }
 
     void EmitConditionalJump(int opc, int id, int df) override {
@@ -119,7 +117,7 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void SetNextCallTarget(int id) override {
-        append(sd, "vm.next_call_target = block", id, "; ");
+        append(sd, "vm.next_call_target = fun_", id, "; ");
     }
 
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
@@ -134,14 +132,13 @@ class CPPGenerator : public NativeGenerator {
         }
         if (target >= 0) {
             sd += ", ";
-            append(sd, "block", target);
+            append(sd, "fun_", target);
         }
         sd += ");";
     }
 
     void EmitCall(int id) override {
-        sd += " ";
-        EmitJump(id);
+        append(sd, " sp = fun_", id, "(vm, sp);");
     }
 
     void EmitCallIndirect() override {
@@ -154,16 +151,42 @@ class CPPGenerator : public NativeGenerator {
         EmitDynJump();
     }
 
-    void InstEnd() override {
-        sd += " }\n";
+    void EmitExternCall(string_view name) override {
+        append(sd, "sp = ", name, "(sp, vm);");
     }
 
-    void BlockEnd(int id, bool already_returned, bool is_exit) override {
-        if (!already_returned) {
-            sd += "    { ";
-            if (is_exit) EmitDynJump(); else EmitJump(id);
-            sd += " }\n";
+    void EmitJumpTable(const int *args, vector<int> &/*block_ids*/) override {
+        sd += "switch (Pop(sp).ival()) {";
+        jumptables.push_back(args);
+    }
+
+    void EmitHint(NativeHint h) override {
+        switch (h) {
+            case NH_JUMPTABLE_END:
+                sd += "} // switch";
+                jumptables.pop_back();
+                break;
+            default:
+                append(sd, "// hint: ", NHNames()[h]);
+                break;
         }
+    }
+
+    void EmitReturn() override {
+        sd += " return sp;";
+    }
+
+    void InstEnd() override {
+        sd += "\n";
+    }
+
+    void BlockEnd(int /*id*/, bool isexit) override {
+        if (isexit) {
+            sd += "    return sp;\n";
+        }
+    }
+
+    void FunEnd() override {
         sd += "}\n";
     }
 
@@ -174,7 +197,7 @@ class CPPGenerator : public NativeGenerator {
         sd += "\nstatic const lobster::block_base_t vtables[] = {\n";
         for (auto id : vtables) {
             sd += "    ";
-            if (id >= 0) append(sd, "block", id);
+            if (id >= 0) append(sd, "fun_", id);
             else sd += "0";
             sd += ",\n";
         }
@@ -191,10 +214,13 @@ class CPPGenerator : public NativeGenerator {
             append(sd, " ", bytecode_ints[i], ",");
         }
         sd += "\n};\n\n";
-        sd += "int main(int argc, char *argv[]){\n";
-        sd += "    return RunCompiledCodeMain(argc, argv, (void *)";
-        append(sd, "block", start_id);
-        append(sd, ", bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
+        sd += "extern \"C\" lobster::StackPtr compiled_entry_point(lobster::VM &vm, ";
+        sd += "lobster::StackPtr sp) {\n";
+        append(sd, "    return fun_", start_id, "(vm, sp);\n}\n\n");
+        sd += "int main(int argc, char *argv[]) {\n";
+        sd += "    // This is hard-coded to call compiled_entry_point()\n";
+        sd += "    return RunCompiledCodeMain(argc, argv, ";
+        append(sd, "bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
     }
 
     void Annotate(string_view comment) override {

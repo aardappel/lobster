@@ -155,6 +155,16 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             EscapeAndQuote(bcf->stringtable()->Get(*ip++)->string_view(), sd);
             break;
 
+        case IL_JUMP_TABLE: {
+            auto mini = *ip++;
+            auto maxi = *ip++;
+            auto n = maxi - mini + 2;
+            append(sd, mini, "..", maxi, " [ ");
+            while (n--) append(sd, *ip++, " ");
+            sd += "]";
+            break;
+        }
+
         case IL_FUNSTART: {
             auto fidx = *ip++;
             sd += (fidx >= 0 ? bcf->functions()->Get(fidx)->name()->string_view() : "__dummy");

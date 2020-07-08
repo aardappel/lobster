@@ -229,7 +229,7 @@ void Value::ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const 
             sd += to_string_float(fval(), (int)pp.decimals);
             break;
         case V_FUNCTION:
-            sd += "<FUNCTION>";
+            append(sd, "<FUNCTION:", ival_, ">");
             break;
         default:
             append(sd, "(", BaseTypeName(t), ")");

@@ -867,7 +867,8 @@ struct SymbolTable {
                    vector<bytecode::SpecIdent> &sids,
                    vector<string_view> &stringtable,
                    string &bytecode,
-                   vector<int> &vtables) {
+                   vector<int> &vtables,
+                   bool nativemode) {
         flatbuffers::FlatBufferBuilder fbb;
         vector<flatbuffers::Offset<flatbuffers::String>> fns;
         for (auto &f : filenames) fns.push_back(fbb.CreateString(f));
@@ -898,7 +899,8 @@ struct SymbolTable {
             fbb.CreateVector((vector<int> &)vint_typeoffsets),
             fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
             fbb.CreateVector(enumoffsets),
-            fbb.CreateVector(vtables));
+            fbb.CreateVector(vtables),
+            nativemode);
         bytecode::FinishBytecodeFileBuffer(fbb, bcf);
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }

@@ -7,23 +7,25 @@ CC= emcc
 LTOFLAGS= --llvm-opts 3 --llvm-lto 1 -s WASM_OBJECT_FILES=0
 
 # Pure debug mode.
-#OPTLEVEL= -g4 -s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0
+# use a minimal amount of optimisation to reduce locals, but hopefully avoid
+# inlining for good stack traces.
+#OPTLEVEL= -g4 -O -s ASSERTIONS=2 -s SAFE_HEAP=1
 # Fast debug mode.
-#OPTLEVEL= -g4 -O2 -s ASSERTIONS=1 -s DISABLE_EXCEPTION_CATCHING=0
+#OPTLEVEL= -g4 -O2 -s ASSERTIONS=1
 # Release/Shipping mode regular
-OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=0
-# Release/Shipping mode LTO
-#OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS) -s DISABLE_EXCEPTION_CATCHING=0
-# Benchmark mode: does not support graphics/exceptions.
-#OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS) -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING
+OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0
+# Release/Shipping/benchmark mode with LTO
+#OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS)
 
 CXXFLAGS= $(OPTLEVEL)
-# apparently exception catching is slow, but we need them for the moment.
-override CXXFLAGS+= -s USE_SDL=2 -s USE_SDL_MIXER=2 -s USE_FREETYPE=1 -s NO_EXIT_RUNTIME=1 \
+# We always build without exceptions, which is ok, because we don't rely on exception handling
+# to exit the evaluation loop anymore, and we don't support the interpreter mode in Wasm.
+# Also, asyncify relies on there not being any call_indirects in the path to the yield,
+# which exception handling currently inserts.
+override CXXFLAGS+= -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING \
+                    -s USE_SDL=2 -s USE_SDL_MIXER=2 -s USE_FREETYPE=1 -s NO_EXIT_RUNTIME=1 \
                     -std=c++17 -Wall -pedantic -Wno-switch \
                     -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
-CFLAGS= $(OPTLEVEL)
-override CFLAGS+= -Wall
 
 INCLUDES=   -I. \
 			-I../include \
@@ -96,25 +98,29 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 		--source-map-base http://localhost:6931/ \
 		-s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
 		-s DEMANGLE_SUPPORT=1 --emrun --profiling-funcs \
-		-s BINARYEN_IGNORE_IMPLICIT_TRAPS=1
+		-s BINARYEN_IGNORE_IMPLICIT_TRAPS=1 \
+		-s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT
 		#-s BINARYEN_EXTRA_PASSES='"--always-inline-max-function-size=5,--flexible-inline-max-function-size=50,--one-caller-inline-max-function-size=200"'
 
 #EMCC_DEBUG=1
 #EMCC_WASM_BACKEND=1
-lobster: $(CPPOBJS) $(MAINOBJ)
-	emcc $(CXXFLAGS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
 
-lobster_cppout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
-lobster_cppout: $(CPPOBJS) $(MAINCOMPOBJ)
+# We only support compiling with the C++ or Wasm backends, no interpreter.
+
+cpp: CXXFLAGS += -DVM_COMPILED_CODE_MODE
+cpp: $(CPPOBJS) $(MAINCOMPOBJ)
 	emcc $(CXXFLAGS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
 
 WASMOUT= compiled_lobster_wasm.o
-lobster_wasmout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
-lobster_wasmout: $(CPPOBJS) $(WASMOUT)
+wasm: CXXFLAGS += -DVM_COMPILED_CODE_MODE
+wasm: $(CPPOBJS) $(WASMOUT)
 	emcc -v $(CXXFLAGS) $(WASMOUT) $(CPPOBJS) $(EFLAGS)
 
 clean:
-	-$(RM) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ) lobster lobster_cppout lobster_wasmout
+	-$(RM) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ)
+
+cleanw:
+	del $(addprefix ",$(addsuffix ",$(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ)))
 
 all: lobster
 

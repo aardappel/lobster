@@ -366,9 +366,8 @@ struct NativeFun : Named {
         }
     }
 
-    bool CanChangeControlFlow() {
-        // FIXME: make resume a VM op.
-        return name == "resume" || name == "gl_frame";
+    bool IsGLFrame() {
+        return name == "gl_frame";
     }
 
     bool IsAssert() {

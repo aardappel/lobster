@@ -187,9 +187,9 @@ struct ValueParser {
 };
 
 static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp) {
-    auto stack_level = sp;
     ValueParser parser(vm, inp);
     #ifdef USE_EXCEPTION_HANDLING
+    auto stack_level = sp;
     try
     #endif
     {

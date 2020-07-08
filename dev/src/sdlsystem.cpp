@@ -19,6 +19,10 @@
 
 #include "lobster/glinterface.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #ifdef _WIN32
   #pragma warning(push)
@@ -398,7 +402,9 @@ bool SDLFrame() {
         SDL_Delay(10);  // save CPU/battery
     } else {
         #ifndef __EMSCRIPTEN__
-        SDL_GL_SwapWindow(_sdl_window);
+            SDL_GL_SwapWindow(_sdl_window);
+        #else
+            emscripten_sleep(0);
         #endif
     }
 

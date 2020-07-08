@@ -19,11 +19,6 @@
 
 extern void RegisterCoreEngineBuiltins(lobster::NativeRegistry &natreg);
 extern void EngineRunByteCode(lobster::VMArgs &&vmargs);
-extern void EngineSuspendIfNeeded(lobster::StackPtr sp, lobster::VM &vm);
 extern void EngineExit(int code);
-
-#ifdef __EMSCRIPTEN__
-#define USE_MAIN_LOOP_CALLBACK
-#endif
 
 #endif  // LOBSTER_ENGINE_H

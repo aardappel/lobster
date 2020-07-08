@@ -1028,12 +1028,14 @@ template<typename T> void WriteMemInc(uint8_t *&dest, const T &src) {
     #define USE_EXCEPTION_HANDLING
 #endif
 
-#ifdef USE_EXCEPTION_HANDLING
-    #define THROW_OR_ABORT(X) { throw (X); }
-#else
-    #define THROW_OR_ABORT(X) { printf("%s\n", (X).c_str()); abort(); }
-#endif
-
+inline void THROW_OR_ABORT(const string &s) {
+    #ifdef USE_EXCEPTION_HANDLING
+        throw s;
+    #else
+        printf("%s\n", s.c_str());
+        abort();
+    #endif
+}
 
 inline void unit_test_tools() {
     assert(strcmp(null_terminated<0>(string_view("aa", 1)),

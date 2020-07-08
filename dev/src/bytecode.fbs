@@ -85,6 +85,8 @@ table BytecodeFile {
     enums:[Enum];
 
     vtables:[int];
+
+    nativemode:bool;
 }
 
 root_type BytecodeFile;

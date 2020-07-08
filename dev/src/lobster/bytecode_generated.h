@@ -535,7 +535,8 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_DEFAULT_INT_VECTOR_TYPES = 26,
     VT_DEFAULT_FLOAT_VECTOR_TYPES = 28,
     VT_ENUMS = 32,
-    VT_VTABLES = 34
+    VT_VTABLES = 34,
+    VT_NATIVEMODE = 36
   };
   int32_t bytecode_version() const {
     return GetField<int32_t>(VT_BYTECODE_VERSION, 0);
@@ -582,6 +583,9 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *vtables() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_VTABLES);
   }
+  bool nativemode() const {
+    return GetField<uint8_t>(VT_NATIVEMODE, 0) != 0;
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_BYTECODE_VERSION) &&
@@ -619,6 +623,7 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(enums()) &&
            VerifyOffset(verifier, VT_VTABLES) &&
            verifier.VerifyVector(vtables()) &&
+           VerifyField<uint8_t>(verifier, VT_NATIVEMODE) &&
            verifier.EndTable();
   }
 };
@@ -671,6 +676,9 @@ struct BytecodeFileBuilder {
   void add_vtables(flatbuffers::Offset<flatbuffers::Vector<int32_t>> vtables) {
     fbb_.AddOffset(BytecodeFile::VT_VTABLES, vtables);
   }
+  void add_nativemode(bool nativemode) {
+    fbb_.AddElement<uint8_t>(BytecodeFile::VT_NATIVEMODE, static_cast<uint8_t>(nativemode), 0);
+  }
   explicit BytecodeFileBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -699,7 +707,8 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_int_vector_types = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_float_vector_types = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Enum>>> enums = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> vtables = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> vtables = 0,
+    bool nativemode = false) {
   BytecodeFileBuilder builder_(_fbb);
   builder_.add_vtables(vtables);
   builder_.add_enums(enums);
@@ -716,6 +725,7 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
   builder_.add_bytecode_attr(bytecode_attr);
   builder_.add_bytecode(bytecode);
   builder_.add_bytecode_version(bytecode_version);
+  builder_.add_nativemode(nativemode);
   return builder_.Finish();
 }
 
@@ -735,7 +745,8 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
     const std::vector<int32_t> *default_int_vector_types = nullptr,
     const std::vector<int32_t> *default_float_vector_types = nullptr,
     const std::vector<flatbuffers::Offset<Enum>> *enums = nullptr,
-    const std::vector<int32_t> *vtables = nullptr) {
+    const std::vector<int32_t> *vtables = nullptr,
+    bool nativemode = false) {
   return bytecode::CreateBytecodeFile(
       _fbb,
       bytecode_version,
@@ -752,7 +763,8 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
       default_int_vector_types ? _fbb.CreateVector<int32_t>(*default_int_vector_types) : 0,
       default_float_vector_types ? _fbb.CreateVector<int32_t>(*default_float_vector_types) : 0,
       enums ? _fbb.CreateVector<flatbuffers::Offset<Enum>>(*enums) : 0,
-      vtables ? _fbb.CreateVector<int32_t>(*vtables) : 0);
+      vtables ? _fbb.CreateVector<int32_t>(*vtables) : 0,
+      nativemode);
 }
 
 inline const bytecode::BytecodeFile *GetBytecodeFile(const void *buf) {
