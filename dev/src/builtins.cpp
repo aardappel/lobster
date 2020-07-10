@@ -354,13 +354,17 @@ nfr("substring", "s,start,size", "SII", "S",
         return Value(ns);
     });
 
-nfr("string_to_int", "s", "S", "IB",
-    "converts a string to an int. returns 0 if no numeric data could be parsed."
-    "second return value is true if all characters of the string were parsed",
-    [](StackPtr &sp, VM &, Value &s) {
+nfr("string_to_int", "s,base", "SI?", "IB",
+    "converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10)."
+    "returns 0 if no numeric data could be parsed; second return value is true if all"
+    "characters of the string were parsed.",
+    [](StackPtr &sp, VM &vm, Value &s, Value &b) {
+        int base = b.True() ? b.ival() : 10;
+        if (base < 2 || base > 36)
+            vm.BuiltinError(sp, "string_to_int: values out of range");
         char *end;
         auto sv = s.sval()->strv();
-        auto i = parse_int<iint>(sv, 10, &end);
+        auto i = parse_int<iint>(sv, base, &end);
         Push(sp,  i);
         return Value(end == sv.data() + sv.size());
     });
