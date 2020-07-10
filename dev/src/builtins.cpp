@@ -354,7 +354,7 @@ nfr("substring", "s,start,size", "SII", "S",
         return Value(ns);
     });
 
-nfr("string_to_int", "s", "SI?", "IB",
+nfr("string_to_int", "s,base", "SI?", "IB",
     "converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10)."
     "returns 0 if no numeric data could be parsed; second return value is true if all"
     "characters of the string were parsed.",
