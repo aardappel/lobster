@@ -372,10 +372,11 @@ struct GenericCall : List {
     string_view name;
     SubFunction *sf;  // Need to store this, since only parser tracks scopes.
     bool dotnoparens;
+    bool super;
     vector<UnresolvedTypeRef> specializers;
     GenericCall(const Line &ln, string_view name, SubFunction *sf, bool dotnoparens,
-                vector<UnresolvedTypeRef> *spec)
-        : List(ln), name(name), sf(sf), dotnoparens(dotnoparens) {
+                bool super, vector<UnresolvedTypeRef> *spec)
+        : List(ln), name(name), sf(sf), dotnoparens(dotnoparens), super(super) {
         if (spec) specializers = *spec;
     };
     bool EqAttr(const Node *o) const {
@@ -402,8 +403,9 @@ struct Constructor : List {
 struct Call : GenericCall {
     int vtable_idx = -1;
     explicit Call(GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, &gc.specializers) {};
-    Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false, nullptr) {};
+        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, gc.super, &gc.specializers) {};
+    Call(Line &ln, SubFunction *sf)
+        : GenericCall(ln, sf->parent->name, sf, false, false, nullptr) {};
     void Dump(string &sd) const { sd += sf->parent->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     bool EqAttr(const Node *o) const {
@@ -432,11 +434,14 @@ struct NativeCall : GenericCall {
     TypeRef nattype = nullptr;
     Lifetime natlt = LT_UNDEF;
     NativeCall(NativeFun *_nf, GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, &gc.specializers), nf(_nf) {};
+        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, gc.super, &gc.specializers),
+          nf(_nf) {};
     void Dump(string &sd) const { sd += nf->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     bool EqAttr(const Node *o) const {
-        return nf == ((NativeCall *)o)->nf && nattype == ((NativeCall *)o)->nattype && natlt == ((NativeCall *)o)->natlt;
+        return nf == ((NativeCall *)o)->nf &&
+               nattype == ((NativeCall *)o)->nattype &&
+               natlt == ((NativeCall *)o)->natlt;
     }
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
     RETURNSMETHOD
@@ -482,7 +487,8 @@ struct Define : Unary {
 struct Dot : GenericCall {
     SharedField *fld;  // FIXME
     Dot(SharedField *_fld, GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, &gc.specializers), fld(_fld) {}
+        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, gc.super, &gc.specializers),
+          fld(_fld) {}
     void Dump(string &sd) const { append(sd, Name(), fld->name); }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     bool EqAttr(const Node *o) const {

@@ -341,6 +341,7 @@ struct Lex : LoadedFile {
                             if (sattr == "struct") return T_STRUCT;
                             if (sattr == "string") return T_STRTYPE;
                             if (sattr == "switch") return T_SWITCH;
+                            if (sattr == "super") return T_SUPER;
                             break;
                         case 't':
                             if (sattr == "typeof") return T_TYPEOF;

@@ -679,6 +679,17 @@ assert x.g(3) == 5
 Here, the call to `g` is dynamically dispatched for `A` or `B`, but choosing the
 `int` or `string` specialization is entirely static.
 
+You can force calling a superclass method with the `super` keyword:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class B : A
+    def f(): return 1 + super f()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+That `f()` is statically dispatched to call `A`'s version of `f` (or its
+superclass, if it doesn't have one).
+
+
 ### Functions with different number of arguments / default arguments.
 
 You can define functions with the same name but different number of

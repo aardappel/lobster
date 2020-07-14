@@ -74,12 +74,14 @@ run_test("types"):
             def g(c): return c + 1
             def r(c:int) -> int: return c
             def mr(): return 1, "a"
+            def sup(): return 1
         class C2 : C1
             b:int = 0
             def f(c:int): return 2 + a + b + c
             def g(c): return c + 2
             def r(c:int) -> int: return if c: r(c - 1) else: (C1 {}).r(c)
             def mr(): return 2, "b"
+            def sup(): return 1 + super sup()
         class C3<T> : C1
             b:T
             def f(c:int): return c + length(b)
@@ -95,6 +97,8 @@ run_test("types"):
         assert x2.f(10) == 15  // Generic "this"
         // Recursive dynamic dispatch.
         assert x.r(10) == 0
+        // Call super methods:
+        assert x.sup() == 2
         // Multiple return:
         let mr1, mr2 = x.mr()
         assert mr1 == 2 and mr2 == "b"

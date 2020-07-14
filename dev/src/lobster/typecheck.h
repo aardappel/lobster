@@ -1310,10 +1310,9 @@ struct TypeChecker {
     };
 
     TypeRef TypeCheckCall(SubFunction *&csf, List &call_args, size_t reqret, int &vtable_idx,
-                          vector<UnresolvedTypeRef> *specializers) {
+                          vector<UnresolvedTypeRef> *specializers, bool super) {
         STACK_PROFILE;
         Function &f = *csf->parent;
-        UDT *dispatch_udt = nullptr;
         vtable_idx = -1;
         if (f.istype) {
             // Function types are always fully typed.
@@ -1324,17 +1323,24 @@ struct TypeChecker {
         // explicit first arg type of a class (not structs, since they can never dynamically be
         // different from their static type), and only when there is a sub-class that has a
         // method that can be called also.
+        UDT *dispatch_udt = nullptr;
+        TypeRef type0;
         if (f.nargs()) {
-            auto type = call_args.children[0]->exptype;
-            if (type->t == V_CLASS) dispatch_udt = type->udt;
+            type0 = call_args.children[0]->exptype;
+            if (type0->t == V_CLASS) dispatch_udt = type0->udt;
         }
         if (dispatch_udt) {
-            // Go thru all other overloads, and see if any of them have this one as superclass.
-            for (auto isf : csf->parent->overloads) {
-                if (isf->method_of && st.SuperDistance(dispatch_udt, isf->method_of) > 0) {
-                    LOG_DEBUG("dynamic dispatch: ", Signature(*isf));
-                    return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
-                                                 reqret, specializers, vtable_idx);
+            if (super) {
+                // We're forcing static dispatch to the superclass;
+                type0 = &dispatch_udt->resolved_superclass->thistype;
+            } else {
+                // Go thru all other overloads, and see if any of them have this one as superclass.
+                for (auto isf : csf->parent->overloads) {
+                    if (isf->method_of && st.SuperDistance(dispatch_udt, isf->method_of) > 0) {
+                        LOG_DEBUG("dynamic dispatch: ", Signature(*isf));
+                        return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
+                            reqret, specializers, vtable_idx);
+                    }
                 }
             }
             // Yay there are no sub-class implementations, we can just statically dispatch.
@@ -1349,7 +1355,6 @@ struct TypeChecker {
         int overload_idx = 0;
         if (f.nargs() && f.overloads.size() > 1) {
             overload_idx = -1;
-            auto type0 = call_args.children[0]->exptype;
             // First see if there is an exact match.
             for (auto [i, isf] : enumerate(f.overloads)) {
                 if (ExactType(type0, isf->args[0].type)) {
@@ -1474,7 +1479,7 @@ struct TypeChecker {
         // In the case of too many args, TypeCheckCall will ignore them (and optimizer will
         // remove them).
         int vtable_idx = -1;
-        auto type = TypeCheckCall(fspec, *args, reqret, vtable_idx, nullptr);
+        auto type = TypeCheckCall(fspec, *args, reqret, vtable_idx, nullptr, false);
         assert(vtable_idx < 0);
         ftype = &fspec->thistype;
         return { type, fspec->ltret };
@@ -2727,7 +2732,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             auto chosen = fsf;
             List args(c->line);  // If any error, on same line as c.
             int vtable_idx = -1;
-            tc.TypeCheckCall(fsf, args, false, vtable_idx, nullptr);
+            tc.TypeCheckCall(fsf, args, false, vtable_idx, nullptr, false);
             assert(vtable_idx < 0);
             assert(fsf == chosen); (void)chosen;
         }
@@ -2810,7 +2815,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
 void Call::TypeCheckSpecialized(TypeChecker &tc, size_t reqret) {
     STACK_PROFILE;
     sf = tc.PreSpecializeFunction(sf);
-    exptype = tc.TypeCheckCall(sf, *this, reqret, vtable_idx, &specializers);
+    exptype = tc.TypeCheckCall(sf, *this, reqret, vtable_idx, &specializers, super);
     lt = sf->ltret;
 }
 

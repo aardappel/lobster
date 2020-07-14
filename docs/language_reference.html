@@ -237,6 +237,10 @@ x : A = B {}  // Type is A, but dynamic value is a B!
 assert x.g(&quot;hi&quot;) == &quot;hi2&quot;
 assert x.g(3) == 5</code></pre>
 <p>Here, the call to <code>g</code> is dynamically dispatched for <code>A</code> or <code>B</code>, but choosing the <code>int</code> or <code>string</code> specialization is entirely static.</p>
+<p>You can force calling a superclass method with the <code>super</code> keyword:</p>
+<pre><code>class B : A
+    def f(): return 1 + super f()</code></pre>
+<p>That <code>f()</code> is statically dispatched to call <code>A</code>’s version of <code>f</code> (or its superclass, if it doesn’t have one).</p>
 <h3 id="functions-with-different-number-of-arguments-default-arguments.">Functions with different number of arguments / default arguments.</h3>
 <p>You can define functions with the same name but different number of arguments. These are essentially treated as independent functions, in the sense that which is being called is always determined completely statically.</p>
 <p>Functions can even have default arguments, as long as the default arguments don’t cause ambiguity with other functions of the same name:</p>

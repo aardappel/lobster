@@ -890,7 +890,7 @@ struct Parser {
 
         // We give precedence to builtins, unless we're calling a known function in a :: context.
         if (nf && (!f || !wse.id)) {
-            auto nc = new GenericCall(lex, idname, nullptr, false, specializers);
+            auto nc = new GenericCall(lex, idname, nullptr, false, false, specializers);
             ParseFunArgs(nc, firstarg, noparens);
             for (auto [i, arg] : enumerate(nf->args)) {
                 if (i >= nc->Arity()) {
@@ -915,7 +915,7 @@ struct Parser {
         // Note: <, because functions are inside their own scope.
         if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type: " + f->name);
-            auto call = new GenericCall(lex, idname, nullptr, false, specializers);
+            auto call = new GenericCall(lex, idname, nullptr, false, false, specializers);
             ParseFunArgs(call, firstarg, noparens);
             if (!firstarg) {
                 SelfArg(f, wse, call->Arity(), call);
@@ -929,7 +929,7 @@ struct Parser {
             ParseFunArgs(dc, firstarg, false);
             return dc;
         } else {
-            auto call = new GenericCall(lex, idname, nullptr, false, specializers);
+            auto call = new GenericCall(lex, idname, nullptr, false, false, specializers);
             ParseFunArgs(call, firstarg, false);
             ForwardFunctionCall ffc = {
                 st.scopelevels.size(), st.current_namespace, call, !!firstarg, wse
@@ -1017,8 +1017,8 @@ struct Parser {
                 if (fld || f || nf) {
                     if (fld && lex.token != T_LEFTPAREN) {
                         auto dot = new GenericCall(lex, idname,
-                                                    f ? f->overloads.back() : nullptr,
-                                                    true, nullptr);
+                                                   f ? f->overloads.back() : nullptr,
+                                                   true, false, nullptr);
                         dot->Add(n);
                         n = dot;
                     } else {
@@ -1142,6 +1142,19 @@ struct Parser {
                 auto idname = lex.sattr;
                 lex.Next();
                 return IdentFactor(idname);
+            }
+            case T_SUPER: {
+                lex.Next();
+                auto idname = ExpectId();
+                auto n = ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr, false,
+                                           nullptr);
+                auto call = Is<GenericCall>(*n);
+                if (!call || !call->sf || !call->sf->method_of ||
+                    call->sf->method_of->given_superclass.Null()) {
+                    Error("super must be used on a method of a subclass");
+                }
+                call->super = true;
+                return n;
             }
             case T_PAKFILE: {
                 lex.Next();
@@ -1418,7 +1431,7 @@ struct Parser {
         Ident *id = nullptr;
         auto fld = st.LookupWithStruct(idname, lex, id);
         if (fld) {
-            auto dot = new GenericCall(lex, idname, nullptr, true, nullptr);
+            auto dot = new GenericCall(lex, idname, nullptr, true, false, nullptr);
             dot->Add(new IdentRef(lex, id->cursid));
             return dot;
         }

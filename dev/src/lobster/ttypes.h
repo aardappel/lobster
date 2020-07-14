@@ -109,7 +109,8 @@ namespace lobster {
     TOK(T_CASE, "case") \
     TOK(T_DEFAULT, "default") \
     TOK(T_NAMESPACE, "namespace") \
-    TOK(T_BREAK, "break")
+    TOK(T_BREAK, "break") \
+    TOK(T_SUPER, "super")
 
 enum TType {
     #define TOK(ENUM, STR) ENUM,
