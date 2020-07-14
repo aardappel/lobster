@@ -285,3 +285,11 @@ run_test("misc"):
     // Like Python, but actually a built-in function.
     if false:
         pass()
+
+    // default args.
+    let dav = 1  // Can even reference vars.
+    def da(a:int, b, c = dav + 1): return a + b + c
+    def da(a:float, b, c = dav + 1): return int(a) - b - c
+    def da(a): return a  // Does not "overlap"
+    assert da(1) + da(1, 2) + da(1, 2, 3) == 12
+

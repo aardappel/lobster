@@ -473,6 +473,8 @@ struct Parser {
             arg.withtype = true;
         }
         bool non_inline_method = false;
+        int first_default_arg = -1;
+        vector<Node *> default_args;
         if (lex.token != T_RIGHTPAREN && parseargs) {
             for (;;) {
                 ExpectId();
@@ -493,14 +495,47 @@ struct Parser {
                 } else {
                     GenImplicitGenericForLastArg();
                 }
+                if (parens && IsNext(T_ASSIGN)) {
+                    if (first_default_arg < 0) first_default_arg = (int)sf->args.size() - 1;
+                    default_args.push_back(ParseExp());
+                } else {
+                    if (first_default_arg >= 0) Error("missing default argument");
+                }
                 if (!IsNext(T_COMMA)) break;
             }
         }
         if (parens) Expect(T_RIGHTPAREN);
         sf->method_of = self;
         auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("");
+        // Check default args are being used consistently with the overloads & siblings.
+        if (first_default_arg < 0) first_default_arg = (int)nargs;
+        if (f.overloads.empty()) {
+            f.first_default_arg = first_default_arg;
+            f.default_args = default_args;
+        } else {
+            if (f.first_default_arg != first_default_arg)
+                Error("number of default arguments must be the same as previous overload");
+            for (auto [i, da] : enumerate(f.default_args)) {
+                if (da && !da->Equal(default_args[i]))
+                    Error(cat("default argument ", i + 1, " must be same as previous overload"));
+                delete default_args[i];
+            }
+        }
+        // Create the overload.
         f.overloads.push_back(nullptr);
         sf->SetParent(f, f.overloads.back());
+        // Check if there's any overlap in default argument ranges.
+        auto ff = st.GetFirstFunction(f.name);
+        while (ff) {
+            if (ff != &f) {
+                if (first_default_arg <= (int)ff->nargs() &&
+                    ff->first_default_arg <= (int)f.nargs())
+                    Error(cat("function ", f.name, " with ", f.nargs(),
+                                " arguments is ambiguous with the ", ff->nargs(),
+                                " version because of default arguments"));
+            }
+            ff = ff->sibf;
+        }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
             sf->returntype = sf->returngiventype.utr;
@@ -531,7 +566,7 @@ struct Parser {
                 // type checker.
                 if (!f.nargs()) Error("double declaration: " + f.name);
                 if (isprivate != f.isprivate)
-                    Error("inconsistent private annotation of multiple function implementations"
+                    Error("inconsistent private annotation of multiple overloads"
                           " for: " + *name);
             }
             f.isprivate = isprivate;
@@ -847,8 +882,7 @@ struct Parser {
     }
 
     List *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
-                            bool noparens, size_t extra_args = 0,
-                            vector<UnresolvedTypeRef> *specializers = nullptr) {
+                            bool noparens, vector<UnresolvedTypeRef> *specializers) {
         auto wse = st.GetWithStackBack();
         // FIXME: move more of the code below into the type checker, and generalize the remaining
         // code to be as little dependent as possible on wether nf or f are available.
@@ -883,11 +917,10 @@ struct Parser {
             if (f->istype) Error("can\'t call function type: " + f->name);
             auto call = new GenericCall(lex, idname, nullptr, false, specializers);
             ParseFunArgs(call, firstarg, noparens);
-            auto nargs = call->Arity() + extra_args;  // FIXME!
             if (!firstarg) {
-                nargs += SelfArg(f, wse, nargs, call);
+                SelfArg(f, wse, call->Arity(), call);
             }
-            f = FindFunctionWithNargs(f, nargs, idname, nullptr);
+            f = FindFunctionWithNargs(f, call, idname, nullptr);
             call->sf = f->overloads.back();
             return call;
         }
@@ -906,9 +939,9 @@ struct Parser {
         }
     }
 
-    size_t SelfArg(const Function *f, const SymbolTable::WithStackElem &wse, size_t nargs,
+    void SelfArg(const Function *f, const SymbolTable::WithStackElem &wse, size_t nargs,
                       GenericCall *call) {
-        if (nargs >= f->nargs()) return 0;
+        if (nargs >= f->nargs()) return;
         // If we're in the context of a withtype, calling a function that starts with an
         // arg of the same type we pass it in automatically.
         // This is maybe a bit very liberal, should maybe restrict it?
@@ -920,18 +953,24 @@ struct Parser {
                 if (wse.id) {
                     auto self = new IdentRef(lex, wse.id->cursid);
                     call->children.insert(call->children.begin(), self);
-                    return 1;
+                    return;
                 }
                 break;
             }
         }
-        return 0;
+        return;
     }
 
-    Function *FindFunctionWithNargs(Function *f, size_t nargs, string_view idname, Node *errnode) {
-        for (; f; f = f->sibf)
-            if (f->nargs() == nargs)
+    Function *FindFunctionWithNargs(Function *f, GenericCall *call, string_view idname, Node *errnode) {
+        auto nargs = call->Arity();
+        for (; f; f = f->sibf) {
+            if (nargs <= f->nargs() && (int)nargs >= f->first_default_arg) {
+                for (size_t i = nargs; i < f->nargs(); i++) {
+                    call->children.push_back(f->default_args[i - f->first_default_arg]->Clone());
+                }
                 return f;
+            }
+        }
         Error(cat("no version of function ", idname, " takes ", nargs, " arguments"), errnode);
         return nullptr;
     }
@@ -947,7 +986,7 @@ struct Parser {
                         SelfArg(f, ffc->wse, ffc->n->Arity(), ffc->n);
                     }
                     ffc->n->sf = FindFunctionWithNargs(f,
-                        ffc->n->Arity(), ffc->n->name, ffc->n)->overloads.back();
+                        ffc->n, ffc->n->name, ffc->n)->overloads.back();
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 } else {
@@ -984,7 +1023,7 @@ struct Parser {
                         n = dot;
                     } else {
                         auto specializers = ParseSpecializers(f && !nf);
-                        n = ParseFunctionCall(f, nf, idname, n, false, 0, &specializers);
+                        n = ParseFunctionCall(f, nf, idname, n, false, &specializers);
                     }
                 } else {
                     Error("unknown field/function: " + idname);
@@ -1319,11 +1358,11 @@ struct Parser {
                 Expect(T_RIGHTPAREN);
                 return ec;
             }
-            return ParseFunctionCall(f, nf, idname, nullptr, false);
+            return ParseFunctionCall(f, nf, idname, nullptr, false, nullptr);
         }
         auto specializers = ParseSpecializers(f && !nf && !e);
         if (!specializers.empty())
-            return ParseFunctionCall(f, nf, idname, nullptr, false, 0, &specializers);
+            return ParseFunctionCall(f, nf, idname, nullptr, false, &specializers);
         // Check for implicit variable.
         if (idname[0] == '_') {
             if (block_stack.empty())
@@ -1362,7 +1401,7 @@ struct Parser {
         auto id = st.Lookup(idname);
         // Check for function call without ().
         if (!id && (nf || f) && lex.whitespacebefore > 0 && lex.token != T_LINEFEED) {
-            return ParseFunctionCall(f, nf, idname, nullptr, true);
+            return ParseFunctionCall(f, nf, idname, nullptr, true, nullptr);
         }
         // Check for enum value.
         auto ev = st.EnumValLookup(idname, lex, false);

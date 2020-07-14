@@ -427,6 +427,10 @@ Field::Field(const Field &o)
 
 }
 
+lobster::Function::~Function() {
+    for (auto da : default_args) delete da;
+}
+
 #if STACK_PROFILING_ON
     vector<StackProfile> stack_profiles;
 #endif

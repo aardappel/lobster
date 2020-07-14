@@ -359,7 +359,7 @@ nfr("string_to_int", "s,base", "SI?", "IB",
     "returns 0 if no numeric data could be parsed; second return value is true if all"
     "characters of the string were parsed.",
     [](StackPtr &sp, VM &vm, Value &s, Value &b) {
-        int base = b.True() ? b.ival() : 10;
+        int base = b.True() ? b.intval() : 10;
         if (base < 2 || base > 36)
             vm.BuiltinError(sp, "string_to_int: values out of range");
         char *end;

@@ -49,6 +49,18 @@ struct Node {
         Iterate([&](Node *) { count++; });
         return count;
     }
+    virtual bool EqAttr(const Node *) const { return true; }
+    bool Equal(Node *o) {
+        if (typeid(*this) != typeid(*o) || !EqAttr(o) || Arity() != o->Arity()) return false;
+        auto ch = Children();
+        auto och = o->Children();
+        if (ch) {
+            for (size_t i = 0; i < Arity(); i++) {
+                if (!ch[i]->Equal(och[i])) return false;
+            }
+        }
+        return true;
+    }
     // Used by type-checker to and optimizer.
     // If it returns true, sets val to a value that gives the correct True().
     // Also sets correct scalar values.
@@ -182,6 +194,9 @@ struct TypeAnnotation : Node {
     UnresolvedTypeRef giventype;
     TypeAnnotation(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
     void Dump(string &sd) const { sd += TypeName(giventype.utr); }
+    bool EqAttr(const Node *o) const {
+        return giventype.utr == ((TypeAnnotation *)o)->giventype.utr;
+    }
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
 
@@ -259,6 +274,9 @@ struct Nil : Node {
         val = Value();
         return V_NIL;
     }
+    bool EqAttr(const Node *o) const {
+        return giventype.utr == ((Nil *)o)->giventype.utr;
+    }
     SHARED_SIGNATURE(Nil, TName(T_NIL), false)
 };
 
@@ -268,6 +286,9 @@ struct IdentRef : Node {
         : Node(ln), sid(_sid) {}
     bool IsConstInit() const { return sid->id->static_constant; }
     void Dump(string &sd) const { sd += sid->id->name; }
+    bool EqAttr(const Node *o) const {
+        return sid == ((IdentRef *)o)->sid;
+    }
     SHARED_SIGNATURE(IdentRef, TName(T_IDENT), false)
 };
 
@@ -281,6 +302,9 @@ struct IntConstant : Node {
         val = Value(integer);
         return V_INT;
     }
+    bool EqAttr(const Node *o) const {
+        return integer == ((IntConstant *)o)->integer;
+    }
     SHARED_SIGNATURE(IntConstant, TName(T_INT), false)
 };
 
@@ -293,6 +317,9 @@ struct FloatConstant : Node {
         val = Value(flt);
         return V_FLOAT;
     }
+    bool EqAttr(const Node *o) const {
+        return flt == ((FloatConstant *)o)->flt;
+    }
     SHARED_SIGNATURE(FloatConstant, TName(T_FLOAT), false)
 };
 
@@ -301,6 +328,9 @@ struct StringConstant : Node {
     StringConstant(const Line &ln, string_view s) : Node(ln), str(s) {}
     bool IsConstInit() const { return true; }
     void Dump(string &sd) const { EscapeAndQuote(str, sd); }
+    bool EqAttr(const Node *o) const {
+        return str == ((StringConstant *)o)->str;
+    }
     SHARED_SIGNATURE(StringConstant, TName(T_STR), false)
 };
 
@@ -308,6 +338,9 @@ struct EnumRef : Node {
     Enum *e;
     EnumRef(const Line &ln, Enum *_e) : Node(ln), e(_e) {}
     void Dump(string &sd) const { append(sd, "enum", e->name); }
+    bool EqAttr(const Node *o) const {
+        return e == ((EnumRef *)o)->e;
+    }
     SHARED_SIGNATURE(EnumRef, TName(T_ENUM), false)
 };
 
@@ -315,6 +348,9 @@ struct UDTRef : Node {
     UDT *udt;
     UDTRef(const Line &ln, UDT *_udt) : Node(ln), udt(_udt) {}
     void Dump(string &sd) const { append(sd, udt->is_struct ? "struct " : "class ", udt->name); }
+    bool EqAttr(const Node *o) const {
+        return udt == ((UDTRef *)o)->udt;
+    }
     SHARED_SIGNATURE(UDTRef, TName(T_CLASS), false)
 };
 
@@ -324,6 +360,9 @@ struct FunRef : Node {
     bool IsConstInit() const { return true; }
     void Dump(string &sd) const {
         append(sd, "(def ", sf->parent->name, ")");
+    }
+    bool EqAttr(const Node *o) const {
+        return sf == ((FunRef *)o)->sf;
     }
     SHARED_SIGNATURE(FunRef, TName(T_FUN), false)
 };
@@ -339,6 +378,9 @@ struct GenericCall : List {
         : List(ln), name(name), sf(sf), dotnoparens(dotnoparens) {
         if (spec) specializers = *spec;
     };
+    bool EqAttr(const Node *o) const {
+        return sf == ((GenericCall *)o)->sf;
+    }
     SHARED_SIGNATURE(GenericCall, "generic call", true)
 };
 
@@ -351,6 +393,9 @@ struct Constructor : List {
         }
         return true;
     }
+    bool EqAttr(const Node *o) const {
+        return giventype.utr == ((Constructor *)o)->giventype.utr;
+    }
     SHARED_SIGNATURE(Constructor, "constructor", false)
 };
 
@@ -361,6 +406,9 @@ struct Call : GenericCall {
     Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false, nullptr) {};
     void Dump(string &sd) const { sd += sf->parent->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
+    bool EqAttr(const Node *o) const {
+        return sf == ((Call *)o)->sf && vtable_idx == ((Call *)o)->vtable_idx;
+    }
     SHARED_SIGNATURE_NO_TT(Call, "call", true)
     OPTMETHOD
     RETURNSMETHOD
@@ -372,6 +420,9 @@ struct DynCall : List {
     DynCall(const Line &ln, SubFunction *_sf, SpecIdent *_sid)
         : List(ln), sf(_sf), sid(_sid) {};
     void Dump(string &sd) const { sd += sid->id->name; }
+    bool EqAttr(const Node *o) const {
+        return sf == ((DynCall *)o)->sf && sid == ((DynCall *)o)->sid;
+    }
     SHARED_SIGNATURE(DynCall, "dynamic call", true)
     OPTMETHOD
 };
@@ -384,6 +435,9 @@ struct NativeCall : GenericCall {
         : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, &gc.specializers), nf(_nf) {};
     void Dump(string &sd) const { sd += nf->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
+    bool EqAttr(const Node *o) const {
+        return nf == ((NativeCall *)o)->nf && nattype == ((NativeCall *)o)->nattype && natlt == ((NativeCall *)o)->natlt;
+    }
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
     RETURNSMETHOD
 };
@@ -393,6 +447,9 @@ struct Return : Unary {
     bool make_void;
     Return(const Line &ln, Node *_a, SubFunction *sf, bool make_void)
         : Unary(ln, _a), sf(sf), make_void(make_void) {}
+    bool EqAttr(const Node *o) const {
+        return sf == ((Return *)o)->sf && make_void == ((Return *)o)->make_void;
+    }
     SHARED_SIGNATURE(Return, TName(T_RETURN), true)
     RETURNSMETHOD
 };
@@ -416,6 +473,9 @@ struct Define : Unary {
         for (auto p : sids) append(sd, p.first->id->name, " ");
         sd += Name();
     }
+    bool EqAttr(const Node *) const {
+        return false;  // FIXME
+    }
     SHARED_SIGNATURE(Define, "var", true)
 };
 
@@ -425,6 +485,9 @@ struct Dot : GenericCall {
         : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, &gc.specializers), fld(_fld) {}
     void Dump(string &sd) const { append(sd, Name(), fld->name); }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
+    bool EqAttr(const Node *o) const {
+        return fld == ((Dot *)o)->fld;
+    }
     SHARED_SIGNATURE_NO_TT(Dot, TName(T_DOT), false)
 };
 
@@ -433,6 +496,9 @@ struct IsType : Unary {
     TypeRef resolvedtype;
     IsType(const Line &ln, Node *_a) : Unary(ln, _a) {}
     void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype.utr)); }
+    bool EqAttr(const Node *o) const {
+        return giventype.utr == ((IsType *)o)->giventype.utr;
+    }
     CONSTVALMETHOD
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
 };
@@ -441,6 +507,9 @@ struct EnumCoercion : Unary {
     Enum *e;
     EnumCoercion(const Line &ln, Node *_a, Enum *e) : Unary(ln, _a), e(e) {}
     void Dump(string &sd) const { sd += e->name; }
+    bool EqAttr(const Node *o) const {
+        return e == ((EnumCoercion *)o)->e;
+    }
     CONSTVALMETHOD
     SHARED_SIGNATURE(EnumCoercion, e->name, false)
 };
@@ -450,6 +519,9 @@ struct ToLifetime : Coercion {
     ToLifetime(const Line &ln, Node *_a, uint64_t incref, uint64_t decref)
         : Coercion(ln, _a), incref(incref), decref(decref) {}
     void Dump(string &sd) const { append(sd, Name(), "<", incref, "|", decref, ">"); }
+    bool EqAttr(const Node *) const {
+        return false;  // FIXME
+    }
     SHARED_SIGNATURE_NO_TT(ToLifetime, "lifetime change", true)
 };
 

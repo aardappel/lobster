@@ -32,7 +32,7 @@ enum blend_mode:
 private let texture_names:[string] = []
 private let textures:[resource] = []
 
-def loadtexturecached(name, tf:texture_format):
+def loadtexturecached(name, tf:texture_format = texture_format_none):
     let n, i = binary_search(texture_names, name)
     if n:
         return textures[i]
@@ -45,8 +45,6 @@ def loadtexturecached(name, tf:texture_format):
         else:
             print "unable to load texture: " + name
             return from program
-
-def loadtexturecached(name): return loadtexturecached(name, texture_format_none)  // FIXME: default args.
 
 // Pass nil for tex to have it created. Recreates tex if the wrong size. Renders f. Returns tex.
 // Depth texture automatically created if depth is true and depthtex is nil.

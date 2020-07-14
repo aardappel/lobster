@@ -347,9 +347,14 @@ struct Function : Named {
 
     size_t scopelevel;
 
+    vector<Node *> default_args;
+    int first_default_arg = -1;
+
     Function(string_view _name, int _idx, size_t _sl)
-        : Named(_name, _idx), scopelevel(_sl) {}
-    ~Function() {}
+        : Named(_name, _idx), scopelevel(_sl) {
+    }
+
+    ~Function();
 
     size_t nargs() const { return overloads[0]->args.size(); }
 
@@ -724,6 +729,11 @@ struct SymbolTable {
             functions[f.name /* must be in value */] = &f;
         }
         return f;
+    }
+
+    Function *GetFirstFunction(string_view name) {
+        auto it = functions.find(name);
+        return it != functions.end() ? it->second : nullptr;
     }
 
     Function *FindFunction(string_view name) {

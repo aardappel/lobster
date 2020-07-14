@@ -679,6 +679,34 @@ assert x.g(3) == 5
 Here, the call to `g` is dynamically dispatched for `A` or `B`, but choosing the
 `int` or `string` specialization is entirely static.
 
+### Functions with different number of arguments / default arguments.
+
+You can define functions with the same name but different number of
+arguments. These are essentially treated as independent functions, in the sense
+that which is being called is always determined completely statically.
+
+Functions can even have default arguments, as long as the default arguments
+don't cause ambiguity with other functions of the same name:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def da(a:X, b, c = x + 1): return c
+def da(a:Y, b, c = x + 1): return c
+def da(a): return a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This defines 2 complete separate functions, one that has 3 arguments (and can
+be called with 2, since it has one default argument), and one with 1 argument.
+As you can see, since there is no overlap in number of arguments, it is always
+clear which variant is being called.
+
+The version with 3 arguments has 2 overloads. Overloads must have exactly the
+same default arguments, if any.
+
+Default arguments are simple substition, writing `da(1, 2)` is exactly the same
+as writing `da(1, 2, x + 1)`. That's why you can even use variables in these
+default arguments, as long as they're in scope when called.
+
+
 Typing
 ------
 
