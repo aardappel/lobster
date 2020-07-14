@@ -321,7 +321,7 @@ do:
     a++</code></pre>
 <p>but since people are so used to the way while loops work from other languages, the first argument has a special type that automatically converts an expression into a function value. When you think about it, even in languages like C the condition of a while is the only part of the language that can be executed more than once yet does not use / cannot use the block <code>{}</code> syntax. This exception is carried over in Lobster. This is not great for readability so isn’t generally used elsewhere.</p>
 <p><code>while</code> returns void. A similar function int module <code>std</code> called <code>collectwhile</code> returns a vector of all body return values.</p>
-<p>Both <code>for</code> and <code>while</code> can have a break statement inside of them, that exits the enclosing loop.</p>
+<p>Both <code>for</code> and <code>while</code> can have a break statement inside of them, that exits the enclosing loop. Alternatively, use <code>return</code> or <code>return from</code> (see above) for more complex cases.</p>
 <p>Many other functions that look like regular functions are actually also control structures, like many of the graphics function that change the current rendering state. An example is <code>gl_translate</code>, that optionally takes a body, and will run the body and restore the previous transform afterwards.</p>
 <p><code>switch</code> has special syntax, since it does a lot of things different:</p>
 <pre><code>var st = switch i:
@@ -332,12 +332,6 @@ do:
         case 4..6, 8: &quot;maybe&quot;
         default: &quot;what?&quot;</code></pre>
 <p>The value you switch on may be int, float or string. Cases may test for multiple values, even ranges (which are inclusive)</p>
-<p>There is currently no <code>break</code> or <code>continue</code>. To add these would be a little more complicated than most languages, since they’d need to work with any custom control structure. For now, use <code>return</code> (or <code>return</code> <code>from</code>), e.g.:</p>
-<pre><code>do():
-    for 10:
-        if x: return false from do
-    true</code></pre>
-<p>Instead of using <code>do</code> (defined in <code>std.lobster</code>), you can also use a regular <code>return</code> from any named function definition (which can be nested in any code block).</p>
 <h2 id="modules-and-name-spaces">Modules and Name Spaces</h2>
 <p>A module is simply a single <code>.lobster</code> file, that can be imported into another using the <code>import</code> keyword. You can <code>import</code> a module from multiple files and it will only be compiled once.</p>
 <p>You can prefix any top-level declaration by <code>private</code> to cause it not be available to users of the module.</p>

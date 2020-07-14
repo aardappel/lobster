@@ -916,7 +916,8 @@ used elsewhere.
 returns a vector of all body return values.
 
 Both `for` and `while` can have a break statement inside of them, that
-exits the enclosing loop.
+exits the enclosing loop. Alternatively, use `return` or `return from` (see
+above) for more complex cases.
 
 Many other functions that look like regular functions are actually also control
 structures, like many of the graphics function that change the current rendering
@@ -937,20 +938,6 @@ var st = switch i:
 
 The value you switch on may be int, float or string. Cases may test for multiple
 values, even ranges (which are inclusive)
-
-There is currently no `break` or `continue`. To add these would be a little more
-complicated than most languages, since they'd need to work with any custom
-control structure. For now, use `return` (or `return` `from`), e.g.:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-do():
-    for 10:
-        if x: return false from do
-    true
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Instead of using `do` (defined in `std.lobster`), you can also use a regular
-`return` from any named function definition (which can be nested in any code block).
 
 
 Modules and Name Spaces
