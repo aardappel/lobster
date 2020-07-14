@@ -157,6 +157,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?", "S?",
         }
         colorshader = LookupShader("color");
         assert(colorshader);
+        currentshader = colorshader;
         LOG_INFO("graphics fully initialized...");
         graphics_initialized = true;
         return Value();
