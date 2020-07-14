@@ -941,7 +941,8 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
     }
     // We did not consume these, so we have to pass them on.
     for (size_t i = 0; i < retval; i++) {
-        cg.rettypes.push_back(cg.temptypestack.back());
+        // Note: take LT from this node, not existing one on temptypestack, which we just changed!
+        cg.rettypes.push_back(TypeLT(*this, i));
         cg.temptypestack.pop_back();
     }
 }

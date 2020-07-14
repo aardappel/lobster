@@ -1883,8 +1883,7 @@ struct TypeChecker {
             }
         }
         if (incref || decref) {
-            LOG_DEBUG("lifetime adjust for ", NiceName(*n), " to ", incref, "/",
-                                 decref);
+            LOG_DEBUG("lifetime adjust for ", NiceName(*n), " to ", incref, "/", decref);
             MakeLifetime(n, idents ? LT_MULTIPLE: recip, incref, decref);
         }
     }
