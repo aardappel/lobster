@@ -42,6 +42,13 @@ nfr("play_sfxr", "filename,loops", "SI?", "I",
         return Value(ch);
     });
 
+nfr("sound_channels", "", "", "I",
+    "returns the number of currently available sound channels.",
+    [](StackPtr &, VM &) {
+        int ch = SDLAvailChannels();
+        return Value(ch);
+    });
+
 nfr("sound_halt", "channel", "I", "",
     "terminates a specific sound channel.",
     [](StackPtr &, VM &, Value &ch) {

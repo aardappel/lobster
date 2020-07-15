@@ -454,3 +454,12 @@ void SDLResumeSound(int ch) {
 void SDLSetVolume(int ch, float vol) {
     Mix_Volume(ch - 1, (int)(MIX_MAX_VOLUME * vol));
 }
+
+int SDLAvailChannels() {
+    int num_chn = Mix_AllocateChannels(-1); // called with -1 this returns the current number of channels
+    int num_avail = num_chn;
+    for(int i = 0; i < num_chn; i++) {
+        if (Mix_Playing(i) > 0) num_avail--;
+    }
+    return num_avail;
+}
