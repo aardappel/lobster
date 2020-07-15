@@ -261,7 +261,7 @@ bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize, bool depth, i
 		}
 		if (!tex.id) {
 			OpenGLFrameStart(orig_screensize);
-			Set2DMode(orig_screensize, true, depth);
+			//Set2DMode(orig_screensize, true, depth);
 			return true;
 		}
 		fb = CreateFrameBuffer(tex, tf);
@@ -289,7 +289,7 @@ bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize, bool depth, i
 		retex = resolvetex;
 		retf = tf & ~TF_MULTISAMPLE;
 		OpenGLFrameStart(framebuffersize);
-		Set2DMode(framebuffersize, false, depth);  // Have to use rh mode here, otherwise texture is filled flipped.
+		//Set2DMode(framebuffersize, false, depth);  // Have to use rh mode here, otherwise texture is filled flipped.
         auto stat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		auto ok = stat == GL_FRAMEBUFFER_COMPLETE;
 		assert(ok);

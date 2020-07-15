@@ -95,6 +95,7 @@ let cube_face_meshes = map(cube_face_vertices) v:
 let detail = 256
 let cube_face_textures = map(6) i:
     render_to_texture(nil, xy_1i * detail, false, nil, 0):
+        gl_ortho(true, false)
         let label = string(i+1)
         gl_set_font_size(detail/2)
         let size = gl_text_size(label)

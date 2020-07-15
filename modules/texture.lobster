@@ -77,7 +77,7 @@ def post_process(tex, size, shader, depth, texture_format, f):
     texture_format |= texture_format_clamp | texture_format_nomipmap
     tex = render_to_texture(tex, size, depth, nil, texture_format, f)
     gl_blend(0)
-    gl_ortho(true, false)
+    gl_ortho(true, false)  // Needed to flip the texture.
     gl_set_shader(shader)
     gl_set_primitive_texture(0, tex, texture_format)
     gl_rect(float(size))
