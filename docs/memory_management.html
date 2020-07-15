@@ -99,7 +99,6 @@ f(a)</code></pre>
 <p>There are currently some exceptions to this:</p>
 <ul>
 <li>Arguments that are assigned to are always owned.</li>
-<li>Coroutines always own (because they are longer lived).</li>
 <li>The return value of a function is currently always owned.</li>
 </ul>
 <p>Much like variables, some of these could be relaxed/improved in the future.</p>
@@ -117,7 +116,7 @@ f(a)</code></pre>
 <li><code>+</code> on strings wants to borrow, and returns owned. This is the same in principle for all binary operators, but thanks to “inline structs” this doesn’t matter for most of them anymore.</li>
 <li>Built-in functions by default want to borrow all their args, and return an owned value. There are exceptions to this rule, which can be marked when declaring a built-in, mainly for functions that directly operate on a vector or other data structure. For example <code>push</code> wants to own its second argument, and <code>top</code> returns a borrowed value.</li>
 <li>As noted above, <code>return</code> typically wants to own what it is returning, but currently makes an exception for the frequent case of returning a single variable, where it pretends to borrow it. This is because otherwise it would typically cause a reference count increase followed by a decrease as the variable goes out of scope. Extending the cases where this happens, and also generally allowing the last use of a variable to be owned by its last use rather than waiting for the end of the scope, is planned as a future improvement.</li>
-<li>Any data structure constructors (objects, vectors, coroutines) of course result in own.</li>
+<li>Any data structure constructors (objects, vectors) of course result in own.</li>
 <li>Any L-value results in borrow.</li>
 </ul>
 </body>

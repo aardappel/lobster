@@ -295,7 +295,6 @@ you want to do this without help of the programmer).
 There are currently some exceptions to this:
 
 * Arguments that are assigned to are always owned.
-* Coroutines always own (because they are longer lived).
 * The return value of a function is currently always owned.
 
 Much like variables, some of these could be relaxed/improved in the future.
@@ -357,7 +356,7 @@ is cool with any kind of lifetime.
   Extending the cases where this happens, and also generally allowing the
   last use of a variable to be owned by its last use rather than waiting
   for the end of the scope, is planned as a future improvement.
-* Any data structure constructors (objects, vectors, coroutines) of course
+* Any data structure constructors (objects, vectors) of course
   result in own.
 * Any L-value results in borrow.
 

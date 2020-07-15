@@ -37,7 +37,7 @@ suitable for my style of programming (heavily refactoring-based).
 -   A beginner friendly system.
 
     -   The language: to use Lobster where it shines, you need to get very
-        familiar with higher order functions and coroutines for example.
+        familiar with higher order functions for example.
 
     -   Its engine, while friendly for simple drawing, generally gives you a lot
         of control (immediate mode rendering), and requires you to understand
@@ -71,12 +71,8 @@ suitable for my style of programming (heavily refactoring-based).
     thinking on how give the programmer maximum refactoring fluidity.
 
 -   A language that has some goodies built-in that streamline code typical in
-    games:
-
-    -   Almost everything can operate on vectors of numbers (2D, 3D, AnyD).
-
-    -   Coroutines that can greatly simplify code that runs over time (across
-        frames).
+    games, for example almost everything can operate on vectors of numbers
+    (2D, 3D, 4D).
 
 -   A language inspired more by functional programming than by object oriented
     programming. Lobster is of course an imperative language first: games are
@@ -87,8 +83,7 @@ suitable for my style of programming (heavily refactoring-based).
     something in terms of re-generating data instead of modifying it in place,
     you almost always should. Lobster has some very strong tools to make this
     possible, with a very terse and uniform higher order function call syntax,
-    optionally immutable objects and coroutines that reduce the need for global
-    state in the first place.
+    and optionally immutable objects.
     Lobster actually has very powerful object oriented features (its overloading
     and dynamic dispatch being more expressive than in most OO
     languages), but it doesn't push it's OO angle to the forefront, and unlike

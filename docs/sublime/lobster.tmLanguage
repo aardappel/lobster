@@ -76,7 +76,7 @@
             <key>name</key>
             <string>support.function.source.lobster</string>
             <key>match</key>
-            <string>\b(sum|product|zip|reverselist|in_range|collect|coroutine_for|fatal|check|allint|vecfromyawpitch|inrange2d|rotate2D|camera_FPS_update|camera_FPS_view|camera_direction|camera_2d_worldspace)\b</string>
+            <string>\b(sum|product|zip|reverselist|in_range|collect|fatal|check|allint|vecfromyawpitch|inrange2d|rotate2D|camera_FPS_update|camera_FPS_view|camera_direction|camera_2d_worldspace)\b</string>
         </dict>
          <dict>
             <key>name</key>

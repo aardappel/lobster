@@ -340,8 +340,7 @@ A sidenote on how we're implementing bullets here: there's a couple of things
 not ideal about this, which we do all to keep the example simple and to really
 build a game from the ground up. First, the way the checking for time is
 implemented here is a bit fragile, as big time fluctuations may cause bullets to
-be shot at irregular intervals. Second, this checking for time across frames is
-better done with *coroutines*, but that would complicate this tutorial.
+be shot at irregular intervals.
 
 Now that we have a list of bullets being generated, we have to update them and
 draw them. The first line in our `for` loop updates them, in a manner that
