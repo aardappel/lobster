@@ -461,20 +461,22 @@ void SDLPauseSound(int ch) {
     Mix_Pause(ch - 1);
 }
 
-int SDLIsPausedSound(int ch) {
-    return Mix_Paused(ch - 1) > 0;
+int SDLSoundStatus(int ch) { // returns -1 for illegal channel index, 0 for available , 1 for playing, 2 for paused
+    int num_chn = Mix_AllocateChannels(-1); // called with -1 this returns the current number of channels
+    if (ch <= num_chn) return Mix_Playing(ch - 1) + Mix_Paused(ch - 1);
+    else return -1;
 }
 
 void SDLResumeSound(int ch) {
-    if (SDLIsPausedSound(ch)) Mix_Resume(ch - 1); // this already tests for SDLSoundInit() etc.
+    if (Mix_Paused(ch - 1) > 0) Mix_Resume(ch - 1); // this already tests for SDLSoundInit() etc.
 }
 
 void SDLSetVolume(int ch, float vol) {
     Mix_Volume(ch - 1, (int)(MIX_MAX_VOLUME * vol));
 }
 
-int SDLAvailChannels() {
-    int num_chn = Mix_AllocateChannels(-1); // called with -1 this returns the current number of channels
+int SDLAvailChannels() { // returns the number of available channels
+    int num_chn = Mix_AllocateChannels(-1);
     int num_avail = num_chn;
     for(int i = 0; i < num_chn; i++) {
         if (Mix_Playing(i) > 0) num_avail--;

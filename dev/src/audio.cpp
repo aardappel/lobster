@@ -53,11 +53,23 @@ nfr("sound_channels", "", "", "I",
         return Value(ch);
     });
 
+nfr("sound_status", "channel", "I", "I",
+    "provides the status of the specified sound channel."
+    " returns -1 on error or if the channel does not exist, 0 if the channel is free,"
+    " 1 if it is playing, and 2 if the channel is active but paused.",
+    [](StackPtr &, VM &, Value &ch) {
+        int ch_idx = ch.intval();
+        if (ch_idx > 0) // we disallow 0 (which would then be -1; all channels in SDL_Mixer) because it is our error value!
+            return Value(SDLSoundStatus(ch_idx));
+        else
+            return Value(-1);
+    });
+
 nfr("sound_halt", "channel", "I", "",
     "terminates a specific sound channel.",
     [](StackPtr &, VM &, Value &ch) {
         int ch_idx = ch.intval();
-        if (ch_idx > 0) // we disallow 0 (which would then be -1; all channels in SDL_Mixer) because it is our error value!
+        if (ch_idx > 0)
             SDLHaltSound(ch_idx);
         return Value();
     });

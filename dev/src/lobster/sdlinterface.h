@@ -48,14 +48,14 @@ extern bool SDLGrab(bool on);
 extern void SDLMessageBox(string_view title, string_view msg);
 
 extern int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int prio);
-extern void SDLSoundClose();
 extern void SDLHaltSound(int ch);
 extern void SDLPauseSound(int ch);
-extern int SDLIsPausedSound(int ch);
 extern void SDLResumeSound(int ch);
 extern void SDLSetVolume(int ch, float vol);
+extern int SDLSoundStatus(int ch);
 extern int SDLAvailChannels();
-    
+extern void SDLSoundClose();
+
 extern int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len);
 
 extern bool ScreenShot(string_view filename);
