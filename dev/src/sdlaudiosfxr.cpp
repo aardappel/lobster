@@ -435,7 +435,7 @@ int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int pri)
     if (!snd) return 0;
     int ch = Mix_GroupAvailable(-1); // is there any free channel?
     if (ch == -1) {
-        // no free channel -- find the lowest priority sound of all currently playing that is <= prio
+        // no free channel -- find the lowest priority/oldest sound of all currently playing that are <= prio
         int p = pri;
         uint64_t sa = UINT64_MAX;
         for (int i = 0; i < channel_num; i++) {
