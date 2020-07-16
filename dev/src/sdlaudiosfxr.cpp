@@ -28,6 +28,10 @@ struct Sound {
     Sound() : chunk(nullptr, Mix_FreeChunk) {}
 };
 
+
+const int channel_num = 16; // number of mixer channels
+int sound_pri[channel_num] = {};
+
 map<string, Sound, less<>> sound_files;
 
 Mix_Chunk *RenderSFXR(string_view buf) {
@@ -407,8 +411,7 @@ bool SDLSoundInit() {
         LOG_ERROR("Mix_OpenAudio: ", Mix_GetError());
         return false;
     }
-    // allocate 16 channels instead of the default 8
-    Mix_AllocateChannels(16);
+    Mix_AllocateChannels(channel_num);
     // This seems to be needed to not distort when multiple sounds are played.
     Mix_Volume(-1, MIX_MAX_VOLUME / 2);
     sound_init = true;
@@ -424,29 +427,26 @@ void SDLSoundClose() {
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int prio) {
+int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int pri) {
     if (!SDLSoundInit()) return 0;
     auto snd = LoadSound(filename, sfxr);
     if (!snd) return 0;
-    if (prio < 0) prio = 0;
-    else if (prio > 2) prio = 2;
     int ch = Mix_GroupAvailable(-1); // is there any free channel?
-    if (ch == -1) { // no free channel?
-        // delete the oldest sound with the lowest possible priority
-        int ch_try = -1;
-        for (int p = 0; p <= prio; p++) {
-            ch_try = Mix_GroupOldest(p);
-            if (ch_try > -1) {
-               Mix_HaltChannel(ch_try); 
-               ch = ch_try;
-               break;
+    if (ch == -1) {
+        // no free channel -- find the lowest priority sound of all currently playing that is <= prio
+        int p = pri;
+        for (int i = 0; i < channel_num; i++) {
+            if (sound_pri[i] < p) {
+                ch = i;
+                p = sound_pri[i];
             }
         }
+        if (ch > -1) Mix_HaltChannel(ch); // halt that channel
     }
-    if (ch > -1) { // ch should never be -1 at this point anyhow
+    if (ch > -1) {
         Mix_PlayChannel(ch, snd->chunk.get(), loops);
-        Mix_GroupChannel(ch, prio); // add the channel to the group with tag prio
         Mix_Volume(ch, (int)(MIX_MAX_VOLUME * vol)); // set channel to default volume (max)
+        sound_pri[ch] = pri; // add priority to our array
     }
     return ++ch; // we return channel numbers 1..8 rather than 0..7
 }
@@ -473,13 +473,4 @@ void SDLResumeSound(int ch) {
 
 void SDLSetVolume(int ch, float vol) {
     Mix_Volume(ch - 1, (int)(MIX_MAX_VOLUME * vol));
-}
-
-int SDLAvailChannels() { // returns the number of available channels
-    int num_chn = Mix_AllocateChannels(-1);
-    int num_avail = num_chn;
-    for(int i = 0; i < num_chn; i++) {
-        if (Mix_Playing(i) > 0) num_avail--;
-    }
-    return num_avail;
 }
