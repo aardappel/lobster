@@ -28,6 +28,10 @@ struct Sound {
     Sound() : chunk(nullptr, Mix_FreeChunk) {}
 };
 
+
+const int channel_num = 16; // number of mixer channels
+int sound_pri[channel_num] = {};
+
 map<string, Sound, less<>> sound_files;
 
 Mix_Chunk *RenderSFXR(string_view buf) {
@@ -407,6 +411,7 @@ bool SDLSoundInit() {
         LOG_ERROR("Mix_OpenAudio: ", Mix_GetError());
         return false;
     }
+    Mix_AllocateChannels(channel_num);
     // This seems to be needed to not distort when multiple sounds are played.
     Mix_Volume(-1, MIX_MAX_VOLUME / 2);
     sound_init = true;
@@ -422,14 +427,27 @@ void SDLSoundClose() {
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops) {
+int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int pri) {
     if (!SDLSoundInit()) return 0;
-
     auto snd = LoadSound(filename, sfxr);
     if (!snd) return 0;
-
-    int ch = Mix_PlayChannel(-1, snd->chunk.get(), loops);
-    if (ch >= 0) Mix_Volume(ch, (int)(MIX_MAX_VOLUME * vol)); // set channel to default volume (max)
+    int ch = Mix_GroupAvailable(-1); // is there any free channel?
+    if (ch == -1) {
+        // no free channel -- find the lowest priority sound of all currently playing that is <= prio
+        int p = pri;
+        for (int i = 0; i < channel_num; i++) {
+            if (sound_pri[i] < p) {
+                ch = i;
+                p = sound_pri[i];
+            }
+        }
+        if (ch > -1) Mix_HaltChannel(ch); // halt that channel
+    }
+    if (ch > -1) {
+        Mix_PlayChannel(ch, snd->chunk.get(), loops);
+        Mix_Volume(ch, (int)(MIX_MAX_VOLUME * vol)); // set channel to default volume (max)
+        sound_pri[ch] = pri; // add priority to our array
+    }
     return ++ch; // we return channel numbers 1..8 rather than 0..7
 }
 
@@ -443,12 +461,14 @@ void SDLPauseSound(int ch) {
     Mix_Pause(ch - 1);
 }
 
-int SDLIsPausedSound(int ch) {
-    return Mix_Paused(ch - 1) > 0;
+int SDLSoundStatus(int ch) { // returns -1 for illegal channel index, 0 for available , 1 for playing, 2 for paused
+    int num_chn = Mix_AllocateChannels(-1); // called with -1 this returns the current number of channels
+    if (ch <= num_chn) return Mix_Playing(ch - 1) + Mix_Paused(ch - 1);
+    else return -1;
 }
 
 void SDLResumeSound(int ch) {
-    if (SDLIsPausedSound(ch)) Mix_Resume(ch - 1); // this already tests for SDLSoundInit() etc.
+    if (Mix_Paused(ch - 1) > 0) Mix_Resume(ch - 1); // this already tests for SDLSoundInit() etc.
 }
 
 void SDLSetVolume(int ch, float vol) {
