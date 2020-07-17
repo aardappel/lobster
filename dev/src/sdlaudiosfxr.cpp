@@ -31,6 +31,8 @@ struct Sound {
 
 const int channel_num = 16; // number of mixer channels
 int sound_pri[channel_num] = {};
+uint64_t sound_age[channel_num] = {};
+uint64_t sounds_played = 0;
 
 map<string, Sound, less<>> sound_files;
 
@@ -433,20 +435,27 @@ int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int pri)
     if (!snd) return 0;
     int ch = Mix_GroupAvailable(-1); // is there any free channel?
     if (ch == -1) {
-        // no free channel -- find the lowest priority sound of all currently playing that is <= prio
+        // no free channel -- find the lowest priority/oldest sound of all currently playing that are <= prio
         int p = pri;
+        uint64_t sa = UINT64_MAX;
         for (int i = 0; i < channel_num; i++) {
             if (sound_pri[i] < p) {
                 ch = i;
                 p = sound_pri[i];
+                sa = sound_age[i]; // save sound age too in case multiple channels equal this new priority!
+            }
+            else if (sound_pri[i] == p && sound_age[i] < sa) {
+                ch = i;
+                sa = sound_age[i];
             }
         }
-        if (ch > -1) Mix_HaltChannel(ch); // halt that channel
+        if (ch >= 0) Mix_HaltChannel(ch); // halt that channel
     }
-    if (ch > -1) {
+    if (ch >= 0) {
         Mix_PlayChannel(ch, snd->chunk.get(), loops);
         Mix_Volume(ch, (int)(MIX_MAX_VOLUME * vol)); // set channel to default volume (max)
         sound_pri[ch] = pri; // add priority to our array
+        sound_age[ch] = sounds_played++;
     }
     return ++ch; // we return channel numbers 1..8 rather than 0..7
 }
