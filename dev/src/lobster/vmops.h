@@ -303,7 +303,9 @@ VM_INLINE StackPtr ForLoop(VM &vm, StackPtr sp, iint len) {
     auto &i = TopM(sp, 1);
     TYPE_ASSERT(i.type == V_INT);
     i.setival(i.ival() + 1);
-    if (i.ival() < len) {
+    if (i.ival() >= len) {
+        (void)Pop(sp); /* iter */
+        (void)Pop(sp); /* i */
         #ifdef VM_COMPILED_CODE_MODE
             Push(sp, false);
             (void)vm;
@@ -311,8 +313,6 @@ VM_INLINE StackPtr ForLoop(VM &vm, StackPtr sp, iint len) {
             vm.ip = cont + vm.codestart;
         #endif
     } else {
-        (void)Pop(sp); /* iter */
-        (void)Pop(sp); /* i */
         #ifdef VM_COMPILED_CODE_MODE
             Push(sp, true);
         #endif

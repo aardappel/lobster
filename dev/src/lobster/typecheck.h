@@ -3128,6 +3128,15 @@ ValueType Not::ConstVal(TypeChecker &tc, Value &val) const {
     return V_INT;
 }
 
+ValueType UnaryMinus::ConstVal(TypeChecker &tc, Value &val) const {
+    auto t = child->ConstVal(tc, val);
+    switch (t) {
+        case V_INT: val.setival(-val.ival()); return V_INT;
+        case V_FLOAT: val.setfval(-val.fval()); return V_FLOAT;
+        default: return V_VOID;
+    }
+}
+
 ValueType IsType::ConstVal(TypeChecker &tc, Value &val) const {
     if (child->exptype == resolvedtype || resolvedtype->t == V_ANY) {
         val = Value(true);

@@ -1200,10 +1200,10 @@ struct Parser {
                     } else {
                         Expect(T_CASE);
                         for (;;) {
-                            auto f = ParseDeref();
+                            auto f = ParseUnary();
                             if (lex.token == T_DOTDOT) {
                                 lex.Next();
-                                f = new Range(lex, f, ParseDeref());
+                                f = new Range(lex, f, ParseUnary());
                             }
                             pattern->Add(f);
                             if (lex.token == T_COLON) break;

@@ -1221,19 +1221,19 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.temptypestack.push_back({ type_int, LT_ANY });
     cg.Gen(iter, 1);
     cg.loops.push_back(this);
-    cg.Emit(IL_JUMP, 0);
-    auto startloop = cg.Pos();
     cg.SplitAttr(cg.Pos());
+    auto startloop = cg.Pos();
     auto break_level = cg.breaks.size();
-    cg.Gen(body, 0);
-    cg.SetLabel(startloop);
     switch (iter->exptype->t) {
-        case V_INT:      cg.Emit(IL_IFOR); break;
-        case V_STRING:   cg.Emit(IL_SFOR); break;
-        case V_VECTOR:   cg.Emit(IL_VFOR); break;
+        case V_INT:      cg.Emit(IL_IFOR, 0); break;
+        case V_STRING:   cg.Emit(IL_SFOR, 0); break;
+        case V_VECTOR:   cg.Emit(IL_VFOR, 0); break;
         default:         assert(false);
     }
-    cg.Emit(startloop);
+    auto exitloop = cg.Pos();
+    cg.Gen(body, 0);
+    cg.Emit(IL_JUMP, startloop);
+    cg.SetLabel(exitloop);
     cg.loops.pop_back();
     cg.TakeTemp(2, false);
     cg.ApplyBreaks(break_level);
