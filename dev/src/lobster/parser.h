@@ -766,7 +766,7 @@ struct Parser {
                               " \"program\"");
                     auto f = st.FindFunction(lastid);
                     if (!f)
-                        Error("return from: not a known function");
+                        Error("return from: not a known function: " + lastid);
                     if (f->sibf || f->overloads.size() > 1)
                         Error("return from: function must have single implementation");
                     sf = f->overloads[0];

@@ -173,8 +173,12 @@ Node *Call::Optimize(Optimizer &opt) {
     bool is_inlinable =
         !sf->isrecursivelycalled &&
         sf->num_returns <= 1 &&
+        // Have to double-check this, since last return may be a return from.
+        AssertIs<Return>(sf->body->children.back())->sf == sf &&
         // This may happen even if num_returns==1 when body of sf is a non-local return also,
         // See e.g. exception_handler
+        // FIXME: if the function that caused this to be !=0 gets inlined, this needs to be
+        // decremented so it can be inlined after all.
         sf->num_returns_non_local == 0 &&
         vtable_idx < 0 &&
         sf->returntype->NumValues() <= 1;

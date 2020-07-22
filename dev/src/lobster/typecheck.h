@@ -856,7 +856,8 @@ struct TypeChecker {
         if (sf->isdynamicfunctionvalue) {
             // This is because the function has been typechecked against one context, but
             // can be called again in a different context that does not have the same callers.
-            TypeError("cannot return out of dynamic function value", context);
+            TypeError("cannot return out of dynamic function value (" + sf_to->parent->name +
+                      " not found on the callstack)", context);
         }
         // Marke any functions we may be returning thru as such.
         sf->returned_thru = true;
@@ -3227,11 +3228,15 @@ bool Call::Terminal(TypeChecker &tc) const {
     if (sf->isrecursivelycalled ||
         sf->method_of ||
         sf->parent->istype) return false;
-    if (!sf->num_returns) return true;
+    if (!sf->num_returns) return true;  // The minimum 1 return is apparently returning out of it.
     if (sf->num_returns == 1) {
         auto ret = AssertIs<Return>(sf->body->children.back());
-        assert(ret->sf == sf);
-        return ret->child->Terminal(tc);
+        if (ret->sf == sf) {
+            return ret->child->Terminal(tc);
+        } else {
+            // This is a "return from", which means the real return is elsewhere, and thus
+            // this call may not be terminal.
+        }
     }
     // TODO: could also check num_returns > 1, but then have to scan all children.
     return false;

@@ -301,3 +301,12 @@ run_test("misc"):
     assert find_string_reverse("abcdabcd", "bc", 4) == 1
     assert replace_string("abcdabcd", "bc", "X") == "aXdaXd"
     assert replace_string("abcdabcd", "bc", "X", 1) == "aXdabcd"
+
+    // Single return not being the last return.
+    def G():
+        return H() + 1
+    def H():
+        if []:
+            return 4
+        return 3 from G
+    assert G() == 5
