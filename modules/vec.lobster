@@ -92,7 +92,7 @@ def xyz_rnd_norm(): return normalize(xyz_rnd() - 0.5)
 def xy_rndi(n:int):    return xy  { rnd(n), rnd(n) }
 def xy_rndi(n:xy_i):   return xy  { rnd(n.x), rnd(n.y) }
 def xyz_rndi(n:int):   return xyz { rnd(n), rnd(n), rnd(n) }
-def xyz_rndi(n:xyz_i): return xyz { rnd(n.x), rnd(n.y), rnd(n.x) }
+def xyz_rndi(n:xyz_i): return xyz { rnd(n.x), rnd(n.y), rnd(n.z) }
 
 def forxy(v, fun): for(v.y) y: for(v.x) x: fun(xy { x, y })
 def foryx(v, fun): for(v.x) x: for(v.y) y: fun(xy { x, y })
