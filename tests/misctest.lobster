@@ -294,6 +294,7 @@ run_test("misc"):
     assert da(1) + da(1, 2) + da(1, 2, 3) == 12
 
     // More string functions.
+    assert find_string("abcdabcd", "BC") == -1
     assert find_string("abcdabcd", "bc") == 1
     assert find_string("abcdabcd", "bc", 4) == 5
     assert find_string_reverse("abcdabcd", "bc") == 5

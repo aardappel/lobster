@@ -373,16 +373,20 @@ struct Value {
     void setival(iint i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
     void setfval(double f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
 
-    inline Value()                   : ref_(nullptr)    TYPE_INIT(V_NIL)        {}
-    inline Value(int32_t i)          : ival_(i)         TYPE_INIT(V_INT)        {}
-    inline Value(uint32_t i)         : ival_((iint)i)   TYPE_INIT(V_INT)        {}
-    inline Value(int64_t i)          : ival_(i)         TYPE_INIT(V_INT)        {}
-    inline Value(uint64_t i)         : ival_((iint)i)   TYPE_INIT(V_INT)        {}
-    inline Value(int i, ValueType t) : ival_(i)         TYPE_INIT(t)            { (void)t; }
-    inline Value(bool b)             : ival_(b)         TYPE_INIT(V_INT)        {}
-    inline Value(float f)            : fval_(f)         TYPE_INIT(V_FLOAT)      {}
-    inline Value(double f)           : fval_((double)f) TYPE_INIT(V_FLOAT)      {}
-    inline Value(InsPtr i)           : ip_(i)           TYPE_INIT(V_FUNCTION)   {}
+    inline Value()                     : ref_(nullptr)    TYPE_INIT(V_NIL)      {}
+    // We underlying types here, because types like int64_t etc can be defined as different types
+    // on different platforms, causing ambiguities between multiple types that are long or long long
+    inline Value(int i)                : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    inline Value(unsigned int i)       : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    inline Value(long i)               : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    inline Value(unsigned long i)      : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    inline Value(long long i)          : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    inline Value(unsigned long long i) : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    inline Value(int i, ValueType t)   : ival_(i)         TYPE_INIT(t)          { (void)t; }
+    inline Value(bool b)               : ival_(b)         TYPE_INIT(V_INT)      {}
+    inline Value(float f)              : fval_(f)         TYPE_INIT(V_FLOAT)    {}
+    inline Value(double f)             : fval_((double)f) TYPE_INIT(V_FLOAT)    {}
+    inline Value(InsPtr i)             : ip_(i)           TYPE_INIT(V_FUNCTION) {}
 
     inline Value(LString *s)         : sval_(s)         TYPE_INIT(V_STRING)     {}
     inline Value(LVector *v)         : vval_(v)         TYPE_INIT(V_VECTOR)     {}
