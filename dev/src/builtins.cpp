@@ -354,6 +354,54 @@ nfr("substring", "s,start,size", "SII", "S",
         return Value(ns);
     });
 
+nfr("find_string", "s,substr,offset", "SSI?", "I",
+    "finds the index at which substr first appears, or -1 if none."
+    " optionally start at a position other than 0",
+    [](StackPtr &, VM &, Value &s, Value &sub, Value &offset) {
+        return Value((ssize_t)s.sval()->strv().find(sub.sval()->strv(), (size_t)offset.ival()));
+    });
+
+nfr("find_string_reverse", "s,substr,offset", "SSI?", "I",
+    "finds the index at which substr first appears when searching from the end, or -1 if none."
+    " optionally start at a position other than the end of the string",
+    [](StackPtr &, VM &, Value &s, Value &sub, Value &offset) {
+        auto sv = s.sval()->strv();
+        return Value((ssize_t)sv.rfind(sub.sval()->strv(),
+                                      offset.ival() ? (size_t)offset.ival() : sv.size()));
+    });
+
+nfr("replace_string", "s,a,b,count", "SSSI?", "S",
+    "returns a copy of s where all occurrences of a have been replaced with b."
+    " if a is empty, no replacements are made."
+    " if count is specified, makes at most that many replacements",
+    [](StackPtr &, VM &vm, Value &is, Value &ia, Value &ib, Value &count) {
+        string s;
+        auto sv = is.sval()->strv();
+        auto a = ia.sval()->strv();
+        auto b = ib.sval()->strv();
+        auto c = count.ival() ? count.ival() : numeric_limits<iint>::max();
+        if (a.empty()) {
+            // We could error here, but more useful to just return the input.
+            s = a;
+        } else {
+            for (size_t i = 0;;) {
+                auto j = min(sv.find(a, i), sv.size());
+                auto prefix = sv.substr(i, j - i);;
+                s += prefix;
+                i += prefix.size();
+                if (j == sv.size()) break;
+                s += b;
+                i += a.size();
+                if (!--c) {
+                    s += sv.substr(i);
+                    break;
+                }
+            }
+        }
+        auto ns = vm.NewString(s);
+        return Value(ns);
+    });
+
 nfr("string_to_int", "s,base", "SI?", "IB",
     "converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10)."
     "returns 0 if no numeric data could be parsed; second return value is true if all"
@@ -411,17 +459,20 @@ nfr("unicode_to_string", "us", "I]", "S",
         return Value(vm.NewString(s));
     });
 
-nfr("string_to_unicode", "s", "S", "I]?",
-    "converts a UTF-8 string into a vector of unicode values, or nil upon a decoding error",
-    [](StackPtr &, VM &vm, Value &s) {
+nfr("string_to_unicode", "s", "S", "I]B",
+    "converts a UTF-8 string into a vector of unicode values. second return value is false"
+    " if there was a decoding error, and the vector will only contain the characters up to the"
+    " error",
+    [](StackPtr &sp, VM &vm, Value &s) {
         auto v = (LVector *)vm.NewVec(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
+        Push(sp, v);
         auto p = s.sval()->strv();
         while (!p.empty()) {
             int u = FromUTF8(p);
-            if (u < 0) return Value();
+            if (u < 0) return Value(false);
             v->Push(vm, u);
         }
-        return Value(v);
+        return Value(true);
     });
 
 nfr("number_to_string", "number,base,minchars", "III", "S",

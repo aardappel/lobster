@@ -26,7 +26,7 @@ while gl_frame():
     elif gl_key_repeat("backspace") == 1:
         // Inefficient but simple way to drop last character.
         let uv = string_to_unicode(text)
-        if uv and uv.length:
+        if uv.length:
             uv.pop()
             gl_set_text_input(unicode_to_string(uv))
     // Render all strings input so far:

@@ -293,3 +293,10 @@ run_test("misc"):
     def da(a): return a  // Does not "overlap"
     assert da(1) + da(1, 2) + da(1, 2, 3) == 12
 
+    // More string functions.
+    assert find_string("abcdabcd", "bc") == 1
+    assert find_string("abcdabcd", "bc", 4) == 5
+    assert find_string_reverse("abcdabcd", "bc") == 5
+    assert find_string_reverse("abcdabcd", "bc", 4) == 1
+    assert replace_string("abcdabcd", "bc", "X") == "aXdaXd"
+    assert replace_string("abcdabcd", "bc", "X", 1) == "aXdabcd"
