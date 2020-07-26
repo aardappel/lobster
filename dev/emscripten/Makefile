@@ -19,7 +19,7 @@ OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=0
 
 CXXFLAGS= $(OPTLEVEL)
 # apparently exception catching is slow, but we need them for the moment.
-override CXXFLAGS+= -s USE_SDL=2 -s NO_EXIT_RUNTIME=1 \
+override CXXFLAGS+= -s USE_SDL=2 -s USE_SDL_MIXER=2 -s USE_FREETYPE=1 -s NO_EXIT_RUNTIME=1 \
                     -std=c++17 -Wall -pedantic -Wno-switch \
                     -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 CFLAGS= $(OPTLEVEL)
@@ -29,7 +29,6 @@ INCLUDES=   -I. \
 			-I../include \
 			-I../src \
 			-I../external/freetype/include \
-			-I../external/SDLMixer \
 			-I../external/imgui
 LIBS=
 
@@ -80,30 +79,7 @@ CPPSRCS= \
     $(wildcard ../external/imgui/*.cpp)
 MAINSRC= ../src/main.cpp
 MAINCOMPSRC= ../compiled_lobster/src/compiled_lobster.cpp
-CSRCS= \
-    ../external/freetype/src/autofit/autofit.c \
-	../external/freetype/src/base/basepic.c \
-	../external/freetype/src/base/ftapi.c \
-	../external/freetype/src/base/ftbase.c \
-	../external/freetype/src/base/ftbbox.c \
-	../external/freetype/src/base/ftbitmap.c \
-	../external/freetype/src/base/ftdbgmem.c \
-	../external/freetype/src/base/ftdebug.c \
-	../external/freetype/src/base/ftglyph.c \
-	../external/freetype/src/base/ftinit.c \
-	../external/freetype/src/base/ftpic.c \
-	../external/freetype/src/base/ftstroke.c \
-	../external/freetype/src/base/ftsynth.c \
-	../external/freetype/src/base/ftsystem.c \
-	../external/freetype/src/cff/cff.c \
-	../external/freetype/src/pshinter/pshinter.c \
-	../external/freetype/src/psnames/psnames.c \
-	../external/freetype/src/raster/raster.c \
-	../external/freetype/src/sfnt/sfnt.c \
-	../external/freetype/src/smooth/smooth.c \
-	../external/freetype/src/truetype/truetype.c
 
-COBJS := $(patsubst %.c,%.o,$(CSRCS))
 CPPOBJS := $(patsubst %.cpp,%.o,$(CPPSRCS))
 MAINOBJ := $(patsubst %.cpp,%.o,$(MAINSRC))
 MAINCOMPOBJ := $(patsubst %.cpp,%.o,$(MAINCOMPSRC))
@@ -116,8 +92,6 @@ $(MAINCOMPOBJ): CXXFLAGS += $(INCLUDES)
 #$(MAINOBJ): $(MAINSRC) $(HEADERS)
 #$(MAINCOMPOBJ): $(MAINCOMPSRC) $(HEADERS)
 
-$(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
-
 EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 		--source-map-base http://localhost:6931/ \
 		-s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
@@ -127,20 +101,20 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 
 #EMCC_DEBUG=1
 #EMCC_WASM_BACKEND=1
-lobster: $(COBJS) $(CPPOBJS) $(MAINOBJ)
-	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
+lobster: $(CPPOBJS) $(MAINOBJ)
+	emcc $(CXXFLAGS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
 
 lobster_cppout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
-lobster_cppout: $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ)
-	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
+lobster_cppout: $(CPPOBJS) $(MAINCOMPOBJ)
+	emcc $(CXXFLAGS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
 
 WASMOUT= compiled_lobster_wasm.o
 lobster_wasmout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
-lobster_wasmout: $(COBJS) $(CPPOBJS) $(WASMOUT)
-	emcc -v $(CXXFLAGS) $(WASMOUT) $(COBJS) $(CPPOBJS) $(EFLAGS)
+lobster_wasmout: $(CPPOBJS) $(WASMOUT)
+	emcc -v $(CXXFLAGS) $(WASMOUT) $(CPPOBJS) $(EFLAGS)
 
 clean:
-	-$(RM) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ) lobster lobster_cppout lobster_wasmout
+	-$(RM) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ) lobster lobster_cppout lobster_wasmout
 
 all: lobster
 
