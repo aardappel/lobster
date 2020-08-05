@@ -115,8 +115,25 @@ jobs:
         $HOME/emsdk/emsdk install tot
         $HOME/emsdk/emsdk activate tot
         echo "::add-path::$HOME/emsdk"
-    - name: emcc-build
+    # Now we're first going to build the native Linux exe, so we can generate C++/Wasm code.
+    # Without engine should speed this up.
+    - name: cmake
+      working-directory: dev
+      run: CXX=clang++-9 CC=clang-9 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
+    - name: build
+      working-directory: dev
+      run: make -j4
+    # Generate two kinds of code.
+    - name: test cpp generation
+      run: bin/lobster --cpp tests/unittest.lobster
+    - name: test wasm generation
+      run: bin/lobster --wasm tests/unittest.lobster
+    # Build them both.
+    - name: emcc-build cpp
       run: |
         source $HOME/emsdk/emsdk_env.sh
         cd dev/emscripten && make -j4
-
+    - name: emcc-build wasm
+      run: |
+        source $HOME/emsdk/emsdk_env.sh
+        cd dev/emscripten && make -j4 wasm

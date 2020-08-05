@@ -472,6 +472,9 @@ class BinaryWriter {
     void EmitF64Const(double v) { UInt8(0x44); UInt64(Bits<double, uint64_t>(v)); }
 
     // Getting the address of data in a data segment, encoded as a i32.const + reloc.
+    // FIXME: this emits the segment-relative addend, but the value inside the
+    // instructions needs to be section relative to not trigger LLD warnings.
+    // We don't know the size of the segments preceding this one though..
     void EmitI32ConstDataRef(size_t segment, size_t addend) {
         UInt8(0x41);
         RelocULEB(R_WASM_MEMORY_ADDR_SLEB, segment, addend, false, false);

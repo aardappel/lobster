@@ -725,7 +725,7 @@ struct VM : VMArgs {
         #endif
     #else
         // Inlining things causes a code explosion in debug, so use static instead.
-        #define VM_INLINE static
+        #define VM_INLINE static inline
     #endif
 
     typedef StackPtr (* f_ins_pointer)(VM &, StackPtr);
@@ -871,13 +871,6 @@ struct VMAllocator {
     ~VMAllocator();
 };
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4505) // C4505: unreferenced local function has been removed
-#endif
-
-VM_INLINE StackPtr ForLoop(VM &vm, StackPtr sp, iint len);
-
 VM_INLINE void Push(StackPtr &sp, Value v) { *++sp = v; }
 VM_INLINE Value Pop(StackPtr &sp) { return *sp--; }
 VM_INLINE Value &Top(StackPtr sp) { return *sp; }
@@ -891,10 +884,6 @@ VM_INLINE pair<Value *, iint> PopVecPtr(StackPtr &sp) {
     PopN(sp, width);
     return { TopPtr(sp), width };
 }
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
 
 template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {
     auto l = min(N, truncate);
