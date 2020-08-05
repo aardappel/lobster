@@ -163,8 +163,10 @@ inline const int *ILArity() {
 
 #define NATIVEHINTS \
     NH(NONE) \
+    NH(BLOCK_START) \
     NH(JUMPTABLE_END) \
     NH(JUMPTABLE_TO_CASE) \
+    NH(JUMPTABLE_CASE_START) \
     NH(LOOP_BACK) \
     NH(LOOP_REMOVE) \
     NH(JUMPOUT_START) \

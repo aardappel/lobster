@@ -123,9 +123,6 @@ class WASMGenerator : public NativeGenerator {
         function_ids[id] = (int)bw.GetNumFunctionImports() + num_emitted_functions++;
     }
 
-    void DeclareBlock(int /*id*/) override {
-    }
-
     void BeforeBlocks(int start_id, string_view bytecode_buffer) override {
         bw.EndSection(WASM::Section::Function);
 
@@ -175,10 +172,6 @@ class WASMGenerator : public NativeGenerator {
     void FunStart(const bytecode::Function *f, int id) override {
         bw.AddCode({}, "fun_" + std::to_string(id) +
             (f ? "_" + f->name()->string_view() : ""), true);
-    }
-
-    void BlockStart(int id, int /*ip*/) override {
-        cur_block = id;
     }
 
     void InstStart() override {
@@ -297,7 +290,7 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitSetLocal(1 /*SP*/);
     }
 
-    void EmitJumpTable(const int *args, vector<int> &block_ids) override {
+    void EmitJumpTable(const int *args) override {
         auto mini = *args++;
         auto maxi = *args++;
         auto n = maxi - mini + 2;
@@ -307,13 +300,11 @@ class WASMGenerator : public NativeGenerator {
         // Find the unique block targets we're going to have, in sorted order
         // (same order as the bytecode).
         for (int i = 0; i < n; i++) {
-            auto id = block_ids[args[i]];
-            assert(id != -1);
-            block_order.insert(id);
+            block_order.insert(args[i]);
         }
         // Now fill in the block nesting counts into the jump table.
         for (int i = 0; i < n; i++) {
-            auto block_it = block_order.find(block_ids[args[i]]);
+            auto block_it = block_order.find(args[i]);
             assert(block_it != block_order.end());
             auto depth = std::distance(block_order.begin(), block_it);  // FIXME: inefficient.
             if (i < n - 1) targets.push_back(depth);
@@ -336,8 +327,20 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitBrTable(targets, default_target);
     }
 
-    void EmitHint(NativeHint h) override {
+    void EmitHint(NativeHint h, int id) override {
         switch (h) {
+            case NH_BLOCK_START:
+            case NH_JUMPTABLE_CASE_START:
+                // Terminate previous blocks.
+                while (!blocks.empty()) {
+                    auto &b = blocks.back();
+                    assert(b.id == -1 || b.id >= id);
+                    if (b.id != id) break;
+                    bw.EmitEnd();
+                    blocks.pop_back();
+                }
+                cur_block = id;
+                break;
             case NH_JUMPTABLE_END:
                 break;
             case NH_LOOP_BACK:
@@ -391,17 +394,8 @@ class WASMGenerator : public NativeGenerator {
     void InstEnd() override {
     }
 
-    void BlockEnd(int id, bool isexit) override {
-        while (!blocks.empty()) {
-            auto &b = blocks.back();
-            assert(b.id == -1 || b.id >= id);
-            if (b.id != id) break;
-            bw.EmitEnd();
-            blocks.pop_back();
-        }
-        if (isexit) {
-            EmitReturn();
-        }
+    void Exit() override {
+        EmitReturn();
     }
 
     void FunEnd() override {

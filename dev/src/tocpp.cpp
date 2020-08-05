@@ -44,18 +44,11 @@ class CPPGenerator : public NativeGenerator {
             "#ifndef VM_COMPILED_CODE_MODE\n"
             "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
             "#endif\n"
-            "\n"
-            "#ifdef _WIN32\n"
-            "    #pragma warning (disable: 4102)  // Unused label.\n"
-            "#endif\n"
             "\n";
     }
 
     void DeclareFun(int id) override {
         append(sd, "static lobster::StackPtr fun_", id, "(lobster::VM &, lobster::StackPtr);\n");
-    }
-
-    void DeclareBlock(int /*id*/) override {
     }
 
     void BeforeBlocks(int /*start_id*/, string_view /*bytecode_buffer*/) override {
@@ -67,23 +60,6 @@ class CPPGenerator : public NativeGenerator {
         if (f) append(sd, "// ", f->name()->string_view(), "\n");
         append(sd, "static lobster::StackPtr fun_", id,
             "(lobster::VM &vm, lobster::StackPtr sp) {\n");
-    }
-
-    void BlockStart(int id, int ip) override {
-        append(sd, "    block", id, ":\n");
-        if (!jumptables.empty()) {
-            auto t = jumptables.back();
-            auto mini = *t++;
-            auto maxi = *t++;
-            for (auto i = mini; i <= maxi; i++) {
-                if (*t++ == ip) {
-                    append(sd, "    case ", i, ":\n");
-                }
-            }
-            if (*t++ == ip) {
-                append(sd, "    default:\n");
-            }
-        }
     }
 
     void InstStart() override {
@@ -155,13 +131,31 @@ class CPPGenerator : public NativeGenerator {
         append(sd, "sp = ", name, "(sp, vm);");
     }
 
-    void EmitJumpTable(const int *args, vector<int> &/*block_ids*/) override {
+    void EmitJumpTable(const int *args) override {
         sd += "switch (Pop(sp).ival()) {";
         jumptables.push_back(args);
     }
 
-    void EmitHint(NativeHint h) override {
+    void EmitHint(NativeHint h, int id) override {
         switch (h) {
+            case NH_BLOCK_START:
+                append(sd, "block", id, ":");
+                break;
+            case NH_JUMPTABLE_CASE_START: {
+                assert(!jumptables.empty());
+                auto t = jumptables.back();
+                auto mini = *t++;
+                auto maxi = *t++;
+                for (auto i = mini; i <= maxi; i++) {
+                    if (*t++ == id) {
+                        append(sd, "case ", i, ":");
+                    }
+                }
+                if (*t++ == id) {
+                    append(sd, "default:");
+                }
+                break;
+            }
             case NH_JUMPTABLE_END:
                 sd += "} // switch";
                 jumptables.pop_back();
@@ -180,10 +174,8 @@ class CPPGenerator : public NativeGenerator {
         sd += "\n";
     }
 
-    void BlockEnd(int /*id*/, bool isexit) override {
-        if (isexit) {
-            sd += "    return sp;\n";
-        }
+    void Exit() override {
+        sd += "    return sp;\n";
     }
 
     void FunEnd() override {

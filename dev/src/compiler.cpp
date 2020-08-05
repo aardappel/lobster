@@ -311,7 +311,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     Optimizer opt(parser, st, tc);
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value, runtime_checks, nativemode);
-    st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
+    st.Serialize(cg.code, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
         cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables, nativemode);
     if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
     if (dump_builtins) DumpBuiltins(nfr, false, st);

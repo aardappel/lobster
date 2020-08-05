@@ -19,7 +19,6 @@ namespace lobster {
 
 struct CodeGen  {
     vector<int> code;
-    vector<uint8_t> code_attr;
     vector<bytecode::LineInfo> lineinfo;
     vector<bytecode::SpecIdent> sids;
     Parser &parser;
@@ -40,31 +39,32 @@ struct CodeGen  {
 
     int Pos() { return (int)code.size(); }
 
-    void GrowCodeAttr(size_t mins) {
-        while (mins > code_attr.size()) code_attr.push_back(bytecode::Attr_NONE);
-    }
-
     void Emit(int i) {
         auto &ln = linenumbernodes.back()->line;
         if (lineinfo.empty() || ln.line != lineinfo.back().line() ||
             ln.fileidx != lineinfo.back().fileidx())
             lineinfo.push_back(bytecode::LineInfo(ln.line, ln.fileidx, Pos()));
         code.push_back(i);
-        GrowCodeAttr(code.size());
-    }
-
-    void SplitAttr(int at) {
-        GrowCodeAttr(at + 1);
-        code_attr[at] |= bytecode::Attr_SPLIT;
     }
 
     void Emit(int i, int j) { Emit(i); Emit(j); }
     void Emit(int i, int j, int k) { Emit(i); Emit(j); Emit(k); }
     void Emit(int i, int j, int k, int l) { Emit(i); Emit(j); Emit(k); Emit(l); }
 
-    void SetLabel(int jumploc) {
+    void SetLabelNoBlockStart(int jumploc) {
         code[jumploc - 1] = Pos();
-        SplitAttr(Pos());
+    }
+
+    void SetLabel(int jumploc) {
+        SetLabelNoBlockStart(jumploc);
+        EmitNativeHint(NH_BLOCK_START);
+    }
+
+    void SetLabels(vector<int> &jumplocs) {
+        if (jumplocs.empty()) return;
+        for (auto jl : jumplocs) SetLabelNoBlockStart(jl);
+        jumplocs.clear();
+        EmitNativeHint(NH_BLOCK_START);
     }
 
     void EmitNativeHint(NativeHint h) {
@@ -177,10 +177,8 @@ struct CodeGen  {
             }
         }
         linenumbernodes.push_back(parser.root);
-        SplitAttr(0);
         Emit(IL_JUMP, 0);
         auto fundefjump = Pos();
-        SplitAttr(Pos());
         for (auto f : parser.st.functiontable) {
             if (f->bytecodestart <= 0 && !f->istype) {
                 f->bytecodestart = Pos();
@@ -194,19 +192,15 @@ struct CodeGen  {
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
         auto dummyfun = Pos();
-        SplitAttr(dummyfun);
         Emit(IL_FUNSTART, -1, 0, 0);
         Emit(0, 0);  // keepvars, ownedvars
         Emit(IL_ABORT);
         // Emit the root function.
-        SplitAttr(Pos());
-        SetLabel(fundefjump);
-        SplitAttr(Pos());
+        SetLabelNoBlockStart(fundefjump);
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
         Emit(IL_EXIT, return_value ? GetTypeTableOffset(type): -1);
-        SplitAttr(Pos());  // Allow off by one indexing.
         linenumbernodes.pop_back();
         for (auto &[loc, sf] : call_fixups) {
             auto bytecodestart = sf->subbytecodestart;
@@ -244,7 +238,6 @@ struct CodeGen  {
         }
         vector<int> ownedvars;
         linenumbernodes.push_back(sf.body);
-        SplitAttr(Pos());
         Emit(IL_FUNSTART);
         Emit(sf.parent->idx);
         auto ret = AssertIs<Return>(sf.body->children.back());
@@ -312,7 +305,6 @@ struct CodeGen  {
     }
 
     void GenUnwind(const SubFunction &sf) {
-        SplitAttr(Pos());
         Emit(IL_JUMPIFUNWOUND, sf.parent->idx, 0);
         auto loc = Pos();
         if (!temptypestack.empty()) {
@@ -1202,8 +1194,8 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void While::Generate(CodeGen &cg, size_t retval) const {
-    cg.SplitAttr(cg.Pos());
     auto loopback = cg.Pos();
+    cg.EmitNativeHint(NH_BLOCK_START);
     cg.EmitNativeHint(NH_LOOP_BACK);
     cg.loops.push_back(this);
     cg.Gen(condition, 1);
@@ -1225,8 +1217,8 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.temptypestack.push_back({ type_int, LT_ANY });
     cg.Gen(iter, 1);
     cg.loops.push_back(this);
-    cg.SplitAttr(cg.Pos());
     auto startloop = cg.Pos();
+    cg.EmitNativeHint(NH_BLOCK_START);
     cg.EmitNativeHint(NH_LOOP_BACK);
     auto break_level = cg.breaks.size();
     switch (iter->exptype->t) {
@@ -1334,7 +1326,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
                 }
             }
             if (cas->pattern->children.empty()) default_pos = cg.Pos();
-            cg.SplitAttr(cg.Pos());
+            cg.EmitNativeHint(NH_JUMPTABLE_CASE_START);
             cg.Gen(cas->body, retval);
             if (retval) cg.TakeTemp(1, true);
             if (n != cases->children.back()) {
@@ -1343,7 +1335,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
             }
         }
         cg.EmitNativeHint(NH_JUMPTABLE_END);
-        for (auto loc : exitswitch) cg.SetLabel(loc);
+        cg.SetLabels(exitswitch);
         if (default_pos < 0) default_pos = cg.Pos();
         cg.EmitNativeHint(NH_JUMPOUT_END);
         for (int i = 0; i < (int)range + 1; i++) {
@@ -1358,8 +1350,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
     vector<int> nextcase, thiscase, exitswitch;
     bool have_default = false;
     for (auto n : cases->children) {
-        for (auto loc : nextcase) cg.SetLabel(loc);
-        nextcase.clear();
+        cg.SetLabels(nextcase);
         cg.temptypestack.push_back(valtlt);
         auto cas = AssertIs<Case>(n);
         if (cas->pattern->children.empty()) have_default = true;
@@ -1401,8 +1392,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
             }
         }
         cg.EmitNativeHint(NH_SWITCH_THISCASE_END);
-        for (auto loc : thiscase) cg.SetLabel(loc);
-        thiscase.clear();
+        cg.SetLabels(thiscase);
         cg.GenPop(valtlt);
         cg.TakeTemp(1, false);
         cg.Gen(cas->body, retval);
@@ -1413,10 +1403,10 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         }
         cg.EmitNativeHint(NH_SWITCH_NEXTCASE_END);
     }
-    for (auto loc : nextcase) cg.SetLabel(loc);
+    cg.SetLabels(nextcase);
     if (!have_default) cg.GenPop(valtlt);
     cg.EmitNativeHint(NH_JUMPOUT_END);
-    for (auto loc : exitswitch) cg.SetLabel(loc);
+    cg.SetLabels(exitswitch);
 }
 
 void Case::Generate(CodeGen &/*cg*/, size_t /*retval*/) const {

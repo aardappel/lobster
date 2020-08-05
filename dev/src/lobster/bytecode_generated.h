@@ -26,32 +26,6 @@ struct SpecIdent;
 
 struct BytecodeFile;
 
-enum Attr {
-  Attr_SPLIT = 1,
-  Attr_NONE = 0,
-  Attr_ANY = 1
-};
-
-inline const Attr (&EnumValuesAttr())[1] {
-  static const Attr values[] = {
-    Attr_SPLIT
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesAttr() {
-  static const char * const names[] = {
-    "SPLIT",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameAttr(Attr e) {
-  const size_t index = static_cast<int>(e) - static_cast<int>(Attr_SPLIT);
-  return EnumNamesAttr()[index];
-}
-
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) LineInfo FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t line_;
@@ -523,7 +497,6 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_BYTECODE_VERSION = 4,
     VT_BYTECODE = 6,
-    VT_BYTECODE_ATTR = 8,
     VT_TYPETABLE = 10,
     VT_STRINGTABLE = 12,
     VT_LINEINFO = 14,
@@ -543,9 +516,6 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<int32_t> *bytecode() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_BYTECODE);
-  }
-  const flatbuffers::Vector<uint8_t> *bytecode_attr() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_BYTECODE_ATTR);
   }
   const flatbuffers::Vector<int32_t> *typetable() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_TYPETABLE);
@@ -591,8 +561,6 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_BYTECODE_VERSION) &&
            VerifyOffset(verifier, VT_BYTECODE) &&
            verifier.VerifyVector(bytecode()) &&
-           VerifyOffset(verifier, VT_BYTECODE_ATTR) &&
-           verifier.VerifyVector(bytecode_attr()) &&
            VerifyOffset(verifier, VT_TYPETABLE) &&
            verifier.VerifyVector(typetable()) &&
            VerifyOffset(verifier, VT_STRINGTABLE) &&
@@ -636,9 +604,6 @@ struct BytecodeFileBuilder {
   }
   void add_bytecode(flatbuffers::Offset<flatbuffers::Vector<int32_t>> bytecode) {
     fbb_.AddOffset(BytecodeFile::VT_BYTECODE, bytecode);
-  }
-  void add_bytecode_attr(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> bytecode_attr) {
-    fbb_.AddOffset(BytecodeFile::VT_BYTECODE_ATTR, bytecode_attr);
   }
   void add_typetable(flatbuffers::Offset<flatbuffers::Vector<int32_t>> typetable) {
     fbb_.AddOffset(BytecodeFile::VT_TYPETABLE, typetable);
@@ -695,7 +660,6 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t bytecode_version = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> bytecode = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> bytecode_attr = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> typetable = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> stringtable = 0,
     flatbuffers::Offset<flatbuffers::Vector<const LineInfo *>> lineinfo = 0,
@@ -722,7 +686,6 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
   builder_.add_lineinfo(lineinfo);
   builder_.add_stringtable(stringtable);
   builder_.add_typetable(typetable);
-  builder_.add_bytecode_attr(bytecode_attr);
   builder_.add_bytecode(bytecode);
   builder_.add_bytecode_version(bytecode_version);
   builder_.add_nativemode(nativemode);
@@ -733,7 +696,6 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t bytecode_version = 0,
     const std::vector<int32_t> *bytecode = nullptr,
-    const std::vector<uint8_t> *bytecode_attr = nullptr,
     const std::vector<int32_t> *typetable = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *stringtable = nullptr,
     const std::vector<LineInfo> *lineinfo = nullptr,
@@ -751,7 +713,6 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
       _fbb,
       bytecode_version,
       bytecode ? _fbb.CreateVector<int32_t>(*bytecode) : 0,
-      bytecode_attr ? _fbb.CreateVector<uint8_t>(*bytecode_attr) : 0,
       typetable ? _fbb.CreateVector<int32_t>(*typetable) : 0,
       stringtable ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*stringtable) : 0,
       lineinfo ? _fbb.CreateVectorOfStructs<LineInfo>(*lineinfo) : 0,
