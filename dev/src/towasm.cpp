@@ -37,7 +37,7 @@ class WASMGenerator : public NativeGenerator {
     int cur_block = -1;
     NativeHint last_conditional_hint = NH_NONE;
 
-    size_t import_erccm  = 0, import_snct = 0, import_gnct = 0, import_drop = 0,
+    size_t import_erccm  = 0, import_gnct = 0, import_drop = 0,
            import_gl_frame = 0;
 
   public:
@@ -105,7 +105,6 @@ class WASMGenerator : public NativeGenerator {
             ILJUMPNAMES2
         #undef F
         import_erccm = bw.AddImportLinkFunction("RunCompiledCodeMain", TI_I_IIIII);
-        import_snct = bw.AddImportLinkFunction("CVM_SetNextCallTarget", TI_V_II);
         import_gnct = bw.AddImportLinkFunction("CVM_GetNextCallTarget", TI_I_I);
         import_drop = bw.AddImportLinkFunction("CVM_Drop", TI_I_I);
         import_gl_frame = bw.AddImportLinkFunction("GLFrame", TI_I_II);
@@ -241,12 +240,6 @@ class WASMGenerator : public NativeGenerator {
             if (arity) bw.EmitI32ConstDataRef(1, (const char *)args - base);
             else bw.EmitI32Const(0);  // nullptr
         }
-    }
-
-    void SetNextCallTarget(int id) override {
-        bw.EmitGetLocal(0 /*VM*/);
-        bw.EmitI32ConstFunctionRef(function_ids[id]);
-        bw.EmitCall(import_snct);
     }
 
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {

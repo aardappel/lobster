@@ -3,11 +3,8 @@
   - maybe use __TIMESTAMP__ of vmdata.h as version?
 
 - natgen refactor
-  - use more hints to remove special case checking in to_native
   - can finally remove exceptions? could instead execute a return from -3 or whatever.
     - should re-test how much it affects the interpreter.. or first create a JIT.
-  - do we still need this splitattr thing? blocks? remove usused blocks and gotos?
-  - look if any compiled mode stuff can be simplified.
   - look at disasm for opcodes that generate long sequences and de-inline them.
   - benchmark!
   - Should really move away from a Makefile for Wasm, there's been plenty of cases where bugs

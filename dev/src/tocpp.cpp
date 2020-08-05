@@ -92,10 +92,6 @@ class CPPGenerator : public NativeGenerator {
         }
     }
 
-    void SetNextCallTarget(int id) override {
-        append(sd, "vm.next_call_target = fun_", id, "; ");
-    }
-
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
         append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
         if (is_vararg) {

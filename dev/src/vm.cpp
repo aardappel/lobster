@@ -957,10 +957,6 @@ void CVM_Trace(VM *vm, StackPtr sp, string op) {
     #define CHECKJ(N)
 #endif
 
-void CVM_SetNextCallTarget(VM *vm, block_base_t fcont) {
-    vm->next_call_target = fcont;
-}
-
 block_base_t CVM_GetNextCallTarget(VM *vm) {
     //LOG_ERROR("GNCT: ", (size_t)vm->next_call_target);
     return vm->next_call_target;
