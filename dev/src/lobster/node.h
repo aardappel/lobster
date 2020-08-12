@@ -44,6 +44,15 @@ struct Node {
     }
     // Used in the optimizer to see if this node can be discarded without consequences.
     virtual bool SideEffect() const = 0;  // Just this node.
+    bool SideEffectRec() {
+        if (SideEffect()) return true;
+        auto ch = Children();
+        if (!ch) return false;
+        for (size_t i = 0; i < Arity(); i++) {
+            if (ch[i]->SideEffectRec()) return true;
+        }
+        return false;
+    }
     size_t Count() {
         size_t count = 0;
         Iterate([&](Node *) { count++; });

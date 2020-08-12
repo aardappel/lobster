@@ -276,7 +276,7 @@ class WASMGenerator : public NativeGenerator {
     }
 
     void EmitExternCall(string_view name) override {
-        assert(name == "GLFrame");
+        assert(name == "GLFrame"); (void)name;
         bw.EmitGetLocal(0 /*VM*/);
         bw.EmitGetLocal(1 /*SP*/);
         bw.EmitCall(import_gl_frame);

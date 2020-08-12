@@ -59,6 +59,10 @@
   - formatted printing?
   - serialization?
 
+- add a debug (or dbg) statement analogous to asssert, like:
+  https://github.com/sharkdp/dbg-macro
+  also improve assert output
+
 - jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
   - especially so since insatiable random generators (to get multiple
@@ -70,7 +74,8 @@
 
 - NEWVEC can defeat the STACKMARGIN check if called with sufficient args.
 
-- Expand ConstVal and the optimizer.
+- Expand ConstVal and the optimizer. It should be implemented for every node.
+  - also add removal of variables.
 
 - jg/jcorbin: should allow function values to be other than just variables, any exp.
   currently not even `f()` works if `f` is a member variable.

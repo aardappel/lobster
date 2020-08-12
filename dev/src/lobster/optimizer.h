@@ -58,23 +58,6 @@ struct Optimizer {
         n->lt = lt;
         return n;
     }
-
-    Node *FilterSideEffects(Node *r, Node *n) {
-        if (n->SideEffect()) {
-            n->exptype = type_void;
-            r = Typed(r->exptype, LT_ANY, new Seq(n->line, n, r));
-        } else {
-            auto ch = n->Children();
-            if (ch) {
-                for (size_t i = 0; i < n->Arity(); i++) {
-                    r = FilterSideEffects(r, ch[i]);
-                }
-                n->ClearChildren();
-            }
-            delete n;
-        }
-        return r;
-    }
 };
 
 Node *Node::Optimize(Optimizer &opt) {
@@ -94,7 +77,18 @@ Node *Node::Optimize(Optimizer &opt) {
         default:      assert(false); return this;
     }
     r = opt.Typed(exptype, LT_ANY, r);
-    r = opt.FilterSideEffects(r, this);
+    if (auto is_type = Is<IsType>(this)) {
+        // IsType is an exception in that even when it results in a constant (type is static),
+        // we still want to evaluate the exp, since it be surprising if `if printstuff() is int:`
+        // would produce no output. This does NOT hold for any of the other node types for which
+        // ConstVal may produce a constant.
+        if (is_type->SideEffectRec()) {
+            r = opt.Typed(r->exptype, LT_ANY, new Seq(is_type->child->line, is_type->child, r));
+            is_type->ClearChildren();
+        }
+    }
+    delete this;
+    //r = opt.FilterSideEffects(r, this);
     opt.Changed();
     return r->Optimize(opt);
 }
