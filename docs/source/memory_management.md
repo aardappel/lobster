@@ -50,7 +50,7 @@ object (and is responsible for its deallocation), and others merely "borrow" it.
 
 This now poses new questions: How do we determine who is the owner? When is
 borrowing allowed? How do we detect a borrower that outlives an owner? What
-about an owner being modifier while there are borrowers? Do we check any
+about an owner being modified while there are borrowers? Do we check any
 of these at compile time, runtime, or a mix?
 
 There have been many ownership models in the past, but only recently they are

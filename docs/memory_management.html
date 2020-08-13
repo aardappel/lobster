@@ -32,7 +32,7 @@
 <p>I mentioned linearity (every object can only have one pointer to it) and regions (every object is assigned a memory pool that outlives them all), and I have implemented languages in the past that implemented both of those strategies. While viable, I felt at the time they required too much programmer assistence to be mainstream.</p>
 <h2 id="ownership-models">Ownership models</h2>
 <p>There is a memory management design space which I’ll collectively call “Ownership” which is a generalization of the linearity models: one pointer always owns an object (and is responsible for its deallocation), and others merely “borrow” it.</p>
-<p>This now poses new questions: How do we determine who is the owner? When is borrowing allowed? How do we detect a borrower that outlives an owner? What about an owner being modifier while there are borrowers? Do we check any of these at compile time, runtime, or a mix?</p>
+<p>This now poses new questions: How do we determine who is the owner? When is borrowing allowed? How do we detect a borrower that outlives an owner? What about an owner being modified while there are borrowers? Do we check any of these at compile time, runtime, or a mix?</p>
 <p>There have been many ownership models in the past, but only recently they are becoming more mainstream:</p>
 <ul>
 <li>Rust is the poster child, which tries to solve all of the above questions at compile time, at the cost of much programmer assistence.</li>
