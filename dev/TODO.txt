@@ -52,6 +52,8 @@
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
 
+- allow constant integer exps in enum defs, see im_config_is_srgb where we'd like to use 1 << 20
+
 - it be really easy to bring full "any" back for builtin functions, and mixed type varargs
   at the same time by prefixing each value on the stack by a ti value, and possibly a length.
   what is this useful for?

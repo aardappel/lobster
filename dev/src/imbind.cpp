@@ -218,12 +218,12 @@ void EngineStatsGUI() {
 
 void AddIMGUI(NativeRegistry &nfr) {
 
-nfr("im_init", "dark_style", "B?", "", "",
-    [](StackPtr &, VM &, Value &darkstyle) {
+nfr("im_init", "dark_style,flags", "B?I?", "", "",
+    [](StackPtr &, VM &, Value &darkstyle, Value &flags) {
         if (imgui_init) return Value();
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags.ival();
         if (darkstyle.True()) ImGui::StyleColorsDark(); else ImGui::StyleColorsClassic();
         ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
         ImGui_ImplOpenGL3_Init("#version 150");

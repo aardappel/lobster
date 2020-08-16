@@ -1,7 +1,21 @@
 // Constants for use with ImGui (https://github.com/ocornut/imgui) im_ functions.
 
-// From: https://github.com/ocornut/imgui/blob/4b41d3b280ff8700bb62d14ba5e2f8c7f505117f/imgui.h#L691-L729
+// From: https://github.com/ocornut/imgui/blob/master/imgui.h
 
+// To be passed to im_init()
+enum_flags im_config:
+    im_config_none = 0
+    // Warning: turing this on stops the game from receiving keys.
+    im_config_nav_enable_keyboard = 1
+    im_config_nav_enable_gamepad
+    im_config_nav_enable_set_mouse_pos
+    im_config_nav_no_capture_keyboard
+    im_config_no_mouse
+    im_config_no_mouse_cursor_change
+    im_config_is_srgb = 1048576
+    im_config_is_touch_screen
+
+// To be passed to im_window()
 enum_flags im_window:
     im_window_none = 0
     im_window_no_titlebar = 1             // Disable title-bar
@@ -25,3 +39,4 @@ enum_flags im_window:
     im_window_no_nav_inputs               // No gamepad/keyboard navigation within the window
     im_window_no_nav_focus                // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
     im_window_unsaved_document            // Append '*' to title without affecting the ID, as a convenience to avoid using the ### operator. When used in a tab/docking context, tab is selected on closure and closure is deferred by one frame to allow code to cancel the closure (with a confirmation popup, etc.) without flicker.
+
