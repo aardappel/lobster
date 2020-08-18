@@ -189,8 +189,13 @@ struct Parser {
                 for (;;) {
                     auto evname = st.MaybeNameSpace(ExpectId(), !isprivate);
                     if (IsNext(T_ASSIGN)) {
-                        cur = lex.IntVal();
-                        Expect(T_INT);
+                        auto e = ParseExp();
+                        Value val;
+                        auto t = e->ConstVal(nullptr, val);
+                        delete e;
+                        if (t != V_INT)
+                            Error("enum value expression must evaluate to an integer constant");
+                        cur = val.ival();
                     }
                     auto ev = st.EnumValLookup(evname, lex, true);
                     ev->isprivate = isprivate;

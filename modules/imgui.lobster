@@ -12,7 +12,7 @@ enum_flags im_config:
     im_config_nav_no_capture_keyboard
     im_config_no_mouse
     im_config_no_mouse_cursor_change
-    im_config_is_srgb = 1048576
+    im_config_is_srgb = 1 << 20
     im_config_is_touch_screen
 
 // To be passed to im_window()

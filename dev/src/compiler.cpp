@@ -24,6 +24,7 @@
 
 #include "lobster/parser.h"
 #include "lobster/typecheck.h"
+#include "lobster/constval.h"
 #include "lobster/optimizer.h"
 #include "lobster/codegen.h"
 

@@ -73,7 +73,7 @@ struct Node {
     // Used by type-checker to and optimizer.
     // If it returns true, sets val to a value that gives the correct True().
     // Also sets correct scalar values.
-    virtual ValueType ConstVal(TypeChecker &, Value &) const { return V_VOID; }
+    virtual ValueType ConstVal(TypeChecker *, Value &) const = 0;
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
     virtual Node *Optimize(Optimizer &opt);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
@@ -113,7 +113,8 @@ template<typename T> T *DoClone(T *dest, T *src) {
     string_view Name() const { return STR; } \
     bool SideEffect() const { return SE; } \
     void Generate(CodeGen &cg, size_t retval) const; \
-    Node *Clone() { return DoClone<NAME>(new NAME(), this); }
+    Node *Clone() { return DoClone<NAME>(new NAME(), this); } \
+    ValueType ConstVal(TypeChecker *tc, Value &val) const;
 #define SHARED_SIGNATURE(NAME, STR, SE) \
     Node *TypeCheck(TypeChecker &tc, size_t reqret); \
     SHARED_SIGNATURE_NO_TT(NAME, STR, SE)
@@ -210,7 +211,6 @@ struct TypeAnnotation : Node {
 };
 
 #define RETURNSMETHOD bool Terminal(TypeChecker &tc) const;
-#define CONSTVALMETHOD ValueType ConstVal(TypeChecker &tc, Value &val) const;
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
 
 // generic node types
@@ -224,9 +224,9 @@ BINOP_NODE(Minus, TName(T_MINUS), false, )
 BINOP_NODE(Multiply, TName(T_MULT), false, )
 BINOP_NODE(Divide, TName(T_DIV), false, )
 BINOP_NODE(Mod, TName(T_MOD), false, )
-BINOP_NODE(And, TName(T_AND), false, CONSTVALMETHOD)
-BINOP_NODE(Or, TName(T_OR), false, CONSTVALMETHOD)
-UNARY_NODE(Not, TName(T_NOT), false, child, CONSTVALMETHOD)
+BINOP_NODE(And, TName(T_AND), false, )
+BINOP_NODE(Or, TName(T_OR), false, )
+UNARY_NODE(Not, TName(T_NOT), false, child, )
 UNOP_NODE(PreIncr, TName(T_INCR), true, )
 UNOP_NODE(PreDecr, TName(T_DECR), true, )
 BINOP_NODE(Equal, TName(T_EQ), false, )
@@ -259,11 +259,11 @@ BINARY_NODE(Seq, "statements", false, head, tail, )
 BINARY_NODE(Indexing, "indexing operation", false, object, index, )
 UNOP_NODE(PostIncr, TName(T_INCR), true, )
 UNOP_NODE(PostDecr, TName(T_DECR), true, )
-UNARY_NODE(UnaryMinus, TName(T_MINUS), false, child, CONSTVALMETHOD)
-COER_NODE(ToFloat, "tofloat", CONSTVALMETHOD)
+UNARY_NODE(UnaryMinus, TName(T_MINUS), false, child, )
+COER_NODE(ToFloat, "tofloat", )
 COER_NODE(ToString, "tostring", )
-COER_NODE(ToBool, "tobool", CONSTVALMETHOD)
-COER_NODE(ToInt, "toint", CONSTVALMETHOD)
+COER_NODE(ToBool, "tobool", )
+COER_NODE(ToInt, "toint", )
 NARY_NODE(Block, "block", false, RETURNSMETHOD)
 BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, OPTMETHOD)
 TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, OPTMETHOD RETURNSMETHOD)
@@ -279,10 +279,6 @@ ZERO_NODE(Break, "break", false, RETURNSMETHOD)
 struct Nil : Node {
     UnresolvedTypeRef giventype;
     Nil(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
-    ValueType ConstVal(TypeChecker &, Value &val) const {
-        val = Value();
-        return V_NIL;
-    }
     bool EqAttr(const Node *o) const {
         return giventype.utr == ((Nil *)o)->giventype.utr;
     }
@@ -307,10 +303,6 @@ struct IntConstant : Node {
     IntConstant(const Line &ln, int64_t i) : Node(ln), integer(i), from(nullptr) {}
     bool IsConstInit() const { return true; }
     void Dump(string &sd) const { if (from) sd += from->name; else append(sd, integer); }
-    ValueType ConstVal(TypeChecker &, Value &val) const {
-        val = Value(integer);
-        return V_INT;
-    }
     bool EqAttr(const Node *o) const {
         return integer == ((IntConstant *)o)->integer;
     }
@@ -322,10 +314,6 @@ struct FloatConstant : Node {
     FloatConstant(const Line &ln, double f) : Node(ln), flt(f) {}
     bool IsConstInit() const { return true; }
     void Dump(string &sd) const { sd += to_string_float(flt); }
-    ValueType ConstVal(TypeChecker &, Value &val) const {
-        val = Value(flt);
-        return V_FLOAT;
-    }
     bool EqAttr(const Node *o) const {
         return flt == ((FloatConstant *)o)->flt;
     }
@@ -514,7 +502,6 @@ struct IsType : Unary {
     bool EqAttr(const Node *o) const {
         return giventype.utr == ((IsType *)o)->giventype.utr;
     }
-    CONSTVALMETHOD
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
 };
 
@@ -525,7 +512,6 @@ struct EnumCoercion : Unary {
     bool EqAttr(const Node *o) const {
         return e == ((EnumCoercion *)o)->e;
     }
-    CONSTVALMETHOD
     SHARED_SIGNATURE(EnumCoercion, e->name, false)
 };
 

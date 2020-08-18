@@ -52,8 +52,6 @@
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
 
-- allow constant integer exps in enum defs, see im_config_is_srgb where we'd like to use 1 << 20
-
 - it be really easy to bring full "any" back for builtin functions, and mixed type varargs
   at the same time by prefixing each value on the stack by a ti value, and possibly a length.
   what is this useful for?
@@ -77,7 +75,9 @@
 - NEWVEC can defeat the STACKMARGIN check if called with sufficient args.
 
 - Expand ConstVal and the optimizer. It should be implemented for every node.
-  - also add removal of variables.
+  - Actually probably doesn't need to be implemented for `if` etc, since it already
+    has special purpose code for this.
+  - also add constant propagation.
 
 - jg/jcorbin: should allow function values to be other than just variables, any exp.
   currently not even `f()` works if `f` is a member variable.

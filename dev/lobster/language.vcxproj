@@ -206,6 +206,7 @@
     <ClInclude Include="..\src\lobster\bytecode_generated.h" />
     <ClInclude Include="..\src\lobster\codegen.h" />
     <ClInclude Include="..\src\lobster\compiler.h" />
+    <ClInclude Include="..\src\lobster\constval.h" />
     <ClInclude Include="..\src\lobster\disasm.h" />
     <ClInclude Include="..\src\lobster\geom.h" />
     <ClInclude Include="..\src\lobster\idents.h" />

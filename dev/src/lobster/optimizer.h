@@ -65,7 +65,7 @@ Node *Node::Optimize(Optimizer &opt) {
         Children()[i] = Children()[i]->Optimize(opt);
     }
     Value cval;
-    auto t = ConstVal(opt.tc, cval);
+    auto t = ConstVal(&opt.tc, cval);
     if (t == V_VOID) return this;
     // Don't regenerate these.
     if (Is<IntConstant>(this) || Is<FloatConstant>(this) || Is<Nil>(this)) return this;
@@ -97,7 +97,7 @@ Node *IfThen::Optimize(Optimizer &opt) {
     // This optimzation MUST run, since it deletes untypechecked code.
     condition = condition->Optimize(opt);
     Value cval;
-    if (condition->ConstVal(opt.tc, cval) != V_VOID) {
+    if (condition->ConstVal(&opt.tc, cval) != V_VOID) {
         Node *r = nullptr;
         if (cval.True()) {
             r = truepart->Optimize(opt);
@@ -118,7 +118,7 @@ Node *IfElse::Optimize(Optimizer &opt) {
     // This optimzation MUST run, since it deletes untypechecked code.
     condition = condition->Optimize(opt);
     Value cval;
-    if (condition->ConstVal(opt.tc, cval) != V_VOID) {
+    if (condition->ConstVal(&opt.tc, cval) != V_VOID) {
         auto &branch = cval.True() ? truepart : falsepart;
         auto r = branch->Optimize(opt);
         branch = nullptr;

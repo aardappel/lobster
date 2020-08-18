@@ -1655,7 +1655,7 @@ struct TypeChecker {
         NoStruct(*condition, name);
         DecBorrowers(condition->lt, *context);
         Value cval;
-        if (condition->ConstVal(*this, cval) != V_VOID) return cval;
+        if (condition->ConstVal(this, cval) != V_VOID) return cval;
         return {};
     }
 
@@ -2204,7 +2204,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
             if (ptype->IsEnum()) {
                 assert(c->exptype->IsEnum());
                 Value v;
-                if (c->ConstVal(tc, v) != V_VOID) {
+                if (c->ConstVal(&tc, v) != V_VOID) {
                     for (auto [i, ev] : enumerate(ptype->e->vals)) if (ev->val == v.ival()) {
                         enum_cases[i] = true;
                         break;
@@ -3110,75 +3110,6 @@ Node *Coercion::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.DeleteCoercion(this);
 }
 
-ValueType And::ConstVal(TypeChecker &tc, Value &val) const {
-    auto l = left->ConstVal(tc, val);
-    if (l == V_VOID) return V_VOID;
-    return val.False() ? l : right->ConstVal(tc, val);
-}
-
-ValueType Or::ConstVal(TypeChecker &tc, Value &val) const {
-    auto l = left->ConstVal(tc, val);
-    if (l == V_VOID) return V_VOID;
-    return val.True() ? l : right->ConstVal(tc, val);
-}
-
-ValueType Not::ConstVal(TypeChecker &tc, Value &val) const {
-    auto t = child->ConstVal(tc, val);
-    if (t == V_VOID) return t;
-    val = Value(val.False());
-    return V_INT;
-}
-
-ValueType UnaryMinus::ConstVal(TypeChecker &tc, Value &val) const {
-    auto t = child->ConstVal(tc, val);
-    switch (t) {
-        case V_INT: val.setival(-val.ival()); return V_INT;
-        case V_FLOAT: val.setfval(-val.fval()); return V_FLOAT;
-        default: return V_VOID;
-    }
-}
-
-ValueType IsType::ConstVal(TypeChecker &tc, Value &val) const {
-    if (child->exptype == resolvedtype || resolvedtype->t == V_ANY) {
-        val = Value(true);
-        return V_INT;
-    }
-    if (!tc.ConvertsTo(resolvedtype, child->exptype, false)) {
-        val = Value(false);
-        return V_INT;
-    }
-    // This means it is always a reference type, since int/float/function don't convert
-    // into anything without coercion.
-    return V_VOID;
-}
-
-ValueType ToFloat::ConstVal(TypeChecker &tc, Value &val) const {
-    auto t = child->ConstVal(tc, val);
-    if (t == V_VOID) return t;
-    assert(t == V_INT);
-    val = Value((double)val.ival());
-    return V_FLOAT;
-}
-
-ValueType ToInt::ConstVal(TypeChecker &tc, Value &val) const {
-    auto t = child->ConstVal(tc, val);
-    if (t == V_VOID) return t;
-    assert(t == V_FLOAT);
-    val = Value((iint)val.fval());
-    return V_INT;
-}
-
-ValueType ToBool::ConstVal(TypeChecker &tc, Value &val) const {
-    auto t = child->ConstVal(tc, val);
-    if (t == V_VOID) return t;
-    val = Value(val.True());
-    return V_INT;
-}
-
-ValueType EnumCoercion::ConstVal(TypeChecker &tc, Value &val) const {
-    return child->ConstVal(tc, val);
-}
-
 bool Return::Terminal(TypeChecker &) const {
     return true;
 }
@@ -3196,7 +3127,7 @@ bool While::Terminal(TypeChecker &tc) const {
     // condition may be false on first iteration.
     // Instead, it is only terminal if this is an infinite loop.
     Value val;
-    return condition->ConstVal(tc, val) != V_VOID && val.True();
+    return condition->ConstVal(&tc, val) != V_VOID && val.True();
 }
 
 bool Break::Terminal(TypeChecker &) const {
