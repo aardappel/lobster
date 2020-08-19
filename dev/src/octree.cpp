@@ -185,12 +185,12 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
         auto values = Pop(sp).vval();
         auto positions = Pop(sp).vval();
         if (!positions->len) {
-            Push(sp,  vm.NewString(0));
+            Push(sp, vm.NewString(0));
             return;
         }
         struct S {
             float3 lo;
-            int left_or_val;
+            int left_or_val;  // Negative is val.
             float3 hi;
             int fail;
         };
@@ -198,6 +198,7 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
             N *left, *right;
             iint val;
             float3 lo, hi, center;
+            float cam_dist;
             N *insert(N *nn, vector<N> &nodes) {
                 if (left) {
                     if (squaredlength(left->center - nn->center) <
@@ -213,15 +214,18 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
                 } else {
                     auto nlo = min(lo, nn->lo);
                     auto nhi = max(hi, nn->hi);
-                    nodes.emplace_back(N { this, nn, -1, nlo, nhi, (nlo + nhi) / 2 });
+                    nodes.emplace_back(N { this, nn, -1, nlo, nhi, (nlo + nhi) / 2, 0 });
                     return &nodes.back();
                 }
             }
             void balance(float3 cam) {
+                // Sorting by closest point is significantly faster than center?
+                cam_dist = length(point_to_box(cam, lo, hi));
                 if (!left) return;
                 left->balance(cam);
                 right->balance(cam);
-                if (squaredlength(left->center - cam) > squaredlength(right->center - cam)) {
+                if (left->cam_dist >
+                    right->cam_dist) {
                     swap(left, right);
                 }
             };
@@ -243,7 +247,7 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
             auto pos = ValueToFLT<3>(positions->AtSt(i), positions->width);
             nodes.emplace_back(N {
                 nullptr, nullptr, i < values->len ? values->At(i).ival() : 0,
-                pos - 0.5, pos + 0.5, pos
+                pos - 0.5, pos + 0.5, pos, 0
             });
             if (!i) continue;
             root = root->insert(&nodes.back(), nodes);
@@ -253,7 +257,7 @@ nfr("aabb_tree", "positions,values,cam", "F}:3]I]F}:3", "S", "",
         auto p = (S *)s->data();
         int i = 0;
         root->serialize(-1, p, i);
-        Push(sp,  s);
+        Push(sp, s);
     });
 }
 

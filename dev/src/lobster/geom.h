@@ -880,6 +880,18 @@ template<typename T> bool line_intersect(const vec<T, 2> &l1a, const vec<T, 2> &
     return true;
 }
 
+// Vector from a point to the closest point on a box.
+template<typename T, int N>
+const vec<T, N> point_to_box(const vec<T, N> &p, const vec<T, N> &bmin, const vec<T, N> &bmax) {
+    return std::max(bmin - p, std::max(vec<T, N>((T)0), p - bmax));
+}
+
+template<typename T, int N>
+bool boxes_intersect(const vec<T, N> &b1min, const vec<T, N> &b1max,
+    const vec<T, N> &b2min, const vec<T, N> &b2max) {
+    return b1min <= b2max && b2min <= b1max;
+}
+
 // Return the enter and exit t value.
 inline float2 ray_bb_intersect(const float3 &bbmin, const float3 &bbmax,
                                const float3 &rayo, const float3 &reciprocal_raydir) {
