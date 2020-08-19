@@ -85,6 +85,21 @@ Value ReadField(StackPtr &sp, VM &vm, const Value &str, const Value &idx, const 
     return def;
 }
 
+Value FieldPresent(StackPtr &sp, VM &vm, const Value &str, const Value &idx, const Value &vidx) {
+    auto i = idx.ival();
+    auto vtable = Read<flatbuffers::soffset_t, false>(sp, vm, i, str.sval());
+    auto vi = i - vtable;
+    auto vtable_size = Read<flatbuffers::voffset_t, false>(sp, vm, vi, str.sval());
+    auto vo = vidx.ival();
+    if ((uint64_t)vo < (uint64_t)vtable_size) {
+        auto field_offset = Read<flatbuffers::voffset_t, false>(sp, vm, vi + vo, str.sval());
+        if (field_offset) {
+            return Value(true);
+        }
+    }
+    return Value(false);
+}
+
 LString *GetString(StackPtr &sp, VM &vm, iint fi, LString *buf) {
     if (fi) {
         auto len = Read<flatbuffers::uoffset_t, false>(sp, vm, fi, buf);
@@ -302,6 +317,12 @@ nfr("flatbuffers_field_struct", "string,tablei,vo", "SII", "I",
         auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(sp, vm, str, idx, vidx,
                                                                          Value(0));
         return ret;
+    });
+
+nfr("flatbuffers_field_present", "string,tablei,vo", "SII", "B",
+    "returns if a flatbuffer field is present (unequal to default)",
+    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &vidx) {
+        return FieldPresent(sp, vm, str, idx, vidx);
     });
 
 nfr("flatbuffers_indirect", "string,index", "SI", "I",
