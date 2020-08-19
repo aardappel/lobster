@@ -55,9 +55,13 @@ extern string ToCPP(NativeRegistry &natreg, string &sd,
 extern string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest,
                      string_view bytecode_buffer);
 
+extern int RunC(const char *source, const char *options, string &error);
+
 }  // namespace lobster;
 
 // Test the wasm binary writer is working as expected.
 void unit_test_wasm(bool full);
+
+void unit_test_libtcc();
 
 #endif  // LOBSTER_TONATIVE

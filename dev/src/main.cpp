@@ -43,6 +43,9 @@ void unit_test_all(bool full) {
     unit_test_tools();
     unit_test_unicode();
     unit_test_wasm(full);
+    #ifdef _MSC_VER
+        unit_test_libtcc();
+    #endif
 }
 
 int main(int argc, char* argv[]) {

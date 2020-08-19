@@ -24,6 +24,9 @@
     <Filter Include="tonative">
       <UniqueIdentifier>{849d593b-fb90-4a4d-89c5-66130f92b9a4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="tonative\libtcc">
+      <UniqueIdentifier>{544afcaf-5825-41a5-9db0-a44268869235}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -70,6 +73,12 @@
     </ClCompile>
     <ClCompile Include="..\src\towasm.cpp">
       <Filter>tonative</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\libtcc\libtcc.c">
+      <Filter>tonative\libtcc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tccbind.cpp">
+      <Filter>tonative\libtcc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
