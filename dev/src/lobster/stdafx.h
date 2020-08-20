@@ -82,10 +82,18 @@ using namespace gsl;
 
 using namespace geom;
 
-#ifdef BUILD_CONTEXT_compiled_lobster
+#if defined(BUILD_CONTEXT_compiled_lobster) || defined(BUILD_CONTEXT_lobster_jit)
     // This code is being build as part of lobster code compiled to C++, modify VM behavior
     // accordingly.
     #define VM_COMPILED_CODE_MODE
+#endif
+
+#if defined(BUILD_CONTEXT_lobster_jit)
+    // A sub-mode of VM_COMPILED_CODE_MODE where we compile and run (JIT)
+    #ifndef _MSC_VER
+        #error "JIT mode only supported with VS so far"
+    #endif
+    #define VM_JIT_MODE
 #endif
 
 #ifndef LOBSTER_ENGINE

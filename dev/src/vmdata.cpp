@@ -25,7 +25,7 @@ LResource::LResource(void *v, const ResourceType *t)
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
-void EscapeAndQuote(string_view s, string &sd) {
+void EscapeAndQuote(string_view s, string &sd, bool strip_comments) {
     sd += '\"';
     for (auto c : s) switch(c) {
         case '\n': sd += "\\n"; break;
@@ -34,6 +34,10 @@ void EscapeAndQuote(string_view s, string &sd) {
         case '\\': sd += "\\\\"; break;
         case '\"': sd += "\\\""; break;
         case '\'': sd += "\\\'"; break;
+        case '/':
+            sd += c;
+            if (strip_comments) sd += ' ';  // FIXME: check if next char is '/' or '*' instead.
+            break;
         default:
             if (c >= ' ' && c <= '~') {
                 sd += c;
@@ -60,7 +64,7 @@ void LString::ToString(string &sd, PrintPrefs &pp) {
         dd = "..";
     }
     if (pp.quoted) {
-        EscapeAndQuote(sv, sd);
+        EscapeAndQuote(sv, sd, false);
     } else {
         sd += sv;
     }

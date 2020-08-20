@@ -31,11 +31,11 @@ extern void RegisterBuiltin(NativeRegistry &natreg, const char *name,
                             void (* regfun)(NativeRegistry &));
 extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);
 
-extern VMArgs CompiledInit(int argc, char *argv[], const void *bytecodefb,
-                           size_t static_size, const lobster::block_base_t *vtables, FileLoader loader,
-                           NativeRegistry &nfr);
+extern VMArgs CompiledInit(int argc, const char *argv[], const void *bytecodefb,
+                           size_t static_size, const lobster::block_base_t *vtables,
+                           FileLoader loader, NativeRegistry &nfr);
 
-extern "C" int RunCompiledCodeMain(int argc, char *argv[], const void *bytecodefb,
+extern "C" int RunCompiledCodeMain(int argc, const char *argv[], const void *bytecodefb,
                                    size_t static_size, const lobster::block_base_t *vtables);
 
 }  // namespace lobster

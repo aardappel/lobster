@@ -22,33 +22,79 @@ namespace lobster {
 class CPPGenerator : public NativeGenerator {
     string &sd;
     vector<const int *> jumptables;
+    bool cpp;  // If not, plain C.
 
   public:
 
-    explicit CPPGenerator(string &sd) : sd(sd) {}
+    explicit CPPGenerator(string &sd, bool cpp) : sd(sd), cpp(cpp) {}
 
     void FileStart() override {
-        sd +=
-            "#include \"lobster/stdafx.h\"\n"
-            "#include \"lobster/vmdata.h\"\n"
-            "#include \"lobster/vmops.h\"\n"
-            "#include \"lobster/compiler.h\"\n"
-            "\n"
-            "#if LOBSTER_ENGINE\n"
-            "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"
-            "    #include \"lobster/sdlincludes.h\"\n"
-            "    #include \"lobster/sdlinterface.h\"\n"
-            "    extern \"C\" lobster::StackPtr GLFrame(lobster::StackPtr sp, lobster::VM &vm);\n"
-            "#endif\n"
-            "\n"
-            "#ifndef VM_COMPILED_CODE_MODE\n"
-            "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
-            "#endif\n"
-            "\n";
+        if (cpp) {
+            sd +=
+                "#include \"lobster/stdafx.h\"\n"
+                "#include \"lobster/vmdata.h\"\n"
+                "#include \"lobster/vmops.h\"\n"
+                "#include \"lobster/compiler.h\"\n"
+                "\n"
+                "typedef lobster::StackPtr StackPtr;\n"
+                "typedef lobster::VM &VMRef;\n"
+                "typedef lobster::block_base_t block_base_t;\n"
+                "\n"
+                "#if LOBSTER_ENGINE\n"
+                "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"
+                "    #include \"lobster/sdlincludes.h\"\n"
+                "    #include \"lobster/sdlinterface.h\"\n"
+                "    extern \"C\" StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
+                "#endif\n"
+                "\n"
+                "#ifndef VM_COMPILED_CODE_MODE\n"
+                "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
+                "#endif\n"
+                "\n"
+                ;
+        } else {
+            sd +=
+                "typedef long long *StackPtr;\n"
+                "typedef void *VMRef;\n"
+                "typedef StackPtr(*block_base_t)(VMRef, StackPtr);\n"
+                "extern  StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
+                "\n"
+                ;
+
+            auto args = [&](int A) {
+                if (A == 9) sd += ", const int *";
+                else for (int i = 0; i < A; i++) sd += ", int";
+            };
+
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
+                LVALOPNAMES
+            #undef F
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
+                ILBASENAMES
+            #undef F
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ", block_base_t);\n";
+                ILCALLNAMES
+            #undef F
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr);\n";
+                ILJUMPNAMES1
+            #undef F
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr, int);\n";
+                ILJUMPNAMES2
+            #undef F
+
+            sd += "block_base_t GetNextCallTarget(VMRef);\n"
+                  "StackPtr Drop(StackPtr);\n"
+                  "\n";
+        }
     }
 
     void DeclareFun(int id) override {
-        append(sd, "static lobster::StackPtr fun_", id, "(lobster::VM &, lobster::StackPtr);\n");
+        append(sd, "static StackPtr fun_", id, "(VMRef, StackPtr);\n");
     }
 
     void BeforeBlocks(int /*start_id*/, string_view /*bytecode_buffer*/) override {
@@ -58,8 +104,8 @@ class CPPGenerator : public NativeGenerator {
     void FunStart(const bytecode::Function *f, int id) override {
         sd += "\n";
         if (f) append(sd, "// ", f->name()->string_view(), "\n");
-        append(sd, "static lobster::StackPtr fun_", id,
-            "(lobster::VM &vm, lobster::StackPtr sp) {\n");
+        append(sd, "static StackPtr fun_", id,
+            "(VMRef vm, StackPtr sp) {\n");
     }
 
     void InstStart() override {
@@ -71,14 +117,22 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitDynJump() {
-        sd += "sp = vm.next_call_target(vm, sp);";
+        if (cpp) sd += "sp = vm.next_call_target(vm, sp);";
+        else sd += "sp = GetNextCallTarget(vm)(vm, sp);";
     }
 
     void EmitConditionalJump(int opc, int id, int df) override {
         append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
         if (df >= 0) append(sd, ", ", df);
-        append(sd, "); if (Pop(sp).False()) ");
-        EmitJump(id);
+        if (cpp) {
+            append(sd, "); if (Pop(sp).False()) ");
+            EmitJump(id);
+        } else {
+            // FIXME: simplify.
+            append(sd, "); { long long top = *sp; sp = Drop(sp); if (!top) ");
+            EmitJump(id);
+            sd += " }";
+        }
     }
 
     void EmitOperands(const char * /*base*/, const int *args, int arity, bool is_vararg) override {
@@ -119,7 +173,8 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitCallIndirectNull() override {
-        sd += " if (vm.next_call_target) ";
+        if (cpp) sd += " if (vm.next_call_target) ";
+        else sd += " if (GetNextCallTarget(vm)) ";
         EmitDynJump();
     }
 
@@ -128,7 +183,13 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void EmitJumpTable(const int *args) override {
-        sd += "switch (Pop(sp).ival()) {";
+        if (cpp) {
+            sd += "switch (Pop(sp).ival()) {";
+        } else {
+            // FIXME: simplify.
+            append(sd, "{ long long top = *sp; sp = Drop(sp); switch (top) {");
+        }
+
         jumptables.push_back(args);
     }
 
@@ -153,7 +214,8 @@ class CPPGenerator : public NativeGenerator {
                 break;
             }
             case NH_JUMPTABLE_END:
-                sd += "} // switch";
+                if (cpp) sd += "} // switch";
+                else sd += "}} // switch";
                 jumptables.pop_back();
                 break;
             default:
@@ -182,7 +244,9 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void VTables(vector<int> &vtables) override {
-        sd += "\nstatic const lobster::block_base_t vtables[] = {\n";
+        if (cpp) sd += "\nstatic";
+        else sd += "\nextern ";
+        sd += " const block_base_t vtables[] = {\n";
         for (auto id : vtables) {
             sd += "    ";
             if (id >= 0) append(sd, "fun_", id);
@@ -193,22 +257,26 @@ class CPPGenerator : public NativeGenerator {
     }
 
     void FileEnd(int start_id, string_view bytecode_buffer) override {
-        // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
-        // in fact, it be nice if those were in readable format in the generated code.
-        sd += "\nstatic const int bytecodefb[] = {";
-        auto bytecode_ints = (const int *)bytecode_buffer.data();
-        for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
-            if ((i & 0xF) == 0) sd += "\n ";
-            append(sd, " ", bytecode_ints[i], ",");
+        if (cpp) {
+            // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
+            // in fact, it be nice if those were in readable format in the generated code.
+            sd += "\nstatic const int bytecodefb[] = {";
+            auto bytecode_ints = (const int *)bytecode_buffer.data();
+            for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
+                if ((i & 0xF) == 0) sd += "\n ";
+                append(sd, " ", bytecode_ints[i], ",");
+            }
+            sd += "\n};\n\n";
         }
-        sd += "\n};\n\n";
-        sd += "extern \"C\" lobster::StackPtr compiled_entry_point(lobster::VM &vm, ";
-        sd += "lobster::StackPtr sp) {\n";
+        if (cpp) sd += "extern \"C\" ";
+        sd += "StackPtr compiled_entry_point(VMRef vm, StackPtr sp) {\n";
         append(sd, "    return fun_", start_id, "(vm, sp);\n}\n\n");
-        sd += "int main(int argc, char *argv[]) {\n";
-        sd += "    // This is hard-coded to call compiled_entry_point()\n";
-        sd += "    return RunCompiledCodeMain(argc, argv, ";
-        append(sd, "bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
+        if (cpp) {
+            sd += "int main(int argc, char *argv[]) {\n";
+            sd += "    // This is hard-coded to call compiled_entry_point()\n";
+            sd += "    return RunCompiledCodeMain(argc, argv, ";
+            append(sd, "bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
+        }
     }
 
     void Annotate(string_view comment) override {
@@ -216,8 +284,8 @@ class CPPGenerator : public NativeGenerator {
     }
 };
 
-string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer) {
-    CPPGenerator cppgen(sd);
+string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bool cpp) {
+    CPPGenerator cppgen(sd, cpp);
     return ToNative(natreg, cppgen, bytecode_buffer);
 }
 

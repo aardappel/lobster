@@ -140,7 +140,9 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                 ng.Annotate(IdName(bcf, args[0], typetable, false));
             } else if (opc == IL_PUSHSTR) {
                 string cs;
-                EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), cs);
+                auto sv = bcf->stringtable()->Get(args[0])->string_view();
+                sv = sv.substr(0, 50);
+                EscapeAndQuote(sv, cs, true);
                 ng.Annotate(cs);
             } else if (opc == IL_CALL) {
                 auto fs = code + args[0];

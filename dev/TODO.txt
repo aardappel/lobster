@@ -2146,6 +2146,7 @@ C++64-MSVC:           : secs  5.0, specialized array indexing for width == 1
 C++64-Clang10:        : secs  4.9
 C++64-Clang10-LTO     : secs  4.6
 C++64-Clang10-LTO     : secs  4.1, removed trampoline
+C++64-MSVC+TCC        : secs 11.6, 30% speedup vs interpreter!
 
 compiletime speed:
 

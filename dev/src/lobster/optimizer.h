@@ -163,6 +163,7 @@ Node *DynCall::Optimize(Optimizer &opt) {
 Node *Call::Optimize(Optimizer &opt) {
     Node::Optimize(opt);
     assert(sf->numcallers > 0);
+    auto parent = opt.sfstack.back();
     // FIXME: Reduce these requirements where possible.
     bool is_inlinable =
         !sf->isrecursivelycalled &&
@@ -175,7 +176,10 @@ Node *Call::Optimize(Optimizer &opt) {
         // decremented so it can be inlined after all.
         sf->num_returns_non_local == 0 &&
         vtable_idx < 0 &&
-        sf->returntype->NumValues() <= 1;
+        sf->returntype->NumValues() <= 1 &&
+        // Because we inline so aggressively, it is possible to generate huuge functions,
+        // which may cause a problem for our stack, or that of e.g. V8 in Wasm.
+        parent->locals.size() < 1024;
     // Attempt to optimize function we're calling first, that way if it shrinks (or grows) it's
     // more or less likely to be inlined.
     if (is_inlinable) opt.OptimizeFunction(*sf);
@@ -191,7 +195,6 @@ Node *Call::Optimize(Optimizer &opt) {
             // between the copies in the parent, second use overwrites the first etc.
             // We generally have to keep using this sid rather than creating a new one, since
             // this function may call others that may refer to this sid, etc.
-            auto parent = opt.sfstack.back();
             for (auto &loc : parent->locals) if (loc.sid == arg.sid) goto already;
             parent->locals.push_back(arg);
             arg.sid->sf_def = parent;

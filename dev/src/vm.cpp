@@ -655,7 +655,11 @@ void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
 void VM::EvalProgram(StackPtr sp) {
     if (!sp) sp = stack - 1;
     #ifdef VM_COMPILED_CODE_MODE
-        compiled_entry_point(*this, sp);
+        #ifdef VM_JIT_MODE
+            jit_entry(*this, sp);
+        #else
+            compiled_entry_point(*this, sp);
+        #endif
     #else
         // Keep exception handling code in seperate function from hot loop in EvalProgramInner()
         // just in case it affects the compiler.
@@ -968,27 +972,46 @@ StackPtr CVM_Drop(StackPtr sp) { return --sp; }
 #define F(N, A) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
-    LVALOPNAMES
+LVALOPNAMES
 #undef F
 #define F(N, A) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
-    ILBASENAMES
+ILBASENAMES
 #undef F
 #define F(N, A) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), block_base_t fcont) { \
         /*LOG_ERROR("INS: ", #N, A, ", ", (size_t)vm, ", ", (size_t)sp, ", ", _a, ", ", (size_t)fcont);*/ \
         CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
-    ILCALLNAMES
+ILCALLNAMES
 #undef F
 #define F(N, A) \
     StackPtr CVM_##N(VM *vm, StackPtr sp) { CHECKJ(N); return U_##N(*vm, sp); }
-    ILJUMPNAMES1
+ILJUMPNAMES1
 #undef F
 #define F(N, A) \
     StackPtr CVM_##N(VM *vm, StackPtr sp, int df) { CHECKJ(N); return U_##N(*vm, sp, df); }
-    ILJUMPNAMES2
+ILJUMPNAMES2
 #undef F
+
+#ifdef VM_JIT_MODE
+
+#ifdef LOBSTER_ENGINE
+extern "C" StackPtr GLFrame(StackPtr sp, VM & vm);
+#endif
+
+extern const void *vm_ops_jit_table[] = {
+    #define F(N, A) "U_" #N, &CVM_##N,
+        ILNAMES
+    #undef F
+    "GetNextCallTarget", CVM_GetNextCallTarget,
+    "Drop", CVM_Drop,
+    #ifdef LOBSTER_ENGINE
+    "GLFrame", GLFrame,
+    #endif
+    0, 0
+};
+#endif
 
 }  // extern "C"
 

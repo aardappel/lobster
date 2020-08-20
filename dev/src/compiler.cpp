@@ -377,14 +377,14 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "parsedata", AddReader);
 }
 
-VMArgs CompiledInit(int argc, char *argv[], const void *bytecodefb,
-                    size_t static_size, const lobster::block_base_t *vtables, FileLoader loader,
-                    NativeRegistry &nfr) {
+VMArgs CompiledInit(int argc, const char *argv[], const void *bytecodefb,
+                    size_t static_size, const lobster::block_base_t *vtables,
+                    FileLoader loader, NativeRegistry &nfr) {
     min_output_level = OUTPUT_INFO;
     InitPlatform("../../", "", false, loader);  // FIXME: path.
     auto vmargs = VMArgs {
         nfr, StripDirPart(argv[0]), {}, bytecodefb, static_size, {},
-        vtables, TraceMode::OFF
+        vtables, nullptr, TraceMode::OFF
     };
     for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
     return vmargs;
@@ -396,7 +396,7 @@ int UnusedRunCompiledCodeMain
 #else
 extern "C" int RunCompiledCodeMain
 #endif
-(int argc, char *argv[], const void *bytecodefb, size_t static_size,
+(int argc, const char *argv[], const void *bytecodefb, size_t static_size,
  const lobster::block_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING
     try

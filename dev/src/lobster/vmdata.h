@@ -272,6 +272,9 @@ typedef Value *StackPtr;
 typedef StackPtr(*block_base_t)(VM &, StackPtr);
 #ifdef VM_COMPILED_CODE_MODE
     extern "C" StackPtr compiled_entry_point(VM & vm, StackPtr sp);
+    #ifdef VM_JIT_MODE
+        extern "C" const void *vm_ops_jit_table[];
+    #endif
 #endif
 
 // These pointer types are for use inside Value below. In most other parts of the code we
@@ -659,7 +662,8 @@ struct VMArgs {
     const void *static_bytecode = nullptr;
     size_t static_size = 0;
     vector<string> program_args;
-    const lobster::block_base_t *native_vtables = nullptr;
+    const block_base_t *native_vtables = nullptr;
+    block_base_t jit_entry = nullptr;
     TraceMode trace = TraceMode::OFF;
 };
 
@@ -1016,7 +1020,7 @@ inline Value ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) 
     return Value(v);
 }
 
-void EscapeAndQuote(string_view s, string &sd);
+void EscapeAndQuote(string_view s, string &sd, bool strip_comments);
 
 #if !defined(NDEBUG) && RTT_ENABLED
     #define STRINGIFY(x) #x

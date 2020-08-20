@@ -61,7 +61,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>..\src;..\include;..\external\freetype\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -77,7 +77,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Setupapi.lib;..\external\openvr\lib\win64\openvr_api.lib;..\external\steamworks\lib\win64\steam_api64.lib;Setupapi.lib;../../build/lobster/language/languageDBG64.lib;../../build/lobster/engine/engineDBG64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Setupapi.lib;..\external\openvr\lib\win64\openvr_api.lib;..\external\steamworks\lib\win64\steam_api64.lib;../../build/lobster_jit/language/languageDBG64.lib;../../build/lobster_jit/engine/engineDBG64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\lib;$(DXSDK_DIR)\Lib\x86</AdditionalLibraryDirectories>
       <StackCommitSize>
       </StackCommitSize>
@@ -95,7 +95,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\src;..\include;..\external\freetype\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -114,7 +114,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>..\lib;$(DXSDK_DIR)\Lib\x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Setupapi.lib;..\external\openvr\lib\win64\openvr_api.lib;..\external\steamworks\lib\win64\steam_api64.lib;Setupapi.lib;../../build/lobster/language/language64.lib;../../build/lobster/engine/engine64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Setupapi.lib;..\external\openvr\lib\win64\openvr_api.lib;..\external\steamworks\lib\win64\steam_api64.lib;../../build/lobster_jit/language/language64.lib;../../build/lobster_jit/engine/engine64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(TargetPath)</OutputFile>
       <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
       <GenerateMapFile>false</GenerateMapFile>
