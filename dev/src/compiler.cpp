@@ -380,7 +380,7 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
 VMArgs CompiledInit(int argc, const char * const *argv, const void *bytecodefb,
                     size_t static_size, const lobster::block_base_t *vtables,
                     FileLoader loader, NativeRegistry &nfr) {
-    min_output_level = OUTPUT_INFO;
+    min_output_level = OUTPUT_WARN;
     InitPlatform("../../", "", false, loader);  // FIXME: path.
     auto vmargs = VMArgs {
         nfr, StripDirPart(argv[0]), {}, bytecodefb, static_size, {},

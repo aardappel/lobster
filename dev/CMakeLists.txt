@@ -69,6 +69,7 @@ else()
     src/towasm.cpp
     src/vm.cpp
     src/vmdata.cpp
+    src/tccbind.cpp
   )
   add_definitions(-DLOBSTER_ENGINE=0)
 endif()
@@ -76,11 +77,6 @@ endif()
 file(GLOB_RECURSE EXTERNAL_SRCS
   "external/flatbuffers/*.cpp"
 )
-
-if(LOBSTER_JIT)
-  list (APPEND LOBSTER_SRCS "src/tccbind.cpp")
-  list (APPEND EXTERNAL_SRCS "external/libtcc/libtcc.c")
-endif()
 
 if(LOBSTER_ENGINE)
   set(SDL_SHARED OFF CACHE INTERNAL "")
@@ -199,13 +195,11 @@ endif()
 set_source_files_properties(${EXTERNAL_SRCS} PROPERTIES COMPILE_FLAGS -w)
 
 set(EXE_NAME lobster)
-if(LOBSTER_JIT)
-  add_definitions(-DVM_COMPILED_CODE_MODE=1)
-  add_definitions(-DVM_JIT_MODE=1)
-endif()
 if(LOBSTER_TOCPP)
   list(REMOVE_ITEM LOBSTER_SRCS "src/main.cpp")
+  list(REMOVE_ITEM LOBSTER_SRCS "src/tccbind.cpp")
   list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")  #FIXME
+  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/tccbind.cpp")  #FIXME
   list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
   add_definitions(-DVM_COMPILED_CODE_MODE=1)
   add_definitions(-flto)
@@ -214,6 +208,11 @@ if(LOBSTER_TOCPP)
     set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
   endif()
   set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -flto")
+elseif(LOBSTER_JIT)
+  add_definitions(-DVM_COMPILED_CODE_MODE=1)
+  add_definitions(-DVM_JIT_MODE=1)
+  list (APPEND EXTERNAL_SRCS "external/libtcc/libtcc.c")
+  set_source_files_properties(external/libtcc/libtcc.c PROPERTIES COMPILE_FLAGS -w)
 endif()
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
 target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
