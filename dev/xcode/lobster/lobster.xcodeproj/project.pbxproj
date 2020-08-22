@@ -28,6 +28,10 @@
 		33224A0422504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
 		33224A0522504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
 		33224A0622504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
+		3327344524F1C6DA00599D4E /* tccbind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3327344424F1C6DA00599D4E /* tccbind.cpp */; };
+		3327344624F1C6DA00599D4E /* tccbind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3327344424F1C6DA00599D4E /* tccbind.cpp */; };
+		3327344924F1C72700599D4E /* libtcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3327344824F1C72700599D4E /* libtcc.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		3327344A24F1C72700599D4E /* libtcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3327344824F1C72700599D4E /* libtcc.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3331456017596D7300D488CC /* lobster in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3331455717596B6100D488CC /* lobster */; };
 		3331456117596E1100D488CC /* glgeom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C51723671F005B7988 /* glgeom.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3331456217596E1100D488CC /* glsystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C81723671F005B7988 /* glsystem.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -444,8 +448,8 @@
 		33D162041BAB9A2200BAD84D /* SDL_cocoaevents.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E7D1BAB9A2100BAD84D /* SDL_cocoaevents.m */; };
 		33D162051BAB9A2200BAD84D /* SDL_cocoaevents.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E7D1BAB9A2100BAD84D /* SDL_cocoaevents.m */; };
 		33D162061BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E7F1BAB9A2100BAD84D /* SDL_cocoakeyboard.m */; };
-		33D162071BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E7F1BAB9A2100BAD84D /* SDL_cocoakeyboard.m */; };
-		33D162081BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E7F1BAB9A2100BAD84D /* SDL_cocoakeyboard.m */; };
+		33D162071BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E7F1BAB9A2100BAD84D /* SDL_cocoakeyboard.m */; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D162081BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E7F1BAB9A2100BAD84D /* SDL_cocoakeyboard.m */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D162091BAB9A2200BAD84D /* SDL_cocoamessagebox.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E811BAB9A2100BAD84D /* SDL_cocoamessagebox.m */; };
 		33D1620A1BAB9A2200BAD84D /* SDL_cocoamessagebox.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E811BAB9A2100BAD84D /* SDL_cocoamessagebox.m */; };
 		33D1620B1BAB9A2200BAD84D /* SDL_cocoamessagebox.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D15E811BAB9A2100BAD84D /* SDL_cocoamessagebox.m */; };
@@ -895,6 +899,8 @@
 		332249F522482B13009BDE0E /* towasm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = towasm.cpp; sourceTree = "<group>"; };
 		332249F622482B13009BDE0E /* tonative.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tonative.cpp; sourceTree = "<group>"; };
 		33224A0322504341009BDE0E /* octree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = octree.cpp; sourceTree = "<group>"; };
+		3327344424F1C6DA00599D4E /* tccbind.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tccbind.cpp; sourceTree = "<group>"; };
+		3327344824F1C72700599D4E /* libtcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libtcc.c; path = ../../../external/libtcc/libtcc.c; sourceTree = "<group>"; };
 		3331455717596B6100D488CC /* lobster */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lobster; sourceTree = BUILT_PRODUCTS_DIR; };
 		3331457917596EFD00D488CC /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		3331457A17596EFD00D488CC /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
@@ -1537,9 +1543,18 @@
 			name = FlatBuffers;
 			sourceTree = "<group>";
 		};
+		3327344724F1C6F400599D4E /* TCC */ = {
+			isa = PBXGroup;
+			children = (
+				3327344824F1C72700599D4E /* libtcc.c */,
+			);
+			path = TCC;
+			sourceTree = "<group>";
+		};
 		3368FEB21488AA88008B38B6 = {
 			isa = PBXGroup;
 			children = (
+				3327344724F1C6F400599D4E /* TCC */,
 				33224A0222482BB8009BDE0E /* FlatBuffers */,
 				33878C881F7B1FC8007BB196 /* SDLMixer */,
 				33DAC5581E5CC7250003767C /* include */,
@@ -1748,6 +1763,7 @@
 		3395A8BE176140570047BE1F /* compiler */ = {
 			isa = PBXGroup;
 			children = (
+				3327344424F1C6DA00599D4E /* tccbind.cpp */,
 				332249F422482B13009BDE0E /* tocpp.cpp */,
 				332249F622482B13009BDE0E /* tonative.cpp */,
 				332249F522482B13009BDE0E /* towasm.cpp */,
@@ -2916,6 +2932,7 @@
 				3331456617596E1100D488CC /* gltexture.cpp in Sources */,
 				33878CF21F7B201D007BB196 /* music_modplug.c in Sources */,
 				3331456717596E1100D488CC /* audio.cpp in Sources */,
+				3327344624F1C6DA00599D4E /* tccbind.cpp in Sources */,
 				8C7603A3195E457400EADF6F /* b2GearJoint.cpp in Sources */,
 				33D163961BAB9A2200BAD84D /* SDL_assert.c in Sources */,
 				33D163871BAB9A2200BAD84D /* SDL_x11shape.c in Sources */,
@@ -2982,6 +2999,7 @@
 				33D1613F1BAB9A2200BAD84D /* SDL_blendfillrect.c in Sources */,
 				33FDF14D220A599400D7B010 /* imgui_widgets.cpp in Sources */,
 				33D161B11BAB9A2200BAD84D /* SDL_sysmutex.c in Sources */,
+				3327344A24F1C72700599D4E /* libtcc.c in Sources */,
 				33D161061BAB9A2200BAD84D /* SDL_syspower.c in Sources */,
 				8C760361195E457400EADF6F /* b2Settings.cpp in Sources */,
 				8C760355195E457400EADF6F /* b2BlockAllocator.cpp in Sources */,
@@ -3184,6 +3202,7 @@
 				3381CB2D162371AB0069B2E8 /* meshgen.cpp in Sources */,
 				33878CF11F7B201D007BB196 /* music_modplug.c in Sources */,
 				8C7603A2195E457400EADF6F /* b2GearJoint.cpp in Sources */,
+				3327344524F1C6DA00599D4E /* tccbind.cpp in Sources */,
 				8C7603A5195E457400EADF6F /* b2Joint.cpp in Sources */,
 				33D163951BAB9A2200BAD84D /* SDL_assert.c in Sources */,
 				33D163861BAB9A2200BAD84D /* SDL_x11shape.c in Sources */,
@@ -3250,6 +3269,7 @@
 				33D1613E1BAB9A2200BAD84D /* SDL_blendfillrect.c in Sources */,
 				33FDF14C220A599400D7B010 /* imgui_widgets.cpp in Sources */,
 				33D161B01BAB9A2200BAD84D /* SDL_sysmutex.c in Sources */,
+				3327344924F1C72700599D4E /* libtcc.c in Sources */,
 				33D161051BAB9A2200BAD84D /* SDL_syspower.c in Sources */,
 				8C760354195E457400EADF6F /* b2BlockAllocator.cpp in Sources */,
 				8C7603BA195E457400EADF6F /* b2WeldJoint.cpp in Sources */,
@@ -3799,6 +3819,7 @@
 					../../external/SDL/include,
 					../../external/freetype/include,
 					../../external/SDLMixer,
+					../../external/libtcc,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3862,6 +3883,7 @@
 					../../external/SDL/include,
 					../../external/freetype/include,
 					../../external/SDLMixer,
+					../../external/libtcc,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				SDKROOT = macosx;
