@@ -996,17 +996,17 @@ ILJUMPNAMES2
 
 #ifdef VM_JIT_MODE
 
-#ifdef LOBSTER_ENGINE
+#if LOBSTER_ENGINE
 extern "C" StackPtr GLFrame(StackPtr sp, VM & vm);
 #endif
 
-extern const void *vm_ops_jit_table[] = {
+const void *vm_ops_jit_table[] = {
     #define F(N, A) "U_" #N, (void *)&CVM_##N,
         ILNAMES
     #undef F
     "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
     "Drop", (void *)CVM_Drop,
-    #ifdef LOBSTER_ENGINE
+    #if LOBSTER_ENGINE
     "GLFrame", (void *)GLFrame,
     #endif
     0, 0

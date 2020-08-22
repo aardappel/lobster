@@ -216,7 +216,7 @@ if(LOBSTER_TOCPP)
   set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -flto")
 endif()
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
-target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 if(LOBSTER_ENGINE)
     target_link_libraries(${EXE_NAME}
       ${SDL_LIBRARIES}
