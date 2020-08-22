@@ -1001,13 +1001,13 @@ extern "C" StackPtr GLFrame(StackPtr sp, VM & vm);
 #endif
 
 extern const void *vm_ops_jit_table[] = {
-    #define F(N, A) "U_" #N, &CVM_##N,
+    #define F(N, A) "U_" #N, (void *)&CVM_##N,
         ILNAMES
     #undef F
-    "GetNextCallTarget", CVM_GetNextCallTarget,
-    "Drop", CVM_Drop,
+    "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
+    "Drop", (void *)CVM_Drop,
     #ifdef LOBSTER_ENGINE
-    "GLFrame", GLFrame,
+    "GLFrame", (void *)GLFrame,
     #endif
     0, 0
 };
