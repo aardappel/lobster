@@ -113,8 +113,8 @@ int main(int argc, char* argv[]) {
                 string a = argv[arg];
                 if      (a == "--wait") { wait = true; }
                 else if (a == "--pak") { lpak = default_lpak; }
-                else if (a == "--cpp") { to_cpp = true; to_native = true; }
-                else if (a == "--wasm") { to_wasm = true; to_native = true; }
+                else if (a == "--cpp") { to_cpp = true; to_native = true; to_c = false; }
+                else if (a == "--wasm") { to_wasm = true; to_native = true; to_c = false; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--disasm") { disasm = true; }
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }

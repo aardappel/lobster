@@ -55,7 +55,7 @@ void EngineRunByteCode(VMArgs &&vmargs) {
     vma.vm->EvalProgram();
 }
 
-extern "C" int RunCompiledCodeMain(int argc, const char *argv[],
+extern "C" int RunCompiledCodeMain(int argc, const char * const *argv,
                                    const void *bytecodefb, size_t static_size,
                                    const lobster::block_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING

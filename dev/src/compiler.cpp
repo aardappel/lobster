@@ -377,7 +377,7 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "parsedata", AddReader);
 }
 
-VMArgs CompiledInit(int argc, const char *argv[], const void *bytecodefb,
+VMArgs CompiledInit(int argc, const char * const *argv, const void *bytecodefb,
                     size_t static_size, const lobster::block_base_t *vtables,
                     FileLoader loader, NativeRegistry &nfr) {
     min_output_level = OUTPUT_INFO;
@@ -396,7 +396,7 @@ int UnusedRunCompiledCodeMain
 #else
 extern "C" int RunCompiledCodeMain
 #endif
-(int argc, const char *argv[], const void *bytecodefb, size_t static_size,
+(int argc, const char * const *argv, const void *bytecodefb, size_t static_size,
  const lobster::block_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING
     try
