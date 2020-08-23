@@ -85,12 +85,16 @@ using namespace geom;
 #if defined(BUILD_CONTEXT_compiled_lobster) || defined(BUILD_CONTEXT_lobster_jit) || defined(__APPLE__)
     // This code is being build as part of lobster code compiled to C++, modify VM behavior
     // accordingly.
-    #define VM_COMPILED_CODE_MODE
+    #ifndef VM_COMPILED_CODE_MODE
+        #define VM_COMPILED_CODE_MODE
+    #endif
 #endif
 
 #if defined(BUILD_CONTEXT_lobster_jit) || (defined(__APPLE__) && !defined(__IOS__))
     // A sub-mode of VM_COMPILED_CODE_MODE where we compile and run (JIT)
-    #define VM_JIT_MODE
+    #ifndef VM_JIT_MODE
+        #define VM_JIT_MODE
+    #endif
 #endif
 
 #ifndef LOBSTER_ENGINE
