@@ -16,12 +16,12 @@ let root = node { "", -1, nil }
 var selected = root
 var entries = []
 
-def fullpath(n::node):
+def fullpath(n::node) -> string:
     return if parent: parent.fullpath() + "/" + name else: name
 
 def scan(n:node):
     entries = []
-    let names, sizes = scan_folder(n.fullpath, 1024)
+    let names, sizes = scan_folder(n.fullpath)
     if names and sizes:
         for(names) name, i:
             entries.push(node { name, sizes[i], nil })
@@ -32,13 +32,13 @@ def select(n:node):
     selected = n
     scan(n)
 
-def unparent(n::node):
+def unparent(n::node) -> void:
     parent = nil
-    for(children): _.unparent()
+    for children: _.unparent()
 
 select(root)
 
-def render_tree(n:node):
+def render_tree(n:node) -> float:
     var text = n.name
     if text == "": text = "(root)"
     let size = float(gl_text_size(text))
@@ -61,6 +61,7 @@ def render_tree(n:node):
     return width
 
 def render_entries():
+    var newsel = nil
     for(entries) e:
         gl_color(if e.size < 0: color_blue else: color_black):
             let text = e.name
@@ -69,21 +70,21 @@ def render_entries():
                 if gl_button("mouse1") == 1:
                     let dups = filter selected.children: _.name == e.name
                     if dups.length:
-                        select(dups[0])
+                        newsel = dups[0]
                     else:
-                        let n = node { e.name, e.size, selected }
-                        selected.children.push(n)
-                        select(n)
+                        newsel = node { e.name, e.size, selected }
+                        selected.children.push(newsel)
                 gl_color color_light_grey:
                     gl_rect(size)
             gl_text(e.name)
             gl_translate xy { 0.0, fontsize }
+    if newsel: select(newsel)
 
 def render_sizes(old_width):
     var width = 0.0
     for(entries) e:
         gl_color color_dark_green:
-            let text = if e.size < 0: "---" else: e.size + 1 + "K"
+            let text = if e.size < 0: "---" else: string(e.size)
             let size = gl_text_size(text)
             width = max(width, size.x)
             gl_translate xy { old_width - size.x - column_margin, 0.0 }:

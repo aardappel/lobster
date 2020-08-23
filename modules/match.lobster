@@ -41,10 +41,10 @@ if program_name() == "match.lobster" or program_name() == "modules/match.lobster
     // example: match any number of A's, followed by either a B or C/D in sequence (and capture this
     // substring), followed by an E and then the end of the sequence:
 
-    let r = match_with(assert string_to_unicode("AAAAAAABCDCDBCDBBBE")):
+    let r = match_with(string_to_unicode("AAAAAAABCDCDBCDBBBE")):
         match_any(): match('A')
         print unicode_to_string(matched():
-            match_any(): match('B') or match_sequence(assert string_to_unicode("CD")))
+            match_any(): match('B') or match_sequence(string_to_unicode("CD")))
         match('E') and match_end()
 
     // prints out: BCDCDBCDBBB

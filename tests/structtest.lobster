@@ -68,6 +68,9 @@ run_test("struct"):
         assert xy { 1, 2 } == switch manhattan(xy { 1, 1 }):
                                 case 2: xy { 1, 2 }
                                 default: xy { 3, 4 }
+        for([ xy { 1, 2 }, xy { 0, 3 } ]) st: assert st.x + st.y == 3
+        struct xy_s = xy<string>
+        for([ xy { "a", "bb" }, xy { "ab", "b" } ]) st: assert st.x + st.y == "abb"
 
     // Function calls.
     do():
@@ -105,9 +108,9 @@ run_test("struct"):
         fr = f(rs[1])
         assert fr.a == "twotwo"
         let rn = RN { "A", R { "B", [ 64 ] } }
-        def fn(x): return RN { x.a + x.a, R { x.r.a + x.r.a, append(x.r.b, x.r.b) } }
-        var frn = fn(rn)
+        def fun(x): return RN { x.a + x.a, R { x.r.a + x.r.a, append(x.r.b, x.r.b) } }
+        var frn = fun(rn)
         assert frn.a == "AA" and frn.r.b[1] == 64
         let rns = [ RN { "AA", R { "one", [ 1 ] } }, RN { "BB", R { "two", [ 2 ] } } ]
-        frn = fn(rns[1])
+        frn = fun(rns[1])
         assert frn.a == "BBBB" and frn.r.b[1] == 2

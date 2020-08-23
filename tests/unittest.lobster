@@ -2,7 +2,7 @@ import testing
 
 // This includes all tests in default run-once mode, as a simple unit test.
 
-current_test_runner = def(name:string, t:testf):
+current_test_runner = fn(name:string, t:testf):
     print "testing: " + name
     t()
 
@@ -10,7 +10,6 @@ import structtest
 import misctest
 import mischtest
 import typetest
-import corotest
 import astartest
 import goaptest
 import knightstest

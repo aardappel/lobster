@@ -4,10 +4,11 @@
 import vec
 import color
 import util3d
+import gl
 
 print "generating models... this may take some time!"
 
-fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800))
+fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800, gl_window_init_linear_color))
 
 camera_position = xyz { 10.0, 10.0, 10.0 }
 camera_yaw = 135
@@ -84,7 +85,7 @@ if true:
                         mg_cylinder(0.35, 0.25)
     spaceship = mg_polygonize(density * 2)
 
-def model_tree(numb, branchl, narrowf, leafs, leafc):
+def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
     if numb:
         mg_translate(xyz_z * branchl):
             mg_tapered_cylinder(1, narrowf, branchl)
@@ -105,23 +106,23 @@ let trees = []
 
 if true:
     mg_smooth(0.5)
-    mg_color(color { 0.7, 0.6, 0.5, 1.0 })
-    model_tree(10, 1.5, 0.75, 12, color { 0.6, 1.0, 0.6, 1.0 })
+    mg_color(color { 0.6, 0.5, 0.4, 1.0 })
+    model_tree(10, 1.5, 0.75, 12, color { 0.4, 1.0, 0.4, 1.0 })
+    trees.push(mg_polygonize(density))
+
+    mg_color(color { 0.4, 0.3, 0.2, 1.0 })
+    model_tree(10, 1.2, 0.8, 1.2, color { 0.6, 1.0, 0.3, 1.0 })
     trees.push(mg_polygonize(density))
 
     mg_color(color { 0.5, 0.4, 0.3, 1.0 })
-    model_tree(10, 1.2, 0.8, 1.2, color { 0.8, 1.0, 0.5, 1.0 })
-    trees.push(mg_polygonize(density))
-
-    mg_color(color { 0.6, 0.5, 0.4, 1.0 })
-    model_tree(9, 2.0, 0.7, 15, color { 0.5, 0.7, 0.5, 1.0 })
+    model_tree(9, 2.0, 0.7, 15, color { 0.4, 0.6, 0.4, 1.0 })
     trees.push(mg_polygonize(density))
 
 var landscape = nil
 // Currently expensive way to do a landscape.
 if true:
     mg_smooth(0.1)
-    mg_color(color { 0.7, 0.6, 0.5, 1.0 })
+    mg_color(color { 0.6, 0.5, 0.4, 1.0 })
     mg_landscape(0.5, 1.0)
     landscape = mg_polygonize(density)
 
@@ -137,7 +138,7 @@ while gl_frame():
 
     gl_window_title("meshgen test: " + gl_delta_time())
 
-    gl_clear(color_dark_grey)
+    gl_clear(color_darkest_grey)
 
     let fovscale = 1.5
 

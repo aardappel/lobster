@@ -28,6 +28,12 @@ struct Sound {
     Sound() : chunk(nullptr, Mix_FreeChunk) {}
 };
 
+
+const int channel_num = 16; // number of mixer channels
+int sound_pri[channel_num] = {};
+uint64_t sound_age[channel_num] = {};
+uint64_t sounds_played = 0;
+
 map<string, Sound, less<>> sound_files;
 
 Mix_Chunk *RenderSFXR(string_view buf) {
@@ -374,8 +380,13 @@ Sound *LoadSound(string_view filename, bool sfxr) {
     return &(sound_files.insert({ string(filename), std::move(snd) }).first->second);
 }
 
-bool SDLSoundInit() {
+bool SDLSoundInit() {    
     if (sound_init) return true;
+
+    #ifdef __EMSCRIPTEN__
+    // Distorted in firefox and no audio at all in chrome, disable for now.
+        return false;
+    #endif
 
     for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
         LOG_INFO("Audio driver available ", SDL_GetAudioDriver(i));
@@ -402,6 +413,7 @@ bool SDLSoundInit() {
         LOG_ERROR("Mix_OpenAudio: ", Mix_GetError());
         return false;
     }
+    Mix_AllocateChannels(channel_num);
     // This seems to be needed to not distort when multiple sounds are played.
     Mix_Volume(-1, MIX_MAX_VOLUME / 2);
     sound_init = true;
@@ -417,18 +429,57 @@ void SDLSoundClose() {
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-bool SDLPlaySound(string_view filename, bool sfxr, int vol) {
-    #ifdef __EMSCRIPTEN__
-    // Distorted in firefox and no audio at all in chrome, disable for now.
-    return false;
-    #endif
-
-    if (!SDLSoundInit())
-        return false;
-
+int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int pri) {
+    if (!SDLSoundInit()) return 0;
     auto snd = LoadSound(filename, sfxr);
-    if (snd) {
-        Mix_Volume(Mix_PlayChannel(-1, snd->chunk.get(), 0), vol);
+    if (!snd) return 0;
+    int ch = Mix_GroupAvailable(-1); // is there any free channel?
+    if (ch == -1) {
+        // no free channel -- find the lowest priority/oldest sound of all currently playing that are <= prio
+        int p = pri;
+        uint64_t sa = UINT64_MAX;
+        for (int i = 0; i < channel_num; i++) {
+            if (sound_pri[i] < p) {
+                ch = i;
+                p = sound_pri[i];
+                sa = sound_age[i]; // save sound age too in case multiple channels equal this new priority!
+            }
+            else if (sound_pri[i] == p && sound_age[i] < sa) {
+                ch = i;
+                sa = sound_age[i];
+            }
+        }
+        if (ch >= 0) Mix_HaltChannel(ch); // halt that channel
     }
-    return !!snd;
+    if (ch >= 0) {
+        Mix_PlayChannel(ch, snd->chunk.get(), loops);
+        Mix_Volume(ch, (int)(MIX_MAX_VOLUME * vol)); // set channel to default volume (max)
+        sound_pri[ch] = pri; // add priority to our array
+        sound_age[ch] = sounds_played++;
+    }
+    return ++ch; // we return channel numbers 1..8 rather than 0..7
+}
+
+void SDLHaltSound(int ch) {
+    ch--; // SDL_Mixer enmerates channels from 0, Lobster from 1
+    Mix_Resume(ch); // fix SDL bug not clearing the paused flag on halt by resuming (even if not paused) right before halt
+    Mix_HaltChannel(ch);
+}
+
+void SDLPauseSound(int ch) {
+    Mix_Pause(ch - 1);
+}
+
+int SDLSoundStatus(int ch) { // returns -1 for illegal channel index, 0 for available , 1 for playing, 2 for paused
+    int num_chn = Mix_AllocateChannels(-1); // called with -1 this returns the current number of channels
+    if (ch <= num_chn) return Mix_Playing(ch - 1) + Mix_Paused(ch - 1);
+    else return -1;
+}
+
+void SDLResumeSound(int ch) {
+    if (Mix_Paused(ch - 1) > 0) Mix_Resume(ch - 1); // this already tests for SDLSoundInit() etc.
+}
+
+void SDLSetVolume(int ch, float vol) {
+    Mix_Volume(ch - 1, (int)(MIX_MAX_VOLUME * vol));
 }

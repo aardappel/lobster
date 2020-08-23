@@ -263,11 +263,7 @@ class foo<T>:
     b:T
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-And unlike functions, Lobster is a bit more strict here in that it requires
-you to explicitly define a specialization before you can use it[^1]:
-
-[^1]: The initial typed version of Lobster would create specializations on the
-fly, but this could cause very hard to track down type errors.
+You can now create named specializations using this syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class foo_f = foo<float>
@@ -275,7 +271,8 @@ class foo_f = foo<float>
 
 You can now construct a foo with floats, either explicitly with `foo_f { "hi",
 2.0 }`, or you can use the generic type: `foo { "hi", 2.0 }` and let the
-compiler pick from all available specializations.
+compiler pick from all available named specializations. If you wish, you can
+also construct a specialization directly without naming it: `foo<float> { "hi", 2.0 }`
 
 Functions written to accept `foo` arguments will of course work on any of the
 specializations.

@@ -5,7 +5,7 @@ import color
 
 let directions = [ xy_0, xy_x, xy_y ]
 
-def sierpinski(depth):
+def sierpinski(depth) -> void:
     if depth:
         gl_scale 0.5:
             for(directions) d:

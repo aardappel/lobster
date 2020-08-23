@@ -31,6 +31,7 @@ vector<Light> lights;
 float pointscale = 1.0f;
 float custompointscale = 1.0f;
 bool mode2d = true;
+bool mode_srgb = false;
 GeometryCache *geomcache = nullptr;
 
 void AppendTransform(const float4x4 &forward, const float4x4 &backward) {
@@ -105,9 +106,10 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar) {
 }
 
 bool Is2DMode() { return mode2d; }
+bool IsSRGBMode() { return mode_srgb; }
 
-uchar *ReadPixels(const int2 &pos, const int2 &size) {
-    uchar *pixels = new uchar[size.x * size.y * 3];
+uint8_t *ReadPixels(const int2 &pos, const int2 &size) {
+    auto pixels = new uint8_t[size.x * size.y * 3];
     for (int y = 0; y < size.y; y++)
         GL_CALL(glReadPixels(pos.x, pos.y + size.y - y - 1, size.x, 1, GL_RGB, GL_UNSIGNED_BYTE,
                              pixels + y * (size.x * 3)));
@@ -121,7 +123,14 @@ void OpenGLFrameStart(const int2 &ssize) {
     lights.clear();
 }
 
-void OpenGLInit(int samples) {
+void OpenGLFrameEnd() {
+    //uint8_t pixel[4];
+    //glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
+    //glFlush();
+    //glFinish();
+}
+
+void OpenGLInit(int samples, bool srgb) {
     GL_CHECK("before_init");
     // If not called, flashes red framebuffer on OS X before first gl_clear() is called.
     ClearFrameBuffer(float3_0);
@@ -130,7 +139,7 @@ void OpenGLInit(int samples) {
                 union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
                 funcast.proc = SDL_GL_GetProcAddress(#name); \
                 name = funcast.fun; \
-                if (!name && needed) THROW_OR_ABORT(string("no " #name)); \
+                if (!name && needed) THROW_OR_ABORT("no " #name); \
             }
         GLBASEEXTS GLEXTS
         #undef GLEXT
@@ -140,6 +149,10 @@ void OpenGLInit(int samples) {
         GL_CALL(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST));
         GL_CALL(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
         if (samples > 1) GL_CALL(glEnable(GL_MULTISAMPLE));
+        if (srgb) {
+            GL_CALL(glEnable(GL_FRAMEBUFFER_SRGB));
+            mode_srgb = true;
+        }
     #endif
     GL_CALL(glCullFace(GL_FRONT));
     assert(!geomcache);

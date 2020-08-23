@@ -101,6 +101,7 @@
         GLEXT(PFNGLBLENDEQUATIONSEPARATEPROC         , glBlendEquationSeparate         , 1) \
         GLEXT(PFNGLBLENDFUNCSEPARATEPROC             , glBlendFuncSeparate             , 1) \
         GLEXT(PFNGLBINDSAMPLERPROC                   , glBindSampler                   , 1) \
+        GLEXT(PFNGLDRAWELEMENTSBASEVERTEXPROC        , glDrawElementsBaseVertex        , 1) \
         GLEXT(PFNGLBINDRENDERBUFFERPROC              , glBindRenderbuffer              , 0) \
         GLEXT(PFNGLDELETERENDERBUFFERSPROC           , glDeleteRenderbuffers           , 0) \
         GLEXT(PFNGLBINDFRAMEBUFFERPROC               , glBindFramebuffer               , 0) \

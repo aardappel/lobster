@@ -3,7 +3,7 @@
 import vec
 import color
 
-def branch(n, max, scale, len):
+def branch(n, max, scale, len) -> void:
     let poly = [ xy_x, -xy_x, xy { -scale, len }, xy { scale, len } ]
     gl_color(color { n / max, 0.8, n / max, 1 })
     gl_polygon(poly)

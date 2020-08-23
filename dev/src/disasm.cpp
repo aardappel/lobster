@@ -37,7 +37,7 @@ const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
 }
 
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
-                            const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
+                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
     auto li = LookupLine(ip, code, bcf);
@@ -70,16 +70,16 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             break;
         }
 
-        case IL_LOGWRITE:
         case IL_KEEPREF:
+        case IL_KEEPREFLOOP:
             append(sd, *ip++, " ");
             append(sd, *ip++);
             break;
 
         case IL_RETURN: {
             auto id = *ip++;
-            ip++;  // retvals
-            sd += bcf->functions()->Get(id)->name()->string_view();
+            auto nrets = *ip++;
+            append(sd, bcf->functions()->Get(id)->name()->string_view(), " ", nrets);
             break;
         }
 
@@ -142,7 +142,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             is_struct = 1;
         case IL_PUSHVAR:
         var:
-            sd += IdName(bcf, *ip++);
+            sd += IdName(bcf, *ip++, typetable, is_struct);
             if (is_struct) append(sd, " ", *ip++);
             break;
 
@@ -152,31 +152,33 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             break;
 
         case IL_PUSHSTR:
-            EscapeAndQuote(bcf->stringtable()->Get(*ip++)->string_view(), sd);
+            EscapeAndQuote(bcf->stringtable()->Get(*ip++)->string_view(), sd, false);
             break;
+
+        case IL_JUMP_TABLE: {
+            auto mini = *ip++;
+            auto maxi = *ip++;
+            auto n = maxi - mini + 2;
+            append(sd, mini, "..", maxi, " [ ");
+            while (n--) append(sd, *ip++, " ");
+            sd += "]";
+            break;
+        }
 
         case IL_FUNSTART: {
             auto fidx = *ip++;
             sd += (fidx >= 0 ? bcf->functions()->Get(fidx)->name()->string_view() : "__dummy");
             sd += "(";
             int n = *ip++;
-            while (n--) append(sd, IdName(bcf, *ip++), " ");
+            while (n--) append(sd, IdName(bcf, *ip++, typetable, false), " ");
             n = *ip++;
             sd += "=> ";
-            while (n--) append(sd, IdName(bcf, *ip++), " ");
+            while (n--) append(sd, IdName(bcf, *ip++, typetable, false), " ");
             auto keepvars = *ip++;
             if (keepvars) append(sd, "K:", keepvars, " ");
             n = *ip++;  // owned
-            while (n--) append(sd, "O:", IdName(bcf, *ip++), " ");
+            while (n--) append(sd, "O:", IdName(bcf, *ip++, typetable, false), " ");
             sd += ")";
-            break;
-        }
-
-        case IL_CORO: {
-            append(sd, *ip++);
-            ip++;  // typeinfo
-            int n = *ip++;
-            for (int i = 0; i < n; i++) append(sd, " v", *ip++);
             break;
         }
 
@@ -200,6 +202,7 @@ void DisAsm(NativeRegistry &nfr, string &sd, string_view bytecode_buffer) {
     auto len = bcf->bytecode()->Length();
     const int *ip = code;
     while (ip < code + len) {
+        if (*ip == IL_FUNSTART) sd += "------- ------- ---\n";
         ip = DisAsmIns(nfr, sd, ip, code, typetable, bcf);
         sd += "\n";
         if (!ip) break;

@@ -219,7 +219,7 @@ implementation of a bytecode instruction is trivial, it will get inlined,
 saving us the trouble of doing so. The second reason is more complicated:
 Lobster currently has all of its variables on its own stack (where it can
 do custom management of it, required for e.g. its memory management, non
-local return and co-routine features). Instructions like `i32.add` instead
+local return features). Instructions like `i32.add` instead
 expects values on the wasm stack. So maximum benefit of emitting such
 instructions directly would only be achieved if (a subset of) Lobster
 variables could be moved into wasm locals first. That is a more extensive

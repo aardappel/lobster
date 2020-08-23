@@ -17,9 +17,3 @@ run_test("misch"):
             print(comperr2)
         assert(compres2 == "plugintest return value")
 
-        // Minimal log test with ref types:
-        for(3) i:
-            log_frame()
-            let v ?= []
-            assert v.length == i
-            v.push(string(i))

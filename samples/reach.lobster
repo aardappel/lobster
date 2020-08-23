@@ -22,9 +22,6 @@ while gl_frame():
 
     gl_scale(min(gl_window_size().x, gl_window_size().y))
 
-    gl_color(color_light_grey)
-    gl_unit_square()
-
     ball += ballvel
 
     if(ball.x > 1 - ballradius or ball.x < ballradius): ballvel *= xy { -1.0,  1.0 }

@@ -24,11 +24,6 @@ namespace lobster {
     TOK(T_MULT, "*") \
     TOK(T_DIV, "/") \
     TOK(T_MOD, "%") \
-    TOK(T_PLUSEQ, "+=") \
-    TOK(T_MINUSEQ, "-=") \
-    TOK(T_MULTEQ, "*=") \
-    TOK(T_DIVEQ, "/=") \
-    TOK(T_MODEQ, "%=") \
     TOK(T_AND, "and") \
     TOK(T_OR, "or") \
     TOK(T_NOT, "not") \
@@ -47,10 +42,19 @@ namespace lobster {
     TOK(T_ASL, "<<") \
     TOK(T_ASR, ">>") \
     TOK(T_ASSIGN, "=") \
-    TOK(T_LOGASSIGN, "?=") \
+    TOK(T_PLUSEQ, "+=") \
+    TOK(T_MINUSEQ, "-=") \
+    TOK(T_MULTEQ, "*=") \
+    TOK(T_DIVEQ, "/=") \
+    TOK(T_MODEQ, "%=") \
+    TOK(T_ANDEQ, "&=") \
+    TOK(T_OREQ, "|=") \
+    TOK(T_XOREQ, "^=") \
+    TOK(T_ASLEQ, "<<=") \
+    TOK(T_ASREQ, ">>=") \
     TOK(T_DOT, ".") \
     TOK(T_DOTDOT, "..") \
-    TOK(T_CODOT, "->") \
+    TOK(T_RETURNTYPE, "->") \
     TOK(T_INT, "integer literal") \
     TOK(T_FLOAT, "floating point literal") \
     TOK(T_STR, "string literal") \
@@ -59,10 +63,10 @@ namespace lobster {
     TOK(T_IDENT, "identifier") \
     TOK(T_CLASS, "class") \
     TOK(T_FUN, "def") \
+    TOK(T_LAMBDA, "fn") \
     TOK(T_RETURN, "return") \
     TOK(T_IS, "is") \
     TOK(T_TYPEOF, "typeof") \
-    TOK(T_COROUTINE, "coroutine") \
     TOK(T_LINEFEED, "linefeed") \
     TOK(T_ENDOFINCLUDE, "end of include") \
     TOK(T_ENDOFFILE, "end of file") \
@@ -87,7 +91,6 @@ namespace lobster {
     TOK(T_STRTYPE, "string") \
     TOK(T_ANYTYPE, "any") \
     TOK(T_VOIDTYPE, "void") \
-    TOK(T_LAZYEXP, "lazy_expression") \
     TOK(T_FROM, "from") \
     TOK(T_PROGRAM, "program") \
     TOK(T_PRIVATE, "private") \
@@ -97,10 +100,17 @@ namespace lobster {
     TOK(T_VAR, "var") \
     TOK(T_CONST, "let") \
     TOK(T_PAKFILE, "pakfile") \
+    TOK(T_IF, "if") \
+    TOK(T_ELSE, "else") \
+    TOK(T_ELIF, "elif") \
+    TOK(T_WHILE, "while") \
+    TOK(T_FOR, "for") \
     TOK(T_SWITCH, "switch") \
     TOK(T_CASE, "case") \
     TOK(T_DEFAULT, "default") \
-    TOK(T_NAMESPACE, "namespace")
+    TOK(T_NAMESPACE, "namespace") \
+    TOK(T_BREAK, "break") \
+    TOK(T_SUPER, "super")
 
 enum TType {
     #define TOK(ENUM, STR) ENUM,

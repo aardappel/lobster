@@ -1,18 +1,83 @@
-- how does keepvar work with inlined functions?
+- stefandd: DLL builtins loading.
+  - make sure to put in checks for debug/compiled/32-bit mode, and maybe some other compatibility checks
+  - maybe use __TIMESTAMP__ of vmdata.h as version?
+
+- natgen refactor
+  - can finally remove exceptions? could instead execute a return from -3 or whatever.
+    - should re-test how much it affects the interpreter.. or first create a JIT.
+  - look at disasm for opcodes that generate long sequences and de-inline them.
+  - benchmark!
+  - Should really move away from a Makefile for Wasm, there's been plenty of cases where bugs
+    appeared because certain files weren't recompiled.
+  - Graphical code with asyncify does not work with the direct to Wasm backend!
+    - Some memory corruption that doesn't seem to be possible to find with Asan or SAFE_HEAP.
+    - DOES work in C++ mode, so subtle bug in Wasm output? Though unit test runs fine,
+      so may be some unintended interplay with asyncify.
+  - With asyncify, still instruments functions it shouldn't, mainly in the SDL.
+    Try with --pass-arg=asyncify-verbose
+    https://github.com/WebAssembly/binaryen/commit/f632c1fd62a588c83237d2d7018745c3f20eff66
+
+- Should consider a simple JIT, as a way to run in between the interpreter and the C++ mode.
+  As ops get lighter weight, the gain compared to the interpreter will get bigger.
+  It will still be a lot slower than the C++ mode though, since it lacks all the inlining,
+  unless we do that manually for the most frequent ops.
+  - Though first finish reworking the C++ mode.
+  - If we have a simple JIT, we could retire the interpreter entirely.
+    There's a lot of differences between how the interpreter and the backends work that would
+    be great to clean up.
+    - Also removes the pressure to not split up bytecodes even further.
+    - And could make the bytecode more high-level, with actual control structures instead of
+      jumps, which would simplify the Wasm backend and make C++ backend more readable (though
+      complicate the JIT slightly).
+    - We may already have to require compilation for Wasm, and we could do the same for iOS.
+    - Desktop can use the JIT.
+    - Android could use JIT, but maybe simpler to only have x86 JIT.
+    - Future macOS will need arm JIT if its to remain a "development" platform.
+
+- stefandd: multiple assign doesn't work on fields.
+
+- Fix `is`, see https://github.com/aardappel/lobster/issues/99
+
+- See if audio works again under emscripten:
+  https://github.com/emscripten-ports/SDL2/commit/865eaddffed50dbd13e6564c3f73902472cf74e8
+
+- docs only show switch used as exp
+
+- let x:T = vector_reserve(typeof U, ) may crash if U is not compatible with T.
+  Maybe at least in the docs mark this function as private, people should use `map` instead.
+  Or re-think this feature entirely?
+
+- it's possible to bypass variable initialization with forward calls which will crash.
 
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
 
+- it be really easy to bring full "any" back for builtin functions, and mixed type varargs
+  at the same time by prefixing each value on the stack by a ti value, and possibly a length.
+  what is this useful for?
+  - more efficient print and to string?
+  - formatted printing?
+  - serialization?
+
+- add a debug (or dbg) statement analogous to asssert, like:
+  https://github.com/sharkdp/dbg-macro
+  also improve assert output
+
 - jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
-  - a good lobster choice may be to abstract them as coroutines, or at least a
-    higher order `def generator(consume):` protocol
   - especially so since insatiable random generators (to get multiple
     independent streams) would be great in addition to / instead of a shared
     global generator
 - doug currie: rnd(9223372036854775807) always returns 1.
   rnd only works in 32-bit currently. could make it use 64-bit, but this will change the
   results for existing code..
+
+- NEWVEC can defeat the STACKMARGIN check if called with sufficient args.
+
+- Expand ConstVal and the optimizer. It should be implemented for every node.
+  - Actually probably doesn't need to be implemented for `if` etc, since it already
+    has special purpose code for this.
+  - also add constant propagation.
 
 - jg/jcorbin: should allow function values to be other than just variables, any exp.
   currently not even `f()` works if `f` is a member variable.
@@ -25,6 +90,14 @@
   forbid free variables when something becomes a dynamic function value, since there are plenty
   of useful cases of accessing top level variables etc.
   Maybe somehow tie the scope of free variables to the function type?
+
+- remove restrictions or make clearer errors:
+  - call on function value must be single var, not member
+  - cannot derive function value from named function.
+
+- create xy { "a", "b" } without explicit string specialization gives:
+  error: "constructor" (1st argument) requires type "T", got: "string"
+  should probably ask for an explicit specialization instead.
 
 - General order of typechecking is:
   * child TT
@@ -43,22 +116,34 @@
   Also, maybe have the case where LT adjust does nothing (e.g. for integer) then subtype coercion
   to e.g. string suddenly needs a different LT than the initial TT.
 
+- Builtin overload resolution could be simplified:
+  https://github.com/aardappel/lobster/issues/89
+
 - Explicit genericity for functions.
-  - Would be good if the type of "this" on a A<T> class would be A<T>, not A.
-    See also IsGeneric that has to explicitly test A to see if it has unbound generics.
+  - overload resolution still doesn't use giventypes.
   - if we had T() as a cast, we could fix the enum type problem in gui_multiselect.
     - that is yet another form of function call in the parser.. better first refactor that.
   - weighted_pick: being able to write "T is float" would be cool.
   - See typetest.lobster: Explicit generic mixed with dynamic dispatch doesn't seem to work.
   - Generics for function types? See use of R in std.
-
-- kriskowal: adopt Python's "pass" statement, a void nop (better than nil idiom).
+  - currently can't specialize with itself:
+    class X = Y<Y,..>
+    Useful with e.g. astar_node that doesn't need new fields.
+    Workaround is to subclass instead.
+  - Also using nested classes might not work well with generics since we resolved in non-nested
+    fashion field types at the beginning of the type checker.
 
 - kriskowal: maybe replace gl_button string with an enum.
 
 - docs: explain about unbound variables, and what causes:
   type variable does not have field: size
 
+- Move checking for functions/builtins/selfarg etc to type checker.
+  This is quite hard, it requires reworking a lot of stuff:
+  - all the withstack related functionality, which in turn requires not only calls and derefs to
+    be generic, but also individual idents since they can become derefs.
+  - there are still parsing decisions being made based on wether something could be a function,
+    in particular calls without parens.
 - It would be better if we could leave the decision wether something is a builtin or a user
   defined function to the type checker, since that would allow user defined types to have
   a length function, or anything else that clashes with builtins.
@@ -105,29 +190,86 @@
     the function? It seems to already work for some calls:
     def foo(fun):
       fun() x: print x
+  - SharedField can be removed, only needed in deciding how to parse x.y and x.y(
+
+- Would be good to finally make SDL modular, and get rid of that silly main-redef
+  There's this: https://wiki.libsdl.org/SDL_SetMainReady
+  But elsewhere it still claims that things may fail or give you bad error messages if not used
+  https://stackoverflow.com/questions/34079288/im-using-the-sdl-functions-without-the-sdl-main-be-defined-is-that-fine
 
 - kriskowal: a non-allocating version of copy() with a second destination arg.
 
 - kriskowal: might be fun to have gl_cube and other simple 3d primitives, for quick prototyping?
 
-- replace co-routines by stackless object syntactic sugar? how to resume? how to store temps?
-  - unlikely to work: even if you can guarantee to inline all the hofs a yield may sit in,
-    there's loop temps, keepvars, and other stack tracking stuff we'd now have to back up in
-    a struct to be able to resume, making this more complicated than the current solution.
-  - if co-routines ever become an obstruction to optimisation, this will force us to have
-    a "slow" fall-back for stack frames, similar to what we have now.
-  - Should we consider removing co-routines? They're a "sexy" feature everyone always seems
-    excited about, but in practice in games they are not all that useful.
-    I end up never using them, and when I do, it is for uses that can easily be replaced by
-    a class with an update function.
-    Having cross-frame state in locals is really not as nice as in member vars.
-    It could be cool in complex multi-stage animations.. but even for those it is questionable,
-    as code that interrupts/changes these animations then becomes more complex.
-    Fundamentally, state that survives a frame needs to be carefully managed regardless.
-    Co-routines have also been an endless source of complexity in the VM, and don't fit
-    with Lobster's new focus on efficiency.
+- if you write def(): return 1, it appears as a function of 0 return values since it works the
+  same as other anonymous blocks (the return actually goes to the enclosing function).
+  This is probably unexpected, but how to do this better?
+  Maybe specialized warning for this case since it makes no sense?
+
+- should really support proper tail calls, e.g. https://www.lua.org/pil/6.3.html
+  Once "return" is gets compiled such that it jumps to its own stack unwinding code, there
+  can be a version where there's additionally a function value on the stack that gets called on
+  the "return values" at the end of unwinding.
+  - can reduce some of the downsides we have in the typechecker for recursive functions (which
+    can be avoided to be marked recursive).
+  - can do simple state machines.
+  - must check that the function being called does not use free variables of the function that
+    just returned!
+    - as such, maybe tail calls are better off as explicit syntactical feature, since optimizing
+      unsuspecting non-recursive calls into tail calls is not actually faster.
+      - we don't want people requiring a tail call that then silently doesn't become one because
+        of free variables.
+      - especially since it avoid the function being inlined, and we don't that arbitrarily making
+        things non-tail calls either.
+  - can go even further, and can make this into a feature that emulates co-routines?
+    Instead of at the end of unwind calling the function, it can be regarded as a little struct
+    return value (a closure that doesn't close over anything), which can be called at any time
+    later!
+    - problem is that doesn't give a way to resume with an arg?
+      maybe a way to overwrite any arg would be simplest?
+      resume with an arg is much less frequent than returning on yield, so maybe not a big deal.
+    - also work with anonymous functions being tail called, maybe with auto parameter passing?
+    See: https://github.com/aardappel/lobster/issues/100
+  - imagine if you could push multiple of such closures, to be called in sequence, potentially
+    consuming values from previous such calls?
+    this way you could make the recursive quicksort non-recursive, by returning 2 quicksort calls
+    and 1 append_it_all call. though of course this still uses unbounded stack memory, just less so.
+
+- New co-routines with some of the ideas above or in https://github.com/aardappel/lobster/issues/100
 
 - jcorbin: a basis_spline equivalent of cardinal_spline
+
+- CMake LTO:
+  - supported in 3.9:
+    https://stackoverflow.com/questions/31355692/how-do-i-enable-link-time-optimization-lto-with-cmake
+  - can replace the current LTO setting for CMake which apparently don't work on mac.
+- Move all platforms to CMake
+  - Support in VS seems good now, worth trying.
+  - Once we have this, we can also modularize some of the larger dependencies:
+    - add them via git submodule.
+    - make building them in CMake conditional on them existing.
+      https://cmake.org/cmake/help/v3.5/command/find_file.html
+    - now someone can use git submodule to decide if they want a lean or full fat Lobster!
+      There are ways to init and de-init individual submodules!
+      You can even go further: have CMake control which submodules are installed:
+      https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
+    - We can now add new optional modules:
+      - Bullet physics
+    - We can now may make existing things optional:
+      - imgui
+      - box2d/liquidfun
+    - We can even make the engine a modular add-on to Lobster itself!
+      - create easy way to build Lobster as console-only language.
+        -> this already available for Linux/CMake: just turn off the LOBSTER_ENGINE option.
+  - Do it all with VCPKG?
+    - that is actually not even that necessary, mostly useful if you have many projects
+      that share these dependencies.
+- Upgrade CI to more recent compilers, to support e.g. to_chars.
+
+- Built simple Web-IDE:
+  - Build Lobster with Wasm like currently, except make it take a text buffer from JS
+    and somehow make it output to a JS provided canvas.
+  - Bundle a simple JS editor and a selector for many example sources.
 
 - See if a tail-call based interpreter would be a speed-up:
   https://github.com/soundandform/m3
@@ -137,7 +279,8 @@
 
 - default/tagged args for functions.
 
-- remove logvars?
+- consider adding optional {}.. it really seems to bother people.
+  make it such you can only use one style per file
 
 - run coverage to see where more tests are needed.
 
@@ -163,10 +306,20 @@
   - need to see what consequences this has for making the lifetimes of variables longer.
 
 - speed plan:
-  - should really try the "inline all" feature above, especially since the current inlining
-    is not great, and any further optimisations depend on it. Though can first try to more
-    maximally inline traditionally also. Then work on doing better high level optimisation
-    of the remainder.
+  - could try the "inline all" feature above.. though traditional inlining is now better,
+    could first see if there's any unreasonable non-inlined functions left.
+    Important since any further optimisations depend on it.
+    Then work on doing better high level optimisation of the remainder.
+  - For C++ mode speed, probably #1 thing has to be to first get rid of the trampoline.
+    This can maybe be done if we explicitly emit RETURN_IF ops after function calls that
+    can have a return pass thru them, so we can make unwinding entirely under control of
+    the language. Ideally the amount of such ops should be few, since after inlining most
+    returns will be local.
+    Once we have this, we can further unravel function calling in favor of C++ mode.
+    - actually, on some benchmarks it spends as little as 3% in the tramoline. Though, getting
+      rid of it will make other code "flatter" allowing more intra-function optimisation.
+  - some of the vector accesors like the various At functions are not being inlined?
+  - need to make very common builtins also inlinable, like push() etc.
   - then for further speed, if the interpreter loop overhead on VC is only 15% or so, then
     doubling instructions is only a further 15% cost, which can be offsets by the instructions
     being more specialized. Then C++ and Wasm modes can get much faster with inling at
@@ -174,14 +327,79 @@
   - and for more speed, analyze functions that are not participating in being free vars etc,
     and assign them to "locals" to really speed up Wasm/C++ modes.
     - This may need to first change how we deal with variables on the stack in the first place.
+- the compiled C++ code under VS is really dumb: keeps loading things over the VM pointer.
+  for this to inline nicely, we have to pass important state as arguments:
+  - NOTE: sp is now an arg, vars is now inline in VM, taking care of the biggest gains.
+  - The second biggest gains after "sp" would come from "ip", but again there would need to be
+    passed as return value.
+    Actually, not sure this is a gain at all, since C++ compiled code doesn't access it on every
+    instruction.
+  - This is also made worse by VS not having an efficient way to return
+    2 values: std::pair becomes a reference argument which is again inefficient (gcc and clang
+    can instead return 2 regiters)
+  - This is probably better to re-evaluate after making function calling an local control flow
+    not use the trampoline, which will make a lot of these instances of passing on state simpler
+    and more effective.
+- speed test:
+  - 10% calls (3 in, 7 out)
+  - 5% alloc
+  - 2% decdeletenow
+  - 2% refequal
+  - 2% new ??
+  - 2% trampoline
+  - 2% in_range
+  - 2% sqrt
+  - 1% push
+  - about 60% in blocks.
+- floodfill:
+  - 13.5% function calling (exit more expensive than entry)
+  - 6% push
+  Almost all the rest in block functions!
+
+- Replacing the use for Terminal() in the type checker by a NORETURN type would simplify the
+  code and probably allow for a larger variety of code structures utilizing this.
+
+- Good errors are increasingly an important programming language feature, should at some point
+  invest in an overhaul. See Rust and Elm in particular.
+  https://blog.rust-lang.org/2016/08/10/Shape-of-errors-to-come.html
+  https://elm-lang.org/news/the-syntax-cliff
+  - Make line refs ranges rather than locations.
+  - Allow printing of not just one but multiple references to what errors refer to.
+  - Somehow collect stats on what errors occur a lot, and add more detail to them.
 
 - Should add template arg types also to regular functions.
   - an example is gui_multiselect called with enum type for selected.
+
+- SRGB support:
+  - Update imgui once this merges: https://github.com/ocornut/imgui/pull/2943
 
 - Optimize out variables that are not used.
   This in particular will be good for vec/color.lobster that create a lot of globals,
   also means they don't show up in stack traces / debug windows etc.
   and can reduce function usage as well, if they're in initializers
+
+- jacob: something to allow HOFs that need to undo state, i.e. a non-local return thru
+    var state = 0.0
+    def translate(dx, body):
+        state += dx
+        body()
+        state -= dx
+  Is going to produce hard to understand bugs, yet also natural to write code this way.
+  Built-ins like gl_translate also suffer from this issue.
+  https://github.com/aardappel/lobster/issues/93
+  Solutions:
+  - a "defer" statement. Simple, but requires the programmer to remember to use it, does not
+    stop the above natural code being written.
+  - Some form of RAII. That is even more complicated, and still requires the programmer to
+    be smart about it.
+  - A way to annotate the body() call as not allowed to be returned out of. This is really
+    simple since this can all be detected statically, doesn't require any runtime support.
+    At least it stops the user of this code making mistakes, but still requires the
+    programmer to know when to use it.
+    Also it would be a bit weird if some global error function can't be called from within
+    a translate.. (actually could still allow `return from program`)
+  - Just leave it as is. Prefer not to write HOFs that modify state, and if they do, well,
+    the user needs to be aware changes don't get undone with non-local returns.
 
 - Inline structs, further improvements:
   - These were immutable in the past, because values were shared by pointer, but now there
@@ -210,9 +428,13 @@
   - once we have mixed scalar/ref: make accessor handles into structs.
   - Make builder offset struct into specialized structs for the type? Maybe not necessary?
 
-- --to-cpp mode: VS /LTCG is very weak in terms on inlining, doesn't appear to inline any of
-  the VM ops, gets only 30% or so speedup vs interpreted (compared to LLVM LTO getting 2.5x).
-  Even including vm.cpp in the compiled code and __forceinline does nothing.
+- It often crashes in creating the stack trace when values are corrupt.
+  If this results in another error, it perculates up the exception, but no such help for asserts.
+  - Would be good to print to stack trace incrementally rather than accumulating in a string first,
+    with some kind of callback? so output can happen before the crash.
+  - Make reading values more robust.
+    - If VM is in an "error" state, ignore any bad values and just return empty defaults.
+      - this has to sadly be done at every callsite since Error is not expected to return.
 
 - think about special casing parsing of if/while/for, that way some crazy syntax features can be
   reduced
@@ -243,6 +465,31 @@
       - now spacing doesn't matter
       - but we don't even want to allow `for (` necessarily.
 
+- increase abilities of "break"
+  - break out of multiple loops.
+  - break out of loops in higher order functions.
+    - that can be shown the be safe when the lambda the break sits in is guaranteed inlined
+    - the problem is the semantics: you transfer control to the end of the loop inside the
+      HOF, and you don't necessarily know what that does. Though in many cases it will work,
+      e.g. break inside a "map" will just return a shorter list.
+
+- Now that the language is always 64-bit:
+  - can further improve type simplicity by:
+    - Would be nice to move everything to using 64-bit, but this is hampered by the STL on
+      32-bit platforms wanting size_t everywhere, which means most values still needing to
+      be at least ssize_t not require casts, which still requires casts between it and any
+      always-64-bit values, limiting the amount of cleanup you can do.
+      There is some of this (see iint and ssize_t in tools.h), but converting more code
+      only makes sense once we can drop 32-bit platforms entirely.
+    - change bytecode from int to LEB. this will make it more compact, though mildly slower
+      to read. would solve issues with 64-bit contants etc. would read into iint or int64_t,
+      depending. Can still hard-code instruction into 16-bit. Or make it a 16-bit LEB?
+  - Can think of features that would allow use of smaller sizes as opt-in.
+    - Should definitely add support for 8/16/32-bit int arrays and maybe struct fields.
+    - Maybe allow special structs that pack multiple things in a single 64-bit value? :)
+      - or you could introduce bit-fields, essentially: multiple fields that share the same
+        64-bit struct entry.
+
 - remove V_NIL from elemtypes and ElemTypeS, no users need this information, in fact all are
   working around it.
   - Also maybe replace uses that just want to know if its a ref or not by a table that lists
@@ -266,7 +513,14 @@
 - We support implicit this.member in multi-assign, but not explicit.
   See mretfields test.
 
+- should support scalar op vector, not just vector op scalar
+  - that requires yet more vector vm ops, at least for - /
+
 - detect a + b + c etc and emit better string concat op in codegen
+  Also, does sit make sense to allow += to modify strings in place?
+  This is different semantics from += generally, but would be very nice to have.
+  And combined with the above feature s += a + b can also be alloc-less.
+  And then same for vectors?
 
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
   - AssignList with instance variables probably doesn't work.
@@ -309,7 +563,7 @@
     lose their reference count (but stay heap allocated). Instead if incref they error.
   - optimize other remaining/related features.
   - should really centrally organize the concept of const vs owner vs refc, since besides for
-    structs, will need these concepts for strings/vectors/coroutines as well (will especially be
+    structs, will need these concepts for strings/vectors as well (will especially be
     nice to separate out the default const string from niche mutable use). We also have const/var
     variables. We were also thinking about mut argument annotations which would still also be nice
     being able to say an arg is mut without specifying the type.
@@ -362,6 +616,9 @@
 
 - factor out TypeCheckDynCall for DynCall to be part of GenericCall so it can be made into
   Call/Yield/CallType
+  - Also, when optimizer inlines a function that has an arg used as a function for DynCall
+    but called statically, it still introduces this unused variable.
+    - probably want to remove this arg generally.
 
 - should have slaballoc use indices so allocation granularity can always be smaller?
   especially when using 32-bit emulation.
@@ -371,9 +628,6 @@
 
 - contribute Lobster syntax highlighting to:
   https://github.com/github/linguist/blob/master/CONTRIBUTING.md#fixing-syntax-highlighting
-
-- should support scalar op vector, not just vector op scalar
-  - that requires yet more vector vm ops, at least for - /
 
 - add support for pure functions.
   introduce functions with e.g. "fun" instead of "def" to indicate they are pure (much like
@@ -393,23 +647,23 @@
     - though codegen dropping is recursive, e.g. it drops 1+2, though not sure how useful that is
   - we have 2 types in nodes, do we actually need them?
     - see below how we didn't decide to remove coercion nodes.
-  - would be nice to remove the "return nil" at the end of coroutines.
-    - this is because yield implicitly returns it.
-    - allowing it to return 0 or N values requires quite a bit of weaving thru the VM, so may
-      not be worth it for now?
 
 - tagged arguments in Lobster for function calls.
-  maybe also add default args while we're at it.
 
 - Improve threads.
+  - Consider spawning the workers from their own source code?
+    - benefit: cleaner separation, simpler code, simpler to forbid stdlib access.
+    - that would not work from a bytecode-only situation, or would require compiling
+      a second .pak for workers.
+      Or, simply a second bytecode in a .pak
+    - would not guarantee same types sent across so needs more complex serialization.
+      - flexbuffers?
   - Would be good to reduce globals, and/or not make builtins that rely on globals available
     to worker threads.
   - Allow any data to be passed between threads.
   - Use it in some compute heavy samples like smallpt.
 
 - binary string ops:
-  - Need to have a way such that reading 64-bit values doesn't truncate when using 32-bit
-    version of Lobster (which would be nice to permanently remove)
   - memcpy, memmove
   - write_string
   - ops for doing things with unsigned values stored inside signed ones?
@@ -564,43 +818,11 @@
     - with the switch based version could do direct jumps, but switch trashes the branch cache?
     - experiment with real gotos?
   - reduce use of ElemType.
-- things that would make VM faster:
-  - biggest cost, in this order:
-    - interpreter dispatch.
-    - PUSHVAR
-      - worth some special purpose ops to combine with PUSHFLD etc?
-      - measure most frequent combinations of 2 ops.
-        instruction PUSHVAR -> PUSHVAR (386796902x)
-        instruction VAR_WRITE -> PUSHVAR (304214388x)
-        instruction PUSHVAR -> PUSHFLD (109119516x)
-        instruction PUSHVAR -> VPUSHIDXI (108954020x)
-        instruction PUSHVAR -> PUSHINT (89963524x)
-        instruction PUSHVARV -> PUSHINT (88875915x)
-        instruction JUMPFAIL -> VFOR (83576250x)
-        instruction VFOR -> VFORELEM (81116180x)
-        instruction JUMPFAIL -> PUSHVAR (63268560x)
-        instruction IFORELEM -> VAR_WRITE (61820330x)
-        instruction IFOR -> IFORELEM (61820330x)
-        instruction PUSHINT -> I2F (59103135x)
-        instruction PUSHVAR -> VAR_WRITE (58856210x)
-        instruction VFORELEM -> VAR_WRITE (58364060x)
-        instruction PUSHFLD -> PUSHVAR (52272552x)
-        instruction FORLOOPI -> VAR_WRITE (51754800x)
-        instruction IEQ -> JUMPFAIL (48308917x)
-        instruction PUSHINT -> BCALLRETV (46829849x)
-        instruction PUSHVAR -> IEQ (45404280x)
-    - function calling.
 
 - The way WASM deals with signed/unsigned is correct, everything signed, with special ops
   (not types) for doing unsigned semantics on signed bits.
   We should adopt this for Lobster by providing the exact same unsigned ops as special functions
   (e.g. udiv, ucmp or ulessthan etc.)
-- while we're at it, would be nice to remove unsigned as much as possible from the C++ code
-  base, and reduce a ton of casts.
-  - add ssize (machine size) and intsize for stl containers, which are the number one source
-    of unsigned. Even overloaded for any size_t.
-  - that still leaves the mess of size of int types though, would be good to finally lock
-    down how the VM deals with ints in 64bit.
 
 - Make includes explicitly depend on eachother.
 
@@ -678,21 +900,8 @@
 - make extensions (and --tocpp code) into DLLs rather than statically linked?
   - check performance consequences for --tocpp
 
-- 64bit mode improvements:
-  - pushflt64?
-  - Optimizer can't use 32bit values.
-
 - Can turn exceptions back on in emscripten once this fix lands:
   https://github.com/emscripten-core/emscripten/issues/7399
-
-- Since in Lobster values only signed ints get used, and STL uses size_t, there's a fair bit
-  of unfortunate casting going on that be nice to remove. Many (including the C++ standards
-  committee) seem to agree unsigned size_t was a mistake, so would be nice to move the whole
-  codebase towards default-signed for everything, with less casts, and less possible gotchas.
-  Could do this by having a global ssize() for STL containers that returns signed.
-  Could repurpose the already existing "intp" type, but that might not always be pointer sized,
-  so maybe better a new type (like gsl::index).
-  Proposed for C++20: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1227r1.html
 
 - This doesn't typecheck correctly:
   if !lhs:
@@ -712,6 +921,18 @@
 
 - a file with only an include statement in it gives: error: linefeed expected, found: end of file
 
+- Swift's weak pointer feature has some merit.
+  It's not a real weak pointer in the sense that it still holds an object alive, more like a
+  "2nd class" refc.
+  So an object would have 2 refc. If you have the classical cycle, of root -> A, A -> B, and
+  B -> A, A would have refc=2 which is the problem. But here, A would have 1 strong, and 1 weak,
+  allowing the deallocation to continue. At first strong drops to 0, but weak does not, so it
+  is kept alive. Then once the weak also drops to zero it gets deallocated.
+  - Note: apparently Swift uses a global hash map to clear backpointers, which is terrible.
+  - Also see: Nim is using the annotation .cursor for weak refs.
+    https://www.youtube.com/watch?v=aUJcYTnPWCg
+  - Vale has good ideas: https://vale.dev/blog/raii-next-steps
+
 - font rendering:
   - it is possible when only very few chars are cached, that they are placed higher in the bitmap
     if all their bounding boxes are small.
@@ -721,6 +942,8 @@
 
 - also allow explicit a.x, a.y = f() multi assign, this should be easy now that AssignList
   takes lvalues because of with defs.
+
+- A "warning: expression has no effect" would be nice, for when you mistype `a += 1` as `a + 1`
 
 - if we make assert a language feature rather than a builtin, we can make it understand
   equality operators directly, and create specialized asserts that have better errors, i.e.
@@ -773,7 +996,7 @@
 - Should we consider default-const?
   Bit odd for a language without type annotations, but if the syntax for mutation was light,
   it be a very nice feature to have, especially since the vast majority of args don't need it.
-  Only needed on struct/vector/coroutine.
+  Only needed on struct/vector.
   Syntax could be a single char token attached to any ident decl?
   def f(a, @b): b[0] = a
   @a := g()
@@ -787,6 +1010,8 @@
   - rename stdafx.h
     - make public headers explicitly depend on it.
     - try to reduce the scope of it.
+
+- Add an optional mouse smoothing feature?
 
 - Have a simpler/better C++ binding interface.
   - for starters, should allow current binding system to be loaded from a DLL/so such that
@@ -835,11 +1060,7 @@
 
 - replace typeof return with something better directly part of the syntax.
 
-- make resume into seperate op.
-
 - add options to either show more extensive stacktrace dump to either stdout or file.
-
-- break statement
 
 - Typechecker can actually blow the 1MB Windows stack space on complex programs.
   Set to 16MB for the moment.
@@ -874,6 +1095,28 @@
   specialization. Or maybe more sane, do that by default, and have an annotation to inline
   for the few functions where that matters.
 
+- Transition to a more modern graphics API + platform layer? Options:
+  - Stay with OpenGL+SDL
+    + Easiest, pretty solid, simple, doesn't require pulling in huge libs.
+    - Advanced features only work on Win/Linux.
+  - https://github.com/floooh/sokol
+    + By far the smallest / simplest option.
+    + Gets us DX11/Metal level features.
+    + Also replaces SDL.
+    + Well integrated with Wasm/Web.
+    - Requires external shader compile to target all of these :(
+  - https://github.com/bkaradzic/bgfx
+    - Big and bulky compared to sokol, brings in stuff we may not need.
+    + Brings Vulkan level functionality.
+    - Probably also needs some shader compiler.
+  - WebGPU native.
+    + Could be a well-specced, solid API that's simpler and more portable
+      than Vulkan.
+    + Easy integration with Wasm/Web.
+    - Native implementation is bulky (Dawn) or depend on Rust (gfx-rs).
+    - Spec not settled, shader situation is a mess.
+  - Vulkan, haha.
+
 - function call optimization and simplication.
   - make a micro-benchmark to compare against other languages.
   - inlining
@@ -887,7 +1130,6 @@
     - though given that the switch/jump method is slower, maybe not a priority.
   - change var access to be relative to top of stack
   - cleanup of id/sid/arg..
-  - make resume a VM op.
 
 - experiment more with frame state now that its faster & cleaner.
   - currently doesn't work well in loops
@@ -1094,10 +1336,6 @@
 - remove last cases of RenderArraySlow
   - cache for text VBOs, and cache for arbitrary polygons, cleared if not used in a frame.
 
-- create easy way to build Lobster as console-only language.
-  -> this already available for Linux/CMake: just turn off the LOBSTER_ENGINE option.
-  Not sure if it makes much sense for the other platforms?
-
 - This doesn't parse well (see std.lobster):
   for xs: acc1, acc2 = fun(acc1, acc2, _)
 
@@ -1148,201 +1386,6 @@
     Or better yet, change the encoding of "any" such that it is a generic object that just
     bundles a type and a generic value, and is like a built-in value type. This can be used
     for "any" and dynamic dispatch.
-
-- Simplify scalar use in the project.
-  Current code is a mess of use of int (because, bytecode), size_t (stl), intp (lobster int type),
-  int64_t etc, because of the desire to support both 32/64 bit platforms well, and allow the
-  language to function with those sizes, possibly independently from platform.
-  We can greatly simplify this, driving as much as possible towards signed 64 as the one true int :)
-  This has multiple sub-project which would benefit from all being done together (so code
-  cleanup doesn't need multiple iterations):
-  - adopt ssize_t over size_t by calling ssize() instead of .size() on STL containers.
-  - change bytecode from int to LEB. this will make it more compact, though mildly slower
-    to read. would solve issues with 64-bit contants etc. would read into ssize_t or int64_t,
-    depending. Can still hard-code instruction into 16-bit. Or make it a 16-bit LEB?
-  - Change Value to always be 64-bit (see below).
-  - Finally, deprecate 32-bit platforms, like older Android architectures, and push for wasm64.
-
-- Re-evaluating what to do about 32 vs 64 bits for the language.
-  - Can actually do a 64-bit memory model easily, even in wasm-32, just truncate the i64 into an i32
-    and do regular load. Since it won't give you give you more than 4 gigs this is safe, and then
-    when wasm64 comes around it will be easy to upgrade.
-  - Basically on a 32-bit build, represent a pointer in Value as a uint64_t and cast that to a
-    pointer to force the truncation op. See points 2 & 3 here:
-    https://en.cppreference.com/w/cpp/language/reinterpret_cast
-    In fact, all of this is completely independent of target bit-ness. It would also work for,
-    say, a 32-bit Android build if still required.
-  - On ARM/x86, this truncation is a no-op, even though in Wasm it will cost some instructions
-    space. And this op only has to be done when reading a pointer from a value, most other pointer
-    uses are still native.
-  - Going all-64 may be ok for Lobster, given that lobster data structures represent such a small
-    part of total memory.
-    - Should definitely add support for 8/16/32-bit int arrays and maybe struct fields though.
-    - Maybe allow special structs that pack multiple things in a single 64-bit value? :)
-  - 64-bit is low cost, simpler, with nice extra precision, less overflows, and more future-proof.
-    Once we do this can stop thinking about it entirely.
-    There are quite a few places in Lobster where supporting both means surpring truncations
-    and precision loss.
-  - 32-bit seems nice but it may be a false optimisation, and will continue to create issues when
-    at some point someone wants more precision/address space etc.
-  - Previous thoughts on the topic follow:
-- 32-bit pointers in 64-bit
-  - exampler: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
-  - If all objects are 8-byte aligned, and if a << 3 is ok, can address 32GB.
-    - Not only that, this only has to store program objects (and maybe code), not things like
-      textures, geometry, etc which are stored in GPU memory. So for a graphically rich game
-      where typically 90% of memory usage is such assets, this 32-bit model can grow until
-      320 GB of memory usage for a game is not sufficient. It thus defers the need for 64-bit
-      so significantly that it becomes practical to target the language to be 32-bit only for
-      the foreseeable future, with all the efficiency and simplicity that brings.
-  - if the base address is a multiple of 4GB, then compressing can be a simple truncate
-    instead of add/substract, and no conditional to compress a nullptr.
-  - needs a conditional to decompress nullptr, unless base address can be 0. That's a huge win,
-    which may be possible be we can assume a 32GB range.
-    - though we have seperate accessors for pointers that can be null, so if the majority is not of
-      that type, it may be ok.
-    - still, not having a base address may be a win by itself.
-    - can simply iterate with mmap to find a large block as low in memory as possible.
-      that should generally not fail?
-      - On Windows, simply turning of ASLR (/HIGHENTROPYVA:NO) allows compressed pointers to
-        work without additional work.
-  - can avoid a conditional to decompress nullptr if we manage to make all tests for null to
-    be (== baseaddr) instead.
-    That may be tricky since we use the fact that int/float/ptr all have 0 bits as false
-    representation to be able to check them without knowing the type with True()
-  - A base of 0 with <<3 is very efficient, which on VS win64 was 7% faster than native 64-bit!
-    Using clang it was about the same speed.
-  - on platforms where we cannot interact with the system to constrain our address space, can
-    create a really dumb allocator that simply re-allocs a buffer containing all memory when
-    needed. This is bad because:
-    - Such big reallocs may cause a pause (speed of memmove is typically only a few GB/sec),
-      though typically only happen once or twice during a game run, hopefully during loading.
-      If using realloc(), you may get lucky and no memmove is needed :)
-    - You temporarily are using 3x as much memory as allocated (current mem + new 2x size block).
-      Should not be an issue on 64-bit.
-    - May cause issues with fragmentation causing such big allocs to fail, though since this
-      technique is only used on 64-bit systems that should be unlikely.
-    So in total this is acceptable, and then on a per platform basis it can be replaced by
-    a more efficient strategy.
-  - will NOT work in the default trampoline compiled mode, since we store function pointers in
-    values there. Have to use the switch mode instead.
-  - More good tips in the comments here:
-    https://stackoverflow.com/questions/50429365/what-is-the-most-reliable-portable-way-to-allocate-memory-at-low-addresses-on
-  - it would be nice to make a distinction where we use compressed pointers only when stored in
-    structs/vectors (so those can be 32-bit always, or still 32-bit even when we allow different
-    sized scalars in these data types).
-    The stack is a really small amount of memory, so keeping that 64-bit should have no effect
-    on cache usage, yet it is the highest frequency access, so naked pointers are a small
-    speedup, allow for 64-bit datatypes, easier to debug etc.
-    - the big question with this model is float conversion speed.
-      http://quick-bench.com/T_FhqmN-7RG_oIEsf4Ur-rCFww8
-      Shows that having everything in float, or everything in doubles, or stored in floats
-      and accumulate into doubles are all equally fast, but what is 3x slower (both gcc and clang)
-      is stored in doubles and accumulate into floats, as that requires an explicit cvtsd2s
-      instruction.
-      So that should be acceptable as that is the least likely case, happens only when writing
-      results back into fields/vectors.
-      - vector ops can still be all-float
-  - Could remove the need for a base address by making everything a relative offset
-    That way, your only concern is to keep all memory within an arbitrary 4GB (or 32GB) range,
-    which should be easier, and doesn't require OS support.
-    The one issue is that it still needs a special case for null.
-    - you can make that actually 0, assuming pointers never point at themselves, such that
-      a null-check can happen before unpacking, and hopefully code that knows something is not
-      null can avoid this check entirely.
-    - the alternative would be an offset towards the base address, but that is way more
-      expensive to check.
-    NOTE: relative offsets will not work unless we disable copy constructor on Value, and track
-    down each and every memcpy or whatever of values
-- Improve 64bit builds.
-  We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives
-  bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out
-  of these values.
-  Suprisingly, for our unit-test path-finding benchmark, 64-bit mode this way is actually
-  23% faster (VM mode, only 16% in C++ compilation mode), despite using more memory, that is
-  apparently how much the VM code benefits from extra regs etc.
-  Now this benchmark probably touches so little memory it all fits in cache, but for most
-  Lobster programs that don't touch a ton of data, 64-bit mode is thus not a problem, in fact,
-  it is a speedup.
-  We can still improve this situation in two ways:
-  1) Could allow types of different sizes at least in vectors and structs where they take the most space, and
-     leave them uniform on the stack. Start with vectors as that's easiest and most impactful.
-     Have a way to specify bit-width for both scalar types (only allowed to be smaller or equal to machine type).
-     default would always be machine size everywhere.
-     If we're lazy and don't want to deal with different sizes in structs, can at least allow size to specified
-     for struct as a whole if all elements are scalar. This not only simplifies things by keeping
-     indexing the as-is, but it allows faster vector ops by only having to check the bit-width
-     once rather than every element.
-     The advantage of the stack staying 64-bit is that you can then actually make use of 64-bit
-     precision when you want to, something which is not the case in 2)
-     How to implement:
-     - Vectors can be created with an annotation to their desired bit-width, which becomes part of
-       its type.
-       - We have to ensure these get checked thru-out, so maybe safer to have special VECTOR_INT
-         types etc.
-     - Similarly, structs can be declared with a particular bit-width. They can be specialized into
-       other bit-widths.
-       - sub-typing check, cannot allow these specializations to be compatible with eachother.
-     - In both cases, the bitwitdth is actually stored in the header of the object.
-     - For direct loads and stores, we use specialized VM instructions, causing no overhead.
-     - For generic code (builtins) that wants to read vector/struct elements, we provide a generic
-       accessor function that dynamically loads the right size.
-       - Sadly, there's no "read an int of n bytes" instruction in C++.
-         Edit: there kinda is, see use of __movsb in flexbuffers.h
-         on x86 you could read an int64 from the memory location, then use shifts to clear the unused bits
-         that preserves the sign (>> is an ASR):
-         value = ((value << 32) >> 32)
-         to convert 32 to 64.
-         though note: http://blog.regehr.org/archives/738
-         On arm, unaligned access is allowed for single scalars on most v6 and all v7 architectures, so maybe its
-         a non-problem.
-         It will be slower, but since it only occurs for vectors that try to save memory, its probably ok.
-         Can we avoid the unnecessary shifts when reading default size value (shifts will be 0) ?
-         Still need a conditional for floats since the shift trick doesn't work there. Worse, now we generically need
-         a conditional to check for floats.
-         Maybe allow bit sizes only for ints?
-         If its only for ints, how useful is it to have it at all? We already have a [byte], namely string, so it
-         would only be for 16/32 bit int vectors.
-       - frankly, a generic accessor function is a bad idea. Pretty much all builtins take a statically typed
-         2/3/4 int/float structs, so we should be able to change the accessors to directly access these.
-         Only problem is requiring them to be one size, e.g. 32bit. Even though we can maybe make the
-         default specializations 32bit, people might expect to be able to specialize xyz for 64bit and
-         still have all these functions work.
-         We could overload all these functions..
-       - Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
-       can still allow them to work on these vectors.
-     - For compact structs, currently will be wasteful that in RefObj refc & ti can be 64-bits.
-     1b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
-         and store the buffers inside strings.. doesn't need a new type, and allows all sorts of fun optimized
-         data structures.
-         Also cool for serialization.
-         And helps more generally combat the heavy nature of non-inline objects.
-         Then again, would be even better if structs could be separated from vectors more so we can add these
-         features (variable data sizes, inline structs, trailing vectors) to regular structs.
-     Hmm, trailing vectors means reallocation, so not good to have in regular structs.
-         Actually, no need to separate them, can just disallow them to be passed to generic vector functions.
-         Only valid for structs that look like a vector.
-  2) Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
-     pointers in 32bit).
-     This would generally be good, since using less memory in 64bit could be quite a speedup.
-     Problem is, there's no super elegant way of doing this.
-     - Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
-       no support for this.
-       Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
-       and then use that incrementally. Means we must have our own large block allocator however.
-       On Windows VirtualAlloc can do the same.
-     - could track all allocations in the allocator, but means also tracking "large" allocs individually,
-       finding these in the table will slow things down, and means code can't run with the base allocator anymore.
-     - simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
-       in it and towards it are offsets, this can work.
-       Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
-       as iOS whenever it goes full 64bit.
-       Also means we can't use the base allocator anymore.
-     - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
-       though for small objects.
-     The problem with this approach is that there is no way to do operate on 64bit datatypes in any way this way.
-     Another problem: the ip's stored in Value are native function pointers in C++ mode and would need to
-     be indirected.
 
 - make more args const
 
@@ -1459,12 +1502,6 @@
   regexps generally do. And easy string extraction functions.
   Could use a HOF to be the stack context of these functions ... can even write it in Lobster itself (with private DS
   variables) if speed isn't an issue.
-  can support coroutines as a source too.
-
-- coroutines:
-  - having convenient syntax for resuming coroutines at a variety of entry points to simulate methods would be very cool
-  - speedup local access
-  - state tags: allowing blocks to be tagged such that its easy to query externally which "state" a coroutine is in
 
 - transforms:
     - cannot use matrix functionality for own matmuls etc -> need loadmatrix etc
@@ -1585,9 +1622,6 @@
 
 - hiding the console unless there's output for graphical applications
   note this screws up notepad++ capturing output
-
-- force coroutines to be top level functions to protect people against running into an undefined on resume if they use
-  a free var?
 
 - multiple errors
 
@@ -1778,6 +1812,16 @@ TYPECHECKER NOTES:
 
 CURRENT SOLUTION FROM TRADEOFS:
 ===============================
+- We removed co-routines. They're a "sexy" feature everyone always seems
+  excited about, but in practice in games they are not all that useful.
+  I end up never using them, and when I do, it is for uses that can easily be replaced by
+  a class with an update function.
+  Having cross-frame state in locals is really not as nice as in member vars.
+  It could be cool in complex multi-stage animations.. but even for those it is questionable,
+  as code that interrupts/changes these animations then becomes more complex.
+  Fundamentally, state that survives a frame needs to be carefully managed regardless.
+  Co-routines have also been an endless source of complexity in the VM, and don't fit
+  with Lobster's new focus on efficiency.
 - decided against:
   - change V_MULTIPLE into types always being a vector:
     - while it simplifies some cases that currently have to check against V_MULTIPLE, it
@@ -1855,7 +1899,6 @@ CURRENT SOLUTION FROM TRADEOFS:
     - alternatively since all troubles are caused by element insertion/deletion, have special functionality for turning things on/off, i.e. gui_if() instead of if()
   - call em afterwards: problematic because variables not available
   - call em afterwards & force it to take an arg. not elegant, but atleast the arg will remind people to pass values this way
-  - wrap in coroutine so the variable is captured... hard to do since you want to continue with other code after the yield
   - implement full closures for escaping situations
     - don't really want another programming language feature just for this
     - to create closure, would need syntax at the call site which is clumsy if it gets forgotten, and some new data structure to hold vars
@@ -1864,9 +1907,169 @@ CURRENT SOLUTION FROM TRADEOFS:
       still, there has to be some indication on the stack that we're returning from a closure
       though I suppose it can work like coroutines, where upon returning from the function it hits a special instruction that does the cleanup
     - maybe also have a static type for it so no syntax is needed at the call site
-    - could we piggyback on coroutine resume? almost, but not quite.. it wouldn't restore the free vars upon ending the function, for example
-      hmm that could maybe be fixed with a special cleanup instruction
-    - so in summary the implementation effort is a simplified version of what coroutines currently do
+    - so in summary the implementation effort is a simplified version of coroutines.
+
+OBSOLETE
+========
+- 32-bit compressed pointers in 64-bit
+  - exampler: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
+  - If all objects are 8-byte aligned, and if a << 3 is ok, can address 32GB.
+    - Not only that, this only has to store program objects (and maybe code), not things like
+      textures, geometry, etc which are stored in GPU memory. So for a graphically rich game
+      where typically 90% of memory usage is such assets, this 32-bit model can grow until
+      320 GB of memory usage for a game is not sufficient. It thus defers the need for 64-bit
+      so significantly that it becomes practical to target the language to be 32-bit only for
+      the foreseeable future, with all the efficiency and simplicity that brings.
+  - if the base address is a multiple of 4GB, then compressing can be a simple truncate
+    instead of add/substract, and no conditional to compress a nullptr.
+  - needs a conditional to decompress nullptr, unless base address can be 0. That's a huge win,
+    which may be possible be we can assume a 32GB range.
+    - though we have seperate accessors for pointers that can be null, so if the majority is not of
+      that type, it may be ok.
+    - still, not having a base address may be a win by itself.
+    - can simply iterate with mmap to find a large block as low in memory as possible.
+      that should generally not fail?
+      - On Windows, simply turning of ASLR (/HIGHENTROPYVA:NO) allows compressed pointers to
+        work without additional work.
+  - can avoid a conditional to decompress nullptr if we manage to make all tests for null to
+    be (== baseaddr) instead.
+    That may be tricky since we use the fact that int/float/ptr all have 0 bits as false
+    representation to be able to check them without knowing the type with True()
+  - A base of 0 with <<3 is very efficient, which on VS win64 was 7% faster than native 64-bit!
+    Using clang it was about the same speed.
+  - on platforms where we cannot interact with the system to constrain our address space, can
+    create a really dumb allocator that simply re-allocs a buffer containing all memory when
+    needed. This is bad because:
+    - Such big reallocs may cause a pause (speed of memmove is typically only a few GB/sec),
+      though typically only happen once or twice during a game run, hopefully during loading.
+      If using realloc(), you may get lucky and no memmove is needed :)
+    - You temporarily are using 3x as much memory as allocated (current mem + new 2x size block).
+      Should not be an issue on 64-bit.
+    - May cause issues with fragmentation causing such big allocs to fail, though since this
+      technique is only used on 64-bit systems that should be unlikely.
+    So in total this is acceptable, and then on a per platform basis it can be replaced by
+    a more efficient strategy.
+  - will NOT work in the default trampoline compiled mode, since we store function pointers in
+    values there. Have to use the switch mode instead.
+  - More good tips in the comments here:
+    https://stackoverflow.com/questions/50429365/what-is-the-most-reliable-portable-way-to-allocate-memory-at-low-addresses-on
+  - it would be nice to make a distinction where we use compressed pointers only when stored in
+    structs/vectors (so those can be 32-bit always, or still 32-bit even when we allow different
+    sized scalars in these data types).
+    The stack is a really small amount of memory, so keeping that 64-bit should have no effect
+    on cache usage, yet it is the highest frequency access, so naked pointers are a small
+    speedup, allow for 64-bit datatypes, easier to debug etc.
+    - the big question with this model is float conversion speed.
+      http://quick-bench.com/T_FhqmN-7RG_oIEsf4Ur-rCFww8
+      Shows that having everything in float, or everything in doubles, or stored in floats
+      and accumulate into doubles are all equally fast, but what is 3x slower (both gcc and clang)
+      is stored in doubles and accumulate into floats, as that requires an explicit cvtsd2s
+      instruction.
+      So that should be acceptable as that is the least likely case, happens only when writing
+      results back into fields/vectors.
+      - vector ops can still be all-float
+  - Could remove the need for a base address by making everything a relative offset
+    That way, your only concern is to keep all memory within an arbitrary 4GB (or 32GB) range,
+    which should be easier, and doesn't require OS support.
+    The one issue is that it still needs a special case for null.
+    - you can make that actually 0, assuming pointers never point at themselves, such that
+      a null-check can happen before unpacking, and hopefully code that knows something is not
+      null can avoid this check entirely.
+    - the alternative would be an offset towards the base address, but that is way more
+      expensive to check.
+    NOTE: relative offsets will not work unless we disable copy constructor on Value, and track
+    down each and every memcpy or whatever of values
+  - older notes:
+    Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
+     pointers in 32bit).
+     This would generally be good, since using less memory in 64bit could be quite a speedup.
+     Problem is, there's no super elegant way of doing this.
+     - Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
+       no support for this.
+       Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
+       and then use that incrementally. Means we must have our own large block allocator however.
+       On Windows VirtualAlloc can do the same.
+     - could track all allocations in the allocator, but means also tracking "large" allocs individually,
+       finding these in the table will slow things down, and means code can't run with the base allocator anymore.
+     - simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
+       in it and towards it are offsets, this can work.
+       Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
+       as iOS whenever it goes full 64bit.
+       Also means we can't use the base allocator anymore.
+     - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
+       though for small objects.
+     The problem with this approach is that there is no way to do operate on 64bit datatypes in any way this way.
+     Another problem: the ip's stored in Value are native function pointers in C++ mode and would need to
+     be indirected.
+
+- Improve 64bit builds.
+  We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives
+  bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out
+  of these values.
+  Suprisingly, for our unit-test path-finding benchmark, 64-bit mode this way is actually
+  23% faster (VM mode, only 16% in C++ compilation mode), despite using more memory, that is
+  apparently how much the VM code benefits from extra regs etc.
+  Now this benchmark probably touches so little memory it all fits in cache, but for most
+  Lobster programs that don't touch a ton of data, 64-bit mode is thus not a problem, in fact,
+  it is a speedup.
+  We can still improve this situation in two ways:
+  1) Could allow types of different sizes at least in vectors and structs where they take the most space, and
+     leave them uniform on the stack. Start with vectors as that's easiest and most impactful.
+     Have a way to specify bit-width for both scalar types (only allowed to be smaller or equal to machine type).
+     default would always be machine size everywhere.
+     If we're lazy and don't want to deal with different sizes in structs, can at least allow size to specified
+     for struct as a whole if all elements are scalar. This not only simplifies things by keeping
+     indexing the as-is, but it allows faster vector ops by only having to check the bit-width
+     once rather than every element.
+     The advantage of the stack staying 64-bit is that you can then actually make use of 64-bit
+     precision when you want to, something which is not the case in 2)
+     How to implement:
+     - Vectors can be created with an annotation to their desired bit-width, which becomes part of
+       its type.
+       - We have to ensure these get checked thru-out, so maybe safer to have special VECTOR_INT
+         types etc.
+     - Similarly, structs can be declared with a particular bit-width. They can be specialized into
+       other bit-widths.
+       - sub-typing check, cannot allow these specializations to be compatible with eachother.
+     - In both cases, the bitwitdth is actually stored in the header of the object.
+     - For direct loads and stores, we use specialized VM instructions, causing no overhead.
+     - For generic code (builtins) that wants to read vector/struct elements, we provide a generic
+       accessor function that dynamically loads the right size.
+       - Sadly, there's no "read an int of n bytes" instruction in C++.
+         Edit: there kinda is, see use of __movsb in flexbuffers.h
+         on x86 you could read an int64 from the memory location, then use shifts to clear the unused bits
+         that preserves the sign (>> is an ASR):
+         value = ((value << 32) >> 32)
+         to convert 32 to 64.
+         though note: http://blog.regehr.org/archives/738
+         On arm, unaligned access is allowed for single scalars on most v6 and all v7 architectures, so maybe its
+         a non-problem.
+         It will be slower, but since it only occurs for vectors that try to save memory, its probably ok.
+         Can we avoid the unnecessary shifts when reading default size value (shifts will be 0) ?
+         Still need a conditional for floats since the shift trick doesn't work there. Worse, now we generically need
+         a conditional to check for floats.
+         Maybe allow bit sizes only for ints?
+         If its only for ints, how useful is it to have it at all? We already have a [byte], namely string, so it
+         would only be for 16/32 bit int vectors.
+       - frankly, a generic accessor function is a bad idea. Pretty much all builtins take a statically typed
+         2/3/4 int/float structs, so we should be able to change the accessors to directly access these.
+         Only problem is requiring them to be one size, e.g. 32bit. Even though we can maybe make the
+         default specializations 32bit, people might expect to be able to specialize xyz for 64bit and
+         still have all these functions work.
+         We could overload all these functions..
+       - Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
+       can still allow them to work on these vectors.
+     - For compact structs, currently will be wasteful that in RefObj refc & ti can be 64-bits.
+     1b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
+         and store the buffers inside strings.. doesn't need a new type, and allows all sorts of fun optimized
+         data structures.
+         Also cool for serialization.
+         And helps more generally combat the heavy nature of non-inline objects.
+         Then again, would be even better if structs could be separated from vectors more so we can add these
+         features (variable data sizes, inline structs, trailing vectors) to regular structs.
+     Hmm, trailing vectors means reallocation, so not good to have in regular structs.
+         Actually, no need to separate them, can just disallow them to be passed to generic vector functions.
+         Only valid for structs that look like a vector.
 
 NOTES:
 ======
@@ -1878,47 +2081,72 @@ SPEED TESTS
 secs measured in release win32 on speedtest.lobster, all other figures in debug.
 
 The first 9 numbers were run on a 2600K, but have numbers by 1.77x/1.43x adjusted for it
-being slower than the 8700K being used now, such that all numbers are comparable.
+being slower than the 8700K being used after that, such that all numbers are comparable.
 From (1) on they are on an actual 8700K, and also bumped iterations 10x.
 At (2) bumped iterations 20% because a bug in GOAP was fixed that made it faster.
 At (3) completely reworked benchmarks to add a lot more variety, but balanced to
 still take the same total time for comparison.
+At (4) Here we switch from the 8700K to an AMD 3950x. Though in benchmarks it is faster single-core
+than the 8700K, it is way slower at running Lobster, possibly branch mispredictions are a heavier
+penalty? All score above (4) have been updated to reflect this speed difference, to make
+future scores comparable with past ones.
 
-VM: last_dyn_typed    : secs 57.1, ins 599572240, fcall 57534476, bcall 2534535, totalalloc 4501531
-VM: last_switch       : secs 43.2, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-VM: over fun ptr      : secs 39.5, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-C++: first comp       : secs 33.9, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-VM: first inline      : secs 37.0, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054
-C++: first inline     : secs 30.1, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054
-VM: inlined for       : secs 29.3, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342
-C++: inlined for      : secs 20.0, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342
-VM: inlined for       : secs 29.2, 1.77x vs 2600K (1)
-C++: inlined for      : secs 20.0, 1.43x vs 2600K
-VM64: inlined for     : secs 23.8, 1.23x vs 32bit
-C++64: inlined for    : secs 17.2, 1.16x vs 32bit
-VM: vec/struct        : secs 26.4
-VM64: vec/struct      : secs 21.1
-VM64: may 2018        : secs 21.5
-VM64: compr_ptr       : secs 20.2, 1.07x vs native pointers
-VM64-MSVC: oct 2018   : secs 21.8
-VM64-LLVM: oct 2018   : secs 20.8, 1.05x MSVC (without -flto, which doesn't work)
-VM64-LLVM: compr_ptr  : secs 21.1, 0.98x vs native pointers, unlike MSVC!
-VM64-LLVM: dec 2018   : secs 20.5, return value related refactorings.
-VM64-LLVM: lifetime1  : secs 20.8, lifetime off (4649 alloc, 105402 decr)
-VM64-LLVM: lifetime1  : secs 18.6, first ever lifetime, few optimisations (4649 alloc, 7175 decr)
-VM64-LLVM: lifetime2  : secs 19.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
-VM64-LLVM: lifetime2  : secs 18.8 (2)
-VM64-LLVM: lifetime2  : secs 18.9, strings pooled (3945 alloc, 13126 decr)
-VM64-LLVM: lifetime2  : secs 18.9 (3) (332258 alloc, 636280 decr)
-C++64-LLVM: lifetime3 : secs 15.7 (with LLVM, LTCG doesn't appear to work under VS)
-C++64-MSVC: lifetime3 : secs 13.8 (LTCG on)
-VM64-MSVC: lvalinl    : secs 18.4 Inlined the LvalOp function, one less switch()
-C++64-MSVC: lvalinl   : secs 12.8 Inlined the LvalOp function, one less switch()
-VM64-MSVC: inlinestr  : secs 16.8 inline structs v1
-C++64-MSVC: inlinestr : secs 13.0 inline structs v1
-C++64-MSVC: immediates: secs 12.4 direct immediates in native code VM calls
-C++64-MSVC: dd        : secs 11.9
-VM64-MSVC:            : secs 16.0 (newer VS, better release settings??)
+VM: last_dyn_typed    : secs 72.2
+VM: last_switch       : secs 64.6
+VM: over fun ptr      : secs 50.0
+C++: first comp       : secs 40.0
+VM: first inline      : secs 46.8
+C++: first inline     : secs 35.5
+VM: inlined for       : secs 37.1
+C++: inlined for      : secs 23.6
+--
+VM: inlined for       : secs 36.9, 1.77x vs 2600K (1)
+C++: inlined for      : secs 23.6, 1.43x vs 2600K
+VM64: inlined for     : secs 30.1, 1.23x vs 32bit
+C++64: inlined for    : secs 20.3, 1.16x vs 32bit
+VM: vec/struct        : secs 33.4
+VM64: vec/struct      : secs 26.7
+VM64: may 2018        : secs 27.2
+VM64: compr_ptr       : secs 25.6, 1.07x vs native pointers
+VM64-MSVC: oct 2018   : secs 27.6
+VM64-LLVM: oct 2018   : secs 26.3, 1.05x MSVC (without -flto, which doesn't work)
+VM64-LLVM: compr_ptr  : secs 26.7, 0.98x vs native pointers, unlike MSVC!
+VM64-LLVM: dec 2018   : secs 25.9, return value related refactorings.
+VM64-LLVM: lifetime1  : secs 26.3, lifetime off (4649 alloc, 105402 decr)
+VM64-LLVM: lifetime1  : secs 23.5, first ever lifetime, few optimisations (4649 alloc, 7175 decr)
+VM64-LLVM: lifetime2  : secs 24.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
+VM64-LLVM: lifetime2  : secs 23.8 (2)
+VM64-LLVM: lifetime2  : secs 23.9, strings pooled (3945 alloc, 13126 decr)
+VM64-LLVM: lifetime2  : secs 23.9 (3) (332258 alloc, 636280 decr)
+C++64-LLVM: lifetime3 : secs 18.5 (with LLVM, LTCG doesn't appear to work under VS)
+C++64-MSVC: lifetime3 : secs 16.3 (LTCG on)
+VM64-MSVC: lvalinl    : secs 23.3 Inlined the LvalOp function, one less switch()
+C++64-MSVC: lvalinl   : secs 15.1 Inlined the LvalOp function, one less switch()
+VM64-MSVC: inlinestr  : secs 21.3 inline structs v1
+C++64-MSVC: inlinestr : secs 15.3 inline structs v1
+C++64-MSVC: immediates: secs 14.6 direct immediates in native code VM calls
+C++64-MSVC: dd        : secs 14.0
+VM64-MSVC:            : secs 20.2 (newer VS, better release settings??)
+VM64-MSVC:            : secs 18.3 (newer VS, "for/if/while" compiled slightly differently)
+VM64-MSVC:            : secs 19.1 (newer VS?)
+C++64-MSVC:           : secs 11.8 (newer VS?)
+--
+VM64-MSVC:            : secs 19.1, 1.265x slower than 8700K (4)
+C++64-MSVC:           : secs 11.8, 1.18x slower than 8700K
+VM64-MSVC:            : secs 19.1, stack pointer instead of index, no change
+C++64-MSVC:           : secs  8.9, stack pointer instead of index, 32% faster!
+VM64-MSVC:            : secs 17.8, named inlining.
+C++64-MSVC:           : secs  7.6, named inlining.
+C++64-MSVC:           : secs  7.4, __force_inline on VM functions.
+VM64-MSVC:            : secs 16.4, pass stack pointer around explicitly.
+C++64-MSVC:           : secs  6.2, pass stack pointer around explicitly.
+C++64-MSVC:           : secs  5.7, put sp in a non-ref var.
+C++64-MSVC:           : secs  5.4, vars inline in VM object.
+C++64-MSVC:           : secs  5.0, specialized array indexing for width == 1
+C++64-Clang10:        : secs  4.9
+C++64-Clang10-LTO     : secs  4.6
+C++64-Clang10-LTO     : secs  4.1, removed trampoline
+C++64-MSVC+TCC        : secs 11.6, 30% speedup vs interpreter!
 
 compiletime speed:
 

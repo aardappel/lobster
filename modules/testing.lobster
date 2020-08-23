@@ -5,7 +5,7 @@ def testf() -> void
 def testrunnerf(name:string, t:testf) -> void
 
 // This variable can be set to run the tests differently, the default just executes once.
-var current_test_runner : testrunnerf = def(name:string, t:testf): t()
+var current_test_runner : testrunnerf = fn(name:string, t:testf): t()
 
 def run_test(name:string, t:testf):
     current_test_runner(name, t)

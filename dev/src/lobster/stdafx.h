@@ -72,15 +72,6 @@ using namespace gsl;
 
 #include "flatbuffers/flatbuffers.h"
 
-typedef unsigned char uchar;
-typedef unsigned short ushort;
-typedef unsigned int uint;
-
-#ifdef nullptr
-#undef nullptr
-#endif
-#define nullptr nullptr
-
 // Our universally used headers.
 #include "wentropy.h"
 #include "tools.h"
@@ -91,10 +82,15 @@ typedef unsigned int uint;
 
 using namespace geom;
 
-#ifdef BUILD_CONTEXT_compiled_lobster
+#if defined(BUILD_CONTEXT_compiled_lobster) || defined(BUILD_CONTEXT_lobster_jit) || defined(__APPLE__)
     // This code is being build as part of lobster code compiled to C++, modify VM behavior
     // accordingly.
     #define VM_COMPILED_CODE_MODE
+#endif
+
+#if defined(BUILD_CONTEXT_lobster_jit) || (defined(__APPLE__) && !defined(__IOS__))
+    // A sub-mode of VM_COMPILED_CODE_MODE where we compile and run (JIT)
+    #define VM_JIT_MODE
 #endif
 
 #ifndef LOBSTER_ENGINE

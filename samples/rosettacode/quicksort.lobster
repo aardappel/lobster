@@ -1,6 +1,6 @@
 import std
 
-def quicksort(xs, lt):
+def quicksort<T>(xs:[T], lt) -> [T]:
     if xs.length <= 1:
         return xs
     else:

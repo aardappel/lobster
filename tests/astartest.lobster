@@ -49,7 +49,7 @@ run_test("astar"):
         pathingcell { xy { x, y }, false, c }
 
     let path =
-        astar_2dgrid(false, worldsize, world[startpos], world[endpos], def(): world[_]) (n, nn::pathingcell):
+        astar_2dgrid(false, worldsize, world[startpos], world[endpos], fn: world[_]) (n, nn::pathingcell):
             (c == '#' and -1) or (c == '/' and 5) or 1
 
     assert path.length == 27

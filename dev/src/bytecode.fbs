@@ -45,6 +45,7 @@ table EnumVal {
 table Enum {
     name:string;
     vals:[EnumVal];
+    flags:bool;
 }
 
 table Ident {
@@ -58,12 +59,10 @@ struct SpecIdent {
 	typeidx:int;
 }
 
-enum Attr : ubyte (bit_flags) { SPLIT }
-
 table BytecodeFile {
     bytecode_version:int;  // The format of bytecode/typetable may change.
     bytecode:[int];
-    bytecode_attr:[Attr];
+    bytecode_attr:[ubyte] (deprecated);
     typetable:[int];
 
     stringtable:[string];
@@ -79,11 +78,13 @@ table BytecodeFile {
     default_int_vector_types:[int];
     default_float_vector_types:[int];
 
-    logvars:[int];  // Index into specidents.
+    logvars:[int] (deprecated);
 
     enums:[Enum];
 
     vtables:[int];
+
+    nativemode:bool;
 }
 
 root_type BytecodeFile;

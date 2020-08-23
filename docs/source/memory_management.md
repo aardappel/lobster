@@ -50,7 +50,7 @@ object (and is responsible for its deallocation), and others merely "borrow" it.
 
 This now poses new questions: How do we determine who is the owner? When is
 borrowing allowed? How do we detect a borrower that outlives an owner? What
-about an owner being modifier while there are borrowers? Do we check any
+about an owner being modified while there are borrowers? Do we check any
 of these at compile time, runtime, or a mix?
 
 There have been many ownership models in the past, but only recently they are
@@ -79,6 +79,7 @@ becoming more mainstream:
   [Cone](http://cone.jondgoodwin.com/memory.html)
   [Scopes](https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1)
   [Pure RC GC](https://researcher.watson.ibm.com/researcher/files/us-bacon/Bacon03Pure.pdf)
+  [Mitten](https://github.com/doctorn/micro-mitten)
 
 I personally think this general direction is the future of memory management.
 It just needs to be made more friendly than Rust for most programmers to
@@ -294,7 +295,6 @@ you want to do this without help of the programmer).
 There are currently some exceptions to this:
 
 * Arguments that are assigned to are always owned.
-* Coroutines always own (because they are longer lived).
 * The return value of a function is currently always owned.
 
 Much like variables, some of these could be relaxed/improved in the future.
@@ -356,7 +356,7 @@ is cool with any kind of lifetime.
   Extending the cases where this happens, and also generally allowing the
   last use of a variable to be owned by its last use rather than waiting
   for the end of the scope, is planned as a future improvement.
-* Any data structure constructors (objects, vectors, coroutines) of course
+* Any data structure constructors (objects, vectors) of course
   result in own.
 * Any L-value results in borrow.
 

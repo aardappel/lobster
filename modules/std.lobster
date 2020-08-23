@@ -59,6 +59,10 @@ def fold2(xs, acc1, acc2, fun):
         acc1, acc2 = fun(acc1, acc2, _)
     return acc1, acc2
 
+def fold_reverse(xs, acc, fun):
+    for xs.length: acc = fun(acc, xs[xs.length - 1 - _])
+    return acc
+
 def reduce(xs, fun):
     assert xs.length
     var acc = xs[0]
@@ -127,7 +131,7 @@ def split(l, f):
 def rnd_pick(xs): return xs[rnd(xs.length)]
 def rnd_pick2(xs): return rnd_pick(rnd_pick(xs))
 
-def qsort(xs, lt):
+def qsort<T>(xs:[T], lt) -> [T]:
     if xs.length <= 1:
         return xs
     else:
@@ -138,7 +142,7 @@ def qsort(xs, lt):
                              qsort(f2, lt))
 
 def qsort_in_place(xs, lt):
-    def rec(s, e):
+    def rec(s, e) -> void:
         let l = e - s
         if l > 1:
             let pivot = xs[s]
@@ -202,19 +206,6 @@ def collect(hof):
     let list = []
     hof(): list.push(_)
     return list
-
-// coroutine utility functions:
-
-// generally don't want to use this function, since you'd be better off directly using the HOF the coroutine is based on
-def coroutine_for(co, f):
-    while co.active:
-        f(co.return_value)
-        co.resume
-    return co.return_value
-
-// builtin for() made useful as a coroutine.
-def cofor(n, f):
-    for n: f(_)
 
 // error checking
 

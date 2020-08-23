@@ -36,7 +36,7 @@ Lexical definition
     for the first character).
 
 -   Keywords: `nil return class struct import int float string any void
-    def is from program private coroutine resource enum enum_flags typeof
+    def is from program private resource enum enum_flags typeof
     var let pakfile switch case default namespace not and or`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
@@ -84,10 +84,10 @@ args = [ list( ident [ ( `:` \| `::` ) type ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `[` type `]` \| `coroutine` \| `resource` \| `void`
+type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` \| `void`
     \| ident
 
-call = specializers `(` [ list( exp ) ] `)` [ block [ ident block … ] ]
+call = specializers `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
 expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program`
 \| ident ) ]
@@ -103,8 +103,8 @@ unary = ( `-` \| `!` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 \| `++` \| `--` \| `is` type ]
 
-factor = constant \| `(` exp `)` \| constructor \| `def` functionargsbody \|
-`coroutine` ident call \| ident [ call ]
+factor = constant \| `(` exp `)` \| constructor \| `fn` functionargsbody \|
+ident [ call ]
 
 constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list(
 exp ) ] `}`
@@ -121,9 +121,9 @@ Types
 Lobster is statically typed, and any variable, argument or vector element can be
 a value of one of the following types:
 
--   Scalar types (32 or 64 bit depending on the host architecture):
+-   Scalar types (64-bit on all platforms):
 
-    -   `int` : a 32/64bit signed integer. Constructed using:
+    -   `int` : a signed integer. Constructed using:
 
         -   integer constants : `123`
 
@@ -133,7 +133,7 @@ a value of one of the following types:
 
         -   default boolean values `true` and `false` (same as `1` and `0`)
 
-    -   `float` : 32/64bit IEEE floating point number
+    -   `float` : an IEEE floating point number
 
     -   a function value, can be called just like normal functions. See below.
 
@@ -156,9 +156,6 @@ a value of one of the following types:
 
     -   `class` / `struct` : a user defined data structure, see below.
 
-    -   `coroutine` : a special object that contains a suspended computation,
-        see the section on coroutines below.
-
     -   `nil` : a special value of any reference type above, that indicates the
         absence of a legal value. `nil` is only allowed if the type is
         "nilable", for more on that see the document on type checking,
@@ -174,7 +171,7 @@ as the `not and or` operators (see below) or the builtin function `if`, the valu
 `0 0.0 nil` (which includes the enum value `false`) are all considered to be false,
 and all other values are true.
 
-The vector / `class` and `coroutine` types are the only mutable objects (can
+The vector and `class` types are the only mutable objects (can
 change after creation), and have reference semantics (multiple values can refer
 to the same object in memory, and thus changes can be observed from each).
 
@@ -206,7 +203,7 @@ fields of the supertype to the current type, thus making it an extension of the
 former.
 
 The above example uses ints directly, but you
-can also define types more generically, and then define specializations of them:
+can also define types more generically, and then define named specializations of them:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct xy<T>:
@@ -220,8 +217,11 @@ struct xy_f = xy<float>
 You construct values of these types you use a similar syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-let v = xyz { 1, 0, 0 }
+let v = xy { 1, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+(Or use `xy_f { 1, 0 }` / `xy<bool> { true, false }` to explicitly pick a particular
+specialization).
 
 The type ensures that the right number of values are given, and they can now be
 accessed as `v.x` etc. in addition to `v[0]`.
@@ -334,7 +334,7 @@ The next lower level of precedence are the comparison operators `< > <= >=`
 which work on `int`, `float` and `string` and structs (returning a struct of
 ints, use builtin functions `any` and `all` to test these), and then the
 equality operators `==` and `!=` which additionally work on all other types, but
-in particular for `vector` and `coroutine` compare *by reference*, i.e they will
+in particular for `vector` and `class` compare *by reference*, i.e they will
 give true only if both sides refer to the same object (*object identity*). To
 test for *structural identity* instead, use the built-in function `equal`.
 
@@ -436,34 +436,39 @@ You can also create anonymous (nameless) functions as values. In the most
 general case, this has the syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-let f = def(arg1, arg2): body
+let f = fn(a:type, n:type): body
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Or, if you are not specifying any types:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let f = fn a, b: body
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You call these just like any other function, e.g. `f(1, 2)`. You currently
 must call them using a variable (not any expression, not even a field).
 
-The full `function` syntax is infrequently used however, because most function
+The full `fn` syntax is infrequently used however, because most function
 values are created to be passed to other functions, and Lobster has a special
 syntax for this situation that is meant to mimic control structures in other
 languages. Any function call may be followed by one or more function values,
-where the `def` keyword is omitted:
+where the `fn` keyword is omitted:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-for(10) (i): print(i)
+g(10) i: print(i)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here, the function `for` is called with 2 arguments, the first is `10`, and the
-second is the function value `def(i): print(i)`. Lobster allows three more
-levels of further simplification of the syntax if the arguments do not contain
-type annotations:
+Here, the function `g` is called with 2 arguments, the first is `10`, and the
+second is the function value `fn i: print(i)` (as before, we left out the
+the `()` around the arguments). Lobster allows yet further simplification of
+the syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-for(10) i: print(i)
-for(10): print(_)
-for 10: print _
+g(10): print(_)
+g 10: print _
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can leave out the parentheses, and you may use anonymous arguments, which
+You may use anonymous arguments, which
 are variable names starting with an `_` that will automatically be declared as
 arguments for you. If you use multiple such arguments (e.g. `_a` and `_b`), they
 will become arguments in the order they appear in the body. Using anonymous
@@ -474,28 +479,24 @@ have any argument declarations.
 
 This style of syntax is intended to make each function that takes a function as
 argument (a *higher order function*) have the convenient syntax of a control
-structure, since that's what those functions usually are meant to be anyway. In
-fact, Lobster's  built-in control structures `if` `for` and `while` are actually
-parsed just like any other function, and have no special syntactical status
-(you'll notice they're not part of the language grammar above).
+structure, since that's what those functions usually are meant to be anyway.
+Lobster's  built-in control structures `if` `for` and `while` have syntax
+that is closely compatible with this function call syntax (and in the case of
+`for` allow the same argument simplifications).
 
-As an example of how to pass more than one function value, let's see an example
-for `if`:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var nat = if a < 0: 0 else: a
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Here we see that all except the first function value must be preceded by the
-name of the argument they're specifying. In Lobster, `else` is not a keyword, it
-simply is the name of the 3rd argument of `if`. Similarly, with indentation:
+Though not recommend (as readability suffers), it is even possible to pass
+multiple function values to a function, but then every function value except the
+first can't omit the `fn` keyword:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if a < 0:
-    print "negative numbers are scary!"
-else:
-    print "a = " + a
+g(10) i:
+    print i
+fn:
+    print "reached the end"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For example, to pass an additional function to do something special at the end of
+an iteration.
 
 Writing your own functions that take function values is the key to getting the
 most out of Lobster. It allows you to refactor pretty much any code into
@@ -513,7 +514,7 @@ Sometimes, you may want to be explicit about the function type. You can declare
 new function types, and then use them as a type:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def function_type(int) -> int
+def function_type(i:int) -> int
 def g(f:function_type): return 1 + f(2)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -678,6 +679,45 @@ assert x.g(3) == 5
 Here, the call to `g` is dynamically dispatched for `A` or `B`, but choosing the
 `int` or `string` specialization is entirely static.
 
+You can force calling a superclass method with the `super` keyword:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class B : A
+    def f(): return 1 + super f()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+That `f()` is statically dispatched to call `A`'s version of `f` (or its
+superclass, if it doesn't have one).
+
+
+### Functions with different number of arguments / default arguments.
+
+You can define functions with the same name but different number of
+arguments. These are essentially treated as independent functions, in the sense
+that which is being called is always determined completely statically.
+
+Functions can even have default arguments, as long as the default arguments
+don't cause ambiguity with other functions of the same name:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def da(a:X, b, c = x + 1): return c
+def da(a:Y, b, c = x + 1): return c
+def da(a): return a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This defines 2 complete separate functions, one that has 3 arguments (and can
+be called with 2, since it has one default argument), and one with 1 argument.
+As you can see, since there is no overlap in number of arguments, it is always
+clear which variant is being called.
+
+The version with 3 arguments has 2 overloads. Overloads must have exactly the
+same default arguments, if any.
+
+Default arguments are simple substition, writing `da(1, 2)` is exactly the same
+as writing `da(1, 2, x + 1)`. That's why you can even use variables in these
+default arguments, as long as they're in scope when called.
+
+
 Typing
 ------
 
@@ -738,59 +778,6 @@ Because they are enums, they have the same typing rules: a `bool` can be used an
 an `int` is expected, but not the other way around. Similarly, you can use e.g. `bool(1)`
 to convert ints.
 
-Coroutines
-----------
-
-The higher order functions (function that take a function argument) we saw above
-often perform iteration, and then call the function value back 0..N times. But
-what if you want to iterate, but you don't want to run all iterations all at
-once? For example, what if you want the iteration to happen across frames in a
-game? In most languages, that means writing iteration code that is a lot
-clumsier than the nice functions you already have. In Lobster however, you can
-turn any such function into a coroutine, which is a higher order function that
-can be resumed on demand. Kind of like a separate thread that only runs when you
-want to (*cooperative multitasking*). For example:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var co = coroutine cofor(10)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Normally, `cofor` takes two arguments, the range to iterate over, and the
-function value to call for each value. When we prefix a call to for by
-`coroutine`, it transforms the call into an object that can have its iteration
-triggered manually. A coroutine *suspends* (yields) when it would normally call
-the function value (which here is supplied by `coroutine` automatically). We can
-check the last value the object produced using `co.return_value` (which after the
-above call should be `0`) and we can cause the next iteration step to happen
-with `co.resume` (or `co.resume(x)`, where `x` is the value to be returned from
-the function value call inside the coroutine). At some point, the coroutine may
-end naturally (when the loop is over), at which point it can't be resumed
-anymore, and trying to resume it would be an error. To test whether you can
-still iterate a coroutine further, you can call `co.active`. Putting that
-together, a typical loop to exhaust a coroutine looks like:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-while co.active:
-    print co.return_value
-    co.resume
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Which would print 0..9. However, noone would ever write such a loop, since in
-that case it would have been easier to just call the function this coroutine is
-based on! Typical use of a coroutine object is therefore to resume it once per
-frame in a game loop (for programming animations or game objects that act over
-time), or once every time new data arrives from a file, a network, or another
-thread.
-
-Calling co.return_value when co.active has turned false will get you the return
-value of the coroutine call as a whole.
-
-If you create a coroutine object based on a function that contains local
-variables, you can access those local variables even when the coroutine is not
-running, using the `->` operator: `co->local` accesses a particular local
-variable in a coroutine object. You can use these variables just like you can
-any other variable (assign to them etc.).
-
 Programs Structure
 ------------------
 
@@ -819,7 +806,8 @@ You can use `import from "path/to/"` to provide additional such starting directo
 statements (recursively) can use.
 
 You may use the keyword `private` at the top level in a file to prefix structs,
-variables, and functions that you don't want to be visible outside that file.
+variables, functions, enums, fields and methods that you don't want to be
+visible outside that file.
 
 Memory Management
 -----------------
@@ -875,21 +863,40 @@ More details on Lobster's [memory management](memory_management.html).
 Control Structures
 -----------------
 
-As notes, all of these follow general function syntax (except `switch`),
-but are otherwise treated specially by the language.
+As noted, all of these follow closely the function call syntax introduced above
+as much as possible, but are otherwise treated specially by the language.
 
-We've already seen `if`, and it functions quite like you expect. The second
-function argument is optional.
+`if` may be followed by multiple `elif` blocks and a single `else` block:
 
-The loop constructs `for` (built-in), `map`, `filter`, and `exists` all function similarly
-in that the iteration argument can be an int N (iterate 0..N-1), a string (each
-byte value), or a vector (each element). They all supply 0, 1 (the element) or 2
-(element, index) values to the function value, depending on the function value.
-`for` returns void, `map` simply
-returns all return values in a vector, `filter` returns a vector of all elements
-for which the call returned a true value, and exists returns the first element
-for which the call returns true (and doesn't iterate further!) or `false`
-otherwise.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if a < 0:
+    print "negativity not allowed!"
+elif a < 10:
+    print "single digit!"
+elif a < 100:
+    print "double digit!"
+else:
+    print "way too big!"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`elif` is simply short for writing `else: if`. You can also write these on a single
+line, which is only recommended when very short, e.g. `if a < 0: 0 else: a`
+
+`for` is the only built-in construct taking 0 to 2 arguments to the block: the element
+being iterated over, and iteration index.
+
+We can iterate over vectors (each element), strings (each byte), or integers (values
+0..N-1):
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+for("hello") a, i:
+    print i + ": " + a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here `a` will contain the 5 characters and `i` will be just `0` to `4`.
+
+The module `std` contains further useful loop constructs on top of `for`, like
+`map`, `filter`, and `exists` etc.
 
 `while` is an odd function, since it is an exception to the rule of Lobster
 syntax:
@@ -916,15 +923,19 @@ than once yet does not use / cannot use the block `{}` syntax. This exception is
 carried over in Lobster. This is not great for readability so isn't generally
 used elsewhere.
 
-`while` returns void. A
-similar function `collectwhile` returns a vector of all body return values.
+`while` returns void. A similar function int module `std` called `collectwhile`
+returns a vector of all body return values.
+
+Both `for` and `while` can have a break statement inside of them, that
+exits the enclosing loop. Alternatively, use `return` or `return from` (see
+above) for more complex cases.
 
 Many other functions that look like regular functions are actually also control
 structures, like many of the graphics function that change the current rendering
 state. An example is `gl_translate`, that optionally takes a body, and will
 run the body and restore the previous transform afterwards.
 
-`switch` has its own special syntax, since it does a lot of things different:
+`switch` has special syntax, since it does a lot of things different:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 var st = switch i:
@@ -938,20 +949,6 @@ var st = switch i:
 
 The value you switch on may be int, float or string. Cases may test for multiple
 values, even ranges (which are inclusive)
-
-There is currently no `break` or `continue`. To add these would be a little more
-complicated than most languages, since they'd need to work with any custom
-control structure. For now, use `return` (or `return` `from`), e.g.:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-do():
-    for(10):
-        if x: return false from do
-    true
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Instead of using `do` (defined in `std.lobster`), you can also use a regular
-`return` from any named function definition (which can be nested in any code block).
 
 
 Modules and Name Spaces

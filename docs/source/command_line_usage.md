@@ -36,10 +36,10 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     files you have specified with the `pakfile` keyword, see “Distributing
     Lobster programs” in the [implementation](implementation.html) documentation.
 
--   `--cpp` : compiles to a .cpp file. Useful if you’ve created something in
-    Lobster that could use a bit more speed, for a shipping build. Not recommend
-    to be used during development. See [implementation](implementation.html) on
-    how to compile the resulting code.
+-   `--cpp` : compiles to a .cpp file. Please make sure to follow
+    [implementation](implementation.html) on how to use this feature.
+    Useful if you’ve created something in Lobster that could use a bit more speed,
+    for a shipping build. Not recommend to be used during development.
 
 -   `--wasm` : compiles to WebAssembly file. Useful for shipping to a platform
     that supports WebAssembly, like the web.

@@ -37,7 +37,7 @@ suitable for my style of programming (heavily refactoring-based).
 -   A beginner friendly system.
 
     -   The language: to use Lobster where it shines, you need to get very
-        familiar with higher order functions and coroutines for example.
+        familiar with higher order functions for example.
 
     -   Its engine, while friendly for simple drawing, generally gives you a lot
         of control (immediate mode rendering), and requires you to understand
@@ -71,12 +71,8 @@ suitable for my style of programming (heavily refactoring-based).
     thinking on how give the programmer maximum refactoring fluidity.
 
 -   A language that has some goodies built-in that streamline code typical in
-    games:
-
-    -   Almost everything can operate on vectors of numbers (2D, 3D, AnyD).
-
-    -   Coroutines that can greatly simplify code that runs over time (across
-        frames).
+    games, for example almost everything can operate on vectors of numbers
+    (2D, 3D, 4D).
 
 -   A language inspired more by functional programming than by object oriented
     programming. Lobster is of course an imperative language first: games are
@@ -87,8 +83,7 @@ suitable for my style of programming (heavily refactoring-based).
     something in terms of re-generating data instead of modifying it in place,
     you almost always should. Lobster has some very strong tools to make this
     possible, with a very terse and uniform higher order function call syntax,
-    optionally immutable objects and coroutines that reduce the need for global
-    state in the first place.
+    and optionally immutable objects.
     Lobster actually has very powerful object oriented features (its overloading
     and dynamic dispatch being more expressive than in most OO
     languages), but it doesn't push it's OO angle to the forefront, and unlike
@@ -213,6 +208,21 @@ This signals the move of Lobster to a more efficiency/strong typing oriented lan
 Strongly typed enums and bools got added, and multi-methods got replaced by a very
 flexible overloading / dispatching system.
 See the [language reference](language_reference.html).
+
+In July 2020, co-routines were removed, along with the lesser known "frame log"
+feature. A full explanation of why is
+[here](https://github.com/aardappel/lobster/issues/100)
+The summary: it is a feature that seems very attractive for game programming,
+but in practice never got used (and in most cases works just as well with
+classes), and they put a big complexity strain on the implementation that
+makes it harder to make the language faster.
+The last version of the language that does contain co-routines is marked
+with the label `last_coroutine` in git, and the diff showing exactly what
+was all removed (and thus gives a good picture on how it used to work) is
+[here](https://github.com/aardappel/lobster/commit/9483b7026419fdce5421d22b2181e77e666daf82).
+Similarly, the last version that has frame log functionality is `last_frame_log`
+and the diff is
+[here](https://github.com/aardappel/lobster/commit/274f76ca1f36742469090befbdb7d7eaa108af8f)
 
 ### What Lobster will be (Future Plans)
 

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_GEOM
+#define LOBSTER_GEOM
+
 namespace geom {
 
 #define PI 3.14159265f
@@ -34,10 +37,10 @@ union int2float { int i; float f; };
 union int2float64 { int64_t i; double f; };
 inline void default_debug_value(float   &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
 inline void default_debug_value(double  &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
-inline void default_debug_value(int     &a) { a = 0x1BADCAFE; }
 inline void default_debug_value(int64_t &a) { a = 0x1BADCAFEABADD00D; }
-inline void default_debug_value(short   &a) { a = 0x1BAD; }
-inline void default_debug_value(uchar   &a) { a = 0x1B; }
+inline void default_debug_value(int32_t &a) { a = 0x1BADCAFE; }
+inline void default_debug_value(uint16_t&a) { a = 0x1BAD; }
+inline void default_debug_value(uint8_t &a) { a = 0x1B; }
 
 template<typename T, int C, int R> class matrix;
 
@@ -243,6 +246,13 @@ template<typename T, int N> inline vec<T,N> rpow(const vec<T,N> &a, const vec<T,
     DOVECR(rpowf(a[i], b[i]));
 }
 
+template<typename T, int N> inline vec<T, N> from_srgb(const vec<T, N> &a) {
+    DOVECR(powf(a[i], 2.2f));
+}
+template<typename T, int N> inline vec<T, N> to_srgb(const vec<T, N> &a) {
+    DOVECR(powf(a[i], 1.0f / 2.2f));
+}
+
 template<typename T, int N> inline T min(const vec<T,N> &a) {
     DOVECF(FLT_MAX, std::min(a[i], _));
 }
@@ -298,7 +308,15 @@ typedef vec<int, 2> int2;
 typedef vec<int, 3> int3;
 typedef vec<int, 4> int4;
 
-typedef vec<uchar,4> byte4;
+typedef vec<double, 2> double2;
+typedef vec<double, 3> double3;
+typedef vec<double, 4> double4;
+
+typedef vec<iint, 2> iint2;
+typedef vec<iint, 3> iint3;
+typedef vec<iint, 4> iint4;
+
+typedef vec<uint8_t, 4> byte4;
 
 const float4 float4_0 = float4(0.0f);
 const float4 float4_1 = float4(1.0f);
@@ -320,9 +338,17 @@ const int2 int2_1 = int2(1);
 const int3 int3_0 = int3(0);
 const int3 int3_1 = int3(1);
 
+const double4 double4_0 = double4(0.0);
+const double3 double3_0 = double3(0.0);
+const double2 double2_0 = double2(0.0);
 
-const byte4 byte4_0   = byte4((uchar)0);
-const byte4 byte4_255 = byte4((uchar)255);
+const iint2 iint2_0 = iint2(0_L);
+const iint2 iint2_1 = iint2(1_L);
+const iint3 iint3_0 = iint3(0_L);
+
+const byte4 byte4_0   = byte4((uint8_t)0);
+const byte4 byte4_255 = byte4((uint8_t)255);
+
 
 template<typename T> vec<T, 3> cross(const vec<T, 3> &a, const vec<T, 3> &b) {
     return vec<T, 3>(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
@@ -343,6 +369,14 @@ inline float smoothmin(float a, float b, float k) {
 inline float smoothmax(float a, float b, float r) {
     auto u = max(float2(r + a, r + b), float2_0);
     return std::min(-r, std::max(a, b)) + length(u);
+}
+
+inline float smoothstep(float x) {
+    return x * x * (3 - 2 * x);
+}
+
+inline float smootherstep(float x) {
+    return x * x * x * (x * (x * 6 - 15) + 10);
 }
 
 template<typename T> inline float3 random_point_in_sphere(RandomNumberGenerator<T> &r) {
@@ -403,23 +437,21 @@ template<typename T, int C, int R> class matrix {
     matrix() {}
 
     explicit matrix(T e) {
-        /* this used to be the following code that triggered a codegen bug in VS2017 (version 15.3)
-           release mode. Fixed in 15.4. Can reinstate in the future once 15.3 is unlikely in use anymore?
-            for (int x = 0; x < C; x++)
-                for (int y = 0; y < R; y++)
-                    m[x].c[y] = e * (T)(x == y);
-        */
-        memset(this, 0, sizeof(*this));
-        for (int x = 0; x < std::min(C, R); x++) m[x].c[x] = e;
+        for (int x = 0; x < C; x++)
+            for (int y = 0; y < R; y++)
+                m[x].c[y] = e * (T)(x == y);
     }
 
     explicit matrix(const V &v) {
-        memset(this, 0, sizeof(*this));
-        for (int x = 0; x < std::min(C, R); x++) m[x].c[x] = v[x];
+        for (int x = 0; x < C; x++)
+            for (int y = 0; y < R; y++)
+                m[x].c[y] = x == y ? v[x] : 0;
     }
 
     explicit matrix(const T *mat_data) {
-        memcpy(this, mat_data, sizeof(T) * R * C);
+        for (int x = 0; x < C; x++)
+            for (int y = 0; y < R; y++)
+                m[x].c[y] = *mat_data++;
     }
 
     matrix(V x, V y, V z, V w) { assert(C == 4); m[0] = x; m[1] = y; m[2] = z; m[3] = w; }
@@ -848,6 +880,18 @@ template<typename T> bool line_intersect(const vec<T, 2> &l1a, const vec<T, 2> &
     return true;
 }
 
+// Vector from a point to the closest point on a box.
+template<typename T, int N>
+const vec<T, N> point_to_box(const vec<T, N> &p, const vec<T, N> &bmin, const vec<T, N> &bmax) {
+    return std::max(bmin - p, std::max(vec<T, N>((T)0), p - bmax));
+}
+
+template<typename T, int N>
+bool boxes_intersect(const vec<T, N> &b1min, const vec<T, N> &b1max,
+    const vec<T, N> &b2min, const vec<T, N> &b2max) {
+    return b1min <= b2max && b2min <= b1max;
+}
+
 // Return the enter and exit t value.
 inline float2 ray_bb_intersect(const float3 &bbmin, const float3 &bbmax,
                                const float3 &rayo, const float3 &reciprocal_raydir) {
@@ -881,18 +925,18 @@ inline bool clamp_bb(const float3 &bbmin, const float3 &bbmax, const float3 &ray
 inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t vsize,
                            size_t normaloffset, bool ignore_bad_tris = true) {
     for (size_t i = 0; i < vertlen; i++) {
-        *(float3 *)((uchar *)verts + i * vsize + normaloffset) = float3_0;
+        *(float3 *)((uint8_t *)verts + i * vsize + normaloffset) = float3_0;
     }
     for (size_t t = 0; t < idxs.size(); t += 3) {
         int v1i = idxs[t + 0];
         int v2i = idxs[t + 1];
         int v3i = idxs[t + 2];
-        float3 &v1p = *(float3 *)((uchar *)verts + v1i * vsize);
-        float3 &v2p = *(float3 *)((uchar *)verts + v2i * vsize);
-        float3 &v3p = *(float3 *)((uchar *)verts + v3i * vsize);
-        float3 &v1n = *(float3 *)((uchar *)verts + v1i * vsize + normaloffset);
-        float3 &v2n = *(float3 *)((uchar *)verts + v2i * vsize + normaloffset);
-        float3 &v3n = *(float3 *)((uchar *)verts + v3i * vsize + normaloffset);
+        float3 &v1p = *(float3 *)((uint8_t *)verts + v1i * vsize);
+        float3 &v2p = *(float3 *)((uint8_t *)verts + v2i * vsize);
+        float3 &v3p = *(float3 *)((uint8_t *)verts + v3i * vsize);
+        float3 &v1n = *(float3 *)((uint8_t *)verts + v1i * vsize + normaloffset);
+        float3 &v2n = *(float3 *)((uint8_t *)verts + v2i * vsize + normaloffset);
+        float3 &v3n = *(float3 *)((uint8_t *)verts + v3i * vsize + normaloffset);
         if (v1p != v2p && v1p != v3p && v2p != v3p) {
             float3 v12 = normalize(v2p - v1p);
             float3 v13 = normalize(v3p - v1p);
@@ -907,7 +951,7 @@ inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t v
         }
     }
     for (size_t i = 0; i < vertlen; i++) {
-        float3 &norm = *(float3 *)((uchar *)verts + i * vsize + normaloffset);
+        float3 &norm = *(float3 *)((uint8_t *)verts + i * vsize + normaloffset);
         if (norm != float3_0)
             norm = normalize(norm);
     }
@@ -915,3 +959,4 @@ inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t v
 
 }  // namespace geom
 
+#endif  // LOBSTER_GEOM

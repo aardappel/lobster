@@ -12,15 +12,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Mixing of signed and unsigned is an endless source of problems in C++.
+// So, try to make as much as possible signed.
+// Also, make types 64-bit as much as possible, to reduce on casts that are
+// only necessary for (rapidly dwindling) 32-bit builds.
+// So, code should use this type as much as possible for locals/args,
+// and use the more verbose uint32_t etc for when unsigned and/or 32-bit is
+// necessary.
+typedef int64_t iint;
 
+// Sadly, the STL on 32-bit platform has a 32-bit size_t for most of its
+// args and indexing, so using the 64-bit type above would introduce a lot
+// of casts. Best we can do is a signed version of that, until we can
+// stop targetting 32-bit entirely.
+// This may also be defined in Posix (sys/types.h), but in C++
+// redefining typedefs is totally cool:
+typedef ptrdiff_t ssize_t;
+
+// Custom _L suffix, since neither L (different size on win/nix) or LL
+// (does not convert to int64_t on nix!) is portable.
+inline constexpr iint operator"" _L(unsigned long long int c) {
+    return (iint)c;
+}
+
+// Size of any STL container.
+
+// Version for always-64-bit:
+template<typename T> iint isize(const T &c) { return (iint)c.size(); }
+template<typename T> iint isizeof() { return (iint)sizeof(T); }
+template<typename T> iint ialignof() { return (iint)alignof(T); }
+
+// Signed variable size versions.
+// Since ssize may or may not be already in the STL (C++20),
+// simply provide overloads for the types we actually use for now.
+inline ssize_t ssize(const string &c) { return (ssize_t)c.size(); }
+inline ssize_t ssize(const string_view &c) { return (ssize_t)c.size(); }
+template<typename T> ssize_t ssize(const vector<T> &c) { return (ssize_t)c.size(); }
+template<typename T> ssize_t ssizeof() { return (ssize_t)sizeof(T); }
+template<typename T> ssize_t salignof() { return (ssize_t)alignof(T); }
+
+inline iint positive_bits(uint64_t i) { return (i << 1) >> 1; }
+
+// Typed versions of memcpy.
 template<typename T, typename S> void t_memcpy(T *dest, const T *src, S n) {
-    memcpy(dest, src, n * sizeof(T));
+    memcpy(dest, src, (size_t)n * sizeof(T));
 }
 
 template<typename T, typename S> void t_memmove(T *dest, const T *src, S n) {
-    memmove(dest, src, n * sizeof(T));
+    memmove(dest, src, (size_t)n * sizeof(T));
 }
 
+// memcpy's that are intended to be faster if `n` is typically very small,
+// since the tests for size can branch predicted better.
 template<typename T, typename S> void ts_memcpy(T *dest, const T *src, S n) {
     if (n) {
         *dest++ = *src++;
@@ -141,31 +184,31 @@ template<typename T> T *Prev(T *n) { return (T *)n->prev; }
     for (auto n = (L).Prev(), p = Prev(n); n != (void *)&(L); (n = p),(p = Prev(n)))
 
 class MersenneTwister          {
-    const static uint N = 624;
-    const static uint M = 397;
-    const static uint K = 0x9908B0DFU;
+    const static uint32_t N = 624;
+    const static uint32_t M = 397;
+    const static uint32_t K = 0x9908B0DFU;
 
-    uint hiBit(uint u) { return u & 0x80000000U; }
-    uint loBit(uint u) { return u & 0x00000001U; }
-    uint loBits(uint u) { return u & 0x7FFFFFFFU; }
+    uint32_t hiBit(uint32_t u) { return u & 0x80000000U; }
+    uint32_t loBit(uint32_t u) { return u & 0x00000001U; }
+    uint32_t loBits(uint32_t u) { return u & 0x7FFFFFFFU; }
 
-    uint mixBits(uint u, uint v) { return hiBit(u) | loBits(v); }
+    uint32_t mixBits(uint32_t u, uint32_t v) { return hiBit(u) | loBits(v); }
 
-    uint state[N + 1];
-    uint *next;
+    uint32_t state[N + 1];
+    uint32_t *next;
     int left = -1;
 
     public:
 
-    void Seed(uint seed) {
-        uint x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
+    void Seed(uint32_t seed) {
+        uint32_t x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
         int j;
         for (left = 0, *s++ = x, j = N; --j; *s++ = (x *= 69069U) & 0xFFFFFFFFU)
             ;
     }
 
-    uint Reload() {
-        uint *p0 = state, *p2 = state + 2, *pM = state + M, s0, s1;
+    uint32_t Reload() {
+        uint32_t *p0 = state, *p2 = state + 2, *pM = state + M, s0, s1;
         int j;
         if (left < -1) Seed(4357U);
         left = N - 1;
@@ -182,17 +225,16 @@ class MersenneTwister          {
         return (s1 ^ (s1 >> 18));
     }
 
-    uint Random() {
-        uint y;
+    uint32_t Random() {
         if (--left < 0) return (Reload());
-        y = *next++;
+        uint32_t y = *next++;
         y ^= (y >> 11);
         y ^= (y << 7) & 0x9D2C5680U;
         y ^= (y << 15) & 0xEFC60000U;
         return (y ^ (y >> 18));
     }
 
-    void ReSeed(uint seed) {
+    void ReSeed(uint32_t seed) {
         Seed(seed);
         left = 0;
         Reload();
@@ -227,7 +269,7 @@ class PCG32 {
 template<typename T> struct RandomNumberGenerator {
     T rnd;
 
-    void seed(uint s) { rnd.ReSeed(s); }
+    void seed(uint32_t s) { rnd.ReSeed(s); }
 
     int operator()(int max) { return rnd.Random() % max; }
     int operator()() { return rnd.Random(); }
@@ -285,7 +327,7 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
             // Simply double the capacity until it works.
             // We choose 15 as minimum bound, since together with the null-terminator, it is most
             // likely to fit in a memory allocator bucket.
-            s.reserve(max(s.capacity(), (size_t)15) * 2);
+             s.reserve(max(s.capacity(), (size_t)15) * 2);
         }
     #else
         // ostringstream gives more consistent cross-platform results than to_string() for floats,
@@ -424,7 +466,7 @@ template <typename T> class Accumulator {
     }
 };
 
-typedef Accumulator<uchar> ByteAccumulator;
+typedef Accumulator<uint8_t> ByteAccumulator;
 
 // Easy "dynamic scope" helper: replace any variable by a new value, and at the end of the scope
 // put the old value back.
@@ -752,11 +794,20 @@ template<typename T> class TimeBool {
 
 typedef TimeBool<char> TimeBool8;
 
-inline uint FNV1A(string_view s) {
-    uint hash = 0x811C9DC5;
+inline uint32_t FNV1A32(string_view s) {
+    uint32_t hash = 0x811C9DC5;
     for (auto c : s) {
-        hash ^= (uchar)c;
+        hash ^= (uint8_t)c;
         hash *= 0x01000193;
+    }
+    return hash;
+}
+
+inline uint64_t FNV1A64(string_view s) {
+    uint64_t hash = 0xCBF29CE484222325;
+    for (auto c : s) {
+        hash ^= (uint8_t)c;
+        hash *= 0x100000001B3;
     }
     return hash;
 }
@@ -804,10 +855,18 @@ inline int PopCount(uint64_t val) {
         #ifdef _WIN64
             return (int)__popcnt64(val);
         #else
-            return (int)(__popcnt((uint)val) + __popcnt((uint)(val >> 32)));
+            return (int)(__popcnt((uint32_t)val) + __popcnt((uint32_t)(val >> 32)));
         #endif
     #else
         return __builtin_popcountll(val);
+    #endif
+}
+
+inline int HighZeroBits(uint64_t val) {
+    #ifdef _MSC_VER
+        return (int)__lzcnt64(val);
+    #else
+        return __builtin_clzll(val);
     #endif
 }
 
@@ -838,37 +897,77 @@ template<int I> auto to_string_conv(const char cs[I]) {
     return[sv = string_view(cs, I)]() { return sv; };  // Static strlen!
 }
 
+template<typename T> auto to_string_conv(const T *p) {
+    return[s = to_string((size_t)p)]() { return string_view(s); };  // Caches to_string!
+}
+
 template<typename T> auto to_string_conv(T i) {
     static_assert(is_scalar<T>::value, "");
     // FIXME: use to_chars.
     return [s = to_string(i)]() { return string_view(s); };  // Caches to_string!
 }
 
-inline size_t size_helper() { return 0; }
-template<typename T, typename ...Ts> size_t size_helper(const T &t, const Ts &... args) {
-    return t().size() + size_helper(args...);
+inline size_t size_helper(const char *, const char *, const char *suffix) {
+    return suffix ? strlen(suffix) : 0;
+}
+template<typename T, typename ...Ts>
+size_t size_helper(const char *prefix, const char *infix, const char *suffix,
+                   const T &t, const Ts &... args) {
+    return (prefix ? strlen(prefix) : 0) + t().size() + size_helper(infix, infix, suffix, args...);
 }
 
-inline void cat_helper(string &) {}
-template<typename T, typename ...Ts> void cat_helper(string &s, const T &t, const Ts&... args) {
+inline void cat_helper(string &s, const char *, const char *, const char *suffix) {
+    if (suffix) s += suffix;
+}
+template<typename T, typename ...Ts>
+void cat_helper(string &s, const char *prefix, const char *infix, const char *suffix,
+                const T &t, const Ts&... args) {
+    if (prefix) s += prefix;
     s += t();
-    cat_helper(s, args...);
+    cat_helper(s, infix, infix, suffix, args...);
 }
 
-template<typename ...Ts> void cat_convs(string &s, const Ts &... args) {
-    auto len = size_helper(args...);
-    s.reserve(len);  // Only 1 alloc ever.
-    cat_helper(s, args...);
+template<typename ...Ts>
+void cat_convs(string &s, const char *prefix, const char *infix, const char *suffix,
+               const Ts &... args) {
+    auto len = (prefix ? strlen(prefix) : 0) + size_helper(nullptr, infix, suffix, args...);
+    s.reserve(len);  // Max 1 alloc ever.
+    if (prefix) s += prefix;
+    cat_helper(s, nullptr, infix, suffix, args...);
+    assert(s.size() == len);
 }
 
-template<typename ...Ts> string cat(const Ts&... args) {
+template<typename ...Ts>
+string cat(const Ts&... args) {
     string s;
-    cat_convs(s, to_string_conv(args)...);
+    cat_convs(s, nullptr, nullptr, nullptr, to_string_conv(args)...);
     return s;
 }
 
-template<typename ...Ts> void append(string &sd, const Ts &... args) {
-    cat_helper(sd, to_string_conv(args)...);
+template<typename ...Ts>
+string cat_spaced(const Ts &... args) {
+    string s;
+    cat_convs(s, nullptr, " ", nullptr, to_string_conv(args)...);
+    return s;
+}
+
+template<typename ...Ts>
+string cat_parens(const Ts &... args) {
+    string s;
+    cat_convs(s, "(", ", ", ")", to_string_conv(args)...);
+    return s;
+}
+
+template<typename ...Ts>
+string cat_quoted(const Ts &... args) {
+    string s;
+    cat_convs(s, "\"", "\" \"", "\"", to_string_conv(args)...);
+    return s;
+}
+
+template<typename ...Ts>
+void append(string &sd, const Ts &... args) {
+    cat_helper(sd, nullptr, nullptr, nullptr, to_string_conv(args)...);
 }
 
 // This method is in C++20, but quite essential.
@@ -905,13 +1004,13 @@ template<typename T> T ReadMem(const void *p) {
     return dest;
 }
 
-template<typename T> T ReadMemInc(const uchar *&p) {
+template<typename T> T ReadMemInc(const uint8_t *&p) {
     T dest = ReadMem<T>(p);
     p += sizeof(T);
     return dest;
 }
 
-template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
+template<typename T> void WriteMemInc(uint8_t *&dest, const T &src) {
     memcpy(dest, &src, sizeof(T));
     dest += sizeof(T);
 }
@@ -929,16 +1028,19 @@ template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
     #define USE_EXCEPTION_HANDLING
 #endif
 
-#ifdef USE_EXCEPTION_HANDLING
-    #define THROW_OR_ABORT(X) { throw (X); }
-#else
-    #define THROW_OR_ABORT(X) { printf("%s\n", (X).c_str()); abort(); }
-#endif
-
+inline void THROW_OR_ABORT(const string &s) {
+    #ifdef USE_EXCEPTION_HANDLING
+        throw s;
+    #else
+        printf("%s\n", s.c_str());
+        abort();
+    #endif
+}
 
 inline void unit_test_tools() {
     assert(strcmp(null_terminated<0>(string_view("aa", 1)),
                   null_terminated<1>(string_view("bb", 1))) != 0);
+    assert(cat_parens(1, 2) == "(1, 2)");
 }
 
 

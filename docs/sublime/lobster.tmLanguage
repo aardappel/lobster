@@ -28,13 +28,13 @@
             <key>name</key>
             <string>keyword.source.lobster</string>
             <key>match</key>
-            <string>\b(return|struct|class|import|namespace|pakfile|def|is|from|program|private|coroutine|enum|enum_flags|typeof|var|let|not|and|or)\b</string>
+            <string>\b(break|return|struct|class|import|namespace|pakfile|def|is|from|program|private|enum|enum_flags|typeof|var|let|not|and|or)\b</string>
         </dict>
         <dict>
             <key>name</key>
             <string>storage.type.source.lobster</string>
             <key>match</key>
-            <string>\b(int|float|string|vector|coroutine|bool|void|resource)\b</string>
+            <string>\b(int|float|string|vector|bool|void|resource)\b</string>
         </dict>
         <dict>
             <key>name</key>
@@ -46,13 +46,13 @@
             <key>name</key>
             <string>keyword.control.source.lobster</string>
             <key>match</key>
-            <string>\b(return|from)\b</string>
+            <string>\b(break|return|from)\b</string>
         </dict>
         <dict>
             <key>name</key>
             <string>keyword.control.source.lobster</string>
             <key>match</key>
-            <string>\b(else)\b</string>
+            <string>\b(else|elif)\b</string>
         </dict>
         <dict>
             <key>name</key>
@@ -76,7 +76,7 @@
             <key>name</key>
             <string>support.function.source.lobster</string>
             <key>match</key>
-            <string>\b(sum|product|zip|reverselist|in_range|collect|coroutine_for|fatal|check|allint|vecfromyawpitch|inrange2d|rotate2D|camera_FPS_update|camera_FPS_view|camera_direction|camera_2d_worldspace)\b</string>
+            <string>\b(sum|product|zip|reverselist|in_range|collect|fatal|check|allint|vecfromyawpitch|inrange2d|rotate2D|camera_FPS_update|camera_FPS_view|camera_direction|camera_2d_worldspace)\b</string>
         </dict>
          <dict>
             <key>name</key>

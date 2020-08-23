@@ -72,13 +72,21 @@ run_test("types"):
             a:int = 0
             def f(c:int): return 1 + a + c
             def g(c): return c + 1
-            def r(c:int): return c
+            def r(c:int) -> int: return c
+            def mr(): return 1, "a"
+            def sup(): return 1
         class C2 : C1
             b:int = 0
             def f(c:int): return 2 + a + b + c
             def g(c): return c + 2
-            def r(c:int): return if c: r(this, c - 1) else: r(C1 {}, c)
+            def r(c:int) -> int: return if c: r(c - 1) else: (C1 {}).r(c)
+            def mr(): return 2, "b"
+            def sup(): return 1 + super sup()
+        class C3<T> : C1
+            b:T
+            def f(c:int): return c + length(b)
         let x:C1 = C2 {}
+        let x2:C1 = C3<string> { "hello" }
         // Must do dynamic dispatch.
         assert x.f(0) == 2
         // Static dispatch, there are no sub-classes.
@@ -86,8 +94,24 @@ run_test("types"):
         // Dynamic dispatch mixed with specialization (!)
         assert x.g("hi") == "hi2"
         assert x.g(3) == 5
+        assert x2.f(10) == 15  // Generic "this"
         // Recursive dynamic dispatch.
         assert x.r(10) == 0
+        // Call super methods:
+        assert x.sup() == 2
+        // Multiple return:
+        let mr1, mr2 = x.mr()
+        assert mr1 == 2 and mr2 == "b"
+        // Static dispatch on generic types!
+        class D<T>:
+            x:T
+        def foo<T>(d:D<T>): return d.x
+        def foo(i:int): return i
+        def foo(s:string): return s
+        def foo<T>(t:T): return t + 1
+        assert foo(D<int> { 1 }) + foo(2) == 3
+        assert foo(D<string> { "ha" }) + foo("llo") == "hallo"
+        assert foo(1.0) == 2.0
 
     do():
         // Flow sensitive checking.
@@ -109,6 +133,7 @@ run_test("types"):
             next:A? = nil      // Automatically "upgraded" to A<T>
             nexts:[A] = []     // Same.
             nexti:Ai? = nil    // Refer to specialization before fully defined!
+            nexto:A<string>? = nil    // Refer to unnamed specialization.
             def f(t:T):        // Generic from surrounding class.
                 ts.push(t)
             def g<U>(u:U):     // Own generic.
@@ -118,6 +143,7 @@ run_test("types"):
                 return x
         def i<T>(a::A<T>, t:T):// Non-inline "method".
             ts.push(t)
+
         class Ai = A<int>      // Specialize.
         let a = Ai { [ 1 ] }
         a.nexts.push(a)
@@ -128,22 +154,33 @@ run_test("types"):
         a.g(3)
         a.i(4)
         assert a.h() == 1
+
+        let b = A<string> { [ "hello" ] }  // Look ma, no named specialization.
+        b.nexts.push(b)
+        b.nexts = []
+        b.nexto = b
+        b.nexto = nil
+        b.f("hi")
+        b.g("yo")
+        b.i("sup")
+
         /*
         class B : Ai
             def f(t:T):   // Explicit generic mixed with dynamic dispatch!
                 ts.push(t + 1)
-        let aa:Ai = B { [ 1 ] }
-        aa.f(3)
-        assert aa.ts.top() == 4
+        let aaa:Ai = B { [ 1 ] }
+        aaa.f(3)
+        assert aaa.ts.top() == 4
         */
         /*
         class B : Ai
             def g<U>(u:U):   // Explicit generic mixed with dynamic dispatch!
                 ts.push(u + 1)
-        let aa:Ai = B { [ 1 ] }
-        aa.g(3)
-        assert aa.ts.top() == 4
+        let aaa:Ai = B { [ 1 ] }
+        aaa.g(3)
+        assert aaa.ts.top() == 4
         */
+
         // Explicit use in functions.
         def j<T>(x:T, y:T): return y
         assert j<float>(1, 1) is float  // Explicit specializer.
@@ -158,6 +195,7 @@ run_test("types"):
         def t0(aa:Ai?) -> Ai:
             return A { [ if aa: aa.ts[0] else: 2 ] }
         assert t0(a).ts[0] == 1
+
         // Use with various explicit type features.
         def l<T>(): return 1.0 is T     // Use with is.
         assert l<float>()
@@ -167,6 +205,7 @@ run_test("types"):
         assert equal(o<string>(), []::string)
         def p<T>(): return typeof T     // Use with typeof.
         assert p<string>() == 3
+
         // Use without an named specialization type.
         def t1<V>(aa:A<V>) -> A<V>:
             return A { [ aa.ts[0] ] }

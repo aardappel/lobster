@@ -12,26 +12,74 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-template<typename T> struct OcTree {
-    vector<T> nodes;
+class OcVal {
+    int32_t node;
+public:
+    OcVal() { SetLeafData(0); }
+    OcVal(int32_t n) { SetNodeIdx(n); }
+    bool IsLeaf() const { return node < 0; }
+    int32_t NodeIdx() { assert(node >= 0); return node; }
+    void SetNodeIdx(int32_t n) { assert(n >= 0); node = n; }
+    // leaf data is a 31-bit usigned integer.
+    int32_t LeafData() { assert(node < 0); return node & 0x7FFFFFFF; }
+    void SetLeafData(int32_t v) { assert(v >= 0); node = v | 0x80000000; }
+    bool operator==(const OcVal &o) const { return node == o.node; }
+    bool operator!=(const OcVal &o) const { return node != o.node; }
+};
+
+struct OcTree {
+    vector<OcVal> nodes;
     vector<int> freelist;
+    vector<uint8_t> dirty;
     int world_bits;
+    int fix_bits;
+    bool all_dirty = true;
     enum {
         OCTREE_SUBDIV = 8,  // This one is kind of a given..
         PARENT_INDEX = OCTREE_SUBDIV,
         ELEMENTS_PER_NODE = OCTREE_SUBDIV + 1,  // Last is parent pointer.
-        ROOT_INDEX = 1  // Such that index 0 means "no parent".
+        ROOT_INDEX = 1,  // Such that index 0 means "no parent".
+        NUM_NEW_NODES_PER_RESIZE = 10000,
+        NODES_PER_DIRTY_BIT = 64
     };
 
-    OcTree(int bits) : nodes(ROOT_INDEX + ELEMENTS_PER_NODE), world_bits(bits) {
-        for (auto &n : nodes) n.SetLeafData(0);
-        nodes[ROOT_INDEX + OCTREE_SUBDIV].SetNodeIdx(0);  // Root doesn't have a parent.
+    size_t NumNodes() {
+        return nodes.size() / ELEMENTS_PER_NODE - freelist.size();
+    }
+
+    OcTree(int world_bits, int fix_bits = 0) : world_bits(world_bits), fix_bits(fix_bits) {
+        nodes.push_back(OcVal());  // Unused element before root at offset 0.
+        RecInit(fix_bits, 0);
+    }
+
+    int RecInit(int fbitsr, int parent) {
+        int cur = (int)nodes.size();
+        for (int i = 0; i < OCTREE_SUBDIV; i++) nodes.push_back(OcVal());
+        nodes.push_back({ parent });
+        if (fbitsr) {
+            for (int i = 0; i < OCTREE_SUBDIV; i++) {
+                auto child = RecInit(fbitsr - 1, cur + i);
+                nodes[cur + i].SetNodeIdx(child);
+            }
+        }
+        return cur;
     }
 
     int ToParent(int i) { return i - ((i - ROOT_INDEX) % ELEMENTS_PER_NODE); }
     int Deref(int children) { return nodes[children + PARENT_INDEX].NodeIdx(); }
 
-    void Set(const int3 &pos, T val) {
+    void Dirty(int i) {
+        // FIXME: simplify representation to simplify this.
+        // ROOT_INDEX could be remove in favor of -1
+        // node should be a struct of 9 elements.
+        i -= ROOT_INDEX;
+        i /= ELEMENTS_PER_NODE;
+        i /= NODES_PER_DIRTY_BIT;
+        if (i >= (int)dirty.size()) dirty.resize(i + 1, false);
+        dirty[i] = true;
+    }
+
+    void Set(const int3 &pos, OcVal val) {
         int cur = ROOT_INDEX;
         for (auto bit = world_bits - 1; ; bit--) {
             auto size = 1 << bit;
@@ -43,19 +91,28 @@ template<typename T> struct OcTree {
             if (bit) {  // Not at bottom yet.
                 if (oval.IsLeaf()) {  // Values are not equal, so we must subdivide.
                     int ncur;
-                    T parent;
-                    parent.SetNodeIdx(ccur);
+                    OcVal parent(ccur);
                     if (freelist.empty()) {
-                        ncur = (int)nodes.size();
-                        for (int i = 0; i < OCTREE_SUBDIV; i++) nodes.push_back(oval);
-                        nodes.push_back(parent);
-                    } else {
-                        ncur = freelist.back();
-                        freelist.pop_back();
-                        for (int i = 0; i < OCTREE_SUBDIV; i++) nodes[ncur + i] = oval;
-                        nodes[ncur + OCTREE_SUBDIV] = parent;
+                        auto newsize = nodes.size() + NUM_NEW_NODES_PER_RESIZE * ELEMENTS_PER_NODE;
+                        if (newsize >= 0x80000000) {
+                            THROW_OR_ABORT("OcTree: grown too big (>2GB)");
+                        }
+                        freelist.resize(NUM_NEW_NODES_PER_RESIZE);
+                        for (int i = 0; i < NUM_NEW_NODES_PER_RESIZE; i++) {
+                            // Backwards, so they get consumed forwards.
+                            freelist[NUM_NEW_NODES_PER_RESIZE - 1 - i] =
+                                (int)nodes.size() + i * ELEMENTS_PER_NODE;
+                        }
+                        nodes.resize(newsize);
+                        all_dirty = true;
                     }
+                    ncur = freelist.back();
+                    freelist.pop_back();
+                    for (int i = 0; i < OCTREE_SUBDIV; i++) nodes[ncur + i] = oval;
+                    nodes[ncur + OCTREE_SUBDIV] = parent;
+                    Dirty(ncur);
                     nodes[ccur].SetNodeIdx(ncur);
+                    Dirty(ccur);
                     cur = ncur;
                 } else {
                     cur = oval.NodeIdx();
@@ -63,16 +120,18 @@ template<typename T> struct OcTree {
             } else {  // Bottom level.
                 assert(val.IsLeaf());
                 nodes[ccur] = val;
+                Dirty(ccur);
                 // Try to merge this level all the way to the top.
-                for (int pbit = 1; pbit < world_bits; pbit++) {
-                    auto parent = Deref(cur);
-                    auto children = nodes[parent].NodeIdx();
+                for (int pbit = 1 + fix_bits; pbit < world_bits; pbit++) {
                     for (int i = 1; i < OCTREE_SUBDIV; i++) {  // If all 8 are the same..
-                        if (nodes[children] != nodes[children + i]) return;
+                        if (nodes[cur] != nodes[cur + i]) return;
                     }
                     // Merge.
-                    nodes[parent] = nodes[children];
-                    freelist.push_back(children);
+                    auto parent = Deref(cur);
+                    assert(cur == nodes[parent].NodeIdx());
+                    nodes[parent] = nodes[cur];
+                    Dirty(parent);
+                    freelist.push_back(cur);
                     cur = ToParent(parent);
                 }
                 return;
@@ -83,7 +142,7 @@ template<typename T> struct OcTree {
     pair<int, int> Get(const int3 &pos) {
         int bit = world_bits;
         int i = Get(pos, bit, ROOT_INDEX);
-        return make_pair(i, bit);
+        return { i, bit };
     }
 
     int Get(const int3 &pos, int &bit, int cur) {
@@ -102,36 +161,44 @@ template<typename T> struct OcTree {
         }
     }
 
+    int Copy(vector<OcVal> &dest, int src, int parent) {
+        int cur = (int)dest.size();
+        for (int i = 0; i < OCTREE_SUBDIV; i++) {
+            dest.push_back(nodes[src + i]);
+        }
+        dest.push_back(parent);
+        for (int i = 0; i < OCTREE_SUBDIV; i++) {
+            auto v = nodes[src + i];
+            if (!v.IsLeaf()) dest[cur + i] = Copy(dest, v.NodeIdx(), cur + i);
+        }
+        return cur;
+    }
+
     // This function is only needed when creating nodes without Set, as Set already merges
     // on the fly.
-    T Merge(int cur = ROOT_INDEX) {
+    void Merge() { Merge(ROOT_INDEX, fix_bits); }
+    OcVal Merge(int cur, int fbitsr) {
         for (int i = 0; i < OCTREE_SUBDIV; i++) {
             auto &n = nodes[cur + i];
-            if (!n.IsLeaf()) n = Merge(n.NodeIdx());
+            if (!n.IsLeaf()) {
+                auto nn = Merge(n.NodeIdx(), fbitsr - 1);
+                if (n != nn) {
+                    n = nn;
+                    Dirty(cur);
+                }
+            }
         }
-        T ov;
-        ov.SetNodeIdx(cur);
+        OcVal ov(cur);
         if (!nodes[cur].IsLeaf()) return ov;
         for (int i = 1; i < OCTREE_SUBDIV; i++) {
             if (nodes[cur] != nodes[cur + i]) return ov;
         }
-        if (cur != ROOT_INDEX) {
+        if (fbitsr < 0) {
             freelist.push_back(cur);
             ov = nodes[cur];
         }
         return ov;
     }
+
 };
 
-class OcVal {
-    int32_t node;
-  public:
-    bool IsLeaf() const { return node < 0; }
-    int32_t NodeIdx() { assert(node >= 0); return node; }
-    void SetNodeIdx(int32_t n) { assert(n >= 0); node = n; }
-    // leaf data is a 31-bit usigned integer.
-    int32_t LeafData() { assert(node < 0); return node & 0x7FFFFFFF; }
-    void SetLeafData(int32_t v) { assert(v >= 0); node = v | 0x80000000; }
-    bool operator==(const OcVal &o) const { return node == o.node; }
-    bool operator!=(const OcVal &o) const { return node != o.node; }
-};

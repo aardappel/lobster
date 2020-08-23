@@ -21,107 +21,118 @@ namespace lobster {
 
 class CPPGenerator : public NativeGenerator {
     string &sd;
-    const int dispatch = VM_DISPATCH_METHOD;
-    int current_block_id = -1;
-    int tail_calls_in_a_row = 0;
-
-    string_view Block() {
-        return dispatch == VM_DISPATCH_TRAMPOLINE ? "block" : "";
-    }
-
-    void JumpInsVar() {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            sd += "return (void *)vm.next_call_target;";
-        } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            sd += "{ ip = vm.next_call_target; continue; }";
-        }
-    }
+    vector<const int *> jumptables;
+    bool cpp;  // If not, plain C.
 
   public:
 
-    explicit CPPGenerator(string &sd) : sd(sd) {}
+    explicit CPPGenerator(string &sd, bool cpp) : sd(sd), cpp(cpp) {}
 
     void FileStart() override {
-        sd +=
-            "#include \"lobster/stdafx.h\"\n"
-            "#include \"lobster/vmdata.h\"\n"
-            #if LOBSTER_ENGINE
-                "#include \"lobster/engine.h\"\n"
-            #else
+        if (cpp) {
+            sd +=
+                "#include \"lobster/stdafx.h\"\n"
+                "#include \"lobster/vmdata.h\"\n"
+                "#include \"lobster/vmops.h\"\n"
                 "#include \"lobster/compiler.h\"\n"
-            #endif
-            "\n"
-            "#ifndef VM_COMPILED_CODE_MODE\n"
-            "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
-            "#endif\n"
-            "\n"
-            "#ifdef _WIN32\n"
-            "    #pragma warning (disable: 4102)  // Unused label.\n"
-            "#endif\n"
-            "\n";
-    }
+                "\n"
+                "typedef lobster::StackPtr StackPtr;\n"
+                "typedef lobster::VM &VMRef;\n"
+                "typedef lobster::block_base_t block_base_t;\n"
+                "\n"
+                "#if LOBSTER_ENGINE\n"
+                "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"
+                "    #include \"lobster/sdlincludes.h\"\n"
+                "    #include \"lobster/sdlinterface.h\"\n"
+                "    extern \"C\" StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
+                "#endif\n"
+                "\n"
+                "#ifndef VM_COMPILED_CODE_MODE\n"
+                "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
+                "#endif\n"
+                "\n"
+                ;
+        } else {
+            sd +=
+                "typedef long long *StackPtr;\n"
+                "typedef void *VMRef;\n"
+                "typedef StackPtr(*block_base_t)(VMRef, StackPtr);\n"
+                "extern  StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
+                "\n"
+                ;
 
-    void DeclareBlock(int id) override {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            append(sd, "static void *block", id, "(lobster::VM &);\n");
+            auto args = [&](int A) {
+                if (A == 9) sd += ", const int *";
+                else for (int i = 0; i < A; i++) sd += ", int";
+            };
+
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
+                LVALOPNAMES
+            #undef F
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
+                ILBASENAMES
+            #undef F
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ", block_base_t);\n";
+                ILCALLNAMES
+            #undef F
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr);\n";
+                ILJUMPNAMES1
+            #undef F
+            #define F(N, A) \
+                sd += "StackPtr U_" #N "(VMRef, StackPtr, int);\n";
+                ILJUMPNAMES2
+            #undef F
+
+            sd += "block_base_t GetNextCallTarget(VMRef);\n"
+                  "StackPtr Drop(StackPtr);\n"
+                  "\n";
         }
     }
 
-    void BeforeBlocks(int start_id, string_view /*bytecode_buffer*/) override {
+    void DeclareFun(int id) override {
+        append(sd, "static StackPtr fun_", id, "(VMRef, StackPtr);\n");
+    }
+
+    void BeforeBlocks(int /*start_id*/, string_view /*bytecode_buffer*/) override {
         sd += "\n";
-        if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            append(sd, "static void *one_gigantic_function(lobster::VM &vm) {\n",
-                       "  lobster::block_t ip = ", start_id,
-                       ";\n  for(;;) switch(ip) {\n    default: assert(false); continue;\n");
-        }
     }
 
-    void FunStart(const bytecode::Function *f) override {
+    void FunStart(const bytecode::Function *f, int id) override {
         sd += "\n";
         if (f) append(sd, "// ", f->name()->string_view(), "\n");
-    }
-
-    void BlockStart(int id) override {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            append(sd, "static void *block", id, "(lobster::VM &vm) {\n");
-        } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            append(sd, "  case ", id, ": block_label", id, ":\n");
-        }
+        append(sd, "static StackPtr fun_", id,
+            "(VMRef vm, StackPtr sp) {\n");
     }
 
     void InstStart() override {
-        sd += "    { ";
+        sd += "    ";
     }
 
     void EmitJump(int id) override {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            // FIXME: if we make all forward calls tail calls, then under
-            // WASM/Emscripten/V8, we occasionally run out of stack.
-            // This bounds the number of tail calls in a simple way,
-            // but this is not correct, in that call targets are not necessarily
-            // in linear order, though it should catch most long runs of calls.
-            // We really need to do this with an algorithm that better understands
-            // the call structure instead. Hopefully this bounding will allow
-            // us to keep some of the performance advantage of tail calls vs
-            // not doing them at all.
-            if (tail_calls_in_a_row > 10 || id <= current_block_id) {
-                // A backwards jump, go via the trampoline to be safe
-                // (just in-case the compiler doesn't optimize tail calls).
-                append(sd, "return (void *)block", id, ";");
-                tail_calls_in_a_row = 0;
-            } else {
-                // A forwards call, should be safe to tail-call.
-                append(sd, "return block", id, "(vm);");
-                tail_calls_in_a_row++;
-            }
-        } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            append(sd, "goto block_label", id, ";");
-        }
+        append(sd, "goto block", id, ";");
     }
 
-    void EmitConditionalJump(int opc, int id) override {
-        append(sd, "if (vm.F_", ILNames()[opc], "()) ");
-        EmitJump(id);
+    void EmitDynJump() {
+        if (cpp) sd += "sp = vm.next_call_target(vm, sp);";
+        else sd += "sp = GetNextCallTarget(vm)(vm, sp);";
+    }
+
+    void EmitConditionalJump(int opc, int id, int df) override {
+        append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
+        if (df >= 0) append(sd, ", ", df);
+        if (cpp) {
+            append(sd, "); if (Pop(sp).False()) ");
+            EmitJump(id);
+        } else {
+            // FIXME: simplify.
+            append(sd, "); { long long top = *sp; sp = Drop(sp); if (!top) ");
+            EmitJump(id);
+            sd += " }";
+        }
     }
 
     void EmitOperands(const char * /*base*/, const int *args, int arity, bool is_vararg) override {
@@ -135,98 +146,137 @@ class CPPGenerator : public NativeGenerator {
         }
     }
 
-    void SetNextCallTarget(int id) override {
-        append(sd, "vm.next_call_target = ", Block(), id, "; ");
-    }
-
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
-        append(sd, "vm.U_", ILNames()[opc], "(");
+        append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
         if (is_vararg) {
-            sd += "args";
+            sd += ", args";
         } else {
             for (int i = 0; i < arity; i++) {
-                if (i) sd += ", ";
+                sd += ", ";
                 append(sd, args[i]);
             }
         }
         if (target >= 0) {
-            if (arity) sd += ", ";
-            append(sd, Block(), target);
+            sd += ", ";
+            append(sd, "fun_", target);
         }
         sd += ");";
     }
 
     void EmitCall(int id) override {
-        sd += " ";
-        EmitJump(id);
+        append(sd, " sp = fun_", id, "(vm, sp);");
     }
 
     void EmitCallIndirect() override {
         sd += " ";
-        JumpInsVar();
+        EmitDynJump();
     }
 
     void EmitCallIndirectNull() override {
-        sd += " if (vm.next_call_target) ";
-        JumpInsVar();
+        if (cpp) sd += " if (vm.next_call_target) ";
+        else sd += " if (GetNextCallTarget(vm)) ";
+        EmitDynJump();
+    }
+
+    void EmitExternCall(string_view name) override {
+        append(sd, "sp = ", name, "(sp, vm);");
+    }
+
+    void EmitJumpTable(const int *args) override {
+        if (cpp) {
+            sd += "switch (Pop(sp).ival()) {";
+        } else {
+            // FIXME: simplify.
+            append(sd, "{ long long top = *sp; sp = Drop(sp); switch (top) {");
+        }
+
+        jumptables.push_back(args);
+    }
+
+    void EmitHint(NativeHint h, int id) override {
+        switch (h) {
+            case NH_BLOCK_START:
+                append(sd, "block", id, ":");
+                break;
+            case NH_JUMPTABLE_CASE_START: {
+                assert(!jumptables.empty());
+                auto t = jumptables.back();
+                auto mini = *t++;
+                auto maxi = *t++;
+                for (auto i = mini; i <= maxi; i++) {
+                    if (*t++ == id) {
+                        append(sd, "case ", i, ":");
+                    }
+                }
+                if (*t++ == id) {
+                    append(sd, "default:");
+                }
+                break;
+            }
+            case NH_JUMPTABLE_END:
+                if (cpp) sd += "} // switch";
+                else sd += "}} // switch";
+                jumptables.pop_back();
+                break;
+            default:
+                append(sd, "// hint: ", NHNames()[h]);
+                break;
+        }
+    }
+
+    void EmitReturn() override {
+        sd += " return sp;";
     }
 
     void InstEnd() override {
-        sd += " }\n";
+        sd += "\n";
     }
 
-    void BlockEnd(int id, bool already_returned, bool is_exit) override {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            if (!already_returned) {
-                sd += "    { ";
-                if (is_exit) JumpInsVar(); else EmitJump(id);
-                sd += " }\n";
-            }
-            sd += "}\n";
-        }
+    void Exit() override {
+        sd += "    return sp;\n";
+    }
+
+    void FunEnd() override {
+        sd += "}\n";
     }
 
     void CodeEnd() override {
-        if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            sd += "}\n}\n";  // End of gigantic function.
-        }
     }
 
     void VTables(vector<int> &vtables) override {
-        sd += "\nstatic const lobster::block_t vtables[] = {\n";
+        if (cpp) sd += "\nstatic";
+        else sd += "\nextern ";
+        sd += " const block_base_t vtables[] = {\n";
         for (auto id : vtables) {
             sd += "    ";
-            if (id >= 0) append(sd, Block(), id);
+            if (id >= 0) append(sd, "fun_", id);
             else sd += "0";
             sd += ",\n";
         }
-        sd += "};\n";
+        sd += "    0\n};\n";  // Make sure table is never empty.
     }
 
     void FileEnd(int start_id, string_view bytecode_buffer) override {
-        // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
-        // in fact, it be nice if those were in readable format in the generated code.
-        sd += "\nstatic const int bytecodefb[] = {";
-        auto bytecode_ints = (const int *)bytecode_buffer.data();
-        for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
-            if ((i & 0xF) == 0) sd += "\n  ";
-            append(sd, bytecode_ints[i], ", ");
+        if (cpp) {
+            // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
+            // in fact, it be nice if those were in readable format in the generated code.
+            sd += "\nstatic const int bytecodefb[] = {";
+            auto bytecode_ints = (const int *)bytecode_buffer.data();
+            for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
+                if ((i & 0xF) == 0) sd += "\n ";
+                append(sd, " ", bytecode_ints[i], ",");
+            }
+            sd += "\n};\n\n";
         }
-        sd += "\n};\n\n";
-        sd += "int main(int argc, char *argv[]){\n";
-        sd += "    return ";
-        #if LOBSTER_ENGINE
-            sd += "EngineRunCompiledCodeMain";
-        #else
-            sd += "ConsoleRunCompiledCodeMain";
-        #endif
-        sd += "(argc, argv, (void *)";
-        if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            sd += "one_gigantic_function";
-        } else if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            append(sd, Block(), start_id);
+        if (cpp) sd += "extern \"C\" ";
+        sd += "StackPtr compiled_entry_point(VMRef vm, StackPtr sp) {\n";
+        append(sd, "    return fun_", start_id, "(vm, sp);\n}\n\n");
+        if (cpp) {
+            sd += "int main(int argc, char *argv[]) {\n";
+            sd += "    // This is hard-coded to call compiled_entry_point()\n";
+            sd += "    return RunCompiledCodeMain(argc, argv, ";
+            append(sd, "bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
         }
-        append(sd, ", bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
     }
 
     void Annotate(string_view comment) override {
@@ -234,8 +284,8 @@ class CPPGenerator : public NativeGenerator {
     }
 };
 
-string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer) {
-    CPPGenerator cppgen(sd);
+string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bool cpp) {
+    CPPGenerator cppgen(sd, cpp);
     return ToNative(natreg, cppgen, bytecode_buffer);
 }
 

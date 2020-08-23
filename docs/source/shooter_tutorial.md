@@ -340,8 +340,7 @@ A sidenote on how we're implementing bullets here: there's a couple of things
 not ideal about this, which we do all to keep the example simple and to really
 build a game from the ground up. First, the way the checking for time is
 implemented here is a bit fragile, as big time fluctuations may cause bullets to
-be shot at irregular intervals. Second, this checking for time across frames is
-better done with *coroutines*, but that would complicate this tutorial.
+be shot at irregular intervals.
 
 Now that we have a list of bullets being generated, we have to update them and
 draw them. The first line in our `for` loop updates them, in a manner that
@@ -472,7 +471,7 @@ To do that, we will have to be able to render text. First step towards doing
 that is loading up a font, right after `gl_window`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")
+check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "can\'t load font!")
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `check` is another useful function much like fatal, that ensures the first
@@ -567,81 +566,12 @@ here should be fun and easy. Some ideas of things you could add:
 -   Game structure: different levels the player can try to beat, permanent
     upgrades the player can buy, etc.
 
-### 8: Advanced Topics: Coroutines
+Also, at this point, our game has no sound at all. If you'd like to see how to
+add some anbient or enemy sounds, have a look at the use of the `play_` and
+`sound_` functions in `tut_sound.lobster`. This example also shows how to to
+dynamically adjust the volume and pause or resume individual sounds.
 
-If you look at the finished code of tut6.lobster, you can notice one problem
-with game programming: we ended up with a lot of global variables, even for such
-an absolutely simple game. If a game gets more complicated, this growing set of
-globals will make our game hard to maintain, and error prone. Just look at the
-code above that follows `if gl_button("space") == 1:` in the menu code: we need to
-carefully reset each global that matters for the game, and if we forget one, we
-have a bug. Generally, the less local variable access is, the harder code is to
-follow.
+This tutorial has all game state in top level variables, for simplicity of
+explanation. If you want to have a look what the code would be like if you
+instead stored all of it in classes, have a look at `tut_obj.lobster`.
 
-So how do we get rid of all these globals? We could stick all these variables in
-objects. And while that potentially improves some things (we can now initialize
-all state related to one level in a single object, guaranteeing simulatuous
-initialization), in the end we've replaced our globals with a single global that
-holds... more globals. Just because we hide things in an object doesn't make
-them less global, if there's only one copy of the variable and it is used
-everywhere then it is effectively global. The code hasn't really improved.
-
-Another trick to get rid of globals is to pass things as arguments instead. But
-looking at the code, there are no opportunities for doing so, since we'd there's
-no easy way to pass all these values from one frame to the next, unless we stick
-them all in one object like before.
-
-And this is really hinting at a deeper problem with games and global state: we
-have so much global state because *we need to remember what we were doing from
-one frame to the next*. Essentially, our programming language gives us great
-tools to sequence actions (control structures) within a frame, but not across
-frames. For example, a `for` loop is very convenient, because it allows us to
-specify "do this 10 times", and we don't have to worry about keeping track of
-where we are, and all data related to the loop is *local*. Now you might want to
-say "do this for the next 10 frames", and you'll have no help from the language,
-you need to keep track of where you are in your iteration manually, and worse,
-the state related to the loop needs to survive the frame loop, which means it
-has to be... *global*.
-
-The problem is that a programming language only has one current execution
-location, and one stack (where local variables reside for all active function
-calls). So there's no way to interrupt a `for` loop and say, "let's come back to
-this loop later", because your only options are to finish the entire loop right
-now (which is useless if you want to do it over the next frames) or kill the
-loop (which also kills the state associated with it).
-
-Coroutines are the feature to fix this. Sadly, for as awesome as they are, they
-are also very confusing to fully understand (if this section hasn't confused you
-already!).
-
-Put simply, a coroutine is a normal function call that can be interrupted,
-frozen in time, and the later continued where you left of. It's a bit like a
-thread, except instead of running code concurrently, it is more like swapping
-them out. And you determine manually when you want to be interrupted. This has
-the advantage of being much faster and more predictable than threads. A
-coroutine determines where it wants to be interrupted by calling its last
-function argument.
-
-Since you now should fully understand the code of `tut6.lobster`, load up
-`tut_coro.lobster` next to it. It is exactly the same code, with the same game
-functionality, except it now it is written using coroutines. Notice how there's
-only a single global variable left, one that holds either a coroutine that runs
-the menu, or one that runs the game. As you can see, all coroutines have their
-internal state as local variables which means when they get interrupted, it
-remembers exactly where it was, regardless of how complex the control structures
-you may be inside of. Sadly, in this example, we're not using that functionality
-much (because I tried to keep the original game as simple as possible, and
-exactly to try and reduce the state for the tutorial!), but when complexity
-grows, the value of having everything locally will grow.
-
-Imagine, for example, how you'd program a game object to wander around randomly,
-then check if it sees the player, and if it does, chase it for 10 seconds, then
-return to wandering, and otherwise, stand still for a bit. With coroutines, this
-can programmed using just a couple of (nested) if-then's and for loops, with
-everything local to the function. Without, you'd have to write a state machine,
-tracking all possible behaviors the object can have, and for each behavior, all
-the variables that indicate it's current state within that behavior.
-Additionally, with coroutines such behaviors are easy to abstract into helper
-functions, since sequencing actions is fairly compositional, whereas with a
-state machine, the structure of the state machine is possibly different for
-every game object thus needs to be set up anew.

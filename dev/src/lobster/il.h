@@ -20,8 +20,7 @@
 
 namespace lobster {
 
-const int LOBSTER_BYTECODE_FORMAT_VERSION = 15;
-const int MAX_RETURN_VALUES = 64;
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 17;
 
 // Any type specialized ops below must always have this ordering.
 enum MathOp {
@@ -39,9 +38,10 @@ enum MathOp {
     F(PUSHNIL, 0) \
     F(PUSHVAR, 1) \
     F(PUSHVARV, 2) \
-    F(VPUSHIDXI, 0) F(VPUSHIDXV, 1) F(VPUSHIDXIS, 2) F(VPUSHIDXVS, 3) F(NPUSHIDXI, 1) F(SPUSHIDXI, 0) \
+    F(VPUSHIDXI, 0) F(VPUSHIDXI2V, 0) F(VPUSHIDXV, 1) \
+    F(VPUSHIDXIS, 1) F(VPUSHIDXIS2V, 2) F(VPUSHIDXVS, 3) \
+    F(NPUSHIDXI, 1) F(SPUSHIDXI, 0) \
     F(PUSHFLD, 1) F(PUSHFLDMREF, 1) F(PUSHFLDV, 2) F(PUSHFLD2V, 2) F(PUSHFLDV2V, 3) \
-    F(PUSHLOC, 1) F(PUSHLOCV, 2) \
     F(BCALLRETV, 1) F(BCALLREFV, 1) F(BCALLUNBV, 1) \
     F(BCALLRET0, 1) F(BCALLREF0, 1) F(BCALLUNB0, 1) \
     F(BCALLRET1, 1) F(BCALLREF1, 1) F(BCALLUNB1, 1) \
@@ -80,27 +80,33 @@ enum MathOp {
     F(LOGNOT, 0) F(LOGNOTREF, 0) \
     F(BINAND, 0) F(BINOR, 0) F(XOR, 0) F(ASL, 0) F(ASR, 0) F(NEG, 0) \
     F(I2F, 0) F(A2S, 1) F(E2B, 0) F(E2BREF, 0) F(ST2S, 1) \
-    F(RETURN, 2) \
-    F(ISTYPE, 1) F(COCL, 0) F(COEND, 0) \
-    F(LOGREAD, 1) F(LOGWRITE, 2) \
+    F(RETURN, 2) F(RETURNANY, 0) \
+    F(ISTYPE, 1) \
     F(FORLOOPI, 0) F(IFORELEM, 0) F(SFORELEM, 0) F(VFORELEM, 0) F(VFORELEMREF, 0) \
-    F(INCREF, 1) F(KEEPREF, 2)
-
+    F(VFORELEM2S, 0) F(VFORELEMREF2S, 0) \
+    F(INCREF, 1) F(KEEPREF, 2) F(KEEPREFLOOP, 2) \
+    F(JUMP_TABLE, ILUNKNOWNARITY) \
+    F(SAVERETS, 0) F(RESTORERETS, 0) \
+    F(CALL, 1) F(CALLV, 0) F(CALLVCOND, 0) F(DDCALL, 2) \
+    F(NATIVEHINT, 1)
 #define ILCALLNAMES \
-    F(CALL, 1) F(CALLV, 0) F(CALLVCOND, 1) F(DDCALL, 2) \
-    F(PUSHFUN, 1) F(CORO, ILUNKNOWNARITY) F(YIELD, 0)
+    F(PUSHFUN, 1)
 
-#define ILJUMPNAMES \
+#define ILJUMPNAMES1 \
     F(JUMP, 1) \
-    F(JUMPFAIL, 1) F(JUMPFAILR, 1) F(JUMPFAILN, 1) \
+    F(JUMPFAIL, 1) F(JUMPFAILR, 1) \
     F(JUMPNOFAIL, 1) F(JUMPNOFAILR, 1) \
     F(IFOR, 1) F(SFOR, 1) F(VFOR, 1)
+#define ILJUMPNAMES2 \
+    F(JUMPIFUNWOUND, 2)
 
 #define LVALOPNAMES \
     LVAL(WRITE, 0)  LVAL(WRITER, 0)  LVAL(WRITEREF, 0)  LVAL(WRITERREF, 0) \
     LVAL(WRITEV, 1) LVAL(WRITERV, 1) LVAL(WRITEREFV, 1) LVAL(WRITERREFV, 1) \
     LVAL(IADD, 0)   LVAL(IADDR, 0)   LVAL(ISUB, 0)   LVAL(ISUBR, 0)   LVAL(IMUL, 0)   LVAL(IMULR, 0)   LVAL(IDIV, 0)   LVAL(IDIVR, 0) \
     LVAL(IMOD, 0)   LVAL(IMODR, 0) \
+    LVAL(BINAND, 0) LVAL(BINANDR, 0) LVAL(BINOR, 0)  LVAL(BINORR, 0)  LVAL(XOR, 0)    LVAL(XORR, 0) \
+    LVAL(ASL, 0)    LVAL(ASLR, 0)    LVAL(ASR, 0)    LVAL(ASRR, 0) \
     LVAL(FADD, 0)   LVAL(FADDR, 0)   LVAL(FSUB, 0)   LVAL(FSUBR, 0)   LVAL(FMUL, 0)   LVAL(FMULR, 0)   LVAL(FDIV, 0)   LVAL(FDIVR, 0) \
     LVAL(IVVADD, 1) LVAL(IVVADDR, 1) LVAL(IVVSUB, 1) LVAL(IVVSUBR, 1) LVAL(IVVMUL, 1) LVAL(IVVMULR, 1) LVAL(IVVDIV, 1) LVAL(IVVDIVR, 1) \
     LVAL(IVVMOD, 1) LVAL(IVVMODR, 1) \
@@ -118,21 +124,21 @@ enum LVALOP {
     #undef LVAL
 };
 
-#define NUMBASELVALOPS 6  // HAS to match LVAL below!
+#define NUMBASELVALOPS 5  // HAS to match LVAL below!
 #define GENLVALOP(LV, OP) (IL_##LV##_WRITE + (OP) * NUMBASELVALOPS)  // WRITE assumed to be first!
 #define ILADD00 0
 #define ILADD01 1
 #define ILADD10 1
 #define ILADD11 2
 #define ILADD(X, Y) ILADD##X##Y
-#define LVAL(N, V) F(VAR_##N, ILADD(1, V)) F(FLD_##N, ILADD(1, V)) F(LOC_##N, ILADD(1, V)) \
+#define LVAL(N, V) F(VAR_##N, ILADD(1, V)) F(FLD_##N, ILADD(1, V)) \
                    F(IDXVI_##N, ILADD(0, V)) F(IDXVV_##N, ILADD(1, V)) F(IDXNI_##N, ILADD(0, V))
 // This assumes VAR is first!
 #define ISLVALVARINS(O) O >= IL_VAR_WRITE && O <= IL_VAR_FMMPR && (O % NUMBASELVALOPS) == 0
 
 #define ISBCALL(O) (O >= IL_BCALLRETV && O <= IL_BCALLUNB7)
 
-#define ILNAMES LVALOPNAMES ILBASENAMES ILCALLNAMES ILJUMPNAMES
+#define ILNAMES LVALOPNAMES ILBASENAMES ILCALLNAMES ILJUMPNAMES1 ILJUMPNAMES2
 
 enum ILOP {
     #define F(N, A) IL_##N,
@@ -153,6 +159,40 @@ inline const int *ILArity() {
         static const int ilarity[] = { ILNAMES };
     #undef F
     return ilarity;
+}
+
+#define NATIVEHINTS \
+    NH(NONE) \
+    NH(BLOCK_START) \
+    NH(JUMPTABLE_END) \
+    NH(JUMPTABLE_TO_CASE) \
+    NH(JUMPTABLE_CASE_START) \
+    NH(LOOP_BACK) \
+    NH(LOOP_REMOVE) \
+    NH(JUMPOUT_START) \
+    NH(JUMPOUT_END) \
+    NH(COND_JUMP) \
+    NH(SWITCH_RANGE_BLOCK) \
+    NH(SWITCH_RANGE_JUMP) \
+    NH(SWITCH_RANGE_END) \
+    NH(SWITCH_THISCASE_BLOCK) \
+    NH(SWITCH_THISCASE_JUMP) \
+    NH(SWITCH_THISCASE_END) \
+    NH(SWITCH_NEXTCASE_BLOCK) \
+    NH(SWITCH_NEXTCASE_JUMP) \
+    NH(SWITCH_NEXTCASE_END)
+
+enum NativeHint {
+    #define NH(N) NH_##N,
+        NATIVEHINTS
+    #undef NH
+};
+
+inline const char **NHNames() {
+    #define NH(N) #N,
+        static const char *nhnames[] = { NATIVEHINTS };
+    #undef F
+    return nhnames;
 }
 
 }

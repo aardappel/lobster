@@ -1,0 +1,139 @@
+
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cxx: [g++-9, clang++-9]
+        include:
+        - cxx: g++-9
+          cc: gcc-9
+        - cxx: clang++-9
+          cc: clang-9
+    steps:
+    - uses: actions/checkout@v1
+    - name: install opengl
+      run: sudo apt-get install mesa-common-dev libgl1-mesa-dev libgl1-mesa-glx
+    - name: cmake
+      working-directory: dev
+      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON .
+    - name: build
+      working-directory: dev
+      run: make -j4
+    - name: test
+      run: bin/lobster tests/unittest.lobster
+    - name: upload build artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: Linux Lobster binary ${{ matrix.cxx }}
+        path: bin/lobster
+    - name: test cpp generation
+      run: bin/lobster --cpp tests/unittest.lobster
+    - name: cmake cpp output
+      working-directory: dev
+      # In addition to C++ out, build this one in Debug and without the engine for extra coverage.
+      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Debug -DLOBSTER_WERROR=ON -DLOBSTER_TOCPP=ON -DLOBSTER_ENGINE=OFF .
+    - name: build cpp output
+      working-directory: dev
+      run: make -j4
+    - name: test cpp output
+      run: bin/compiled_lobster
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.0
+    - name: build
+      working-directory: dev/lobster
+      run: msbuild.exe lobster.sln /p:Configuration=Release /p:Platform=x64
+    - name: test
+      run: bin/lobster.exe tests/unittest.lobster
+    - name: upload build artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: Windows Lobster binary
+        path: bin/lobster.exe
+
+  build-mac:
+    name: Build Mac
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: build
+      working-directory: dev/xcode/lobster
+      run: xcodebuild -toolchain clang -configuration Release -target lobster
+    - name: test
+      run: bin/lobster tests/unittest.lobster
+    - name: upload build artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: Mac Lobster binary
+        path: bin/lobster
+
+  build-android:
+    name: Build Android (on Linux)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: build
+      working-directory: dev/android-project
+      run: bash ./gradlew buildDebug
+
+  build-emscripten:
+    name: Build Wasm (on Linux)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - uses: actions/checkout@v1
+    - name: install ninja
+      run: sudo apt-get install ninja-build
+    - name: emsdk install
+      run: |
+        mkdir $HOME/emsdk
+        git clone --depth 1 https://github.com/emscripten-core/emsdk.git $HOME/emsdk
+        $HOME/emsdk/emsdk update-tags
+        $HOME/emsdk/emsdk install tot
+        $HOME/emsdk/emsdk activate tot
+        echo "::add-path::$HOME/emsdk"
+    # Now we're first going to build the native Linux exe, so we can generate C++/Wasm code.
+    # Without engine should speed this up.
+    - name: cmake
+      working-directory: dev
+      run: CXX=clang++-9 CC=clang-9 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
+    - name: build
+      working-directory: dev
+      run: make -j4
+    # Generate two kinds of code.
+    - name: test cpp generation
+      run: bin/lobster --cpp tests/unittest.lobster
+    - name: test wasm generation
+      run: bin/lobster --wasm tests/unittest.lobster
+    # Build them both.
+    - name: emcc-build cpp
+      run: |
+        source $HOME/emsdk/emsdk_env.sh
+        cd dev/emscripten && make -j4
+    - name: emcc-build wasm
+      run: |
+        source $HOME/emsdk/emsdk_env.sh
+        cd dev/emscripten && make -j4 wasm

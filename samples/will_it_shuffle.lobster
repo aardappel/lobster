@@ -9,6 +9,7 @@ import color
 import imgui
 import std
 import vec
+import gl
 
 enum shuffle_mode:
     shuffle_none = 0
@@ -108,7 +109,7 @@ var color_domain_hi = log(M / N * 3)
 
 def reshuffle():
     for(N) i: for(N) j: matrix[N*i + j] = 0
-    for(M):
+    for M:
         let array = map(N): _
         shuffle(array)
         for(array) i, j:
@@ -123,14 +124,14 @@ def reshuffle():
 var shuffling = true
 
 fatal(gl_window("Will It Shuffle?", 640, 480))
-check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "cannot load gl font")
+check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "cannot load gl font")
 
-def shuffle_routine(next):
-    var last_n = 0
-    var last_m = 0
-    var last_mode = mode
+class shuffle_routine:
+    last_n = 0
+    last_m = 0
+    last_mode = mode
 
-    forever():
+    def resume():
         // apply any changes in mode, N, or M
         let changed = N != last_n or M != last_m
         if changed:
@@ -151,9 +152,8 @@ def shuffle_routine(next):
         if shuffling or changed or last_mode != mode:
             reshuffle()
             last_mode = mode
-        next(nil)
-    return nil
-let shuffler = coroutine shuffle_routine()
+
+let shuffler = shuffle_routine {}
 
 def viz():
     let status = concat_string([
@@ -181,13 +181,14 @@ def viz():
     gl_translate(xy_f { (size.x - status_size.x) / 2, unit * (N + 1) }):
         gl_text(status)
 
-def ui(next):
-    im_init(true)
-    let im_fontsize = 32
-    // check(im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", im_fontsize), "cannot load imgui font")
-    check(im_add_font("data/fonts/Inconsolata/Inconsolata-Bold.ttf", im_fontsize), "cannot load imgui font")
+class ui:
+    def init():
+        im_init(true)
+        let im_fontsize = 32
+        // check(im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", im_fontsize), "cannot load imgui font")
+        check(im_add_font("data/fonts/Inconsolata/Inconsolata-Bold.ttf", im_fontsize), "cannot load imgui font")
 
-    forever():
+    def resume():
         im_frame():
             im_window("ctl", im_window_always_autoresize):
                 im_show_engine_stats()
@@ -195,9 +196,9 @@ def ui(next):
                     im_button("Reshuffle"):
                         reshuffle()
                 im_show_vars()
-        next(nil)
-    return nil
-let uier = coroutine ui()
+
+let uier = ui {}
+uier.init()
 
 while gl_frame():
     gl_clear(color_black)

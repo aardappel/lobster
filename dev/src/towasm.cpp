@@ -26,10 +26,20 @@ namespace lobster {
 
 class WASMGenerator : public NativeGenerator {
     WASM::BinaryWriter bw;
+    map<int, int> function_ids;  // FIXME: remove the need for this.
+    int num_emitted_functions = 0;
+    struct Block {
+        bool forward;
+        int id;
+        NativeHint h;
+    };
+    vector<Block> blocks;
+    int cur_block = -1;
+    NativeHint last_conditional_hint = NH_NONE;
 
-    size_t import_erccm  = 0, import_snct = 0, import_gnct = 0;
+    size_t import_erccm  = 0, import_gnct = 0, import_drop = 0,
+           import_gl_frame = 0;
 
-    const bytecode::Function *next_block = nullptr;
   public:
 
     explicit WASMGenerator(vector<uint8_t> &dest) : bw(dest) {}
@@ -67,17 +77,17 @@ class WASMGenerator : public NativeGenerator {
         bw.EndSection(WASM::Section::Type);
 
         bw.BeginSection(WASM::Section::Import);
-        #define S_ARGS0 TI_V_I
-        #define S_ARGS1 TI_V_II
-        #define S_ARGS2 TI_V_III
-        #define S_ARGS3 TI_V_IIII
-        #define S_ARGS9 TI_V_II  // ILUNKNOWNARITY
+        #define S_ARGS0 TI_I_II
+        #define S_ARGS1 TI_I_III
+        #define S_ARGS2 TI_I_IIII
+        #define S_ARGS3 TI_I_IIIII
+        #define S_ARGS9 TI_I_III  // ILUNKNOWNARITY
         #define S_ARGSN(N) S_ARGS##N
-        #define C_ARGS0 TI_V_II
-        #define C_ARGS1 TI_V_III
-        #define C_ARGS2 TI_V_IIII
-        #define C_ARGS3 TI_V_IIIII
-        #define C_ARGS9 TI_V_III  // ILUNKNOWNARITY
+        #define C_ARGS0 TI_I_III
+        #define C_ARGS1 TI_I_IIII
+        #define C_ARGS2 TI_I_IIIII
+        #define C_ARGS3 TI_I_IIIIII
+        #define C_ARGS9 TI_I_IIII  // ILUNKNOWNARITY
         #define C_ARGSN(N) C_ARGS##N
         #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
             LVALOPNAMES
@@ -88,21 +98,28 @@ class WASMGenerator : public NativeGenerator {
         #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, C_ARGSN(A));
             ILCALLNAMES
         #undef F
-        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_I);
-            ILJUMPNAMES
+        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_II);
+            ILJUMPNAMES1
         #undef F
-        import_erccm = bw.AddImportLinkFunction("EngineRunCompiledCodeMain", TI_I_IIIIII);
-        import_snct = bw.AddImportLinkFunction("CVM_SetNextCallTarget", TI_V_II);
+        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_III);
+            ILJUMPNAMES2
+        #undef F
+        import_erccm = bw.AddImportLinkFunction("RunCompiledCodeMain", TI_I_IIIII);
         import_gnct = bw.AddImportLinkFunction("CVM_GetNextCallTarget", TI_I_I);
+        import_drop = bw.AddImportLinkFunction("CVM_Drop", TI_I_I);
+        import_gl_frame = bw.AddImportLinkFunction("GLFrame", TI_I_II);
         bw.EndSection(WASM::Section::Import);
 
         bw.BeginSection(WASM::Section::Function);
         bw.AddFunction(TI_I_II);  // main(), defined function 0.
-        // All blocks follow here, which have id's 1..N-1.
+        bw.AddFunction(TI_I_II);  // compiled_entry_point(), defined function 1.
+        // All functions follow here, which have id's 2..
+        num_emitted_functions = 2;
     }
 
-    void DeclareBlock(int /*id*/) override {
-        bw.AddFunction(TI_I_I);
+    void DeclareFun(int id) override {
+        bw.AddFunction(TI_I_II);
+        function_ids[id] = (int)bw.GetNumFunctionImports() + num_emitted_functions++;
     }
 
     void BeforeBlocks(int start_id, string_view bytecode_buffer) override {
@@ -137,103 +154,246 @@ class WASMGenerator : public NativeGenerator {
         bw.AddCode({}, "main", false);
         bw.EmitGetLocal(0 /*argc*/);
         bw.EmitGetLocal(1 /*argv*/);
-        bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + start_id);
         bw.EmitI32ConstDataRef(1, 0);  // Bytecode, for data refs.
         bw.EmitI32Const((int)bytecode_buffer.size());
         bw.EmitI32ConstDataRef(0, 0);  // vtables.
         bw.EmitCall(import_erccm);
         bw.EmitEndFunction();
+
+        // Emit compiled_entry_point
+        bw.AddCode({}, "compiled_entry_point", false);
+        bw.EmitGetLocal(0 /*VM*/);
+        bw.EmitGetLocal(1 /*sp*/);
+        bw.EmitCall(function_ids[start_id]);
+        bw.EmitEndFunction();
     }
 
-    void FunStart(const bytecode::Function *f) override {
-        next_block = f;
-    }
-
-    void BlockStart(int id) override {
-        bw.AddCode({}, "block" + std::to_string(id) +
-                       (next_block ? "_" + next_block->name()->string_view() : ""), true);
-        next_block = nullptr;
+    void FunStart(const bytecode::Function *f, int id) override {
+        bw.AddCode({}, "fun_" + std::to_string(id) +
+            (f ? "_" + f->name()->string_view() : ""), true);
     }
 
     void InstStart() override {
     }
 
     void EmitJump(int id) override {
-        if (id <= current_block_id) {
-            // A backwards jump, go via the trampoline.
-            bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + id);
-        } else {
-            // A forwards call, should be safe to tail-call.
-            bw.EmitGetLocal(0 /*VM*/);
-            bw.EmitCall(bw.GetNumFunctionImports() + id);
+        int nesting = 0;
+        for (auto &b : reverse(blocks)) {
+            if (id <= cur_block) {  // Backwards.
+                if (!b.forward) {
+                    assert(b.h == NH_LOOP_BACK);
+                    bw.EmitBr(nesting);
+                    return;
+                }
+            } else {  // Forwards.
+                // This is a break, or the jump skipping an "else" or switch-cases.
+                if (b.h == NH_JUMPOUT_START) {
+                    // skipping an "else" or switch-cases.
+                    bw.EmitBr(nesting);
+                    return;
+                } else if (!b.forward) {
+                    // A break.
+                    assert(b.h == NH_LOOP_BACK);
+                    bw.EmitBr(nesting + 1);  // The block around the loop.
+                    return;
+                }
+            }
+            nesting++;
         }
-        bw.EmitReturn();
+        assert(false);  // Jump target not found!
     }
 
-    void EmitConditionalJump(int opc, int id) override {
+    void EmitConditionalJump(int opc, int id, int df) override {
+        assert(id > cur_block);  // Only forward currently.
+        // FIXME: this is very clumsy, shorten this for common cases!
+        size_t blockdepth = 0;
+        if (last_conditional_hint != NH_NONE) {
+            for (auto &b : reverse(blocks)) {
+                if (b.h == last_conditional_hint - 1) goto found;
+                blockdepth++;
+            }
+            assert(false);  // block not found!
+            found:
+            last_conditional_hint = NH_NONE;
+        } else {
+            bw.EmitBlock(WASM::VOID);
+            blocks.push_back({ true, id, NH_COND_JUMP });
+        }
         bw.EmitGetLocal(0 /*VM*/);
+        bw.EmitGetLocal(1 /*SP*/);
+        if (df >= 0) bw.EmitI32Const(df);
         bw.EmitCall((size_t)opc);
-        bw.EmitIf(WASM::VOID);
-        EmitJump(id);
-        bw.EmitEnd();
+        bw.EmitTeeLocal(1 /*SP*/);
+        bw.EmitI64Load(0);  // False if we should jump.
+        bw.EmitGetLocal(1 /*SP*/);
+        bw.EmitCall(import_drop);  // FIXME: don't know sizeof(Value) here (!)
+        bw.EmitSetLocal(1 /*SP*/);
+        bw.EmitI64Const(0);
+        bw.EmitI64Eq();
+        bw.EmitBrIf(blockdepth);
     }
 
     void EmitOperands(const char *base, const int *args, int arity, bool is_vararg) override {
         bw.EmitGetLocal(0 /*VM*/);
+        bw.EmitGetLocal(1 /*SP*/);
         if (is_vararg) {
             if (arity) bw.EmitI32ConstDataRef(1, (const char *)args - base);
             else bw.EmitI32Const(0);  // nullptr
         }
     }
 
-    void SetNextCallTarget(int id) override {
-        bw.EmitGetLocal(0 /*VM*/);
-        bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + id);
-        bw.EmitCall(import_snct);
-    }
-
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
         if (!is_vararg) {
             for (int i = 0; i < arity; i++) bw.EmitI32Const(args[i]);
         }
-        if (target >= 0) { bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + target); }
+        if (target >= 0) { bw.EmitI32ConstFunctionRef(function_ids[target]); }
         bw.EmitCall((size_t)opc);  // Opcodes are the 0..N of imports.
+        bw.EmitSetLocal(1 /*SP*/);
     }
 
     void EmitCall(int id) override {
-        EmitJump(id);
+        bw.EmitGetLocal(0 /*VM*/);
+        bw.EmitGetLocal(1 /*SP*/);
+        bw.EmitCall(function_ids[id]);
+        bw.EmitSetLocal(1 /*SP*/);
     }
 
     void EmitCallIndirect() override {
         bw.EmitGetLocal(0 /*VM*/);
+        bw.EmitGetLocal(1 /*SP*/);
+        bw.EmitGetLocal(0 /*VM*/);
         bw.EmitCall(import_gnct);
-        bw.EmitReturn();
+        bw.EmitCallIndirect(TI_I_II);
+        bw.EmitSetLocal(1 /*SP*/);
     }
 
     void EmitCallIndirectNull() override {
         bw.EmitGetLocal(0 /*VM*/);
         bw.EmitCall(import_gnct);
         bw.EmitIf(WASM::VOID);
-        bw.EmitGetLocal(0 /*VM*/);
-        bw.EmitCall(import_gnct);
-        bw.EmitReturn();
+        EmitCallIndirect();
         bw.EmitEnd();
+    }
+
+    void EmitExternCall(string_view name) override {
+        assert(name == "GLFrame"); (void)name;
+        bw.EmitGetLocal(0 /*VM*/);
+        bw.EmitGetLocal(1 /*SP*/);
+        bw.EmitCall(import_gl_frame);
+        bw.EmitSetLocal(1 /*SP*/);
+    }
+
+    void EmitJumpTable(const int *args) override {
+        auto mini = *args++;
+        auto maxi = *args++;
+        auto n = maxi - mini + 2;
+        vector<size_t> targets;
+        set<int> block_order;
+        size_t default_target = 0;
+        // Find the unique block targets we're going to have, in sorted order
+        // (same order as the bytecode).
+        for (int i = 0; i < n; i++) {
+            block_order.insert(args[i]);
+        }
+        // Now fill in the block nesting counts into the jump table.
+        for (int i = 0; i < n; i++) {
+            auto block_it = block_order.find(args[i]);
+            assert(block_it != block_order.end());
+            auto depth = std::distance(block_order.begin(), block_it);  // FIXME: inefficient.
+            if (i < n - 1) targets.push_back(depth);
+            else default_target = depth;
+        }
+        // Emit the start of all blocks.
+        for (auto id : reverse(block_order)) {
+            bw.EmitBlock(WASM::VOID);
+            blocks.push_back({ true, id, NH_JUMPTABLE_TO_CASE });
+        }
+        // Fixme: reduced the cost of this.
+        bw.EmitGetLocal(1 /*SP*/);
+        bw.EmitI64Load(0);  // Value to switch on
+        bw.EmitGetLocal(1 /*SP*/);
+        bw.EmitCall(import_drop);  // FIXME: don't know sizeof(Value) here (!)
+        bw.EmitSetLocal(1 /*SP*/);
+        bw.EmitI64Const(mini);
+        bw.EmitI64Sub();
+        bw.EmitI32WrapI64();
+        bw.EmitBrTable(targets, default_target);
+    }
+
+    void EmitHint(NativeHint h, int id) override {
+        switch (h) {
+            case NH_BLOCK_START:
+            case NH_JUMPTABLE_CASE_START:
+                // Terminate previous blocks.
+                while (!blocks.empty()) {
+                    auto &b = blocks.back();
+                    assert(b.id == -1 || b.id >= id);
+                    if (b.id != id) break;
+                    bw.EmitEnd();
+                    blocks.pop_back();
+                }
+                cur_block = id;
+                break;
+            case NH_JUMPTABLE_END:
+                break;
+            case NH_LOOP_BACK:
+                bw.EmitBlock(WASM::VOID);
+                bw.EmitLoop(WASM::VOID);
+                blocks.push_back({ false, -1, h });
+                break;
+            case NH_LOOP_REMOVE:
+                assert(!blocks.empty() && blocks.back().h == NH_LOOP_BACK);
+                bw.EmitEnd();
+                bw.EmitEnd();
+                blocks.pop_back();
+                break;
+            // absolute forward jumps.
+            case NH_JUMPOUT_START:
+                bw.EmitBlock(WASM::VOID);
+                blocks.push_back({ true, -1, h });
+                break;
+            case NH_JUMPOUT_END:
+                assert(!blocks.empty() && blocks.back().h == NH_JUMPOUT_START);
+                bw.EmitEnd();
+                blocks.pop_back();
+                break;
+            // conditional labelled forward jumps.
+            case NH_SWITCH_RANGE_BLOCK:
+            case NH_SWITCH_THISCASE_BLOCK:
+            case NH_SWITCH_NEXTCASE_BLOCK:
+                bw.EmitBlock(WASM::VOID);
+                blocks.push_back({ true, -1, h });
+                break;
+            case NH_SWITCH_RANGE_END:
+            case NH_SWITCH_THISCASE_END:
+            case NH_SWITCH_NEXTCASE_END:
+                assert(!blocks.empty() && blocks.back().h == h - 2);
+                bw.EmitEnd();
+                blocks.pop_back();
+                break;
+            case NH_SWITCH_RANGE_JUMP:
+            case NH_SWITCH_THISCASE_JUMP:
+            case NH_SWITCH_NEXTCASE_JUMP:
+                last_conditional_hint = h;
+                break;
+        }
+    }
+
+    void EmitReturn() override {
+        bw.EmitGetLocal(1 /*SP*/);
+        bw.EmitReturn();
     }
 
     void InstEnd() override {
     }
 
-    void BlockEnd(int id, bool already_returned, bool is_exit) override {
-        if (!already_returned) {
-            if (is_exit) {
-                bw.EmitGetLocal(0 /*VM*/);
-                bw.EmitCall(import_gnct);
-                bw.EmitReturn();
-            } else {
-                EmitJump(id);
-            }
-        }
+    void Exit() override {
+        EmitReturn();
+    }
+
+    void FunEnd() override {
         bw.EmitEndFunction();
+        assert(blocks.empty());
     }
 
     void CodeEnd() override {
@@ -245,12 +405,12 @@ class WASMGenerator : public NativeGenerator {
 
         vector<int> wid;
         for (auto id : vtables) {
-            wid.push_back(id >= 0 ? (int)bw.GetNumFunctionImports() + id : -1);
+            wid.push_back(id >= 0 ? function_ids[id] : -1);
         }
         bw.AddData(string_view((char *)wid.data(), wid.size() * sizeof(int)), "vtables",
                    sizeof(int));
         for (auto [i, id] : enumerate(vtables)) {
-            if (id >= 0) bw.DataFunctionRef(bw.GetNumFunctionImports() + id, i * sizeof(int));
+            if (id >= 0) bw.DataFunctionRef(function_ids[id], i * sizeof(int));
         }
     }
 
@@ -267,8 +427,6 @@ class WASMGenerator : public NativeGenerator {
 };
 
 string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecode_buffer) {
-    if (VM_DISPATCH_METHOD != VM_DISPATCH_TRAMPOLINE)
-        return "WASM codegen: can only use trampoline mode";
     WASMGenerator wasmgen(dest);
     return ToNative(natreg, wasmgen, bytecode_buffer);
 }

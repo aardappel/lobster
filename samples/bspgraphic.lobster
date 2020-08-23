@@ -3,7 +3,7 @@ import color
 
 let dirs = [ xy_xi, xy_yi ]
 
-def square(pos, size, depth):
+def square(pos, size, depth) -> void:
     if (rnd(4) or depth < 2) and size.x > 8 and size.y > 8:
         var notfound = true
         var dir = 0

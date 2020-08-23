@@ -32,7 +32,7 @@
 <p>I mentioned linearity (every object can only have one pointer to it) and regions (every object is assigned a memory pool that outlives them all), and I have implemented languages in the past that implemented both of those strategies. While viable, I felt at the time they required too much programmer assistence to be mainstream.</p>
 <h2 id="ownership-models">Ownership models</h2>
 <p>There is a memory management design space which I’ll collectively call “Ownership” which is a generalization of the linearity models: one pointer always owns an object (and is responsible for its deallocation), and others merely “borrow” it.</p>
-<p>This now poses new questions: How do we determine who is the owner? When is borrowing allowed? How do we detect a borrower that outlives an owner? What about an owner being modifier while there are borrowers? Do we check any of these at compile time, runtime, or a mix?</p>
+<p>This now poses new questions: How do we determine who is the owner? When is borrowing allowed? How do we detect a borrower that outlives an owner? What about an owner being modified while there are borrowers? Do we check any of these at compile time, runtime, or a mix?</p>
 <p>There have been many ownership models in the past, but only recently they are becoming more mainstream:</p>
 <ul>
 <li>Rust is the poster child, which tries to solve all of the above questions at compile time, at the cost of much programmer assistence.</li>
@@ -40,7 +40,7 @@
 <li>Swift, one of the few languages that uses reference counting (inherited from objective C) has intentions to (optionally) move to <a href="https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md">ownership</a>.</li>
 <li>Nim has intention to move away from GC to ownership (see post <a href="https://nim-lang.org/araq/destructors.html">1</a> <a href="https://nim-lang.org/araq/ownedrefs.html">2</a>) with a model that is partially programmer assisted and partially runtime.</li>
 <li>D has <a href="https://dlang.org/blog/2019/07/15/ownership-and-borrowing-in-d/">plans</a>.</li>
-<li>Many more research-y or less known languages, e.g. <a href="https://pdfs.semanticscholar.org/d0f2/d28962d2a50d1914f0af8243d3f382fe077c.pdf">Gel</a>, <a href="https://github.com/PistonDevelopers/dyon/issues/173">Dyon</a>, <a href="http://liu.diva-portal.org/smash/get/diva2:20899/FULLTEXT01.pdf">CoSy</a>, <a href="https://drive.google.com/file/d/0B6Vq5QaY4U7ubm5qVkFpMEtmN2s/view">ParaSail</a> <a href="http://cone.jondgoodwin.com/memory.html">Cone</a> <a href="https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1">Scopes</a> <a href="https://researcher.watson.ibm.com/researcher/files/us-bacon/Bacon03Pure.pdf">Pure RC GC</a></li>
+<li>Many more research-y or less known languages, e.g. <a href="https://pdfs.semanticscholar.org/d0f2/d28962d2a50d1914f0af8243d3f382fe077c.pdf">Gel</a>, <a href="https://github.com/PistonDevelopers/dyon/issues/173">Dyon</a>, <a href="http://liu.diva-portal.org/smash/get/diva2:20899/FULLTEXT01.pdf">CoSy</a>, <a href="https://drive.google.com/file/d/0B6Vq5QaY4U7ubm5qVkFpMEtmN2s/view">ParaSail</a> <a href="http://cone.jondgoodwin.com/memory.html">Cone</a> <a href="https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1">Scopes</a> <a href="https://researcher.watson.ibm.com/researcher/files/us-bacon/Bacon03Pure.pdf">Pure RC GC</a> <a href="https://github.com/doctorn/micro-mitten">Mitten</a></li>
 </ul>
 <p>I personally think this general direction is the future of memory management. It just needs to be made more friendly than Rust for most programmers to want to come on board. Lobster offers a possible direction.</p>
 <h2 id="lobsters-memory-management-strategy">Lobster’s Memory Management Strategy</h2>
@@ -99,7 +99,6 @@ f(a)</code></pre>
 <p>There are currently some exceptions to this:</p>
 <ul>
 <li>Arguments that are assigned to are always owned.</li>
-<li>Coroutines always own (because they are longer lived).</li>
 <li>The return value of a function is currently always owned.</li>
 </ul>
 <p>Much like variables, some of these could be relaxed/improved in the future.</p>
@@ -117,7 +116,7 @@ f(a)</code></pre>
 <li><code>+</code> on strings wants to borrow, and returns owned. This is the same in principle for all binary operators, but thanks to “inline structs” this doesn’t matter for most of them anymore.</li>
 <li>Built-in functions by default want to borrow all their args, and return an owned value. There are exceptions to this rule, which can be marked when declaring a built-in, mainly for functions that directly operate on a vector or other data structure. For example <code>push</code> wants to own its second argument, and <code>top</code> returns a borrowed value.</li>
 <li>As noted above, <code>return</code> typically wants to own what it is returning, but currently makes an exception for the frequent case of returning a single variable, where it pretends to borrow it. This is because otherwise it would typically cause a reference count increase followed by a decrease as the variable goes out of scope. Extending the cases where this happens, and also generally allowing the last use of a variable to be owned by its last use rather than waiting for the end of the scope, is planned as a future improvement.</li>
-<li>Any data structure constructors (objects, vectors, coroutines) of course result in own.</li>
+<li>Any data structure constructors (objects, vectors) of course result in own.</li>
 <li>Any L-value results in borrow.</li>
 </ul>
 </body>

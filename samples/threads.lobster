@@ -25,9 +25,9 @@ if not is_worker_thread():
     let num_fibs = hwthreads
     time("parallel fib(" + fibn + ") * " + num_fibs):
         // Now Q up some work:
-        for(num_fibs): thread_write(fib_request { fibn })
+        for num_fibs: thread_write(fib_request { fibn })
         // And wait for the responses.
-        for(num_fibs):
+        for num_fibs:
             let r = thread_read(typeof fib_response)
             assert r && r.fr == fibr
 else:

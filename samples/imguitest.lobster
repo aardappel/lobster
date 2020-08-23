@@ -3,6 +3,7 @@
 import vec
 import color
 import imgui
+import gl
 
 fatal(gl_window("imgui demo", 1280, 1024))
 

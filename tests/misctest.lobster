@@ -2,6 +2,7 @@ import testing
 import std
 import exception
 import vec
+import dictionary
 
 // Misc small tests that don't fit elsewhere.
 
@@ -126,11 +127,11 @@ run_test("misc"):
     assert 264 == sum(testvector.map(): _ * _)
 
 
-    def factorial(n): return 1 > n or factorial(n - 1) * n
+    def factorial(n:int) -> int: return 1 > n or factorial(n - 1) * n
     assert 7.factorial == 5040
 
-    let applyto4 = def(f): f(4)
-    assert 16 == applyto4(def(x): x * x)
+    let applyto4 = fn f: f(4)
+    assert 16 == applyto4(fn x: x * x)
 
     assert ensure_size("abc", 3, 'z') == "abc"
     assert ensure_size("abc", 5, 'z') == "abczz"
@@ -201,22 +202,15 @@ run_test("misc"):
             if i:
                 return from do
 
-    def recursive_exceptions(n):
+    def recursive_exceptions(n) -> void:
         try():
             if n: recursive_exceptions(n - 1)
             else: throw 0
-        catch v:
+        fn v:
             assert v == n
             throw n + 1
     try():
         recursive_exceptions(10)
-
-    // Define your own HOFs with lazy expressions, much like the built-in while loop:
-    def whilenot(cond:lazy_expression, body):
-        while not cond(): body()
-    var wnt = 0
-    whilenot wnt == 10: wnt++
-    assert wnt == 10
 
     let starttime = seconds_elapsed()
     for 10:
@@ -235,3 +229,84 @@ run_test("misc"):
 
     // Unicode in strings: either as escape code, or also direct, if your editor supports it.
     assert "⺆㋇䬈" == "\u2E86\u32C7\u4B08"
+
+    // Bitwise assignment ops.
+    var bit = 1
+    assert (bit |= 2) == 3
+    assert (bit &= ~2) == 1
+    assert (bit ^= 3) == 2
+    assert (bit <<= 1) == 4
+    assert (bit >>= 1) == 2
+
+    // Dictionary.
+    let dict = dictionary<float, float> { 17 }
+    rnd_seed(0)
+    for(32):
+        let key = rnd_float()  // 0..1
+        dict.set(key, key)
+    rnd_seed(0)
+    for(32):
+        let key = rnd_float()
+        let value = dict.get(key, -1)
+        assert value == key
+    // Test using nil as default value.
+    let dict2 = dictionary<string, string?> { 17 }
+    dict2.set("a", "b")
+    let val = dict2.get("a", nil)
+    assert val and val == "b"
+    // Test using structs!
+    let dict3 = dictionary<xyz_i, xyz_i> { 17 }
+    dict3.set(xyz { 1, 2, 3 }, xyz { 4, 5, 6 })
+    assert dict3.get(xyz { 1, 2, 3 }, xyz_0i) == xyz { 4, 5, 6 }
+
+    // Break.
+    var lc = 0
+    for(10) i:
+        if i == 5: break
+        lc++
+    assert lc == 5
+    while lc:
+        if lc == 1: break
+        lc--
+    assert lc == 1
+
+    // Non-local control still works with returning values.
+    def outer():
+        def error():
+            assert false
+            return from outer
+        let a = if abs(1) == 1: 1 else: error()
+        let b = switch a:
+                    case 1: 2
+                    default: error()
+        assert a + b == 3
+    outer()
+
+    // Like Python, but actually a built-in function.
+    if false:
+        pass()
+
+    // default args.
+    let dav = 1  // Can even reference vars.
+    def da(a:int, b, c = dav + 1): return a + b + c
+    def da(a:float, b, c = dav + 1): return int(a) - b - c
+    def da(a): return a  // Does not "overlap"
+    assert da(1) + da(1, 2) + da(1, 2, 3) == 12
+
+    // More string functions.
+    assert find_string("abcdabcd", "BC") == -1
+    assert find_string("abcdabcd", "bc") == 1
+    assert find_string("abcdabcd", "bc", 4) == 5
+    assert find_string_reverse("abcdabcd", "bc") == 5
+    assert find_string_reverse("abcdabcd", "bc", 4) == 1
+    assert replace_string("abcdabcd", "bc", "X") == "aXdaXd"
+    assert replace_string("abcdabcd", "bc", "X", 1) == "aXdabcd"
+
+    // Single return not being the last return.
+    def G():
+        return H() + 1
+    def H():
+        if []:
+            return 4
+        return 3 from G
+    assert G() == 5

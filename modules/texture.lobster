@@ -32,7 +32,7 @@ enum blend_mode:
 private let texture_names:[string] = []
 private let textures:[resource] = []
 
-def loadtexturecached(name, tf:texture_format):
+def loadtexturecached(name, tf:texture_format = texture_format_none):
     let n, i = binary_search(texture_names, name)
     if n:
         return textures[i]
@@ -45,8 +45,6 @@ def loadtexturecached(name, tf:texture_format):
         else:
             print "unable to load texture: " + name
             return from program
-
-def loadtexturecached(name): return loadtexturecached(name, texture_format_none)  // FIXME: default args.
 
 // Pass nil for tex to have it created. Recreates tex if the wrong size. Renders f. Returns tex.
 // Depth texture automatically created if depth is true and depthtex is nil.
@@ -74,12 +72,13 @@ def render_to_texture_from(tex, shader, srctex):
         gl_set_shader(shader)
         gl_rect(float(gl_texture_size(srctex)))
 
-// Same but renders to the screen.
-def post_process(tex, size, shader, depth, f):
-    let texture_format = texture_format_clamp | texture_format_nomipmap
+// Same but renders to the framebuffer.
+def post_process(tex, size, shader, depth, texture_format, f):
+    texture_format |= texture_format_clamp | texture_format_nomipmap
     tex = render_to_texture(tex, size, depth, nil, texture_format, f)
-    gl_set_primitive_texture(0, tex, texture_format)
+    gl_blend(0)
+    gl_ortho(true, false)  // Needed to flip the texture.
     gl_set_shader(shader)
-    gl_translate(xy_f { 0, size.y }):
-        gl_rect(xy_f { size.x, -size.y })
+    gl_set_primitive_texture(0, tex, texture_format)
+    gl_rect(float(size))
     return tex

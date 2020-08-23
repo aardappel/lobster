@@ -48,7 +48,9 @@ void unit_test_all(bool full) {
 int main(int argc, char* argv[]) {
     #ifdef _WIN32
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-        InitUnhandledExceptionFilter(argc, argv);
+        #ifdef _MSC_VER
+            InitUnhandledExceptionFilter(argc, argv);
+        #endif
     #endif
     LOG_INFO("Lobster running...");
     bool wait = false;
@@ -65,11 +67,12 @@ int main(int argc, char* argv[]) {
         bool parsedump = false;
         bool disasm = false;
         bool to_cpp = false;
+        bool to_c = false;
         bool to_wasm = false;
+        bool to_native = false;
         bool dump_builtins = false;
         bool dump_names = false;
         bool compile_only = false;
-        bool compile_bench = false;
         bool full_unit_test = false;
         int runtime_checks = RUNTIME_ASSERT;
         const char *default_lpak = "default.lpak";
@@ -77,12 +80,16 @@ int main(int argc, char* argv[]) {
         const char *fn = nullptr;
         vector<string> program_args;
         auto trace = TraceMode::OFF;
+        #ifdef VM_JIT_MODE
+            to_native = true;
+            to_c = true;
+        #endif
         string helptext = "\nUsage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
             "--pak                  Compile to pakfile, don't run.\n"
-            "--cpp                  Compile to C++ code, don't run.\n"
-            "--wasm                 Compile to WASM code, don't run.\n"
+            "--cpp                  Compile to C++ code, don't run (see implementation.md!).\n"
+            "--wasm                 Compile to WASM code, don't run (see implementation.md!).\n"
             "--parsedump            Also dump parse tree.\n"
             "--disasm               Also dump bytecode disassembly.\n"
             "--verbose              Output additional informational text.\n"
@@ -106,8 +113,8 @@ int main(int argc, char* argv[]) {
                 string a = argv[arg];
                 if      (a == "--wait") { wait = true; }
                 else if (a == "--pak") { lpak = default_lpak; }
-                else if (a == "--cpp") { to_cpp = true; }
-                else if (a == "--wasm") { to_wasm = true; }
+                else if (a == "--cpp") { to_cpp = true; to_native = true; to_c = false; }
+                else if (a == "--wasm") { to_wasm = true; to_native = true; to_c = false; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--disasm") { disasm = true; }
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
@@ -120,7 +127,6 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--compile-only") { compile_only = true; }
-                else if (a == "--compile-bench") { compile_bench = true; }
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
                 #endif
@@ -151,7 +157,7 @@ int main(int argc, char* argv[]) {
                     DefaultLoadFile
                 #endif
             ))
-            THROW_OR_ABORT(string("cannot find location to read/write data on this platform!"));
+            THROW_OR_ABORT("cannot find location to read/write data on this platform!");
 
         NativeRegistry nfr;
         #if LOBSTER_ENGINE
@@ -167,32 +173,27 @@ int main(int argc, char* argv[]) {
         vmargs.trace = trace;
 
         if (!fn) {
+            if (to_native)
+                THROW_OR_ABORT("compile to native target: no arguments given");
             if (!LoadPakDir(default_lpak))
                 THROW_OR_ABORT("Lobster programming language compiler/runtime (version "
                                GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load "
                                + (default_lpak + helptext));
             // This will now come from the pakfile.
             if (!LoadByteCode(vmargs.bytecode_buffer))
-                THROW_OR_ABORT(string("Cannot load bytecode from pakfile!"));
+                THROW_OR_ABORT("Cannot load bytecode from pakfile!");
         } else {
             LOG_INFO("compiling...");
             string dump;
             string pakfile;
             auto start_time = SecondsSinceStart();
-            size_t bench_iters = 1000;
-            for (size_t i = 0; i < (compile_bench ? bench_iters : 1); i++) {
-                dump.clear();
-                pakfile.clear();
-                vmargs.bytecode_buffer.clear();
-                Compile(nfr, StripDirPart(fn), {}, vmargs.bytecode_buffer,
-                        parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr, dump_builtins,
-                        dump_names, false, runtime_checks);
-            }
-            if (compile_bench) {
-                auto compile_time = (SecondsSinceStart() - start_time);
-                LOG_PROGRAM("time to compile ", bench_iters, "x (seconds): ",
-                       compile_time);
-            }
+            dump.clear();
+            pakfile.clear();
+            vmargs.bytecode_buffer.clear();
+            Compile(nfr, StripDirPart(fn), {}, vmargs.bytecode_buffer,
+                    parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr, dump_builtins,
+                    dump_names, false, runtime_checks, to_native);
+            LOG_INFO("time to compile (seconds): ", SecondsSinceStart() - start_time);
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump);
             }
@@ -206,9 +207,43 @@ int main(int argc, char* argv[]) {
             DisAsm(nfr, sd, vmargs.bytecode_buffer);
             WriteFile("disasm.txt", false, sd);
         }
-        if (to_cpp) {
+        if (to_c) {
             string sd;
-            auto err = ToCPP(nfr, sd, vmargs.bytecode_buffer);
+            auto err = ToCPP(nfr, sd, vmargs.bytecode_buffer, false);
+            if (!err.empty()) THROW_OR_ABORT(err);
+            #ifdef VM_JIT_MODE
+                const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
+                auto start_time = SecondsSinceStart();
+                auto ok = RunC(sd.c_str(), err, vm_ops_jit_table, export_names,
+                    [&](void **exports) -> bool {
+                        LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
+                        vmargs.static_bytecode = vmargs.bytecode_buffer.data();
+                        vmargs.static_size = vmargs.bytecode_buffer.size();
+                        vmargs.native_vtables = (block_base_t *)exports[1];
+                        vmargs.jit_entry = (block_base_t)exports[0];
+                        if (!compile_only) {
+                            #if LOBSTER_ENGINE
+                                EngineRunByteCode(std::move(vmargs));
+                            #else
+                                lobster::VMAllocator vma(std::move(vmargs));
+                                vma.vm->EvalProgram();
+                            #endif
+                        }
+                        return true;
+                    });
+                if (!ok || !err.empty()) {
+                    // So we can see what the problem is..
+                    FILE *f = fopen((MainDir() + "compiled_lobster_jit_debug.c").c_str(), "w");
+                    if (f) {
+                        fputs(sd.c_str(), f);
+                        fclose(f);
+                    }
+                    THROW_OR_ABORT("libtcc JIT error: " + string(fn) + ":\n" + err);
+                }
+            #endif
+        } else if (to_cpp) {
+            string sd;
+            auto err = ToCPP(nfr, sd, vmargs.bytecode_buffer, true);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/compiled_lobster/src/compiled_lobster.cpp";
@@ -237,8 +272,8 @@ int main(int argc, char* argv[]) {
             #if LOBSTER_ENGINE
                 EngineRunByteCode(std::move(vmargs));
             #else
-                VM vm(std::move(vmargs));
-                vm.EvalProgram();
+                lobster::VMAllocator vma(std::move(vmargs));
+                vma.vm->EvalProgram();
             #endif
         }
     }
