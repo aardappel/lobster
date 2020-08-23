@@ -83,7 +83,10 @@ using namespace gsl;
 using namespace geom;
 
 #ifndef VM_JIT_MODE
-    #if defined(BUILD_CONTEXT_compiled_lobster) || defined(__IOS__) || defined(__ANDROID__)
+    #if defined(BUILD_CONTEXT_compiled_lobster) || \
+        defined(__IOS__) || \
+        defined(__ANDROID__) || \
+        defined(__EMSCRIPTEN__)
         #define VM_JIT_MODE 0
     #else
         #define VM_JIT_MODE 1

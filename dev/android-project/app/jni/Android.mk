@@ -25,7 +25,7 @@ LOCAL_C_INCLUDES := \
 	$(ANDROID_NDK_ROOT)/sources/android/cpufeatures
 
 LOCAL_SRC_FILES := \
-	$(LOBSTER_PATH)/src/main.cpp \
+	$(LOBSTER_PATH)/compiled_lobster/src/compiled_lobster.cpp \
     $(LOBSTER_PATH)/src/compiler.cpp \
 	$(LOBSTER_PATH)/src/audio.cpp \
 	$(LOBSTER_PATH)/src/builtins.cpp \

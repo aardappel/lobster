@@ -93,7 +93,18 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
+    # Now we're first going to build the native Linux exe, so we can generate C++ code.
+    # Without engine should speed this up.
+    - name: cmake
+      working-directory: dev
+      run: CXX=clang++-9 CC=clang-9 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
     - name: build
+      working-directory: dev
+      run: make -j4
+    # Generate C++ code.
+    - name: test cpp generation
+      run: bin/lobster --cpp tests/unittest.lobster
+    - name: build android
       working-directory: dev/android-project
       run: bash ./gradlew buildDebug
 
