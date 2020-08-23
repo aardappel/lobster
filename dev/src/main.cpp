@@ -166,6 +166,8 @@ int main(int argc, char* argv[]) {
             RegisterCoreLanguageBuiltins(nfr);
         #endif
 
+        LOG_INFO("lobster version " GIT_COMMIT_INFOSTR);
+
         if (fn) fn = StripDirPart(fn);
 
         auto vmargs = VMArgs { nfr, fn ? fn : "" };
