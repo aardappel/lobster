@@ -38,7 +38,7 @@ class CPPGenerator : public NativeGenerator {
                 "\n"
                 "typedef lobster::StackPtr StackPtr;\n"
                 "typedef lobster::VM &VMRef;\n"
-                "typedef lobster::block_base_t block_base_t;\n"
+                "typedef lobster::fun_base_t fun_base_t;\n"
                 "\n"
                 "#if LOBSTER_ENGINE\n"
                 "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"
@@ -47,16 +47,12 @@ class CPPGenerator : public NativeGenerator {
                 "    extern \"C\" StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
                 "#endif\n"
                 "\n"
-                "#ifndef VM_COMPILED_CODE_MODE\n"
-                "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
-                "#endif\n"
-                "\n"
                 ;
         } else {
             sd +=
                 "typedef long long *StackPtr;\n"
                 "typedef void *VMRef;\n"
-                "typedef StackPtr(*block_base_t)(VMRef, StackPtr);\n"
+                "typedef StackPtr(*fun_base_t)(VMRef, StackPtr);\n"
                 "extern  StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
                 "\n"
                 ;
@@ -75,7 +71,7 @@ class CPPGenerator : public NativeGenerator {
                 ILBASENAMES
             #undef F
             #define F(N, A) \
-                sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ", block_base_t);\n";
+                sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ", fun_base_t);\n";
                 ILCALLNAMES
             #undef F
             #define F(N, A) \
@@ -87,7 +83,7 @@ class CPPGenerator : public NativeGenerator {
                 ILJUMPNAMES2
             #undef F
 
-            sd += "block_base_t GetNextCallTarget(VMRef);\n"
+            sd += "fun_base_t GetNextCallTarget(VMRef);\n"
                   "StackPtr Drop(StackPtr);\n"
                   "\n";
         }
@@ -246,7 +242,7 @@ class CPPGenerator : public NativeGenerator {
     void VTables(vector<int> &vtables) override {
         if (cpp) sd += "\nstatic";
         else sd += "\nextern ";
-        sd += " const block_base_t vtables[] = {\n";
+        sd += " const fun_base_t vtables[] = {\n";
         for (auto id : vtables) {
             sd += "    ";
             if (id >= 0) append(sd, "fun_", id);
@@ -275,7 +271,7 @@ class CPPGenerator : public NativeGenerator {
             sd += "int main(int argc, char *argv[]) {\n";
             sd += "    // This is hard-coded to call compiled_entry_point()\n";
             sd += "    return RunCompiledCodeMain(argc, argv, ";
-            append(sd, "bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
+            append(sd, "(uint8_t *)bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
         }
     }
 

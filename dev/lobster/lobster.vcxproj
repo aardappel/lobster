@@ -226,7 +226,6 @@
     <ClInclude Include="..\include\StackWalker\StackWalkerHelpers.h" />
     <ClInclude Include="..\src\lobster\3dgrid.h" />
     <ClInclude Include="..\src\lobster\cubegen.h" />
-    <ClInclude Include="..\src\lobster\engine.h" />
     <ClInclude Include="..\src\lobster\fontrenderer.h" />
     <ClInclude Include="..\src\lobster\glincludes.h" />
     <ClInclude Include="..\src\lobster\glinterface.h" />

@@ -19,10 +19,6 @@
 #include "lobster/tonative.h"
 
 #if LOBSTER_ENGINE
-    #include "lobster/engine.h"
-#endif
-
-#if LOBSTER_ENGINE
     // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.
     #include "lobster/sdlincludes.h"
     #include "lobster/sdlinterface.h"
@@ -66,10 +62,6 @@ int main(int argc, char* argv[]) {
     {
         bool parsedump = false;
         bool disasm = false;
-        bool to_cpp = false;
-        bool to_c = false;
-        bool to_wasm = false;
-        bool to_native = false;
         bool dump_builtins = false;
         bool dump_names = false;
         bool compile_only = false;
@@ -80,10 +72,8 @@ int main(int argc, char* argv[]) {
         const char *fn = nullptr;
         vector<string> program_args;
         auto trace = TraceMode::OFF;
-        #ifdef VM_JIT_MODE
-            to_native = true;
-            to_c = true;
-        #endif
+        enum { BACKEND_JIT, BACKEND_CPP, BACKEND_WASM };
+        auto backend = BACKEND_JIT;
         string helptext = "\nUsage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
@@ -113,8 +103,8 @@ int main(int argc, char* argv[]) {
                 string a = argv[arg];
                 if      (a == "--wait") { wait = true; }
                 else if (a == "--pak") { lpak = default_lpak; }
-                else if (a == "--cpp") { to_cpp = true; to_native = true; to_c = false; }
-                else if (a == "--wasm") { to_wasm = true; to_native = true; to_c = false; }
+                else if (a == "--cpp") { backend = BACKEND_CPP; }
+                else if (a == "--wasm") { backend = BACKEND_WASM; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--disasm") { disasm = true; }
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
@@ -150,39 +140,26 @@ int main(int argc, char* argv[]) {
             //fn = "totslike.lobster";  // FIXME: temp solution
         #endif
 
-        if (!InitPlatform(GetMainDirFromExePath(argv[0]), fn ? fn : default_lpak, from_bundle,
-                #if LOBSTER_ENGINE
-                    SDLLoadFile
-                #else
-                    DefaultLoadFile
-                #endif
-            ))
-            THROW_OR_ABORT("cannot find location to read/write data on this platform!");
-
         NativeRegistry nfr;
-        #if LOBSTER_ENGINE
-            RegisterCoreEngineBuiltins(nfr);
-        #else
-            RegisterCoreLanguageBuiltins(nfr);
-        #endif
+        RegisterCoreLanguageBuiltins(nfr);
+        auto loader = EnginePreInit(nfr);
+
+        if (!InitPlatform(GetMainDirFromExePath(argv[0]), fn ? fn : default_lpak, from_bundle,
+                          loader))
+            THROW_OR_ABORT("cannot find location to read/write data on this platform!");
 
         LOG_INFO("lobster version " GIT_COMMIT_INFOSTR);
 
         if (fn) fn = StripDirPart(fn);
 
-        auto vmargs = VMArgs { nfr, fn ? fn : "" };
-        vmargs.program_args = std::move(program_args);
-        vmargs.trace = trace;
-
+        string bytecode_buffer;
         if (!fn) {
-            if (to_native)
-                THROW_OR_ABORT("compile to native target: no arguments given");
             if (!LoadPakDir(default_lpak))
                 THROW_OR_ABORT("Lobster programming language compiler/runtime (version "
                                GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load "
                                + (default_lpak + helptext));
             // This will now come from the pakfile.
-            if (!LoadByteCode(vmargs.bytecode_buffer))
+            if (!LoadByteCode(bytecode_buffer))
                 THROW_OR_ABORT("Cannot load bytecode from pakfile!");
         } else {
             LOG_INFO("compiling...");
@@ -191,10 +168,10 @@ int main(int argc, char* argv[]) {
             auto start_time = SecondsSinceStart();
             dump.clear();
             pakfile.clear();
-            vmargs.bytecode_buffer.clear();
-            Compile(nfr, StripDirPart(fn), {}, vmargs.bytecode_buffer,
+            bytecode_buffer.clear();
+            Compile(nfr, StripDirPart(fn), {}, bytecode_buffer,
                     parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr, dump_builtins,
-                    dump_names, false, runtime_checks, to_native);
+                    dump_names, false, runtime_checks);
             LOG_INFO("time to compile (seconds): ", SecondsSinceStart() - start_time);
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump);
@@ -206,46 +183,14 @@ int main(int argc, char* argv[]) {
         }
         if (disasm) {
             string sd;
-            DisAsm(nfr, sd, vmargs.bytecode_buffer);
+            DisAsm(nfr, sd, bytecode_buffer);
             WriteFile("disasm.txt", false, sd);
         }
-        if (to_c) {
+        if (backend == BACKEND_JIT) {
+            RunTCC(nfr, bytecode_buffer, fn ? fn : "", std::move(program_args), trace, compile_only);
+        } else if (backend == BACKEND_CPP) {
             string sd;
-            auto err = ToCPP(nfr, sd, vmargs.bytecode_buffer, false);
-            if (!err.empty()) THROW_OR_ABORT(err);
-            #ifdef VM_JIT_MODE
-                const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
-                auto start_time = SecondsSinceStart();
-                auto ok = RunC(sd.c_str(), err, vm_ops_jit_table, export_names,
-                    [&](void **exports) -> bool {
-                        LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
-                        vmargs.static_bytecode = vmargs.bytecode_buffer.data();
-                        vmargs.static_size = vmargs.bytecode_buffer.size();
-                        vmargs.native_vtables = (block_base_t *)exports[1];
-                        vmargs.jit_entry = (block_base_t)exports[0];
-                        if (!compile_only) {
-                            #if LOBSTER_ENGINE
-                                EngineRunByteCode(std::move(vmargs));
-                            #else
-                                lobster::VMAllocator vma(std::move(vmargs));
-                                vma.vm->EvalProgram();
-                            #endif
-                        }
-                        return true;
-                    });
-                if (!ok || !err.empty()) {
-                    // So we can see what the problem is..
-                    FILE *f = fopen((MainDir() + "compiled_lobster_jit_debug.c").c_str(), "w");
-                    if (f) {
-                        fputs(sd.c_str(), f);
-                        fclose(f);
-                    }
-                    THROW_OR_ABORT("libtcc JIT error: " + string(fn) + ":\n" + err);
-                }
-            #endif
-        } else if (to_cpp) {
-            string sd;
-            auto err = ToCPP(nfr, sd, vmargs.bytecode_buffer, true);
+            auto err = ToCPP(nfr, sd, bytecode_buffer, true);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/compiled_lobster/src/compiled_lobster.cpp";
@@ -256,9 +201,9 @@ int main(int argc, char* argv[]) {
             } else {
                 THROW_OR_ABORT(cat("cannot write: ", out));
             }
-        } else if (to_wasm) {
+        } else if (backend == BACKEND_WASM) {
             vector<uint8_t> buf;
-            auto err = ToWASM(nfr, buf, vmargs.bytecode_buffer);
+            auto err = ToWASM(nfr, buf, bytecode_buffer);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/emscripten/compiled_lobster_wasm.o";
@@ -270,13 +215,8 @@ int main(int argc, char* argv[]) {
             else {
                 THROW_OR_ABORT(cat("cannot write: ", out));
             }
-        } else if (!compile_only) {
-            #if LOBSTER_ENGINE
-                EngineRunByteCode(std::move(vmargs));
-            #else
-                lobster::VMAllocator vma(std::move(vmargs));
-                vma.vm->EvalProgram();
-            #endif
+        } else {
+            assert(false);
         }
     }
     #ifdef USE_EXCEPTION_HANDLING
@@ -292,13 +232,8 @@ int main(int argc, char* argv[]) {
         #ifdef _WIN32
             _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
         #endif
-        #if LOBSTER_ENGINE
-            EngineExit(1);
-        #endif
+        return 1;
     }
-    #endif
-    #if LOBSTER_ENGINE
-        EngineExit(0);
     #endif
     return 0;
 }

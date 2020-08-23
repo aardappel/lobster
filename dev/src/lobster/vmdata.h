@@ -269,12 +269,11 @@ struct LResource : RefObj {
 
 typedef Value *StackPtr;
 
-typedef StackPtr(*block_base_t)(VM &, StackPtr);
-#ifdef VM_COMPILED_CODE_MODE
+typedef StackPtr(*fun_base_t)(VM &, StackPtr);
+#if VM_JIT_MODE
+    extern "C" const void *vm_ops_jit_table[];
+#else
     extern "C" StackPtr compiled_entry_point(VM & vm, StackPtr sp);
-    #ifdef VM_JIT_MODE
-        extern "C" const void *vm_ops_jit_table[];
-    #endif
 #endif
 
 // These pointer types are for use inside Value below. In most other parts of the code we
@@ -287,7 +286,7 @@ typedef StackPtr(*block_base_t)(VM &, StackPtr);
     typedef LResource *LResourcePtr;
     typedef RefObj *RefObjPtr;
     typedef TypeInfo *TypeInfoPtr;
-    typedef block_base_t BlockPtr;
+    typedef fun_base_t FunPtr;
 #else
     // We use this special pointer type to represent a 32-bit pointer inside a
     // 64-bit value.
@@ -307,25 +306,11 @@ typedef StackPtr(*block_base_t)(VM &, StackPtr);
     typedef ExpandedPtr<LResource *> LResourcePtr;
     typedef ExpandedPtr<RefObj *> RefObjPtr;
     typedef ExpandedPtr<TypeInfo *> TypeInfoPtr;
-    typedef ExpandedPtr<block_base_t> BlockPtr;
+    typedef ExpandedPtr<fun_base_t> FunPtr;
 #endif
 
 static_assert(sizeof(iint) == sizeof(double) && sizeof(iint) == sizeof(RefObjPtr),
               "typedefs need fixing");
-
-#ifdef VM_COMPILED_CODE_MODE
-    typedef BlockPtr block_t;
-#else
-    typedef iint block_t;
-#endif
-
-struct InsPtr {
-    block_t f;
-    InsPtr() : f(0) {}
-    explicit InsPtr(block_t _f) : f(_f) {}
-    bool operator==(const InsPtr o) const { return f == o.f; }
-    bool operator!=(const InsPtr o) const { return f != o.f; }
-};
 
 struct Value {
     private:
@@ -335,7 +320,7 @@ struct Value {
         // Non-reference values.
         iint ival_;      // scalars stored as pointer-sized versions.
         double fval_;
-        InsPtr ip_;
+        FunPtr ip_;
 
         // Reference values (includes NULL if nillable version).
         LStringPtr sval_;
@@ -367,7 +352,7 @@ struct Value {
     LResource  *xval  () const { TYPE_ASSERT(type == V_RESOURCE);   return xval_;        }
     RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
     RefObj     *refnil() const { TYPE_ASSERT(IsRefNil(type));       return ref_;         }
-    InsPtr      ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
+    FunPtr      ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
     void       *any   () const {                                    return ref_;         }
     TypeInfo   *tival () const { TYPE_ASSERT(type == V_STRUCT_S);   return ti_;          }
 
@@ -392,7 +377,7 @@ struct Value {
     inline Value(bool b)               : ival_(b)         TYPE_INIT(V_INT)      {}
     inline Value(float f)              : fval_(f)         TYPE_INIT(V_FLOAT)    {}
     inline Value(double f)             : fval_((double)f) TYPE_INIT(V_FLOAT)    {}
-    inline Value(InsPtr i)             : ip_(i)           TYPE_INIT(V_FUNCTION) {}
+    inline Value(FunPtr i)             : ip_(i)           TYPE_INIT(V_FUNCTION) {}
 
     inline Value(LString *s)         : sval_(s)         TYPE_INIT(V_STRING)     {}
     inline Value(LVector *v)         : vval_(v)         TYPE_INIT(V_VECTOR)     {}
@@ -623,9 +608,6 @@ struct LVector : RefObj {
 };
 
 struct StackFrame {
-    #ifndef VM_COMPILED_CODE_MODE
-        InsPtr retip;
-    #endif
     const int *funstart;
     iint spstart;
 };
@@ -658,12 +640,11 @@ enum class TraceMode { OFF, ON, TAIL };
 struct VMArgs {
     NativeRegistry &nfr;
     string_view programname;
-    string bytecode_buffer;
-    const void *static_bytecode = nullptr;
+    const uint8_t *static_bytecode = nullptr;
     size_t static_size = 0;
     vector<string> program_args;
-    const block_base_t *native_vtables = nullptr;
-    block_base_t jit_entry = nullptr;
+    const fun_base_t *native_vtables = nullptr;
+    fun_base_t jit_entry = nullptr;
     TraceMode trace = TraceMode::OFF;
 };
 
@@ -676,11 +657,8 @@ struct VM : VMArgs {
     StackPtr sp_suspended = nullptr;
     StackPtr savedrets = nullptr;
 
-    #ifdef VM_COMPILED_CODE_MODE
-        block_base_t next_call_target = 0;
-    #else
-        const int *ip = nullptr;
-    #endif
+    fun_base_t next_call_target = 0;
+
     int ret_unwind_to = -1;
     int ret_nrv = -1;
 
@@ -712,14 +690,12 @@ struct VM : VMArgs {
 
     vector<LString *> constant_strings;
 
-    vector<InsPtr> vtables;
-
     int64_t vm_count_ins = 0;
     int64_t vm_count_fcalls = 0;
     int64_t vm_count_bcalls = 0;
     int64_t vm_count_decref = 0;
 
-    #if defined(VM_COMPILED_CODE_MODE) && defined(NDEBUG)
+    #ifdef NDEBUG
         // Inlining the base VM ops allows for a great deal of optimisation,
         // collapsing a lot of code.
         #ifdef _WIN32
@@ -733,7 +709,6 @@ struct VM : VMArgs {
     #endif
 
     typedef StackPtr (* f_ins_pointer)(VM &, StackPtr);
-    f_ins_pointer f_ins_pointers[IL_MAX_OPS];
 
     bool is_worker = false;
     vector<thread> workers;
@@ -806,32 +781,13 @@ struct VM : VMArgs {
     void WorkerWrite(StackPtr &sp, RefObj *ref);
     LObject *WorkerRead(StackPtr &sp, type_elem_t tti);
 
-    #ifdef VM_COMPILED_CODE_MODE
-        #define VM_COMMA ,
-        #define VM_OP_ARGS const int *ip
-        #define VM_OP_ARGS_CALL block_base_t fcont
-        #define VM_IP_PASS_THRU ip
-        #define VM_FC_PASS_THRU fcont
-    #else
-        #define VM_COMMA
-        #define VM_OP_ARGS
-        #define VM_OP_ARGS_CALL
-        #define VM_IP_PASS_THRU
-        #define VM_FC_PASS_THRU
-    #endif
-
-    void JumpTo(InsPtr j);
-    InsPtr GetIP();
     template<int is_error> int VarCleanup(StackPtr &sp, string *error, int towhere);
-    void StartStackFrame(InsPtr retip);
-    void FunIntroPre(StackPtr &sp, InsPtr fun);
-    void FunIntro(StackPtr &sp VM_COMMA VM_OP_ARGS);
+    void FunIntro(StackPtr &sp, const int *ip);
     void FunOut(StackPtr &sp, int nrv);
 
     void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 
-    void EvalProgram(StackPtr = nullptr);
-    void EvalProgramInner(StackPtr);
+    void EvalProgram();
 
     void LvalueIdxVector(int lvalop, iint i);
     void LvalueIdxStruct(int lvalop, iint i);
@@ -842,7 +798,6 @@ struct VM : VMArgs {
 
     void Div0(StackPtr sp) { Error(sp, "division by zero"); }
     void IDXErr(StackPtr sp, iint i, iint n, const RefObj *v);
-    void BCallProf();
     void BCallRetCheck(StackPtr sp, const NativeFun *nf);
     iint GrabIndex(StackPtr &sp, int len);
 

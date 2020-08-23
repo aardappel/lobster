@@ -9,7 +9,7 @@ namespace lobster {
 #define VM_OP_ARGS1 int _a
 #define VM_OP_ARGS2 int _a, int _b
 #define VM_OP_ARGS3 int _a, int _b, int _c
-#define VM_OP_ARGS9 VM_OP_ARGS  // ILUNKNOWNARITY
+#define VM_OP_ARGS9 const int *ip  // ILUNKNOWNARITY
 #define VM_OP_ARGSN(N) VM_OP_ARGS##N
 #define VM_OP_DEFS0
 #define VM_OP_DEFS1 int _a = *vm.ip++;
@@ -21,19 +21,19 @@ namespace lobster {
 #define VM_OP_PASS1 _a
 #define VM_OP_PASS2 _a, _b
 #define VM_OP_PASS3 _a, _b, _c
-#define VM_OP_PASS9 VM_IP_PASS_THRU  // ILUNKNOWNARITY
+#define VM_OP_PASS9 ip  // ILUNKNOWNARITY
 #define VM_OP_PASSN(N) VM_OP_PASS##N
 #define VM_COMMA_0
 #define VM_COMMA_1 ,
 #define VM_COMMA_2 ,
 #define VM_COMMA_3 ,
-#define VM_COMMA_9 VM_COMMA
+#define VM_COMMA_9 ,
 #define VM_COMMA_IF(N) VM_COMMA_##N
 #define VM_CCOMMA_0
-#define VM_CCOMMA_1 VM_COMMA
-#define VM_CCOMMA_2 VM_COMMA
-#define VM_CCOMMA_3 VM_COMMA
-#define VM_CCOMMA_9 VM_COMMA
+#define VM_CCOMMA_1 ,
+#define VM_CCOMMA_2 ,
+#define VM_CCOMMA_3 ,
+#define VM_CCOMMA_9 ,
 #define VM_CCOMMA_IF(N) VM_CCOMMA_##N
 
 #if RTT_ENABLED
@@ -141,13 +141,9 @@ VM_INLINE StackPtr U_PUSHFLT64(VM &, StackPtr sp, int a, int b) {
     return sp;
 }
 
-VM_INLINE StackPtr U_PUSHFUN(VM &, StackPtr sp, int start VM_COMMA VM_OP_ARGS_CALL) {
-    #ifdef VM_COMPILED_CODE_MODE
-        (void)start;
-    #else
-        auto fcont = start;
-    #endif
-    Push(sp, Value(InsPtr(fcont)));
+VM_INLINE StackPtr U_PUSHFUN(VM &, StackPtr sp, int start, fun_base_t fcont) {
+    (void)start;
+    Push(sp, Value(fcont));
     return sp;
 }
 
@@ -182,30 +178,14 @@ VM_INLINE StackPtr U_KEEPREF(VM &, StackPtr sp, int off, int ki) {
     return sp;
 }
 
-VM_INLINE StackPtr U_CALL(VM &vm, StackPtr sp, int f) {
-    #ifdef VM_COMPILED_CODE_MODE
-        (void)f;
-        block_base_t fun = 0;  // Dynamic calls need this set, but for CALL it is ignored.
-        block_base_t fcont = 0;  // Not used for retip.
-    #else
-        auto fun = f;
-        auto fcont = vm.ip - vm.codestart;
-    #endif
-    vm.StartStackFrame(InsPtr(fcont));
-    vm.FunIntroPre(sp, InsPtr(fun));
+VM_INLINE StackPtr U_CALL(VM &, StackPtr sp, int) {
     return sp;
 }
 
 VM_INLINE StackPtr U_CALLV(VM &vm, StackPtr sp) {
     Value fun = Pop(sp);
     VMTYPEEQ(fun, V_FUNCTION);
-    #ifndef VM_COMPILED_CODE_MODE
-        auto fcont = vm.ip - vm.codestart;
-    #else
-        block_base_t fcont = 0;  // Not used for retip.
-    #endif
-    vm.StartStackFrame(InsPtr(fcont));
-    vm.FunIntroPre(sp, fun.ip());
+    vm.next_call_target = fun.ip();
     return sp;
 }
 
@@ -213,9 +193,7 @@ VM_INLINE StackPtr U_CALLVCOND(VM &vm, StackPtr sp) {
     // FIXME: don't need to check for function value again below if false
     if (Top(sp).False()) {
         Pop(sp);
-        #ifdef VM_COMPILED_CODE_MODE
-            vm.next_call_target = 0;
-        #endif
+        vm.next_call_target = 0;
     } else {
         sp = U_CALLV(vm, sp);
     }
@@ -226,25 +204,13 @@ VM_INLINE StackPtr U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) 
     auto self = TopM(sp, stack_idx);
     VMTYPEEQ(self, V_CLASS);
     auto start = self.oval()->ti(vm).vtable_start;
-    auto fun = vm.vtables[start + vtable_idx];
-    #ifdef VM_COMPILED_CODE_MODE
-        block_base_t fcont = 0;  // Not used for retip.
-    #else
-        auto fcont = vm.ip - vm.codestart;
-        assert(fun.f >= 0);
-    #endif
-    vm.StartStackFrame(InsPtr(fcont));
-    vm.FunIntroPre(sp, fun);
+    vm.next_call_target = vm.native_vtables[start + vtable_idx];
     return sp;
 }
 
-VM_INLINE StackPtr U_FUNSTART(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS) {
-    #ifdef VM_COMPILED_CODE_MODE
-        vm.FunIntro(sp, ip);
-    #else
-        VMASSERT(vm, false);
-    #endif
-    return sp;
+VM_INLINE StackPtr U_FUNSTART(VM &vm, StackPtr sp, const int *ip) {
+     vm.FunIntro(sp, ip);
+     return sp;
 }
 
 VM_INLINE StackPtr U_RETURN(VM &vm, StackPtr sp, int df, int nrv) {
@@ -300,26 +266,16 @@ VM_INLINE StackPtr U_CONT1(VM &vm, StackPtr sp, int nfi) {
     return sp;
 }
 
-VM_INLINE StackPtr ForLoop(VM &vm, StackPtr sp, iint len) {
-    #ifndef VM_COMPILED_CODE_MODE
-        auto cont = *vm.ip++;
-    #endif
+VM_INLINE StackPtr ForLoop(VM &, StackPtr sp, iint len) {
     auto &i = TopM(sp, 1);
     TYPE_ASSERT(i.type == V_INT);
     i.setival(i.ival() + 1);
     if (i.ival() >= len) {
         (void)Pop(sp); /* iter */
         (void)Pop(sp); /* i */
-        #ifdef VM_COMPILED_CODE_MODE
-            Push(sp, false);
-            (void)vm;
-        #else
-            vm.ip = cont + vm.codestart;
-        #endif
+        Push(sp, false);
     } else {
-        #ifdef VM_COMPILED_CODE_MODE
-            Push(sp, true);
-        #endif
+        Push(sp, true);
     }
     return sp;
 }
@@ -348,13 +304,11 @@ VM_INLINE StackPtr U_FORLOOPI(VM &, StackPtr sp) {
 }
 
 VM_INLINE StackPtr U_BCALLRETV(VM &vm, StackPtr sp, int nfi) {
-    vm.BCallProf();
     auto nf = vm.nfr.nfuns[nfi];
     nf->fun.fV(sp, vm);
     return sp;
 }
 VM_INLINE StackPtr U_BCALLREFV(VM &vm, StackPtr sp, int nfi) {
-    vm.BCallProf();
     auto nf = vm.nfr.nfuns[nfi];
     nf->fun.fV(sp, vm);
     // This can only pop a single value, not called for structs.
@@ -362,7 +316,6 @@ VM_INLINE StackPtr U_BCALLREFV(VM &vm, StackPtr sp, int nfi) {
     return sp;
 }
 VM_INLINE StackPtr U_BCALLUNBV(VM &vm, StackPtr sp, int nfi) {
-    vm.BCallProf();
     auto nf = vm.nfr.nfuns[nfi];
     nf->fun.fV(sp, vm);
     // This can only pop a single value, not called for structs.
@@ -371,7 +324,6 @@ VM_INLINE StackPtr U_BCALLUNBV(VM &vm, StackPtr sp, int nfi) {
 }
 
 #define BCALLOPH(PRE,N,DECLS,ARGS,RETOP) VM_INLINE StackPtr U_BCALL##PRE##N(VM &vm, StackPtr sp, int nfi) { \
-    vm.BCallProf(); \
     auto nf = vm.nfr.nfuns[nfi]; \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
@@ -398,7 +350,7 @@ VM_INLINE StackPtr U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int str
     (void)fileidx;
     if (Top(sp).False()) {
         vm.Error(sp, cat(
-            #ifdef VM_COMPILED_CODE_MODE
+            #if !VM_JIT_MODE
                 vm.bcf->filenames()->Get(fileidx)->string_view(), "(", line, "): ",
             #endif
             "assertion failed: ", vm.bcf->stringtable()->Get(stringidx)->string_view()));
@@ -786,48 +738,41 @@ VM_INLINE StackPtr U_NATIVEHINT(VM &, StackPtr sp, int) {
     return sp;
 }
 
-#ifdef VM_COMPILED_CODE_MODE
-VM_INLINE StackPtr U_JUMP(VM &, StackPtr sp) { Push(sp, false); return sp; }
-VM_INLINE StackPtr U_JUMPFAIL(VM &, StackPtr sp) { return sp; }
-VM_INLINE StackPtr U_JUMPFAILR(VM &, StackPtr sp) { auto x = Top(sp); if (x.False()) Push(sp, x); return sp; }
-VM_INLINE StackPtr U_JUMPNOFAIL(VM &, StackPtr sp) { auto x = Pop(sp); Push(sp, x.False()); return sp; }
-VM_INLINE StackPtr U_JUMPNOFAILR(VM &, StackPtr sp) { auto x = Pop(sp); if (x.True()) Push(sp, x); Push(sp, x.False()); return sp; }
+VM_INLINE StackPtr U_JUMP(VM &, StackPtr sp) {
+    Push(sp, false);
+    return sp;
+}
+
+VM_INLINE StackPtr U_JUMPFAIL(VM &, StackPtr sp) {
+    return sp;
+}
+
+VM_INLINE StackPtr U_JUMPFAILR(VM &, StackPtr sp) {
+    auto x = Top(sp);
+    if (x.False()) Push(sp, x);
+    return sp;
+}
+
+VM_INLINE StackPtr U_JUMPNOFAIL(VM &, StackPtr sp) {
+    auto x = Pop(sp);
+    Push(sp, x.False());
+    return sp;
+}
+
+VM_INLINE StackPtr U_JUMPNOFAILR(VM &, StackPtr sp) {
+    auto x = Pop(sp);
+    if (x.True()) Push(sp, x);
+    Push(sp, x.False());
+    return sp;
+}
+
 VM_INLINE StackPtr U_JUMPIFUNWOUND(VM &vm, StackPtr sp, int df) {
     Push(sp, vm.ret_unwind_to != df);
     return sp;
 }
-#else
-VM_INLINE StackPtr U_JUMP(VM &vm, StackPtr sp) { auto nip = *vm.ip++; vm.ip = vm.codestart + nip; return sp; }
-VM_INLINE StackPtr U_JUMPFAIL(VM &vm, StackPtr sp) { auto x = Pop(sp); auto nip = *vm.ip++; if (x.False()) { vm.ip = vm.codestart + nip; } return sp; }
-VM_INLINE StackPtr U_JUMPFAILR(VM &vm, StackPtr sp) { auto x = Pop(sp); auto nip = *vm.ip++; if (x.False()) { vm.ip = vm.codestart + nip; Push(sp, x); } return sp; }
-VM_INLINE StackPtr U_JUMPNOFAIL(VM &vm, StackPtr sp) { auto x = Pop(sp); auto nip = *vm.ip++; if (x.True()) { vm.ip = vm.codestart + nip; } return sp; }
-VM_INLINE StackPtr U_JUMPNOFAILR(VM &vm, StackPtr sp) { auto x = Pop(sp); auto nip = *vm.ip++; if (x.True()) { vm.ip = vm.codestart + nip; Push(sp, x); } return sp; }
-VM_INLINE StackPtr U_JUMPIFUNWOUND(VM &vm, StackPtr sp, int df) {
-    auto nip = *vm.ip++;
-    if (vm.ret_unwind_to == df) {
-        vm.ip = vm.codestart + nip;
-    }
-    return sp;
-}
-#endif
 
-
-VM_INLINE StackPtr U_JUMP_TABLE(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS) {
-    #ifdef VM_COMPILED_CODE_MODE
-        (void)vm;
-        (void)ip;
-        assert(false);
-    #else
-        auto mini = *vm.ip++;
-        auto maxi = *vm.ip++;
-        auto n = maxi - mini + 2;
-        auto jstart = vm.ip;
-        vm.ip += n;
-        auto val = Pop(sp).ival();
-        if (val < mini || val > maxi) val = maxi + 1;
-        auto target = jstart[val - mini];
-        vm.JumpTo(InsPtr(target));
-    #endif
+VM_INLINE StackPtr U_JUMP_TABLE(VM &, StackPtr sp, const int *) {
+    assert(false);
     return sp;
 }
 
@@ -992,33 +937,5 @@ PPOP(FMMPR, true , -, false, fval)
 #undef LVAL
 
 #pragma pop_macro("LVAL")
-
-#ifndef VM_COMPILED_CODE_MODE
-    #define F(N, A) StackPtr F_##N(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS) { \
-                        VM_OP_DEFSN(A); \
-                        return U_##N(vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); \
-                    }
-        LVALOPNAMES
-    #undef F
-    #define F(N, A) StackPtr F_##N(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS) { \
-                        VM_OP_DEFSN(A); \
-                        return U_##N(vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); \
-                    }
-        ILBASENAMES
-    #undef F
-    #define F(N, A) StackPtr F_##N(VM &vm, StackPtr sp VM_COMMA VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) { \
-                        VM_OP_DEFSN(A); \
-                        return U_##N(vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A) VM_CCOMMA_IF(A) VM_FC_PASS_THRU); \
-                    }
-        ILCALLNAMES
-    #undef F
-    #define F(N, A) StackPtr F_##N(VM &vm, StackPtr sp) { return U_##N(vm, sp); }
-        ILJUMPNAMES1
-    #undef F
-    #define F(N, A) StackPtr F_##N(VM &vm, StackPtr sp) { return U_##N(vm, sp, *vm.ip++); }
-        ILJUMPNAMES2
-    #undef F
-#endif
-
 
 }  // namespace lobster

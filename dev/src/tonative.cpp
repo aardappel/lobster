@@ -56,7 +56,6 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                 string_view bytecode_buffer) {
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     if (!FLATBUFFERS_LITTLEENDIAN) return "native code gen requires little endian";
-    if (!bcf->nativemode()) return "native code gen requires hinted bytecode";
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
     auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
     map<int, const bytecode::Function *> function_lookup;
@@ -152,7 +151,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             }
             if (opc == IL_CALL) {
                 ng.EmitCall(args[0]);
-            } else if (opc == IL_CALLV || opc == IL_DDCALL || opc == IL_JUMP_TABLE) {
+            } else if (opc == IL_CALLV || opc == IL_DDCALL) {
                 ng.EmitCallIndirect();
             } else if (opc == IL_RETURN || opc == IL_RETURNANY) {
                 ng.EmitReturn();

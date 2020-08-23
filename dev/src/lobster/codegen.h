@@ -35,7 +35,6 @@ struct CodeGen  {
     int keepvars = 0;
     int runtime_checks;
     vector<int> vtables;
-    bool nativemode;
 
     int Pos() { return (int)code.size(); }
 
@@ -68,7 +67,7 @@ struct CodeGen  {
     }
 
     void EmitNativeHint(NativeHint h) {
-        if (nativemode) Emit(IL_NATIVEHINT, h);
+        Emit(IL_NATIVEHINT, h);
     }
 
     const int ti_num_udt_fields = 4;
@@ -139,8 +138,8 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks, bool nativemode)
-        : parser(_p), st(_st), runtime_checks(runtime_checks), nativemode(nativemode) {
+    CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks)
+        : parser(_p), st(_st), runtime_checks(runtime_checks) {
         // Reserve space and index for all vtables.
         for (auto udt : st.udttable) {
             udt->vtable_start = (int)vtables.size();

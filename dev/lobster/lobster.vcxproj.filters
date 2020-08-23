@@ -334,9 +334,6 @@
     <ClInclude Include="..\src\lobster\glinterface.h">
       <Filter>engine\opengl</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\lobster\engine.h">
-      <Filter>engine\lobster_bindings</Filter>
-    </ClInclude>
     <ClInclude Include="..\external\imgui\imconfig.h">
       <Filter>engine\imgui</Filter>
     </ClInclude>

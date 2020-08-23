@@ -27,6 +27,7 @@
 #include "lobster/constval.h"
 #include "lobster/optimizer.h"
 #include "lobster/codegen.h"
+#include "lobster/tonative.h"
 
 namespace lobster {
 
@@ -302,7 +303,7 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
 
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
     string *parsedump, string *pakfile, bool dump_builtins, bool dump_names, bool return_value,
-    int runtime_checks, bool nativemode) {
+    int runtime_checks) {
     SymbolTable st;
     Parser parser(nfr, fn, st, stringsource);
     parser.Parse();
@@ -311,34 +312,67 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc);
     if (parsedump) *parsedump = parser.DumpAll(true);
-    CodeGen cg(parser, st, return_value, runtime_checks, nativemode);
+    CodeGen cg(parser, st, return_value, runtime_checks);
     st.Serialize(cg.code, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
-        cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables, nativemode);
+        cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables);
     if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
     if (dump_builtins) DumpBuiltins(nfr, false, st);
     if (dump_names) DumpBuiltins(nfr, true, st);
 }
 
+string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
+              vector<string> &&program_args, TraceMode trace, bool compile_only) {
+    string sd;
+    auto err = ToCPP(nfr, sd, bytecode_buffer, false);
+    if (!err.empty()) THROW_OR_ABORT(err);
+    string ret;
+    #if VM_JIT_MODE
+        const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
+        auto start_time = SecondsSinceStart();
+        auto ok = RunC(sd.c_str(), err, vm_ops_jit_table, export_names,
+            [&](void **exports) -> bool {
+                LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
+                if (compile_only) return true;
+                auto vmargs = VMArgs {
+                    nfr, fn, (uint8_t *)bytecode_buffer.data(),
+                    bytecode_buffer.size(), std::move(program_args),
+                    (fun_base_t *)exports[1], (fun_base_t)exports[0], trace
+                };
+                lobster::VMAllocator vma(std::move(vmargs));
+                vma.vm->EvalProgram();
+                ret = vma.vm->evalret;
+                return true;
+            });
+        if (!ok || !err.empty()) {
+            // So we can see what the problem is..
+            FILE *f = fopen((MainDir() + "compiled_lobster_jit_debug.c").c_str(), "w");
+            if (f) {
+                fputs(sd.c_str(), f);
+                fclose(f);
+            }
+            THROW_OR_ABORT("libtcc JIT error: " + string(fn) + ":\n" + err);
+        }
+    #else
+        (void)fn;
+        (void)program_args;
+        (void)trace;
+        (void)compile_only;
+        THROW_OR_ABORT("cannot JIT code: libtcc not enabled");
+    #endif
+    return ret;
+}
+
 Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringiscode,
-                 const vector<string> &args) {
+                 vector<string> &&args) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        auto vmargs = VMArgs {
-            parent_vm.nfr, fn, {}, nullptr, 0, args
-        };
+        string bytecode_buffer;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                vmargs.bytecode_buffer, nullptr, nullptr, false, false, true, RUNTIME_ASSERT, false);
-        #ifdef VM_COMPILED_CODE_MODE
-            // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
-            // interpreted mode anymore.
-            THROW_OR_ABORT("cannot execute bytecode in compiled mode");
-        #endif
-        VMAllocator vma(std::move(vmargs));
-        vma.vm->EvalProgram();
-        auto ret = vma.vm->evalret;
+                bytecode_buffer, nullptr, nullptr, false, false, true, RUNTIME_ASSERT);
+        auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, std::move(args), TraceMode::OFF, false);
         Push(parent_sp, Value(parent_vm.NewString(ret)));
         return Value();
     }
@@ -377,35 +411,29 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "parsedata", AddReader);
 }
 
-VMArgs CompiledInit(int argc, const char * const *argv, const void *bytecodefb,
-                    size_t static_size, const lobster::block_base_t *vtables,
-                    FileLoader loader, NativeRegistry &nfr) {
-    min_output_level = OUTPUT_WARN;
-    InitPlatform("../../", "", false, loader);  // FIXME: path.
-    auto vmargs = VMArgs {
-        nfr, StripDirPart(argv[0]), {}, bytecodefb, static_size, {},
-        vtables, nullptr, TraceMode::OFF
-    };
-    for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
-    return vmargs;
+#if !LOBSTER_ENGINE
+FileLoader EnginePreInit(NativeRegistry &) {
+    return DefaultLoadFile;
 }
-
-
-#if LOBSTER_ENGINE
-int UnusedRunCompiledCodeMain
-#else
-extern "C" int RunCompiledCodeMain
 #endif
-(int argc, const char * const *argv, const void *bytecodefb, size_t static_size,
- const lobster::block_base_t *vtables) {
+
+extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uint8_t *bytecodefb,
+                                   size_t static_size, const lobster::fun_base_t *vtables) {
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
         NativeRegistry nfr;
         RegisterCoreLanguageBuiltins(nfr);
-        lobster::VMAllocator vma(CompiledInit(argc, argv, bytecodefb, static_size,
-                                              vtables, DefaultLoadFile, nfr));
+        auto loader = EnginePreInit(nfr);
+        min_output_level = OUTPUT_WARN;
+        InitPlatform("../../", "", false, loader);  // FIXME: path.
+        auto vmargs = VMArgs {
+            nfr, StripDirPart(argv[0]), bytecodefb, static_size, {},
+            vtables, nullptr, TraceMode::OFF
+        };
+        for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
+        lobster::VMAllocator vma(std::move(vmargs));
         vma.vm->EvalProgram();
     }
     #ifdef USE_EXCEPTION_HANDLING
@@ -426,12 +454,14 @@ Field::Field(const Field &o)
       defaultval(o.defaultval ? o.defaultval->Clone() : nullptr), isprivate(o.isprivate),
       defined_in(o.defined_in) {}
 
-}
-
-lobster::Function::~Function() {
+Function::~Function() {
     for (auto da : default_args) delete da;
 }
+
+}  // namespace lobster
+
 
 #if STACK_PROFILING_ON
     vector<StackProfile> stack_profiles;
 #endif
+

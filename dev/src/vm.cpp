@@ -20,17 +20,6 @@
 
 namespace lobster {
 
-#ifndef NDEBUG
-    #define VM_PROFILER              // tiny VM slowdown and memory usage when enabled
-#endif
-
-#ifdef VM_COMPILED_CODE_MODE
-    #ifdef _WIN32
-        #pragma warning (disable: 4458)  // ip hides class member, which we rely on
-        #pragma warning (disable: 4100)  // ip may not be touched
-    #endif
-#endif
-
 enum {
     // *8 bytes each
     INITSTACKSIZE   =  32 * 1024,
@@ -39,12 +28,6 @@ enum {
     // *8 bytes each, max by which the stack could possibly grow in a single call.
     STACKMARGIN     =   8 * 1024
 };
-
-#define MEASURE_INSTRUCTION_COMBINATIONS 0
-#if MEASURE_INSTRUCTION_COMBINATIONS
-map<pair<int, int>, size_t> instruction_combinations;
-int last_instruction_opc = -1;
-#endif
 
 VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
     : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZE), bcf(bcf) {
@@ -63,35 +46,9 @@ VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
             typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
         typetable = typetablebigendian.data();
     }
-    #ifndef VM_COMPILED_CODE_MODE
-        ip = codestart;
-    #endif
     stack = new Value[stacksize = INITSTACKSIZE];
-    #ifdef VM_PROFILER
-        byteprofilecounts = new uint64_t[codelen];
-        memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
-    #endif
-
-    #ifdef VM_COMPILED_CODE_MODE
-        #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
-    #else
-        #define F(N, A) f_ins_pointers[IL_##N] = &F_##N;
-    #endif
-    ILNAMES
-    #undef F
-
     constant_strings.resize(bcf->stringtable()->size());
-    #ifdef VM_COMPILED_CODE_MODE
-        assert(native_vtables);
-        for (size_t i = 0; i < bcf->vtables()->size(); i++) {
-            vtables.push_back(InsPtr(native_vtables[i]));
-        }
-    #else
-        assert(!native_vtables);
-        for (auto bcs : *bcf->vtables()) {
-            vtables.push_back(InsPtr(bcs));
-        }
-    #endif
+    assert(native_vtables);
 }
 
 VM::~VM() {
@@ -102,12 +59,10 @@ VM::~VM() {
 
 VMAllocator::VMAllocator(VMArgs &&args) {
     // Verify the bytecode.
-    auto bcfb = (uint8_t *)(args.static_bytecode ? args.static_bytecode : args.bytecode_buffer.data());
-    auto bcs = args.static_bytecode ? args.static_size : args.bytecode_buffer.size();
-    flatbuffers::Verifier verifier(bcfb, bcs);
+    flatbuffers::Verifier verifier(args.static_bytecode, args.static_size);
     auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
     if (!ok) THROW_OR_ABORT("bytecode file failed to verify");
-    auto bcf = bytecode::GetBytecodeFile(bcfb);
+    auto bcf = bytecode::GetBytecodeFile(args.static_bytecode);
     if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
         THROW_OR_ABORT("bytecode is from a different version of Lobster");
 
@@ -179,15 +134,10 @@ void VM::DumpLeaks() {
     } else {
         LOG_ERROR("LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster)");
-        string sd;
-        #ifndef VM_COMPILED_CODE_MODE
-            sd += "in: ";
-            DumpFileLine(ip, sd);
-            sd += "\n";
-        #endif
         sort(leaks.begin(), leaks.end(), _LeakSorter);
         PrintPrefs leakpp = debugpp;
         leakpp.cycles = 0;
+        string sd;
         for (auto p : leaks) {
             auto ro = (RefObj *)p;
             switch(ro->ti(*this).t) {
@@ -313,10 +263,6 @@ void VM::ErrorBase(string &sd, const string &err) {
         sd += err;
         THROW_OR_ABORT(sd);
     }
-    #ifndef VM_COMPILED_CODE_MODE
-        DumpFileLine(ip, sd);
-        sd += ": ";
-    #endif
     append(sd, "VM error: ", err);
 }
 
@@ -347,10 +293,6 @@ Value VM::Error(StackPtr sp, string err) {
             } else {
                 sd += "\nin block";
             }
-            #ifndef VM_COMPILED_CODE_MODE
-                sd += " -> ";
-                DumpFileLine(ip, sd);
-            #endif
             auto &stf = stackframes.back();
             auto fip = stf.funstart;
             fip++;  // function id.
@@ -382,9 +324,6 @@ Value VM::Error(StackPtr sp, string err) {
                 auto i = *--freevars;
                 vars[i] = Pop(sp);
             }
-            #ifndef VM_COMPILED_CODE_MODE
-                JumpTo(stf.retip);
-            #endif
             stackframes.pop_back();
             sp = (stackframes.size() ? stackframes.back().spstart : -1) + stack;
         }
@@ -442,48 +381,9 @@ void VM::FinalStackVarsCleanup(StackPtr &sp) {
     #endif
 }
 
-void VM::JumpTo(InsPtr j) {
-    #ifdef VM_COMPILED_CODE_MODE
-        next_call_target = j.f;
-    #else
-        ip = j.f + codestart;
-    #endif
-}
-
-InsPtr VM::GetIP() {
-    #ifdef VM_COMPILED_CODE_MODE
-        return InsPtr(next_call_target);
-    #else
-        return InsPtr(ip - codestart);
-    #endif
-}
-
-// Initializes only 3 fields of the stack frame, FunIntro must be called right after.
-void VM::StartStackFrame(InsPtr retip) {
-    stackframes.push_back(StackFrame());
-    #ifndef VM_COMPILED_CODE_MODE
-        auto &stf = stackframes.back();
-        stf.retip = retip;
-    #endif
-}
-
-void VM::FunIntroPre(StackPtr &sp, InsPtr fun) {
-    JumpTo(fun);
-    #ifdef VM_COMPILED_CODE_MODE
-        // We don't call FunIntro() here, instead the compiled code for FUNSTART/FUNMULTI actually
-        // does that.
-    #else
-        VMASSERT((*this), *ip == IL_FUNSTART);
-        ip++;
-        FunIntro(sp);
-    #endif
-}
-
 // Only valid to be called right after StartStackFrame, with no bytecode in-between.
-void VM::FunIntro(StackPtr &sp VM_COMMA VM_OP_ARGS) {
-    #ifdef VM_PROFILER
-        vm_count_fcalls++;
-    #endif
+void VM::FunIntro(StackPtr &sp, const int *ip) {
+    stackframes.push_back(StackFrame());
     auto funstart = ip;
     ip++;  // definedfunction
     if (sp - stack > stacksize - STACKMARGIN) {
@@ -554,9 +454,6 @@ void VM::FunOut(StackPtr &sp, int nrv) {
         auto i = *--freevars;
         vars[i] = Pop(sp);
     }
-    #ifndef VM_COMPILED_CODE_MODE
-        JumpTo(stf.retip);
-    #endif
     stackframes.pop_back();
     ts_memcpy(TopPtr(sp), rets, nrv);
     sp += nrv;
@@ -586,94 +483,14 @@ void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
         ro->DECDELETENOW(*this);
     }
     DumpLeaks();
-    #ifdef VM_PROFILER
-        LOG_INFO("Profiler statistics:");
-        uint64_t total = 0;
-        auto fraction = 200;  // Line needs at least 0.5% to be counted.
-        vector<uint64_t> lineprofilecounts(bcf->lineinfo()->size());
-        for (size_t i = 0; i < codelen; i++) {
-            auto li = LookupLine(codestart + i, codestart, bcf); // FIXME: can do faster
-            size_t j = li - bcf->lineinfo()->Get(0);
-            lineprofilecounts[j] += byteprofilecounts[i];
-            total += byteprofilecounts[i];
-        }
-        struct LineRange { int line, lastline, fileidx; uint64_t count; };
-        vector<LineRange> uniques;
-        for (uint32_t i = 0; i < bcf->lineinfo()->size(); i++) {
-            uint64_t c = lineprofilecounts[i];
-            if (c > total / fraction) {
-                auto li = bcf->lineinfo()->Get(i);
-                uniques.push_back(LineRange{ li->line(), li->line(), li->fileidx(), c });
-            }
-        }
-        std::sort(uniques.begin(), uniques.end(), [&] (const LineRange &a, const LineRange &b) {
-            return a.fileidx != b.fileidx ? a.fileidx < b.fileidx : a.line < b.line;
-        });
-        for (auto it = uniques.begin(); it != uniques.end();)  {
-            if (it != uniques.begin()) {
-                auto pit = it - 1;
-                if (it->fileidx == pit->fileidx &&
-                    ((it->line == pit->lastline) ||
-                        (it->line == pit->lastline + 1 && pit->lastline++))) {
-                    pit->count += it->count;
-                    it = uniques.erase(it);
-                    continue;
-                }
-            }
-            ++it;
-        }
-        for (auto &u : uniques) {
-            LOG_INFO(bcf->filenames()->Get(u.fileidx)->string_view(), "(", u.line,
-                   u.lastline != u.line ? "-" + to_string(u.lastline) : "",
-                   "): ", u.count * 100.0f / total, " %");
-        }
-        if (vm_count_fcalls)  // remove trivial VM executions from output
-            LOG_INFO("ins ", vm_count_ins, ", fcall ", vm_count_fcalls, ", bcall ",
-                                vm_count_bcalls, ", decref ", vm_count_decref);
-    #endif
-    #if MEASURE_INSTRUCTION_COMBINATIONS
-        struct trip { size_t freq; int opc1, opc2; };
-        vector<trip> combinations;
-        for (auto &p : instruction_combinations)
-            combinations.push_back({ p.second, p.first.first, p.first.second });
-        sort(combinations.begin(), combinations.end(), [](const trip &a, const trip &b) {
-            return a.freq > b.freq;
-        });
-        combinations.resize(50);
-        for (auto &c : combinations) {
-            LOG_PROGRAM("instruction ", ILNames()[c.opc1], " -> ", ILNames()[c.opc2], " (",
-                        c.freq, "x)");
-        }
-        instruction_combinations.clear();
-    #endif
-    #ifndef VM_COMPILED_CODE_MODE
-        // FIXME: Just used to efficiently exit the for(;;) loop below!
-        THROW_OR_ABORT("end-eval");
-    #endif
 }
 
-void VM::EvalProgram(StackPtr sp) {
-    if (!sp) sp = stack - 1;
-    #ifdef VM_COMPILED_CODE_MODE
-        #ifdef VM_JIT_MODE
-            jit_entry(*this, sp);
-        #else
-            compiled_entry_point(*this, sp);
-        #endif
+void VM::EvalProgram() {
+    auto sp = stack - 1;
+    #if VM_JIT_MODE
+        jit_entry(*this, sp);
     #else
-        // Keep exception handling code in seperate function from hot loop in EvalProgramInner()
-        // just in case it affects the compiler.
-        #ifdef USE_EXCEPTION_HANDLING
-        try
-        #endif
-        {
-            EvalProgramInner(sp);
-        }
-        #ifdef USE_EXCEPTION_HANDLING
-        catch (string &s) {
-            if (s != "end-eval") THROW_OR_ABORT(s);
-        }
-        #endif
+        compiled_entry_point(*this, sp);
     #endif
 }
 
@@ -686,48 +503,6 @@ string &VM::TraceStream() {
   return sd;
 }
 
-void VM::EvalProgramInner(StackPtr sp) {
-    #ifndef VM_COMPILED_CODE_MODE
-    for (;;) {
-        #ifndef NDEBUG
-            if (trace != TraceMode::OFF) {
-                auto &sd = TraceStream();
-                DisAsmIns(nfr, sd, ip, codestart, typetable, bcf);
-                append(sd, " [", sp - stack + 1, "] -");
-                #if RTT_ENABLED
-                #if DELETE_DELAY
-                    append(sd, " ", (size_t)Top(sp).any());
-                #endif
-                for (int i = 0; i < 3 && sp - i >= stack; i++) {
-                    auto x = TopM(sp, i);
-                    sd += ' ';
-                    x.ToStringBase(*this, sd, x.type, debugpp);
-                }
-                #endif
-                if (trace == TraceMode::TAIL) sd += '\n'; else LOG_PROGRAM(sd);
-            }
-            //currentline = LookupLine(ip).line;
-        #endif
-        #ifdef VM_PROFILER
-            auto code_idx = size_t(ip - codestart);
-            assert(code_idx < codelen);
-            byteprofilecounts[code_idx]++;
-            vm_count_ins++;
-        #endif
-        auto op = *ip++;
-        #if MEASURE_INSTRUCTION_COMBINATIONS
-            instruction_combinations[{ last_instruction_opc, op }]++;
-            last_instruction_opc = op;
-        #endif
-        #ifndef NDEBUG
-            if (op < 0 || op >= IL_MAX_OPS)
-                SeriousError(cat("bytecode format problem: ", op));
-        #endif
-        sp = f_ins_pointers[op](*this, sp);
-    }
-    #endif
-}
-
 string VM::ProperTypeName(const TypeInfo &ti) {
     switch (ti.t) {
         case V_STRUCT_R:
@@ -738,12 +513,6 @@ string VM::ProperTypeName(const TypeInfo &ti) {
         case V_INT: return ti.enumidx >= 0 ? string(EnumName(ti.enumidx)) : "int";
         default: return string(BaseTypeName(ti.t));
     }
-}
-
-void VM::BCallProf() {
-    #ifdef VM_PROFILER
-        vm_count_bcalls++;
-    #endif
 }
 
 void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {
@@ -860,7 +629,7 @@ void VM::StartWorkers(StackPtr &sp, iint numthreads) {
             }
             #ifdef USE_EXCEPTION_HANDLING
             catch (string &s) {
-                if (s != "end-eval") err = s;
+                err = s;
             }
             #endif
             delete vma;
@@ -926,8 +695,6 @@ LObject *VM::WorkerRead(StackPtr &sp, type_elem_t tti) {
 
 // Make VM ops available as C functions for linking purposes:
 
-#ifdef VM_COMPILED_CODE_MODE
-
 extern "C" {
 
 using namespace lobster;
@@ -961,8 +728,7 @@ void CVM_Trace(VM *vm, StackPtr sp, string op) {
     #define CHECKJ(N)
 #endif
 
-block_base_t CVM_GetNextCallTarget(VM *vm) {
-    //LOG_ERROR("GNCT: ", (size_t)vm->next_call_target);
+fun_base_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
 
@@ -980,9 +746,9 @@ LVALOPNAMES
 ILBASENAMES
 #undef F
 #define F(N, A) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), block_base_t fcont) { \
+    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
         /*LOG_ERROR("INS: ", #N, A, ", ", (size_t)vm, ", ", (size_t)sp, ", ", _a, ", ", (size_t)fcont);*/ \
-        CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
+        CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
 ILCALLNAMES
 #undef F
 #define F(N, A) \
@@ -994,7 +760,7 @@ ILJUMPNAMES1
 ILJUMPNAMES2
 #undef F
 
-#ifdef VM_JIT_MODE
+#if VM_JIT_MODE
 
 #if LOBSTER_ENGINE
 extern "C" StackPtr GLFrame(StackPtr sp, VM & vm);
@@ -1015,4 +781,3 @@ const void *vm_ops_jit_table[] = {
 
 }  // extern "C"
 
-#endif  // VM_COMPILED_CODE_MODE

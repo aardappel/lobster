@@ -84,7 +84,7 @@ table BytecodeFile {
 
     vtables:[int];
 
-    nativemode:bool;
+    nativemode:bool = true (deprecated);
 }
 
 root_type BytecodeFile;

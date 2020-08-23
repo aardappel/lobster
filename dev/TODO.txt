@@ -1,38 +1,38 @@
+- natgen refactor
+  - rework function calling:
+    - make all returns go to one return point, so we can emit the epilogue in one place.
+    - split mega FUN_START into many small opcodes.
+    - remove all the variable saving code: keep vars on the stack when not a free var.
+    - remove stackframes
+  - A way to have temps/locals as C/C++ locals.
+    - not having temps on the stack also helps not having to remove them correctly.
+  - can finally remove exceptions? could instead execute a return from -3 or whatever.
+    - the big challenge is doing that for errors.
+  - Now that all bytecode goes to native gen, make bytecode more specific to it.
+  - threading appears broken (sequential?)
+  - create a new tracemode?
+  - remove next_call_target
+  - test/enable
+    - --cpp mode for mac/ios/android
+  - look at disasm for opcodes that generate long sequences and de-inline them.
+  - benchmark!
+  - reduce use of ElemType.
+  - Can we somehow call builtins directly, or at least do something special for push and
+    other very common once so they don't pay an indirection cost / can be inlined?
+  - Wasm
+    - Should really move away from a Makefile for Wasm, there's been plenty of cases where bugs
+      appeared because certain files weren't recompiled.
+    - Graphical code with asyncify does not work with the direct to Wasm backend!
+      - Some memory corruption that doesn't seem to be possible to find with Asan or SAFE_HEAP.
+    - DOES work in C++ mode, so subtle bug in Wasm output? Though unit test runs fine,
+      so may be some unintended interplay with asyncify.
+    - With asyncify, still instruments functions it shouldn't, mainly in the SDL.
+      Try with --pass-arg=asyncify-verbose
+      https://github.com/WebAssembly/binaryen/commit/f632c1fd62a588c83237d2d7018745c3f20eff66
+
 - stefandd: DLL builtins loading.
   - make sure to put in checks for debug/compiled/32-bit mode, and maybe some other compatibility checks
   - maybe use __TIMESTAMP__ of vmdata.h as version?
-
-- natgen refactor
-  - can finally remove exceptions? could instead execute a return from -3 or whatever.
-    - should re-test how much it affects the interpreter.. or first create a JIT.
-  - look at disasm for opcodes that generate long sequences and de-inline them.
-  - benchmark!
-  - Should really move away from a Makefile for Wasm, there's been plenty of cases where bugs
-    appeared because certain files weren't recompiled.
-  - Graphical code with asyncify does not work with the direct to Wasm backend!
-    - Some memory corruption that doesn't seem to be possible to find with Asan or SAFE_HEAP.
-    - DOES work in C++ mode, so subtle bug in Wasm output? Though unit test runs fine,
-      so may be some unintended interplay with asyncify.
-  - With asyncify, still instruments functions it shouldn't, mainly in the SDL.
-    Try with --pass-arg=asyncify-verbose
-    https://github.com/WebAssembly/binaryen/commit/f632c1fd62a588c83237d2d7018745c3f20eff66
-
-- Should consider a simple JIT, as a way to run in between the interpreter and the C++ mode.
-  As ops get lighter weight, the gain compared to the interpreter will get bigger.
-  It will still be a lot slower than the C++ mode though, since it lacks all the inlining,
-  unless we do that manually for the most frequent ops.
-  - Though first finish reworking the C++ mode.
-  - If we have a simple JIT, we could retire the interpreter entirely.
-    There's a lot of differences between how the interpreter and the backends work that would
-    be great to clean up.
-    - Also removes the pressure to not split up bytecodes even further.
-    - And could make the bytecode more high-level, with actual control structures instead of
-      jumps, which would simplify the Wasm backend and make C++ backend more readable (though
-      complicate the JIT slightly).
-    - We may already have to require compilation for Wasm, and we could do the same for iOS.
-    - Desktop can use the JIT.
-    - Android could use JIT, but maybe simpler to only have x86 JIT.
-    - Future macOS will need arm JIT if its to remain a "development" platform.
 
 - stefandd: multiple assign doesn't work on fields.
 
@@ -271,9 +271,6 @@
     and somehow make it output to a JS provided canvas.
   - Bundle a simple JS editor and a selector for many example sources.
 
-- See if a tail-call based interpreter would be a speed-up:
-  https://github.com/soundandform/m3
-
 - stack & variable access is becoming a bottleneck in native backends, should think of a
   way such that they can easily be swapped out for native locals when possible.
 
@@ -304,57 +301,6 @@
   - for programs that don't contain any combinatorial patterns, this will allow everything
     to be inline.
   - need to see what consequences this has for making the lifetimes of variables longer.
-
-- speed plan:
-  - could try the "inline all" feature above.. though traditional inlining is now better,
-    could first see if there's any unreasonable non-inlined functions left.
-    Important since any further optimisations depend on it.
-    Then work on doing better high level optimisation of the remainder.
-  - For C++ mode speed, probably #1 thing has to be to first get rid of the trampoline.
-    This can maybe be done if we explicitly emit RETURN_IF ops after function calls that
-    can have a return pass thru them, so we can make unwinding entirely under control of
-    the language. Ideally the amount of such ops should be few, since after inlining most
-    returns will be local.
-    Once we have this, we can further unravel function calling in favor of C++ mode.
-    - actually, on some benchmarks it spends as little as 3% in the tramoline. Though, getting
-      rid of it will make other code "flatter" allowing more intra-function optimisation.
-  - some of the vector accesors like the various At functions are not being inlined?
-  - need to make very common builtins also inlinable, like push() etc.
-  - then for further speed, if the interpreter loop overhead on VC is only 15% or so, then
-    doubling instructions is only a further 15% cost, which can be offsets by the instructions
-    being more specialized. Then C++ and Wasm modes can get much faster with inling at
-    the instruction level.
-  - and for more speed, analyze functions that are not participating in being free vars etc,
-    and assign them to "locals" to really speed up Wasm/C++ modes.
-    - This may need to first change how we deal with variables on the stack in the first place.
-- the compiled C++ code under VS is really dumb: keeps loading things over the VM pointer.
-  for this to inline nicely, we have to pass important state as arguments:
-  - NOTE: sp is now an arg, vars is now inline in VM, taking care of the biggest gains.
-  - The second biggest gains after "sp" would come from "ip", but again there would need to be
-    passed as return value.
-    Actually, not sure this is a gain at all, since C++ compiled code doesn't access it on every
-    instruction.
-  - This is also made worse by VS not having an efficient way to return
-    2 values: std::pair becomes a reference argument which is again inefficient (gcc and clang
-    can instead return 2 regiters)
-  - This is probably better to re-evaluate after making function calling an local control flow
-    not use the trampoline, which will make a lot of these instances of passing on state simpler
-    and more effective.
-- speed test:
-  - 10% calls (3 in, 7 out)
-  - 5% alloc
-  - 2% decdeletenow
-  - 2% refequal
-  - 2% new ??
-  - 2% trampoline
-  - 2% in_range
-  - 2% sqrt
-  - 1% push
-  - about 60% in blocks.
-- floodfill:
-  - 13.5% function calling (exit more expensive than entry)
-  - 6% push
-  Almost all the rest in block functions!
 
 - Replacing the use for Terminal() in the type checker by a NORETURN type would simplify the
   code and probably allow for a larger variety of code structures utilizing this.
@@ -774,50 +720,6 @@
   - Private functions and data types do not appear to be deleted at the end of an include
     currently, see EndOfInclude.
     - what if they are overloads?
-
-- things that would help making --to-cpp faster:
-  - current lowest hanging fruit:
-    - function calling (by far)
-  - a central problem is that things could be improved by splitting e.g. function calling up
-    in many small instructions, so not all calls have to pay the price for super generic
-    function call mechanism, but many instructions makes the VM slower.
-    So we could probably make a lot more progress if we could first default to an execution
-    method that does not have as much instruction overhead.
-    Options:
-    - A simple jit would not be hard since most are calls, but would miss inlining. Now
-      we'll have extra work to do to special purpose compile things to the JIT that so far
-      have been simple instructions.
-      - certainly a super simple JIT would not speed up much since there is currently a small gap
-        between VM and C++ mode (which does inlining), so a simple JIT would probably gets on
-        the order of 10-15% speedup. We'd first need to get the rest of the code more efficient
-        before this becomes a bigger speedup.
-      - Maybe LLVM as jit can do inlining assuming I have the rest of the code also available
-        as .ll, but that becomes almost as unwieldy as going thru C++.
-      - Actually a JIT is a great idea for another reason: it would allow us to aggressively
-        generate more instructions without losing speed. It's objective would not be to be much
-        faster than the current intepreter, but to take the place of the interpreter on most
-        platforms such that we can transition to emit more instructions cheaply. The interpreter
-        would be retained for.. debugging purposes, but would be understood to be slow.
-        On non-JIT platforms like iOS it would mean you HAVE to ship using the C++ backend,
-        since shipping with the interpreter generally is not an option anymore. So be it.
-      - A jit could be really simple, even x86 only, since if iOS is going to require via C++,
-        we could do that for all ARM platforms. Desktop is where you develop and where JIT is
-        likely fast enough, so it is a good match.
-      - If we used libtcc, could even share the code with the C++ backend!
-        They could become one and the same, once we have done the work of exposing the VM to C.
-        libtcc would become the default way of running in release on desktop.
-        Debug would still use the interpreter.
-        Bonus: expose libtcc as a builtin function to compile bits of C at runtime to
-        Lobster code!
-    - Always invoking C++ means easy inlining and easy instruction definition, but complicates
-      things / slows things down in always needing to invoke a C++ toolchain.
-      - Also easy to profile and debug compared to JIT.
-    - Just keep moving forward with an unwieldy instruction set, since it is the simplest.
-  - find places where the trampoline can be avoided, especially for for() and its body.
-    - should be easy when return X is followed by X:
-    - with the switch based version could do direct jumps, but switch trashes the branch cache?
-    - experiment with real gotos?
-  - reduce use of ElemType.
 
 - The way WASM deals with signed/unsigned is correct, everything signed, with special ops
   (not types) for doing unsigned semantics on signed bits.
@@ -1864,17 +1766,6 @@ CURRENT SOLUTION FROM TRADEOFS:
   include "gui.lobster" as gui. If you leave out the as-part, you instead get it dumped in the
   current namespace.
   Hmm.. defaulting to namespaced as declared is probably better, "as" could be optional renaming.
-
-- try to measure the cost of removing exception handling from lobster: turning exceptions of will
-  have a gain that my compensate for the branch not taken needed for explicit error handling.
-  - Both VS and gcc appears to be 1% faster with exceptions off.
-  - adding an extra termination conditional in EvalProgram is 7% slower in VS, and 0.5% faster
-    with gcc (manages to infer no exception can be thrown?)
-    Combining the conditional with no-exceptions doesn't seem to make much of a difference for
-    either compiler.
-  - Would need to revert to a switch to make this exit cheaper, but switch is also about 7%
-    slower in VS than trampoline, with or without exceptions.
-  Conclusion: stick with exceptions (and trampoline) for now.
 
 - you can hit multiple overlapping hit boxes with gl_hit(). problem is, you render back to front, but want to hit test front to back...
     - if you simply clear that a hit happened this frame when its tested, you get that order wrong

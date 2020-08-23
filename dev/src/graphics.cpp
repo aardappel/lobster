@@ -19,8 +19,6 @@
 #include "lobster/glinterface.h"
 #include "lobster/sdlinterface.h"
 
-#include "lobster/engine.h"
-
 using namespace lobster;
 
 Primitive polymode = PRIM_FAN;
@@ -169,6 +167,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?", "S?",
         currentshader = colorshader;
         LOG_INFO("graphics fully initialized...");
         graphics_initialized = true;
+        atexit(GraphicsShutDown);
         return Value();
     });
 
