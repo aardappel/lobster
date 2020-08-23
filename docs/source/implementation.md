@@ -12,7 +12,7 @@ Building Lobster
 
 Lobster uses recent C++17 features, so will need
 Visual Studio 2019 (the free community edition will do), Xcode 10.x, or a recent
-GCC (7+) / Clang (6+) to be compiled.
+GCC (9+) / Clang (9+) to be compiled.
 
 Lobster uses OpenGL, SDL 2.x and FreeType, these are included in the repo, so should compile
 out of the box with no further external dependencies.
@@ -20,8 +20,13 @@ out of the box with no further external dependencies.
 All source code and other files related to building Lobster for all platforms
 sit in the `dev` folder.
 
-Lobster can be built for 32 or 64-bit platforms. This does not affect Lobster
+Lobster should be built for 64-bit platforms where possible. It will still also
+build on 32-bit Wasm & Android. This does not affect Lobster
 data type sizes, e.g. `int` and `float` types are 64-bit on all platforms.
+
+Lobster can be built with a JIT (on desktop platforms, convenient during
+development, as it can run Lobster source "instantly"), or by compiling to C++
+(possible on all platforms, required on non-desktop), see below.
 
 ### Windows
 
@@ -51,6 +56,8 @@ a pak file (see [command line](command_line_usage.html)), then make a copy
 of the bundle, and stick the bytecode file (+data) in the Resource location, and
 you should have something that can be distributed to users. For iOS you can
 compile using the OS X exe, then run that same pak file using the iOS exe.
+
+For iOS be sure to read how to compile to C++ below.
 
 ### Linux
 
@@ -85,6 +92,7 @@ Using the desktop lobster exe, build your desired Lobster program using the `--p
 option, such that all assets end up in a single file (see below for more information).
 Place the result in `dev/android-project/app/src/main/assets/default.lpak` so
 it will automatically be picked up by the build process and added to the APK.
+Also compile your Lobster code to C++ as described below.
 
 You should now be able to just press run. Wait for the build, and see it launch
 on an attached Android device. Note that Lobster requires a device that supports
@@ -120,7 +128,7 @@ Before you build, gather your lobster distribution files (see below) and place
 them in `dev/emscripten/assets`. They will be automatically picked up by the
 build process this way.
 
-The Wasm implementation does not support the interpreter, so you should first
+The Wasm implementation does not support the JIT, so you should first
 compile your `.lobster` code to C++ or directly to Wasm, as described in the
 sections "Compiling Lobster code to C++" or "Compiling Lobster code to WebAssembly"
 below.
@@ -174,9 +182,10 @@ an assets directory also.
 Compiling Lobster code to C++
 -----------------------------
 
-Rather than directly executing or compiling to bytecode, Lobster can also be
+Rather than directly executing with a JIT, Lobster can also be
 translated to C++, for a further speed boost. This is useful when releasing a
 shipping build to customers, but hopefully not necessary during development.
+It is necessary for building for mobile/web platforms.
 
 With the `--cpp` option on the command-line, the compiler will generate
 `dev/compiled_lobster/src/compiled_lobster.cpp` (currently, you MUST compile
@@ -190,13 +199,12 @@ you’ll end up with an executable that runs only that specific program.
 On Windows, there are project files in `dev/compiled_lobster` that will
 automatically pick up the compiled lobster code.
 
-On Linux, create a `build` directory anywhere, for example in
-`dev/compiled_lobster/build`, go there, then
-`cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release ../..` will automatically
+On Linux, building in `dev` like above, then instead
+`cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release .` will automatically
 substitute the compiled lobster main program. Build with `make -j8` or similar.
 
-For Emscripten, there's a `cpp` make target that works similar to
-the WebAssembly mode described below.
+For Emscripten, there's a `cpp` make target (which is the default) that works
+similar to the WebAssembly mode described below.
 
 
 Compiling Lobster code to WebAssembly
@@ -349,21 +357,14 @@ This should still be fairly easy, as Lobster was made to be fairly modular, but
 is a bit more work than above. I will strive to make this path easier in the
 future.
 
-First step would be to strip Lobster down from external dependencies. As
-mentioned above, if you remove the graphics related `.cpp` builtin files
-(`graphics.cpp`, `font.cpp` and others) from the lobster project (again, see
-`PopulateNativeRegistry()` for a list of what it is currently using), you should
-then also be able to remove all source code files that are prefixed with `gl`,
-`sdl`, `ft`, and `stb`, and be left with a version of Lobster that has no
-external dependencies.
+With the CMake project, this is easy, as all `LOBSTER_ENGINE=OFF` will get you
+a Lobster build without the built-in engine, the result you can add to your
+own projects. You'll likely want to replace `main.cpp` with something that
+runs Lobster from your own code.
 
-You should be able to stick the remaining code somewhere in your project and
-have it compile. I might make this easier in the future by making this part of
-the code a separate library.
-
-For now, look at `main.cpp` for an example of how to call scripts from your code
-base (replace `main()` with something else). You'll want to add your own
-functionality as native functions as described in the previous section.
+Similarly, in the visual studio project, there is the `language` project,
+which is what you'd want to include in your own projects, and the `engine`
+project which you are replacing. Finally there's again `main.cpp` to adapt.
 
 Some of Lobster relies on it's own math library (`geom.h`), but it should be
 very easy to make convenient functions to convert Lobster vectors into your own
