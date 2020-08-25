@@ -19,37 +19,6 @@
 
 namespace lobster {
 
-struct NativeGenerator {
-    virtual ~NativeGenerator() {}
-
-    virtual void FileStart() = 0;
-    virtual void DeclareFun(int id) = 0;
-    virtual void BeforeBlocks(int start_id, string_view bytecode_buffer) = 0;
-    virtual void FunStart(const bytecode::Function *f, int id) = 0;
-    virtual void InstStart() = 0;
-    virtual void EmitJump(int id) = 0;
-    virtual void EmitConditionalJump(int opc, int id, int df) = 0;
-    virtual void EmitOperands(const char *base, const int *args, int arity, bool is_vararg) = 0;
-    virtual void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) = 0;
-    virtual void EmitCall(int id) = 0;
-    virtual void EmitCallIndirect() = 0;
-    virtual void EmitCallIndirectNull() = 0;
-    virtual void EmitExternCall(string_view name) = 0;
-    virtual void EmitJumpTable(const int *args) = 0;
-    virtual void EmitHint(NativeHint h, int id) = 0;
-    virtual void EmitReturn() = 0;
-    virtual void InstEnd() = 0;
-    virtual void Exit() = 0;
-    virtual void FunEnd() = 0;
-    virtual void CodeEnd() = 0;
-    virtual void VTables(vector<int> &vtables) = 0;
-    virtual void FileEnd(int start_id, string_view bytecode_buffer) = 0;
-    virtual void Annotate(string_view comment) = 0;
-};
-
-extern string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
-                       string_view bytecode_buffer);
-
 extern string ToCPP(NativeRegistry &natreg, string &sd,
                     string_view bytecode_buffer, bool cpp);
 extern string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest,
@@ -57,6 +26,48 @@ extern string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest,
 
 extern bool RunC(const char *source, string &error, const void **imports,
                  const char **export_names, function<bool (void **)> runf);
+
+inline int ParseOpAndGetArity(int opc, const int *&ip) {
+    auto arity = ILArity()[opc];
+    auto ips = ip;
+    switch(opc) {
+        default: {
+            assert(arity != ILUNKNOWNARITY);
+            ip += arity;
+            break;
+        }
+        case IL_JUMP_TABLE: {
+            auto mini = *ip++;
+            auto maxi = *ip++;
+            auto n = maxi - mini + 2;
+            ip += n;
+            arity = int(ip - ips);
+            break;
+        }
+        case IL_FUNSTART: {
+            ip++;  // function idx.
+            int n = *ip++;
+            ip += n;
+            int m = *ip++;
+            ip += m;
+            ip++;  // keepvar
+            int o = *ip++;  // ownedvar
+            ip += o;
+            arity = int(ip - ips);
+            break;
+        }
+    }
+    return arity;
+}
+
+inline auto CreateFunctionLookUp(const bytecode::BytecodeFile *bcf) {
+    map<int, const bytecode::Function *> fl;
+    for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
+        auto f = bcf->functions()->Get(i);
+        fl[f->bytecodestart()] = f;
+    }
+    return fl;
+}
 
 }  // namespace lobster;
 

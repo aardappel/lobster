@@ -18,14 +18,10 @@ is stand-alone (does not need any further information from the front-end
 or source code) and can be interpreted by the VM directly, or passed to
 any of the native code backends, currently C++ or WebAssembly.
 
-The backend is layered in these 3 files:
+The backend is composed of these 2 files:
 
-* [`tonative.cpp`](https://github.com/aardappel/lobster/blob/master/dev/src/tonative.cpp)
-  is shared between all native code backends. It parses the
-  Lobster bytecode and tracks information needed by any backend, then calls
-  into the specific backend through an interface defined in `tonative.h`.
 * [`towasm.cpp`](https://github.com/aardappel/lobster/blob/master/dev/src/towasm.cpp)
-  implements that interface, and does all the Lobster-specific
+  It parses the Lobster bytecode does all the Lobster-specific
   work of generating wasm code.
 * [`wasm_binary_writer.h`](https://github.com/aardappel/lobster/blob/master/dev/src/lobster/wasm_binary_writer.h)
   is a utility class that does all the heavy lifting
@@ -183,10 +179,6 @@ can generate.
 A more complex example using the binary writer is the Lobster generator
 in [`towasm.cpp`](https://github.com/aardappel/lobster/blob/master/dev/src/towasm.cpp),
 which follows the same pattern as the above simple example.
-Because it is being driven by calls from
-[`tonative.cpp`](https://github.com/aardappel/lobster/blob/master/dev/src/tonative.cpp)
-it is in separate functions, but these functions are in the order of being
-called, so should be easy to follow.
 
 In terms of imports, it imports one function for each of Lobsters bytecodes,
 which means a Lobster bytecode can be directly mapped to a function id.

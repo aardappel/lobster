@@ -22,9 +22,6 @@
 		332249FA22482B13009BDE0E /* towasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F522482B13009BDE0E /* towasm.cpp */; };
 		332249FB22482B13009BDE0E /* towasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F522482B13009BDE0E /* towasm.cpp */; };
 		332249FC22482B13009BDE0E /* towasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F522482B13009BDE0E /* towasm.cpp */; };
-		332249FD22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
-		332249FE22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
-		332249FF22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
 		33224A0422504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
 		33224A0522504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
 		33224A0622504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
@@ -897,7 +894,6 @@
 		331D9B66148BFD0300F1069A /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../lib/libfreetype.a; sourceTree = "<group>"; };
 		332249F422482B13009BDE0E /* tocpp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tocpp.cpp; sourceTree = "<group>"; };
 		332249F522482B13009BDE0E /* towasm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = towasm.cpp; sourceTree = "<group>"; };
-		332249F622482B13009BDE0E /* tonative.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tonative.cpp; sourceTree = "<group>"; };
 		33224A0322504341009BDE0E /* octree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = octree.cpp; sourceTree = "<group>"; };
 		3327344424F1C6DA00599D4E /* tccbind.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tccbind.cpp; sourceTree = "<group>"; };
 		3327344824F1C72700599D4E /* libtcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libtcc.c; path = ../../../external/libtcc/libtcc.c; sourceTree = "<group>"; };
@@ -1765,7 +1761,6 @@
 			children = (
 				3327344424F1C6DA00599D4E /* tccbind.cpp */,
 				332249F422482B13009BDE0E /* tocpp.cpp */,
-				332249F622482B13009BDE0E /* tonative.cpp */,
 				332249F522482B13009BDE0E /* towasm.cpp */,
 				33FDF160220A59C400D7B010 /* disasm.cpp */,
 				3342B79E1B2B4CE500FA2F0B /* main.cpp */,
@@ -3124,7 +3119,6 @@
 				33D162C81BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
 				33FDF150220A599400D7B010 /* imgui.cpp in Sources */,
 				33878CC81F7B201D007BB196 /* dynamic_mod.c in Sources */,
-				332249FF22482B13009BDE0E /* tonative.cpp in Sources */,
 				3375EB1020DDBD6000EBAB26 /* engine.cpp in Sources */,
 				33FDF166220A59C400D7B010 /* disasm.cpp in Sources */,
 				333FE1EA1D53E2B20064979E /* cubegen.cpp in Sources */,
@@ -3394,7 +3388,6 @@
 				33D162C71BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
 				33FDF14F220A599400D7B010 /* imgui.cpp in Sources */,
 				33878CC71F7B201D007BB196 /* dynamic_mod.c in Sources */,
-				332249FE22482B13009BDE0E /* tonative.cpp in Sources */,
 				3375EB0F20DDBD6000EBAB26 /* engine.cpp in Sources */,
 				33FDF165220A59C400D7B010 /* disasm.cpp in Sources */,
 				333FE1E91D53E2B10064979E /* cubegen.cpp in Sources */,
@@ -3427,7 +3420,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				332249FD22482B13009BDE0E /* tonative.cpp in Sources */,
 				33D1621B1BAB9A2200BAD84D /* SDL_cocoavideo.m in Sources */,
 				33D1611F1BAB9A2200BAD84D /* SDL_render_gl.c in Sources */,
 				33D162451BAB9A2200BAD84D /* SDL_nullvideo.c in Sources */,
