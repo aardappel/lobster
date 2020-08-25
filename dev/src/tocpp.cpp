@@ -192,7 +192,9 @@ class CPPGenerator : public NativeGenerator {
     void EmitHint(NativeHint h, int id) override {
         switch (h) {
             case NH_BLOCK_START:
-                append(sd, "block", id, ":");
+                // FIXME: added ";" because blocks may end up just before "}" at the end of a
+                // switch, and generate warnings/errors. Ideally not generate this block at all.
+                append(sd, "block", id, ":;");
                 break;
             case NH_JUMPTABLE_CASE_START: {
                 assert(!jumptables.empty());
