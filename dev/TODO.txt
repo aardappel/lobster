@@ -13,22 +13,13 @@
   - create a new tracemode?
   - remove next_call_target
   - test/enable
-    - --cpp mode for mac/ios/android
+    - --cpp mode for mac/ios
   - look at disasm for opcodes that generate long sequences and de-inline them.
   - benchmark!
   - reduce use of ElemType.
   - Can we somehow call builtins directly, or at least do something special for push and
     other very common once so they don't pay an indirection cost / can be inlined?
-  - Wasm
-    - Should really move away from a Makefile for Wasm, there's been plenty of cases where bugs
-      appeared because certain files weren't recompiled.
-    - Graphical code with asyncify does not work with the direct to Wasm backend!
-      - Some memory corruption that doesn't seem to be possible to find with Asan or SAFE_HEAP.
-    - DOES work in C++ mode, so subtle bug in Wasm output? Though unit test runs fine,
-      so may be some unintended interplay with asyncify.
-    - With asyncify, still instruments functions it shouldn't, mainly in the SDL.
-      Try with --pass-arg=asyncify-verbose
-      https://github.com/WebAssembly/binaryen/commit/f632c1fd62a588c83237d2d7018745c3f20eff66
+
 
 - stefandd: DLL builtins loading.
   - make sure to put in checks for debug/compiled/32-bit mode, and maybe some other compatibility checks
@@ -265,11 +256,6 @@
     - that is actually not even that necessary, mostly useful if you have many projects
       that share these dependencies.
 - Upgrade CI to more recent compilers, to support e.g. to_chars.
-
-- Built simple Web-IDE:
-  - Build Lobster with Wasm like currently, except make it take a text buffer from JS
-    and somehow make it output to a JS provided canvas.
-  - Bundle a simple JS editor and a selector for many example sources.
 
 - stack & variable access is becoming a bottleneck in native backends, should think of a
   way such that they can easily be swapped out for native locals when possible.
@@ -725,6 +711,12 @@
   (not types) for doing unsigned semantics on signed bits.
   We should adopt this for Lobster by providing the exact same unsigned ops as special functions
   (e.g. udiv, ucmp or ulessthan etc.)
+
+- Should really move away from a Makefile for Wasm, there's been plenty of cases where bugs
+  appeared because certain files weren't recompiled.
+- Wasm: With asyncify, still instruments functions it shouldn't, mainly in the SDL.
+  Try with --pass-arg=asyncify-verbose
+  https://github.com/WebAssembly/binaryen/commit/f632c1fd62a588c83237d2d7018745c3f20eff66
 
 - Make includes explicitly depend on eachother.
 

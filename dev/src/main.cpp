@@ -30,7 +30,7 @@
 
 using namespace lobster;
 
-void unit_test_all(bool full) {
+void unit_test_all() {
     // We don't really have unit tests, but let's collect some that always
     // run in debug mode:
     #ifdef NDEBUG
@@ -38,7 +38,6 @@ void unit_test_all(bool full) {
     #endif
     unit_test_tools();
     unit_test_unicode();
-    unit_test_wasm(full);
 }
 
 int main(int argc, char* argv[]) {
@@ -65,21 +64,18 @@ int main(int argc, char* argv[]) {
         bool dump_builtins = false;
         bool dump_names = false;
         bool compile_only = false;
-        bool full_unit_test = false;
         int runtime_checks = RUNTIME_ASSERT;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         const char *fn = nullptr;
         vector<string> program_args;
         auto trace = TraceMode::OFF;
-        enum { BACKEND_JIT, BACKEND_CPP, BACKEND_WASM };
-        auto backend = BACKEND_JIT;
+        auto jit_mode = true;
         string helptext = "\nUsage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
             "--pak                  Compile to pakfile, don't run.\n"
             "--cpp                  Compile to C++ code, don't run (see implementation.md!).\n"
-            "--wasm                 Compile to WASM code, don't run (see implementation.md!).\n"
             "--parsedump            Also dump parse tree.\n"
             "--disasm               Also dump bytecode disassembly.\n"
             "--verbose              Output additional informational text.\n"
@@ -103,8 +99,7 @@ int main(int argc, char* argv[]) {
                 string a = argv[arg];
                 if      (a == "--wait") { wait = true; }
                 else if (a == "--pak") { lpak = default_lpak; }
-                else if (a == "--cpp") { backend = BACKEND_CPP; }
-                else if (a == "--wasm") { backend = BACKEND_WASM; }
+                else if (a == "--cpp") { jit_mode = false; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--disasm") { disasm = true; }
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
@@ -122,7 +117,6 @@ int main(int argc, char* argv[]) {
                 #endif
                 else if (a == "--trace") { trace = TraceMode::ON; }
                 else if (a == "--trace-tail") { trace = TraceMode::TAIL; }
-                else if (a == "--full-unit-test") { full_unit_test = true; }
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
                 else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
@@ -134,7 +128,7 @@ int main(int argc, char* argv[]) {
         }
         for (; arg < argc; arg++) { program_args.push_back(argv[arg]); }
 
-        unit_test_all(full_unit_test);
+        unit_test_all();
 
         #ifdef __IOS__
             //fn = "totslike.lobster";  // FIXME: temp solution
@@ -186,9 +180,9 @@ int main(int argc, char* argv[]) {
             DisAsm(nfr, sd, bytecode_buffer);
             WriteFile("disasm.txt", false, sd);
         }
-        if (backend == BACKEND_JIT) {
+        if (jit_mode) {
             RunTCC(nfr, bytecode_buffer, fn ? fn : "", std::move(program_args), trace, compile_only);
-        } else if (backend == BACKEND_CPP) {
+        } else {
             string sd;
             auto err = ToCPP(nfr, sd, bytecode_buffer, true);
             if (!err.empty()) THROW_OR_ABORT(err);
@@ -201,22 +195,6 @@ int main(int argc, char* argv[]) {
             } else {
                 THROW_OR_ABORT(cat("cannot write: ", out));
             }
-        } else if (backend == BACKEND_WASM) {
-            vector<uint8_t> buf;
-            auto err = ToWASM(nfr, buf, bytecode_buffer);
-            if (!err.empty()) THROW_OR_ABORT(err);
-            // FIXME: make less hard-coded.
-            auto out = "dev/emscripten/compiled_lobster_wasm.o";
-            FILE *f = fopen((MainDir() + out).c_str(), "wb");
-            if (f) {
-                fwrite(buf.data(), buf.size(), 1, f);
-                fclose(f);
-            }
-            else {
-                THROW_OR_ABORT(cat("cannot write: ", out));
-            }
-        } else {
-            assert(false);
         }
     }
     #ifdef USE_EXCEPTION_HANDLING

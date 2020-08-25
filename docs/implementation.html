@@ -21,7 +21,7 @@
 <header>
 <h1 class="title">The Lobster C++ Implementation</h1>
 </header>
-<p>This document gives hints on how to work with the Lobster C++ code in terms of building, extending, reusing, and compiling Lobster code to C++ or WASM.</p>
+<p>This document gives hints on how to work with the Lobster C++ code in terms of building, extending, reusing, and compiling Lobster code to C++.</p>
 <p>Lobster has been released under the Apache 2 open source license.</p>
 <h2 id="building-lobster">Building Lobster</h2>
 <p>Lobster uses recent C++17 features, so will need Visual Studio 2019 (the free community edition will do), Xcode 10.x, or a recent GCC (9+) / Clang (9+) to be compiled.</p>
@@ -60,8 +60,8 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <h3 id="webassembly-emscripten">WebAssembly / Emscripten</h3>
 <p>You need the <a href="https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html">emscripten toolchain</a> installed, as well as GNU make (on windows that means installing <a href="http://gnuwin32.sourceforge.net/packages/make.htm">this</a>).</p>
 <p>Before you build, gather your lobster distribution files (see below) and place them in <code>dev/emscripten/assets</code>. They will be automatically picked up by the build process this way.</p>
-<p>The Wasm implementation does not support the JIT, so you should first compile your <code>.lobster</code> code to C++ or directly to Wasm, as described in the sections “Compiling Lobster code to C++” or “Compiling Lobster code to WebAssembly” below.</p>
-<p>To build, go to <code>dev/emscripten</code>, and type <code>make -j8</code> (if using the C++ output) or <code>make -j8 wasm</code> (if using the direct Wasm output). This should produce a lobster.[wasm|js|html|data] in the same directory (the latter containing whatever you placed in <code>assets</code>).</p>
+<p>The Wasm implementation does not support the JIT, so you should first compile your <code>.lobster</code> code to C++, as described in the section “Compiling Lobster code to C++” below.</p>
+<p>To build, go to <code>dev/emscripten</code>, and type <code>make -j8</code>. This should produce a lobster.[wasm|js|html|data] in the same directory (the latter containing whatever you placed in <code>assets</code>).</p>
 <p>You can now run it with <code>emrun --browser chrome lobster.html --verbose</code> or if that doesn’t work, <code>emrun --no_browser lobster.html --verbose</code> and manually navigate to <code>http://localhost:6931/lobster.html?--verbose</code> in your browser. Note that just loading up the html in your browser directly may not work because of security restrictions. Alternatively place all the generated files on a webserver, and load from there.</p>
 <h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
 <p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
@@ -82,14 +82,6 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <p>On Windows, there are project files in <code>dev/compiled_lobster</code> that will automatically pick up the compiled lobster code.</p>
 <p>On Linux, building in <code>dev</code> like above, then instead <code>cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release .</code> will automatically substitute the compiled lobster main program. Build with <code>make -j8</code> or similar.</p>
 <p>For Emscripten, there’s a <code>cpp</code> make target (which is the default) that works similar to the WebAssembly mode described below.</p>
-<h2 id="compiling-lobster-code-to-webassembly">Compiling Lobster code to WebAssembly</h2>
-<p>This mode <em>generates wasm code from lobster bytecode</em> directly. It is otherwise very similar to the C++ mode, but generates Wasm without the help of LLVM. There is not any particular reason to use this mode other than curiosity, since you still need to compile the rest of the runtime with LLVM, so it isn’t actually any faster to build, and may be slightly slower to run (since LLVM optimizes more aggressively).</p>
-<p>Similarly to compiling to C++, with <code>--wasm</code> the compiler with generate <code>dev/emscripten/compiled_lobster_wasm.o</code> file, from e.g. <code>bin/lobster --wasm samples/pythtree.lobster</code></p>
-<p>Though this file has the same format as a <code>.wasm</code> file (and can be inspected by the tools in e.g. WABT), this is not a WebAssembly module ready to be run however, it is a file that still needs to be linked against the rest of the Lobster runtime, much like in the C++ case. The build files in <code>dev/emscripten</code> can pick up this file.</p>
-<p>To compile the project and link in the <code>.o</code> we just generated, we build similarly to described in the <code>WebAssembly / Emscripten</code> section above, except we use a special make target to indicate it should link in our compiled code as the main program instead of the default: <code>make -j8 wasm</code>.</p>
-<p>Don’t forget to place needed files in the <code>assets</code> dir as described above. You can even place an <code>lpak</code> file there (which currently will contain bytecode, which will be unused).</p>
-<p>You now run this much like described above.</p>
-<p>If you’re interested in the details of how Lobster is translated to wasm, or how you can generate wasm yourself, read more <a href="implementation_wasm.html">here</a>.</p>
 <h2 id="extending-lobster">Extending Lobster</h2>
 <p>Besides using Lobster as a stand-alone programming language as-is, there are 2 ways of extending Lobster, by adding your code to Lobster, or adding Lobster to your project.</p>
 <p>Note that unlike other scripting languages, Lobster has been designed as a stand-alone language first, rather than a plug-in scripting system (more like Python and Ruby, not like Lua and UnrealScript). You use Lobster code as your “main program”, with the “engine” being the library you call into. Most game engines are the opposite: the engine code is the main program, and the scripting language is being called into. For that reason, adding your own code to Lobster is by the far the preferable way of building an application that uses Lobster, and will generally be a much more productive environment.</p>

@@ -21,8 +21,6 @@ namespace lobster {
 
 extern string ToCPP(NativeRegistry &natreg, string &sd,
                     string_view bytecode_buffer, bool cpp);
-extern string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest,
-                     string_view bytecode_buffer);
 
 extern bool RunC(const char *source, string &error, const void **imports,
                  const char **export_names, function<bool (void **)> runf);
@@ -70,8 +68,5 @@ inline auto CreateFunctionLookUp(const bytecode::BytecodeFile *bcf) {
 }
 
 }  // namespace lobster;
-
-// Test the wasm binary writer is working as expected.
-void unit_test_wasm(bool full);
 
 #endif  // LOBSTER_TONATIVE

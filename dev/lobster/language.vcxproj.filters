@@ -68,12 +68,6 @@
     <ClCompile Include="..\src\tocpp.cpp">
       <Filter>tonative</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\tonative.cpp">
-      <Filter>tonative</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\towasm.cpp">
-      <Filter>tonative</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\libtcc\libtcc.c">
       <Filter>tonative\libtcc</Filter>
     </ClCompile>

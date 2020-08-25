@@ -54,7 +54,6 @@ LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/src/simplex.cpp \
 	$(LOBSTER_PATH)/src/stdafx.cpp \
 	$(LOBSTER_PATH)/src/tocpp.cpp \
-	$(LOBSTER_PATH)/src/towasm.cpp \
 	$(LOBSTER_PATH)/src/vmdata.cpp \
 	$(LOBSTER_PATH)/src/vm.cpp \
 	$(subst $(LOCAL_PATH)/,, \

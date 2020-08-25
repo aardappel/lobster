@@ -3,7 +3,7 @@ title: The Lobster C++ Implementation
 ---
 
 This document gives hints on how to work with the Lobster C++ code in terms of
-building, extending, reusing, and compiling Lobster code to C++ or WASM.
+building, extending, reusing, and compiling Lobster code to C++.
 
 Lobster has been released under the Apache 2 open source license.
 
@@ -129,12 +129,10 @@ them in `dev/emscripten/assets`. They will be automatically picked up by the
 build process this way.
 
 The Wasm implementation does not support the JIT, so you should first
-compile your `.lobster` code to C++ or directly to Wasm, as described in the
-sections "Compiling Lobster code to C++" or "Compiling Lobster code to WebAssembly"
-below.
+compile your `.lobster` code to C++, as described in the
+section "Compiling Lobster code to C++" below.
 
-To build, go to `dev/emscripten`, and type `make -j8` (if using the C++ output)
-or `make -j8 wasm` (if using the direct Wasm output). This should produce a
+To build, go to `dev/emscripten`, and type `make -j8`. This should produce a
 lobster.[wasm\|js\|html\|data] in the same directory (the latter containing whatever
 you placed in `assets`).
 
@@ -205,41 +203,6 @@ substitute the compiled lobster main program. Build with `make -j8` or similar.
 
 For Emscripten, there's a `cpp` make target (which is the default) that works
 similar to the WebAssembly mode described below.
-
-
-Compiling Lobster code to WebAssembly
--------------------------------------
-This mode *generates wasm code from lobster bytecode* directly. It is otherwise
-very similar to the C++ mode, but generates Wasm without the help of LLVM.
-There is not any particular reason to use this mode other than curiosity, since
-you still need to compile the rest of the runtime with LLVM, so it isn't
-actually any faster to build, and may be slightly slower to run (since
-LLVM optimizes more aggressively).
-
-Similarly to compiling to C++, with `--wasm` the compiler with generate
-`dev/emscripten/compiled_lobster_wasm.o` file, from e.g.
-`bin/lobster --wasm samples/pythtree.lobster`
-
-Though this file has the same format as a `.wasm` file (and can be inspected
-by the tools in e.g. WABT), this is not a WebAssembly module ready to be run
-however, it is a file that still needs to be linked against
-the rest of the Lobster runtime, much like in the C++ case. The build files in
-`dev/emscripten` can pick up this file.
-
-To compile the project and link in the `.o` we just generated, we build
-similarly to described in the `WebAssembly / Emscripten` section above,
-except we use a special make target to indicate it should link in our
-compiled code as the main program instead of the default:
-`make -j8 wasm`.
-
-Don't forget to place needed files in the `assets` dir as described above.
-You can even place an `lpak` file there (which currently will contain bytecode,
-which will be unused).
-
-You now run this much like described above.
-
-If you're interested in the details of how Lobster is translated to wasm,
-or how you can generate wasm yourself, read more [here](implementation_wasm.html).
 
 Extending Lobster
 -----------------

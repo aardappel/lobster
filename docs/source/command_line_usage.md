@@ -41,11 +41,6 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     Useful if you’ve created something in Lobster that could use a bit more speed,
     for a shipping build. Not recommend to be used during development.
 
--   `--wasm` : compiles to WebAssembly file. Useful for shipping to a platform
-    that supports WebAssembly, like the web.
-    See [implementation](implementation.html) on how to compile the resulting
-    code.
-
 -   `--runtime-shipping` : Compile with asserts off.
 -   `--runtime-asserts` : Compile with asserts on (default)
 -   `--runtime-verbose` : Compile with asserts on + additional debug.

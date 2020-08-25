@@ -65,7 +65,6 @@ else()
     src/platform.cpp
     src/stdafx.cpp
     src/tocpp.cpp
-    src/towasm.cpp
     src/vm.cpp
     src/vmdata.cpp
     src/tccbind.cpp

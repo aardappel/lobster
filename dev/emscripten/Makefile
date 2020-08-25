@@ -105,16 +105,11 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 #EMCC_DEBUG=1
 #EMCC_WASM_BACKEND=1
 
-# We only support compiling with the C++ or Wasm backends, no interpreter.
+# We only support compiling with the C++ backend, no JIT mode.
 
 cpp: CXXFLAGS += -DVM_COMPILED_CODE_MODE
 cpp: $(CPPOBJS) $(MAINCOMPOBJ)
 	emcc $(CXXFLAGS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
-
-WASMOUT= compiled_lobster_wasm.o
-wasm: CXXFLAGS += -DVM_COMPILED_CODE_MODE
-wasm: $(CPPOBJS) $(WASMOUT)
-	emcc -v $(CXXFLAGS) $(WASMOUT) $(CPPOBJS) $(EFLAGS)
 
 clean:
 	-$(RM) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ)
@@ -122,7 +117,7 @@ clean:
 cleanw:
 	del $(addprefix ",$(addsuffix ",$(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ)))
 
-all: lobster
+all: cpp
 
 default: all
 
