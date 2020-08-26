@@ -125,7 +125,8 @@ enum LVALOP {
 };
 
 #define NUMBASELVALOPS 5  // HAS to match LVAL below!
-#define GENLVALOP(LV, OP) (IL_##LV##_WRITE + (OP) * NUMBASELVALOPS)  // WRITE assumed to be first!
+#define GENLVALOP(LV, OP) ((ILOP)(IL_##LV##_WRITE + (OP) * NUMBASELVALOPS))  // WRITE assumed to be first!
+#define GENOP(OP) ((ILOP)(OP))
 #define ILADD00 0
 #define ILADD01 1
 #define ILADD10 1
