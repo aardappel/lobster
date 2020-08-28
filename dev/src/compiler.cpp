@@ -116,7 +116,7 @@ static const char *bcname = "bytecode.lbc";
 
 template <typename T> int64_t LE(T x) { return flatbuffers::EndianScalar((int64_t)x); };
 
-void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
+string BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
     // All offsets in 64bit, just in-case we ever want pakfiles > 4GB :)
     // Since we're building this in memory, they can only be created by a 64bit build.
     vector<int64_t> filestarts;
@@ -151,7 +151,7 @@ void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
         } else {
             vector<pair<string, int64_t>> dir;
             if (!ScanDir(filename, dir))
-                THROW_OR_ABORT("cannot load file/dir for pakfile: " + filename);
+                return "cannot load file/dir for pakfile: " + filename;
             for (auto &[name, size] : dir) {
                 auto fn = filename + name;
                 if (size >= 0 && LoadFile(fn, &buf) >= 0)
@@ -182,6 +182,7 @@ void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
     pakfile.insert(pakfile.end(), magic, magic + magic_size);
     assert(pakfile.size() - header_start == header_size);
     (void)header_start;
+    return "";
 }
 
 // This just loads the directory part of a pakfile such that subsequent LoadFile calls know how
@@ -315,21 +316,25 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     CodeGen cg(parser, st, return_value, runtime_checks);
     st.Serialize(cg.code, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
         cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables);
-    if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
+    if (pakfile) {
+        auto err = BuildPakFile(*pakfile, bytecode, parser.pakfiles);
+        if (!err.empty()) THROW_OR_ABORT(err);
+    }
     if (dump_builtins) DumpBuiltins(nfr, false, st);
     if (dump_names) DumpBuiltins(nfr, true, st);
 }
 
 string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
-              vector<string> &&program_args, TraceMode trace, bool compile_only) {
+              vector<string> &&program_args, TraceMode trace, bool compile_only,
+              string &error) {
     string sd;
-    auto err = ToCPP(nfr, sd, bytecode_buffer, false);
-    if (!err.empty()) THROW_OR_ABORT(err);
-    string ret;
+    error = ToCPP(nfr, sd, bytecode_buffer, false);
+    if (!error.empty()) return "";
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
         auto start_time = SecondsSinceStart();
-        auto ok = RunC(sd.c_str(), err, vm_ops_jit_table, export_names,
+        string ret;
+        auto ok = RunC(sd.c_str(), error, vm_ops_jit_table, export_names,
             [&](void **exports) -> bool {
                 LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
                 if (compile_only) return true;
@@ -343,23 +348,26 @@ string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
                 ret = vma.vm->evalret;
                 return true;
             });
-        if (!ok || !err.empty()) {
+        if (!ok || !error.empty()) {
             // So we can see what the problem is..
             FILE *f = fopen((MainDir() + "compiled_lobster_jit_debug.c").c_str(), "w");
             if (f) {
                 fputs(sd.c_str(), f);
                 fclose(f);
             }
-            THROW_OR_ABORT("libtcc JIT error: " + string(fn) + ":\n" + err);
+            error = "libtcc JIT error: " + string(fn) + ":\n" + error;
+            return "";
+        } else {
+            return ret;
         }
     #else
         (void)fn;
         (void)program_args;
         (void)trace;
         (void)compile_only;
-        THROW_OR_ABORT("cannot JIT code: libtcc not enabled");
+        error = "cannot JIT code: libtcc not enabled";
+        return "";
     #endif
-    return ret;
 }
 
 Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringiscode,
@@ -372,7 +380,10 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
         string bytecode_buffer;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
                 bytecode_buffer, nullptr, nullptr, false, false, true, RUNTIME_ASSERT);
-        auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, std::move(args), TraceMode::OFF, false);
+        string error;
+        auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, std::move(args), TraceMode::OFF,
+                          false, error);
+        if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret)));
         return Value();
     }

@@ -141,7 +141,7 @@ nfr("oc_set", "octree,pos,val", "RI}:3I", "", "",
         auto &ocworld = GetOcTree(sp, vm, Pop(sp));
         OcVal v;
         v.SetLeafData(max(val, 0));
-        ocworld.Set(pos, v);
+        if (!ocworld.Set(pos, v)) vm.BuiltinError(sp, "OcTree: grown too big (>2GB)");
     });
 
 nfr("oc_get", "octree,pos", "RI}:3", "I", "",

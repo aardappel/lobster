@@ -371,9 +371,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
 
     lasttime = -0.02f;    // ensure first frame doesn't get a crazy delta
 
-    OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
-
-    return "";
+    return OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
 }
 
 double GetSeconds() { return (double)(SDL_GetPerformanceCounter() - timestart) / (double)timefreq; }

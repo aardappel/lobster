@@ -276,6 +276,13 @@ typedef StackPtr(*fun_base_t)(VM &, StackPtr);
     extern "C" StackPtr compiled_entry_point(VM & vm, StackPtr sp);
 #endif
 
+#if defined(VM_JIT_MODE) && !defined(_MSC_VER) && defined(USE_EXCEPTION_HANDLING)
+    // Platforms like e.g. Linux cannot throw exceptions past jitted C code :(
+    #define VM_USE_LONGJMP 1
+#else
+    #define VM_USE_LONGJMP 0
+#endif
+
 // These pointer types are for use inside Value below. In most other parts of the code we
 // use naked pointers.
 #if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__
@@ -717,6 +724,10 @@ struct VM : VMArgs {
     // A runtime error triggers code that does extensive stack trace & variable dumping, which
     // for certain errors could trigger yet more errors. This vars ensures that we don't.
     bool error_has_occured = false;  // Don't error again.
+    string errmsg;
+    #if VM_USE_LONGJMP
+        jmp_buf jump_buffer;
+    #endif
 
     // We stick this in here directly, since the constant offsets into this array in
     // compiled mode a big win.
@@ -769,8 +780,9 @@ struct VM : VMArgs {
     Value Error(StackPtr sp, string err);
     Value BuiltinError(StackPtr sp, string err) { return Error(sp, err); }
     Value SeriousError(string err);
-    void ErrorBase(string &sd, const string &err);
+    void ErrorBase(const string &err);
     void VMAssert(const char *what);
+    void UnwindOnError();
 
     int DumpVar(string &sd, const Value &x, int idx);
 

@@ -130,7 +130,7 @@ void OpenGLFrameEnd() {
     //glFinish();
 }
 
-void OpenGLInit(int samples, bool srgb) {
+string OpenGLInit(int samples, bool srgb) {
     GL_CHECK("before_init");
     // If not called, flashes red framebuffer on OS X before first gl_clear() is called.
     ClearFrameBuffer(float3_0);
@@ -139,7 +139,7 @@ void OpenGLInit(int samples, bool srgb) {
                 union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
                 funcast.proc = SDL_GL_GetProcAddress(#name); \
                 name = funcast.fun; \
-                if (!name && needed) THROW_OR_ABORT("no " #name); \
+                if (!name && needed) return "no " #name; \
             }
         GLBASEEXTS GLEXTS
         #undef GLEXT
@@ -157,6 +157,7 @@ void OpenGLInit(int samples, bool srgb) {
     GL_CALL(glCullFace(GL_FRONT));
     assert(!geomcache);
     geomcache = new GeometryCache();
+    return "";
 }
 
 void OpenGLCleanup() {

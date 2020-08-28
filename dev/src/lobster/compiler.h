@@ -25,7 +25,8 @@ extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringso
                     string &bytecode, string *parsedump, string *pakfile,
                     bool dump_builtins, bool dump_names, bool return_value, int runtime_checks);
 extern string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
-                     vector<string> &&program_args, TraceMode trace, bool compile_only);
+                     vector<string> &&program_args, TraceMode trace, bool compile_only,
+                     string &error);
 extern bool LoadPakDir(const char *lpak);
 extern bool LoadByteCode(string &bytecode);
 extern void RegisterBuiltin(NativeRegistry &natreg, const char *name,

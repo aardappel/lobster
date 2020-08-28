@@ -181,7 +181,11 @@ int main(int argc, char* argv[]) {
             WriteFile("disasm.txt", false, sd);
         }
         if (jit_mode) {
-            RunTCC(nfr, bytecode_buffer, fn ? fn : "", std::move(program_args), trace, compile_only);
+            string error;
+            RunTCC(nfr, bytecode_buffer, fn ? fn : "", std::move(program_args), trace, compile_only,
+                   error);
+            if (!error.empty())
+                THROW_OR_ABORT(error);
         } else {
             string sd;
             auto err = ToCPP(nfr, sd, bytecode_buffer, true);

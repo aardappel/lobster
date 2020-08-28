@@ -79,7 +79,7 @@ struct OcTree {
         dirty[i] = true;
     }
 
-    void Set(const int3 &pos, OcVal val) {
+    bool Set(const int3 &pos, OcVal val) {
         int cur = ROOT_INDEX;
         for (auto bit = world_bits - 1; ; bit--) {
             auto size = 1 << bit;
@@ -87,7 +87,7 @@ struct OcTree {
             auto bv = off >> bit;
             auto ccur = cur + dot(bv, int3(1, 2, 4));
             auto oval = nodes[ccur];
-            if (oval == val) return;
+            if (oval == val) return true;
             if (bit) {  // Not at bottom yet.
                 if (oval.IsLeaf()) {  // Values are not equal, so we must subdivide.
                     int ncur;
@@ -95,7 +95,7 @@ struct OcTree {
                     if (freelist.empty()) {
                         auto newsize = nodes.size() + NUM_NEW_NODES_PER_RESIZE * ELEMENTS_PER_NODE;
                         if (newsize >= 0x80000000) {
-                            THROW_OR_ABORT("OcTree: grown too big (>2GB)");
+                            return false;
                         }
                         freelist.resize(NUM_NEW_NODES_PER_RESIZE);
                         for (int i = 0; i < NUM_NEW_NODES_PER_RESIZE; i++) {
@@ -124,7 +124,7 @@ struct OcTree {
                 // Try to merge this level all the way to the top.
                 for (int pbit = 1 + fix_bits; pbit < world_bits; pbit++) {
                     for (int i = 1; i < OCTREE_SUBDIV; i++) {  // If all 8 are the same..
-                        if (nodes[cur] != nodes[cur + i]) return;
+                        if (nodes[cur] != nodes[cur + i]) return true;
                     }
                     // Merge.
                     auto parent = Deref(cur);
@@ -134,9 +134,10 @@ struct OcTree {
                     freelist.push_back(cur);
                     cur = ToParent(parent);
                 }
-                return;
+                return true;
             }
         }
+        return true;
     }
 
     pair<int, int> Get(const int3 &pos) {

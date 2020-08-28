@@ -250,37 +250,37 @@ LString *VM::ResizeString(LString *s, iint size, int c, bool back) {
     return ns;
 }
 
-void VM::ErrorBase(string &sd, const string &err) {
+void VM::ErrorBase(const string &err) {
     if (error_has_occured) {
         // We're calling this function recursively, not good. Try to get back to a reasonable
         // state by throwing an exception to be caught by the original error.
-        THROW_OR_ABORT(err);
+        errmsg = err;
+        UnwindOnError();
     }
     error_has_occured = true;
     if (trace == TraceMode::TAIL && trace_output.size()) {
-        for (size_t i = trace_ring_idx; i < trace_output.size(); i++) sd += trace_output[i];
-        for (size_t i = 0; i < trace_ring_idx; i++) sd += trace_output[i];
-        sd += err;
-        THROW_OR_ABORT(sd);
+        for (size_t i = trace_ring_idx; i < trace_output.size(); i++) errmsg += trace_output[i];
+        for (size_t i = 0; i < trace_ring_idx; i++) errmsg += trace_output[i];
+        errmsg += err;
+        UnwindOnError();
     }
-    append(sd, "VM error: ", err);
+    append(errmsg, "VM error: ", err);
 }
 
 // This function is now way less important than it was when the language was still dynamically
 // typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
 Value VM::Error(StackPtr sp, string err) {
-    string sd;
-    ErrorBase(sd, err);
+    ErrorBase(err);
     #ifdef USE_EXCEPTION_HANDLING
     try {
     #endif
         while (sp >= stack && (!stackframes.size() || sp - stack != stackframes.back().spstart)) {
             // Sadly can't print this properly.
-            sd += "\n   stack: ";
-            to_string_hex(sd, (size_t)Top(sp).any());
+            errmsg += "\n   stack: ";
+            to_string_hex(errmsg, (size_t)Top(sp).any());
             if (pool.pointer_is_in_allocator(Top(sp).any())) {
-                sd += ", maybe: ";
-                RefToString(*this, sd, Top(sp).ref(), debugpp);
+                errmsg += ", maybe: ";
+                RefToString(*this, errmsg, Top(sp).ref(), debugpp);
             }
             Pop(sp);  // We don't DEC here, as we can't know what type it is.
                     // This is ok, as we ignore leaks in case of an error anyway.
@@ -289,9 +289,9 @@ Value VM::Error(StackPtr sp, string err) {
             if (!stackframes.size()) break;
             int deffun = *(stackframes.back().funstart);
             if (deffun >= 0) {
-                append(sd, "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view());
+                append(errmsg, "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view());
             } else {
-                sd += "\nin block";
+                errmsg += "\nin block";
             }
             auto &stf = stackframes.back();
             auto fip = stf.funstart;
@@ -303,15 +303,15 @@ Value VM::Error(StackPtr sp, string err) {
             fip += ndef;
             auto defvars = fip;
             auto nkeepvars = *fip++;
-            if (sd.size() < 10000) {
+            if (errmsg.size() < 10000) {
                 // FIXME: merge with loops below.
                 for (int j = 0; j < ndef; ) {
                     auto i = *(defvars - j - 1);
-                    j += DumpVar(sd, vars[i], i);
+                    j += DumpVar(errmsg, vars[i], i);
                 }
                 for (int j = 0; j < nargs; ) {
                     auto i = *(freevars - j - 1);
-                    j += DumpVar(sd, vars[i], i);
+                    j += DumpVar(errmsg, vars[i], i);
                 }
             }
             sp -= nkeepvars;
@@ -330,19 +330,18 @@ Value VM::Error(StackPtr sp, string err) {
     #ifdef USE_EXCEPTION_HANDLING
     } catch (string &s) {
         // Error happened while we were building this stack trace.
-        append(sd, "\nRECURSIVE ERROR:\n", s);
+        append(errmsg, "\nRECURSIVE ERROR:\n", s);
     }
     #endif
-    THROW_OR_ABORT(sd);
+    UnwindOnError();
     return Value();
 }
 
 // Unlike Error above, this one does not attempt any variable dumping since the VM may already be
 // in an inconsistent state.
 Value VM::SeriousError(string err) {
-    string sd;
-    ErrorBase(sd, err);
-    THROW_OR_ABORT(sd);
+    ErrorBase(err);
+    UnwindOnError();
     return Value();
 }
 
@@ -425,7 +424,7 @@ void VM::FunIntro(StackPtr &sp, const int *ip) {
 
 void VM::FunOut(StackPtr &sp, int nrv) {
     sp -= nrv;
-    // This is ok, since VarCleanup doesn't ever push any values.
+    // This is ok, since we don't push any values below.
     auto rets = TopPtr(sp);
     // This is guaranteed by the typechecker.
     assert(stackframes.size());
@@ -485,7 +484,38 @@ void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
     DumpLeaks();
 }
 
+void VM::UnwindOnError() {
+    // This is the single location from which we unwind the execution stack from within the VM.
+    // This requires special care, because there may be jitted code on the stack, and depending
+    // on the platform we can use exception handling, or not.
+    // This code is only needed upon error, the regular execution path uses normal returns.
+    #if VM_USE_LONGJMP
+        // We are in JIT mode, and on a platform that cannot throw exceptions "thru" C code,
+        // e.g. Linux.
+        // To retain modularity (allow the VM to be used in an environment where a VM error
+        // shouldn't terminate the whole app) we try to work around this with setjmp/longjmp.
+        // This does NOT call destructors on the way, so code calling into here should make sure
+        // to not require these.
+        // Though even if there are some, a small memory leak upon a VM error is probably
+        // preferable to aborting when modularity is needed.
+        // FIXME: audit calling code for destructors. Can we automatically enforce this?
+        longjmp(jump_buffer, 1);
+        // The corresponding setjmp is right below here.
+    #else
+        // Use the standard error mechanism, which uses exceptions (on Windows, or other platforms
+        // when not JIT-ing) or aborts (Wasm).
+        THROW_OR_ABORT(errmsg);
+    #endif
+}
+
 void VM::EvalProgram() {
+    #if VM_USE_LONGJMP
+        // See longjmp above for why this is needed.
+        if (setjmp(jump_buffer)) {
+            // Resume normal error now that we've jumped past the C/JIT-ted code.
+            THROW_OR_ABORT(errmsg);
+        }
+    #endif
     auto sp = stack - 1;
     #if VM_JIT_MODE
         jit_entry(*this, sp);

@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include <float.h>
 #include <limits.h>
+#include <csetjmp>
 
 #include <string>
 #include <map>

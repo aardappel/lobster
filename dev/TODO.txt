@@ -25,6 +25,18 @@
   - make sure to put in checks for debug/compiled/32-bit mode, and maybe some other compatibility checks
   - maybe use __TIMESTAMP__ of vmdata.h as version?
 
+- Further cleanup of THROW_OR_ABORT
+  - It should really never be used from inside the VM, but because its used in lex/parse/..
+    it still can do when calling compile_run_code or parse_data, causing a terminate on Linux.
+    - instead, make these do a locally contained exception.
+
+- The hardest problem in fully removing exception handling is things like vector bound checking,
+  which, if it were to have to be handled like an error return, would cause almost every function
+  to need a check after its call.
+  - Still worth trying, it may be that this branch being always false is actually very cheap.
+    - Can stick an error bool as first field in VM.
+
+
 - stefandd: multiple assign doesn't work on fields.
 
 - Fix `is`, see https://github.com/aardappel/lobster/issues/99

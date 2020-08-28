@@ -47,7 +47,7 @@ struct Shader {
 
     string Compile(const char *name, const char *vscode, const char *pscode);
     string Compile(const char *name, const char *comcode);
-    void Link(const char *name);
+    string Link(const char *name);
     void Activate();                            // Makes shader current;
     void Set();                                 // Activate + sets common uniforms.
     void SetAnim(float3x4 *bones, int num);     // Optionally, after Activate().
@@ -147,7 +147,7 @@ struct Light {
 };
 
 
-extern void OpenGLInit(int samples, bool srgb);
+extern string OpenGLInit(int samples, bool srgb);
 extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
 extern void OpenGLFrameEnd();

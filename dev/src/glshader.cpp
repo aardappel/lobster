@@ -283,8 +283,7 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     GL_CALL(glBindAttribLocation(program, 3, "acolor"));
     GL_CALL(glBindAttribLocation(program, 4, "aweights"));
     GL_CALL(glBindAttribLocation(program, 5, "aindices"));
-    Link(name);
-    return "";
+    return Link(name);
 }
 
 string Shader::Compile(const char *name, const char *cscode) {
@@ -293,20 +292,19 @@ string Shader::Compile(const char *name, const char *cscode) {
         string err;
         cs = CompileGLSLShader(GL_COMPUTE_SHADER, program, cscode, err);
         if (!cs) return string_view("couldn't compile compute shader: ") + name + "\n" + err;
-        Link(name);
-        return "";
+        return Link(name);
     #else
         return "compute shaders not supported";
     #endif
 }
 
-void Shader::Link(const char *name) {
+string Shader::Link(const char *name) {
     GL_CALL(glLinkProgram(program));
     GLint status;
     GL_CALL(glGetProgramiv(program, GL_LINK_STATUS, &status));
     if (status != GL_TRUE) {
-        GLSLError(program, true, nullptr);
-        THROW_OR_ABORT(string_view("linking failed for shader: ") + name);
+        auto err = GLSLError(program, true, nullptr);
+        return string_view("linking failed for shader: ") + name + "\n" + err;
     }
     mvp_i              = glGetUniformLocation(program, "mvp");
     col_i              = glGetUniformLocation(program, "col");
@@ -328,6 +326,7 @@ void Shader::Link(const char *name) {
             max_tex_defined = i + 1;
         }
     }
+    return "";
 }
 
 Shader::~Shader() {
