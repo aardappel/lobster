@@ -184,7 +184,7 @@ struct CodeGen  {
             if (f->bytecodestart <= 0 && !f->istype) {
                 f->bytecodestart = Pos();
                 for (auto sf : f->overloads) for (; sf; sf = sf->next) {
-                    if (sf && sf->typechecked) GenScope(*sf);
+                    if (sf->typechecked) GenScope(*sf);
                 }
                 if (f->bytecodestart == Pos()) f->bytecodestart = 0;
             }

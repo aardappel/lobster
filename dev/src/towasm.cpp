@@ -82,27 +82,27 @@ string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecod
     #define S_ARGS1 TI_I_III
     #define S_ARGS2 TI_I_IIII
     #define S_ARGS3 TI_I_IIIII
-    #define S_ARGS9 TI_I_III  // ILUNKNOWNARITY
+    #define S_ARGS9 TI_I_III  // ILUNKNOWN
     #define S_ARGSN(N) S_ARGS##N
     #define C_ARGS0 TI_I_III
     #define C_ARGS1 TI_I_IIII
     #define C_ARGS2 TI_I_IIIII
     #define C_ARGS3 TI_I_IIIIII
-    #define C_ARGS9 TI_I_IIII  // ILUNKNOWNARITY
+    #define C_ARGS9 TI_I_IIII  // ILUNKNOWN
     #define C_ARGSN(N) C_ARGS##N
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
+    #define F(N, A, USE, DEF) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
         LVALOPNAMES
     #undef F
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
+    #define F(N, A, USE, DEF) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
         ILBASENAMES
     #undef F
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, C_ARGSN(A));
+    #define F(N, A, USE, DEF) bw.AddImportLinkFunction("CVM_" #N, C_ARGSN(A));
         ILCALLNAMES
     #undef F
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_II);
+    #define F(N, A, USE, DEF) bw.AddImportLinkFunction("CVM_" #N, TI_I_II);
         ILJUMPNAMES1
     #undef F
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_III);
+    #define F(N, A, USE, DEF) bw.AddImportLinkFunction("CVM_" #N, TI_I_III);
         ILJUMPNAMES2
     #undef F
     size_t import_erccm = bw.AddImportLinkFunction("RunCompiledCodeMain", TI_I_IIIII);
@@ -187,7 +187,7 @@ string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecod
         }
         auto args = ip;
         auto arity = ParseOpAndGetArity(opc, ip);
-        auto is_vararg = ILArity()[opc] == ILUNKNOWNARITY;
+        auto is_vararg = ILArity()[opc] == ILUNKNOWN;
         if (opc == IL_JUMP) {
             auto id = args[0];
             int nesting = 0;

@@ -9,19 +9,19 @@ namespace lobster {
 #define VM_OP_ARGS1 int _a
 #define VM_OP_ARGS2 int _a, int _b
 #define VM_OP_ARGS3 int _a, int _b, int _c
-#define VM_OP_ARGS9 const int *ip  // ILUNKNOWNARITY
+#define VM_OP_ARGS9 const int *ip  // ILUNKNOWN
 #define VM_OP_ARGSN(N) VM_OP_ARGS##N
 #define VM_OP_DEFS0
 #define VM_OP_DEFS1 int _a = *vm.ip++;
 #define VM_OP_DEFS2 int _a = *vm.ip++; int _b = *vm.ip++;
 #define VM_OP_DEFS3 int _a = *vm.ip++; int _b = *vm.ip++; int _c = *vm.ip++;
-#define VM_OP_DEFS9  // ILUNKNOWNARITY
+#define VM_OP_DEFS9  // ILUNKNOWN
 #define VM_OP_DEFSN(N) VM_OP_DEFS##N (void)vm.ip;
 #define VM_OP_PASS0
 #define VM_OP_PASS1 _a
 #define VM_OP_PASS2 _a, _b
 #define VM_OP_PASS3 _a, _b, _c
-#define VM_OP_PASS9 ip  // ILUNKNOWNARITY
+#define VM_OP_PASS9 ip  // ILUNKNOWN
 #define VM_OP_PASSN(N) VM_OP_PASS##N
 #define VM_COMMA_0
 #define VM_COMMA_1 ,

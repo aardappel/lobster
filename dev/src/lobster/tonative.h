@@ -30,7 +30,7 @@ inline int ParseOpAndGetArity(int opc, const int *&ip) {
     auto ips = ip;
     switch(opc) {
         default: {
-            assert(arity != ILUNKNOWNARITY);
+            assert(arity != ILUNKNOWN);
             ip += arity;
             break;
         }

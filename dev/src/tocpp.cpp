@@ -59,23 +59,23 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             else for (int i = 0; i < A; i++) sd += ", int";
         };
 
-        #define F(N, A) \
+        #define F(N, A, USE, DEF) \
             sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
             LVALOPNAMES
         #undef F
-        #define F(N, A) \
+        #define F(N, A, USE, DEF) \
             sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
             ILBASENAMES
         #undef F
-        #define F(N, A) \
+        #define F(N, A, USE, DEF) \
             sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ", fun_base_t);\n";
             ILCALLNAMES
         #undef F
-        #define F(N, A) \
+        #define F(N, A, USE, DEF) \
             sd += "StackPtr U_" #N "(VMRef, StackPtr);\n";
             ILJUMPNAMES1
         #undef F
-        #define F(N, A) \
+        #define F(N, A, USE, DEF) \
             sd += "StackPtr U_" #N "(VMRef, StackPtr, int);\n";
             ILJUMPNAMES2
         #undef F
@@ -124,7 +124,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         }
         auto args = ip;
         auto arity = ParseOpAndGetArity(opc, ip);
-        auto is_vararg = ILArity()[opc] == ILUNKNOWNARITY;
+        auto is_vararg = ILArity()[opc] == ILUNKNOWN;
         sd += "    ";
         if (opc == IL_JUMP) {
             append(sd, "goto block", args[0], ";");

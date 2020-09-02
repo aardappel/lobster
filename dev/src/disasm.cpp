@@ -189,7 +189,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             }
             break;
     }
-    assert(arity == ILUNKNOWNARITY || ip - ins_start == arity + 1);
+    assert(arity == ILUNKNOWN || ip - ins_start == arity + 1);
     (void)ins_start;
     return ip;
 }

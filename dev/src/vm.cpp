@@ -765,27 +765,27 @@ fun_base_t CVM_GetNextCallTarget(VM *vm) {
 // Only here because in compiled code we don't know sizeof(Value) (!)
 StackPtr CVM_Drop(StackPtr sp) { return --sp; }
 
-#define F(N, A) \
+#define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
 LVALOPNAMES
 #undef F
-#define F(N, A) \
+#define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
 ILBASENAMES
 #undef F
-#define F(N, A) \
+#define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
         /*LOG_ERROR("INS: ", #N, A, ", ", (size_t)vm, ", ", (size_t)sp, ", ", _a, ", ", (size_t)fcont);*/ \
         CHECK(N, (VM_OP_PASSN(A))); return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
 ILCALLNAMES
 #undef F
-#define F(N, A) \
+#define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp) { CHECKJ(N); return U_##N(*vm, sp); }
 ILJUMPNAMES1
 #undef F
-#define F(N, A) \
+#define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp, int df) { CHECKJ(N); return U_##N(*vm, sp, df); }
 ILJUMPNAMES2
 #undef F
@@ -797,7 +797,7 @@ extern "C" StackPtr GLFrame(StackPtr sp, VM & vm);
 #endif
 
 const void *vm_ops_jit_table[] = {
-    #define F(N, A) "U_" #N, (void *)&CVM_##N,
+    #define F(N, A, USE, DEF) "U_" #N, (void *)&CVM_##N,
         ILNAMES
     #undef F
     "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
