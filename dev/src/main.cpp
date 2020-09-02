@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
         const char *lpak = nullptr;
         const char *fn = nullptr;
         vector<string> program_args;
+        vector<string> imports;
         auto trace = TraceMode::OFF;
         auto jit_mode = true;
         string helptext = "\nUsage:\n"
@@ -76,6 +77,7 @@ int main(int argc, char* argv[]) {
             "Compile & run FILE, or omit FILE to load default.lpak\n"
             "--pak                  Compile to pakfile, don't run.\n"
             "--cpp                  Compile to C++ code, don't run (see implementation.md!).\n"
+            "--import RELDIR        Additional dir (relative to FILE) to load imports from\n"
             "--parsedump            Also dump parse tree.\n"
             "--disasm               Also dump bytecode disassembly.\n"
             "--verbose              Output additional informational text.\n"
@@ -117,6 +119,12 @@ int main(int argc, char* argv[]) {
                 #endif
                 else if (a == "--trace") { trace = TraceMode::ON; }
                 else if (a == "--trace-tail") { trace = TraceMode::TAIL; }
+                else if (a == "--import") {
+                    arg++;
+                    if (arg >= argc) THROW_OR_ABORT("missing import dir");
+                    imports.push_back(argv[arg]);
+                    break;
+                }
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
                 else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
@@ -144,6 +152,7 @@ int main(int argc, char* argv[]) {
 
         LOG_INFO("lobster version " GIT_COMMIT_INFOSTR);
 
+        for (auto &import : imports) AddDataDir(import);
         if (fn) fn = StripDirPart(fn);
 
         string bytecode_buffer;
