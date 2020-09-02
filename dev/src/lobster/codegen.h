@@ -997,11 +997,14 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     size_t nargs = children.size();
     cg.TakeTemp(nargs + numstructs, true);
     assert(nargs == nf->args.size() && (nf->fun.fnargs < 0 || nargs <= 7));
-    auto vmop = nf->fun.fnargs >= 0 ? GENOP(IL_BCALLRET0 + (int)nargs * 3) : IL_BCALLRETV;
+    auto vmop = nf->fun.fnargs >= 0 ? GENOP(IL_BCALLRET0 + (int)nargs) : IL_BCALLRETV;
     if (nf->cont1) { // graphics.h
+        assert(nf->retvals.empty());
+        assert(!retval);
+        assert(vmop == IL_BCALLRETV);
         auto lastarg = children.empty() ? nullptr : children.back();
         if (!Is<DefaultVal>(lastarg)) {
-            cg.Emit(vmop, nf->idx);
+            cg.Emit(vmop, nf->idx, false);
             // Note: this call is still conditional, since some of these functions dynamically
             // decide to pass a nil lambda even if statically one is given.
             // These functions return the function they're passed + a string (if the function)
@@ -1011,28 +1014,15 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
             assert(lastarg->exptype->t == V_FUNCTION);
             assert(!lastarg->exptype->sf->reqret);  // We never use the retval.
             cg.Emit(IL_CONT1, nf->idx);  // Never returns a value.
-            cg.Dummy(retval);
         } else {
-            if (!retval) vmop = GENOP(vmop + 2);  // These always return nil.
-            cg.Emit(vmop, nf->idx);
+            cg.Emit(vmop, nf->idx, false);
+            // retvals is empty, but still pushes a nil function that was intended for IL_CALLVCOND!
+            cg.GenPop({ type_function_null, LT_ANY });
         }
     } else {
-        auto last = nattype->NumValues() - 1;
-        auto tlt = TypeLT { nattype->Get(last), nattype->GetLifetime(last, natlt) };
-        // FIXME: simplify.
-        auto val_width_1 = !IsStruct(tlt.type->t) || tlt.type->udt->numslots == 1;
-        auto var_width_void = nf->fun.fnargs < 0 && nf->retvals.empty();
-        if (!retval && val_width_1 && !var_width_void) {
-            // Generate version that never produces top of stack (but still may have
-            // additional return values)
-            vmop = GENOP(vmop + 1 + (int)(!cg.ShouldDec(tlt)));
-        }
-        cg.Emit(vmop, nf->idx);
-        if (!retval && !val_width_1) {
-            cg.GenPop(tlt);
-        }
+        cg.Emit(vmop, nf->idx, !nf->retvals.empty());
     }
-    if (nf->retvals.size() > 1) {
+    if (nf->retvals.size() > 0) {
         assert(nf->retvals.size() == nattype->NumValues());
         for (size_t i = 0; i < nattype->NumValues(); i++) {
             cg.rettypes.push_back({ nattype->Get(i), nattype->GetLifetime(i, natlt) });
@@ -1041,9 +1031,6 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         assert(nf->retvals.size() >= retval);
     }
     if (!retval) {
-        // Top of stack has already been removed by op, but still need to pop any
-        // additional values.
-        if (cg.rettypes.size()) cg.rettypes.pop_back();
         while (cg.rettypes.size()) {
             cg.GenPop(cg.rettypes.back());
             cg.rettypes.pop_back();

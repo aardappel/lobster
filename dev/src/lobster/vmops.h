@@ -283,7 +283,7 @@ VM_INLINE StackPtr ForLoop(VM &, StackPtr sp, iint len) {
 #define FORELEM(L) \
     auto &iter = Top(sp); \
     auto i = TopM(sp, 1).ival(); \
-    assert(i < L); \
+    assert(i < L);
 
 VM_INLINE StackPtr U_IFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).ival()); return sp; }
 VM_INLINE StackPtr U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval()->len); return sp; }
@@ -303,38 +303,20 @@ VM_INLINE StackPtr U_FORLOOPI(VM &, StackPtr sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_BCALLRETV(VM &vm, StackPtr sp, int nfi) {
+VM_INLINE StackPtr U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
     auto nf = vm.nfr.nfuns[nfi];
     nf->fun.fV(sp, vm);
     return sp;
-}
-VM_INLINE StackPtr U_BCALLREFV(VM &vm, StackPtr sp, int nfi) {
-    auto nf = vm.nfr.nfuns[nfi];
-    nf->fun.fV(sp, vm);
-    // This can only pop a single value, not called for structs.
-    Pop(sp).LTDECRTNIL(vm);
-    return sp;
-}
-VM_INLINE StackPtr U_BCALLUNBV(VM &vm, StackPtr sp, int nfi) {
-    auto nf = vm.nfr.nfuns[nfi];
-    nf->fun.fV(sp, vm);
-    // This can only pop a single value, not called for structs.
-    Pop(sp);
-    return sp;
-}
-
-#define BCALLOPH(PRE,N,DECLS,ARGS,RETOP) VM_INLINE StackPtr U_BCALL##PRE##N(VM &vm, StackPtr sp, int nfi) { \
-    auto nf = vm.nfr.nfuns[nfi]; \
-    DECLS; \
-    Value v = nf->fun.f##N ARGS; \
-    RETOP; \
-    return sp; \
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
-    BCALLOPH(RET,N,DECLS,ARGS,Push(sp, v);vm.BCallRetCheck(sp, nf)) \
-    BCALLOPH(REF,N,DECLS,ARGS,v.LTDECRTNIL(vm)) \
-    BCALLOPH(UNB,N,DECLS,ARGS,(void)v)
+VM_INLINE StackPtr U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
+    auto nf = vm.nfr.nfuns[nfi]; \
+    DECLS; \
+    Value v = nf->fun.f##N ARGS; \
+    if (has_ret) { Push(sp, v); vm.BCallRetCheck(sp, nf); } \
+    return sp; \
+}
 
 BCALLOP(0, {}, (sp, vm));
 BCALLOP(1, auto a0 = Pop(sp), (sp, vm, a0));

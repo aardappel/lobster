@@ -112,24 +112,9 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
         case IL_BCALLRET3:
         case IL_BCALLRET4:
         case IL_BCALLRET5:
-        case IL_BCALLRET6:
-        case IL_BCALLREFV:
-        case IL_BCALLREF0:
-        case IL_BCALLREF1:
-        case IL_BCALLREF2:
-        case IL_BCALLREF3:
-        case IL_BCALLREF4:
-        case IL_BCALLREF5:
-        case IL_BCALLREF6:
-        case IL_BCALLUNBV:
-        case IL_BCALLUNB0:
-        case IL_BCALLUNB1:
-        case IL_BCALLUNB2:
-        case IL_BCALLUNB3:
-        case IL_BCALLUNB4:
-        case IL_BCALLUNB5:
-        case IL_BCALLUNB6: {
+        case IL_BCALLRET6: {
             int a = *ip++;
+            ip++;  // has_ret
             sd += nfr.nfuns[a]->name;
             break;
         }

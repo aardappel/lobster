@@ -247,13 +247,14 @@ nfr("im_add_font", "font_path,size", "SF", "B", "",
     });
 
 nfr("im_frame", "body", "L", "", "",
-    [](StackPtr &sp, VM &vm, Value &body) {
+    [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm, false);
+        auto body = Pop(sp);
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(_sdl_window);
         ImGui::NewFrame();
         Push(sp,  Value());  // State value.
-        return body;
+        Push(sp, body);
     }, [](StackPtr &sp, VM &) {
         Pop(sp);
         ImGui::Render();
@@ -269,12 +270,15 @@ nfr("im_window_demo", "", "", "B", "",
     });
 
 nfr("im_window", "title,flags,body", "SIL", "", "",
-    [](StackPtr &sp, VM &vm, Value &title, Value &flags, Value &body) {
+    [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm, false);
+        auto body = Pop(sp);
+        auto flags = Pop(sp);
+        auto title = Pop(sp);
         ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
         imgui_windows++;
         Push(sp,  Value());  // State value.
-        return body;
+        Push(sp, body);
     }, [](StackPtr &sp, VM &) {
         Pop(sp);
         ImGui::End();
@@ -282,11 +286,13 @@ nfr("im_window", "title,flags,body", "SIL", "", "",
     });
 
 nfr("im_button", "label,body", "SL", "", "",
-    [](StackPtr &sp, VM &vm, Value &title, Value &body) {
+    [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
+        auto body = Pop(sp);
+        auto title = Pop(sp);
         auto press = ImGui::Button(title.sval()->data());
         Push(sp,  Value());  // State value.
-        return press ? body : Value();
+        Push(sp, press ? body : Value());
     }, [](StackPtr &sp, VM &) {
         Pop(sp);
     });
@@ -393,11 +399,13 @@ nfr("im_coloredit", "label,color", "SF}", "A2", "",
     });
 
 nfr("im_treenode", "label,body", "SL", "", "",
-    [](StackPtr &sp, VM &vm, Value &title, Value &body) {
+    [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
+        auto body = Pop(sp);
+        auto title = Pop(sp);
         bool open = ImGui::TreeNode(title.sval()->data());
         PushAnyAsString(sp, vm, open);
-        return open ? body : Value();
+        Push(sp, open ? body : Value());
     }, [](StackPtr &sp, VM &) {
         bool open;
         PopAnyFromString(sp, open);
@@ -408,11 +416,13 @@ nfr("im_group", "label,body", "SsL", "",
     "an invisble group around some widgets, useful to ensure these widgets are unique"
     " (if they have the same label as widgets in another group that has a different group"
     " label)",
-    [](StackPtr &sp, VM &vm, Value &title, Value &body) {
+    [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
+        auto body = Pop(sp);
+        auto title = Pop(sp);
         ImGui::PushID(title.sval()->data());
-        Push(sp,  Value());  // State value.
-        return body;
+        Push(sp, Value());  // State value.
+        Push(sp, body);
     }, [](StackPtr &sp, VM &) {
         Pop(sp);
         ImGui::PopID();

@@ -457,7 +457,7 @@ nfr("gl_rotate_x", "vector,body", "F}:2L?", "",
     [](StackPtr &sp, VM &vm) {
         auto body = Pop(sp);
         auto a = PopVec<float2>(sp);
-        Push(sp,  PushTransform(sp, vm, rotationX(a), rotationX(a * float2(1, -1)), body));
+        Push(sp, PushTransform(sp, vm, rotationX(a), rotationX(a * float2(1, -1)), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -479,7 +479,7 @@ nfr("gl_rotate_z", "angle,body", "F}:2L?", "",
     [](StackPtr &sp, VM &vm) {
         auto body = Pop(sp);
         auto a = PopVec<float2>(sp);
-        Push(sp,  PushTransform(sp, vm, rotationZ(a), rotationZ(a * float2(1, -1)), body));
+        Push(sp, PushTransform(sp, vm, rotationZ(a), rotationZ(a * float2(1, -1)), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -490,7 +490,7 @@ nfr("gl_translate", "vec,body", "F}L?", "",
     [](StackPtr &sp, VM &vm) {
         auto body = Pop(sp);
         auto v = PopVec<float3>(sp);
-        Push(sp,  PushTransform(sp, vm, translation(v), translation(-v), body));
+        Push(sp, PushTransform(sp, vm, translation(v), translation(-v), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -498,9 +498,11 @@ nfr("gl_translate", "vec,body", "F}L?", "",
 nfr("gl_scale", "factor,body", "FL?", "",
     "scales the current coordinate system using a numerical factor."
     " when a body is given, restores the previous transform afterwards",
-    [](StackPtr &sp, VM &vm, Value &f, Value &body) {
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto f = Pop(sp);
         auto v = f.fltval() * float3_1;
-        return PushTransform(sp, vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
+        Push(sp, PushTransform(sp, vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -554,10 +556,12 @@ nfr("gl_point_scale", "factor", "F", "",
 nfr("gl_line_mode", "on,body", "IL", "",
     "set line mode (true == on). when a body is given,"
     " restores the previous mode afterwards",
-    [](StackPtr &sp, VM &vm, Value &on, Value &body) {
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto on = Pop(sp);
         if (body.True()) PushAnyAsString(sp, vm, polymode);
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
-        return body;
+        Push(sp, body);
     }, [](StackPtr &sp, VM &) {
         PopAnyFromString(sp, polymode);
     });
@@ -952,11 +956,13 @@ nfr("gl_dump_shader", "filename,stripnonascii", "SB", "B",
 nfr("gl_blend", "on,body", "IL?", "",
     "changes the blending mode (use blending constants from color.lobster). when a body is"
     " given, restores the previous mode afterwards",
-    [](StackPtr &sp, VM &vm, Value &mode, Value &body) {
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto mode = Pop(sp);
         TestGL(sp, vm);
         BlendMode old = SetBlendMode((BlendMode)mode.ival());
         if (body.True()) PushAnyAsString(sp, vm, old);
-        return body;
+        Push(sp, body);
     }, [](StackPtr &sp, VM &) {
         BlendMode old;
         PopAnyFromString(sp, old);

@@ -558,12 +558,11 @@ void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {
                 assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && IsUDT(t)));
                 #endif
             }
-            assert(nf->retvals.size() || Top(sp).type == V_NIL);
         }
     #else
         (void)nf;
+        (void)sp;
     #endif
-    (void)sp;
 }
 
 iint VM::GrabIndex(StackPtr &sp, int len) {

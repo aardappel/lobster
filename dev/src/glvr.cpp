@@ -341,11 +341,13 @@ nfr("vr_motion_controller", "n,body", "IL?", "",
     " when a body is given, restores the previous transform afterwards."
     " if there is no controller n (or it is currently not"
     " tracking) the identity transform is used",
-    [](StackPtr &sp, VM &vm, Value &mc, Value &body) {
+    [](StackPtr &sp, VM &vm) {
+        auto body = Pop(sp);
+        auto mc = Pop(sp);
         auto mcd = GetMC(mc);
-        return mcd
+        Push(sp, mcd
             ? PushTransform(sp, vm, mcd->mat, invert(mcd->mat), body)
-            : PushTransform(sp, vm, float4x4_1, float4x4_1, body);
+            : PushTransform(sp, vm, float4x4_1, float4x4_1, body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });

@@ -51,17 +51,15 @@ enum MathOp {
     F(PUSHFLDV,     2, ILUNKNOWN, 1) \
     F(PUSHFLD2V,    2, 1, ILUNKNOWN) \
     F(PUSHFLDV2V,   3, ILUNKNOWN, ILUNKNOWN) \
-    F(BCALLRETV,    1, ILUNKNOWN, ILUNKNOWN) \
-    F(BCALLREFV,    1, ILUNKNOWN, 0) \
-    F(BCALLUNBV,    1, ILUNKNOWN, 0) \
-    F(BCALLRET0,    1, 0, 1) F(BCALLREF0, 1, 0, 0) F(BCALLUNB0, 1, 0, 0) \
-    F(BCALLRET1,    1, 1, 1) F(BCALLREF1, 1, 1, 0) F(BCALLUNB1, 1, 1, 0) \
-    F(BCALLRET2,    1, 2, 1) F(BCALLREF2, 1, 2, 0) F(BCALLUNB2, 1, 2, 0) \
-    F(BCALLRET3,    1, 3, 1) F(BCALLREF3, 1, 3, 0) F(BCALLUNB3, 1, 3, 0) \
-    F(BCALLRET4,    1, 4, 1) F(BCALLREF4, 1, 4, 0) F(BCALLUNB4, 1, 4, 0) \
-    F(BCALLRET5,    1, 5, 1) F(BCALLREF5, 1, 5, 0) F(BCALLUNB5, 1, 5, 0) \
-    F(BCALLRET6,    1, 6, 1) F(BCALLREF6, 1, 6, 0) F(BCALLUNB6, 1, 6, 0) \
-    F(BCALLRET7,    1, 7, 1) F(BCALLREF7, 1, 7, 0) F(BCALLUNB7, 1, 7, 0) \
+    F(BCALLRETV,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(BCALLRET0,    2, 0, 1) \
+    F(BCALLRET1,    2, 1, 1) \
+    F(BCALLRET2,    2, 2, 1) \
+    F(BCALLRET3,    2, 3, 1) \
+    F(BCALLRET4,    2, 4, 1) \
+    F(BCALLRET5,    2, 5, 1) \
+    F(BCALLRET6,    2, 6, 1) \
+    F(BCALLRET7,    2, 7, 1) \
     F(ASSERT,       3, 0, 0) \
     F(ASSERTR,      3, 0, 0) \
     F(CONT1,        1, 0, 0) \
@@ -157,7 +155,7 @@ enum LVALOP {
 // This assumes VAR is first!
 #define ISLVALVARINS(O) O >= IL_VAR_WRITE && O <= IL_VAR_FMMPR && (O % NUMBASELVALOPS) == 0
 
-#define ISBCALL(O) (O >= IL_BCALLRETV && O <= IL_BCALLUNB7)
+#define ISBCALL(O) (O >= IL_BCALLRETV && O <= IL_BCALLRET7)
 
 #define ILNAMES LVALOPNAMES ILBASENAMES ILCALLNAMES ILJUMPNAMES1 ILJUMPNAMES2
 
