@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
             #if LOBSTER_ENGINE
             "--non-interactive-test Quit after running 1 frame.\n"
             #endif
-            "--trace                Log bytecode instructions (SLOW).\n"
+            "--trace                Log bytecode instructions (SLOW, Debug only).\n"
             "--trace-tail           Show last 50 bytecode instructions on error.\n"
             "--wait                 Wait for input before exiting.\n";
             int arg = 1;
@@ -117,8 +117,8 @@ int main(int argc, char* argv[]) {
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
                 #endif
-                else if (a == "--trace") { trace = TraceMode::ON; }
-                else if (a == "--trace-tail") { trace = TraceMode::TAIL; }
+                else if (a == "--trace") { trace = TraceMode::ON; runtime_checks = RUNTIME_ASSERT_PLUS; }
+                else if (a == "--trace-tail") { trace = TraceMode::TAIL; runtime_checks = RUNTIME_ASSERT_PLUS; }
                 else if (a == "--import") {
                     arg++;
                     if (arg >= argc) THROW_OR_ABORT("missing import dir");

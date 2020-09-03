@@ -18,7 +18,7 @@
 namespace lobster {
 
 const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
-                                            const bytecode::BytecodeFile *bcf) {
+                                     const bytecode::BytecodeFile *bcf) {
     auto lineinfo = bcf->lineinfo();
     int pos = int(ip - code);
     int start = 0;
@@ -37,12 +37,14 @@ const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
 }
 
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
-                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
+                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf,
+                     bool in_bytecode) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
     auto li = LookupLine(ip, code, bcf);
     // FIXME: some indication of the filename, maybe with a table index?
-    append(sd, "I ", ip - code, " \tL ", li->line(), " \t");
+    if (in_bytecode) append(sd, "I ", ip - code, " \t");
+    append(sd, "L ", li->line(), " \t");
     if (*ip < 0 || *ip >= IL_MAX_OPS) {
         append(sd, "ILLEGAL INSTRUCTION: ", *ip);
         return nullptr;
@@ -188,7 +190,7 @@ void DisAsm(NativeRegistry &nfr, string &sd, string_view bytecode_buffer) {
     const int *ip = code;
     while (ip < code + len) {
         if (*ip == IL_FUNSTART) sd += "------- ------- ---\n";
-        ip = DisAsmIns(nfr, sd, ip, code, typetable, bcf);
+        ip = DisAsmIns(nfr, sd, ip, code, typetable, bcf, true);
         sd += "\n";
         if (!ip) break;
     }

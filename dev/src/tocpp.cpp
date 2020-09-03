@@ -55,8 +55,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             ;
 
         auto args = [&](int A) {
-            if (A == 9) sd += ", const int *";
-            else for (int i = 0; i < A; i++) sd += ", int";
+            for (int i = 0; i < A; i++) sd += ", int";
         };
 
         #define F(N, A, USE, DEF) \
@@ -70,6 +69,10 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         #define F(N, A, USE, DEF) \
             sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ", fun_base_t);\n";
             ILCALLNAMES
+        #undef F
+        #define F(N, A, USE, DEF) \
+            sd += "StackPtr U_" #N "(VMRef, StackPtr, const int *);\n";
+            ILVARARGNAMES
         #undef F
         #define F(N, A, USE, DEF) \
             sd += "StackPtr U_" #N "(VMRef, StackPtr);\n";
@@ -100,7 +103,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         }
         if ((false)) {  // Debug corrupt bytecode.
             string da;
-            DisAsmIns(natreg, da, ip, code, typetable, bcf);
+            DisAsmIns(natreg, da, ip, code, typetable, bcf, true);
             LOG_DEBUG(da);
         }
         int opc = *ip++;
@@ -124,9 +127,15 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         }
         auto args = ip;
         auto arity = ParseOpAndGetArity(opc, ip);
-        auto is_vararg = ILArity()[opc] == ILUNKNOWN;
         sd += "    ";
-        if (opc == IL_JUMP) {
+        if (opc == IL_FUNSTART) {
+            sd += "static int args[] = {";
+            for (int i = 0; i < arity; i++) {
+                if (i) sd += ", ";
+                append(sd, args[i]);
+            }
+            append(sd, "}; sp = U_", ILNames()[opc], "(vm, sp, args);");
+        } else if (opc == IL_JUMP) {
             append(sd, "goto block", args[0], ";");
         } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILR) ||
                    (opc >= IL_IFOR && opc <= IL_VFOR) ||
@@ -188,30 +197,15 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         } else if (ISBCALL(opc) && natreg.nfuns[args[0]]->IsGLFrame()) {
             append(sd, "sp = GLFrame(sp, vm);");
         } else {
-            if (is_vararg && arity) {
-                sd += "static int args[] = {";
-                for (int i = 0; i < arity; i++) {
-                    if (i) sd += ", ";
-                    append(sd, args[i]);
-                }
-                sd += "}; ";
-            }
-            int target = -1;
-            if (opc == IL_PUSHFUN) {
-                target = args[0];
-            }
+            assert(ILArity()[opc] != ILUNKNOWN);
             append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
-            if (is_vararg) {
-                sd += ", args";
-            } else {
-                for (int i = 0; i < arity; i++) {
-                    sd += ", ";
-                    append(sd, args[i]);
-                }
-            }
-            if (target >= 0) {
+            for (int i = 0; i < arity; i++) {
                 sd += ", ";
-                append(sd, "fun_", target);
+                append(sd, args[i]);
+            }
+            if (opc == IL_PUSHFUN) {
+                sd += ", ";
+                append(sd, "fun_", args[0]);
             }
             sd += ");";
 
