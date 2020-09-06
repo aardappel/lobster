@@ -773,7 +773,7 @@ void CVM_TraceJ(VM *vm, StackPtr sp, const char *name) {
     #define CHECK(B) if (vm->trace != TraceMode::OFF) CVM_Trace(vm, sp, {B});
     #define CHECKJ(N) if (vm->trace != TraceMode::OFF) CVM_TraceJ(vm, sp, N);
 #else
-    #define CHECK(N, A)
+    #define CHECK(B)
     #define CHECKJ(N)
 #endif
 

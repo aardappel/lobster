@@ -248,6 +248,7 @@ struct UDT : Named {
 };
 
 inline int ValWidth(TypeRef type) {
+    assert(type->t != V_TUPLE);  // You need ValWidthMulti
     return IsStruct(type->t) ? type->udt->numslots : 1;
 }
 
