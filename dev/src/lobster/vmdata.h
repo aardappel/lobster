@@ -663,6 +663,7 @@ struct VM : VMArgs {
     int maxstacksize;
     StackPtr sp_suspended = nullptr;
     StackPtr savedrets = nullptr;
+    Value *temp_lval = nullptr;
 
     fun_base_t next_call_target = 0;
 

@@ -57,7 +57,6 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
         append(sd, opc, " ?");
         return ip;
     }
-    int is_struct = 0;
     switch(opc) {
         case IL_PUSHINT64:
         case IL_PUSHFLT64: {
@@ -121,16 +120,14 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             break;
         }
 
-        #undef LVAL
-        #define LVAL(N, V) case IL_VAR_##N: is_struct = V; goto var;
-            LVALOPNAMES
-        #undef LVAL
         case IL_PUSHVARV:
-            is_struct = 1;
+            sd += IdName(bcf, *ip++, typetable, true);
+            append(sd, " ", *ip++);
+            break;
+
+        case IL_LVAL_VAR:
         case IL_PUSHVAR:
-        var:
-            sd += IdName(bcf, *ip++, typetable, is_struct);
-            if (is_struct) append(sd, " ", *ip++);
+            sd += IdName(bcf, *ip++, typetable, false);
             break;
 
         case IL_PUSHFLT:

@@ -60,10 +60,6 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
 
         #define F(N, A, USE, DEF) \
             sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
-            LVALOPNAMES
-        #undef F
-        #define F(N, A, USE, DEF) \
-            sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
             ILBASENAMES
         #undef F
         #define F(N, A, USE, DEF) \
@@ -210,9 +206,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             sd += ");";
 
             string comment;
-            if (opc == IL_PUSHVAR) {
-                comment = IdName(bcf, args[0], typetable, false);
-            } else if (ISLVALVARINS(opc)) {
+            if (opc == IL_PUSHVAR || opc == IL_PUSHVARV || opc == IL_LVAL_VAR) {
                 comment = IdName(bcf, args[0], typetable, false);
             } else if (opc == IL_PUSHSTR) {
                 auto sv = bcf->stringtable()->Get(args[0])->string_view();

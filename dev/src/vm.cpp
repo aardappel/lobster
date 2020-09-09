@@ -728,9 +728,9 @@ extern "C" {
 
 using namespace lobster;
 
-void CVM_Trace(VM *vm, StackPtr sp, initializer_list<int> ip) {
+void TraceIP(VM *vm, StackPtr sp, const int *ip) {
     auto &sd = vm->TraceStream();
-    DisAsmIns(vm->nfr, sd, ip.begin(), vm->bcf->bytecode()->data(),
+    DisAsmIns(vm->nfr, sd, ip, vm->bcf->bytecode()->data(),
               (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf, false);
     #if RTT_ENABLED
         if (sp >= vm->stack) {
@@ -749,32 +749,16 @@ void CVM_Trace(VM *vm, StackPtr sp, initializer_list<int> ip) {
     if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
 }
 
-void CVM_TraceJ(VM *vm, StackPtr sp, const char *name) {
-    auto &sd = vm->TraceStream();
-    sd += name;
-    #if RTT_ENABLED
-        if (sp >= vm->stack) {
-            sd += " - ";
-            Top(sp).ToStringBase(*vm, sd, Top(sp).type, vm->debugpp);
-            if (sp > vm->stack) {
-                sd += " - ";
-                TopM(sp, 1).ToStringBase(*vm, sd, TopM(sp, 1).type, vm->debugpp);
-            }
-        }
-    #else
-        (void)sp;
-    #endif
-    // append(sd, " / ", (size_t)Top(sp).any());
-    // for (int _i = 0; _i < 7; _i++) { append(sd, " #", (size_t)vm->vars[_i].any()); }
-    if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
+void TraceIL(VM *vm, StackPtr sp, initializer_list<int> ip) {
+    TraceIP(vm, sp, ip.begin());
 }
 
 #ifndef NDEBUG
-    #define CHECK(B) if (vm->trace != TraceMode::OFF) CVM_Trace(vm, sp, {B});
-    #define CHECKJ(N) if (vm->trace != TraceMode::OFF) CVM_TraceJ(vm, sp, N);
+    #define CHECK(B) if (vm->trace != TraceMode::OFF) TraceIL(vm, sp, {B});
+    #define CHECKVA(B) if (vm->trace != TraceMode::OFF) TraceIP(vm, sp, B - 1);
 #else
     #define CHECK(B)
-    #define CHECKJ(N)
+    #define CHECKVA(B)
 #endif
 
 fun_base_t CVM_GetNextCallTarget(VM *vm) {
@@ -784,11 +768,6 @@ fun_base_t CVM_GetNextCallTarget(VM *vm) {
 // Only here because in compiled code we don't know sizeof(Value) (!)
 StackPtr CVM_Drop(StackPtr sp) { return --sp; }
 
-#define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECK(IL_##N VM_COMMA_IF(A) VM_OP_PASSN(A)); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
-LVALOPNAMES
-#undef F
 #define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         CHECK(IL_##N VM_COMMA_IF(A) VM_OP_PASSN(A)); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
@@ -802,15 +781,15 @@ ILCALLNAMES
 #undef F
 #define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECKJ(#N); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
+        CHECKVA(ip); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
 ILVARARGNAMES
 #undef F
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp) { CHECKJ(#N); return U_##N(*vm, sp); }
+    StackPtr CVM_##N(VM *vm, StackPtr sp) { CHECK(IL_##N VM_COMMA_1 0 /*FIXME*/); return U_##N(*vm, sp); }
 ILJUMPNAMES1
 #undef F
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp, int df) { CHECKJ(#N); return U_##N(*vm, sp, df); }
+    StackPtr CVM_##N(VM *vm, StackPtr sp, int df) { CHECK(IL_##N VM_COMMA_1 df VM_COMMA_1 0 /*FIXME*/); return U_##N(*vm, sp, df); }
 ILJUMPNAMES2
 #undef F
 

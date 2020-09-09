@@ -772,152 +772,140 @@ VM_INLINE StackPtr U_ABORT(VM &vm, StackPtr sp) {
     return sp;
 }
 
-#define LVALCASES(N, B) VM_INLINE void LV_##N(VM &vm, StackPtr &sp, Value &a) { Value b = Pop(sp); B; }
-#define LVALCASER(N, B) VM_INLINE void LV_##N(VM &vm, StackPtr &sp, Value &fa, int len) { B; }
-#define LVALCASESTR(N, B, B2) VM_INLINE void LV_##N(VM &vm, StackPtr &sp, Value &a) { Value b = Pop(sp); B; a.LTDECRTNIL(vm); B2; }
+VM_INLINE StackPtr U_LVAL_VAR(VM &vm, StackPtr sp, int vidx) {
+    vm.temp_lval = &vm.vars[vidx];
+    return sp;
+}
+
+
+VM_INLINE StackPtr U_LVAL_FLD(VM &vm, StackPtr sp, int i) {
+    vm.temp_lval = &GetFieldLVal(vm, sp, i);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LVAL_IDXVI(VM &vm, StackPtr sp) {
+    auto x = Pop(sp).ival();
+    vm.temp_lval = &GetVecLVal(vm, sp, x);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LVAL_IDXVV(VM &vm, StackPtr sp, int l) {
+    auto x = vm.GrabIndex(sp, l);
+    vm.temp_lval = &GetVecLVal(vm, sp, x);
+    return sp;
+}
+
+// Class accessed by index.
+VM_INLINE StackPtr U_LVAL_IDXNI(VM &vm, StackPtr sp) {
+    auto x = Pop(sp).ival();
+    vm.temp_lval = &GetFieldILVal(vm, sp, x);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_DUP(VM &vm, StackPtr sp) {
+    Push(sp, *vm.temp_lval);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_DUPV(VM &vm, StackPtr sp, int l) {
+    tsnz_memcpy(TopPtr(sp), vm.temp_lval, l);
+    PushN(sp, l);
+    return sp;
+}
+
+/*
+VM_INLINE StackPtr U_LV_DUPREF(VM &vm, StackPtr sp) {
+    vm.temp_lval->LTINCRTNIL();
+    Push(sp, *vm.temp_lval);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_DUPREFV(VM &vm, StackPtr sp, int l) {
+    tsnz_memcpy(TopPtr(sp), vm.temp_lval, l);
+    for (int i = 0; i < l; i++) {
+        sp++;
+        sp->LTINCRTNIL();
+    }
+    return sp;
+}
+*/
+
+#define LVALCASES(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr &sp) { \
+    auto &a = *vm.temp_lval; Value b = Pop(sp); B; return sp; }
+
+#define LVALCASER(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr &sp, int len) { \
+    auto &fa = *vm.temp_lval; B; return sp; }
+
+#define LVALCASESTR(N, B, B2) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr &sp) { \
+    auto &a = *vm.temp_lval; Value b = Pop(sp); B; a.LTDECRTNIL(vm); B2; return sp; }
 
 LVALCASER(IVVADD , _IVOPV(+, 0, &fa))
-LVALCASER(IVVADDR, _IVOPV(+, 0, &fa))
 LVALCASER(IVVSUB , _IVOPV(-, 0, &fa))
-LVALCASER(IVVSUBR, _IVOPV(-, 0, &fa))
 LVALCASER(IVVMUL , _IVOPV(*, 0, &fa))
-LVALCASER(IVVMULR, _IVOPV(*, 0, &fa))
 LVALCASER(IVVDIV , _IVOPV(/, 1, &fa))
-LVALCASER(IVVDIVR, _IVOPV(/, 1, &fa))
 LVALCASER(IVVMOD,  VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
-LVALCASER(IVVMODR, VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 
 LVALCASER(FVVADD , _FVOPV(+, 0, &fa))
-LVALCASER(FVVADDR, _FVOPV(+, 0, &fa))
 LVALCASER(FVVSUB , _FVOPV(-, 0, &fa))
-LVALCASER(FVVSUBR, _FVOPV(-, 0, &fa))
 LVALCASER(FVVMUL , _FVOPV(*, 0, &fa))
-LVALCASER(FVVMULR, _FVOPV(*, 0, &fa))
 LVALCASER(FVVDIV , _FVOPV(/, 1, &fa))
-LVALCASER(FVVDIVR, _FVOPV(/, 1, &fa))
 
 LVALCASER(IVSADD , _IVOPS(+, 0, &fa))
-LVALCASER(IVSADDR, _IVOPS(+, 0, &fa))
 LVALCASER(IVSSUB , _IVOPS(-, 0, &fa))
-LVALCASER(IVSSUBR, _IVOPS(-, 0, &fa))
 LVALCASER(IVSMUL , _IVOPS(*, 0, &fa))
-LVALCASER(IVSMULR, _IVOPS(*, 0, &fa))
 LVALCASER(IVSDIV , _IVOPS(/, 1, &fa))
-LVALCASER(IVSDIVR, _IVOPS(/, 1, &fa))
 LVALCASER(IVSMOD , VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
-LVALCASER(IVSMODR, VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 
 LVALCASER(FVSADD , _FVOPS(+, 0, &fa))
-LVALCASER(FVSADDR, _FVOPS(+, 0, &fa))
 LVALCASER(FVSSUB , _FVOPS(-, 0, &fa))
-LVALCASER(FVSSUBR, _FVOPS(-, 0, &fa))
 LVALCASER(FVSMUL , _FVOPS(*, 0, &fa))
-LVALCASER(FVSMULR, _FVOPS(*, 0, &fa))
 LVALCASER(FVSDIV , _FVOPS(/, 1, &fa))
-LVALCASER(FVSDIVR, _FVOPS(/, 1, &fa))
 
-LVALCASES(IADD   , _IOP(+, 0); a = res;          )
-LVALCASES(IADDR  , _IOP(+, 0); a = res; Push(sp, res))
-LVALCASES(ISUB   , _IOP(-, 0); a = res;          )
-LVALCASES(ISUBR  , _IOP(-, 0); a = res; Push(sp, res))
-LVALCASES(IMUL   , _IOP(*, 0); a = res;          )
-LVALCASES(IMULR  , _IOP(*, 0); a = res; Push(sp, res))
-LVALCASES(IDIV   , _IOP(/, 1); a = res;          )
-LVALCASES(IDIVR  , _IOP(/, 1); a = res; Push(sp, res))
-LVALCASES(IMOD   , _IOP(%, 1); a = res;          )
-LVALCASES(IMODR  , _IOP(%, 1); a = res; Push(sp, res))
+LVALCASES(IADD   , _IOP(+, 0); a = res;)
+LVALCASES(ISUB   , _IOP(-, 0); a = res;)
+LVALCASES(IMUL   , _IOP(*, 0); a = res;)
+LVALCASES(IDIV   , _IOP(/, 1); a = res;)
+LVALCASES(IMOD   , _IOP(%, 1); a = res;)
 
-LVALCASES(BINAND , _IOP(&,  0); a = res;          )
-LVALCASES(BINANDR, _IOP(&,  0); a = res; Push(sp, res))
-LVALCASES(BINOR  , _IOP(|,  0); a = res;          )
-LVALCASES(BINORR , _IOP(|,  0); a = res; Push(sp, res))
-LVALCASES(XOR    , _IOP(^,  0); a = res;          )
-LVALCASES(XORR   , _IOP(^,  0); a = res; Push(sp, res))
-LVALCASES(ASL    , _IOP(<<, 0); a = res;          )
-LVALCASES(ASLR   , _IOP(<<, 0); a = res; Push(sp, res))
-LVALCASES(ASR    , _IOP(>>, 0); a = res;          )
-LVALCASES(ASRR   , _IOP(>>, 0); a = res; Push(sp, res))
+LVALCASES(BINAND , _IOP(&,  0); a = res;)
+LVALCASES(BINOR  , _IOP(|,  0); a = res;)
+LVALCASES(XOR    , _IOP(^,  0); a = res;)
+LVALCASES(ASL    , _IOP(<<, 0); a = res;)
+LVALCASES(ASR    , _IOP(>>, 0); a = res;)
 
-LVALCASES(FADD   , _FOP(+, 0); a = res;          )
-LVALCASES(FADDR  , _FOP(+, 0); a = res; Push(sp, res))
-LVALCASES(FSUB   , _FOP(-, 0); a = res;          )
-LVALCASES(FSUBR  , _FOP(-, 0); a = res; Push(sp, res))
-LVALCASES(FMUL   , _FOP(*, 0); a = res;          )
-LVALCASES(FMULR  , _FOP(*, 0); a = res; Push(sp, res))
-LVALCASES(FDIV   , _FOP(/, 1); a = res;          )
-LVALCASES(FDIVR  , _FOP(/, 1); a = res; Push(sp, res))
+LVALCASES(FADD   , _FOP(+, 0); a = res;)
+LVALCASES(FSUB   , _FOP(-, 0); a = res;)
+LVALCASES(FMUL   , _FOP(*, 0); a = res;)
+LVALCASES(FDIV   , _FOP(/, 1); a = res;)
 
-LVALCASESTR(SADD , _SCAT(),    a = res;          )
-LVALCASESTR(SADDR, _SCAT(),    a = res; Push(sp, res))
+LVALCASESTR(SADD , _SCAT(),    a = res;)
 
 #define OVERWRITE_VAR(a, b) { TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL); a = b; }
 
-VM_INLINE void LV_WRITE    (VM &,   StackPtr &sp, Value &a) { auto  b = Pop(sp);                   OVERWRITE_VAR(a, b); }
-VM_INLINE void LV_WRITER   (VM &,   StackPtr &sp, Value &a) { auto &b = Top(sp);                   OVERWRITE_VAR(a, b); }
-VM_INLINE void LV_WRITEREF (VM &vm, StackPtr &sp, Value &a) { auto  b = Pop(sp); a.LTDECRTNIL(vm); OVERWRITE_VAR(a, b); }
-VM_INLINE void LV_WRITERREF(VM &vm, StackPtr &sp, Value &a) { auto &b = Top(sp); a.LTDECRTNIL(vm); OVERWRITE_VAR(a, b); }
+VM_INLINE StackPtr U_LV_WRITE    (VM &vm, StackPtr &sp) { auto &a = *vm.temp_lval; auto  b = Pop(sp);                   OVERWRITE_VAR(a, b); return sp; }
+VM_INLINE StackPtr U_LV_WRITEREF (VM &vm, StackPtr &sp) { auto &a = *vm.temp_lval; auto  b = Pop(sp); a.LTDECRTNIL(vm); OVERWRITE_VAR(a, b); return sp; }
 
 #define WRITESTRUCT(DECS) \
     auto b = TopPtr(sp) - l; \
     if (DECS) for (int i = 0; i < l; i++) (&a)[i].LTDECRTNIL(vm); \
     tsnz_memcpy(&a, b, l);
 
-VM_INLINE void LV_WRITEV    (VM &vm, StackPtr &sp, Value &a, int l) { WRITESTRUCT(false); PopN(sp, l); }
-VM_INLINE void LV_WRITERV   (VM &vm, StackPtr &sp, Value &a, int l) { WRITESTRUCT(false); }
-VM_INLINE void LV_WRITEREFV (VM &vm, StackPtr &sp, Value &a, int l) { WRITESTRUCT(true); PopN(sp, l); }
-VM_INLINE void LV_WRITERREFV(VM &vm, StackPtr &sp, Value &a, int l) { WRITESTRUCT(true); }
+VM_INLINE StackPtr U_LV_WRITEV    (VM &vm, StackPtr &sp, int l) { auto &a = *vm.temp_lval; WRITESTRUCT(false); PopN(sp, l); return sp; }
+VM_INLINE StackPtr U_LV_WRITEREFV (VM &vm, StackPtr &sp, int l) { auto &a = *vm.temp_lval; WRITESTRUCT(true); PopN(sp, l); return sp; }
 
-#define PPOP(name, ret, op, pre, accessor) VM_INLINE void LV_##name(VM &, StackPtr &sp, Value &a) { \
-    if (ret && !pre) Push(sp, a); \
+#define PPOP(name, op, pre, accessor) VM_INLINE StackPtr U_LV_##name(VM &vm, StackPtr &sp) { \
+    auto &a = *vm.temp_lval; \
     a.set##accessor(a.accessor() op 1); \
-    if (ret && pre) Push(sp, a); \
+    return sp; \
 }
 
-PPOP(IPP  , false, +, true , ival)
-PPOP(IPPR , true , +, true , ival)
-PPOP(IMM  , false, -, true , ival)
-PPOP(IMMR , true , -, true , ival)
-PPOP(IPPP , false, +, false, ival)
-PPOP(IPPPR, true , +, false, ival)
-PPOP(IMMP , false, -, false, ival)
-PPOP(IMMPR, true , -, false, ival)
-PPOP(FPP  , false, +, true , fval)
-PPOP(FPPR , true , +, true , fval)
-PPOP(FMM  , false, -, true , fval)
-PPOP(FMMR , true , -, true , fval)
-PPOP(FPPP , false, +, false, fval)
-PPOP(FPPPR, true , +, false, fval)
-PPOP(FMMP , false, -, false, fval)
-PPOP(FMMPR, true , -, false, fval)
-
-#pragma push_macro("LVAL")
-#undef LVAL
-
-#define LVAL(N, V) VM_INLINE StackPtr U_VAR_##N(VM &vm, StackPtr sp, int vidx VM_COMMA_IF(V) VM_OP_ARGSN(V)) \
-    { LV_##N(vm, sp, vm.vars[vidx] VM_COMMA_IF(V) VM_OP_PASSN(V)); return sp; }
-    LVALOPNAMES
-#undef LVAL
-
-#define LVAL(N, V) VM_INLINE StackPtr U_FLD_##N(VM &vm, StackPtr sp, int i VM_COMMA_IF(V) VM_OP_ARGSN(V)) \
-    { auto &x = GetFieldLVal(vm, sp, i); LV_##N(vm, sp, x VM_COMMA_IF(V) VM_OP_PASSN(V)); return sp; }
-    LVALOPNAMES
-#undef LVAL
-
-#define LVAL(N, V) VM_INLINE StackPtr U_IDXVI_##N(VM &vm, StackPtr sp VM_COMMA_IF(V) VM_OP_ARGSN(V)) \
-    { auto x = Pop(sp).ival(); auto &y = GetVecLVal(vm, sp, x); LV_##N(vm, sp, y VM_COMMA_IF(V) VM_OP_PASSN(V)); return sp; }
-    LVALOPNAMES
-#undef LVAL
-
-#define LVAL(N, V) VM_INLINE StackPtr U_IDXVV_##N(VM &vm, StackPtr sp, int l VM_COMMA_IF(V) VM_OP_ARGSN(V)) \
-    { auto x = vm.GrabIndex(sp, l); auto &y = GetVecLVal(vm, sp, x); LV_##N(vm, sp, y VM_COMMA_IF(V) VM_OP_PASSN(V)); return sp; }
-    LVALOPNAMES
-#undef LVAL
-
-#define LVAL(N, V) VM_INLINE StackPtr U_IDXNI_##N(VM &vm, StackPtr sp VM_COMMA_IF(V) VM_OP_ARGSN(V)) \
-    { auto x = Pop(sp).ival(); auto &y = GetFieldILVal(vm, sp, x); LV_##N(vm, sp, y VM_COMMA_IF(V) VM_OP_PASSN(V)); return sp; }
-    LVALOPNAMES
-#undef LVAL
-
-#pragma pop_macro("LVAL")
+PPOP(IPP , +, true , ival)
+PPOP(IMM , -, true , ival)
+PPOP(IPPP, +, false, ival)
+PPOP(IMMP, -, false, ival)
+PPOP(FPP , +, true , fval)
+PPOP(FMM , -, true , fval)
+PPOP(FPPP, +, false, fval)
+PPOP(FMMP, -, false, fval)
 
 }  // namespace lobster

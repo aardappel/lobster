@@ -310,3 +310,14 @@ run_test("misc"):
             return 4
         return 3 from G
     assert G() == 5
+
+    // ref lvalues returned from assign.
+    var slv = "a"
+    assert (slv += "b") == "ab"
+    var vlv = [ 1 ]
+    assert equal(vlv = [ 2 ], [ 2 ])
+    struct STLV:
+        a:string
+        b:[string]
+    var stlv = STLV { "a", [ "a" ] }
+    assert (stlv = STLV { "b", [ "b" ] }).b[0] == "b"

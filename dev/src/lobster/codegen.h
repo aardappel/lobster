@@ -504,39 +504,56 @@ struct CodeGen  {
         Emit(ValWidth(type));
     }
 
-    void GenAssign(const Node *lval, int lvalop, size_t retval,
+    void GenAssign(const Node *lval, ILOP lvalop, size_t retval,
                    const Node *rhs, int take_temp) {
         assert(node_context.back()->exptype->NumValues() == retval);
         auto type = lval->exptype;
-        if (lvalop >= LVO_IADD && lvalop <= LVO_IMOD) {
+        auto post = lvalop == IL_LV_IPPP || lvalop == IL_LV_IMMP;
+        if (lvalop >= IL_LV_IADD && lvalop <= IL_LV_IMOD) {
             if (type->t == V_INT) {
-            } else if (type->t == V_FLOAT)  {
-                assert(lvalop != LVO_IMOD); lvalop += LVO_FADD - LVO_IADD;
+            } else if (type->t == V_FLOAT) {
+                assert(lvalop != IL_LV_IMOD); lvalop = GENOP(lvalop + (IL_LV_FADD - IL_LV_IADD));
             } else if (type->t == V_STRING) {
-                assert(lvalop == LVO_IADD); lvalop = LVO_SADD;
+                assert(lvalop == IL_LV_IADD); lvalop = IL_LV_SADD;
             } else if (type->t == V_STRUCT_S) {
                 auto sub = type->udt->sametype;
                 bool withscalar = IsScalar(rhs->exptype->t);
                 if (sub->t == V_INT) {
-                    lvalop += (withscalar ? LVO_IVSADD : LVO_IVVADD) - LVO_IADD;
+                    lvalop = GENOP(lvalop + ((withscalar ? IL_LV_IVSADD : IL_LV_IVVADD) - IL_LV_IADD));
                 } else if (sub->t == V_FLOAT) {
-                    assert(lvalop != LVO_IMOD);
-                    lvalop += (withscalar ? LVO_FVSADD : LVO_FVVADD) - LVO_IADD;
+                    assert(lvalop != IL_LV_IMOD);
+                    lvalop = GENOP(lvalop + ((withscalar ? IL_LV_FVSADD : IL_LV_FVVADD) - IL_LV_IADD));
                 } else assert(false);
             } else {
                 assert(false);
             }
-        } else if (lvalop >= LVO_IPP && lvalop <= LVO_IMMP) {
-            if (type->t == V_FLOAT) lvalop += LVO_FPP - LVO_IPP;
+        } else if (lvalop >= IL_LV_IPP && lvalop <= IL_LV_IMMP) {
+            if (type->t == V_FLOAT) lvalop = GENOP(lvalop + (IL_LV_FPP - IL_LV_IPP));
             else assert(type->t == V_INT);
         }
-        if (retval) lvalop++;
         if (rhs) Gen(rhs, 1);
+        auto GenLvalRet = [&](TypeRef lvt) {
+            if (!post) {
+                EmitOp(lvalop);
+                EmitWidthIfStruct(lvt);
+            }
+            if (retval) {
+                // FIXME: it seems these never need a refcount increase because they're always
+                // borrowed? Be good to assert that somehow.
+                EmitOp(IsStruct(lvt->t) ? IL_LV_DUPV : IL_LV_DUP);
+                EmitWidthIfStruct(lvt);
+            }
+            if (post) {
+                EmitOp(lvalop);
+                EmitWidthIfStruct(lvt);
+            }
+        };
         if (auto idr = Is<IdentRef>(lval)) {
             TakeTemp(take_temp, true);
-            EmitOp(GENLVALOP(VAR, lvalop));
+            EmitOp(IL_LVAL_VAR);
             Emit(idr->sid->Idx());
-            EmitWidthIfStruct(idr->sid->type);
+            GenLvalRet(idr->sid->type);
+
         } else if (auto dot = Is<Dot>(lval)) {
             auto stype = dot->children[0]->exptype;
             assert(IsUDT(stype->t));  // Ensured by typechecker.
@@ -545,25 +562,25 @@ struct CodeGen  {
             auto &field = stype->udt->fields[idx];
             Gen(dot->children[0], 1);
             TakeTemp(take_temp + 1, true);
-            EmitOp(GENLVALOP(FLD, lvalop));
+            EmitOp(IL_LVAL_FLD);
             Emit(field.slot);
-            EmitWidthIfStruct(field.resolvedtype);
+            GenLvalRet(field.resolvedtype);
         } else if (auto indexing = Is<Indexing>(lval)) {
             Gen(indexing->object, 1);
             Gen(indexing->index, 1);
             TakeTemp(take_temp + 2, true);
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
-                    EmitOp(indexing->index->exptype->t == V_INT
-                         ? GENLVALOP(IDXVI, lvalop)
-                         : GENLVALOP(IDXVV, lvalop));
+                    EmitOp(indexing->index->exptype->t == V_INT ? IL_LVAL_IDXVI : IL_LVAL_IDXVV);
                     EmitWidthIfStruct(indexing->index->exptype);  // When index is struct.
-                    EmitWidthIfStruct(type);  // When vector elem is struct.
+                    GenLvalRet(type);
                     break;
                 case V_CLASS:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->udt->sametype->Numeric());
-                    EmitOp(GENLVALOP(IDXNI, lvalop));
+                    EmitOp(IL_LVAL_IDXNI);
+                    assert(!IsStruct(type->t));
+                    GenLvalRet(type);
                     break;
                 case V_STRUCT_R:
                 case V_STRUCT_S:
@@ -633,11 +650,11 @@ struct CodeGen  {
         }
     }
 
-    int AssignBaseOp(TypeLT typelt) {
+    ILOP AssignBaseOp(TypeLT typelt) {
         auto dec = ShouldDec(typelt);
         return IsStruct(typelt.type->t)
-            ? (dec ? LVO_WRITEREFV : LVO_WRITEV)
-            : (dec ? LVO_WRITEREF : LVO_WRITE);
+            ? (dec ? IL_LV_WRITEREFV : IL_LV_WRITEV)
+            : (dec ? IL_LV_WRITEREF : IL_LV_WRITE);
     }
 
     void EmitKeep(int stack_offset, int keep_index_add) {
@@ -854,8 +871,9 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
         // (also: multiple copies of the same inlined function in one parent).
         // We should emit a specialized opcode for these cases only.
         // NOTE: we already don't decref for borrowed vars generated by the optimizer here (!)
-        cg.EmitOp(GENLVALOP(VAR, cg.AssignBaseOp({ *sid })));
+        cg.EmitOp(IL_LVAL_VAR);
         cg.Emit(sid->Idx());
+        cg.EmitOp(cg.AssignBaseOp({ *sid }));
         cg.EmitWidthIfStruct(sid->type);
     }
     assert(!retval);  // Parser guarantees this.
@@ -867,40 +885,40 @@ void Assign::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void PlusEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_IADD, retval, right, 1);
+    cg.GenAssign(left, IL_LV_IADD, retval, right, 1);
 }
 void MinusEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_ISUB, retval, right, 1);
+    cg.GenAssign(left, IL_LV_ISUB, retval, right, 1);
 }
 void MultiplyEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_IMUL, retval, right, 1);
+    cg.GenAssign(left, IL_LV_IMUL, retval, right, 1);
 }
 void DivideEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_IDIV, retval, right, 1);
+    cg.GenAssign(left, IL_LV_IDIV, retval, right, 1);
 }
 void ModEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_IMOD, retval, right, 1);
+    cg.GenAssign(left, IL_LV_IMOD, retval, right, 1);
 }
 void AndEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_BINAND, retval, right, 1);
+    cg.GenAssign(left, IL_LV_BINAND, retval, right, 1);
 }
 void OrEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_BINOR, retval, right, 1);
+    cg.GenAssign(left, IL_LV_BINOR, retval, right, 1);
 }
 void XorEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_XOR, retval, right, 1);
+    cg.GenAssign(left, IL_LV_XOR, retval, right, 1);
 }
 void ShiftLeftEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_ASL, retval, right, 1);
+    cg.GenAssign(left, IL_LV_ASL, retval, right, 1);
 }
 void ShiftRightEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, LVO_ASR, retval, right, 1);
+    cg.GenAssign(left, IL_LV_ASR, retval, right, 1);
 }
 
-void PostDecr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IMMP, retval, nullptr, 0); }
-void PostIncr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IPPP, retval, nullptr, 0); }
-void PreDecr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IMM,  retval, nullptr, 0); }
-void PreIncr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IPP,  retval, nullptr, 0); }
+void PostDecr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IMMP, retval, nullptr, 0); }
+void PostIncr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IPPP, retval, nullptr, 0); }
+void PreDecr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IMM,  retval, nullptr, 0); }
+void PreIncr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IPP,  retval, nullptr, 0); }
 
 void NotEqual     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_NE);  }
 void Equal        ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_EQ);  }
@@ -1173,6 +1191,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
 void Block::Generate(CodeGen &cg, size_t retval) const {
     assert(retval <= 1);
     auto tstack_start = cg.tstack.size();
+    (void)tstack_start;
     for (auto c : children) {
         if (c != children.back()) {
             // Not the last element.
