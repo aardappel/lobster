@@ -133,9 +133,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             append(sd, "}; sp = U_", ILNames()[opc], "(vm, sp, args);");
         } else if (opc == IL_JUMP) {
             append(sd, "goto block", args[0], ";");
-        } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILR) ||
-                   (opc >= IL_IFOR && opc <= IL_VFOR) ||
-                   opc == IL_JUMPIFUNWOUND) {
+        } else if (CONDJUMP(opc)) {
             auto id = args[opc == IL_JUMPIFUNWOUND ? 1 : 0];
             assert(id >= 0);
             auto df = opc == IL_JUMPIFUNWOUND ? args[0] : -1;

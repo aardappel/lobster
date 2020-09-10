@@ -9,32 +9,20 @@ namespace lobster {
 #define VM_OP_ARGS1 int _a
 #define VM_OP_ARGS2 int _a, int _b
 #define VM_OP_ARGS3 int _a, int _b, int _c
-#define VM_OP_ARGS9 const int *ip  // ILUNKNOWN
+#define VM_OP_ARGS999999 const int *ip  // ILUNKNOWN
 #define VM_OP_ARGSN(N) VM_OP_ARGS##N
-#define VM_OP_DEFS0
-#define VM_OP_DEFS1 int _a = *vm.ip++;
-#define VM_OP_DEFS2 int _a = *vm.ip++; int _b = *vm.ip++;
-#define VM_OP_DEFS3 int _a = *vm.ip++; int _b = *vm.ip++; int _c = *vm.ip++;
-#define VM_OP_DEFS9  // ILUNKNOWN
-#define VM_OP_DEFSN(N) VM_OP_DEFS##N (void)vm.ip;
 #define VM_OP_PASS0
 #define VM_OP_PASS1 _a
 #define VM_OP_PASS2 _a, _b
 #define VM_OP_PASS3 _a, _b, _c
-#define VM_OP_PASS9 ip  // ILUNKNOWN
+#define VM_OP_PASS999999 ip  // ILUNKNOWN
 #define VM_OP_PASSN(N) VM_OP_PASS##N
 #define VM_COMMA_0
 #define VM_COMMA_1 ,
 #define VM_COMMA_2 ,
 #define VM_COMMA_3 ,
-#define VM_COMMA_9 ,
+#define VM_COMMA_999999 ,  // ILUNKNOWN
 #define VM_COMMA_IF(N) VM_COMMA_##N
-#define VM_CCOMMA_0
-#define VM_CCOMMA_1 ,
-#define VM_CCOMMA_2 ,
-#define VM_CCOMMA_3 ,
-#define VM_CCOMMA_9 ,
-#define VM_CCOMMA_IF(N) VM_CCOMMA_##N
 
 #if RTT_ENABLED
     #define VMTYPEEQ(val, vt) VMASSERT(vm, (val).type == (vt))
@@ -721,7 +709,7 @@ VM_INLINE StackPtr U_NATIVEHINT(VM &, StackPtr sp, int) {
 }
 
 VM_INLINE StackPtr U_JUMP(VM &, StackPtr sp) {
-    Push(sp, false);
+    assert(false);
     return sp;
 }
 
@@ -731,7 +719,7 @@ VM_INLINE StackPtr U_JUMPFAIL(VM &, StackPtr sp) {
 
 VM_INLINE StackPtr U_JUMPFAILR(VM &, StackPtr sp) {
     auto x = Top(sp);
-    if (x.False()) Push(sp, x);
+    Push(sp, x);
     return sp;
 }
 
@@ -742,8 +730,7 @@ VM_INLINE StackPtr U_JUMPNOFAIL(VM &, StackPtr sp) {
 }
 
 VM_INLINE StackPtr U_JUMPNOFAILR(VM &, StackPtr sp) {
-    auto x = Pop(sp);
-    if (x.True()) Push(sp, x);
+    auto x = Top(sp);
     Push(sp, x.False());
     return sp;
 }
@@ -836,9 +823,6 @@ VM_INLINE StackPtr U_LV_DUPREFV(VM &vm, StackPtr sp, int l) {
 #define LVALCASER(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr &sp, int len) { \
     auto &fa = *vm.temp_lval; B; return sp; }
 
-#define LVALCASESTR(N, B, B2) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr &sp) { \
-    auto &a = *vm.temp_lval; Value b = Pop(sp); B; a.LTDECRTNIL(vm); B2; return sp; }
-
 LVALCASER(IVVADD , _IVOPV(+, 0, &fa))
 LVALCASER(IVVSUB , _IVOPV(-, 0, &fa))
 LVALCASER(IVVMUL , _IVOPV(*, 0, &fa))
@@ -878,34 +862,71 @@ LVALCASES(FSUB   , _FOP(-, 0); a = res;)
 LVALCASES(FMUL   , _FOP(*, 0); a = res;)
 LVALCASES(FDIV   , _FOP(/, 1); a = res;)
 
-LVALCASESTR(SADD , _SCAT(),    a = res;)
-
-#define OVERWRITE_VAR(a, b) { TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL); a = b; }
-
-VM_INLINE StackPtr U_LV_WRITE    (VM &vm, StackPtr &sp) { auto &a = *vm.temp_lval; auto  b = Pop(sp);                   OVERWRITE_VAR(a, b); return sp; }
-VM_INLINE StackPtr U_LV_WRITEREF (VM &vm, StackPtr &sp) { auto &a = *vm.temp_lval; auto  b = Pop(sp); a.LTDECRTNIL(vm); OVERWRITE_VAR(a, b); return sp; }
-
-#define WRITESTRUCT(DECS) \
-    auto b = TopPtr(sp) - l; \
-    if (DECS) for (int i = 0; i < l; i++) (&a)[i].LTDECRTNIL(vm); \
-    tsnz_memcpy(&a, b, l);
-
-VM_INLINE StackPtr U_LV_WRITEV    (VM &vm, StackPtr &sp, int l) { auto &a = *vm.temp_lval; WRITESTRUCT(false); PopN(sp, l); return sp; }
-VM_INLINE StackPtr U_LV_WRITEREFV (VM &vm, StackPtr &sp, int l) { auto &a = *vm.temp_lval; WRITESTRUCT(true); PopN(sp, l); return sp; }
-
-#define PPOP(name, op, pre, accessor) VM_INLINE StackPtr U_LV_##name(VM &vm, StackPtr &sp) { \
-    auto &a = *vm.temp_lval; \
-    a.set##accessor(a.accessor() op 1); \
-    return sp; \
+VM_INLINE StackPtr U_LV_SADD(VM &vm, StackPtr &sp) {
+    auto &a = *vm.temp_lval;
+    Value b = Pop(sp);
+    _SCAT();
+    a.LTDECRTNIL(vm);
+    a = res;
+    return sp;
 }
 
-PPOP(IPP , +, true , ival)
-PPOP(IMM , -, true , ival)
-PPOP(IPPP, +, false, ival)
-PPOP(IMMP, -, false, ival)
-PPOP(FPP , +, true , fval)
-PPOP(FMM , -, true , fval)
-PPOP(FPPP, +, false, fval)
-PPOP(FMMP, -, false, fval)
+VM_INLINE StackPtr U_LV_WRITE(VM &vm, StackPtr &sp) {
+    auto &a = *vm.temp_lval;
+    auto  b = Pop(sp);
+    TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL);
+    a = b;
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_WRITEREF(VM &vm, StackPtr &sp) {
+    auto &a = *vm.temp_lval;
+    auto  b = Pop(sp);
+    a.LTDECRTNIL(vm);
+    TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL);
+    a = b;
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_WRITEV(VM &vm, StackPtr &sp, int l) {
+    auto &a = *vm.temp_lval;
+    auto b = TopPtr(sp) - l;
+    tsnz_memcpy(&a, b, l);
+    PopN(sp, l);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_WRITEREFV(VM &vm, StackPtr &sp, int l) {
+    auto &a = *vm.temp_lval;
+    for (int i = 0; i < l; i++) (&a)[i].LTDECRTNIL(vm);
+    auto b = TopPtr(sp) - l;
+    tsnz_memcpy(&a, b, l);
+    PopN(sp, l);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_IPP(VM &vm, StackPtr &sp) {
+    auto &a = *vm.temp_lval;
+    a.setival(a.ival() + 1);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_IMM(VM & vm, StackPtr & sp) {
+    auto &a = *vm.temp_lval;
+    a.setival(a.ival() - 1);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_FPP(VM & vm, StackPtr & sp) {
+    auto &a = *vm.temp_lval;
+    a.setfval(a.fval() + 1);
+    return sp;
+}
+
+VM_INLINE StackPtr U_LV_FMM(VM & vm, StackPtr & sp) {
+    auto &a = *vm.temp_lval;
+    a.setfval(a.fval() - 1);
+    return sp;
+}
 
 }  // namespace lobster

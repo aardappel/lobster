@@ -27,7 +27,7 @@ enum MathOp {
     MOP_ADD, MOP_SUB, MOP_MUL, MOP_DIV, MOP_MOD, MOP_LT, MOP_GT, MOP_LE, MOP_GE, MOP_EQ, MOP_NE
 };
 
-#define ILUNKNOWN 9
+#define ILUNKNOWN 999999
 
 #define ILBASENAMES \
     F(PUSHINT,      1, 0, 1) \
@@ -37,7 +37,7 @@ enum MathOp {
     F(PUSHSTR,      1, 0, 1) \
     F(PUSHNIL,      0, 0, 1) \
     F(PUSHVAR,      1, 0, 1) \
-    F(PUSHVARV,     2, 0, 1) \
+    F(PUSHVARV,     2, 0, ILUNKNOWN) \
     F(VPUSHIDXI,    0, 2, 1) \
     F(VPUSHIDXI2V,  0, 2, ILUNKNOWN) \
     F(VPUSHIDXV,    1, ILUNKNOWN, ILUNKNOWN) \
@@ -52,15 +52,15 @@ enum MathOp {
     F(PUSHFLD2V,    2, 1, ILUNKNOWN) \
     F(PUSHFLDV2V,   3, ILUNKNOWN, ILUNKNOWN) \
     F(BCALLRETV,    2, ILUNKNOWN, ILUNKNOWN) \
-    F(BCALLRET0,    2, 0, 1) \
-    F(BCALLRET1,    2, 1, 1) \
-    F(BCALLRET2,    2, 2, 1) \
-    F(BCALLRET3,    2, 3, 1) \
-    F(BCALLRET4,    2, 4, 1) \
-    F(BCALLRET5,    2, 5, 1) \
-    F(BCALLRET6,    2, 6, 1) \
-    F(BCALLRET7,    2, 7, 1) \
-    F(ASSERT,       3, 1, 1) \
+    F(BCALLRET0,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(BCALLRET1,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(BCALLRET2,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(BCALLRET3,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(BCALLRET4,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(BCALLRET5,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(BCALLRET6,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(BCALLRET7,    2, ILUNKNOWN, ILUNKNOWN) \
+    F(ASSERT,       3, 1, 0) \
     F(ASSERTR,      3, 1, 1) \
     F(CONT1,        1, 0, 0) \
     F(ENDSTATEMENT, 2, 0, 0) \
@@ -95,48 +95,48 @@ enum MathOp {
     F(LOGNOT, 0, 1, 1) F(LOGNOTREF, 0, 1, 1) \
     F(BINAND, 0, 2, 1) F(BINOR, 0, 2, 1) F(XOR, 0, 2, 1) F(ASL, 0, 2, 1) F(ASR, 0, 2, 1) F(NEG, 0, 1, 1) \
     F(I2F, 0, 1, 1) F(A2S, 1, 1, 1) F(E2B, 0, 1, 1) F(E2BREF, 0, 1, 1) F(ST2S, 1, ILUNKNOWN, 1) \
-    F(RETURN, 2, ILUNKNOWN, 0) F(RETURNANY, 0, ILUNKNOWN, 0) \
+    F(RETURN, 2, ILUNKNOWN, 0) F(RETURNANY, 0, 0, 0) \
     F(ISTYPE, 1, 1, 1) \
-    F(FORLOOPI, 0, ILUNKNOWN, 1) \
-    F(IFORELEM, 0, ILUNKNOWN, 1) \
-    F(SFORELEM, 0, ILUNKNOWN, 1) \
-    F(VFORELEM, 0, ILUNKNOWN, 1) \
-    F(VFORELEMREF, 0, ILUNKNOWN, 1) \
-    F(VFORELEM2S, 0, ILUNKNOWN, ILUNKNOWN) \
-    F(VFORELEMREF2S, 0, ILUNKNOWN, ILUNKNOWN) \
-    F(INCREF, 1, ILUNKNOWN, ILUNKNOWN) \
-    F(KEEPREF, 2, ILUNKNOWN, ILUNKNOWN) \
-    F(KEEPREFLOOP, 2, ILUNKNOWN, ILUNKNOWN) \
-    F(SAVERETS, 0, ILUNKNOWN, 0) \
-    F(RESTORERETS, 0, 0, ILUNKNOWN) \
+    F(FORLOOPI, 0, 1, 2) \
+    F(IFORELEM, 0, 2, 3) \
+    F(SFORELEM, 0, 2, 3) \
+    F(VFORELEM, 0, 2, 3) \
+    F(VFORELEMREF, 0, 2, 3) \
+    F(VFORELEM2S, 0, 2, ILUNKNOWN) \
+    F(VFORELEMREF2S, 0, 2, ILUNKNOWN) \
+    F(INCREF, 1, 0, 0) \
+    F(KEEPREF, 2, 0, 0) \
+    F(KEEPREFLOOP, 2, 0, 0) \
+    F(SAVERETS, 0, 0, 0) \
+    F(RESTORERETS, 0, 0, 0) \
     F(CALL, 1, ILUNKNOWN, ILUNKNOWN) \
     F(CALLV, 0, ILUNKNOWN, ILUNKNOWN) \
     F(CALLVCOND, 0, ILUNKNOWN, ILUNKNOWN) \
     F(DDCALL, 2, ILUNKNOWN, ILUNKNOWN) \
     F(NATIVEHINT, 1, 0, 0) \
     F(LVAL_VAR, 1, 0, 0) \
-    F(LVAL_FLD, 1, 0, 0) \
-    F(LVAL_IDXVI, 0, 0, 0) \
-    F(LVAL_IDXVV, 1, 0, 0) \
-    F(LVAL_IDXNI, 0, 0, 0) \
-    F(LV_DUP, 0, 0, 0) \
-    F(LV_DUPV, 1, 0, 0) \
-    F(LV_WRITE, 0, 0, 0)  F(LV_WRITEREF, 0, 0, 0)  \
-    F(LV_WRITEV, 1, 0, 0) F(LV_WRITEREFV, 1, 0, 0) \
-    F(LV_IADD, 0, 0, 0)   F(LV_ISUB, 0, 0, 0)   F(LV_IMUL, 0, 0, 0)   F(LV_IDIV, 0, 0, 0)   \
-    F(LV_IMOD, 0, 0, 0)   \
-    F(LV_BINAND, 0, 0, 0) F(LV_BINOR, 0, 0, 0)  F(LV_XOR, 0, 0, 0)    \
-    F(LV_ASL, 0, 0, 0)    F(LV_ASR, 0, 0, 0)    \
-    F(LV_FADD, 0, 0, 0)   F(LV_FSUB, 0, 0, 0)   F(LV_FMUL, 0, 0, 0)   F(LV_FDIV, 0, 0, 0)   \
-    F(LV_IVVADD, 1, 0, 0) F(LV_IVVSUB, 1, 0, 0) F(LV_IVVMUL, 1, 0, 0) F(LV_IVVDIV, 1, 0, 0) \
-    F(LV_IVVMOD, 1, 0, 0) \
-    F(LV_FVVADD, 1, 0, 0) F(LV_FVVSUB, 1, 0, 0) F(LV_FVVMUL, 1, 0, 0) F(LV_FVVDIV, 1, 0, 0) \
-    F(LV_IVSADD, 1, 0, 0) F(LV_IVSSUB, 1, 0, 0) F(LV_IVSMUL, 1, 0, 0) F(LV_IVSDIV, 1, 0, 0) \
-    F(LV_IVSMOD, 1, 0, 0) \
-    F(LV_FVSADD, 1, 0, 0) F(LV_FVSSUB, 1, 0, 0) F(LV_FVSMUL, 1, 0, 0) F(LV_FVSDIV, 1, 0, 0) \
-    F(LV_SADD, 0, 0, 0)   \
-    F(LV_IPP, 0, 0, 0) F(LV_IMM, 0, 0, 0) F(LV_IPPP, 0, 0, 0) F(LV_IMMP, 0, 0, 0) \
-    F(LV_FPP, 0, 0, 0) F(LV_FMM, 0, 0, 0) F(LV_FPPP, 0, 0, 0) F(LV_FMMP, 0, 0, 0)
+    F(LVAL_FLD, 1, 1, 0) \
+    F(LVAL_IDXVI, 0, 2, 0) \
+    F(LVAL_IDXVV, 1, ILUNKNOWN, 0) \
+    F(LVAL_IDXNI, 0, 2, 0) \
+    F(LV_DUP, 0, 0, 1) \
+    F(LV_DUPV, 1, 0, ILUNKNOWN) \
+    F(LV_WRITE, 0, 1, 0)  F(LV_WRITEREF, 0, 1, 0)  \
+    F(LV_WRITEV, 1, ILUNKNOWN, 0) F(LV_WRITEREFV, 1, ILUNKNOWN, 0) \
+    F(LV_IADD, 0, 1, 0)   F(LV_ISUB, 0, 1, 0)   F(LV_IMUL, 0, 1, 0)   F(LV_IDIV, 0, 1, 0)   \
+    F(LV_IMOD, 0, 1, 0)   \
+    F(LV_BINAND, 0, 1, 0) F(LV_BINOR, 0, 1, 0)  F(LV_XOR, 0, 1, 0)    \
+    F(LV_ASL, 0, 1, 0)    F(LV_ASR, 0, 1, 0)    \
+    F(LV_FADD, 0, 1, 0)   F(LV_FSUB, 0, 1, 0)   F(LV_FMUL, 0, 1, 0)   F(LV_FDIV, 0, 1, 0)   \
+    F(LV_IVVADD, 1, ILUNKNOWN, 0) F(LV_IVVSUB, 1, ILUNKNOWN, 0) F(LV_IVVMUL, 1, ILUNKNOWN, 0) F(LV_IVVDIV, 1, ILUNKNOWN, 0) \
+    F(LV_IVVMOD, 1, ILUNKNOWN, 0) \
+    F(LV_FVVADD, 1, ILUNKNOWN, 0) F(LV_FVVSUB, 1, ILUNKNOWN, 0) F(LV_FVVMUL, 1, ILUNKNOWN, 0) F(LV_FVVDIV, 1, ILUNKNOWN, 0) \
+    F(LV_IVSADD, 1, 1, 0) F(LV_IVSSUB, 1, 1, 0) F(LV_IVSMUL, 1, 1, 0) F(LV_IVSDIV, 1, 1, 0) \
+    F(LV_IVSMOD, 1, 1, 0) \
+    F(LV_FVSADD, 1, 1, 0) F(LV_FVSSUB, 1, 1, 0) F(LV_FVSMUL, 1, 1, 0) F(LV_FVSDIV, 1, 1, 0) \
+    F(LV_SADD, 0, 1, 0) \
+    F(LV_IPP, 0, 0, 0) F(LV_IMM, 0, 0, 0) \
+    F(LV_FPP, 0, 0, 0) F(LV_FMM, 0, 0, 0)
 
 #define ILCALLNAMES \
     F(PUSHFUN, 1, 0, 1)
@@ -146,17 +146,18 @@ enum MathOp {
     F(FUNSTART, ILUNKNOWN, 0, 0)
 
 #define ILJUMPNAMES1 \
-    F(JUMP, 1, 0, 1) \
+    F(JUMP, 1, 0, 0) \
     F(JUMPFAIL, 1, 1, 1) \
-    F(JUMPFAILR, 1, 1, ILUNKNOWN) \
+    F(JUMPFAILR, 1, 1, 2) \
     F(JUMPNOFAIL, 1, 1, 1) \
-    F(JUMPNOFAILR, 1, 1, ILUNKNOWN) \
-    F(IFOR, 1, 2, ILUNKNOWN) \
-    F(SFOR, 1, 2, ILUNKNOWN) \
-    F(VFOR, 1, 2, ILUNKNOWN)
-
+    F(JUMPNOFAILR, 1, 1, 2) \
+    F(IFOR, 1, 2, 3) \
+    F(SFOR, 1, 2, 3) \
+    F(VFOR, 1, 2, 3)
 #define ILJUMPNAMES2 \
     F(JUMPIFUNWOUND, 2, 0, 1)
+
+#define CONDJUMP(OP) (OP >= IL_JUMPFAIL && OP <= IL_JUMPIFUNWOUND)
 
 #define GENOP(OP) ((ILOP)(OP))
 

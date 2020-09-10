@@ -1,6 +1,9 @@
-- MortimerSnerd: On linux, you may need to flush the printed stack for a failed "assert" before the THROW_OR_ABORT.  I only see the abort message when an assert fails.
-
 - natgen refactor
+  - move temps to array.
+    - ensure all allocated properly.
+      - returning values with JUMPIFUNWOUND/RETURNANY likely not working!
+    - fix StackDepth (now 0!)
+
   - rework function calling:
     - implement free vars differently from regular ones, options:
       1. simply keep free vars in the vars array, and regular on stack.
@@ -57,6 +60,7 @@
     - Could really help the amount of free vars by const prop of scalars and scalar structs.
       - problem: their defs should ideally first be optimized, yet their uses may come first
         in optimizer.
+  - move vm.temp_lval to a local.
   - A way to have temps/locals as C/C++ locals.
     - not having temps on the stack also helps not having to remove them correctly.
   - remaining free-var vars can now become C/C++ globals.
@@ -194,6 +198,20 @@
 
 - docs: explain about unbound variables, and what causes:
   type variable does not have field: size
+
+- Add a "run as DLL" mode for --cpp.
+  This would, if Lobster can find an installed C++ compiler, compile the compiled code to a DLL
+  to be loaded straight into the running program, as a faster alternative to TCC.
+  Can do this by exporting the VM ops as function pointers to the DLL, but that would likely not
+  be much faster than TCC mode.
+  Instead, it would have to compile also the VM ops + vmdata.h/.cpp etc into the DLL.
+  That could be somewhat slow at -O2 for larger programs, but worth it in many cases.
+  This would give the same speed as natively compiled mode in -O2, and the user could even choose
+  to ship this DLL!
+  Also can alternatively run with -O1 / -Os for different tradeoffs in startup & running speed.
+  Alternatively, if we want to avoid the linker and use it with the actual LLVM JIT, we
+  could have clang generate bitcode and feed that to the JIT:
+  https://weliveindetail.github.io/blog/post/2017/07/25/compile-with-clang-at-runtime-simple.html
 
 - Move checking for functions/builtins/selfarg etc to type checker.
   This is quite hard, it requires reworking a lot of stuff:
@@ -2096,6 +2114,7 @@ C++64-Clang10:        : secs  4.9
 C++64-Clang10-LTO     : secs  4.6
 C++64-Clang10-LTO     : secs  4.1, removed trampoline
 C++64-MSVC+TCC        : secs 11.6, 30% speedup vs interpreter!
+C++64-MSVC+TCC        : secs 12.5, some temp setbacks due to lval refactor etc.
 
 compiletime speed:
 

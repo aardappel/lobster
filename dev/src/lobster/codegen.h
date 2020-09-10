@@ -47,52 +47,62 @@ struct CodeGen  {
         code.push_back(i);
     }
 
+    #define TSTACK 0
+
     int TempStackSize() {
         return (int)tstack.size();
     }
 
     void PopTemp() {
-        assert(!tstack.empty());
-        tstack.pop_back();
+        #if TSTACK
+            assert(!tstack.empty());
+            tstack.pop_back();
+        #endif
     }
 
     void PushTemp(ILOP op) {
-        tstack.push_back(op);
+        #if TSTACK
+            tstack.push_back(op);
+        #else
+            (void)op;
+        #endif
     }
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         Emit(op);
-        (void)useslots;
-        (void)defslots;
-        /*
-        auto uses = ILUses()[op];
-        if (uses != ILUNKNOWN) {
-            for (int i = 0; i < uses; i++) {
-                PopTemp();
+        #if TSTACK
+            auto uses = ILUses()[op];
+            if (uses != ILUNKNOWN) {
+                for (int i = 0; i < uses; i++) {
+                    PopTemp();
+                    //Emit(TempStackSize());
+                }
+            } else {
+                assert(useslots != ILUNKNOWN);
+                uses = useslots;
+                for (int i = 0; i < uses; i++) PopTemp();
                 //Emit(TempStackSize());
             }
-        } else {
-            assert(useslots != ILUNKNOWN);
-            uses = useslots;
-            for (int i = 0; i < uses; i++) PopTemp();
-            //Emit(TempStackSize());
-        }
-        auto defs = ILDefs()[op];
-        if (defs != ILUNKNOWN) {
-            for (int i = 0; i < defs; i++) {
+            auto defs = ILDefs()[op];
+            if (defs != ILUNKNOWN) {
+                for (int i = 0; i < defs; i++) {
+                    //Emit(TempStackSize());
+                    PushTemp(op);
+                }
+                if (CONDJUMP(op)) PopTemp();  // FIXME, hack.
+            } else {
+                assert(defslots != ILUNKNOWN);
+                defs = defslots;
                 //Emit(TempStackSize());
-                PushTemp(op);
+                for (int i = 0; i < defs; i++) {
+                    PushTemp(op);
+                }
             }
-        } else {
-            assert(defslots != ILUNKNOWN);
-            defs = defslots;
-            //Emit(TempStackSize());
-            for (int i = 0; i < defs; i++) {
-                PushTemp(op);
-            }
-        }
-        LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs);
-        */
+            LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs, " -> ", tstack.size());
+        #else
+            (void)useslots;
+            (void)defslots;
+        #endif
     }
 
     void SetLabelNoBlockStart(int jumploc) {
@@ -378,8 +388,11 @@ struct CodeGen  {
 
     void GenCall(const SubFunction &sf, int vtable_idx, const List *args, size_t retval) {
         auto &f = *sf.parent;
+        int inw = 0;
+        int outw = ValWidthMulti(sf.returntype, sf.returntype->NumValues());
         for (auto c : args->children) {
             Gen(c, 1);
+            inw += ValWidth(c->exptype);
         }
         size_t nargs = args->children.size();
         if (f.nargs() != nargs)
@@ -387,18 +400,16 @@ struct CodeGen  {
                              " arguments, ", nargs, " given"), node_context.back());
         TakeTemp(nargs, true);
         if (vtable_idx < 0) {
-            EmitOp(IL_CALL);
+            EmitOp(IL_CALL, inw, outw);
             Emit(sf.subbytecodestart);
             GenFixup(&sf);
             if (sf.returned_thru) {
                 GenUnwind(sf);
             }
         } else {
-            int stack_depth = -1;
-            for (auto c : args->children) stack_depth += ValWidth(c->exptype);
-            EmitOp(IL_DDCALL);
+            EmitOp(IL_DDCALL, inw, outw);
             Emit(vtable_idx);
-            Emit(stack_depth);
+            Emit(inw - 1);
             // We get the dispatch from arg 0, since sf is an arbitrary overloads and
             // doesn't necessarily point to the dispatch root (which may not even have an sf).
             auto dispatch_type = args->children[0]->exptype;
@@ -505,10 +516,9 @@ struct CodeGen  {
     }
 
     void GenAssign(const Node *lval, ILOP lvalop, size_t retval,
-                   const Node *rhs, int take_temp) {
+                   const Node *rhs, int take_temp, bool post) {
         assert(node_context.back()->exptype->NumValues() == retval);
         auto type = lval->exptype;
-        auto post = lvalop == IL_LV_IPPP || lvalop == IL_LV_IMMP;
         if (lvalop >= IL_LV_IADD && lvalop <= IL_LV_IMOD) {
             if (type->t == V_INT) {
             } else if (type->t == V_FLOAT) {
@@ -527,24 +537,25 @@ struct CodeGen  {
             } else {
                 assert(false);
             }
-        } else if (lvalop >= IL_LV_IPP && lvalop <= IL_LV_IMMP) {
+        } else if (lvalop >= IL_LV_IPP && lvalop <= IL_LV_IMM) {
             if (type->t == V_FLOAT) lvalop = GENOP(lvalop + (IL_LV_FPP - IL_LV_IPP));
             else assert(type->t == V_INT);
         }
         if (rhs) Gen(rhs, 1);
         auto GenLvalRet = [&](TypeRef lvt) {
             if (!post) {
-                EmitOp(lvalop);
+                EmitOp(lvalop, ValWidth(lval->exptype));
                 EmitWidthIfStruct(lvt);
             }
             if (retval) {
                 // FIXME: it seems these never need a refcount increase because they're always
                 // borrowed? Be good to assert that somehow.
-                EmitOp(IsStruct(lvt->t) ? IL_LV_DUPV : IL_LV_DUP);
+                auto outw = ValWidth(lvt);
+                EmitOp(IsStruct(lvt->t) ? IL_LV_DUPV : IL_LV_DUP, 0, outw);
                 EmitWidthIfStruct(lvt);
             }
             if (post) {
-                EmitOp(lvalop);
+                EmitOp(lvalop, ValWidth(lval->exptype));
                 EmitWidthIfStruct(lvt);
             }
         };
@@ -571,7 +582,8 @@ struct CodeGen  {
             TakeTemp(take_temp + 2, true);
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
-                    EmitOp(indexing->index->exptype->t == V_INT ? IL_LVAL_IDXVI : IL_LVAL_IDXVV);
+                    EmitOp(indexing->index->exptype->t == V_INT ? IL_LVAL_IDXVI : IL_LVAL_IDXVV,
+                           ValWidth(indexing->index->exptype) + 1);
                     EmitWidthIfStruct(indexing->index->exptype);  // When index is struct.
                     GenLvalRet(type);
                     break;
@@ -618,7 +630,7 @@ struct CodeGen  {
         } else {
             if (opc >= MOP_EQ) {  // EQ/NEQ
                 if (IsStruct(ltype->t)) {
-                    EmitOp(GENOP(IL_STEQ + opc - MOP_EQ));
+                    EmitOp(GENOP(IL_STEQ + opc - MOP_EQ), ValWidth(ltype) * 2, 1);
                     EmitWidthIfStruct(ltype);
                 } else {
                     assert(IsRefNil(ltype->t) &&
@@ -631,10 +643,12 @@ struct CodeGen  {
                 assert(vectype->t == V_STRUCT_S);
                 auto sub = vectype->udt->sametype;
                 bool withscalar = IsScalar(rtype->t);
+                auto outw = ValWidth(ptype);
+                auto inw = withscalar ? outw + 1 : outw * 2;
                 if (sub->t == V_INT)
-                    EmitOp(GENOP((withscalar ? IL_IVSADD : IL_IVVADD) + opc));
+                    EmitOp(GENOP((withscalar ? IL_IVSADD : IL_IVVADD) + opc), inw, outw);
                 else if (sub->t == V_FLOAT)
-                    EmitOp(GENOP((withscalar ? IL_FVSADD : IL_FVVADD) + opc));
+                    EmitOp(GENOP((withscalar ? IL_FVSADD : IL_FVVADD) + opc), inw, outw);
                 else assert(false);
                 EmitWidthIfStruct(vectype);
             }
@@ -667,7 +681,7 @@ struct CodeGen  {
     void GenPushVar(size_t retval, TypeRef type, int offset) {
         if (!retval) return;
         if (IsStruct(type->t)) {
-            EmitOp(IL_PUSHVARV);
+            EmitOp(IL_PUSHVARV, 0, ValWidth(type));
             Emit(offset);
             EmitWidthIfStruct(type);
         } else {
@@ -704,17 +718,17 @@ struct CodeGen  {
         TakeTemp(1, true);
         if (IsStruct(stype->t)) {
             if (IsStruct(ftype->t)) {
-                EmitOp(IL_PUSHFLDV2V);
+                EmitOp(IL_PUSHFLDV2V, ValWidth(stype), ValWidth(ftype));
                 Emit(offset);
                 EmitWidthIfStruct(ftype);
             } else {
-                EmitOp(IL_PUSHFLDV);
+                EmitOp(IL_PUSHFLDV, ValWidth(stype), 1);
                 Emit(offset);
             }
             EmitWidthIfStruct(stype);
         } else {
             if (IsStruct(ftype->t)) {
-                EmitOp(IL_PUSHFLD2V);
+                EmitOp(IL_PUSHFLD2V, 1, ValWidth(ftype));
                 Emit(offset);
                 EmitWidthIfStruct(ftype);
             } else {
@@ -742,18 +756,19 @@ struct CodeGen  {
                         etype = etype->Element();
                     }
                 }
+                auto inw = ValWidth(index->exptype) + 1;
                 auto elemwidth = ValWidth(etype);
                 if (struct_elem_sub_width < 0) {
                     EmitOp(index->exptype->t == V_INT
                         ? (elemwidth == 1 ? IL_VPUSHIDXI : IL_VPUSHIDXI2V)
-                        : IL_VPUSHIDXV);
+                        : IL_VPUSHIDXV, inw, elemwidth);
                     EmitWidthIfStruct(index->exptype);
                 } else {
                     // We're indexing a sub-part of the element.
                     auto op = index->exptype->t == V_INT
                         ? (elemwidth == 1 ? IL_VPUSHIDXIS : IL_VPUSHIDXIS2V)
                         : IL_VPUSHIDXVS;
-                    EmitOp(op);
+                    EmitOp(op, inw, struct_elem_sub_width);
                     EmitWidthIfStruct(index->exptype);
                     if (op != IL_VPUSHIDXIS) Emit(struct_elem_sub_width);
                     Emit(struct_elem_sub_offset);
@@ -762,7 +777,7 @@ struct CodeGen  {
             }
             case V_STRUCT_S:
                 assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
-                EmitOp(IL_NPUSHIDXI);
+                EmitOp(IL_NPUSHIDXI, ValWidth(object->exptype) + 1);
                 EmitWidthIfStruct(object->exptype);
                 break;
             case V_STRING:
@@ -854,7 +869,7 @@ void AssignList::Generate(CodeGen &cg, size_t retval) const {
         auto left = children[i];
         auto id = Is<IdentRef>(left);
         auto llt = id ? id->sid->lt : LT_KEEP /* Dot */;
-        cg.GenAssign(left, cg.AssignBaseOp({ left->exptype, llt }), 0, nullptr, 1);
+        cg.GenAssign(left, cg.AssignBaseOp({ left->exptype, llt }), 0, nullptr, 1, false);
     }
     assert(!retval);  // Type checker guarantees this.
     (void)retval;
@@ -873,7 +888,7 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
         // NOTE: we already don't decref for borrowed vars generated by the optimizer here (!)
         cg.EmitOp(IL_LVAL_VAR);
         cg.Emit(sid->Idx());
-        cg.EmitOp(cg.AssignBaseOp({ *sid }));
+        cg.EmitOp(cg.AssignBaseOp({ *sid }), ValWidth(sid->type));
         cg.EmitWidthIfStruct(sid->type);
     }
     assert(!retval);  // Parser guarantees this.
@@ -881,44 +896,44 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Assign::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, cg.AssignBaseOp({ *right, 0 }), retval, right, 1);
+    cg.GenAssign(left, cg.AssignBaseOp({ *right, 0 }), retval, right, 1, false);
 }
 
 void PlusEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_IADD, retval, right, 1);
+    cg.GenAssign(left, IL_LV_IADD, retval, right, 1, false);
 }
 void MinusEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_ISUB, retval, right, 1);
+    cg.GenAssign(left, IL_LV_ISUB, retval, right, 1, false);
 }
 void MultiplyEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_IMUL, retval, right, 1);
+    cg.GenAssign(left, IL_LV_IMUL, retval, right, 1, false);
 }
 void DivideEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_IDIV, retval, right, 1);
+    cg.GenAssign(left, IL_LV_IDIV, retval, right, 1, false);
 }
 void ModEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_IMOD, retval, right, 1);
+    cg.GenAssign(left, IL_LV_IMOD, retval, right, 1, false);
 }
 void AndEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_BINAND, retval, right, 1);
+    cg.GenAssign(left, IL_LV_BINAND, retval, right, 1, false);
 }
 void OrEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_BINOR, retval, right, 1);
+    cg.GenAssign(left, IL_LV_BINOR, retval, right, 1, false);
 }
 void XorEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_XOR, retval, right, 1);
+    cg.GenAssign(left, IL_LV_XOR, retval, right, 1, false);
 }
 void ShiftLeftEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_ASL, retval, right, 1);
+    cg.GenAssign(left, IL_LV_ASL, retval, right, 1, false);
 }
 void ShiftRightEq::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenAssign(left, IL_LV_ASR, retval, right, 1);
+    cg.GenAssign(left, IL_LV_ASR, retval, right, 1, false);
 }
 
-void PostDecr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IMMP, retval, nullptr, 0); }
-void PostIncr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IPPP, retval, nullptr, 0); }
-void PreDecr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IMM,  retval, nullptr, 0); }
-void PreIncr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IPP,  retval, nullptr, 0); }
+void PostDecr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IMM, retval, nullptr, 0, true); }
+void PostIncr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IPP, retval, nullptr, 0, true); }
+void PreDecr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IMM,  retval, nullptr, 0, false); }
+void PreIncr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, IL_LV_IPP,  retval, nullptr, 0, false); }
 
 void NotEqual     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_NE);  }
 void Equal        ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_EQ);  }
@@ -1096,14 +1111,17 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     // TODO: could pass arg types in here if most exps have types, cheaper than
     // doing it all in call instruction?
     size_t numstructs = 0;
+    int inw = 0;
     for (auto [i, c] : enumerate(children)) {
         cg.Gen(c, 1);
+        inw += ValWidth(c->exptype);
         if ((IsStruct(c->exptype->t) ||
              nf->args[i].flags & NF_PUSHVALUEWIDTH) &&
             !Is<DefaultVal>(c)) {
             cg.GenValueWidth(c->exptype);
             cg.temptypestack.push_back({ type_int, LT_ANY });
             numstructs++;
+            inw++;
         }
     }
     size_t nargs = children.size();
@@ -1116,7 +1134,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         assert(vmop == IL_BCALLRETV);
         auto lastarg = children.empty() ? nullptr : children.back();
         if (!Is<DefaultVal>(lastarg)) {
-            cg.EmitOp(vmop);
+            cg.EmitOp(vmop, inw, 0);
             cg.Emit(nf->idx);
             cg.Emit(false);
             // Note: this call is still conditional, since some of these functions dynamically
@@ -1130,14 +1148,14 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
             cg.EmitOp(IL_CONT1);
             cg.Emit(nf->idx);  // Never returns a value.
         } else {
-            cg.EmitOp(vmop);
+            cg.EmitOp(vmop, inw, 0);
             cg.Emit(nf->idx);
             cg.Emit(false);
             // retvals is empty, but still pushes a nil function that was intended for IL_CALLVCOND!
             cg.GenPop({ type_function_null, LT_ANY });
         }
     } else {
-        cg.EmitOp(vmop);
+        cg.EmitOp(vmop, inw, ValWidthMulti(nattype, nattype->NumValues()));
         cg.Emit(nf->idx);
         cg.Emit(!nf->retvals.empty());
     }
@@ -1179,7 +1197,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
         cg.EmitOp(IL_PUSHVAR);
         cg.Emit(sid->Idx());
         cg.TakeTemp(nargs, true);
-        cg.EmitOp(IL_CALLV, arg_width, ValWidthMulti(exptype, sf->returntype->NumValues()));
+        cg.EmitOp(IL_CALLV, arg_width + 1, ValWidthMulti(exptype, sf->returntype->NumValues()));
         if (sf->reqret) {
             if (!retval) cg.GenPop({ exptype, lt });
         } else {
@@ -1251,6 +1269,7 @@ void And::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitOp(retval ? IL_JUMPFAILR : IL_JUMPFAIL);
     cg.Emit(0);
     auto loc = cg.Pos();
+    if (retval) cg.EmitOp(IL_POP);
     cg.Gen(right, retval);
     if (retval) cg.TakeTemp(1, false);
     cg.SetLabel(loc);
@@ -1262,6 +1281,7 @@ void Or::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitOp(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL);
     cg.Emit(0);
     auto loc = cg.Pos();
+    if (retval) cg.EmitOp(IL_POP);
     cg.Gen(right, retval);
     if (retval) cg.TakeTemp(1, false);
     cg.SetLabel(loc);
@@ -1293,7 +1313,9 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitOp(IL_JUMPFAIL);
     cg.Emit(0);
     auto loc = cg.Pos();
+    auto tstack_level = cg.tstack.size();
     cg.Gen(truepart, retval);
+    cg.tstack.resize(tstack_level);  // The else part will push the same values.
     if (retval) cg.TakeTemp(1, true);
     cg.EmitOp(IL_JUMP);
     cg.Emit(0);
@@ -1336,6 +1358,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitNativeHint(NH_BLOCK_START);
     cg.EmitNativeHint(NH_LOOP_BACK);
     auto break_level = cg.breaks.size();
+    auto tstack_level = cg.tstack.size();
     switch (iter->exptype->t) {
         case V_INT:      cg.EmitOp(IL_IFOR); cg.Emit(0); break;
         case V_STRING:   cg.EmitOp(IL_SFOR); cg.Emit(0); break;
@@ -1349,6 +1372,9 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.SetLabel(exitloop);
     cg.loops.pop_back();
     cg.TakeTemp(2, false);
+    assert(tstack_level == cg.tstack.size()); (void)tstack_level;
+    cg.PopTemp();
+    cg.PopTemp();
     cg.ApplyBreaks(break_level);
     cg.EmitNativeHint(NH_LOOP_REMOVE);
     cg.Dummy(retval);
@@ -1357,13 +1383,20 @@ void For::Generate(CodeGen &cg, size_t retval) const {
 void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
     auto typelt = cg.temptypestack.back();
     switch (typelt.type->t) {
-        case V_INT:    cg.EmitOp(IL_IFORELEM); break;
-        case V_STRING: cg.EmitOp(IL_SFORELEM); break;
-        case V_VECTOR: cg.EmitOp(IsRefNil(typelt.type->sub->t)
-            ? (IsStruct(typelt.type->sub->t) ? IL_VFORELEMREF2S : IL_VFORELEMREF)
-            : (IsStruct(typelt.type->sub->t) ? IL_VFORELEM2S : IL_VFORELEM));
+        case V_INT:
+            cg.EmitOp(IL_IFORELEM);
             break;
-        default:       assert(false);
+        case V_STRING:
+            cg.EmitOp(IL_SFORELEM);
+            break;
+        case V_VECTOR:
+            cg.EmitOp(IsRefNil(typelt.type->sub->t)
+                    ? (IsStruct(typelt.type->sub->t) ? IL_VFORELEMREF2S : IL_VFORELEMREF)
+                    : (IsStruct(typelt.type->sub->t) ? IL_VFORELEM2S : IL_VFORELEM),
+                2, ValWidth(typelt.type->sub) + 2);
+            break;
+        default:
+            assert(false);
     }
 }
 
@@ -1378,8 +1411,10 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
     assert(!cg.loops.empty());
     assert(cg.temptypestack.size() == cg.LoopTemps());
     if (Is<For>(cg.loops.back())) {
+        auto tstack_backup = cg.tstack;
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 1]);
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 2]);
+        cg.tstack = tstack_backup;
     }
     cg.EmitOp(IL_JUMP);
     cg.Emit(0);
@@ -1390,86 +1425,16 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitNativeHint(NH_JUMPOUT_START);
     cg.Gen(value, 1);
     cg.TakeTemp(1, false);
-    auto switchtype = value->exptype;
     // See if we should do a jump table version.
-    if (switchtype->t == V_INT) {
-        int64_t mini = INT64_MAX / 2, maxi = INT64_MIN / 2;
-        int64_t num = 0;
-        auto get_range = [&](Node *c) -> pair<IntConstant *, IntConstant *> {
-            auto start = c;
-            auto end = c;
-            if (auto r = Is<Range>(c)) {
-                start = r->start;
-                end = r->end;
-            }
-            return { Is<IntConstant>(start), Is<IntConstant>(end) };
-        };
-        for (auto n : cases->children) {
-            auto cas = AssertIs<Case>(n);
-            for (auto c : cas->pattern->children) {
-                auto [istart, iend] = get_range(c);
-                if (!istart || !iend || istart->integer > iend->integer)
-                    goto no_jump_table;
-                num += iend->integer - istart->integer + 1;
-                mini = min(mini, istart->integer);
-                maxi = max(maxi, iend->integer);
-            }
-        }
-        // Decide if jump table is economic.
-        const int64_t min_vals = 3;  // Minimum to do jump table.
-        // TODO: This should be slightly non-linear? More values means you really want the
-        // jump table, typically.
-        const int64_t min_load_factor = 5;
-        int64_t range = maxi - mini + 1;
-        if (num < min_vals ||
-            range / num > min_load_factor ||
-            mini < INT32_MIN ||
-            maxi >= INT32_MAX)
-            goto no_jump_table;
-        // Emit jump table version.
-        // We use vtable storage, as these are essentially bytecode address tables.
-        cg.EmitOp(IL_JUMP_TABLE);
-        cg.Emit((int)mini);
-        cg.Emit((int)maxi);
-        auto table_start = cg.Pos();
-        for (int i = 0; i < (int)range + 1; i++) cg.Emit(-1);
-        vector<int> exitswitch;
-        int default_pos = -1;
-        for (auto n : cases->children) {
-            auto cas = AssertIs<Case>(n);
-            for (auto c : cas->pattern->children) {
-                auto [istart, iend] = get_range(c);
-                assert(istart && iend);
-                for (auto i = istart->integer; i <= iend->integer; i++) {
-                    cg.code[table_start + (int)i - (int)mini] = cg.Pos();
-                }
-            }
-            if (cas->pattern->children.empty()) default_pos = cg.Pos();
-            cg.EmitNativeHint(NH_JUMPTABLE_CASE_START);
-            cg.Gen(cas->body, retval);
-            if (retval) cg.TakeTemp(1, true);
-            if (n != cases->children.back()) {
-                cg.EmitOp(IL_JUMP);
-                cg.Emit(0);
-                exitswitch.push_back(cg.Pos());
-            }
-        }
-        cg.EmitNativeHint(NH_JUMPTABLE_END);
-        cg.SetLabels(exitswitch);
-        if (default_pos < 0) default_pos = cg.Pos();
-        cg.EmitNativeHint(NH_JUMPOUT_END);
-        for (int i = 0; i < (int)range + 1; i++) {
-            if (cg.code[table_start + i] == -1)
-                cg.code[table_start + i] = default_pos;
-        }
+    if (GenerateJumpTable(cg, retval))
         return;
-    }
-    no_jump_table:
-    // Do slow fall-back for sparse integers, expressions and strings.
+    // Do slow default implementation for sparse integers, expressions and strings.
     auto valtlt = TypeLT{ *value, 0 };
     vector<int> nextcase, thiscase, exitswitch;
     bool have_default = false;
+    auto tstack_backup = cg.tstack;
     for (auto n : cases->children) {
+        cg.tstack = tstack_backup;
         cg.SetLabels(nextcase);
         cg.temptypestack.push_back(valtlt);
         auto cas = AssertIs<Case>(n);
@@ -1480,6 +1445,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
             auto is_last = c == cas->pattern->children.back();
             cg.GenDup(valtlt);
             int loc = -1;
+            auto switchtype = value->exptype;
             if (auto r = Is<Range>(c)) {
                 cg.EmitNativeHint(NH_SWITCH_RANGE_BLOCK);
                 cg.Gen(r->start, 1);
@@ -1528,9 +1494,88 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         cg.EmitNativeHint(NH_SWITCH_NEXTCASE_END);
     }
     cg.SetLabels(nextcase);
-    if (!have_default) cg.GenPop(valtlt);
+    if (!have_default) {
+        cg.tstack = tstack_backup;
+        cg.GenPop(valtlt);
+    }
     cg.EmitNativeHint(NH_JUMPOUT_END);
     cg.SetLabels(exitswitch);
+}
+
+bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
+    if (value->exptype->t != V_INT)
+        return false;
+    int64_t mini = INT64_MAX / 2, maxi = INT64_MIN / 2;
+    int64_t num = 0;
+    auto get_range = [&](Node *c) -> pair<IntConstant *, IntConstant *> {
+        auto start = c;
+        auto end = c;
+        if (auto r = Is<Range>(c)) {
+            start = r->start;
+            end = r->end;
+        }
+        return { Is<IntConstant>(start), Is<IntConstant>(end) };
+    };
+    for (auto n : cases->children) {
+        auto cas = AssertIs<Case>(n);
+        for (auto c : cas->pattern->children) {
+            auto [istart, iend] = get_range(c);
+            if (!istart || !iend || istart->integer > iend->integer)
+                return false;
+            num += iend->integer - istart->integer + 1;
+            mini = min(mini, istart->integer);
+            maxi = max(maxi, iend->integer);
+        }
+    }
+    // Decide if jump table is economic.
+    const int64_t min_vals = 3;  // Minimum to do jump table.
+    // TODO: This should be slightly non-linear? More values means you really want the
+    // jump table, typically.
+    const int64_t min_load_factor = 5;
+    int64_t range = maxi - mini + 1;
+    if (num < min_vals ||
+        range / num > min_load_factor ||
+        mini < INT32_MIN ||
+        maxi >= INT32_MAX)
+        return false;
+    // Emit jump table version.
+    cg.EmitOp(IL_JUMP_TABLE);
+    cg.Emit((int)mini);
+    cg.Emit((int)maxi);
+    auto table_start = cg.Pos();
+    for (int i = 0; i < (int)range + 1; i++) cg.Emit(-1);
+    vector<int> exitswitch;
+    int default_pos = -1;
+    auto tstack_backup = cg.tstack;
+    for (auto n : cases->children) {
+        cg.tstack = tstack_backup;
+        auto cas = AssertIs<Case>(n);
+        for (auto c : cas->pattern->children) {
+            auto [istart, iend] = get_range(c);
+            assert(istart && iend);
+            for (auto i = istart->integer; i <= iend->integer; i++) {
+                cg.code[table_start + (int)i - (int)mini] = cg.Pos();
+            }
+        }
+        if (cas->pattern->children.empty()) default_pos = cg.Pos();
+        cg.EmitNativeHint(NH_JUMPTABLE_CASE_START);
+        cg.Gen(cas->body, retval);
+        if (retval) cg.TakeTemp(1, true);
+        if (n != cases->children.back()) {
+            cg.EmitOp(IL_JUMP);
+            cg.Emit(0);
+            exitswitch.push_back(cg.Pos());
+        }
+    }
+    cg.EmitNativeHint(NH_JUMPTABLE_END);
+    cg.SetLabels(exitswitch);
+    if (default_pos < 0) default_pos = cg.Pos();
+    cg.EmitNativeHint(NH_JUMPOUT_END);
+    for (int i = 0; i < (int)range + 1; i++) {
+        if (cg.code[table_start + i] == -1)
+            cg.code[table_start + i] = default_pos;
+    }
+    return true;
 }
 
 void Case::Generate(CodeGen &/*cg*/, size_t /*retval*/) const {
@@ -1588,6 +1633,7 @@ void EnumCoercion::Generate(CodeGen &cg, size_t retval) const {
 void Return::Generate(CodeGen &cg, size_t retval) const {
     assert(!cg.rettypes.size());
     auto typestackbackup = cg.temptypestack;
+    auto tstackbackup = cg.tstack;
     if (cg.temptypestack.size()) {
         // We have temps on the stack from an enclosing for.
         // We can't actually remove these from the stack permanently as the parent nodes still
@@ -1618,12 +1664,17 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     // of the functions in between here and the function returned to.
     // Actually, doesn't work with DDCALL and RETURN_THRU.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
-    cg.EmitOp(IL_RETURN);
+    cg.EmitOp(IL_RETURN, nretslots);
     cg.Emit(sf->parent->idx);
     cg.Emit(nretslots);
     cg.temptypestack = typestackbackup;
+    cg.tstack = tstackbackup;
     // We can promise to be providing whatever retvals the caller wants.
-    for (size_t i = 0; i < retval; i++) cg.rettypes.push_back({ type_undefined, LT_ANY });
+    // FIXME: what if these must be structs?
+    for (size_t i = 0; i < retval; i++) {
+        cg.rettypes.push_back({ type_undefined, LT_ANY });
+        //cg.PushTemp(IL_RETURN);
+    }
 }
 
 void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {

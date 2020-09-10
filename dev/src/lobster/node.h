@@ -271,7 +271,7 @@ BINARY_NODE_T(While, "while", false, Node, condition, Block, body, RETURNSMETHOD
 BINARY_NODE_T(For, "for", false, Node, iter, Block, body, )
 ZERO_NODE(ForLoopElem, "for loop element", false, )
 ZERO_NODE(ForLoopCounter, "for loop counter", false, )
-BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, RETURNSMETHOD)
+BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, RETURNSMETHOD bool GenerateJumpTable(CodeGen &cg, size_t retval) const;)
 BINARY_NODE_T(Case, "case", false, List, pattern, Node, body, )
 BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD)
