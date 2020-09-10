@@ -91,9 +91,6 @@ string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecod
     #define C_ARGS9 TI_I_IIII  // ILUNKNOWN
     #define C_ARGSN(N) C_ARGS##N
     #define F(N, A, USE, DEF) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
-        LVALOPNAMES
-    #undef F
-    #define F(N, A, USE, DEF) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
         ILBASENAMES
     #undef F
     #define F(N, A, USE, DEF) bw.AddImportLinkFunction("CVM_" #N, C_ARGSN(A));

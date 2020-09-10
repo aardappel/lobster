@@ -19,7 +19,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 if(NOT MINGW)
-    add_definitions("-DGIT_COMMIT_INFOSTR=${GIT_COMMIT_INFO}") # this currently breaks MingW compilation...
+  add_definitions("-DGIT_COMMIT_INFOSTR=${GIT_COMMIT_INFO}") # this currently breaks MingW compilation...
 endif()
 
 if(LOBSTER_ENGINE)
@@ -135,8 +135,8 @@ if(MSVC)
   add_compile_options("/std:c++latest")
 endif()
 if(WIN32)
-    # Valve SDKs only used in VS project for now.
-    add_compile_definitions(SKIP_SDKS)
+  # Valve SDKs only used in VS project for now.
+  add_compile_definitions(SKIP_SDKS)
 endif()
 
 find_package(Threads)
@@ -162,43 +162,48 @@ if(LOBSTER_ENGINE)
     set(OPENGL_LIBRARIES opengl32)
     set(SDL_LIBRARIES SDL2main ${SDL_LIBRARIES})
     if(MSVC)
-        set(ADDITIONAL_LIBRARIES "winmm.lib imm32.lib version.lib")
-        link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
+      set(ADDITIONAL_LIBRARIES "winmm.lib imm32.lib version.lib")
+      link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
     endif()
     if(MINGW)
-        SET(CMAKE_CXX_LINK_FLAGS "-mconsole -lmingw32")
+      SET(CMAKE_CXX_LINK_FLAGS "-mconsole -lmingw32")
     endif()
   endif()
 endif()
 
 if(UNIX)
-   include(GNUInstallDirs)
-   set(BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
-   set(DATADIR ${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME})
-   set(DOCDIR ${CMAKE_INSTALL_FULL_DOCDIR})
-   set_source_files_properties(src/platform.cpp PROPERTIES COMPILE_FLAGS -DPLATFORM_DATADIR="\\\"${DATADIR}/\\\"")
-   if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
-     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
-   endif()
+  include(GNUInstallDirs)
+  set(BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
+  set(DATADIR ${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME})
+  set(DOCDIR ${CMAKE_INSTALL_FULL_DOCDIR})
+  set_source_files_properties(src/platform.cpp PROPERTIES COMPILE_FLAGS -DPLATFORM_DATADIR="\\\"${DATADIR}/\\\"")
+  if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
+  endif()
 else()
-   set(BINDIR ${CMAKE_INSTALL_PREFIX})
-   set(DATADIR ${CMAKE_INSTALL_PREFIX})
-   set(DOCDIR ${CMAKE_INSTALL_PREFIX}/docs)
-   if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
-     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
-   endif()
+  set(BINDIR ${CMAKE_INSTALL_PREFIX})
+  set(DATADIR ${CMAKE_INSTALL_PREFIX})
+  set(DOCDIR ${CMAKE_INSTALL_PREFIX}/docs)
+  if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
+  endif()
 endif()
 
 # Turn off warnings for files we don't control.
 set_source_files_properties(${EXTERNAL_SRCS} PROPERTIES COMPILE_FLAGS -w)
 
+function(removecpp)
+  list(REMOVE_ITEM LOBSTER_SRCS "src/${arg1}.cpp")
+  # FIXME this seems platform specific?
+  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/${arg1}.cpp")
+endfunction()
+
 set(EXE_NAME lobster)
+removecpp(towasm)
 if(LOBSTER_TOCPP)
   add_definitions(-DVM_JIT_MODE=0)
-  list(REMOVE_ITEM LOBSTER_SRCS "src/main.cpp")
-  list(REMOVE_ITEM LOBSTER_SRCS "src/tccbind.cpp")
-  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")  #FIXME
-  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/tccbind.cpp")  #FIXME
+  removecpp(main)
+  removecpp(tccbind)
   list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
   add_definitions(-flto)
   set(EXE_NAME compiled_lobster)
@@ -214,10 +219,10 @@ endif()
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
 target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 if(LOBSTER_ENGINE)
-    target_link_libraries(${EXE_NAME}
-      ${SDL_LIBRARIES}
-      ${ADDITIONAL_LIBRARIES}
-      ${OPENGL_LIBRARIES})
+  target_link_libraries(${EXE_NAME}
+    ${SDL_LIBRARIES}
+    ${ADDITIONAL_LIBRARIES}
+    ${OPENGL_LIBRARIES})
 endif()
 
 install(TARGETS ${EXE_NAME} DESTINATION ${BINDIR})
