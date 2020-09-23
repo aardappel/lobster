@@ -192,10 +192,12 @@ endif()
 # Turn off warnings for files we don't control.
 set_source_files_properties(${EXTERNAL_SRCS} PROPERTIES COMPILE_FLAGS -w)
 
-function(removecpp)
-  list(REMOVE_ITEM LOBSTER_SRCS "src/${arg1}.cpp")
+function(removecpp CPPNAME)
+  list(REMOVE_ITEM LOBSTER_SRCS "src/${CPPNAME}.cpp")
   # FIXME this seems platform specific?
-  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/${arg1}.cpp")
+  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/${CPPNAME}.cpp")
+  # srsly CMake?
+  set (LOBSTER_SRCS ${LOBSTER_SRCS} PARENT_SCOPE)
 endfunction()
 
 set(EXE_NAME lobster)
