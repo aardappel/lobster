@@ -66,7 +66,6 @@ CPPSRCS= \
 	../src/stdafx.cpp \
 	../src/tocpp.cpp \
 	../src/tonative.cpp \
-	../src/towasm.cpp \
     ../src/vm.cpp \
 	../src/vmdata.cpp \
     $(wildcard ../include/Box2D/Collision/*.cpp) \
