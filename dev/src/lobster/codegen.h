@@ -111,19 +111,14 @@ struct CodeGen  {
 
     void SetLabel(int jumploc) {
         SetLabelNoBlockStart(jumploc);
-        EmitNativeHint(NH_BLOCK_START);
+        EmitOp(IL_BLOCK_START);
     }
 
     void SetLabels(vector<int> &jumplocs) {
         if (jumplocs.empty()) return;
         for (auto jl : jumplocs) SetLabelNoBlockStart(jl);
         jumplocs.clear();
-        EmitNativeHint(NH_BLOCK_START);
-    }
-
-    void EmitNativeHint(NativeHint h) {
-        EmitOp(IL_NATIVEHINT);
-        Emit(h);
+        EmitOp(IL_BLOCK_START);
     }
 
     const int ti_num_udt_fields = 4;
@@ -1307,7 +1302,6 @@ void IfThen::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void IfElse::Generate(CodeGen &cg, size_t retval) const {
-    cg.EmitNativeHint(NH_JUMPOUT_START);
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
     cg.EmitOp(IL_JUMPFAIL);
@@ -1323,14 +1317,12 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
     cg.SetLabel(loc);
     cg.Gen(falsepart, retval);
     if (retval) cg.TakeTemp(1, true);
-    cg.EmitNativeHint(NH_JUMPOUT_END);
     cg.SetLabel(loc2);
 }
 
 void While::Generate(CodeGen &cg, size_t retval) const {
     auto loopback = cg.Pos();
-    cg.EmitNativeHint(NH_BLOCK_START);
-    cg.EmitNativeHint(NH_LOOP_BACK);
+    cg.EmitOp(IL_BLOCK_START);
     cg.loops.push_back(this);
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
@@ -1344,7 +1336,6 @@ void While::Generate(CodeGen &cg, size_t retval) const {
     cg.Emit(loopback);
     cg.SetLabel(jumpout);
     cg.ApplyBreaks(break_level);
-    cg.EmitNativeHint(NH_LOOP_REMOVE);
     cg.Dummy(retval);
 }
 
@@ -1355,8 +1346,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(iter, 1);
     cg.loops.push_back(this);
     auto startloop = cg.Pos();
-    cg.EmitNativeHint(NH_BLOCK_START);
-    cg.EmitNativeHint(NH_LOOP_BACK);
+    cg.EmitOp(IL_BLOCK_START);
     auto break_level = cg.breaks.size();
     auto tstack_level = cg.tstack.size();
     switch (iter->exptype->t) {
@@ -1376,7 +1366,6 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.PopTemp();
     cg.PopTemp();
     cg.ApplyBreaks(break_level);
-    cg.EmitNativeHint(NH_LOOP_REMOVE);
     cg.Dummy(retval);
 }
 
@@ -1422,7 +1411,6 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Switch::Generate(CodeGen &cg, size_t retval) const {
-    cg.EmitNativeHint(NH_JUMPOUT_START);
     cg.Gen(value, 1);
     cg.TakeTemp(1, false);
     // See if we should do a jump table version.
@@ -1439,18 +1427,14 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         cg.temptypestack.push_back(valtlt);
         auto cas = AssertIs<Case>(n);
         if (cas->pattern->children.empty()) have_default = true;
-        cg.EmitNativeHint(NH_SWITCH_NEXTCASE_BLOCK);
-        cg.EmitNativeHint(NH_SWITCH_THISCASE_BLOCK);
         for (auto c : cas->pattern->children) {
             auto is_last = c == cas->pattern->children.back();
             cg.GenDup(valtlt);
             int loc = -1;
             auto switchtype = value->exptype;
             if (auto r = Is<Range>(c)) {
-                cg.EmitNativeHint(NH_SWITCH_RANGE_BLOCK);
                 cg.Gen(r->start, 1);
                 cg.GenMathOp(switchtype, c->exptype, switchtype, MOP_GE);
-                cg.EmitNativeHint(is_last ? NH_SWITCH_NEXTCASE_JUMP : NH_SWITCH_RANGE_JUMP);
                 cg.EmitOp(IL_JUMPFAIL);
                 cg.Emit(0);
                 loc = cg.Pos();
@@ -1465,22 +1449,18 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
                 cg.GenMathOp(switchtype, c->exptype, switchtype, MOP_EQ);
             }
             if (is_last) {
-                cg.EmitNativeHint(NH_SWITCH_NEXTCASE_JUMP);
                 cg.EmitOp(IL_JUMPFAIL);
                 cg.Emit(0);
                 nextcase.push_back(cg.Pos());
             } else {
-                cg.EmitNativeHint(NH_SWITCH_THISCASE_JUMP);
                 cg.EmitOp(IL_JUMPNOFAIL);
                 cg.Emit(0);
                 thiscase.push_back(cg.Pos());
             }
             if (Is<Range>(c)) {
-                cg.EmitNativeHint(NH_SWITCH_RANGE_END);
                 if (!is_last) cg.SetLabel(loc);
             }
         }
-        cg.EmitNativeHint(NH_SWITCH_THISCASE_END);
         cg.SetLabels(thiscase);
         cg.GenPop(valtlt);
         cg.TakeTemp(1, false);
@@ -1491,14 +1471,12 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
             cg.Emit(0);
             exitswitch.push_back(cg.Pos());
         }
-        cg.EmitNativeHint(NH_SWITCH_NEXTCASE_END);
     }
     cg.SetLabels(nextcase);
     if (!have_default) {
         cg.tstack = tstack_backup;
         cg.GenPop(valtlt);
     }
-    cg.EmitNativeHint(NH_JUMPOUT_END);
     cg.SetLabels(exitswitch);
 }
 
@@ -1558,7 +1536,7 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
             }
         }
         if (cas->pattern->children.empty()) default_pos = cg.Pos();
-        cg.EmitNativeHint(NH_JUMPTABLE_CASE_START);
+        cg.EmitOp(IL_JUMP_TABLE_CASE_START);
         cg.Gen(cas->body, retval);
         if (retval) cg.TakeTemp(1, true);
         if (n != cases->children.back()) {
@@ -1567,10 +1545,9 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
             exitswitch.push_back(cg.Pos());
         }
     }
-    cg.EmitNativeHint(NH_JUMPTABLE_END);
+    cg.EmitOp(IL_JUMP_TABLE_END);
     cg.SetLabels(exitswitch);
     if (default_pos < 0) default_pos = cg.Pos();
-    cg.EmitNativeHint(NH_JUMPOUT_END);
     for (int i = 0; i < (int)range + 1; i++) {
         if (cg.code[table_start + i] == -1)
             cg.code[table_start + i] = default_pos;

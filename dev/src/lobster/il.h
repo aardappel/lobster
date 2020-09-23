@@ -113,7 +113,9 @@ enum MathOp {
     F(CALLV, 0, ILUNKNOWN, ILUNKNOWN) \
     F(CALLVCOND, 0, ILUNKNOWN, ILUNKNOWN) \
     F(DDCALL, 2, ILUNKNOWN, ILUNKNOWN) \
-    F(NATIVEHINT, 1, 0, 0) \
+    F(BLOCK_START, 0, 0, 0) \
+    F(JUMP_TABLE_END, 0, 0, 0) \
+    F(JUMP_TABLE_CASE_START, 0, 0, 0) \
     F(LVAL_VAR, 1, 0, 0) \
     F(LVAL_FLD, 1, 1, 0) \
     F(LVAL_IDXVI, 0, 2, 0) \
@@ -198,41 +200,6 @@ inline const int *ILDefs() {
         static const int ildefs[] = { ILNAMES };
     #undef F
     return ildefs;
-}
-
-
-#define NATIVEHINTS \
-    NH(NONE) \
-    NH(BLOCK_START) \
-    NH(JUMPTABLE_END) \
-    NH(JUMPTABLE_TO_CASE) \
-    NH(JUMPTABLE_CASE_START) \
-    NH(LOOP_BACK) \
-    NH(LOOP_REMOVE) \
-    NH(JUMPOUT_START) \
-    NH(JUMPOUT_END) \
-    NH(COND_JUMP) \
-    NH(SWITCH_RANGE_BLOCK) \
-    NH(SWITCH_RANGE_JUMP) \
-    NH(SWITCH_RANGE_END) \
-    NH(SWITCH_THISCASE_BLOCK) \
-    NH(SWITCH_THISCASE_JUMP) \
-    NH(SWITCH_THISCASE_END) \
-    NH(SWITCH_NEXTCASE_BLOCK) \
-    NH(SWITCH_NEXTCASE_JUMP) \
-    NH(SWITCH_NEXTCASE_END)
-
-enum NativeHint {
-    #define NH(N) NH_##N,
-        NATIVEHINTS
-    #undef NH
-};
-
-inline const char **NHNames() {
-    #define NH(N) #N,
-        static const char *nhnames[] = { NATIVEHINTS };
-    #undef F
-    return nhnames;
 }
 
 }

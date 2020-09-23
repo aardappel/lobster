@@ -148,6 +148,10 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "goto block", id, ";");
                 sd += " }";
             }
+        } else if (opc == IL_BLOCK_START) {
+            // FIXME: added ";" because blocks may end up just before "}" at the end of a
+            // switch, and generate warnings/errors. Ideally not generate this block at all.
+            append(sd, "block", id, ":;");
         } else if (opc == IL_JUMP_TABLE) {
             if (cpp) {
                 sd += "switch (Pop(sp).ival()) {";
@@ -156,38 +160,22 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "{ long long top = *sp; sp = Drop(sp); switch (top) {");
             }
             jumptables.push_back(args);
-        } else if (opc == IL_NATIVEHINT) {
-            auto h = (NativeHint)args[0];
-            switch (h) {
-                case NH_BLOCK_START:
-                    // FIXME: added ";" because blocks may end up just before "}" at the end of a
-                    // switch, and generate warnings/errors. Ideally not generate this block at all.
-                    append(sd, "block", id, ":;");
-                    break;
-                case NH_JUMPTABLE_CASE_START: {
-                    assert(!jumptables.empty());
-                    auto t = jumptables.back();
-                    auto mini = *t++;
-                    auto maxi = *t++;
-                    for (auto i = mini; i <= maxi; i++) {
-                        if (*t++ == id) {
-                            append(sd, "case ", i, ":");
-                        }
-                    }
-                    if (*t++ == id) {
-                        append(sd, "default:");
-                    }
-                    break;
+        } else if (opc == IL_JUMP_TABLE_CASE_START) {
+            auto t = jumptables.back();
+            auto mini = *t++;
+            auto maxi = *t++;
+            for (auto i = mini; i <= maxi; i++) {
+                if (*t++ == id) {
+                    append(sd, "case ", i, ":");
                 }
-                case NH_JUMPTABLE_END:
-                    if (cpp) sd += "} // switch";
-                    else sd += "}} // switch";
-                    jumptables.pop_back();
-                    break;
-                default:
-                    append(sd, "// hint: ", NHNames()[h]);
-                    break;
             }
+            if (*t++ == id) {
+                append(sd, "default:");
+            }
+        } else if (opc == IL_JUMP_TABLE_END) {
+            if (cpp) sd += "} // switch";
+            else sd += "}} // switch";
+            jumptables.pop_back();
         } else if (ISBCALL(opc) && natreg.nfuns[args[0]]->IsGLFrame()) {
             append(sd, "sp = GLFrame(sp, vm);");
         } else {

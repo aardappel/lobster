@@ -703,7 +703,17 @@ VM_INLINE StackPtr U_SPUSHIDXI(VM &vm, StackPtr sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_NATIVEHINT(VM &, StackPtr sp, int) {
+VM_INLINE StackPtr U_BLOCK_START(VM &, StackPtr sp) {
+    assert(false);
+    return sp;
+}
+
+VM_INLINE StackPtr U_JUMP_TABLE_END(VM &, StackPtr sp) {
+    assert(false);
+    return sp;
+}
+
+VM_INLINE StackPtr U_JUMP_TABLE_CASE_START(VM &, StackPtr sp) {
     assert(false);
     return sp;
 }
