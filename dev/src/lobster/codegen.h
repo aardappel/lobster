@@ -47,16 +47,20 @@ struct CodeGen  {
         code.push_back(i);
     }
 
-    #define TSTACK 0
+    #define TSTACK 1
 
     int TempStackSize() {
         return (int)tstack.size();
     }
 
-    void PopTemp() {
+    ILOP PopTemp() {
         #if TSTACK
             assert(!tstack.empty());
+            auto op = tstack.back();
             tstack.pop_back();
+            return op;
+        #else
+            return IL_ABORT;
         #endif
     }
 
@@ -67,6 +71,22 @@ struct CodeGen  {
             (void)op;
         #endif
     }
+
+    struct BlockStack {
+        vector<ILOP> &tstack;
+        size_t start;
+        size_t max;
+        BlockStack(vector<ILOP> &s) : tstack(s), start(s.size()), max(s.size()) {}
+        void Start() { tstack.resize(start); }
+        void End() { max = std::max(max, tstack.size()); }
+        void Exit(CodeGen &cg) {
+            assert(max >= tstack.size());
+            while (tstack.size() < max) {
+                // A value from something that doesn't return.
+                cg.PushTemp(IL_EXIT);
+            }
+        }
+    };
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         Emit(op);
@@ -255,7 +275,7 @@ struct CodeGen  {
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
-        EmitOp(IL_EXIT);
+        EmitOp(IL_EXIT, int(return_value));
         Emit(return_value ? GetTypeTableOffset(type) : -1);
         linenumbernodes.pop_back();
         for (auto &[loc, sf] : call_fixups) {
@@ -448,7 +468,7 @@ struct CodeGen  {
 
     void GenPop(TypeLT typelt) {
         if (IsStruct(typelt.type->t)) {
-            EmitOp(typelt.type->t == V_STRUCT_R ? IL_POPVREF : IL_POPV);
+            EmitOp(typelt.type->t == V_STRUCT_R ? IL_POPVREF : IL_POPV, typelt.type->udt->numslots, 0);
             Emit(typelt.type->udt->numslots);
         } else {
             EmitOp(ShouldDec(typelt) ? IL_POPREF : IL_POP);
@@ -952,7 +972,8 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
         case V_FLOAT: cg.EmitOp(IL_FUMINUS); break;
         case V_STRUCT_S: {
             auto elem = ctype->udt->sametype->t;
-            cg.EmitOp(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS);
+            auto inw = ValWidth(ctype);
+            cg.EmitOp(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS, inw, inw);
             cg.EmitWidthIfStruct(ctype);
             break;
         }
@@ -988,7 +1009,7 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
         case V_STRUCT_R:
         case V_STRUCT_S: {
             // TODO: can also roll these into A2S?
-            cg.EmitOp(IL_ST2S);
+            cg.EmitOp(IL_ST2S, ValWidth(child->exptype), 1);
             cg.Emit(cg.GetTypeTableOffset(child->exptype));
             break;
         }
@@ -1106,19 +1127,18 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     // TODO: could pass arg types in here if most exps have types, cheaper than
     // doing it all in call instruction?
     size_t numstructs = 0;
-    int inw = 0;
+    auto start = cg.tstack.size();
     for (auto [i, c] : enumerate(children)) {
         cg.Gen(c, 1);
-        inw += ValWidth(c->exptype);
         if ((IsStruct(c->exptype->t) ||
              nf->args[i].flags & NF_PUSHVALUEWIDTH) &&
             !Is<DefaultVal>(c)) {
             cg.GenValueWidth(c->exptype);
             cg.temptypestack.push_back({ type_int, LT_ANY });
             numstructs++;
-            inw++;
         }
     }
+    auto inw = int(cg.tstack.size() - start);
     size_t nargs = children.size();
     cg.TakeTemp(nargs + numstructs, true);
     assert(nargs == nf->args.size() && (nf->fun.fnargs < 0 || nargs <= 7));
@@ -1129,7 +1149,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         assert(vmop == IL_BCALLRETV);
         auto lastarg = children.empty() ? nullptr : children.back();
         if (!Is<DefaultVal>(lastarg)) {
-            cg.EmitOp(vmop, inw, 0);
+            cg.EmitOp(vmop, inw, 1);
             cg.Emit(nf->idx);
             cg.Emit(false);
             // Note: this call is still conditional, since some of these functions dynamically
@@ -1143,7 +1163,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
             cg.EmitOp(IL_CONT1);
             cg.Emit(nf->idx);  // Never returns a value.
         } else {
-            cg.EmitOp(vmop, inw, 0);
+            cg.EmitOp(vmop, inw, 1);
             cg.Emit(nf->idx);
             cg.Emit(false);
             // retvals is empty, but still pushes a nil function that was intended for IL_CALLVCOND!
@@ -1307,17 +1327,21 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitOp(IL_JUMPFAIL);
     cg.Emit(0);
     auto loc = cg.Pos();
-    auto tstack_level = cg.tstack.size();
+    CodeGen::BlockStack bs(cg.tstack);
+    bs.Start();
     cg.Gen(truepart, retval);
-    cg.tstack.resize(tstack_level);  // The else part will push the same values.
+    bs.End();
     if (retval) cg.TakeTemp(1, true);
     cg.EmitOp(IL_JUMP);
     cg.Emit(0);
     auto loc2 = cg.Pos();
     cg.SetLabel(loc);
+    bs.Start();
     cg.Gen(falsepart, retval);
+    bs.End();
     if (retval) cg.TakeTemp(1, true);
     cg.SetLabel(loc2);
+    bs.Exit(cg);
 }
 
 void While::Generate(CodeGen &cg, size_t retval) const {
@@ -1400,10 +1424,14 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
     assert(!cg.loops.empty());
     assert(cg.temptypestack.size() == cg.LoopTemps());
     if (Is<For>(cg.loops.back())) {
-        auto tstack_backup = cg.tstack;
+        auto fort1 = cg.PopTemp();
+        auto fort2 = cg.PopTemp();
+        cg.PushTemp(fort2);
+        cg.PushTemp(fort1);
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 1]);
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 2]);
-        cg.tstack = tstack_backup;
+        cg.PushTemp(fort2);
+        cg.PushTemp(fort1);
     }
     cg.EmitOp(IL_JUMP);
     cg.Emit(0);
@@ -1420,9 +1448,11 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
     auto valtlt = TypeLT{ *value, 0 };
     vector<int> nextcase, thiscase, exitswitch;
     bool have_default = false;
-    auto tstack_backup = cg.tstack;
+    auto valop = cg.PopTemp();
+    CodeGen::BlockStack bs(cg.tstack);
     for (auto n : cases->children) {
-        cg.tstack = tstack_backup;
+        bs.Start();
+        cg.PushTemp(valop);
         cg.SetLabels(nextcase);
         cg.temptypestack.push_back(valtlt);
         auto cas = AssertIs<Case>(n);
@@ -1466,6 +1496,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         cg.TakeTemp(1, false);
         cg.Gen(cas->body, retval);
         if (retval) cg.TakeTemp(1, true);
+        bs.End();
         if (n != cases->children.back() || !have_default) {
             cg.EmitOp(IL_JUMP);
             cg.Emit(0);
@@ -1474,10 +1505,13 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
     }
     cg.SetLabels(nextcase);
     if (!have_default) {
-        cg.tstack = tstack_backup;
+        bs.Start();
+        cg.PushTemp(valop);
         cg.GenPop(valtlt);
+        bs.End();
     }
     cg.SetLabels(exitswitch);
+    bs.Exit(cg);
 }
 
 bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
@@ -1524,9 +1558,9 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
     for (int i = 0; i < (int)range + 1; i++) cg.Emit(-1);
     vector<int> exitswitch;
     int default_pos = -1;
-    auto tstack_backup = cg.tstack;
+    CodeGen::BlockStack bs(cg.tstack);
     for (auto n : cases->children) {
-        cg.tstack = tstack_backup;
+        bs.Start();
         auto cas = AssertIs<Case>(n);
         for (auto c : cas->pattern->children) {
             auto [istart, iend] = get_range(c);
@@ -1539,6 +1573,7 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
         cg.EmitOp(IL_JUMP_TABLE_CASE_START);
         cg.Gen(cas->body, retval);
         if (retval) cg.TakeTemp(1, true);
+        bs.End();
         if (n != cases->children.back()) {
             cg.EmitOp(IL_JUMP);
             cg.Emit(0);
@@ -1552,6 +1587,7 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
         if (cg.code[table_start + i] == -1)
             cg.code[table_start + i] = default_pos;
     }
+    bs.Exit(cg);
     return true;
 }
 
@@ -1647,10 +1683,8 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     cg.temptypestack = typestackbackup;
     cg.tstack = tstackbackup;
     // We can promise to be providing whatever retvals the caller wants.
-    // FIXME: what if these must be structs?
     for (size_t i = 0; i < retval; i++) {
         cg.rettypes.push_back({ type_undefined, LT_ANY });
-        //cg.PushTemp(IL_RETURN);
     }
 }
 

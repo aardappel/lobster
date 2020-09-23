@@ -1,3 +1,5 @@
+- remove CALLVCOND and related crap.
+
 - natgen refactor
   - move temps to array.
     - ensure all allocated properly.
