@@ -2601,14 +2601,21 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
         dot->TypeCheckSpecialized(tc, reqret);
         r = dot;
     } else {
-        // See if any of sf's specializations matches type exactly, then it overrides nf.
         bool prefer_sf = false;
-        if (sf && udt && sf->parent->nargs()) {
-            for (auto sfi : sf->parent->overloads) {
-                auto ti = sfi->args[0].type;
-                if (IsUDT(ti->t) && ti->udt == udt) {
-                    prefer_sf = true;
-                    break;
+        if (sf && nf) {
+            // Parser already filters out function that match nf with <= arity.
+            if (sf->parent->nargs() == children.size() &&
+                sf->parent->nargs() > nf->args.size()) {
+                // If we have an sf with more & matching args than the nf, pick that.
+                prefer_sf = true;
+            } else if (udt && sf->parent->nargs()) {
+                // See if any of sf's specializations matches type exactly, then it overrides nf.
+                for (auto sfi : sf->parent->overloads) {
+                    auto ti = sfi->args[0].type;
+                    if (IsUDT(ti->t) && ti->udt == udt) {
+                        prefer_sf = true;
+                        break;
+                    }
                 }
             }
         }

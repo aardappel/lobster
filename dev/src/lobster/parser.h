@@ -402,8 +402,6 @@ struct Parser {
         // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
         // current namespace (which is same as !self).
         auto idname = st.MaybeNameSpace(ExpectId(), !isprivate && !self);
-        if (natreg.FindNative(idname))
-            Error("cannot override built-in function: " + idname);
         return ParseFunction(&idname, isprivate, true, true, self);
     }
 
@@ -512,6 +510,11 @@ struct Parser {
         if (parens) Expect(T_RIGHTPAREN);
         sf->method_of = self;
         auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("");
+        auto nf = natreg.FindNative(f.name);
+        if (nf && nf->args.size() >= nargs) {
+            // TODO: could allow less args if we check nf's default args.
+            Error("cannot override built-in function with same (or less) arity: " + f.name);
+        }
         // Check default args are being used consistently with the overloads & siblings.
         if (first_default_arg < 0) first_default_arg = (int)nargs;
         if (f.overloads.empty()) {
@@ -688,63 +691,6 @@ struct Parser {
         return { dest };
     }
 
-    void ParseFunArgs(List *list, Node *derefarg, bool noparens) {
-        if (derefarg) {
-            list->Add(derefarg);
-            if (!IsNext(T_LEFTPAREN)) return;
-        } else {
-            if (!noparens) Expect(T_LEFTPAREN);
-        }
-        // Parse regular arguments.
-        bool needscomma = false;
-        for (;;) {
-            if (!noparens && IsNext(T_RIGHTPAREN)) {
-                if (call_noparens) {  // This call is an arg to a call that has no parens.
-                    // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
-                    return;
-                }
-                break;
-            }
-            if (needscomma) Expect(T_COMMA);
-            list->Add(ParseExp(noparens));
-            if (noparens) {
-                if (lex.token == T_COLON)
-                    break;
-                return;
-            } else {
-                needscomma = true;
-            }
-        }
-        // Parse trailing function values.
-        for (;;) {
-            Node *e = nullptr;
-            switch (lex.token) {
-                case T_COLON:
-                    e = ParseFunction(nullptr, false, false, false);
-                    break;
-                case T_IDENT:
-                    e = ParseFunction(nullptr, false, false, true);
-                    break;
-                case T_LEFTPAREN:
-                    e = ParseFunction(nullptr, false, true, true);
-                    break;
-                default:
-                    return;
-            }
-            list->Add(e);
-            auto islf = IsNext(T_LINEFEED);
-            if (!islf && lex.token != T_LAMBDA) {
-                return;
-            }
-            if (!IsNext(T_LAMBDA)) {
-                lex.PushCur();
-                if (islf) lex.Push(T_LINEFEED);
-                lex.Next();
-                return;
-            }
-        }
-    }
-
     Node *ParseMultiRet(Node *first) {
         if (lex.token != T_COMMA) return first;
         auto list = new MultipleReturn(lex);
@@ -888,15 +834,65 @@ struct Parser {
 
     List *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
                             bool noparens, vector<UnresolvedTypeRef> *specializers) {
-        auto wse = st.GetWithStackBack();
+        vector<Node *> list;
+        [&]() {
+            if (firstarg) {
+                list.push_back(firstarg);
+                if (!IsNext(T_LEFTPAREN)) return;
+            } else {
+                if (!noparens) Expect(T_LEFTPAREN);
+            }
+            // Parse regular arguments.
+            bool needscomma = false;
+            for (;;) {
+                if (!noparens && IsNext(T_RIGHTPAREN)) {
+                    if (call_noparens) {  // This call is an arg to a call that has no parens.
+                        // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
+                        return;
+                    }
+                    break;
+                }
+                if (needscomma) Expect(T_COMMA);
+                list.push_back(ParseExp(noparens));
+                if (noparens) {
+                    if (lex.token == T_COLON) break;
+                    return;
+                } else {
+                    needscomma = true;
+                }
+            }
+            // Parse trailing function values.
+            for (;;) {
+                Node *e = nullptr;
+                switch (lex.token) {
+                    case T_COLON: e = ParseFunction(nullptr, false, false, false); break;
+                    case T_IDENT: e = ParseFunction(nullptr, false, false, true); break;
+                    case T_LEFTPAREN: e = ParseFunction(nullptr, false, true, true); break;
+                    default: return;
+                }
+                list.push_back(e);
+                auto islf = IsNext(T_LINEFEED);
+                if (!islf && lex.token != T_LAMBDA) { return; }
+                if (!IsNext(T_LAMBDA)) {
+                    lex.PushCur();
+                    if (islf) lex.Push(T_LINEFEED);
+                    lex.Next();
+                    return;
+                }
+            }
+        }();
         // FIXME: move more of the code below into the type checker, and generalize the remaining
         // code to be as little dependent as possible on wether nf or f are available.
         // It should only parse args and construct a GenericCall.
-
-        // We give precedence to builtins, unless we're calling a known function in a :: context.
-        if (nf && (!f || !wse.id)) {
+        auto wse = st.GetWithStackBack();
+        // We give precedence to builtins, unless
+        // - we're calling a known function in a :: context.
+        // - we have more args than the builtin, and a matching function.
+        if (nf &&
+            (!f || !wse.id || (f->overloads.size() == 1 && !f->overloads[0]->method_of)) &&
+            (!f || list.size() <= nf->args.size() || list.size() != f->nargs())) {
             auto nc = new GenericCall(lex, idname, nullptr, false, false, specializers);
-            ParseFunArgs(nc, firstarg, noparens);
+            nc->children = list;
             for (auto [i, arg] : enumerate(nf->args)) {
                 if (i >= nc->Arity()) {
                     auto &type = arg.type;
@@ -921,7 +917,7 @@ struct Parser {
         if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type: " + f->name);
             auto call = new GenericCall(lex, idname, nullptr, false, false, specializers);
-            ParseFunArgs(call, firstarg, noparens);
+            call->children = list;
             if (!firstarg) {
                 SelfArg(f, wse, call->Arity(), call);
             }
@@ -929,13 +925,14 @@ struct Parser {
             call->sf = f->overloads.back();
             return call;
         }
+        if (noparens) Error("call requires ()");
         if (id) {
             auto dc = new DynCall(lex, nullptr, id->cursid);
-            ParseFunArgs(dc, firstarg, false);
+            dc->children = list;
             return dc;
         } else {
             auto call = new GenericCall(lex, idname, nullptr, false, false, specializers);
-            ParseFunArgs(call, firstarg, false);
+            call->children = list;
             ForwardFunctionCall ffc = {
                 st.scopelevels.size(), st.current_namespace, call, !!firstarg, wse
             };
