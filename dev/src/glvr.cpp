@@ -190,7 +190,7 @@ void VREye(int eye, float znear, float zfar) {
             trackeddeviceposes[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
         vrview = hmdpose * vrview;
     }
-    AppendTransform(invert(vrview), vrview);
+    otransforms.set_object2view(otransforms.object2view() * invert(vrview));
     #endif  // PLATFORM_VR
 }
 
@@ -332,8 +332,7 @@ nfr("vr_motioncontrollerstracking", "n", "I", "B",
         return Value(mcd && mcd->tracking);
     });
 
-extern Value PushTransform(StackPtr & sp, VM &vm, const float4x4 &forward, const float4x4 &backward,
-                           const Value &body);
+extern Value PushTransform(StackPtr & sp, VM &vm, const float4x4 &forward, const Value &body);
 extern void PopTransform(StackPtr & sp);
 
 nfr("vr_motion_controller", "n,body", "IL?", "",
@@ -346,8 +345,8 @@ nfr("vr_motion_controller", "n,body", "IL?", "",
         auto mc = Pop(sp);
         auto mcd = GetMC(mc);
         Push(sp, mcd
-            ? PushTransform(sp, vm, mcd->mat, invert(mcd->mat), body)
-            : PushTransform(sp, vm, float4x4_1, float4x4_1, body));
+            ? PushTransform(sp, vm, mcd->mat, body)
+            : PushTransform(sp, vm, float4x4_1, body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });

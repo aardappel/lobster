@@ -98,21 +98,19 @@ extern "C" StackPtr GLFrame(StackPtr sp, VM &vm) {
 }
 
 float2 localpos(const int2 &pos) {
-    return (otransforms.view2object * float4(float3(float2(pos), 0), 1)).xyz().xy();
+    return (otransforms.view2object() * float4(float3(float2(pos), 0), 1)).xyz().xy();
 }
 float2 localfingerpos(int i) {
     return localpos(GetFinger(i, false));
 }
 
-Value PushTransform(StackPtr &sp, VM &vm, const float4x4 &forward, const float4x4 &backward, const Value &body) {
-    if (body.True()) PushAnyAsString(sp, vm, otransforms);
-    AppendTransform(forward, backward);
+Value PushTransform(StackPtr &sp, VM &vm, const float4x4 &forward, const Value &body) {
+    if (body.True()) PushAnyAsString(sp, vm, otransforms.object2view());
+    otransforms.set_object2view(otransforms.object2view() * forward);
     return body;
 }
 
-void PopTransform(StackPtr &sp) {
-    PopAnyFromString(sp, otransforms);
-}
+void PopTransform(StackPtr &sp) { otransforms.set_object2view(PopAnyFromString<float4x4>(sp)); }
 
 int GetSampler(StackPtr sp, VM &vm, Value &i) {
     if (i.ival() < 0 || i.ival() >= Shader::MAX_SAMPLERS)
@@ -408,7 +406,7 @@ nfr("gl_color", "col,body", "F}:4L?", "",
         curcolor = newcolor;
         Push(sp,  body);
     }, [](StackPtr &sp, VM &) {
-        PopAnyFromString(sp, curcolor);
+        curcolor = PopAnyFromString<float4>(sp);
     });
 
 nfr("gl_polygon", "vertlist", "F}]", "",
@@ -457,7 +455,7 @@ nfr("gl_rotate_x", "vector,body", "F}:2L?", "",
     [](StackPtr &sp, VM &vm) {
         auto body = Pop(sp);
         auto a = PopVec<float2>(sp);
-        Push(sp, PushTransform(sp, vm, rotationX(a), rotationX(a * float2(1, -1)), body));
+        Push(sp, PushTransform(sp, vm, rotationX(a), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -468,7 +466,7 @@ nfr("gl_rotate_y", "angle,body", "F}:2L?", "",
     [](StackPtr &sp, VM &vm) {
         auto body = Pop(sp);
         auto a = PopVec<float2>(sp);
-        Push(sp, PushTransform(sp, vm, rotationY(a), rotationY(a * float2(1, -1)), body));
+        Push(sp, PushTransform(sp, vm, rotationY(a), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -479,7 +477,7 @@ nfr("gl_rotate_z", "angle,body", "F}:2L?", "",
     [](StackPtr &sp, VM &vm) {
         auto body = Pop(sp);
         auto a = PopVec<float2>(sp);
-        Push(sp, PushTransform(sp, vm, rotationZ(a), rotationZ(a * float2(1, -1)), body));
+        Push(sp, PushTransform(sp, vm, rotationZ(a), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -490,7 +488,7 @@ nfr("gl_translate", "vec,body", "F}L?", "",
     [](StackPtr &sp, VM &vm) {
         auto body = Pop(sp);
         auto v = PopVec<float3>(sp);
-        Push(sp, PushTransform(sp, vm, translation(v), translation(-v), body));
+        Push(sp, PushTransform(sp, vm, translation(v), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -502,7 +500,7 @@ nfr("gl_scale", "factor,body", "FL?", "",
         auto body = Pop(sp);
         auto f = Pop(sp);
         auto v = f.fltval() * float3_1;
-        Push(sp, PushTransform(sp, vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body));
+        Push(sp, PushTransform(sp, vm, float4x4(float4(v, 1)), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -513,7 +511,7 @@ nfr("gl_scale", "factor,body", "F}L?", "",
     [](StackPtr &sp, VM &vm) {
         auto body = Pop(sp);
         auto v = PopVec<float3>(sp);
-        Push(sp,  PushTransform(sp, vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body));
+        Push(sp,  PushTransform(sp, vm, float4x4(float4(v, 1)), body));
     }, [](StackPtr &sp, VM &) {
         PopTransform(sp);
     });
@@ -522,7 +520,7 @@ nfr("gl_origin", "", "", "F}:2",
     "returns a vector representing the current transform origin in pixels."
     " only makes sense in 2D mode (no gl_perspective called).",
     [](StackPtr &sp, VM &) {
-        auto pos = double2(otransforms.object2view[3].x, otransforms.object2view[3].y);
+        auto pos = double2(otransforms.object2view()[3].x, otransforms.object2view()[3].y);
         PushVec(sp, pos);
     });
 
@@ -530,7 +528,7 @@ nfr("gl_scaling", "", "", "F}:2",
     "returns a vector representing the current transform scale in pixels."
     " only makes sense in 2D mode (no gl_perspective called).",
     [](StackPtr &sp, VM &) {
-        auto sc = double2(otransforms.object2view[0].x, otransforms.object2view[1].y);
+        auto sc = double2(otransforms.object2view()[0].x, otransforms.object2view()[1].y);
         PushVec(sp, sc);
     });
 
@@ -539,7 +537,7 @@ nfr("gl_model_view_projection", "", "", "F]",
     " (16 elements)",
     [](StackPtr &, VM &vm) {
         auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
-        auto mvp = view2clip * otransforms.object2view;
+        auto mvp = view2clip * otransforms.object2view();
         for (int i = 0; i < 16; i++) v->At(i) = mvp.data()[i];
         return Value(v);
     });
@@ -563,7 +561,7 @@ nfr("gl_line_mode", "on,body", "IL", "",
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         Push(sp, body);
     }, [](StackPtr &sp, VM &) {
-        PopAnyFromString(sp, polymode);
+        polymode = PopAnyFromString<Primitive>(sp);
     });
 
 nfr("gl_hit", "vec,i", "F}I", "B",
@@ -964,8 +962,7 @@ nfr("gl_blend", "on,body", "IL?", "",
         if (body.True()) PushAnyAsString(sp, vm, old);
         Push(sp, body);
     }, [](StackPtr &sp, VM &) {
-        BlendMode old;
-        PopAnyFromString(sp, old);
+        auto old = PopAnyFromString<BlendMode>(sp);
         SetBlendMode(old);
     });
 
@@ -1092,7 +1089,7 @@ nfr("gl_light", "pos,params", "F}:3F}:2", "",
     [](StackPtr &sp, VM &) {
         Light l;
         l.params = PopVec<float2>(sp);
-        l.pos = otransforms.object2view * float4(PopVec<float3>(sp), 1);
+        l.pos = otransforms.object2view() * float4(PopVec<float3>(sp), 1);
         lights.push_back(l);
     });
 
@@ -1138,7 +1135,7 @@ nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
         auto thickness = Pop(sp).fltval();
         auto dist = PopVec<float3>(sp);
         auto num = PopVec<iint3>(sp);
-        float3 cp = otransforms.view2object[3].xyz();
+        float3 cp = otransforms.camerapos();
         auto m = float3(num);
         auto step = dist;
         auto oldcolor = curcolor;

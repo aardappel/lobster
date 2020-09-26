@@ -34,11 +34,6 @@ bool mode2d = true;
 bool mode_srgb = false;
 GeometryCache *geomcache = nullptr;
 
-void AppendTransform(const float4x4 &forward, const float4x4 &backward) {
-    otransforms.object2view *= forward;
-    otransforms.view2object = backward * otransforms.view2object;
-}
-
 BlendMode SetBlendMode(BlendMode mode) {
     static BlendMode curblendmode = BLEND_NONE;
     if (mode == curblendmode) return curblendmode;

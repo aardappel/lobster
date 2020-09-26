@@ -162,8 +162,6 @@ extern void ClearFrameBuffer(const float3 &c);
 extern BlendMode SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);
 
-extern void AppendTransform(const float4x4 &forward, const float4x4 &backward);
-
 extern string LoadMaterialFile(string_view mfile);
 extern string ParseMaterialFile(string_view mfile);
 extern Shader *LookupShader(string_view name);
@@ -251,11 +249,35 @@ extern Mesh *LoadIQM(string_view filename);
 
 extern float4x4 view2clip;
 
-struct objecttransforms {
-    float4x4 view2object;
-    float4x4 object2view;
+class objecttransforms {
+    float4x4 o2v;
+    float4x4 v2o;
+    bool v2o_valid = true;
 
-    objecttransforms() : view2object(1), object2view(1) {}
+  public:
+    objecttransforms() : o2v(1), v2o(1) {}
+
+    const float4x4 &object2view() const {
+        return o2v;
+    }
+
+    void set_object2view(const float4x4 &n) {
+        o2v = n;
+        v2o_valid = false;
+    }
+
+    // This is needed infrequently, so we cache the inverse.
+    // FIXME: somehow track if object2view is only affected by translate/rotate
+    // so we can use transpose instead?
+    const float4x4 &view2object() {
+        if (!v2o_valid) {
+            v2o = invert(o2v);
+            v2o_valid = true;
+        }
+        return v2o;
+    }
+
+    float3 camerapos() { return view2object()[3].xyz(); }
 };
 
 extern objecttransforms otransforms;
@@ -268,12 +290,11 @@ extern float pointscale, custompointscale;
 
 extern GeometryCache *geomcache;
 
-// 2D, since this skips view2object needed for lighting.
-template<typename F> void Transform2D(const float4x4 &mat, F body) {
-    auto oldobject2view = otransforms.object2view;
-    otransforms.object2view *= mat;
+template<typename F> void Transform(const float4x4 &mat, F body) {
+    auto oldobject2view = otransforms.object2view();
+    otransforms.set_object2view(oldobject2view * mat);
     body();
-    otransforms.object2view = oldobject2view;
+    otransforms.set_object2view(oldobject2view);
 }
 
 extern bool VRInit();

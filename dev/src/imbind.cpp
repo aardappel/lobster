@@ -407,8 +407,7 @@ nfr("im_treenode", "label,body", "SL", "", "",
         PushAnyAsString(sp, vm, open);
         Push(sp, open ? body : Value());
     }, [](StackPtr &sp, VM &) {
-        bool open;
-        PopAnyFromString(sp, open);
+        bool open = PopAnyFromString<bool>(sp);
         if (open) ImGui::TreePop();
     });
 

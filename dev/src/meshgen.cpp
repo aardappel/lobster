@@ -820,7 +820,7 @@ nfr("mg_translate", "vec,body", "F}:3L?", "",
         curorig += currot * (v * cursize);
         Push(sp,  body);
     }, [](StackPtr &sp, VM &) {
-        PopAnyFromString(sp, curorig);
+        curorig = PopAnyFromString<float3>(sp);
     });
 
 nfr("mg_scale", "f,body", "FL?", "",
@@ -833,7 +833,7 @@ nfr("mg_scale", "f,body", "FL?", "",
         cursize *= f;
         Push(sp,  body);
     }, [](StackPtr &sp, VM &) {
-        PopAnyFromString(sp, cursize);
+        cursize = PopAnyFromString<float3>(sp);
     });
 
 nfr("mg_scale_vec", "vec,body", "F}:3L?", "",
@@ -846,7 +846,7 @@ nfr("mg_scale_vec", "vec,body", "F}:3L?", "",
         cursize *= v;
         Push(sp,  body);
     }, [](StackPtr &sp, VM &) {
-        PopAnyFromString(sp, cursize);
+        cursize = PopAnyFromString<float3>(sp);
     });
 
 nfr("mg_rotate", "axis,angle,body", "F}:3FL?", "",
@@ -860,7 +860,7 @@ nfr("mg_rotate", "axis,angle,body", "F}:3FL?", "",
         currot *= float3x3(angle * RAD, axis);
         Push(sp,  body);
     }, [](StackPtr &sp, VM &) {
-        PopAnyFromString(sp, currot);
+        currot = PopAnyFromString<float3x3>(sp);
     });
 
 nfr("mg_color", "color,body", "F}:4L?", "",
@@ -873,7 +873,7 @@ nfr("mg_color", "color,body", "F}:4L?", "",
         curcol = v;
         Push(sp,  body);
     }, [](StackPtr &sp, VM &) {
-        PopAnyFromString(sp, curcol);
+        curcol = PopAnyFromString<float4>(sp);
     });
 
 nfr("mg_smooth", "smooth,body", "FL?", "",
@@ -886,7 +886,7 @@ nfr("mg_smooth", "smooth,body", "FL?", "",
         cursmoothmink = smooth;
         Push(sp,  body);
     }, [](StackPtr &sp, VM &) {
-        PopAnyFromString(sp, cursmoothmink);
+        cursmoothmink = PopAnyFromString<float>(sp);
     });
 
 }  // AddMeshGen

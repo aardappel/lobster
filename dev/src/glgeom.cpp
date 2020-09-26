@@ -255,7 +255,7 @@ void GeometryCache::RenderUnitSquare(Shader *sh, Primitive prim, bool centered) 
 }
 
 void GeometryCache::RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans) {
-    Transform2D(trans, [&]() { RenderUnitSquare(sh, prim, centered); });
+    Transform(trans, [&]() { RenderUnitSquare(sh, prim, centered); });
 }
 
 void GeometryCache::RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2,
@@ -330,7 +330,7 @@ void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float
         }
         geom = new Geometry(make_span(vbuf), "P");
     }
-    Transform2D(float4x4(float4(float2_1 * radius, 1)), [&]() {
+    Transform(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();
         RenderArray(prim, geom);
     });
@@ -362,7 +362,7 @@ void GeometryCache::RenderOpenCircle(Shader *sh, int segments, float radius, flo
         vibo.first = new Geometry(make_span(vbuf), "P");
         vibo.second = GenBO(GL_ELEMENT_ARRAY_BUFFER, make_span(ibuf));
     }
-    Transform2D(float4x4(float4(float2_1 * radius, 1)), [&]() {
+    Transform(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();
         RenderArray(PRIM_TRIS, vibo.first, vibo.second, nindices);
     });

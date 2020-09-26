@@ -349,13 +349,13 @@ void Shader::Activate() {
 void Shader::Set() {
     Activate();
     if (mvp_i >= 0) GL_CALL(glUniformMatrix4fv(mvp_i, 1, false,
-                                               (view2clip * otransforms.object2view).data()));
+                                               (view2clip * otransforms.object2view()).data()));
     if (col_i >= 0) GL_CALL(glUniform4fv(col_i, 1, curcolor.begin()));
-    if (camera_i >= 0) GL_CALL(glUniform3fv(camera_i, 1, otransforms.view2object[3].begin()));
+    if (camera_i >= 0) GL_CALL(glUniform3fv(camera_i, 1, otransforms.camerapos().begin()));
     if (pointscale_i >= 0) GL_CALL(glUniform1f(pointscale_i, pointscale));
     if (lights.size() > 0) {
         if (light1_i >= 0)
-            GL_CALL(glUniform3fv(light1_i, 1, (otransforms.view2object * lights[0].pos).begin()));
+            GL_CALL(glUniform3fv(light1_i, 1, (otransforms.view2object() * lights[0].pos).begin()));
         if (lightparams1_i >= 0)
             GL_CALL(glUniform2fv(lightparams1_i, 1, lights[0].params.begin()));
     }

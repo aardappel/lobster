@@ -353,12 +353,12 @@ nfr("ph_render", "", "", "",
     "renders all rigid body objects.",
     [](StackPtr &, VM &) {
         CheckPhysics();
-        auto oldobject2view = otransforms.object2view;
+        auto oldobject2view = otransforms.object2view();
         auto oldcolor = curcolor;
         for (b2Body *body = world->GetBodyList(); body; body = body->GetNext()) {
             auto pos = body->GetPosition();
             auto mat = translation(float3(pos.x, pos.y, 0)) * rotationZ(body->GetAngle());
-            otransforms.object2view = oldobject2view * mat;
+            otransforms.set_object2view(oldobject2view * mat);
             for (b2Fixture *fixture = body->GetFixtureList(); fixture;
                  fixture = fixture->GetNext()) {
                 auto shapetype = fixture->GetType();
@@ -376,7 +376,7 @@ nfr("ph_render", "", "", "",
                     case b2Shape::e_circle: {
                         r.sh->SetTextures(r.textures);  // FIXME
                         auto polyshape = (b2CircleShape *)fixture->GetShape();
-                        Transform2D(translation(float3(B2ToFloat2(polyshape->m_p), 0)), [&]() {
+                        Transform(translation(float3(B2ToFloat2(polyshape->m_p), 0)), [&]() {
                             geomcache->RenderCircle(r.sh, PRIM_FAN, 20, polyshape->m_radius);
                         });
                         break;
@@ -387,7 +387,7 @@ nfr("ph_render", "", "", "",
                 }
             }
         }
-        otransforms.object2view = oldobject2view;
+        otransforms.set_object2view(oldobject2view);
         curcolor = oldcolor;
         return Value();
     });
@@ -400,7 +400,7 @@ nfr("ph_render_particles", "scale", "F", "",
         // LOG_DEBUG("rendering particles: ", particlesystem->GetParticleCount());
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
-        auto scale = length(otransforms.object2view[0].xy());
+        auto scale = length(otransforms.object2view()[0].xy());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fltval());
         particlematerial->Set();
         RenderArraySlow(PRIM_POINT, make_span(verts, particlesystem->GetParticleCount()), "pC",

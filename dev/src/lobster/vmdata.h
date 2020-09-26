@@ -874,11 +874,11 @@ template<typename T> void PushAnyAsString(StackPtr &sp, VM &vm, const T &t) {
     Push(sp, vm.NewString(string_view((char *)&t, sizeof(T))));
 }
 
-template<typename T> void PopAnyFromString(StackPtr &sp, T &t) {
+template<typename T> T PopAnyFromString(StackPtr &sp) {
     auto s = Pop(sp);
     assert(s.type == V_STRING);
     assert(s.sval()->len == sizeof(T));
-    t = *(T *)s.sval()->strv().data();
+    return *(T *)s.sval()->strv().data();
     // No rc dec, these are stored in a keepvar.
 }
 
