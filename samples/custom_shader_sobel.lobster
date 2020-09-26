@@ -1,5 +1,6 @@
 import vec
 import color
+import gl
 import texture
 
 // Example of how to do run a custom shader as a post-process on a scene.

@@ -5,6 +5,7 @@
 
 import vec
 import color
+import gl
 import texture
 
 var camera_position = xyz_0

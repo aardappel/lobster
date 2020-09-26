@@ -3,6 +3,7 @@
 import std
 import vec
 import color
+import gl
 
 class segment:
     pos:xy_f

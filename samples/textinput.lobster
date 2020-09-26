@@ -3,6 +3,7 @@
 import std
 import vec
 import color
+import gl
 
 gl_window("text input", 1200, 600)
 check(gl_set_font_name("data/fonts/Inconsolata/Inconsolata-Regular.ttf"), "font!")

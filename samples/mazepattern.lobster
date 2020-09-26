@@ -9,6 +9,7 @@ http://10print.org/
 
 import vec
 import color
+import gl
 
 fatal(gl_window("rndmaze", 1024, 768))
 

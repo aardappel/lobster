@@ -332,23 +332,14 @@ nfr("vr_motioncontrollerstracking", "n", "I", "B",
         return Value(mcd && mcd->tracking);
     });
 
-extern Value PushTransform(StackPtr & sp, VM &vm, const float4x4 &forward, const Value &body);
-extern void PopTransform(StackPtr & sp);
-
-nfr("vr_motion_controller", "n,body", "IL?", "",
+nfr("vr_motion_controller", "n", "I", "",
     "sets up the transform ready to render controller n."
-    " when a body is given, restores the previous transform afterwards."
     " if there is no controller n (or it is currently not"
     " tracking) the identity transform is used",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
+    [](StackPtr &sp, VM &) {
         auto mc = Pop(sp);
         auto mcd = GetMC(mc);
-        Push(sp, mcd
-            ? PushTransform(sp, vm, mcd->mat, body)
-            : PushTransform(sp, vm, float4x4_1, body));
-    }, [](StackPtr &sp, VM &) {
-        PopTransform(sp);
+        otransforms.append_object2view(mcd ? mcd->mat : float4x4_1);
     });
 
 nfr("vr_create_motion_controller_mesh", "n", "I", "R?",

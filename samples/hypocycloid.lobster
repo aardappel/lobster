@@ -2,6 +2,7 @@
 
 import vec
 import color
+import gl
 
 fatal(gl_window("hypocycloid", 1024, 768))
 

@@ -1,5 +1,6 @@
 import vec
 import color
+import gl
 
 let dirs = [ xy_xi, xy_yi ]
 

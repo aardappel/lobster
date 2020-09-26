@@ -2,6 +2,7 @@
 
 import vec
 import color
+import gl
 
 fatal(gl_window("event animation and mouse drag test", 1024, 1024))
 

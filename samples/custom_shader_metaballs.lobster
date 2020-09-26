@@ -1,5 +1,6 @@
 import vec
 import color
+import gl
 import texture
 
 // Example of how to do run a custom shader on a full window rectangle.

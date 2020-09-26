@@ -26,6 +26,7 @@ Impressively.. empty.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import vec
 import color
+import gl
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
@@ -72,6 +73,7 @@ Look at that! This is starting to look impressive! Check out those polygons!
 import std
 import vec
 import color
+import gl
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
@@ -139,6 +141,7 @@ It moved! I swear!
 import std
 import vec
 import color
+import gl
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
@@ -233,6 +236,7 @@ from 12 to 3.
 import std
 import vec
 import color
+import gl
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 

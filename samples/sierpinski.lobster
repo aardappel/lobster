@@ -2,6 +2,7 @@
 
 import vec
 import color
+import gl
 
 let directions = [ xy_0, xy_x, xy_y ]
 

@@ -6,6 +6,7 @@
 // gracefully, and scale back the dataset size and/or round count
 
 import color
+import gl
 import imgui
 import std
 import vec
@@ -193,7 +194,7 @@ class ui:
             im_window("ctl", im_window_always_autoresize):
                 im_show_engine_stats()
                 if not shuffling:
-                    im_button("Reshuffle"):
+                    if im_button("Reshuffle"):
                         reshuffle()
                 im_show_vars()
 

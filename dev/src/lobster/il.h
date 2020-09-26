@@ -62,7 +62,6 @@ enum MathOp {
     F(BCALLRET7,    2, ILUNKNOWN, ILUNKNOWN) \
     F(ASSERT,       3, 1, 0) \
     F(ASSERTR,      3, 1, 1) \
-    F(CONT1,        1, 0, 0) \
     F(ENDSTATEMENT, 2, 0, 0) \
     F(NEWVEC,       2, ILUNKNOWN, 1) \
     F(NEWOBJECT,    1, ILUNKNOWN, 1) \
@@ -111,7 +110,6 @@ enum MathOp {
     F(RESTORERETS, 0, 0, 0) \
     F(CALL, 1, ILUNKNOWN, ILUNKNOWN) \
     F(CALLV, 0, ILUNKNOWN, ILUNKNOWN) \
-    F(CALLVCOND, 0, 1, 0) \
     F(DDCALL, 2, ILUNKNOWN, ILUNKNOWN) \
     F(BLOCK_START, 0, 0, 0) \
     F(JUMP_TABLE_END, 0, 0, 0) \

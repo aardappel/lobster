@@ -870,17 +870,6 @@ template<typename T> T PopVec(StackPtr &sp, typename T::CTYPE def = 0) {
     }
     return v;
 }
-template<typename T> void PushAnyAsString(StackPtr &sp, VM &vm, const T &t) {
-    Push(sp, vm.NewString(string_view((char *)&t, sizeof(T))));
-}
-
-template<typename T> T PopAnyFromString(StackPtr &sp) {
-    auto s = Pop(sp);
-    assert(s.type == V_STRING);
-    assert(s.sval()->len == sizeof(T));
-    return *(T *)s.sval()->strv().data();
-    // No rc dec, these are stored in a keepvar.
-}
 
 inline int64_t Int64FromInts(int a, int b) {
     int64_t v = (uint32_t)a;

@@ -3,8 +3,10 @@
 
 import vec
 import color
+import gl
 import util3d
 import gl
+import mg
 
 print "generating models... this may take some time!"
 
@@ -110,10 +112,12 @@ if true:
     model_tree(10, 1.5, 0.75, 12, color { 0.4, 1.0, 0.4, 1.0 })
     trees.push(mg_polygonize(density))
 
+    mg_smooth(0.5)
     mg_color(color { 0.4, 0.3, 0.2, 1.0 })
     model_tree(10, 1.2, 0.8, 1.2, color { 0.6, 1.0, 0.3, 1.0 })
     trees.push(mg_polygonize(density))
 
+    mg_smooth(0.5)
     mg_color(color { 0.5, 0.4, 0.3, 1.0 })
     model_tree(9, 2.0, 0.7, 15, color { 0.4, 0.6, 0.4, 1.0 })
     trees.push(mg_polygonize(density))

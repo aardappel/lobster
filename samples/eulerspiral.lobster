@@ -3,6 +3,7 @@
 
 import vec
 import color
+import gl
 import utilui
 
 fatal(gl_window("euler spiral", 1024, 768))

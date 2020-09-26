@@ -3,6 +3,7 @@
 import std
 import vec
 import color
+import gl
 
 fatal(gl_window("wav sound test", 1024, 768))
 check(gl_set_font_name("data/fonts/Carrois_Gothic_SC/CarroisGothicSC-Regular.ttf") and

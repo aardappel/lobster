@@ -4,6 +4,7 @@
 import std
 import vec
 import color
+import gl
 
 let TILE_VOID        = ' '
 let TILE_FLOOR       = '.'

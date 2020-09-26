@@ -1,4 +1,5 @@
 import color
+import gl
 
 gl_window("graphical hello world", 800, 600)
 gl_set_font_name("data/fonts/Droid_Sans/DroidSans.ttf")

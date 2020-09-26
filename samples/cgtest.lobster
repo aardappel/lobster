@@ -2,6 +2,7 @@
 
 import vec
 import color
+import gl
 import util3d
 
 fatal(gl_window("cubegen test", 1280, 800))

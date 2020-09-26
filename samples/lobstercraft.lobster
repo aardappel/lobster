@@ -7,6 +7,7 @@
 import std
 import vec
 import color
+import gl
 import texture
 import util3d
 

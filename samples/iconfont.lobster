@@ -5,6 +5,7 @@
 import std
 import vec
 import color
+import gl
 
 gl_window("testing icons", 1200, 600)
 gl_set_font_name("data/fonts/Game_Icons/game-icons.ttf")

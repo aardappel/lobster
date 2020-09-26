@@ -1,6 +1,7 @@
 import std
 import vec
 import color
+import gl
 
 let indentsize = 20.0
 let column_margin = 10.0

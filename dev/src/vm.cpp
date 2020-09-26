@@ -550,14 +550,12 @@ void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {
         // See if any builtin function is lying about what type it returns
         // other function types return intermediary values that don't correspond to final return
         // values.
-        if (!nf->cont1) {
-            for (size_t i = 0; i < nf->retvals.size(); i++) {
-                #ifndef NDEBUG
-                auto t = (TopPtr(sp) - nf->retvals.size() + i)->type;
-                auto u = nf->retvals[i].type->t;
-                assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && IsUDT(t)));
-                #endif
-            }
+        for (size_t i = 0; i < nf->retvals.size(); i++) {
+            #ifndef NDEBUG
+            auto t = (TopPtr(sp) - nf->retvals.size() + i)->type;
+            auto u = nf->retvals[i].type->t;
+            assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && IsUDT(t)));
+            #endif
         }
     #else
         (void)nf;

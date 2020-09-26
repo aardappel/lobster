@@ -1,4 +1,5 @@
 import color
+import gl
 
 // texture format constants
 

@@ -15,6 +15,7 @@ I timed it to be 2.5 times faster than the Python version, though most of that w
 
 import vec
 import color
+import gl
 import texture
 
 struct Ray:

@@ -3,6 +3,7 @@
 
 import vec
 import color
+import gl
 import texture
 
 /*

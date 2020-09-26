@@ -177,17 +177,6 @@ VM_INLINE StackPtr U_CALLV(VM &vm, StackPtr sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_CALLVCOND(VM &vm, StackPtr sp) {
-    // FIXME: don't need to check for function value again below if false
-    if (Top(sp).False()) {
-        Pop(sp);
-        vm.next_call_target = 0;
-    } else {
-        sp = U_CALLV(vm, sp);
-    }
-    return sp;
-}
-
 VM_INLINE StackPtr U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     auto self = TopM(sp, stack_idx);
     VMTYPEEQ(self, V_CLASS);
@@ -246,12 +235,6 @@ VM_INLINE StackPtr U_ENDSTATEMENT(VM &vm, StackPtr sp, int line, int fileidx) {
 VM_INLINE StackPtr U_EXIT(VM &vm, StackPtr sp, int tidx) {
     if (tidx >= 0) vm.EndEval(sp, Pop(sp), vm.GetTypeInfo((type_elem_t)tidx));
     else vm.EndEval(sp, Value(), vm.GetTypeInfo(TYPE_ELEM_ANY));
-    return sp;
-}
-
-VM_INLINE StackPtr U_CONT1(VM &vm, StackPtr sp, int nfi) {
-    auto nf = vm.nfr.nfuns[nfi];
-    nf->cont1(sp, vm);
     return sp;
 }
 

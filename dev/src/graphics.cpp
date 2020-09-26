@@ -104,14 +104,6 @@ float2 localfingerpos(int i) {
     return localpos(GetFinger(i, false));
 }
 
-Value PushTransform(StackPtr &sp, VM &vm, const float4x4 &forward, const Value &body) {
-    if (body.True()) PushAnyAsString(sp, vm, otransforms.object2view());
-    otransforms.set_object2view(otransforms.object2view() * forward);
-    return body;
-}
-
-void PopTransform(StackPtr &sp) { otransforms.set_object2view(PopAnyFromString<float4x4>(sp)); }
-
 int GetSampler(StackPtr sp, VM &vm, Value &i) {
     if (i.ival() < 0 || i.ival() >= Shader::MAX_SAMPLERS)
         vm.BuiltinError(sp, "graphics: illegal texture unit");
@@ -397,16 +389,12 @@ nfr("gl_clear", "col", "F}:4", "",
         ClearFrameBuffer(PopVec<float3>(sp));
     });
 
-nfr("gl_color", "col,body", "F}:4L?", "",
-    "sets the current color. when a body is given, restores the previous color afterwards",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
-        auto newcolor = PopVec<float4>(sp);
-        if (body.True()) PushAnyAsString(sp, vm, curcolor);
-        curcolor = newcolor;
-        Push(sp,  body);
-    }, [](StackPtr &sp, VM &) {
-        curcolor = PopAnyFromString<float4>(sp);
+nfr("gl_color", "col", "F}:4", "F}:4",
+    "sets the current color, returns previous one",
+    [](StackPtr &sp, VM &) {
+        auto oldcolor = curcolor;
+        curcolor = PopVec<float4>(sp);
+        PushVec(sp, oldcolor);
     });
 
 nfr("gl_polygon", "vertlist", "F}]", "",
@@ -449,71 +437,48 @@ nfr("gl_unit_cube", "insideout", "I?", "",
         return Value();
     });
 
-nfr("gl_rotate_x", "vector,body", "F}:2L?", "",
-    "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
-    " when a body is given, restores the previous transform afterwards",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
+nfr("gl_rotate_x", "vec", "F}:2", "",
+    "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle",
+    [](StackPtr &sp, VM &) {
         auto a = PopVec<float2>(sp);
-        Push(sp, PushTransform(sp, vm, rotationX(a), body));
-    }, [](StackPtr &sp, VM &) {
-        PopTransform(sp);
+        otransforms.append_object2view(rotationX(a));
     });
 
-nfr("gl_rotate_y", "angle,body", "F}:2L?", "",
-    "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
-    " when a body is given, restores the previous transform afterwards",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
+nfr("gl_rotate_y", "angle", "F}:2", "",
+    "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle",
+    [](StackPtr &sp, VM &) {
         auto a = PopVec<float2>(sp);
-        Push(sp, PushTransform(sp, vm, rotationY(a), body));
-    }, [](StackPtr &sp, VM &) {
-        PopTransform(sp);
+        otransforms.append_object2view(rotationY(a));
     });
 
-nfr("gl_rotate_z", "angle,body", "F}:2L?", "",
+nfr("gl_rotate_z", "angle", "F}:2", "",
     "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
-    " as angle. when a body is given, restores the previous transform afterwards",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
+    " as angle",
+    [](StackPtr &sp, VM &) {
         auto a = PopVec<float2>(sp);
-        Push(sp, PushTransform(sp, vm, rotationZ(a), body));
-    }, [](StackPtr &sp, VM &) {
-        PopTransform(sp);
+        otransforms.append_object2view(rotationZ(a));
     });
 
-nfr("gl_translate", "vec,body", "F}L?", "",
-    "translates the current coordinate system along a vector. when a body is given,"
-    " restores the previous transform afterwards",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
+nfr("gl_translate", "vec", "F}", "",
+    "translates the current coordinate system along a vector",
+    [](StackPtr &sp, VM &) {
         auto v = PopVec<float3>(sp);
-        Push(sp, PushTransform(sp, vm, translation(v), body));
-    }, [](StackPtr &sp, VM &) {
-        PopTransform(sp);
+        otransforms.append_object2view(translation(v));
     });
 
-nfr("gl_scale", "factor,body", "FL?", "",
-    "scales the current coordinate system using a numerical factor."
-    " when a body is given, restores the previous transform afterwards",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
+nfr("gl_scale", "factor", "F", "",
+    "scales the current coordinate system using a numerical factor",
+    [](StackPtr &sp, VM &) {
         auto f = Pop(sp);
         auto v = f.fltval() * float3_1;
-        Push(sp, PushTransform(sp, vm, float4x4(float4(v, 1)), body));
-    }, [](StackPtr &sp, VM &) {
-        PopTransform(sp);
+        otransforms.append_object2view(float4x4(float4(v, 1)));
     });
 
-nfr("gl_scale", "factor,body", "F}L?", "",
-    "scales the current coordinate system using a vector."
-    " when a body is given, restores the previous transform afterwards",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
+nfr("gl_scale", "factor", "F}", "",
+    "scales the current coordinate system using a vector",
+    [](StackPtr &sp, VM &) {
         auto v = PopVec<float3>(sp);
-        Push(sp,  PushTransform(sp, vm, float4x4(float4(v, 1)), body));
-    }, [](StackPtr &sp, VM &) {
-        PopTransform(sp);
+        otransforms.append_object2view(float4x4(float4(v, 1)));
     });
 
 nfr("gl_origin", "", "", "F}:2",
@@ -542,6 +507,18 @@ nfr("gl_model_view_projection", "", "", "F]",
         return Value(v);
     });
 
+nfr("gl_push_model_view", "", "", "",
+    "save the current state of the model view matrix (gl_translate, gl_rotate etc)",
+    [](StackPtr &, VM &) {
+        otransforms.push();
+    });
+
+nfr("gl_pop_model_view", "", "", "B",
+    "restore a previous state of the model view matrix. returns false if none",
+    [](StackPtr &, VM &) {
+        return Value(otransforms.pop());
+    });
+
 nfr("gl_point_scale", "factor", "F", "",
     "sets the current scaling factor for point sprites."
     " this can be what the current gl_scale is, or different, depending on the desired visuals."
@@ -551,17 +528,13 @@ nfr("gl_point_scale", "factor", "F", "",
         return Value();
     });
 
-nfr("gl_line_mode", "on,body", "IL", "",
-    "set line mode (true == on). when a body is given,"
-    " restores the previous mode afterwards",
-    [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
+nfr("gl_line_mode", "on", "I", "I",
+    "set line mode (true == on), returns previous mode",
+    [](StackPtr &sp, VM &) {
+        auto oldmode = polymode;
         auto on = Pop(sp);
-        if (body.True()) PushAnyAsString(sp, vm, polymode);
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
-        Push(sp, body);
-    }, [](StackPtr &sp, VM &) {
-        polymode = PopAnyFromString<Primitive>(sp);
+        Push(sp, oldmode == PRIM_LOOP);
     });
 
 nfr("gl_hit", "vec,i", "F}I", "B",
@@ -951,19 +924,13 @@ nfr("gl_dump_shader", "filename,stripnonascii", "SB", "B",
         return Value(ok);
     });
 
-nfr("gl_blend", "on,body", "IL?", "",
-    "changes the blending mode (use blending constants from color.lobster). when a body is"
-    " given, restores the previous mode afterwards",
+nfr("gl_blend", "on", "I", "I",
+    "changes the blending mode (use blending constants from color.lobster), returns old mode",
     [](StackPtr &sp, VM &vm) {
-        auto body = Pop(sp);
         auto mode = Pop(sp);
         TestGL(sp, vm);
         BlendMode old = SetBlendMode((BlendMode)mode.ival());
-        if (body.True()) PushAnyAsString(sp, vm, old);
-        Push(sp, body);
-    }, [](StackPtr &sp, VM &) {
-        auto old = PopAnyFromString<BlendMode>(sp);
-        SetBlendMode(old);
+        Push(sp, old);
     });
 
 nfr("gl_load_texture", "name,textureformat", "SI?", "R?",

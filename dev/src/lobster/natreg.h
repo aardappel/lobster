@@ -251,7 +251,7 @@ struct Narg {
             case 'B': type = type_int; flags = flags | NF_BOOL; break;
             case 'F': type = type_float; break;
             case 'S': type = type_string; break;
-            case 'L': type = type_function_null; break;
+            case 'L': type = type_function_null; break;  // FIXME: only used by hash(), in gui.lobster
             case 'R': type = type_resource; break;
             case 'T': type = type_typeid; break;
             case 'V': type = type_typeid_vec; break;
@@ -330,8 +330,6 @@ struct NativeFun : Named {
 
     vector<Narg> args, retvals;
 
-    builtinfV cont1;
-
     const char *help;
 
     int subsystemid = -1;
@@ -345,9 +343,9 @@ struct NativeFun : Named {
     };
 
     NativeFun(const char *name, BuiltinPtr f, const char *ids, const char *typeids,
-              const char *rets, const char *help, builtinfV cont1)
+              const char *rets, const char *help)
         : Named(name, 0), fun(f), args(TypeLen(typeids)), retvals(TypeLen(rets)),
-          cont1(cont1), help(help) {
+          help(help) {
         assert((int)args.size() == f.fnargs || f.fnargs < 0);
         auto StructArgsVararg = [&](const Narg &arg) {
             assert(!arg.fixed_len || IsRef(arg.type->sub->t) || f.fnargs < 0);
@@ -394,9 +392,8 @@ struct NativeRegistry {
 
     #define REGISTER(N) \
     void operator()(const char *name, const char *ids, const char *typeids, \
-                    const char *rets, const char *help, builtinf##N f, \
-                    builtinfV cont1 = nullptr) { \
-        Reg(new NativeFun(name, BuiltinPtr(f), ids, typeids, rets, help, cont1)); \
+                    const char *rets, const char *help, builtinf##N f) { \
+        Reg(new NativeFun(name, BuiltinPtr(f), ids, typeids, rets, help)); \
     }
     REGISTER(V)
     REGISTER(0)

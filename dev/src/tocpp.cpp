@@ -208,21 +208,14 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             }
             if (!comment.empty()) append(sd, " /* ", comment, " */");
 
-            auto EmitDynJump = [&]() {
-                if (cpp) sd += "sp = vm.next_call_target(vm, sp);";
-                else sd += "sp = GetNextCallTarget(vm)(vm, sp);";
-            };
             if (opc == IL_CALL) {
                 append(sd, " sp = fun_", args[0], "(vm, sp);");
             } else if (opc == IL_CALLV || opc == IL_DDCALL) {
                 sd += " ";
-                EmitDynJump();
+                if (cpp) sd += "sp = vm.next_call_target(vm, sp);";
+                else sd += "sp = GetNextCallTarget(vm)(vm, sp);";
             } else if (opc == IL_RETURN || opc == IL_RETURNANY) {
                 sd += " return sp;";
-            } else if (opc == IL_CALLVCOND) {
-                if (cpp) sd += " if (vm.next_call_target) ";
-                else sd += " if (GetNextCallTarget(vm)) ";
-                EmitDynJump();
             }
         }
         sd += "\n";

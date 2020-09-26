@@ -2,6 +2,7 @@
 
 import vec
 import color
+import gl
 
 def branch(n, max, scale, len) -> void:
     let poly = [ xy_x, -xy_x, xy { -scale, len }, xy { scale, len } ]

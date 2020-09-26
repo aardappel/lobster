@@ -2,9 +2,11 @@
 
 import vec
 import color
+import gl
 import texture
 import util3d
 import gl
+import mg
 
 let vrmode = vr_init()
 
@@ -90,9 +92,11 @@ while gl_frame():
                         controller_meshes[mc] = mcmesh = vr_create_motion_controller_mesh(mc)
                     if mcmesh:
                         gl_color(color_white)
-                        vr_motion_controller(mc):
-                            gl_set_shader("phong_textured")
-                            gl_render_mesh(mcmesh)
+                        gl_push_model_view()
+                        vr_motion_controller(mc)
+                        gl_set_shader("phong_textured")
+                        gl_render_mesh(mcmesh)
+                        gl_pop_model_view()
         vr_finish()
         for(2) mc:
             if vr_motion_controller_button(mc, "trigger") == 1:

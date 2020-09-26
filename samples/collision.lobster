@@ -4,6 +4,7 @@
 import std
 import vec
 import color
+import gl
 
 let num_balls = 1000  // try 10000 !
 let ball_size = 1 / sqrt(num_balls) / 3

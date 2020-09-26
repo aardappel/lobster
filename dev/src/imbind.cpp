@@ -33,7 +33,18 @@ extern SDL_Window *_sdl_window;
 extern SDL_GLContext _sdl_context;
 
 bool imgui_init = false;
+
+int imgui_frame = 0;
 int imgui_windows = 0;
+int imgui_group = 0;
+int imgui_treenode = 0;
+
+void IMGUIFrameCleanup() {
+    imgui_frame = 0;
+    imgui_windows = 0;
+    imgui_group = 0;
+    imgui_treenode = 0;
+}
 
 void IMGUICleanup() {
     if (!imgui_init) return;
@@ -41,7 +52,7 @@ void IMGUICleanup() {
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     imgui_init = false;
-    imgui_windows = 0;
+    IMGUIFrameCleanup();
 }
 
 void IsInit(StackPtr &sp, VM &vm, bool require_window = true) {
@@ -218,7 +229,8 @@ void EngineStatsGUI() {
 
 void AddIMGUI(NativeRegistry &nfr) {
 
-nfr("im_init", "dark_style,flags", "B?I?", "", "",
+nfr("im_init", "dark_style,flags", "B?I?", "",
+    "",
     [](StackPtr &, VM &, Value &darkstyle, Value &flags) {
         if (imgui_init) return Value();
         IMGUI_CHECKVERSION();
@@ -231,7 +243,8 @@ nfr("im_init", "dark_style,flags", "B?I?", "", "",
         return Value();
     });
 
-nfr("im_add_font", "font_path,size", "SF", "B", "",
+nfr("im_add_font", "font_path,size", "SF", "B",
+    "",
     [](StackPtr &sp, VM &vm, Value &fontname, Value &size) {
         IsInit(sp, vm, false);
         string buf;
@@ -246,22 +259,30 @@ nfr("im_add_font", "font_path,size", "SF", "B", "",
         return Value(font != nullptr);
     });
 
-nfr("im_frame", "body", "L", "", "",
+nfr("im_frame_start", "", "", "",
+    "(use im_frame instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm, false);
-        auto body = Pop(sp);
+        if (imgui_frame) return;
+        IMGUIFrameCleanup();
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(_sdl_window);
         ImGui::NewFrame();
-        Push(sp,  Value());  // State value.
-        Push(sp, body);
-    }, [](StackPtr &sp, VM &) {
-        Pop(sp);
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        imgui_frame++;
     });
 
-nfr("im_window_demo", "", "", "B", "",
+nfr("im_frame_end", "", "", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(sp, vm, false);
+        if (!imgui_frame) return;
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        imgui_frame--;
+    });
+
+nfr("im_window_demo", "", "", "B",
+    "",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm, false);
         bool show = true;
@@ -269,32 +290,30 @@ nfr("im_window_demo", "", "", "B", "",
         return Value(show);
     });
 
-nfr("im_window", "title,flags,body", "SIL", "", "",
+nfr("im_window_start", "title,flags", "SI", "",
+    "(use im_window instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm, false);
-        auto body = Pop(sp);
         auto flags = Pop(sp);
         auto title = Pop(sp);
         ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
         imgui_windows++;
-        Push(sp,  Value());  // State value.
-        Push(sp, body);
-    }, [](StackPtr &sp, VM &) {
-        Pop(sp);
-        ImGui::End();
-        imgui_windows--;
     });
 
-nfr("im_button", "label,body", "SL", "", "",
+nfr("im_window_end", "", "", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(sp, vm, false);
+        if (imgui_windows--) ImGui::End();
+    });
+
+nfr("im_button", "label", "S", "B",
+    "",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
-        auto body = Pop(sp);
         auto title = Pop(sp);
         auto press = ImGui::Button(title.sval()->data());
-        Push(sp,  Value());  // State value.
-        Push(sp, press ? body : Value());
-    }, [](StackPtr &sp, VM &) {
-        Pop(sp);
+        Push(sp, press);
     });
 
 nfr("im_same_line", "", "", "", "",
@@ -304,28 +323,32 @@ nfr("im_same_line", "", "", "", "",
         return Value();
     });
 
-nfr("im_separator", "", "", "", "",
+nfr("im_separator", "", "", "",
+    "",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
         ImGui::Separator();
         return Value();
     });
 
-nfr("im_text", "label", "S", "", "",
+nfr("im_text", "label", "S", "",
+    "",
     [](StackPtr &sp, VM &vm, Value &text) {
         IsInit(sp, vm);
         ImGui::Text("%s", text.sval()->data());
         return Value();
     });
 
-nfr("im_tooltip", "label", "S", "", "",
+nfr("im_tooltip", "label", "S", "",
+    "",
     [](StackPtr &sp, VM &vm, Value &text) {
         IsInit(sp, vm);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", text.sval()->data());
         return Value();
     });
 
-nfr("im_checkbox", "label,bool", "SI", "I2", "",
+nfr("im_checkbox", "label,bool", "SI", "I2",
+    "",
     [](StackPtr &sp, VM &vm, Value &text, Value &boolval) {
         IsInit(sp, vm);
         bool b = boolval.True();
@@ -333,13 +356,15 @@ nfr("im_checkbox", "label,bool", "SI", "I2", "",
         return Value(b);
     });
 
-nfr("im_input_text", "label,str", "SSk", "S", "",
+nfr("im_input_text", "label,str", "SSk", "S",
+    "",
     [](StackPtr &sp, VM &vm, Value &text, Value &str) {
         IsInit(sp, vm);
         return Value(LStringInputText(vm, text.sval()->data(), str.sval()));
     });
 
-nfr("im_radio", "labels,active,horiz", "S]II", "I", "",
+nfr("im_radio", "labels,active,horiz", "S]II", "I",
+    "",
     [](StackPtr &sp, VM &vm, Value &strs, Value &active, Value &horiz) {
         IsInit(sp, vm);
         int sel = active.intval();
@@ -350,7 +375,8 @@ nfr("im_radio", "labels,active,horiz", "S]II", "I", "",
         return Value(sel);
     });
 
-nfr("im_combo", "label,labels,active", "SS]I", "I", "",
+nfr("im_combo", "label,labels,active", "SS]I", "I",
+    "",
     [](StackPtr &sp, VM &vm, Value &text, Value &strs, Value &active) {
         IsInit(sp, vm);
         int sel = active.intval();
@@ -362,7 +388,8 @@ nfr("im_combo", "label,labels,active", "SS]I", "I", "",
         return Value(sel);
     });
 
-nfr("im_listbox", "label,labels,active,height", "SS]II", "I", "",
+nfr("im_listbox", "label,labels,active,height", "SS]II", "I",
+    "",
     [](StackPtr &sp, VM &vm, Value &text, Value &strs, Value &active, Value &height) {
         IsInit(sp, vm);
         int sel = active.intval();
@@ -374,7 +401,8 @@ nfr("im_listbox", "label,labels,active,height", "SS]II", "I", "",
         return Value(sel);
     });
 
-nfr("im_sliderint", "label,i,min,max", "SIII", "I", "",
+nfr("im_sliderint", "label,i,min,max", "SIII", "I",
+    "",
     [](StackPtr &sp, VM &vm, Value &text, Value &integer, Value &min, Value &max) {
         IsInit(sp, vm);
         int i = integer.intval();
@@ -382,7 +410,8 @@ nfr("im_sliderint", "label,i,min,max", "SIII", "I", "",
         return Value(i);
     });
 
-nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F", "",
+nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
+    "",
     [](StackPtr &sp, VM &vm, Value &text, Value &flt, Value &min, Value &max) {
         IsInit(sp, vm);
         float f = flt.fltval();
@@ -390,7 +419,8 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F", "",
         return Value(f);
     });
 
-nfr("im_coloredit", "label,color", "SF}", "A2", "",
+nfr("im_coloredit", "label,color", "SF}", "A2",
+    "",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
         auto c = PopVec<float4>(sp);
@@ -398,33 +428,43 @@ nfr("im_coloredit", "label,color", "SF}", "A2", "",
         PushVec(sp, c);
     });
 
-nfr("im_treenode", "label,body", "SL", "", "",
+nfr("im_treenode_start", "label", "S", "B",
+    "(use im_treenode instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
-        auto body = Pop(sp);
         auto title = Pop(sp);
         bool open = ImGui::TreeNode(title.sval()->data());
-        PushAnyAsString(sp, vm, open);
-        Push(sp, open ? body : Value());
-    }, [](StackPtr &sp, VM &) {
-        bool open = PopAnyFromString<bool>(sp);
-        if (open) ImGui::TreePop();
+        Push(sp, open);
+        if (open) imgui_treenode++;
     });
 
-nfr("im_group", "label,body", "SsL", "",
-    "an invisble group around some widgets, useful to ensure these widgets are unique"
-    " (if they have the same label as widgets in another group that has a different group"
-    " label)",
+nfr("im_treenode_end", "", "", "",
+    "",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
-        auto body = Pop(sp);
+        if (!imgui_treenode) return;
+        ImGui::TreePop();
+        imgui_treenode--;
+    });
+
+nfr("im_group_start", "label", "Ss", "",
+    "an invisble group around some widgets, useful to ensure these widgets are unique"
+    " (if they have the same label as widgets in another group that has a different group"
+    " label). Use im_group instead",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(sp, vm);
         auto title = Pop(sp);
         ImGui::PushID(title.sval()->data());
-        Push(sp, Value());  // State value.
-        Push(sp, body);
-    }, [](StackPtr &sp, VM &) {
-        Pop(sp);
+        imgui_group++;
+    });
+
+nfr("im_group_end", "", "", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(sp, vm);
+        if (!imgui_group) return;
         ImGui::PopID();
+        imgui_group--;
     });
 
 nfr("im_edit_anything", "value,label", "AkS?", "A1",
@@ -438,7 +478,8 @@ nfr("im_edit_anything", "value,label", "AkS?", "A1",
         return v;
     });
 
-nfr("im_graph", "label,values,ishistogram", "SF]I", "", "",
+nfr("im_graph", "label,values,ishistogram", "SF]I", "",
+    "",
     [](StackPtr &sp, VM &vm, Value &label, Value &vals, Value &histogram) {
         IsInit(sp, vm);
         auto getter = [](void *data, int i) -> float {
@@ -462,7 +503,8 @@ nfr("im_show_vars", "", "", "",
         return Value();
     });
 
-nfr("im_show_engine_stats", "", "", "", "",
+nfr("im_show_engine_stats", "", "", "",
+    "",
     [](StackPtr &sp, VM &vm) {
         IsInit(sp, vm);
         EngineStatsGUI();

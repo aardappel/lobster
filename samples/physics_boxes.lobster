@@ -2,6 +2,7 @@
 
 import vec
 import color
+import gl
 import util3d
 
 fatal(gl_window("Physics demo : boxes", 1024, 768))

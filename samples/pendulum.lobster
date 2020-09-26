@@ -3,6 +3,7 @@
 import std
 import vec
 import color
+import gl
 import texture
 
 let g = 9.8

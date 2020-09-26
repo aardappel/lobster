@@ -1146,37 +1146,9 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(nargs + numstructs, true);
     assert(nargs == nf->args.size() && (nf->fun.fnargs < 0 || nargs <= 7));
     auto vmop = nf->fun.fnargs >= 0 ? GENOP(IL_BCALLRET0 + (int)nargs) : IL_BCALLRETV;
-    if (nf->cont1) { // graphics.h
-        assert(nf->retvals.empty());
-        assert(!retval);
-        assert(vmop == IL_BCALLRETV);
-        auto lastarg = children.empty() ? nullptr : children.back();
-        if (!Is<DefaultVal>(lastarg)) {
-            cg.EmitOp(vmop, inw, 1);
-            cg.Emit(nf->idx);
-            cg.Emit(false);
-            // Note: this call is still conditional, since some of these functions dynamically
-            // decide to pass a nil lambda even if statically one is given.
-            // These functions return the function they're passed + a string (if the function)
-            // isn't nil), so we must store the string in a keepvar.
-            cg.EmitKeep(1, 2);
-            cg.EmitOp(IL_CALLVCOND);
-            assert(lastarg->exptype->t == V_FUNCTION);
-            assert(!lastarg->exptype->sf->reqret);  // We never use the retval.
-            cg.EmitOp(IL_CONT1);
-            cg.Emit(nf->idx);  // Never returns a value.
-        } else {
-            cg.EmitOp(vmop, inw, 1);
-            cg.Emit(nf->idx);
-            cg.Emit(false);
-            // retvals is empty, but still pushes a nil function that was intended for IL_CALLVCOND!
-            cg.GenPop({ type_function_null, LT_ANY });
-        }
-    } else {
-        cg.EmitOp(vmop, inw, ValWidthMulti(nattype, nattype->NumValues()));
-        cg.Emit(nf->idx);
-        cg.Emit(!nf->retvals.empty());
-    }
+    cg.EmitOp(vmop, inw, ValWidthMulti(nattype, nattype->NumValues()));
+    cg.Emit(nf->idx);
+    cg.Emit(!nf->retvals.empty());
     if (nf->retvals.size() > 0) {
         assert(nf->retvals.size() == nattype->NumValues());
         for (size_t i = 0; i < nattype->NumValues(); i++) {

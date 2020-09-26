@@ -251,6 +251,7 @@ extern float4x4 view2clip;
 
 class objecttransforms {
     float4x4 o2v;
+    vector<float4x4> o2v_stack;
     float4x4 v2o;
     bool v2o_valid = true;
 
@@ -266,6 +267,11 @@ class objecttransforms {
         v2o_valid = false;
     }
 
+    void append_object2view(const float4x4 &n) {
+        o2v *= n;
+        v2o_valid = false;
+    }
+
     // This is needed infrequently, so we cache the inverse.
     // FIXME: somehow track if object2view is only affected by translate/rotate
     // so we can use transpose instead?
@@ -278,6 +284,17 @@ class objecttransforms {
     }
 
     float3 camerapos() { return view2object()[3].xyz(); }
+
+    void push() {
+        o2v_stack.push_back(o2v);
+    }
+
+    bool pop() {
+        if (o2v_stack.empty()) return false;
+        set_object2view(o2v_stack.back());
+        o2v_stack.pop_back();
+        return true;
+    }
 };
 
 extern objecttransforms otransforms;

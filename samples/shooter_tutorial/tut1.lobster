@@ -1,5 +1,6 @@
 import vec
 import color
+import gl
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
