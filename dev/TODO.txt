@@ -991,6 +991,16 @@
     - make public headers explicitly depend on it.
     - try to reduce the scope of it.
 
+- We should consider splitting the type checker in particular, but potentially also parts of
+  parser/opt/codegen into more passes.
+  This is a more complicated change that will not be easy.
+  In particular, type-checking of struct decls has ordering issues that creep into the language,
+  forcing users to declare things in a particular order that is not obvious.
+  This is hard though, because:
+  - types of fields may depend on initializers which depend on globals declared before it which
+    depend on other classes..
+  - other types (super classes, generics, fields) may be quite circular.
+
 - Add an optional mouse smoothing feature?
 
 - Have a simpler/better C++ binding interface.

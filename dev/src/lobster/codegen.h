@@ -288,6 +288,7 @@ struct CodeGen  {
         for (auto udt : st.udttable) {
             for (auto [i, de] : enumerate(udt->dispatch)) {
                 if (de.sf) {
+                    assert(de.sf->subbytecodestart);
                     vtables[udt->vtable_start + i] = de.sf->subbytecodestart;
                 }
             }
@@ -389,6 +390,7 @@ struct CodeGen  {
         EmitOp(IL_JUMPIFUNWOUND);
         Emit(sf.parent->idx);
         Emit(0);
+        auto tstackbackup = tstack;
         auto loc = Pos();
         if (!temptypestack.empty()) {
             EmitOp(IL_SAVERETS);
@@ -399,6 +401,7 @@ struct CodeGen  {
         }
         EmitOp(IL_RETURNANY);
         SetLabel(loc);
+        tstack = tstackbackup;
     }
 
     void GenCall(const SubFunction &sf, int vtable_idx, const List *args, size_t retval) {

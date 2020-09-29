@@ -193,6 +193,7 @@ VM_INLINE StackPtr U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) 
     VMTYPEEQ(self, V_CLASS);
     auto start = self.oval()->ti(vm).vtable_start;
     vm.next_call_target = vm.native_vtables[start + vtable_idx];
+    assert(vm.next_call_target);
     return sp;
 }
 

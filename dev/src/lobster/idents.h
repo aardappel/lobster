@@ -167,6 +167,7 @@ struct UDT : Named {
     int numslots = -1;
     int vtable_start = -1;
     vector<UDT *> subudts;  // Including self.
+    bool subudts_dispatched = false;
     // Subset of methods that participate in dynamic dispatch. Order in this table determines
     // vtable layout and is compatible with sub/super classes.
     // Multiple specializations of a method may be in here.

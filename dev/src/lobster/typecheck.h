@@ -685,6 +685,16 @@ struct TypeChecker {
         }
         if (udt.FullyBound()) {
             for (auto u = &udt; u; u = u->resolved_superclass) {
+                if (u->subudts_dispatched) {
+                    // This is unfortunate, but code ordering has made it such that a
+                    // dispatch has already been typechecked before this udt has been
+                    // fully processed. This should be solved by doing type-checking more
+                    // safely multipass, but until then, this error. Without this error,
+                    // the VM could run into empty vtable entries.
+                    // TODO: output the name of the method that caused this?
+                    TypeError("class " + udt.name + " already used in dynamic dispatch on " +
+                              u->name + " before it has been declared", errn);
+                }
                 u->subudts.push_back(&udt);
             }
         }
@@ -1143,6 +1153,9 @@ struct TypeChecker {
     TypeRef TypeCheckCallDispatch(UDT &dispatch_udt, SubFunction *&csf, List &call_args,
                                   size_t reqret, vector<UnresolvedTypeRef> *specializers,
                                   int &vtable_idx) {
+        // FIXME: this is to lock the subudts, since adding to them later would invalidate
+        // this dispatch.. would be better to solve ordering problems differently.
+        dispatch_udt.subudts_dispatched = true;
         Function &f = *csf->parent;
         // We must assume the instance may dynamically be different, so go thru vtable.
         // See if we already have a vtable entry for this type of call.
