@@ -1407,7 +1407,7 @@ struct Parser {
                     if (sf->args[0].sid->id->name[0] != '_')
                         Error("cannot mix implicit argument: " + idname +
                             " with declared arguments in function", sf->body);
-                    if (st.defsubfunctionstack.back()->args.back().type == type_any)
+                    if (st.defsubfunctionstack.back()->args.back().type->Equal(*type_any))
                         GenImplicitGenericForLastArg();
                 }
             }

@@ -106,6 +106,14 @@
 
 - docs only show switch used as exp
 
+- many: some form of string interpolation
+
+- enums
+  - mortimersnerd: get min/max
+  - use namespaces
+    - remove keywords?
+  - iterate them? return a vector of all values?
+
 - let x:T = vector_reserve(typeof U, ) may crash if U is not compatible with T.
   Maybe at least in the docs mark this function as private, people should use `map` instead.
   Or re-think this feature entirely?
@@ -694,12 +702,6 @@
   stored in data structures that are not escaping but hard to prove that they are.
 
 - enable dynamic function value call on any exp, see ParseDeref.
-
-- enums
-  - use namespaces
-    - remove keywords?
-  - get min/max
-  - iterate them? return a vector of all values?
 
 - nice samples to port:
   https://github.com/ssloy/tinyraytracer

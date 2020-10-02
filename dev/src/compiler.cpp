@@ -469,6 +469,16 @@ Function::~Function() {
     for (auto da : default_args) delete da;
 }
 
+bool SpecUDT::Equal(const SpecUDT &o) const {
+    if (udt != o.udt ||
+        is_generic != o.is_generic ||
+        specializers.size() != o.specializers.size()) return false;
+    for (auto [i, s] : enumerate(specializers)) {
+        if (!s->Equal(*o.specializers[i])) return false;
+    }
+    return true;
+}
+
 }  // namespace lobster
 
 

@@ -60,6 +60,8 @@ struct SpecUDT {
     bool is_generic = false;
 
     SpecUDT(UDT *udt) : udt(udt) {}
+
+    bool Equal(const SpecUDT &o) const;
 };
 
 struct Type {
@@ -87,13 +89,20 @@ struct Type {
     Type(TypeVariable *_tv)              : t(V_TYPEVAR), tv(_tv)      {}
 
 
-    bool operator==(const Type &o) const {
-        return t == o.t &&
-               (sub == o.sub ||  // Also compares sf/udt
-                (Wrapped() && *sub == *o.sub));
+    bool Equal(const Type &o) const {
+        if (this == &o) return true;
+        if (t != o.t) return false;
+        if (sub == o.sub) return true;  // Also compares sf/udt
+        switch (t) {
+            case V_VECTOR:
+            case V_NIL:
+                return sub->Equal(*o.sub);
+            case V_UUDT:
+                return spec_udt->Equal(*o.spec_udt);
+            default:
+                return false;
+        }
     }
-
-    bool operator!=(const Type &o) const { return !(*this == o); }
 
     Type &operator=(const Type &o) {
         // Hack: we want t to be const, but still have a working assignment operator.
@@ -176,10 +185,6 @@ class TypeRef {
     const Type *operator->() const { return type; }
 
     const Type *get() const { return type; }
-
-    // Must compare Type instances by value.
-    bool operator==(const TypeRef &o) const { return *type == *o.type; };
-    bool operator!=(const TypeRef &o) const { return *type != *o.type; };
 
     bool Null() const { return type == nullptr; }
 };

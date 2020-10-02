@@ -205,7 +205,7 @@ struct TypeAnnotation : Node {
     TypeAnnotation(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
     void Dump(string &sd) const { sd += TypeName(giventype.utr); }
     bool EqAttr(const Node *o) const {
-        return giventype.utr == ((TypeAnnotation *)o)->giventype.utr;
+        return giventype.utr->Equal(*((TypeAnnotation *)o)->giventype.utr);
     }
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
@@ -280,7 +280,7 @@ struct Nil : Node {
     UnresolvedTypeRef giventype;
     Nil(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
     bool EqAttr(const Node *o) const {
-        return giventype.utr == ((Nil *)o)->giventype.utr;
+        return giventype.utr->Equal(*((Nil *)o)->giventype.utr);
     }
     SHARED_SIGNATURE(Nil, TName(T_NIL), false)
 };
@@ -392,7 +392,7 @@ struct Constructor : List {
         return true;
     }
     bool EqAttr(const Node *o) const {
-        return giventype.utr == ((Constructor *)o)->giventype.utr;
+        return giventype.utr->Equal(*((Constructor *)o)->giventype.utr);
     }
     SHARED_SIGNATURE(Constructor, "constructor", false)
 };
@@ -437,7 +437,7 @@ struct NativeCall : GenericCall {
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     bool EqAttr(const Node *o) const {
         return nf == ((NativeCall *)o)->nf &&
-               nattype == ((NativeCall *)o)->nattype &&
+               nattype->Equal(*((NativeCall *)o)->nattype) &&
                natlt == ((NativeCall *)o)->natlt;
     }
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
@@ -500,7 +500,7 @@ struct IsType : Unary {
     IsType(const Line &ln, Node *_a) : Unary(ln, _a) {}
     void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype.utr)); }
     bool EqAttr(const Node *o) const {
-        return giventype.utr == ((IsType *)o)->giventype.utr;
+        return giventype.utr->Equal(*((IsType *)o)->giventype.utr);
     }
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
 };

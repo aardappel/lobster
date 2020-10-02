@@ -221,7 +221,7 @@ struct TypeChecker {
 
     bool ConvertsTo(TypeRef type, TypeRef bound, bool coercions, bool unifications = true,
                     bool allow_numeric_nil = false) {
-        if (bound == type) return true;
+        if (bound->Equal(*type)) return true;
         if (type->t == V_VAR) {
             if (unifications) UnifyVar(bound, type);
             return true;
@@ -287,7 +287,7 @@ struct TypeChecker {
         if (ConvertsTo(bt, at, coercions)) return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
             auto et = Union(at->Element(), bt->Element(), aname, bname, false, nullptr);
-            if (err && et == type_undefined) goto error;
+            if (err && et->Equal(*type_undefined)) goto error;
             return st.Wrap(et, V_VECTOR);
         }
         if (at->t == V_CLASS && bt->t == V_CLASS) {
@@ -300,10 +300,6 @@ struct TypeChecker {
                           ") have no common supertype"), *err);
         }
         return type_undefined;
-    }
-
-    bool ExactType(TypeRef a, TypeRef b) {
-        return a == b;  // Not inlined for documentation purposes.
     }
 
     void MakeString(Node *&a, Lifetime orig_recip) {
@@ -620,7 +616,7 @@ struct TypeChecker {
                 udt.sametype = udt.fields[0].resolvedtype;
                 for (size_t i = 1; i < udt.fields.size(); i++) {
                     // Can't use Union here since it will bind variables, use simplified alternative:
-                    if (!ExactType(udt.fields[i].resolvedtype, udt.sametype)) {
+                    if (!udt.fields[i].resolvedtype->Equal(*udt.sametype)) {
                         udt.sametype = type_undefined;
                         break;
                     }
@@ -657,7 +653,7 @@ struct TypeChecker {
             // See if we can find a matching specialization instead.
             for (auto sti = udt.given_superclass->spec_udt->udt->first; sti; sti = sti->next) {
                 for (size_t i = 0; i < sti->fields.size(); i++) {
-                    if (sti->fields[i].resolvedtype != udt.fields[i].resolvedtype) {
+                    if (!sti->fields[i].resolvedtype->Equal(*udt.fields[i].resolvedtype)) {
                         goto fail;
                     }
                 }
@@ -815,7 +811,7 @@ struct TypeChecker {
         for (auto &freevar : sf.freevars) {
             //auto atype = Promote(freevar.id->type);
             if (freevar.sid != freevar.sid->Current() ||
-                !ExactType(freevar.type, freevar.sid->Current()->type)) {
+                !freevar.type->Equal(*freevar.sid->Current()->type)) {
                 (void)prespecialize;
                 assert(prespecialize ||
                        freevar.sid == freevar.sid->Current() ||
@@ -971,7 +967,7 @@ struct TypeChecker {
                 for (auto [i, te] : enumerate(*type->tup)) {
                     auto tr = ResolveTypeVars({ te.type }, errn);
                     types.push_back(tr);
-                    if (tr != te.type) same = false;
+                    if (!tr->Equal(*te.type)) same = false;
                 }
                 if (same) break;
                 auto nt = st.NewTuple(type->tup->size());
@@ -992,7 +988,7 @@ struct TypeChecker {
                     if (udti->FullyBound()) {
                         assert(udti->generics.size() == types.size());
                         for (auto [i, btv] : enumerate(udti->generics)) {
-                            if (btv.resolvedtype != types[i]) goto nomatch;
+                            if (!btv.resolvedtype->Equal(*types[i])) goto nomatch;
                         }
                         return &udti->thistype;
                         nomatch:;
@@ -1103,11 +1099,11 @@ struct TypeChecker {
                         // TODO: we need this check here because arg type may rely on parent
                         // struct (or function) generic, and thus isn't covered by the checking
                         // of sf->generics below. Can this be done more elegantly?
-                        (st.IsGeneric(sf->giventypes[i]) && !ExactType(c->exptype, arg.type)))
+                        (st.IsGeneric(sf->giventypes[i]) && !c->exptype->Equal(*arg.type)))
                         goto fail;
                 }
                 for (auto [i, btv] : enumerate(sf->generics)) {
-                    if (!ExactType(btv.resolvedtype, generics[i].resolvedtype)) goto fail;
+                    if (!btv.resolvedtype->Equal(*generics[i].resolvedtype)) goto fail;
                 }
                 if (SpecializationIsCompatible(*sf, reqret)) {
                     // This function can be reused.
@@ -1258,18 +1254,6 @@ struct TypeChecker {
                 if (!sf) continue;
                 // Skip if it is using a superclass method.
                 if (!overload_idxs[i].second) continue;
-                if (last_sf) {
-                    // FIXME: good to have this check here so it only occurs for functions
-                    // participating in the dispatch, but error now appears at the call site!
-                    for (auto [j, arg] : enumerate(sf->args)) {
-                        if (j && arg.type != last_sf->args[j].type &&
-                            !st.IsGeneric(sf->giventypes[j]))
-                            TypeError(cat("argument ", j + 1, " of declaration of \"", f.name,
-                                          "\", type: ", TypeName(arg.type),
-                                          " doesn\'t match type of previous declaration: ",
-                                          TypeName(last_sf->args[j].type)),  call_args);
-                    }
-                }
                 call_args.children[0]->exptype = &udt->thistype;
                 // FIXME: this has the side effect of giving call_args types relative to the last
                 // overload type-checked, which is strictly speaking not correct, but may not
@@ -1308,14 +1292,28 @@ struct TypeChecker {
                 }
                 last_sf = sf;
             }
-            if (any_recursive) {
-                for (auto udt : dispatch_udt.subudts) {
-                    auto sf = udt->dispatch[vtable_idx].sf;
-                    if (!sf) continue;
-                    if (sf->returngiventype.utr.Null())
-                        TypeError("recursive dynamic dispatch must have explicit return type: " +
-                                  sf->parent->name, call_args);
+            // Pass 2.
+            last_sf = nullptr;
+            for (auto udt : dispatch_udt.subudts) {
+                auto sf = udt->dispatch[vtable_idx].sf;
+                if (!sf) continue;
+                if (any_recursive && sf->returngiventype.utr.Null())
+                    TypeError("recursive dynamic dispatch must have explicit return type: " +
+                                sf->parent->name, call_args);
+                if (last_sf) {
+                    // We do this in pass 2 because otherwise arg types will be unresolved.
+                    // FIXME: good to have this check here so it only occurs for functions
+                    // participating in the dispatch, but error now appears at the call site!
+                    for (auto [j, arg] : enumerate(sf->args)) {
+                        if (j && !arg.type->Equal(*last_sf->args[j].type) &&
+                            !st.IsGeneric(sf->giventypes[j]))
+                            TypeError(cat("argument ", j + 1, " of declaration of \"", f.name,
+                                          "\", type: ", TypeName(arg.type),
+                                          " doesn\'t match type of previous declaration: ",
+                                          TypeName(last_sf->args[j].type)),  call_args);
+                    }
                 }
+                last_sf = sf;
             }
             if (any_returned_thru) {
                 dispatch_udt.dispatch[vtable_idx].returned_thru = true;
@@ -1373,7 +1371,7 @@ struct TypeChecker {
             overload_idx = -1;
             // First see if there is an exact match.
             for (auto [i, isf] : enumerate(f.overloads)) {
-                if (ExactType(type0, isf->args[0].type)) {
+                if (type0->Equal(*isf->args[0].type)) {
                     if (overload_idx >= 0)
                         TypeError(cat("multiple overloads have the same type: \"", f.name,
                                       "\", first arg \"", TypeName(type0), "\""), call_args);
@@ -1997,7 +1995,7 @@ struct TypeChecker {
                 }
                 if (flen >= 2 && flen <= 4) {
                     if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->fields.size() == flen &&
-                        e->udt->sametype == vt->sub) {
+                        e->udt->sametype->Equal(*vt->sub)) {
                         // Allow any similar vector type, like "color".
                         return etype;
                     }

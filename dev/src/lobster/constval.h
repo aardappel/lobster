@@ -112,7 +112,7 @@ ValueType IsType::ConstVal(TypeChecker *tc, Value &val) const {
         // This may be called from the parser, where we do not support this as a constant.
         return V_VOID;
     }
-    if (child->exptype == resolvedtype || resolvedtype->t == V_ANY) {
+    if (child->exptype->Equal(*resolvedtype) || resolvedtype->t == V_ANY) {
         val = Value(true);
         return V_INT;
     }
