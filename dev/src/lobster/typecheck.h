@@ -1264,8 +1264,10 @@ struct TypeChecker {
                     for (auto [j, arg] : enumerate(sf->args)) {
                         if (j && arg.type != last_sf->args[j].type &&
                             !st.IsGeneric(sf->giventypes[j]))
-                            TypeError("argument " + to_string(j + 1) + " of \"" + f.name +
-                                      "\" overload type mismatch", call_args);
+                            TypeError(cat("argument ", j + 1, " of declaration of \"", f.name,
+                                          "\", type: ", TypeName(arg.type),
+                                          " doesn\'t match type of previous declaration: ",
+                                          TypeName(last_sf->args[j].type)),  call_args);
                     }
                 }
                 call_args.children[0]->exptype = &udt->thistype;
