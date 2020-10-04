@@ -54,8 +54,9 @@ def im_window(title, flags, body):
 
 def im_treenode(label, body):
     let open = im_treenode_start(label)
-    body()
-    if open: im_treenode_end()
+    if open:
+        body()
+        im_treenode_end()
 
 def im_group(label, body):
     im_group_start(label)
