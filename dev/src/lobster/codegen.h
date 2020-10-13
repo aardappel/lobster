@@ -36,6 +36,7 @@ struct CodeGen  {
     int runtime_checks;
     vector<int> vtables;
     vector<ILOP> tstack;
+    size_t tstack_max = 0;
 
     int Pos() { return (int)code.size(); }
 
@@ -47,29 +48,20 @@ struct CodeGen  {
         code.push_back(i);
     }
 
-    #define TSTACK 1
-
     int TempStackSize() {
         return (int)tstack.size();
     }
 
     ILOP PopTemp() {
-        #if TSTACK
-            assert(!tstack.empty());
-            auto op = tstack.back();
-            tstack.pop_back();
-            return op;
-        #else
-            return IL_ABORT;
-        #endif
+        assert(!tstack.empty());
+        auto op = tstack.back();
+        tstack.pop_back();
+        return op;
     }
 
     void PushTemp(ILOP op) {
-        #if TSTACK
-            tstack.push_back(op);
-        #else
-            (void)op;
-        #endif
+        tstack.push_back(op);
+        tstack_max = max(tstack_max, tstack.size());
     }
 
     struct BlockStack {
@@ -90,39 +82,24 @@ struct CodeGen  {
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         Emit(op);
-        #if TSTACK
-            auto uses = ILUses()[op];
-            if (uses != ILUNKNOWN) {
-                for (int i = 0; i < uses; i++) {
-                    PopTemp();
-                    //Emit(TempStackSize());
-                }
-            } else {
-                assert(useslots != ILUNKNOWN);
-                uses = useslots;
-                for (int i = 0; i < uses; i++) PopTemp();
-                //Emit(TempStackSize());
-            }
-            auto defs = ILDefs()[op];
-            if (defs != ILUNKNOWN) {
-                for (int i = 0; i < defs; i++) {
-                    //Emit(TempStackSize());
-                    PushTemp(op);
-                }
-                if (CONDJUMP(op)) PopTemp();  // FIXME, hack.
-            } else {
-                assert(defslots != ILUNKNOWN);
-                defs = defslots;
-                //Emit(TempStackSize());
-                for (int i = 0; i < defs; i++) {
-                    PushTemp(op);
-                }
-            }
-            LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs, " -> ", tstack.size());
-        #else
-            (void)useslots;
-            (void)defslots;
-        #endif
+        Emit(TempStackSize());
+
+        auto uses = ILUses()[op];
+        if (uses == ILUNKNOWN) {
+            assert(useslots != ILUNKNOWN);
+            uses = useslots;
+        }
+        for (int i = 0; i < uses; i++) PopTemp();
+
+        auto defs = ILDefs()[op];
+        if (defs == ILUNKNOWN) {
+            assert(defslots != ILUNKNOWN);
+            defs = defslots;
+        }
+        for (int i = 0; i < defs; i++) { PushTemp(op); }
+        if (CONDJUMP(op)) PopTemp();  // FIXME, hack.
+
+        //LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs, " -> ", tstack.size());
     }
 
     void SetLabelNoBlockStart(int jumploc) {
@@ -264,7 +241,8 @@ struct CodeGen  {
         // more debuggable if it does happen to get called.
         auto dummyfun = Pos();
         EmitOp(IL_FUNSTART);
-        Emit(-1);
+        Emit(-1); // funid
+        Emit(0);  // regs_max
         Emit(0);
         Emit(0);
         Emit(0);  // keepvars
@@ -307,6 +285,7 @@ struct CodeGen  {
     void GenScope(SubFunction &sf) {
         if (sf.subbytecodestart > 0) return;
         keepvars = 0;
+        tstack_max = 0;
         sf.subbytecodestart = Pos();
         if (!sf.typechecked) {
             auto s = DumpNode(*sf.body, 0, false);
@@ -317,6 +296,8 @@ struct CodeGen  {
         linenumbernodes.push_back(sf.body);
         EmitOp(IL_FUNSTART);
         Emit(sf.parent->idx);
+        auto regspos = Pos();
+        Emit(0);
         auto ret = AssertIs<Return>(sf.body->children.back());
         auto ir = sf.consumes_vars_on_return ? AssertIs<IdentRef>(ret->child) : nullptr;
         auto emitvars = [&](const vector<Arg> &v) {
@@ -359,6 +340,7 @@ struct CodeGen  {
         assert(temptypestack.empty());
         assert(breaks.empty());
         assert(tstack.empty());
+        code[regspos] = (int)tstack_max;
         code[keepvarspos] = keepvars;
         linenumbernodes.pop_back();
     }

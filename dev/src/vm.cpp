@@ -400,6 +400,7 @@ void VM::FunIntro(StackPtr &sp, const int *ip) {
 
         LOG_DEBUG("stack grew to: ", stacksize);
     }
+    ip++;  // regs_max.
     auto nargs_fun = *ip++;
     for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], *(sp - nargs_fun + i + 1));
     ip += nargs_fun;
@@ -435,6 +436,7 @@ void VM::FunOut(StackPtr &sp, int nrv) {
     }
     auto fip = stf.funstart;
     fip++;  // function id.
+    fip++;  // regs_max.
     auto nargs = *fip++;
     auto freevars = fip + nargs;
     fip += nargs;
@@ -726,7 +728,8 @@ extern "C" {
 
 using namespace lobster;
 
-void TraceIP(VM *vm, StackPtr sp, const int *ip) {
+void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
+    auto ip = _ip.begin();
     auto &sd = vm->TraceStream();
     DisAsmIns(vm->nfr, sd, ip, vm->bcf->bytecode()->data(),
               (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf, false);
@@ -747,47 +750,68 @@ void TraceIP(VM *vm, StackPtr sp, const int *ip) {
     if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
 }
 
-void TraceIL(VM *vm, StackPtr sp, initializer_list<int> ip) {
-    TraceIP(vm, sp, ip.begin());
+void TraceVA(VM *vm, StackPtr, int opc, int fid) {
+    auto &sd = vm->TraceStream();
+    sd += "\t";
+    sd += ILNames()[opc];
+    if (opc == IL_FUNSTART && fid >= 0) {
+        sd += " ";
+        sd += vm->bcf->functions()->Get(fid)->name()->string_view();
+    }
+    if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
 }
 
 #ifndef NDEBUG
     #define CHECK(B) if (vm->trace != TraceMode::OFF) TraceIL(vm, sp, {B});
-    #define CHECKVA(B) if (vm->trace != TraceMode::OFF) TraceIP(vm, sp, B - 1);
+    #define CHECKVA(OPC, FID) if (vm->trace != TraceMode::OFF) TraceVA(vm, sp, OPC, FID);
 #else
     #define CHECK(B)
-    #define CHECKVA(B)
+    #define CHECKVA(OPC, FID)
 #endif
 
 fun_base_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
 
-// Only here because in compiled code we don't know sizeof(Value) (!)
-StackPtr CVM_Drop(StackPtr sp) { return --sp; }
+void CVM_Entry(int value_size) {
+    if (value_size != sizeof(Value)) {
+        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ Value size mismatch!");
+    }
+}
 
 #define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECK(IL_##N VM_COMMA_IF(A) VM_OP_PASSN(A)); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
+        CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_IF(A) VM_OP_PASSN(A));         \
+        return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
+    }
 ILBASENAMES
 #undef F
 #define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
-        /*LOG_ERROR("INS: ", #N, A, ", ", (size_t)vm, ", ", (size_t)sp, ", ", _a, ", ", (size_t)fcont);*/ \
-        CHECK(IL_##N VM_COMMA_IF(A) VM_OP_PASSN(A)); return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont); }
+        CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_IF(A) VM_OP_PASSN(A));                           \
+        return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont);                         \
+    }
 ILCALLNAMES
 #undef F
 #define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECKVA(ip); return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A)); }
+        CHECKVA(IL_##N, *ip);                                   \
+        return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
+    }
 ILVARARGNAMES
 #undef F
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp) { CHECK(IL_##N VM_COMMA_1 0 /*FIXME*/); return U_##N(*vm, sp); }
+    StackPtr CVM_##N(VM *vm, StackPtr sp) {                \
+        CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_1 0 /*FIXME*/); \
+        return U_##N(*vm, sp);                             \
+    }
 ILJUMPNAMES1
 #undef F
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp, int df) { CHECK(IL_##N VM_COMMA_1 df VM_COMMA_1 0 /*FIXME*/); return U_##N(*vm, sp, df); }
+    StackPtr CVM_##N(VM *vm, StackPtr sp, int df) {                      \
+        CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_1 df VM_COMMA_1 0 /*FIXME*/); \
+        return U_##N(*vm, sp, df);                                       \
+    }
 ILJUMPNAMES2
 #undef F
 
@@ -802,7 +826,7 @@ const void *vm_ops_jit_table[] = {
         ILNAMES
     #undef F
     "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
-    "Drop", (void *)CVM_Drop,
+    "Entry", (void *)CVM_Entry,
     #if LOBSTER_ENGINE
     "GLFrame", (void *)GLFrame,
     #endif

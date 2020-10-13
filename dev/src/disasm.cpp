@@ -45,18 +45,20 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
     // FIXME: some indication of the filename, maybe with a table index?
     if (in_bytecode) append(sd, "I ", ip - code, " \t");
     append(sd, "L ", li->line(), " \t");
-    if (*ip < 0 || *ip >= IL_MAX_OPS) {
-        append(sd, "ILLEGAL INSTRUCTION: ", *ip);
-        return nullptr;
-    }
-    append(sd, ilnames[*ip], " ");
-    auto arity = ilarity[*ip];
     auto ins_start = ip;
     int opc = *ip++;
+    if (opc < 0 || opc >= IL_MAX_OPS) {
+        append(sd, "ILLEGAL INSTRUCTION: ", opc);
+        return nullptr;
+    }
     if (opc < 0 || opc >= IL_MAX_OPS) {
         append(sd, opc, " ?");
         return ip;
     }
+    auto arity = ilarity[opc];
+    int regs = *ip++;
+    append(sd, "R ", regs, "\t");
+    append(sd, ilnames[opc], " ");
     switch(opc) {
         case IL_PUSHINT64:
         case IL_PUSHFLT64: {
@@ -87,8 +89,8 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
         case IL_CALL: {
             auto bc = *ip++;
             assert(code[bc] == IL_FUNSTART);
-            auto id = code[bc + 1];
-            auto nargs = code[bc];
+            auto id = code[bc + 2];
+            auto nargs = code[bc + 4];
             append(sd, nargs, " ", bcf->functions()->Get(id)->name()->string_view(), " ", bc);
             break;
         }
@@ -152,6 +154,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
         case IL_FUNSTART: {
             auto fidx = *ip++;
             sd += (fidx >= 0 ? bcf->functions()->Get(fidx)->name()->string_view() : "__dummy");
+            auto regs = *ip++;
             sd += "(";
             int n = *ip++;
             while (n--) append(sd, IdName(bcf, *ip++, typetable, false), " ");
@@ -162,6 +165,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             if (keepvars) append(sd, "K:", keepvars, " ");
             n = *ip++;  // owned
             while (n--) append(sd, "O:", IdName(bcf, *ip++, typetable, false), " ");
+            append(sd, "R:", regs, " ");
             sd += ")";
             break;
         }
@@ -173,7 +177,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             }
             break;
     }
-    assert(arity == ILUNKNOWN || ip - ins_start == arity + 1);
+    assert(arity == ILUNKNOWN || ip - ins_start == arity + 2);
     (void)ins_start;
     return ip;
 }

@@ -25,7 +25,8 @@ extern string ToCPP(NativeRegistry &natreg, string &sd,
 extern bool RunC(const char *source, string &error, const void **imports,
                  const char **export_names, function<bool (void **)> runf);
 
-inline int ParseOpAndGetArity(int opc, const int *&ip) {
+inline int ParseOpAndGetArity(int opc, const int *&ip, int &regso) {
+    regso = *ip++;
     auto arity = ILArity()[opc];
     auto ips = ip;
     switch(opc) {
@@ -44,6 +45,7 @@ inline int ParseOpAndGetArity(int opc, const int *&ip) {
         }
         case IL_FUNSTART: {
             ip++;  // function idx.
+            ip++;  // max regs.
             int n = *ip++;
             ip += n;
             int m = *ip++;

@@ -47,7 +47,18 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             ;
     } else {
         sd +=
-            "typedef long long *StackPtr;\n"
+            // This needs to correspond to the C++ Value, enforced in Entry().
+            "typedef struct {\n"
+            "    union {\n"
+            "        long long ival;\n"
+            "        double fval;\n"
+            "        void *rval;\n"
+            "    };\n"
+            #if RTT_ENABLED
+            "    int type;\n"
+            #endif
+            "} Value;\n"
+            "typedef Value *StackPtr;\n"
             "typedef void *VMRef;\n"
             "typedef StackPtr(*fun_base_t)(VMRef, StackPtr);\n"
             "extern  StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
@@ -80,15 +91,15 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         #undef F
 
         sd += "fun_base_t GetNextCallTarget(VMRef);\n"
-                "StackPtr Drop(StackPtr);\n"
-                "\n";
+              "void Entry(int);\n"
+              "\n";
     }
 
     auto len = bcf->bytecode()->Length();
     auto ip = code;
     // Skip past 1st jump.
     assert(*ip == IL_JUMP);
-    ip++;
+    ip += 2;
     auto starting_ip = code + *ip++;
     int starting_point = -1;
     while (ip < code + len) {
@@ -106,23 +117,28 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         if (opc < 0 || opc >= IL_MAX_OPS) {
             return cat("Corrupt bytecode: ", opc, " at: ", id);
         }
-        ParseOpAndGetArity(opc, ip);
+        int regso = -1;
+        ParseOpAndGetArity(opc, ip, regso);
     }
     sd += "\n";
     vector<const int *> jumptables;
-    ip = code + 2;  // Past first IL_JUMP.
+    ip = code + 3;  // Past first IL_JUMP.
     while (ip < code + len) {
         int id = (int)(ip - code);
+        bool is_start = ip == starting_ip;
         int opc = *ip++;
-        if (opc == IL_FUNSTART || ip - 1 == starting_ip) {
+        if (opc == IL_FUNSTART || is_start) {
+            auto regs_max = ip[2];
             auto it = function_lookup.find(id);
             auto f = it != function_lookup.end() ? it->second : nullptr;
             sd += "\n";
             if (f) append(sd, "// ", f->name()->string_view(), "\n");
-            append(sd, "static StackPtr fun_", id, "(VMRef vm, StackPtr sp) {\n");
+            append(sd, "static StackPtr fun_", id, "(VMRef vm, StackPtr sp) {\n"
+                       "    Value regs[", regs_max, "];\n");
         }
-        auto args = ip;
-        auto arity = ParseOpAndGetArity(opc, ip);
+        auto args = ip + 1;
+        int regso = -1;
+        auto arity = ParseOpAndGetArity(opc, ip, regso);
         sd += "    ";
         if (opc == IL_FUNSTART) {
             sd += "static int args[] = {";
@@ -143,8 +159,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "); if (Pop(sp).False()) ");
                 append(sd, "goto block", id, ";");
             } else {
-                // FIXME: simplify.
-                append(sd, "); { long long top = *sp; sp = Drop(sp); if (!top) ");
+                append(sd, "); { long long top = sp->ival; sp--; if (!top) ");
                 append(sd, "goto block", id, ";");
                 sd += " }";
             }
@@ -156,8 +171,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             if (cpp) {
                 sd += "switch (Pop(sp).ival()) {";
             } else {
-                // FIXME: simplify.
-                append(sd, "{ long long top = *sp; sp = Drop(sp); switch (top) {");
+                append(sd, "{ long long top = sp->ival; sp--; switch (top) {");
             }
             jumptables.push_back(args);
         } else if (opc == IL_JUMP_TABLE_CASE_START) {
@@ -247,6 +261,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     }
     if (cpp) sd += "extern \"C\" ";
     sd += "StackPtr compiled_entry_point(VMRef vm, StackPtr sp) {\n";
+    if (!cpp) sd += "    Entry(sizeof(Value));\n";
     append(sd, "    return fun_", starting_point, "(vm, sp);\n}\n\n");
     if (cpp) {
         sd += "int main(int argc, char *argv[]) {\n";
