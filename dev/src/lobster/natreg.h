@@ -228,6 +228,8 @@ enum NArgFlags {
     NF_CONVERTANYTOSTRING = 1 << 4,
     NF_PUSHVALUEWIDTH     = 1 << 5,
     NF_BOOL               = 1 << 6,
+    NF_UNION              = 1 << 7,
+    NF_CONST              = 1 << 8,
 };
 DEFINE_BITWISE_OPERATORS_FOR_ENUM(NArgFlags)
 
@@ -263,7 +265,9 @@ struct Narg {
                 case '1': flags = flags | NF_SUBARG1; break;
                 case '2': flags = flags | NF_SUBARG2; break;
                 case '3': flags = flags | NF_SUBARG3; break;
+                case 'u': flags = flags | NF_UNION; break;
                 case '*': flags = flags | NF_ANYVAR; break;
+                case 'c': flags = flags | NF_CONST; break;
                 case 's': flags = flags | NF_CONVERTANYTOSTRING; break;
                 case 'w': flags = flags | NF_PUSHVALUEWIDTH; break;
                 case 'k': lt = LT_KEEP; break;

@@ -116,7 +116,7 @@ ValueType IsType::ConstVal(TypeChecker *tc, Value &val) const {
         val = Value(true);
         return V_INT;
     }
-    if (!tc->ConvertsTo(resolvedtype, child->exptype, false)) {
+    if (!tc->ConvertsTo(resolvedtype, child->exptype, CF_UNIFICATION)) {
         val = Value(false);
         return V_INT;
     }

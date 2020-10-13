@@ -60,6 +60,16 @@ struct Borrow : LValContext {
     Borrow(const Node &n) : LValContext(n) {}
 };
 
+enum ConvertFlags {
+    CF_NONE        = 0,
+
+    CF_COERCIONS   = 1 << 0,
+    CF_UNIFICATION = 1 << 1,
+    CF_NUMERIC_NIL = 1 << 2,
+    CF_EXACTTYPE   = 1 << 3,
+    CF_CONST_BOUND = 1 << 4,
+};
+
 struct TypeChecker {
     Parser &parser;
     SymbolTable &st;
@@ -219,38 +229,46 @@ struct TypeChecker {
         }
     }
 
-    bool ConvertsTo(TypeRef type, TypeRef bound, bool coercions, bool unifications = true,
-                    bool allow_numeric_nil = false) {
+    bool ConvertsTo(TypeRef type, TypeRef bound, ConvertFlags cf) {
         if (bound->Equal(*type)) return true;
         if (type->t == V_VAR) {
-            if (unifications) UnifyVar(bound, type);
+            if (cf & CF_UNIFICATION) UnifyVar(bound, type);
             return true;
         }
         switch (bound->t) {
             case V_VOID:
-                return coercions;
+                return cf & CF_COERCIONS;
             case V_VAR:
-                if (unifications) UnifyVar(type, bound);
-                return unifications;
+                if (cf & CF_UNIFICATION) UnifyVar(type, bound);
+                return cf & CF_UNIFICATION;
             case V_FLOAT:
-                return type->t == V_INT && coercions;
+                return type->t == V_INT && (cf & CF_COERCIONS);
             case V_INT:
-                return (type->t == V_TYPEID && coercions) || (type->t == V_INT && !bound->e);
+                return (type->t == V_TYPEID && (cf & CF_COERCIONS)) ||
+                       (type->t == V_INT && !bound->e);
             case V_FUNCTION:
                 return type->t == V_FUNCTION && !bound->sf;
-            case V_NIL:
-                return (type->t == V_NIL &&
-                        ConvertsTo(type->Element(), bound->Element(), false, unifications)) ||
+            case V_NIL: {
+                auto scf = ConvertFlags(cf & CF_UNIFICATION);
+                return (type->t == V_NIL && ConvertsTo(type->Element(), bound->Element(), scf)) ||
                        (!type->Numeric() && type->t != V_VOID && !IsStruct(type->t) &&
-                        ConvertsTo(type, bound->Element(), false, unifications)) ||
-                       (allow_numeric_nil && type->Numeric() &&  // For builtins.
-                        ConvertsTo(type, bound->Element(), false, unifications));
-            case V_VECTOR:
-                return (type->t == V_VECTOR &&
-                        ConvertsTo(type->Element(), bound->Element(), false, unifications));
-            case V_CLASS:
-                return type->t == V_CLASS &&
-                       st.SuperDistance(bound->udt, type->udt) >= 0;
+                        ConvertsTo(type, bound->Element(), scf)) ||
+                       ((cf & CF_NUMERIC_NIL) && type->Numeric() &&  // For builtins.
+                        ConvertsTo(type, bound->Element(), scf));
+            }
+            case V_VECTOR: {
+                // We don't generally allow covariance here unless const (to avoid supertype
+                // elements added to subtype vectors) and no contravariance.
+                auto cov = cf & CF_CONST_BOUND ? CF_NONE : CF_EXACTTYPE;
+                return type->t == V_VECTOR &&
+                       ConvertsTo(type->Element(), bound->Element(),
+                                  ConvertFlags((cf & (CF_UNIFICATION | CF_NUMERIC_NIL)) | cov));
+            }
+            case V_CLASS: {
+                if (type->t != V_CLASS) return false;
+                auto sd = st.SuperDistance(bound->udt, type->udt);
+                return cf & CF_EXACTTYPE ? sd == 0 : sd >= 0;
+            }
             case V_STRUCT_R:
             case V_STRUCT_S:
                 return type->t == bound->t && type->udt == bound->udt;
@@ -276,17 +294,17 @@ struct TypeChecker {
     bool ConvertsToTuple(const vector<Type::TupleElem> &ttup, const vector<Type::TupleElem> &stup) {
         if (ttup.size() != stup.size()) return false;
         for (auto [i, te] : enumerate(ttup))
-            if (!ConvertsTo(te.type, stup[i].type, false))
+            if (!ConvertsTo(te.type, stup[i].type, CF_UNIFICATION))
                 return false;
         return true;
     }
 
-    TypeRef Union(TypeRef at, TypeRef bt, string_view aname, string_view bname, bool coercions,
-                  const Node *err) {
-        if (ConvertsTo(at, bt, coercions)) return bt;
-        if (ConvertsTo(bt, at, coercions)) return at;
+    TypeRef Union(TypeRef at, TypeRef bt, string_view aname, string_view bname,
+                  ConvertFlags coercions, const Node *err) {
+        if (ConvertsTo(at, bt, ConvertFlags(coercions | CF_UNIFICATION))) return bt;
+        if (ConvertsTo(bt, at, ConvertFlags(coercions | CF_UNIFICATION))) return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
-            auto et = Union(at->Element(), bt->Element(), aname, bname, false, nullptr);
+            auto et = Union(at->Element(), bt->Element(), aname, bname, CF_NONE, nullptr);
             if (err && et->Equal(*type_undefined)) goto error;
             return st.Wrap(et, V_VECTOR);
         }
@@ -350,11 +368,13 @@ struct TypeChecker {
         SubType(n.right, bound, "right", n);
     }
 
-    void SubType(Node *&a, TypeRef bound, string_view argname, const Node &context) {
-        SubType(a, bound, argname, NiceName(context));
+    void SubType(Node *&a, TypeRef bound, string_view argname, const Node &context,
+                 ConvertFlags extra = CF_NONE) {
+        SubType(a, bound, argname, NiceName(context), extra);
     }
-    void SubType(Node *&a, TypeRef bound, string_view argname, string_view context) {
-        if (ConvertsTo(a->exptype, bound, false)) return;
+    void SubType(Node *&a, TypeRef bound, string_view argname, string_view context,
+                 ConvertFlags extra = CF_NONE) {
+        if (ConvertsTo(a->exptype, bound, ConvertFlags(CF_UNIFICATION | extra))) return;
         switch (bound->t) {
             case V_FLOAT:
                 if (a->exptype->t == V_INT) {
@@ -386,7 +406,7 @@ struct TypeChecker {
                             arg.type = ResolveTypeVars(sf->giventypes[i], a);
                         }
                         // Note this has the args in reverse: function args are contravariant.
-                        if (!ConvertsTo(ss->args[i].type, arg.type, false))
+                        if (!ConvertsTo(ss->args[i].type, arg.type, CF_UNIFICATION))
                             goto error;
                         // This function must be compatible with all other function values that
                         // match this type, so we fix lifetimes to LT_BORROW.
@@ -402,7 +422,7 @@ struct TypeChecker {
                     TypeCheckFunctionDef(*sf, *sf->body);
                     // Covariant again.
                     if (sf->returntype->NumValues() != ss->returntype->NumValues() ||
-                        !ConvertsTo(sf->returntype, ss->returntype, false))
+                        !ConvertsTo(sf->returntype, ss->returntype, CF_UNIFICATION))
                             break;
                     // Parser only parses one ret type for function types.
                     assert(ss->returntype->NumValues() <= 1);
@@ -418,7 +438,7 @@ struct TypeChecker {
 
     void SubTypeT(TypeRef type, TypeRef bound, const Node &n, string_view argname,
                   string_view context = {}) {
-        if (!ConvertsTo(type, bound, false))
+        if (!ConvertsTo(type, bound, CF_UNIFICATION))
             TypeError(TypeName(bound), type, n, argname, context);
     }
 
@@ -490,7 +510,7 @@ struct TypeChecker {
     void TypeCheckMathOp(BinOp &n) {
         TT(n.left, 1, LT_BORROW);
         TT(n.right, 1, LT_BORROW);
-        n.exptype = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", true, nullptr);
+        n.exptype = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
         bool unionchecked = false;
         MathError(n.exptype, n, unionchecked, true);
         if (!unionchecked) SubTypeLR(n.exptype, n);
@@ -527,7 +547,7 @@ struct TypeChecker {
         TT(n.left, 1, LT_BORROW);
         TT(n.right, 1, LT_BORROW);
         n.exptype = &st.default_bool_type->thistype;
-        auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", true, nullptr);
+        auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
         if (!u->Numeric() && u->t != V_STRING) {
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
                 // Comparison with one result, but still by value for structs.
@@ -558,7 +578,7 @@ struct TypeChecker {
     void TypeCheckBitOp(BinOp &n) {
         TT(n.left, 1, LT_BORROW);
         TT(n.right, 1, LT_BORROW);
-        auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", true, nullptr);
+        auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
         if (u->t != V_INT) u = type_int;
         SubTypeLR(u, n);
         n.exptype = u;
@@ -727,7 +747,7 @@ struct TypeChecker {
             if (sf->reqret) {
                 // We can safely generalize the type if needed, though not with coercions.
                 sf->returntype = Union(type, sf->returntype, "return expression",
-                                        "function return type", false, &err);
+                                        "function return type", CF_NONE, &err);
             } else {
                 // The caller doesn't want return values.
                 sf->returntype = type_void;
@@ -1163,7 +1183,7 @@ struct TypeChecker {
                 &f == disp.sf->parent && SpecializationIsCompatible(*disp.sf, reqret)) {
                 for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
                     auto &arg = disp.sf->args[i];
-                    if (i && !ConvertsTo(c->exptype, arg.type, false, false))
+                    if (i && !ConvertsTo(c->exptype, arg.type, CF_NONE))
                         goto fail;
                 }
                 // If this ever fails, that means new types got added during typechecking..
@@ -1273,7 +1293,7 @@ struct TypeChecker {
                 if (de->returntype->IsBoundVar()) {
                     // FIXME: can this still happen now that recursive cases use explicit return
                     // types? If not change into assert?
-                    if (!ConvertsTo(u, de->returntype, false))
+                    if (!ConvertsTo(u, de->returntype, CF_UNIFICATION))
                         TypeError(cat("dynamic dispatch for \"", f.name, "\" return value type \"",
                                       TypeName(sf->returntype),
                                       "\" doesn\'t match other case returning \"",
@@ -1284,7 +1304,7 @@ struct TypeChecker {
                         // coercion, since we're not fixing up any previously typechecked
                         // functions.
                         u = Union(u, de->returntype, "function return type", "other overloads",
-                                  false, &call_args);
+                                  CF_NONE, &call_args);
                         // Ensure we didn't accidentally widen the type from a scalar.
                         assert(IsRef(de->returntype->t) || !IsRef(u->t));
                     }
@@ -1395,7 +1415,7 @@ struct TypeChecker {
             if (overload_idx < 0) {
                 for (auto [i, isf] : enumerate(f.overloads)) {
                     auto arg0 = isf->args[0].type;
-                    if (ConvertsTo(type0, arg0, false, false)) {
+                    if (ConvertsTo(type0, arg0, CF_NONE)) {
                         if (overload_idx >= 0) {
                             if (type0->t == V_CLASS) {
                                 auto oarg0 = f.overloads[overload_idx]->args[0].type;
@@ -1436,7 +1456,7 @@ struct TypeChecker {
             // Then finally try with coercion.
             if (overload_idx < 0) {
                 for (auto [i, isf] : enumerate(f.overloads)) {
-                    if (ConvertsTo(type0, isf->args[0].type, true, false)) {
+                    if (ConvertsTo(type0, isf->args[0].type, CF_COERCIONS)) {
                         if (overload_idx >= 0) {
                             TypeError(cat("multiple overloads can coerce: \"", f.name,
                                       "\", first arg \"", TypeName(type0), "\""), call_args);
@@ -1564,7 +1584,7 @@ struct TypeChecker {
     // FIXME: this can in theory find the wrong node, if the same function nests, and the outer
     // one was specialized to a nilable and the inner one was not.
     // This would be very rare though, and benign.
-    TypeRef AssignFlowDemote(FlowItem &left, TypeRef overwritetype, bool coercions) {
+    TypeRef AssignFlowDemote(FlowItem &left, TypeRef overwritetype, ConvertFlags coercions) {
         // Early out, numeric types are not nillable, nor do they make any sense for "is"
         auto &type = left.now;
         if (type->Numeric()) return type;
@@ -1587,7 +1607,7 @@ struct TypeChecker {
             }
             continue;
             found:
-            if (!ConvertsTo(overwritetype, flow.now, coercions, false)) {
+            if (!ConvertsTo(overwritetype, flow.now, coercions)) {
                 // FLow based promotion is invalidated.
                 flow.now = flow.old;
                 // TODO: It be cool to instead overwrite with whatever type is currently being
@@ -1629,7 +1649,7 @@ struct TypeChecker {
             ao.lt = ao.right->lt;
             DecBorrowers(ao.left->lt, ao);
         } else {
-            ao.exptype = Union(tleft, tright, "lhs", "rhs", false, nullptr);
+            ao.exptype = Union(tleft, tright, "lhs", "rhs", CF_NONE, nullptr);
             if (ao.exptype->t == V_UNDEFINED) {
                 // Special case: unlike elsewhere, we allow merging scalar and reference types,
                 // since they are just tested and thrown away. To make this work, we force all
@@ -2121,7 +2141,8 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret) {
             exptype = tleft;
             lt = truepart->lt;
         } else {
-            exptype = tc.Union(tleft, tright, "then branch", "else branch", true, this);
+            exptype = tc.Union(tleft, tright, "then branch", "else branch",
+                               CF_COERCIONS, this);
             tc.SubType(truepart->children.back(), exptype, "then branch", *this);
             tc.SubType(falsepart->children.back(), exptype, "else branch", *this);
             lt = tc.LifetimeUnion(truepart->children.back(), falsepart->children.back(), false);
@@ -2228,7 +2249,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         if (!cas->body->Terminal(tc)) {
             exptype = exptype.Null() ? cas->body->exptype
                                      : tc.Union(exptype, cas->body->exptype, "switch type", "case type",
-                                                true, cas);
+                                                CF_COERCIONS, cas);
         }
     }
     for (auto n : cases->children) {
@@ -2333,7 +2354,7 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         TypeRef righttype = children.back()->exptype->Get(i);
         FlowItem fi(*left, left->exptype);
         assert(fi.IsValid());
-        tc.AssignFlowDemote(fi, righttype, false);
+        tc.AssignFlowDemote(fi, righttype, CF_NONE);
         tc.SubTypeT(righttype, left->exptype, *this, "right");
         tc.StorageType(left->exptype, *left);
         // TODO: should call tc.AssignFlowPromote(*left, vartype) here?
@@ -2575,7 +2596,7 @@ Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.CheckLval(left);
     FlowItem fi(*left, left->exptype);
     if (fi.IsValid()) {
-        left->exptype = tc.AssignFlowDemote(fi, right->exptype, true);
+        left->exptype = tc.AssignFlowDemote(fi, right->exptype, CF_COERCIONS);
     }
     tc.SubType(right, left->exptype, "right", *this);
     if (fi.IsValid()) tc.AssignFlowPromote(*left, right->exptype);
@@ -2665,6 +2686,8 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             for (auto [i, arg] : enumerate(cnf->args)) {
                 // Special purpose treatment of V_ANY to allow generic vectors in overloaded
                 // length() etc.
+                auto cf = CF_NUMERIC_NIL;
+                if (arg.type->t != V_STRING) cf = ConvertFlags(cf | CF_COERCIONS);
                 if (arg.type->t != V_ANY &&
                     (arg.type->t != V_VECTOR ||
                      children[i]->exptype->t != V_VECTOR ||
@@ -2672,7 +2695,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                     !tc.ConvertsTo(children[i]->exptype,
                                    tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags,
                                                         children[i], nf, true, i + 1, *this),
-                                   arg.type->t != V_STRING, false, true)) goto nomatch;
+                                   cf)) goto nomatch;
             }
             nf = cnf;
             break;
@@ -2701,15 +2724,21 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             argtype = type_string;
             typed = true;
         }
+        auto cf_const = arg.flags & NF_CONST ? CF_CONST_BOUND : CF_NONE;
         int flag = NF_SUBARG1;
         for (int sa = 0; sa < 3; sa++) {
             if (arg.flags & flag) {
+                if (arg.flags & NF_UNION) {
+                    argtypes[sa] = tc.Union(argtypes[sa], c->exptype, "left", "right",
+                                            CF_NONE, this);
+                }
                 tc.SubType(c,
                         nf->args[sa].type->t == V_VECTOR && argtype->t != V_VECTOR
                             ? argtypes[sa]->sub
                             : argtypes[sa],
                         tc.ArgName(i),
-                        nf->name);
+                        nf->name,
+                        cf_const);
                 // Stop these generic params being turned into any by SubType below.
                 typed = true;
             }
@@ -2740,7 +2769,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         if (nf->fun.fnargs >= 0 && !arg.fixed_len && !(arg.flags & NF_PUSHVALUEWIDTH))
             tc.NoStruct(*c, nf->name);
         if (!typed)
-            tc.SubType(c, argtype, tc.ArgName(i), nf->name);
+            tc.SubType(c, argtype, tc.ArgName(i), nf->name, cf_const);
         auto actualtype = c->exptype;
         if (actualtype->IsFunction()) {
             // We must assume this is going to get called and type-check it
@@ -2962,8 +2991,10 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             // No type was specified.. first find union of all elements.
             TypeRef u(nullptr);
             for (auto c : children) {
-                u = u.Null() ? c->exptype : tc.Union(u, c->exptype, "constructor",
-                                                     "constructor element", true, c);
+                u = u.Null()
+                    ? c->exptype
+                    : tc.Union(u, c->exptype, "constructor", "constructor element",
+                               CF_COERCIONS, c);
             }
             exptype = tc.st.Wrap(u, V_VECTOR);
             tc.StorageType(exptype, *this);
@@ -2990,7 +3021,8 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 int nmatches = 0;
                 for (auto [i, arg] : enumerate(children)) {
                     auto &field = udti->fields[i];
-                    if (tc.ConvertsTo(arg->exptype, field.resolvedtype, false, false)) nmatches++;
+                    if (tc.ConvertsTo(arg->exptype, field.resolvedtype,
+                                      CF_NONE)) nmatches++;
                     else break;
                 }
                 if (nmatches > bestmatch) {

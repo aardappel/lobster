@@ -112,6 +112,14 @@
     - remove keywords?
   - iterate them? return a vector of all values?
 
+- There is no way to pass a [sub] to a [super] since that break safety if a different sub
+  is inserted that way. But this is really restrictive, because once you have a [sub] you can
+  only get around this by copying the vector: map(subv) () -> super: _
+  There is one case where passing to a [super] is safe, if that destination is const.
+  It would be nice to have a way to annotate that for functions, or infer it.
+  We currently have this hard-coded for builtins like append() using NF_CONST.
+  - making this worse is that "this" doesn't specialize, see settlement.lobster/take_damage
+
 - let x:T = vector_reserve(typeof U, ) may crash if U is not compatible with T.
   Maybe at least in the docs mark this function as private, people should use `map` instead.
   Or re-think this feature entirely?

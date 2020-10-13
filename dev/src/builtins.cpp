@@ -136,7 +136,7 @@ nfr("get_line", "prefix", "S", "S",
         return Value(vm.NewString(buf));
     });
 
-nfr("append", "xs,ys", "A]*A]*1", "A]1",
+nfr("append", "xs,ys", "A]*cA]*u1c", "A]1",
     "creates a new vector by appending all elements of 2 input vectors",
     [](StackPtr &, VM &vm, Value &v1, Value &v2) {
         auto type = v1.vval()->tti;
