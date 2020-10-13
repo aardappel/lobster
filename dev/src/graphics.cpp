@@ -477,7 +477,7 @@ nfr("gl_scale", "factor", "F", "",
 nfr("gl_scale", "factor", "F}", "",
     "scales the current coordinate system using a vector",
     [](StackPtr &sp, VM &) {
-        auto v = PopVec<float3>(sp);
+        auto v = PopVec<float3>(sp, 1);
         otransforms.append_object2view(float4x4(float4(v, 1)));
     });
 

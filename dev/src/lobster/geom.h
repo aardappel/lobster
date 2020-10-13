@@ -587,42 +587,42 @@ inline float4x4 scaling(float s) {
 
 inline float4x4 scaling(const float3 &s) {
     return float4x4(
-        float4(s.x, 0, 0, 0),
-        float4(0, s.y, 0, 0),
-        float4(0, 0, s.z, 0),
-        float4(0, 0, 0, 1));
+        float4(s.x, 0,   0,   0),
+        float4(0,   s.y, 0,   0),
+        float4(0,   0,   s.z, 0),
+        float4(0,   0,   0,   1));
 }
 
 inline float4x4 rotationX(const float2 &v) {
     return float4x4(
-        float4(1, 0,     0,     0),
-        float4(0, v.x, v.y, 0),
-        float4(0,-v.y, v.x, 0),
-        float4(0, 0,     0,     1));
+        float4(1,  0,   0,   0),
+        float4(0,  v.x, v.y, 0),
+        float4(0, -v.y, v.x, 0),
+        float4(0,  0,   0,   1));
 }
 
 inline float4x4 rotationY(const float2 &v) {
     return float4x4(
-        float4(v.x, 0,-v.y, 0),
-        float4(0,     1, 0,     0),
-        float4(v.y, 0, v.x, 0),
-        float4(0,     0, 0,     1));
+        float4(v.x, 0, -v.y, 0),
+        float4(0,   1,  0,   0),
+        float4(v.y, 0,  v.x, 0),
+        float4(0,   0,  0,   1));
 }
 
 inline float4x4 rotationZ(const float2 &v) {
     return float4x4(
         float4( v.x, v.y, 0, 0),
         float4(-v.y, v.x, 0, 0),
-        float4( 0,     0,     1, 0),
-        float4( 0,     0,     0, 1));
+        float4( 0,   0,   1, 0),
+        float4( 0,   0,   0, 1));
 }
 
 inline float4x4 rotation3D(const float3 &v) {
     return float4x4(
-        float4( 0,     -v.z,  v.y, 0),
-        float4( v.z,  0,     -v.x, 0),
-        float4(-v.y,  v.x,  0,     0),
-        float4( 0,      0,      0,     1));
+        float4( 0,   -v.z,  v.y, 0),
+        float4( v.z,  0,   -v.x, 0),
+        float4(-v.y,  v.x,  0,   0),
+        float4( 0,    0,    0,   1));
 }
 
 inline float4x4 rotationX(float a) { return rotationX(float2(cosf(a), sinf(a))); }
