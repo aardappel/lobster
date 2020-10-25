@@ -271,10 +271,10 @@ MotionController *GetMC(const Value &mc) {
 
 #ifdef PLATFORM_VR
 
-vr::EVRButtonId GetButtonId(StackPtr sp, VM &vm, Value &button) {
+vr::EVRButtonId GetButtonId(VM &vm, Value &button) {
     auto it = button_ids.find(button.sval()->strv());
     if (it == button_ids.end())
-        vm.BuiltinError(sp, "unknown button name: " + button.sval()->strv());
+        vm.BuiltinError("unknown button name: " + button.sval()->strv());
     return it->second;
 }
 
@@ -313,9 +313,9 @@ nfr("vr_finish", "", "", "",
 nfr("vr_set_eye_texture", "unit,isright", "II", "",
     "sets the texture for an eye (like gl_set_primitive_texture). call after vr_finish. can be"
     " used to render the non-VR display",
-    [](StackPtr &sp, VM &vm, Value &unit, Value &isright) {
-        extern int GetSampler(StackPtr sp, VM &vm, Value &i);
-        SetTexture(GetSampler(sp, vm, unit), retex[isright.True()]);
+    [](StackPtr &, VM &vm, Value &unit, Value &isright) {
+        extern int GetSampler(VM &vm, Value &i);
+        SetTexture(GetSampler(vm, unit), retex[isright.True()]);
         return Value();
     });
 
@@ -354,10 +354,10 @@ nfr("vr_motion_controller_button", "n,button", "IS", "I",
     "returns the button state for motion controller n."
     " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
     " buttons are: system, menu, grip, trigger, touchpad",
-    [](StackPtr &sp, VM &vm, Value &mc, Value &button) {
+    [](StackPtr &, VM &vm, Value &mc, Value &button) {
         #ifdef PLATFORM_VR
             auto mcd = GetMC(mc);
-            auto mask = ButtonMaskFromId(GetButtonId(sp, vm, button));
+            auto mask = ButtonMaskFromId(GetButtonId(vm, button));
             if (!mcd) return Value(TimeBool8().Step());
             auto masknow = mcd->state.ulButtonPressed & mask;
             auto maskbef = mcd->laststate.ulButtonPressed & mask;
@@ -374,7 +374,7 @@ nfr("vr_motion_controller_vec", "n,i", "II", "F}:3",
         auto idx = Pop(sp);
         auto mcd = GetMC(Pop(sp));
         if (!mcd) { PushVec(sp, float3_0); return; }
-        auto i = RangeCheck(sp, vm, idx, 4);
+        auto i = RangeCheck(vm, idx, 4);
         PushVec(sp, mcd->mat[i].xyz());
     });
 
@@ -382,7 +382,7 @@ nfr("vr_hmd_vec", "i", "I", "F]:3",
     "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.",
     [](StackPtr &sp, VM &vm) {
-        auto i = RangeCheck(sp, vm, Pop(sp), 4);
+        auto i = RangeCheck(vm, Pop(sp), 4);
         PushVec(sp, hmdpose[i].xyz());
     });
 

@@ -61,8 +61,8 @@ void AddFont(NativeRegistry &nfr) {
 nfr("gl_set_font_name", "filename", "S", "B",
     "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns"
     " true if success.",
-    [](StackPtr &sp, VM &vm, Value &fname) {
-        extern void TestGL(StackPtr sp, VM &vm); TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &fname) {
+        extern void TestGL(VM &vm); TestGL(vm);
         auto piname = string(fname.sval()->strv());
         auto faceit = loadedfaces.find(piname);
         if (faceit != loadedfaces.end()) {
@@ -89,8 +89,8 @@ nfr("gl_set_font_size", "size,outlinesize", "IF?", "B",
     " an optional outlinesize will give the font a black outline."
     " make sure to call this every frame."
     " returns true if success",
-    [](StackPtr &sp, VM &vm, Value &fontsize, Value &outlinesize) {
-        if (!curface) vm.BuiltinError(sp, "gl_set_font_size: no current font set with gl_set_font_name");
+    [](StackPtr &, VM &vm, Value &fontsize, Value &outlinesize) {
+        if (!curface) vm.BuiltinError("gl_set_font_size: no current font set with gl_set_font_name");
         float osize = min(16.0f, max(0.0f, outlinesize.fltval()));
         int size = max(1, fontsize.intval());
         int csize = min(size, maxfontsize);
@@ -129,9 +129,9 @@ nfr("gl_get_outline_size", "", "", "F",
 
 nfr("gl_text", "text", "S", "Sb",
     "renders a text with the current font (at the current coordinate origin)",
-    [](StackPtr &sp, VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value &s) {
         auto f = curfont;
-        if (!f) return vm.BuiltinError(sp, "gl_text: no font / font size set");
+        if (!f) return vm.BuiltinError("gl_text: no font / font size set");
         if (!s.sval()->len) return s;
         float4x4 oldobject2view;
         if (curfontsize > maxfontsize) {
@@ -149,7 +149,7 @@ nfr("gl_text_size", "text", "S", "I}:2",
     "the x/y size in pixels the given text would need",
     [](StackPtr &sp, VM &vm) {
         auto f = curfont;
-        if (!f) vm.BuiltinError(sp, "gl_text_size: no font / font size set");
+        if (!f) vm.BuiltinError("gl_text_size: no font / font size set");
         auto size = f->TextSize(Pop(sp).sval()->strv());
         if (curfontsize > maxfontsize) {
             size = fceil(float2(size) * float(curfontsize) / float(maxfontsize));

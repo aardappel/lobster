@@ -55,9 +55,9 @@ void IMGUICleanup() {
     IMGUIFrameCleanup();
 }
 
-void IsInit(StackPtr &sp, VM &vm, bool require_window = true) {
-    if (!imgui_init) vm.BuiltinError(sp, "IMGUI not running: call im_init first");
-    if (!imgui_windows && require_window) vm.BuiltinError(sp, "no window: call im_window first");
+void IsInit(VM &vm, bool require_window = true) {
+    if (!imgui_init) vm.BuiltinError("IMGUI not running: call im_init first");
+    if (!imgui_windows && require_window) vm.BuiltinError("no window: call im_window first");
 }
 
 pair<bool, bool> IMGUIEvent(SDL_Event *event) {
@@ -245,8 +245,8 @@ nfr("im_init", "dark_style,flags", "B?I?", "",
 
 nfr("im_add_font", "font_path,size", "SF", "B",
     "",
-    [](StackPtr &sp, VM &vm, Value &fontname, Value &size) {
-        IsInit(sp, vm, false);
+    [](StackPtr &, VM &vm, Value &fontname, Value &size) {
+        IsInit(vm, false);
         string buf;
         auto l = LoadFile(fontname.sval()->strv(), &buf);
         if (l < 0) return Value();
@@ -261,8 +261,8 @@ nfr("im_add_font", "font_path,size", "SF", "B",
 
 nfr("im_frame_start", "", "", "",
     "(use im_frame instead)",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm, false);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm, false);
         if (imgui_frame) return;
         IMGUIFrameCleanup();
         ImGui_ImplOpenGL3_NewFrame();
@@ -273,8 +273,8 @@ nfr("im_frame_start", "", "", "",
 
 nfr("im_frame_end", "", "", "",
     "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm, false);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm, false);
         if (!imgui_frame) return;
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -283,8 +283,8 @@ nfr("im_frame_end", "", "", "",
 
 nfr("im_window_demo", "", "", "B",
     "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm, false);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm, false);
         bool show = true;
         ImGui::ShowDemoWindow(&show);
         return Value(show);
@@ -293,7 +293,7 @@ nfr("im_window_demo", "", "", "B",
 nfr("im_window_start", "title,flags", "SI", "",
     "(use im_window instead)",
     [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm, false);
+        IsInit(vm, false);
         auto flags = Pop(sp);
         auto title = Pop(sp);
         ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
@@ -302,55 +302,55 @@ nfr("im_window_start", "title,flags", "SI", "",
 
 nfr("im_window_end", "", "", "",
     "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm, false);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm, false);
         if (imgui_windows--) ImGui::End();
     });
 
 nfr("im_button", "label", "S", "B",
     "",
     [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+        IsInit(vm);
         auto title = Pop(sp);
         auto press = ImGui::Button(title.sval()->data());
         Push(sp, press);
     });
 
 nfr("im_same_line", "", "", "", "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
         ImGui::SameLine();
         return Value();
     });
 
 nfr("im_separator", "", "", "",
     "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
         ImGui::Separator();
         return Value();
     });
 
 nfr("im_text", "label", "S", "",
     "",
-    [](StackPtr &sp, VM &vm, Value &text) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &text) {
+        IsInit(vm);
         ImGui::Text("%s", text.sval()->data());
         return Value();
     });
 
 nfr("im_tooltip", "label", "S", "",
     "",
-    [](StackPtr &sp, VM &vm, Value &text) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &text) {
+        IsInit(vm);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", text.sval()->data());
         return Value();
     });
 
 nfr("im_checkbox", "label,bool", "SI", "I2",
     "",
-    [](StackPtr &sp, VM &vm, Value &text, Value &boolval) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &text, Value &boolval) {
+        IsInit(vm);
         bool b = boolval.True();
         ImGui::Checkbox(text.sval()->data(), &b);
         return Value(b);
@@ -358,15 +358,15 @@ nfr("im_checkbox", "label,bool", "SI", "I2",
 
 nfr("im_input_text", "label,str", "SSk", "S",
     "",
-    [](StackPtr &sp, VM &vm, Value &text, Value &str) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &text, Value &str) {
+        IsInit(vm);
         return Value(LStringInputText(vm, text.sval()->data(), str.sval()));
     });
 
 nfr("im_radio", "labels,active,horiz", "S]II", "I",
     "",
-    [](StackPtr &sp, VM &vm, Value &strs, Value &active, Value &horiz) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &strs, Value &active, Value &horiz) {
+        IsInit(vm);
         int sel = active.intval();
         for (iint i = 0; i < strs.vval()->len; i++) {
             if (i && horiz.True()) ImGui::SameLine();
@@ -377,8 +377,8 @@ nfr("im_radio", "labels,active,horiz", "S]II", "I",
 
 nfr("im_combo", "label,labels,active", "SS]I", "I",
     "",
-    [](StackPtr &sp, VM &vm, Value &text, Value &strs, Value &active) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &text, Value &strs, Value &active) {
+        IsInit(vm);
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
         for (iint i = 0; i < strs.vval()->len; i++) {
@@ -390,8 +390,8 @@ nfr("im_combo", "label,labels,active", "SS]I", "I",
 
 nfr("im_listbox", "label,labels,active,height", "SS]II", "I",
     "",
-    [](StackPtr &sp, VM &vm, Value &text, Value &strs, Value &active, Value &height) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &text, Value &strs, Value &active, Value &height) {
+        IsInit(vm);
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
         for (iint i = 0; i < strs.vval()->len; i++) {
@@ -403,8 +403,8 @@ nfr("im_listbox", "label,labels,active,height", "SS]II", "I",
 
 nfr("im_sliderint", "label,i,min,max", "SIII", "I",
     "",
-    [](StackPtr &sp, VM &vm, Value &text, Value &integer, Value &min, Value &max) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &text, Value &integer, Value &min, Value &max) {
+        IsInit(vm);
         int i = integer.intval();
         ImGui::SliderInt(text.sval()->data(), &i, min.intval(), max.intval());
         return Value(i);
@@ -412,8 +412,8 @@ nfr("im_sliderint", "label,i,min,max", "SIII", "I",
 
 nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
     "",
-    [](StackPtr &sp, VM &vm, Value &text, Value &flt, Value &min, Value &max) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &text, Value &flt, Value &min, Value &max) {
+        IsInit(vm);
         float f = flt.fltval();
         ImGui::SliderFloat(text.sval()->data(), &f, min.fltval(), max.fltval());
         return Value(f);
@@ -422,7 +422,7 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
 nfr("im_coloredit", "label,color", "SF}", "A2",
     "",
     [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+        IsInit(vm);
         auto c = PopVec<float4>(sp);
         ImGui::ColorEdit4(Pop(sp).sval()->data(), (float *)c.data());
         PushVec(sp, c);
@@ -431,7 +431,7 @@ nfr("im_coloredit", "label,color", "SF}", "A2",
 nfr("im_treenode_start", "label", "S", "B",
     "(use im_treenode instead)",
     [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+        IsInit(vm);
         auto title = Pop(sp);
         bool open = ImGui::TreeNode(title.sval()->data());
         Push(sp, open);
@@ -440,8 +440,8 @@ nfr("im_treenode_start", "label", "S", "B",
 
 nfr("im_treenode_end", "", "", "",
     "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
         if (!imgui_treenode) return;
         ImGui::TreePop();
         imgui_treenode--;
@@ -452,7 +452,7 @@ nfr("im_group_start", "label", "Ss", "",
     " (if they have the same label as widgets in another group that has a different group"
     " label). Use im_group instead",
     [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+        IsInit(vm);
         auto title = Pop(sp);
         ImGui::PushID(title.sval()->data());
         imgui_group++;
@@ -460,8 +460,8 @@ nfr("im_group_start", "label", "Ss", "",
 
 nfr("im_group_end", "", "", "",
     "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
         if (!imgui_group) return;
         ImGui::PopID();
         imgui_group--;
@@ -469,8 +469,8 @@ nfr("im_group_end", "", "", "",
 
 nfr("im_edit_anything", "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version",
-    [](StackPtr &sp, VM &vm, Value &v, Value &label) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &v, Value &label) {
+        IsInit(vm);
         // FIXME: would be good to support structs, but that requires typeinfo, not just len.
         auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
         ValToGUI(vm, &v, ti,
@@ -480,8 +480,8 @@ nfr("im_edit_anything", "value,label", "AkS?", "A1",
 
 nfr("im_graph", "label,values,ishistogram", "SF]I", "",
     "",
-    [](StackPtr &sp, VM &vm, Value &label, Value &vals, Value &histogram) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm, Value &label, Value &vals, Value &histogram) {
+        IsInit(vm);
         auto getter = [](void *data, int i) -> float {
             return ((Value *)data)[i].fltval();
         };
@@ -497,16 +497,16 @@ nfr("im_graph", "label,values,ishistogram", "SF]I", "",
 
 nfr("im_show_vars", "", "", "",
     "shows an automatic editing UI for each global variable in your program",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
         VarsToGUI(vm);
         return Value();
     });
 
 nfr("im_show_engine_stats", "", "", "",
     "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(sp, vm);
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
         EngineStatsGUI();
         return Value();
     });

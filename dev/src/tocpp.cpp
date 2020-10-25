@@ -33,6 +33,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             "#include \"lobster/vmops.h\"\n"
             "#include \"lobster/compiler.h\"\n"
             "\n"
+            "typedef lobster::Value Value;\n"
             "typedef lobster::StackPtr StackPtr;\n"
             "typedef lobster::VM &VMRef;\n"
             "typedef lobster::fun_base_t fun_base_t;\n"
@@ -128,13 +129,13 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         bool is_start = ip == starting_ip;
         int opc = *ip++;
         if (opc == IL_FUNSTART || is_start) {
-            auto regs_max = ip[2];
+            //auto regs_max = ip[2];
             auto it = function_lookup.find(id);
             auto f = it != function_lookup.end() ? it->second : nullptr;
             sd += "\n";
             if (f) append(sd, "// ", f->name()->string_view(), "\n");
             append(sd, "static StackPtr fun_", id, "(VMRef vm, StackPtr sp) {\n"
-                       "    Value regs[", regs_max, "];\n");
+                       /*"    Value regs[", regs_max, "];\n"*/);
         }
         auto args = ip + 1;
         int regso = -1;
@@ -146,7 +147,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 if (i) sd += ", ";
                 append(sd, args[i]);
             }
-            append(sd, "}; sp = U_", ILNames()[opc], "(vm, sp, args);");
+            append(sd, "};\n    sp = U_", ILNames()[opc], "(vm, sp, args);");
         } else if (opc == IL_JUMP) {
             append(sd, "goto block", args[0], ";");
         } else if (CONDJUMP(opc)) {
@@ -215,7 +216,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             } else if (opc == IL_CALL) {
                 auto fs = code + args[0];
                 assert(*fs == IL_FUNSTART);
-                fs++;
+                fs += 2;
                 comment = bcf->functions()->Get(*fs)->name()->string_view();
             } else if (ISBCALL(opc)) {
                 comment = natreg.nfuns[args[0]]->name;

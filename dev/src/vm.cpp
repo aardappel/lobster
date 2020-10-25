@@ -269,24 +269,12 @@ void VM::ErrorBase(const string &err) {
 
 // This function is now way less important than it was when the language was still dynamically
 // typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
-Value VM::Error(StackPtr sp, string err) {
+Value VM::Error(string err) {
     ErrorBase(err);
     #ifdef USE_EXCEPTION_HANDLING
     try {
     #endif
-        while (sp >= stack && (!stackframes.size() || sp - stack != stackframes.back().spstart)) {
-            // Sadly can't print this properly.
-            errmsg += "\n   stack: ";
-            to_string_hex(errmsg, (size_t)Top(sp).any());
-            if (pool.pointer_is_in_allocator(Top(sp).any())) {
-                errmsg += ", maybe: ";
-                RefToString(*this, errmsg, Top(sp).ref(), debugpp);
-            }
-            Pop(sp);  // We don't DEC here, as we can't know what type it is.
-                    // This is ok, as we ignore leaks in case of an error anyway.
-        }
-        for (;;) {
-            if (!stackframes.size()) break;
+        while (!stackframes.empty()) {
             int deffun = *(stackframes.back().funstart);
             if (deffun >= 0) {
                 append(errmsg, "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view());
@@ -296,6 +284,7 @@ Value VM::Error(StackPtr sp, string err) {
             auto &stf = stackframes.back();
             auto fip = stf.funstart;
             fip++;  // function id.
+            fip++;  // regs_max
             auto nargs = *fip++;
             auto freevars = fip + nargs;
             fip += nargs;
@@ -314,6 +303,7 @@ Value VM::Error(StackPtr sp, string err) {
                     j += DumpVar(errmsg, vars[i], i);
                 }
             }
+            auto sp = stf.spstart + stack;
             sp -= nkeepvars;
             fip++;  // Owned vars.
             while (ndef--) {
@@ -325,7 +315,6 @@ Value VM::Error(StackPtr sp, string err) {
                 vars[i] = Pop(sp);
             }
             stackframes.pop_back();
-            sp = (stackframes.size() ? stackframes.back().spstart : -1) + stack;
         }
     #ifdef USE_EXCEPTION_HANDLING
     } catch (string &s) {
@@ -575,11 +564,11 @@ iint VM::GrabIndex(StackPtr &sp, int len) {
     }
 }
 
-void VM::IDXErr(StackPtr sp, iint i, iint n, const RefObj *v) {
+void VM::IDXErr(iint i, iint n, const RefObj *v) {
     string sd;
     append(sd, "index ", i, " out of range ", n, " of: ");
     RefToString(*this, sd, v, debugpp);
-    Error(sp, sd);
+    Error(sd);
 }
 
 string_view VM::StructName(const TypeInfo &ti) {
@@ -631,9 +620,9 @@ optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
     return {};
 }
 
-void VM::StartWorkers(StackPtr &sp, iint numthreads) {
-    if (is_worker) Error(sp, "workers can\'t start more worker threads");
-    if (tuple_space) Error(sp, "workers already running");
+void VM::StartWorkers(iint numthreads) {
+    if (is_worker) Error("workers can\'t start more worker threads");
+    if (tuple_space) Error("workers already running");
     // Stop bad values from locking up the machine :)
     numthreads = min(numthreads, 256_L);
     tuple_space = new TupleSpace(bcf->udts()->size());
@@ -678,17 +667,17 @@ void VM::TerminateWorkers() {
     tuple_space = nullptr;
 }
 
-void VM::WorkerWrite(StackPtr &sp, RefObj *ref) {
+void VM::WorkerWrite(RefObj *ref) {
     if (!tuple_space) return;
-    if (!ref) Error(sp, "thread write: nil reference");
+    if (!ref) Error("thread write: nil reference");
     auto &ti = ref->ti(*this);
-    if (ti.t != V_CLASS) Error(sp, "thread write: must be a class");
+    if (ti.t != V_CLASS) Error("thread write: must be a class");
     auto st = (LObject *)ref;
     auto buf = new Value[ti.len];
     for (int i = 0; i < ti.len; i++) {
         // FIXME: lift this restriction.
         if (IsRefNil(GetTypeInfo(ti.elemtypes[i]).t))
-            Error(sp, "thread write: only scalar class members supported for now");
+            Error("thread write: only scalar class members supported for now");
         buf[i] = st->AtS(i);
     }
     auto &tt = tuple_space->tupletypes[ti.structidx];
@@ -699,9 +688,9 @@ void VM::WorkerWrite(StackPtr &sp, RefObj *ref) {
     tt.condition.notify_one();
 }
 
-LObject *VM::WorkerRead(StackPtr &sp, type_elem_t tti) {
+LObject *VM::WorkerRead(type_elem_t tti) {
     auto &ti = GetTypeInfo(tti);
-    if (ti.t != V_CLASS) Error(sp, "thread read: must be a class type");
+    if (ti.t != V_CLASS) Error("thread read: must be a class type");
     Value *buf = nullptr;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {

@@ -38,11 +38,11 @@ ResourceType texture_type = { "texture", [](void *t) {
     delete tex;
 } };
 
-Mesh &GetMesh(StackPtr sp, VM &vm, Value &res) {
-    return *GetResourceDec<Mesh *>(sp, vm, res, &mesh_type);
+Mesh &GetMesh(VM &vm, Value &res) {
+    return *GetResourceDec<Mesh *>(vm, res, &mesh_type);
 }
-Texture GetTexture(StackPtr sp, VM &vm, const Value &res) {
-    auto tex = GetResourceDec<Texture *>(sp, vm, res, &texture_type);
+Texture GetTexture(VM &vm, const Value &res) {
+    auto tex = GetResourceDec<Texture *>(vm, res, &texture_type);
     return tex ? *tex : Texture();
 }
 
@@ -83,15 +83,15 @@ bool GraphicsFrameStart() {
     return cb;
 }
 
-void TestGL(StackPtr sp, VM &vm) {
+void TestGL(VM &vm) {
     if (!graphics_initialized)
-        vm.BuiltinError(sp, "graphics system not initialized yet, call gl_window() first");
+        vm.BuiltinError("graphics system not initialized yet, call gl_window() first");
 }
 
 // This function can also be called directly from the native backends, to avoid
 // an indirect call (which is important in Wasm).
 extern "C" StackPtr GLFrame(StackPtr sp, VM &vm) {
-    TestGL(sp, vm);
+    TestGL(vm);
     auto cb = GraphicsFrameStart();
     Push(sp, Value(!cb));
     return sp;
@@ -104,16 +104,16 @@ float2 localfingerpos(int i) {
     return localpos(GetFinger(i, false));
 }
 
-int GetSampler(StackPtr sp, VM &vm, Value &i) {
+int GetSampler(VM &vm, Value &i) {
     if (i.ival() < 0 || i.ival() >= Shader::MAX_SAMPLERS)
-        vm.BuiltinError(sp, "graphics: illegal texture unit");
+        vm.BuiltinError("graphics: illegal texture unit");
     return i.intval();
 }
 
-Mesh *CreatePolygon(StackPtr sp, VM &vm, Value &vl) {
-    TestGL(sp, vm);
+Mesh *CreatePolygon(VM &vm, Value &vl) {
+    TestGL(vm);
     auto len = vl.vval()->len;
-    if (len < 3) vm.BuiltinError(sp, "polygon: must have at least 3 verts");
+    if (len < 3) vm.BuiltinError("polygon: must have at least 3 verts");
     vector<BasicVert> vbuf(len);
     for (int i = 0; i < len; i++) vbuf[i].pos = ValueToFLT<3>(vl.vval()->AtSt(i), vl.vval()->width);
     auto v1 = vbuf[1].pos - vbuf[0].pos;
@@ -128,8 +128,8 @@ Mesh *CreatePolygon(StackPtr sp, VM &vm, Value &vl) {
     return m;
 }
 
-Value SetUniform(StackPtr sp, VM &vm, const Value &name, const float *data, int len) {
-    TestGL(sp, vm);
+Value SetUniform(VM &vm, const Value &name, const float *data, int len) {
+    TestGL(vm);
     currentshader->Activate();
     auto ok = currentshader->SetUniform(name.sval()->strv(), data, len);
     return Value(ok);
@@ -140,9 +140,9 @@ void AddGraphics(NativeRegistry &nfr) {
 nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?", "S?",
     "opens a window for OpenGL rendering. returns error string if any problems, nil"
     " otherwise. For flags, see modules/gl.lobster",
-    [](StackPtr &sp, VM &vm, Value &title, Value &xs, Value &ys, Value &flags, Value &samples) {
+    [](StackPtr &, VM &vm, Value &title, Value &xs, Value &ys, Value &flags, Value &samples) {
         if (graphics_initialized)
-            vm.BuiltinError(sp, "cannot call gl_window() twice");
+            vm.BuiltinError("cannot call gl_window() twice");
         string err = SDLInit(title.sval()->strv(), int2(iint2(xs.ival(), ys.ival())),
                              (InitFlags)flags.intval(), max(1, samples.intval()));
         if (err.empty()) {
@@ -173,8 +173,8 @@ nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
     "loads an additional materials file (data/shaders/default.materials is already loaded by default"
     " by gl_window()). if inline is true, materialdefs is not a filename, but the actual"
     " materials. returns error string if any problems, nil otherwise.",
-    [](StackPtr &sp, VM &vm, Value &fn, Value &isinline) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &fn, Value &isinline) {
+        TestGL(vm);
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv())
                                    : LoadMaterialFile(fn.sval()->strv());
         return err[0] ? Value(vm.NewString(err)) : Value();
@@ -198,16 +198,16 @@ nfr("gl_shutdown", "", "", "",
 
 nfr("gl_window_title", "title", "S", "Sb",
     "changes the window title.",
-    [](StackPtr &sp, VM &vm, Value &s) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &s) {
+        TestGL(vm);
         SDLTitle(s.sval()->strv());
         return s;
     });
 
 nfr("gl_window_min_max", "dir", "I", "",
     ">0 to maximize, <0 to minimize or 0 to restore.",
-    [](StackPtr &sp, VM &vm, Value &dir) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &dir) {
+        TestGL(vm);
         SDLWindowMinMax(dir.intval());
         return Value();
     });
@@ -222,15 +222,15 @@ nfr("gl_visible", "", "", "B",
 nfr("gl_cursor", "on", "B", "B",
     "default the cursor is visible, turn off for implementing FPS like control schemes. return"
     " wether it's on.",
-    [](StackPtr &sp, VM &vm, Value &on) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &on) {
+        TestGL(vm);
         return Value(SDLCursor(on.ival() != 0));
     });
 
 nfr("gl_grab", "on", "B", "B",
     "grabs the mouse when the window is active. return wether it's on.",
-    [](StackPtr &sp, VM &vm, Value &on) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &on) {
+        TestGL(vm);
         return Value(SDLGrab(on.ival() != 0));
     });
 
@@ -385,7 +385,7 @@ nfr("gl_last_time", "name,down", "SI", "F",
 nfr("gl_clear", "col", "F}:4", "",
     "clears the framebuffer (and depth buffer) to the given color",
     [](StackPtr &sp, VM &vm) {
-        TestGL(sp, vm);
+        TestGL(vm);
         ClearFrameBuffer(PopVec<float3>(sp));
     });
 
@@ -400,8 +400,8 @@ nfr("gl_color", "col", "F}:4", "F}:4",
 nfr("gl_polygon", "vertlist", "F}]", "",
     "renders a polygon using the list of points given."
     " warning: gl_polygon creates a new mesh every time, gl_new_poly/gl_render_mesh is faster.",
-    [](StackPtr &sp, VM &vm, Value &vl) {
-        auto m = CreatePolygon(sp, vm, vl);
+    [](StackPtr &, VM &vm, Value &vl) {
+        auto m = CreatePolygon(vm, vl);
         m->Render(currentshader);
         delete m;
         return Value();
@@ -409,19 +409,17 @@ nfr("gl_polygon", "vertlist", "F}]", "",
 
 nfr("gl_circle", "radius,segments", "FI", "",
     "renders a circle",
-    [](StackPtr &sp, VM &vm, Value &radius, Value &segments) {
-        TestGL(sp, vm);
-
+    [](StackPtr &, VM &vm, Value &radius, Value &segments) {
+        TestGL(vm);
         geomcache->RenderCircle(currentshader, polymode, max(segments.intval(), 3), radius.fltval());
-
         return Value();
     });
 
 nfr("gl_open_circle", "radius,segments,thickness", "FIF", "",
     "renders a circle that is open on the inside. thickness is the fraction of the radius that"
     " is filled, try e.g. 0.2",
-    [](StackPtr &sp, VM &vm, Value &radius, Value &segments, Value &thickness) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &radius, Value &segments, Value &thickness) {
+        TestGL(vm);
 
         geomcache->RenderOpenCircle(currentshader, max(segments.intval(), 3), radius.fltval(),
                                     thickness.fltval());
@@ -572,7 +570,7 @@ nfr("gl_rect", "size,centered", "F}:2I?", "",
     [](StackPtr &sp, VM &vm) {
         auto centered = Pop(sp).True();
         auto vec = PopVec<float2>(sp);
-        TestGL(sp, vm);
+        TestGL(vm);
         geomcache->RenderQuad(currentshader, polymode, centered,
                               float4x4(float4(vec, 1)));
     });
@@ -581,7 +579,7 @@ nfr("gl_rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
     "Like gl_rect renders a sized quad, but allows you to specify texture coordinates and"
     " optionally colors (empty list for all white). Slow.",
     [](StackPtr &sp, VM &vm) {
-        TestGL(sp, vm);
+        TestGL(vm);
         auto cols = Pop(sp).vval();
         auto td = PopVec<float2>(sp);
         auto t = PopVec<float2>(sp);
@@ -602,8 +600,8 @@ nfr("gl_rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
 
 nfr("gl_unit_square", "centered", "I?", "",
     "renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)",
-    [](StackPtr &sp, VM &vm, Value &centered) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &centered) {
+        TestGL(vm);
         geomcache->RenderUnitSquare(currentshader, polymode, centered.True());
         return Value();
     });
@@ -611,7 +609,7 @@ nfr("gl_unit_square", "centered", "I?", "",
 nfr("gl_line", "start,end,thickness", "F}F}F", "",
     "renders a line with the given thickness",
     [](StackPtr &sp, VM &vm) {
-        TestGL(sp, vm);
+        TestGL(vm);
         auto thickness = Pop(sp).fltval();
         auto v2 = PopVec<float3>(sp);
         auto v1 = PopVec<float3>(sp);
@@ -653,8 +651,8 @@ nfr("gl_new_poly", "positions", "F}]", "R",
     " gl_line_mode determines how this gets drawn (fan or loop)."
     " automatically generates texcoords and normals."
     " returns mesh id",
-    [](StackPtr &sp, VM &vm, Value &positions) {
-        auto m = CreatePolygon(sp, vm, positions);
+    [](StackPtr &, VM &vm, Value &positions) {
+        auto m = CreatePolygon(vm, positions);
         return Value(vm.NewResource(m, &mesh_type));
     });
 
@@ -665,15 +663,15 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
     " you may specify [] for any of the other attributes if not required by format,"
     " or to get defaults for colors (white) / texcoords (position x & y) /"
     " normals (generated from adjacent triangles).",
-    [](StackPtr &sp, VM &vm, Value &format, Value &positions, Value &colors,
+    [](StackPtr &, VM &vm, Value &format, Value &positions, Value &colors,
                            Value &normals, Value &texcoords1, Value &texcoords2, Value &indices) {
-        TestGL(sp, vm);
+        TestGL(vm);
         auto nattr = format.sval()->len;
         if (nattr < 1 || nattr > 10)
-            vm.BuiltinError(sp, "newmesh: illegal format/attributes size");
+            vm.BuiltinError("newmesh: illegal format/attributes size");
         auto fmt = format.sval()->strv();
         if (nattr > (int)min(fmt.find_first_not_of("PCTN"), fmt.size()) || fmt[0] != 'P')
-            vm.BuiltinError(sp, "newmesh: illegal format characters (only PCTN allowed), P must be"
+            vm.BuiltinError("newmesh: illegal format characters (only PCTN allowed), P must be"
                                " first");
         iint nverts = positions.vval()->len;
         vector<int> idxs;
@@ -681,7 +679,7 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
             for (int i = 0; i < indices.vval()->len; i++) {
                 auto &e = indices.vval()->At(i);
                 if (e.ival() < 0 || e.ival() >= nverts)
-                    vm.BuiltinError(sp, "newmesh: index out of range of vertex list");
+                    vm.BuiltinError("newmesh: index out of range of vertex list");
                 idxs.push_back(e.intval());
             }
         }
@@ -741,16 +739,16 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
 
 nfr("gl_new_mesh_iqm", "filename", "S", "R?",
     "load a .iqm file into a mesh, returns mesh or nil on failure to load.",
-    [](StackPtr &sp, VM &vm, Value &fn) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &fn) {
+        TestGL(vm);
         auto m = LoadIQM(fn.sval()->strv());
         return m ? Value(vm.NewResource(m, &mesh_type)) : Value();
     });
 
 nfr("gl_mesh_parts", "m", "R", "S]",
     "returns an array of names of all parts of mesh m (names may be empty)",
-    [](StackPtr &sp, VM &vm, Value &i) {
-        auto &m = GetMesh(sp, vm, i);
+    [](StackPtr &, VM &vm, Value &i) {
+        auto &m = GetMesh(vm, i);
         auto v = (LVector *)vm.NewVec(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (auto s : m.surfs) v->Push(vm, Value(vm.NewString(s->name)));
         return Value(v);
@@ -758,32 +756,32 @@ nfr("gl_mesh_parts", "m", "R", "S]",
 
 nfr("gl_mesh_size", "m", "R", "I",
     "returns the number of verts in this mesh",
-    [](StackPtr &sp, VM &vm, Value &i) {
-        auto &m = GetMesh(sp, vm, i);
+    [](StackPtr &, VM &vm, Value &i) {
+        auto &m = GetMesh(vm, i);
         return Value((int)m.geom->nverts);
     });
 
 nfr("gl_animate_mesh", "m,frame", "RF", "",
     "set the frame for animated mesh m",
-    [](StackPtr &sp, VM &vm, Value &i, Value &f) {
-        GetMesh(sp, vm, i).curanim = f.fltval();
+    [](StackPtr &, VM &vm, Value &i, Value &f) {
+        GetMesh(vm, i).curanim = f.fltval();
         return Value();
     });
 
 nfr("gl_render_mesh", "m", "R", "",
     "renders the specified mesh",
-    [](StackPtr &sp, VM &vm, Value &i) {
-        TestGL(sp, vm);
-        GetMesh(sp, vm, i).Render(currentshader);
+    [](StackPtr &, VM &vm, Value &i) {
+        TestGL(vm);
+        GetMesh(vm, i).Render(currentshader);
         return Value();
     });
 
 nfr("gl_save_mesh", "m,name", "RS", "B",
     "saves the specified mesh to a file in the PLY format. useful if the mesh was generated"
     " procedurally. returns false if the file could not be written",
-    [](StackPtr &sp, VM &vm, Value &i, Value &name) {
-        TestGL(sp, vm);
-        bool ok = GetMesh(sp, vm, i).SaveAsPLY(name.sval()->strv());
+    [](StackPtr &, VM &vm, Value &i, Value &name) {
+        TestGL(vm);
+        bool ok = GetMesh(vm, i).SaveAsPLY(name.sval()->strv());
         return Value(ok);
     });
 
@@ -791,8 +789,8 @@ nfr("gl_mesh_pointsize", "m,pointsize", "RF", "",
     "sets the pointsize for this mesh. "
     "the mesh must have been created with indices = nil for point rendering to be used. "
     "you also want to use a shader that works with points, such as color_attr_particle.",
-    [](StackPtr &sp, VM &vm, Value &i, Value &ps) {
-        auto &m = GetMesh(sp, vm, i);
+    [](StackPtr &, VM &vm, Value &i, Value &ps) {
+        auto &m = GetMesh(vm, i);
         m.pointsize = ps.fltval();
         return Value();
     });
@@ -800,10 +798,10 @@ nfr("gl_mesh_pointsize", "m,pointsize", "RF", "",
 nfr("gl_set_shader", "shader", "S", "",
     "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
     " color / textured / phong",
-    [](StackPtr &sp, VM &vm, Value &shader) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &shader) {
+        TestGL(vm);
         auto sh = LookupShader(shader.sval()->strv());
-        if (!sh) vm.BuiltinError(sp, "no such shader: " + shader.sval()->strv());
+        if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
         currentshader = sh;
         return Value();
     });
@@ -815,23 +813,23 @@ nfr("gl_set_uniform", "name,value", "SF}", "B",
         auto len = Top(sp).intval();
         auto v = PopVec<float4>(sp);
         auto name = Pop(sp);
-        auto r = SetUniform(sp, vm, name, v.begin(), len);
+        auto r = SetUniform(vm, name, v.begin(), len);
         Push(sp,  r);
     });
 
 nfr("gl_set_uniform", "name,value", "SF", "B",
     "set a uniform on the current shader. uniform"
     " in the shader must be a single float. returns false on error.",
-    [](StackPtr &sp, VM &vm, Value &name, Value &vec) {
+    [](StackPtr &, VM &vm, Value &name, Value &vec) {
         auto f = vec.fltval();
-        return SetUniform(sp, vm, name, &f, 1);
+        return SetUniform(vm, name, &f, 1);
     });
 
 nfr("gl_set_uniform_array", "name,value", "SF}:4]", "B",
     "set a uniform on the current shader. uniform in the shader must be an array of vec4."
     " returns false on error.",
-    [](StackPtr &sp, VM &vm, Value &name, Value &vec) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &name, Value &vec) {
+        TestGL(vm);
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++)
             vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
@@ -844,8 +842,8 @@ nfr("gl_set_uniform_array", "name,value", "SF}:4]", "B",
 nfr("gl_set_uniform_matrix", "name,value", "SF]", "B",
     "set a uniform on the current shader. pass a vector of 4/9/12/16 floats to set a"
     " mat2/mat3/mat3x4/mat4 respectively. returns false on error.",
-    [](StackPtr &sp, VM &vm, Value &name, Value &vec) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &name, Value &vec) {
+        TestGL(vm);
         vector<float> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
         currentshader->Activate();
@@ -859,8 +857,8 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I", "I",
     " uniform block name. uniforms in the shader must be all vec4s, or an array of them."
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
-    [](StackPtr &sp, VM &vm, Value &name, Value &vec, Value &ssbo) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo) {
+        TestGL(vm);
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++)
             vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
@@ -876,8 +874,8 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SSI", "I",
     " data layout in the string buffer."
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
-    [](StackPtr &sp, VM &vm, Value &name, Value &vec, Value &ssbo) {
-    TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo) {
+    TestGL(vm);
     auto id = UniformBufferObject(currentshader, vec.sval()->strv().data(),
                                   vec.sval()->strv().size(), -1,
                                   name.sval()->strv(), ssbo.True(), 0);
@@ -886,8 +884,8 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SSI", "I",
 
 nfr("gl_delete_buffer_object", "id", "I", "",
     "deletes a buffer objects, e.g. one allocated by gl_uniform_buffer_object().",
-    [](StackPtr &sp, VM &vm, Value &id) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &id) {
+        TestGL(vm);
         // FIXME: should route this thru a IntResourceManagerCompact to be safe?
         // I guess GL doesn't care about illegal id's?
         DeleteBO(id.intval());
@@ -897,9 +895,9 @@ nfr("gl_delete_buffer_object", "id", "I", "",
 nfr("gl_bind_mesh_to_compute", "mesh,name", "R?S", "",
     "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
     " unbind.",
-    [](StackPtr &sp, VM &vm, Value &mesh, Value &name) {
-        TestGL(sp, vm);
-        if (mesh.True()) GetMesh(sp, vm, mesh).geom->BindAsSSBO(currentshader, name.sval()->strv());
+    [](StackPtr &, VM &vm, Value &mesh, Value &name) {
+        TestGL(vm);
+        if (mesh.True()) GetMesh(vm, mesh).geom->BindAsSSBO(currentshader, name.sval()->strv());
         else UniformBufferObject(currentshader, nullptr, 0, -1, name.sval()->strv(), true, 0);
         return Value();
     });
@@ -909,7 +907,7 @@ nfr("gl_dispatch_compute", "groups", "I}:3", "",
     " values.",
     [](StackPtr &sp, VM &vm) {
         auto groups = PopVec<int3>(sp);
-        TestGL(sp, vm);
+        TestGL(vm);
         DispatchCompute(groups);
     });
 
@@ -917,8 +915,8 @@ nfr("gl_dump_shader", "filename,stripnonascii", "SB", "B",
     "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
     " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"
     " pass true for stripnonascii if you're only interested in that part.",
-    [](StackPtr &sp, VM &vm, Value &filename, Value &stripnonascii) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &filename, Value &stripnonascii) {
+        TestGL(vm);
         currentshader->Activate();
         auto ok = currentshader->Dump(filename.sval()->strv(), stripnonascii.True());
         return Value(ok);
@@ -928,7 +926,7 @@ nfr("gl_blend", "on", "I", "I",
     "changes the blending mode (use blending constants from color.lobster), returns old mode",
     [](StackPtr &sp, VM &vm) {
         auto mode = Pop(sp);
-        TestGL(sp, vm);
+        TestGL(vm);
         BlendMode old = SetBlendMode((BlendMode)mode.ival());
         Push(sp, old);
     });
@@ -938,27 +936,27 @@ nfr("gl_load_texture", "name,textureformat", "SI?", "R?",
     " see texture.lobster for texture format. Uses stb_image internally"
     " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
     " PIC.",
-    [](StackPtr &sp, VM &vm, Value &name, Value &tf) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &name, Value &tf) {
+        TestGL(vm);
         auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
         return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : Value();
     });
 
 nfr("gl_set_primitive_texture", "i,tex,textureformat", "IRI?", "",
     "sets texture unit i to texture (for use with rect/circle/polygon/line)",
-    [](StackPtr &sp, VM &vm, Value &i, Value &id, Value &tf) {
-        TestGL(sp, vm);
-        SetTexture(GetSampler(sp, vm, i), GetTexture(sp, vm, id), tf.intval());
+    [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
+        TestGL(vm);
+        SetTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
         return Value();
     });
 
 nfr("gl_set_mesh_texture", "mesh,part,i,texture", "RIIR", "",
     "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)",
-    [](StackPtr &sp, VM &vm, Value &mid, Value &part, Value &i, Value &id) {
-        auto &m = GetMesh(sp, vm, mid);
+    [](StackPtr &, VM &vm, Value &mid, Value &part, Value &i, Value &id) {
+        auto &m = GetMesh(vm, mid);
         if (part.ival() < 0 || part.ival() >= (int)m.surfs.size())
-            vm.BuiltinError(sp, "setmeshtexture: illegal part index");
-        m.surfs[part.ival()]->Get(GetSampler(sp, vm, i)) = GetTexture(sp, vm, id);
+            vm.BuiltinError("setmeshtexture: illegal part index");
+        m.surfs[part.ival()]->Get(GetSampler(vm, i)) = GetTexture(vm, id);
         return Value();
     });
 
@@ -966,17 +964,17 @@ nfr("gl_set_image_texture", "i,tex,textureformat", "IRI", "",
     "sets image unit i to texture (for use with compute). texture format must be the same"
     " as what you specified in gl_load_texture / gl_create_texture,"
     " with optionally writeonly/readwrite flags.",
-    [](StackPtr &sp, VM &vm, Value &i, Value &id, Value &tf) {
-        TestGL(sp, vm);
-        SetImageTexture(GetSampler(sp, vm, i), GetTexture(sp, vm, id), tf.intval());
+    [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
+        TestGL(vm);
+        SetImageTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
         return Value();
     });
 
 nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R",
     "creates a texture from a 2d array of color vectors."
     " see texture.lobster for texture format",
-    [](StackPtr &sp, VM &vm, Value &matv, Value &tf) {
-        TestGL(sp, vm);
+    [](StackPtr &, VM &vm, Value &matv, Value &tf) {
+        TestGL(vm);
         auto mat = matv.vval();
         auto ys = mat->len;
         auto xs = mat->At(0).vval()->len;
@@ -1001,7 +999,7 @@ nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R",
     "creates a blank texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format",
     [](StackPtr &sp, VM &vm) {
-        TestGL(sp, vm);
+        TestGL(vm);
         auto tf = Pop(sp).intval();
         auto col = PopVec<float4>(sp);
         auto size = PopVec<int2>(sp);
@@ -1012,16 +1010,16 @@ nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R",
 nfr("gl_texture_size", "tex", "R", "I}:2",
     "returns the size of a texture",
     [](StackPtr &sp, VM &vm) {
-        TestGL(sp, vm);
+        TestGL(vm);
         auto v = Pop(sp);
-        PushVec(sp, GetTexture(sp, vm, v).size.xy());
+        PushVec(sp, GetTexture(vm, v).size.xy());
     });
 
 nfr("gl_read_texture", "tex", "R", "S?",
     "read back RGBA texture data into a string or nil on failure",
-    [](StackPtr &sp, VM &vm, Value &t) {
-        TestGL(sp, vm);
-        auto tex = GetTexture(sp, vm, t);
+    [](StackPtr &, VM &vm, Value &t) {
+        TestGL(vm);
+        auto tex = GetTexture(vm, t);
         auto numpixels = tex.size.x * tex.size.y;
         if (!numpixels) return Value();
         auto buf = ReadTexture(tex);
@@ -1039,13 +1037,13 @@ nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex"
     " pass your own depth texture if desired."
     " pass a nil texture to switch back to the original framebuffer."
     " performance note: do not recreate texture passed in unless necessary.",
-    [](StackPtr &sp, VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
+    [](StackPtr &, VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
                                        Value &depthtex) {
-        TestGL(sp, vm);
-        auto tex = GetTexture(sp, vm, t);
+        TestGL(vm);
+        auto tex = GetTexture(vm, t);
         return Value(SwitchToFrameBuffer(tex, GetScreenSize(),
-                                         depth.True(), tf.intval(), GetTexture(sp, vm, retex),
-                                         GetTexture(sp, vm, depthtex)));
+                                         depth.True(), tf.intval(), GetTexture(vm, retex),
+                                         GetTexture(vm, depthtex)));
     });
 
 nfr("gl_light", "pos,params", "F}:3F}:2", "",
@@ -1066,13 +1064,13 @@ nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
     " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
     " Before calling this, make sure to have the texture set and a textured shader",
     [](StackPtr &sp, VM &vm) {
-        TestGL(sp, vm);
+        TestGL(vm);
         auto msize = float2(PopVec<int2>(sp));
         auto tile = Pop(sp).vval();
         auto pos = Pop(sp).vval();
         auto len = pos->len;
         if (len != tile->len)
-            vm.BuiltinError(sp, "rendertiles: vectors of different size");
+            vm.BuiltinError("rendertiles: vectors of different size");
         vector<SpriteVert> vbuf(len * 6);
         for (iint i = 0; i < len; i++) {
             auto p = ValueToFLT<2>(pos->AtSt(i), pos->width);
@@ -1098,7 +1096,7 @@ nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
     "renders a grid in space for debugging purposes. num is the number of lines in all 3"
     " directions, and dist their spacing. thickness of the lines in the same units",
     [](StackPtr &sp, VM &vm) {
-        TestGL(sp, vm);
+        TestGL(vm);
         auto thickness = Pop(sp).fltval();
         auto dist = PopVec<float3>(sp);
         auto num = PopVec<iint3>(sp);

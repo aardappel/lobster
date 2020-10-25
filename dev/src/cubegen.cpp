@@ -110,7 +110,7 @@ nfr("cg_init", "size", "I}:3", "R",
 nfr("cg_size", "block", "R", "I}:3",
     "returns the current block size",
     [](StackPtr &sp, VM &vm) {
-        PushVec(sp, GetVoxels(sp, vm, Pop(sp)).grid.dim);
+        PushVec(sp, GetVoxels(vm, Pop(sp)).grid.dim);
     });
 
 nfr("cg_set", "block,pos,size,paletteindex", "RI}:3I}:3I", "",
@@ -121,7 +121,7 @@ nfr("cg_set", "block,pos,size,paletteindex", "RI}:3I}:3I", "",
         auto size = PopVec<int3>(sp);
         auto pos = PopVec<int3>(sp);
         auto res = Pop(sp);
-        GetVoxels(sp, vm, res).Set(pos, size, (uint8_t)color);
+        GetVoxels(vm, res).Set(pos, size, (uint8_t)color);
     });
 
 nfr("cg_get", "block,pos", "RI}:3", "I",
@@ -130,7 +130,7 @@ nfr("cg_get", "block,pos", "RI}:3", "I",
     [](StackPtr &sp, VM &vm) {
         auto pos = PopVec<int3>(sp);
         auto res = Pop(sp);
-        Push(sp, GetVoxels(sp, vm, res).grid.Get(pos));
+        Push(sp, GetVoxels(vm, res).grid.Get(pos));
     });
 
 nfr("cg_copy", "block,pos,size,dest,flip", "RI}:3I}:3I}:3I}:3", "",
@@ -143,7 +143,7 @@ nfr("cg_copy", "block,pos,size,dest,flip", "RI}:3I}:3I}:3I}:3", "",
         auto sz = PopVec<int3>(sp);
         auto p = PopVec<int3>(sp);
         auto res = Pop(sp);
-        GetVoxels(sp, vm, res).Copy(p, sz, d, fl);
+        GetVoxels(vm, res).Copy(p, sz, d, fl);
     });
 
 nfr("cg_clone", "block,pos,size", "RI}:3I}:3", "R",
@@ -153,7 +153,7 @@ nfr("cg_clone", "block,pos,size", "RI}:3I}:3", "R",
         auto sz = PopVec<int3>(sp);
         auto p = PopVec<int3>(sp);
         auto res = Pop(sp);
-        auto &v = GetVoxels(sp, vm, res);
+        auto &v = GetVoxels(vm, res);
         auto nw = NewWorld(sz, v.palette.data());
         v.Clone(p, sz, nw);
         Push(sp,  vm.NewResource(nw, GetVoxelType()));
@@ -165,7 +165,7 @@ nfr("cg_color_to_palette", "block,color", "RF}:4", "I",
     [](StackPtr &sp, VM &vm) {
         auto color = PopVec<float4>(sp);
         auto res = Pop(sp);
-        Push(sp,  GetVoxels(sp, vm, res).Color2Palette(color));
+        Push(sp,  GetVoxels(vm, res).Color2Palette(color));
     });
 
 nfr("cg_palette_to_color", "block,paletteindex", "RI", "F}:4",
@@ -173,24 +173,24 @@ nfr("cg_palette_to_color", "block,paletteindex", "RI", "F}:4",
     [](StackPtr &sp, VM &vm) {
         auto p = uint8_t(Pop(sp).ival());
         auto res = Pop(sp);
-        PushVec(sp, color2vec(GetVoxels(sp, vm, res).palette[p]));
+        PushVec(sp, color2vec(GetVoxels(vm, res).palette[p]));
     });
 
 nfr("cg_copy_palette", "fromworld,toworld", "RR", "", "",
-    [](StackPtr &sp, VM &vm, Value &fromworld, Value &toworld) {
-        auto &w1 = GetVoxels(sp, vm, fromworld);
-        auto &w2 = GetVoxels(sp, vm, toworld);
+    [](StackPtr &, VM &vm, Value &fromworld, Value &toworld) {
+        auto &w1 = GetVoxels(vm, fromworld);
+        auto &w2 = GetVoxels(vm, toworld);
         w2.palette.clear();
         w2.palette.insert(w2.palette.end(), w1.palette.begin(), w1.palette.end());
         return Value();
     });
 
 nfr("cg_sample_down", "scale,world", "IR", "", "",
-    [](StackPtr &sp, VM &vm, Value &scale, Value &world) {
+    [](StackPtr &, VM &vm, Value &scale, Value &world) {
         auto sc = scale.intval();
         if (sc < 2 || sc > 128)
-            vm.Error(sp, "cg_sample_down: scale out of range");
-        auto &v = GetVoxels(sp, vm, world);
+            vm.Error("cg_sample_down: scale out of range");
+        auto &v = GetVoxels(vm, world);
         for (int x = 0; x < v.grid.dim.x / sc; x++) {
             for (int y = 0; y < v.grid.dim.y / sc; y++) {
                 for (int z = 0; z < v.grid.dim.z / sc; z++) {
@@ -215,11 +215,11 @@ nfr("cg_sample_down", "scale,world", "IR", "", "",
     });
 
 nfr("cg_scale_up", "scale,world", "IR", "R", "",
-    [](StackPtr &sp, VM &vm, Value &scale, Value &world) {
+    [](StackPtr &, VM &vm, Value &scale, Value &world) {
         auto sc = scale.intval();
-        auto &v = GetVoxels(sp, vm, world);
+        auto &v = GetVoxels(vm, world);
         if (sc < 2 || sc > 256 || squaredlength(v.grid.dim) * sc > 2048)
-            vm.Error(sp, "cg_scale_up: scale out of range");
+            vm.Error("cg_scale_up: scale out of range");
         auto &d = *NewWorld(v.grid.dim * sc, v.palette.data());
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
@@ -242,8 +242,8 @@ nfr("cg_scale_up", "scale,world", "IR", "R", "",
 
 nfr("cg_create_mesh", "block", "R", "R",
     "converts block to a mesh",
-    [](StackPtr &sp, VM &vm, Value &wid) {
-        auto &v = GetVoxels(sp, vm, wid);
+    [](StackPtr &, VM &vm, Value &wid) {
+        auto &v = GetVoxels(vm, wid);
         static int3 neighbors[] = {
             int3(1, 0, 0), int3(-1,  0,  0),
             int3(0, 1, 0), int3( 0, -1,  0),
@@ -331,8 +331,8 @@ nfr("cg_create_mesh", "block", "R", "R",
 nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
     "returns the new texture, for format, pass flags you want in addition to"
     " 3d|single_channel|has_mips",
-    [](StackPtr &sp, VM &vm, Value &wid, Value &textureflags, Value &monochrome) {
-        auto &v = GetVoxels(sp, vm, wid);
+    [](StackPtr &, VM &vm, Value &wid, Value &textureflags, Value &monochrome) {
+        auto &v = GetVoxels(vm, wid);
         auto mipsizes = 0;
         for (auto d = v.grid.dim; d.x; d /= 2) mipsizes += d.volume();
         auto buf = new uint8_t[mipsizes];
@@ -425,8 +425,8 @@ nfr("cg_load_vox", "name", "S", "R?",
 nfr("cg_save_vox", "block,name", "RS", "B",
     "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
     " this format can only save blocks < 256^3, will fail if bigger",
-    [](StackPtr &sp, VM &vm, Value &wid, Value &name) {
-        auto &v = GetVoxels(sp, vm, wid);
+    [](StackPtr &, VM &vm, Value &wid, Value &name) {
+        auto &v = GetVoxels(vm, wid);
         if (!(v.grid.dim < 256)) {
             return Value(false);
         }
@@ -471,8 +471,8 @@ nfr("cg_save_vox", "block,name", "RS", "B",
 
 nfr("cg_get_buf", "block", "R", "S",
     "returns the data as a string of all palette indices, in z-major order",
-    [](StackPtr &sp, VM &vm, Value &wid) {
-        auto &v = GetVoxels(sp, vm, wid);
+    [](StackPtr &, VM &vm, Value &wid) {
+        auto &v = GetVoxels(vm, wid);
         auto buf = vm.NewString(v.grid.dim.volume());
         v.grid.ToContinousGrid((uint8_t *)buf->strv().data());
         return Value(buf);
@@ -480,7 +480,7 @@ nfr("cg_get_buf", "block", "R", "S",
 
 nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 	[](StackPtr &sp, VM &vm) {
-		auto &v = GetVoxels(sp, vm, Pop(sp));
+		auto &v = GetVoxels(vm, Pop(sp));
 		float3 col(0.0f);
 		float nsurf = 0;
 		int nvol = 0;
@@ -514,8 +514,8 @@ nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 
 nfr("cg_rotate", "block,n", "RI", "R",
     "returns a new block rotated by n 90 degree steps from the input",
-    [](StackPtr &sp, VM &vm, Value &wid, Value &rots) {
-        auto &v = GetVoxels(sp, vm, wid);
+    [](StackPtr &, VM &vm, Value &wid, Value &rots) {
+        auto &v = GetVoxels(vm, wid);
         auto n = rots.ival();
         auto &d = n == 1 || n == 3
 			? *NewWorld(int3(v.grid.dim.y, v.grid.dim.x, v.grid.dim.z))
@@ -559,7 +559,7 @@ nfr("cg_simplex", "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,
         auto sz = PopVec<int3>(sp);
         auto p = PopVec<int3>(sp);
         auto res = Pop(sp);
-        auto &v = GetVoxels(sp, vm, res);
+        auto &v = GetVoxels(vm, res);
         v.Do(p, sz, [&](const int3 &pos, uint8_t &vox) {
             auto sp = (float3(pos - p) + 0.5) / float3(sz) * ssize + spos;
             auto fun = SimplexNoise(octaves, persistence, scale, sp) + sp.z * zscale - zbias;
@@ -572,7 +572,7 @@ nfr("cg_bounding_box", "world,minsolids", "RF", "I}:3I}:3",
 	[](StackPtr &sp, VM &vm) {
         auto minsolids = Pop(sp).fltval();
         auto res = Pop(sp);
-		auto &v = GetVoxels(sp, vm, res);
+		auto &v = GetVoxels(vm, res);
         auto bmin = int3_0;
         auto bmax = v.grid.dim;
         auto bestsolids = 0.0f;
@@ -613,8 +613,8 @@ nfr("cg_bounding_box", "world,minsolids", "RF", "I}:3I}:3",
 	});
 
 nfr("cg_randomize", "world,rnd_range,cutoff,paletteindex,filter", "RIIII", "", "",
-    [](StackPtr &sp, VM &vm, Value &world, Value &rnd_range, Value &cutoff, Value &paletteindex, Value &filter) {
-        auto &v = GetVoxels(sp, vm, world);
+    [](StackPtr &, VM &vm, Value &world, Value &rnd_range, Value &cutoff, Value &paletteindex, Value &filter) {
+        auto &v = GetVoxels(vm, world);
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
                 for (int z = 0; z < v.grid.dim.z; z++) {
@@ -629,8 +629,8 @@ nfr("cg_randomize", "world,rnd_range,cutoff,paletteindex,filter", "RIIII", "", "
     });
 
 nfr("cg_erode", "world,minsolid,maxsolid", "RII", "R", "",
-    [](StackPtr &sp, VM &vm, Value &world, Value &minsolid, Value &maxsolid) {
-        auto &v = GetVoxels(sp, vm, world);
+    [](StackPtr &, VM &vm, Value &world, Value &minsolid, Value &maxsolid) {
+        auto &v = GetVoxels(vm, world);
         auto &d = *NewWorld(v.grid.dim, v.palette.data());
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {

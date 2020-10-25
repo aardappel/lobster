@@ -303,7 +303,7 @@ VM_INLINE StackPtr U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int str
     (void)line;
     (void)fileidx;
     if (Top(sp).False()) {
-        vm.Error(sp, cat(
+        vm.Error(cat(
             #if !VM_JIT_MODE
                 vm.bcf->filenames()->Get(fileidx)->string_view(), "(", line, "): ",
             #endif
@@ -348,7 +348,7 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
 
 #define GETARGS() Value b = Pop(sp); Value a = Pop(sp)
 #define TYPEOP(op, extras, av, bv, res) \
-    if constexpr ((extras & 1) != 0) if (bv == 0) vm.Div0(sp); \
+    if constexpr ((extras & 1) != 0) if (bv == 0) vm.Div0(); \
     if constexpr ((extras & 2) != 0) res = fmod((double)av, (double)bv); else res = av op bv;
 
 #define _IOP(op, extras) \

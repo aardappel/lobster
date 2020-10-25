@@ -196,7 +196,7 @@ nfr("pop", "xs", "A]*", "A1",
     "removes last element from vector and returns it",
     [](StackPtr &sp, VM &vm) {
         auto l = Pop(sp).vval();
-        if (!l->len) vm.BuiltinError(sp, "pop: empty vector");
+        if (!l->len) vm.BuiltinError("pop: empty vector");
         l->PopVW(TopPtr(sp));
         PushN(sp,  (int)l->width);
     });
@@ -205,7 +205,7 @@ nfr("top", "xs", "A]*", "Ab1",
     "returns last element from vector",
     [](StackPtr &sp, VM &vm) {
         auto l = Pop(sp).vval();
-        if (!l->len) vm.BuiltinError(sp, "top: empty vector");
+        if (!l->len) vm.BuiltinError("top: empty vector");
         l->TopVW(TopPtr(sp));
         PushN(sp,  (int)l->width);
     });
@@ -218,7 +218,7 @@ nfr("insert", "xs,i,x", "A]*IAkw1", "Ab]1",
         auto i = Pop(sp).ival();
         auto l = Pop(sp).vval();
         if (i < 0 || i > l->len)
-            vm.BuiltinError(sp, "insert: index or n out of range");  // note: i==len is legal
+            vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
         assert(val.second == l->width);
         l->Insert(vm, val.first, i);
         Push(sp,  l);
@@ -233,7 +233,7 @@ nfr("remove", "xs,i,n", "A]*II?", "A1",
         auto l = Pop(sp).vval();
         auto amount = max(n, 1_L);
         if (n < 0 || amount > l->len || i < 0 || i > l->len - amount)
-            vm.BuiltinError(sp, cat("remove: index (", i, ") or n (", amount,
+            vm.BuiltinError(cat("remove: index (", i, ") or n (", amount,
                                     ") out of range (", l->len, ")"));
         l->Remove(sp, vm, i, amount, 1, true);
     });
@@ -286,12 +286,12 @@ nfr("copy", "xs", "A", "A1",
 nfr("slice", "xs,start,size", "A]*II", "A]1",
     "returns a sub-vector of size elements from index start."
     " size can be negative to indicate the rest of the vector.",
-    [](StackPtr &sp, VM &vm, Value &l, Value &s, Value &e) {
+    [](StackPtr &, VM &vm, Value &l, Value &s, Value &e) {
         auto size = e.ival();
         auto start = s.ival();
         if (size < 0) size = l.vval()->len - start;
         if (start < 0 || start + size > l.vval()->len)
-            vm.BuiltinError(sp, "slice: values out of range");
+            vm.BuiltinError("slice: values out of range");
         auto nv = (LVector *)vm.NewVec(0, size, l.vval()->tti);
         nv->Append(vm, l.vval(), start, size);
         return Value(nv);
@@ -343,12 +343,12 @@ nfr("all", "xs", "I}", "B",
 nfr("substring", "s,start,size", "SII", "S",
     "returns a substring of size characters from index start."
     " size can be negative to indicate the rest of the string.",
-    [](StackPtr &sp, VM &vm, Value &l, Value &s, Value &e) {
+    [](StackPtr &, VM &vm, Value &l, Value &s, Value &e) {
         iint size = e.ival();
         iint start = s.ival();
         if (size < 0) size = l.sval()->len - start;
         if (start < 0 || start + size > l.sval()->len)
-            vm.BuiltinError(sp, "substring: values out of range");
+            vm.BuiltinError("substring: values out of range");
 
         auto ns = vm.NewString(string_view(l.sval()->data() + start, (size_t)size));
         return Value(ns);
@@ -409,7 +409,7 @@ nfr("string_to_int", "s,base", "SI?", "IB",
     [](StackPtr &sp, VM &vm, Value &s, Value &b) {
         int base = b.True() ? b.intval() : 10;
         if (base < 2 || base > 36)
-            vm.BuiltinError(sp, "string_to_int: values out of range");
+            vm.BuiltinError("string_to_int: values out of range");
         char *end;
         auto sv = s.sval()->strv();
         auto i = parse_int<iint>(sv, base, &end);
@@ -478,9 +478,9 @@ nfr("string_to_unicode", "s", "S", "I]B",
 nfr("number_to_string", "number,base,minchars", "III", "S",
     "converts the (unsigned version) of the input integer number to a string given the base"
     " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).",
-    [](StackPtr &sp, VM &vm, Value &n, Value &b, Value &mc) {
+    [](StackPtr &, VM &vm, Value &n, Value &b, Value &mc) {
         if (b.ival() < 2 || b.ival() > 36 || mc.ival() > 32)
-            vm.BuiltinError(sp, "number_to_string: values out of range");
+            vm.BuiltinError("number_to_string: values out of range");
         auto i = (uint64_t)n.ival();
         string s;
         auto from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -1040,8 +1040,7 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
         if (ncelld.x <= 0 || ncelld.y <= 0)
             ncelld = iint2((iint)sqrtf(float(positions2->len + 1) * 4));
         if (radiuses1->len != positions1->len || radiuses2->len != positions2->len)
-            vm.BuiltinError(sp,
-                "circles_within_range: input vectors size mismatch");
+            vm.BuiltinError("circles_within_range: input vectors size mismatch");
         struct Node { double2 pos; double rad; iint idx; Node *next; };
         vector<Node> nodes(positions2->SLen(), Node());
         double maxrad = 0;
@@ -1116,7 +1115,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         iint cols = 0;
         for (ssize_t i = 0; i < rows; i++) {
             auto sv = tilemap.vval()->At(i).sval()->strv();
-            if (i) { if (ssize(sv) != cols) vm.BuiltinError(sp, "all columns must be equal length"); }
+            if (i) { if (ssize(sv) != cols) vm.BuiltinError("all columns must be equal length"); }
             else cols = sv.size();
             inmap[i] = sv.data();
         }
@@ -1127,7 +1126,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         auto ok = WaveFunctionCollapse(int2(iint2(cols, ssize(inmap))), inmap.data(), sz, outmap.data(),
                                         rnd, num_contradictions);
         if (!ok)
-            vm.BuiltinError(sp, "tilemap contained too many tile ids");
+            vm.BuiltinError("tilemap contained too many tile ids");
         Push(sp,  outstrings);
         Push(sp,  num_contradictions);
     });
@@ -1226,8 +1225,8 @@ nfr("date_time_string", "utc", "B?", "S",
 
 nfr("assert", "condition", "A*", "Ab1",
     "halts the program with an assertion failure if passed false. returns its input",
-    [](StackPtr &sp, VM &vm, Value &c) {
-        if (c.False()) vm.BuiltinError(sp, "assertion failed");
+    [](StackPtr &, VM &vm, Value &c) {
+        if (c.False()) vm.BuiltinError("assertion failed");
         return c;
     });
 
@@ -1287,8 +1286,8 @@ nfr("is_worker_thread", "", "", "B",
 
 nfr("start_worker_threads", "numthreads", "I", "",
     "launch worker threads",
-    [](StackPtr &sp, VM &vm, Value &n) {
-        vm.StartWorkers(sp, n.ival());
+    [](StackPtr &, VM &vm, Value &n) {
+        vm.StartWorkers(n.ival());
         return Value();
     });
 
@@ -1310,16 +1309,16 @@ nfr("workers_alive", "", "", "B",
 
 nfr("thread_write", "struct", "A", "",
     "put this struct in the thread queue",
-    [](StackPtr &sp, VM &vm, Value &s) {
-        vm.WorkerWrite(sp, s.refnil());
+    [](StackPtr &, VM &vm, Value &s) {
+        vm.WorkerWrite(s.refnil());
         return Value();
     });
 
 nfr("thread_read", "type", "T", "A1?",
     "get a struct from the thread queue. pass the typeof struct. blocks if no such"
             "structs available. returns struct, or nil if stop_worker_threads() was called",
-    [](StackPtr &sp, VM &vm, Value &t) {
-        return Value(vm.WorkerRead(sp, (type_elem_t)t.ival()));
+    [](StackPtr &, VM &vm, Value &t) {
+        return Value(vm.WorkerRead((type_elem_t)t.ival()));
     });
 
 }  // AddBuiltins

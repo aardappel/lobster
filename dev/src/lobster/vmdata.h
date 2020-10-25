@@ -778,8 +778,8 @@ struct VM : VMArgs {
     LString *NewString(string_view s1, string_view s2);
     LString *ResizeString(LString *s, iint size, int c, bool back);
 
-    Value Error(StackPtr sp, string err);
-    Value BuiltinError(StackPtr sp, string err) { return Error(sp, err); }
+    Value Error(string err);
+    Value BuiltinError(string err) { return Error(err); }
     Value SeriousError(string err);
     void ErrorBase(const string &err);
     void VMAssert(const char *what);
@@ -789,10 +789,10 @@ struct VM : VMArgs {
 
     void FinalStackVarsCleanup(StackPtr &sp);
 
-    void StartWorkers(StackPtr &sp, iint numthreads);
+    void StartWorkers(iint numthreads);
     void TerminateWorkers();
-    void WorkerWrite(StackPtr &sp, RefObj *ref);
-    LObject *WorkerRead(StackPtr &sp, type_elem_t tti);
+    void WorkerWrite(RefObj *ref);
+    LObject *WorkerRead(type_elem_t tti);
 
     template<int is_error> int VarCleanup(StackPtr &sp, string *error, int towhere);
     void FunIntro(StackPtr &sp, const int *ip);
@@ -809,8 +809,8 @@ struct VM : VMArgs {
 
     string ProperTypeName(const TypeInfo &ti);
 
-    void Div0(StackPtr sp) { Error(sp, "division by zero"); }
-    void IDXErr(StackPtr sp, iint i, iint n, const RefObj *v);
+    void Div0() { Error("division by zero"); }
+    void IDXErr(iint i, iint n, const RefObj *v);
     void BCallRetCheck(StackPtr sp, const NativeFun *nf);
     iint GrabIndex(StackPtr &sp, int len);
 
@@ -938,19 +938,19 @@ template <typename T, int N> inline void ToValue(Value *dest, iint width, const 
     for (iint i = 0; i < width; i++) dest[i] = i < N ? v[i] : 0;
 }
 
-inline iint RangeCheck(StackPtr sp, VM &vm, const Value &idx, iint range, iint bias = 0) {
+inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {
     auto i = idx.ival();
     if (i < bias || i >= bias + range)
-        vm.BuiltinError(sp, cat("index out of range [", bias, "..", bias + range, "): ", i));
+        vm.BuiltinError(cat("index out of range [", bias, "..", bias + range, "): ", i));
     return i;
 }
 
-template<typename T> inline T GetResourceDec(StackPtr sp, VM &vm, const Value &val, const ResourceType *type) {
+template<typename T> inline T GetResourceDec(VM &vm, const Value &val, const ResourceType *type) {
     if (val.False())
         return nullptr;
     auto x = val.xval();
     if (x->type != type)
-        vm.BuiltinError(sp, string_view("needed resource type: ") + type->name + ", got: " +
+        vm.BuiltinError(string_view("needed resource type: ") + type->name + ", got: " +
             x->type->name);
     return (T)x->val;
 }
@@ -988,7 +988,7 @@ void EscapeAndQuote(string_view s, string &sd, bool strip_comments);
 #endif
 
 #define RANGECHECK(vm, I, BOUND, VEC) \
-    if ((uint64_t)I >= (uint64_t)BOUND) vm.IDXErr(sp, I, BOUND, VEC);
+    if ((uint64_t)I >= (uint64_t)BOUND) vm.IDXErr(I, BOUND, VEC);
 
 }  // namespace lobster
 

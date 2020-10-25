@@ -27,8 +27,8 @@ inline ResourceType *GetOcTreeType() {
     return &voxel_type;
 }
 
-inline OcTree &GetOcTree(StackPtr &sp, VM &vm, const Value &res) {
-    return *GetResourceDec<OcTree *>(sp, vm, res, GetOcTreeType());
+inline OcTree &GetOcTree(VM &vm, const Value &res) {
+    return *GetResourceDec<OcTree *>(vm, res, GetOcTreeType());
 }
 
 const int cur_version = 3;
@@ -65,21 +65,21 @@ static const char *magic = "CWFF";
 void AddOcTree(NativeRegistry &nfr) {
 
 nfr("oc_world_bits", "octree", "R", "I", "",
-    [](StackPtr &sp, VM &vm, Value &oc) {
-        return Value(GetOcTree(sp, vm, oc).world_bits);
+    [](StackPtr &, VM &vm, Value &oc) {
+        return Value(GetOcTree(vm, oc).world_bits);
     });
 
 nfr("oc_buf", "octree", "R", "S", "",
-    [](StackPtr &sp, VM &vm, Value &oc) {
-        auto &ocworld = GetOcTree(sp, vm, oc);
+    [](StackPtr &, VM &vm, Value &oc) {
+        auto &ocworld = GetOcTree(vm, oc);
         auto s = vm.NewString(string_view((char *)ocworld.nodes.data(),
                                           ocworld.nodes.size() * sizeof(OcVal)));
         return Value(s);
     });
 
 nfr("oc_optimize", "octree", "R", "", "",
-    [](StackPtr &sp, VM &vm, Value &oc) {
-        auto &ocworld = GetOcTree(sp, vm, oc);
+    [](StackPtr &, VM &vm, Value &oc) {
+        auto &ocworld = GetOcTree(vm, oc);
         auto numnodes1 = ocworld.NumNodes();
         ocworld.Merge();  // This should in theory not change anything.
         auto numnodes2 = ocworld.NumNodes();
@@ -115,8 +115,8 @@ nfr("oc_load", "name", "S", "R?", "",
     });
 
 nfr("oc_save", "octree,name", "RS", "B", "",
-    [](StackPtr &sp, VM &vm, Value &oc, Value &name) {
-        auto &ocworld = GetOcTree(sp, vm, oc);
+    [](StackPtr &, VM &vm, Value &oc, Value &name) {
+        auto &ocworld = GetOcTree(vm, oc);
         auto f = OpenForWriting(name.sval()->strv(), true);
         if (!f) return Value(false);
         auto ok = FileWriteBytes(f, magic, strlen(magic)) &&
@@ -138,16 +138,16 @@ nfr("oc_set", "octree,pos,val", "RI}:3I", "", "",
     [](StackPtr &sp, VM &vm) {
         auto val = Pop(sp).intval();
         auto pos = PopVec<int3>(sp);
-        auto &ocworld = GetOcTree(sp, vm, Pop(sp));
+        auto &ocworld = GetOcTree(vm, Pop(sp));
         OcVal v;
         v.SetLeafData(max(val, 0));
-        if (!ocworld.Set(pos, v)) vm.BuiltinError(sp, "OcTree: grown too big (>2GB)");
+        if (!ocworld.Set(pos, v)) vm.BuiltinError("OcTree: grown too big (>2GB)");
     });
 
 nfr("oc_get", "octree,pos", "RI}:3", "I", "",
     [](StackPtr &sp, VM &vm) {
         auto pos = PopVec<int3>(sp);
-        auto &ocworld = GetOcTree(sp, vm, Pop(sp));
+        auto &ocworld = GetOcTree(vm, Pop(sp));
         Push(sp,  ocworld.nodes[ocworld.Get(pos).first].LeafData());
     });
 
@@ -155,7 +155,7 @@ nfr("oc_buffer_update", "octree,uname,ssbo", "RSI", "I", "",
     [](StackPtr &sp, VM &vm) {
         auto ssbo = Pop(sp).True();
         auto name = Pop(sp).sval()->strv();
-        auto &ocworld = GetOcTree(sp, vm, Pop(sp));
+        auto &ocworld = GetOcTree(vm, Pop(sp));
         extern Shader *currentshader;
         iint num_updates = 0;
         if (ocworld.all_dirty) {
