@@ -63,6 +63,10 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             "typedef void *VMRef;\n"
             "typedef StackPtr(*fun_base_t)(VMRef, StackPtr);\n"
             "extern  StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
+            "#define assert(X)\n"  // FIXME
+            "#define Pop(sp) (*(sp)--)\n"
+            "#define Push(sp, V) (*++(sp) = (V))\n"
+            "#define TopM(sp, N) (*((sp) - (N)))\n"
             "\n"
             ;
 
@@ -129,25 +133,27 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         bool is_start = ip == starting_ip;
         int opc = *ip++;
         if (opc == IL_FUNSTART || is_start) {
-            //auto regs_max = ip[2];
+            auto regs_max = ip[2];
             auto it = function_lookup.find(id);
             auto f = it != function_lookup.end() ? it->second : nullptr;
             sd += "\n";
             if (f) append(sd, "// ", f->name()->string_view(), "\n");
-            append(sd, "static StackPtr fun_", id, "(VMRef vm, StackPtr sp) {\n"
-                       /*"    Value regs[", regs_max, "];\n"*/);
+            append(sd, "static StackPtr fun_", id, "(VMRef vm, StackPtr psp) {\n"
+                       "    Value regs[", max(1, regs_max), "];\n"  // FIXME: don't emit array.
+                       "    StackPtr sp = &regs[-1];\n");
         }
         auto args = ip + 1;
         int regso = -1;
         auto arity = ParseOpAndGetArity(opc, ip, regso);
-        sd += "    ";
+        if (opc == IL_SAVERETS || opc == IL_JUMPIFUNWOUND || opc == IL_RETURNANY) append(sd, "    ");  // FIXME
+        else append(sd, "    assert(sp == &regs[", regso - 1, "]); ");
         if (opc == IL_FUNSTART) {
             sd += "static int args[] = {";
             for (int i = 0; i < arity; i++) {
                 if (i) sd += ", ";
                 append(sd, args[i]);
             }
-            append(sd, "};\n    sp = U_", ILNames()[opc], "(vm, sp, args);");
+            append(sd, "};\n    psp = U_", ILNames()[opc], "(vm, psp, args);");
         } else if (opc == IL_JUMP) {
             append(sd, "goto block", args[0], ";");
         } else if (CONDJUMP(opc)) {
@@ -193,6 +199,21 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             jumptables.pop_back();
         } else if (ISBCALL(opc) && natreg.nfuns[args[0]]->IsGLFrame()) {
             append(sd, "sp = GLFrame(sp, vm);");
+        } else if (opc == IL_RETURN) {
+            append(sd, "psp = U_RETURN(vm, psp, ", args[0], ", ", args[1], ");");
+            for (int i = 0; i < args[1]; i++) {
+                append(sd, " Push(psp, TopM(sp, ", args[1] - i - 1, "));");
+            }
+            append(sd, " sp -= ", args[1], ";");
+            append(sd, " return psp;");
+        } else if (opc == IL_RETURNANY) {
+            append(sd, "psp = U_RETURNANY(vm, psp, ", args[0], ");");
+            for (int i = 0; i < args[0]; i++) {
+                append(sd, " Push(psp, TopM(sp, ", args[0] - i - 1, "));");
+            }
+            append(sd, " sp -= ", args[0], ";");
+        } else if (opc == IL_SAVERETS) {  // FIXME: remove vmops
+            append(sd, "return psp;");
         } else {
             assert(ILArity()[opc] != ILUNKNOWN);
             append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
@@ -220,6 +241,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 comment = bcf->functions()->Get(*fs)->name()->string_view();
             } else if (ISBCALL(opc)) {
                 comment = natreg.nfuns[args[0]]->name;
+            } else if (opc == IL_ISTYPE || opc == IL_NEWOBJECT || opc == IL_ST2S) {
+                auto ti = ((TypeInfo *)(typetable + args[0]));
+                if (IsUDT(ti->t)) comment = bcf->udts()->Get(ti->structidx)->name()->string_view();
             }
             if (!comment.empty()) append(sd, " /* ", comment, " */");
 
@@ -229,8 +253,6 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 sd += " ";
                 if (cpp) sd += "sp = vm.next_call_target(vm, sp);";
                 else sd += "sp = GetNextCallTarget(vm)(vm, sp);";
-            } else if (opc == IL_RETURN || opc == IL_RETURNANY) {
-                sd += " return sp;";
             }
         }
         sd += "\n";

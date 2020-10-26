@@ -1175,7 +1175,7 @@ nfr("program_name", "", "", "S",
     });
 
 nfr("vm_compiled_mode", "", "", "B",
-    "returns if the VM is running in compiled mode (Lobster -> C++ or Wasm), or false for JIT.",
+    "returns if the VM is running in compiled mode (Lobster -> C++), or false for JIT.",
     [](StackPtr &, VM &) {
         return Value(!VM_JIT_MODE);
     });

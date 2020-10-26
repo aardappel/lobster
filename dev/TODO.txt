@@ -1,8 +1,13 @@
 - natgen refactor
   - move temps to array.
     - ensure all allocated properly.
-      - returning values with JUMPIFUNWOUND/RETURNANY likely not working!
-    - fix StackDepth (now 0!)
+      - Fix space reserved in GenUnwind!!
+      - clean up generated code
+      - test tcc mode
+    - check if its fast
+    - remove use of original stack
+    - regs array should not be initialized in release mode.
+    - make top not -1.. start at end?
 
   - rework function calling:
     - implement free vars differently from regular ones, options:

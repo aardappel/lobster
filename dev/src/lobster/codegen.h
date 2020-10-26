@@ -356,32 +356,34 @@ struct CodeGen  {
         }
     }
 
-    int StackDepth() {
-        int stack_depth = 0;
-        for (auto &tlt : temptypestack) stack_depth += ValWidth(tlt.type);
-        return stack_depth;
-    }
-
     void GenFixup(const SubFunction *sf) {
         assert(sf->body);
         auto pos = Pos() - 1;
         if (!code[pos]) call_fixups.push_back({ pos, sf });
     }
 
-    void GenUnwind(const SubFunction &sf) {
+    void GenUnwind(const SubFunction &sf, const SubFunction &sf_to, int nretslots_norm) {
+        // We're in an odd position here, because what is on the stack can either be from
+        // the function we're calling (if we're not falling thru) or from any function above it
+        // with different number of return values.
+        // Then, below it, may be temps.
+        // If we're falling thru, we actually want to 1) unwind, 2) copy rets, 3) pop temps
+        // We manage the tstack as if we're not falling thru.
+        auto nretslots_unwind = ValWidthMulti(sf_to.returntype, sf_to.returntype->NumValues());
+        // Need to ensure there's enough space for either path.
+        for (int i = nretslots_norm; i < nretslots_unwind; i++) PushTemp(IL_CALL);
         EmitOp(IL_JUMPIFUNWOUND);
         Emit(sf.parent->idx);
         Emit(0);
-        auto tstackbackup = tstack;
+        for (int i = nretslots_norm; i < nretslots_unwind; i++) PopTemp();
         auto loc = Pos();
-        if (!temptypestack.empty()) {
-            EmitOp(IL_SAVERETS);
-            for (auto &tse : reverse(temptypestack)) {
-                GenPop(tse);
-            }
-            EmitOp(IL_RESTORERETS);
-        }
+        auto tstackbackup = tstack;
         EmitOp(IL_RETURNANY);
+        Emit(nretslots_unwind);
+        for (auto &tse : reverse(temptypestack)) {
+            GenPop(tse);
+        }
+        EmitOp(IL_SAVERETS);
         SetLabel(loc);
         tstack = tstackbackup;
     }
@@ -403,8 +405,8 @@ struct CodeGen  {
             EmitOp(IL_CALL, inw, outw);
             Emit(sf.subbytecodestart);
             GenFixup(&sf);
-            if (sf.returned_thru) {
-                GenUnwind(sf);
+            if (sf.returned_thru_to) {
+                GenUnwind(sf, *sf.returned_thru_to, outw);
             }
         } else {
             EmitOp(IL_DDCALL, inw, outw);
@@ -416,9 +418,9 @@ struct CodeGen  {
             assert(IsUDT(dispatch_type->t));
             auto &de = dispatch_type->udt->dispatch[vtable_idx];
             assert(de.is_dispatch_root && !de.returntype.Null() && de.subudts_size);
-            if (de.returned_thru) {
+            if (de.returned_thru_to) {
                 // This works because all overloads of a DD sit under a single Function.
-                GenUnwind(sf);
+                GenUnwind(sf, *de.returned_thru_to, outw);
             }
         }
         auto nretvals = sf.returntype->NumValues();
@@ -675,7 +677,7 @@ struct CodeGen  {
         auto opc = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
         EmitOp(opc);
         Emit(stack_offset);
-        Emit(keepvars++ + StackDepth() + keep_index_add);
+        Emit(keepvars++ + keep_index_add);
     }
 
     void GenPushVar(size_t retval, TypeRef type, int offset) {
@@ -1387,10 +1389,12 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
         cg.PushTemp(fort1);
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 1]);
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 2]);
+        cg.EmitOp(IL_JUMP);
         cg.PushTemp(fort2);
         cg.PushTemp(fort1);
+    } else {
+        cg.EmitOp(IL_JUMP);
     }
-    cg.EmitOp(IL_JUMP);
     cg.Emit(0);
     cg.breaks.push_back(cg.Pos());
 }

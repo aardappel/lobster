@@ -856,6 +856,7 @@ struct TypeChecker {
         sf->method_of = csf->method_of;
         sf->generics = csf->generics;
         sf->giventypes = csf->giventypes;
+        sf->returned_thru_to = nullptr;
         return sf;
     }
 
@@ -885,8 +886,13 @@ struct TypeChecker {
             TypeError("cannot return out of dynamic function value (" + sf_to->parent->name +
                       " not found on the callstack)", context);
         }
-        // Marke any functions we may be returning thru as such.
-        sf->returned_thru = true;
+        // Mark any functions we may be returning thru as such.
+        if (sf->returned_thru_to && sf->returned_thru_to != sf_to) {
+            TypeError(cat("non-local return to ", sf_to->parent->name, " (through ",
+                          sf->parent->name, ") already returned to ", sf->returned_thru_to->parent->name),
+                      context);
+        }
+        sf->returned_thru_to = sf_to;
     }
 
     TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
@@ -1267,7 +1273,7 @@ struct TypeChecker {
             // Typecheck all the individual functions.
             SubFunction *last_sf = nullptr;
             bool any_recursive = false;
-            bool any_returned_thru = false;
+            const SubFunction *any_returned_thru = nullptr;
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
                 auto sf = udt->dispatch[vtable_idx].sf;
                 // Missing implementation for unused UDT.
@@ -1288,7 +1294,15 @@ struct TypeChecker {
                 sf->method_of = udt;
                 sf->method_of->dispatch[vtable_idx].sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
-                if (sf->returned_thru) any_returned_thru = true;
+                if (sf->returned_thru_to) {
+                    if (any_returned_thru && any_returned_thru != sf->returned_thru_to) {
+                        TypeError(cat("non-local return through dynamic dispatch ",
+                                      sf->parent->name, "to both ", any_returned_thru->parent->name,
+                                      " and ", sf->returned_thru_to->parent->name),
+                                  *sf->body);
+                    }
+                    any_returned_thru = sf->returned_thru_to;
+                }
                 auto u = sf->returntype;
                 if (de->returntype->IsBoundVar()) {
                     // FIXME: can this still happen now that recursive cases use explicit return
@@ -1336,7 +1350,7 @@ struct TypeChecker {
                 last_sf = sf;
             }
             if (any_returned_thru) {
-                dispatch_udt.dispatch[vtable_idx].returned_thru = true;
+                dispatch_udt.dispatch[vtable_idx].returned_thru_to = any_returned_thru;
             }
             call_args.children[0]->exptype = &dispatch_udt.thistype;
         }
@@ -2895,9 +2909,16 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     exptype = type_void;
     lt = LT_ANY;
     // Ensure what we're returning from is going to be on the stack at runtime.
+    // First fund correct specialization for sf.
     for (auto isc : reverse(tc.scopes)) {
         if (isc.sf->parent == sf->parent) {
-            sf = isc.sf;  // Take specialized version.
+            sf = isc.sf;
+            break;
+        }
+    }
+    // Now we can check what we're returning past as well.
+    for (auto isc : reverse(tc.scopes)) {
+        if (isc.sf->parent == sf->parent) {
             goto destination_found;
         }
         tc.CheckReturnPast(isc.sf, sf, *this);

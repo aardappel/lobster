@@ -662,13 +662,11 @@ struct VM : VMArgs {
     int stacksize = 0;
     int maxstacksize;
     StackPtr sp_suspended = nullptr;
-    StackPtr savedrets = nullptr;
     Value *temp_lval = nullptr;
 
     fun_base_t next_call_target = 0;
 
     int ret_unwind_to = -1;
-    int ret_nrv = -1;
 
     vector<StackFrame> stackframes;
 
@@ -785,9 +783,7 @@ struct VM : VMArgs {
     void VMAssert(const char *what);
     void UnwindOnError();
 
-    int DumpVar(string &sd, const Value &x, int idx);
-
-    void FinalStackVarsCleanup(StackPtr &sp);
+    int DumpVar(string &sd, const Value &x, int idx, bool invalid);
 
     void StartWorkers(iint numthreads);
     void TerminateWorkers();
@@ -796,7 +792,7 @@ struct VM : VMArgs {
 
     template<int is_error> int VarCleanup(StackPtr &sp, string *error, int towhere);
     void FunIntro(StackPtr &sp, const int *ip);
-    void FunOut(StackPtr &sp, int nrv);
+    void FunOut(StackPtr &sp);
 
     void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 

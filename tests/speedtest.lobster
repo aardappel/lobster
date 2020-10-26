@@ -14,7 +14,7 @@ var number_of_runs = 1
 current_test_runner = fn(name:string, t:testf):
     tests.push(test { name, t, number_of_runs, 999999.9 })
 
-print "VM MODE: " + (if vm_compiled_mode(): "compiled" else: "interpreted")
+print "VM MODE: " + (if vm_compiled_mode(): "C++-compiled" else: "JIT")
 
 // Balance these numbers to get a good blend of what kind of code we're optimizing for.
 

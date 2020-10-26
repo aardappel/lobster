@@ -156,13 +156,15 @@ VM_INLINE StackPtr U_INCREF(VM &, StackPtr sp, int off) {
 }
 
 VM_INLINE StackPtr U_KEEPREFLOOP(VM &vm, StackPtr sp, int off, int ki) {
-    TopM(sp, ki).LTDECRTNIL(vm);
-    TopM(sp, ki) = TopM(sp, off);
+    auto fsp = vm.stackframes.back().spstart + vm.stack;
+    TopM(fsp, ki).LTDECRTNIL(vm);
+    TopM(fsp, ki) = TopM(sp, off);
     return sp;
 }
 
-VM_INLINE StackPtr U_KEEPREF(VM &, StackPtr sp, int off, int ki) {
-    TopM(sp, ki) = TopM(sp, off);
+VM_INLINE StackPtr U_KEEPREF(VM &vm, StackPtr sp, int off, int ki) {
+    auto fsp = vm.stackframes.back().spstart + vm.stack;
+    TopM(fsp, ki) = TopM(sp, off);
     return sp;
 }
 
@@ -191,28 +193,18 @@ VM_INLINE StackPtr U_FUNSTART(VM &vm, StackPtr sp, const int *ip) {
      return sp;
 }
 
-VM_INLINE StackPtr U_RETURN(VM &vm, StackPtr sp, int df, int nrv) {
+VM_INLINE StackPtr U_RETURN(VM &vm, StackPtr sp, int df, int /*nrv*/) {
     vm.ret_unwind_to = df;  // FIXME: most returns don't need this.
-    vm.ret_nrv = nrv;
-    vm.FunOut(sp, nrv);
+    vm.FunOut(sp);
     return sp;
 }
 
-VM_INLINE StackPtr U_RETURNANY(VM &vm, StackPtr sp) {
-    vm.FunOut(sp, vm.ret_nrv);
+VM_INLINE StackPtr U_RETURNANY(VM &vm, StackPtr sp, int /*nretslots*/) {
+    vm.FunOut(sp);
     return sp;
 }
 
-VM_INLINE StackPtr U_SAVERETS(VM &vm, StackPtr sp) {
-    // Only some POP instructions appear between this and RESTORERETS.
-    sp -= vm.ret_nrv;
-    vm.savedrets = TopPtr(sp);
-    return sp;
-}
-
-VM_INLINE StackPtr U_RESTORERETS(VM &vm, StackPtr sp) {
-    ts_memcpy(TopPtr(sp), vm.savedrets, vm.ret_nrv);
-    sp += vm.ret_nrv;
+VM_INLINE StackPtr U_SAVERETS(VM &, StackPtr sp) {
     return sp;
 }
 

@@ -4,4 +4,8 @@ def rec(n) -> int:
     else:
         pop([])
 
-rec(3)
+def f():
+    let g = 2
+    rec(3)
+
+f()

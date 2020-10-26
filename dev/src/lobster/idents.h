@@ -144,7 +144,7 @@ struct DispatchEntry {
     bool is_dispatch_root = false;
     // Shared return type if root of dispatch.
     TypeRef returntype = nullptr;
-    bool returned_thru = false;
+    const SubFunction *returned_thru_to = nullptr;
     size_t subudts_size = 0;  // At time of creation.
 };
 
@@ -309,7 +309,7 @@ struct SubFunction {
     bool isdynamicfunctionvalue = false;
     bool consumes_vars_on_return = false;
     bool optimized = false;
-    bool returned_thru = false;  // there exist return statements that may skip the caller.
+    const SubFunction *returned_thru_to = nullptr;  // there exist return statements that may skip the caller.
     UDT *method_of = nullptr;
     int numcallers = 0;
     Type thistype { V_FUNCTION, this };  // convenient place to store the type corresponding to this

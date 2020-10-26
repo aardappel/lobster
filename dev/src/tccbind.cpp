@@ -22,6 +22,7 @@ bool RunC(const char *source, string &error, const void **imports,
     #ifdef _WIN32
         // Need to provide chkstk.
         tcc_set_options(state.get(), "-xa");
+        // FIXME replace this by an tcc_add_symbol call?
         auto chkstk_src =
             ".globl __chkstk                                             \n"
             "__chkstk:                                                   \n"
@@ -45,7 +46,8 @@ bool RunC(const char *source, string &error, const void **imports,
             "    jmp     *8(%rax)                                        \n";
         if (tcc_compile_string(state.get(), chkstk_src) < 0) return false;
         tcc_set_options(state.get(), "-xc");
-    #endif
+        tcc_add_symbol(state.get(), "memmove", memmove);
+#endif
     tcc_set_options(state.get(), "-nostdlib -Wall");
     while (*imports) {
         auto name = (const char *)(*imports++);

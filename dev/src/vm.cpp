@@ -274,6 +274,7 @@ Value VM::Error(string err) {
     #ifdef USE_EXCEPTION_HANDLING
     try {
     #endif
+        vector<bool> invalid(bcf->specidents()->size());
         while (!stackframes.empty()) {
             int deffun = *(stackframes.back().funstart);
             if (deffun >= 0) {
@@ -296,11 +297,11 @@ Value VM::Error(string err) {
                 // FIXME: merge with loops below.
                 for (int j = 0; j < ndef; ) {
                     auto i = *(defvars - j - 1);
-                    j += DumpVar(errmsg, vars[i], i);
+                    j += DumpVar(errmsg, vars[i], i, invalid[i]);
                 }
                 for (int j = 0; j < nargs; ) {
                     auto i = *(freevars - j - 1);
-                    j += DumpVar(errmsg, vars[i], i);
+                    j += DumpVar(errmsg, vars[i], i, invalid[i]);
                 }
             }
             auto sp = stf.spstart + stack;
@@ -312,7 +313,11 @@ Value VM::Error(string err) {
             }
             while (nargs--) {
                 auto i = *--freevars;
-                vars[i] = Pop(sp);
+                // FIXME: old value must come from the psp on the C stack instead!
+                //vars[i] = Pop(sp);
+                // For now, make sure they don't get printed anymore in the stackframes below.
+                // This only affects recursive functions, so no big deal.
+                invalid[i] = true;
             }
             stackframes.pop_back();
         }
@@ -338,39 +343,32 @@ void VM::VMAssert(const char *what)  {
     SeriousError(string("VM internal assertion failure: ") + what);
 }
 
-int VM::DumpVar(string &sd, const Value &x, int idx) {
+int VM::DumpVar(string &sd, const Value &x, int idx, bool invalid) {
     auto sid = bcf->specidents()->Get((uint32_t)idx);
     auto id = bcf->idents()->Get(sid->ididx());
     // FIXME: this is not ideal, it filters global "let" declared vars.
     // It should probably instead filter global let vars whose values are entirely
     // constructors, and which are never written to.
-    if (id->readonly() && id->global()) return 1;
     auto name = id->name()->string_view();
     auto &ti = GetVarTypeInfo(idx);
-    #if RTT_ENABLED
-        if (ti.t != x.type) return 1;  // Likely uninitialized.
+    auto size = IsStruct(ti.t) ? ti.len : 1;
+    if (invalid) return size;
+    if (id->readonly() && id->global()) return size;
+#if RTT_ENABLED
+        if (ti.t != x.type) return size;  // Likely uninitialized.
     #endif
     append(sd, "\n   ", name, " = ");
     if (IsStruct(ti.t)) {
         StructToString(sd, debugpp, ti, &x);
-        return ti.len;
     } else {
         x.ToString(*this, sd, ti, debugpp);
-        return 1;
     }
-}
-
-void VM::FinalStackVarsCleanup(StackPtr &sp) {
-    VMASSERT((*this), sp == stack - 1 && !stackframes.size());
-    #ifndef NDEBUG
-        LOG_INFO("stack at its highest was: ", maxsp);
-    #else
-        (void)sp;
-    #endif
+    return size;
 }
 
 // Only valid to be called right after StartStackFrame, with no bytecode in-between.
-void VM::FunIntro(StackPtr &sp, const int *ip) {
+void VM::FunIntro(StackPtr &rsp, const int *ip) {
+    auto sp = stackframes.empty() ? stack - 1 : stackframes.back().spstart + stack;
     stackframes.push_back(StackFrame());
     auto funstart = ip;
     ip++;  // definedfunction
@@ -385,13 +383,11 @@ void VM::FunIntro(StackPtr &sp, const int *ip) {
         sp = sp - stack + nstack;
         delete[] stack;
         stack = nstack;
-
-
         LOG_DEBUG("stack grew to: ", stacksize);
     }
     ip++;  // regs_max.
     auto nargs_fun = *ip++;
-    for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], *(sp - nargs_fun + i + 1));
+    for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], *(rsp - nargs_fun + i + 1));
     ip += nargs_fun;
     auto ndef = *ip++;
     for (int i = 0; i < ndef; i++) {
@@ -412,17 +408,11 @@ void VM::FunIntro(StackPtr &sp, const int *ip) {
     #endif
 }
 
-void VM::FunOut(StackPtr &sp, int nrv) {
-    sp -= nrv;
-    // This is ok, since we don't push any values below.
-    auto rets = TopPtr(sp);
+void VM::FunOut(StackPtr &psp) {  // FIXME
     // This is guaranteed by the typechecker.
     assert(stackframes.size());
     auto &stf = stackframes.back();
-    auto depth = sp - stack;
-    if (depth != stf.spstart) {
-        VMASSERT((*this), false);
-    }
+    auto sp = stf.spstart + stack;
     auto fip = stf.funstart;
     fip++;  // function id.
     fip++;  // regs_max.
@@ -442,17 +432,16 @@ void VM::FunOut(StackPtr &sp, int nrv) {
     }
     while (nargs--) {
         auto i = *--freevars;
-        vars[i] = Pop(sp);
+        vars[i] = Pop(psp);
     }
     stackframes.pop_back();
-    ts_memcpy(TopPtr(sp), rets, nrv);
-    sp += nrv;
 }
 
-void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
+void VM::EndEval(StackPtr &, const Value &ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
+    /*
     #ifndef NDEBUG
         if (sp != stack - 1) {
             LOG_ERROR("stack diff: ", sp - stack - 1);
@@ -460,10 +449,14 @@ void VM::EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti) {
                 auto v = Pop(sp);
                 LOG_ERROR("left on the stack: ", (size_t)v.any(), ", type: ", v.type);
             }
-            assert(false);
+            VMASSERT((*this), false);
         }
+        LOG_INFO("stack at its highest was: ", maxsp);
+    #else
+        (void)sp;
     #endif
-    FinalStackVarsCleanup(sp);
+    */
+    VMASSERT((*this), !stackframes.size());
     for (auto s : constant_strings) {
         if (s) s->Dec(*this);
     }
