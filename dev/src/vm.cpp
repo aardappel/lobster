@@ -20,17 +20,9 @@
 
 namespace lobster {
 
-enum {
-    // *8 bytes each
-    INITSTACKSIZE   =  32 * 1024,
-    // *8 bytes each, modest on smallest handheld we support (iPhone 3GS has 256MB).
-    DEFMAXSTACKSIZE = 512 * 1024,
-    // *8 bytes each, max by which the stack could possibly grow in a single call.
-    STACKMARGIN     =   8 * 1024
-};
 
 VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
-    : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZE), bcf(bcf) {
+    : VMArgs(std::move(vmargs)), bcf(bcf) {
 
     codelen = bcf->bytecode()->Length();
     if (FLATBUFFERS_LITTLEENDIAN) {
@@ -46,14 +38,12 @@ VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
             typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
         typetable = typetablebigendian.data();
     }
-    stack = new Value[stacksize = INITSTACKSIZE];
     constant_strings.resize(bcf->stringtable()->size());
     assert(native_vtables);
 }
 
 VM::~VM() {
     TerminateWorkers();
-    if (stack) delete[] stack;
     if (byteprofilecounts) delete[] byteprofilecounts;
 }
 
@@ -274,6 +264,8 @@ Value VM::Error(string err) {
     #ifdef USE_EXCEPTION_HANDLING
     try {
     #endif
+        // FIXME: figure out a way to show runtime stacks again :(
+        /*
         vector<bool> invalid(bcf->specidents()->size());
         while (!stackframes.empty()) {
             int deffun = *(stackframes.back().funstart);
@@ -321,6 +313,7 @@ Value VM::Error(string err) {
             }
             stackframes.pop_back();
         }
+        */
     #ifdef USE_EXCEPTION_HANDLING
     } catch (string &s) {
         // Error happened while we were building this stack trace.
@@ -366,97 +359,10 @@ int VM::DumpVar(string &sd, const Value &x, int idx, bool invalid) {
     return size;
 }
 
-// Only valid to be called right after StartStackFrame, with no bytecode in-between.
-void VM::FunIntro(StackPtr &rsp, const int *ip) {
-    auto sp = stackframes.empty() ? stack - 1 : stackframes.back().spstart + stack;
-    stackframes.push_back(StackFrame());
-    auto funstart = ip;
-    ip++;  // definedfunction
-    if (sp - stack > stacksize - STACKMARGIN) {
-        // per function call increment should be small
-        // FIXME: not safe for untrusted scripts, could simply add lots of locals
-        // could record max number of locals? not allow more than N locals?
-        if (stacksize >= maxstacksize)
-            SeriousError("stack overflow! (use set_max_stack_size() if needed)");
-        auto nstack = new Value[stacksize *= 2];
-        t_memcpy(nstack, stack, sp - stack + 1);
-        sp = sp - stack + nstack;
-        delete[] stack;
-        stack = nstack;
-        LOG_DEBUG("stack grew to: ", stacksize);
-    }
-    ip++;  // regs_max.
-    auto nargs_fun = *ip++;
-    for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], *(rsp - nargs_fun + i + 1));
-    ip += nargs_fun;
-    auto ndef = *ip++;
-    for (int i = 0; i < ndef; i++) {
-        // for most locals, this just saves an nil, only in recursive cases it has an actual value.
-        auto varidx = *ip++;
-        Push(sp, vars[varidx]);
-        vars[varidx] = Value();
-    }
-    auto nkeepvars = *ip++;
-    for (int i = 0; i < nkeepvars; i++) Push(sp, Value());
-    auto nownedvars = *ip++;
-    ip += nownedvars;
-    auto &stf = stackframes.back();
-    stf.funstart = funstart;
-    stf.spstart = sp - stack;
-    #ifndef NDEBUG
-        if (sp - stack > maxsp) maxsp = sp - stack;
-    #endif
-}
-
-void VM::FunOut(StackPtr &psp) {  // FIXME
-    // This is guaranteed by the typechecker.
-    assert(stackframes.size());
-    auto &stf = stackframes.back();
-    auto sp = stf.spstart + stack;
-    auto fip = stf.funstart;
-    fip++;  // function id.
-    fip++;  // regs_max.
-    auto nargs = *fip++;
-    auto freevars = fip + nargs;
-    fip += nargs;
-    auto ndef = *fip++;
-    fip += ndef;
-    auto defvars = fip;
-    auto nkeepvars = *fip++;
-    for (int i = 0; i < nkeepvars; i++) Pop(sp).LTDECRTNIL(*this);
-    auto ownedvars = *fip++;
-    for (int i = 0; i < ownedvars; i++) vars[*fip++].LTDECRTNIL(*this);
-    while (ndef--) {
-        auto i = *--defvars;
-        vars[i] = Pop(sp);
-    }
-    while (nargs--) {
-        auto i = *--freevars;
-        vars[i] = Pop(psp);
-    }
-    stackframes.pop_back();
-}
-
 void VM::EndEval(StackPtr &, const Value &ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
-    /*
-    #ifndef NDEBUG
-        if (sp != stack - 1) {
-            LOG_ERROR("stack diff: ", sp - stack - 1);
-            while (sp >= stack - 1) {
-                auto v = Pop(sp);
-                LOG_ERROR("left on the stack: ", (size_t)v.any(), ", type: ", v.type);
-            }
-            VMASSERT((*this), false);
-        }
-        LOG_INFO("stack at its highest was: ", maxsp);
-    #else
-        (void)sp;
-    #endif
-    */
-    VMASSERT((*this), !stackframes.size());
     for (auto s : constant_strings) {
         if (s) s->Dec(*this);
     }
@@ -500,11 +406,10 @@ void VM::EvalProgram() {
             THROW_OR_ABORT(errmsg);
         }
     #endif
-    auto sp = stack - 1;
     #if VM_JIT_MODE
-        jit_entry(*this, sp);
+        jit_entry(*this, nullptr);
     #else
-        compiled_entry_point(*this, sp);
+        compiled_entry_point(*this, nullptr);
     #endif
 }
 
@@ -716,6 +621,8 @@ void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
     DisAsmIns(vm->nfr, sd, ip, vm->bcf->bytecode()->data(),
               (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf, false);
     #if RTT_ENABLED
+        (void)sp;
+        /*
         if (sp >= vm->stack) {
             sd += " - ";
             Top(sp).ToStringBase(*vm, sd, Top(sp).type, vm->debugpp);
@@ -724,6 +631,7 @@ void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
                 TopM(sp, 1).ToStringBase(*vm, sd, TopM(sp, 1).type, vm->debugpp);
             }
         }
+        */
     #else
         (void)sp;
     #endif
@@ -760,6 +668,14 @@ void CVM_Entry(int value_size) {
         THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ Value size mismatch!");
     }
 }
+
+void CVM_SwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
+Value CVM_BackupVar(VM *vm, int i) { return BackupVar(*vm, i); }
+Value CVM_NilVal() { return NilVal(); }
+void CVM_DecOwned(VM *vm, int i) { DecOwned(*vm, i); }
+void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
+void CVM_RestoreBackup(VM *vm, int i, Value v) { RestoreBackup(*vm, i, v); }
+StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
 
 #define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
@@ -809,6 +725,13 @@ const void *vm_ops_jit_table[] = {
     #undef F
     "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
     "Entry", (void *)CVM_Entry,
+    "SwapVars", (void *)CVM_SwapVars,
+    "BackupVar", (void *)CVM_BackupVar,
+    "NilVal", (void *)CVM_NilVal,
+    "DecOwned", (void *)CVM_DecOwned,
+    "DecVal", (void *)CVM_DecVal,
+    "RestoreBackup", (void *)CVM_RestoreBackup,
+    "PopArg", (void *)CVM_PopArg,
     #if LOBSTER_ENGINE
     "GLFrame", (void *)GLFrame,
     #endif

@@ -25,29 +25,32 @@ struct ValueParser {
     vector<RefObj *> allocated;
     Lex lex;
     VM &vm;
+    vector<Value> stack;
 
     ValueParser(VM &vm, string_view _src) : lex("string", filenames, _src), vm(vm) {}
 
     void Parse(StackPtr &sp, type_elem_t typeoff) {
-        ParseFactor(sp, typeoff, true);
+        ParseFactor(typeoff, true);
         Gobble(T_LINEFEED);
         Expect(T_ENDOFFILE);
+        assert(stack.size() == 1);
+        Push(sp, stack.back());
     }
 
     // Vector or struct.
-    void ParseElems(StackPtr &sp, TType end, type_elem_t typeoff, int numelems, bool push) {
+    void ParseElems(TType end, type_elem_t typeoff, int numelems, bool push) {
         Gobble(T_LINEFEED);
         auto &ti = vm.GetTypeInfo(typeoff);
-        auto stack_start = sp;
-        auto NumElems = [&]() { return sp - stack_start; };
+        auto stack_start = stack.size();
+        auto NumElems = [&]() { return stack.size() - stack_start; };
         if (lex.token == end) lex.Next();
         else {
             for (;;) {
                 if (NumElems() == numelems) {
-                    ParseFactor(sp, TYPE_ELEM_ANY, false);
+                    ParseFactor(TYPE_ELEM_ANY, false);
                 } else {
                     auto eti = ti.t == V_VECTOR ? ti.subt : ti.GetElemOrParent(NumElems());
-                    ParseFactor(sp, eti, push);
+                    ParseFactor(eti, push);
                 }
                 bool haslf = lex.token == T_LINEFEED;
                 if (haslf) lex.Next();
@@ -60,28 +63,28 @@ struct ValueParser {
         if (numelems >= 0) {
             while (NumElems() < numelems) {
                 switch (vm.GetTypeInfo(ti.elemtypes[NumElems()]).t) {
-                    case V_INT:   Push(sp,  Value(0)); break;
-                    case V_FLOAT: Push(sp,  Value(0.0f)); break;
-                    case V_NIL:   Push(sp,  Value()); break;
+                    case V_INT:   stack.push_back(Value(0)); break;
+                    case V_FLOAT: stack.push_back(Value(0.0f)); break;
+                    case V_NIL:   stack.push_back(Value()); break;
                     default:      lex.Error("no default value exists for missing struct elements");
                 }
             }
         }
         if (ti.t == V_CLASS) {
             auto vec = vm.NewObject(NumElems(), typeoff);
-            if (NumElems()) vec->Init(vm, TopPtr(sp) - NumElems(), NumElems(), false);
-            PopN(sp, NumElems());
+            if (NumElems()) vec->Init(vm, stack.size() - NumElems() + stack.data(), NumElems(), false);
+            stack.resize(stack.size() - NumElems());
             allocated.push_back(vec);
-            Push(sp,  vec);
+            stack.push_back(vec);
         } else if (ti.t == V_VECTOR) {
             auto &sti = vm.GetTypeInfo(ti.subt);
             auto width = IsStruct(sti.t) ? sti.len : 1;
             auto n = NumElems() / width;
             auto vec = vm.NewVec(n, n, typeoff);
-            if (NumElems()) vec->Init(vm, TopPtr(sp) - NumElems(), false);
-            PopN(sp, NumElems());
+            if (NumElems()) vec->Init(vm, stack.size() - NumElems() + stack.data(), false);
+            stack.resize(stack.size() - NumElems());
             allocated.push_back(vec);
-            Push(sp,  vec);
+            stack.push_back(vec);
         }
         // else if ti.t == V_STRUCT_* then.. do nothing!
     }
@@ -96,7 +99,7 @@ struct ValueParser {
         }
     }
 
-    void ParseFactor(StackPtr &sp, type_elem_t typeoff, bool push) {
+    void ParseFactor(type_elem_t typeoff, bool push) {
         auto &ti = vm.GetTypeInfo(typeoff);
         auto vt = ti.t;
         switch (lex.token) {
@@ -104,14 +107,14 @@ struct ValueParser {
                 ExpectType(V_INT, vt);
                 auto i = lex.IntVal();
                 lex.Next();
-                if (push) Push(sp,  i);
+                if (push) stack.push_back(i);
                 break;
             }
             case T_FLOAT: {
                 ExpectType(V_FLOAT, vt);
                 auto f = strtod(lex.sattr.data(), nullptr);
                 lex.Next();
-                if (push) Push(sp,  f);
+                if (push) stack.push_back(f);
                 break;
             }
             case T_STR: {
@@ -121,23 +124,23 @@ struct ValueParser {
                 if (push) {
                     auto str = vm.NewString(s);
                     allocated.push_back(str);
-                    Push(sp,  str);
+                    stack.push_back(str);
                 }
                 break;
             }
             case T_NIL: {
                 ExpectType(V_NIL, vt);
                 lex.Next();
-                if (push) Push(sp,  Value());
+                if (push) stack.push_back(Value());
                 break;
             }
             case T_MINUS: {
                 lex.Next();
-                ParseFactor(sp, typeoff, push);
+                ParseFactor(typeoff, push);
                 if (push) {
                     switch (typeoff) {
-                        case TYPE_ELEM_INT:   Push(sp,  Pop(sp).ival() * -1); break;
-                        case TYPE_ELEM_FLOAT: Push(sp,  Pop(sp).fval() * -1); break;
+                        case TYPE_ELEM_INT:   stack.back().setival(stack.back().ival() * -1); break;
+                        case TYPE_ELEM_FLOAT: stack.back().setfval(stack.back().fval() * -1); break;
                         default: lex.Error("unary minus: numeric value expected");
                     }
                 }
@@ -146,7 +149,7 @@ struct ValueParser {
             case T_LEFTBRACKET: {
                 ExpectType(V_VECTOR, vt);
                 lex.Next();
-                ParseElems(sp, T_RIGHTBRACKET, typeoff, -1, push);
+                ParseElems(T_RIGHTBRACKET, typeoff, -1, push);
                 break;
             }
             case T_IDENT: {
@@ -154,7 +157,7 @@ struct ValueParser {
                     auto opt = vm.LookupEnum(lex.sattr, ti.enumidx);
                     if (!opt) lex.Error("unknown enum value " + lex.sattr);
                     lex.Next();
-                    if (push) Push(sp,  *opt);
+                    if (push) stack.push_back(*opt);
                     break;
                 }
                 if (!IsUDT(vt) && vt != V_ANY)
@@ -165,12 +168,12 @@ struct ValueParser {
                 auto name = vm.StructName(ti);
                 if (name != sname)
                     lex.Error("class/struct type " + name + " required, " + sname + " given");
-                ParseElems(sp, T_RIGHTCURLY, typeoff, ti.len, push);
+                ParseElems(T_RIGHTCURLY, typeoff, ti.len, push);
                 break;
             }
             default:
                 lex.Error("illegal start of expression: " + lex.TokStr());
-                Push(sp,  Value());
+                stack.push_back(Value());
                 break;
         }
     }

@@ -62,8 +62,6 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             "typedef Value *StackPtr;\n"
             "typedef void *VMRef;\n"
             "typedef StackPtr(*fun_base_t)(VMRef, StackPtr);\n"
-            "extern  StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
-            "#define assert(X)\n"  // FIXME
             "#define Pop(sp) (*(sp)--)\n"
             "#define Push(sp, V) (*++(sp) = (V))\n"
             "#define TopM(sp, N) (*((sp) - (N)))\n"
@@ -95,8 +93,16 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             ILJUMPNAMES2
         #undef F
 
-        sd += "fun_base_t GetNextCallTarget(VMRef);\n"
-              "void Entry(int);\n"
+        sd += "extern fun_base_t GetNextCallTarget(VMRef);\n"
+              "extern void Entry(int);\n"
+              "extern StackPtr GLFrame(StackPtr, VMRef);\n"
+              "extern void SwapVars(VMRef, int, StackPtr, int);\n"
+              "extern Value BackupVar(VMRef, int);\n"
+              "extern Value NilVal();\n"
+              "extern void DecOwned(VMRef, int);\n"
+              "extern void DecVal(VMRef, Value);\n"
+              "extern void RestoreBackup(VMRef, int, Value);\n"
+              "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
               "\n";
     }
 
@@ -128,32 +134,71 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     sd += "\n";
     vector<const int *> jumptables;
     ip = code + 3;  // Past first IL_JUMP.
+    const int *funstart = nullptr;
+    int nkeepvars = 0;
+    int ndefsave = 0;
+    string sdt;
     while (ip < code + len) {
         int id = (int)(ip - code);
         bool is_start = ip == starting_ip;
         int opc = *ip++;
+        auto args = ip + 1;
         if (opc == IL_FUNSTART || is_start) {
-            auto regs_max = ip[2];
+            funstart = args;
+            nkeepvars = 0;
+            ndefsave = 0;
+            sdt.clear();
             auto it = function_lookup.find(id);
             auto f = it != function_lookup.end() ? it->second : nullptr;
             sd += "\n";
             if (f) append(sd, "// ", f->name()->string_view(), "\n");
-            append(sd, "static StackPtr fun_", id, "(VMRef vm, StackPtr psp) {\n"
-                       "    Value regs[", max(1, regs_max), "];\n"  // FIXME: don't emit array.
-                       "    StackPtr sp = &regs[-1];\n");
+            append(sd, "static StackPtr fun_", id, "(VMRef vm, StackPtr psp) {\n");
+            if (opc == IL_FUNSTART) {
+                auto fip = funstart;
+                fip++;  // definedfunction
+                auto regs_max = *fip++;
+                auto nargs_fun = *fip++;
+                fip += nargs_fun;
+                ndefsave = *fip++;
+                fip += ndefsave;
+                nkeepvars = *fip++;
+                // FIXME: don't emit array.
+                append(sd, "    Value regs[", max(1, regs_max), "];\n");
+                if (ndefsave) append(sd, "    Value defsave[", ndefsave, "];\n");
+                if (nkeepvars) append(sd, "    Value keepvar[", nkeepvars, "];\n");
+            } else {
+                // Final program return at most 1 value.
+                append(sd, "    Value regs[1];\n");
+            }
+            append(sd, "    StackPtr sp = &regs[-1];\n");
         }
-        auto args = ip + 1;
         int regso = -1;
         auto arity = ParseOpAndGetArity(opc, ip, regso);
-        if (opc == IL_SAVERETS || opc == IL_JUMPIFUNWOUND || opc == IL_RETURNANY) append(sd, "    ");  // FIXME
-        else append(sd, "    assert(sp == &regs[", regso - 1, "]); ");
+        append(sd, "    ");
+        if (cpp && opc != IL_SAVERETS && opc != IL_JUMPIFUNWOUND && opc != IL_RETURNANY && opc != IL_FUNSTART)   // FIXME
+            append(sd, "assert(sp == &regs[", regso - 1, "]); ");
         if (opc == IL_FUNSTART) {
-            sd += "static int args[] = {";
-            for (int i = 0; i < arity; i++) {
-                if (i) sd += ", ";
-                append(sd, args[i]);
+            auto fip = funstart;
+            fip++;  // definedfunction
+            fip++;  // regs_max.
+            auto nargs_fun = *fip++;
+            for (int i = 0; i < nargs_fun; i++) {
+                append(sd, "\n    SwapVars(vm, ", fip[i], ", psp, ", nargs_fun - i - 1, ");");
             }
-            append(sd, "};\n    psp = U_", ILNames()[opc], "(vm, psp, args);");
+            fip += nargs_fun;
+            ndefsave = *fip++;
+            for (int i = 0; i < ndefsave; i++) {
+                // for most locals, this just saves an nil, only in recursive cases it has an actual
+                // value.
+                auto varidx = *fip++;
+                append(sd, "\n    defsave[", i, "] = BackupVar(vm, ", varidx, ");");
+            }
+            nkeepvars = *fip++;
+            for (int i = 0; i < nkeepvars; i++) {
+                append(sd, "\n    keepvar[", i, "] = ");
+                if (cpp) append(sd, "lobster::NilVal();");  // FIXME
+                else append(sd, "NilVal();");
+            }
         } else if (opc == IL_JUMP) {
             append(sd, "goto block", args[0], ";");
         } else if (CONDJUMP(opc)) {
@@ -199,21 +244,52 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             jumptables.pop_back();
         } else if (ISBCALL(opc) && natreg.nfuns[args[0]]->IsGLFrame()) {
             append(sd, "sp = GLFrame(sp, vm);");
-        } else if (opc == IL_RETURN) {
-            append(sd, "psp = U_RETURN(vm, psp, ", args[0], ", ", args[1], ");");
-            for (int i = 0; i < args[1]; i++) {
-                append(sd, " Push(psp, TopM(sp, ", args[1] - i - 1, "));");
+        } else if (opc == IL_RETURN || opc == IL_RETURNANY) {
+            // FIXME: emit epilogue stuff only once at end of function.
+            auto fip = funstart;
+            fip++;  // function id.
+            fip++;  // regs_max.
+            auto nargs = *fip++;
+            auto freevars = fip + nargs;
+            fip += nargs;
+            auto ndef = *fip++;
+            auto defvars = fip;
+            fip += ndef;
+            fip++;  // nkeepvars, already parsed above
+            int nrets;
+            if (opc == IL_RETURN) {
+                nrets = args[1];
+                append(sd, "psp = U_RETURN(vm, psp, ", args[0], ", ", nrets, ");");
+            } else {
+                nrets = args[0];
+                append(sd, "psp = U_RETURNANY(vm, psp, ", nrets, ");");
             }
-            append(sd, " sp -= ", args[1], ";");
-            append(sd, " return psp;");
-        } else if (opc == IL_RETURNANY) {
-            append(sd, "psp = U_RETURNANY(vm, psp, ", args[0], ");");
-            for (int i = 0; i < args[0]; i++) {
-                append(sd, " Push(psp, TopM(sp, ", args[0] - i - 1, "));");
+            auto ownedvars = *fip++;
+            for (int i = 0; i < ownedvars; i++) {
+                append(sd, "\n    DecOwned(vm, ", *fip, ");");
+                fip++;
             }
-            append(sd, " sp -= ", args[0], ";");
-        } else if (opc == IL_SAVERETS) {  // FIXME: remove vmops
-            append(sd, "return psp;");
+            while (nargs--) {
+                auto i = *--freevars;
+                append(sd, "\n    psp = PopArg(vm, ", i, ", psp);");
+            }
+            for (int i = 0; i < nrets; i++) {
+                append(sd, "\n    Push(psp, TopM(sp, ", nrets - i - 1, "));");
+            }
+            if (nrets) append(sd, "\n    sp -= ", nrets, ";");
+            sdt.clear();  // FIXME: remove
+            for (int i = 0; i < ndef; i++) {
+                auto varidx = defvars[i];
+                append(sdt, "    RestoreBackup(vm, ", varidx, ", defsave[", i, "]);\n");
+            }
+            if (opc == IL_RETURN) {
+                append(sd, "\n    goto epilogue;");
+            }
+        } else if (opc == IL_SAVERETS) {  // FIXME: remove
+            append(sd, "\n    goto epilogue;");
+        } else if (opc == IL_KEEPREF || opc == IL_KEEPREFLOOP) {
+            if (opc == IL_KEEPREFLOOP) append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
+            append(sd, "keepvar[", args[1], "] = TopM(sp, ", args[0], ");");
         } else {
             assert(ILArity()[opc] != ILUNKNOWN);
             append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
@@ -256,8 +332,15 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             }
         }
         sd += "\n";
-        if (opc == IL_EXIT || opc == IL_ABORT) sd += "    return sp;\n";
-        if (ip == code + len || *ip == IL_FUNSTART || ip == starting_ip) sd += "}\n";
+        if (ip == code + len || *ip == IL_FUNSTART || ip == starting_ip) {
+            if (opc != IL_EXIT && opc != IL_ABORT) sd += "    epilogue:\n";
+            if (!sdt.empty()) append(sd, sdt);
+            for (int i = 0; i < nkeepvars; i++) {
+                append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
+            }
+            sd += "    return psp;\n";
+            sd += "}\n";
+        }
     }
 
     if (cpp) sd += "\nstatic";

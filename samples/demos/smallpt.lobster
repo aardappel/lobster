@@ -129,8 +129,6 @@ let cam = Ray { xyz { 50.0,50.0,290.0 }, normalize(xyz { 0.0,-0.042612,-1.0 }) }
 let cx = xyz_x * (w*.5135/h)
 let cy = normalize(cx.cross(cam.d))*.5135
 
-set_max_stack_size(128)
-
 let c = map(h): map(w): xyz_0
 
 var samples = 0

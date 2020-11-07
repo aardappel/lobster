@@ -658,17 +658,11 @@ struct VMArgs {
 struct VM : VMArgs {
     SlabAlloc pool;
 
-    Value *stack = nullptr;
-    int stacksize = 0;
-    int maxstacksize;
-    StackPtr sp_suspended = nullptr;
     Value *temp_lval = nullptr;
 
     fun_base_t next_call_target = 0;
 
     int ret_unwind_to = -1;
-
-    vector<StackFrame> stackframes;
 
     size_t codelen = 0;
     const int *codestart = nullptr;
@@ -737,25 +731,11 @@ struct VM : VMArgs {
     VM(VMArgs &&args, const bytecode::BytecodeFile *bcf);
     ~VM();
 
-    void SuspendSP(StackPtr &sp) {
-        assert(!sp_suspended);
-        sp_suspended = sp;
-        sp = nullptr;
-    }
-
-    StackPtr ResumeSP() {
-        assert(sp_suspended);
-        auto sp = sp_suspended;
-        sp_suspended = nullptr;
-        return sp;
-    }
-
     const TypeInfo &GetTypeInfo(type_elem_t offset) {
         return *(TypeInfo *)(typetable + offset);
     }
     const TypeInfo &GetVarTypeInfo(int varidx);
 
-    void SetMaxStack(int ms) { maxstacksize = ms; }
     string_view GetProgramName() { return programname; }
 
     type_elem_t GetIntVectorType(int which);
@@ -789,10 +769,6 @@ struct VM : VMArgs {
     void TerminateWorkers();
     void WorkerWrite(RefObj *ref);
     LObject *WorkerRead(type_elem_t tti);
-
-    template<int is_error> int VarCleanup(StackPtr &sp, string *error, int towhere);
-    void FunIntro(StackPtr &sp, const int *ip);
-    void FunOut(StackPtr &sp);
 
     void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 
@@ -851,6 +827,39 @@ VM_INLINE pair<Value *, iint> PopVecPtr(StackPtr &sp) {
     auto width = Pop(sp).ival();
     PopN(sp, width);
     return { TopPtr(sp), width };
+}
+
+// Codegen helpers.
+
+VM_INLINE void SwapVars(VM &vm, int i, StackPtr psp, int off) {
+    swap(vm.vars[i], *(psp - off));
+}
+
+VM_INLINE Value BackupVar(VM &vm, int i) {
+    auto v = vm.vars[i];
+    vm.vars[i] = Value();
+    return v;
+}
+
+VM_INLINE Value NilVal() {
+    return Value();
+}
+
+VM_INLINE void DecOwned(VM &vm, int i) {
+    vm.vars[i].LTDECRTNIL(vm);
+}
+
+VM_INLINE void DecVal(VM &vm, Value v) {
+    v.LTDECRTNIL(vm);
+}
+
+VM_INLINE void RestoreBackup(VM &vm, int i, Value v) {
+    vm.vars[i] = v;
+}
+
+VM_INLINE StackPtr PopArg(VM &vm, int i, StackPtr psp) {
+    vm.vars[i] = Pop(psp);
+    return psp;
 }
 
 template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {

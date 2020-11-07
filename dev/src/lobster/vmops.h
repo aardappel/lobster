@@ -155,16 +155,11 @@ VM_INLINE StackPtr U_INCREF(VM &, StackPtr sp, int off) {
     return sp;
 }
 
-VM_INLINE StackPtr U_KEEPREFLOOP(VM &vm, StackPtr sp, int off, int ki) {
-    auto fsp = vm.stackframes.back().spstart + vm.stack;
-    TopM(fsp, ki).LTDECRTNIL(vm);
-    TopM(fsp, ki) = TopM(sp, off);
+VM_INLINE StackPtr U_KEEPREFLOOP(VM &, StackPtr sp, int, int) {
     return sp;
 }
 
-VM_INLINE StackPtr U_KEEPREF(VM &vm, StackPtr sp, int off, int ki) {
-    auto fsp = vm.stackframes.back().spstart + vm.stack;
-    TopM(fsp, ki) = TopM(sp, off);
+VM_INLINE StackPtr U_KEEPREF(VM &, StackPtr sp, int, int) {
     return sp;
 }
 
@@ -188,19 +183,16 @@ VM_INLINE StackPtr U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) 
     return sp;
 }
 
-VM_INLINE StackPtr U_FUNSTART(VM &vm, StackPtr sp, const int *ip) {
-     vm.FunIntro(sp, ip);
+VM_INLINE StackPtr U_FUNSTART(VM &, StackPtr sp, const int *) {
      return sp;
 }
 
 VM_INLINE StackPtr U_RETURN(VM &vm, StackPtr sp, int df, int /*nrv*/) {
     vm.ret_unwind_to = df;  // FIXME: most returns don't need this.
-    vm.FunOut(sp);
     return sp;
 }
 
-VM_INLINE StackPtr U_RETURNANY(VM &vm, StackPtr sp, int /*nretslots*/) {
-    vm.FunOut(sp);
+VM_INLINE StackPtr U_RETURNANY(VM &, StackPtr sp, int /*nretslots*/) {
     return sp;
 }
 
@@ -220,7 +212,6 @@ VM_INLINE StackPtr U_ENDSTATEMENT(VM &vm, StackPtr sp, int line, int fileidx) {
             if (vm.trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
         }
     #endif
-    assert(sp == vm.stackframes.back().spstart + vm.stack);
     return sp;
 }
 

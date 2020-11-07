@@ -1,88 +1,42 @@
 - natgen refactor
-  - move temps to array.
-    - ensure all allocated properly.
-      - Fix space reserved in GenUnwind!!
-      - clean up generated code
-      - test tcc mode
-    - check if its fast
-    - remove use of original stack
-    - regs array should not be initialized in release mode.
-    - make top not -1.. start at end?
-
-  - rework function calling:
-    - implement free vars differently from regular ones, options:
-      1. simply keep free vars in the vars array, and regular on stack.
-         - closest to how it works now
-         - 2 kinds of vars, 2 kinds of prologue/epilogue / 2 kinds of instructions
-         - kinda natural though, freevars become like "globals" in C.
-      2. turn free vars into extra args (and extra return values)
-         - maybe the most efficient, since inlining will have removed all intense use of free vars
-         - only left with 1 kind of var
-         - can do it incrementally, first with the current var system.
-         - must detect when free vars are accessed mutably
-         - function return must be modified to first write N rets back into vars
-         - bad because of large number of "globals" ?
-           - tested this, buts some of my program have multiple functions with like 50+ free vars
-             due to this, and most not even constant. gets worse with all the nesting.
-             So ideally free vars need to not have cost while not accessed.
-      3. address free vars over one or more "frame pointer" hops
-         - hardest to get right, and most different from what we have now, and all in one go.
-         - slower
-         - also inefficient with "globals"
-      4. make instructions to access from the bottom or top of the stack
-         - bottom most useful with globals, which are 99% of uses of free vars
-         - doesn't work for a freevar in the middle of 2 recursions.
-         - potentially a function needing a free var can be reused, but with an extra function
-           in between.
-         - essentially similar to (1) since also needs extra instructions, but a little simpler
-           since stack-frame creation can be uniform, but with the downside that guaranteeing a
-           fixed offset is harder.
-           So essentially (1) is similar but by reserving fixed space for all possible free vars
-           on the bottom of the stack first, and then not allocating them in the actual stack frame.
-    - so from the above we choose (1)
-      - identify vars that are never freevars, and alloc them on the stack..
-      - address from sp? that is hard because it keeps adding keepvars etc during codegen.
-      - or could intro a frame pointer to keep it simpler.
-      - which is better for translation to C locals?
-        - for C locals we'd want to put temps etc also into locals, counting max temps needed.
-        - SP relative is then not helpful, since the backend would need to compute stack height.
-        - might be easier to first change codegen into register machine!
-          - this way the temp to reg translation is done just once.
-          - also simplifies the VM not having to deal with temps on the stack.
-          - but so much interaction with the rest of the VM assumes things are on the stack..
-            - mostly uniformly thru VM ops though, so maybe not that bad
-          - complicated by struct args, that can be variable length, and worse for when they're
-            returned from a VM op.
-            - so this would point to making struct ops fixed size first would be better??
-            - or is there a way to "emulate" structs until we can address it? pointers to stack
-              structs?
-      - also note handling ownedvars will be interesting since these can be both kinds of local.
-      - then make sure to remove all these vars from the vars array.
-    - remove all the variable saving code: keep vars on the stack when not a free var.
-    - remove stackframes
-    - make all returns go to one return point, so we can emit the epilogue in one place.
-    - split mega FUN_START into many small opcodes.
+  - warning on Value being passed in C.
+  - move more stuff into the epilogue.
+  - check if its fast -> so far no change, so first simplify more.
+  - clean up generated code
+  - regs array should not be initialized in release mode.
+    - https://stackoverflow.com/questions/42672600/prevent-construction-initialization-of-array-elements-in-c
+  - de-inline vm ops that are big: check in disassembly
+  - make top not -1.. start at end?
+  - NO RUNTIME STACKTRACES!
+  - rework var access:
+    - vars that are never freevar (the majority) become a reg.
+      - remove from vars array.
+      - These need new kinds of var access instructions!
+    - remaining free vars use vars array & backup system as-is for now.
+      - free var backup only for recursive functions?
+    - note: an ownedvar can address either of these 2 kinds!
+    - options for vars considered that we're not doing.
     - Could really help the amount of free vars by const prop of scalars and scalar structs.
       - problem: their defs should ideally first be optimized, yet their uses may come first
         in optimizer.
   - move vm.temp_lval to a local.
-  - A way to have temps/locals as C/C++ locals.
-    - not having temps on the stack also helps not having to remove them correctly.
-  - remaining free-var vars can now become C/C++ globals.
+  - rather than modifying `sp`, use constant offsets, which may help simpler compilers.
+    - ideally then make sure these vars never "overlap" when used with structs, so they can
+      be properly register allocated.
+    - can even try to make them into individual variables rather than an array.
+    - make args into actual C++ args?
+      - this could help not having to pass parent pointers to regs which could help optimisation.
   - can finally remove exceptions? could instead execute a return from -3 or whatever.
     - the big challenge is doing that for errors.
   - Now that all bytecode goes to native gen, make bytecode more specific to it.
   - threading appears broken (sequential?)
-  - create a new tracemode?
   - remove next_call_target
   - test/enable
     - --cpp mode for mac/ios
-  - look at disasm for opcodes that generate long sequences and de-inline them.
   - benchmark!
   - reduce use of ElemType.
   - Can we somehow call builtins directly, or at least do something special for push and
     other very common once so they don't pay an indirection cost / can be inlined?
-
 
 - stefandd: DLL builtins loading.
   - make sure to put in checks for debug/compiled/32-bit mode, and maybe some other compatibility checks
@@ -98,7 +52,6 @@
   to need a check after its call.
   - Still worth trying, it may be that this branch being always false is actually very cheap.
     - Can stick an error bool as first field in VM.
-
 
 - stefandd: multiple assign doesn't work on fields.
 
@@ -1825,6 +1778,7 @@ CURRENT SOLUTION FROM TRADEOFS:
   Fundamentally, state that survives a frame needs to be carefully managed regardless.
   Co-routines have also been an endless source of complexity in the VM, and don't fit
   with Lobster's new focus on efficiency.
+
 - decided against:
   - change V_MULTIPLE into types always being a vector:
     - while it simplifies some cases that currently have to check against V_MULTIPLE, it
@@ -1848,6 +1802,7 @@ CURRENT SOLUTION FROM TRADEOFS:
     - std::visit will have horrible performance in debug for that many nodes, also hard to
       debug.
     - nodes can be inline in their parents, total much less allocations.
+
 - namespaces:
   Syntax-wise we've been using _ for hardcoded namespaces so far for both builtins (gl_text)
   and libraries (gui_text). I kinda prefer that syntax to . or ::, it makes the namespace
@@ -1903,6 +1858,37 @@ CURRENT SOLUTION FROM TRADEOFS:
 
 OBSOLETE
 ========
+- How to implement (free) variables more efficiently:
+    - implement free vars differently from regular ones, options:
+      1. simply keep free vars in the vars array, and regular on stack.
+         - closest to how it works now
+         - 2 kinds of vars, 2 kinds of prologue/epilogue / 2 kinds of instructions
+         - kinda natural though, freevars become like "globals" in C.
+      2. turn free vars into extra args (and extra return values)
+         - maybe the most efficient, since inlining will have removed all intense use of free vars
+         - only left with 1 kind of var
+         - can do it incrementally, first with the current var system.
+         - must detect when free vars are accessed mutably
+         - function return must be modified to first write N rets back into vars
+         - bad because of large number of "globals" ?
+           - tested this, buts some of my program have multiple functions with like 50+ free vars
+             due to this, and most not even constant. gets worse with all the nesting.
+             So ideally free vars need to not have cost while not accessed.
+      3. address free vars over one or more "frame pointer" hops
+         - hardest to get right, and most different from what we have now, and all in one go.
+         - slower
+         - also inefficient with "globals"
+      4. make instructions to access from the bottom or top of the stack
+         - bottom most useful with globals, which are 99% of uses of free vars
+         - doesn't work for a freevar in the middle of 2 recursions.
+         - potentially a function needing a free var can be reused, but with an extra function
+           in between.
+         - essentially similar to (1) since also needs extra instructions, but a little simpler
+           since stack-frame creation can be uniform, but with the downside that guaranteeing a
+           fixed offset is harder.
+           So essentially (1) is similar but by reserving fixed space for all possible free vars
+           on the bottom of the stack first, and then not allocating them in the actual stack frame.
+
 - 32-bit compressed pointers in 64-bit
   - exampler: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
   - If all objects are 8-byte aligned, and if a << 3 is ok, can address 32GB.

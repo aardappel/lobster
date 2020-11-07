@@ -1244,13 +1244,6 @@ nfr("trace_bytecode", "mode", "I", "",
         return Value();
     });
 
-nfr("set_max_stack_size", "max", "I", "",
-    "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1",
-    [](StackPtr &, VM &vm, Value &max) {
-        vm.SetMaxStack((int)max.ival() * 1024 * 1024 / sizeof(Value));
-        return Value();
-    });
-
 nfr("reference_count", "val", "A", "I",
     "get the reference count of any value. for compiler debugging, mostly",
     [](StackPtr &, VM &, Value &x) {
