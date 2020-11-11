@@ -112,7 +112,7 @@ VM_INLINE StackPtr U_PUSHFLT(VM &, StackPtr sp, int x) {
 }
 
 VM_INLINE StackPtr U_PUSHNIL(VM &, StackPtr sp) {
-    Push(sp, Value());
+    Push(sp, NilVal());
     return sp;
 }
 
@@ -217,7 +217,7 @@ VM_INLINE StackPtr U_ENDSTATEMENT(VM &vm, StackPtr sp, int line, int fileidx) {
 
 VM_INLINE StackPtr U_EXIT(VM &vm, StackPtr sp, int tidx) {
     if (tidx >= 0) vm.EndEval(sp, Pop(sp), vm.GetTypeInfo((type_elem_t)tidx));
-    else vm.EndEval(sp, Value(), vm.GetTypeInfo(TYPE_ELEM_ANY));
+    else vm.EndEval(sp, NilVal(), vm.GetTypeInfo(TYPE_ELEM_ANY));
     return sp;
 }
 
@@ -330,18 +330,17 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
 
 
 #define GETARGS() Value b = Pop(sp); Value a = Pop(sp)
-#define TYPEOP(op, extras, av, bv, res) \
+#define TYPEOP(op, extras, av, bv) \
     if constexpr ((extras & 1) != 0) if (bv == 0) vm.Div0(); \
-    if constexpr ((extras & 2) != 0) res = fmod((double)av, (double)bv); else res = av op bv;
+    Value res = av op bv; \
+    if constexpr ((extras & 2) != 0) res = (decltype(res))fmod((double)av, (double)bv);
 
 #define _IOP(op, extras) \
-    Value res; \
     TYPE_ASSERT(a.type == V_INT && b.type == V_INT); \
-    TYPEOP(op, extras, a.ival(), b.ival(), res)
+    TYPEOP(op, extras, a.ival(), b.ival())
 #define _FOP(op, extras) \
-    Value res; \
     TYPE_ASSERT(a.type == V_FLOAT && b.type == V_FLOAT); \
-    TYPEOP(op, extras, a.fval(), b.fval(), res)
+    TYPEOP(op, extras, a.fval(), b.fval())
 
 #define _VOPS(op, extras, V_T, field, geta) { \
     auto b = Pop(sp); \
@@ -351,7 +350,8 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
         auto &a = veca[j]; \
         VMTYPEEQ(a, V_T) \
         auto bv = b.field(); \
-        TYPEOP(op, extras, a.field(), bv, a) \
+        TYPEOP(op, extras, a.field(), bv) \
+        a = res; \
     } \
 }
 #define _VOPV(op, extras, V_T, field, geta) { \
@@ -364,7 +364,8 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
         auto &a = veca[j]; \
         VMTYPEEQ(a, V_T) \
         auto bv = b.field(); \
-        TYPEOP(op, extras, a.field(), bv, a) \
+        TYPEOP(op, extras, a.field(), bv) \
+        a = res; \
     } \
 }
 #define STCOMPEN(op, init, andor) { \

@@ -385,7 +385,7 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
                           false, error);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret)));
-        return Value();
+        return NilVal();
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {

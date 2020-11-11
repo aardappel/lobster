@@ -16,7 +16,8 @@ namespace lobster {
 
 
 template<typename F> ValueType BinOpConst(TypeChecker *tc, Value &val, const BinOp *b, F f) {
-    Value lv, rv;
+    Value lv = NilVal();
+    Value rv = NilVal();
     auto tl = b->left->ConstVal(tc, lv);
     auto tr = b->right->ConstVal(tc, rv);
     if (tl == V_INT && tr == V_INT) {
@@ -31,7 +32,8 @@ template<typename F> ValueType BinOpConst(TypeChecker *tc, Value &val, const Bin
 }
 
 template<typename F> ValueType CmpOpConst(TypeChecker *tc, Value &val, const BinOp *b, F f) {
-    Value lv, rv;
+    Value lv = NilVal();
+    Value rv = NilVal();
     auto tl = b->left->ConstVal(tc, lv);
     auto tr = b->right->ConstVal(tc, rv);
     if (tl == V_INT && tr == V_INT) {
@@ -46,7 +48,8 @@ template<typename F> ValueType CmpOpConst(TypeChecker *tc, Value &val, const Bin
 }
 
 template<typename F> ValueType IntOpConst(TypeChecker *tc, Value &val, const BinOp *b, F f) {
-    Value lv, rv;
+    Value lv = NilVal();
+    Value rv = NilVal();
     auto tl = b->left->ConstVal(tc, lv);
     auto tr = b->right->ConstVal(tc, rv);
     if (tl == V_INT && tr == V_INT) {
@@ -58,7 +61,7 @@ template<typename F> ValueType IntOpConst(TypeChecker *tc, Value &val, const Bin
 
 
 ValueType Nil::ConstVal(TypeChecker *, Value &val) const {
-    val = Value();
+    val = NilVal();
     return V_NIL;
 }
 

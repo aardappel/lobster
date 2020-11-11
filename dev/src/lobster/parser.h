@@ -190,7 +190,7 @@ struct Parser {
                     auto evname = st.MaybeNameSpace(ExpectId(), !isprivate);
                     if (IsNext(T_ASSIGN)) {
                         auto e = ParseExp();
-                        Value val;
+                        Value val = NilVal();
                         auto t = e->ConstVal(nullptr, val);
                         delete e;
                         if (t != V_INT)

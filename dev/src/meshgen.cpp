@@ -643,7 +643,7 @@ Value AddShape(ImplicitFunction *f) {
     f->material = cur.material;
     f->smoothmink = cur.smoothmink;
     GetGroup()->children.push_back(f);
-    return Value();
+    return NilVal();
 }
 
 Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly) {
@@ -757,7 +757,7 @@ nfr("mg_set_polygon_reduction", "polyreductionpasses,epsilon,maxtricornerdot", "
         polyreductionpasses = _polyreductionpasses.intval();
         epsilon = _epsilon.fltval();
         maxtricornerdot = _maxtricornerdot.fltval();
-        return Value();
+        return NilVal();
     });
 
 nfr("mg_set_color_noise", "noiseintensity,noisestretch", "FF", "",
@@ -766,7 +766,7 @@ nfr("mg_set_color_noise", "noiseintensity,noisestretch", "FF", "",
     [](StackPtr &, VM &, Value &_noiseintensity, Value &_noisestretch) {
         noisestretch = _noisestretch.fltval();
         noiseintensity = _noiseintensity.fltval();
-        return Value();
+        return NilVal();
     });
 
 nfr("mg_set_vertex_randomize", "factor", "F", "",
@@ -775,14 +775,14 @@ nfr("mg_set_vertex_randomize", "factor", "F", "",
     " likely counteract the polygon reduction algorithm",
     [](StackPtr &, VM &, Value &factor) {
         randomizeverts = factor.fltval();
-        return Value();
+        return NilVal();
     });
 
 nfr("mg_set_point_mode", "on", "B", "",
     "generates a point mesh instead of polygons",
     [](StackPtr &, VM &, Value &aspoints) {
         pointmode = aspoints.True();
-        return Value();
+        return NilVal();
     });
 
 nfr("mg_polygonize", "subdiv", "I", "R",

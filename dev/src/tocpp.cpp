@@ -97,8 +97,8 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
               "extern void Entry(int);\n"
               "extern StackPtr GLFrame(StackPtr, VMRef);\n"
               "extern void SwapVars(VMRef, int, StackPtr, int);\n"
-              "extern Value BackupVar(VMRef, int);\n"
-              "extern Value NilVal();\n"
+              "extern void BackupVar(VMRef, int, Value *);\n"
+              "extern void NilVal(Value *);\n"
               "extern void DecOwned(VMRef, int);\n"
               "extern void DecVal(VMRef, Value);\n"
               "extern void RestoreBackup(VMRef, int, Value);\n"
@@ -191,13 +191,14 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 // for most locals, this just saves an nil, only in recursive cases it has an actual
                 // value.
                 auto varidx = *fip++;
-                append(sd, "\n    defsave[", i, "] = BackupVar(vm, ", varidx, ");");
+                if (cpp) append(sd, "\n    defsave[", i, "] = BackupVar(vm, ", varidx, ");");
+                else
+                    append(sd, "\n    BackupVar(vm, ", varidx, ", &defsave[", i, "]);");
             }
             nkeepvars = *fip++;
             for (int i = 0; i < nkeepvars; i++) {
-                append(sd, "\n    keepvar[", i, "] = ");
-                if (cpp) append(sd, "lobster::NilVal();");  // FIXME
-                else append(sd, "NilVal();");
+                if (cpp) append(sd, "\n    keepvar[", i, "] = lobster::NilVal();");  // FIXME ns
+                else append(sd, "\n    NilVal(&keepvar[", i, "]);");
             }
         } else if (opc == IL_JUMP) {
             append(sd, "goto block", args[0], ";");

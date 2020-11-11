@@ -122,11 +122,10 @@ Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, const Value &schema,
     vector<const char *> dirs;
     for (auto &dir : dirs_storage) dirs.push_back(dir.c_str());
     dirs.push_back(nullptr);
-    Value err;
     if (!parser.Parse(schema.sval()->data(), dirs.data())) {
-        err = Value(vm.NewString(parser.error_));
+        return Value(vm.NewString(parser.error_));
     }
-    return err;
+    return NilVal();
 }
 
 void AddFile(NativeRegistry &nfr) {
@@ -139,8 +138,8 @@ nfr("scan_folder", "folder", "S", "S]?I]?",
         vector<pair<string, int64_t>> dir;
         auto ok = ScanDirAbs(fld.sval()->strv(), dir);
         if (!ok) {
-            Push(sp,  Value());
-            return Value();
+            Push(sp, NilVal());
+            return NilVal();
         }
         auto nlist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto slist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
@@ -148,7 +147,7 @@ nfr("scan_folder", "folder", "S", "S]?I]?",
             nlist->Push(vm, Value(vm.NewString(name)));
             slist->Push(vm, Value(size));
         }
-        Push(sp,  Value(nlist));
+        Push(sp, Value(nlist));
         return Value(slist);
     });
 
@@ -158,7 +157,7 @@ nfr("read_file", "file,textmode", "SI?", "S?",
     [](StackPtr &, VM &vm, Value &file, Value &textmode) {
         string buf;
         auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, textmode.False());
-        if (l < 0) return Value();
+        if (l < 0) return NilVal();
         auto s = vm.NewString(buf);
         return Value(s);
     });

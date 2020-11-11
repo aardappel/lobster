@@ -1,5 +1,14 @@
 - natgen refactor
-  - warning on Value being passed in C.
+  - speed??
+    C++-msvc release: 5.5
+    C++-msvc debug: 626 (114x), RTC off: 198.3 (36x)
+    JIT-msvc release 12.7
+    JIT-msvc debug: 369 (29x), RTC off: 194.5 (15x)
+    C++-clang release: 3.7
+    C++-clang debug: 53.6 (14x)
+    JIT-clang release: 12.7
+    JIT-clang debug: 61.4 (4.8x)
+
   - move more stuff into the epilogue.
   - check if its fast -> so far no change, so first simplify more.
   - clean up generated code
@@ -37,6 +46,13 @@
   - reduce use of ElemType.
   - Can we somehow call builtins directly, or at least do something special for push and
     other very common once so they don't pay an indirection cost / can be inlined?
+
+- Should make float div by 0 use +inf/nan/-inf like the ieee standard. Java/C#/JS already do this,
+  and its useful for mathy gameplay/graphics code.
+  - Sadly, can't just rely on C++ doing it directly, because its UB, even though likely on all
+    actual platforms its ieee. also subject to exception flags. Still need the if-then to be sure.
+  - would be awesome to do the same for ints but that's really not helpful, most of the time
+    you want to write an explicit if to check for it.
 
 - stefandd: DLL builtins loading.
   - make sure to put in checks for debug/compiled/32-bit mode, and maybe some other compatibility checks
@@ -186,6 +202,8 @@
   Alternatively, if we want to avoid the linker and use it with the actual LLVM JIT, we
   could have clang generate bitcode and feed that to the JIT:
   https://weliveindetail.github.io/blog/post/2017/07/25/compile-with-clang-at-runtime-simple.html
+  Though having to provide C++-mangled externs for the JIT for everything the compiled code
+  touches likely not fun.
 
 - Move checking for functions/builtins/selfarg etc to type checker.
   This is quite hard, it requires reworking a lot of stuff:

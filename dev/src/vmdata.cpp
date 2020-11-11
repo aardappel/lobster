@@ -265,7 +265,7 @@ iint Value::Hash(VM &vm, ValueType vtype) {
 }
 
 Value Value::Copy(VM &vm) {
-    if (!refnil()) return Value();
+    if (!refnil()) return NilVal();
     auto &ti = ref()->ti(vm);
     switch (ti.t) {
     case V_VECTOR: {
@@ -286,7 +286,7 @@ Value Value::Copy(VM &vm) {
     }
     default:
         assert(false);
-        return Value();
+        return NilVal();
     }
 }
 

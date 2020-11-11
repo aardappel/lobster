@@ -120,6 +120,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456</DisableSpecificWarnings>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

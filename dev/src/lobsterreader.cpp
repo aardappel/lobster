@@ -63,28 +63,30 @@ struct ValueParser {
         if (numelems >= 0) {
             while (NumElems() < numelems) {
                 switch (vm.GetTypeInfo(ti.elemtypes[NumElems()]).t) {
-                    case V_INT:   stack.push_back(Value(0)); break;
-                    case V_FLOAT: stack.push_back(Value(0.0f)); break;
-                    case V_NIL:   stack.push_back(Value()); break;
+                    case V_INT:   stack.emplace_back(Value(0)); break;
+                    case V_FLOAT: stack.emplace_back(Value(0.0f)); break;
+                    case V_NIL:   stack.emplace_back(NilVal()); break;
                     default:      lex.Error("no default value exists for missing struct elements");
                 }
             }
         }
         if (ti.t == V_CLASS) {
-            auto vec = vm.NewObject(NumElems(), typeoff);
-            if (NumElems()) vec->Init(vm, stack.size() - NumElems() + stack.data(), NumElems(), false);
-            stack.resize(stack.size() - NumElems());
+            auto len = NumElems();
+            auto vec = vm.NewObject(len, typeoff);
+            if (len) vec->Init(vm, stack.size() - len + stack.data(), len, false);
+            for (size_t i = 0; i < len; i++) stack.pop_back();
             allocated.push_back(vec);
-            stack.push_back(vec);
+            stack.emplace_back(vec);
         } else if (ti.t == V_VECTOR) {
             auto &sti = vm.GetTypeInfo(ti.subt);
             auto width = IsStruct(sti.t) ? sti.len : 1;
-            auto n = NumElems() / width;
+            auto len = NumElems();
+            auto n = len / width;
             auto vec = vm.NewVec(n, n, typeoff);
-            if (NumElems()) vec->Init(vm, stack.size() - NumElems() + stack.data(), false);
-            stack.resize(stack.size() - NumElems());
+            if (len) vec->Init(vm, stack.size() - len + stack.data(), false);
+            for (size_t i = 0; i < len; i++) stack.pop_back();
             allocated.push_back(vec);
-            stack.push_back(vec);
+            stack.emplace_back(vec);
         }
         // else if ti.t == V_STRUCT_* then.. do nothing!
     }
@@ -107,14 +109,14 @@ struct ValueParser {
                 ExpectType(V_INT, vt);
                 auto i = lex.IntVal();
                 lex.Next();
-                if (push) stack.push_back(i);
+                if (push) stack.emplace_back(i);
                 break;
             }
             case T_FLOAT: {
                 ExpectType(V_FLOAT, vt);
                 auto f = strtod(lex.sattr.data(), nullptr);
                 lex.Next();
-                if (push) stack.push_back(f);
+                if (push) stack.emplace_back(f);
                 break;
             }
             case T_STR: {
@@ -124,14 +126,14 @@ struct ValueParser {
                 if (push) {
                     auto str = vm.NewString(s);
                     allocated.push_back(str);
-                    stack.push_back(str);
+                    stack.emplace_back(str);
                 }
                 break;
             }
             case T_NIL: {
                 ExpectType(V_NIL, vt);
                 lex.Next();
-                if (push) stack.push_back(Value());
+                if (push) stack.emplace_back(NilVal());
                 break;
             }
             case T_MINUS: {
@@ -157,7 +159,7 @@ struct ValueParser {
                     auto opt = vm.LookupEnum(lex.sattr, ti.enumidx);
                     if (!opt) lex.Error("unknown enum value " + lex.sattr);
                     lex.Next();
-                    if (push) stack.push_back(*opt);
+                    if (push) stack.emplace_back(*opt);
                     break;
                 }
                 if (!IsUDT(vt) && vt != V_ANY)
@@ -173,7 +175,7 @@ struct ValueParser {
             }
             default:
                 lex.Error("illegal start of expression: " + lex.TokStr());
-                stack.push_back(Value());
+                stack.emplace_back(NilVal());
                 break;
         }
     }
@@ -192,19 +194,17 @@ struct ValueParser {
 static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp) {
     ValueParser parser(vm, inp);
     #ifdef USE_EXCEPTION_HANDLING
-    auto stack_level = sp;
     try
     #endif
     {
         parser.Parse(sp, typeoff);
-        Push(sp,  Value());
+        Push(sp, NilVal());
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        sp = stack_level;
         for (auto a : parser.allocated) a->Dec(vm);
-        Push(sp,  Value());
-        Push(sp,  vm.NewString(s));
+        Push(sp, NilVal());
+        Push(sp, vm.NewString(s));
     }
     #endif
 }

@@ -293,21 +293,21 @@ nfr("vr_start_eye", "isright,znear,zfar", "IFF", "",
     " replaces gl_perspective",
     [](StackPtr &, VM &, Value &isright, Value &znear, Value &zfar) {
         VREye(isright.True(), znear.fltval(), zfar.fltval());
-        return Value();
+        return NilVal();
     });
 
 nfr("vr_start", "", "", "",
     "starts VR by updating hmd & controller poses",
     [](StackPtr &, VM &) {
         VRStart();
-        return Value();
+        return NilVal();
     });
 
 nfr("vr_finish", "", "", "",
     "finishes vr rendering by compositing (and distorting) both eye renders to the screen",
     [](StackPtr &, VM &) {
         VRFinish();
-        return Value();
+        return NilVal();
     });
 
 nfr("vr_set_eye_texture", "unit,isright", "II", "",
@@ -316,7 +316,7 @@ nfr("vr_set_eye_texture", "unit,isright", "II", "",
     [](StackPtr &, VM &vm, Value &unit, Value &isright) {
         extern int GetSampler(VM &vm, Value &i);
         SetTexture(GetSampler(vm, unit), retex[isright.True()]);
-        return Value();
+        return NilVal();
     });
 
 nfr("vr_num_motion_controllers", "", "", "I",
@@ -347,7 +347,7 @@ nfr("vr_create_motion_controller_mesh", "n", "I", "R?",
     [](StackPtr &, VM &vm, Value &mc) {
         auto mcd = GetMC(mc);
         extern ResourceType mesh_type;
-        return mcd ? Value(vm.NewResource(VRCreateMesh(mcd->device), &mesh_type)) : Value();
+        return mcd ? Value(vm.NewResource(VRCreateMesh(mcd->device), &mesh_type)) : NilVal();
     });
 
 nfr("vr_motion_controller_button", "n,button", "IS", "I",

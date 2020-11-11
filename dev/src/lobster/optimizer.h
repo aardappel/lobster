@@ -64,7 +64,7 @@ Node *Node::Optimize(Optimizer &opt) {
     for (size_t i = 0; i < Arity(); i++) {
         Children()[i] = Children()[i]->Optimize(opt);
     }
-    Value cval;
+    Value cval = NilVal();
     auto t = ConstVal(&opt.tc, cval);
     if (t == V_VOID) return this;
     // Don't regenerate these.
@@ -96,7 +96,7 @@ Node *Node::Optimize(Optimizer &opt) {
 Node *IfThen::Optimize(Optimizer &opt) {
     // This optimzation MUST run, since it deletes untypechecked code.
     condition = condition->Optimize(opt);
-    Value cval;
+    Value cval = NilVal();
     if (condition->ConstVal(&opt.tc, cval) != V_VOID) {
         Node *r = nullptr;
         if (cval.True()) {
@@ -117,7 +117,7 @@ Node *IfThen::Optimize(Optimizer &opt) {
 Node *IfElse::Optimize(Optimizer &opt) {
     // This optimzation MUST run, since it deletes untypechecked code.
     condition = condition->Optimize(opt);
-    Value cval;
+    Value cval = NilVal();
     if (condition->ConstVal(&opt.tc, cval) != V_VOID) {
         auto &branch = cval.True() ? truepart : falsepart;
         auto r = branch->Optimize(opt);

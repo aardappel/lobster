@@ -321,7 +321,7 @@ Value VM::Error(string err) {
     }
     #endif
     UnwindOnError();
-    return Value();
+    return NilVal();
 }
 
 // Unlike Error above, this one does not attempt any variable dumping since the VM may already be
@@ -329,7 +329,7 @@ Value VM::Error(string err) {
 Value VM::SeriousError(string err) {
     ErrorBase(err);
     UnwindOnError();
-    return Value();
+    return NilVal();
 }
 
 void VM::VMAssert(const char *what)  {
@@ -571,7 +571,8 @@ void VM::WorkerWrite(RefObj *ref) {
     auto &ti = ref->ti(*this);
     if (ti.t != V_CLASS) Error("thread write: must be a class");
     auto st = (LObject *)ref;
-    auto buf = new Value[ti.len];
+    // Use malloc instead of pool, since this is being sent to another thread.
+    auto buf = (Value *)malloc(sizeof(Value) * ti.len);
     for (int i = 0; i < ti.len; i++) {
         // FIXME: lift this restriction.
         if (IsRefNil(GetTypeInfo(ti.elemtypes[i]).t))
@@ -602,7 +603,7 @@ LObject *VM::WorkerRead(type_elem_t tti) {
     if (!buf) return nullptr;
     auto ns = NewObject(ti.len, tti);
     ns->Init(*this, buf, ti.len, false);
-    delete[] buf;
+    free(buf);
     return ns;
 }
 
@@ -670,8 +671,8 @@ void CVM_Entry(int value_size) {
 }
 
 void CVM_SwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
-Value CVM_BackupVar(VM *vm, int i) { return BackupVar(*vm, i); }
-Value CVM_NilVal() { return NilVal(); }
+void CVM_BackupVar(VM *vm, int i, Value *d) { *d = BackupVar(*vm, i); }
+void CVM_NilVal(Value *d) { *d = NilVal(); }
 void CVM_DecOwned(VM *vm, int i) { DecOwned(*vm, i); }
 void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
 void CVM_RestoreBackup(VM *vm, int i, Value v) { RestoreBackup(*vm, i, v); }

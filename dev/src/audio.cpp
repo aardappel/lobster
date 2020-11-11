@@ -64,7 +64,7 @@ nfr("sound_halt", "channel", "I", "",
         int ch_idx = ch.intval();
         if (ch_idx > 0)
             SDLHaltSound(ch_idx);
-        return Value();
+        return NilVal();
     });
 
 nfr("sound_pause", "channel", "I", "",
@@ -73,7 +73,7 @@ nfr("sound_pause", "channel", "I", "",
         int ch_idx = ch.intval();
         if (ch_idx > 0)
             SDLPauseSound(ch_idx);
-        return Value();
+        return NilVal();
     });
 
 nfr("sound_resume", "channel", "I", "",
@@ -82,7 +82,7 @@ nfr("sound_resume", "channel", "I", "",
         int ch_idx = ch.intval();
         if (ch_idx > 0)
             SDLResumeSound(ch_idx);
-        return Value();
+        return NilVal();
     });
 
 nfr("sound_volume", "channel,volume", "IF", "",
@@ -91,7 +91,7 @@ nfr("sound_volume", "channel,volume", "IF", "",
         int ch_idx = ch.intval();
         if (ch_idx > 0)
             SDLSetVolume(ch_idx, vol.fltval());
-        return Value();
+        return NilVal();
     });
 
 }

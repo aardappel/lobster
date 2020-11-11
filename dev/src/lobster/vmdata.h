@@ -371,7 +371,13 @@ struct Value {
     void setival(iint i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
     void setfval(double f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
 
-    inline Value()                     : ref_(nullptr)    TYPE_INIT(V_NIL)      {}
+    // Important for efficiency that these can be uninitialized.
+    #if RTT_ENABLED
+        inline Value() : ival_(0xABADCAFEDEADBEEF), type(V_UNDEFINED) {}
+    #else
+        inline Value() { /* UNINITIALIZED! */ }
+    #endif
+
     // We underlying types here, because types like int64_t etc can be defined as different types
     // on different platforms, causing ambiguities between multiple types that are long or long long
     inline Value(int i)                : ival_((iint)i)   TYPE_INIT(V_INT)      {}
@@ -724,7 +730,7 @@ struct VM : VMArgs {
 
     // We stick this in here directly, since the constant offsets into this array in
     // compiled mode a big win.
-    Value vars[1];
+    Value vars[1] = { -1 };
 
     // NOTE: NO MORE VAR DECLS AFTER "vars"
 
@@ -835,14 +841,14 @@ VM_INLINE void SwapVars(VM &vm, int i, StackPtr psp, int off) {
     swap(vm.vars[i], *(psp - off));
 }
 
-VM_INLINE Value BackupVar(VM &vm, int i) {
-    auto v = vm.vars[i];
-    vm.vars[i] = Value();
-    return v;
+VM_INLINE Value NilVal() {
+    return Value(0, V_NIL);
 }
 
-VM_INLINE Value NilVal() {
-    return Value();
+VM_INLINE Value BackupVar(VM &vm, int i) {
+    auto v = vm.vars[i];
+    vm.vars[i] = NilVal();
+    return v;
 }
 
 VM_INLINE void DecOwned(VM &vm, int i) {

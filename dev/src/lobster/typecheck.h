@@ -1701,7 +1701,7 @@ struct TypeChecker {
         TT(condition, 1, LT_BORROW);
         NoStruct(*condition, name);
         DecBorrowers(condition->lt, *context);
-        Value cval;
+        Value cval = NilVal();
         if (condition->ConstVal(this, cval) != V_VOID) return cval;
         return {};
     }
@@ -2251,7 +2251,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
             tc.DecBorrowers(c->lt, *cas);
             if (ptype->IsEnum()) {
                 assert(c->exptype->IsEnum());
-                Value v;
+                Value v = NilVal();
                 if (c->ConstVal(&tc, v) != V_VOID) {
                     for (auto [i, ev] : enumerate(ptype->e->vals)) if (ev->val == v.ival()) {
                         enum_cases[i] = true;
@@ -3199,7 +3199,7 @@ bool While::Terminal(TypeChecker &tc) const {
     // NOTE: if body is terminal, that does not entail the loop is, since
     // condition may be false on first iteration.
     // Instead, it is only terminal if this is an infinite loop.
-    Value val;
+    Value val = NilVal();
     return condition->ConstVal(&tc, val) != V_VOID && val.True();
 }
 

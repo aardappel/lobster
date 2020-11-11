@@ -18,7 +18,15 @@
 
 #include "lobster/glinterface.h"
 
+#undef new
+
 #include "Box2D/Box2D.h"
+
+#ifdef _WIN32
+#ifndef NDEBUG
+#define new DEBUG_NEW
+#endif
+#endif
 
 using namespace lobster;
 
@@ -194,7 +202,7 @@ nfr("ph_dynamic", "shape,on", "RB", "",
         GetObject(vm, fixture_id)
             .fixture->GetBody()
             ->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
-        return Value();
+        return NilVal();
     });
 
 nfr("ph_set_color", "id,color", "R?F}:4", "",
@@ -212,7 +220,7 @@ nfr("ph_set_shader", "id,shadername", "R?S", "",
         auto &r = GetRenderable(vm, fixture_id);
         auto sh = LookupShader(shader.sval()->strv());
         if (sh) r.sh = sh;
-        return Value();
+        return NilVal();
     });
 
 nfr("ph_set_texture", "id,tex,texunit", "R?RI?", "",
@@ -222,7 +230,7 @@ nfr("ph_set_texture", "id,tex,texunit", "R?RI?", "",
         auto &r = GetRenderable(vm, fixture_id);
         extern Texture GetTexture(VM &vm, const Value &res);
         r.Get(GetSampler(vm, tex_unit)) = GetTexture(vm, tex);
-        return Value();
+        return NilVal();
     });
 
 nfr("ph_get_position", "id", "R", "F}:2",
@@ -264,7 +272,7 @@ nfr("ph_initialize_particles", "radius", "F", "",
     "initializes the particle system with a given particle radius.",
     [](StackPtr &, VM &, Value &size) {
         CheckParticles(size.fltval());
-        return Value();
+        return NilVal();
     });
 
 nfr("ph_step", "seconds,viter,piter", "FII", "",
@@ -289,7 +297,7 @@ nfr("ph_step", "seconds,viter,piter", "FII", "",
                 if (pc) pc->push_back(c.index);
             }
         }
-        return Value();
+        return NilVal();
     });
 
 nfr("ph_particle_contacts", "id", "R", "I]",
@@ -338,7 +346,7 @@ nfr("ph_delete_particle", "i", "I", "",
     [](StackPtr &, VM &, Value &i) {
         CheckPhysics();
         particlesystem->DestroyParticle(i.intval());
-        return Value();
+        return NilVal();
     });
 
 nfr("ph_getparticle_position", "i", "I", "F}:2",
@@ -389,14 +397,14 @@ nfr("ph_render", "", "", "",
         }
         otransforms.set_object2view(oldobject2view);
         curcolor = oldcolor;
-        return Value();
+        return NilVal();
     });
 
 nfr("ph_render_particles", "scale", "F", "",
     "render all particles, with the given scale.",
     [](StackPtr &, VM &, Value &particlescale) {
         CheckPhysics();
-        if (!particlesystem) return Value();
+        if (!particlesystem) return NilVal();
         // LOG_DEBUG("rendering particles: ", particlesystem->GetParticleCount());
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
@@ -405,7 +413,7 @@ nfr("ph_render_particles", "scale", "F", "",
         particlematerial->Set();
         RenderArraySlow(PRIM_POINT, make_span(verts, particlesystem->GetParticleCount()), "pC",
                         span<int>(), make_span(colors, particlesystem->GetParticleCount()));
-        return Value();
+        return NilVal();
     });
 
 }  // AddPhysics

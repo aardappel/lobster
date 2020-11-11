@@ -116,7 +116,7 @@ nfr("gl_set_max_font_size", "size", "I", "",
     " will still work but cause scaled rendering. default 256",
     [](StackPtr &, VM &, Value &fontsize) {
         maxfontsize = fontsize.intval();
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_get_font_size", "", "", "I",

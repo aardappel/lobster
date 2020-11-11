@@ -93,19 +93,19 @@ nfr("oc_optimize", "octree", "R", "", "",
         ocworld.all_dirty = true;
         auto numnodes3 = ocworld.NumNodes();
         LOG_INFO("oc_optimize: ", numnodes1, ", ", numnodes2, ", ", numnodes3, ", ");
-        return Value();
+        return NilVal();
     });
 
 nfr("oc_load", "name", "S", "R?", "",
     [](StackPtr &, VM &vm, Value &name) {
         string buf;
         auto r = LoadFile(name.sval()->strv(), &buf);
-        if (r < 0) return Value();
+        if (r < 0) return NilVal();
         auto p = (const uint8_t *)buf.c_str();
-        if (strncmp((const char *)p, magic, strlen(magic))) return Value();
+        if (strncmp((const char *)p, magic, strlen(magic))) return NilVal();
         p += strlen(magic);
         auto version = ReadMemInc<int>(p);
-        if (version > cur_version) return Value();
+        if (version > cur_version) return NilVal();
         auto bits = ReadMemInc<int>(p);
         auto ocworld = new OcTree(bits);
         ReadVec(p, ocworld->nodes);

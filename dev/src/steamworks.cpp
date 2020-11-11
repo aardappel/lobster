@@ -195,7 +195,7 @@ nfr("steam_read_file", "file", "S", "S?",
         string buf;
         auto len = SteamReadFile(fn, buf);
         if (!len) len = (int)LoadFile(fn, &buf);
-        if (len < 0) return Value();
+        if (len < 0) return NilVal();
         auto s = vm.NewString(buf);
         return Value(s);
     });

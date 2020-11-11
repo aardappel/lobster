@@ -158,7 +158,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?", "S?",
         LOG_INFO("graphics fully initialized...");
         graphics_initialized = true;
         atexit(GraphicsShutDown);
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_require_version", "major,minor", "II", "",
@@ -166,7 +166,7 @@ nfr("gl_require_version", "major,minor", "II", "",
             " Currently only works on win/nix, minimum is 3.2.",
     [](StackPtr &, VM &, Value &major, Value &minor) {
         SDLRequireGLVersion(major.intval(), minor.intval());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
@@ -177,7 +177,7 @@ nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
         TestGL(vm);
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv())
                                    : LoadMaterialFile(fn.sval()->strv());
-        return err[0] ? Value(vm.NewString(err)) : Value();
+        return err[0] ? Value(vm.NewString(err)) : NilVal();
     });
 
 nfr("gl_frame", "", "", "B",
@@ -193,7 +193,7 @@ nfr("gl_shutdown", "", "", "",
     " before the end of the program",
     [](StackPtr &, VM &) {
         GraphicsShutDown();
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_window_title", "title", "S", "Sb",
@@ -209,7 +209,7 @@ nfr("gl_window_min_max", "dir", "I", "",
     [](StackPtr &, VM &vm, Value &dir) {
         TestGL(vm);
         SDLWindowMinMax(dir.intval());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_visible", "", "", "B",
@@ -276,14 +276,14 @@ nfr("gl_set_text_input", "text", "S", "",
     "overwrites the current text string being accumulated",
     [](StackPtr &, VM &, Value &text) {
         SDLTextInputSet(text.sval()->strv());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_end_text_input", "", "", "",
     "stops accumulating text input",
     [](StackPtr &, VM &) {
         SDLEndTextInput();
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_touchscreen", "", "", "B",
@@ -404,7 +404,7 @@ nfr("gl_polygon", "vertlist", "F}]", "",
         auto m = CreatePolygon(vm, vl);
         m->Render(currentshader);
         delete m;
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_circle", "radius,segments", "FI", "",
@@ -412,7 +412,7 @@ nfr("gl_circle", "radius,segments", "FI", "",
     [](StackPtr &, VM &vm, Value &radius, Value &segments) {
         TestGL(vm);
         geomcache->RenderCircle(currentshader, polymode, max(segments.intval(), 3), radius.fltval());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_open_circle", "radius,segments,thickness", "FIF", "",
@@ -424,7 +424,7 @@ nfr("gl_open_circle", "radius,segments,thickness", "FIF", "",
         geomcache->RenderOpenCircle(currentshader, max(segments.intval(), 3), radius.fltval(),
                                     thickness.fltval());
 
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_unit_cube", "insideout", "I?", "",
@@ -432,7 +432,7 @@ nfr("gl_unit_cube", "insideout", "I?", "",
     " out",
     [](StackPtr &, VM &, Value &inside) {
         geomcache->RenderUnitCube(currentshader, inside.True());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_rotate_x", "vec", "F}:2", "",
@@ -523,7 +523,7 @@ nfr("gl_point_scale", "factor", "F", "",
     " the ideal size may also be FOV dependent.",
     [](StackPtr &, VM &, Value &f) {
         custompointscale = f.fltval();
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_line_mode", "on", "I", "I",
@@ -603,7 +603,7 @@ nfr("gl_unit_square", "centered", "I?", "",
     [](StackPtr &, VM &vm, Value &centered) {
         TestGL(vm);
         geomcache->RenderUnitSquare(currentshader, polymode, centered.True());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_line", "start,end,thickness", "F}F}F", "",
@@ -624,7 +624,7 @@ nfr("gl_perspective", "fovy,znear,zfar", "FFF", "",
     [](StackPtr &, VM &, Value &fovy, Value &znear, Value &zfar) {
         Set3DMode(fovy.fltval() * RAD, GetScreenSize().x / (float)GetScreenSize().y, znear.fltval(),
                   zfar.fltval());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_ortho", "rh,depth", "I?I?", "",
@@ -635,7 +635,7 @@ nfr("gl_ortho", "rh,depth", "I?I?", "",
     " Pass true to depth to have depth testing/writing on.",
     [](StackPtr &, VM &, Value &rh, Value &depth) {
         Set2DMode(GetFrameBufferSize(GetScreenSize()), rh.False(), depth.True());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_ortho3d", "center,extends", "F}F}", "",
@@ -742,7 +742,7 @@ nfr("gl_new_mesh_iqm", "filename", "S", "R?",
     [](StackPtr &, VM &vm, Value &fn) {
         TestGL(vm);
         auto m = LoadIQM(fn.sval()->strv());
-        return m ? Value(vm.NewResource(m, &mesh_type)) : Value();
+        return m ? Value(vm.NewResource(m, &mesh_type)) : NilVal();
     });
 
 nfr("gl_mesh_parts", "m", "R", "S]",
@@ -765,7 +765,7 @@ nfr("gl_animate_mesh", "m,frame", "RF", "",
     "set the frame for animated mesh m",
     [](StackPtr &, VM &vm, Value &i, Value &f) {
         GetMesh(vm, i).curanim = f.fltval();
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_render_mesh", "m", "R", "",
@@ -773,7 +773,7 @@ nfr("gl_render_mesh", "m", "R", "",
     [](StackPtr &, VM &vm, Value &i) {
         TestGL(vm);
         GetMesh(vm, i).Render(currentshader);
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_save_mesh", "m,name", "RS", "B",
@@ -792,7 +792,7 @@ nfr("gl_mesh_pointsize", "m,pointsize", "RF", "",
     [](StackPtr &, VM &vm, Value &i, Value &ps) {
         auto &m = GetMesh(vm, i);
         m.pointsize = ps.fltval();
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_set_shader", "shader", "S", "",
@@ -803,7 +803,7 @@ nfr("gl_set_shader", "shader", "S", "",
         auto sh = LookupShader(shader.sval()->strv());
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
         currentshader = sh;
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_set_uniform", "name,value", "SF}", "B",
@@ -889,7 +889,7 @@ nfr("gl_delete_buffer_object", "id", "I", "",
         // FIXME: should route this thru a IntResourceManagerCompact to be safe?
         // I guess GL doesn't care about illegal id's?
         DeleteBO(id.intval());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_bind_mesh_to_compute", "mesh,name", "R?S", "",
@@ -899,7 +899,7 @@ nfr("gl_bind_mesh_to_compute", "mesh,name", "R?S", "",
         TestGL(vm);
         if (mesh.True()) GetMesh(vm, mesh).geom->BindAsSSBO(currentshader, name.sval()->strv());
         else UniformBufferObject(currentshader, nullptr, 0, -1, name.sval()->strv(), true, 0);
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_dispatch_compute", "groups", "I}:3", "",
@@ -939,7 +939,7 @@ nfr("gl_load_texture", "name,textureformat", "SI?", "R?",
     [](StackPtr &, VM &vm, Value &name, Value &tf) {
         TestGL(vm);
         auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
-        return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : Value();
+        return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : NilVal();
     });
 
 nfr("gl_set_primitive_texture", "i,tex,textureformat", "IRI?", "",
@@ -947,7 +947,7 @@ nfr("gl_set_primitive_texture", "i,tex,textureformat", "IRI?", "",
     [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
         SetTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_set_mesh_texture", "mesh,part,i,texture", "RIIR", "",
@@ -957,7 +957,7 @@ nfr("gl_set_mesh_texture", "mesh,part,i,texture", "RIIR", "",
         if (part.ival() < 0 || part.ival() >= (int)m.surfs.size())
             vm.BuiltinError("setmeshtexture: illegal part index");
         m.surfs[part.ival()]->Get(GetSampler(vm, i)) = GetTexture(vm, id);
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_set_image_texture", "i,tex,textureformat", "IRI", "",
@@ -967,7 +967,7 @@ nfr("gl_set_image_texture", "i,tex,textureformat", "IRI", "",
     [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
         SetImageTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
-        return Value();
+        return NilVal();
     });
 
 nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R",
@@ -1021,9 +1021,9 @@ nfr("gl_read_texture", "tex", "R", "S?",
         TestGL(vm);
         auto tex = GetTexture(vm, t);
         auto numpixels = tex.size.x * tex.size.y;
-        if (!numpixels) return Value();
+        if (!numpixels) return NilVal();
         auto buf = ReadTexture(tex);
-        if (!buf) return Value();
+        if (!buf) return NilVal();
         auto s = vm.NewString(string_view((char *)buf, numpixels * 4));
         delete[] buf;
         return Value(s);

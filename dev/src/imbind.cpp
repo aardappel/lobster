@@ -232,7 +232,7 @@ void AddIMGUI(NativeRegistry &nfr) {
 nfr("im_init", "dark_style,flags", "B?I?", "",
     "",
     [](StackPtr &, VM &, Value &darkstyle, Value &flags) {
-        if (imgui_init) return Value();
+        if (imgui_init) return NilVal();
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags.ival();
@@ -240,7 +240,7 @@ nfr("im_init", "dark_style,flags", "B?I?", "",
         ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
         ImGui_ImplOpenGL3_Init("#version 150");
         imgui_init = true;
-        return Value();
+        return NilVal();
     });
 
 nfr("im_add_font", "font_path,size", "SF", "B",
@@ -249,7 +249,7 @@ nfr("im_add_font", "font_path,size", "SF", "B",
         IsInit(vm, false);
         string buf;
         auto l = LoadFile(fontname.sval()->strv(), &buf);
-        if (l < 0) return Value();
+        if (l < 0) return NilVal();
         auto mb = malloc(buf.size());  // FIXME.
         memcpy(mb, buf.data(), buf.size());
         ImFontConfig imfc;
@@ -320,7 +320,7 @@ nfr("im_same_line", "", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::SameLine();
-        return Value();
+        return NilVal();
     });
 
 nfr("im_separator", "", "", "",
@@ -328,7 +328,7 @@ nfr("im_separator", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::Separator();
-        return Value();
+        return NilVal();
     });
 
 nfr("im_text", "label", "S", "",
@@ -336,7 +336,7 @@ nfr("im_text", "label", "S", "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
         ImGui::Text("%s", text.sval()->data());
-        return Value();
+        return NilVal();
     });
 
 nfr("im_tooltip", "label", "S", "",
@@ -344,7 +344,7 @@ nfr("im_tooltip", "label", "S", "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", text.sval()->data());
-        return Value();
+        return NilVal();
     });
 
 nfr("im_checkbox", "label,bool", "SI", "I2",
@@ -492,7 +492,7 @@ nfr("im_graph", "label,values,ishistogram", "SF]I", "",
             ImGui::PlotLines(label.sval()->data(), getter, vals.vval()->Elems(),
                 (int)vals.vval()->len);
         }
-        return Value();
+        return NilVal();
     });
 
 nfr("im_show_vars", "", "", "",
@@ -500,7 +500,7 @@ nfr("im_show_vars", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         VarsToGUI(vm);
-        return Value();
+        return NilVal();
     });
 
 nfr("im_show_engine_stats", "", "", "",
@@ -508,7 +508,7 @@ nfr("im_show_engine_stats", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         EngineStatsGUI();
-        return Value();
+        return NilVal();
     });
 
 }  // AddIMGUI

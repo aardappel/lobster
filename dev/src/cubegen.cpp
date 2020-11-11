@@ -182,7 +182,7 @@ nfr("cg_copy_palette", "fromworld,toworld", "RR", "", "",
         auto &w2 = GetVoxels(vm, toworld);
         w2.palette.clear();
         w2.palette.insert(w2.palette.end(), w1.palette.begin(), w1.palette.end());
-        return Value();
+        return NilVal();
     });
 
 nfr("cg_sample_down", "scale,world", "IR", "", "",
@@ -211,7 +211,7 @@ nfr("cg_sample_down", "scale,world", "IR", "", "",
             }
         }
         v.grid.Shrink(v.grid.dim / sc);
-        return Value();
+        return NilVal();
     });
 
 nfr("cg_scale_up", "scale,world", "IR", "R", "",
@@ -385,7 +385,7 @@ nfr("cg_load_vox", "name", "S", "R?",
         string buf;
         auto l = LoadFile(namep, &buf);
         if (l < 0) return Value(0);
-        if (strncmp(buf.c_str(), "VOX ", 4)) return Value();
+        if (strncmp(buf.c_str(), "VOX ", 4)) return NilVal();
         int3 size = int3_0;
         Voxels *voxels = nullptr;
         auto p = buf.c_str() + 8;
@@ -398,7 +398,7 @@ nfr("cg_load_vox", "name", "S", "R?",
                 size = int3((int *)p);
                 voxels = NewWorld(size);
             } else if (!strncmp(id, "RGBA", 4)) {
-                if (!voxels) return Value();
+                if (!voxels) return NilVal();
                 voxels->palette.clear();
                 voxels->palette.push_back(byte4_0);
                 voxels->palette.insert(voxels->palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
@@ -409,7 +409,7 @@ nfr("cg_load_vox", "name", "S", "R?",
                     }
                 }
             } else if (!strncmp(id, "XYZI", 4)) {
-                if (!voxels) return Value();
+                if (!voxels) return NilVal();
                 auto numvoxels = *((int *)p);
                 for (int i = 0; i < numvoxels; i++) {
                     auto vox = byte4((uint8_t *)(p + i * 4 + 4));
@@ -625,7 +625,7 @@ nfr("cg_randomize", "world,rnd_range,cutoff,paletteindex,filter", "RIIII", "", "
                 }
             }
         }
-        return Value();
+        return NilVal();
     });
 
 nfr("cg_erode", "world,minsolid,maxsolid", "RII", "R", "",

@@ -68,7 +68,7 @@ nfr("print", "x", "Ss", "",
         vm.s_reuse.clear();
         RefToString(vm, vm.s_reuse, a.refnil(), vm.programprintprefs);
         LOG_PROGRAM(vm.s_reuse);
-        return Value();
+        return NilVal();
     });
 
 // This is now the identity function, but still useful to force a coercion.
@@ -755,7 +755,7 @@ nfr("rnd_gaussian", "", "", "F",
     [](StackPtr &, VM &) { return Value(rnd.rnd_gaussian()); });
 nfr("rnd_seed", "seed", "I", "",
     "explicitly set a random seed for reproducable randomness",
-    [](StackPtr &, VM &, Value &seed) { rnd.seed((int)seed.ival()); return Value(); });
+    [](StackPtr &, VM &, Value &seed) { rnd.seed((int)seed.ival()); return NilVal(); });
 
 nfr("div", "a,b", "II", "F",
     "forces two ints to be divided as floats",
@@ -1233,7 +1233,7 @@ nfr("assert", "condition", "A*", "Ab1",
 nfr("pass", "", "", "",
     "does nothing. useful for empty bodies of control structures.",
     [](StackPtr &, VM &) {
-        return Value();
+        return NilVal();
     });
 
 nfr("trace_bytecode", "mode", "I", "",
@@ -1241,7 +1241,7 @@ nfr("trace_bytecode", "mode", "I", "",
     " you are trying to isolate a compiler bug. Mode is off(0), on(1) or tail only (2)",
     [](StackPtr &, VM &vm, Value &i) {
         vm.Trace((TraceMode)i.ival());
-        return Value();
+        return NilVal();
     });
 
 nfr("reference_count", "val", "A", "I",
@@ -1255,7 +1255,7 @@ nfr("set_console", "on", "B", "",
     "lets you turn on/off the console window (on Windows)",
     [](StackPtr &, VM &, Value &x) {
         SetConsole(x.True());
-        return Value();
+        return NilVal();
     });
 
 nfr("command_line_arguments", "", "", "S]",
@@ -1281,7 +1281,7 @@ nfr("start_worker_threads", "numthreads", "I", "",
     "launch worker threads",
     [](StackPtr &, VM &vm, Value &n) {
         vm.StartWorkers(n.ival());
-        return Value();
+        return NilVal();
     });
 
 nfr("stop_worker_threads", "", "", "",
@@ -1290,7 +1290,7 @@ nfr("stop_worker_threads", "", "", "",
             " will become false inside the workers, which should then exit.",
     [](StackPtr &, VM &vm) {
         vm.TerminateWorkers();
-        return Value();
+        return NilVal();
     });
 
 nfr("workers_alive", "", "", "B",
@@ -1304,7 +1304,7 @@ nfr("thread_write", "struct", "A", "",
     "put this struct in the thread queue",
     [](StackPtr &, VM &vm, Value &s) {
         vm.WorkerWrite(s.refnil());
-        return Value();
+        return NilVal();
     });
 
 nfr("thread_read", "type", "T", "A1?",
