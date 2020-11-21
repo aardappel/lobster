@@ -728,11 +728,13 @@ struct VM : VMArgs {
         jmp_buf jump_buffer;
     #endif
 
+    vector<Value> fvar_def_backup;
+
     // We stick this in here directly, since the constant offsets into this array in
     // compiled mode a big win.
-    Value vars[1] = { -1 };
+    Value fvars[1] = { -1 };
 
-    // NOTE: NO MORE VAR DECLS AFTER "vars"
+    // NOTE: NO MORE VAR DECLS AFTER "fvars"
 
     VM(VMArgs &&args, const bytecode::BytecodeFile *bcf);
     ~VM();
@@ -838,34 +840,38 @@ VM_INLINE pair<Value *, iint> PopVecPtr(StackPtr &sp) {
 // Codegen helpers.
 
 VM_INLINE void SwapVars(VM &vm, int i, StackPtr psp, int off) {
-    swap(vm.vars[i], *(psp - off));
+    swap(vm.fvars[i], *(psp - off));
 }
 
 VM_INLINE Value NilVal() {
     return Value(0, V_NIL);
 }
 
-VM_INLINE Value BackupVar(VM &vm, int i) {
-    auto v = vm.vars[i];
-    vm.vars[i] = NilVal();
-    return v;
+VM_INLINE void BackupVar(VM &vm, int i) {
+    vm.fvar_def_backup.push_back(vm.fvars[i]);
+    vm.fvars[i] = NilVal();
 }
 
 VM_INLINE void DecOwned(VM &vm, int i) {
-    vm.vars[i].LTDECRTNIL(vm);
+    vm.fvars[i].LTDECRTNIL(vm);
 }
 
 VM_INLINE void DecVal(VM &vm, Value v) {
     v.LTDECRTNIL(vm);
 }
 
-VM_INLINE void RestoreBackup(VM &vm, int i, Value v) {
-    vm.vars[i] = v;
+VM_INLINE void RestoreBackup(VM &vm, int i) {
+    vm.fvars[i] = vm.fvar_def_backup.back();
+    vm.fvar_def_backup.pop_back();
 }
 
 VM_INLINE StackPtr PopArg(VM &vm, int i, StackPtr psp) {
-    vm.vars[i] = Pop(psp);
+    vm.fvars[i] = Pop(psp);
     return psp;
+}
+
+VM_INLINE void SetLVal(VM &vm, Value *v) {
+    vm.temp_lval = v;
 }
 
 template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {

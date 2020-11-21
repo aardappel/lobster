@@ -573,13 +573,23 @@ VM_INLINE StackPtr U_E2BREF(VM &, StackPtr sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_PUSHVAR(VM &vm, StackPtr sp, int vidx) {
-    Push(sp, vm.vars[vidx]);
+VM_INLINE StackPtr U_PUSHVARL(VM &, StackPtr sp, int) {
+    assert(false);
     return sp;
 }
 
-VM_INLINE StackPtr U_PUSHVARV(VM &vm, StackPtr sp, int vidx, int l) {
-    tsnz_memcpy(TopPtr(sp), &vm.vars[vidx], l);
+VM_INLINE StackPtr U_PUSHVARF(VM &vm, StackPtr sp, int vidx) {
+    Push(sp, vm.fvars[vidx]);
+    return sp;
+}
+
+VM_INLINE StackPtr U_PUSHVARVL(VM &, StackPtr sp, int, int) {
+    assert(false);
+    return sp;
+}
+
+VM_INLINE StackPtr U_PUSHVARVF(VM &vm, StackPtr sp, int vidx, int l) {
+    tsnz_memcpy(TopPtr(sp), &vm.fvars[vidx], l);
     PushN(sp, l);
     return sp;
 }
@@ -737,11 +747,15 @@ VM_INLINE StackPtr U_ABORT(VM &vm, StackPtr sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_LVAL_VAR(VM &vm, StackPtr sp, int vidx) {
-    vm.temp_lval = &vm.vars[vidx];
+VM_INLINE StackPtr U_LVAL_VARL(VM &, StackPtr sp, int) {
+    assert(false);
     return sp;
 }
 
+VM_INLINE StackPtr U_LVAL_VARF(VM &vm, StackPtr sp, int vidx) {
+    vm.temp_lval = &vm.fvars[vidx];
+    return sp;
+}
 
 VM_INLINE StackPtr U_LVAL_FLD(VM &vm, StackPtr sp, int i) {
     vm.temp_lval = &GetFieldLVal(vm, sp, i);

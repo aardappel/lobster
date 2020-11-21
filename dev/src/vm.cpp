@@ -671,12 +671,13 @@ void CVM_Entry(int value_size) {
 }
 
 void CVM_SwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
-void CVM_BackupVar(VM *vm, int i, Value *d) { *d = BackupVar(*vm, i); }
+void CVM_BackupVar(VM *vm, int i) { BackupVar(*vm, i); }
 void CVM_NilVal(Value *d) { *d = NilVal(); }
 void CVM_DecOwned(VM *vm, int i) { DecOwned(*vm, i); }
 void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
-void CVM_RestoreBackup(VM *vm, int i, Value v) { RestoreBackup(*vm, i, v); }
+void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
+void CVM_SetLVal(VM *vm, Value *v) { SetLVal(*vm, v); }
 
 #define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
@@ -733,6 +734,7 @@ const void *vm_ops_jit_table[] = {
     "DecVal", (void *)CVM_DecVal,
     "RestoreBackup", (void *)CVM_RestoreBackup,
     "PopArg", (void *)CVM_PopArg,
+    "SetLVal", (void *)CVM_SetLVal,
     #if LOBSTER_ENGINE
     "GLFrame", (void *)GLFrame,
     #endif

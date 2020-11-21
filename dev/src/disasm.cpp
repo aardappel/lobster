@@ -122,13 +122,16 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             break;
         }
 
-        case IL_PUSHVARV:
+        case IL_PUSHVARVL:
+        case IL_PUSHVARVF:
             sd += IdName(bcf, *ip++, typetable, true);
             append(sd, " ", *ip++);
             break;
 
-        case IL_LVAL_VAR:
-        case IL_PUSHVAR:
+        case IL_LVAL_VARL:
+        case IL_LVAL_VARF:
+        case IL_PUSHVARL:
+        case IL_PUSHVARF:
             sd += IdName(bcf, *ip++, typetable, false);
             break;
 

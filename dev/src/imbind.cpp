@@ -202,7 +202,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
 void VarsToGUI(VM &vm) {
     auto DumpVars = [&](bool constants) {
         for (uint32_t i = 0; i < vm.bcf->specidents()->size(); i++) {
-            auto &val = vm.vars[i];
+            auto &val = vm.fvars[i];
             auto sid = vm.bcf->specidents()->Get(i);
             auto id = vm.bcf->idents()->Get(sid->ididx());
             if (!id->global() || id->readonly() != constants) continue;

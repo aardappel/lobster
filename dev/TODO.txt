@@ -9,6 +9,10 @@
     JIT-clang release: 12.7
     JIT-clang debug: 61.4 (4.8x)
 
+  - remove serialized nature of the bytecode file?
+    - instead keep serial whatever needs to end up in the exe, the rest goes in a data structure.
+    - would disable using JIT with a .pak?
+
   - move more stuff into the epilogue.
   - check if its fast -> so far no change, so first simplify more.
   - clean up generated code
@@ -24,7 +28,9 @@
     - remaining free vars use vars array & backup system as-is for now.
       - free var backup only for recursive functions?
     - note: an ownedvar can address either of these 2 kinds!
+    - is used_as_freevar needed in serialized data?
     - options for vars considered that we're not doing.
+    - shrink vars array in VM
     - Could really help the amount of free vars by const prop of scalars and scalar structs.
       - problem: their defs should ideally first be optimized, yet their uses may come first
         in optimizer.
@@ -46,6 +52,11 @@
   - reduce use of ElemType.
   - Can we somehow call builtins directly, or at least do something special for push and
     other very common once so they don't pay an indirection cost / can be inlined?
+
+- Add to docs:
+  - As static as possible memory management: https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-908.pdf
+
+- Do better stats on specialization code bloat, and implement a byte-code level merging pass.
 
 - Should make float div by 0 use +inf/nan/-inf like the ieee standard. Java/C#/JS already do this,
   and its useful for mathy gameplay/graphics code.
@@ -79,6 +90,9 @@
 - docs only show switch used as exp
 
 - many: some form of string interpolation
+     "let " + name + ":" + t + " = " + (init + 1)
+     "let $name:$t = ${init + 1}"     // or require variables only
+     "let {name}:{t} = {init + 1}"
 
 - enums
   - mortimersnerd: get min/max
@@ -685,6 +699,10 @@
 
 - enable dynamic function value call on any exp, see ParseDeref.
 
+- gltf loader?
+  - could use this: https://github.com/jkuhlmann/cgltf
+  - or instead create a schema for FlatBuffers so it can be read directly.
+
 - nice samples to port:
   https://github.com/ssloy/tinyraytracer
 
@@ -944,6 +962,27 @@
   But not quite as nice as a real macro facility, since now you have a large block of string
   in your code, for more complex cases. And no easy way to do instances/parameter.
   And errors that refer to code you can't see.
+  Can however also take exps as input like a real macro system, though having a ton of functions
+  to access and create AST nodes not as easy as string processing?
+  Can make AST access pretty generic, though there are lots of little features that may need
+  special accessors, and the code producing this will look less readable.
+  Can do an inbetween where all args to the macro are strings, though they may have types for the
+  caller that restrict the kinds of inputs.
+  So, hygienic inputs but not necessarily outputs :P
+
+  macro DEFINE(name:ident, t:type, init:exp):
+      return "let " + name + ":" + t + " = " + init
+  DEFINE(a, int, 1)
+  print a
+
+  the types ident/type/exp would be strings inside the macro body.
+  the "macro" definition would not actually parse the body of that macro, since we need it as
+  text to invoke a new VM with. It would prefix it with `let name = "a"` etc to execute it.
+  Then the resulting text needs to be inserted in the parent similar to an import statement.
+  Hmm, but the caller of a macro can't just call ParseExp() etc, since we don't these to create
+  AST nodes that we then have to convert back to string, worse, they can't have an effect on
+  the current parser state like requiring a variable to exist.
+  Better to wait until we have the first use case for it?
 
 - if your forget ":" after "else", it is going to try and declare a following identifier as a
   function parameter, see FIXME in ParseTrailingFunctionValues
@@ -1454,6 +1493,7 @@
   - Could integrate with VSCode instead.
     - Sadly the Language Server system is overly complicated, requiring JSON RPC over HTTP to
       communicate.
+      - but the communication channel can still be stdio!
     - Should maybe start with just the debugger, as it is simpler (can communicate over stdio)
       https://microsoft.github.io/debug-adapter-protocol/
 
@@ -2144,6 +2184,9 @@ C++64-Clang10-LTO     : secs  4.6
 C++64-Clang10-LTO     : secs  4.1, removed trampoline
 C++64-MSVC+TCC        : secs 11.6, 30% speedup vs interpreter!
 C++64-MSVC+TCC        : secs 12.5, some temp setbacks due to lval refactor etc.
+C++64-Clang10-LTO     : secs  3.4, moved vars to local array, fastest yet!
+C++64-MSVC            : secs  5.4, moved vars to local array, somehow doesn't help.
+C++64-MSVC+TCC        : secs 13.8, moved vars to local array, somehow worse!
 
 compiletime speed:
 

@@ -27,7 +27,10 @@ struct ValueParser {
     VM &vm;
     vector<Value> stack;
 
-    ValueParser(VM &vm, string_view _src) : lex("string", filenames, _src), vm(vm) {}
+    ValueParser(VM &vm, string_view _src) : lex("string", filenames, _src), vm(vm) {
+        stack.reserve(16);
+        allocated.reserve(16);
+    }
 
     void Parse(StackPtr &sp, type_elem_t typeoff) {
         ParseFactor(typeoff, true);

@@ -63,6 +63,7 @@ struct SpecIdent {
     Lifetime lt = LT_UNDEF;
     int idx, sidx = -1;     // Into specidents, and into vm ordering.
     SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
+    bool used_as_freevar = false;  // determined in codegen.
 
     SpecIdent(Ident *_id, TypeRef _type, int idx)
         : id(_id), type(_type), idx(idx){}

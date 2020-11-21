@@ -25,6 +25,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
     auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
     auto function_lookup = CreateFunctionLookUp(bcf);
+    auto specidents = bcf->specidents();
 
     if (cpp) {
         sd +=
@@ -97,14 +98,19 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
               "extern void Entry(int);\n"
               "extern StackPtr GLFrame(StackPtr, VMRef);\n"
               "extern void SwapVars(VMRef, int, StackPtr, int);\n"
-              "extern void BackupVar(VMRef, int, Value *);\n"
+              "extern void BackupVar(VMRef, int);\n"
               "extern void NilVal(Value *);\n"
               "extern void DecOwned(VMRef, int);\n"
               "extern void DecVal(VMRef, Value);\n"
-              "extern void RestoreBackup(VMRef, int, Value);\n"
+              "extern void RestoreBackup(VMRef, int);\n"
               "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
+              "extern void SetLVal(VMRef, Value *);\n"
               "\n";
     }
+
+    vector<int> var_to_local;
+    var_to_local.resize(specidents->size(), -1);
+    int numlocals = -1;
 
     auto len = bcf->bytecode()->Length();
     auto ip = code;
@@ -137,12 +143,38 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     const int *funstart = nullptr;
     int nkeepvars = 0;
     int ndefsave = 0;
-    string sdt;
+    string sdt, comment;
+    int opc = -1;
+    const int *args = nullptr;
+    auto add_comment = [&]() {
+        if (opc == IL_PUSHVARL || opc == IL_PUSHVARVL || opc == IL_LVAL_VARL ||
+            opc == IL_PUSHVARF || opc == IL_PUSHVARVF || opc == IL_LVAL_VARF) {
+            comment = IdName(bcf, args[0], typetable, false);
+        } else if (opc == IL_PUSHSTR) {
+            auto sv = bcf->stringtable()->Get(args[0])->string_view();
+            sv = sv.substr(0, 50);
+            EscapeAndQuote(sv, comment, true);
+        } else if (opc == IL_CALL) {
+            auto fs = code + args[0];
+            assert(*fs == IL_FUNSTART);
+            fs += 2;
+            comment = bcf->functions()->Get(*fs)->name()->string_view();
+        } else if (ISBCALL(opc)) {
+            comment = natreg.nfuns[args[0]]->name;
+        } else if (opc == IL_ISTYPE || opc == IL_NEWOBJECT || opc == IL_ST2S) {
+            auto ti = ((TypeInfo *)(typetable + args[0]));
+            if (IsUDT(ti->t)) comment = bcf->udts()->Get(ti->structidx)->name()->string_view();
+        }
+        if (!comment.empty()) {
+            append(sd, " /* ", comment, " */");
+            comment.clear();
+        }
+    };
     while (ip < code + len) {
         int id = (int)(ip - code);
         bool is_start = ip == starting_ip;
-        int opc = *ip++;
-        auto args = ip + 1;
+        opc = *ip++;
+        args = ip + 1;
         if (opc == IL_FUNSTART || is_start) {
             funstart = args;
             nkeepvars = 0;
@@ -158,14 +190,31 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 fip++;  // definedfunction
                 auto regs_max = *fip++;
                 auto nargs_fun = *fip++;
+                auto nargs = fip;
                 fip += nargs_fun;
                 ndefsave = *fip++;
+                auto defs = fip;
                 fip += ndefsave;
                 nkeepvars = *fip++;
+                #ifndef NDEBUG
+                    var_to_local.clear();
+                    var_to_local.resize(specidents->size(), -1);
+                #endif
+                numlocals = 0;
+                for (int j = 0; j < 2; j++) {
+                    auto vars = j ? defs : nargs;
+                    auto len = j ? ndefsave : nargs_fun;
+                    for (int i = 0; i < len; i++) {
+                        auto varidx = vars[i];
+                        if (!specidents->Get(varidx)->used_as_freevar()) {
+                            var_to_local[varidx] = numlocals++;
+                        }
+                    }
+                }
                 // FIXME: don't emit array.
                 append(sd, "    Value regs[", max(1, regs_max), "];\n");
-                if (ndefsave) append(sd, "    Value defsave[", ndefsave, "];\n");
                 if (nkeepvars) append(sd, "    Value keepvar[", nkeepvars, "];\n");
+                if (numlocals) append(sd, "    Value locals[", numlocals, "];\n");
             } else {
                 // Final program return at most 1 value.
                 append(sd, "    Value regs[1];\n");
@@ -183,7 +232,12 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             fip++;  // regs_max.
             auto nargs_fun = *fip++;
             for (int i = 0; i < nargs_fun; i++) {
-                append(sd, "\n    SwapVars(vm, ", fip[i], ", psp, ", nargs_fun - i - 1, ");");
+                auto varidx = fip[i];
+                if (specidents->Get(varidx)->used_as_freevar()) {
+                    append(sd, "\n    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i - 1, ");");
+                } else {
+                    append(sd, "\n    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i - 1, ");");
+                }
             }
             fip += nargs_fun;
             ndefsave = *fip++;
@@ -191,15 +245,37 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 // for most locals, this just saves an nil, only in recursive cases it has an actual
                 // value.
                 auto varidx = *fip++;
-                if (cpp) append(sd, "\n    defsave[", i, "] = BackupVar(vm, ", varidx, ");");
-                else
-                    append(sd, "\n    BackupVar(vm, ", varidx, ", &defsave[", i, "]);");
+                if (specidents->Get(varidx)->used_as_freevar()) {
+                    append(sd, "\n    BackupVar(vm, ", varidx, ");");
+                } else {
+                    // FIXME: it should even be unnecessary to initialize them, but its possible
+                    // there is a return before they're fully initialized, and then the decr of
+                    // owned vars may cause these to be accessed.
+                    if (cpp)
+                        append(sd, "\n    locals[", var_to_local[varidx], "] = lobster::NilVal();");  // FIXME ns
+                    else
+                        append(sd, "\n    NilVal(&locals[", var_to_local[varidx], "]);");
+                }
             }
             nkeepvars = *fip++;
             for (int i = 0; i < nkeepvars; i++) {
                 if (cpp) append(sd, "\n    keepvar[", i, "] = lobster::NilVal();");  // FIXME ns
                 else append(sd, "\n    NilVal(&keepvar[", i, "]);");
             }
+        } else if (opc == IL_PUSHVARL) {
+            // FIXME: add comment
+            append(sd, "Push(sp, locals[", var_to_local[args[0]], "]);");
+            add_comment();
+        } else if (opc == IL_PUSHVARVL) {
+            // FIXME: add comment
+            for (int i = 0; i < args[1]; i++) {
+                append(sd, "Push(sp, locals[", var_to_local[args[0] + i], "]);");
+            }
+            add_comment();
+        } else if (opc == IL_LVAL_VARL) {
+            // FIXME: add comment
+            append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
+            add_comment();
         } else if (opc == IL_JUMP) {
             append(sd, "goto block", args[0], ";");
         } else if (CONDJUMP(opc)) {
@@ -267,21 +343,32 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             }
             auto ownedvars = *fip++;
             for (int i = 0; i < ownedvars; i++) {
-                append(sd, "\n    DecOwned(vm, ", *fip, ");");
-                fip++;
+                auto varidx = *fip++;
+                if (specidents->Get(varidx)->used_as_freevar()) {
+                    append(sd, "\n    DecOwned(vm, ", varidx, ");");
+                } else {
+                    append(sd, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
+                }
             }
             while (nargs--) {
-                auto i = *--freevars;
-                append(sd, "\n    psp = PopArg(vm, ", i, ", psp);");
+                auto varidx = *--freevars;
+                if (specidents->Get(varidx)->used_as_freevar()) {
+                    append(sd, "\n    psp = PopArg(vm, ", varidx, ", psp);");
+                } else {
+                    // TODO: move to when we obtain the arg?
+                    append(sd, "\n    Pop(psp);");
+                }
             }
             for (int i = 0; i < nrets; i++) {
                 append(sd, "\n    Push(psp, TopM(sp, ", nrets - i - 1, "));");
             }
             if (nrets) append(sd, "\n    sp -= ", nrets, ";");
             sdt.clear();  // FIXME: remove
-            for (int i = 0; i < ndef; i++) {
+            for (int i = ndef - 1; i >= 0; i--) {
                 auto varidx = defvars[i];
-                append(sdt, "    RestoreBackup(vm, ", varidx, ", defsave[", i, "]);\n");
+                if (specidents->Get(varidx)->used_as_freevar()) {
+                    append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
+                }
             }
             if (opc == IL_RETURN) {
                 append(sd, "\n    goto epilogue;");
@@ -303,27 +390,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "fun_", args[0]);
             }
             sd += ");";
-
-            string comment;
-            if (opc == IL_PUSHVAR || opc == IL_PUSHVARV || opc == IL_LVAL_VAR) {
-                comment = IdName(bcf, args[0], typetable, false);
-            } else if (opc == IL_PUSHSTR) {
-                auto sv = bcf->stringtable()->Get(args[0])->string_view();
-                sv = sv.substr(0, 50);
-                EscapeAndQuote(sv, comment, true);
-            } else if (opc == IL_CALL) {
-                auto fs = code + args[0];
-                assert(*fs == IL_FUNSTART);
-                fs += 2;
-                comment = bcf->functions()->Get(*fs)->name()->string_view();
-            } else if (ISBCALL(opc)) {
-                comment = natreg.nfuns[args[0]]->name;
-            } else if (opc == IL_ISTYPE || opc == IL_NEWOBJECT || opc == IL_ST2S) {
-                auto ti = ((TypeInfo *)(typetable + args[0]));
-                if (IsUDT(ti->t)) comment = bcf->udts()->Get(ti->structidx)->name()->string_view();
-            }
-            if (!comment.empty()) append(sd, " /* ", comment, " */");
-
+            add_comment();
             if (opc == IL_CALL) {
                 append(sd, " sp = fun_", args[0], "(vm, sp);");
             } else if (opc == IL_CALLV || opc == IL_DDCALL) {

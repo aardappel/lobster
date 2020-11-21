@@ -20,7 +20,7 @@
 
 namespace lobster {
 
-const int LOBSTER_BYTECODE_FORMAT_VERSION = 18;
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 19;
 
 // Any type specialized ops below must always have this ordering.
 enum MathOp {
@@ -36,8 +36,10 @@ enum MathOp {
     F(PUSHFLT64,    2, 0, 1) \
     F(PUSHSTR,      1, 0, 1) \
     F(PUSHNIL,      0, 0, 1) \
-    F(PUSHVAR,      1, 0, 1) \
-    F(PUSHVARV,     2, 0, ILUNKNOWN) \
+    F(PUSHVARF,     1, 0, 1) \
+    F(PUSHVARL,     1, 0, 1) \
+    F(PUSHVARVF,    2, 0, ILUNKNOWN) \
+    F(PUSHVARVL,    2, 0, ILUNKNOWN) \
     F(VPUSHIDXI,    0, 2, 1) \
     F(VPUSHIDXI2V,  0, 2, ILUNKNOWN) \
     F(VPUSHIDXV,    1, ILUNKNOWN, ILUNKNOWN) \
@@ -113,7 +115,8 @@ enum MathOp {
     F(BLOCK_START, 0, 0, 0) \
     F(JUMP_TABLE_END, 0, 0, 0) \
     F(JUMP_TABLE_CASE_START, 0, 0, 0) \
-    F(LVAL_VAR, 1, 0, 0) \
+    F(LVAL_VARF, 1, 0, 0) \
+    F(LVAL_VARL, 1, 0, 0) \
     F(LVAL_FLD, 1, 1, 0) \
     F(LVAL_IDXVI, 0, 2, 0) \
     F(LVAL_IDXVV, 1, ILUNKNOWN, 0) \
