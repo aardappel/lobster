@@ -220,49 +220,51 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "    Value regs[1];\n");
             }
             append(sd, "    StackPtr sp = &regs[-1];\n");
+            if (opc == IL_FUNSTART) {
+                auto fip = funstart;
+                fip++;  // definedfunction
+                fip++;  // regs_max.
+                auto nargs_fun = *fip++;
+                for (int i = 0; i < nargs_fun; i++) {
+                    auto varidx = fip[i];
+                    if (specidents->Get(varidx)->used_as_freevar()) {
+                        append(sd, "    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i - 1, ");\n");
+                    } else {
+                        append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i - 1, ");\n");
+                    }
+                }
+                fip += nargs_fun;
+                ndefsave = *fip++;
+                for (int i = 0; i < ndefsave; i++) {
+                    // for most locals, this just saves an nil, only in recursive cases it has an actual
+                    // value.
+                    auto varidx = *fip++;
+                    if (specidents->Get(varidx)->used_as_freevar()) {
+                        append(sd, "    BackupVar(vm, ", varidx, ");\n");
+                    } else {
+                        // FIXME: it should even be unnecessary to initialize them, but its possible
+                        // there is a return before they're fully initialized, and then the decr of
+                        // owned vars may cause these to be accessed.
+                        if (cpp)
+                            append(sd, "    locals[", var_to_local[varidx], "] = lobster::NilVal();\n");  // FIXME ns
+                        else
+                            append(sd, "    NilVal(&locals[", var_to_local[varidx], "]);\n");
+                    }
+                }
+                nkeepvars = *fip++;
+                for (int i = 0; i < nkeepvars; i++) {
+                    if (cpp) append(sd, "    keepvar[", i, "] = lobster::NilVal();\n");  // FIXME ns
+                    else append(sd, "    NilVal(&keepvar[", i, "]);\n");
+                }
+            }
         }
         int regso = -1;
         auto arity = ParseOpAndGetArity(opc, ip, regso);
+        if (opc == IL_FUNSTART) continue;
         append(sd, "    ");
-        if (cpp && opc != IL_SAVERETS && opc != IL_JUMPIFUNWOUND && opc != IL_RETURNANY && opc != IL_FUNSTART)   // FIXME
+        if (cpp && opc != IL_SAVERETS && opc != IL_JUMPIFUNWOUND && opc != IL_RETURNANY)  // FIXME
             append(sd, "assert(sp == &regs[", regso - 1, "]); ");
-        if (opc == IL_FUNSTART) {
-            auto fip = funstart;
-            fip++;  // definedfunction
-            fip++;  // regs_max.
-            auto nargs_fun = *fip++;
-            for (int i = 0; i < nargs_fun; i++) {
-                auto varidx = fip[i];
-                if (specidents->Get(varidx)->used_as_freevar()) {
-                    append(sd, "\n    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i - 1, ");");
-                } else {
-                    append(sd, "\n    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i - 1, ");");
-                }
-            }
-            fip += nargs_fun;
-            ndefsave = *fip++;
-            for (int i = 0; i < ndefsave; i++) {
-                // for most locals, this just saves an nil, only in recursive cases it has an actual
-                // value.
-                auto varidx = *fip++;
-                if (specidents->Get(varidx)->used_as_freevar()) {
-                    append(sd, "\n    BackupVar(vm, ", varidx, ");");
-                } else {
-                    // FIXME: it should even be unnecessary to initialize them, but its possible
-                    // there is a return before they're fully initialized, and then the decr of
-                    // owned vars may cause these to be accessed.
-                    if (cpp)
-                        append(sd, "\n    locals[", var_to_local[varidx], "] = lobster::NilVal();");  // FIXME ns
-                    else
-                        append(sd, "\n    NilVal(&locals[", var_to_local[varidx], "]);");
-                }
-            }
-            nkeepvars = *fip++;
-            for (int i = 0; i < nkeepvars; i++) {
-                if (cpp) append(sd, "\n    keepvar[", i, "] = lobster::NilVal();");  // FIXME ns
-                else append(sd, "\n    NilVal(&keepvar[", i, "]);");
-            }
-        } else if (opc == IL_PUSHVARL) {
+        if (opc == IL_PUSHVARL) {
             // FIXME: add comment
             append(sd, "Push(sp, locals[", var_to_local[args[0]], "]);");
             add_comment();
@@ -374,7 +376,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "\n    goto epilogue;");
             }
         } else if (opc == IL_SAVERETS) {  // FIXME: remove
-            append(sd, "\n    goto epilogue;");
+            append(sd, "goto epilogue;");
         } else if (opc == IL_KEEPREF || opc == IL_KEEPREFLOOP) {
             if (opc == IL_KEEPREFLOOP) append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
             append(sd, "keepvar[", args[1], "] = TopM(sp, ", args[0], ");");

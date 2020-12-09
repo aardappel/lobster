@@ -1,7 +1,4 @@
 - natgen refactor
-  - clean up generated code
-  - somehow remove temp_lval
-  - make all builtin calls direct
   - most access to local arrays still thru memory, clearly alias analysis failing.
     - work to replace sp by direct use of regs[offset]
     - split up arrays into individual vars where possible.
@@ -9,6 +6,8 @@
       be properly register allocated.
     - make args into actual C++ args?
       - this could help not having to pass parent pointers to regs which could help optimisation.
+  - somehow remove temp_lval
+  - make all builtin calls direct
   - move more stuff into the epilogue.
   - de-inline vm ops that are big: check in disassembly
   - make top not -1.. start at end?
