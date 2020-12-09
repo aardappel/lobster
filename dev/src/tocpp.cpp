@@ -262,7 +262,8 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         auto arity = ParseOpAndGetArity(opc, ip, regso);
         if (opc == IL_FUNSTART) continue;
         append(sd, "    ");
-        if (cpp && opc != IL_SAVERETS && opc != IL_JUMPIFUNWOUND && opc != IL_RETURNANY)  // FIXME
+        if (cpp && opc != IL_SAVERETS && opc != IL_JUMPIFUNWOUND && opc != IL_RETURNANY &&
+            opc != IL_JUMP_TABLE_CASE_START)  // FIXME
             append(sd, "assert(sp == &regs[", regso - 1, "]); ");
         if (opc == IL_PUSHVARL) {
             // FIXME: add comment
