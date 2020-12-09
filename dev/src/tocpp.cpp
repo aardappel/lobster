@@ -219,7 +219,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 // Final program return at most 1 value.
                 append(sd, "    Value regs[1];\n");
             }
-            append(sd, "    StackPtr sp = &regs[-1];\n");
+            append(sd, "    StackPtr sp = regs - 1; (void)sp;\n");
             if (opc == IL_FUNSTART) {
                 auto fip = funstart;
                 fip++;  // definedfunction
@@ -264,7 +264,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         append(sd, "    ");
         if (cpp && opc != IL_SAVERETS && opc != IL_JUMPIFUNWOUND && opc != IL_RETURNANY &&
             opc != IL_JUMP_TABLE_CASE_START)  // FIXME
-            append(sd, "assert(sp == &regs[", regso - 1, "]); ");
+            append(sd, "assert(sp == regs + ", regso - 1, "); ");
         if (opc == IL_PUSHVARL) {
             // FIXME: add comment
             append(sd, "Push(sp, locals[", var_to_local[args[0]], "]);");
