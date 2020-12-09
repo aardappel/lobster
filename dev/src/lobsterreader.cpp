@@ -41,11 +41,11 @@ struct ValueParser {
     }
 
     // Vector or struct.
-    void ParseElems(TType end, type_elem_t typeoff, int numelems, bool push) {
+    void ParseElems(TType end, type_elem_t typeoff, iint numelems, bool push) {
         Gobble(T_LINEFEED);
         auto &ti = vm.GetTypeInfo(typeoff);
         auto stack_start = stack.size();
-        auto NumElems = [&]() { return stack.size() - stack_start; };
+        auto NumElems = [&]() { return iint(stack.size() - stack_start); };
         if (lex.token == end) lex.Next();
         else {
             for (;;) {
@@ -77,7 +77,7 @@ struct ValueParser {
             auto len = NumElems();
             auto vec = vm.NewObject(len, typeoff);
             if (len) vec->Init(vm, stack.size() - len + stack.data(), len, false);
-            for (size_t i = 0; i < len; i++) stack.pop_back();
+            for (iint i = 0; i < len; i++) stack.pop_back();
             allocated.push_back(vec);
             stack.emplace_back(vec);
         } else if (ti.t == V_VECTOR) {
@@ -87,7 +87,7 @@ struct ValueParser {
             auto n = len / width;
             auto vec = vm.NewVec(n, n, typeoff);
             if (len) vec->Init(vm, stack.size() - len + stack.data(), false);
-            for (size_t i = 0; i < len; i++) stack.pop_back();
+            for (iint i = 0; i < len; i++) stack.pop_back();
             allocated.push_back(vec);
             stack.emplace_back(vec);
         }
