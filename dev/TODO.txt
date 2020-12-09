@@ -1,57 +1,28 @@
 - natgen refactor
-  - speed??
-    C++-msvc release: 5.5
-    C++-msvc debug: 626 (114x), RTC off: 198.3 (36x)
-    JIT-msvc release 12.7
-    JIT-msvc debug: 369 (29x), RTC off: 194.5 (15x)
-    C++-clang release: 3.7
-    C++-clang debug: 53.6 (14x)
-    JIT-clang release: 12.7
-    JIT-clang debug: 61.4 (4.8x)
-
-  - remove serialized nature of the bytecode file?
-    - instead keep serial whatever needs to end up in the exe, the rest goes in a data structure.
-    - would disable using JIT with a .pak?
-
-  - move more stuff into the epilogue.
-  - check if its fast -> so far no change, so first simplify more.
   - clean up generated code
-  - regs array should not be initialized in release mode.
-    - https://stackoverflow.com/questions/42672600/prevent-construction-initialization-of-array-elements-in-c
+  - somehow remove temp_lval
+  - make all builtin calls direct
+  - most access to local arrays still thru memory, clearly alias analysis failing.
+    - work to replace sp by direct use of regs[offset]
+    - split up arrays into individual vars where possible.
+    - ideally then make sure these vars never "overlap" when used with structs, so they can
+      be properly register allocated.
+    - make args into actual C++ args?
+      - this could help not having to pass parent pointers to regs which could help optimisation.
+  - move more stuff into the epilogue.
   - de-inline vm ops that are big: check in disassembly
   - make top not -1.. start at end?
   - NO RUNTIME STACKTRACES!
-  - rework var access:
-    - vars that are never freevar (the majority) become a reg.
-      - remove from vars array.
-      - These need new kinds of var access instructions!
-    - remaining free vars use vars array & backup system as-is for now.
-      - free var backup only for recursive functions?
-    - note: an ownedvar can address either of these 2 kinds!
-    - is used_as_freevar needed in serialized data?
-    - options for vars considered that we're not doing.
-    - shrink vars array in VM
-    - Could really help the amount of free vars by const prop of scalars and scalar structs.
-      - problem: their defs should ideally first be optimized, yet their uses may come first
-        in optimizer.
-  - move vm.temp_lval to a local.
-  - rather than modifying `sp`, use constant offsets, which may help simpler compilers.
-    - ideally then make sure these vars never "overlap" when used with structs, so they can
-      be properly register allocated.
-    - can even try to make them into individual variables rather than an array.
-    - make args into actual C++ args?
-      - this could help not having to pass parent pointers to regs which could help optimisation.
+  - shrink fvars array in VM
   - can finally remove exceptions? could instead execute a return from -3 or whatever.
     - the big challenge is doing that for errors.
+      - this may be easier after builtins are inlined.
   - Now that all bytecode goes to native gen, make bytecode more specific to it.
   - threading appears broken (sequential?)
   - remove next_call_target
   - test/enable
     - --cpp mode for mac/ios
-  - benchmark!
   - reduce use of ElemType.
-  - Can we somehow call builtins directly, or at least do something special for push and
-    other very common once so they don't pay an indirection cost / can be inlined?
 
 - Add to docs:
   - As static as possible memory management: https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-908.pdf
@@ -2187,6 +2158,18 @@ C++64-MSVC+TCC        : secs 12.5, some temp setbacks due to lval refactor etc.
 C++64-Clang10-LTO     : secs  3.4, moved vars to local array, fastest yet!
 C++64-MSVC            : secs  5.4, moved vars to local array, somehow doesn't help.
 C++64-MSVC+TCC        : secs 13.8, moved vars to local array, somehow worse!
+C++64-MSVC            : secs  4.3, deeper inlining.
+
+debug speed:
+
+    C++-msvc release: 5.5
+    C++-msvc debug: 626 (114x), RTC off: 198.3 (36x)
+    JIT-msvc release 12.7
+    JIT-msvc debug: 369 (29x), RTC off: 194.5 (15x)
+    C++-clang release: 3.7
+    C++-clang debug: 53.6 (14x)
+    JIT-clang release: 12.7
+    JIT-clang debug: 61.4 (4.8x)
 
 compiletime speed:
 

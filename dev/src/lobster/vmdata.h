@@ -33,6 +33,21 @@ namespace lobster {
 
 #define DELETE_DELAY 0
 
+#ifdef NDEBUG
+    // Inlining the base VM ops allows for a great deal of optimisation,
+    // collapsing a lot of code.
+    #ifdef _WIN32
+        #define VM_INLINE __forceinline
+    #else
+        #define VM_INLINE inline __attribute__((always_inline))
+    #endif
+    #define VM_INLINEM VM_INLINE
+#else
+    // Inlining things causes a code explosion in debug, so use static instead.
+    #define VM_INLINE static inline
+    #define VM_INLINEM inline
+#endif
+
 enum ValueType : int {
     // refc types are negative
     V_MINVMTYPES = -9,
@@ -349,59 +364,59 @@ struct Value {
     #endif
 
     // These asserts help track down any invalid code generation issues.
-    iint        ival  () const { TYPE_ASSERT(type == V_INT);        return ival_;        }
-    double      fval  () const { TYPE_ASSERT(type == V_FLOAT);      return fval_;        }
-    int         intval() const { TYPE_ASSERT(type == V_INT);        return (int)ival_;   }
-    float       fltval() const { TYPE_ASSERT(type == V_FLOAT);      return (float)fval_; }
-    LString    *sval  () const { TYPE_ASSERT(type == V_STRING);     return sval_;        }
-    LVector    *vval  () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;        }
-    LObject    *oval  () const { TYPE_ASSERT(type == V_CLASS);      return oval_;        }
-    LResource  *xval  () const { TYPE_ASSERT(type == V_RESOURCE);   return xval_;        }
-    RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
-    RefObj     *refnil() const { TYPE_ASSERT(IsRefNil(type));       return ref_;         }
-    FunPtr      ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
-    void       *any   () const {                                    return ref_;         }
-    TypeInfo   *tival () const { TYPE_ASSERT(type == V_STRUCT_S);   return ti_;          }
+    VM_INLINEM iint        ival  () const { TYPE_ASSERT(type == V_INT);        return ival_;        }
+    VM_INLINEM double      fval  () const { TYPE_ASSERT(type == V_FLOAT);      return fval_;        }
+    VM_INLINEM int         intval() const { TYPE_ASSERT(type == V_INT);        return (int)ival_;   }
+    VM_INLINEM float       fltval() const { TYPE_ASSERT(type == V_FLOAT);      return (float)fval_; }
+    VM_INLINEM LString    *sval  () const { TYPE_ASSERT(type == V_STRING);     return sval_;        }
+    VM_INLINEM LVector    *vval  () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;        }
+    VM_INLINEM LObject    *oval  () const { TYPE_ASSERT(type == V_CLASS);      return oval_;        }
+    VM_INLINEM LResource  *xval  () const { TYPE_ASSERT(type == V_RESOURCE);   return xval_;        }
+    VM_INLINEM RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
+    VM_INLINEM RefObj     *refnil() const { TYPE_ASSERT(IsRefNil(type));       return ref_;         }
+    VM_INLINEM FunPtr      ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
+    VM_INLINEM void       *any   () const {                                    return ref_;         }
+    VM_INLINEM TypeInfo   *tival () const { TYPE_ASSERT(type == V_STRUCT_S);   return ti_;          }
 
     template<typename T> T ifval() const {
         if constexpr (is_floating_point<T>()) { TYPE_ASSERT(type == V_FLOAT); return (T)fval_; }
         else                                  { TYPE_ASSERT(type == V_INT);   return (T)ival_; }
     }
 
-    void setival(iint i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
-    void setfval(double f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
+    VM_INLINEM void setival(iint i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
+    VM_INLINEM void setfval(double f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
 
     // Important for efficiency that these can be uninitialized.
     #if RTT_ENABLED
-        inline Value() : ival_(0xABADCAFEDEADBEEF), type(V_UNDEFINED) {}
+        VM_INLINEM Value() : ival_(0xABADCAFEDEADBEEF), type(V_UNDEFINED) {}
     #else
-        inline Value() { /* UNINITIALIZED! */ }
+        VM_INLINEM Value() { /* UNINITIALIZED! */ }
     #endif
 
     // We underlying types here, because types like int64_t etc can be defined as different types
     // on different platforms, causing ambiguities between multiple types that are long or long long
-    inline Value(int i)                : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    inline Value(unsigned int i)       : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    inline Value(long i)               : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    inline Value(unsigned long i)      : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    inline Value(long long i)          : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    inline Value(unsigned long long i) : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    inline Value(int i, ValueType t)   : ival_(i)         TYPE_INIT(t)          { (void)t; }
-    inline Value(bool b)               : ival_(b)         TYPE_INIT(V_INT)      {}
-    inline Value(float f)              : fval_(f)         TYPE_INIT(V_FLOAT)    {}
-    inline Value(double f)             : fval_((double)f) TYPE_INIT(V_FLOAT)    {}
-    inline Value(FunPtr i)             : ip_(i)           TYPE_INIT(V_FUNCTION) {}
+    VM_INLINEM Value(int i)                : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    VM_INLINEM Value(unsigned int i)       : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    VM_INLINEM Value(long i)               : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    VM_INLINEM Value(unsigned long i)      : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    VM_INLINEM Value(long long i)          : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    VM_INLINEM Value(unsigned long long i) : ival_((iint)i)   TYPE_INIT(V_INT)      {}
+    VM_INLINEM Value(int i, ValueType t)   : ival_(i)         TYPE_INIT(t)          { (void)t; }
+    VM_INLINEM Value(bool b)               : ival_(b)         TYPE_INIT(V_INT)      {}
+    VM_INLINEM Value(float f)              : fval_(f)         TYPE_INIT(V_FLOAT)    {}
+    VM_INLINEM Value(double f)             : fval_((double)f) TYPE_INIT(V_FLOAT)    {}
+    VM_INLINEM Value(FunPtr i)             : ip_(i)           TYPE_INIT(V_FUNCTION) {}
 
-    inline Value(LString *s)         : sval_(s)         TYPE_INIT(V_STRING)     {}
-    inline Value(LVector *v)         : vval_(v)         TYPE_INIT(V_VECTOR)     {}
-    inline Value(LObject *s)         : oval_(s)         TYPE_INIT(V_CLASS)      {}
-    inline Value(LResource *r)       : xval_(r)         TYPE_INIT(V_RESOURCE)   {}
-    inline Value(RefObj *r)          : ref_(r)          TYPE_INIT(V_NIL)        { assert(false); }
+    VM_INLINEM Value(LString *s)         : sval_(s)         TYPE_INIT(V_STRING)     {}
+    VM_INLINEM Value(LVector *v)         : vval_(v)         TYPE_INIT(V_VECTOR)     {}
+    VM_INLINEM Value(LObject *s)         : oval_(s)         TYPE_INIT(V_CLASS)      {}
+    VM_INLINEM Value(LResource *r)       : xval_(r)         TYPE_INIT(V_RESOURCE)   {}
+    VM_INLINEM Value(RefObj *r)          : ref_(r)          TYPE_INIT(V_NIL)        { assert(false); }
 
-    inline Value(TypeInfo *ti)       : ti_(ti)          TYPE_INIT(V_STRUCT_S)   {}
+    VM_INLINEM Value(TypeInfo *ti) : ti_(ti) TYPE_INIT(V_STRUCT_S) {}
 
-    inline bool True() const { return ival_ != 0; }
-    inline bool False() const { return ival_ == 0; }
+    VM_INLINEM bool True() const { return ival_ != 0; }
+    VM_INLINEM bool False() const { return ival_ == 0; }
 
     inline Value &LTINCRT() {
         TYPE_ASSERT(IsRef(type) && ref_);
@@ -700,19 +715,6 @@ struct VM : VMArgs {
     int64_t vm_count_fcalls = 0;
     int64_t vm_count_bcalls = 0;
     int64_t vm_count_decref = 0;
-
-    #ifdef NDEBUG
-        // Inlining the base VM ops allows for a great deal of optimisation,
-        // collapsing a lot of code.
-        #ifdef _WIN32
-            #define VM_INLINE __forceinline
-        #else
-            #define VM_INLINE inline __attribute__((always_inline))
-        #endif
-    #else
-        // Inlining things causes a code explosion in debug, so use static instead.
-        #define VM_INLINE static inline
-    #endif
 
     typedef StackPtr (* f_ins_pointer)(VM &, StackPtr);
 
