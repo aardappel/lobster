@@ -227,7 +227,7 @@ elseif(LOBSTER_JIT)
         # SELinux is turned on, we need to compile libtcc with
         # -DHAVE_SELINUX or the JIT will not work.
 	message("Found SELinux")
-	set_source_files_properties(external/libtcc/libtcc.c PROPERTIES COMPILE_FLAGS -DHAVE_CMAKE)
+	set_source_files_properties(external/libtcc/libtcc.c PROPERTIES COMPILE_FLAGS -DHAVE_SELINUX)
       endif()
     endif()
   endif()
