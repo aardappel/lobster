@@ -699,7 +699,7 @@ static int rt_get_caller_pc(addr_t *paddr, ucontext_t *uc, int level)
 }
 
 /* ------------------------------------------------------------- */
-#elif defined(__aarch64__)
+#elif defined(__aarch64__doesntwork)
 
 static int rt_get_caller_pc(addr_t *paddr, ucontext_t *uc, int level)
 {
