@@ -219,7 +219,7 @@ elseif(LOBSTER_JIT)
   set_source_files_properties(external/libtcc/libtcc.c PROPERTIES COMPILE_FLAGS -w)
   # Check for SELinux...
   if(UNIX)
-    find_program(SELINUX_CHECKER selinuxenabled REQUIRED)
+    find_program(SELINUX_CHECKER selinuxenabled)
     if(SELINUX_CHECKER)
       message("Checking for SELinux...")
       execute_process(COMMAND ${SELINUX_CHECKER} RESULTS_VARIABLE SELINUX_CHECKER_RETURNED)
