@@ -192,7 +192,7 @@ VM_INLINE StackPtr U_RETURN(VM &vm, StackPtr sp, int df, int /*nrv*/) {
     return sp;
 }
 
-VM_INLINE StackPtr U_RETURNANY(VM &, StackPtr sp, int /*nretslots*/) {
+VM_INLINE StackPtr U_RETURNANY(VM &, StackPtr sp, int /*nretslots_unwind*/, int /*nretslots_norm*/) {
     return sp;
 }
 
@@ -221,18 +221,15 @@ VM_INLINE StackPtr U_EXIT(VM &vm, StackPtr sp, int tidx) {
     return sp;
 }
 
-VM_INLINE StackPtr ForLoop(VM &, StackPtr sp, iint len) {
+VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
     auto &i = TopM(sp, 1);
     TYPE_ASSERT(i.type == V_INT);
     i.setival(i.ival() + 1);
     if (i.ival() >= len) {
-        (void)Pop(sp); /* iter */
-        (void)Pop(sp); /* i */
-        Push(sp, false);
+        return false;
     } else {
-        Push(sp, true);
+        return true;
     }
-    return sp;
 }
 
 #define FORELEM(L) \
@@ -240,9 +237,9 @@ VM_INLINE StackPtr ForLoop(VM &, StackPtr sp, iint len) {
     auto i = TopM(sp, 1).ival(); \
     assert(i < L);
 
-VM_INLINE StackPtr U_IFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).ival()); return sp; }
-VM_INLINE StackPtr U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval()->len); return sp; }
-VM_INLINE StackPtr U_SFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).sval()->len); return sp; }
+VM_INLINE bool U_IFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).ival()); }
+VM_INLINE bool U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval()->len); }
+VM_INLINE bool U_SFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).sval()->len); }
 
 VM_INLINE StackPtr U_IFORELEM(VM &, StackPtr sp)      { FORELEM(iter.ival()); (void)iter; Push(sp, i); return sp; }
 VM_INLINE StackPtr U_SFORELEM(VM &, StackPtr sp)      { FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i])); return sp; }
@@ -696,36 +693,31 @@ VM_INLINE StackPtr U_JUMP_TABLE_CASE_START(VM &, StackPtr sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_JUMP(VM &, StackPtr sp) {
+VM_INLINE bool U_JUMP(VM &, StackPtr) {
     assert(false);
-    return sp;
+    return false;
 }
 
-VM_INLINE StackPtr U_JUMPFAIL(VM &, StackPtr sp) {
-    return sp;
+VM_INLINE bool U_JUMPFAIL(VM &, StackPtr sp) {
+    return sp->True();
 }
 
-VM_INLINE StackPtr U_JUMPFAILR(VM &, StackPtr sp) {
-    auto x = Top(sp);
-    Push(sp, x);
-    return sp;
+VM_INLINE bool U_JUMPFAILR(VM &, StackPtr sp) {
+    return sp->True();
 }
 
-VM_INLINE StackPtr U_JUMPNOFAIL(VM &, StackPtr sp) {
+VM_INLINE bool U_JUMPNOFAIL(VM &, StackPtr sp) {
     auto x = Pop(sp);
-    Push(sp, x.False());
-    return sp;
+    return x.False();
 }
 
-VM_INLINE StackPtr U_JUMPNOFAILR(VM &, StackPtr sp) {
+VM_INLINE bool U_JUMPNOFAILR(VM &, StackPtr sp) {
     auto x = Top(sp);
-    Push(sp, x.False());
-    return sp;
+    return x.False();
 }
 
-VM_INLINE StackPtr U_JUMPIFUNWOUND(VM &vm, StackPtr sp, int df) {
-    Push(sp, vm.ret_unwind_to != df);
-    return sp;
+VM_INLINE bool U_JUMPIFUNWOUND(VM &vm, StackPtr, int df) {
+    return vm.ret_unwind_to != df;
 }
 
 VM_INLINE StackPtr U_JUMP_TABLE(VM &, StackPtr sp, const int *) {
@@ -809,10 +801,10 @@ VM_INLINE StackPtr U_LV_DUPREFV(VM &vm, StackPtr sp, int l) {
 }
 */
 
-#define LVALCASES(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr &sp) { \
+#define LVALCASES(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr sp) { \
     auto &a = *vm.temp_lval; Value b = Pop(sp); B; return sp; }
 
-#define LVALCASER(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr &sp, int len) { \
+#define LVALCASER(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr sp, int len) { \
     auto &fa = *vm.temp_lval; B; return sp; }
 
 LVALCASER(IVVADD , _IVOPV(+, 0, &fa))
@@ -854,7 +846,7 @@ LVALCASES(FSUB   , _FOP(-, 0); a = res;)
 LVALCASES(FMUL   , _FOP(*, 0); a = res;)
 LVALCASES(FDIV   , _FOP(/, 1); a = res;)
 
-VM_INLINE StackPtr U_LV_SADD(VM &vm, StackPtr &sp) {
+VM_INLINE StackPtr U_LV_SADD(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     Value b = Pop(sp);
     _SCAT();
@@ -863,7 +855,7 @@ VM_INLINE StackPtr U_LV_SADD(VM &vm, StackPtr &sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_LV_WRITE(VM &vm, StackPtr &sp) {
+VM_INLINE StackPtr U_LV_WRITE(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     auto  b = Pop(sp);
     TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL);
@@ -871,7 +863,7 @@ VM_INLINE StackPtr U_LV_WRITE(VM &vm, StackPtr &sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_LV_WRITEREF(VM &vm, StackPtr &sp) {
+VM_INLINE StackPtr U_LV_WRITEREF(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     auto  b = Pop(sp);
     a.LTDECRTNIL(vm);
@@ -880,7 +872,7 @@ VM_INLINE StackPtr U_LV_WRITEREF(VM &vm, StackPtr &sp) {
     return sp;
 }
 
-VM_INLINE StackPtr U_LV_WRITEV(VM &vm, StackPtr &sp, int l) {
+VM_INLINE StackPtr U_LV_WRITEV(VM &vm, StackPtr sp, int l) {
     auto &a = *vm.temp_lval;
     auto b = TopPtr(sp) - l;
     tsnz_memcpy(&a, b, l);
@@ -888,7 +880,7 @@ VM_INLINE StackPtr U_LV_WRITEV(VM &vm, StackPtr &sp, int l) {
     return sp;
 }
 
-VM_INLINE StackPtr U_LV_WRITEREFV(VM &vm, StackPtr &sp, int l) {
+VM_INLINE StackPtr U_LV_WRITEREFV(VM &vm, StackPtr sp, int l) {
     auto &a = *vm.temp_lval;
     for (int i = 0; i < l; i++) (&a)[i].LTDECRTNIL(vm);
     auto b = TopPtr(sp) - l;
@@ -897,19 +889,19 @@ VM_INLINE StackPtr U_LV_WRITEREFV(VM &vm, StackPtr &sp, int l) {
     return sp;
 }
 
-VM_INLINE StackPtr U_LV_IPP(VM &vm, StackPtr &sp) {
+VM_INLINE StackPtr U_LV_IPP(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     a.setival(a.ival() + 1);
     return sp;
 }
 
-VM_INLINE StackPtr U_LV_IMM(VM & vm, StackPtr & sp) {
+VM_INLINE StackPtr U_LV_IMM(VM & vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     a.setival(a.ival() - 1);
     return sp;
 }
 
-VM_INLINE StackPtr U_LV_FPP(VM & vm, StackPtr & sp) {
+VM_INLINE StackPtr U_LV_FPP(VM & vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     a.setfval(a.fval() + 1);
     return sp;

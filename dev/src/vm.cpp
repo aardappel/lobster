@@ -695,20 +695,20 @@ ILCALLNAMES
 #undef F
 #define F(N, A, USE, DEF) \
     StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECKVA(IL_##N, *ip);                                   \
+        CHECKVA(IL_##N, *ip);                                             \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
 ILVARARGNAMES
 #undef F
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp) {                \
+    int CVM_##N(VM *vm, StackPtr sp) {                     \
         CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_1 0 /*FIXME*/); \
         return U_##N(*vm, sp);                             \
     }
 ILJUMPNAMES1
 #undef F
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp, int df) {                      \
+    int CVM_##N(VM *vm, StackPtr sp, int df) {                           \
         CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_1 df VM_COMMA_1 0 /*FIXME*/); \
         return U_##N(*vm, sp, df);                                       \
     }

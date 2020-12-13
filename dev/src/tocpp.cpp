@@ -86,11 +86,11 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             ILVARARGNAMES
         #undef F
         #define F(N, A, USE, DEF) \
-            sd += "StackPtr U_" #N "(VMRef, StackPtr);\n";
+            sd += "int U_" #N "(VMRef, StackPtr);\n";
             ILJUMPNAMES1
         #undef F
         #define F(N, A, USE, DEF) \
-            sd += "StackPtr U_" #N "(VMRef, StackPtr, int);\n";
+            sd += "int U_" #N "(VMRef, StackPtr, int);\n";
             ILJUMPNAMES2
         #undef F
 
@@ -143,7 +143,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     const int *funstart = nullptr;
     int nkeepvars = 0;
     int ndefsave = 0;
-    string sdt, comment;
+    string sdt, comment, sp;
     int opc = -1;
     const int *args = nullptr;
     auto add_comment = [&]() {
@@ -219,7 +219,6 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 // Final program return at most 1 value.
                 append(sd, "    Value regs[1];\n");
             }
-            append(sd, "    StackPtr sp = regs - 1; (void)sp;\n");
             if (opc == IL_FUNSTART) {
                 auto fip = funstart;
                 fip++;  // definedfunction
@@ -262,21 +261,16 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         auto arity = ParseOpAndGetArity(opc, ip, regso);
         if (opc == IL_FUNSTART) continue;
         append(sd, "    ");
-        if (cpp && opc != IL_SAVERETS && opc != IL_JUMPIFUNWOUND && opc != IL_RETURNANY &&
-            opc != IL_JUMP_TABLE_CASE_START)  // FIXME
-            append(sd, "assert(sp == regs + ", regso - 1, "); ");
+        sp = cat("regs + ", regso - 1);
         if (opc == IL_PUSHVARL) {
-            // FIXME: add comment
-            append(sd, "Push(sp, locals[", var_to_local[args[0]], "]);");
+            append(sd, "regs[", regso, "] = locals[", var_to_local[args[0]], "];");
             add_comment();
         } else if (opc == IL_PUSHVARVL) {
-            // FIXME: add comment
             for (int i = 0; i < args[1]; i++) {
-                append(sd, "Push(sp, locals[", var_to_local[args[0] + i], "]);");
+                append(sd, "regs[", regso + i, "] = locals[", var_to_local[args[0] + i], "];");
             }
             add_comment();
         } else if (opc == IL_LVAL_VARL) {
-            // FIXME: add comment
             append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
             add_comment();
         } else if (opc == IL_JUMP) {
@@ -285,25 +279,18 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             auto id = args[opc == IL_JUMPIFUNWOUND ? 1 : 0];
             assert(id >= 0);
             auto df = opc == IL_JUMPIFUNWOUND ? args[0] : -1;
-            append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
+            append(sd, "if (!U_", ILNames()[opc], "(vm, ", sp);
             if (df >= 0) append(sd, ", ", df);
-            if (cpp) {
-                append(sd, "); if (Pop(sp).False()) ");
-                append(sd, "goto block", id, ";");
-            } else {
-                append(sd, "); { long long top = sp->ival; sp--; if (!top) ");
-                append(sd, "goto block", id, ";");
-                sd += " }";
-            }
+            append(sd, ")) goto block", id, ";");
         } else if (opc == IL_BLOCK_START) {
             // FIXME: added ";" because blocks may end up just before "}" at the end of a
             // switch, and generate warnings/errors. Ideally not generate this block at all.
             append(sd, "block", id, ":;");
         } else if (opc == IL_JUMP_TABLE) {
             if (cpp) {
-                sd += "switch (Pop(sp).ival()) {";
+                append(sd, "switch ((", sp, ")->ival()) {");
             } else {
-                append(sd, "{ long long top = sp->ival; sp--; switch (top) {");
+                append(sd, "{ long long top = (", sp, ")->ival; switch (top) {");
             }
             jumptables.push_back(args);
         } else if (opc == IL_JUMP_TABLE_CASE_START) {
@@ -323,7 +310,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             else sd += "}} // switch";
             jumptables.pop_back();
         } else if (ISBCALL(opc) && natreg.nfuns[args[0]]->IsGLFrame()) {
-            append(sd, "sp = GLFrame(sp, vm);");
+            append(sd, "GLFrame(", sp, ", vm);");
         } else if (opc == IL_RETURN || opc == IL_RETURNANY) {
             // FIXME: emit epilogue stuff only once at end of function.
             auto fip = funstart;
@@ -342,7 +329,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "psp = U_RETURN(vm, psp, ", args[0], ", ", nrets, ");");
             } else {
                 nrets = args[0];
-                append(sd, "psp = U_RETURNANY(vm, psp, ", nrets, ");");
+                append(sd, "psp = U_RETURNANY(vm, psp, ", nrets, ", ", args[1], ");");
             }
             auto ownedvars = *fip++;
             for (int i = 0; i < ownedvars; i++) {
@@ -362,10 +349,10 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                     append(sd, "\n    Pop(psp);");
                 }
             }
+            auto unwind_diff = opc == IL_RETURNANY ? nrets - args[1] : 0;
             for (int i = 0; i < nrets; i++) {
-                append(sd, "\n    Push(psp, TopM(sp, ", nrets - i - 1, "));");
+                append(sd, "\n    Push(psp, regs[", regso - nrets + i + unwind_diff, "]);");
             }
-            if (nrets) append(sd, "\n    sp -= ", nrets, ";");
             sdt.clear();  // FIXME: remove
             for (int i = ndef - 1; i >= 0; i--) {
                 auto varidx = defvars[i];
@@ -380,10 +367,10 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             append(sd, "goto epilogue;");
         } else if (opc == IL_KEEPREF || opc == IL_KEEPREFLOOP) {
             if (opc == IL_KEEPREFLOOP) append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
-            append(sd, "keepvar[", args[1], "] = TopM(sp, ", args[0], ");");
+            append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
         } else {
             assert(ILArity()[opc] != ILUNKNOWN);
-            append(sd, "sp = U_", ILNames()[opc], "(vm, sp");
+            append(sd, "U_", ILNames()[opc], "(vm, ", sp, "");
             for (int i = 0; i < arity; i++) {
                 sd += ", ";
                 append(sd, args[i]);
@@ -395,11 +382,12 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             sd += ");";
             add_comment();
             if (opc == IL_CALL) {
-                append(sd, " sp = fun_", args[0], "(vm, sp);");
+                append(sd, " fun_", args[0], "(vm, ", sp, ");");
             } else if (opc == IL_CALLV || opc == IL_DDCALL) {
+                if (opc == IL_CALLV) sp = cat("regs + ", regso - 2);
                 sd += " ";
-                if (cpp) sd += "sp = vm.next_call_target(vm, sp);";
-                else sd += "sp = GetNextCallTarget(vm)(vm, sp);";
+                if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
+                else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
             }
         }
         sd += "\n";

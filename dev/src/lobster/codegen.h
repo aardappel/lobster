@@ -97,7 +97,6 @@ struct CodeGen  {
             defs = defslots;
         }
         for (int i = 0; i < defs; i++) { PushTemp(op); }
-        if (CONDJUMP(op)) PopTemp();  // FIXME, hack.
 
         //LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs, " -> ", tstack.size());
     }
@@ -392,6 +391,7 @@ struct CodeGen  {
         auto tstackbackup = tstack;
         EmitOp(IL_RETURNANY);
         Emit(nretslots_unwind);
+        Emit(nretslots_norm);
         for (auto &tse : reverse(temptypestack)) {
             GenPop(tse);
         }

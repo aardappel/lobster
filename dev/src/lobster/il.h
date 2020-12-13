@@ -96,7 +96,7 @@ enum MathOp {
     F(LOGNOT, 0, 1, 1) F(LOGNOTREF, 0, 1, 1) \
     F(BINAND, 0, 2, 1) F(BINOR, 0, 2, 1) F(XOR, 0, 2, 1) F(ASL, 0, 2, 1) F(ASR, 0, 2, 1) F(NEG, 0, 1, 1) \
     F(I2F, 0, 1, 1) F(A2S, 1, 1, 1) F(E2B, 0, 1, 1) F(E2BREF, 0, 1, 1) F(ST2S, 1, ILUNKNOWN, 1) \
-    F(RETURN, 2, ILUNKNOWN, 0) F(RETURNANY, 1, 0, 0) \
+    F(RETURN, 2, ILUNKNOWN, 0) F(RETURNANY, 2, 0, 0) \
     F(ISTYPE, 1, 1, 1) \
     F(FORLOOPI, 0, 1, 2) \
     F(IFORELEM, 0, 2, 3) \
@@ -149,15 +149,15 @@ enum MathOp {
 
 #define ILJUMPNAMES1 \
     F(JUMP, 1, 0, 0) \
-    F(JUMPFAIL, 1, 1, 1) \
-    F(JUMPFAILR, 1, 1, 2) \
-    F(JUMPNOFAIL, 1, 1, 1) \
-    F(JUMPNOFAILR, 1, 1, 2) \
-    F(IFOR, 1, 2, 3) \
-    F(SFOR, 1, 2, 3) \
-    F(VFOR, 1, 2, 3)
+    F(JUMPFAIL, 1, 1, 0) \
+    F(JUMPFAILR, 1, 1, 1) \
+    F(JUMPNOFAIL, 1, 1, 0) \
+    F(JUMPNOFAILR, 1, 1, 1) \
+    F(IFOR, 1, 2, 2) \
+    F(SFOR, 1, 2, 2) \
+    F(VFOR, 1, 2, 2)
 #define ILJUMPNAMES2 \
-    F(JUMPIFUNWOUND, 2, 0, 1)
+    F(JUMPIFUNWOUND, 2, 0, 0)
 
 #define CONDJUMP(OP) (OP >= IL_JUMPFAIL && OP <= IL_JUMPIFUNWOUND)
 
