@@ -99,43 +99,37 @@ VM_INLINE Value &GetVecLVal(VM &vm, StackPtr &sp, iint i) {
     return *v->AtSt(i);
 }
 
-VM_INLINE StackPtr U_PUSHINT(VM &, StackPtr sp, int x) {
+VM_INLINE void U_PUSHINT(VM &, StackPtr sp, int x) {
     Push(sp, Value(x));
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHFLT(VM &, StackPtr sp, int x) {
+VM_INLINE void U_PUSHFLT(VM &, StackPtr sp, int x) {
     int2float i2f;
     i2f.i = x;
     Push(sp, Value(i2f.f));
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHNIL(VM &, StackPtr sp) {
+VM_INLINE void U_PUSHNIL(VM &, StackPtr sp) {
     Push(sp, NilVal());
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHINT64(VM &, StackPtr sp, int a, int b) {
+VM_INLINE void U_PUSHINT64(VM &, StackPtr sp, int a, int b) {
     auto v = Int64FromInts(a, b);
     Push(sp, Value(v));
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHFLT64(VM &, StackPtr sp, int a, int b) {
+VM_INLINE void U_PUSHFLT64(VM &, StackPtr sp, int a, int b) {
     int2float64 i2f;
     i2f.i = Int64FromInts(a, b);
     Push(sp, Value(i2f.f));
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHFUN(VM &, StackPtr sp, int start, fun_base_t fcont) {
+VM_INLINE void U_PUSHFUN(VM &, StackPtr sp, int start, fun_base_t fcont) {
     (void)start;
     Push(sp, Value(fcont));
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHSTR(VM &vm, StackPtr sp, int i) {
+VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
     // FIXME: have a way that constant strings can stay in the bytecode,
     // or at least preallocate them all
     auto &s = vm.constant_strings[i];
@@ -147,60 +141,49 @@ VM_INLINE StackPtr U_PUSHSTR(VM &vm, StackPtr sp, int i) {
         s->Inc();
     #endif
     Push(sp, Value(s));
-    return sp;
 }
 
-VM_INLINE StackPtr U_INCREF(VM &, StackPtr sp, int off) {
+VM_INLINE void U_INCREF(VM &, StackPtr sp, int off) {
     TopM(sp, off).LTINCRTNIL();
-    return sp;
 }
 
-VM_INLINE StackPtr U_KEEPREFLOOP(VM &, StackPtr sp, int, int) {
-    return sp;
+VM_INLINE void U_KEEPREFLOOP(VM &, StackPtr, int, int) {
 }
 
-VM_INLINE StackPtr U_KEEPREF(VM &, StackPtr sp, int, int) {
-    return sp;
+VM_INLINE void U_KEEPREF(VM &, StackPtr, int, int) {
 }
 
-VM_INLINE StackPtr U_CALL(VM &, StackPtr sp, int) {
-    return sp;
+VM_INLINE void U_CALL(VM &, StackPtr, int) {
 }
 
-VM_INLINE StackPtr U_CALLV(VM &vm, StackPtr sp) {
+VM_INLINE void U_CALLV(VM &vm, StackPtr sp) {
     Value fun = Pop(sp);
     VMTYPEEQ(fun, V_FUNCTION);
     vm.next_call_target = fun.ip();
-    return sp;
 }
 
-VM_INLINE StackPtr U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
+VM_INLINE void U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     auto self = TopM(sp, stack_idx);
     VMTYPEEQ(self, V_CLASS);
     auto start = self.oval()->ti(vm).vtable_start;
     vm.next_call_target = vm.native_vtables[start + vtable_idx];
     assert(vm.next_call_target);
-    return sp;
 }
 
-VM_INLINE StackPtr U_FUNSTART(VM &, StackPtr sp, const int *) {
-     return sp;
+VM_INLINE void U_FUNSTART(VM &, StackPtr, const int *) {
 }
 
-VM_INLINE StackPtr U_RETURN(VM &vm, StackPtr sp, int df, int /*nrv*/) {
+VM_INLINE void U_RETURN(VM &vm, StackPtr, int df, int /*nrv*/) {
     vm.ret_unwind_to = df;  // FIXME: most returns don't need this.
-    return sp;
 }
 
-VM_INLINE StackPtr U_RETURNANY(VM &, StackPtr sp, int /*nretslots_unwind*/, int /*nretslots_norm*/) {
-    return sp;
+VM_INLINE void U_RETURNANY(VM &, StackPtr, int /*nretslots_unwind*/, int /*nretslots_norm*/) {
 }
 
-VM_INLINE StackPtr U_SAVERETS(VM &, StackPtr sp) {
-    return sp;
+VM_INLINE void U_SAVERETS(VM &, StackPtr) {
 }
 
-VM_INLINE StackPtr U_ENDSTATEMENT(VM &vm, StackPtr sp, int line, int fileidx) {
+VM_INLINE void U_ENDSTATEMENT(VM &vm, StackPtr, int line, int fileidx) {
     #ifdef NDEBUG
         (void)line;
         (void)fileidx;
@@ -212,13 +195,11 @@ VM_INLINE StackPtr U_ENDSTATEMENT(VM &vm, StackPtr sp, int line, int fileidx) {
             if (vm.trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
         }
     #endif
-    return sp;
 }
 
-VM_INLINE StackPtr U_EXIT(VM &vm, StackPtr sp, int tidx) {
+VM_INLINE void U_EXIT(VM &vm, StackPtr sp, int tidx) {
     if (tidx >= 0) vm.EndEval(sp, Pop(sp), vm.GetTypeInfo((type_elem_t)tidx));
     else vm.EndEval(sp, NilVal(), vm.GetTypeInfo(TYPE_ELEM_ANY));
-    return sp;
 }
 
 VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
@@ -241,33 +222,30 @@ VM_INLINE bool U_IFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).ival
 VM_INLINE bool U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval()->len); }
 VM_INLINE bool U_SFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).sval()->len); }
 
-VM_INLINE StackPtr U_IFORELEM(VM &, StackPtr sp)      { FORELEM(iter.ival()); (void)iter; Push(sp, i); return sp; }
-VM_INLINE StackPtr U_SFORELEM(VM &, StackPtr sp)      { FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i])); return sp; }
-VM_INLINE StackPtr U_VFORELEM(VM &, StackPtr sp)      { FORELEM(iter.vval()->len); Push(sp, iter.vval()->At(i)); return sp; }
-VM_INLINE StackPtr U_VFORELEM2S(VM &, StackPtr sp)    { FORELEM(iter.vval()->len); iter.vval()->AtVW(sp, i); return sp; }
-VM_INLINE StackPtr U_VFORELEMREF(VM &, StackPtr sp)   { FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); Push(sp, el); return sp; }
-VM_INLINE StackPtr U_VFORELEMREF2S(VM &, StackPtr sp) { FORELEM(iter.vval()->len); iter.vval()->AtVWInc(sp, i); return sp; }
+VM_INLINE void U_IFORELEM(VM &, StackPtr sp)      { FORELEM(iter.ival()); (void)iter; Push(sp, i); }
+VM_INLINE void U_SFORELEM(VM &, StackPtr sp)      { FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i])); }
+VM_INLINE void U_VFORELEM(VM &, StackPtr sp)      { FORELEM(iter.vval()->len); Push(sp, iter.vval()->At(i)); }
+VM_INLINE void U_VFORELEM2S(VM &, StackPtr sp)    { FORELEM(iter.vval()->len); iter.vval()->AtVW(sp, i); }
+VM_INLINE void U_VFORELEMREF(VM &, StackPtr sp)   { FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); Push(sp, el); }
+VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp) { FORELEM(iter.vval()->len); iter.vval()->AtVWInc(sp, i); }
 
-VM_INLINE StackPtr U_FORLOOPI(VM &, StackPtr sp) {
+VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
     auto &i = TopM(sp, 1);  // This relies on for being inlined, otherwise it would be 2.
     TYPE_ASSERT(i.type == V_INT);
     Push(sp, i);
-    return sp;
 }
 
-VM_INLINE StackPtr U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
+VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
     auto nf = vm.nfr.nfuns[nfi];
     nf->fun.fV(sp, vm);
-    return sp;
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
-VM_INLINE StackPtr U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
+VM_INLINE void U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
     auto nf = vm.nfr.nfuns[nfi]; \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
     if (has_ret) { Push(sp, v); vm.BCallRetCheck(sp, nf); } \
-    return sp; \
 }
 
 BCALLOP(0, {}, (sp, vm));
@@ -279,7 +257,7 @@ BCALLOP(5, auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(s
 BCALLOP(6, auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5));
 BCALLOP(7, auto a6 = Pop(sp);auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5, a6));
 
-VM_INLINE StackPtr U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
+VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
     (void)line;
     (void)fileidx;
     if (Top(sp).False()) {
@@ -289,41 +267,37 @@ VM_INLINE StackPtr U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int str
             #endif
             "assertion failed: ", vm.bcf->stringtable()->Get(stringidx)->string_view()));
     }
-    return sp;
 }
 
-VM_INLINE StackPtr U_ASSERT(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
-    sp = U_ASSERTR(vm, sp, line, fileidx, stringidx);
+VM_INLINE void U_ASSERT(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
+    U_ASSERTR(vm, sp, line, fileidx, stringidx);
     Pop(sp);
-    return sp;
 }
 
-VM_INLINE StackPtr U_NEWVEC(VM &vm, StackPtr sp, int ty, int len) {
+VM_INLINE void U_NEWVEC(VM &vm, StackPtr sp, int ty, int len) {
     auto type = (type_elem_t)ty;
     auto vec = vm.NewVec(len, len, type);
     if (len) vec->Init(vm, TopPtr(sp) - len * vec->width, false);
     PopN(sp, len * (int)vec->width);
     Push(sp, Value(vec));
-    return sp;
 }
 
-VM_INLINE StackPtr U_NEWOBJECT(VM &vm, StackPtr sp, int ty) {
+VM_INLINE void U_NEWOBJECT(VM &vm, StackPtr sp, int ty) {
     auto type = (type_elem_t)ty;
     auto len = vm.GetTypeInfo(type).len;
     auto vec = vm.NewObject(len, type);
     if (len) vec->Init(vm, TopPtr(sp) - len, len, false);
     PopN(sp, len);
     Push(sp, Value(vec));
-    return sp;
 }
 
-VM_INLINE StackPtr U_POP(VM &, StackPtr sp)     { Pop(sp); return sp; }
-VM_INLINE StackPtr U_POPREF(VM &vm, StackPtr sp)  { auto x = Pop(sp); x.LTDECRTNIL(vm); return sp; }
+VM_INLINE void U_POP(VM &, StackPtr sp) { Pop(sp); }
+VM_INLINE void U_POPREF(VM &vm, StackPtr sp) { auto x = Pop(sp); x.LTDECRTNIL(vm); }
 
-VM_INLINE StackPtr U_POPV(VM &, StackPtr sp, int len)    { PopN(sp, len); return sp; }
-VM_INLINE StackPtr U_POPVREF(VM &vm, StackPtr sp, int len) { while (len--) Pop(sp).LTDECRTNIL(vm); return sp; }
+VM_INLINE void U_POPV(VM &, StackPtr sp, int len) { PopN(sp, len); }
+VM_INLINE void U_POPVREF(VM &vm, StackPtr sp, int len) { while (len--) Pop(sp).LTDECRTNIL(vm); }
 
-VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); return sp; }
+VM_INLINE void U_DUP(VM &, StackPtr sp) { auto x = Top(sp); Push(sp, x); }
 
 
 #define GETARGS() Value b = Pop(sp); Value a = Pop(sp)
@@ -375,7 +349,6 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
         all = all andor veca[j].any() op vecb[j].any(); \
     } \
     Push(sp, all); \
-    return sp; \
 }
 
 #define _IVOPS(op, extras, geta) _VOPS(op, extras, V_INT,   ival, geta)
@@ -385,18 +358,18 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
 
 #define _SCAT() Value res = vm.NewString(a.sval()->strv(), b.sval()->strv())
 
-#define ACOMPEN(op)     { GETARGS(); Value res = a.any() op b.any(); Push(sp, res); return sp; }
-#define IOP(op, extras) { GETARGS(); _IOP(op, extras);               Push(sp, res); return sp; }
-#define FOP(op, extras) { GETARGS(); _FOP(op, extras);               Push(sp, res); return sp; }
-#define LOP(op)         { GETARGS(); auto res = a.ip() op b.ip();    Push(sp, res); return sp; }
+#define ACOMPEN(op)     { GETARGS(); Value res = a.any() op b.any(); Push(sp, res); }
+#define IOP(op, extras) { GETARGS(); _IOP(op, extras);               Push(sp, res); }
+#define FOP(op, extras) { GETARGS(); _FOP(op, extras);               Push(sp, res); }
+#define LOP(op)         { GETARGS(); auto res = a.ip() op b.ip();    Push(sp, res); }
 
-#define IVVOP(op, extras) { _IVOPV(op, extras, TopPtr(sp) - len); return sp; }
-#define FVVOP(op, extras) { _FVOPV(op, extras, TopPtr(sp) - len); return sp; }
-#define IVSOP(op, extras) { _IVOPS(op, extras, TopPtr(sp) - len); return sp; }
-#define FVSOP(op, extras) { _FVOPS(op, extras, TopPtr(sp) - len); return sp; }
+#define IVVOP(op, extras) { _IVOPV(op, extras, TopPtr(sp) - len); }
+#define FVVOP(op, extras) { _FVOPV(op, extras, TopPtr(sp) - len); }
+#define IVSOP(op, extras) { _IVOPS(op, extras, TopPtr(sp) - len); }
+#define FVSOP(op, extras) { _FVOPS(op, extras, TopPtr(sp) - len); }
 
-#define SOP(op) { GETARGS(); Value res = *a.sval() op *b.sval(); Push(sp, res); return sp; }
-#define SCAT()  { GETARGS(); _SCAT();                            Push(sp, res); return sp; }
+#define SOP(op) { GETARGS(); Value res = *a.sval() op *b.sval(); Push(sp, res); }
+#define SCAT()  { GETARGS(); _SCAT();                            Push(sp, res); }
 
 // +  += I F Vif S
 // -  -= I F Vif
@@ -414,191 +387,179 @@ VM_INLINE StackPtr U_DUP(VM &, StackPtr sp)    { auto x = Top(sp); Push(sp, x); 
 // U-    I F Vif
 // U!    A
 
-VM_INLINE StackPtr U_IVVADD(VM &vm, StackPtr sp, int len) { IVVOP(+,  0);  }
-VM_INLINE StackPtr U_IVVSUB(VM &vm, StackPtr sp, int len) { IVVOP(-,  0);  }
-VM_INLINE StackPtr U_IVVMUL(VM &vm, StackPtr sp, int len) { IVVOP(*,  0);  }
-VM_INLINE StackPtr U_IVVDIV(VM &vm, StackPtr sp, int len) { IVVOP(/,  1);  }
-VM_INLINE StackPtr U_IVVMOD(VM &vm, StackPtr sp, int len) { IVVOP(% , 1); }
-VM_INLINE StackPtr U_IVVLT(VM &vm, StackPtr sp, int len)  { IVVOP(<,  0);  }
-VM_INLINE StackPtr U_IVVGT(VM &vm, StackPtr sp, int len)  { IVVOP(>,  0);  }
-VM_INLINE StackPtr U_IVVLE(VM &vm, StackPtr sp, int len)  { IVVOP(<=, 0);  }
-VM_INLINE StackPtr U_IVVGE(VM &vm, StackPtr sp, int len)  { IVVOP(>=, 0);  }
-VM_INLINE StackPtr U_FVVADD(VM &vm, StackPtr sp, int len) { FVVOP(+,  0);  }
-VM_INLINE StackPtr U_FVVSUB(VM &vm, StackPtr sp, int len) { FVVOP(-,  0);  }
-VM_INLINE StackPtr U_FVVMUL(VM &vm, StackPtr sp, int len) { FVVOP(*,  0);  }
-VM_INLINE StackPtr U_FVVDIV(VM &vm, StackPtr sp, int len) { FVVOP(/,  1);  }
-VM_INLINE StackPtr U_FVVMOD(VM &vm, StackPtr sp, int len) { FVVOP(/ , 3); }
-VM_INLINE StackPtr U_FVVLT(VM &vm, StackPtr sp, int len)  { FVVOP(<,  0); }
-VM_INLINE StackPtr U_FVVGT(VM &vm, StackPtr sp, int len)  { FVVOP(>,  0); }
-VM_INLINE StackPtr U_FVVLE(VM &vm, StackPtr sp, int len)  { FVVOP(<=, 0); }
-VM_INLINE StackPtr U_FVVGE(VM &vm, StackPtr sp, int len)  { FVVOP(>=, 0); }
+VM_INLINE void U_IVVADD(VM &vm, StackPtr sp, int len) { IVVOP(+,  0);  }
+VM_INLINE void U_IVVSUB(VM &vm, StackPtr sp, int len) { IVVOP(-,  0);  }
+VM_INLINE void U_IVVMUL(VM &vm, StackPtr sp, int len) { IVVOP(*,  0);  }
+VM_INLINE void U_IVVDIV(VM &vm, StackPtr sp, int len) { IVVOP(/,  1);  }
+VM_INLINE void U_IVVMOD(VM &vm, StackPtr sp, int len) { IVVOP(% , 1); }
+VM_INLINE void U_IVVLT(VM &vm, StackPtr sp, int len)  { IVVOP(<,  0);  }
+VM_INLINE void U_IVVGT(VM &vm, StackPtr sp, int len)  { IVVOP(>,  0);  }
+VM_INLINE void U_IVVLE(VM &vm, StackPtr sp, int len)  { IVVOP(<=, 0);  }
+VM_INLINE void U_IVVGE(VM &vm, StackPtr sp, int len)  { IVVOP(>=, 0);  }
+VM_INLINE void U_FVVADD(VM &vm, StackPtr sp, int len) { FVVOP(+,  0);  }
+VM_INLINE void U_FVVSUB(VM &vm, StackPtr sp, int len) { FVVOP(-,  0);  }
+VM_INLINE void U_FVVMUL(VM &vm, StackPtr sp, int len) { FVVOP(*,  0);  }
+VM_INLINE void U_FVVDIV(VM &vm, StackPtr sp, int len) { FVVOP(/,  1);  }
+VM_INLINE void U_FVVMOD(VM &vm, StackPtr sp, int len) { FVVOP(/ , 3); }
+VM_INLINE void U_FVVLT(VM &vm, StackPtr sp, int len)  { FVVOP(<,  0); }
+VM_INLINE void U_FVVGT(VM &vm, StackPtr sp, int len)  { FVVOP(>,  0); }
+VM_INLINE void U_FVVLE(VM &vm, StackPtr sp, int len)  { FVVOP(<=, 0); }
+VM_INLINE void U_FVVGE(VM &vm, StackPtr sp, int len)  { FVVOP(>=, 0); }
 
-VM_INLINE StackPtr U_IVSADD(VM &vm, StackPtr sp, int len) { IVSOP(+,  0);  }
-VM_INLINE StackPtr U_IVSSUB(VM &vm, StackPtr sp, int len) { IVSOP(-,  0);  }
-VM_INLINE StackPtr U_IVSMUL(VM &vm, StackPtr sp, int len) { IVSOP(*,  0);  }
-VM_INLINE StackPtr U_IVSDIV(VM &vm, StackPtr sp, int len) { IVSOP(/,  1);  }
-VM_INLINE StackPtr U_IVSMOD(VM &vm, StackPtr sp, int len) { IVSOP(% , 1); }
-VM_INLINE StackPtr U_IVSLT(VM &vm, StackPtr sp, int len)  { IVSOP(<,  0);  }
-VM_INLINE StackPtr U_IVSGT(VM &vm, StackPtr sp, int len)  { IVSOP(>,  0);  }
-VM_INLINE StackPtr U_IVSLE(VM &vm, StackPtr sp, int len)  { IVSOP(<=, 0);  }
-VM_INLINE StackPtr U_IVSGE(VM &vm, StackPtr sp, int len)  { IVSOP(>=, 0);  }
-VM_INLINE StackPtr U_FVSADD(VM &vm, StackPtr sp, int len) { FVSOP(+,  0);  }
-VM_INLINE StackPtr U_FVSSUB(VM &vm, StackPtr sp, int len) { FVSOP(-,  0);  }
-VM_INLINE StackPtr U_FVSMUL(VM &vm, StackPtr sp, int len) { FVSOP(*,  0);  }
-VM_INLINE StackPtr U_FVSDIV(VM &vm, StackPtr sp, int len) { FVSOP(/,  1);  }
-VM_INLINE StackPtr U_FVSMOD(VM &vm, StackPtr sp, int len) { FVSOP(/ , 3); }
-VM_INLINE StackPtr U_FVSLT(VM &vm, StackPtr sp, int len)  { FVSOP(<,  0); }
-VM_INLINE StackPtr U_FVSGT(VM &vm, StackPtr sp, int len)  { FVSOP(>,  0); }
-VM_INLINE StackPtr U_FVSLE(VM &vm, StackPtr sp, int len)  { FVSOP(<=, 0); }
-VM_INLINE StackPtr U_FVSGE(VM &vm, StackPtr sp, int len)  { FVSOP(>=, 0); }
+VM_INLINE void U_IVSADD(VM &vm, StackPtr sp, int len) { IVSOP(+,  0);  }
+VM_INLINE void U_IVSSUB(VM &vm, StackPtr sp, int len) { IVSOP(-,  0);  }
+VM_INLINE void U_IVSMUL(VM &vm, StackPtr sp, int len) { IVSOP(*,  0);  }
+VM_INLINE void U_IVSDIV(VM &vm, StackPtr sp, int len) { IVSOP(/,  1);  }
+VM_INLINE void U_IVSMOD(VM &vm, StackPtr sp, int len) { IVSOP(% , 1); }
+VM_INLINE void U_IVSLT(VM &vm, StackPtr sp, int len)  { IVSOP(<,  0);  }
+VM_INLINE void U_IVSGT(VM &vm, StackPtr sp, int len)  { IVSOP(>,  0);  }
+VM_INLINE void U_IVSLE(VM &vm, StackPtr sp, int len)  { IVSOP(<=, 0);  }
+VM_INLINE void U_IVSGE(VM &vm, StackPtr sp, int len)  { IVSOP(>=, 0);  }
+VM_INLINE void U_FVSADD(VM &vm, StackPtr sp, int len) { FVSOP(+,  0);  }
+VM_INLINE void U_FVSSUB(VM &vm, StackPtr sp, int len) { FVSOP(-,  0);  }
+VM_INLINE void U_FVSMUL(VM &vm, StackPtr sp, int len) { FVSOP(*,  0);  }
+VM_INLINE void U_FVSDIV(VM &vm, StackPtr sp, int len) { FVSOP(/,  1);  }
+VM_INLINE void U_FVSMOD(VM &vm, StackPtr sp, int len) { FVSOP(/ , 3); }
+VM_INLINE void U_FVSLT(VM &vm, StackPtr sp, int len)  { FVSOP(<,  0); }
+VM_INLINE void U_FVSGT(VM &vm, StackPtr sp, int len)  { FVSOP(>,  0); }
+VM_INLINE void U_FVSLE(VM &vm, StackPtr sp, int len)  { FVSOP(<=, 0); }
+VM_INLINE void U_FVSGE(VM &vm, StackPtr sp, int len)  { FVSOP(>=, 0); }
 
-VM_INLINE StackPtr U_AEQ(VM &, StackPtr sp)  { ACOMPEN(==); }
-VM_INLINE StackPtr U_ANE(VM &, StackPtr sp)  { ACOMPEN(!=); }
-VM_INLINE StackPtr U_STEQ(VM &, StackPtr sp, int len) { STCOMPEN(==, true, &&); }
-VM_INLINE StackPtr U_STNE(VM &, StackPtr sp, int len) { STCOMPEN(!=, false, ||); }
-VM_INLINE StackPtr U_LEQ(VM &, StackPtr sp) { LOP(==); }
-VM_INLINE StackPtr U_LNE(VM &, StackPtr sp) { LOP(!=); }
+VM_INLINE void U_AEQ(VM &, StackPtr sp)  { ACOMPEN(==); }
+VM_INLINE void U_ANE(VM &, StackPtr sp)  { ACOMPEN(!=); }
+VM_INLINE void U_STEQ(VM &, StackPtr sp, int len) { STCOMPEN(==, true, &&); }
+VM_INLINE void U_STNE(VM &, StackPtr sp, int len) { STCOMPEN(!=, false, ||); }
+VM_INLINE void U_LEQ(VM &, StackPtr sp) { LOP(==); }
+VM_INLINE void U_LNE(VM &, StackPtr sp) { LOP(!=); }
 
-VM_INLINE StackPtr U_IADD(VM &vm, StackPtr sp) { IOP(+,  0); }
-VM_INLINE StackPtr U_ISUB(VM &vm, StackPtr sp) { IOP(-,  0); }
-VM_INLINE StackPtr U_IMUL(VM &vm, StackPtr sp) { IOP(*,  0); }
-VM_INLINE StackPtr U_IDIV(VM &vm, StackPtr sp) { IOP(/ , 1); }
-VM_INLINE StackPtr U_IMOD(VM &vm, StackPtr sp) { IOP(%,  1); }
-VM_INLINE StackPtr U_ILT(VM &vm, StackPtr sp)  { IOP(<,  0); }
-VM_INLINE StackPtr U_IGT(VM &vm, StackPtr sp)  { IOP(>,  0); }
-VM_INLINE StackPtr U_ILE(VM &vm, StackPtr sp)  { IOP(<=, 0); }
-VM_INLINE StackPtr U_IGE(VM &vm, StackPtr sp)  { IOP(>=, 0); }
-VM_INLINE StackPtr U_IEQ(VM &vm, StackPtr sp)  { IOP(==, 0); }
-VM_INLINE StackPtr U_INE(VM &vm, StackPtr sp)  { IOP(!=, 0); }
+VM_INLINE void U_IADD(VM &vm, StackPtr sp) { IOP(+,  0); }
+VM_INLINE void U_ISUB(VM &vm, StackPtr sp) { IOP(-,  0); }
+VM_INLINE void U_IMUL(VM &vm, StackPtr sp) { IOP(*,  0); }
+VM_INLINE void U_IDIV(VM &vm, StackPtr sp) { IOP(/ , 1); }
+VM_INLINE void U_IMOD(VM &vm, StackPtr sp) { IOP(%,  1); }
+VM_INLINE void U_ILT(VM &vm, StackPtr sp)  { IOP(<,  0); }
+VM_INLINE void U_IGT(VM &vm, StackPtr sp)  { IOP(>,  0); }
+VM_INLINE void U_ILE(VM &vm, StackPtr sp)  { IOP(<=, 0); }
+VM_INLINE void U_IGE(VM &vm, StackPtr sp)  { IOP(>=, 0); }
+VM_INLINE void U_IEQ(VM &vm, StackPtr sp)  { IOP(==, 0); }
+VM_INLINE void U_INE(VM &vm, StackPtr sp)  { IOP(!=, 0); }
 
-VM_INLINE StackPtr U_FADD(VM &vm, StackPtr sp) { FOP(+,  0); }
-VM_INLINE StackPtr U_FSUB(VM &vm, StackPtr sp) { FOP(-,  0); }
-VM_INLINE StackPtr U_FMUL(VM &vm, StackPtr sp) { FOP(*,  0); }
-VM_INLINE StackPtr U_FDIV(VM &vm, StackPtr sp) { FOP(/,  1); }
-VM_INLINE StackPtr U_FMOD(VM &vm, StackPtr sp) { FOP(/,  3); }
-VM_INLINE StackPtr U_FLT(VM &vm, StackPtr sp)  { FOP(<,  0); }
-VM_INLINE StackPtr U_FGT(VM &vm, StackPtr sp)  { FOP(>,  0); }
-VM_INLINE StackPtr U_FLE(VM &vm, StackPtr sp)  { FOP(<=, 0); }
-VM_INLINE StackPtr U_FGE(VM &vm, StackPtr sp)  { FOP(>=, 0); }
-VM_INLINE StackPtr U_FEQ(VM &vm, StackPtr sp)  { FOP(==, 0); }
-VM_INLINE StackPtr U_FNE(VM &vm, StackPtr sp)  { FOP(!=, 0); }
+VM_INLINE void U_FADD(VM &vm, StackPtr sp) { FOP(+,  0); }
+VM_INLINE void U_FSUB(VM &vm, StackPtr sp) { FOP(-,  0); }
+VM_INLINE void U_FMUL(VM &vm, StackPtr sp) { FOP(*,  0); }
+VM_INLINE void U_FDIV(VM &vm, StackPtr sp) { FOP(/,  1); }
+VM_INLINE void U_FMOD(VM &vm, StackPtr sp) { FOP(/,  3); }
+VM_INLINE void U_FLT(VM &vm, StackPtr sp)  { FOP(<,  0); }
+VM_INLINE void U_FGT(VM &vm, StackPtr sp)  { FOP(>,  0); }
+VM_INLINE void U_FLE(VM &vm, StackPtr sp)  { FOP(<=, 0); }
+VM_INLINE void U_FGE(VM &vm, StackPtr sp)  { FOP(>=, 0); }
+VM_INLINE void U_FEQ(VM &vm, StackPtr sp)  { FOP(==, 0); }
+VM_INLINE void U_FNE(VM &vm, StackPtr sp)  { FOP(!=, 0); }
 
-VM_INLINE StackPtr U_SADD(VM &vm, StackPtr sp) { SCAT();  }
-VM_INLINE StackPtr U_SSUB(VM &vm, StackPtr sp) { VMASSERT(vm, 0); return sp; }
-VM_INLINE StackPtr U_SMUL(VM &vm, StackPtr sp) { VMASSERT(vm, 0); return sp; }
-VM_INLINE StackPtr U_SDIV(VM &vm, StackPtr sp) { VMASSERT(vm, 0); return sp; }
-VM_INLINE StackPtr U_SMOD(VM &vm, StackPtr sp) { VMASSERT(vm, 0); return sp; }
-VM_INLINE StackPtr U_SLT(VM &, StackPtr sp)  { SOP(<);  }
-VM_INLINE StackPtr U_SGT(VM &, StackPtr sp)  { SOP(>);  }
-VM_INLINE StackPtr U_SLE(VM &, StackPtr sp)  { SOP(<=); }
-VM_INLINE StackPtr U_SGE(VM &, StackPtr sp)  { SOP(>=); }
-VM_INLINE StackPtr U_SEQ(VM &, StackPtr sp)  { SOP(==); }
-VM_INLINE StackPtr U_SNE(VM &, StackPtr sp)  { SOP(!=); }
+VM_INLINE void U_SADD(VM &vm, StackPtr sp) { SCAT();  }
+VM_INLINE void U_SSUB(VM &vm, StackPtr) { VMASSERT(vm, 0); }
+VM_INLINE void U_SMUL(VM &vm, StackPtr) { VMASSERT(vm, 0); }
+VM_INLINE void U_SDIV(VM &vm, StackPtr) { VMASSERT(vm, 0); }
+VM_INLINE void U_SMOD(VM &vm, StackPtr) { VMASSERT(vm, 0); }
+VM_INLINE void U_SLT(VM &, StackPtr sp)  { SOP(<);  }
+VM_INLINE void U_SGT(VM &, StackPtr sp)  { SOP(>);  }
+VM_INLINE void U_SLE(VM &, StackPtr sp)  { SOP(<=); }
+VM_INLINE void U_SGE(VM &, StackPtr sp)  { SOP(>=); }
+VM_INLINE void U_SEQ(VM &, StackPtr sp)  { SOP(==); }
+VM_INLINE void U_SNE(VM &, StackPtr sp)  { SOP(!=); }
 
-VM_INLINE StackPtr U_IUMINUS(VM &, StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.ival())); return sp; }
-VM_INLINE StackPtr U_FUMINUS(VM &, StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.fval())); return sp; }
+VM_INLINE void U_IUMINUS(VM &, StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.ival())); }
+VM_INLINE void U_FUMINUS(VM &, StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.fval())); }
 
-VM_INLINE StackPtr U_IVUMINUS(VM &vm, StackPtr sp, int len) {
+VM_INLINE void U_IVUMINUS(VM &vm, StackPtr sp, int len) {
     auto vec = TopPtr(sp) - len;
     for (int i = 0; i < len; i++) {
         auto &a = vec[i];
         VMTYPEEQ(a, V_INT);
         a = -a.ival();
     }
-    return sp;
 }
-VM_INLINE StackPtr U_FVUMINUS(VM &vm, StackPtr sp, int len) {
+
+VM_INLINE void U_FVUMINUS(VM &vm, StackPtr sp, int len) {
     auto vec = TopPtr(sp) - len;
     for (int i = 0; i < len; i++) {
         auto &a = vec[i];
         VMTYPEEQ(a, V_FLOAT);
         a = -a.fval();
     }
-    return sp;
 }
 
-VM_INLINE StackPtr U_LOGNOT(VM &, StackPtr sp) {
+VM_INLINE void U_LOGNOT(VM &, StackPtr sp) {
     Value a = Pop(sp);
     Push(sp, a.False());
-    return sp;
 }
-VM_INLINE StackPtr U_LOGNOTREF(VM &, StackPtr sp) {
+
+VM_INLINE void U_LOGNOTREF(VM &, StackPtr sp) {
     Value a = Pop(sp);
     bool b = a.True();
     Push(sp, !b);
-    return sp;
 }
 
-#define BITOP(op) { GETARGS(); Push(sp, a.ival() op b.ival()); return sp; }
-VM_INLINE StackPtr U_BINAND(VM &, StackPtr sp) { BITOP(&);  }
-VM_INLINE StackPtr U_BINOR(VM &, StackPtr sp)  { BITOP(|);  }
-VM_INLINE StackPtr U_XOR(VM &, StackPtr sp)    { BITOP(^);  }
-VM_INLINE StackPtr U_ASL(VM &, StackPtr sp)    { BITOP(<<); }
-VM_INLINE StackPtr U_ASR(VM &, StackPtr sp)    { BITOP(>>); }
-VM_INLINE StackPtr U_NEG(VM &, StackPtr sp)    { auto a = Pop(sp); Push(sp, ~a.ival()); return sp; }
+#define BITOP(op) { GETARGS(); Push(sp, a.ival() op b.ival()); }
+VM_INLINE void U_BINAND(VM &, StackPtr sp) { BITOP(&);  }
+VM_INLINE void U_BINOR(VM &, StackPtr sp)  { BITOP(|);  }
+VM_INLINE void U_XOR(VM &, StackPtr sp)    { BITOP(^);  }
+VM_INLINE void U_ASL(VM &, StackPtr sp)    { BITOP(<<); }
+VM_INLINE void U_ASR(VM &, StackPtr sp)    { BITOP(>>); }
+VM_INLINE void U_NEG(VM &, StackPtr sp)    { auto a = Pop(sp); Push(sp, ~a.ival()); }
 
-VM_INLINE StackPtr U_I2F(VM &vm, StackPtr sp) {
+VM_INLINE void U_I2F(VM &vm, StackPtr sp) {
     Value a = Pop(sp);
     VMTYPEEQ(a, V_INT);
     Push(sp, (float)a.ival());
-    return sp;
 }
 
-VM_INLINE StackPtr U_A2S(VM &vm, StackPtr sp, int ty) {
+VM_INLINE void U_A2S(VM &vm, StackPtr sp, int ty) {
     Value a = Pop(sp);
     Push(sp, vm.ToString(a, vm.GetTypeInfo((type_elem_t)ty)));
-    return sp;
 }
 
-VM_INLINE StackPtr U_ST2S(VM &vm, StackPtr sp, int ty) {
+VM_INLINE void U_ST2S(VM &vm, StackPtr sp, int ty) {
     auto &ti = vm.GetTypeInfo((type_elem_t)ty);
     PopN(sp, ti.len);
     auto top = TopPtr(sp);
     Push(sp, vm.StructToString(top, ti));
-    return sp;
 }
 
-VM_INLINE StackPtr U_E2B(VM &, StackPtr sp) {
+VM_INLINE void U_E2B(VM &, StackPtr sp) {
     Value a = Pop(sp);
     Push(sp, a.True());
-    return sp;
 }
 
-VM_INLINE StackPtr U_E2BREF(VM &, StackPtr sp) {
+VM_INLINE void U_E2BREF(VM &, StackPtr sp) {
     Value a = Pop(sp);
     Push(sp, a.True());
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHVARL(VM &, StackPtr sp, int) {
+VM_INLINE void U_PUSHVARL(VM &, StackPtr, int) {
     assert(false);
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHVARF(VM &vm, StackPtr sp, int vidx) {
+VM_INLINE void U_PUSHVARF(VM &vm, StackPtr sp, int vidx) {
     Push(sp, vm.fvars[vidx]);
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHVARVL(VM &, StackPtr sp, int, int) {
+VM_INLINE void U_PUSHVARVL(VM &, StackPtr, int, int) {
     assert(false);
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHVARVF(VM &vm, StackPtr sp, int vidx, int l) {
+VM_INLINE void U_PUSHVARVF(VM &vm, StackPtr sp, int vidx, int l) {
     tsnz_memcpy(TopPtr(sp), &vm.fvars[vidx], l);
     PushN(sp, l);
-    return sp;
 }
 
-VM_INLINE StackPtr U_PUSHFLD(VM &vm, StackPtr sp, int i) {
+VM_INLINE void U_PUSHFLD(VM &vm, StackPtr sp, int i) {
     Value r = Pop(sp);
     VMASSERT(vm, r.ref());
     assert(i < r.oval()->Len(vm));
     Push(sp, r.oval()->AtS(i));
-    return sp;
 }
-VM_INLINE StackPtr U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
+VM_INLINE void U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
     Value r = Pop(sp);
     if (!r.ref()) {
         Push(sp, r);
@@ -607,90 +568,75 @@ VM_INLINE StackPtr U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
         (void)vm;
         Push(sp, r.oval()->AtS(i));
     }
-    return sp;
 }
-VM_INLINE StackPtr U_PUSHFLD2V(VM &vm, StackPtr sp, int i, int l) {
+VM_INLINE void U_PUSHFLD2V(VM &vm, StackPtr sp, int i, int l) {
     Value r = Pop(sp);
     VMASSERT(vm, r.ref());
     assert(i + l <= r.oval()->Len(vm));
     tsnz_memcpy(TopPtr(sp), &r.oval()->AtS(i), l);
     PushN(sp, l);
-    return sp;
 }
-VM_INLINE StackPtr U_PUSHFLDV(VM &, StackPtr sp, int i, int l) {
+VM_INLINE void U_PUSHFLDV(VM &, StackPtr sp, int i, int l) {
     PopN(sp, l);
     auto val = *(TopPtr(sp) + i);
     Push(sp, val);
-    return sp;
 }
-VM_INLINE StackPtr U_PUSHFLDV2V(VM &, StackPtr sp, int i, int rl, int l) {
+VM_INLINE void U_PUSHFLDV2V(VM &, StackPtr sp, int i, int rl, int l) {
     PopN(sp, l);
     t_memmove(TopPtr(sp), TopPtr(sp) + i, rl);
     PushN(sp, rl);
-    return sp;
 }
 
-VM_INLINE StackPtr U_VPUSHIDXI(VM &vm, StackPtr sp) {
+VM_INLINE void U_VPUSHIDXI(VM &vm, StackPtr sp) {
     auto x = Pop(sp).ival();
     PushDerefIdxVector1(vm, sp, x);
-    return sp;
 }
 
-VM_INLINE StackPtr U_VPUSHIDXI2V(VM &vm, StackPtr sp) {
+VM_INLINE void U_VPUSHIDXI2V(VM &vm, StackPtr sp) {
     auto x = Pop(sp).ival();
     PushDerefIdxVector2V(vm, sp, x);
-    return sp;
 }
 
-VM_INLINE StackPtr U_VPUSHIDXV(VM &vm, StackPtr sp, int l) {
+VM_INLINE void U_VPUSHIDXV(VM &vm, StackPtr sp, int l) {
     auto x = vm.GrabIndex(sp, l);
     PushDerefIdxVector2V(vm, sp, x);
-    return sp;
 }
 
-VM_INLINE StackPtr U_VPUSHIDXIS(VM &vm, StackPtr sp, int o) {
+VM_INLINE void U_VPUSHIDXIS(VM &vm, StackPtr sp, int o) {
     auto x = Pop(sp).ival();
     PushDerefIdxVectorSub1(vm, sp, x, o);
-    return sp;
 }
 
-VM_INLINE StackPtr U_VPUSHIDXIS2V(VM &vm, StackPtr sp, int w, int o) {
+VM_INLINE void U_VPUSHIDXIS2V(VM &vm, StackPtr sp, int w, int o) {
     auto x = Pop(sp).ival();
     PushDerefIdxVectorSub2V(vm, sp, x, w, o);
-    return sp;
 }
 
-VM_INLINE StackPtr U_VPUSHIDXVS(VM &vm, StackPtr sp, int l, int w, int o) {
+VM_INLINE void U_VPUSHIDXVS(VM &vm, StackPtr sp, int l, int w, int o) {
     auto x = vm.GrabIndex(sp, l);
     PushDerefIdxVectorSub2V(vm, sp, x, w, o);
-    return sp;
 }
 
-VM_INLINE StackPtr U_NPUSHIDXI(VM &, StackPtr sp, int l) {
+VM_INLINE void U_NPUSHIDXI(VM &, StackPtr sp, int l) {
     auto x = Pop(sp).ival();
     PushDerefIdxStruct(sp, x, l);
-    return sp;
 }
 
-VM_INLINE StackPtr U_SPUSHIDXI(VM &vm, StackPtr sp) {
+VM_INLINE void U_SPUSHIDXI(VM &vm, StackPtr sp) {
     auto x = Pop(sp).ival();
     PushDerefIdxString(vm, sp, x);
-    return sp;
 }
 
-VM_INLINE StackPtr U_BLOCK_START(VM &, StackPtr sp) {
+VM_INLINE void U_BLOCK_START(VM &, StackPtr) {
     assert(false);
-    return sp;
 }
 
-VM_INLINE StackPtr U_JUMP_TABLE_END(VM &, StackPtr sp) {
+VM_INLINE void U_JUMP_TABLE_END(VM &, StackPtr) {
     assert(false);
-    return sp;
 }
 
-VM_INLINE StackPtr U_JUMP_TABLE_CASE_START(VM &, StackPtr sp) {
+VM_INLINE void U_JUMP_TABLE_CASE_START(VM &, StackPtr) {
     assert(false);
-    return sp;
 }
 
 VM_INLINE bool U_JUMP(VM &, StackPtr) {
@@ -720,92 +666,79 @@ VM_INLINE bool U_JUMPIFUNWOUND(VM &vm, StackPtr, int df) {
     return vm.ret_unwind_to != df;
 }
 
-VM_INLINE StackPtr U_JUMP_TABLE(VM &, StackPtr sp, const int *) {
+VM_INLINE void U_JUMP_TABLE(VM &, StackPtr, const int *) {
     assert(false);
-    return sp;
 }
 
-VM_INLINE StackPtr U_ISTYPE(VM &vm, StackPtr sp, int ty) {
+VM_INLINE void U_ISTYPE(VM &vm, StackPtr sp, int ty) {
     auto to = (type_elem_t)ty;
     auto v = Pop(sp);
     // Optimizer guarantees we don't have to deal with scalars.
     if (v.refnil()) Push(sp, v.ref()->tti == to);
     else Push(sp, vm.GetTypeInfo(to).t == V_NIL);  // FIXME: can replace by fixed type_elem_t ?
-    return sp;
 }
 
-VM_INLINE StackPtr U_ABORT(VM &vm, StackPtr sp) {
+VM_INLINE void U_ABORT(VM &vm, StackPtr) {
     vm.SeriousError("VM internal error: abort");
-    return sp;
 }
 
-VM_INLINE StackPtr U_LVAL_VARL(VM &, StackPtr sp, int) {
+VM_INLINE void U_LVAL_VARL(VM &, StackPtr, int) {
     assert(false);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LVAL_VARF(VM &vm, StackPtr sp, int vidx) {
+VM_INLINE void U_LVAL_VARF(VM &vm, StackPtr, int vidx) {
     vm.temp_lval = &vm.fvars[vidx];
-    return sp;
 }
 
-VM_INLINE StackPtr U_LVAL_FLD(VM &vm, StackPtr sp, int i) {
+VM_INLINE void U_LVAL_FLD(VM &vm, StackPtr sp, int i) {
     vm.temp_lval = &GetFieldLVal(vm, sp, i);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LVAL_IDXVI(VM &vm, StackPtr sp) {
+VM_INLINE void U_LVAL_IDXVI(VM &vm, StackPtr sp) {
     auto x = Pop(sp).ival();
     vm.temp_lval = &GetVecLVal(vm, sp, x);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LVAL_IDXVV(VM &vm, StackPtr sp, int l) {
+VM_INLINE void U_LVAL_IDXVV(VM &vm, StackPtr sp, int l) {
     auto x = vm.GrabIndex(sp, l);
     vm.temp_lval = &GetVecLVal(vm, sp, x);
-    return sp;
 }
 
 // Class accessed by index.
-VM_INLINE StackPtr U_LVAL_IDXNI(VM &vm, StackPtr sp) {
+VM_INLINE void U_LVAL_IDXNI(VM &vm, StackPtr sp) {
     auto x = Pop(sp).ival();
     vm.temp_lval = &GetFieldILVal(vm, sp, x);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_DUP(VM &vm, StackPtr sp) {
+VM_INLINE void U_LV_DUP(VM &vm, StackPtr sp) {
     Push(sp, *vm.temp_lval);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_DUPV(VM &vm, StackPtr sp, int l) {
+VM_INLINE void U_LV_DUPV(VM &vm, StackPtr sp, int l) {
     tsnz_memcpy(TopPtr(sp), vm.temp_lval, l);
     PushN(sp, l);
-    return sp;
 }
 
 /*
-VM_INLINE StackPtr U_LV_DUPREF(VM &vm, StackPtr sp) {
+VM_INLINE void U_LV_DUPREF(VM &vm, StackPtr sp) {
     vm.temp_lval->LTINCRTNIL();
     Push(sp, *vm.temp_lval);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_DUPREFV(VM &vm, StackPtr sp, int l) {
+VM_INLINE void U_LV_DUPREFV(VM &vm, StackPtr sp, int l) {
     tsnz_memcpy(TopPtr(sp), vm.temp_lval, l);
     for (int i = 0; i < l; i++) {
         sp++;
         sp->LTINCRTNIL();
     }
-    return sp;
 }
 */
 
-#define LVALCASES(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr sp) { \
-    auto &a = *vm.temp_lval; Value b = Pop(sp); B; return sp; }
+#define LVALCASES(N, B) VM_INLINE void U_LV_##N(VM &vm, StackPtr sp) { \
+    auto &a = *vm.temp_lval; Value b = Pop(sp); B; }
 
-#define LVALCASER(N, B) VM_INLINE StackPtr U_LV_##N(VM &vm, StackPtr sp, int len) { \
-    auto &fa = *vm.temp_lval; B; return sp; }
+#define LVALCASER(N, B) VM_INLINE void U_LV_##N(VM &vm, StackPtr sp, int len) { \
+    auto &fa = *vm.temp_lval; B; }
 
 LVALCASER(IVVADD , _IVOPV(+, 0, &fa))
 LVALCASER(IVVSUB , _IVOPV(-, 0, &fa))
@@ -846,71 +779,62 @@ LVALCASES(FSUB   , _FOP(-, 0); a = res;)
 LVALCASES(FMUL   , _FOP(*, 0); a = res;)
 LVALCASES(FDIV   , _FOP(/, 1); a = res;)
 
-VM_INLINE StackPtr U_LV_SADD(VM &vm, StackPtr sp) {
+VM_INLINE void U_LV_SADD(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     Value b = Pop(sp);
     _SCAT();
     a.LTDECRTNIL(vm);
     a = res;
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_WRITE(VM &vm, StackPtr sp) {
+VM_INLINE void U_LV_WRITE(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     auto  b = Pop(sp);
     TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL);
     a = b;
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_WRITEREF(VM &vm, StackPtr sp) {
+VM_INLINE void U_LV_WRITEREF(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     auto  b = Pop(sp);
     a.LTDECRTNIL(vm);
     TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL);
     a = b;
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_WRITEV(VM &vm, StackPtr sp, int l) {
+VM_INLINE void U_LV_WRITEV(VM &vm, StackPtr sp, int l) {
     auto &a = *vm.temp_lval;
     auto b = TopPtr(sp) - l;
     tsnz_memcpy(&a, b, l);
     PopN(sp, l);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_WRITEREFV(VM &vm, StackPtr sp, int l) {
+VM_INLINE void U_LV_WRITEREFV(VM &vm, StackPtr sp, int l) {
     auto &a = *vm.temp_lval;
     for (int i = 0; i < l; i++) (&a)[i].LTDECRTNIL(vm);
     auto b = TopPtr(sp) - l;
     tsnz_memcpy(&a, b, l);
     PopN(sp, l);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_IPP(VM &vm, StackPtr sp) {
+VM_INLINE void U_LV_IPP(VM &vm, StackPtr) {
     auto &a = *vm.temp_lval;
     a.setival(a.ival() + 1);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_IMM(VM & vm, StackPtr sp) {
+VM_INLINE void U_LV_IMM(VM & vm, StackPtr) {
     auto &a = *vm.temp_lval;
     a.setival(a.ival() - 1);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_FPP(VM & vm, StackPtr sp) {
+VM_INLINE void U_LV_FPP(VM & vm, StackPtr) {
     auto &a = *vm.temp_lval;
     a.setfval(a.fval() + 1);
-    return sp;
 }
 
-VM_INLINE StackPtr U_LV_FMM(VM & vm, StackPtr & sp) {
+VM_INLINE void U_LV_FMM(VM & vm, StackPtr) {
     auto &a = *vm.temp_lval;
     a.setfval(a.fval() - 1);
-    return sp;
 }
 
 }  // namespace lobster

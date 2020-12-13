@@ -90,11 +90,10 @@ void TestGL(VM &vm) {
 
 // This function can also be called directly from the native backends, to avoid
 // an indirect call (which is important in Wasm).
-extern "C" StackPtr GLFrame(StackPtr sp, VM &vm) {
+extern "C" void GLFrame(StackPtr sp, VM &vm) {
     TestGL(vm);
     auto cb = GraphicsFrameStart();
     Push(sp, Value(!cb));
-    return sp;
 }
 
 float2 localpos(const int2 &pos) {
@@ -185,7 +184,7 @@ nfr("gl_frame", "", "", "B",
     " returns false if the closebutton on the window was pressed",
     [](StackPtr &sp, VM &vm) {
         // Native backends call this directly rather than going thru the function pointer.
-        sp = GLFrame(sp, vm);
+        GLFrame(sp, vm);
     });
 
 nfr("gl_shutdown", "", "", "",

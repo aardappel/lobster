@@ -680,21 +680,21 @@ StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
 void CVM_SetLVal(VM *vm, Value *v) { SetLVal(*vm, v); }
 
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
+    void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_IF(A) VM_OP_PASSN(A));         \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
 ILBASENAMES
 #undef F
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
+    void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
         CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_IF(A) VM_OP_PASSN(A));                           \
         return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont);                         \
     }
 ILCALLNAMES
 #undef F
 #define F(N, A, USE, DEF) \
-    StackPtr CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
+    void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         CHECKVA(IL_##N, *ip);                                             \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
@@ -718,7 +718,7 @@ ILJUMPNAMES2
 #if VM_JIT_MODE
 
 #if LOBSTER_ENGINE
-extern "C" StackPtr GLFrame(StackPtr sp, VM & vm);
+extern "C" void GLFrame(StackPtr sp, VM & vm);
 #endif
 
 const void *vm_ops_jit_table[] = {

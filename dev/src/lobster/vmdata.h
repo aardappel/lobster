@@ -284,11 +284,11 @@ struct LResource : RefObj {
 
 typedef Value *StackPtr;
 
-typedef StackPtr(*fun_base_t)(VM &, StackPtr);
+typedef void(*fun_base_t)(VM &, StackPtr);
 #if VM_JIT_MODE
     extern "C" const void *vm_ops_jit_table[];
 #else
-    extern "C" StackPtr compiled_entry_point(VM & vm, StackPtr sp);
+    extern "C" void compiled_entry_point(VM & vm, StackPtr sp);
 #endif
 
 #if defined(VM_JIT_MODE) && !defined(_MSC_VER) && defined(USE_EXCEPTION_HANDLING)

@@ -43,7 +43,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"
             "    #include \"lobster/sdlincludes.h\"\n"
             "    #include \"lobster/sdlinterface.h\"\n"
-            "    extern \"C\" StackPtr GLFrame(StackPtr sp, VMRef vm);\n"
+            "    extern \"C\" void GLFrame(StackPtr sp, VMRef vm);\n"
             "#endif\n"
             "\n"
             ;
@@ -62,7 +62,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             "} Value;\n"
             "typedef Value *StackPtr;\n"
             "typedef void *VMRef;\n"
-            "typedef StackPtr(*fun_base_t)(VMRef, StackPtr);\n"
+            "typedef void(*fun_base_t)(VMRef, StackPtr);\n"
             "#define Pop(sp) (*(sp)--)\n"
             "#define Push(sp, V) (*++(sp) = (V))\n"
             "#define TopM(sp, N) (*((sp) - (N)))\n"
@@ -74,15 +74,15 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         };
 
         #define F(N, A, USE, DEF) \
-            sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
+            sd += "void U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
             ILBASENAMES
         #undef F
         #define F(N, A, USE, DEF) \
-            sd += "StackPtr U_" #N "(VMRef, StackPtr"; args(A); sd += ", fun_base_t);\n";
+            sd += "void U_" #N "(VMRef, StackPtr"; args(A); sd += ", fun_base_t);\n";
             ILCALLNAMES
         #undef F
         #define F(N, A, USE, DEF) \
-            sd += "StackPtr U_" #N "(VMRef, StackPtr, const int *);\n";
+            sd += "void U_" #N "(VMRef, StackPtr, const int *);\n";
             ILVARARGNAMES
         #undef F
         #define F(N, A, USE, DEF) \
@@ -96,7 +96,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
 
         sd += "extern fun_base_t GetNextCallTarget(VMRef);\n"
               "extern void Entry(int);\n"
-              "extern StackPtr GLFrame(StackPtr, VMRef);\n"
+              "extern void GLFrame(StackPtr, VMRef);\n"
               "extern void SwapVars(VMRef, int, StackPtr, int);\n"
               "extern void BackupVar(VMRef, int);\n"
               "extern void NilVal(Value *);\n"
@@ -122,7 +122,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     while (ip < code + len) {
         int id = (int)(ip - code);
         if (*ip == IL_FUNSTART || ip == starting_ip) {
-            append(sd, "static StackPtr fun_", id, "(VMRef, StackPtr);\n");
+            append(sd, "static void fun_", id, "(VMRef, StackPtr);\n");
             starting_point = id;
         }
         if ((false)) {  // Debug corrupt bytecode.
@@ -184,7 +184,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             auto f = it != function_lookup.end() ? it->second : nullptr;
             sd += "\n";
             if (f) append(sd, "// ", f->name()->string_view(), "\n");
-            append(sd, "static StackPtr fun_", id, "(VMRef vm, StackPtr psp) {\n");
+            append(sd, "static void fun_", id, "(VMRef vm, StackPtr psp) {\n");
             if (opc == IL_FUNSTART) {
                 auto fip = funstart;
                 fip++;  // definedfunction
@@ -326,10 +326,10 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             int nrets;
             if (opc == IL_RETURN) {
                 nrets = args[1];
-                append(sd, "psp = U_RETURN(vm, psp, ", args[0], ", ", nrets, ");");
+                append(sd, "U_RETURN(vm, 0, ", args[0], ", ", nrets, ");");
             } else {
                 nrets = args[0];
-                append(sd, "psp = U_RETURNANY(vm, psp, ", nrets, ", ", args[1], ");");
+                append(sd, "U_RETURNANY(vm, 0, ", nrets, ", ", args[1], ");");
             }
             auto ownedvars = *fip++;
             for (int i = 0; i < ownedvars; i++) {
@@ -392,12 +392,11 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         }
         sd += "\n";
         if (ip == code + len || *ip == IL_FUNSTART || ip == starting_ip) {
-            if (opc != IL_EXIT && opc != IL_ABORT) sd += "    epilogue:\n";
+            if (opc != IL_EXIT && opc != IL_ABORT) sd += "    epilogue:;\n";
             if (!sdt.empty()) append(sd, sdt);
             for (int i = 0; i < nkeepvars; i++) {
                 append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
             }
-            sd += "    return psp;\n";
             sd += "}\n";
         }
     }
@@ -425,9 +424,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         sd += "\n};\n\n";
     }
     if (cpp) sd += "extern \"C\" ";
-    sd += "StackPtr compiled_entry_point(VMRef vm, StackPtr sp) {\n";
+    sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
     if (!cpp) sd += "    Entry(sizeof(Value));\n";
-    append(sd, "    return fun_", starting_point, "(vm, sp);\n}\n\n");
+    append(sd, "    fun_", starting_point, "(vm, sp);\n}\n\n");
     if (cpp) {
         sd += "int main(int argc, char *argv[]) {\n";
         sd += "    // This is hard-coded to call compiled_entry_point()\n";

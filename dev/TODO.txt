@@ -1,6 +1,6 @@
 - natgen refactor
+  - start moving vmops into tocpp for all simple ops.
   - most access to local arrays still thru memory, clearly alias analysis failing.
-    - work to replace sp by direct use of regs[offset]
     - split up arrays into individual vars where possible.
     - ideally then make sure these vars never "overlap" when used with structs, so they can
       be properly register allocated.
@@ -2158,6 +2158,9 @@ C++64-Clang10-LTO     : secs  3.4, moved vars to local array, fastest yet!
 C++64-MSVC            : secs  5.4, moved vars to local array, somehow doesn't help.
 C++64-MSVC+TCC        : secs 13.8, moved vars to local array, somehow worse!
 C++64-MSVC            : secs  4.3, deeper inlining.
+C++64-MSVC            : secs  4.2, explicit stackptr.
+C++64-Clang10-LTO     : secs  3.3, explicit stackptr.
+C++64-MSVC+TCC        : secs 13.1, explicit stackptr.
 
 debug speed:
 
