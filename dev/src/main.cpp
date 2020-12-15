@@ -63,6 +63,7 @@ int main(int argc, char* argv[]) {
         bool disasm = false;
         bool dump_builtins = false;
         bool dump_names = false;
+        bool tcc_out = false;
         bool compile_only = false;
         int runtime_checks = RUNTIME_ASSERT;
         const char *default_lpak = "default.lpak";
@@ -94,6 +95,7 @@ int main(int argc, char* argv[]) {
             #endif
             "--trace                Log bytecode instructions (SLOW, Debug only).\n"
             "--trace-tail           Show last 50 bytecode instructions on error.\n"
+            "--tcc-out              Output tcc .o file instead of running.\n"
             "--wait                 Wait for input before exiting.\n";
             int arg = 1;
         for (; arg < argc; arg++) {
@@ -119,6 +121,7 @@ int main(int argc, char* argv[]) {
                 #endif
                 else if (a == "--trace") { trace = TraceMode::ON; runtime_checks = RUNTIME_ASSERT_PLUS; }
                 else if (a == "--trace-tail") { trace = TraceMode::TAIL; runtime_checks = RUNTIME_ASSERT_PLUS; }
+                else if (a == "--tcc-out") { tcc_out = true; }
                 else if (a == "--import") {
                     arg++;
                     if (arg >= argc) THROW_OR_ABORT("missing import dir");
@@ -191,7 +194,13 @@ int main(int argc, char* argv[]) {
         }
         if (jit_mode) {
             string error;
-            RunTCC(nfr, bytecode_buffer, fn ? fn : "", std::move(program_args), trace, compile_only,
+            RunTCC(nfr,
+                   bytecode_buffer,
+                   fn ? fn : "",
+                   tcc_out ? "tcc_out.o" : nullptr,
+                   std::move(program_args),
+                   trace,
+                   compile_only,
                    error);
             if (!error.empty())
                 THROW_OR_ABORT(error);

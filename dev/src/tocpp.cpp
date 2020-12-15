@@ -249,7 +249,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 for (int i = 0; i < args[1]; i++) {
                     append(sd, "regs[", regso + i, "] = locals[", var_to_local[args[0] + i], "];");
                 }
-                comment(IdName(bcf, args[0], typetable, false));
+                comment(IdName(bcf, args[0], typetable, true));
                 break;
             case IL_LVAL_VARL:
                 append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");

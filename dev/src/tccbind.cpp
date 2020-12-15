@@ -6,13 +6,17 @@
 
 namespace lobster {
 
-bool RunC(const char *source, string &error, const void **imports,
-          const char **export_names, function<bool (void **)> runf) {
+bool RunC(const char *source,
+          const char *object_name,
+          string &error,
+          const void **imports,
+          const char **export_names,
+          function<bool (void **)> runf) {
     // Wrap this thing in a unique pointer since the compiled code may
     // throw an exception still.
     auto deleter = [&](TCCState *p) { tcc_delete(p); };
     unique_ptr<TCCState, decltype(deleter)> state(tcc_new(), deleter);
-    tcc_set_output_type(state.get(), TCC_OUTPUT_MEMORY);
+    tcc_set_output_type(state.get(), object_name ? TCC_OUTPUT_OBJ : TCC_OUTPUT_MEMORY);
     tcc_set_error_func(state.get(), &error, [](void *err, const char *msg) {
         // No way to disable warnings individually, so filter them here :)
         //if (strstr(msg, "label at end of compound statement")) return;
@@ -47,7 +51,7 @@ bool RunC(const char *source, string &error, const void **imports,
         if (tcc_compile_string(state.get(), chkstk_src) < 0) return false;
         tcc_set_options(state.get(), "-xc");
         tcc_add_symbol(state.get(), "memmove", memmove);
-#endif
+    #endif
     tcc_set_options(state.get(), "-nostdlib -Wall");
     while (*imports) {
         auto name = (const char *)(*imports++);
@@ -55,12 +59,16 @@ bool RunC(const char *source, string &error, const void **imports,
         tcc_add_symbol(state.get(), name, fun);
     }
     if (tcc_compile_string(state.get(), source) < 0) return false;
-    if (tcc_relocate(state.get(), TCC_RELOCATE_AUTO) < 0) return false;
-    vector<void *> exports;
-    while (*export_names) {
-        exports.push_back(tcc_get_symbol(state.get(), *export_names++));
+    if (object_name) {
+        return tcc_output_file(state.get(), object_name) == 0;
+    } else {
+        if (tcc_relocate(state.get(), TCC_RELOCATE_AUTO) < 0) return false;
+        vector<void *> exports;
+        while (*export_names) {
+            exports.push_back(tcc_get_symbol(state.get(), *export_names++));
+        }
+        return runf(exports.data());
     }
-    return runf(exports.data());
 }
 
 }

@@ -22,8 +22,12 @@ namespace lobster {
 extern string ToCPP(NativeRegistry &natreg, string &sd,
                     string_view bytecode_buffer, bool cpp);
 
-extern bool RunC(const char *source, string &error, const void **imports,
-                 const char **export_names, function<bool (void **)> runf);
+extern bool RunC(const char *source,
+                 const char *object_name /* save instead of run if non-null */,
+                 string &error,
+                 const void **imports,
+                 const char **export_names,
+                 function<bool (void **)> runf);
 
 inline int ParseOpAndGetArity(int opc, const int *&ip, int &regso) {
     regso = *ip++;

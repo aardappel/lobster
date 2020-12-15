@@ -325,8 +325,8 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
 }
 
 string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
-              vector<string> &&program_args, TraceMode trace, bool compile_only,
-              string &error) {
+              const char *object_name, vector<string> &&program_args, TraceMode trace,
+              bool compile_only, string &error) {
     string sd;
     error = ToCPP(nfr, sd, bytecode_buffer, false);
     if (!error.empty()) return "";
@@ -334,7 +334,7 @@ string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
         auto start_time = SecondsSinceStart();
         string ret;
-        auto ok = RunC(sd.c_str(), error, vm_ops_jit_table, export_names,
+        auto ok = RunC(sd.c_str(), object_name, error, vm_ops_jit_table, export_names,
             [&](void **exports) -> bool {
                 LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
                 if (compile_only) return true;
@@ -381,8 +381,8 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
                 bytecode_buffer, nullptr, nullptr, false, false, true, RUNTIME_ASSERT);
         string error;
-        auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, std::move(args), TraceMode::OFF,
-                          false, error);
+        auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, nullptr, std::move(args),
+                          TraceMode::OFF, false, error);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret)));
         return NilVal();
