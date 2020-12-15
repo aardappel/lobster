@@ -143,33 +143,10 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     const int *funstart = nullptr;
     int nkeepvars = 0;
     int ndefsave = 0;
-    string sdt, comment, sp;
+    string sdt, sp;
     int opc = -1;
     const int *args = nullptr;
-    auto add_comment = [&]() {
-        if (opc == IL_PUSHVARL || opc == IL_PUSHVARVL || opc == IL_LVAL_VARL ||
-            opc == IL_PUSHVARF || opc == IL_PUSHVARVF || opc == IL_LVAL_VARF) {
-            comment = IdName(bcf, args[0], typetable, false);
-        } else if (opc == IL_PUSHSTR) {
-            auto sv = bcf->stringtable()->Get(args[0])->string_view();
-            sv = sv.substr(0, 50);
-            EscapeAndQuote(sv, comment, true);
-        } else if (opc == IL_CALL) {
-            auto fs = code + args[0];
-            assert(*fs == IL_FUNSTART);
-            fs += 2;
-            comment = bcf->functions()->Get(*fs)->name()->string_view();
-        } else if (ISBCALL(opc)) {
-            comment = natreg.nfuns[args[0]]->name;
-        } else if (opc == IL_ISTYPE || opc == IL_NEWOBJECT || opc == IL_ST2S) {
-            auto ti = ((TypeInfo *)(typetable + args[0]));
-            if (IsUDT(ti->t)) comment = bcf->udts()->Get(ti->structidx)->name()->string_view();
-        }
-        if (!comment.empty()) {
-            append(sd, " /* ", comment, " */");
-            comment.clear();
-        }
-    };
+    auto comment = [&](string_view c) { append(sd, " /* ", c, " */"); };
     while (ip < code + len) {
         int id = (int)(ip - code);
         bool is_start = ip == starting_ip;
@@ -262,134 +239,204 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         if (opc == IL_FUNSTART) continue;
         append(sd, "    ");
         sp = cat("regs + ", regso - 1);
-        if (opc == IL_PUSHVARL) {
-            append(sd, "regs[", regso, "] = locals[", var_to_local[args[0]], "];");
-            add_comment();
-        } else if (opc == IL_PUSHVARVL) {
-            for (int i = 0; i < args[1]; i++) {
-                append(sd, "regs[", regso + i, "] = locals[", var_to_local[args[0] + i], "];");
-            }
-            add_comment();
-        } else if (opc == IL_LVAL_VARL) {
-            append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
-            add_comment();
-        } else if (opc == IL_JUMP) {
-            append(sd, "goto block", args[0], ";");
-        } else if (CONDJUMP(opc)) {
-            auto id = args[opc == IL_JUMPIFUNWOUND ? 1 : 0];
-            assert(id >= 0);
-            auto df = opc == IL_JUMPIFUNWOUND ? args[0] : -1;
-            append(sd, "if (!U_", ILNames()[opc], "(vm, ", sp);
-            if (df >= 0) append(sd, ", ", df);
-            append(sd, ")) goto block", id, ";");
-        } else if (opc == IL_BLOCK_START) {
-            // FIXME: added ";" because blocks may end up just before "}" at the end of a
-            // switch, and generate warnings/errors. Ideally not generate this block at all.
-            append(sd, "block", id, ":;");
-        } else if (opc == IL_JUMP_TABLE) {
-            if (cpp) {
-                append(sd, "switch ((", sp, ")->ival()) {");
-            } else {
-                append(sd, "{ long long top = (", sp, ")->ival; switch (top) {");
-            }
-            jumptables.push_back(args);
-        } else if (opc == IL_JUMP_TABLE_CASE_START) {
-            auto t = jumptables.back();
-            auto mini = *t++;
-            auto maxi = *t++;
-            for (auto i = mini; i <= maxi; i++) {
-                if (*t++ == id) {
-                    append(sd, "case ", i, ":");
+
+        switch (opc) {
+            case IL_PUSHVARL:
+                append(sd, "regs[", regso, "] = locals[", var_to_local[args[0]], "];");
+                comment(IdName(bcf, args[0], typetable, false));
+                break;
+            case IL_PUSHVARVL:
+                for (int i = 0; i < args[1]; i++) {
+                    append(sd, "regs[", regso + i, "] = locals[", var_to_local[args[0] + i], "];");
                 }
+                comment(IdName(bcf, args[0], typetable, false));
+                break;
+            case IL_LVAL_VARL:
+                append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
+                comment(IdName(bcf, args[0], typetable, false));
+                break;
+            case IL_JUMP:
+                append(sd, "goto block", args[0], ";");
+                break;
+            case IL_JUMPFAIL:
+            case IL_JUMPFAILR:
+            case IL_JUMPNOFAIL:
+            case IL_JUMPNOFAILR:
+            case IL_IFOR:
+            case IL_SFOR:
+            case IL_VFOR:
+            case IL_JUMPIFUNWOUND: {
+                auto id = args[opc == IL_JUMPIFUNWOUND ? 1 : 0];
+                assert(id >= 0);
+                auto df = opc == IL_JUMPIFUNWOUND ? args[0] : -1;
+                append(sd, "if (!U_", ILNames()[opc], "(vm, ", sp);
+                if (df >= 0) append(sd, ", ", df);
+                append(sd, ")) goto block", id, ";");
+                break;
             }
-            if (*t++ == id) {
-                append(sd, "default:");
-            }
-        } else if (opc == IL_JUMP_TABLE_END) {
-            if (cpp) sd += "} // switch";
-            else sd += "}} // switch";
-            jumptables.pop_back();
-        } else if (ISBCALL(opc) && natreg.nfuns[args[0]]->IsGLFrame()) {
-            append(sd, "GLFrame(", sp, ", vm);");
-        } else if (opc == IL_RETURN || opc == IL_RETURNANY) {
-            // FIXME: emit epilogue stuff only once at end of function.
-            auto fip = funstart;
-            fip++;  // function id.
-            fip++;  // regs_max.
-            auto nargs = *fip++;
-            auto freevars = fip + nargs;
-            fip += nargs;
-            auto ndef = *fip++;
-            auto defvars = fip;
-            fip += ndef;
-            fip++;  // nkeepvars, already parsed above
-            int nrets;
-            if (opc == IL_RETURN) {
-                nrets = args[1];
-                append(sd, "U_RETURN(vm, 0, ", args[0], ", ", nrets, ");");
-            } else {
-                nrets = args[0];
-                append(sd, "U_RETURNANY(vm, 0, ", nrets, ", ", args[1], ");");
-            }
-            auto ownedvars = *fip++;
-            for (int i = 0; i < ownedvars; i++) {
-                auto varidx = *fip++;
-                if (specidents->Get(varidx)->used_as_freevar()) {
-                    append(sd, "\n    DecOwned(vm, ", varidx, ");");
+            case IL_BLOCK_START:
+                // FIXME: added ";" because blocks may end up just before "}" at the end of a
+                // switch, and generate warnings/errors. Ideally not generate this block at all.
+                append(sd, "block", id, ":;");
+                break;
+            case IL_JUMP_TABLE:
+                if (cpp) {
+                    append(sd, "switch ((", sp, ")->ival()) {");
                 } else {
-                    append(sd, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
+                    append(sd, "{ long long top = (", sp, ")->ival; switch (top) {");
                 }
+                jumptables.push_back(args);
+                break;
+            case IL_JUMP_TABLE_CASE_START: {
+                auto t = jumptables.back();
+                auto mini = *t++;
+                auto maxi = *t++;
+                for (auto i = mini; i <= maxi; i++) {
+                    if (*t++ == id) append(sd, "case ", i, ":");
+                }
+                if (*t++ == id) append(sd, "default:");
+                break;
             }
-            while (nargs--) {
-                auto varidx = *--freevars;
-                if (specidents->Get(varidx)->used_as_freevar()) {
-                    append(sd, "\n    psp = PopArg(vm, ", varidx, ", psp);");
+            case IL_JUMP_TABLE_END: {
+                if (cpp) sd += "} // switch";
+                else sd += "}} // switch";
+                jumptables.pop_back();
+                break;
+            }
+            case IL_BCALLRETV:
+            case IL_BCALLRET0:
+            case IL_BCALLRET1:
+            case IL_BCALLRET2:
+            case IL_BCALLRET3:
+            case IL_BCALLRET4:
+            case IL_BCALLRET5:
+            case IL_BCALLRET6:
+            case IL_BCALLRET7:
+                if (natreg.nfuns[args[0]]->IsGLFrame()) {
+                    append(sd, "GLFrame(", sp, ", vm);");
                 } else {
-                    // TODO: move to when we obtain the arg?
-                    append(sd, "\n    Pop(psp);");
+                    append(sd, "U_", ILNames()[opc], "(vm, ", sp, ", ", args[0], ", ", args[1], ");");
+                    comment(natreg.nfuns[args[0]]->name);
                 }
-            }
-            auto unwind_diff = opc == IL_RETURNANY ? nrets - args[1] : 0;
-            for (int i = 0; i < nrets; i++) {
-                append(sd, "\n    Push(psp, regs[", regso - nrets + i + unwind_diff, "]);");
-            }
-            sdt.clear();  // FIXME: remove
-            for (int i = ndef - 1; i >= 0; i--) {
-                auto varidx = defvars[i];
-                if (specidents->Get(varidx)->used_as_freevar()) {
-                    append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
+                break;
+            case IL_RETURN:
+            case IL_RETURNANY: {
+                // FIXME: emit epilogue stuff only once at end of function.
+                auto fip = funstart;
+                fip++;  // function id.
+                fip++;  // regs_max.
+                auto nargs = *fip++;
+                auto freevars = fip + nargs;
+                fip += nargs;
+                auto ndef = *fip++;
+                auto defvars = fip;
+                fip += ndef;
+                fip++;  // nkeepvars, already parsed above
+                int nrets;
+                if (opc == IL_RETURN) {
+                    nrets = args[1];
+                    append(sd, "U_RETURN(vm, 0, ", args[0], ", ", nrets, ");");
+                } else {
+                    nrets = args[0];
+                    append(sd, "U_RETURNANY(vm, 0, ", nrets, ", ", args[1], ");");
                 }
+                auto ownedvars = *fip++;
+                for (int i = 0; i < ownedvars; i++) {
+                    auto varidx = *fip++;
+                    if (specidents->Get(varidx)->used_as_freevar()) {
+                        append(sd, "\n    DecOwned(vm, ", varidx, ");");
+                    } else {
+                        append(sd, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
+                    }
+                }
+                while (nargs--) {
+                    auto varidx = *--freevars;
+                    if (specidents->Get(varidx)->used_as_freevar()) {
+                        append(sd, "\n    psp = PopArg(vm, ", varidx, ", psp);");
+                    } else {
+                        // TODO: move to when we obtain the arg?
+                        append(sd, "\n    Pop(psp);");
+                    }
+                }
+                auto unwind_diff = opc == IL_RETURNANY ? nrets - args[1] : 0;
+                for (int i = 0; i < nrets; i++) {
+                    append(sd, "\n    Push(psp, regs[", regso - nrets + i + unwind_diff, "]);");
+                }
+                sdt.clear();  // FIXME: remove
+                for (int i = ndef - 1; i >= 0; i--) {
+                    auto varidx = defvars[i];
+                    if (specidents->Get(varidx)->used_as_freevar()) {
+                        append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
+                    }
+                }
+                if (opc == IL_RETURN) {
+                    append(sd, "\n    goto epilogue;");
+                }
+                break;
             }
-            if (opc == IL_RETURN) {
-                append(sd, "\n    goto epilogue;");
+            case IL_SAVERETS:  // FIXME: remove
+                append(sd, "goto epilogue;");
+                break;
+            case IL_KEEPREFLOOP:
+                append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
+                // fall-through:
+            case IL_KEEPREF:
+                append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
+                break;
+            case IL_PUSHFUN:
+                append(sd, "U_PUSHFUN(vm, ", sp, ", 0, ", "fun_", args[0], ");");
+                break;
+            case IL_CALL: {
+                append(sd, "fun_", args[0], "(vm, ", sp, ");");
+                auto fs = code + args[0];
+                assert(*fs == IL_FUNSTART);
+                fs += 2;
+                comment("call: " + bcf->functions()->Get(*fs)->name()->string_view());
+                break;
             }
-        } else if (opc == IL_SAVERETS) {  // FIXME: remove
-            append(sd, "goto epilogue;");
-        } else if (opc == IL_KEEPREF || opc == IL_KEEPREFLOOP) {
-            if (opc == IL_KEEPREFLOOP) append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
-            append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
-        } else {
-            assert(ILArity()[opc] != ILUNKNOWN);
-            append(sd, "U_", ILNames()[opc], "(vm, ", sp, "");
-            for (int i = 0; i < arity; i++) {
-                sd += ", ";
-                append(sd, args[i]);
-            }
-            if (opc == IL_PUSHFUN) {
-                sd += ", ";
-                append(sd, "fun_", args[0]);
-            }
-            sd += ");";
-            add_comment();
-            if (opc == IL_CALL) {
-                append(sd, " fun_", args[0], "(vm, ", sp, ");");
-            } else if (opc == IL_CALLV || opc == IL_DDCALL) {
-                if (opc == IL_CALLV) sp = cat("regs + ", regso - 2);
-                sd += " ";
+            case IL_CALLV:
+                append(sd, "U_CALLV(vm, ", sp, "); ");
+                if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 2, ");");
+                else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 2, ");");
+                break;
+            case IL_DDCALL:
+                append(sd, "U_DDCALL(vm, ", sp, ", ", args[0], ", ", args[1], "); ");
                 if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
                 else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
-            }
+                break;
+            default:
+                assert(ILArity()[opc] != ILUNKNOWN);
+                append(sd, "U_", ILNames()[opc], "(vm, ", sp, "");
+                for (int i = 0; i < arity; i++) {
+                    sd += ", ";
+                    append(sd, args[i]);
+                }
+                sd += ");";
+                switch (opc) {
+                    case IL_PUSHVARF:
+                    case IL_PUSHVARVF:
+                    case IL_LVAL_VARF:
+                        comment(IdName(bcf, args[0], typetable, false));
+                        break;
+                    case IL_PUSHSTR: {
+                        auto sv = bcf->stringtable()->Get(args[0])->string_view();
+                        sv = sv.substr(0, 50);
+                        string q;
+                        EscapeAndQuote(sv, q, true);
+                        comment(q);
+                        break;
+                    }
+                    case IL_ISTYPE:
+                    case IL_NEWOBJECT:
+                    case IL_ST2S:
+                        auto ti = ((TypeInfo *)(typetable + args[0]));
+                        if (IsUDT(ti->t))
+                            comment(bcf->udts()->Get(ti->structidx)->name()->string_view());
+                        break;
+                }
+                break;
         }
+
         sd += "\n";
         if (ip == code + len || *ip == IL_FUNSTART || ip == starting_ip) {
             if (opc != IL_EXIT && opc != IL_ABORT) sd += "    epilogue:;\n";
