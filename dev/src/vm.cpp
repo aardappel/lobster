@@ -66,7 +66,7 @@ VMAllocator::VMAllocator(VMArgs &&args) {
 
     vm = new (mem) VM(std::move(args), bcf);
 
-    #ifdef _WIN32
+    #ifdef _MSC_VER
     #ifndef NDEBUG
     #define new DEBUG_NEW
     #endif
@@ -203,7 +203,7 @@ LResource *VM::NewResource(void *v, const ResourceType *t) {
     return r;
 }
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #ifndef NDEBUG
 #define new DEBUG_NEW
 #endif
