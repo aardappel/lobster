@@ -22,7 +22,7 @@
 
 #include "Box2D/Box2D.h"
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #ifndef NDEBUG
 #define new DEBUG_NEW
 #endif
