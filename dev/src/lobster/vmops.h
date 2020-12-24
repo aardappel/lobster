@@ -645,11 +645,11 @@ VM_INLINE bool U_JUMP(VM &, StackPtr) {
 }
 
 VM_INLINE bool U_JUMPFAIL(VM &, StackPtr sp) {
-    return sp->True();
+    return Top(sp).True();
 }
 
 VM_INLINE bool U_JUMPFAILR(VM &, StackPtr sp) {
-    return sp->True();
+    return Top(sp).True();
 }
 
 VM_INLINE bool U_JUMPNOFAIL(VM &, StackPtr sp) {
@@ -729,7 +729,7 @@ VM_INLINE void U_LV_DUPREFV(VM &vm, StackPtr sp, int l) {
     tsnz_memcpy(TopPtr(sp), vm.temp_lval, l);
     for (int i = 0; i < l; i++) {
         sp++;
-        sp->LTINCRTNIL();
+        Top(sp).LTINCRTNIL();
     }
 }
 */

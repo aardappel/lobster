@@ -10,7 +10,6 @@
   - make all builtin calls direct
   - move more stuff into the epilogue.
   - de-inline vm ops that are big: check in disassembly
-  - make top not -1.. start at end?
   - NO RUNTIME STACKTRACES!
   - shrink fvars array in VM
   - can finally remove exceptions? could instead execute a return from -3 or whatever.
@@ -21,6 +20,8 @@
   - remove next_call_target
   - test/enable
     - --cpp mode for mac/ios
+  - start regs sp at end to access top slightly more optimally?
+    - need to flip all struct order etc.
   - reduce use of ElemType.
 
 - Add to docs:

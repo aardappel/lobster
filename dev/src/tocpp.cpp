@@ -63,9 +63,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             "typedef Value *StackPtr;\n"
             "typedef void *VMRef;\n"
             "typedef void(*fun_base_t)(VMRef, StackPtr);\n"
-            "#define Pop(sp) (*(sp)--)\n"
-            "#define Push(sp, V) (*++(sp) = (V))\n"
-            "#define TopM(sp, N) (*((sp) - (N)))\n"
+            "#define Pop(sp) (*--(sp))\n"
+            "#define Push(sp, V) (*(sp)++ = (V))\n"
+            "#define TopM(sp, N) (*((sp) - (N) - 1))\n"
             "\n"
             ;
 
@@ -206,9 +206,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 for (int i = 0; i < nargs_fun; i++) {
                     auto varidx = fip[i];
                     if (specidents->Get(varidx)->used_as_freevar()) {
-                        append(sd, "    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i - 1, ");\n");
+                        append(sd, "    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i, ");\n");
                     } else {
-                        append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i - 1, ");\n");
+                        append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i, ");\n");
                     }
                 }
                 fip += nargs_fun;
@@ -240,7 +240,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         auto arity = ParseOpAndGetArity(opc, ip, regso);
         if (opc == IL_FUNSTART) continue;
         append(sd, "    ");
-        sp = cat("regs + ", regso - 1);
+        sp = cat("regs + ", regso);
 
         switch (opc) {
             case IL_PUSHVARL:
@@ -283,9 +283,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 break;
             case IL_JUMP_TABLE:
                 if (cpp) {
-                    append(sd, "switch ((", sp, ")->ival()) {");
+                    append(sd, "switch (regs[", regso - 1, "].ival()) {");
                 } else {
-                    append(sd, "{ long long top = (", sp, ")->ival; switch (top) {");
+                    append(sd, "{ long long top = regs[", regso - 1, "].ival; switch (top) {");
                 }
                 jumptables.push_back(args);
                 break;
@@ -398,8 +398,8 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             }
             case IL_CALLV:
                 append(sd, "U_CALLV(vm, ", sp, "); ");
-                if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 2, ");");
-                else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 2, ");");
+                if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 1, ");");
+                else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 1, ");");
                 break;
             case IL_DDCALL:
                 append(sd, "U_DDCALL(vm, ", sp, ", ", args[0], ", ", args[1], "); ");

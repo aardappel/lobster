@@ -825,11 +825,11 @@ struct VMAllocator {
     ~VMAllocator();
 };
 
-VM_INLINE void Push(StackPtr &sp, Value v) { *++sp = v; }
-VM_INLINE Value Pop(StackPtr &sp) { return *sp--; }
-VM_INLINE Value &Top(StackPtr sp) { return *sp; }
-VM_INLINE Value &TopM(StackPtr sp, iint n) { return *(sp - n); }
-VM_INLINE Value *TopPtr(StackPtr sp) { return sp + 1; }
+VM_INLINE void Push(StackPtr &sp, Value v) { *sp++ = v; }
+VM_INLINE Value Pop(StackPtr &sp) { return *--sp; }
+VM_INLINE Value &Top(StackPtr sp) { return *(sp - 1); }
+VM_INLINE Value &TopM(StackPtr sp, iint n) { return *(sp - (n + 1)); }
+VM_INLINE Value *TopPtr(StackPtr sp) { return sp; }
 VM_INLINE void PushN(StackPtr &sp, iint n) { sp += n; }
 VM_INLINE void PopN(StackPtr &sp, iint n) { sp -= n; }
 
