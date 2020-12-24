@@ -1100,6 +1100,9 @@
     - Spec not settled, shader situation is a mess.
   - Vulkan, haha.
 
+- Replace audio layer with https://github.com/mackron/miniaudio ?
+  - Seems to be more featureful than the SDL stuff, built-in mp3 etc.
+
 - function call optimization and simplication.
   - make a micro-benchmark to compare against other languages.
   - inlining

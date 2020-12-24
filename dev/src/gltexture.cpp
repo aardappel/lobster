@@ -18,12 +18,12 @@
 #include "lobster/glincludes.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#ifdef _WIN32
+#ifdef _MSC_VER
     #pragma warning(push)
     #pragma warning(disable: 4244)
 #endif
 #include "stb/stb_image.h"
-#ifdef _WIN32
+#ifdef _MSC_VER
     #pragma warning(pop)
 #endif
 

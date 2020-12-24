@@ -362,6 +362,7 @@ string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
         }
     #else
         (void)fn;
+        (void)object_name;
         (void)program_args;
         (void)trace;
         (void)compile_only;

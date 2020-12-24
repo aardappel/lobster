@@ -21,7 +21,9 @@
 #ifdef _WIN32
     #define VC_EXTRALEAN
     #define WIN32_LEAN_AND_MEAN
-    #define NOMINMAX
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
     #include <windows.h>
     #define FILESEP '\\'
     #include <intrin.h>
@@ -512,7 +514,7 @@ string GetDateTime() {
     time(&t);
     auto tm = localtime(&t);
     char buf[1024];
-    strftime(buf, sizeof(buf), "%F-%H-%M-%S", tm);
+    strftime(buf, sizeof(buf), "%Y-%m-%d-%H-%M-%S", tm);
     return buf;
 }
 
