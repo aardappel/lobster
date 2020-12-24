@@ -41,11 +41,9 @@ void unit_test_all() {
 }
 
 int main(int argc, char* argv[]) {
-    #ifdef _WIN32
-        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-        #ifdef _MSC_VER
-            InitUnhandledExceptionFilter(argc, argv);
-        #endif
+    #ifdef _MSC_VER
+    	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+        InitUnhandledExceptionFilter(argc, argv);
     #endif
     LOG_INFO("Lobster running...");
     bool wait = false;
@@ -229,7 +227,7 @@ int main(int argc, char* argv[]) {
             LOG_PROGRAM("press <ENTER> to continue:\n");
             getchar();
         }
-        #ifdef _WIN32
+        #ifdef _MSC_VER
             _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
         #endif
         return 1;
