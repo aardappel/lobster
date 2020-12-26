@@ -39,6 +39,7 @@
         print b
     if a.t and a.t.t:
         f(a.t.t)
+- see also: https://nim-lang.org/docs/manual_experimental.html#view-types
 
 - Do better stats on specialization code bloat, and implement a byte-code level merging pass.
   - would first need to make jumps relative encoded.

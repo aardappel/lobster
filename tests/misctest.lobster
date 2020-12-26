@@ -324,6 +324,5 @@ run_test("misc"):
 
     // IEEE754 div by zero behavior
     assert string(1.0 / 0.0) == "inf"
-    assert string(1.0 % 0.0) == "nan"
+    assert string(1.0 % 0.0).find_string("nan") >= 0
     assert string((xy_1 / xy_0).y) == "inf"
-
