@@ -299,6 +299,13 @@ VM_INLINE void U_POPVREF(VM &vm, StackPtr sp, int len) { while (len--) Pop(sp).L
 
 VM_INLINE void U_DUP(VM &, StackPtr sp) { auto x = Top(sp); Push(sp, x); }
 
+// While float div by zero is generally undefined in C++, if it promises to adhere to IEEE754
+// we get the desirable result of Inf values instead, and we don't have to check for 0.
+// This behavior is similar to what Java/C#/JS already do.
+// https://en.cppreference.com/w/cpp/language/operator_arithmetic#Multiplicative_operators
+// We do the same for https://en.cppreference.com/w/c/numeric/math/fmod
+// Integer div by zero is still a language level runtime error.
+static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required");
 
 #define GETARGS() Value b = Pop(sp); Value a = Pop(sp)
 #define TYPEOP(op, extras, av, bv) \
@@ -399,8 +406,8 @@ VM_INLINE void U_IVVGE(VM &vm, StackPtr sp, int len)  { IVVOP(>=, 0);  }
 VM_INLINE void U_FVVADD(VM &vm, StackPtr sp, int len) { FVVOP(+,  0);  }
 VM_INLINE void U_FVVSUB(VM &vm, StackPtr sp, int len) { FVVOP(-,  0);  }
 VM_INLINE void U_FVVMUL(VM &vm, StackPtr sp, int len) { FVVOP(*,  0);  }
-VM_INLINE void U_FVVDIV(VM &vm, StackPtr sp, int len) { FVVOP(/,  1);  }
-VM_INLINE void U_FVVMOD(VM &vm, StackPtr sp, int len) { FVVOP(/ , 3); }
+VM_INLINE void U_FVVDIV(VM &vm, StackPtr sp, int len) { FVVOP(/,  0);  }
+VM_INLINE void U_FVVMOD(VM &vm, StackPtr sp, int len) { FVVOP(/ , 2); }
 VM_INLINE void U_FVVLT(VM &vm, StackPtr sp, int len)  { FVVOP(<,  0); }
 VM_INLINE void U_FVVGT(VM &vm, StackPtr sp, int len)  { FVVOP(>,  0); }
 VM_INLINE void U_FVVLE(VM &vm, StackPtr sp, int len)  { FVVOP(<=, 0); }
@@ -418,8 +425,8 @@ VM_INLINE void U_IVSGE(VM &vm, StackPtr sp, int len)  { IVSOP(>=, 0);  }
 VM_INLINE void U_FVSADD(VM &vm, StackPtr sp, int len) { FVSOP(+,  0);  }
 VM_INLINE void U_FVSSUB(VM &vm, StackPtr sp, int len) { FVSOP(-,  0);  }
 VM_INLINE void U_FVSMUL(VM &vm, StackPtr sp, int len) { FVSOP(*,  0);  }
-VM_INLINE void U_FVSDIV(VM &vm, StackPtr sp, int len) { FVSOP(/,  1);  }
-VM_INLINE void U_FVSMOD(VM &vm, StackPtr sp, int len) { FVSOP(/ , 3); }
+VM_INLINE void U_FVSDIV(VM &vm, StackPtr sp, int len) { FVSOP(/,  0);  }
+VM_INLINE void U_FVSMOD(VM &vm, StackPtr sp, int len) { FVSOP(/ , 2); }
 VM_INLINE void U_FVSLT(VM &vm, StackPtr sp, int len)  { FVSOP(<,  0); }
 VM_INLINE void U_FVSGT(VM &vm, StackPtr sp, int len)  { FVSOP(>,  0); }
 VM_INLINE void U_FVSLE(VM &vm, StackPtr sp, int len)  { FVSOP(<=, 0); }
@@ -447,8 +454,8 @@ VM_INLINE void U_INE(VM &vm, StackPtr sp)  { IOP(!=, 0); }
 VM_INLINE void U_FADD(VM &vm, StackPtr sp) { FOP(+,  0); }
 VM_INLINE void U_FSUB(VM &vm, StackPtr sp) { FOP(-,  0); }
 VM_INLINE void U_FMUL(VM &vm, StackPtr sp) { FOP(*,  0); }
-VM_INLINE void U_FDIV(VM &vm, StackPtr sp) { FOP(/,  1); }
-VM_INLINE void U_FMOD(VM &vm, StackPtr sp) { FOP(/,  3); }
+VM_INLINE void U_FDIV(VM &vm, StackPtr sp) { FOP(/,  0); }
+VM_INLINE void U_FMOD(VM &vm, StackPtr sp) { FOP(/,  2); }
 VM_INLINE void U_FLT(VM &vm, StackPtr sp)  { FOP(<,  0); }
 VM_INLINE void U_FGT(VM &vm, StackPtr sp)  { FOP(>,  0); }
 VM_INLINE void U_FLE(VM &vm, StackPtr sp)  { FOP(<=, 0); }
@@ -749,7 +756,7 @@ LVALCASER(IVVMOD,  VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 LVALCASER(FVVADD , _FVOPV(+, 0, &fa))
 LVALCASER(FVVSUB , _FVOPV(-, 0, &fa))
 LVALCASER(FVVMUL , _FVOPV(*, 0, &fa))
-LVALCASER(FVVDIV , _FVOPV(/, 1, &fa))
+LVALCASER(FVVDIV , _FVOPV(/, 0, &fa))
 
 LVALCASER(IVSADD , _IVOPS(+, 0, &fa))
 LVALCASER(IVSSUB , _IVOPS(-, 0, &fa))
@@ -760,7 +767,7 @@ LVALCASER(IVSMOD , VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 LVALCASER(FVSADD , _FVOPS(+, 0, &fa))
 LVALCASER(FVSSUB , _FVOPS(-, 0, &fa))
 LVALCASER(FVSMUL , _FVOPS(*, 0, &fa))
-LVALCASER(FVSDIV , _FVOPS(/, 1, &fa))
+LVALCASER(FVSDIV , _FVOPS(/, 0, &fa))
 
 LVALCASES(IADD   , _IOP(+, 0); a = res;)
 LVALCASES(ISUB   , _IOP(-, 0); a = res;)
@@ -777,7 +784,7 @@ LVALCASES(ASR    , _IOP(>>, 0); a = res;)
 LVALCASES(FADD   , _FOP(+, 0); a = res;)
 LVALCASES(FSUB   , _FOP(-, 0); a = res;)
 LVALCASES(FMUL   , _FOP(*, 0); a = res;)
-LVALCASES(FDIV   , _FOP(/, 1); a = res;)
+LVALCASES(FDIV   , _FOP(/, 0); a = res;)
 
 VM_INLINE void U_LV_SADD(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;

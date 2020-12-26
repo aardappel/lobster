@@ -26,15 +26,22 @@
 
 - Add to docs:
   - As static as possible memory management: https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-908.pdf
+  - V "autofree"
+- docs only show switch used as exp
+
+- Detect this case:
+    class Test:
+        t:Test?
+    var a:Test? = Test { Test { Test { Test { nil } } } }
+    var c:Test? = a
+    def f(b):
+        c.t = nil
+        print b
+    if a.t and a.t.t:
+        f(a.t.t)
 
 - Do better stats on specialization code bloat, and implement a byte-code level merging pass.
-
-- Should make float div by 0 use +inf/nan/-inf like the ieee standard. Java/C#/JS already do this,
-  and its useful for mathy gameplay/graphics code.
-  - Sadly, can't just rely on C++ doing it directly, because its UB, even though likely on all
-    actual platforms its ieee. also subject to exception flags. Still need the if-then to be sure.
-  - would be awesome to do the same for ints but that's really not helpful, most of the time
-    you want to write an explicit if to check for it.
+  - would first need to make jumps relative encoded.
 
 - stefandd: DLL builtins loading.
   - make sure to put in checks for debug/compiled/32-bit mode, and maybe some other compatibility checks
@@ -44,12 +51,21 @@
   - It should really never be used from inside the VM, but because its used in lex/parse/..
     it still can do when calling compile_run_code or parse_data, causing a terminate on Linux.
     - instead, make these do a locally contained exception.
-
 - The hardest problem in fully removing exception handling is things like vector bound checking,
   which, if it were to have to be handled like an error return, would cause almost every function
   to need a check after its call.
   - Still worth trying, it may be that this branch being always false is actually very cheap.
     - Can stick an error bool as first field in VM.
+  - Another approach is to have a class of runtime errors that always aborts the current program.
+    That is undesirable for a scripting language (though only if it must safely be able to run
+    externally authored programs).
+    Languages with bounds checking like Rust do this too, and are not usable as a "scripting"
+    language as such.
+    So maybe its time to recognize that Lobster is that kind of language too.
+    There are probably other things that make Lobster unsuitable for untrusted "scripts" anyway.
+    Actually, can keep it semi scriptable by allowing the "host" to set a call-back on fatal
+    runtime error, and they can still choose to throw an exception or otherwise terminate the
+    VM.
 
 - stefandd: multiple assign doesn't work on fields.
 
@@ -57,8 +73,6 @@
 
 - See if audio works again under emscripten:
   https://github.com/emscripten-ports/SDL2/commit/865eaddffed50dbd13e6564c3f73902472cf74e8
-
-- docs only show switch used as exp
 
 - many: some form of string interpolation
      "let " + name + ":" + t + " = " + (init + 1)

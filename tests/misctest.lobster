@@ -321,3 +321,9 @@ run_test("misc"):
         b:[string]
     var stlv = STLV { "a", [ "a" ] }
     assert (stlv = STLV { "b", [ "b" ] }).b[0] == "b"
+
+    // IEEE754 div by zero behavior
+    assert string(1.0 / 0.0) == "inf"
+    assert string(1.0 % 0.0) == "nan"
+    assert string((xy_1 / xy_0).y) == "inf"
+
