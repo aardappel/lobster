@@ -22,7 +22,7 @@ def mg_mirror_y(dist, body):
 //mg_set_color_noise(0.5, 1)
 let aspoints = false
 mg_set_point_mode(aspoints)
-if !aspoints:
+if not aspoints:
     //mg_set_polygon_reduction(3, 0.98, 0.95)
     mg_set_vertex_randomize(0)
 

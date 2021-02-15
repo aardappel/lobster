@@ -39,7 +39,7 @@ def gather_bids(bids, neighborhoods, lobsters, headings):
         bids[i] = if lobsters[i]:
             let heading = headings[i]
             let neighbor = neighbors[heading]
-            if !lobsters[neighbor]: neighbor
+            if not lobsters[neighbor]: neighbor
             else: -1
         else: -1
 

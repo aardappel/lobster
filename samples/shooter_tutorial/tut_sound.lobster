@@ -69,7 +69,7 @@ while gl_frame() and gl_button("escape") != 1:
                 sound_resume(bgmusic)
                 sound_resume(ufobuzz)
         // pause time management
-        if !paused:
+        if not paused:
             delta_time = gl_delta_time()
             game_time += delta_time
         else:
@@ -82,7 +82,7 @@ while gl_frame() and gl_button("escape") != 1:
             let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                           (gl_button("s") >= 1) - (gl_button("w") >= 1) }
             let newpos = playerpos + normalize(dir) * delta_time * playerspeed
-            if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
+            if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
                 playerpos = newpos
 
             let tomouse = normalize(gl_local_mouse_pos(0) - playerpos)
@@ -121,7 +121,7 @@ while gl_frame() and gl_button("escape") != 1:
                         playing = false
                 gl_color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
                     renderpointytriangle(e.pos, playerdir)
-            if !paused:
+            if not paused:
                 // distance-dependent volume of the scary UFO buzz sound
                 let enemy_volume = clamp(1.0 / (closest_enemy_dist * closest_enemy_dist + 0.001), 0.0, 1.0)
                 sound_volume(ufobuzz, enemy_volume)

@@ -86,9 +86,3 @@ generally, if you need multiple expressions in a block, indentation is superior.
 
 Whenever short forms are available for a particular syntax, prefer to use that,
 unless readability would suffer.
-
-### Syntax alternatives
-
-You should prefer `and or not` over `&& || !` where possible. The latter are
-there to ease the transition for those coming from C style languages, but the
-former are the language default.

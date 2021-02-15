@@ -20,7 +20,7 @@ enum shuffle_mode:
 
 var mode = shuffle_none
 
-def shuffle(array): switch mode:
+def do_shuffle(array): switch mode:
     case shuffle_none: array
     case shuffle_naive_swap: naive_swap(array)
     case shuffle_push_remove: push_remove(array)
@@ -112,7 +112,7 @@ def reshuffle():
     for(N) i: for(N) j: matrix[N*i + j] = 0
     for M:
         let array = map(N): _
-        shuffle(array)
+        do_shuffle(array)
         for(array) i, j:
             matrix[N*i + j]++
     for(matrix) n, k:

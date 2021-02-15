@@ -227,21 +227,62 @@ struct Lex : LoadedFile {
             #define secondb(s, t, b) if (*p == s) { p++; b; return t; }
             #define second(s, t) secondb(s, t, {})
 
-            case '+': second('+', T_INCR); cont = true; second('=', T_PLUSEQ); return T_PLUS;
-            case '-': second('-', T_DECR); cont = true; second('=', T_MINUSEQ);
-                                                        second('>', T_RETURNTYPE); return T_MINUS;
-            case '*':                      cont = true; second('=', T_MULTEQ); return T_MULT;
-            case '%':                      cont = true; second('=', T_MODEQ); return T_MOD;
+            case '+':
+                second('+', T_INCR);
+                cont = true;
+                second('=', T_PLUSEQ);
+                return T_PLUS;
+            case '-':
+                second('-', T_DECR);
+                cont = true;
+                second('=', T_MINUSEQ);
+                second('>', T_RETURNTYPE);
+                return T_MINUS;
+            case '*':
+                cont = true;
+                second('=', T_MULTEQ);
+                return T_MULT;
+            case '%':
+                cont = true;
+                second('=', T_MODEQ);
+                return T_MOD;
 
-            case '<': cont = true; second('=', T_LTEQ); secondb('<', T_ASL, second('=', T_ASLEQ)); return T_LT;
-            case '=': cont = true; second('=', T_EQ);   return T_ASSIGN;
-            case '!': cont = true; second('=', T_NEQ);  cont = false; return T_NOT;
-            case '>': cont = true; second('=', T_GTEQ); secondb('>', T_ASR, second('=', T_ASREQ)); return T_GT;
+            case '<':
+                cont = true;
+                second('=', T_LTEQ);
+                secondb('<', T_ASL, second('=', T_ASLEQ));
+                return T_LT;
+            case '=':
+                cont = true;
+                second('=', T_EQ);
+                return T_ASSIGN;
+            case '!':
+                cont = true;
+                second('=', T_NEQ);
+                Error("use \"not\" instead of !");
+            case '>':
+                cont = true;
+                second('=', T_GTEQ);
+                secondb('>', T_ASR, second('=', T_ASREQ));
+                return T_GT;
 
-            case '&': cont = true; second('&', T_AND); second('=', T_ANDEQ); return T_BITAND;
-            case '|': cont = true; second('|', T_OR);  second('=', T_OREQ); return T_BITOR;
-            case '^': cont = true; second('=', T_XOREQ); return T_XOR;
-            case '~': cont = true; return T_NEG;
+            case '&':
+                cont = true;
+                second('=', T_ANDEQ);
+                secondb('&', T_AND, Error("use \"and\" instead of &&"));
+                return T_BITAND;
+            case '|':
+                cont = true;
+                second('=', T_OREQ);
+                secondb('|', T_OR, Error("use \"or\" instead of ||"));
+                return T_BITOR;
+            case '^':
+                cont = true;
+                second('=', T_XOREQ);
+                return T_XOR;
+            case '~':
+                cont = true;
+                return T_NEG;
 
             case '?': return T_QUESTIONMARK;
 

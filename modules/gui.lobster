@@ -55,7 +55,7 @@ def fun() -> void
 def funs(v:xy_i) -> void
 
 private def cache_size(id, f):
-    return if !render_pass:
+    return if not render_pass:
         let e = elem { id, xy_0i }
         // push first, just in case f() pushes elements also (keep pre-order)
         size_list.push(e)
@@ -176,7 +176,7 @@ def start(size, alignh, alignv, interact, f:fun):   // top level only
             vertical.pop()
             align.pop()
 
-        if !num_interactive_elements_hit and !gl_touchscreen():
+        if not num_interactive_elements_hit and not gl_touchscreen():
             focus_id = -1
 
         align.pop()
@@ -259,7 +259,7 @@ private def button(id, render, do, dofocus:bool, focusf):
                     if mouse1 >= 1 or key >= 1:
                         gl_color(select_color):
                             gl_rect(float(size))
-                    if dofocus and focus_id != id and (mouse1 == 0 or !gl_touchscreen()):
+                    if dofocus and focus_id != id and (mouse1 == 0 or not gl_touchscreen()):
                         // If we have a focus action and this button wasn't the focus, then on a touch screen
                         // we're going to give this button focus on touch, and on desktop merely on hover.
                         focus_id = id

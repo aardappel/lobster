@@ -31,7 +31,7 @@ def match_any(f): while f(): nil
 
 def match_sequence(v):
     let prev = i  // backtrack to the start if f fails
-    if (exists(v): !match(_)):
+    if (exists(v): not match(_)):
         i = prev
         return false
     return true

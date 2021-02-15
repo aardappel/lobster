@@ -81,10 +81,10 @@ run_test("springs"):
                 while(shape[0] != start):
                     shape.insert(0, shape.pop())
                 if shape.length == 4:
-                    if (!exists(quads): equal(_, shape)):
+                    if (not exists(quads): equal(_, shape)):
                         quads.push(shape)
                 elif shape.length == 3:
-                    if (!exists(tris): equal(_, shape)):
+                    if (not exists(tris): equal(_, shape)):
                         tris.push(shape)
     while(tris.length):
         var besti = -1
@@ -102,11 +102,11 @@ run_test("springs"):
         let t1 = tris.remove(besti)
         var found = false
         for(t1) vi, vii:
-            if !found:
+            if not found:
                 let ni = t1[(vii + 1) % 3]
                 let li = t1[(vii + 2) % 3]
                 for(tris) t:
-                    if !found:
+                    if not found:
                         found = true
                         if t[0] == ni and t[1] == vi:
                             quads.push([ vi, t[2], ni, li ])

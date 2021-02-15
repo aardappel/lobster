@@ -51,7 +51,7 @@ while gl_frame():
         if e:  // if this cell is solid
             let v = xyz { x, y, z }
             for(nbdirs) nv, i:
-                if(!cells[nv + v]):  // and neighbor is empty
+                if(not cells[nv + v]):  // and neighbor is empty
                     // we do this here rather than outside the loop (there's less visible faces than total solid cubes)
                     gl_color(colors[e - 1])
                     gl_translate float(v):

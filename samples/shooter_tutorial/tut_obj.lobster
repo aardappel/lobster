@@ -23,7 +23,7 @@ class Player : Entity
         let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                         (gl_button("s") >= 1) - (gl_button("w") >= 1) }
         let newpos = pos + normalize(dir) * gl_delta_time() * speed
-        if !any(abs(newpos) > bounds):
+        if not any(abs(newpos) > bounds):
             pos = newpos
         let tomouse = normalize(gl_local_mouse_pos(0) - pos)
         renderpointytriangle(tomouse)

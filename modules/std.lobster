@@ -217,7 +217,7 @@ def fatal(msg):
     if msg: fatal_exit(msg)
 
 def check(val, msg):
-    if !val: fatal_exit(msg)
+    if not val: fatal_exit(msg)
     else: return val
 
 // print helpers

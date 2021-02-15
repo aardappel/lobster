@@ -18,7 +18,7 @@ Lexical definition
     and `*/` or single line comments starting with `//`
 
 -   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= ==
-    != < > <= >= <- = ! ? . -> && || ^ << >>`
+    != < > <= >= <- = ? . -> ^ << >>`
 
 -   Strings delimited by `"` and character constants with `'` using escape codes
     `\n \t \r \" \' \ \x` (followed by 2 hex digits, e.g. `\xFF` is the
@@ -95,10 +95,10 @@ expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program`
 exp = opexp [ ( `=` \| `+=` \| `-=` \| `*=` \| `/=` \| `%=` ) exp ]
 
 opexp = unary ( `*` \| `/` \| `%` \|\| `+` \| `-` \|\| `<` \| `>` \| `>=` \|
-`<=` \|\| `==` \| `!=` \|\| `&` \| `|` \| `&&` \| `||` \| `and` \| `or` \| \^ \|
+`<=` \|\| `==` \| `!=` \|\| `&` \| `|` \| `and` \| `or` \| \^ \|
 `<<` \| `>>`) unary
 
-unary = ( `-` \| `!` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
+unary = ( `-` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 \| `++` \| `--` \| `is` type ]
@@ -338,11 +338,10 @@ in particular for `vector` and `class` compare *by reference*, i.e they will
 give true only if both sides refer to the same object (*object identity*). To
 test for *structural identity* instead, use the built-in function `equal`.
 
-The logical operators `and` and `or` (which may also be written `&&` and `||`
-respectively) are the next lower level of precedence, and both short-circuit: `a
-or b` returns `a` if it is not a false value (one of `0 0.0 nil`), and `b`
-otherwise. `a and b` returns `a` if it is a false value, `b` otherwise. The
-unary operator `not` (may also be written as `!`) turns false values into `1`
+The logical operators `and` and `or` are the next lower level of precedence,
+and both short-circuit: `a or b` returns `a` if it is not a false value (one
+of `0 0.0 nil`), and `b` otherwise. `a and b` returns `a` if it is a false
+value, `b` otherwise. The unary operator `not` turns false values into `1`
 and others into `0`.
 
 The `is` operator returns true if the left hand side value is of the type

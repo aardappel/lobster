@@ -16,7 +16,7 @@ def create_nav_map(start:xy_i, worlddim:xy_i, allow_diag:int, blocked_cost:int, 
         pos:xy_i
         psteps = -1
         cost = 0
-    assert blocked_cost or !is_blocked(start)
+    assert blocked_cost or not is_blocked(start)
     let pathq = []::nav_cell
     let grid = mapxy(worlddim) v: nav_cell { xy_0i, v }
     let startcell = grid[start]
@@ -29,14 +29,14 @@ def create_nav_map(start:xy_i, worlddim:xy_i, allow_diag:int, blocked_cost:int, 
             let dpos = c.pos - d
             if in_range(dpos, worlddim):
                 var cost = 1
-                if !is_blocked(dpos) or (cost = blocked_cost):
+                if not is_blocked(dpos) or (cost = blocked_cost):
                     let n = grid[dpos]
                     if n.psteps >= 0:
                         if allow_diag and cost == 1 and n.cost == 1 and c.cost == 1 and
                            n.psteps == c.psteps + 1 and
                            n.pdir.x * n.pdir.y == 0 and n.pdir.x * d.x == 0 and n.pdir.y * d.y == 0:
                             let diag = n.pdir + d
-                            if !is_blocked(n.pos + diag):
+                            if not is_blocked(n.pos + diag):
                                 n.pdir = diag
                     else:
                         n.psteps = c.psteps + cost

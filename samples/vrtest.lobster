@@ -86,7 +86,7 @@ while gl_frame():
             for(vr_num_motion_controllers()) mc:
                 if vr_motioncontrollerstracking(mc):
                     var mcmesh = controller_meshes[mc]
-                    if !mcmesh:
+                    if not mcmesh:
                         // FIXME: sadly have to do this on the fly because at init controllers and
                         // meshes are not available for some reason.
                         controller_meshes[mc] = mcmesh = vr_create_motion_controller_mesh(mc)

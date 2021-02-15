@@ -20,7 +20,7 @@ while gl_frame() and gl_button("escape") != 1:
     let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                   (gl_button("s") >= 1) - (gl_button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
-    if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
+    if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
     gl_translate playerpos:

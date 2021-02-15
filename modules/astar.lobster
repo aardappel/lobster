@@ -22,13 +22,13 @@ class astar_node<N,S,D>:
 def astar_generic(startnode, endcondition, generatenewstates, heuristic):
     let openlist = [ startnode ]
     var n = startnode or nil
-    while n and !endcondition(n):
+    while n and not endcondition(n):
         openlist.remove_obj(n)
         n.closed = true
         generatenewstates(n) delta, cost, nn:
-            if !nn.closed:
+            if not nn.closed:
                 let G = n.G + cost
-                if (!nn.open and openlist.push(nn)) or G < nn.G:
+                if (not nn.open and openlist.push(nn)) or G < nn.G:
                     nn.open = true
                     nn.delta = delta
                     nn.previous = n
@@ -37,7 +37,7 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
                     nn.F = G + nn.H
         n = nil
         for(openlist) c:
-            if !n or c.F < n.F or (c.F == n.F and c.H < n.H):
+            if not n or c.F < n.F or (c.F == n.F and c.H < n.H):
                 n = c
     let path = []
     while n:

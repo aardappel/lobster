@@ -26,7 +26,7 @@
 <h2 id="lexical-definition">Lexical definition</h2>
 <ul>
 <li><p>Whitespace is space, tab, carriage return, nested comments delimited by <code>/*</code> and <code>*/</code> or single line comments starting with <code>//</code></p></li>
-<li><p>Operator tokens are <code>( ) [ ] { } : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = ! ? . -&gt; &amp;&amp; || ^ &lt;&lt; &gt;&gt;</code></p></li>
+<li><p>Operator tokens are <code>( ) [ ] { } : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = ? . -&gt; ^ &lt;&lt; &gt;&gt;</code></p></li>
 <li><p>Strings delimited by <code>&quot;</code> and character constants with <code>'</code> using escape codes <code>\n \t \r \&quot; \' \ \x</code> (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with value 255). Alternatively, strings can be enclosed in triple-quotes (<code>&quot;&quot;&quot;</code>) and may then contain any characters verbatim, including new-lines, quotes, and escape codes (which are all left untouched).</p></li>
 <li><p>Numbers consisting of a series of digits to indicate an integer constant (e.g. <code>123</code>) or hex digits with a leading <code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single <code>.</code> (e.g. <code>.1</code> or <code>1.</code> or <code>1.1</code>) to indicate a floating point constant.</p></li>
 <li><p>Identifiers made from alpha-numeric characters and the <code>_</code> (except no digits for the first character).</p></li>
@@ -51,8 +51,8 @@
 <p>call = specializers <code>(</code> [ list( exp ) ] <code>)</code> [ block [ <code>fn</code> block … ] ]</p>
 <p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list( opexp ) ] ) [ <code>from</code> ( <code>program</code> | ident ) ]</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> | <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
-<p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> | <code>&amp;&amp;</code> | <code>||</code> | <code>and</code> | <code>or</code> | ^ | <code>&lt;&lt;</code> | <code>&gt;&gt;</code>) unary</p>
-<p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> | ~ | <code>not</code> ) unary | deref</p>
+<p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> | <code>and</code> | <code>or</code> | ^ | <code>&lt;&lt;</code> | <code>&gt;&gt;</code>) unary</p>
+<p>unary = ( <code>-</code> | <code>++</code> | <code>--</code> | ~ | <code>not</code> ) unary | deref</p>
 <p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ call ] | <code>-&gt;</code> ident | <code>++</code> | <code>--</code> | <code>is</code> type ]</p>
 <p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>fn</code> functionargsbody | ident [ call ]</p>
 <p>constructor = <code>[</code> [ list( exp ) ] <code>]</code> [ <code>::</code> type ] | ident <code>{</code> [ list( exp ) ] <code>}</code></p>
@@ -142,7 +142,7 @@ print mat[pos]</code></pre>
 <p>Bitwise operators <code>&amp; | ^ ~ &lt;&lt; &gt;&gt;</code> behave like they do in any other language.</p>
 <h3 id="comparison-and-logical-operators">Comparison and Logical Operators</h3>
 <p>The next lower level of precedence are the comparison operators <code>&lt; &gt; &lt;= &gt;=</code> which work on <code>int</code>, <code>float</code> and <code>string</code> and structs (returning a struct of ints, use builtin functions <code>any</code> and <code>all</code> to test these), and then the equality operators <code>==</code> and <code>!=</code> which additionally work on all other types, but in particular for <code>vector</code> and <code>class</code> compare <em>by reference</em>, i.e they will give true only if both sides refer to the same object (<em>object identity</em>). To test for <em>structural identity</em> instead, use the built-in function <code>equal</code>.</p>
-<p>The logical operators <code>and</code> and <code>or</code> (which may also be written <code>&amp;&amp;</code> and <code>||</code> respectively) are the next lower level of precedence, and both short-circuit: <code>a or b</code> returns <code>a</code> if it is not a false value (one of <code>0 0.0 nil</code>), and <code>b</code> otherwise. <code>a and b</code> returns <code>a</code> if it is a false value, <code>b</code> otherwise. The unary operator <code>not</code> (may also be written as <code>!</code>) turns false values into <code>1</code> and others into <code>0</code>.</p>
+<p>The logical operators <code>and</code> and <code>or</code> are the next lower level of precedence, and both short-circuit: <code>a or b</code> returns <code>a</code> if it is not a false value (one of <code>0 0.0 nil</code>), and <code>b</code> otherwise. <code>a and b</code> returns <code>a</code> if it is a false value, <code>b</code> otherwise. The unary operator <code>not</code> turns false values into <code>1</code> and others into <code>0</code>.</p>
 <p>The <code>is</code> operator returns true if the left hand side value is of the type specified on the right, e.g. <code>x is float</code>.</p>
 <h2 id="function-definitions">Function Definitions</h2>
 <p>Lobster’s entire design centers around functions and how they can be composed. It has both <em>named functions</em> and <em>function values</em>.</p>

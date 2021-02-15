@@ -29,7 +29,7 @@ if not is_worker_thread():
         // And wait for the responses.
         for num_fibs:
             let r = thread_read(typeof fib_response)
-            assert r && r.fr == fibr
+            assert r and r.fr == fibr
 else:
     // We're a worker.. process jobs.
     while workers_alive():

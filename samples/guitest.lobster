@@ -48,9 +48,9 @@ while gl_frame():
                     gui_fontscale(2):
                         gui_text("clickme")
             fn:
-                clicked = !clicked
+                clicked = not clicked
             fn:
-                focused = !focused
+                focused = not focused
             if clicked:
                 gui_color(color_red):
                     //gui_text(unicode_to_string([0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]))

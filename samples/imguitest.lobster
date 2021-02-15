@@ -51,7 +51,7 @@ while gl_frame():
             d.col = im_coloredit("Color", d.col)
             for(2) g: im_graph("Sin", map(20): sin(_ * 20.0) + 1, g)
             im_separator()
-            if !demo and im_button("show demo window"): demo = true
+            if not demo and im_button("show demo window"): demo = true
 
         // Show the built-in imgui demo window, for testing.
         if demo: demo = im_window_demo()
