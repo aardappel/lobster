@@ -176,7 +176,7 @@ def insert_ordered(xs, x, lt):
             return
     xs.push(x)
 
-def randomize(xs):
+def shuffle(xs):
     for(xs) x, i:
         if i:
             let j = rnd(i + 1)

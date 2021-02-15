@@ -204,7 +204,7 @@ def new_world(size, count, rules):
     count = min(area, count)
     let lobsters_next = map(area): 0
     move(length(count), lobsters_next, map(count): 1)
-    randomize(lobsters_next)
+    shuffle(lobsters_next)
 
     return world{
         rules: rules,
@@ -212,7 +212,7 @@ def new_world(size, count, rules):
         area: area,
         points: points,
         neighborhoods: map(points) v: map(cardinal_directions) d: index_of_point((v + d + grid) % grid, size),
-        weights_next: randomize(map(area) n: n),
+        weights_next: shuffle(map(area) n: n),
         weights: map(area): 0,
         lobsters_next: lobsters_next,
         lobsters: map(area): 0,
