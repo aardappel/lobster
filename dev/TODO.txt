@@ -1,4 +1,13 @@
+- jpp: "error: could not resolve type variable: T"
+  class Set<T>:
+      dict:dictionary<T, bool> = dictionary<T, bool> {5}
+
+  let a = Set<string> {}
+
+- report unused variables
+
 - natgen refactor
+  - check how stack-overflow is responded to now.
   - start moving vmops into tocpp for all simple ops.
   - most access to local arrays still thru memory, clearly alias analysis failing.
     - split up arrays into individual vars where possible.
@@ -86,6 +95,8 @@
     - remove keywords?
   - iterate them? return a vector of all values?
 
+- jpp: support labels in function calls just like with constructors.
+
 - There is no way to pass a [sub] to a [super] since that break safety if a different sub
   is inserted that way. But this is really restrictive, because once you have a [sub] you can
   only get around this by copying the vector: map(subv) () -> super: _
@@ -103,12 +114,27 @@
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
 
+- lobster should explicit recursion? https://github.com/google/flatbuffers/pull/6364
+  many uses of recursion are problematic in terms of stack use, the user should really be
+  explicitly aware of them, and they should be easy to find in a program.
+
 - it be really easy to bring full "any" back for builtin functions, and mixed type varargs
   at the same time by prefixing each value on the stack by a ti value, and possibly a length.
   what is this useful for?
   - more efficient print and to string?
   - formatted printing?
   - serialization?
+
+- jpp: remove “can't use named function as value” restriction.
+
+- jpp: would be good to be able to overload print/string for own types.
+
+- jpp: print without newline.
+
+- jpp: not being able to do arbitrary computation to initialize a field is pretty limiting.
+  someday should maybe support user defined constructors?
+
+- jpp: add "continue"?
 
 - add a debug (or dbg) statement analogous to asssert, like:
   https://github.com/sharkdp/dbg-macro
