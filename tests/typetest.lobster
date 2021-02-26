@@ -1,5 +1,6 @@
 import testing
 import std
+import dictionary
 
 // Misc tests related to type checking.
 
@@ -213,4 +214,16 @@ run_test("types"):
         def t2<V>(aa:A<V>?) -> A<V>:
             return A { [ if aa: aa.ts[0] else: 2 ] }
         assert t2(a).ts[0] == 1
+
+    do():
+        // Test generics passed on to default values.
+        class set1<T>:
+            dict:dictionary<T, int> = dictionary<T, int> {5}
+        class set2<T>:
+            dict = dictionary<T, int> {15}
+        let a1 = set1<string> {}
+        let a2 = set2<string> {}
+        a1.dict.set("a", 13)
+        a2.dict.set("a", 13)
+        assert a1.dict.get("a", 0) == a2.dict.get("a", 0)
 

@@ -601,15 +601,22 @@ struct TypeChecker {
     }
 
     void TypeCheckUDT(UDT &udt, const Node &errn) {
-        for (auto &f : udt.fields) {
-            if (f.defaultval && f.giventype.utr->t == V_ANY) {
-                // FIXME: would be good to not call TT here generically but instead have some
-                // specialized checking, just in case TT has a side effect.
-                TT(f.defaultval, 1, LT_ANY);
-                DecBorrowers(f.defaultval->lt, errn);
-                f.defaultval->lt = LT_UNDEF;
-                f.giventype.utr = f.defaultval->exptype;
-                f.resolvedtype = f.defaultval->exptype;
+        if (udt.FullyBound()) {
+            // Give a type for fields that don't have one specified.
+            for (auto &f : udt.fields) {
+                if (f.defaultval && f.giventype.utr->t == V_ANY) {
+                    // FIXME: would be good to not call TT here generically but instead have some
+                    // specialized checking, just in case TT has a side effect on type checking.
+                    // Sadly that is not easy given the amount of type-checking code this already
+                    // relies on.
+                    st.bound_typevars_stack.push_back(&udt.generics);
+                    TT(f.defaultval, 1, LT_ANY);
+                    st.bound_typevars_stack.pop_back();
+                    DecBorrowers(f.defaultval->lt, errn);
+                    f.defaultval->lt = LT_UNDEF;
+                    f.giventype.utr = f.defaultval->exptype;
+                    f.resolvedtype = f.defaultval->exptype;
+                }
             }
         }
         for (auto &g : udt.generics) {
@@ -3006,9 +3013,9 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckList(this, LT_KEEP);
     if (giventype.utr.Null()) {
         if (Arity()) {
+            tc.TypeCheckList(this, LT_KEEP);
             // No type was specified.. first find union of all elements.
             TypeRef u(nullptr);
             for (auto c : children) {
@@ -3025,6 +3032,12 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         }
     } else {
         exptype = tc.ResolveTypeVars(giventype, this);
+        auto udt = IsUDT(exptype->t) ? exptype->udt : nullptr;
+        if (udt) tc.st.bound_typevars_stack.push_back(&udt->generics);
+        // These may include field initializers copied from the definition, which may include
+        // type variables that are now bound.
+        tc.TypeCheckList(this, LT_KEEP);
+        if (udt) tc.st.bound_typevars_stack.pop_back();
     }
     if (IsUDT(exptype->t)) {
         // We have to check this here, since the parser couldn't check this yet.

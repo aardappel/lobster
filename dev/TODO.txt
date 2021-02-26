@@ -1,8 +1,4 @@
-- jpp: "error: could not resolve type variable: T"
-  class Set<T>:
-      dict:dictionary<T, bool> = dictionary<T, bool> {5}
-
-  let a = Set<string> {}
+- jpp: `def make_set<T>(size:int)` and `def make_set<T>(xs:[T])`, but then I can't call `make_set<int>([1,2,3])`
 
 - report unused variables
 
