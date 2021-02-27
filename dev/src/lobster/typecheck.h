@@ -1474,6 +1474,35 @@ struct TypeChecker {
                     }
                 }
             }
+            // If the call has specializers, we should see bind those and see if they
+            // uniquely identify an overload, e.g. for a [T] arg where T is now bound, or other
+            // cases where the trivial case of T above doesn't apply.
+            if (overload_idx < 0 && specializers && !specializers->empty()) {
+                // FIXME: This overlaps somewhat with resolving them during TypeCheckCallStatic
+                vector<BoundTypeVariable> generics(specializers->size());
+                for (auto [i, btv] : enumerate(generics)) {
+                    btv.resolvedtype = nullptr;
+                    btv.giventype = specializers->at(i);
+                }
+                for (auto [i, isf] : enumerate(f.overloads)) {
+                    if (generics.size() != isf->generics.size()) continue;
+                    for (auto [i, btv] : enumerate(generics)) {
+                        btv.tv = isf->generics[i].tv;
+                        btv.Resolve(ResolveTypeVars(btv.giventype, &call_args));
+                    }
+                    st.bound_typevars_stack.push_back(&generics);
+                    auto arg0 = ResolveTypeVars(isf->giventypes[0], &call_args);
+                    st.bound_typevars_stack.pop_back();
+                    // TODO: Should we instead do ConvertsTo here?
+                    if (type0->Equal(*arg0)) {
+                        if (overload_idx >= 0)
+                            TypeError(cat("multiple overloads apply when specialized: \"", f.name,
+                                          "\", first arg \"", TypeName(type0), "\""),
+                                      call_args);
+                        overload_idx = (int)i;
+                    }
+                }
+            }
             // Then finally try with coercion.
             if (overload_idx < 0) {
                 for (auto [i, isf] : enumerate(f.overloads)) {

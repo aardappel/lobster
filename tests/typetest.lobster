@@ -227,3 +227,8 @@ run_test("types"):
         a2.dict.set("a", 13)
         assert a1.dict.get("a", 0) == a2.dict.get("a", 0)
 
+    do():
+        // Instantiate generics while choosing an overload.
+        def make_set<T>(size:int): return 1
+        def make_set<T>(xs:[T]): return 2
+        assert make_set<int>([1,2,3]) == 2
