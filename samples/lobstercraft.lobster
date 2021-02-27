@@ -24,7 +24,7 @@ let cells = map(lssize) z:
                     let v = xyz { x, y, z }
                     let h = simplex(float(v) / lssize + 11, 6, 1, 0.55)   // generate blocks using noise
                     // more likely to be solid the lower it is, and only when not on the outside:
-                    var solid = h / 1.5 > div(z, lssize) - 0.5 and inside(v)
+                    let solid = h / 1.5 > div(z, lssize) - 0.5 and inside(v)
                     // pick material with noise too:
                     if solid: int((simplex(float(v) / lssize, 8, 3, 0.55) + 1) * 2) + 1
                     else: 0

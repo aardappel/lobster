@@ -47,7 +47,7 @@ run_test("water"):
     let neighbours = [ xy_xi, xy_yi, -xy_xi, -xy_yi ]
 
     def forneighboursinworld(x, y, f):
-        for(neighbours) n, i:
+        for(neighbours) n:
             n += xy { x, y }
             ifinworld(n): f(cells[n.y][n.x])
 

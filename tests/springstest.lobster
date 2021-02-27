@@ -64,7 +64,7 @@ run_test("springs"):
             atan2(verts[a] - verts[i]) < atan2(verts[b] - verts[i])
     let tris = []::[int]
     quads = []
-    for(verts) v, i:
+    for(verts.length) i:
         for(vnbs[i]) j:
             let shape = [ i, j ]
             var p = i

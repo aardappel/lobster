@@ -39,6 +39,7 @@ struct Ident : Named {
     bool single_assignment = true;  // not declared const but def only, exp may or may not be const
     bool constant = false;          // declared const
     bool static_constant = false;   // not declared const but def only, exp is const.
+    bool read = false;              // has been read at least once.
 
     SpecIdent *cursid = nullptr;
 
@@ -49,6 +50,11 @@ struct Ident : Named {
         single_assignment = false;
         if (constant)
             lex.Error("variable " + name + " is constant");
+    }
+
+    Ident *Read() {
+        read = true;
+        return this;
     }
 
     flatbuffers::Offset<bytecode::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb,
@@ -471,10 +477,10 @@ struct SymbolTable {
 
     Ident *Lookup(string_view name) {
         auto it = idents.find(name);
-        if (it != idents.end()) return it->second;
+        if (it != idents.end()) return it->second->Read();
         if (!current_namespace.empty()) {
             auto it = idents.find(NameSpaced(name));
-            if (it != idents.end()) return it->second;
+            if (it != idents.end()) return it->second->Read();
         }
         return nullptr;
     }

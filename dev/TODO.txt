@@ -1,5 +1,3 @@
-- report unused variables
-
 - natgen refactor
   - check how stack-overflow is responded to now.
   - start moving vmops into tocpp for all simple ops.

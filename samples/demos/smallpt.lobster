@@ -134,7 +134,7 @@ let c = map(h): map(w): xyz_0
 var samples = 0
 
 def onesample():
-    let starttime = seconds_elapsed()
+    //let starttime = seconds_elapsed()
     for(h) y:                       // Loop over image rows
         for(w) x:                           // Loop cols
             let r1 = 2*rnd_float()                  // removed the 2x2 subpixel sampling, its slow enough as it is :)

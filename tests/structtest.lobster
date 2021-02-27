@@ -79,7 +79,7 @@ run_test("struct"):
         def g(a): return 1, xy { a, a }, 1
         assert f(1, xy { 2, 3 }, 4) == 10
         let mr1, mr2, mr3 = g(7)
-        assert mr2 == xy { 7, 7 }
+        assert mr2 == xy { 7, 7 } and mr1 == 1 and mr3 == 1
 
     // As part of dynamic dispatch.
     do():

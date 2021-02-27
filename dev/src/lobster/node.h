@@ -212,6 +212,7 @@ struct TypeAnnotation : Node {
 
 #define RETURNSMETHOD bool Terminal(TypeChecker &tc) const;
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
+#define INITMETHOD bool IsConstInit() const;
 
 // generic node types
 NARY_NODE(List, "list", false, )
@@ -259,7 +260,7 @@ BINARY_NODE(Seq, "statements", false, head, tail, )
 BINARY_NODE(Indexing, "indexing operation", false, object, index, )
 UNOP_NODE(PostIncr, TName(T_INCR), true, )
 UNOP_NODE(PostDecr, TName(T_DECR), true, )
-UNARY_NODE(UnaryMinus, TName(T_MINUS), false, child, )
+UNARY_NODE(UnaryMinus, TName(T_MINUS), false, child, INITMETHOD)
 COER_NODE(ToFloat, "tofloat", )
 COER_NODE(ToString, "tostring", )
 COER_NODE(ToBool, "tobool", )
@@ -560,6 +561,8 @@ inline string DumpNode(Node &n, int indent, bool single_line) {
     }
     return sd;
 }
+
+bool UnaryMinus::IsConstInit() const { return child->IsConstInit(); }
 
 }  // namespace lobster
 

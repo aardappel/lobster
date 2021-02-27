@@ -42,6 +42,7 @@ run_test("parsereval"):
         var atom = ""
         var i = 0
         var line = 1
+        var ival = 0
         def error(err):
             // Note: return from recursive calls of parse_exp in one step!
             // "Look ma, no exception handling"
@@ -53,7 +54,8 @@ run_test("parsereval"):
             if start == i:
                 error("unprintable character: " + s[i])
             atom = s.substring(start, i - start)
-            let ival, all = string_to_int(atom)
+            var all = false
+            ival, all = string_to_int(atom)
             token = if all: "int" else: "atom"
         def lex_next():
             while true:
@@ -101,7 +103,7 @@ run_test("parsereval"):
                     lex_next()
                     return n
                 case "int":
-                    let n = integer { string_to_int(atom) }
+                    let n = integer { ival }
                     lex_next()
                     return n
                 default:
@@ -117,7 +119,7 @@ run_test("parsereval"):
     """
 
     let ast, err = parse(test_code)
-    assert ast
+    assert ast and err == ""
     assert ast.pretty() == "(+ (* 2 3 4) 10)"
     assert ast.eval() == 34
     let code = compile(ast)

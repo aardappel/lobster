@@ -212,7 +212,6 @@ run_test("misc"):
     try():
         recursive_exceptions(10)
 
-    let starttime = seconds_elapsed()
     for 10:
         7.factorial
         testvector.fold(0): _x + _y
