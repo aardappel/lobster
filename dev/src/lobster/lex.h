@@ -38,6 +38,10 @@ struct LoadedFile : Line {
     string_view sattr;
     size_t whitespacebefore = 0;
 
+    string sval;
+    int64_t ival;
+    double fval;
+
     vector<pair<char, char>> bracketstack;
     vector<pair<int, bool>> indentstack;
     const char *prevline = nullptr, *prevlinetok = nullptr;
@@ -318,7 +322,7 @@ struct Lex : LoadedFile {
 
             case '\"':
             case '\'':
-                return SkipString(c);
+                return StringConstant(c);
 
             default: {
                 if (IsAlpha(c) || c == '_' || c < 0) {
@@ -403,6 +407,7 @@ struct Lex : LoadedFile {
                         p++;
                         while (IsXDigit(*p)) p++;
                         sattr = string_view(tokenstart, p - tokenstart);
+                        ival = parse_int<int64_t>(sattr, 16);
                         return T_INT;
                     } else {
                         while (IsDigit(*p)) p++;
@@ -417,7 +422,13 @@ struct Lex : LoadedFile {
                             while (IsDigit(*p)) p++;
                         }
                         sattr = string_view(tokenstart, p - tokenstart);
-                        return isfloat ? T_FLOAT : T_INT;
+                        if (isfloat) {
+                            fval = strtod(sattr.data(), nullptr);
+                            return T_FLOAT;
+                        } else {
+                            ival = parse_int<int64_t>(sattr);
+                            return T_INT;
+                        }
                     }
                 }
                 if (c == '.') {
@@ -434,25 +445,22 @@ struct Lex : LoadedFile {
         }
     }
 
-    char HexDigit(char c) {
-        if (IsDigit(c)) return c - '0';
-        if (IsXDigit(c)) return c - (c < 'a' ? 'A' : 'a') + 10;
-        return -1;
-    }
-
-    TType SkipString(char initial) {
+    TType StringConstant(char initial) {
+        sval.clear();
         auto start = p - 1;
         char c = 0;
+
         // Check if its a multi-line constant.
         if (initial == '\"' && p[0] == '\"' && p[1] == '\"') {
             p += 2;
+            if (*p == '\r') p++;
+            if (*p == '\n') p++;
             for (;;) {
                 switch (c = *p++) {
                     case '\0':
                         Error("end of file found in multi-line string constant");
                         break;
-                    case '\n':
-                        tokline++;
+                    case '\r':
                         break;
                     case '\"':
                         if (p[0] == '\"' && p[1] == '\"') {
@@ -460,72 +468,38 @@ struct Lex : LoadedFile {
                             sattr = string_view(start, p - start);
                             return T_STR;
                         }
+                        sval += c;
+                        break;
+                    case '\n':
+                        tokline++;
+                        sval += c;
+                        break;
+                    default:
+                        sval += c;
+                        break;
                 }
             }
         }
+
         // Regular string or character constant.
+        auto HexDigit = [](char c) -> char {
+            if (IsDigit(c)) return c - '0';
+            assert(IsXDigit(c));
+            return c - (c < 'a' ? 'A' : 'a') + 10;
+        };
         while ((c = *p++) != initial) switch (c) {
             case 0:
             case '\r':
             case '\n':
                 p--;
                 Error("end of line found in string constant");
+                break;
             case '\'':
             case '\"':
                 Error("\' and \" should be prefixed with a \\ in a string constant");
-            case '\\':
-                switch(*p) {
-                    case '\\':
-                    case '\"':
-                    case '\'': p++;
-                };
                 break;
-            default:
-                // Allow UTF-8 chars.
-                if ((c >= 0 && c < ' ') || c == 127)
-                    Error("unprintable character in string constant");
-        };
-        sattr = string_view(start, p - start);
-        return initial == '\"' ? T_STR : T_INT;
-    }
-
-    int64_t IntVal() {
-        if (sattr[0] == '\'') {
-            auto s = StringVal();
-            if (s.size() > 4) Error("character constant too long");
-            int64_t ival = 0;
-            for (auto c : s) ival = (ival << 8) + c;
-            return ival;
-        } else if (sattr[0] == '0' && sattr.size() > 1 && sattr[1] == 'x') {
-            // Test for hex explicitly since we don't want to allow octal parsing.
-            return parse_int<int64_t>(sattr, 16);
-        } else {
-            return parse_int<int64_t>(sattr);
-        }
-    }
-
-    string StringVal() {
-        auto s = sattr.data();  // This is ok, because has been parsed before and is inside buf.
-        auto initial = *s++;
-        // Check if its a multi-line constant.
-        if (initial == '\"' && s[0] == '\"' && s[1] == '\"') {
-            auto start = s + 2;
-            if (*start == '\r') start++;
-            if (*start == '\n') start++;
-            auto end = sattr.data() + sattr.size() - 3;
-            string r;
-            r.reserve(end - start);
-            for (auto c : string_view(start, end - start)) {
-                if (c != '\r') r += c;
-            }
-            return r;
-        }
-        // Regular string or character constant.
-        string r;
-        char c = 0;
-        while ((c = *s++) != initial) switch (c) {
             case '\\':
-                switch(c = *s++) {
+                switch(c = *p++) {
                     case 'n': c = '\n'; break;
                     case 't': c = '\t'; break;
                     case 'r': c = '\r'; break;
@@ -533,33 +507,43 @@ struct Lex : LoadedFile {
                     case '\"':
                     case '\'': break;
                     case 'x':
-                        if (!IsXDigit(*s) || !IsXDigit(s[1]))
+                        if (!IsXDigit(*p) || !IsXDigit(p[1]))
                             Error("illegal hexadecimal escape code in string constant");
-                        c = HexDigit(*s++) << 4;
-                        c |= HexDigit(*s++);
+                        c = HexDigit(*p++) << 4;
+                        c |= HexDigit(*p++);
                         break;
                     case 'u': {
-                        if (!IsXDigit(*s) || !IsXDigit(s[1]) || !IsXDigit(s[2]) || !IsXDigit(s[3]))
+                        if (!IsXDigit(*p) || !IsXDigit(p[1]) || !IsXDigit(p[2]) || !IsXDigit(p[3]))
                             Error("illegal unicode escape code in string constant");
-                        int i = HexDigit(*s++) << 12;
-                        i |= HexDigit(*s++) << 8;
-                        i |= HexDigit(*s++) << 4;
-                        i |= HexDigit(*s++);
+                        int i = HexDigit(*p++) << 12;
+                        i |= HexDigit(*p++) << 8;
+                        i |= HexDigit(*p++) << 4;
+                        i |= HexDigit(*p++);
                         char buf[7];
                         ToUTF8(i, buf);
-                        r += buf;
+                        sval += buf;
                         continue;
                     }
                     default:
-                        s--;
+                        p--;
                         Error("unknown control code in string constant");
                 };
-                r += c;
+                sval += c;
                 break;
             default:
-                r += c;
+                // Allow UTF-8 chars.
+                if ((c >= 0 && c < ' ') || c == 127)
+                    Error("unprintable character in string constant");
+                sval += c;
         };
-        return r;
+        sattr = string_view(start, p - start);
+        if (initial == '\"') return T_STR;
+
+        // Character constant.
+        if (sval.size() > 4) Error("character constant too long");
+        ival = 0;
+        for (auto c : sval) ival = (ival << 8) + c;
+        return T_INT;
     };
 
     string_view TokStr(TType t) {

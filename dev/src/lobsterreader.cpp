@@ -110,21 +110,21 @@ struct ValueParser {
         switch (lex.token) {
             case T_INT: {
                 ExpectType(V_INT, vt);
-                auto i = lex.IntVal();
+                auto i = lex.ival;
                 lex.Next();
                 if (push) stack.emplace_back(i);
                 break;
             }
             case T_FLOAT: {
                 ExpectType(V_FLOAT, vt);
-                auto f = strtod(lex.sattr.data(), nullptr);
+                auto f = lex.fval;
                 lex.Next();
                 if (push) stack.emplace_back(f);
                 break;
             }
             case T_STR: {
                 ExpectType(V_STRING, vt);
-                string s = lex.StringVal();
+                string s = std::move(lex.sval);
                 lex.Next();
                 if (push) {
                     auto str = vm.NewString(s);

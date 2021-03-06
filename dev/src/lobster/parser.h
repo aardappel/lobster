@@ -142,13 +142,13 @@ struct Parser {
                     Error("import cannot be private");
                 lex.Next();
                 if (IsNext(T_FROM)) {
-                    auto fn = lex.StringVal();
+                    string fn = std::move(lex.sval);
                     Expect(T_STR);
                     AddDataDir(move(fn));
                 } else {
                     string fn;
                     if (lex.token == T_STR) {
-                        fn = lex.StringVal();
+                        fn = std::move(lex.sval);
                         lex.Next();
                     } else {
                         fn = lex.sattr;
@@ -1069,19 +1069,19 @@ struct Parser {
     Node *ParseFactor() {
         switch (lex.token) {
             case T_INT: {
-                auto i = lex.IntVal();
+                auto i = lex.ival;
                 lex.Next();
                 return new IntConstant(lex, i);
             }
             case T_FLOAT: {
-                auto f = strtod(lex.sattr.data(), nullptr);
+                auto f = lex.fval;
                 lex.Next();
                 return new FloatConstant(lex, f);
             }
             case T_STR: {
-                string s = lex.StringVal();
+                string s = std::move(lex.sval);
                 lex.Next();
-                return new StringConstant(lex, s);
+                return new StringConstant(lex, std::move(s));
             }
             case T_NIL: {
                 lex.Next();
@@ -1162,10 +1162,10 @@ struct Parser {
             }
             case T_PAKFILE: {
                 lex.Next();
-                string s = lex.StringVal();
+                string s = std::move(lex.sval);
                 Expect(T_STR);
                 pakfiles.insert(s);
-                return new StringConstant(lex, s);
+                return new StringConstant(lex, std::move(s));
             }
             case T_IF: {
                 lex.Next();

@@ -323,7 +323,7 @@ struct FloatConstant : Node {
 
 struct StringConstant : Node {
     string str;
-    StringConstant(const Line &ln, string_view s) : Node(ln), str(s) {}
+    StringConstant(const Line &ln, string &&s) : Node(ln), str(s) {}
     bool IsConstInit() const { return true; }
     void Dump(string &sd) const { EscapeAndQuote(str, sd); }
     bool EqAttr(const Node *o) const {
