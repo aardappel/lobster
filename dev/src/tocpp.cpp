@@ -146,7 +146,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     string sdt, sp;
     int opc = -1;
     const int *args = nullptr;
-    auto comment = [&](string_view c) { append(sd, " /* ", c, " */"); };
+    auto comment = [&](string_view c) { append(sd, " // ", c); };
     while (ip < code + len) {
         int id = (int)(ip - code);
         bool is_start = ip == starting_ip;
@@ -424,7 +424,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                         auto sv = bcf->stringtable()->Get(args[0])->string_view();
                         sv = sv.substr(0, 50);
                         string q;
-                        EscapeAndQuote(sv, q, true);
+                        EscapeAndQuote(sv, q);
                         comment(q);
                         break;
                     }

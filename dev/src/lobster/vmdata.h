@@ -996,7 +996,7 @@ inline Value ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) 
     return Value(v);
 }
 
-void EscapeAndQuote(string_view s, string &sd, bool strip_comments);
+void EscapeAndQuote(string_view s, string &sd);
 
 #if !defined(NDEBUG) && RTT_ENABLED
     #define STRINGIFY(x) #x

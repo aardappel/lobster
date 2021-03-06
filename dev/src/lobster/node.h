@@ -325,7 +325,7 @@ struct StringConstant : Node {
     string str;
     StringConstant(const Line &ln, string_view s) : Node(ln), str(s) {}
     bool IsConstInit() const { return true; }
-    void Dump(string &sd) const { EscapeAndQuote(str, sd, false); }
+    void Dump(string &sd) const { EscapeAndQuote(str, sd); }
     bool EqAttr(const Node *o) const {
         return str == ((StringConstant *)o)->str;
     }
