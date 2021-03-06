@@ -1182,6 +1182,21 @@
     <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_switch.c">
       <Filter>engine\sdl\lib</Filter>
     </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\direct3d11\SDL_shaders_d3d11.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\direct3d\SDL_shaders_d3d.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\e_exp.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\e_fmod.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\e_log10.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
