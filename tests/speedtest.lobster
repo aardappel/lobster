@@ -69,6 +69,6 @@ for meta_runs:
         t.min = min(t.min, time_taken)
 for(tests) t:
     total_time_taken += meta_runs * t.min
-    print t.name + " time taken for " + meta_runs * t.runs + " runs: " + meta_runs * t.min
+    print "{t.name} time taken for {meta_runs * t.runs} runs: {meta_runs * t.min}"
 
-print "TOTAL time taken: " + total_time_taken
+print "TOTAL time taken: {total_time_taken}"

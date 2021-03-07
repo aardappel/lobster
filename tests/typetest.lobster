@@ -51,7 +51,7 @@ run_test("types"):
         var b = true
         b = bool(1)
         assert b == true
-        assert string(true) == "true"
+        assert "{true}" == "true"
         assert (assert parse_data(typeof [bool], "[true]"))[0] == true
         switch true:  // All values need to have a case.
             case false: assert false

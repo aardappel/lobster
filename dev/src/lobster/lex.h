@@ -42,7 +42,7 @@ struct LoadedFile : Line {
     int64_t ival;
     double fval;
 
-    vector<pair<char, char>> bracketstack;
+    vector<pair<TType, TType>> bracketstack;
     vector<pair<int, bool>> indentstack;
     const char *prevline = nullptr, *prevlinetok = nullptr;
 
@@ -74,6 +74,8 @@ struct Lex : LoadedFile {
     vector<shared_ptr<string>> allsources;
 
     vector<string> &filenames;
+
+    bool do_string_interpolation = true;
 
     Lex(string_view fn, vector<string> &fns, string_view _ss = {})
         : LoadedFile(fn, fns, _ss), filenames(fns) {
@@ -177,12 +179,12 @@ struct Lex : LoadedFile {
 
     void OverrideCont(bool c) { cont = c; }
 
-    void PopBracket(char c) {
+    void PopBracket(TType c) {
         if (bracketstack.empty())
-            Error(string("unmatched \'") + c + "\'");
+            Error("unmatched \'" + TokStr(c) + "\'");
         if (bracketstack.back().second != c)
-            Error(string("mismatched \'") + c + "\', expected \'" + bracketstack.back().second +
-                  "\'");
+            Error("mismatched \'" + TokStr(c) + "\', expected \'" +
+                  TokStr(bracketstack.back().second) + "\'");
         bracketstack.pop_back();
     }
 
@@ -208,8 +210,8 @@ struct Lex : LoadedFile {
                     islf = false; // avoid indents being generated because of this dedent
                     return T_DEDENT;
                 } else {
-                    if (bracketstack.size())
-                        Error(string("unmatched \'") + bracketstack.back().first +
+                    if (!bracketstack.empty())
+                        Error("unmatched \'" + TokStr(bracketstack.back().first) +
                               "\' at end of file");
                     return parentfiles.empty() ? T_ENDOFFILE : T_ENDOFINCLUDE;
                 }
@@ -217,12 +219,18 @@ struct Lex : LoadedFile {
             case '\n': tokline++; islf = bracketstack.empty(); linestart = p; break;
             case ' ': case '\t': case '\r': case '\f': whitespacebefore++; break;
 
-            case '(': bracketstack.push_back({ c, ')' }); return T_LEFTPAREN;
-            case '[': bracketstack.push_back({ c, ']' }); return T_LEFTBRACKET;
-            case '{': bracketstack.push_back({ c, '}' }); return T_LEFTCURLY;
-            case ')': PopBracket(c); return T_RIGHTPAREN;
-            case ']': PopBracket(c); return T_RIGHTBRACKET;
-            case '}': PopBracket(c); return T_RIGHTCURLY;
+            case '(': bracketstack.push_back({ T_LEFTPAREN, T_RIGHTPAREN }); return T_LEFTPAREN;
+            case '[': bracketstack.push_back({ T_LEFTBRACKET, T_RIGHTBRACKET }); return T_LEFTBRACKET;
+            case '{': bracketstack.push_back({ T_LEFTCURLY, T_RIGHTCURLY }); return T_LEFTCURLY;
+            case ')': PopBracket(T_RIGHTPAREN); return T_RIGHTPAREN;
+            case ']': PopBracket(T_RIGHTBRACKET); return T_RIGHTBRACKET;
+            case '}':
+                if (!bracketstack.empty() && bracketstack.back().first == T_STR_INT_START &&
+                    do_string_interpolation) {
+                    PopBracket(T_STR_INT_END);
+                    return StringConstant(false, true);
+                }
+                PopBracket(T_RIGHTCURLY); return T_RIGHTCURLY;
 
             case ';': return T_SEMICOLON;
 
@@ -322,7 +330,7 @@ struct Lex : LoadedFile {
 
             case '\"':
             case '\'':
-                return StringConstant(c);
+                return StringConstant(c == '\'', false);
 
             default: {
                 if (IsAlpha(c) || c == '_' || c < 0) {
@@ -445,13 +453,12 @@ struct Lex : LoadedFile {
         }
     }
 
-    TType StringConstant(char initial) {
+    TType StringConstant(bool character_constant, bool interp) {
         sval.clear();
         auto start = p - 1;
         char c = 0;
-
         // Check if its a multi-line constant.
-        if (initial == '\"' && p[0] == '\"' && p[1] == '\"') {
+        if (!interp && !character_constant && p[0] == '\"' && p[1] == '\"') {
             p += 2;
             if (*p == '\r') p++;
             if (*p == '\n') p++;
@@ -480,14 +487,8 @@ struct Lex : LoadedFile {
                 }
             }
         }
-
         // Regular string or character constant.
-        auto HexDigit = [](char c) -> char {
-            if (IsDigit(c)) return c - '0';
-            assert(IsXDigit(c));
-            return c - (c < 'a' ? 'A' : 'a') + 10;
-        };
-        while ((c = *p++) != initial) switch (c) {
+        for(;;) switch (c = *p++) {
             case 0:
             case '\r':
             case '\n':
@@ -495,11 +496,25 @@ struct Lex : LoadedFile {
                 Error("end of line found in string constant");
                 break;
             case '\'':
+                if (!character_constant)
+                    Error("\' should be prefixed with a \\ in a string constant");
+                sattr = string_view(start, p - start);
+                if (sval.size() > 4) Error("character constant too long");
+                ival = 0;
+                for (auto c : sval) ival = (ival << 8) + c;
+                return T_INT;
             case '\"':
-                Error("\' and \" should be prefixed with a \\ in a string constant");
-                break;
-            case '\\':
-                switch(c = *p++) {
+                if (character_constant)
+                    Error("\" should be prefixed with a \\ in a character constant");
+                sattr = string_view(start, p - start);
+                return interp ? T_STR_INT_END : T_STR;
+            case '\\': {
+                auto HexDigit = [](char c) -> char {
+                    if (IsDigit(c)) return c - '0';
+                    assert(IsXDigit(c));
+                    return c - (c < 'a' ? 'A' : 'a') + 10;
+                };
+                switch (c = *p++) {
                     case 'n': c = '\n'; break;
                     case 't': c = '\t'; break;
                     case 'r': c = '\r'; break;
@@ -530,20 +545,38 @@ struct Lex : LoadedFile {
                 };
                 sval += c;
                 break;
+            }
+            case '{':
+                if (!do_string_interpolation || character_constant) {
+                    sval += c;
+                } else if (*p == '{') {  // Escaped.
+                    sval += c;
+                    p++;
+                } else if (*p == '\"') {
+                    // Special purpose error for the common case of "{".
+                    Error("{ in string constant must be escaped as {{");
+                } else {
+                    sattr = string_view(start, p - start);
+                    bracketstack.push_back({ T_STR_INT_START, T_STR_INT_END });
+                    return interp ? T_STR_INT_MIDDLE : T_STR_INT_START;
+                }
+                break;
+            case '}':
+                if (!do_string_interpolation || character_constant) {
+                    sval += c;
+                } else if (*p == '}') {  // Escaped.
+                    sval += c;
+                    p++;
+                } else {
+                    Error("} in string constant must be escaped as }}");
+                }
+                break;
             default:
                 // Allow UTF-8 chars.
                 if ((c >= 0 && c < ' ') || c == 127)
                     Error("unprintable character in string constant");
                 sval += c;
         };
-        sattr = string_view(start, p - start);
-        if (initial == '\"') return T_STR;
-
-        // Character constant.
-        if (sval.size() > 4) Error("character constant too long");
-        ival = 0;
-        for (auto c : sval) ival = (ival << 8) + c;
-        return T_INT;
     };
 
     string_view TokStr(TType t) {

@@ -27,7 +27,7 @@ var random_cubes = cg_create_mesh(w)
 while gl_frame():
     if gl_button("escape") == 1: return
 
-    gl_window_title("cubegen test: " + gl_delta_time())
+    gl_window_title("cubegen test: {gl_delta_time()}")
 
     gl_clear(color_dark_grey)
 

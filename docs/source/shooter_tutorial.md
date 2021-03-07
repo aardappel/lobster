@@ -518,7 +518,7 @@ game will be playing.
 To show the current state to the player, we use the simple:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore)
+    gl_text("health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}")
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We call this as the very last thing in the frame, so it is visible regardless of

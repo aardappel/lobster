@@ -210,7 +210,7 @@ def collect(hof):
 // error checking
 
 def fatal_exit(msg):
-    print "fatal error: " + msg
+    print "fatal error: {msg}"
     return from program
 
 def fatal(msg):
@@ -223,4 +223,4 @@ def check(val, msg):
 // print helpers
 
 def print(a, b):
-    print a + " " + b
+    print "{a} {b}"

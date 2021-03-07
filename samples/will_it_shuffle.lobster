@@ -157,10 +157,7 @@ class shuffle_routine:
 let shuffler = shuffle_routine {}
 
 def viz():
-    let status = concat_string([
-        "mode:" + mode_name(),
-        "rounds:" + string(M),
-    ], " ")
+    let status = "mode:{mode_name()} rounds:{M}"
 
     let window_size = gl_window_size()
     let unit = min(floor((float(window_size) / xy_f { N + 1, N + 2 })))
@@ -171,9 +168,9 @@ def viz():
 
     for(N) i:
         gl_translate(xy_f { unit * (1 + i), 0 }):
-            gl_text(string(i))
+            gl_text("{i}")
         gl_translate(xy_f { 0, unit * (1 + i) }):
-            gl_text(string(i))
+            gl_text("{i}")
     gl_scale(unit):
         for(N) i: for(N) j:
             gl_translate(xy_f { 1 + i, 1 + j }):

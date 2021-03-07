@@ -30,6 +30,7 @@ struct ValueParser {
     ValueParser(VM &vm, string_view _src) : lex("string", filenames, _src), vm(vm) {
         stack.reserve(16);
         allocated.reserve(16);
+        lex.do_string_interpolation = false;
     }
 
     void Parse(StackPtr &sp, type_elem_t typeoff) {

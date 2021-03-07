@@ -39,7 +39,6 @@ def intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
     let eps = 0.0001
     let b = op.dot(r.d)
     var det = b*b-op.dot(op)+rad*rad
-    //print(op + " " + b + " " + det)
     if det<0: return 0.0
     det = sqrt(det)
     var t = b-det
@@ -149,8 +148,8 @@ def onesample():
             c[h-y-1][x] += r
     samples++
     let c2 = map(c) row: map(row) col: xyzw(pow(clamp(col / samples, xyz_0, xyz_1), 1 / 2.2), 1.0)
-    //print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
-    gl_window_title("smallpt: " + samples + " samples computed")
+    //print("sample {samples} took {(seconds_elapsed() - starttime)} seconds")
+    gl_window_title("smallpt: {samples} samples computed")
     return gl_create_texture(c2)
 
 fatal(gl_window("smallpt in lobster!", w, h))

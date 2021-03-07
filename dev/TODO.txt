@@ -1,3 +1,6 @@
+- make sure string() doesn't actually emit  a call
+- make multiple str concat into 1
+
 - natgen refactor
   - check how stack-overflow is responded to now.
   - start moving vmops into tocpp for all simple ops.
@@ -75,11 +78,6 @@
 
 - See if audio works again under emscripten:
   https://github.com/emscripten-ports/SDL2/commit/865eaddffed50dbd13e6564c3f73902472cf74e8
-
-- many: some form of string interpolation
-     "let " + name + ":" + t + " = " + (init + 1)
-     "let $name:$t = ${init + 1}"     // or require variables only
-     "let {name}:{t} = {init + 1}"
 
 - enums
   - mortimersnerd: get min/max

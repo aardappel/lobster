@@ -19,7 +19,7 @@ fatal(gl_window("collision", 1024, 1024))
 
 while gl_frame():
     if gl_button("escape") == 1: return
-    gl_window_title("FPS: " + (1 / gl_delta_time()))
+    gl_window_title("FPS: {(1 / gl_delta_time())}")
     gl_clear(color_black)
     gl_scale(float(gl_window_size().y))
 

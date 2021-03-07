@@ -10,16 +10,17 @@ run_test("parsereval"):
     class integer : node
         i:int
 
-        def pretty() -> string: return string(i)
+        def pretty() -> string: return "{i}"
         def eval() -> int: return i
-        def compile() -> string: return string(i)
+        def compile() -> string: return "{i}"
 
     class inst : node
         atom:string
         args:[node]
 
         def pretty() -> string:
-            return "(" + (args.fold(atom): _a + " " + _e.pretty()) + ")"
+            let elems = args.fold(atom): "{_a} {_e.pretty()}"
+            return "({elems})"
 
         def eval() -> int:
             return switch atom:
@@ -33,7 +34,7 @@ run_test("parsereval"):
         def compile() -> string:
             return switch atom:
                 case "+", "*":
-                    (args.map(): _.compile()).reduce(): "(" + _a + atom + _e + ")"
+                    (args.map(): _.compile()).reduce(): "({_a}{atom}{_e})"
                 default:
                     assert false  // Verified by parser.
 
@@ -46,13 +47,13 @@ run_test("parsereval"):
         def error(err):
             // Note: return from recursive calls of parse_exp in one step!
             // "Look ma, no exception handling"
-            return nil, "error: line " + line + ": " + err from parse
+            return nil, "error: line {line}: {err}" from parse
         def lex_atom():
             i--
             let start = i
             while s[i] > ' ' and not (exists("()\x7F"): _ == s[i]): i++
             if start == i:
-                error("unprintable character: " + s[i])
+                error("unprintable character: {s[i]}")
             atom = s.substring(start, i - start)
             var all = false
             ival, all = string_to_int(atom)
@@ -86,7 +87,7 @@ run_test("parsereval"):
         lex_next()
         def expect(tok):
             if tok != token:
-                error("expected: " + tok + ", found: " + token)
+                error("expected: {tok}, found: {token}")
             let a = atom
             lex_next()
             return a
@@ -96,7 +97,7 @@ run_test("parsereval"):
                     lex_next()
                     let name = expect("atom")
                     if not (exists([ "+", "*" ]): name == _):
-                        error("unknown op: " + name)
+                        error("unknown op: {name}")
                     let n = inst { name, []::node }
                     while token != ")":
                         n.args.push(parse_exp())
@@ -107,7 +108,7 @@ run_test("parsereval"):
                     lex_next()
                     return n
                 default:
-                    error("cannot parse expression starting with: " + token)
+                    error("cannot parse expression starting with: {token}")
         let root = parse_exp()
         expect("eof")
         return root, ""

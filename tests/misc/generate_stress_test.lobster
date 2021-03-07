@@ -9,7 +9,7 @@ let body = """
             case 1: "no"
             case 2, 3:
                 let x = i
-                "yes" + x
+                "yes{x}"
             case 4..6, 8: "maybe"
             default:
                 "what?"
@@ -69,11 +69,11 @@ let prog = []
 prog.push("import std\n")
 
 for(num_funs) i:
-    prog.push("def f" + i + "():\n")
+    prog.push("def f{i}():\n")
     prog.push(body)
 
 for(num_funs) i:
-    prog.push("f" + i + "()\n")
+    prog.push("f{i}()\n")
 
 if false:
     write_file("stress_test.lobster", concat_string(prog, ""), true)

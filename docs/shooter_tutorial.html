@@ -247,7 +247,7 @@ var playing = false</code></pre>
             playing = true</code></pre>
 <p>The <code>gl_translate</code> centers our text using the handy <code>gl_text_size</code> which tell us the size of a string in pixels before we’ve even rendered it. <code>gl_text</code> then draws it. We then reset the game state when the game starts, and next frame the game will be playing.</p>
 <p>To show the current state to the player, we use the simple:</p>
-<pre><code>    gl_text(&quot;health: &quot; + ceiling(playerhealth) + &quot; - score: &quot; + score + &quot; - highscore: &quot; + highscore)</code></pre>
+<pre><code>    gl_text(&quot;health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}&quot;)</code></pre>
 <p>We call this as the very last thing in the frame, so it is visible regardless of wether the player is in-game or not, for simplicity. <code>ceiling</code> is useful since we’ll be calculating the player’s health in float, but want to show only the whole numbers. <code>ceiling</code> here is better than <code>truncate</code>, since we only want to show <code>0</code> when the player is truely dead.</p>
 <pre><code>                if magnitude(playervec) &lt; 1:
                     playerhealth -= gl_delta_time() * 50

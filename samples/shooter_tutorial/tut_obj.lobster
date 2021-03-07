@@ -120,12 +120,12 @@ while gl_frame() and gl_button("escape") != 1:
     gl_color(color_white)
 
     if w:
-        gl_text("health: " + ceiling(w.player.health) + " - score: " + w.score + " - highscore: " + highscore)
+        gl_text("health: {ceiling(w.player.health)} - score: {w.score} - highscore: {highscore}")
         if not w.update():
             highscore = max(highscore, w.score)
             w = nil
     else:
-        gl_text("highscore: " + highscore)
+        gl_text("highscore: {highscore}")
         let msg = "press space to play!"
         gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)

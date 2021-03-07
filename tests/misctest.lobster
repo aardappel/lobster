@@ -66,13 +66,13 @@ run_test("misc"):
         false, 1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
         [ 0, -64 ], nil, true
     }
-    var parsed, err = parse_data(typeof direct, "" + direct)
+    var parsed, err = parse_data(typeof direct, "{direct}")
     //print(parsed)
     //print(direct)
     if err: print err
     assert equal(parsed, direct)
     // Test defaults:
-    parsed, err = parse_data(typeof direct, "parsetest { true, 1, 1.0, xyz_f {}, \"\", [] }")
+    parsed, err = parse_data(typeof direct, "parsetest {{ true, 1, 1.0, xyz_f {{}}, \"\", [] }}")
     if err: print err
     assert equal(parsed, parsetest { true, 1, 1.0, xyz { 0.0, 0.0, 0.0 }, "", [], nil, 0 })
     assert switch rnd(2):
@@ -85,7 +85,7 @@ run_test("misc"):
             case 1: "no"
             case 2, 3:
                 let x = i
-                "yes" + x
+                "yes{x}"
             case 4..6, 8: "maybe"
             default:
                 "what?"
@@ -322,6 +322,6 @@ run_test("misc"):
     assert (stlv = STLV { "b", [ "b" ] }).b[0] == "b"
 
     // IEEE754 div by zero behavior
-    assert string(1.0 / 0.0) == "inf"
-    assert string(1.0 % 0.0).find_string("nan") >= 0
-    assert string((xy_1 / xy_0).y) == "inf"
+    assert "{1.0 / 0.0}" == "inf"
+    assert "{1.0 % 0.0}".find_string("nan") >= 0
+    assert "{(xy_1 / xy_0).y}" == "inf"

@@ -18,7 +18,7 @@ var selected = root
 var entries = []
 
 def fullpath(n::node) -> string:
-    return if parent: parent.fullpath() + "/" + name else: name
+    return if parent: "{parent.fullpath()}/{name}" else: name
 
 def scan(n:node):
     entries = []
@@ -85,7 +85,7 @@ def render_sizes(old_width):
     var width = 0.0
     for(entries) e:
         gl_color color_dark_green:
-            let text = if e.size < 0: "---" else: string(e.size)
+            let text = if e.size < 0: "---" else: "{e.size}"
             let size = gl_text_size(text)
             width = max(width, size.x)
             gl_translate xy { old_width - size.x - column_margin, 0.0 }:

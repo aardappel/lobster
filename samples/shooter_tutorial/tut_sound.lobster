@@ -58,7 +58,7 @@ while gl_frame() and gl_button("escape") != 1:
     gl_color(color_white)
     if playing:
         // status banner
-        gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore + " - space: un(pause)")
+        gl_text("health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}")
         // check if user pauses
         if gl_button("space") == 1:
             paused = not paused

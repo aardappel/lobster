@@ -11,7 +11,7 @@ fatal(gl_window("My Lobster OpenGL window!", 1280, 1024))
 let iqmtest = check(gl_new_mesh_iqm("models/mrfixit.iqm"), "can\'t load model!")
 
 let textures = map(gl_mesh_parts(iqmtest)) name, i:
-    check(gl_load_texture("models/" + name + ".png"), "problem loading " + name)
+    check(gl_load_texture("models/{name}.png"), "problem loading {name}")
 
 for(textures) tex, i: gl_set_mesh_texture(iqmtest, i, 0, tex)
 

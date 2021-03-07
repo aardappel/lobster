@@ -1079,9 +1079,33 @@ struct Parser {
                 return new FloatConstant(lex, f);
             }
             case T_STR: {
-                string s = std::move(lex.sval);
+                auto s = new StringConstant(lex, std::move(lex.sval));
                 lex.Next();
-                return new StringConstant(lex, std::move(s));
+                return s;
+            }
+            case T_STR_INT_START: {
+                Node *si = lex.sval.empty() ? nullptr : new StringConstant(lex, std::move(lex.sval));
+                lex.Next();
+                for (;;) {
+                    auto e = ParseOpExp();
+                    if (si) {
+                        si = new Plus(lex, si, e);
+                    } else {
+                        // We start with an exp, but we have to force this to be a string to ensure
+                        // all subsequent Plus ops are string concats.
+                        auto call = new GenericCall(lex, "string", nullptr, false, false, nullptr);
+                        call->children.push_back(e);
+                        si = call;
+                    }
+                    if (!lex.sval.empty())
+                        si = new Plus(lex, si, new StringConstant(lex, std::move(lex.sval)));
+                    if (lex.token == T_STR_INT_MIDDLE) {
+                        lex.Next();
+                    } else {
+                        Expect(T_STR_INT_END);
+                        return si;
+                    }
+                }
             }
             case T_NIL: {
                 lex.Next();

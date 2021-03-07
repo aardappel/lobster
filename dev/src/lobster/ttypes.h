@@ -58,6 +58,9 @@ namespace lobster {
     TOK(T_INT, "integer literal") \
     TOK(T_FLOAT, "floating point literal") \
     TOK(T_STR, "string literal") \
+    TOK(T_STR_INT_START, "string interpolation start") \
+    TOK(T_STR_INT_MIDDLE, "string interpolation middle")     \
+    TOK(T_STR_INT_END, "string interpolation end") \
     TOK(T_NIL, "nil") \
     TOK(T_DEFAULTVAL, "default value") \
     TOK(T_IDENT, "identifier") \

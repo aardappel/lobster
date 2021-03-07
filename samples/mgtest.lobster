@@ -130,17 +130,17 @@ if true:
     mg_landscape(0.5, 1.0)
     landscape = mg_polygonize(density)
 
-if gun: print "vertcount: gun " + gl_mesh_size(gun)
-if spaceship: print "vertcount: ship " + gl_mesh_size(spaceship)
-for trees: print("vertcount: tree1 " + gl_mesh_size(_))
-if abstract: print "vertcount: abstract " + gl_mesh_size(abstract)
+if gun: print "vertcount: gun {gl_mesh_size(gun)}"
+if spaceship: print "vertcount: ship {gl_mesh_size(spaceship)}"
+for trees: print("vertcount: tree1 {gl_mesh_size(_)}")
+if abstract: print "vertcount: abstract {gl_mesh_size(abstract)}"
 
 print seconds_elapsed()
 
 while gl_frame():
     if gl_button("escape") == 1: return
 
-    gl_window_title("meshgen test: " + gl_delta_time())
+    gl_window_title("meshgen test: {gl_delta_time()}")
 
     gl_clear(color_darkest_grey)
 

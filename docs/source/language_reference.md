@@ -318,7 +318,8 @@ e.g. `a += 1` is always exactly the same as `a = a + 1`.
 
 In addition, the `+` operator also works as string concatenation if either side
 is of string type (the other side will be converted to a string representation
-if it wasn't already).
+if it wasn't already), though in most cases you should prefer to use
+string interpolation (see below).
 
 Unary minus (`-`) acts on the same types in the same way as the binary version.
 
@@ -889,7 +890,7 @@ We can iterate over vectors (each element), strings (each byte), or integers (va
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 for("hello") a, i:
-    print i + ": " + a
+    print "{i}: {a}"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here `a` will contain the 5 characters and `i` will be just `0` to `4`.
@@ -941,7 +942,7 @@ var st = switch i:
         case 1: "no"
         case 2, 3:
             var x = i
-            "yes" + x
+            "yes{x}"
         case 4..6, 8: "maybe"
         default: "what?"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -992,6 +993,26 @@ Built-in Functions
 ------------------
 
 Please refer to the [built-in function reference](builtin_functions_reference.html).
+
+
+String Interpolation
+-------------------
+This is a convenience feature that allows you to write arguments to string
+conversion inline in the string, instead of endless amounts of `" + "`
+separators, which tends to be less readable for longer sequences.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"a = {a} and b = {b}"  // Same as: "a = " + a + " and b = " + b
+"a = {f(a) + 1}"       // Same as: "a = " + (f(a) + 1)
+"{a}"                  // Same as: string(a)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because of this feature, `{` and `}` must always be escaped in string constants:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let a = 42
+print "{{ {a} }}"            // Prints: "{ 42 }"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Multi-threading

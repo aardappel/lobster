@@ -23,7 +23,7 @@ if benchmark:
     var no_conflicts = 0
     for(1000) i:
         let outmap, conflicts = wave_function_collapse(tilemap, xy { 100, 100 })
-        print i + ": " + conflicts
+        print "{i}: {conflicts}"
         if not conflicts: no_conflicts++
     print no_conflicts
     print seconds_elapsed()
@@ -33,7 +33,7 @@ else:
     for(100) i:
         let outmap, conflicts = wave_function_collapse(tilemap, xy { 100, 50 })
         if not conflicts:
-            print "iteration: " + i
+            print "iteration: {i}"
             for(outmap) s: print s
             return from program
 

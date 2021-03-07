@@ -3,7 +3,7 @@ import testing
 // This includes all tests in default run-once mode, as a simple unit test.
 
 current_test_runner = fn(name:string, t:testf):
-    print "testing: " + name
+    print "testing: {name}"
     t()
 
 import structtest

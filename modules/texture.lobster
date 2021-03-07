@@ -44,7 +44,7 @@ def loadtexturecached(name, tf:texture_format = texture_format_none):
             textures.insert(i, tex)
             return tex
         else:
-            print "unable to load texture: " + name
+            print "unable to load texture: {name}"
             return from program
 
 // Pass nil for tex to have it created. Recreates tex if the wrong size. Renders f. Returns tex.

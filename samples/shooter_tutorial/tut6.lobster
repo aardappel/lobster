@@ -119,4 +119,4 @@ while gl_frame() and gl_button("escape") != 1:
             lastenemy = gl_time()
             playing = true
 
-    gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore)
+    gl_text("health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}")
