@@ -1007,11 +1007,13 @@ separators, which tends to be less readable for longer sequences.
 "{a}"                  // Same as: string(a)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Because of this feature, `{` and `}` must always be escaped in string constants:
+Because of this feature, if you actually want to put `{` or `}` in a string
+constant, they must be escaped (by using 2 of them, or prefixing with a `\`),
+e.g.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 let a = 42
-print "{{ {a} }}"            // Prints: "{ 42 }"
+print "\{ {a} \}"  // Prints: "{ 42 }"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 

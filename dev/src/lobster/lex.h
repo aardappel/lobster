@@ -520,7 +520,10 @@ struct Lex : LoadedFile {
                     case 'r': c = '\r'; break;
                     case '\\':
                     case '\"':
-                    case '\'': break;
+                    case '\'':
+                    case '{':
+                    case '}':
+                        break;
                     case 'x':
                         if (!IsXDigit(*p) || !IsXDigit(p[1]))
                             Error("illegal hexadecimal escape code in string constant");

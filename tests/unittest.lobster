@@ -19,5 +19,6 @@ import watertest
 import gradienttest
 import springstest
 import smallpttest
+import stringtest
 
 "the end"  // FIXME: a file can not be only import files?

@@ -11,9 +11,13 @@ run_test("string"):
            "a = " + a + " and b = " + b + "!"
     assert "{1+2+a}" ==
            string(1+2+a)
+    assert "{a}{b}" ==
+           string(a) + b
     assert "{{ {a} }}" ==
+           "{{ " + a + " }}"
+    assert "\{ {a} \}" ==
            "{{ " + a + " }}"
     assert "{{{1+2+a}}}" ==
            "{{" + (1+2+a) + "}}"
-    assert "{a}{b}" ==
-           string(a) + b
+    assert "{ "{ "{a}" }" }" ==
+           string(a)

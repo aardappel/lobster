@@ -358,9 +358,9 @@ def baz(): return bar {}</code></pre>
 <pre><code>&quot;a = {a} and b = {b}&quot;  // Same as: &quot;a = &quot; + a + &quot; and b = &quot; + b
 &quot;a = {f(a) + 1}&quot;       // Same as: &quot;a = &quot; + (f(a) + 1)
 &quot;{a}&quot;                  // Same as: string(a)</code></pre>
-<p>Because of this feature, <code>{</code> and <code>}</code> must always be escaped in string constants:</p>
+<p>Because of this feature, if you actually want to put <code>{</code> or <code>}</code> in a string constant, they must be escaped (by using 2 of them, or prefixing with a <code>\</code>), e.g.</p>
 <pre><code>let a = 42
-print &quot;{{ {a} }}&quot;            // Prints: &quot;{ 42 }&quot;</code></pre>
+print &quot;\{ {a} \}&quot;  // Prints: &quot;{ 42 }&quot;</code></pre>
 <h2 id="multi-threading">Multi-threading</h2>
 <p>Lobster has built-in multi-threading functionality, that is in its early stages.</p>
 <p>It is different from multi-threading in most other languages, in that it does not allow threads to share memory or any other VM state. It essentially runs one Lobster VM per hardware thread / core, each running an independent and isolated copy of your Lobster program. This prevents entire classes of potential concurrency bugs, like race conditions.</p>
