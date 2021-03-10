@@ -620,6 +620,43 @@ struct CodeGen  {
         }
     }
 
+    void GenConcatOp(const BinOp *n, size_t retval) {
+        // Exception to the code below, since we want to generate an efficient concatenation
+        // of any number of strings.
+        vector<Node *> strs;
+        strs.push_back(n->left);
+        strs.push_back(n->right);
+        for (;;) {
+            auto c = strs[0];
+            if (auto lt = Is<ToLifetime>(c)) {
+                assert(lt->decref == 1 && lt->incref == 0);
+                c = lt->child;
+            }
+            auto p = Is<Plus>(c);
+            if (p && p->left->exptype->t == V_STRING && p->right->exptype->t == V_STRING) {
+                strs.erase(strs.begin());
+                strs.insert(strs.begin(), p->right);
+                strs.insert(strs.begin(), p->left);
+            } else {
+                break;
+            }
+        }
+        // TODO: we can even detect any ToString nodes here and generate an even more efficient
+        // call that does I2S etc inline with even fewer allocations.
+        for (auto s : strs) {
+            Gen(s, retval);
+            TakeTemp(1, false);
+        }
+        if (!retval) return;
+        if (strs.size() == 2) {
+            // We still need this op for += and it's marginally more efficient, might as well use it.
+            EmitOp(IL_SADD);
+        } else {
+            EmitOp(IL_SADDN, (int)strs.size(), 1);
+            Emit((int)strs.size());
+        }
+    }
+
     void GenMathOp(const BinOp *n, size_t retval, int opc) {
         Gen(n->left, retval);
         Gen(n->right, retval);
@@ -962,7 +999,13 @@ void Mod          ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(th
 void Divide       ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_DIV); }
 void Multiply     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MUL); }
 void Minus        ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_SUB); }
-void Plus         ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_ADD); }
+void Plus         ::Generate(CodeGen &cg, size_t retval) const {
+    if (left->exptype->t == V_STRING && right->exptype->t == V_STRING) {
+        cg.GenConcatOp(this, retval);
+    } else {
+        cg.GenMathOp(this, retval, MOP_ADD);
+    }
+}
 
 void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);

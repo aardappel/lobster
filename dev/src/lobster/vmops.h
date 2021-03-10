@@ -299,6 +299,21 @@ VM_INLINE void U_POPVREF(VM &vm, StackPtr sp, int len) { while (len--) Pop(sp).L
 
 VM_INLINE void U_DUP(VM &, StackPtr sp) { auto x = Top(sp); Push(sp, x); }
 
+VM_INLINE void U_SADDN(VM &vm, StackPtr sp, int len) {
+    iint blen = 0;
+    // Find total len.
+    for (int i = 0; i < len; i++) blen += TopM(sp, i).sval()->len;
+    // Just one alloc.
+    auto ds = vm.NewString(blen);
+    // Copy them all in, backwards.
+    for (int i = 0; i < len; i++) {
+        auto s = Pop(sp).sval();
+        blen -= s->len;
+        memcpy((char *)ds->data() + blen, s->data(), s->len);
+    }
+    Push(sp, Value(ds));
+}
+
 // While float div by zero is generally undefined in C++, if it promises to adhere to IEEE754
 // we get the desirable result of Inf values instead, and we don't have to check for 0.
 // This behavior is similar to what Java/C#/JS already do.

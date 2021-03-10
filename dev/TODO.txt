@@ -1,5 +1,3 @@
-- make multiple str concat into 1
-
 - natgen refactor
   - check how stack-overflow is responded to now.
   - start moving vmops into tocpp for all simple ops.
@@ -539,8 +537,9 @@
 - should support scalar op vector, not just vector op scalar
   - that requires yet more vector vm ops, at least for - /
 
-- detect a + b + c etc and emit better string concat op in codegen
-  Also, does sit make sense to allow += to modify strings in place?
+- Do special purpose codegen for sequences of string concat with I2S etc.
+  See GenConcatOp.
+- Also, does sit make sense to allow += to modify strings in place?
   This is different semantics from += generally, but would be very nice to have.
   And combined with the above feature s += a + b can also be alloc-less.
   And then same for vectors?
@@ -972,7 +971,7 @@
   So, hygienic inputs but not necessarily outputs :P
 
   macro DEFINE(name:ident, t:type, init:exp):
-      return "let " + name + ":" + t + " = " + init
+      return "let {name}:{t} = {init}"
   DEFINE(a, int, 1)
   print a
 
