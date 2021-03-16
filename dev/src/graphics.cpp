@@ -989,7 +989,7 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R",
                 else                      ((byte4  *)buf)[idx] = quantizec(col);
             }
         }
-        auto tex = CreateTexture(buf, int2(iint2(xs, ys)).data(), tf.intval());
+        auto tex = CreateTexture(buf, int3((int)xs, (int)ys, 0), tf.intval());
         delete[] buf;
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     });

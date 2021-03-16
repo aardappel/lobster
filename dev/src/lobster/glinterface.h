@@ -189,7 +189,7 @@ enum TextureFlag {
     TF_DEPTH = 4096
 };
 
-extern Texture CreateTexture(const uint8_t *buf, const int *dim, int tf = TF_NONE);
+extern Texture CreateTexture(const uint8_t *buf, int3 dim, int tf = TF_NONE);
 extern Texture CreateTextureFromFile(string_view name, int tf = TF_NONE);
 extern Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);

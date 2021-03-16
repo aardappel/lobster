@@ -369,7 +369,7 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
         if (monochrome.True()) {
             for (int i = 0; i < mipsizes; i++) buf[i] = buf[i] ? 255 : 0;
         }
-        auto tex = CreateTexture(buf, v.grid.dim.data(),
+        auto tex = CreateTexture(buf, v.grid.dim,
             TF_3D | /*TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP |*/ TF_SINGLE_CHANNEL |
             TF_BUFFER_HAS_MIPS | textureflags.intval());
         delete[] buf;

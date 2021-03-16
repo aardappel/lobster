@@ -31,7 +31,7 @@
 const int nummultisamples = 4;
 #endif
 
-Texture CreateTexture(const uint8_t *buf, const int *dim, int tf) {
+Texture CreateTexture(const uint8_t *buf, int3 dim, int tf) {
     int id;
     GL_CALL(glGenTextures(1, (GLuint *)&id));
     assert(id);
@@ -63,7 +63,7 @@ Texture CreateTexture(const uint8_t *buf, const int *dim, int tf) {
     auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
     auto buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(uint8_t) : sizeof(byte4);
     auto buffercomponent = GL_UNSIGNED_BYTE;
-    if ((tf & TF_SINGLE_CHANNEL) && (dim[0] & 0x3)) {
+    if ((tf & TF_SINGLE_CHANNEL) && (dim.x & 0x3)) {
         GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));  // Defaults to 4.
     }
     if (tf & TF_FLOAT) {
@@ -85,14 +85,14 @@ Texture CreateTexture(const uint8_t *buf, const int *dim, int tf) {
     if (tf & TF_MULTISAMPLE) {
         #ifdef PLATFORM_WINNIX
             GL_CALL(glTexImage2DMultisample(teximagetype, nummultisamples, internalformat,
-                                            dim[0], dim[1], true));
+                                            dim.x, dim.y, true));
         #else
             assert(false);
         #endif
     } else if(tf & TF_3D) {
 		#ifndef __EMSCRIPTEN__
 			int mipl = 0;
-			for (auto d = int3(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+			for (auto d = dim; tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
 				GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x, d.y, d.z, 0,
 									 bufferformat, buffercomponent, buf));
 				mipl++;
@@ -103,7 +103,7 @@ Texture CreateTexture(const uint8_t *buf, const int *dim, int tf) {
 		#endif
     } else {
         int mipl = 0;
-        for (auto d = int2(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+        for (auto d = dim.xy(); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
             for (int i = 0; i < texnumfaces; i++)
                 GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x, d.y, 0,
                                      bufferformat, buffercomponent, buf));
@@ -118,7 +118,7 @@ Texture CreateTexture(const uint8_t *buf, const int *dim, int tf) {
             GL_CALL(glGenerateMipmap(textype));
     }
     GL_CALL(glBindTexture(textype, 0));
-    return Texture(id, int3(dim));
+    return Texture(id, dim);
 }
 
 Texture CreateTextureFromFile(string_view name, int tf) {
@@ -126,20 +126,20 @@ Texture CreateTextureFromFile(string_view name, int tf) {
     string fbuf;
     if (LoadFile(name, &fbuf) < 0)
         return Texture();
-    int2 dim;
+    int3 dim(0);
     int comp;
     auto buf = stbi_load_from_memory((uint8_t *)fbuf.c_str(), (int)fbuf.length(), &dim.x, &dim.y,
                                      &comp, 4);
     if (!buf)
         return Texture();
-    auto tex = CreateTexture(buf, dim.data(), tf);
+    auto tex = CreateTexture(buf, dim, tf);
     stbi_image_free(buf);
     return tex;
 }
 
 Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
     if (tf & TF_MULTISAMPLE) {
-        return CreateTexture(nullptr, size.data(), tf);  // No buffer required.
+        return CreateTexture(nullptr, int3(size, 0), tf);  // No buffer required.
     } else {
         auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
         auto buf = new uint8_t[size.x * size.y * sz];
@@ -148,7 +148,7 @@ Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
             if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
             else               ((byte4  *)buf)[idx] = quantizec(color);
         }
-        auto tex = CreateTexture(buf, size.data(), tf);
+        auto tex = CreateTexture(buf, int3(size, 0), tf);
         delete[] buf;
         return tex;
     }

@@ -133,7 +133,7 @@ bool BitmapFont::CacheChars(string_view text) {
     while (texh <= (int)image.size() / texw)
         texh *= 2;
     image.resize(texh * texw);
-    tex = CreateTexture(&image[0].x, int2(texw, texh).data(), TF_CLAMP | TF_NOMIPMAP);
+    tex = CreateTexture(&image[0].x, int3(texw, texh, 0), TF_CLAMP | TF_NOMIPMAP);
     return true;
 }
 

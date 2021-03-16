@@ -239,7 +239,7 @@ Mesh *VRCreateMesh(uint32_t device) {
         SDL_Delay(1);
     }
     auto tex = CreateTexture(modeltex->rubTextureMapData,
-                             int2(modeltex->unWidth, modeltex->unHeight).data(), TF_CLAMP);
+                             int3(modeltex->unWidth, modeltex->unHeight, 0), TF_CLAMP);
     auto m = new Mesh(new Geometry(make_span(model->rVertexData, model->unVertexCount),
                                    "PNT"), PRIM_TRIS);
     auto nindices = model->unTriangleCount * 3;
