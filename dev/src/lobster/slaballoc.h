@@ -49,6 +49,11 @@ alloc_sized/dealloc_sized instead do store the size, if a more drop-in replaceme
 is desired.
 */
 
+#ifdef __SANITIZE_ADDRESS__
+    // This will help catch ASAN problems in the VM.
+    #define PASSTHRUALLOC
+#endif
+
 #ifndef NDEBUG
     // Uncomment if debugging with crtdbg functionality is required (for finding memory corruption).
     //#define PASSTHRUALLOC
