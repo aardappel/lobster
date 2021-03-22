@@ -142,9 +142,7 @@ void VM::DumpLeaks() {
                     sd += " = ";
                     RefToString(*this, sd, ro, leakpp);
                     #if DELETE_DELAY
-                    sd += " ";
-                    DumpFileLine(ro->alloc_ip, sd);
-                    append(sd, " ", (size_t)ro);
+                        append(sd, " ", (size_t)ro);
                     #endif
                     sd += "\n";
                     break;
@@ -169,7 +167,6 @@ void VM::DumpLeaks() {
 void VM::OnAlloc(RefObj *ro) {
     #if DELETE_DELAY
         LOG_DEBUG("alloc: ", (size_t)ro, " - ", ro->refc);
-        ro->alloc_ip = ip;
     #else
         (void)ro;
     #endif

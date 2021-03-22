@@ -176,15 +176,7 @@ struct DynAlloc {
 struct RefObj : DynAlloc {
     int refc = 1;
 
-    #if DELETE_DELAY
-    const int *alloc_ip;
-    #endif
-
-    RefObj(type_elem_t _tti) : DynAlloc(_tti)
-        #if DELETE_DELAY
-            , alloc_ip(nullptr)
-        #endif
-    {}
+    RefObj(type_elem_t _tti) : DynAlloc(_tti) {}
 
     void Inc() {
         #ifndef NDEBUG
