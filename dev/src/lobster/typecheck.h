@@ -214,6 +214,13 @@ struct TypeChecker {
         // side-effects on non-V_VAR Type instances.
         assert(hasvar->t == V_VAR);
         if (type->t == V_VAR) {
+            // If these two are already part of the same cycle, don't do the swap, which
+            // could disconnect the cycle!
+            auto v = hasvar;
+            do {  // Loop thru all vars in unification cycle.
+                if (&*v == &*type) return;  // Same cycle.
+                v = v->sub;
+            } while (&*v != &*hasvar);  // Force TypeRef pointer comparison.
             // Combine two cyclic linked lists.. elegant!
             swap((Type *&)hasvar->sub, (Type *&)type->sub);
         } else {
