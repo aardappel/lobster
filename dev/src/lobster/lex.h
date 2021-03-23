@@ -29,7 +29,11 @@ struct Line {
 };
 
 struct LoadedFile : Line {
-    const char *p, *linestart, *tokenstart = nullptr;
+    const char *p = nullptr;
+    const char *linestart = nullptr;
+    const char *tokenstart = nullptr;
+    const char *prevtokenstart = nullptr;
+    const char *prevtokenend = nullptr;
     shared_ptr<string> source { new string() };
     TType token = T_NONE;
     int tokline = 1;  // line before, if current token crossed a line
@@ -60,7 +64,7 @@ struct LoadedFile : Line {
                 THROW_OR_ABORT("can't open file: " + fn);
             }
         }
-        linestart = p = source.get()->c_str();
+        prevtokenstart = prevtokenend = tokenstart = linestart = p = source.get()->c_str();
 
         indentstack.push_back({ 0, false });
 
@@ -128,6 +132,8 @@ struct Lex : LoadedFile {
         }
         bool lastcont = cont;
         cont = false;
+        prevtokenstart = tokenstart;
+        prevtokenend = p;
         token = NextToken();
         if (islf && token != T_ENDOFFILE && token != T_ENDOFINCLUDE) {
             int indent = (int)(tokenstart - linestart);
@@ -604,6 +610,14 @@ struct Lex : LoadedFile {
 
     void Error(string_view msg, const Line *ln = nullptr) {
         auto err = Location(ln ? *ln : *this) + ": error: " + msg;
+        if (!ln) {
+            auto begin = linestart;
+            auto end = prevtokenend;
+            while (*end && *end != '\n' && *end != '\r') end++;
+            append(err, "\nin: ", string_view(begin, end - begin), "\nat: ");
+            for (; begin < prevtokenstart; begin++) err.push_back(' ');
+            for (; begin < prevtokenend; begin++) err.push_back('^');
+        }
         //LOG_DEBUG(err);
         THROW_OR_ABORT(err);
     }
