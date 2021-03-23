@@ -40,12 +40,20 @@ struct Parser {
         delete root;
     }
 
-    void Error(string_view err, const Node *what = nullptr) {
-        lex.Error(err, what ? &what->line : nullptr);
+    template<typename... Ts> void Error(const Ts &...args) {
+        lex.Error(cat(args...), nullptr);
     }
 
-    void Warn(string_view warn, const Node *what = nullptr) {
-        lex.Warn(warn, what ? &what->line : nullptr);
+    template<typename... Ts> void ErrorAt(const Node *what, const Ts &...args) {
+        lex.Error(cat(args...), &what->line);
+    }
+
+    template<typename... Ts> void Warn(const Ts &...args) {
+        lex.Warn(cat(args...), nullptr);
+    }
+
+    template<typename... Ts> void WarnAt(const Node *what, const Ts &...args) {
+        lex.Warn(cat(args...), &what->line);
     }
 
     void Parse() {
@@ -92,7 +100,7 @@ struct Parser {
                 st.Unregister(er->e, st.enums);
             } else if (auto sr = Is<UDTRef>(def)) {
                 if (sr->udt->predeclaration)
-                    lex.Error("pre-declared struct never defined: " + sr->udt->name);
+                    Error("pre-declared struct ", Q(sr->udt->name), " never defined");
                 st.Unregister(sr->udt, st.udts);
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
@@ -108,11 +116,11 @@ struct Parser {
                     if (!id->single_assignment || id->constant || d->line.fileidx != 0)
                         warn_all = false;
                     if (!id->read && !id->static_constant && id->scopelevel != 1)
-                        Warn("unused variable: " + id->name);
+                        Warn("unused variable ", Q(id->name));
                 }
                 if (warn_all) {
                     for (auto p : d->sids) {
-                        Warn("use \'let\' to declare: " + p.first->id->name, d);
+                        WarnAt(d, "use ", Q("let"), " to declare ", Q(p.first->id->name));
                     }
                 }
             } else if (auto r = Is<Return>(def)) {
@@ -266,7 +274,7 @@ struct Parser {
         auto parse_sup = [&] () {
             ExpectId();
             auto sup = &st.StructUse(lastid, lex);
-            if (sup == udt) Error("can\'t inherit from: " + lastid);
+            if (sup == udt) Error("can\'t inherit from ", Q(lastid));
             if (is_struct != sup->is_struct)
                 Error("class/struct must match parent");
             return sup;
@@ -459,7 +467,7 @@ struct Parser {
                 for (;;) {
                     auto ng = st.NewGeneric(ExpectId());
                     for (auto &btv : sf->generics) if (btv.tv->name == ng->name)
-                        Error("re-definition of generic: " + ng->name);
+                        Error("re-definition of generic ", Q(ng->name));
                     sf->generics.push_back({ ng, { nullptr } });
                     if (IsNext(T_GT)) break;
                     Expect(T_COMMA);
@@ -515,7 +523,7 @@ struct Parser {
         auto nf = natreg.FindNative(f.name);
         if (nf && nf->args.size() >= nargs) {
             // TODO: could allow less args if we check nf's default args.
-            Error("cannot override built-in function with same (or less) arity: " + f.name);
+            Error("cannot override built-in function ", Q(f.name), " with same (or less) arity");
         }
         // Check default args are being used consistently with the overloads & siblings.
         if (first_default_arg < 0) first_default_arg = (int)nargs;
@@ -527,7 +535,7 @@ struct Parser {
                 Error("number of default arguments must be the same as previous overload");
             for (auto [i, da] : enumerate(f.default_args)) {
                 if (da && !da->Equal(default_args[i]))
-                    Error(cat("default argument ", i + 1, " must be same as previous overload"));
+                    Error("default argument ", i + 1, " must be same as previous overload");
                 delete default_args[i];
             }
         }
@@ -540,9 +548,9 @@ struct Parser {
             if (ff != &f) {
                 if (first_default_arg <= (int)ff->nargs() &&
                     ff->first_default_arg <= (int)f.nargs())
-                    Error(cat("function ", f.name, " with ", f.nargs(),
-                                " arguments is ambiguous with the ", ff->nargs(),
-                                " version because of default arguments"));
+                    Error("function ", Q(f.name), " with ", f.nargs(),
+                          " arguments is ambiguous with the ", ff->nargs(),
+                          " version because of default arguments");
             }
             ff = ff->sibf;
         }
@@ -554,17 +562,17 @@ struct Parser {
             // This must be a function type.
             if (lex.token == T_IDENT || !name) Expect(T_COLON);
             if (f.istype || f.overloads.size() > 1)
-                Error("redefinition of function type: " + *name);
+                Error("redefinition of function type ", Q(*name));
             f.istype = true;
             sf->typechecked = true;
             for (auto [i, arg] : enumerate(sf->args)) {
                 if (st.IsGeneric(sf->giventypes[i]))
-                    Error("function type arguments can't be generic (missing ':' ?)");
+                    Error("function type arguments can\'t be generic (missing ", Q(":"), " ?)");
                 // No idea what the function is going to be, so have to default to borrow.
                 arg.sid->lt = LT_BORROW;
             }
             if (sf->returngiventype.utr.Null())
-                Error("missing return type or : in function definition header");
+                Error("missing return type or ", Q(":"), " in function definition header");
             if (!sf->generics.empty())
                 Error("function type cannot have generics");
             sf->reqret = sf->returntype->NumValues();
@@ -574,10 +582,9 @@ struct Parser {
                 // We could check here for "double declaration", but since that entails
                 // detecting what is a legit overload or not, this is in general better left to the
                 // type checker.
-                if (!f.nargs()) Error("double declaration: " + f.name);
+                if (!f.nargs()) Error("double declaration of ", Q(f.name));
                 if (isprivate != f.isprivate)
-                    Error("inconsistent private annotation of multiple overloads"
-                          " for: " + *name);
+                    Error("inconsistent private annotation of multiple overloads for ", Q(*name));
             }
             f.isprivate = isprivate;
             functionstack.push_back(&f);
@@ -660,7 +667,8 @@ struct Parser {
                     }
                 } else {
                     if (dest->spec_udt->udt->is_generic)
-                        Error("use of type " + dest->spec_udt->udt->name + " requires specializers");
+                        Error("use of type ", Q(dest->spec_udt->udt->name),
+                              " requires specializers");
                 }
                 done:
                 break;
@@ -681,7 +689,7 @@ struct Parser {
                 }
                 // FALL-THRU:
             default:
-                Error("illegal type syntax: " + lex.TokStr());
+                Error("illegal type syntax: ", Q(lex.TokStr()));
         }
         if (IsNext(T_QUESTIONMARK)) {
             if (!st.IsNillable(dest) && dest->t != V_TYPEVAR)
@@ -715,13 +723,16 @@ struct Parser {
             if (IsNext(T_FROM)) {
                 if(!IsNext(T_PROGRAM)) {
                     if (!IsNextId())
-                        Error("return from: must be followed by function identifier or"
-                              " \"program\"");
+                        Error(Q("return from"), " must be followed by function identifier or ",
+                              Q("program"));
                     auto f = st.FindFunction(lastid);
                     if (!f)
-                        Error("return from: not a known function: " + lastid);
+                        Error(Q(lastid), " is not a known function for use with ",
+                              Q("return from"));
                     if (f->sibf || f->overloads.size() > 1)
-                        Error("return from: function must have single implementation");
+                        Error("function ", Q(lastid),
+                              " must have single implementation to be used with ",
+                              Q("return from"));
                     sf = f->overloads[0];
                 }
             } else {
@@ -736,7 +747,7 @@ struct Parser {
         while (IsNext(T_SEMICOLON)) {
             if (IsNext(T_LINEFEED)) {
                 // specialized error for all the C-style language users
-                Error("\';\' is not a statement terminator");
+                Error(Q(";"), " is not a statement terminator");
             }
             e = new Seq(lex, e, ParseExp());
         }
@@ -906,7 +917,7 @@ struct Parser {
                             // Typechecker will deal with it.
                             if (ol->args.size() == nargs) goto argsok;
                         }
-                        Error("missing arg to builtin function: " + idname);
+                        Error("missing arg to builtin function ", Q(idname));
                     }
                 }
             }
@@ -917,7 +928,7 @@ struct Parser {
         // If both a var and a function are in scope, the deepest scope wins.
         // Note: <, because functions are inside their own scope.
         if (f && (!id || id->scopelevel < f->scopelevel)) {
-            if (f->istype) Error("can\'t call function type: " + f->name);
+            if (f->istype) Error("can\'t call function type ", Q(f->name));
             auto call = new GenericCall(lex, idname, nullptr, false, false, specializers);
             call->children = list;
             if (!firstarg) {
@@ -975,7 +986,7 @@ struct Parser {
                 return f;
             }
         }
-        Error(cat("no version of function ", idname, " takes ", nargs, " arguments"), errnode);
+        ErrorAt(errnode, "no version of function ", Q(idname), " takes ", nargs, " arguments");
         return nullptr;
     }
 
@@ -996,7 +1007,7 @@ struct Parser {
                 } else {
                     if (st.scopelevels.size() == 1) {
                         if (error_on_not_found)
-                            Error("call to unknown function: " + ffc->n->name, ffc->n);
+                            ErrorAt(ffc->n, "call to unknown function ", Q(ffc->n->name));
                     } else {
                         // Prevent it being found in sibling scopes.
                         ffc->maxscopelevel = st.scopelevels.size() - 1;
@@ -1030,7 +1041,7 @@ struct Parser {
                         n = ParseFunctionCall(f, nf, idname, n, false, &specializers);
                     }
                 } else {
-                    Error("unknown field/function: " + idname);
+                    Error("unknown field/function ", Q(idname));
                 }
                 break;
             }
@@ -1246,7 +1257,7 @@ struct Parser {
                 return new Switch(lex, value, cases);
             }
             default:
-                Error("illegal start of expression: " + lex.TokStr());
+                Error("illegal start of expression: ", Q(lex.TokStr()));
                 return nullptr;
         }
     }
@@ -1349,8 +1360,8 @@ struct Parser {
                     if (IsNext(T_COLON)) {
                         auto fld = st.FieldUse(id);
                         auto field = udt->Has(fld);
-                        if (field < 0) Error("unknown field: " + id);
-                        if (exps[field]) Error("field initialized twice: " + id);
+                        if (field < 0) Error("unknown field ", Q(id));
+                        if (exps[field]) Error("field ", Q(id), " initialized twice");
                         exps[field] = ParseExp();
                         return;
                     } else {
@@ -1376,7 +1387,7 @@ struct Parser {
                     if (udt->fields[i].defaultval)
                         exps[i] = udt->fields[i].defaultval->Clone();
                     else
-                        Error("field not initialized: " + udt->fields[i].id->name);
+                        Error("field ", Q(udt->fields[i].id->name), " not initialized");
                 }
                 constructor->Add(exps[i]);
             }
@@ -1407,7 +1418,7 @@ struct Parser {
         // Check for implicit variable.
         if (idname[0] == '_') {
             if (block_stack.empty())
-                Error("cannot add implicit argument at top level: " + idname);
+                Error("cannot add implicit argument ", Q(idname), " at top level");
             auto &bs = block_stack.back();
             auto id = st.Lookup(idname);
             auto sf = st.defsubfunctionstack.back();
@@ -1415,8 +1426,8 @@ struct Parser {
                 if (bs.for_nargs >= 0) {
                     id = st.LookupDef(idname, lex, true, false);
                     if (bs.for_nargs > 0) {
-                        Error("cannot add implicit argument to for with existing arguments: " +
-                              idname);
+                        Error("cannot add implicit argument ", Q(idname), " to ", Q("for"),
+                              " with existing arguments");
                     }
                     id->constant = true;
                     auto def = new Define(lex, new ForLoopElem(lex));
@@ -1426,13 +1437,13 @@ struct Parser {
                 } else {
                     id = st.LookupDef(idname, lex, false, false);
                     if (st.defsubfunctionstack.size() <= 1)
-                        Error("cannot add implicit argument to top level: " + idname);
+                        Error("cannot add implicit argument ", Q(idname), " to top level");
                     if (!sf->parent->anonymous)
-                        Error("cannot use implicit argument: " + idname +
-                            " in named function: " + sf->parent->name, sf->body);
+                        ErrorAt(sf->body, "cannot use implicit argument ", Q(idname),
+                                          " in named function ", Q(sf->parent->name));
                     if (sf->args[0].sid->id->name[0] != '_')
-                        Error("cannot mix implicit argument: " + idname +
-                            " with declared arguments in function", sf->body);
+                        ErrorAt(sf->body, "cannot mix implicit argument ", Q(idname),
+                                          " with declared arguments in function");
                     if (st.defsubfunctionstack.back()->args.back().type->Equal(*type_any))
                         GenImplicitGenericForLastArg();
                 }
@@ -1467,9 +1478,8 @@ struct Parser {
         // It's likely a regular variable.
         id = st.Lookup(idname);
         if (!id) {
-            lex.Error((could_be_function
-                ? "can't use named function as value: "
-                : "unknown identifier: ") + idname);
+            if (could_be_function) Error("can\'t use named function ", Q(idname), " as value");
+            else Error("unknown identifier ", Q(idname));
         }
         return new IdentRef(lex, id->cursid);
     }
@@ -1504,7 +1514,7 @@ struct Parser {
 
     void Expect(TType t) {
         if (!IsNext(t))
-            Error(lex.TokStr(t) + " expected, found: " + lex.TokStr());
+            Error(Q(lex.TokStr(t)) + " expected, found " + Q(lex.TokStr()));
     }
 
     string DumpAll(bool onlytypechecked = false) {

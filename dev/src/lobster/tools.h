@@ -970,6 +970,8 @@ void append(string &sd, const Ts &... args) {
     cat_helper(sd, nullptr, nullptr, nullptr, to_string_conv(args)...);
 }
 
+inline string Q(string_view s) { return cat("`", s, "`"); }
+
 // This method is in C++20, but quite essential.
 inline bool starts_with(string_view sv, string_view start) {
     return start.size() <= sv.size() && sv.substr(0, start.size()) == start;

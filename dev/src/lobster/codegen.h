@@ -410,8 +410,9 @@ struct CodeGen  {
         }
         size_t nargs = args->children.size();
         if (f.nargs() != nargs)
-            parser.Error(cat("call to function ", f.name, " needs ", f.nargs(),
-                             " arguments, ", nargs, " given"), node_context.back());
+            parser.ErrorAt(node_context.back(),
+                           "call to function ", Q(f.name), " needs ", f.nargs(),
+                           " arguments, ", nargs, " given");
         TakeTemp(nargs, true);
         if (vtable_idx < 0) {
             EmitOp(IL_CALL, inw, outw);
@@ -491,6 +492,7 @@ struct CodeGen  {
         node_context.pop_back();
 
         assert(n->exptype->t != V_UNDEFINED);
+        //assert(!n->exptype->HasValueType(V_VAR));
 
         assert(tempstartsize == temptypestack.size());
         (void)tempstartsize;
@@ -611,12 +613,12 @@ struct CodeGen  {
                 case V_STRING:
                     // FIXME: Would be better to catch this in typechecking, but typechecker does
                     // not currently distinquish lvalues.
-                    parser.Error("cannot use this type as lvalue", lval);
+                    parser.ErrorAt(lval, "cannot use this type as lvalue");
                 default:
                     assert(false);
             }
         } else {
-            parser.Error("lvalue required", lval);
+            parser.ErrorAt(lval, "lvalue required");
         }
     }
 
@@ -1723,7 +1725,7 @@ void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {
                 return;
             }
         }
-        cg.parser.Error("typeof return out of call context", dv);
+        cg.parser.ErrorAt(dv, "typeof return out of call context");
     } else  if (auto idr = Is<IdentRef>(child)) {
         cg.EmitOp(IL_PUSHINT);
         cg.Emit(cg.GetTypeTableOffset(idr->exptype));

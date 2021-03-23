@@ -81,7 +81,7 @@ struct TypeChecker {
     TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq) : parser(_p), st(_st) {
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultTypes())
-            TypeError("cannot find standard types (from stdtype.lobster)", *parser.root);
+            Error(*parser.root, "cannot find standard types (from stdtype.lobster)");
         for (auto sf : st.subfunctiontable) {
             // TODO: This is not great, it mostly just substitutes SpecUDTs with no specialization for
             // the UDT such that function overload selection can work. We could also not do this
@@ -152,33 +152,35 @@ struct TypeChecker {
         return n.Name();
     }
 
-    void TypeError(string_view required, TypeRef got, const Node &n, string_view argname = "",
-                   string_view context = "") {
-        TypeError(cat("\"", (context.size() ? context : NiceName(n)), "\" ",
-                      (argname.size() ? "(" + argname + " argument) " : ""),
-                      "requires type \"", required, "\", got: \"", TypeName(got), "\""), n);
-    }
-
-    void TypeError(string err, const Node &n) {
+    template<typename... Ts> void Error(const Node &n, const Ts &...args) {
+        auto err = cat(args...);
         set<Ident *> already_seen;
-        if (!scopes.empty())
-        for (auto scope : reverse(scopes)) {
-            if (scope.sf == st.toplevel) continue;
-            err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
-            err += SignatureWithFreeVars(*scope.sf, &already_seen);
-            for (auto dl : scope.sf->body->children) {
-                if (auto def = Is<Define>(dl)) {
-                    for (auto p : def->sids) {
-                        err += ", " + p.first->id->name + ":" + TypeName(p.first->type);
+        if (!scopes.empty()) {
+            for (auto scope : reverse(scopes)) {
+                if (scope.sf == st.toplevel) continue;
+                err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
+                err += SignatureWithFreeVars(*scope.sf, &already_seen);
+                for (auto dl : scope.sf->body->children) {
+                    if (auto def = Is<Define>(dl)) {
+                        for (auto p : def->sids) {
+                            err += ", " + p.first->id->name + ":" + TypeName(p.first->type);
+                        }
                     }
                 }
             }
         }
-        parser.Error(err, &n);
+        parser.ErrorAt(&n, err);
+    }
+
+    void RequiresError(string_view required, TypeRef got, const Node &n, string_view argname = "",
+                       string_view context = "") {
+        Error(n, Q(context.size() ? context : NiceName(n)), " ",
+                 (argname.size() ? "(" + argname + " argument) " : ""),
+                 "requires type ", Q(required), ", got ", Q(TypeName(got)));
     }
 
     void NoStruct(const Node &n, string_view context) {
-        if (IsStruct(n.exptype->t)) TypeError("struct value cannot be used in: " + context, n);
+        if (IsStruct(n.exptype->t)) Error(n, "struct value cannot be used in ", Q(context));
     }
 
     void NatCallError(string_view errstr, const NativeFun *nf, const NativeCall &callnode) {
@@ -190,7 +192,7 @@ struct TypeChecker {
         for (auto cnf = nf->first; cnf; cnf = cnf->overloads) {
             err += "\n  overload: " + Signature(*cnf);
         }
-        TypeError(err, callnode);
+        Error(callnode, err);
     }
 
     TypeRef NewTypeVar() {
@@ -321,8 +323,8 @@ struct TypeChecker {
         }
         error:
         if (err) {
-            TypeError(cat(TypeName(at), " (", aname, ") and ", TypeName(bt), " (", bname,
-                          ") have no common supertype"), *err);
+            Error(*err, Q(TypeName(at)), " (", aname, ") and ", Q(TypeName(bt)), " (", bname,
+                        ") have no common supertype");
         }
         return type_undefined;
     }
@@ -367,7 +369,8 @@ struct TypeChecker {
     }
 
     void StorageType(TypeRef type, const Node &context) {
-        if (type->HasValueType(V_VOID)) TypeError("cannot store value of type \"void\"", context);
+        if (type->HasValueType(V_VOID))
+            Error(context, "cannot store value of type ", Q(TypeName(type)));
     }
 
     void SubTypeLR(TypeRef bound, BinOp &n) {
@@ -402,8 +405,8 @@ struct TypeChecker {
                     auto sf = a->exptype->sf;
                     auto ss = bound->sf;
                     if (!ss->parent->istype)
-                        TypeError("dynamic function value can only be passed to declared "
-                                  "function type", *a);
+                        Error(*a,
+                            "dynamic function value can only be passed to declared function type");
                     if (sf->args.size() != ss->args.size()) break;
                     for (auto [i, arg] : enumerate(sf->args)) {
                         // Specialize to the function type, if requested.
@@ -440,13 +443,13 @@ struct TypeChecker {
                 ;
         }
         error:
-        TypeError(TypeName(bound), a->exptype, *a, argname, context);
+        RequiresError(TypeName(bound), a->exptype, *a, argname, context);
     }
 
     void SubTypeT(TypeRef type, TypeRef bound, const Node &n, string_view argname,
                   string_view context = {}) {
         if (!ConvertsTo(type, bound, CF_UNIFICATION))
-            TypeError(TypeName(bound), type, n, argname, context);
+            RequiresError(TypeName(bound), type, n, argname, context);
     }
 
     bool MathCheckVector(TypeRef &type, Node *&left, Node *&right) {
@@ -506,11 +509,11 @@ struct TypeChecker {
         auto err = MathCheck(type, n, unionchecked, typechangeallowed);
         if (err) {
             if (MathCheck(n.left->exptype, n, unionchecked, typechangeallowed))
-                TypeError(err, n.left->exptype, n, "left");
+                RequiresError(err, n.left->exptype, n, "left");
             if (MathCheck(n.right->exptype, n, unionchecked, typechangeallowed))
-                TypeError(err, n.right->exptype, n, "right");
-            TypeError(cat("can\'t use \"", NiceName(n), "\" on \"", TypeName(n.left->exptype),
-                          "\" and \"", TypeName(n.right->exptype), "\""), n);
+                RequiresError(err, n.right->exptype, n, "right");
+            Error(n, "can\'t use ", Q(NiceName(n)), " on ", Q(TypeName(n.left->exptype)),
+                     " and ", Q(TypeName(n.right->exptype)));
         }
     }
 
@@ -559,7 +562,8 @@ struct TypeChecker {
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
                 // Comparison with one result, but still by value for structs.
                 if (u->t != V_VECTOR && !IsUDT(u->t) && u->t != V_NIL && u->t != V_FUNCTION)
-                    TypeError(TypeName(n.left->exptype), n.right->exptype, n, "right-hand side");
+                    RequiresError(TypeName(n.left->exptype), n.right->exptype, n,
+                                  "right-hand side");
             } else {
                 // Comparison vector op: vector inputs, vector out.
                 if (u->t == V_STRUCT_S && u->udt->sametype->Numeric()) {
@@ -570,8 +574,8 @@ struct TypeChecker {
                     // appropriate anyway.
                     goto out;
                 } else {
-                    TypeError(n.Name() + " doesn\'t work on " + TypeName(n.left->exptype) +
-                              " and " + TypeName(n.right->exptype), n);
+                    Error(n, Q(n.Name()), " doesn\'t work on ", Q(TypeName(n.left->exptype)),
+                             " and ", Q(TypeName(n.right->exptype)));
                 }
             }
         }
@@ -599,7 +603,7 @@ struct TypeChecker {
         CheckLval(n.child);
         n.exptype = n.child->exptype;
         if (!n.exptype->Numeric())
-            TypeError("numeric", n.exptype, n);
+            RequiresError("numeric", n.exptype, n);
         n.lt = n.child->lt;
     }
 
@@ -699,7 +703,7 @@ struct TypeChecker {
                 }
                 fail:;
             }
-            TypeError("can't find specialized superclass for: " + udt.name, errn);
+            Error(errn, "can't find specialized superclass for ", Q(udt.name));
             //udt.given_superclass = nullptr;
             //udt.resolved_superclass = nullptr;
             done:;
@@ -722,8 +726,8 @@ struct TypeChecker {
                     // safely multipass, but until then, this error. Without this error,
                     // the VM could run into empty vtable entries.
                     // TODO: output the name of the method that caused this?
-                    TypeError("class " + udt.name + " already used in dynamic dispatch on " +
-                              u->name + " before it has been declared", errn);
+                    Error(errn, "class ", Q(udt.name), " already used in dynamic dispatch on ",
+                                Q(u->name), " before it has been declared");
                 }
                 u->subudts.push_back(&udt);
             }
@@ -732,11 +736,11 @@ struct TypeChecker {
             // FIXME: this is a temp limitation, remove.
             if (udt.thistype.t == V_STRUCT_R && i &&
                 IsRefNil(f.resolvedtype->t) != IsRefNil(udt.fields[0].resolvedtype->t))
-                TypeError("structs fields must be either all scalar or all references: " +
-                    udt.name, errn);
+                Error(errn, "structs fields of ", Q(udt.name),
+                            " must be either all scalar or all references");
         }
         if (!udt.ComputeSizes())
-            TypeError("structs cannot be self-referential: " + udt.name, errn);
+            Error(errn, "struct ", Q(udt.name), " cannot be self-referential");
     }
 
     void RetVal(TypeRef type, SubFunction *sf, const Node &err, bool register_return = true) {
@@ -808,7 +812,7 @@ struct TypeChecker {
         CleanUpFlow(start_promoted_vars);
         if (!sf.num_returns) {
             if (!sf.returngiventype.utr.Null() && sf.returngiventype.utr->t != V_VOID)
-                TypeError("missing return statement", *sf.body->children.back());
+                Error(*sf.body->children.back(), "missing return statement");
             sf.returntype = type_void;
         }
         // Let variables go out of scope in reverse order of declaration.
@@ -820,8 +824,8 @@ struct TypeChecker {
         while (borrowstack.size() > start_borrowed_vars) {
             auto &b = borrowstack.back();
             if (b.refc) {
-                TypeError(cat("variable \"", b.Name(), "\" still has ", b.refc,
-                              " borrowers"), *sf.body->children.back());
+                Error(*sf.body->children.back(),
+                      "variable ", Q(b.Name()), " still has ", b.refc, " borrowers");
             }
             borrowstack.pop_back();
         }
@@ -897,14 +901,14 @@ struct TypeChecker {
         if (sf->isdynamicfunctionvalue) {
             // This is because the function has been typechecked against one context, but
             // can be called again in a different context that does not have the same callers.
-            TypeError("cannot return out of dynamic function value (" + sf_to->parent->name +
-                      " not found on the callstack)", context);
+            Error(context, "cannot return out of dynamic function value (",
+                           Q(sf_to->parent->name), " not found on the callstack)");
         }
         // Mark any functions we may be returning thru as such.
         if (sf->returned_thru_to && sf->returned_thru_to != sf_to) {
-            TypeError(cat("non-local return to ", sf_to->parent->name, " (through ",
-                          sf->parent->name, ") already returned to ", sf->returned_thru_to->parent->name),
-                      context);
+            Error(context, "non-local return to ", Q(sf_to->parent->name), " (through ",
+                           Q(sf->parent->name), ") already returned to ",
+                           Q(sf->returned_thru_to->parent->name));
         }
         sf->returned_thru_to = sf_to;
     }
@@ -931,8 +935,8 @@ struct TypeChecker {
                     // We really don't want to specialize functions on variables, so we simply
                     // disallow them. This should happen only infrequently.
                     if (arg.type->HasValueType(V_VAR))
-                        TypeError(cat("can\'t infer ", ArgName(i), " argument of call to ", f.name),
-                                  call_args);
+                        Error(call_args, "can\'t infer ", Q(ArgName(i)), " argument of call to ",
+                                         Q(f.name));
                 }
             }
             // This has to happen even to dead args:
@@ -948,8 +952,8 @@ struct TypeChecker {
         for (auto &sc : scopes) if (sc.sf == sf) {
             sf->isrecursivelycalled = true;
             if (sf->returngiventype.utr.Null())
-                TypeError("recursive function must have explicit return type: " + sf->parent->name,
-                          call_args);
+                Error(call_args, "recursive function ", Q(sf->parent->name),
+                                 " must have explicit return type");
             break;
         }
         return sf->returntype;
@@ -983,9 +987,8 @@ struct TypeChecker {
             }
             // This error should hopefully be rare, but still possible if this call is in
             // a very different context.
-            TypeError(cat("return out of call to \"", sf->parent->name,
-                          "\" can\'t find destination ", isf->parent->name),
-                      call_context);
+            Error(call_context, "return out of call to ", Q(sf->parent->name),
+                                " can\'t find destination ", Q(isf->parent->name));
             destination_found:;
         }
     };
@@ -1035,7 +1038,7 @@ struct TypeChecker {
                     }
                 }
                 if (!errn)
-                    TypeError("internal: need specialization for: " + TypeName(type), *parser.root);
+                    Error(*parser.root, "internal: need specialization for ", Q(TypeName(type)));
                 // No existing specialization found, create a new one.
                 auto udt = new UDT("", (int)st.udttable.size(), type->spec_udt->udt->is_struct);
                 st.udttable.push_back(udt);
@@ -1057,7 +1060,7 @@ struct TypeChecker {
                         if (btv.tv == type->tv && !btv.resolvedtype.Null()) return btv.resolvedtype;
                     }
                 }
-                if (errn) TypeError("could not resolve type variable: " + type->tv->name, *errn);
+                if (errn) Error(*errn, "could not resolve type variable ", Q(type->tv->name));
                 break;
             }
         }
@@ -1109,7 +1112,7 @@ struct TypeChecker {
         for (auto &btv : generics) btv.resolvedtype = nullptr;
         if (specializers) {
             if (specializers->size() > generics.size())
-                TypeError("too many specializers given", call_args);
+                Error(call_args, "too many specializers given");
             for (auto [i, type] : enumerate(*specializers))
                 generics[i].Resolve(ResolveTypeVars(type, &call_args));
         }
@@ -1117,9 +1120,8 @@ struct TypeChecker {
             BindTypeVar(sf->giventypes[i], c->exptype, generics);
         }
         for (auto &btv : generics) if (btv.resolvedtype.Null())
-            TypeError(cat("Cannot implicitly bind type variable \"", btv.tv->name,
-                          "\" in call to \"", f.name, "\" (argument doesn't match?)"),
-                      call_args);
+            Error(call_args, "cannot implicitly bind type variable ", Q(btv.tv->name),
+                             " in call to ", Q(f.name), " (argument doesn't match?)");
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
         auto AllowAnyLifetime = [&](const Arg &arg) {
@@ -1246,8 +1248,8 @@ struct TypeChecker {
                         auto sdist = st.SuperDistance(sf->method_of, sub->first);
                         if (sdist >= 0 && (best < 0 || bestdist >= sdist)) {
                             if (bestdist == sdist)
-                                TypeError(cat("more than implementation of ", f.name,
-                                              " applies to ", sub->name), call_args);
+                                Error(call_args, "more than implementation of ", Q(f.name),
+                                                 " applies to ", Q(sub->name));
                             best = (int)i;
                             bestdist = sdist;
                         }
@@ -1255,8 +1257,8 @@ struct TypeChecker {
                 }
                 if (best < 0) {
                     if (sub->constructed) {
-                        TypeError("no implementation for: " + sub->name + "." + csf->parent->name,
-                                  call_args);
+                        Error(call_args, "no implementation for ",
+                                         Q(cat(sub->name, ".", csf->parent->name)));
                     } else {
                         // This UDT is unused, so we're ok there not being an implementation
                         // for it.. like e.g. an abstract base class.
@@ -1310,10 +1312,10 @@ struct TypeChecker {
                 if (sf->isrecursivelycalled) any_recursive = true;
                 if (sf->returned_thru_to) {
                     if (any_returned_thru && any_returned_thru != sf->returned_thru_to) {
-                        TypeError(cat("non-local return through dynamic dispatch ",
-                                      sf->parent->name, "to both ", any_returned_thru->parent->name,
-                                      " and ", sf->returned_thru_to->parent->name),
-                                  *sf->body);
+                        Error(*sf->body, "non-local return through dynamic dispatch of ",
+                                         Q(sf->parent->name), " to both ",
+                                         Q(any_returned_thru->parent->name), " and ",
+                                         Q(sf->returned_thru_to->parent->name));
                     }
                     any_returned_thru = sf->returned_thru_to;
                 }
@@ -1322,10 +1324,10 @@ struct TypeChecker {
                     // FIXME: can this still happen now that recursive cases use explicit return
                     // types? If not change into assert?
                     if (!ConvertsTo(u, de->returntype, CF_UNIFICATION))
-                        TypeError(cat("dynamic dispatch for \"", f.name, "\" return value type \"",
-                                      TypeName(sf->returntype),
-                                      "\" doesn\'t match other case returning \"",
-                                      TypeName(de->returntype), "\""), *sf->body);
+                        Error(*sf->body, "dynamic dispatch for ", Q(f.name),
+                                         " return value type ", Q(TypeName(sf->returntype)),
+                                         " doesn\'t match other case returning ",
+                                         Q(TypeName(de->returntype)));
                 } else {
                     if (i) {
                         // We have to be able to take the union of all retvals without
@@ -1346,8 +1348,8 @@ struct TypeChecker {
                 auto sf = udt->dispatch[vtable_idx].sf;
                 if (!sf) continue;
                 if (any_recursive && sf->returngiventype.utr.Null())
-                    TypeError("recursive dynamic dispatch must have explicit return type: " +
-                                sf->parent->name, call_args);
+                    Error(call_args, "recursive dynamic dispatch of ", Q(sf->parent->name),
+                                     " must have explicit return type");
                 if (last_sf) {
                     // We do this in pass 2 because otherwise arg types will be unresolved.
                     // FIXME: good to have this check here so it only occurs for functions
@@ -1355,10 +1357,10 @@ struct TypeChecker {
                     for (auto [j, arg] : enumerate(sf->args)) {
                         if (j && !arg.type->Equal(*last_sf->args[j].type) &&
                             !st.IsGeneric(sf->giventypes[j]))
-                            TypeError(cat("argument ", j + 1, " of declaration of \"", f.name,
-                                          "\", type: ", TypeName(arg.type),
+                            Error(call_args, "argument ", j + 1, " of declaration of ", Q(f.name),
+                                          ", type ", Q(TypeName(arg.type)),
                                           " doesn\'t match type of previous declaration: ",
-                                          TypeName(last_sf->args[j].type)),  call_args);
+                                          Q(TypeName(last_sf->args[j].type)));
                     }
                 }
                 last_sf = sf;
@@ -1421,8 +1423,8 @@ struct TypeChecker {
             for (auto [i, isf] : enumerate(f.overloads)) {
                 if (type0->Equal(*isf->args[0].type)) {
                     if (overload_idx >= 0)
-                        TypeError(cat("multiple overloads have the same type: \"", f.name,
-                                      "\", first arg \"", TypeName(type0), "\""), call_args);
+                        Error(call_args, "multiple overloads for ", Q(f.name),
+                                         " have the same first argument type ", Q(TypeName(type0)));
                     overload_idx = (int)i;
                 }
             }
@@ -1432,8 +1434,9 @@ struct TypeChecker {
                     auto arg0 = isf->giventypes[0].utr;  // Want unresolved type.
                     if (arg0->t == V_UUDT && arg0->spec_udt->udt == type0->udt->first) {
                         if (overload_idx >= 0) {
-                            TypeError(cat("multiple generic overloads can instantiate: \"", f.name,
-                                "\", first arg \"", TypeName(type0), "\""), call_args);
+                            Error(call_args, "multiple generic overloads for ", Q(f.name),
+                                             " can instantiate the first argument type ",
+                                             Q(TypeName(type0)));
                         }
                         overload_idx = (int)i;
                     }
@@ -1453,14 +1456,14 @@ struct TypeChecker {
                                 if (dist < odist) overload_idx = (int)i;
                                 else if (odist < dist) { /* keep old one */ }
                                 else {
-                                    TypeError(cat("multiple overloads have the same class: \"",
-                                                  f.name, "\", first arg: \"", TypeName(type0),
-                                                  "\""), call_args);
+                                    Error(call_args, "multiple overloads for ", Q(f.name),
+                                                     " have the same class for first argument type ",
+                                                      Q(TypeName(type0)));
                                 }
                             } else {
-                                TypeError(cat("multiple overloads apply: \"", f.name,
-                                              "\", first arg \"", TypeName(type0), "\""),
-                                          call_args);
+                                Error(call_args, "multiple overloads for ", Q(f.name),
+                                                 " apply for the first argument type ",
+                                                 Q(TypeName(type0)));
                             }
                         } else {
                             overload_idx = (int)i;
@@ -1474,8 +1477,9 @@ struct TypeChecker {
                     auto arg0 = isf->giventypes[0].utr;  // Want unresolved type.
                     if (arg0->t == V_TYPEVAR) {
                         if (overload_idx >= 0) {
-                            TypeError(cat("multiple generic overloads can instantiate: \"", f.name,
-                                "\", first arg \"", TypeName(type0), "\""), call_args);
+                            Error(call_args, "multiple generic overloads for ", Q(f.name),
+                                             " can instantiate the first argument type ",
+                                             Q(TypeName(type0)));
                         }
                         overload_idx = (int)i;
                     }
@@ -1503,9 +1507,9 @@ struct TypeChecker {
                     // TODO: Should we instead do ConvertsTo here?
                     if (type0->Equal(*arg0)) {
                         if (overload_idx >= 0)
-                            TypeError(cat("multiple overloads apply when specialized: \"", f.name,
-                                          "\", first arg \"", TypeName(type0), "\""),
-                                      call_args);
+                            Error(call_args, "multiple overloads for ", Q(f.name),
+                                             " apply when specialized for the first argument type ",
+                                             Q(TypeName(type0)));
                         overload_idx = (int)i;
                     }
                 }
@@ -1515,16 +1519,17 @@ struct TypeChecker {
                 for (auto [i, isf] : enumerate(f.overloads)) {
                     if (ConvertsTo(type0, isf->args[0].type, CF_COERCIONS)) {
                         if (overload_idx >= 0) {
-                            TypeError(cat("multiple overloads can coerce: \"", f.name,
-                                      "\", first arg \"", TypeName(type0), "\""), call_args);
+                            Error(call_args, "multiple overloads for ", Q(f.name),
+                                             " can coerce to first argument type ",
+                                             Q(TypeName(type0)));
                         }
                         overload_idx = (int)i;
                     }
                 }
             }
             if (overload_idx < 0)
-                TypeError(cat("no overloads apply: \"", f.name, "\", first arg \"", TypeName(type0),
-                              "\""), call_args);
+                Error(call_args, "no overloads apply for ", Q(f.name), " with first argument type ",
+                                 Q(TypeName(type0)));
         }
         LOG_DEBUG("static dispatch: ", Signature(*f.overloads[overload_idx]));
         return TypeCheckCallStatic(csf, call_args, reqret, specializers,
@@ -1558,15 +1563,15 @@ struct TypeChecker {
         auto &ftype = fval->type;
         auto nargs = args->Arity();
         if (!ftype->IsFunction()) {
-            TypeError(cat("dynamic function call value doesn\'t have a function type: \"",
-                TypeName(ftype), "\""), *args);
+            Error(*args, "dynamic function call value doesn\'t have a function type ",
+                         Q(TypeName(ftype)));
             return { type_void, LT_ANY };
         }
         // We can statically typecheck this dynamic call. Happens for almost all non-escaping
         // closures.
         fspec = ftype->sf;
         if (nargs < fspec->parent->nargs())
-            TypeError("function value called with too few arguments", *args);
+            Error(*args, "function value called with too few arguments");
         // In the case of too many args, TypeCheckCall will ignore them (and optimizer will
         // remove them).
         int vtable_idx = -1;
@@ -1753,11 +1758,11 @@ struct TypeChecker {
         if (auto dot = Is<Dot>(n)) {
             auto type = dot->children[0]->exptype;
             if (IsStruct(type->t))
-                TypeError(cat("cannot write to field of value \"", type->udt->name, "\""), *n);
+                Error(*n, "cannot write to field of value ", Q(type->udt->name));
         }
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
-            TypeError("function-call cannot be an l-value", *n);
+            Error(*n, "function-call cannot be an l-value");
         Borrow lv(*n);
         if (!lv.IsValid()) return;  // FIXME: force these to LT_KEEP?
         if (IsRefNil(n->exptype->t)) {
@@ -1784,14 +1789,14 @@ struct TypeChecker {
             // All others should have been specialized to LT_KEEP when a var is not
             // single_assignment.
             // This is not particularly elegant but should be rare.
-            TypeError(cat("cannot assign to borrowed argument \"", lv.sid->id->name, "\""), *n);
+            Error(*n, "cannot assign to borrowed argument ", Q(lv.sid->id->name));
         }
         // FIXME: make this faster.
         for (auto &b : reverse(borrowstack)) {
             if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
-            TypeError(cat("cannot modify \"", lv.Name(), "\" while borrowed (in ",
-                          lv.sid->sf_def->parent->name, ")"), *n);
+            Error(*n, "cannot modify ", Q(lv.Name()), " while borrowed in ",
+                      Q(lv.sid->sf_def->parent->name));
         }
     }
 
@@ -1919,8 +1924,8 @@ struct TypeChecker {
                ", ", b.refc, " remain");
         // FIXME: this should really just not be possible, but hard to guarantee.
         if (b.refc < 0)
-            TypeError(cat("\"", b.sid->id->name, "\" used in \"", NiceName(context),
-                          "\" without being borrowed"), context);
+            Error(context, Q(b.sid->id->name), " used in ", Q(NiceName(context)),
+                           " without being borrowed");
         assert(b.refc >= 0);
         (void)context;
     }
@@ -1951,7 +1956,7 @@ struct TypeChecker {
                 // Sadly, if it a V_VAR we have to be conservate and assume it may become a ref.
                 if (IsRefNilVar(rtt)) {
                     // Special action required.
-                    if (i >= sizeof(incref) * 8) TypeError("too many return values", *n);
+                    if (i >= sizeof(incref) * 8) Error(*n, "too many return values");
                     if (given == LT_BORROW && recip == LT_KEEP) {
                         incref |= 1LL << i;
                         DecBorrowers(givenlt, *n);
@@ -1996,9 +2001,7 @@ struct TypeChecker {
         auto nret = rt->NumValues();
         if (nret < reqret) {
             if (!n->Terminal(*this)) {
-                TypeError(cat("\"", NiceName(*n), "\" returns ", nret, " values, ", reqret,
-                              " needed"),
-                          *n);
+                Error(*n, Q(NiceName(*n)), " returns ", nret, " values, ", reqret, " needed");
             } else {
                 // FIXME: would be better to have a general NORETURN type than patching things up
                 // this way.
@@ -2090,11 +2093,10 @@ struct TypeChecker {
         // and rely on the user to specify more precise types.
         // Not sure if there is a better solution.
         if (!test_overloads) {
-            TypeError(cat("cannot deduce struct type for ",
+            Error(errorn, "cannot deduce struct type for ",
                           (argn ? cat("argument ", argn) : "return value"),
-                          " of \"", nf->name,
-                          (!etype.Null() ? "\", got: \"" + TypeName(etype) + "\"" : "\"")),
-                errorn);
+                          " of ", Q(nf->name),
+                          (!etype.Null() ? ", got " + Q(TypeName(etype)) : ""));
         }
         return type;
     };
@@ -2236,8 +2238,8 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         itertype = type_int;
     else if (itertype->t == V_VECTOR)
         itertype = itertype->Element();
-    else tc.TypeError(cat("for can only iterate over int / string / vector, not \"",
-                          TypeName(itertype), "\""), *this);
+    else tc.Error(*this, Q("for"), " can only iterate over int / string / vector, not ",
+                         Q(TypeName(itertype)));
     auto def = Is<Define>(body->children[0]);
     if (def) {
         auto fle = Is<ForLoopElem>(def->child);
@@ -2267,7 +2269,7 @@ Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 
 Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (!tc.scopes.back().loop_count)
-        tc.TypeError("break must occur inside a while or for", *this);
+        tc.Error(*this, Q("break"), " must occur inside a ", Q("while"), " or ", Q("for"));
     exptype = type_void;
     lt = LT_ANY;
     return this;
@@ -2280,7 +2282,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     tc.DecBorrowers(value->lt, *this);
     auto ptype = value->exptype;
     if (!ptype->Numeric() && ptype->t != V_STRING)
-        tc.TypeError("switch value must be int / float / string", *this);
+        tc.Error(*this, "switch value must be int / float / string");
     exptype = nullptr;
     bool have_default = false;
     vector<bool> enum_cases;
@@ -2318,10 +2320,12 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     }
     if (exptype.Null()) exptype = type_void;  // Empty switch or all return statements.
     if (!have_default) {
-        if (reqret) tc.TypeError("switch that returns a value must have a default case", *this);
+        if (reqret) tc.Error(*this, "switch that returns a value must have a default case");
         if (ptype->IsEnum()) {
-            for (auto [i, ev] : enumerate(ptype->e->vals)) if (!enum_cases[i])
-                tc.TypeError("enum value not tested in switch: " + ev->name, *value);
+            for (auto [i, ev] : enumerate(ptype->e->vals)) {
+                if (!enum_cases[i])
+                    tc.Error(*value, "enum value ", Q(ev->name), " not tested in switch");
+            }
         }
     }
     lt = LT_KEEP;
@@ -2344,7 +2348,7 @@ Node *Range::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(end, 1, LT_KEEP);
     exptype = start->exptype;
     if (exptype->t != end->exptype->t || !exptype->Numeric())
-        tc.TypeError("range can only be two equal numeric types", *this);
+        tc.Error(*this, "range can only be two equal numeric types");
     lt = LT_ANY;
     return this;
 }
@@ -2448,7 +2452,7 @@ Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         exptype = tc.st.Wrap(tc.NewTypeVar(), V_NIL);
     } else {
         exptype = tc.ResolveTypeVars(giventype, this);
-        if (!tc.st.IsNillable(exptype->sub)) tc.TypeError("illegal nil type", *this);
+        if (!tc.st.IsNillable(exptype->sub)) tc.Error(*this, "illegal nil type");
     }
     lt = LT_ANY;
     return this;
@@ -2627,7 +2631,7 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     exptype = child->exptype;
     if (!exptype->Numeric() &&
         (exptype->t != V_STRUCT_S || !exptype->udt->sametype->Numeric()))
-        tc.TypeError("numeric / numeric struct", exptype, *this);
+        tc.RequiresError("numeric / numeric struct", exptype, *this);
     tc.DecBorrowers(child->lt, *this);
     lt = LT_KEEP;
     return this;
@@ -2636,7 +2640,7 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.UpdateCurrentSid(sid);
     for (auto &sc : reverse(tc.scopes)) if (sc.sf == sid->sf_def) goto in_scope;
-    tc.TypeError("free variable not in scope: " + sid->id->name, *this);
+    tc.Error(*this, "free variable ", Q(sid->id->name), " not in scope");
     in_scope:
     exptype = tc.TypeCheckId(sid);
     FlowItem fi(*this, exptype);
@@ -2722,10 +2726,9 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             r = fc;
         } else {
             if (fld && dotnoparens) {
-                tc.TypeError(cat("type \"", TypeName(type), "\" does not have field \"", fld->name,
-                                 "\""), *this);
+                tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
             }
-            tc.TypeError("unknown field/function reference: " + name, *this);
+            tc.Error(*this, "unknown field/function reference ", Q(name));
         }
     }
     children.clear();
@@ -2813,14 +2816,14 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                 // copy/equal/hash etc. Note that this is the only place in the language where
                 // we allow this!
                 if (!IsRefNilNoStruct(c->exptype->t))
-                    tc.TypeError("reference type", c->exptype, *c, nf->args[i].name, nf->name);
+                    tc.RequiresError("reference type", c->exptype, *c, nf->args[i].name, nf->name);
                 typed = true;
             } else if (IsStruct(c->exptype->t) &&
                        !(arg.flags & NF_PUSHVALUEWIDTH) &&
                        c->exptype->udt->numslots > 1) {
                 // Avoid unsuspecting generic functions taking values as args.
                 // TODO: ideally this does not trigger for any functions.
-                tc.TypeError("function does not support this struct type", *this);
+                tc.Error(*this, "function does not support this struct type");
             }
         }
         if (nf->fun.fnargs >= 0 && !arg.fixed_len && !(arg.flags & NF_PUSHVALUEWIDTH))
@@ -2833,8 +2836,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             auto fsf = actualtype->sf;
             if (fsf->args.size()) {
                 // we have no idea what args.
-                tc.TypeError("function passed to \"" + nf->name +
-                             "\" cannot take any arguments", *this);
+                tc.Error(*this, "function passed to ", Q(nf->name), " cannot take any arguments");
             }
             auto chosen = fsf;
             List args(c->line);  // If any error, on same line as c.
@@ -2871,8 +2873,8 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
 
                 if (ret.type->t == V_NIL) {
                     if (!tc.st.IsNillable(type))
-                        tc.TypeError(cat("argument ", sa + 1, " to \"", nf->name,
-                                    "\" has to be a reference type"), *this);
+                        tc.Error(*this, "argument ", sa + 1, " to ", Q(nf->name),
+                                        " has to be a reference type");
                     type = tc.st.Wrap(type, V_NIL);
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
                     if (type->t == V_VECTOR) type = type->sub;
@@ -2966,7 +2968,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         }
         tc.CheckReturnPast(isc.sf, sf, *this);
     }
-    tc.TypeError(cat("return from \"", sf->parent->name, "\" called out of context"), *this);
+    tc.Error(*this, "return from ", Q(sf->parent->name), " called out of context");
     destination_found:
     // TODO: LT_KEEP here is to keep it simple for now, since ideally we want to also allow
     // LT_BORROW, but then we have to prove that we don't outlive the owner.
@@ -2995,7 +2997,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (sf == tc.st.toplevel) {
         // return from program
         if (child->exptype->NumValues() > 1)
-            tc.TypeError("cannot return multiple values from top level", *this);
+            tc.Error(*this, "cannot return multiple values from top level");
     }
     auto never_returns = child->Terminal(tc);
     if (never_returns && make_void && sf->num_returns) {
@@ -3078,7 +3080,7 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (IsUDT(exptype->t)) {
         // We have to check this here, since the parser couldn't check this yet.
         if (exptype->udt->fields.size() < children.size())
-            tc.TypeError("too many initializers for: " + exptype->udt->name, *this);
+            tc.Error(*this, "too many initializers for ", Q(exptype->udt->name));
         auto udt = exptype->udt;
         if (!udt->FullyBound()) {
             // This is the generic type, try and find a matching named specialization.
@@ -3104,12 +3106,12 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 string s;
                 for (auto &arg : children) s += " " + TypeName(arg->exptype);
                 auto err = "generic constructor matches no named explicit specialization of " +
-                           udt->first->name + " with types:" + s;
+                           Q(udt->first->name) + " with types:" + s;
                 for (auto udti = udt->first->next; udti; udti = udti->next) {
                     err += "\n  specialization: ";
                     err += Signature(*udti);
                 }
-                tc.TypeError(err, *this);
+                tc.Error(*this, err);
             }
         }
         exptype = &udt->thistype;
@@ -3128,14 +3130,14 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     tc.DecBorrowers(children[0]->lt, *this);  // New borrow created below.
     auto stype = children[0]->exptype;
     if (!IsUDT(stype->t))
-        tc.TypeError("class/struct", stype, *this, "object");
+        tc.RequiresError("class/struct", stype, *this, "object");
     auto udt = stype->udt;
     auto fieldidx = udt->Has(fld);
     if (fieldidx < 0)
-        tc.TypeError("type \"" + udt->name + "\" has no field named " + fld->name, *this);
+        tc.Error(*this, "type ", Q(udt->name), " has no field ", Q(fld->name));
     auto &field = udt->fields[fieldidx];
     if (field.isprivate && line.fileidx != field.defined_in.fileidx)
-        tc.TypeError(cat("field ", field.id->name, " is private"), *this);
+        tc.Error(*this, "field ", Q(field.id->name), " is private");
     exptype = field.resolvedtype;
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
@@ -3151,7 +3153,7 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (vtype->t != V_VECTOR &&
         vtype->t != V_STRING &&
         (!IsStruct(vtype->t) || !vtype->udt->sametype->Numeric()))
-        tc.TypeError("vector/string/numeric struct", vtype, *this, "container");
+        tc.RequiresError("vector/string/numeric struct", vtype, *this, "container");
     auto itype = index->exptype;
     switch (itype->t) {
         case V_INT:
@@ -3161,19 +3163,19 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             break;
         case V_STRUCT_S: {
             if (vtype->t != V_VECTOR)
-                tc.TypeError("multi-dimensional indexing on non-vector", *this);
+                tc.Error(*this, "multi-dimensional indexing on non-vector");
             auto &udt = *itype->udt;
             exptype = vtype;
             for (auto &field : udt.fields) {
                 if (field.resolvedtype->t != V_INT)
-                    tc.TypeError("int field", field.resolvedtype, *this, "index");
+                    tc.RequiresError("int field", field.resolvedtype, *this, "index");
                 if (exptype->t != V_VECTOR)
-                    tc.TypeError("nested vector", exptype, *this, "container");
+                    tc.RequiresError("nested vector", exptype, *this, "container");
                 exptype = exptype->Element();
             }
             break;
         }
-        default: tc.TypeError("int/struct of int", itype, *this, "index");
+        default: tc.RequiresError("int/struct of int", itype, *this, "index");
     }
     lt = object->lt;  // Also LT_BORROW, also depending on the same variable.
     return this;
