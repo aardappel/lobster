@@ -1,0 +1,22 @@
+import testing
+import std
+
+// Misc tests for builtin functions.
+
+run_test("builtins"):
+    do():
+        class Nest:
+            a:[Nest]
+            b:string
+            c:xy_f
+            d:Nest?
+            e:[string]
+            f:[[int]]
+        let nested = Nest { [], "a", xy { 1.0, 2.0 }, nil, [ "b", "c" ], [ [ 1, 2 ], [ 3, 4 ] ] }
+        let sub = deepcopy(nested)
+        nested.d = sub
+        nested.a.push(sub)
+        nested.a.push(sub)
+        assert equal(deepcopy(nested), nested)
+
+

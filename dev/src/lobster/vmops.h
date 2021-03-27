@@ -277,7 +277,7 @@ VM_INLINE void U_ASSERT(VM &vm, StackPtr sp, int line, int fileidx, int stringid
 VM_INLINE void U_NEWVEC(VM &vm, StackPtr sp, int ty, int len) {
     auto type = (type_elem_t)ty;
     auto vec = vm.NewVec(len, len, type);
-    if (len) vec->Init(vm, TopPtr(sp) - len * vec->width, false);
+    if (len) vec->CopyElemsShallow(TopPtr(sp) - len * vec->width);
     PopN(sp, len * (int)vec->width);
     Push(sp, Value(vec));
 }
@@ -286,7 +286,7 @@ VM_INLINE void U_NEWOBJECT(VM &vm, StackPtr sp, int ty) {
     auto type = (type_elem_t)ty;
     auto len = vm.GetTypeInfo(type).len;
     auto vec = vm.NewObject(len, type);
-    if (len) vec->Init(vm, TopPtr(sp) - len, len, false);
+    if (len) vec->CopyElemsShallow(TopPtr(sp) - len, len);
     PopN(sp, len);
     Push(sp, Value(vec));
 }

@@ -77,7 +77,7 @@ struct ValueParser {
         if (ti.t == V_CLASS) {
             auto len = NumElems();
             auto vec = vm.NewObject(len, typeoff);
-            if (len) vec->Init(vm, stack.size() - len + stack.data(), len, false);
+            if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
             for (iint i = 0; i < len; i++) stack.pop_back();
             allocated.push_back(vec);
             stack.emplace_back(vec);
@@ -87,7 +87,7 @@ struct ValueParser {
             auto len = NumElems();
             auto n = len / width;
             auto vec = vm.NewVec(n, n, typeoff);
-            if (len) vec->Init(vm, stack.size() - len + stack.data(), false);
+            if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
             for (iint i = 0; i < len; i++) stack.pop_back();
             allocated.push_back(vec);
             stack.emplace_back(vec);

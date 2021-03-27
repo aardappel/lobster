@@ -441,7 +441,7 @@ struct Value {
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     iint Hash(VM &vm, ValueType vtype);
-    Value Copy(VM &vm);  // Shallow.
+    Value CopyRef(VM &vm, bool deep);
 };
 
 template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti);
@@ -486,11 +486,19 @@ struct LObject : RefObj {
         return hash;
     }
 
-    void Init(VM &vm, Value *from, iint len, bool inc) {
-        assert(len && len == Len(vm));
+    void CopyElemsShallow(Value *from, iint len) {
         t_memcpy(Elems(), from, len);
-        if (inc) for (iint i = 0; i < len; i++) {
+    }
+
+    void IncRefElems(VM &vm, iint len) {
+        for (iint i = 0; i < len; i++) {
             AtS(i).LTINCTYPE(ElemTypeS(vm, i).t);
+        }
+    }
+
+    void CopyRefElemsDeep(VM &vm, iint len) {
+        for (iint i = 0; i < len; i++) {
+            if (IsRefNil(ElemTypeS(vm, i).t)) AtS(i) = AtS(i).CopyRef(vm, true);
         }
     }
 };
@@ -615,14 +623,23 @@ struct LVector : RefObj {
         return hash;
     }
 
-    void Init(VM &vm, Value *from, bool inc) {
-        assert(len);
+    void CopyElemsShallow(Value *from) {
         t_memcpy(v, from, len * width);
+    }
+
+    void IncRefElems(VM &vm) {
         auto et = ElemType(vm).t;
-        if (inc && IsRefNil(et)) {
-            for (iint i = 0; i < len; i++) {
-                At(i).LTINCRTNIL();
-            }
+        if (!IsRefNil(et)) return;
+        for (iint i = 0; i < len * width; i++) {
+            AtSlot(i).LTINCRTNIL();
+        }
+    }
+
+    void CopyRefElemsDeep(VM &vm) {
+        auto et = ElemType(vm).t;
+        if (!IsRefNil(et)) return;
+        for (iint i = 0; i < len * width; i++) {
+            AtSlot(i) = AtSlot(i).CopyRef(vm, true);
         }
     }
 };

@@ -1,3 +1,4 @@
+- test if we can assert lack of V_VAR types in codegen.
 - check what it would take to lift the mixed struct ref/scalar restriction, maybe a bitfield?
 
 - natgen refactor

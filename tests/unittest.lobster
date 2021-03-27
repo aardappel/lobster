@@ -8,7 +8,6 @@ current_test_runner = fn(name:string, t:testf):
 
 import structtest
 import misctest
-import mischtest
 import typetest
 import astartest
 import goaptest
@@ -20,5 +19,11 @@ import gradienttest
 import springstest
 import smallpttest
 import stringtest
+
+// Not added to speedtest yet.
+import mischtest
+import stringtest
+import lifetimetest
+import builtintest
 
 "the end"  // FIXME: a file can not be only import files?

@@ -599,7 +599,7 @@ LObject *VM::WorkerRead(type_elem_t tti) {
     }
     if (!buf) return nullptr;
     auto ns = NewObject(ti.len, tti);
-    ns->Init(*this, buf, ti.len, false);
+    ns->CopyElemsShallow(buf, ti.len);
     free(buf);
     return ns;
 }

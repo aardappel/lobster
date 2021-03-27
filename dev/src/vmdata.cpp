@@ -260,20 +260,34 @@ iint Value::Hash(VM &vm, ValueType vtype) {
     }
 }
 
-Value Value::Copy(VM &vm) {
+Value Value::CopyRef(VM &vm, bool deep) {
     if (!refnil()) return NilVal();
     auto &ti = ref()->ti(vm);
     switch (ti.t) {
     case V_VECTOR: {
         auto len = vval()->len;
         auto nv = vm.NewVec(len, len, vval()->tti);
-        if (len) nv->Init(vm, vval()->Elems(), true);
+        if (len) {
+            nv->CopyElemsShallow(vval()->Elems());
+            if (deep) {
+                nv->CopyRefElemsDeep(vm);
+            } else {
+                nv->IncRefElems(vm);
+            }
+        }
         return Value(nv);
     }
     case V_CLASS: {
         auto len = oval()->Len(vm);
         auto nv = vm.NewObject(len, oval()->tti);
-        if (len) nv->Init(vm, oval()->Elems(), len, true);
+        if (len) {
+            nv->CopyElemsShallow(oval()->Elems(), len);
+            if (deep) {
+                nv->CopyRefElemsDeep(vm, len);
+            } else {
+                nv->IncRefElems(vm, len);
+            }
+        }
         return Value(nv);
     }
     case V_STRING: {
