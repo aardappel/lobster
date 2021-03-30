@@ -84,6 +84,7 @@ struct Lex : LoadedFile {
     Lex(string_view fn, vector<string> &fns, string_view _ss = {})
         : LoadedFile(fn, fns, _ss), filenames(fns) {
         allsources.push_back(source);
+        if (!fn.empty()) allfiles.insert(string(fn));
         FirstToken();
     }
 
