@@ -167,10 +167,9 @@ struct CodeGen  {
                 return type->udt->typeinfo;
             }
             case V_VAR:
-                // This can happen with an empty [] vector that was never bound to anything.
-                // Should be benign to use any, since it is never accessed anywhere.
-                // FIXME: would be even better to check this case before codegen, since this may
-                // mask bugs.
+                // This should really not happen anymore, but if it does, it is probably an unused
+                // value.
+                assert(false);
                 return GetTypeTableOffset(type_any);
             default:
                 assert(IsRuntime(type->t));
@@ -492,7 +491,7 @@ struct CodeGen  {
         node_context.pop_back();
 
         assert(n->exptype->t != V_UNDEFINED);
-        //assert(!n->exptype->HasValueType(V_VAR));
+        assert(!n->exptype->HasValueType(V_VAR));
 
         assert(tempstartsize == temptypestack.size());
         (void)tempstartsize;

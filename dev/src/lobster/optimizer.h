@@ -67,8 +67,6 @@ Node *Node::Optimize(Optimizer &opt) {
     Value cval = NilVal();
     auto t = ConstVal(&opt.tc, cval);
     if (t == V_VOID) return this;
-    // Don't regenerate these.
-    if (Is<IntConstant>(this) || Is<FloatConstant>(this) || Is<Nil>(this)) return this;
     Node *r;
     switch (t) {
         case V_INT:   r = new IntConstant(line, cval.ival()); break;
@@ -130,6 +128,32 @@ Node *IfElse::Optimize(Optimizer &opt) {
         falsepart = AssertIs<Block>(falsepart->Optimize(opt));
         return this;
     }
+}
+
+Node *Constructor::Optimize(Optimizer &opt) {
+    // Special case that really is not an optimisation but should run at end of type checking:
+    // "seal" empty lists to a type.
+    if (exptype->t == V_VECTOR && children.empty() && exptype->sub->t == V_VAR) {
+        opt.tc.UnifyVar(type_int, exptype->sub);
+    }
+    return Node::Optimize(opt);
+}
+
+Node *Nil::Optimize(Optimizer &opt) {
+    // Special case that really is not an optimisation but should run at end of type checking:
+    // "seal" unknown nils to a type.
+    if (exptype->t == V_NIL && exptype->sub->t == V_VAR) {
+        opt.tc.UnifyVar(type_string, exptype->sub);
+    }
+    return this;
+}
+
+Node *IntConstant::Optimize(Optimizer &) {
+    return this;
+}
+
+Node *FloatConstant::Optimize(Optimizer &) {
+    return this;
 }
 
 Node *DynCall::Optimize(Optimizer &opt) {

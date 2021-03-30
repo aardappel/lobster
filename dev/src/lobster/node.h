@@ -284,6 +284,7 @@ struct Nil : Node {
         return giventype.utr->Equal(*((Nil *)o)->giventype.utr);
     }
     SHARED_SIGNATURE(Nil, TName(T_NIL), false)
+    OPTMETHOD
 };
 
 struct IdentRef : Node {
@@ -308,6 +309,7 @@ struct IntConstant : Node {
         return integer == ((IntConstant *)o)->integer;
     }
     SHARED_SIGNATURE(IntConstant, TName(T_INT), false)
+    OPTMETHOD
 };
 
 struct FloatConstant : Node {
@@ -319,6 +321,7 @@ struct FloatConstant : Node {
         return flt == ((FloatConstant *)o)->flt;
     }
     SHARED_SIGNATURE(FloatConstant, TName(T_FLOAT), false)
+    OPTMETHOD
 };
 
 struct StringConstant : Node {
@@ -396,6 +399,7 @@ struct Constructor : List {
         return giventype.utr->Equal(*((Constructor *)o)->giventype.utr);
     }
     SHARED_SIGNATURE(Constructor, "constructor", false)
+    OPTMETHOD
 };
 
 struct Call : GenericCall {
