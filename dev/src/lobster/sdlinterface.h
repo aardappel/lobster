@@ -37,7 +37,6 @@ extern string &GetDroppedFile();
 
 extern double SDLTime();
 extern double SDLDeltaTime();
-extern void SDLUpdateTime(double delta);
 extern vector<float> &SDLGetFrameTimeLog();
 
 extern int SDLWheelDelta();

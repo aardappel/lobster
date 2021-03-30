@@ -384,15 +384,6 @@ void SDLShutdown() {
     SDL_Quit();
 }
 
-// Used to update the time when SDL isn't running.
-void SDLUpdateTime(double delta) {
-    frametime = delta;
-    lasttime += delta;
-    frames++;
-    frametimelog.push_back((float)delta);
-    if (frametimelog.size() > 64) frametimelog.erase(frametimelog.begin());
-}
-
 vector<float> &SDLGetFrameTimeLog() { return frametimelog; }
 
 bool SDLFrame() {
@@ -406,8 +397,14 @@ bool SDLFrame() {
         #endif
     }
 
-    auto millis = GetSeconds();
-    SDLUpdateTime(millis - lasttime);
+    frametime = GetSeconds() - lasttime;
+    lasttime += frametime;
+    // Let's not run slower than this, very long pauses can cause animation & gameplay glitches.
+    const double minfps = 5.0;
+    frametime = min(1.0 / minfps, frametime);
+    frames++;
+    frametimelog.push_back((float)frametime);
+    if (frametimelog.size() > 64) frametimelog.erase(frametimelog.begin());
 
     for (auto &it : keymap) it.second.FrameReset();
 
