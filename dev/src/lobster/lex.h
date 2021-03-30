@@ -611,12 +611,18 @@ struct Lex : LoadedFile {
     void Error(string_view msg, const Line *ln = nullptr) {
         auto err = Location(ln ? *ln : *this) + ": error: " + msg;
         if (!ln) {
-            auto begin = linestart;
+            auto begin = prevtokenstart;
             auto end = prevtokenend;
+            while (begin > source.get()->c_str() && *(begin - 1) != '\n') begin--;
             while (*end && *end != '\n' && *end != '\r') end++;
-            append(err, "\nin: ", string_view(begin, end - begin), "\nat: ");
-            for (; begin < prevtokenstart; begin++) err.push_back(' ');
-            for (; begin < prevtokenend; begin++) err.push_back('^');
+            if (end - begin > 0) {
+                append(err, "\nin: ", string_view(begin, end - begin));
+                if (prevtokenend - prevtokenstart > 0) {
+                    append(err, "\nat: ");
+                    for (; begin < prevtokenstart; begin++) err.push_back(' ');
+                    for (; begin < prevtokenend; begin++) err.push_back('^');
+                }
+            }
         }
         //LOG_DEBUG(err);
         THROW_OR_ABORT(err);
