@@ -30,6 +30,7 @@
 - Add to docs:
   - As static as possible memory management: https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-908.pdf
   - V "autofree"
+  - Serene: https://jamiemoschella.com/serene-ideas/mkdocs/site/index.html
 - docs only show switch used as exp
 
 - Detect this case:
@@ -282,6 +283,12 @@
 - kriskowal: a non-allocating version of copy() with a second destination arg.
 
 - kriskowal: might be fun to have gl_cube and other simple 3d primitives, for quick prototyping?
+
+- this is interesting for the variety in graphics it allows:
+  http://wiki.winamp.com/wiki/MilkDrop_Preset_Authoring
+  would be cool to do a Lobster example of it
+  would need 2 offscreen buffers larger than the screen, the older one blended into the current one
+  (with zoom/scale), then the current one shrunk into the screen
 
 - if you write def(): return 1, it appears as a function of 0 return values since it works the
   same as other anonymous blocks (the return actually goes to the enclosing function).

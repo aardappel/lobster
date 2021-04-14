@@ -1440,6 +1440,7 @@
     <ClCompile Include="..\src\meshgen.cpp" />
     <ClCompile Include="..\src\glsystem.cpp" />
     <ClCompile Include="..\src\octree.cpp" />
+    <ClCompile Include="..\src\octree_physics.cpp" />
     <ClCompile Include="..\src\physics.cpp" />
     <ClCompile Include="..\src\sdlsystem.cpp" />
     <ClCompile Include="..\src\sdlaudiosfxr.cpp">

@@ -22,12 +22,12 @@
 
 namespace lobster {
 
-inline ResourceType *GetOcTreeType() {
+ResourceType *GetOcTreeType() {
     static ResourceType voxel_type = { "octree", [](void *v) { delete (OcTree *)v; } };
     return &voxel_type;
 }
 
-inline OcTree &GetOcTree(VM &vm, const Value &res) {
+OcTree &GetOcTree(VM &vm, const Value &res) {
     return *GetResourceDec<OcTree *>(vm, res, GetOcTreeType());
 }
 
@@ -148,7 +148,7 @@ nfr("oc_get", "octree,pos", "RI}:3", "I", "",
     [](StackPtr &sp, VM &vm) {
         auto pos = PopVec<int3>(sp);
         auto &ocworld = GetOcTree(vm, Pop(sp));
-        Push(sp,  ocworld.nodes[ocworld.Get(pos).first].LeafData());
+        Push(sp, ocworld.GetLeaf(pos));
     });
 
 nfr("oc_buffer_update", "octree,uname,ssbo", "RSI", "I", "",

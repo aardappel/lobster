@@ -1197,6 +1197,9 @@
     <ClCompile Include="..\external\SDL\src\libm\e_log10.c">
       <Filter>engine\sdl\lib</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\octree_physics.cpp">
+      <Filter>engine\meshgen</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />

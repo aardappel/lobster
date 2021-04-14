@@ -32,6 +32,7 @@ extern void AddNoise(NativeRegistry &nfr);
 extern void AddMeshGen(NativeRegistry &nfr);
 extern void AddCubeGen(NativeRegistry &nfr);
 extern void AddOcTree(NativeRegistry &nfr);
+extern void AddOcTreePhysics(NativeRegistry &nfr);
 extern void AddVR(NativeRegistry &nfr);
 extern void AddSteam(NativeRegistry &nfr);
 extern void AddIMGUI(NativeRegistry &nfr);
@@ -47,6 +48,7 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "meshgen",   AddMeshGen);
     RegisterBuiltin(nfr, "cubegen",   AddCubeGen);
     RegisterBuiltin(nfr, "octree",    AddOcTree);
+    RegisterBuiltin(nfr, "octreeph",  AddOcTreePhysics);
     RegisterBuiltin(nfr, "vr",        AddVR);
     RegisterBuiltin(nfr, "steam",     AddSteam);
     RegisterBuiltin(nfr, "imgui",     AddIMGUI);

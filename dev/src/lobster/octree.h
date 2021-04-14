@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_OCTREE_H
+#define LOBSTER_OCTREE_H
+
 class OcVal {
     int32_t node;
 public:
     OcVal() { SetLeafData(0); }
     OcVal(int32_t n) { SetNodeIdx(n); }
     bool IsLeaf() const { return node < 0; }
-    int32_t NodeIdx() { assert(node >= 0); return node; }
+    int32_t NodeIdx() const { assert(node >= 0); return node; }
     void SetNodeIdx(int32_t n) { assert(n >= 0); node = n; }
     // leaf data is a 31-bit usigned integer.
-    int32_t LeafData() { assert(node < 0); return node & 0x7FFFFFFF; }
+    int32_t LeafData() const { assert(node < 0); return node & 0x7FFFFFFF; }
     void SetLeafData(int32_t v) { assert(v >= 0); node = v | 0x80000000; }
     bool operator==(const OcVal &o) const { return node == o.node; }
     bool operator!=(const OcVal &o) const { return node != o.node; }
@@ -79,13 +82,17 @@ struct OcTree {
         dirty[i] = true;
     }
 
+    int Step(const int3 &pos, int bit, int cur) {
+        auto size = 1 << bit;
+        auto off = pos & size;
+        auto bv = off >> bit;
+        return cur + dot(bv, int3(1, 2, 4));
+    }
+
     bool Set(const int3 &pos, OcVal val) {
         int cur = ROOT_INDEX;
         for (auto bit = world_bits - 1; ; bit--) {
-            auto size = 1 << bit;
-            auto off = pos & size;
-            auto bv = off >> bit;
-            auto ccur = cur + dot(bv, int3(1, 2, 4));
+            auto ccur = Step(pos, bit, cur);
             auto oval = nodes[ccur];
             if (oval == val) return true;
             if (bit) {  // Not at bottom yet.
@@ -148,11 +155,8 @@ struct OcTree {
 
     int Get(const int3 &pos, int &bit, int cur) {
         for (;;) {
-            // FIXME: dedup from Set.
             bit--;
-            auto off = pos & (1 << bit);
-            auto bv = off >> bit;
-            auto ccur = cur + dot(bv, int3(1, 2, 4));
+            auto ccur = Step(pos, bit, cur);
             auto oval = nodes[ccur];
             if (oval.IsLeaf()) {
                 return ccur;
@@ -160,6 +164,10 @@ struct OcTree {
                 cur = oval.NodeIdx();
             }
         }
+    }
+
+    int GetLeaf(const int3 &pos) {
+        return nodes[Get(pos).first].LeafData();
     }
 
     int Copy(vector<OcVal> &dest, int src, int parent) {
@@ -203,3 +211,10 @@ struct OcTree {
 
 };
 
+namespace lobster {
+
+extern OcTree &GetOcTree(VM &vm, const Value &res);
+
+}
+
+#endif  // LOBSTER_OCTREE_H
