@@ -1112,7 +1112,7 @@ bool collide(const T &p1, const U &p2, vec3 *contactnormal, vec3 *contactpoint1,
 
     // Determine whether origin is on + or - side of plane (v1,v0,v2)
     n.cross(v0, v1, v2);
-    ASSERT(!n.iszero());
+    assert(!n.iszero());
     // If the origin is on the - side of the plane, reverse the direction of the plane
     if (n.dot(v0) > 0) {
         swap(v1, v2);
