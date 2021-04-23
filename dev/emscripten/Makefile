@@ -57,6 +57,7 @@ CPPSRCS= \
 	../src/lobsterreader.cpp \
 	../src/meshgen.cpp \
 	../src/octree.cpp \
+	../src/octree_physics.cpp \
 	../src/platform.cpp \
 	../src/physics.cpp \
 	../src/sdlaudiosfxr.cpp \

@@ -2604,7 +2604,6 @@ nfr("oc_update_physent", "octree,ent,dpadvec,yaw,pitch,jumping,flying", "RRI}:2F
 nfr("oc_physics_frame", "", "", "", "",
     [](StackPtr &, VM &) {
         physicsframe(int(SDLTime() * 1000));
-        return Value();
     });
 
 }
