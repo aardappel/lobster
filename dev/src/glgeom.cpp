@@ -73,6 +73,7 @@ void Geometry::Init(const void *verts1, const void *verts2) {
     GL_CALL(glBindVertexArray(vao));
     size_t offset = 0;
     size_t vs = vertsize1;
+    size_t tc = 0;
     for (auto attr : fmt) {
         switch (attr) {
             #define SETATTRIB(idx, comps, type, norm, size) \
@@ -80,14 +81,17 @@ void Geometry::Init(const void *verts1, const void *verts2) {
                 GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vs, (void *)offset)); \
                 offset += size; \
                 break;
-            case 'P': SETATTRIB(0, 3, GL_FLOAT,         false, 12)
-            case 'p': SETATTRIB(0, 2, GL_FLOAT,         false,  8)
-            case 'N': SETATTRIB(1, 3, GL_FLOAT,         false, 12)
-            case 'n': SETATTRIB(1, 2, GL_FLOAT,         false,  8)
-            case 'T': SETATTRIB(2, 2, GL_FLOAT,         false,  8)
-            case 'C': SETATTRIB(3, 4, GL_UNSIGNED_BYTE, true,   4)
-            case 'W': SETATTRIB(4, 4, GL_UNSIGNED_BYTE, true,   4)
-            case 'I': SETATTRIB(5, 4, GL_UNSIGNED_BYTE, false,  4)
+            case 'P': SETATTRIB(VATRR_POS, 3, GL_FLOAT, false, 12)
+            case 'p': SETATTRIB(VATRR_POS, 2, GL_FLOAT, false, 8)
+            case 'N': SETATTRIB(VATRR_NOR, 3, GL_FLOAT, false, 12)
+            case 'n': SETATTRIB(VATRR_NOR, 2, GL_FLOAT, false, 8)
+            case 'C': SETATTRIB(VATRR_COL, 4, GL_UNSIGNED_BYTE, true, 4)
+            case 'W': SETATTRIB(VATRR_WEI, 4, GL_UNSIGNED_BYTE, true, 4)
+            case 'I': SETATTRIB(VATRR_IDX, 4, GL_UNSIGNED_BYTE, false, 4)
+            case 'T': {
+                auto attr = tc++ ? VATRR_TC2 : VATRR_TC1;
+                SETATTRIB(attr, 2, GL_FLOAT, false, 8)
+            }
             default:
                 LOG_ERROR("unknown attribute type: ", string() + attr);
                 assert(false);

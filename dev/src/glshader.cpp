@@ -277,12 +277,13 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     if (!vs) return string_view("couldn't compile vertex shader: ") + name + "\n" + err;
     ps = CompileGLSLShader(GL_FRAGMENT_SHADER, program, pscode, err);
     if (!ps) return string_view("couldn't compile pixel shader: ") + name + "\n" + err;
-    GL_CALL(glBindAttribLocation(program, 0, "apos"));
-    GL_CALL(glBindAttribLocation(program, 1, "anormal"));
-    GL_CALL(glBindAttribLocation(program, 2, "atc"));
-    GL_CALL(glBindAttribLocation(program, 3, "acolor"));
-    GL_CALL(glBindAttribLocation(program, 4, "aweights"));
-    GL_CALL(glBindAttribLocation(program, 5, "aindices"));
+    GL_CALL(glBindAttribLocation(program, VATRR_POS, "apos"));
+    GL_CALL(glBindAttribLocation(program, VATRR_NOR, "anormal"));
+    GL_CALL(glBindAttribLocation(program, VATRR_TC1, "atc"));
+    GL_CALL(glBindAttribLocation(program, VATRR_COL, "acolor"));
+    GL_CALL(glBindAttribLocation(program, VATRR_WEI, "aweights"));
+    GL_CALL(glBindAttribLocation(program, VATRR_IDX, "aindices"));
+    GL_CALL(glBindAttribLocation(program, VATRR_TC2, "atc2"));
     return Link(name);
 }
 

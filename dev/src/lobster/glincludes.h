@@ -143,3 +143,6 @@
     #define GL_CHECK(what) (void)what
     #define GL_CALL(call) do { call; } while (0)
 #endif
+
+// Implementation-only enum.
+enum { VATRR_POS, VATRR_NOR, VATRR_TC1, VATRR_COL, VATRR_WEI, VATRR_IDX, VATRR_TC2 };
