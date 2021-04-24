@@ -82,17 +82,17 @@ struct OcTree {
         dirty[i] = true;
     }
 
-    int Step(const int3 &pos, int bit, int cur) {
+    int Step(const int3 &pos, int bit) {
         auto size = 1 << bit;
         auto off = pos & size;
         auto bv = off >> bit;
-        return cur + dot(bv, int3(1, 2, 4));
+        return dot(bv, int3(1, 2, 4));
     }
 
     bool Set(const int3 &pos, OcVal val) {
         int cur = ROOT_INDEX;
         for (auto bit = world_bits - 1; ; bit--) {
-            auto ccur = Step(pos, bit, cur);
+            auto ccur = cur + Step(pos, bit);
             auto oval = nodes[ccur];
             if (oval == val) return true;
             if (bit) {  // Not at bottom yet.
@@ -156,10 +156,10 @@ struct OcTree {
     int Get(const int3 &pos, int &bit, int cur) {
         for (;;) {
             bit--;
-            auto ccur = Step(pos, bit, cur);
-            auto oval = nodes[ccur];
+            cur += Step(pos, bit);
+            auto oval = nodes[cur];
             if (oval.IsLeaf()) {
-                return ccur;
+                return cur;
             } else {
                 cur = oval.NodeIdx();
             }
