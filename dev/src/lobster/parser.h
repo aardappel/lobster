@@ -45,7 +45,7 @@ struct Parser {
     }
 
     template<typename... Ts> void ErrorAt(const Node *what, const Ts &...args) {
-        lex.Error(cat(args...), &what->line);
+        lex.Error(cat(args...), what ? &what->line : nullptr);
     }
 
     template<typename... Ts> void Warn(const Ts &...args) {
@@ -53,7 +53,7 @@ struct Parser {
     }
 
     template<typename... Ts> void WarnAt(const Node *what, const Ts &...args) {
-        lex.Warn(cat(args...), &what->line);
+        lex.Warn(cat(args...), what ? &what->line : nullptr);
     }
 
     void Parse() {
