@@ -115,7 +115,8 @@ struct Parser {
                         id->single_assignment && d->child->IsConstInit();
                     if (!id->single_assignment || id->constant || d->line.fileidx != 0)
                         warn_all = false;
-                    if (!id->read && !id->static_constant && id->scopelevel != 1)
+                    if (!id->read && !id->static_constant && id->scopelevel != 1 &&
+                        (id->name[0] != '_' || d->sids.size() == 1))
                         Warn("unused variable ", Q(id->name));
                 }
                 if (warn_all) {
