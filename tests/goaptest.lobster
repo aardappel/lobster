@@ -21,7 +21,7 @@ run_test("goap"):
         goapaction {
             "eat",
             fn s: (s[bread] > 0 or s[pizza] > 0) and s[hungry] > 0,
-            fn s: if s[bread] > 0: s[bread]-- else: s[pizza]--; s[hungry]--
+            fn s: (if s[bread] > 0: s[bread]-- else: s[pizza]--); s[hungry]--
         }
     ]
 
