@@ -232,3 +232,23 @@ run_test("types"):
         def make_set<T>(size:int): return 1
         def make_set<T>(xs:[T]): return 2
         assert make_set<int>([1,2,3]) == 2
+
+    do():
+        // Vector type params are typically invariant, to avoid illegal
+        // mutation via aliases. They can be covariant with exceptions:
+        class A:
+            a:int = 1
+        class B : A
+            b:int = 2
+        let as = [ A {} ]
+        let bs = [ B {} ]
+        // append args marked as const / non aliasing:
+        append(as, bs)
+        append(bs, as)
+        // RHS is constructor so can't alias:
+        let xs:[A] = [ B {} ]
+        // Same in function call context
+        def f(ys:[A]): ys
+        f([ B {} ])
+        // Or from a union:
+        f(if as[0].a == 1: [ A {} ] else: [ B {} ])
