@@ -94,6 +94,9 @@
   It would be nice to have a way to annotate that for functions, or infer it.
   We currently have this hard-coded for builtins like append() using NF_CONST.
   - making this worse is that "this" doesn't specialize, see settlement.lobster/take_damage
+  To be more precise, it is safe if the dest can't ever mutate (is const, and doesn't create
+  aliases that could mutate in the future) OR if the src has a refc of 1 (a constructor), since
+  in this case the dest will be the only alias ever.
 
 - let x:T = vector_reserve(typeof U, ) may crash if U is not compatible with T.
   Maybe at least in the docs mark this function as private, people should use `map` instead.

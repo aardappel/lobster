@@ -24,13 +24,13 @@ import structtest
 number_of_runs = 3900
 import misctest
 
-number_of_runs = 4800
+number_of_runs = 4700
 import typetest
 
 number_of_runs = 150
 import astartest
 
-number_of_runs = 400
+number_of_runs = 350
 import goaptest
 
 number_of_runs = 200

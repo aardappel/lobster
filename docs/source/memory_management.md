@@ -87,7 +87,7 @@ want to come on board. Lobster offers a possible direction.
 
 Lobster's Memory Management Strategy
 -----------------------------------
-This has two parts, its by-value model and lifetime analysis.
+This has two parts, its by-value model and ownership analysis.
 
 ### In-line, by-value structs
 
@@ -120,9 +120,9 @@ allow mutation.
 There are situations where rather than copying the implementation could
 use a short-lived reference instead, like is common in C++. This is
 however not actually faster in many cases, and more importantly, a
-reference would be subject to the lifetime analysis below. By making
+reference would be subject to the ownership analysis below. By making
 them copies, we essentially "reduce pressure" on that algorithm, meaning
-it is more likely to produce optimal lifetime assignments and less
+it is more likely to produce optimal ownership assignments and less
 errors.
 
 Having these by-value structs is especially important in a language like
@@ -130,9 +130,9 @@ Lobster that has so far focussed on the areas of games and computer
 graphics, which make intensive use of 2D/3D vectors. Having such types
 be as cheap as possible is important.
 
-### Lifetime Analysis
+### Ownership Analysis
 
-Lobster combines its original (runtime) reference counting with a lifetime
+Lobster combines its original (runtime) reference counting with a ownership
 analysis algorithm, to get "compile time reference counting".
 
 This is a fully automatic algorithm that mostly does not require programmer
@@ -162,7 +162,7 @@ however.
 
 ### Errors
 
-These are errors that may happen as a consequence of lifetime analysis, though
+These are errors that may happen as a consequence of ownership analysis, though
 all of them have proven to be very rare.
 
 ~~~~
@@ -213,22 +213,22 @@ equations like the typical PL paper, I am going to have to disappoint.
 More on the type checker [here](type_checker.html).
 
 Wait, what, the type checker? Yes, as much as I would have preferred to make
-the lifetime checker a standalone algorithm, it is interwoven with type checking.
+the ownership analysis a standalone algorithm, it is interwoven with type checking.
 The reason for this is that a lot of the power of Lobster centers around its
 "Flow Sensitive Type Specialization", meaning it type checks functions in
 call-graph order, and specializes them based on types. As it turns out, to
 most optimally remove reference count operations, *we want to specialize on
-lifetimes as well*. Making it a separate algorithm would mean duplicating a lot
+ownership as well*. Making it a separate algorithm would mean duplicating a lot
 of this logic, so I decided to interleave them.
 
-### AST lifetime matching
+### AST ownership matching
 
-The lifetime analysis works differently from most other languages in that rather
+The ownership analysis works differently from most other languages in that rather
 than working just on variables and other storage locations, it works on all
 values in the language.
 
-To be more precise, every AST node has a lifetime it expects of its children,
-and a lifetime it passes to its parent. The core of the algorithm is thus the
+To be more precise, every AST node has a ownership "kind" it expects of its children,
+and an ownership kind it passes to its parent. The core of the algorithm is thus the
 matching that takes place between child and parent:
 
 * When the two agree, nothing happens. This is most of the time. For example in
@@ -252,16 +252,16 @@ at all times.
 Borrowed values are a little more complicated. Whenever an expression returns the
 value of a variable, field or vector element we want to default to borrowing these
 values, since the L-value already owns it. We have a stack of currently active L-values,
-and the lifetime returned by the expression refers to these stack elements. This
-lifetime is also reference counted, as multiple borrows may be active at once.
+and the ownership kind returned by the expression refers to these stack elements. These
+stack values are also reference counted, as multiple borrows may be active at once.
 This reference count decreases as borrowed values get "consumed". Mutating a
 borrowed L-value with a reference count > 0 produces the above error. The
-reference count not being 0 at the end is a bug in the lifetime checker :)
+reference count not being 0 at the end is a bug in the ownership analysis :)
 
 Note that variables currently always own. This was done for simplicity, as in
 theory a variable could be made to either own or borrow depending on the needs
 of its initial RHS, but this was awkward in cases where the definition and
-subsequent assignments disagreed, and generally made checking lifetimes more
+subsequent assignments disagreed, and generally made ownership analysis more
 difficult. This could be revisited in the future once the consequences of
 the algorithm are better understood, or maybe when more accurate dataflow
 information is present.
@@ -269,10 +269,10 @@ information is present.
 The end of a variable's lifetime is typically the end of the scope, though
 making it its "last use" is being worked on, see `return` below.
 
-### Function specialization by lifetime.
+### Function specialization by ownership.
 
-Function lifetime specialization is probably quite unique to Lobster, and solves an
-important problem: if different callers to a function have different lifetimes
+Function ownership specialization is probably quite unique to Lobster, and solves an
+important problem: if different callers to a function have different ownership kinds
 that would be ideal for their arguments, the compiler (or worse, the programmer)
 would have to pick one, and let the others be suboptimal. Not only does this
 produce unnecessary reference counting, it reduces the amount of code that
@@ -288,7 +288,7 @@ If `x` had been fixed to own because of the first call, the second call
 would have been less efficient, or even an error. Now they both get to be
 maximally efficient because of specialization. Now in this simple example
 it is easy to see that `x` should really borrow, but it isn't always that
-trivial, and would need a more complex lifetime analysis that employs
+trivial, and would need a more complex ownership analysis that employs
 "logical variables" much like type inference currently does (assuming
 you want to do this without help of the programmer).
 
@@ -299,31 +299,31 @@ There are currently some exceptions to this:
 
 Much like variables, some of these could be relaxed/improved in the future.
 
-### Lifetimes for AST types
+### Ownership kinds for AST types
 
 These are currently how the different AST types interact lifetime wise
 with their children (wants) and parent (results).
 
-Note that most of code also uses a lifetime of "any", which means either
-that the lifetime doesn't matter (for e.g. scalars) or that the recipient
-is cool with any kind of lifetime.
+Note that most of code also uses a ownership kind of "any", which means either
+that the ownership doesn't matter (for e.g. scalars) or that the recipient
+is cool with any kind of ownership.
 
 * Assignment wants to own, and results in borrow.
-* `if` results in the union of the lifetime of both branches. The union
+* `if` results in the union of the ownership kinds of both branches. The union
   is simple if both are equal or either side doesn't care. If they differ,
   it defaults to own. It has specialized code to detect if one of the
   branches never returns (has a return statement in it that escapes the
-  `if`) in which the lifetime is that of the other branch.
+  `if`) in which the ownership kind is that of the other branch.
   The condition wants to borrow. `if` with one branch
   of course does not result in anything.
 * `switch` is similar to `if`, but currently always defaults to owning the
-  value returned by the cases, since doing a correct lifetime union
+  value returned by the cases, since doing a correct ownership kind union
   between many cases in the context of branches not returning is harder.
   This should be improved.
 * `and` and `or` are again similar to `if`, but have some special cases
   because sometimes a value is guaranteed ignored (`a and b or c` never
   results in `a`) or values are coerced to `bool` when they are
-  incompatible (`"a" or "b"` results in a string with an own lifetime,
+  incompatible (`"a" or "b"` results in a string that wants to be owned,
   but `[ 1 ] or "hello"` results in a `bool` with the values immediately
   deleted).
 * `while` borrows its condition and doesn't care about the body.

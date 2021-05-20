@@ -67,7 +67,7 @@ enum ConvertFlags {
     CF_UNIFICATION = 1 << 1,
     CF_NUMERIC_NIL = 1 << 2,
     CF_EXACTTYPE   = 1 << 3,
-    CF_CONST_BOUND = 1 << 4,
+    CF_COVARIANT   = 1 << 4,
 };
 
 struct TypeChecker {
@@ -268,7 +268,7 @@ struct TypeChecker {
             case V_VECTOR: {
                 // We don't generally allow covariance here unless const (to avoid supertype
                 // elements added to subtype vectors) and no contravariance.
-                auto cov = cf & CF_CONST_BOUND ? CF_NONE : CF_EXACTTYPE;
+                auto cov = cf & CF_COVARIANT ? CF_NONE : CF_EXACTTYPE;
                 return type->t == V_VECTOR &&
                        ConvertsTo(type->Element(), bound->Element(),
                                   ConvertFlags((cf & (CF_UNIFICATION | CF_NUMERIC_NIL)) | cov));
@@ -384,6 +384,8 @@ struct TypeChecker {
     }
     void SubType(Node *&a, TypeRef bound, string_view argname, string_view context,
                  ConvertFlags extra = CF_NONE) {
+        // TODO: generalize this into check if `a` is un-aliased.
+        if (Is<Constructor>(a)) extra = ConvertFlags(CF_COVARIANT | extra);
         if (ConvertsTo(a->exptype, bound, ConvertFlags(CF_UNIFICATION | extra))) return;
         switch (bound->t) {
             case V_FLOAT:
@@ -2784,7 +2786,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             argtype = type_string;
             typed = true;
         }
-        auto cf_const = arg.flags & NF_CONST ? CF_CONST_BOUND : CF_NONE;
+        auto cf_const = arg.flags & NF_CONST ? CF_COVARIANT : CF_NONE;
         int flag = NF_SUBARG1;
         for (int sa = 0; sa < 3; sa++) {
             if (arg.flags & flag) {

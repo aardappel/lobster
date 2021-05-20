@@ -1307,88 +1307,58 @@ int lookupmaterial(const vec3 &v) {
     return v.z < 64 + 1 + 0.1f ? MAT_WATER : MAT_AIR;
 }
 
-/*
-clipplanes &getclipplanes(const cube &c, const int3 &o, int size, bool collide = true,
-                                        int offset = 0) {
-    assert(false);
-    (void)c;
-    (void)o;
-    (void)size;
-    (void)collide;
-    (void)offset;
-    // genclipplanes(c, o, size, p, collide);
-    return *(clipplanes *)nullptr;
-}
-*/
-
 /////////////////////////  ray - cube collision ///////////////////////////////////////////////
-
-/*
 
 vec3 hitsurface;
 
-bool raycubeintersect(const clipplanes &p, const cube &c, const vec3 &v,
-                                    const vec3 &ray, const vec3 &invray, float &dist) {
-    int entry = -1, bbentry = -1;
-    float enterdist = -1e16f, exitdist = 1e16f;
-    loopi(p.size) {
-        float pdist = p.p[i].dist(v), facing = ray.dot(p.p[i]);
-        if (facing < 0) {
-            pdist /= -facing;
-            if (pdist > enterdist) {
-                if (pdist > exitdist) return false;
-                enterdist = pdist;
-                entry = i;
-            }
-        } else if (facing > 0) {
-            pdist /= -facing;
-            if (pdist < exitdist) {
-                if (pdist < enterdist) return false;
-                exitdist = pdist;
-            }
-        } else if (pdist > 0)
-            return false;
-    }
-    loop(i, 3) {
-        if (ray[i]) {
-            float prad = fabs(p.r[i] * invray[i]), pdist = (p.o[i] - v[i]) * invray[i],
-                  pmin = pdist - prad, pmax = pdist + prad;
-            if (pmin > enterdist) {
-                if (pmin > exitdist) return false;
-                enterdist = pmin;
-                bbentry = i;
-            }
-            if (pmax < exitdist) {
-                if (pmax < enterdist) return false;
-                exitdist = pmax;
-            }
-        } else if (v[i] < p.o[i] - p.r[i] || v[i] > p.o[i] + p.r[i])
-            return false;
-    }
-    if (exitdist < 0) return false;
-    dist = max(enterdist + 0.1f, 0.0f);
-    if (bbentry >= 0) {
-        hitsurface = vec3(0, 0, 0);
-        hitsurface[bbentry] = ray[bbentry] > 0 ? -1 : 1;
-    } else
-        hitsurface = p.p[entry];
+bool raycubeintersect(const int3 &co, int size, const vec3 &v, const vec3 &ray, const vec3 &invray,
+                      float &dist) {
+    auto bbmin = float3(co);
+    auto bbmax = bbmin + float(size);
+    auto rayo = float3(v.v);
+    auto reciprocal_raydir = float3(invray.v);
+    auto v1 = (bbmin - rayo) * reciprocal_raydir;
+    auto v2 = (bbmax - rayo) * reciprocal_raydir;
+    auto n = min(v1, v2);
+    auto f = max(v1, v2);
+    auto enter = max(n.x, max(n.y, n.z));
+    auto exit = min(f.x, min(f.y, f.z));
+    dist = max(enter, 0.0f);
+    auto hit = exit >= dist;
+    if (!hit) return false;
+    auto hitpoint = rayo + float3(ray.v) * dist;
+    auto p = (hitpoint - bbmin) / float(size);
+    auto r = p - 0.5f;
+    auto ar = abs(r);
+    hitsurface = vec3(0.0f);
+    // Derive cube normal from vector.
+    int dim = ar.x > ar.y && ar.x > ar.z ? 0 : (ar.y > ar.z ? 1 : 2);
+    hitsurface[dim] = float(r[dim] >= 0) * 2.0f - 1.0f;
     return true;
 }
 
 float hitentdist;
 int hitent, hitorient;
 
-float raycube(const vec3 &o, const vec3 &ray, float radius, int mode, int size, extentity *t) {
+static inline bool insideworld(const vec3 &o, int worldsize) {
+    return o.x >= 0 && o.x < worldsize && o.y >= 0 && o.y < worldsize && o.z >= 0 &&
+           o.z < worldsize;
+}
+
+vector<OcVal *> levels;
+
+float raycube(const vec3 &o, const vec3 &ray, float radius = 0, int mode = RAY_CLIPMAT,
+              int size = 0) {
     if (ray.iszero()) return 0;
     float dist = 0, dent = radius > 0 ? radius : 1e16f;
     vec3 v(o);
     vec3 invray(ray.x ? 1 / ray.x : 1e16f, ray.y ? 1 / ray.y : 1e16f, ray.z ? 1 / ray.z : 1e16f);
     int worldsize = 1 << oc->world_bits;
-    cube *levels[20];
-    levels[oc->world_bits] = worldroot;
-    int lshift = oc->world_bits, elvl = mode & RAY_BB ? oc->world_bits : 0;
+    int lshift = oc->world_bits;
+    levels.resize(lshift + 1);
+    levels[lshift] = &oc->nodes[OcTree::ROOT_INDEX];
     int3 lsizemask(invray.x > 0 ? 1 : 0, invray.y > 0 ? 1 : 0, invray.z > 0 ? 1 : 0);
-    if (!insideworld(o)) {
+    if (!insideworld(o, worldsize)) {
         float disttoworld = 0, exitworld = 1e16f;
         loopi(3) {
             float c = v[i];
@@ -1406,32 +1376,31 @@ float raycube(const vec3 &o, const vec3 &ray, float radius, int mode, int size, 
     }
     int closest = -1, x = int(v.x), y = int(v.y), z = int(v.z);
     for (;;) {
-        cube *lc = levels[lshift];
+        auto lc = levels[lshift];
         for (;;) {
             lshift--;
-            lc += octastep(x, y, z, lshift);
-            if (lc->children == NULL) break;
-            lc = lc->children;
+            assert(lshift >= 0);
+            lc = lc + oc->Step(int3(x, y, z), lshift);
+            if (lc->IsLeaf()) break;
+            lc = &oc->nodes[lc->NodeIdx()];
             levels[lshift] = lc;
         }
         int lsize = 1 << lshift;
-        cube &c = *lc;
+        auto c = *lc;
         if ((dist > 0 || !(mode & RAY_SKIPFIRST)) &&
-            (((mode & RAY_CLIPMAT) && isclipped(c.material & MATF_VOLUME)) ||
-             ((mode & RAY_EDITMAT) && c.material != MAT_AIR) ||
+            (((mode & RAY_EDITMAT) && !isempty(c)) ||
              (!(mode & RAY_PASS) && lsize == size && !isempty(c)) || isentirelysolid(c) ||
              dent < dist)) {
             if (closest >= 0) {
                 hitsurface = vec3(0, 0, 0);
-                hitsurface[closest] = ray[closest] > 0 ? -1 : 1;
+                hitsurface[closest] = ray[closest] > 0 ? -1.0f : 1.0f;
             }
             return min(dent, dist);
         }
         int3 lo(x & (~0U << lshift), y & (~0U << lshift), z & (~0U << lshift));
         if (!isempty(c)) {
-            const clipplanes &p = getclipplanes(c, lo, lsize, false, 1);
             float f = 0;
-            if (raycubeintersect(p, c, v, ray, invray, f) &&
+            if (raycubeintersect(lo, lsize, v, ray, invray, f) &&
                 (dist + f > 0 || !(mode & RAY_SKIPFIRST)))
                 return min(dent, dist + f);
         }
@@ -1455,8 +1424,8 @@ float raycube(const vec3 &o, const vec3 &ray, float radius, int mode, int size, 
         x = int(v.x);
         y = int(v.y);
         z = int(v.z);
-        uint diff = uint(lo.x ^ x) | uint(lo.y ^ y) | uint(lo.z ^ z);
-        if (diff >= uint(worldsize)) return min(dent, radius > 0 ? radius : dist);
+        uint32_t diff = uint32_t(lo.x ^ x) | uint32_t(lo.y ^ y) | uint32_t(lo.z ^ z);
+        if (diff >= uint32_t(worldsize)) return min(dent, radius > 0 ? radius : dist);
         diff >>= lshift;
         if (!diff) return min(dent, radius > 0 ? radius : dist);
         do {
@@ -1466,7 +1435,8 @@ float raycube(const vec3 &o, const vec3 &ray, float radius, int mode, int size, 
     }
 }
 
-float raycubepos(const vec3 &o, const vec3 &ray, vec3 &hitpos, float radius, int mode, int size) {
+float raycubepos(const vec3 &o, const vec3 &ray, vec3 &hitpos, float radius, int mode = RAY_CLIPMAT,
+                 int size = 0) {
     hitpos = ray;
     float dist = raycube(o, ray, radius, mode, size);
     if (radius > 0 && dist >= radius) dist = radius;
@@ -1483,7 +1453,7 @@ bool raycubelos(const vec3 &o, const vec3 &dest, vec3 &hitpos) {
     return distance >= mag;
 }
 
-float rayfloor(const vec3 &o, vec3 &floor, int mode, float radius) {
+float rayfloor(const vec3 &o, vec3 &floor, int mode = 0, float radius = 0) {
     if (o.z <= 0) return -1;
     hitsurface = vec3(0, 0, 1);
     float dist = raycube(o, vec3(0, 0, -1), radius, mode);
@@ -1492,7 +1462,6 @@ float rayfloor(const vec3 &o, vec3 &floor, int mode, float radius) {
     return dist;
 }
 
-*/
 
 /////////////////////////  entity collision  ///////////////////////////////////////////////
 
@@ -1765,10 +1734,10 @@ bool octacollide(physent *d, const vec3 &dir, float cutoff, const int3 &bo, cons
     if (diff & ~((1 << scale) - 1) ||
         uint32_t(bo.x | bo.y | bo.z | bs.x | bs.y | bs.z) >= uint32_t(worldsize))
         return octacollide(d, dir, cutoff, bo, bs, worldroot, int3(0, 0, 0), worldsize >> 1);
-    auto c = oc->nodes[oc->Step(bo, scale, OcTree::ROOT_INDEX)];
+    auto c = oc->nodes[oc->Step(bo, scale) + OcTree::ROOT_INDEX];
     scale--;
     while (!c.IsLeaf() && !(diff & (1 << scale))) {
-        c = oc->nodes[oc->Step(bo, scale, c.NodeIdx())];
+        c = oc->nodes[oc->Step(bo, scale) + c.NodeIdx()];
         scale--;
     }
     if (!c.IsLeaf())
@@ -2604,6 +2573,19 @@ nfr("oc_update_physent", "octree,ent,dpadvec,yaw,pitch,jumping,flying", "RRI}:2F
 nfr("oc_physics_frame", "", "", "", "",
     [](StackPtr &, VM &) {
         physicsframe(int(SDLTime() * 1000));
+    });
+
+nfr("oc_raycast", "octree,rayo,raydir,rad", "RF}:3F}:3F", "F}:3F", "",
+    [](StackPtr &sp, VM &vm) {
+        auto radius = Pop(sp).fltval();
+        auto ray = vec3(PopVec<float3>(sp));
+        auto o = vec3(PopVec<float3>(sp));
+        oc = &GetOcTree(vm, Pop(sp).xval());
+        vec3 hitpos;
+        auto dist = raycubepos(o, ray, hitpos, radius);
+        oc = nullptr;
+        PushVec(sp, float3(hitpos.v));
+        Push(sp, dist);
     });
 
 }

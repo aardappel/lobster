@@ -45,7 +45,7 @@ struct Parser {
     }
 
     template<typename... Ts> void ErrorAt(const Node *what, const Ts &...args) {
-        lex.Error(cat(args...), &what->line);
+        lex.Error(cat(args...), what ? &what->line : nullptr);
     }
 
     template<typename... Ts> void Warn(const Ts &...args) {
@@ -53,7 +53,7 @@ struct Parser {
     }
 
     template<typename... Ts> void WarnAt(const Node *what, const Ts &...args) {
-        lex.Warn(cat(args...), &what->line);
+        lex.Warn(cat(args...), what ? &what->line : nullptr);
     }
 
     void Parse() {
@@ -115,7 +115,8 @@ struct Parser {
                         id->single_assignment && d->child->IsConstInit();
                     if (!id->single_assignment || id->constant || d->line.fileidx != 0)
                         warn_all = false;
-                    if (!id->read && !id->static_constant && id->scopelevel != 1)
+                    if (!id->read && !id->static_constant && id->scopelevel != 1 &&
+                        (id->name[0] != '_' || d->sids.size() == 1))
                         Warn("unused variable ", Q(id->name));
                 }
                 if (warn_all) {
