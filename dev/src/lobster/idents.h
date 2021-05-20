@@ -575,13 +575,15 @@ struct SymbolTable {
     }
 
     void Unregister(const Enum *e, unordered_map<string_view, Enum *> &dict) {
-        for (auto &ev : e->vals) {
-            auto it = enumvals.find(ev->name);
-            assert(it != enumvals.end());
-            enumvals.erase(it);
-        }
         auto it = dict.find(e->name);
-        if (it != dict.end()) dict.erase(it);
+        if (it != dict.end()) {
+            for (auto &ev : e->vals) {
+                auto it = enumvals.find(ev->name);
+                assert(it != enumvals.end());
+                enumvals.erase(it);
+            }
+            dict.erase(it);
+        }
     }
 
     template<typename T> void Unregister(const T *x, unordered_map<string_view, T *> &dict) {
