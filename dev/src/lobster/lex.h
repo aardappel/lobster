@@ -335,6 +335,9 @@ struct Lex : LoadedFile {
                     return T_DIV;
                 }
 
+            #undef second
+            #undef secondb
+
             case '\"':
             case '\'':
                 return StringConstant(c == '\'', false);
