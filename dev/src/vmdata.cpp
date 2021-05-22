@@ -237,6 +237,37 @@ void Value::ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const 
     }
 }
 
+void Value::ToFlexBuffer(VM &vm, flexbuffers::Builder &builder, ValueType t) const {
+    switch (t) {
+        case V_INT:
+            builder.Int(ival());
+            return;
+        case V_FLOAT:
+            builder.Double(fval());
+            return;
+    }
+    if (IsRefNil(t)) {
+        if (!ref_) {
+            builder.Null();
+            return;
+        }
+        switch (t) {
+            case V_STRING:
+                builder.String(sval()->strv().data(), sval()->strv().size());
+                return;
+            case V_VECTOR:
+                vval()->ToFlexBuffer(vm, builder);
+                return;
+            case V_CLASS:
+                oval()->ToFlexBuffer(vm, builder);
+                return;
+        }
+    }
+    string sd;
+    ToStringBase(vm, sd, t, vm.debugpp);
+    vm.Error("cannot convert to FlexBuffer: " + sd);
+}
+
 
 iint RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
@@ -406,5 +437,57 @@ void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Va
         }
     );
 }
+
+
+void ElemToFlexBuffer(VM &vm, flexbuffers::Builder &builder, const TypeInfo &ti,
+                      iint &i, iint width, const Value *elems, bool is_vector) {
+    if (IsStruct(ti.t)) {
+        vm.StructToFlexBuffer(vm, builder, ti, elems + i * width);
+        if (!is_vector) i += ti.len - 1;
+    } else {
+        elems[i].ToFlexBuffer(vm, builder, ti.t);
+    }
+}
+
+void LObject::ToFlexBuffer(VM &vm, flexbuffers::Builder &builder) {
+    // TODO: some form of cycle protection?
+    auto start = builder.StartMap();
+    auto stidx = ti(vm).structidx;
+    if (true) {
+        // FIXME: only needed if dynamic type is unequal to static type.
+        auto type_name = vm.ReverseLookupType(stidx);
+        builder.Key("_type");
+        builder.String(type_name.data(), type_name.size());
+    }
+    for (iint i = 0, f = 0; i < Len(vm); i++, f++) {
+        auto &ti = ElemTypeSP(vm, i);
+        auto fname = vm.LookupField(stidx, f);
+        builder.Key(fname.data());
+        ElemToFlexBuffer(vm, builder, ti, i, 1, Elems(), false);
+    }
+    builder.EndMap(start);
+}
+
+void LVector::ToFlexBuffer(VM &vm, flexbuffers::Builder &builder) {
+    auto start = builder.StartVector();
+    auto &ti = ElemType(vm);
+    for (iint i = 0; i < len; i++) {
+        ElemToFlexBuffer(vm, builder, ti, i, width, v, true);
+    }
+    builder.EndVector(start, false, false);
+}
+
+void VM::StructToFlexBuffer(VM &vm, flexbuffers::Builder &builder, const TypeInfo &sti,
+                            const Value *elems) {
+    auto start = builder.StartMap();
+    for (iint i = 0, f = 0; i < sti.len; i++, f++) {
+        auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
+        auto fname = vm.LookupField(sti.structidx, f);
+        builder.Key(fname.data());
+        ElemToFlexBuffer(*this, builder, ti, i, 1, elems, false);
+    }
+    builder.EndMap(start);
+}
+
 
 }  // namespace lobster

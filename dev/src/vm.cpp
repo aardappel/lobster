@@ -474,6 +474,11 @@ string_view VM::ReverseLookupType(int v) {
     return bcf->udts()->Get((flatbuffers::uoffset_t)v)->name()->string_view();
 }
 
+string_view VM::LookupField(int stidx, iint fieldn) const {
+    auto st = bcf->udts()->Get((flatbuffers::uoffset_t)stidx);
+    return st->fields()->Get((flatbuffers::uoffset_t)fieldn)->name()->string_view();
+}
+
 bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
     auto enum_def = bcf->enums()->Get(enumidx);
     auto &vals = *enum_def->vals();

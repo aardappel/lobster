@@ -72,6 +72,7 @@ using namespace std;
 using namespace gsl;
 
 #include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/flexbuffers.h"
 
 // Our universally used headers.
 #include "wentropy.h"

@@ -439,6 +439,8 @@ struct Value {
     void ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const;
     void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
 
+    void ToFlexBuffer(VM &vm, flexbuffers::Builder &builder, ValueType t) const;
+
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     iint Hash(VM &vm, ValueType vtype);
     Value CopyRef(VM &vm, bool deep);
@@ -467,6 +469,7 @@ struct LObject : RefObj {
     const TypeInfo &ElemTypeSP(VM &vm, iint i) const;
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
+    void ToFlexBuffer(VM &vm, flexbuffers::Builder &builder);
 
     bool Equal(VM &vm, const LObject &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -602,6 +605,7 @@ struct LVector : RefObj {
     void Append(VM &vm, LVector *from, iint start, iint amount);
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
+    void ToFlexBuffer(VM &vm, flexbuffers::Builder &builder);
 
     bool Equal(VM &vm, const LVector &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -807,6 +811,7 @@ struct VM : VMArgs {
 
     string_view StructName(const TypeInfo &ti);
     string_view ReverseLookupType(int v);
+    string_view LookupField(int stidx, iint fieldn) const;
     void Trace(TraceMode m) { trace = m; }
     double Time() { return SecondsSinceStart(); }
 
@@ -821,7 +826,8 @@ struct VM : VMArgs {
         return NewString(s_reuse);
     }
     void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
-
+    void StructToFlexBuffer(VM &vm, flexbuffers::Builder &builder, const TypeInfo &ti,
+                            const Value *elems);
     bool EnumName(string &sd, iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);

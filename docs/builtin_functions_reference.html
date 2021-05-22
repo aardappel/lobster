@@ -218,6 +218,10 @@
 <h3>parsedata</h3>
 <table class="a" border=1 cellspacing=0 cellpadding=4>
 <tr class="a" valign=top><td class="a"><tt><b>parse_data</b>(typeid<font color="#666666">:typeid(any)</font>, stringdata<font color="#666666">:string</font>) -> <font color="#666666">any?</font>, <font color="#666666">string?</font></tt></td><td class="a">parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data structure to a string) back into a data structure. supports int/float/string/vector and classes. classes will be forced to be compatible with their  current definitions, i.e. too many elements will be truncated, missing elements will be set to 0/nil if possible. useful for simple file formats. returns the value and an error string as second return value (or nil if no error)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>flexbuffers_value_to_binary</b>(val<font color="#666666"></font>) -> <font color="#666666">string</font></tt></td><td class="a">turns any reference value into a flexbuffer</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>flexbuffers_binary_to_value</b>(typeid<font color="#666666">:typeid(any)</font>, flex<font color="#666666">:string</font>) -> <font color="#666666">any?</font>, <font color="#666666">string?</font></tt></td><td class="a">turns a flexbuffer into a value</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>flexbuffers_binary_to_json</b>(flex<font color="#666666">:string</font>, field_quotes<font color="#666666">:bool</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a">turns a flexbuffer into a JSON string</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>flexbuffers_json_to_binary</b>(json<font color="#666666">:string</font>) -> <font color="#666666">string</font>, <font color="#666666">string?</font></tt></td><td class="a">turns a JSON string into a flexbuffer, second value is error, if any</td></tr>
 </table>
 <h3>graphics</h3>
 <table class="a" border=1 cellspacing=0 cellpadding=4>

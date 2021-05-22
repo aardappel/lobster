@@ -21,7 +21,7 @@ print "VM MODE: " + (if vm_compiled_mode(): "C++-compiled" else: "JIT")
 number_of_runs = 8800
 import structtest
 
-number_of_runs = 3900
+number_of_runs = 2250
 import misctest
 
 number_of_runs = 4700

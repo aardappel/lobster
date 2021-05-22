@@ -18,6 +18,8 @@
 
 #include "lobster/lex.h"
 
+#include "flatbuffers/idl.h"
+
 namespace lobster {
 
 struct ValueParser {
@@ -213,6 +215,144 @@ static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp
     #endif
 }
 
+
+struct FlexBufferParser {
+    vector<RefObj *> allocated;
+    VM &vm;
+    vector<Value> stack;
+
+    FlexBufferParser(VM &vm) : vm(vm) {
+        stack.reserve(16);
+        allocated.reserve(16);
+    }
+
+    void Parse(StackPtr &sp, type_elem_t typeoff, flexbuffers::Reference r) {
+        ParseFactor(r, typeoff);
+        assert(stack.size() == 1);
+        Push(sp, stack.back());
+    }
+
+    void Error(const string &s) {
+        // FIXME: not great on non-exception platforms, this should not abort.
+        THROW_OR_ABORT(s);
+    }
+
+    void ExpectType(ValueType given, ValueType needed) {
+        if (given != needed && needed != V_ANY) {
+            Error(cat("type ", BaseTypeName(needed), " required, ", BaseTypeName(given),
+                               " given"));
+        }
+    }
+
+    void ParseFactor(flexbuffers::Reference r, type_elem_t typeoff) {
+        auto &ti = vm.GetTypeInfo(typeoff);
+        auto vt = ti.t;
+        switch (r.GetType()) {
+            case flexbuffers::FBT_INT: {
+                ExpectType(V_INT, vt);
+                stack.emplace_back(r.AsInt64());
+                break;
+            }
+            case flexbuffers::FBT_FLOAT: {
+                ExpectType(V_FLOAT, vt);
+                stack.emplace_back(r.AsDouble());
+                break;
+            }
+            case flexbuffers::FBT_STRING: {
+                ExpectType(V_STRING, vt);
+                auto s = r.AsString();
+                auto str = vm.NewString(string_view(s.c_str(), s.size()));
+                allocated.push_back(str);
+                stack.emplace_back(str);
+                break;
+            }
+            case flexbuffers::FBT_NULL: {
+                ExpectType(V_NIL, vt);
+                stack.emplace_back(NilVal());
+                break;
+            }
+            case flexbuffers::FBT_VECTOR: {
+                ExpectType(V_VECTOR, vt);
+                auto v = r.AsVector();
+                auto stack_start = stack.size();
+                for (size_t i = 0; i < v.size(); i++) {
+                    ParseFactor(v[i], ti.subt);
+                }
+                auto &sti = vm.GetTypeInfo(ti.subt);
+                auto width = IsStruct(sti.t) ? sti.len : 1;
+                auto len = iint(stack.size() - stack_start);
+                auto n = len / width;
+                auto vec = vm.NewVec(n, n, typeoff);
+                if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
+                for (iint i = 0; i < len; i++) stack.pop_back();
+                allocated.push_back(vec);
+                stack.emplace_back(vec);
+                break;
+            }
+            case flexbuffers::FBT_MAP: {
+                if (!IsUDT(vt) && vt != V_ANY)
+                    Error(cat("class/struct type required, ", BaseTypeName(vt), " given"));
+                auto m = r.AsMap();
+                auto name = vm.StructName(ti);
+                auto sname = m["_type"];
+                if (sname.IsString() && sname.AsString().c_str() != name) {
+                    Error(cat("class/struct type ", name, " required, ", sname.AsString().str(),
+                             " given"));
+                }
+                auto stack_start = stack.size();
+                auto NumElems = [&]() { return iint(stack.size() - stack_start); };
+                for (int i = 0; NumElems() != ti.len; i++) {
+                    auto fname = vm.LookupField(ti.structidx, i);
+                    auto eti = ti.GetElemOrParent(NumElems());
+                    auto e = m[fname.data()];
+                    if (e.IsNull()) {
+                        switch (vm.GetTypeInfo(ti.elemtypes[NumElems()]).t) {
+                            case V_INT:   stack.emplace_back(Value(0)); break;
+                            case V_FLOAT: stack.emplace_back(Value(0.0f)); break;
+                            case V_NIL:   stack.emplace_back(NilVal()); break;
+                            default:      Error("no default value exists for missing field " + fname);
+                        }
+                    } else {
+                        ParseFactor(e, eti);
+                    }
+                }
+                if (ti.t == V_CLASS) {
+                    auto len = NumElems();
+                    auto vec = vm.NewObject(len, typeoff);
+                    if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
+                    for (iint i = 0; i < len; i++) stack.pop_back();
+                    allocated.push_back(vec);
+                    stack.emplace_back(vec);
+                }
+                // else if ti.t == V_STRUCT_* then.. do nothing!
+                break;
+            }
+            default:
+                Error("can\'t convert to value: " + r.ToString());
+                stack.emplace_back(NilVal());
+                break;
+        }
+    }
+};
+
+static void ParseFlexData(StackPtr &sp, VM &vm, type_elem_t typeoff, flexbuffers::Reference r) {
+    FlexBufferParser parser(vm);
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
+        parser.Parse(sp, typeoff, r);
+        Push(sp, NilVal());
+    }
+    #ifdef USE_EXCEPTION_HANDLING
+    catch (string &s) {
+        for (auto a : parser.allocated) a->Dec(vm);
+        Push(sp, NilVal());
+        Push(sp, vm.NewString(s));
+    }
+    #endif
+}
+
 void AddReader(NativeRegistry &nfr) {
 
 nfr("parse_data", "typeid,stringdata", "TS", "A1?S?",
@@ -226,6 +366,54 @@ nfr("parse_data", "typeid,stringdata", "TS", "A1?S?",
         auto ins = Pop(sp).sval();
         auto type = Pop(sp).ival();
         ParseData(sp, vm, (type_elem_t)type, ins->strv());
+    });
+
+nfr("flexbuffers_value_to_binary", "val", "A", "S",
+    "turns any reference value into a flexbuffer",
+    [](StackPtr &, VM &vm, Value &val) {
+        flexbuffers::Builder builder;
+        val.ToFlexBuffer(vm, builder, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
+        builder.Finish();
+        auto s = vm.NewString(string_view((const char *)builder.GetBuffer().data(),
+                                          builder.GetSize()));
+        return Value(s);
+    });
+
+nfr("flexbuffers_binary_to_value", "typeid,flex", "TS", "A1?S?",
+    "turns a flexbuffer into a value",
+    [](StackPtr &sp, VM &vm) {
+        auto fsv = Pop(sp).sval()->strv();
+        auto id = Pop(sp).ival();
+        auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
+        ParseFlexData(sp, vm, (type_elem_t)id, root);
+    });
+
+nfr("flexbuffers_binary_to_json", "flex,field_quotes", "SB?", "S",
+    "turns a flexbuffer into a JSON string",
+    [](StackPtr &, VM &vm, Value &flex, Value &quoted) {
+        auto fsv = flex.sval()->strv();
+        auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
+        string json;
+        root.ToString(true, quoted.True(), json);
+        auto s = vm.NewString(json);
+        return Value(s);
+    });
+
+nfr("flexbuffers_json_to_binary", "json", "S", "SS?",
+    "turns a JSON string into a flexbuffer, second value is error, if any",
+    [](StackPtr &sp, VM &vm, Value &json) {
+        flexbuffers::Builder builder;
+        flatbuffers::Parser parser;
+        auto err = NilVal();
+        if (!parser.ParseFlexBuffer(json.sval()->strv().data(), "(flexbuffers_json_to_binary)",
+                                    &builder)) {
+            err = vm.NewString(parser.error_);
+            Push(sp, vm.NewString(""));
+        } else {
+            Push(sp, vm.NewString(
+                string_view((const char *)builder.GetBuffer().data(), builder.GetSize())));
+        }
+        return err;
     });
 
 }

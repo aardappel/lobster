@@ -74,7 +74,20 @@ run_test("misc"):
     // Test defaults:
     parsed, err = parse_data(typeof direct, "parsetest {{ true, 1, 1.0, xyz_f {{}}, \"\", [] }}")
     if err: print err
-    assert equal(parsed, parsetest { true, 1, 1.0, xyz { 0.0, 0.0, 0.0 }, "", [], nil, 0 })
+    let groundv = parsetest { true, 1, 1.0, xyz { 0.0, 0.0, 0.0 }, "", [], nil, 0 }
+    assert equal(parsed, groundv)
+    let flex = flexbuffers_value_to_binary(parsed)
+    let json = flexbuffers_binary_to_json(flex)
+    let groundj = """{ _type: "parsetest", a: 1, b: 1.0, c: { x: 0.0, y: 0.0, z: 0.0 }, d: "", e: [  ], f: null, g: 0, h: 1 }"""
+    assert json == groundj
+    let flex2, ferr = flexbuffers_json_to_binary(json)
+    assert not ferr
+    let json2 = flexbuffers_binary_to_json(flex2)
+    assert json2 == groundj
+    let fval, fverr = flexbuffers_binary_to_value(typeof direct, flex2)
+    assert not fverr
+    assert equal(fval, groundv)
+
     assert switch rnd(2):
         default: true
 
