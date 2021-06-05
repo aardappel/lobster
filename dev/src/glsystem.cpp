@@ -17,6 +17,7 @@
 #include "lobster/glincludes.h"
 #include "lobster/glinterface.h"
 #include "lobster/sdlincludes.h"
+#include "lobster/sdlinterface.h"
 
 #ifdef PLATFORM_WINNIX
 #define GLEXT(type, name, needed) type name = nullptr;
@@ -33,8 +34,6 @@ float custompointscale = 1.0f;
 bool mode2d = true;
 bool mode_srgb = false;
 GeometryCache *geomcache = nullptr;
-vector<int4> scissorRects;
-int2 viewportSize;
 
 BlendMode SetBlendMode(BlendMode mode) {
     static BlendMode curblendmode = BLEND_NONE;
@@ -74,28 +73,32 @@ void ClearFrameBuffer(const float3 &c) {
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
-void SetScissorRect(int4 scis)
-{
-   // Always get bitten by this, glScissor x & y are BOTTOM left, not top left.
-   GL_CALL(glScissor((GLint)scis.x, (GLint)(viewportSize.y - (scis.y + scis.w)), 
-                     (GLint)scis.z, (GLint)scis.w));
-   GL_CALL(glEnable(GL_SCISSOR_TEST));
-}
+void SetScissorRect(int2 topleft, int2 size, int2& prev_topleft, int2& prev_size) {
+    int2 scrnsz = GetScreenSize();
+    GLboolean enabled;
+    GLint curbox[4];
 
-void PushScissorRect(int4 scis)
-{
-   SetScissorRect(scis);
-   scissorRects.push_back(scis);
-}
+    GL_CALL(glGetBooleanv(GL_SCISSOR_TEST, &enabled));
+    if (enabled) {
+        GL_CALL(glGetIntegerv(GL_SCISSOR_BOX, curbox)); 
+        prev_topleft.x = curbox[0];
+        prev_topleft.y = curbox[1];
+        prev_size.x = curbox[2];
+        prev_size.y = curbox[3];
+    } else {
+        prev_topleft.x = 0;
+        prev_topleft.y = 0;
+        prev_size = scrnsz;
+    }
 
-void PopScissorRect()
-{
-   scissorRects.pop_back();
-   if (!scissorRects.empty()) {
-      SetScissorRect(scissorRects.back());
-   } else {
-      GL_CALL(glDisable(GL_SCISSOR_TEST));
-   }
+    // Always get bitten by this, glScissor x & y are BOTTOM left, not top left.
+    GL_CALL(glScissor((GLint)topleft.x, (GLint)(scrnsz.y - (topleft.y + size.y)), 
+                     (GLint)size.x, (GLint)size.y));
+    if (topleft.x == 0 && topleft.y == 0 && size == scrnsz) {
+        GL_CALL(glDisable(GL_SCISSOR_TEST));
+    } else {
+        GL_CALL(glEnable(GL_SCISSOR_TEST));
+    }
 }
 
 void Set2DMode(const int2 &ssize, bool lh, bool depthtest) {
@@ -140,11 +143,9 @@ uint8_t *ReadPixels(const int2 &pos, const int2 &size) {
 void OpenGLFrameStart(const int2 &ssize) {
     GL_CALL(glDisable(GL_SCISSOR_TEST));
     GL_CALL(glViewport(0, 0, ssize.x, ssize.y));
-    viewportSize = ssize;
     SetBlendMode(BLEND_ALPHA);
     curcolor = float4(1);
     lights.clear();
-    scissorRects.clear();
 }
 
 void OpenGLFrameEnd() {

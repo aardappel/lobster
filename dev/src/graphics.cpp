@@ -179,23 +179,19 @@ nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
         return err[0] ? Value(vm.NewString(err)) : NilVal();
     });
 
-nfr("gl_push_scissor", "x,y,width,height", "IIII", "",
-    "Enables scissor testing so only the pixels in the given rectangle can "
-    "be written.  (x,y) is the top left corner. Scissor state only lasts till "
-    "the end of the frame.",
-    [](StackPtr &, VM &vm, Value &x, Value &y, Value &w, Value &h) {
-   TestGL(vm);
-   PushScissorRect(int4(x.ival(), y.ival(), w.ival(), h.ival()));
-   return NilVal();
-});
+nfr("gl_scissor", "top_left,size", "I}:2I}:2", "I}:2I}:2",
+    "Sets the scissor testing, so only the pixels in the given rectangle can"
+    "be written.  Returns the previous value of the scissor rectangle.",
+    [](StackPtr &sp, VM &vm) {
+        auto size = PopVec<int2>(sp);
+        auto topleft = PopVec<int2>(sp);
+        TestGL(vm);
+        int2 prevtl, prevsize;
 
-nfr("gl_pop_scissor", "", "", "",
-    "pops the last scissor rect from the stack, and restores the previous "
-    "scissor state.",
-    [](StackPtr &, VM &) {
-   PopScissorRect();
-   return NilVal();
-});
+        SetScissorRect(topleft, size, prevtl, prevsize);
+        PushVec(sp, prevtl);
+        PushVec(sp, prevsize);
+    });
 
 nfr("gl_frame", "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
