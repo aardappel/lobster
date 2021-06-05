@@ -50,3 +50,8 @@ def gl_scale(factor, body):
     gl_scale(factor)
     body()
     gl_pop_model_view()
+
+def gl_scissor(x, y, w, h, body):
+   gl_push_scissor(x, y, w, h)
+   body()
+   gl_pop_scissor()

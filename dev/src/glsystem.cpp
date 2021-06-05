@@ -33,6 +33,8 @@ float custompointscale = 1.0f;
 bool mode2d = true;
 bool mode_srgb = false;
 GeometryCache *geomcache = nullptr;
+vector<int4> scissorRects;
+int2 viewportSize;
 
 BlendMode SetBlendMode(BlendMode mode) {
     static BlendMode curblendmode = BLEND_NONE;
@@ -70,6 +72,30 @@ BlendMode SetBlendMode(BlendMode mode) {
 void ClearFrameBuffer(const float3 &c) {
     GL_CALL(glClearColor(c.x, c.y, c.z, 1.0));
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+}
+
+void SetScissorRect(int4 scis)
+{
+   // Always get bitten by this, glScissor x & y are BOTTOM left, not top left.
+   GL_CALL(glScissor((GLint)scis.x, (GLint)(viewportSize.y - (scis.y + scis.w)), 
+                     (GLint)scis.z, (GLint)scis.w));
+   GL_CALL(glEnable(GL_SCISSOR_TEST));
+}
+
+void PushScissorRect(int4 scis)
+{
+   SetScissorRect(scis);
+   scissorRects.push_back(scis);
+}
+
+void PopScissorRect()
+{
+   scissorRects.pop_back();
+   if (!scissorRects.empty()) {
+      SetScissorRect(scissorRects.back());
+   } else {
+      GL_CALL(glDisable(GL_SCISSOR_TEST));
+   }
 }
 
 void Set2DMode(const int2 &ssize, bool lh, bool depthtest) {
@@ -112,10 +138,13 @@ uint8_t *ReadPixels(const int2 &pos, const int2 &size) {
 }
 
 void OpenGLFrameStart(const int2 &ssize) {
+    GL_CALL(glDisable(GL_SCISSOR_TEST));
     GL_CALL(glViewport(0, 0, ssize.x, ssize.y));
+    viewportSize = ssize;
     SetBlendMode(BLEND_ALPHA);
     curcolor = float4(1);
     lights.clear();
+    scissorRects.clear();
 }
 
 void OpenGLFrameEnd() {
