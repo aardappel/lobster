@@ -76,10 +76,10 @@ void ClearFrameBuffer(const float3 &c) {
 void SetScissorRect(int2 topleft, int2 size, int2& prev_topleft, int2& prev_size) {
     int2 scrnsz = GetScreenSize();
     GLboolean enabled;
-    GLint curbox[4];
 
     GL_CALL(glGetBooleanv(GL_SCISSOR_TEST, &enabled));
     if (enabled) {
+        GLint curbox[4];
         GL_CALL(glGetIntegerv(GL_SCISSOR_BOX, curbox)); 
         prev_topleft.x = curbox[0];
         prev_topleft.y = curbox[1];
