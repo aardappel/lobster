@@ -73,30 +73,23 @@ void ClearFrameBuffer(const float3 &c) {
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
-void SetScissorRect(int2 topleft, int2 size, int2& prev_topleft, int2& prev_size) {
+void SetScissorRect(int2 topleft, int2 size, pair<int2, int2>& prev) {
     int2 scrnsz = GetScreenSize();
     GLboolean enabled;
 
     GL_CALL(glGetBooleanv(GL_SCISSOR_TEST, &enabled));
     if (enabled) {
-        GLint curbox[4];
-        GL_CALL(glGetIntegerv(GL_SCISSOR_BOX, curbox)); 
-        prev_topleft.x = curbox[0];
-        prev_topleft.y = curbox[1];
-        prev_size.x = curbox[2];
-        prev_size.y = curbox[3];
+        GL_CALL(glGetIntegerv(GL_SCISSOR_BOX, (GLint*)prev.first.data())); 
     } else {
-        prev_topleft.x = 0;
-        prev_topleft.y = 0;
-        prev_size = scrnsz;
+        prev = {int2_0, scrnsz};
     }
 
-    // Always get bitten by this, glScissor x & y are BOTTOM left, not top left.
-    GL_CALL(glScissor((GLint)topleft.x, (GLint)(scrnsz.y - (topleft.y + size.y)), 
-                     (GLint)size.x, (GLint)size.y));
     if (topleft.x == 0 && topleft.y == 0 && size == scrnsz) {
         GL_CALL(glDisable(GL_SCISSOR_TEST));
     } else {
+        // Always get bitten by this, glScissor x & y are BOTTOM left, not top left.
+        GL_CALL(glScissor((GLint)topleft.x, (GLint)(scrnsz.y - (topleft.y + size.y)), 
+                         (GLint)size.x, (GLint)size.y));
         GL_CALL(glEnable(GL_SCISSOR_TEST));
     }
 }

@@ -186,11 +186,11 @@ nfr("gl_scissor", "top_left,size", "I}:2I}:2", "I}:2I}:2",
         auto size = PopVec<int2>(sp);
         auto topleft = PopVec<int2>(sp);
         TestGL(vm);
-        int2 prevtl, prevsize;
+        pair<int2, int2> prev;
 
-        SetScissorRect(topleft, size, prevtl, prevsize);
-        PushVec(sp, prevtl);
-        PushVec(sp, prevsize);
+        SetScissorRect(topleft, size, prev);
+        PushVec(sp, prev.first);
+        PushVec(sp, prev.second);
     });
 
 nfr("gl_frame", "", "", "B",
