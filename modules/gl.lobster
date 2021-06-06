@@ -50,3 +50,9 @@ def gl_scale(factor, body):
     gl_scale(factor)
     body()
     gl_pop_model_view()
+
+def gl_scissor(topleft, size, body):
+    let oldtl, oldsz = gl_scissor(topleft, size)
+    body()
+    gl_scissor(oldtl, oldsz)
+

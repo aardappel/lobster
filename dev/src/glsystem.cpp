@@ -17,6 +17,7 @@
 #include "lobster/glincludes.h"
 #include "lobster/glinterface.h"
 #include "lobster/sdlincludes.h"
+#include "lobster/sdlinterface.h"
 
 #ifdef PLATFORM_WINNIX
 #define GLEXT(type, name, needed) type name = nullptr;
@@ -72,6 +73,27 @@ void ClearFrameBuffer(const float3 &c) {
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
+void SetScissorRect(int2 topleft, int2 size, pair<int2, int2>& prev) {
+    int2 scrnsz = GetScreenSize();
+    GLboolean enabled;
+
+    GL_CALL(glGetBooleanv(GL_SCISSOR_TEST, &enabled));
+    if (enabled) {
+        GL_CALL(glGetIntegerv(GL_SCISSOR_BOX, (GLint*)prev.first.data())); 
+    } else {
+        prev = {int2_0, scrnsz};
+    }
+
+    if (topleft.x == 0 && topleft.y == 0 && size == scrnsz) {
+        GL_CALL(glDisable(GL_SCISSOR_TEST));
+    } else {
+        // Always get bitten by this, glScissor x & y are BOTTOM left, not top left.
+        GL_CALL(glScissor((GLint)topleft.x, (GLint)(scrnsz.y - (topleft.y + size.y)), 
+                         (GLint)size.x, (GLint)size.y));
+        GL_CALL(glEnable(GL_SCISSOR_TEST));
+    }
+}
+
 void Set2DMode(const int2 &ssize, bool lh, bool depthtest) {
     GL_CALL(glDisable(GL_CULL_FACE));
     if (depthtest) GL_CALL(glEnable(GL_DEPTH_TEST));
@@ -112,6 +134,7 @@ uint8_t *ReadPixels(const int2 &pos, const int2 &size) {
 }
 
 void OpenGLFrameStart(const int2 &ssize) {
+    GL_CALL(glDisable(GL_SCISSOR_TEST));
     GL_CALL(glViewport(0, 0, ssize.x, ssize.y));
     SetBlendMode(BLEND_ALPHA);
     curcolor = float4(1);

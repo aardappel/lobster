@@ -179,6 +179,20 @@ nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
         return err[0] ? Value(vm.NewString(err)) : NilVal();
     });
 
+nfr("gl_scissor", "top_left,size", "I}:2I}:2", "I}:2I}:2",
+    "Sets the scissor testing, so only the pixels in the given rectangle can"
+    "be written.  Returns the previous value of the scissor rectangle.",
+    [](StackPtr &sp, VM &vm) {
+        auto size = PopVec<int2>(sp);
+        auto topleft = PopVec<int2>(sp);
+        TestGL(vm);
+        pair<int2, int2> prev;
+
+        SetScissorRect(topleft, size, prev);
+        PushVec(sp, prev.first);
+        PushVec(sp, prev.second);
+    });
+
 nfr("gl_frame", "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
     " returns false if the closebutton on the window was pressed",

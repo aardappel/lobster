@@ -152,6 +152,7 @@ extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
 extern void OpenGLFrameEnd();
 extern void LogGLError(const char *file, int line, const char *call);
+extern void SetScissorRect(int2 topleft, int2 size, pair<int2,int2>& prev);
 
 extern void Set2DMode(const int2 &ssize, bool lh, bool depthtest = false);
 extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
