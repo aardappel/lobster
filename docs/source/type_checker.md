@@ -193,7 +193,7 @@ if a is xyz: a.x
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can access fields of `xyz` regardless of what type `a` had outside this
-scope.
+scope. `is` is only true if the types are exactly equal, not subtypes.
 
 Assignment can work similar to conditionals:
 

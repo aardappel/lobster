@@ -115,7 +115,12 @@ ValueType IsType::ConstVal(TypeChecker *tc, Value &val) const {
         // This may be called from the parser, where we do not support this as a constant.
         return V_VOID;
     }
-    if (child->exptype->Equal(*resolvedtype) || resolvedtype->t == V_ANY) {
+    // If the exp type is compile-time equal, this is compile-time true,
+    // except for class types that have sub-classes, since we don't know if
+    // the runtime type would be equal.
+    if ((child->exptype->Equal(*resolvedtype) &&
+         (resolvedtype->t != V_CLASS || !resolvedtype->udt->has_subclasses)) ||
+        resolvedtype->t == V_ANY) {
         val = Value(true);
         return V_INT;
     }
@@ -125,6 +130,7 @@ ValueType IsType::ConstVal(TypeChecker *tc, Value &val) const {
     }
     // This means it is always a reference type, since int/float/function don't convert
     // into anything without coercion.
+    assert(IsRefNil(child->exptype->t));
     return V_VOID;
 }
 

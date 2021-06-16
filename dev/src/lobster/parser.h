@@ -278,6 +278,7 @@ struct Parser {
             if (sup == udt) Error("can\'t inherit from ", Q(lastid));
             if (is_struct != sup->is_struct)
                 Error("class/struct must match parent");
+            sup->has_subclasses = true;
             return sup;
         };
         auto parse_specializers = [&] () {

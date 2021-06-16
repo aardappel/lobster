@@ -1635,8 +1635,6 @@
   - can add subtypes that don't have their own case? how about single variant functions?
   - make type+idx into shorts, so they can be checked with a single compare?
 
-- "is" doesn't deal with subtypes
-
 - bytecode version of compile_run()
 
 - typing:

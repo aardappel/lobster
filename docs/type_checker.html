@@ -68,7 +68,7 @@ if a:         // guaranteed not be nil inside block
 <p>As we saw with <code>nil</code>, a variable may have a different type in certain parts of the code, thanks to the information that a conditional provides.</p>
 <p>Another example of this is the <code>is</code> operator:</p>
 <pre><code>if a is xyz: a.x</code></pre>
-<p>We can access fields of <code>xyz</code> regardless of what type <code>a</code> had outside this scope.</p>
+<p>We can access fields of <code>xyz</code> regardless of what type <code>a</code> had outside this scope. <code>is</code> is only true if the types are exactly equal, not subtypes.</p>
 <p>Assignment can work similar to conditionals:</p>
 <pre><code>var a = nil
 if ..: a = xyz_0
