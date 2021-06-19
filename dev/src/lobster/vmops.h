@@ -126,7 +126,7 @@ VM_INLINE void U_PUSHFLT64(VM &, StackPtr sp, int a, int b) {
 
 VM_INLINE void U_PUSHFUN(VM &, StackPtr sp, int start, fun_base_t fcont) {
     (void)start;
-    Push(sp, Value(fcont));
+    Push(sp, Value(FunPtr(fcont)));
 }
 
 VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
