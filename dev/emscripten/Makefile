@@ -37,6 +37,7 @@ LIBS=
 HEADERS= $(wildcard ../src/lobster/*.h)
 
 CPPSRCS= \
+	../compiled_lobster/src/compiled_lobster.cpp \
 	../src/audio.cpp \
 	../src/builtins.cpp \
 	../src/compiler.cpp \
@@ -79,20 +80,12 @@ CPPSRCS= \
     $(wildcard ../include/Box2D/Rope/*.cpp) \
     $(wildcard ../external/flatbuffers/src/*.cpp) \
     $(wildcard ../external/imgui/*.cpp)
-MAINSRC= ../src/main.cpp
-MAINCOMPSRC= ../compiled_lobster/src/compiled_lobster.cpp
 
 CPPOBJS := $(patsubst %.cpp,%.o,$(CPPSRCS))
-MAINOBJ := $(patsubst %.cpp,%.o,$(MAINSRC))
-MAINCOMPOBJ := $(patsubst %.cpp,%.o,$(MAINCOMPSRC))
 
 $(CPPOBJS): CXXFLAGS += $(INCLUDES)
-$(MAINOBJ): CXXFLAGS += $(INCLUDES)
-$(MAINCOMPOBJ): CXXFLAGS += $(INCLUDES)
 
 #$(CPPOBJS): $(CPPSRCS) $(HEADERS)
-#$(MAINOBJ): $(MAINSRC) $(HEADERS)
-#$(MAINCOMPOBJ): $(MAINCOMPSRC) $(HEADERS)
 
 EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 		--source-map-base http://localhost:6931/ \
@@ -107,15 +100,15 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 
 # We only support compiling with the C++ backend, no JIT mode.
 
-cpp: CXXFLAGS += -DVM_COMPILED_CODE_MODE
-cpp: $(CPPOBJS) $(MAINCOMPOBJ)
-	emcc $(CXXFLAGS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
+cpp: CXXFLAGS += -DVM_COMPILED_CODE_MODE -DIMGUI_IMPL_OPENGL_ES3
+cpp: $(CPPOBJS)
+	emcc $(CXXFLAGS) $(CPPOBJS) $(EFLAGS)
 
 clean:
-	-$(RM) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ)
+	-$(RM) $(CPPOBJS)
 
 cleanw:
-	del $(addprefix ",$(addsuffix ",$(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ)))
+	del $(addprefix ",$(addsuffix ",$(CPPOBJS)))
 
 all: cpp
 
