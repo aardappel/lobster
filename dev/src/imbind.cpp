@@ -238,7 +238,13 @@ nfr("im_init", "dark_style,flags", "B?I?", "",
         ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags.ival();
         if (darkstyle.True()) ImGui::StyleColorsDark(); else ImGui::StyleColorsClassic();
         ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
-        ImGui_ImplOpenGL3_Init("#version 150");
+        ImGui_ImplOpenGL3_Init(
+            #ifdef PLATFORM_ES3
+                "#version 300 es"
+            #else
+                "#version 150"
+            #endif
+        );
         imgui_init = true;
         return NilVal();
     });
