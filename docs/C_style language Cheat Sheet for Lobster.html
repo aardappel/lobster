@@ -207,13 +207,13 @@ version</big></td>
 <tr>
 <td style="white-space: nowrap;">def&nbsp;magnitude(v::xy):<br>&nbsp; &nbsp; return sqrt(x * x + y * y)</td>
 <td style="white-space: nowrap;">// inside class xy<br>
-float&nbsp;magnitude() { return x * x + y * y; }</td>
+float&nbsp;magnitude() { return sqrt(x * x + y * y); }</td>
 <td>The :: way to indicate a type (v is of type xy) allows you to access
 object elements directly rather than having to write v.x etc. This is
 similar to writing a&nbsp;method, though Lobster makes no such distinction.</td>
 </tr>
 <tr><td>// inside class/struct xy<br>def&nbsp;magnitude():<br>&nbsp; &nbsp; return sqrt(x * x + y * y)</td><td>// inside class xy<br>
-float&nbsp;magnitude() { return x * x + y * y; }</td><td>This is an equivalent way of writing the above when inside the scope of a class/struct (see below).</td></tr><tr>
+float&nbsp;magnitude() { return sqrt(x * x + y * y); }</td><td>This is an equivalent way of writing the above when inside the scope of a class/struct (see below).</td></tr><tr>
 <td>v.magnitude()</td>
 <td>v.magnitude()</td>
 <td>On a function call, you can move the first argument to
