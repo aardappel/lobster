@@ -852,16 +852,17 @@ nfr("gl_set_uniform_array", "name,value", "SF}:4]", "B",
         return Value(ok);
     });
 
-nfr("gl_set_uniform_matrix", "name,value", "SF]", "B",
-    "set a uniform on the current shader. pass a vector of 4/9/12/16 floats to set a"
-    " mat2/mat3/mat3x4/mat4 respectively. returns false on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec) {
+nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
+    "set a uniform on the current shader. pass a vector of 4/6/9/12/16 floats to set a"
+    " mat2/mat3x2/mat3/mat4x3/mat4 respectively. pass true for morerows to get"
+    " mat2x3/mat3x4. returns false on error.",
+    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &morerows) {
         TestGL(vm);
         vector<float> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
         currentshader->Activate();
         auto ok = currentshader->SetUniformMatrix(name.sval()->strv(), vals.data(),
-                                                  (int)vals.size(), 1);
+                                                  (int)vals.size(), 1, morerows.True());
         return Value(ok);
     });
 

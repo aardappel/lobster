@@ -388,13 +388,19 @@ bool Shader::SetUniform(string_view name, const float *val, int components, int 
     }
 }
 
-bool Shader::SetUniformMatrix(string_view name, const float *val, int components, int elements) {
+bool Shader::SetUniformMatrix(string_view name, const float *val, int components, int elements,
+                              bool mr) {
     auto loc = glGetUniformLocation(program, null_terminated(name));
     if (loc < 0) return false;
     switch (components) {
         case 4:  GL_CALL(glUniformMatrix2fv(loc, elements, false, val)); return true;
+        case 6:  if (mr) GL_CALL(glUniformMatrix2x3fv(loc, elements, false, val));
+                 else GL_CALL(glUniformMatrix3x2fv(loc, elements, false, val));
+                 return true;
         case 9:  GL_CALL(glUniformMatrix3fv(loc, elements, false, val)); return true;
-        case 12: GL_CALL(glUniformMatrix3x4fv(loc, elements, false, val)); return true;
+        case 12: if (mr) GL_CALL(glUniformMatrix3x4fv(loc, elements, false, val));
+                 else GL_CALL(glUniformMatrix4x3fv(loc, elements, false, val));
+                 return true;
         case 16: GL_CALL(glUniformMatrix4fv(loc, elements, false, val)); return true;
         default: return false;
     }
