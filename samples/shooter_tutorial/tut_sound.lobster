@@ -10,9 +10,9 @@ fatal(gl_window("Shooter Tutorial", 640, 480))
 check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "can\'t load font!")
 
 // load music and sound files (for sound/music authorship informations, see AUTHORS.TXT)
-let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
+let bgmusic = play_ogg("data/sounds/tutorial/Cyber-Dream-Loop short.ogg", -1) // by Eric Matyas from https://soundimage.org/looping-music/
 if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
-let ufobuzz = play_wav("data/sounds/Alien_buzz2.wav", -1) // https://freesound.org/people/CommanderDerp/sounds/167921/ (Slenderman static..)
+let ufobuzz = play_ogg("data/sounds/tutorial/Alien_buzz2.ogg", -1) // https://freesound.org/people/CommanderDerp/sounds/167921/ (Slenderman static..)
 if ufobuzz: sound_volume(ufobuzz, 0.0) else: print "can\'t load sound!"
 
 let worldsize = 20.0
@@ -106,7 +106,7 @@ while gl_frame() and gl_button("escape") != 1:
                 e.pos += playerdir * delta_time * enemyspeed
                 for(bullets) b:
                     if magnitude(b.pos - e.pos) < 1:
-                        sound_volume(play_wav("data/sounds/ufo hit.wav"), clamp(1.0 / (playerdist + 0.001), 0.1, 1.0)) // distance-dependent volume of bullet hit
+                        sound_volume(play_ogg("data/sounds/tutorial/ufo hit.ogg"), clamp(1.0 / (playerdist + 0.001), 0.1, 1.0)) // distance-dependent volume of bullet hit
                         e.hp--
                         if(e.hp <= 0):
                             e.hp = 0

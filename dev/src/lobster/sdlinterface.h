@@ -46,7 +46,8 @@ extern bool SDLGrab(bool on);
 
 extern void SDLMessageBox(string_view title, string_view msg);
 
-extern int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int pri);
+enum SoundType { SOUND_WAV, SOUND_SFXR, SOUND_OGG };
+extern int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int pri);
 extern void SDLHaltSound(int ch);
 extern void SDLPauseSound(int ch);
 extern void SDLResumeSound(int ch);

@@ -30,7 +30,7 @@ nfr("play_wav", "filename,loops,prio", "SI?I?", "I",
     " in case of too many play function calls (defaults to 0)"
     " returns the assigned channel number (1..8) or 0 on error",
     [](StackPtr &, VM &, Value &ins, Value &loops, Value &prio) {
-        int ch = SDLPlaySound(ins.sval()->strv(), false, 1.0, loops.intval(), prio.intval());
+        int ch = SDLPlaySound(ins.sval()->strv(), SOUND_WAV, 1.0, loops.intval(), prio.intval());
         return Value(ch);
     });
 
@@ -42,7 +42,18 @@ nfr("play_sfxr", "filename,loops,prio", "SI?I?", "I",
     " in case of too many play function calls (defaults to 0)"
     " returns the assigned channel number (1..8) or 0 on error",
     [](StackPtr &, VM &, Value &ins, Value &loops, Value &prio) {
-        int ch = SDLPlaySound(ins.sval()->strv(), true, 1.0, loops.intval(), prio.intval());
+        int ch = SDLPlaySound(ins.sval()->strv(), SOUND_SFXR, 1.0, loops.intval(), prio.intval());
+        return Value(ch);
+    });
+
+nfr("play_ogg", "filename,loops,prio", "SI?I?", "I",
+    "plays an ogg file. the default volume is the max volume (1.0)"
+    " loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats)."
+    " prio is the priority of the sound which determines whether it can be deleted or not"
+    " in case of too many play function calls (defaults to 0)"
+    " returns the assigned channel number (1..8) or 0 on error",
+    [](StackPtr &, VM &, Value &ins, Value &loops, Value &prio) {
+        int ch = SDLPlaySound(ins.sval()->strv(), SOUND_OGG, 1.0, loops.intval(), prio.intval());
         return Value(ch);
     });
 

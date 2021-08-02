@@ -17,9 +17,15 @@
 #include "lobster/natreg.h"
 
 #include "lobster/sdlincludes.h"
+#include "lobster/sdlinterface.h"
 
 #include "SDL_mixer.h"
 #include "SDL_stdinc.h"
+
+#define STB_VORBIS_HEADER_ONLY 1
+#define STB_VORBIS_NO_STDIO 1
+#define STB_VORBIS_NO_PUSHDATA_API 1
+#include "stb/stb_vorbis.c"
 
 bool sound_init = false;
 
@@ -28,13 +34,26 @@ struct Sound {
     Sound() : chunk(nullptr, Mix_FreeChunk) {}
 };
 
-
 const int channel_num = 16; // number of mixer channels
 int sound_pri[channel_num] = {};
 uint64_t sound_age[channel_num] = {};
 uint64_t sounds_played = 0;
 
 map<string, Sound, less<>> sound_files;
+
+Mix_Chunk *AllocChunk(short *buf, size_t num_samples) {
+    Uint16 format;
+    Mix_QuerySpec(nullptr, &format, nullptr);
+    if (format != AUDIO_S16SYS) {
+        assert(false);
+        return nullptr;
+    }
+    auto sbuf = SDL_malloc(num_samples * 2);
+    memcpy(sbuf, buf, num_samples * 2);
+    auto chunk = Mix_QuickLoad_RAW((Uint8 *)sbuf, (Uint32)num_samples * 2);
+    chunk->allocated = 1;
+    return chunk;
+}
 
 Mix_Chunk *RenderSFXR(string_view buf) {
     int wave_type = 0;
@@ -342,22 +361,18 @@ Mix_Chunk *RenderSFXR(string_view buf) {
         float sample;
         auto gen = SynthSample(1, &sample);
         if (!gen) break;
-        synth.push_back((Sint16)(sample * 0x7FFF));
+        auto ss = (Sint16)(sample * 0x7FFF);
+        // FIXME: backwards way to make it 44100.
+        // Instead, make it actually synth at that rate.
+        if (!synth.empty()) synth.back() = (synth[synth.size() - 1] + ss) / 2;
+        synth.push_back(ss);
+        synth.push_back(0);
     }
-    Uint16 format;
-    Mix_QuerySpec(nullptr, &format, nullptr);
-    if (format != AUDIO_S16SYS) {
-        assert(false);
-        return nullptr;
-    }
-    auto sbuf = SDL_malloc(synth.size() * 2);
-    memcpy(sbuf, synth.data(), synth.size() * 2);
-    auto chunk = Mix_QuickLoad_RAW((Uint8 *)sbuf, (Uint32)synth.size() * 2);
-    chunk->allocated = 1;
-    return chunk;
+    synth.pop_back();
+    return AllocChunk(synth.data(), synth.size());
 }
 
-Sound *LoadSound(string_view filename, bool sfxr) {
+Sound *LoadSound(string_view filename, SoundType st) {
     auto it = sound_files.find(filename);
     if (it != sound_files.end()) {
         return &it->second;
@@ -365,13 +380,31 @@ Sound *LoadSound(string_view filename, bool sfxr) {
     string buf;
     if (LoadFile(filename, &buf) < 0)
         return nullptr;
-    Mix_Chunk *chunk;
-    if (!sfxr) {
-        auto rwops = SDL_RWFromMem((void *)buf.c_str(), (int)buf.length());
-        if (!rwops) return nullptr;
-        chunk = Mix_LoadWAV_RW(rwops, 1);
-    } else {
-        chunk = RenderSFXR(buf);
+    Mix_Chunk *chunk = nullptr;
+    switch (st) {
+        case SOUND_WAV: {
+            auto rwops = SDL_RWFromMem((void *)buf.c_str(), (int)buf.length());
+            if (!rwops) return nullptr;
+            chunk = Mix_LoadWAV_RW(rwops, 1);
+            break;
+        }
+        case SOUND_SFXR: {
+            chunk = RenderSFXR(buf);
+            break;
+        }
+        case SOUND_OGG: {
+            int channels = 0;
+            int sample_rate = 0;
+            short *out = nullptr;
+            auto read = stb_vorbis_decode_memory((const unsigned char *)buf.c_str(),
+                                                 (int)buf.length(), &channels, &sample_rate, &out);
+            if (read < 0)
+                return nullptr;
+            chunk = AllocChunk(out, read);
+            free(out);
+            break;
+        }
+
     }
     if (!chunk) return nullptr;
     //Mix_VolumeChunk(chunk, MIX_MAX_VOLUME / 2);
@@ -380,7 +413,7 @@ Sound *LoadSound(string_view filename, bool sfxr) {
     return &(sound_files.insert({ string(filename), std::move(snd) }).first->second);
 }
 
-bool SDLSoundInit() {    
+bool SDLSoundInit() {
     if (sound_init) return true;
 
     #ifdef __EMSCRIPTEN__
@@ -407,9 +440,7 @@ bool SDLSoundInit() {
     }
 
     Mix_Init(0);
-    // For some reason this distorts when set to 44100 and samples at 22050 are played.
-    // Also SFXR seems hard-coded to 22050, so that's what we'll use for now.
-    if (Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 1024) == -1) {
+    if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 1024) == -1) {
         LOG_ERROR("Mix_OpenAudio: ", Mix_GetError());
         return false;
     }
@@ -429,9 +460,9 @@ void SDLSoundClose() {
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-int SDLPlaySound(string_view filename, bool sfxr, float vol, int loops, int pri) {
+int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int pri) {
     if (!SDLSoundInit()) return 0;
-    auto snd = LoadSound(filename, sfxr);
+    auto snd = LoadSound(filename, st);
     if (!snd) return 0;
     int ch = Mix_GroupAvailable(-1); // is there any free channel?
     if (ch == -1) {
@@ -483,3 +514,8 @@ void SDLResumeSound(int ch) {
 void SDLSetVolume(int ch, float vol) {
     Mix_Volume(ch - 1, (int)(MIX_MAX_VOLUME * vol));
 }
+
+// Implementation part of stb_vorbis.
+#undef STB_VORBIS_HEADER_ONLY
+#pragma warning(disable : 4244 4457 4245 4701)
+#include "stb/stb_vorbis.c"
