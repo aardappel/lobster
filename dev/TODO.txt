@@ -1,3 +1,17 @@
+- instancing
+  https://learnopengl.com/Advanced-OpenGL/Instancing
+
+- octree + physics example
+
+- check that constant string caching works with e.g. FlatBufferBuilder?
+
+    for(10) i:
+        var s = "                           "
+        s = write_int8_le(s, i, 'A' + i)
+        print s
+
+- Should we specialize own vs borrow on a per string constant basis?
+
 - check what it would take to lift the mixed struct ref/scalar restriction, maybe a bitfield?
 
 - natgen refactor
@@ -26,12 +40,16 @@
   - start regs sp at end to access top slightly more optimally?
     - need to flip all struct order etc.
   - reduce use of ElemType.
+  - once things are faster, test with https://github.com/kostya/benchmarks/
 
 - Add to docs:
   - As static as possible memory management: https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-908.pdf
   - V "autofree"
   - Serene: https://jamiemoschella.com/serene-ideas/mkdocs/site/index.html
+  - Koka/Perceus: https://www.microsoft.com/en-us/research/publication/perceus-garbage-free-reference-counting-with-reuse/
 - docs only show switch used as exp
+
+- should really have a way to test errors.
 
 - Detect this case:
     class Test:
@@ -2204,6 +2222,7 @@ C++64-MSVC            : secs  4.3, deeper inlining.
 C++64-MSVC            : secs  4.2, explicit stackptr.
 C++64-Clang10-LTO     : secs  3.3, explicit stackptr.
 C++64-MSVC+TCC        : secs 13.1, explicit stackptr.
+C++64-MSVC+TCC        : secs 12.1, newer VS updates?
 
 debug speed:
 

@@ -7,10 +7,10 @@ ColumnLimit: 100
 UseTab: Never
 AccessModifierOffset: 0
 AlignTrailingComments: true
-AllowShortBlocksOnASingleLine: true
-AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine : All
-AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine : Empty
+AllowShortLoopsOnASingleLine: false
 BinPackParameters: true
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 IndentCaseLabels: true
