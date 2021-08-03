@@ -191,6 +191,10 @@ endif()
 
 # Turn off warnings for files we don't control.
 set_source_files_properties(${EXTERNAL_SRCS} PROPERTIES COMPILE_FLAGS -w)
+if(CMAKE_COMPILER_IS_GNUCXX)
+  # surpress warnings from included stb file..
+  set_source_files_properties(src/sdlaudiosfxr.cpp PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
+endif()
 
 function(removecpp CPPNAME)
   list(REMOVE_ITEM LOBSTER_SRCS "src/${CPPNAME}.cpp")
