@@ -517,5 +517,7 @@ void SDLSetVolume(int ch, float vol) {
 
 // Implementation part of stb_vorbis.
 #undef STB_VORBIS_HEADER_ONLY
-#pragma warning(disable : 4244 4457 4245 4701)
+#ifdef _MSC_VER
+    #pragma warning(disable : 4244 4457 4245 4701)
+#endif
 #include "stb/stb_vorbis.c"
