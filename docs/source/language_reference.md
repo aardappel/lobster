@@ -36,7 +36,7 @@ Lexical definition
     for the first character).
 
 -   Keywords: `nil return class struct import int float string any void
-    def is from program private resource enum enum_flags typeof
+    def fn is from program private resource enum enum_flags typeof
     var let pakfile switch case default namespace not and or`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete

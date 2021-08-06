@@ -1074,7 +1074,7 @@ nfr("gl_light", "pos,params", "F}:3F}:2", "",
 
 nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
     "Renders a list of tiles from a tilemap. Each tile rendered is 1x1 in size."
-    " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
+    " Positions may be anywhere. tilecoords are indices into the map (0..mapsize-1), mapsize is"
     " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
     " Before calling this, make sure to have the texture set and a textured shader",
     [](StackPtr &sp, VM &vm) {
