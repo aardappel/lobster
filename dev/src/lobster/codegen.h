@@ -532,7 +532,7 @@ struct CodeGen  {
 
     void GenAssign(const Node *lval, ILOP lvalop, size_t retval,
                    const Node *rhs, int take_temp, bool post) {
-        assert(node_context.back()->exptype->NumValues() == retval);
+        assert(node_context.back()->exptype->NumValues() >= retval);
         auto type = lval->exptype;
         if (lvalop >= IL_LV_IADD && lvalop <= IL_LV_IMOD) {
             if (type->t == V_INT) {
