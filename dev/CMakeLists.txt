@@ -238,6 +238,9 @@ elseif(LOBSTER_JIT)
 endif()
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
 target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+if(CMAKE_BUILD_TYPE MATCHES RELEASE AND CMAKE_COMPILER_IS_GNUCXX)
+  target_link_libraries(${EXE_NAME} -static-libgcc -static-libstdc++)
+endif()
 if(LOBSTER_ENGINE)
   target_link_libraries(${EXE_NAME}
     ${SDL_LIBRARIES}
