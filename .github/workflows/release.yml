@@ -19,16 +19,16 @@ jobs:
       run: msbuild.exe lobster.sln /p:Configuration=Release /p:Platform=x64
     - name: test
       run: bin/lobster.exe tests/unittest.lobster
+    - name: Zip
+      uses: papeloto/action-zip@v1
+      with:
+        recursive: true
+        files: bin/ data/ docs/ modules/ samples/ tests/ README.md
+        dest: lobster_windows_release_${{ github.event.release.tag_name }}.zip
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
         name: Windows Release ${{ github.event.release.tag_name }}
         files: |
-          bin/*
-          data/*
-          docs/*
-          modules/*
-          samples/*
-          tests/*
-          README.md
+          lobster_windows_release_${{ github.event.release.tag_name }}.zip
