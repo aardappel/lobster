@@ -3725,19 +3725,26 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
 					_DEBUG,
 				);
+				HEADER_SEARCH_PATHS = (
+					../../external/freetype/include,
+					../../include,
+					../../external/SDL/include,
+				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = "../../src/ ../../external/imgui ../../external/SDLMixer ../../external/libtcc";
 			};
 			name = Debug;
 		};
@@ -3745,14 +3752,21 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
+				HEADER_SEARCH_PATHS = (
+					../../external/freetype/include,
+					../../include,
+					../../external/SDL/include,
+				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = "../../src/ ../../external/imgui ../../external/SDLMixer ../../external/libtcc";
 			};
 			name = Release;
 		};
@@ -3805,19 +3819,15 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					../../src/,
-					../../include,
-					../../external/imgui,
-					../../external/SDL/include,
 					../../external/freetype/include,
-					../../external/SDLMixer,
-					../../external/libtcc,
+					../../include,
+					../../external/SDL/include,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SYSTEM_HEADER_SEARCH_PATHS = /opt/X11/include;
-				USER_HEADER_SEARCH_PATHS = "../../include ../../src/";
+				USER_HEADER_SEARCH_PATHS = "../../src/ ../../external/imgui ../../external/SDLMixer ../../external/libtcc";
 				WARNING_CFLAGS = (
 					"-Wno-multichar",
 					"-Wno-array-bounds",
@@ -3869,18 +3879,14 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					../../src/,
-					../../include,
-					../../external/imgui,
-					../../external/SDL/include,
 					../../external/freetype/include,
-					../../external/SDLMixer,
-					../../external/libtcc,
+					../../include,
+					../../external/SDL/include,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				SDKROOT = macosx;
 				SYSTEM_HEADER_SEARCH_PATHS = /opt/X11/include;
-				USER_HEADER_SEARCH_PATHS = "../../include ../../src/";
+				USER_HEADER_SEARCH_PATHS = "../../src/ ../../external/imgui ../../external/SDLMixer ../../external/libtcc";
 				WARNING_CFLAGS = (
 					"-Wno-multichar",
 					"-Wno-array-bounds",
