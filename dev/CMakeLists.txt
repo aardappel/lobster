@@ -147,7 +147,10 @@ include_directories(include
                     external/SDLMixer
                     external/freetype/include
                     external/imgui
-                    external/libtcc)
+                    # include only for QUOTE includes: external/libtcc
+                    )
+# include only for QUOTE includes:
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -iquote external/libtcc")
 
 if(LOBSTER_ENGINE)
   find_package(OpenGL REQUIRED)
