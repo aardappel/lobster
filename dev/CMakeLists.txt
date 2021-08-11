@@ -150,7 +150,11 @@ include_directories(include
                     # include only for QUOTE includes: external/libtcc
                     )
 # include only for QUOTE includes:
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -iquote external/libtcc")
+if (CMAKE_GENERATOR MATCHES "Visual Studio")
+  include_directories(external/libtcc) # unless Visual Studio
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -iquote external/libtcc")
+endif()
 
 if(LOBSTER_ENGINE)
   find_package(OpenGL REQUIRED)
