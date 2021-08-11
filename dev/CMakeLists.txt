@@ -147,7 +147,14 @@ include_directories(include
                     external/SDLMixer
                     external/freetype/include
                     external/imgui
-                    external/libtcc)
+                    # include only for QUOTE includes: external/libtcc
+                    )
+# include only for QUOTE includes:
+if (CMAKE_GENERATOR MATCHES "Visual Studio")
+  include_directories(external/libtcc) # unless Visual Studio
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -iquote external/libtcc")
+endif()
 
 if(LOBSTER_ENGINE)
   find_package(OpenGL REQUIRED)
