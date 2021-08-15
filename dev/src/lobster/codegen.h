@@ -37,6 +37,7 @@ struct CodeGen  {
     vector<int> vtables;
     vector<ILOP> tstack;
     size_t tstack_max = 0;
+    int dummyfun = -1;
 
     int Pos() { return (int)code.size(); }
 
@@ -211,7 +212,7 @@ struct CodeGen  {
             vfloat_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
         for (auto f : parser.st.functiontable) {
             if (!f->istype) {
-                for (auto sf : f->overloads) for (; sf; sf = sf->next) {
+                for (auto &ov : f->overloads) for (auto sf = ov.sf; sf; sf = sf->next) {
                     if (sf->typechecked) {
                         // We only set this here, because any inlining of anonymous functions in
                         // the optimizers is likely to reduce the amount of vars for which this is
@@ -233,32 +234,38 @@ struct CodeGen  {
                     sids.push_back(bytecode::SpecIdent(sid->id->idx, tti, sid->used_as_freevar));
             }
         }
+
+        // Start of the actual bytecode.
         linenumbernodes.push_back(parser.root);
         EmitOp(IL_JUMP);
         Emit(0);
         auto fundefjump = Pos();
+
+        // Generate a dummmy function for function values that are never called.
+        // Would be good if the optimizer guarantees these don't exist, but for now this is
+        // more debuggable if it does happen to get called.
+        dummyfun = Pos();
+        EmitOp(IL_FUNSTART);
+        Emit(-1);  // funid
+        Emit(0);   // regs_max
+        Emit(0);
+        Emit(0);
+        Emit(0);   // keepvars
+        Emit(0);   // ownedvars
+        EmitOp(IL_ABORT);
+
+        // Generate all used functions.
         for (auto f : parser.st.functiontable) {
             if (f->bytecodestart <= 0 && !f->istype) {
                 f->bytecodestart = Pos();
-                for (auto sf : f->overloads) for (; sf; sf = sf->next) {
+                for (auto &ov : f->overloads) for (auto sf = ov.sf; sf; sf = sf->next) {
                     if (sf->typechecked) GenScope(*sf);
                 }
                 if (f->bytecodestart == Pos()) f->bytecodestart = 0;
             }
         }
-        // Generate a dummmy function for function values that are never called.
-        // Would be good if the optimizer guarantees these don't exist, but for now this is
-        // more debuggable if it does happen to get called.
-        auto dummyfun = Pos();
-        EmitOp(IL_FUNSTART);
-        Emit(-1); // funid
-        Emit(0);  // regs_max
-        Emit(0);
-        Emit(0);
-        Emit(0);  // keepvars
-        Emit(0);  // ownedvars
-        EmitOp(IL_ABORT);
-        // EmitOp the root function.
+
+        // Emit the root function.
         SetLabelNoBlockStart(fundefjump);
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
@@ -266,12 +273,16 @@ struct CodeGen  {
         EmitOp(IL_EXIT, int(return_value));
         Emit(return_value ? GetTypeTableOffset(type) : -1);
         linenumbernodes.pop_back();
+
+        // Fix up all calls.
         for (auto &[loc, sf] : call_fixups) {
             auto bytecodestart = sf->subbytecodestart;
-            if (!bytecodestart) bytecodestart = dummyfun;
+            if (!bytecodestart)
+                bytecodestart = dummyfun;
             assert(!code[loc]);
             code[loc] = bytecodestart;
         }
+
         // Now fill in the vtables.
         for (auto udt : st.udttable) {
             for (auto [i, de] : enumerate(udt->dispatch)) {
@@ -298,17 +309,17 @@ struct CodeGen  {
         tstack_max = 0;
         sf.subbytecodestart = Pos();
         if (!sf.typechecked) {
-            auto s = DumpNode(*sf.body, 0, false);
+            auto s = DumpNode(*sf.sbody, 0, false);
             LOG_DEBUG("untypechecked: ", sf.parent->name, " : ", s);
             assert(0);
         }
         vector<int> ownedvars;
-        linenumbernodes.push_back(sf.body);
+        linenumbernodes.push_back(sf.sbody);
         EmitOp(IL_FUNSTART);
         Emit(sf.parent->idx);
         auto regspos = Pos();
         Emit(0);
-        auto ret = AssertIs<Return>(sf.body->children.back());
+        auto ret = AssertIs<Return>(sf.sbody->children.back());
         auto ir = sf.consumes_vars_on_return ? AssertIs<IdentRef>(ret->child) : nullptr;
         auto emitvars = [&](const vector<Arg> &v) {
             auto nvarspos = Pos();
@@ -337,7 +348,7 @@ struct CodeGen  {
         // ownership of them.
         Emit((int)ownedvars.size());
         for (auto si : ownedvars) Emit(si);
-        if (sf.body) for (auto c : sf.body->children) {
+        if (sf.sbody) for (auto c : sf.sbody->children) {
             Gen(c, 0);
             if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
                 EmitOp(IL_ENDSTATEMENT);
@@ -367,7 +378,7 @@ struct CodeGen  {
     }
 
     void GenFixup(const SubFunction *sf) {
-        assert(sf->body);
+        assert(sf->sbody);
         auto pos = Pos() - 1;
         if (!code[pos]) call_fixups.push_back({ pos, sf });
     }
@@ -579,12 +590,12 @@ struct CodeGen  {
             GenLvalVar(*idr->sid);
             GenLvalRet(idr->sid->type);
         } else if (auto dot = Is<Dot>(lval)) {
-            auto stype = dot->children[0]->exptype;
+            auto stype = dot->child->exptype;
             assert(IsUDT(stype->t));  // Ensured by typechecker.
             auto idx = stype->udt->Has(dot->fld);
             assert(idx >= 0);
             auto &field = stype->udt->fields[idx];
-            Gen(dot->children[0], 1);
+            Gen(dot->child, 1);
             TakeTemp(take_temp + 1, true);
             EmitOp(IL_LVAL_FLD);
             Emit(field.slot);
@@ -753,13 +764,13 @@ struct CodeGen  {
                 GenPushVar(retval, ftype, idr->sid->Idx() + offset, idr->sid->used_as_freevar);
                 return;
             } else if (auto dot = Is<Dot>(object)) {
-                auto sstype = dot->children[0]->exptype;
+                auto sstype = dot->child->exptype;
                 assert(IsUDT(sstype->t));
                 auto idx = sstype->udt->Has(dot->fld);
                 assert(idx >= 0);
                 auto &field = sstype->udt->fields[idx];
                 assert(field.slot >= 0);
-                GenPushField(retval, dot->children[0], sstype, ftype, field.slot + offset);
+                GenPushField(retval, dot->child, sstype, ftype, field.slot + offset);
                 return;
             } else if (auto indexing = Is<Indexing>(object)) {
                 // For now only do this for vectors.
@@ -902,13 +913,13 @@ void IdentRef::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Dot::Generate(CodeGen &cg, size_t retval) const {
-    auto stype = children[0]->exptype;
+    auto stype = child->exptype;
     assert(IsUDT(stype->t));
     auto idx = stype->udt->Has(fld);
     assert(idx >= 0);
     auto &field = stype->udt->fields[idx];
     assert(field.slot >= 0);
-    cg.GenPushField(retval, children[0], stype, field.resolvedtype, field.slot);
+    cg.GenPushField(retval, child, stype, field.resolvedtype, field.slot);
 }
 
 void Indexing::Generate(CodeGen &cg, size_t retval) const {
@@ -1133,12 +1144,13 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
     // If no body, then the function has been optimized away, meaning this
     // function value will never be used.
     // FIXME: instead, ensure such values are removed by the optimizer.
-    if (sf->parent->anonymous && sf->body) {
+    if (sf->parent->anonymous && sf->sbody) {
         cg.EmitOp(IL_PUSHFUN);
         cg.Emit(sf->subbytecodestart);
         cg.GenFixup(sf);
     } else {
-        cg.Dummy(retval);
+        cg.EmitOp(IL_PUSHFUN);
+        cg.Emit(cg.dummyfun);
     }
 }
 
@@ -1378,7 +1390,7 @@ void While::Generate(CodeGen &cg, size_t retval) const {
     cg.Emit(0);
     auto jumpout = cg.Pos();
     auto break_level = cg.breaks.size();
-    cg.Gen(body, 0);
+    cg.Gen(wbody, 0);
     cg.loops.pop_back();
     cg.EmitOp(IL_JUMP);
     cg.Emit(loopback);
@@ -1404,7 +1416,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
         default:         assert(false);
     }
     auto exitloop = cg.Pos();
-    cg.Gen(body, 0);
+    cg.Gen(fbody, 0);
     cg.EmitOp(IL_JUMP);
     cg.Emit(startloop);
     cg.SetLabel(exitloop);
@@ -1522,7 +1534,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         cg.SetLabels(thiscase);
         cg.GenPop(valtlt);
         cg.TakeTemp(1, false);
-        cg.Gen(cas->body, retval);
+        cg.Gen(cas->cbody, retval);
         if (retval) cg.TakeTemp(1, true);
         bs.End();
         if (n != cases->children.back() || !have_default) {
@@ -1599,7 +1611,7 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
         }
         if (cas->pattern->children.empty()) default_pos = cg.Pos();
         cg.EmitOp(IL_JUMP_TABLE_CASE_START);
-        cg.Gen(cas->body, retval);
+        cg.Gen(cas->cbody, retval);
         if (retval) cg.TakeTemp(1, true);
         bs.End();
         if (n != cases->children.back()) {

@@ -60,13 +60,14 @@ struct Parser {
         auto sf = st.FunctionScopeStart();
         st.toplevel = sf;
         auto &f = st.CreateFunction("__top_level_expression");
-        f.overloads.push_back(nullptr);
-        sf->SetParent(f, f.overloads[0]);
+        f.overloads.emplace_back(Overload {});
+        auto &ov = f.overloads[0];
+        sf->SetParent(f, ov.sf);
         f.anonymous = true;
         lex.Include("stdtype.lobster");
-        sf->body = new Block(lex);
-        ParseStatements(sf->body, T_ENDOFFILE);
-        ImplicitReturn(sf);
+        ov.gbody = new Block(lex);
+        ParseStatements(ov.gbody, T_ENDOFFILE);
+        ImplicitReturn(ov);
         st.FunctionScopeCleanup();
         root = new Call(lex, sf);
         assert(forwardfunctioncalls.empty());
@@ -417,16 +418,16 @@ struct Parser {
         return ParseFunction(&idname, isprivate, true, true, self);
     }
 
-    void ImplicitReturn(SubFunction *sf) {
+    void ImplicitReturn(Overload &ov) {
         // Anonymous functions and one-liners have an implicit return value.
-        auto &stats = sf->body->children;
+        auto &stats = ov.gbody->children;
         if (!Is<Return>(stats.back())) {
             // Conversely, if named functions have no return at the end, we should
             // ensure any value accidentally available gets ignored and does not become a return
             // value.
-            auto make_void = !sf->parent->anonymous;
+            auto make_void = !ov.sf->parent->anonymous;
             // All function bodies end in return, simplifying code downstream.
-            stats.back() = new Return(stats.back()->line, stats.back(), sf, make_void);
+            stats.back() = new Return(stats.back()->line, stats.back(), ov.sf, make_void);
         }
     }
 
@@ -542,8 +543,8 @@ struct Parser {
             }
         }
         // Create the overload.
-        f.overloads.push_back(nullptr);
-        sf->SetParent(f, f.overloads.back());
+        f.overloads.emplace_back(Overload {});
+        sf->SetParent(f, f.overloads.back().sf);
         // Check if there's any overlap in default argument ranges.
         auto ff = st.GetFirstFunction(f.name);
         while (ff) {
@@ -595,9 +596,10 @@ struct Parser {
         }
         // Parse the body.
         if (!f.istype) {
-            sf->body = new Block(lex);
-            ParseBody(sf->body, -1);
-            ImplicitReturn(sf);
+            auto block = new Block(lex);
+            f.overloads.back().gbody = block;
+            ParseBody(block, -1);
+            ImplicitReturn(f.overloads.back());
         }
         if (name) functionstack.pop_back();
         if (non_inline_method) st.bound_typevars_stack.pop_back();
@@ -630,7 +632,7 @@ struct Parser {
             case T_IDENT: {
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {
-                    dest = &f->overloads[0]->thistype;
+                    dest = &f->overloads[0].sf->thistype;
                     lex.Next();
                     break;
                 }
@@ -735,11 +737,11 @@ struct Parser {
                         Error("function ", Q(lastid),
                               " must have single implementation to be used with ",
                               Q("return from"));
-                    sf = f->overloads[0];
+                    sf = f->overloads[0].sf;
                 }
             } else {
                 if (functionstack.size())
-                    sf = functionstack.back()->overloads.back();
+                    sf = functionstack.back()->overloads.back().sf;
             }
             return new Return(lex, rv, sf, false);
         } else if (IsNext(T_BREAK)) {
@@ -763,7 +765,7 @@ struct Parser {
     }
 
     void CheckOpEq(Node *e) {
-        if (!Is<IdentRef>(e) && !Is<Indexing>(e) && !Is<GenericCall>(e))
+        if (!Is<IdentRef>(e) && !Is<Indexing>(e) && !Is<GenericCall>(e) && !Is<Dot>(e))
             Error("illegal left hand side of assignment");
         Modify(e);
         lex.Next();
@@ -904,7 +906,7 @@ struct Parser {
         // - we're calling a known function in a :: context.
         // - we have more args than the builtin, and a matching function.
         if (nf &&
-            (!f || !wse.id || (f->overloads.size() == 1 && !f->overloads[0]->method_of)) &&
+            (!f || !wse.id || (f->overloads.size() == 1 && !f->overloads[0].sf->method_of)) &&
             (!f || list.size() <= nf->args.size() || list.size() != f->nargs())) {
             auto nc = new GenericCall(lex, idname, nullptr, false, false, specializers);
             nc->children = list;
@@ -915,7 +917,7 @@ struct Parser {
                         nc->Add(new DefaultVal(lex));
                     } else {
                         auto nargs = nc->Arity();
-                        for (auto ol = nf->overloads; ol; ol = ol->overloads) {
+                        for (auto &ol = nf->overloads; ol; ol = ol->overloads) {
                             // Typechecker will deal with it.
                             if (ol->args.size() == nargs) goto argsok;
                         }
@@ -937,7 +939,7 @@ struct Parser {
                 SelfArg(f, wse, call->Arity(), call);
             }
             f = FindFunctionWithNargs(f, call, idname, nullptr);
-            call->sf = f->overloads.back();
+            call->sf = f->overloads.back().sf;
             return call;
         }
         if (noparens) Error("call requires ()");
@@ -962,8 +964,8 @@ struct Parser {
         // If we're in the context of a withtype, calling a function that starts with an
         // arg of the same type we pass it in automatically.
         // This is maybe a bit very liberal, should maybe restrict it?
-        for (auto sf : f->overloads) {
-            auto &arg0 = sf->args[0];
+        for (auto &ov : f->overloads) {
+            auto &arg0 = ov.sf->args[0];
             if (arg0.type->t == V_UUDT &&
                 st.SuperDistance(arg0.type->spec_udt->udt, wse.udt) >= 0 &&
                 arg0.withtype) {
@@ -1003,7 +1005,7 @@ struct Parser {
                         SelfArg(f, ffc->wse, ffc->n->Arity(), ffc->n);
                     }
                     ffc->n->sf = FindFunctionWithNargs(f,
-                        ffc->n, ffc->n->name, ffc->n)->overloads.back();
+                        ffc->n, ffc->n->name, ffc->n)->overloads.back().sf;
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 } else {
@@ -1034,7 +1036,7 @@ struct Parser {
                 if (fld || f || nf) {
                     if (fld && lex.token != T_LEFTPAREN) {
                         auto dot = new GenericCall(lex, idname,
-                                                   f ? f->overloads.back() : nullptr,
+                                                   f ? f->overloads.back().sf : nullptr,
                                                    true, false, nullptr);
                         dot->Add(n);
                         n = dot;
@@ -1106,7 +1108,7 @@ struct Parser {
                     } else {
                         // We start with an exp, but we have to force this to be a string to ensure
                         // all subsequent Plus ops are string concats.
-                        auto call = new GenericCall(lex, "string", nullptr, false, false, nullptr);
+                        auto call = new NativeCall(natreg.FindNative("string"), lex);
                         call->children.push_back(e);
                         si = call;
                     }
@@ -1441,11 +1443,11 @@ struct Parser {
                     if (st.defsubfunctionstack.size() <= 1)
                         Error("cannot add implicit argument ", Q(idname), " to top level");
                     if (!sf->parent->anonymous)
-                        ErrorAt(sf->body, "cannot use implicit argument ", Q(idname),
-                                          " in named function ", Q(sf->parent->name));
+                        Error("cannot use implicit argument ", Q(idname),
+                              " in named function ", Q(sf->parent->name));
                     if (sf->args[0].sid->id->name[0] != '_')
-                        ErrorAt(sf->body, "cannot mix implicit argument ", Q(idname),
-                                          " with declared arguments in function");
+                        Error("cannot mix implicit argument ", Q(idname),
+                              " with declared arguments in function");
                     if (st.defsubfunctionstack.back()->args.back().type->Equal(*type_any))
                         GenImplicitGenericForLastArg();
                 }
@@ -1479,9 +1481,7 @@ struct Parser {
         Ident *id = nullptr;
         auto fld = st.LookupWithStruct(idname, lex, id);
         if (fld) {
-            auto dot = new GenericCall(lex, idname, nullptr, true, false, nullptr);
-            dot->Add(new IdentRef(lex, id->cursid));
-            return dot;
+            return new Dot(fld, lex, new IdentRef(lex, id->cursid));
         }
         // It's likely a regular variable.
         id = st.Lookup(idname);
@@ -1528,19 +1528,19 @@ struct Parser {
     string DumpAll(bool onlytypechecked = false) {
         string s;
         for (auto f : st.functiontable) {
-            for (auto sf : f->overloads) {
-                for (; sf; sf = sf->next) {
-                    if (!onlytypechecked || sf->typechecked) {
-                        s += "FUNCTION: " + f->name + "(";
-                        for (auto &arg : sf->args) {
-                            s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
-                        }
-                        s += ") -> ";
-                        s += TypeName(sf->returntype);
-                        s += "\n";
-                        if (sf->body) s += DumpNode(*sf->body, 4, false);
-                        s += "\n\n";
+            for (auto &ov : f->overloads) {
+                auto sf = ov.sf;
+                assert(!sf->next);
+                if (!onlytypechecked || sf->typechecked) {
+                    s += "FUNCTION: " + f->name + "(";
+                    for (auto &arg : sf->args) {
+                        s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
                     }
+                    s += ") -> ";
+                    s += TypeName(sf->returntype);
+                    s += "\n";
+                    if (ov.gbody) s += DumpNode(*ov.gbody, 4, false);
+                    s += "\n\n";
                 }
             }
         }

@@ -268,12 +268,12 @@ COER_NODE(ToInt, "toint", )
 NARY_NODE(Block, "block", false, RETURNSMETHOD)
 BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, OPTMETHOD)
 TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, OPTMETHOD RETURNSMETHOD)
-BINARY_NODE_T(While, "while", false, Node, condition, Block, body, RETURNSMETHOD)
-BINARY_NODE_T(For, "for", false, Node, iter, Block, body, )
+BINARY_NODE_T(While, "while", false, Node, condition, Block, wbody, RETURNSMETHOD)
+BINARY_NODE_T(For, "for", false, Node, iter, Block, fbody, )
 ZERO_NODE(ForLoopElem, "for loop element", false, )
 ZERO_NODE(ForLoopCounter, "for loop counter", false, )
 BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, RETURNSMETHOD bool GenerateJumpTable(CodeGen &cg, size_t retval) const;)
-BINARY_NODE_T(Case, "case", false, List, pattern, Node, body, )
+BINARY_NODE_T(Case, "case", false, List, pattern, Node, cbody, )
 BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD)
 
@@ -402,18 +402,19 @@ struct Constructor : List {
     OPTMETHOD
 };
 
-struct Call : GenericCall {
+struct Call : List {
     int vtable_idx = -1;
+    SubFunction *sf;
+    vector<UnresolvedTypeRef> specializers;
+    bool super;
     explicit Call(GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, gc.super, &gc.specializers) {};
-    Call(Line &ln, SubFunction *sf)
-        : GenericCall(ln, sf->parent->name, sf, false, false, nullptr) {};
+        : List(gc.line), sf(gc.sf), specializers(gc.specializers), super(gc.super) {};
+    Call(Line &ln, SubFunction *sf) : List(ln), sf(sf) {};
     void Dump(string &sd) const { sd += sf->parent->name; }
-    void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     bool EqAttr(const Node *o) const {
         return sf == ((Call *)o)->sf && vtable_idx == ((Call *)o)->vtable_idx;
     }
-    SHARED_SIGNATURE_NO_TT(Call, "call", true)
+    SHARED_SIGNATURE(Call, "call", true)
     OPTMETHOD
     RETURNSMETHOD
 };
@@ -431,21 +432,18 @@ struct DynCall : List {
     OPTMETHOD
 };
 
-struct NativeCall : GenericCall {
+struct NativeCall : List {
     NativeFun *nf;
     TypeRef nattype = nullptr;
     Lifetime natlt = LT_UNDEF;
-    NativeCall(NativeFun *_nf, GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, gc.super, &gc.specializers),
-          nf(_nf) {};
+    NativeCall(NativeFun *_nf, Line &line) : List(line), nf(_nf){};
     void Dump(string &sd) const { sd += nf->name; }
-    void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     bool EqAttr(const Node *o) const {
         return nf == ((NativeCall *)o)->nf &&
                nattype->Equal(*((NativeCall *)o)->nattype) &&
                natlt == ((NativeCall *)o)->natlt;
     }
-    SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
+    SHARED_SIGNATURE(NativeCall, "native call", true)
     RETURNSMETHOD
 };
 
@@ -486,17 +484,15 @@ struct Define : Unary {
     SHARED_SIGNATURE(Define, "var", true)
 };
 
-struct Dot : GenericCall {
+struct Dot : Unary {
     SharedField *fld;  // FIXME
-    Dot(SharedField *_fld, GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, gc.super, &gc.specializers),
-          fld(_fld) {}
+    Dot(SharedField *_fld, Line &ln, Node *child) : Unary(ln, child), fld(_fld) {}
+    Dot(SharedField *_fld, GenericCall &gc) : Unary(gc.line, gc.children[0]), fld(_fld) {}
     void Dump(string &sd) const { append(sd, Name(), fld->name); }
-    void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     bool EqAttr(const Node *o) const {
         return fld == ((Dot *)o)->fld;
     }
-    SHARED_SIGNATURE_NO_TT(Dot, TName(T_DOT), false)
+    SHARED_SIGNATURE(Dot, TName(T_DOT), false)
 };
 
 struct IsType : Unary {

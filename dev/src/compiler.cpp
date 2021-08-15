@@ -457,7 +457,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uin
     return 0;
 }
 
-SubFunction::~SubFunction() { delete body; }
+SubFunction::~SubFunction() { if (sbody) delete sbody; }
 
 Field::~Field() { delete defaultval; }
 
@@ -468,6 +468,10 @@ Field::Field(const Field &o)
 
 Function::~Function() {
     for (auto da : default_args) delete da;
+}
+
+Overload::~Overload() {
+    delete gbody;
 }
 
 bool SpecUDT::Equal(const SpecUDT &o) const {

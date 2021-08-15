@@ -714,8 +714,8 @@ template<typename T> reversion_wrapper<T> reverse(T &&iterable) { return { itera
 // Stops a class from being accidental victim to default copy + destruct twice problem.
 
 class NonCopyable        {
-    NonCopyable(const NonCopyable&);
-    const NonCopyable& operator=(const NonCopyable&);
+    NonCopyable(const NonCopyable&) = delete;
+    const NonCopyable& operator=(const NonCopyable&) = delete;
 
 protected:
     NonCopyable() {}

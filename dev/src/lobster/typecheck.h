@@ -23,7 +23,7 @@ struct LValContext {
         auto t = &n;
         while (auto dot = Is<Dot>(t)) {
             derefs.insert(derefs.begin(), dot->fld);
-            t = dot->children[0];
+            t = dot->child;
         }
         auto idr = Is<IdentRef>(t);
         sid = idr ? idr->sid : nullptr;
@@ -160,7 +160,7 @@ struct TypeChecker {
                 if (scope.sf == st.toplevel) continue;
                 err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
                 err += SignatureWithFreeVars(*scope.sf, &already_seen);
-                for (auto dl : scope.sf->body->children) {
+                for (auto dl : scope.sf->sbody->children) {
                     if (auto def = Is<Define>(dl)) {
                         for (auto p : def->sids) {
                             err += ", " + p.first->id->name + ":" + TypeName(p.first->type);
@@ -431,7 +431,11 @@ struct TypeChecker {
                         sf->reqret = ss->reqret;
                     }
                     sf->isdynamicfunctionvalue = true;
-                    TypeCheckFunctionDef(*sf, *sf->body);
+                    assert(sf->freevarchecked);  // Must have been pre-specialized.
+                    // FIXME: shouldn't all functions arriving here already have
+                    // been cloned by PreSpecializeFunction? Move clone there?
+                    if (!sf->sbody) sf = CloneFunction(sf->parent->overloads[0]);
+                    TypeCheckFunctionDef(*sf, *sf->sbody);
                     // Covariant again.
                     if (sf->returntype->NumValues() != ss->returntype->NumValues() ||
                         !ConvertsTo(sf->returntype, ss->returntype, CF_UNIFICATION))
@@ -810,11 +814,11 @@ struct TypeChecker {
             : type_void;
         auto start_borrowed_vars = borrowstack.size();
         auto start_promoted_vars = flowstack.size();
-        sf.body->TypeCheck(*this, 0);
+        sf.sbody->TypeCheck(*this, 0);
         CleanUpFlow(start_promoted_vars);
         if (!sf.num_returns) {
             if (!sf.returngiventype.utr.Null() && sf.returngiventype.utr->t != V_VOID)
-                Error(*sf.body->children.back(), "missing return statement");
+                Error(*sf.sbody->children.back(), "missing return statement");
             sf.returntype = type_void;
         }
         // Let variables go out of scope in reverse order of declaration.
@@ -826,7 +830,7 @@ struct TypeChecker {
         while (borrowstack.size() > start_borrowed_vars) {
             auto &b = borrowstack.back();
             if (b.refc) {
-                Error(*sf.body->children.back(),
+                Error(*sf.sbody->children.back(),
                       "variable ", Q(b.Name()), " still has ", b.refc, " borrowers");
             }
             borrowstack.pop_back();
@@ -863,19 +867,26 @@ struct TypeChecker {
         return true;
     }
 
-    SubFunction *CloneFunction(SubFunction *csf, int i) {
-        LOG_DEBUG("cloning: ", csf->parent->name);
+    SubFunction *CloneFunction(Overload &ov) {
+        auto esf = ov.sf;
+        LOG_DEBUG("cloning: ", esf->parent->name);
+        auto sbody = AssertIs<Block>(ov.gbody->Clone());
+        if (!esf->sbody) {
+            esf->sbody = sbody;
+            return esf;
+        }
         auto sf = st.CreateSubFunction();
-        sf->SetParent(*csf->parent, csf->parent->overloads[i]);
-        // Any changes here make sure this corresponds what happens in Inline() in the optimizer.
-        st.CloneIds(*sf, *csf);
-        sf->body = AssertIs<Block>(csf->body->Clone());
+        sf->SetParent(*esf->parent, ov.sf);
+        sf->sbody = sbody;
+        // Any changes here make sure this corresponds what happens in Inline() in the
+        // optimizer.
+        st.CloneIds(*sf, *esf);
         sf->freevarchecked = true;
-        sf->returngiventype = csf->returngiventype;
-        sf->returntype = csf->returntype;
-        sf->method_of = csf->method_of;
-        sf->generics = csf->generics;
-        sf->giventypes = csf->giventypes;
+        sf->returngiventype = esf->returngiventype;
+        sf->returntype = esf->returntype;
+        sf->method_of = esf->method_of;
+        sf->generics = esf->generics;
+        sf->giventypes = esf->giventypes;
         sf->returned_thru_to = nullptr;
         return sf;
     }
@@ -1109,7 +1120,7 @@ struct TypeChecker {
                                 bool static_dispatch, bool first_dynamic) {
         STACK_PROFILE;
         Function &f = *sf->parent;
-        sf = f.overloads[overload_idx];
+        sf = f.overloads[overload_idx].sf;
         // Collect generic type values.
         vector<BoundTypeVariable> generics = sf->generics;
         for (auto &btv : generics) btv.resolvedtype = nullptr;
@@ -1131,7 +1142,7 @@ struct TypeChecker {
             return arg.sid->id->single_assignment;
         };
         // Check if any existing specializations match.
-        for (sf = f.overloads[overload_idx]; sf; sf = sf->next) {
+        for (sf = f.overloads[overload_idx].sf; sf; sf = sf->next) {
             if (sf->typechecked && !sf->mustspecialize) {
                 // We check against f.nargs because HOFs are allowed to call a function
                 // value with more arguments than it needs (if we're called from
@@ -1165,10 +1176,8 @@ struct TypeChecker {
                 fail:;
             }
         }
-        // No match.
-        sf = f.overloads[overload_idx];
-        // Specialize existing function, or its clone.
-        if (sf->typechecked) sf = CloneFunction(sf, overload_idx);
+        // No match, make new specialization.
+        sf = CloneFunction(f.overloads[overload_idx]);
         // Now specialize.
         sf->reqret = reqret;
         sf->generics = generics;
@@ -1246,9 +1255,9 @@ struct TypeChecker {
             for (auto sub : dispatch_udt.subudts) {
                 int best = -1;
                 int bestdist = -1;
-                for (auto [i, sf] : enumerate(csf->parent->overloads)) {
-                    if (sf->method_of) {
-                        auto sdist = st.SuperDistance(sf->method_of, sub->first);
+                for (auto [i, ov] : enumerate(csf->parent->overloads)) {
+                    if (ov.sf->method_of) {
+                        auto sdist = st.SuperDistance(ov.sf->method_of, sub->first);
                         if (sdist >= 0 && (best < 0 || bestdist >= sdist)) {
                             if (bestdist == sdist)
                                 Error(call_args, "more than implementation of ", Q(f.name),
@@ -1279,7 +1288,7 @@ struct TypeChecker {
                 while ((int)dt.size() < vtable_idx) dt.push_back({});
                 dt.push_back({ overload_idxs[i].first < 0
                                 ? nullptr
-                                : csf->parent->overloads[overload_idxs[i].first] });
+                                : csf->parent->overloads[overload_idxs[i].first].sf });
             }
             // FIXME: if any of the overloads below contain recursive calls, it may run into
             // issues finding an existing dispatch above? would be good to guarantee..
@@ -1315,10 +1324,10 @@ struct TypeChecker {
                 if (sf->isrecursivelycalled) any_recursive = true;
                 if (sf->returned_thru_to) {
                     if (any_returned_thru && any_returned_thru != sf->returned_thru_to) {
-                        Error(*sf->body, "non-local return through dynamic dispatch of ",
-                                         Q(sf->parent->name), " to both ",
-                                         Q(any_returned_thru->parent->name), " and ",
-                                         Q(sf->returned_thru_to->parent->name));
+                        Error(*sf->sbody, "non-local return through dynamic dispatch of ",
+                                          Q(sf->parent->name), " to both ",
+                                          Q(any_returned_thru->parent->name), " and ",
+                                          Q(sf->returned_thru_to->parent->name));
                     }
                     any_returned_thru = sf->returned_thru_to;
                 }
@@ -1327,10 +1336,10 @@ struct TypeChecker {
                     // FIXME: can this still happen now that recursive cases use explicit return
                     // types? If not change into assert?
                     if (!ConvertsTo(u, de->returntype, CF_UNIFICATION))
-                        Error(*sf->body, "dynamic dispatch for ", Q(f.name),
-                                         " return value type ", Q(TypeName(sf->returntype)),
-                                         " doesn\'t match other case returning ",
-                                         Q(TypeName(de->returntype)));
+                        Error(*sf->sbody, "dynamic dispatch for ", Q(f.name),
+                                          " return value type ", Q(TypeName(sf->returntype)),
+                                          " doesn\'t match other case returning ",
+                                          Q(TypeName(de->returntype)));
                 } else {
                     if (i) {
                         // We have to be able to take the union of all retvals without
@@ -1402,7 +1411,8 @@ struct TypeChecker {
                 type0 = &dispatch_udt->resolved_superclass->thistype;
             } else {
                 // Go thru all other overloads, and see if any of them have this one as superclass.
-                for (auto isf : csf->parent->overloads) {
+                for (auto &ov : csf->parent->overloads) {
+                    auto isf = ov.sf;
                     if (isf->method_of && st.SuperDistance(dispatch_udt, isf->method_of) > 0) {
                         LOG_DEBUG("dynamic dispatch: ", Signature(*isf));
                         return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
@@ -1423,8 +1433,8 @@ struct TypeChecker {
         if (f.nargs() && f.overloads.size() > 1) {
             overload_idx = -1;
             // First see if there is an exact match.
-            for (auto [i, isf] : enumerate(f.overloads)) {
-                if (type0->Equal(*isf->args[0].type)) {
+            for (auto [i, ov] : enumerate(f.overloads)) {
+                if (type0->Equal(*ov.sf->args[0].type)) {
                     if (overload_idx >= 0)
                         Error(call_args, "multiple overloads for ", Q(f.name),
                                          " have the same first argument type ", Q(TypeName(type0)));
@@ -1433,8 +1443,8 @@ struct TypeChecker {
             }
             // Then see if there's a match if we'd instantiate a generic UDT  first arg.
             if (overload_idx < 0 && IsUDT(type0->t)) {
-                for (auto [i, isf] : enumerate(f.overloads)) {
-                    auto arg0 = isf->giventypes[0].utr;  // Want unresolved type.
+                for (auto [i, ov] : enumerate(f.overloads)) {
+                    auto arg0 = ov.sf->giventypes[0].utr;  // Want unresolved type.
                     if (arg0->t == V_UUDT && arg0->spec_udt->udt == type0->udt->first) {
                         if (overload_idx >= 0) {
                             Error(call_args, "multiple generic overloads for ", Q(f.name),
@@ -1447,12 +1457,12 @@ struct TypeChecker {
             }
             // Then see if there's a match by subtyping.
             if (overload_idx < 0) {
-                for (auto [i, isf] : enumerate(f.overloads)) {
-                    auto arg0 = isf->args[0].type;
+                for (auto [i, ov] : enumerate(f.overloads)) {
+                    auto arg0 = ov.sf->args[0].type;
                     if (ConvertsTo(type0, arg0, CF_NONE)) {
                         if (overload_idx >= 0) {
                             if (type0->t == V_CLASS) {
-                                auto oarg0 = f.overloads[overload_idx]->args[0].type;
+                                auto oarg0 = f.overloads[overload_idx].sf->args[0].type;
                                 // Prefer "closest" supertype.
                                 auto dist = st.SuperDistance(arg0->udt, type0->udt);
                                 auto odist = st.SuperDistance(oarg0->udt, type0->udt);
@@ -1476,8 +1486,8 @@ struct TypeChecker {
             }
             // Then see if there's a match if we'd instantiate a fully generic first arg.
             if (overload_idx < 0) {
-                for (auto [i, isf] : enumerate(f.overloads)) {
-                    auto arg0 = isf->giventypes[0].utr;  // Want unresolved type.
+                for (auto [i, ov] : enumerate(f.overloads)) {
+                    auto arg0 = ov.sf->giventypes[0].utr;  // Want unresolved type.
                     if (arg0->t == V_TYPEVAR) {
                         if (overload_idx >= 0) {
                             Error(call_args, "multiple generic overloads for ", Q(f.name),
@@ -1498,14 +1508,14 @@ struct TypeChecker {
                     btv.resolvedtype = nullptr;
                     btv.giventype = specializers->at(i);
                 }
-                for (auto [i, isf] : enumerate(f.overloads)) {
-                    if (generics.size() != isf->generics.size()) continue;
+                for (auto [i, ov] : enumerate(f.overloads)) {
+                    if (generics.size() != ov.sf->generics.size()) continue;
                     for (auto [i, btv] : enumerate(generics)) {
-                        btv.tv = isf->generics[i].tv;
+                        btv.tv = ov.sf->generics[i].tv;
                         btv.Resolve(ResolveTypeVars(btv.giventype, &call_args));
                     }
                     st.bound_typevars_stack.push_back(&generics);
-                    auto arg0 = ResolveTypeVars(isf->giventypes[0], &call_args);
+                    auto arg0 = ResolveTypeVars(ov.sf->giventypes[0], &call_args);
                     st.bound_typevars_stack.pop_back();
                     // TODO: Should we instead do ConvertsTo here?
                     if (type0->Equal(*arg0)) {
@@ -1519,8 +1529,8 @@ struct TypeChecker {
             }
             // Then finally try with coercion.
             if (overload_idx < 0) {
-                for (auto [i, isf] : enumerate(f.overloads)) {
-                    if (ConvertsTo(type0, isf->args[0].type, CF_COERCIONS)) {
+                for (auto [i, ov] : enumerate(f.overloads)) {
+                    if (ConvertsTo(type0, ov.sf->args[0].type, CF_COERCIONS)) {
                         if (overload_idx >= 0) {
                             Error(call_args, "multiple overloads for ", Q(f.name),
                                              " can coerce to first argument type ",
@@ -1534,7 +1544,7 @@ struct TypeChecker {
                 Error(call_args, "no overloads apply for ", Q(f.name), " with first argument type ",
                                  Q(TypeName(type0)));
         }
-        LOG_DEBUG("static dispatch: ", Signature(*f.overloads[overload_idx]));
+        LOG_DEBUG("static dispatch: ", Signature(*f.overloads[overload_idx].sf));
         return TypeCheckCallStatic(csf, call_args, reqret, specializers,
                                    overload_idx, true, false);
     }
@@ -1543,14 +1553,14 @@ struct TypeChecker {
         // Don't pre-specialize named functions, because this is not their call-site.
         if (!hsf->parent->anonymous) return hsf;
         assert(hsf->parent->overloads.size() == 1);
-        hsf = hsf->parent->overloads[0];
+        hsf = hsf->parent->overloads[0].sf;
         auto sf = hsf;
         if (sf->freevarchecked) {
             // See if there's an existing match.
             for (; sf; sf = sf->next) if (sf->freevarchecked) {
                 if (FreeVarsSameAsCurrent(*sf, true)) return sf;
             }
-            sf = CloneFunction(hsf, 0);
+            sf = CloneFunction(hsf->parent->overloads[0]);
         } else {
             // First time this function has ever been touched.
             sf->freevarchecked = true;
@@ -1584,12 +1594,12 @@ struct TypeChecker {
         return { type, fspec->ltret };
     }
 
-    TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *body, size_t reqret) {
+    TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *block, size_t reqret) {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
         assert(reqret <= 1);
-        body->TypeCheck(*this, reqret);
+        block->TypeCheck(*this, reqret);
         CleanUpFlow(flowstart);
-        return body->exptype;
+        return block->exptype;
     }
 
     void CheckFlowTypeIdOrDot(const Node &n, TypeRef type) {
@@ -1734,7 +1744,6 @@ struct TypeChecker {
         // only_true_type supports patterns like ((a & b) | c) where the type of a doesn't matter,
         // and the overal type should be the union of b and c.
         // Or a? | b, which should also be the union of a and b.
-        n = RemoveCoercions(n);
         if (!Is<And>(n) && !Is<Or>(n)) {
             TT(n, reqret, LT_ANY);
             NoStruct(*n, "and / or");
@@ -1759,7 +1768,7 @@ struct TypeChecker {
 
     void CheckLval(Node *n) {
         if (auto dot = Is<Dot>(n)) {
-            auto type = dot->children[0]->exptype;
+            auto type = dot->child->exptype;
             if (IsStruct(type->t))
                 Error(*n, "cannot write to field of value ", Q(type->udt->name));
         }
@@ -1870,22 +1879,10 @@ struct TypeChecker {
         return c ? SkipCoercions(c->child) : n;
     }
 
-    Node *RemoveCoercions(Node *n) {
-        auto c = IsCoercion(n);
-        return c ? RemoveCoercions(DeleteCoercion((Coercion *)c)) : n;
-    }
-
-    Node *DeleteCoercion(Coercion *c) {
-        auto ch = c->child;
-        c->child = nullptr;
-        delete c;
-        return ch;
-    }
-
     Lifetime LvalueLifetime(const Node &lval, bool deref) {
         if (auto idr = Is<IdentRef>(lval)) return idr->sid->lt;
         if (deref) {
-            if (auto dot = Is<Dot>(lval)) return LvalueLifetime(*dot->children[0], deref);
+            if (auto dot = Is<Dot>(lval)) return LvalueLifetime(*dot->child, deref);
             if (auto idx = Is<Indexing>(lval)) return LvalueLifetime(*idx->object, deref);
         }
         return LT_KEEP;
@@ -2112,7 +2109,7 @@ struct TypeChecker {
         vector<Pair> funstats;
         for (auto f : st.functiontable) funstats.push_back({ 0, f });
         for (auto sf : st.subfunctiontable) {
-            auto count = sf->body ? sf->body->Count() : 0;
+            auto count = sf->sbody ? sf->sbody->Count() : 0;
             if (!sf->next)        {
                 origsf++;
                 orignodes += count;
@@ -2127,7 +2124,7 @@ struct TypeChecker {
         sort(funstats.begin(), funstats.end(),
             [](const Pair &a, const Pair &b) { return a.first > b.first; });
         for (auto &[fsize, f] : funstats) if (fsize > orignodes / 100) {
-            auto &pos = f->overloads.back()->body->line;
+            auto &pos = f->overloads.back().sf->sbody->line;
             LOG_INFO("Most clones: ", f->name, " (", st.filenames[pos.fileidx], ":", pos.line,
                      ") -> ", fsize, " nodes accross ", f->NumSubf() - f->overloads.size(),
                      " clones (+", f->overloads.size(), " orig)");
@@ -2224,7 +2221,7 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret) {
 Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TypeCheckCondition(condition, this, "while");
     tc.scopes.back().loop_count++;
-    tc.TypeCheckBranch(true, condition, body, 0);
+    tc.TypeCheckBranch(true, condition, wbody, 0);
     tc.scopes.back().loop_count--;
     exptype = type_void;
     lt = LT_ANY;
@@ -2243,13 +2240,13 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         itertype = itertype->Element();
     else tc.Error(*this, Q("for"), " can only iterate over int / string / vector, not ",
                          Q(TypeName(itertype)));
-    auto def = Is<Define>(body->children[0]);
+    auto def = Is<Define>(fbody->children[0]);
     if (def) {
         auto fle = Is<ForLoopElem>(def->child);
         if (fle) fle->exptype = itertype;
     }
     tc.scopes.back().loop_count++;
-    body->TypeCheck(tc, 0);
+    fbody->TypeCheck(tc, 0);
     tc.scopes.back().loop_count--;
     tc.DecBorrowers(iter->lt, *this);
     // Currently always return V_NIL
@@ -2308,17 +2305,17 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
                 }
             }
         }
-        if (!cas->body->Terminal(tc)) {
-            exptype = exptype.Null() ? cas->body->exptype
-                                     : tc.Union(exptype, cas->body->exptype, "switch type", "case type",
+        if (!cas->cbody->Terminal(tc)) {
+            exptype = exptype.Null() ? cas->cbody->exptype
+                                     : tc.Union(exptype, cas->cbody->exptype, "switch type", "case type",
                                                 CF_COERCIONS, cas);
         }
     }
     for (auto n : cases->children) {
         auto cas = AssertIs<Case>(n);
-        if (!cas->body->Terminal(tc)) {
+        if (!cas->cbody->Terminal(tc)) {
             assert(!exptype.Null());
-            tc.SubType(cas->body, exptype, "", "case block");
+            tc.SubType(cas->cbody, exptype, "", "case block");
         }
     }
     if (exptype.Null()) exptype = type_void;  // Empty switch or all return statements.
@@ -2340,8 +2337,8 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
     // natural here, as this will introduce a lot of keeprefs. Alternatively make sure
     // string consts don't introduce keeprefs.
     tc.TypeCheckList(pattern, LT_BORROW);
-    tc.TT(body, reqret, LT_KEEP);
-    exptype = body->exptype;
+    tc.TT(cbody, reqret, LT_KEEP);
+    exptype = cbody->exptype;
     lt = LT_KEEP;
     return this;
 }
@@ -2695,9 +2692,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     Node *r = nullptr;
     if (fld && dotnoparens && udt && udt->Has(fld) >= 0) {
         auto dot = new Dot(fld, *this);
-        dot->children = children;
-        dot->TypeCheckSpecialized(tc, reqret);
-        r = dot;
+        r = dot->TypeCheck(tc, reqret);
     } else {
         bool prefer_sf = false;
         if (sf && nf) {
@@ -2708,8 +2703,8 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                 prefer_sf = true;
             } else if (udt && sf->parent->nargs()) {
                 // See if any of sf's specializations matches type exactly, then it overrides nf.
-                for (auto sfi : sf->parent->overloads) {
-                    auto ti = sfi->args[0].type;
+                for (auto &ov : sf->parent->overloads) {
+                    auto ti = ov.sf->args[0].type;
                     if (IsUDT(ti->t) && ti->udt == udt) {
                         prefer_sf = true;
                         break;
@@ -2718,15 +2713,13 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             }
         }
         if (nf && !prefer_sf) {
-            auto nc = new NativeCall(nf, *this);
+            auto nc = new NativeCall(nf, line);
             nc->children = children;
-            nc->TypeCheckSpecialized(tc, reqret);
-            r = nc;
+            r = nc->TypeCheck(tc, reqret);
         } else if (sf) {
             auto fc = new Call(*this);
             fc->children = children;
-            fc->TypeCheckSpecialized(tc, reqret);
-            r = fc;
+            r = fc->TypeCheck(tc, reqret);
         } else {
             if (fld && dotnoparens) {
                 tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
@@ -2739,7 +2732,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     return r;
 }
 
-void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
+Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    if (!children.empty() && children[0]->exptype->t == V_UNDEFINED) {
+        // Not from GenericCall.
+        tc.TypeCheckList(this, LT_ANY);
+    }
     if (nf->first->overloads) {
         // Multiple overloads available, figure out which we want to call.
         auto cnf = nf->first;
@@ -2922,13 +2919,19 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
 
     nattype = exptype;
     natlt = lt;
+    return this;
 }
 
-void Call::TypeCheckSpecialized(TypeChecker &tc, size_t reqret) {
+Node *Call::TypeCheck(TypeChecker &tc, size_t reqret) {
     STACK_PROFILE;
+    if (!children.empty() && children[0]->exptype->t == V_UNDEFINED) {
+        // Not from GenericCall.
+        tc.TypeCheckList(this, LT_ANY);
+    }
     sf = tc.PreSpecializeFunction(sf);
     exptype = tc.TypeCheckCall(sf, *this, reqret, vtable_idx, &specializers, super);
     lt = sf->ltret;
+    return this;
 }
 
 Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
@@ -2989,7 +2992,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             ir->sid->sf_def == sf &&
             sf->num_returns == 0 &&
             reqret &&
-            sf->body->children.back() == this) {
+            sf->sbody->children.back() == this) {
             // NOTE: see also Call::Optimize where we potentially have to undo this when inlined.
             reqlt = LT_BORROW;  // Fake that we're cool borrowing this.
             sf->consumes_vars_on_return = true;  // Don't decref this one when going out of scope.
@@ -3128,10 +3131,14 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
-    tc.AdjustLifetime(children[0], LT_BORROW);
-    tc.DecBorrowers(children[0]->lt, *this);  // New borrow created below.
-    auto stype = children[0]->exptype;
+Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    if (child->exptype->t == V_UNDEFINED) {
+        // Not from GenericCall.
+        tc.TT(child, 1, LT_ANY);
+    }
+    tc.AdjustLifetime(child, LT_BORROW);
+    tc.DecBorrowers(child->lt, *this);  // New borrow created below.
+    auto stype = child->exptype;
     if (!IsUDT(stype->t))
         tc.RequiresError("class/struct", stype, *this, "object");
     auto udt = stype->udt;
@@ -3146,6 +3153,7 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
     lt = tc.PushBorrow(this);
     //lt = children[0]->lt;  // Also LT_BORROW, also depending on the same variable.
+    return this;
 }
 
 Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
@@ -3231,10 +3239,9 @@ Node *UDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Coercion::TypeCheck(TypeChecker &tc, size_t reqret) {
-    // These have been added by another specialization. We could check if they still apply, but
-    // even more robust is just to remove them, and let them be regenerated if need be.
+    assert(false);  // Should not be called, since only inserted by TT.
     tc.TT(child, reqret, LT_ANY);
-    return tc.DeleteCoercion(this);
+    return this;
 }
 
 bool Return::Terminal(TypeChecker &) const {
@@ -3250,7 +3257,7 @@ bool IfElse::Terminal(TypeChecker &tc) const {
 }
 
 bool While::Terminal(TypeChecker &tc) const {
-    // NOTE: if body is terminal, that does not entail the loop is, since
+    // NOTE: if wbody is terminal, that does not entail the loop is, since
     // condition may be false on first iteration.
     // Instead, it is only terminal if this is an infinite loop.
     Value val = NilVal();
@@ -3266,7 +3273,7 @@ bool Switch::Terminal(TypeChecker &tc) const {
     for (auto c : cases->children) {
         auto cas = AssertIs<Case>(c);
         if (cas->pattern->children.empty()) have_default = true;
-        if (!cas->body->Terminal(tc)) return false;
+        if (!cas->cbody->Terminal(tc)) return false;
     }
     return have_default;
 }
@@ -3288,7 +3295,7 @@ bool Call::Terminal(TypeChecker &tc) const {
         sf->parent->istype) return false;
     if (!sf->num_returns) return true;  // The minimum 1 return is apparently returning out of it.
     if (sf->num_returns == 1) {
-        auto ret = AssertIs<Return>(sf->body->children.back());
+        auto ret = AssertIs<Return>(sf->sbody->children.back());
         if (ret->sf == sf) {
             return ret->child->Terminal(tc);
         } else {

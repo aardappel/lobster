@@ -1,3 +1,11 @@
+- always clone on specialization.
+  - see CloneFunction: all these things should be moved to Overload?
+  - if-then removals in type checker, and maybe other things in optimizer?
+  - operator overloads: https://github.com/aardappel/lobster/issues/145
+
+- remove bytecode from generated C/C++ code, and make metadata more readable.
+  - could make other changes to bytecode format now that tocpp/disasm/trace is only consumer.
+
 - instancing
   https://learnopengl.com/Advanced-OpenGL/Instancing
   or GL_ARB_multi_draw_indirect even more flexible.
@@ -311,6 +319,8 @@
     def foo(fun):
       fun() x: print x
   - SharedField can be removed, only needed in deciding how to parse x.y and x.y(
+- If we're NOT going to do the above, then some more uses of new GenericCall can
+  already be made to specific calls in the parser.
 
 - Would be good to finally make SDL modular, and get rid of that silly main-redef
   There's this: https://wiki.libsdl.org/SDL_SetMainReady
@@ -1898,19 +1908,6 @@ CURRENT SOLUTION FROM TRADEOFS:
       complicates a ton of code that wants to pass or check a single type.
       Current solution actually rather nice. Also gives nice errors on unexpected use of
       V_MULTIPLE rather than needing to check that everywhere.
-    - Making the type checker not modify nodes.
-      - removing GenericCall is hard. You can invert its subclasses by making them a member
-        instead, but now all your Is<> checking and subclasss access becomes very clumsy.
-        C++ doesn't have a neat way to overwrite with subclasses which would otherwise be a
-        solution.
-      - removing coercion nodes by instead registering coerced types and lifetimes in the nodes
-        itself. turns out this does not simplify the code, since complex cases like an int
-        being typechecked and recip wants to borrow, and then only later being converted to
-        string by subtype, and then needing a lifetime adjustment, are harder to record without
-        coercion nodes. It generally makes the code trickier by making it possible to miss or
-        overwrite these coercions, and harder to debug.
-        These nodes have the downside of testing for a particular type of child being harder,
-        but I think we've covered these with SkipCoercions etc.
   - use std::variant for nodes in Lobster? or other things like types?
     - std::visit will have horrible performance in debug for that many nodes, also hard to
       debug.

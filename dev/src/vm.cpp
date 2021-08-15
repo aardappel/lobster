@@ -251,7 +251,7 @@ void VM::ErrorBase(const string &err) {
         errmsg += err;
         UnwindOnError();
     }
-    append(errmsg, "VM error: ", err);
+    append(errmsg, "VM error (", programname, "): ", err);
 }
 
 // This function is now way less important than it was when the language was still dynamically

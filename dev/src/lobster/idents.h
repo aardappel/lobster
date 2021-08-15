@@ -307,7 +307,7 @@ struct SubFunction {
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
     vector<Node *> reuse_assign_events;
     bool isrecursivelycalled = false;
-    Block *body = nullptr;
+    Block *sbody = nullptr;
     SubFunction *next = nullptr;
     Function *parent = nullptr;
     int subbytecodestart = 0;
@@ -342,12 +342,32 @@ struct SubFunction {
     ~SubFunction();
 };
 
+struct Overload : NonCopyable {
+    SubFunction *sf = nullptr;
+    Block *gbody = nullptr;
+
+    Overload() {}
+
+    ~Overload();
+
+    Overload(Overload &&o) {
+        *this = std::move(o);
+    }
+
+    Overload& operator=(Overload &&o) {
+        std::swap(sf, o.sf);
+        std::swap(gbody, o.gbody);
+        return *this;
+
+    }
+};
+
 struct Function : Named {
     // Start of all SubFunctions sequentially.
     int bytecodestart = 0;
     // functions with the same name and args, but different types (dynamic dispatch |
     // specialization)
-    vector<SubFunction *> overloads;
+    vector<Overload> overloads;
     // functions with the same name but different number of args (overloaded)
     Function *sibf = nullptr;
     // does not have a programmer specified name
@@ -366,21 +386,21 @@ struct Function : Named {
 
     ~Function();
 
-    size_t nargs() const { return overloads[0]->args.size(); }
+    size_t nargs() const { return overloads[0].sf->args.size(); }
 
     int NumSubf() {
         int sum = 0;
-        for (auto sf : overloads) for (; sf; sf = sf->next) sum++;
+        for (auto &ov : overloads) for (auto sf = ov.sf; sf; sf = sf->next) sum++;
         return sum;
     }
 
     bool RemoveSubFunction(SubFunction *sf) {
-        for (auto [i, sfh] : enumerate(overloads)) {
-            for (auto sfp = &sfh; *sfp; sfp = &(*sfp)->next) {
+        for (auto [i, ov] : enumerate(overloads)) {
+            for (auto sfp = &ov.sf; *sfp; sfp = &(*sfp)->next) {
                 if (*sfp == sf) {
                     *sfp = sf->next;
                     sf->next = nullptr;
-                    if (!sfh) overloads.erase(overloads.begin() + i);
+                    if (!ov.sf) overloads.erase(overloads.begin() + i);
                     return true;
                 }
             }

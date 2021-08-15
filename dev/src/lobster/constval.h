@@ -14,7 +14,6 @@
 
 namespace lobster {
 
-
 template<typename F> ValueType BinOpConst(TypeChecker *tc, Value &val, const BinOp *b, F f) {
     Value lv = NilVal();
     Value rv = NilVal();

@@ -27,7 +27,8 @@ struct Optimizer {
         // We don't optimize parser.root, it only contains a single call.
         for (auto f : parser.st.functiontable) {
             again:
-            for (auto sf : f->overloads) {
+            for (auto &ov : f->overloads) {
+                auto sf = ov.sf;
                 if (sf && sf->typechecked) {
                     for (; sf; sf = sf->next) {
                         functions_removed = false;
@@ -43,10 +44,10 @@ struct Optimizer {
     void OptimizeFunction(SubFunction &sf) {
         if (sf.optimized) return;
         sf.optimized = true;
-        if (!sf.body) return;
+        if (!sf.sbody) return;
         sfstack.push_back(&sf);
-        auto nb = sf.body->Optimize(*this);
-        assert(nb == sf.body);
+        auto nb = sf.sbody->Optimize(*this);
+        assert(nb == sf.sbody);
         (void)nb;
         sfstack.pop_back();
     }
@@ -193,7 +194,7 @@ Node *Call::Optimize(Optimizer &opt) {
         !sf->isrecursivelycalled &&
         sf->num_returns <= 1 &&
         // Have to double-check this, since last return may be a return from.
-        AssertIs<Return>(sf->body->children.back())->sf == sf &&
+        AssertIs<Return>(sf->sbody->children.back())->sf == sf &&
         // This may happen even if num_returns==1 when body of sf is a non-local return also,
         // See e.g. exception_handler
         // FIXME: if the function that caused this to be !=0 gets inlined, this needs to be
@@ -209,7 +210,7 @@ Node *Call::Optimize(Optimizer &opt) {
     if (is_inlinable) opt.OptimizeFunction(*sf);
     // Check if we should inline this call.
     if (!is_inlinable ||
-        (sf->numcallers > 1 && sf->body->Count() >= 16)) { // FIXME: configurable.
+        (sf->numcallers > 1 && sf->sbody->Count() >= 16)) { // FIXME: configurable.
         return this;
     }
     auto AddToLocals = [&](const vector<Arg> &av) {
@@ -246,13 +247,15 @@ Node *Call::Optimize(Optimizer &opt) {
     // TODO: triple-check this similar in semantics to what happens in CloneFunction() in the
     // typechecker.
     if (sf->numcallers == 1) {
-        list->children.insert(list->children.end(), sf->body->children.begin(),
-                              sf->body->children.end());
-        sf->body->children.clear();
+        list->children.insert(list->children.end(), sf->sbody->children.begin(),
+                              sf->sbody->children.end());
+        sf->sbody->children.clear();
+        delete sf->sbody;
+        sf->sbody = nullptr;
         opt.functions_removed = sf->parent->RemoveSubFunction(sf);
         assert(opt.functions_removed);
     } else {
-        for (auto c : sf->body->children) {
+        for (auto c : sf->sbody->children) {
             auto nc = c->Clone();
             list->children.push_back(nc);
             nc->Iterate([](Node *i) {
