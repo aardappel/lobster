@@ -899,18 +899,19 @@ struct TypeChecker {
 
     void CheckReturnPast(SubFunction *sf, const SubFunction *sf_to, const Node &context) {
         // Special case for returning out of top level, which is always allowed.
-        if (sf_to == st.toplevel) return;
-        if (sf->isdynamicfunctionvalue) {
-            // This is because the function has been typechecked against one context, but
-            // can be called again in a different context that does not have the same callers.
-            Error(context, "cannot return out of dynamic function value (",
-                           Q(sf_to->parent->name), " not found on the callstack)");
-        }
-        // Mark any functions we may be returning thru as such.
-        if (sf->returned_thru_to && sf->returned_thru_to != sf_to) {
-            Error(context, "non-local return to ", Q(sf_to->parent->name), " (through ",
-                           Q(sf->parent->name), ") already returned to ",
-                           Q(sf->returned_thru_to->parent->name));
+        if (sf_to != st.toplevel) {
+            if (sf->isdynamicfunctionvalue) {
+                // This is because the function has been typechecked against one context, but
+                // can be called again in a different context that does not have the same callers.
+                Error(context, "cannot return out of dynamic function value (",
+                      Q(sf_to->parent->name), " not found on the callstack)");
+            }
+            // Mark any functions we may be returning thru as such.
+            if (sf->returned_thru_to && sf->returned_thru_to != sf_to) {
+                Error(context, "non-local return to ", Q(sf_to->parent->name), " (through ",
+                      Q(sf->parent->name), ") already returned to ",
+                      Q(sf->returned_thru_to->parent->name));
+            }
         }
         sf->returned_thru_to = sf_to;
     }
