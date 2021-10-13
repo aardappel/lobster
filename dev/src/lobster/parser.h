@@ -1454,8 +1454,14 @@ struct Parser {
             return new IdentRef(lex, id->cursid);
         }
         auto id = st.Lookup(idname);
+        Ident *fieldid = nullptr;
+        auto field = st.LookupWithStruct(idname, lex, fieldid);
         // Check for function call without ().
-        if (!id && (nf || f) && lex.whitespacebefore > 0 && lex.token != T_LINEFEED) {
+        if (!id &&
+            !field &&
+            (nf || f) &&
+            lex.whitespacebefore > 0 &&
+            lex.token != T_LINEFEED) {
             return ParseFunctionCall(f, nf, idname, nullptr, true, nullptr);
         }
         // Check for enum value.
