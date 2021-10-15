@@ -1,5 +1,6 @@
 - instancing
   https://learnopengl.com/Advanced-OpenGL/Instancing
+  or GL_ARB_multi_draw_indirect even more flexible.
 
 - octree + physics example
 
@@ -14,8 +15,13 @@
 
 - check what it would take to lift the mixed struct ref/scalar restriction, maybe a bitfield?
 
+- Would it be possible to allow overloading of built-ins even with same number of args?
+  https://github.com/aardappel/lobster/issues/145
+  - operator overloads wouldn't be too hard to add this way too, if a type has
+    e.g. __add method specified, to call that instead of the built-in..
+    the hardest part is making that work with specialization.
+
 - natgen refactor
-  - check how stack-overflow is responded to now.
   - start moving vmops into tocpp for all simple ops.
   - most access to local arrays still thru memory, clearly alias analysis failing.
     - split up arrays into individual vars where possible.
@@ -61,6 +67,7 @@
         print b
     if a.t and a.t.t:
         f(a.t.t)
+  - having final/const fields may help reduce the cases where this is an issue.
 - see also: https://nim-lang.org/docs/manual_experimental.html#view-types
 
 - Do better stats on specialization code bloat, and implement a byte-code level merging pass.
@@ -241,6 +248,13 @@
   https://weliveindetail.github.io/blog/post/2017/07/25/compile-with-clang-at-runtime-simple.html
   Though having to provide C++-mangled externs for the JIT for everything the compiled code
   touches likely not fun.
+
+- Since the JIT, stack overflows now just blow the native stack, since function calling uses
+  the native stack. This will be hard to fix since we don't know the size of the native stack.
+  We may well have to accept this as "normal behavior" since Lobster is now a native (not
+  "managed") programming language? You get:
+
+  The terminal process "bin\lobster.exe infrecurse.lobster" terminated with exit code: 3221225477.
 
 - Move checking for functions/builtins/selfarg etc to type checker.
   This is quite hard, it requires reworking a lot of stuff:
@@ -1510,6 +1524,13 @@
 - make it more straight forward to use as an embeddable scripting language
   - add functionality to call individual functions inside a script
 
+- if we ever want to run directly on Metal or whatever, this looks useful:
+  - https://tellusim.com/shader-pipeline/
+  - MoltenGL commercial / not oss, and only GLES2, whereas the tellusim one could
+    translate GL4.x shaders, though sadly not at runtime..
+  - This is oss, supports ES3, and presumably allows runtime shader translation:
+    https://github.com/kakashidinho/metalangle
+
 - think about how to support a debugger
   - would be great if it could be written in Lobster itself:
     have to figure out how to have a frozen VM, and have debugger code running
@@ -1527,6 +1548,7 @@
     - Sadly the Language Server system is overly complicated, requiring JSON RPC over HTTP to
       communicate.
       - but the communication channel can still be stdio!
+      https://www.reddit.com/r/Compilers/comments/p2wql5/do_someone_need_a_starting_point_to_build_a/
     - Should maybe start with just the debugger, as it is simpler (can communicate over stdio)
       https://microsoft.github.io/debug-adapter-protocol/
 
