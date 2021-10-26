@@ -2176,8 +2176,20 @@ Node *IfThen::TypeCheck(TypeChecker &tc, size_t) {
             // This is an if ..: return, we should leave promotions for code after the if.
             tc.CheckFlowTypeChanges(false, condition);
         }
+        if (constant && constant->True()) {
+            // Replace if-then by just the branch.
+            auto r = truepart;
+            truepart = nullptr;
+            delete this;
+            return r;
+        }
     } else {
-        // constant == false: this if-then will get optimized out entirely, ignore it.
+        // constant == false: this if-then is entirely redundant, replace.
+        auto r = new DefaultVal(line);
+        r->exptype = type_void;
+        r->lt = LT_ANY;
+        delete this;
+        return r;
     }
     // No else: this always returns void.
     truepart->exptype = type_void;
@@ -2206,16 +2218,22 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret) {
             tc.SubType(falsepart->children.back(), exptype, "else branch", *this);
             lt = tc.LifetimeUnion(truepart->children.back(), falsepart->children.back(), false);
         }
+        return this;
     } else if (constant->True()) {
-        // Ignore the else part, optimizer guaranteed to cull it.
-        exptype = tc.TypeCheckBranch(true, condition, truepart, reqret);
-        lt = truepart->lt;
+        // Ignore the else part, and delete it, since we don't want to TT it.
+        tc.TypeCheckBranch(true, condition, truepart, reqret);
+        auto r = truepart;
+        truepart = nullptr;
+        delete this;
+        return r;
     } else {
-        // Ignore the then part, optimizer guaranteed to cull it.
-        exptype = tc.TypeCheckBranch(false, condition, falsepart, reqret);
-        lt = falsepart->lt;
+        // Ignore the then part, and delete it, since we don't want to TT it.
+        tc.TypeCheckBranch(false, condition, falsepart, reqret);
+        auto r = falsepart;
+        falsepart = nullptr;
+        delete this;
+        return r;
     }
-    return this;
 }
 
 Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
@@ -3053,6 +3071,25 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     resolvedtype = tc.ResolveTypeVars(giventype, this);
     exptype = &tc.st.default_bool_type->thistype;
     lt = LT_ANY;
+    // Check for constness early, to be able to lift out side effects, which
+    // makes downstream if-then optimisations easier.
+    Value cval = NilVal();
+    auto t = ConstVal(&tc, cval);
+    if (t == V_INT) {
+        auto intc = (new IntConstant(line, cval.ival()))->TypeCheck(tc, 1);
+        if (child->SideEffectRec()) {
+            // must retain side effects.
+            auto seq = new Seq(child->line, child, intc);
+            seq->exptype = type_int;
+            seq->lt = LT_ANY;
+            child = nullptr;
+            delete this;
+            return seq;
+        } else {
+            delete this;
+            return intc;
+        }
+    }
     return this;
 }
 

@@ -76,59 +76,9 @@ Node *Node::Optimize(Optimizer &opt) {
         default:      assert(false); return this;
     }
     r = opt.Typed(exptype, LT_ANY, r);
-    if (auto is_type = Is<IsType>(this)) {
-        // IsType is an exception in that even when it results in a constant (type is static),
-        // we still want to evaluate the exp, since it be surprising if `if printstuff() is int:`
-        // would produce no output. This does NOT hold for any of the other node types for which
-        // ConstVal may produce a constant.
-        if (is_type->SideEffectRec()) {
-            r = opt.Typed(r->exptype, LT_ANY, new Seq(is_type->child->line, is_type->child, r));
-            is_type->ClearChildren();
-        }
-    }
     delete this;
-    //r = opt.FilterSideEffects(r, this);
     opt.Changed();
     return r->Optimize(opt);
-}
-
-Node *IfThen::Optimize(Optimizer &opt) {
-    // This optimzation MUST run, since it deletes untypechecked code.
-    condition = condition->Optimize(opt);
-    Value cval = NilVal();
-    if (condition->ConstVal(&opt.tc, cval) != V_VOID) {
-        Node *r = nullptr;
-        if (cval.True()) {
-            r = truepart->Optimize(opt);
-            truepart = nullptr;
-        } else {
-            r = opt.Typed(type_void, LT_ANY, new DefaultVal(line));
-        }
-        delete this;
-        opt.Changed();
-        return r;
-    } else {
-        truepart = AssertIs<Block>(truepart->Optimize(opt));
-        return this;
-    }
-}
-
-Node *IfElse::Optimize(Optimizer &opt) {
-    // This optimzation MUST run, since it deletes untypechecked code.
-    condition = condition->Optimize(opt);
-    Value cval = NilVal();
-    if (condition->ConstVal(&opt.tc, cval) != V_VOID) {
-        auto &branch = cval.True() ? truepart : falsepart;
-        auto r = branch->Optimize(opt);
-        branch = nullptr;
-        delete this;
-        opt.Changed();
-        return r;
-    } else {
-        truepart = AssertIs<Block>(truepart->Optimize(opt));
-        falsepart = AssertIs<Block>(falsepart->Optimize(opt));
-        return this;
-    }
 }
 
 Node *Constructor::Optimize(Optimizer &opt) {
