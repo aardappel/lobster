@@ -938,20 +938,18 @@ struct TypeChecker {
         // definition, since SubType below can cause specializations of the current function
         // to be typechecked with strongly typed function value arguments.
         for (auto [i, c] : enumerate(call_args.children)) {
-            if (i < f.nargs()) /* see below */ {
-                auto &arg = sf->args[i];
-                if (static_dispatch || first_dynamic) {
-                    // Check a dynamic dispatch only for the first case, and then skip
-                    // checking the first arg.
-                    if (static_dispatch || i)
-                        SubType(c, arg.type, ArgName(i), f.name);
-                    AdjustLifetime(c, arg.sid->lt);
-                    // We really don't want to specialize functions on variables, so we simply
-                    // disallow them. This should happen only infrequently.
-                    if (arg.type->HasValueType(V_VAR))
-                        Error(call_args, "can\'t infer ", Q(ArgName(i)), " argument of call to ",
-                                         Q(f.name));
-                }
+            auto &arg = sf->args[i];
+            if (static_dispatch || first_dynamic) {
+                // Check a dynamic dispatch only for the first case, and then skip
+                // checking the first arg.
+                if (static_dispatch || i)
+                    SubType(c, arg.type, ArgName(i), f.name);
+                AdjustLifetime(c, arg.sid->lt);
+                // We really don't want to specialize functions on variables, so we simply
+                // disallow them. This should happen only infrequently.
+                if (arg.type->HasValueType(V_VAR))
+                    Error(call_args, "can\'t infer ", Q(ArgName(i)), " argument of call to ",
+                                        Q(f.name));
             }
             // This has to happen even to dead args:
             if (static_dispatch || first_dynamic) DecBorrowers(c->lt, call_args);
@@ -1130,7 +1128,7 @@ struct TypeChecker {
             for (auto [i, type] : enumerate(*specializers))
                 generics[i].Resolve(ResolveTypeVars(type, &call_args));
         }
-        for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
+        for (auto [i, c] : enumerate(call_args.children)) {
             BindTypeVar(sf->giventypes[i], c->exptype, generics);
         }
         for (auto &btv : generics) if (btv.resolvedtype.Null())
@@ -1144,12 +1142,9 @@ struct TypeChecker {
         // Check if any existing specializations match.
         for (sf = f.overloads[overload_idx].sf; sf; sf = sf->next) {
             if (sf->typechecked && !sf->mustspecialize) {
-                // We check against f.nargs because HOFs are allowed to call a function
-                // value with more arguments than it needs (if we're called from
-                // TypeCheckDynCall). Optimizer always removes these.
                 // Note: we compare only lt, since calling with other borrowed sid
                 // should be ok to reuse.
-                for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
+                for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = sf->args[i];
                     if ((IsBorrow(c->lt) != IsBorrow(arg.sid->lt) && AllowAnyLifetime(arg)) ||
                         // TODO: we need this check here because arg type may rely on parent
@@ -1184,7 +1179,7 @@ struct TypeChecker {
         if (sf->method_of)
             st.bound_typevars_stack.push_back(&call_args.children[0]->exptype->udt->generics);
         st.bound_typevars_stack.push_back(&sf->generics);
-        for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) /* see above */ {
+        for (auto [i, c] : enumerate(call_args.children)) {
             auto &arg = sf->args[i];
             arg.sid->lt = AllowAnyLifetime(arg) ? c->lt : LT_KEEP;
             arg.type = ResolveTypeVars(sf->giventypes[i], &call_args);
@@ -1215,7 +1210,7 @@ struct TypeChecker {
             // two levels will be present are low.
             if (disp.sf && disp.sf->method_of == &dispatch_udt && disp.is_dispatch_root &&
                 &f == disp.sf->parent && SpecializationIsCompatible(*disp.sf, reqret)) {
-                for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
+                for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = disp.sf->args[i];
                     if (i && !ConvertsTo(c->exptype, arg.type, CF_NONE))
                         goto fail;
@@ -1390,11 +1385,7 @@ struct TypeChecker {
         STACK_PROFILE;
         Function &f = *csf->parent;
         vtable_idx = -1;
-        if (f.istype) {
-            // Function types are always fully typed.
-            // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
-            return TypeCheckMatchingCall(csf, call_args, true, false);
-        }
+        assert(!f.istype);
         // Check if we need to do dynamic dispatch. We only do this for functions that have a
         // explicit first arg type of a class (not structs, since they can never dynamically be
         // different from their static type), and only when there is a sub-class that has a
@@ -1571,27 +1562,46 @@ struct TypeChecker {
         return sf;
     }
 
-    pair<TypeRef, Lifetime> TypeCheckDynCall(SpecIdent *fval, List *args, SubFunction *&fspec,
-                                             size_t reqret) {
-        auto &ftype = fval->type;
-        auto nargs = args->Arity();
+    Node *TypeCheckDynCall(DynCall *dc, size_t reqret) {
+        UpdateCurrentSid(dc->sid);
+        TypeCheckId(dc->sid);
+        auto ftype = dc->sid->type;
         if (!ftype->IsFunction()) {
-            Error(*args, "dynamic function call value doesn\'t have a function type ",
-                         Q(TypeName(ftype)));
-            return { type_void, LT_ANY };
+            Error(*dc, "dynamic function call value doesn\'t have a function type ",
+                  Q(TypeName(ftype)));
         }
-        // We can statically typecheck this dynamic call. Happens for almost all non-escaping
-        // closures.
-        fspec = ftype->sf;
-        if (nargs < fspec->parent->nargs())
-            Error(*args, "function value called with too few arguments");
-        // In the case of too many args, TypeCheckCall will ignore them (and optimizer will
-        // remove them).
-        int vtable_idx = -1;
-        auto type = TypeCheckCall(fspec, *args, reqret, vtable_idx, nullptr, false);
-        assert(vtable_idx < 0);
-        ftype = &fspec->thistype;
-        return { type, fspec->ltret };
+        // All dynamic calls can be statically typechecked.
+        auto sf = ftype->sf;
+        if (dc->Arity() < sf->parent->nargs())
+            Error(*dc, "function value called with too few arguments");
+        while (dc->Arity() > sf->parent->nargs()) {
+            // HOFs are allowed to supply more args than the lambda needs.
+            // TODO: This is somewhat odd, since it may throw away side effects. Then
+            // again, this "feature" is quite similar to specifying default arguments,
+            // so it being dead code should not be that surprising?
+            delete dc->children.back();
+            dc->children.pop_back();
+        }
+        TypeCheckList(dc, LT_ANY);
+        if (sf->parent->istype) {
+            // Function types are always fully typed.
+            // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
+            dc->exptype = TypeCheckMatchingCall(sf, *dc, true, false);
+            dc->lt = sf->ltret;
+            dc->sf = sf;
+            return dc;
+        } else {
+            auto c = new Call(dc->line, sf);
+            c->children.insert(c->children.end(), dc->children.begin(), dc->children.end());
+            dc->children.clear();
+            int vtable_idx = -1;
+            c->exptype = TypeCheckCallStatic(sf, *c, reqret, nullptr, 0, true, false);
+            c->lt = sf->ltret;
+            c->sf = sf;
+            assert(vtable_idx < 0);
+            delete dc;
+            return c;
+        }
     }
 
     TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *block, size_t reqret) {
@@ -2305,10 +2315,14 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     bool have_default = false;
     vector<bool> enum_cases;
     if (ptype->IsEnum()) enum_cases.resize(ptype->e->vals.size());
+    cases->exptype = type_void;
+    cases->lt = LT_ANY;
     for (auto &n : cases->children) {
         tc.TT(n, reqret, LT_KEEP);
         auto cas = AssertIs<Case>(n);
         if (cas->pattern->children.empty()) have_default = true;
+        cas->pattern->exptype = type_void;
+        cas->pattern->lt = LT_ANY;
         for (auto c : cas->pattern->children) {
             tc.SubTypeT(c->exptype, ptype, *c, "", "case");
             tc.DecBorrowers(c->lt, *cas);
@@ -2856,12 +2870,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 // we have no idea what args.
                 tc.Error(*this, "function passed to ", Q(nf->name), " cannot take any arguments");
             }
-            auto chosen = fsf;
             List args(c->line);  // If any error, on same line as c.
-            int vtable_idx = -1;
-            tc.TypeCheckCall(fsf, args, false, vtable_idx, nullptr, false);
-            assert(vtable_idx < 0);
-            assert(fsf == chosen); (void)chosen;
+            assert(fsf->parent->istype);
+            tc.TypeCheckMatchingCall(fsf, args, true, false);
         }
         argtypes[i] = actualtype;
         tc.StorageType(actualtype, *this);
@@ -2966,12 +2977,7 @@ Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret) {
-    tc.UpdateCurrentSid(sid);
-    tc.TypeCheckId(sid);
-    //if (sid->type->IsFunction()) sid->type = &tc.PreSpecializeFunction(sid->type->sf)->thistype;
-    tc.TypeCheckList(this, LT_ANY);
-    tie(exptype, lt) = tc.TypeCheckDynCall(sid, this, sf, reqret);
-    return this;
+    return tc.TypeCheckDynCall(this, reqret);
 }
 
 Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {

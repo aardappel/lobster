@@ -410,21 +410,22 @@ struct CodeGen  {
         tstack = tstackbackup;
     }
 
-    void GenCall(const SubFunction &sf, int vtable_idx, const List *args, size_t retval) {
+    void GenCall(const Call &call, size_t retval) {
+        auto &sf = *call.sf;
         auto &f = *sf.parent;
         int inw = 0;
         int outw = ValWidthMulti(sf.returntype, sf.returntype->NumValues());
-        for (auto c : args->children) {
+        for (auto c : call.children) {
             Gen(c, 1);
             inw += ValWidth(c->exptype);
         }
-        size_t nargs = args->children.size();
+        size_t nargs = call.children.size();
         if (f.nargs() != nargs)
             parser.ErrorAt(node_context.back(),
                            "call to function ", Q(f.name), " needs ", f.nargs(),
                            " arguments, ", nargs, " given");
         TakeTemp(nargs, true);
-        if (vtable_idx < 0) {
+        if (call.vtable_idx < 0) {
             EmitOp(IL_CALL, inw, outw);
             Emit(sf.subbytecodestart);
             GenFixup(&sf);
@@ -433,13 +434,13 @@ struct CodeGen  {
             }
         } else {
             EmitOp(IL_DDCALL, inw, outw);
-            Emit(vtable_idx);
+            Emit(call.vtable_idx);
             Emit(inw - 1);
             // We get the dispatch from arg 0, since sf is an arbitrary overloads and
             // doesn't necessarily point to the dispatch root (which may not even have an sf).
-            auto dispatch_type = args->children[0]->exptype;
+            auto dispatch_type = call.children[0]->exptype;
             assert(IsUDT(dispatch_type->t));
-            auto &de = dispatch_type->udt->dispatch[vtable_idx];
+            auto &de = dispatch_type->udt->dispatch[call.vtable_idx];
             assert(de.is_dispatch_root && !de.returntype.Null() && de.subudts_size);
             if (de.returned_thru_to) {
                 // This works because all overloads of a DD sit under a single Function.
@@ -1228,32 +1229,25 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Call::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenCall(*sf, vtable_idx, this, retval);
+    cg.GenCall(*this, retval);
 }
 
 void DynCall::Generate(CodeGen &cg, size_t retval) const {
-    assert(sf && sf == sid->type->sf);
-    // FIXME: in the future, we can make a special case for istype calls.
-    if (!sf->parent->istype) {
-        // We statically know which function this is calling.
-        // We can now turn this into a normal call.
-        cg.GenCall(*sf, -1, this, retval);
+    assert(sf && sf == sid->type->sf && sf->parent->istype);
+    int arg_width = 0;
+    for (auto c : children) {
+        cg.Gen(c, 1);
+        arg_width += ValWidth(c->exptype);
+    }
+    size_t nargs = children.size();
+    assert(nargs == sf->args.size());
+    cg.GenPushVar(1, type_function_null, sid->Idx(), sid->used_as_freevar);
+    cg.TakeTemp(nargs, true);
+    cg.EmitOp(IL_CALLV, arg_width + 1, ValWidthMulti(exptype, sf->returntype->NumValues()));
+    if (sf->reqret) {
+        if (!retval) cg.GenPop({ exptype, lt });
     } else {
-        int arg_width = 0;
-        for (auto c : children) {
-            cg.Gen(c, 1);
-            arg_width += ValWidth(c->exptype);
-        }
-        size_t nargs = children.size();
-        assert(nargs == sf->args.size());
-        cg.GenPushVar(1, type_function_null, sid->Idx(), sid->used_as_freevar);
-        cg.TakeTemp(nargs, true);
-        cg.EmitOp(IL_CALLV, arg_width + 1, ValWidthMulti(exptype, sf->returntype->NumValues()));
-        if (sf->reqret) {
-            if (!retval) cg.GenPop({ exptype, lt });
-        } else {
-            cg.Dummy(retval);
-        }
+        cg.Dummy(retval);
     }
 }
 

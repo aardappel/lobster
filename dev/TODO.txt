@@ -1,6 +1,4 @@
 - always clone on specialization.
-  - if-then removals in type checker, and maybe other things in optimizer?
-    - dyncall additional args / lambda additional args?
   - operator overloads: https://github.com/aardappel/lobster/issues/145
   - see CloneFunction: all these things should be moved to Overload?
     - true, but this doesn't save a lot of memory or make a ton of code
@@ -695,11 +693,9 @@
   - and make it so it only gets compiled in when you run it in a "debug" mode so the
     code can be let in, with optional tags etc.
 
-- factor out TypeCheckDynCall for DynCall to be part of GenericCall so it can be made into
-  Call/Yield/CallType
-  - Also, when optimizer inlines a function that has an arg used as a function for DynCall
-    but called statically, it still introduces this unused variable.
-    - probably want to remove this arg generally.
+- When optimizer inlines a function that has an arg used as a function for DynCall
+  but called statically, it still introduces this unused variable.
+  - probably want to remove unused args generally.
 
 - should have slaballoc use indices so allocation granularity can always be smaller?
   especially when using 32-bit emulation.

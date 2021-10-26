@@ -429,7 +429,6 @@ struct DynCall : List {
         return sf == ((DynCall *)o)->sf && sid == ((DynCall *)o)->sid;
     }
     SHARED_SIGNATURE(DynCall, "dynamic call", true)
-    OPTMETHOD
 };
 
 struct NativeCall : List {

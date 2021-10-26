@@ -45,6 +45,11 @@ struct Optimizer {
         if (sf.optimized) return;
         sf.optimized = true;
         if (!sf.sbody) return;
+        if (!sf.typechecked) {
+            delete sf.sbody;
+            sf.sbody = nullptr;
+            return;
+        }
         sfstack.push_back(&sf);
         auto nb = sf.sbody->Optimize(*this);
         assert(nb == sf.sbody);
@@ -62,6 +67,7 @@ struct Optimizer {
 };
 
 Node *Node::Optimize(Optimizer &opt) {
+    assert(exptype->t != V_UNDEFINED);
     for (size_t i = 0; i < Arity(); i++) {
         Children()[i] = Children()[i]->Optimize(opt);
     }
@@ -105,34 +111,6 @@ Node *IntConstant::Optimize(Optimizer &) {
 
 Node *FloatConstant::Optimize(Optimizer &) {
     return this;
-}
-
-Node *DynCall::Optimize(Optimizer &opt) {
-    Node::Optimize(opt);
-    if (!sf) return this;
-    assert(sf->numcallers > 0);
-    // This optimization MUST run, to remove redundant arguments.
-    // Note that sf is not necessarily the same as sid->type->sf, since a
-    // single function variable may have 1 specialization per call.
-    auto nargs = sf->parent->nargs();
-    assert(children.size() >= nargs);
-    for (auto[i, c] : enumerate(children)) {
-        if (i >= nargs) {
-            opt.Changed();
-            delete c;
-        }
-    }
-    children.resize(nargs);
-    // Now convert it to a Call if possible. This also allows it to be inlined.
-    if (sf->parent->istype) return this;
-    auto c = new Call(line, sf);
-    c->children.insert(c->children.end(), children.begin(), children.end());
-    children.clear();
-    auto r = opt.Typed(exptype, lt, c);
-    r = r->Optimize(opt);
-    delete this;  // Do this after, since Optimize may touch this same call.
-    opt.Changed();
-    return r;
 }
 
 Node *Call::Optimize(Optimizer &opt) {
@@ -210,7 +188,7 @@ Node *Call::Optimize(Optimizer &opt) {
             list->children.push_back(nc);
             nc->Iterate([](Node *i) {
                 if (auto call = Is<Call>(i)) call->sf->numcallers++;
-                if (auto dcall = Is<DynCall>(i)) if (dcall->sf) dcall->sf->numcallers++;
+                if (auto dcall = Is<DynCall>(i)) dcall->sf->numcallers++;
             });
         }
     }
