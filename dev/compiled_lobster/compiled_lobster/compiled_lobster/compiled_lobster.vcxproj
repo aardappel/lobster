@@ -107,6 +107,7 @@
       <AdditionalDependencies>Setupapi.lib;../../..\external\openvr\lib\win32\openvr_api.lib;../../..\external\steamworks\lib\win32\steam_api.lib;../../../../build/compiled_lobster/language/languageDBG.lib;../../../../build/compiled_lobster/engine/engineDBG.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../../../../dev\external\openvr\lib\win32</AdditionalLibraryDirectories>
       <DelayLoadDLLs>openvr_api.dll;steam_api.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <StackReserveSize>64000000</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -128,6 +129,7 @@
       <AdditionalLibraryDirectories>../../../../dev\external\openvr\lib\win64</AdditionalLibraryDirectories>
       <AdditionalDependencies>Setupapi.lib;../../..\external\openvr\lib\win64\openvr_api.lib;../../..\external\steamworks\lib\win64\steam_api64.lib;../../../../build/compiled_lobster/language/languageDBG64.lib;../../../../build/compiled_lobster/engine/engineDBG64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>openvr_api.dll;steam_api64.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <StackReserveSize>64000000</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -152,6 +154,7 @@
       <AdditionalDependencies>Setupapi.lib;../../..\external\openvr\lib\win32\openvr_api.lib;../../..\external\steamworks\lib\win32\steam_api.lib;../../../../build/compiled_lobster/language/language.lib;../../../../build/compiled_lobster/engine/engine.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../../../../dev\external\openvr\lib\win32</AdditionalLibraryDirectories>
       <DelayLoadDLLs>openvr_api.dll;steam_api.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <StackReserveSize>16000000</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -178,6 +181,7 @@
       <AdditionalDependencies>Setupapi.lib;../../..\external\openvr\lib\win64\openvr_api.lib;../../..\external\steamworks\lib\win64\steam_api64.lib;../../../../build/compiled_lobster/language/language64.lib;../../../../build/compiled_lobster/engine/engine64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>openvr_api.dll;steam_api64.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <StackReserveSize>16000000</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
