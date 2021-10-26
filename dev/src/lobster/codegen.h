@@ -1446,6 +1446,8 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
     (void)retval;
     assert(!cg.rettypes.size());
     assert(!cg.loops.empty());
+    // FIXME: this code below likely doesn't work with inlined blocks
+    // whose parents have temps on the stack above the top for loop.
     assert(cg.temptypestack.size() == cg.LoopTemps());
     if (Is<For>(cg.loops.back())) {
         auto fort1 = cg.PopTemp();
@@ -1674,11 +1676,11 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     auto typestackbackup = cg.temptypestack;
     auto tstackbackup = cg.tstack;
     if (cg.temptypestack.size()) {
-        // We have temps on the stack from an enclosing for.
+        // We have temps on the stack, these can be from:
+        // * an enclosing for.
+        // * an (inlined) block, whose caller already had temps on the stack.
         // We can't actually remove these from the stack permanently as the parent nodes still
         // expect them to be there.
-        // Check that these temps are actually from for loops, to not mask bugs.
-        assert(cg.temptypestack.size() == cg.LoopTemps());
         while (!cg.temptypestack.empty()) {
             cg.GenPop(cg.temptypestack.back());
             cg.temptypestack.pop_back();

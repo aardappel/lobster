@@ -21,6 +21,8 @@
     e.g. __add method specified, to call that instead of the built-in..
     the hardest part is making that work with specialization.
 
+- Fix FIXME in Break::Generate
+
 - natgen refactor
   - start moving vmops into tocpp for all simple ops.
   - most access to local arrays still thru memory, clearly alias analysis failing.
