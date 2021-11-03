@@ -250,6 +250,18 @@ def da(a): return a</code></pre>
 <p>This defines 2 complete separate functions, one that has 3 arguments (and can be called with 2, since it has one default argument), and one with 1 argument. As you can see, since there is no overlap in number of arguments, it is always clear which variant is being called.</p>
 <p>The version with 3 arguments has 2 overloads. Overloads must have exactly the same default arguments, if any.</p>
 <p>Default arguments are simple substition, writing <code>da(1, 2)</code> is exactly the same as writing <code>da(1, 2, x + 1)</code>. That’s why you can even use variables in these default arguments, as long as they’re in scope when called.</p>
+<h3 id="operator-overloading.">Operator overloading.</h3>
+<p>You can overload what operators do on <code>class</code> and <code>struct</code> types, by writing a function that defines what the <code>operator</code> should do:</p>
+<pre><code>struct A:
+    x:int
+    def operator+(o:A): return A { x + o.x }
+    def operator-(): return A { -x }
+
+print - A { 2 } + A { 3 }  // A { 1 }</code></pre>
+<p>You may currently overload: <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code> <code>++</code> <code>--</code> <code>==</code> <code>!=</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code> <code>&amp;</code> <code>|</code> <code>^</code> <code>~</code> <code>&lt;&lt;</code> <code>&gt;&gt;</code> <code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>&amp;=</code> <code>|=</code> <code>^=</code> <code>&lt;&lt;=</code> <code>&gt;&gt;=</code> <code>[]</code> (indexing).</p>
+<p>Overloaded operators are parsed with the same operator precedence as for the built-in operators, but when it comes to typechecking, they are handled as regular function calls, with all that endtails. The above expression is thus handled internally as <code>operator+(operator-(A { 2 }), A { 3 })</code> where <code>operator+</code> is just an ordinary function name.</p>
+<p>The assignment operators make most sense to overload on <code>class</code> types, since there you can overwrite the members of the <code>this</code> (or left) argument of the operator. There is currently no way to do this with <code>struct</code> which are always copied by value.</p>
+<p>See more examples in <code>modules/quaternion.lobster</code> and <code>tests/operators.lobster</code>.</p>
 <h2 id="typing">Typing</h2>
 <p>Lobster is statically typed, though most of the time you don’t notice, since most types can be inferred. You specify types:</p>
 <ul>

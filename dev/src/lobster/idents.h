@@ -426,6 +426,7 @@ struct SymbolTable {
     vector<SharedField *> fieldtable;
 
     unordered_map<string_view, Function *> functions;  // Key points to value!
+    unordered_map<string_view, Function *> operators;  // Key points to value!
     vector<Function *> functiontable;
     vector<SubFunction *> subfunctiontable;
     SubFunction *toplevel = nullptr;
@@ -759,6 +760,10 @@ struct SymbolTable {
             fit->second->sibf = &f;
         } else {
             functions[f.name /* must be in value */] = &f;
+            // Store top level functions, for now only operators needed.
+            if (scopelevels.size() == 2 && name.substr(0, 8) == TName(T_OPERATOR)) {
+                operators[f.name /* must be in value */] = &f;
+            }
         }
         return f;
     }

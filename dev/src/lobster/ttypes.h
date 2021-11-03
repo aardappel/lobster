@@ -17,6 +17,7 @@
 
 namespace lobster {
 
+// Between T_PLUS and T_ASREQ allows operator overloading.
 #define TTYPES_LIST \
     TOK(T_NONE, "invalid_token") \
     TOK(T_PLUS, "+") \
@@ -24,9 +25,6 @@ namespace lobster {
     TOK(T_MULT, "*") \
     TOK(T_DIV, "/") \
     TOK(T_MOD, "%") \
-    TOK(T_AND, "and") \
-    TOK(T_OR, "or") \
-    TOK(T_NOT, "not") \
     TOK(T_INCR, "++") \
     TOK(T_DECR, "--") \
     TOK(T_EQ, "==") \
@@ -52,6 +50,9 @@ namespace lobster {
     TOK(T_XOREQ, "^=") \
     TOK(T_ASLEQ, "<<=") \
     TOK(T_ASREQ, ">>=") \
+    TOK(T_AND, "and") \
+    TOK(T_OR, "or") \
+    TOK(T_NOT, "not") \
     TOK(T_DOT, ".") \
     TOK(T_DOTDOT, "..") \
     TOK(T_RETURNTYPE, "->") \
@@ -113,7 +114,9 @@ namespace lobster {
     TOK(T_DEFAULT, "default") \
     TOK(T_NAMESPACE, "namespace") \
     TOK(T_BREAK, "break") \
-    TOK(T_SUPER, "super")
+    TOK(T_SUPER, "super") \
+    TOK(T_OPERATOR, "operator")
+
 
 enum TType {
     #define TOK(ENUM, STR) ENUM,

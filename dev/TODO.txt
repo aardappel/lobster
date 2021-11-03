@@ -1,11 +1,14 @@
 - always clone on specialization.
-  - operator overloads: https://github.com/aardappel/lobster/issues/145
   - see CloneFunction: all these things should be moved to Overload?
     - true, but this doesn't save a lot of memory or make a ton of code
       more elegant, and actually a LOT of these vars get modified by specialization.
 
 - remove bytecode from generated C/C++ code, and make metadata more readable.
   - could make other changes to bytecode format now that tocpp/disasm/trace is only consumer.
+
+- (mortimersnerd) Type system: allow any struct of same set of fields to be converted to any other
+  such struct?
+  Goes a bit agains strong typing?
 
 - instancing
   https://learnopengl.com/Advanced-OpenGL/Instancing
@@ -26,9 +29,6 @@
 
 - Would it be possible to allow overloading of built-ins even with same number of args?
   https://github.com/aardappel/lobster/issues/145
-  - operator overloads wouldn't be too hard to add this way too, if a type has
-    e.g. __add method specified, to call that instead of the built-in..
-    the hardest part is making that work with specialization.
 
 - Fix FIXME in Break::Generate
 

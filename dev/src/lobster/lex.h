@@ -390,6 +390,7 @@ struct Lex : LoadedFile {
                             break;
                         case 'o':
                             if (sattr == "or") { cont = true; return T_OR; }
+                            if (sattr == "operator") { cont = true; return T_OPERATOR; }
                             break;
                         case 'p':
                             if (sattr == "program") return T_PROGRAM;

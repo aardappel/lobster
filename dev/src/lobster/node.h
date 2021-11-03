@@ -126,14 +126,19 @@ struct NAME : Node { \
     METHODS \
 };
 
-#define UNARY_NODE(NAME, STR, SE, A, METHODS) \
-struct NAME : Node { \
-    Node *A; \
-    NAME(const Line &ln, Node *_a) : Node(ln), A(_a) {} \
-    ~NAME() { delete A; } \
-    size_t Arity() const { return 1; } \
-    Node **Children() { return &A; } \
-    void ClearChildren() { A = nullptr; } \
+struct Unary : Node {
+    Node *child;
+    Unary(const Line &ln, Node *_a) : Node(ln), child(_a) {}
+    ~Unary() { delete child; }
+    size_t Arity() const { return 1; }
+    Node **Children() { return &child; }
+    void ClearChildren() { child = nullptr; }
+    SHARED_SIGNATURE(Unary, "unary", true)
+};
+
+#define UNARY_NODE(NAME, STR, SE, METHODS) \
+struct NAME : Unary { \
+    NAME(const Line &ln, Node *_a) : Unary(ln, _a) {} \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
 };
@@ -216,7 +221,6 @@ struct TypeAnnotation : Node {
 
 // generic node types
 NARY_NODE(List, "list", false, )
-UNARY_NODE(Unary, "unary", false, child, )
 BINARY_NODE(BinOp, "binop", false, left, right, )
 UNOP_NODE(Coercion, "coercion", false, )
 
@@ -227,7 +231,7 @@ BINOP_NODE(Divide, TName(T_DIV), false, )
 BINOP_NODE(Mod, TName(T_MOD), false, )
 BINOP_NODE(And, TName(T_AND), false, )
 BINOP_NODE(Or, TName(T_OR), false, )
-UNARY_NODE(Not, TName(T_NOT), false, child, )
+UNARY_NODE(Not, TName(T_NOT), false, )
 UNOP_NODE(PreIncr, TName(T_INCR), true, )
 UNOP_NODE(PreDecr, TName(T_DECR), true, )
 BINOP_NODE(Equal, TName(T_EQ), false, )
@@ -239,7 +243,7 @@ BINOP_NODE(GreaterThanEq, TName(T_GTEQ), false, )
 BINOP_NODE(BitAnd, TName(T_BITAND), false, )
 BINOP_NODE(BitOr, TName(T_BITOR), false, )
 BINOP_NODE(Xor, TName(T_XOR), false, )
-UNARY_NODE(Negate, TName(T_NEG), false, child, )
+UNARY_NODE(Negate, TName(T_NEG), false, )
 BINOP_NODE(ShiftLeft, TName(T_ASL), false, )
 BINOP_NODE(ShiftRight, TName(T_ASR), false, )
 BINOP_NODE(Assign, TName(T_ASSIGN), true, )
@@ -254,13 +258,13 @@ BINOP_NODE(XorEq, TName(T_XOREQ), true, )
 BINOP_NODE(ShiftLeftEq, TName(T_ASLEQ), true, )
 BINOP_NODE(ShiftRightEq, TName(T_ASREQ), true, )
 ZERO_NODE(DefaultVal, "default value", false, )
-UNARY_NODE(TypeOf, TName(T_TYPEOF), false, child, )
+UNARY_NODE(TypeOf, TName(T_TYPEOF), false, )
 
 BINARY_NODE(Seq, "statements", false, head, tail, )
 BINARY_NODE(Indexing, "indexing operation", false, object, index, )
 UNOP_NODE(PostIncr, TName(T_INCR), true, )
 UNOP_NODE(PostDecr, TName(T_DECR), true, )
-UNARY_NODE(UnaryMinus, TName(T_MINUS), false, child, INITMETHOD)
+UNARY_NODE(UnaryMinus, TName(T_MINUS), false, INITMETHOD)
 COER_NODE(ToFloat, "tofloat", )
 COER_NODE(ToString, "tostring", )
 COER_NODE(ToBool, "tobool", )

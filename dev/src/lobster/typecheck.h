@@ -523,8 +523,44 @@ struct TypeChecker {
         }
     }
 
-    void TypeCheckMathOp(BinOp &n) {
-        TT(n.left, 1, LT_BORROW);
+    Node *OperatorOverload(Node &n) {
+        TT(n.Children()[0], 1, LT_ANY);
+        // If this is not an overload, we return nullptr and the first child
+        // will already have been typechecked with LT_BORROW.
+        auto no_overload = [&]() {
+            AdjustLifetime(n.Children()[0], LT_BORROW);
+            return nullptr;
+        };
+        auto child1 = n.Children()[0];
+        if (!IsUDT(child1->exptype->t)) return no_overload();
+        auto opname = TName(T_OPERATOR) + (n.Name() == "indexing operation" ? "[]" : n.Name());
+        auto it = st.operators.find(opname);
+        if (it == st.operators.end()) return no_overload();
+        auto f = it->second;
+        while (f->nargs() != n.Arity()) {
+            f = f->sibf;
+            if (!f) return no_overload();
+        }
+        for (auto [i, ov] : enumerate(f->overloads)) {
+            // FIXME: this does not support inheriting an overload.
+            if (ov.sf->args[0].type->Equal(*child1->exptype)) {
+                if (n.SideEffect() && IsStruct(child1->exptype->t))
+                    Error(n, "struct types can\'t model side effecting overloaded operators");
+                auto c = new Call(n.line, ov.sf);
+                c->children.insert(c->children.end(), n.Children(), n.Children() + n.Arity());
+                n.ClearChildren();
+                if (n.Arity() > 1) TT(c->Children()[1], 1, LT_ANY);
+                c->exptype = TypeCheckCallStatic(c->sf, *c, 1, nullptr, (int)i, true, false);
+                c->lt = c->sf->ltret;
+                delete &n;
+                return c;
+            }
+        }
+        return no_overload();
+    }
+
+    Node *TypeCheckMathOp(BinOp &n) {
+        if (auto nn = OperatorOverload(n)) return nn;
         TT(n.right, 1, LT_BORROW);
         n.exptype = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
         bool unionchecked = false;
@@ -533,15 +569,17 @@ struct TypeChecker {
         DecBorrowers(n.left->lt, n);
         DecBorrowers(n.right->lt, n);
         n.lt = LT_KEEP;
+        return &n;
     }
 
-    void TypeCheckMathOpEqBit(BinOp &n) {
-        TypeCheckBitOp(n);
-        CheckLval(n.left);
+    Node *TypeCheckMathOpEqBit(BinOp &n) {
+        auto nn = TypeCheckBitOp(n);
+        if (&n == nn) CheckLval(n.left);
+        return nn;
     }
 
-    void TypeCheckMathOpEq(BinOp &n) {
-        TT(n.left, 1, LT_BORROW);
+    Node *TypeCheckMathOpEq(BinOp &n) {
+        if (auto nn = OperatorOverload(n)) return nn;
         DecBorrowers(n.left->lt, n);
         TT(n.right, 1, LT_BORROW);
         CheckLval(n.left);
@@ -557,10 +595,11 @@ struct TypeChecker {
         assert(!Is<IdentRef>(n.left) || LifetimeType(Is<IdentRef>(n.left)->sid->lt) != LT_BORROW);
         DecBorrowers(n.right->lt, n);
         n.lt = PushBorrow(n.left);
+        return &n;
     }
 
-    void TypeCheckComp(BinOp &n) {
-        TT(n.left, 1, LT_BORROW);
+    Node *TypeCheckComp(BinOp &n) {
+        if (auto nn = OperatorOverload(n)) return nn;
         TT(n.right, 1, LT_BORROW);
         n.exptype = &st.default_bool_type->thistype;
         auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
@@ -590,10 +629,11 @@ struct TypeChecker {
         DecBorrowers(n.left->lt, n);
         DecBorrowers(n.right->lt, n);
         n.lt = LT_KEEP;
+        return &n;
     }
 
-    void TypeCheckBitOp(BinOp &n) {
-        TT(n.left, 1, LT_BORROW);
+    Node *TypeCheckBitOp(BinOp &n) {
+        if (auto nn = OperatorOverload(n)) return nn;
         TT(n.right, 1, LT_BORROW);
         auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
         if (u->t != V_INT) u = type_int;
@@ -602,15 +642,17 @@ struct TypeChecker {
         DecBorrowers(n.left->lt, n);
         DecBorrowers(n.right->lt, n);
         n.lt = LT_ANY;
+        return &n;
     }
 
-    void TypeCheckPlusPlus(Unary &n) {
-        TT(n.child, 1, LT_BORROW);
+    Node *TypeCheckPlusPlus(Unary &n) {
+        if (auto nn = OperatorOverload(n)) return nn;
         CheckLval(n.child);
         n.exptype = n.child->exptype;
         if (!n.exptype->Numeric())
             RequiresError("numeric", n.exptype, n);
         n.lt = n.child->lt;
+        return &n;
     }
 
     SubFunction *TopScope(vector<Scope> &_scopes) {
@@ -1594,11 +1636,9 @@ struct TypeChecker {
             auto c = new Call(dc->line, sf);
             c->children.insert(c->children.end(), dc->children.begin(), dc->children.end());
             dc->children.clear();
-            int vtable_idx = -1;
             c->exptype = TypeCheckCallStatic(sf, *c, reqret, nullptr, 0, true, false);
             c->lt = sf->ltret;
             c->sf = sf;
-            assert(vtable_idx < 0);
             delete dc;
             return c;
         }
@@ -2134,9 +2174,11 @@ struct TypeChecker {
         sort(funstats.begin(), funstats.end(),
             [](const Pair &a, const Pair &b) { return a.first > b.first; });
         for (auto &[fsize, f] : funstats) if (fsize > orignodes / 100) {
-            auto &pos = f->overloads.back().sf->sbody->line;
-            LOG_INFO("Most clones: ", f->name, " (", st.filenames[pos.fileidx], ":", pos.line,
-                     ") -> ", fsize, " nodes accross ", f->NumSubf() - f->overloads.size(),
+            auto s = cat("Most clones: ", f->name);
+            if (auto body = f->overloads.back().sf->sbody) {
+                s += cat(" (", st.filenames[body->line.fileidx], ":", body->line.line, ")");
+            }
+            LOG_INFO(s, " -> ", fsize, " nodes accross ", f->NumSubf() - f->overloads.size(),
                      " clones (+", f->overloads.size(), " orig)");
         }
     }
@@ -2491,112 +2533,91 @@ Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Plus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOp(*this);
-    return this;
+    return tc.TypeCheckMathOp(*this);
 }
 
 Node *Minus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOp(*this);
-    return this;
+    return tc.TypeCheckMathOp(*this);
 }
 
 Node *Multiply::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOp(*this);
-    return this;
+    return tc.TypeCheckMathOp(*this);
 }
 
 Node *Divide::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOp(*this);
-    return this;
+    return tc.TypeCheckMathOp(*this);
 }
 
 Node *Mod::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOp(*this);
-    return this;
+    return tc.TypeCheckMathOp(*this);
 }
 
 Node *PlusEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEq(*this);
-    return this;
+    return tc.TypeCheckMathOpEq(*this);
 }
 
 Node *MultiplyEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEq(*this);
-    return this;
+    return tc.TypeCheckMathOpEq(*this);
 }
 
 Node *MinusEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEq(*this);
-    return this;
+    return tc.TypeCheckMathOpEq(*this);
 }
 
 Node *DivideEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEq(*this);
-    return this;
+    return tc.TypeCheckMathOpEq(*this);
 }
 
 Node *ModEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEq(*this);
-    return this;
+    return tc.TypeCheckMathOpEq(*this);
 }
 
 Node *AndEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEqBit(*this);
-    return this;
+    return tc.TypeCheckMathOpEqBit(*this);
 }
 
 Node *OrEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEqBit(*this);
-    return this;
+    return tc.TypeCheckMathOpEqBit(*this);
 }
 
 Node *XorEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEqBit(*this);
-    return this;
+    return tc.TypeCheckMathOpEqBit(*this);
 }
 
 Node *ShiftLeftEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEqBit(*this);
-    return this;
+    return tc.TypeCheckMathOpEqBit(*this);
 }
 
 Node *ShiftRightEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckMathOpEqBit(*this);
-    return this;
+    return tc.TypeCheckMathOpEqBit(*this);
 }
 
 Node *NotEqual::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckComp(*this);
-    return this;
+    return tc.TypeCheckComp(*this);
 }
 
 Node *Equal::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckComp(*this);
-    return this;
+    return tc.TypeCheckComp(*this);
 }
 
 Node *GreaterThanEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckComp(*this);
-    return this;
+    return tc.TypeCheckComp(*this);
 }
 
 Node *LessThanEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckComp(*this);
-    return this;
+    return tc.TypeCheckComp(*this);
 }
 
 Node *GreaterThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckComp(*this);
-    return this;
+    return tc.TypeCheckComp(*this);
 }
 
 Node *LessThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckComp(*this);
-    return this;
+    return tc.TypeCheckComp(*this);
 }
 
 Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(child, 1, LT_BORROW);
+    if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.DecBorrowers(child->lt, *this);
     tc.NoStruct(*child, "not");
     exptype = &tc.st.default_bool_type->thistype;
@@ -2605,32 +2626,27 @@ Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *BitAnd::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckBitOp(*this);
-    return this;
+    return tc.TypeCheckBitOp(*this);
 }
 
 Node *BitOr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckBitOp(*this);
-    return this;
+    return tc.TypeCheckBitOp(*this);
 }
 
 Node *Xor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckBitOp(*this);
-    return this;
+    return tc.TypeCheckBitOp(*this);
 }
 
 Node *ShiftLeft::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckBitOp(*this);
-    return this;
+    return tc.TypeCheckBitOp(*this);
 }
 
 Node *ShiftRight::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckBitOp(*this);
-    return this;
+    return tc.TypeCheckBitOp(*this);
 }
 
 Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(child, 1, LT_BORROW);
+    if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.SubType(child, type_int, "negated value", *this);
     tc.DecBorrowers(child->lt, *this);
     exptype = child->exptype;
@@ -2639,27 +2655,23 @@ Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *PostDecr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckPlusPlus(*this);
-    return this;
+    return tc.TypeCheckPlusPlus(*this);
 }
 
 Node *PostIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckPlusPlus(*this);
-    return this;
+    return tc.TypeCheckPlusPlus(*this);
 }
 
 Node *PreDecr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckPlusPlus(*this);
-    return this;
+    return tc.TypeCheckPlusPlus(*this);
 }
 
 Node *PreIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckPlusPlus(*this);
-    return this;
+    return tc.TypeCheckPlusPlus(*this);
 }
 
 Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(child, 1, LT_BORROW);
+    if (auto nn = tc.OperatorOverload(*this)) return nn;
     exptype = child->exptype;
     if (!exptype->Numeric() &&
         (exptype->t != V_STRUCT_S || !exptype->udt->sametype->Numeric()))
@@ -2683,7 +2695,7 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(left, 1, LT_BORROW);
+    if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.DecBorrowers(left->lt, *this);
     tc.TT(right, 1, tc.LvalueLifetime(*left, false));
     tc.CheckLval(left);
@@ -3200,7 +3212,7 @@ Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(object, 1, LT_BORROW);
+    if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.TT(index, 1, LT_BORROW);
     tc.DecBorrowers(index->lt, *this);
     auto vtype = object->exptype;

@@ -412,9 +412,22 @@ struct Parser {
     }
 
     Node *ParseNamedFunctionDefinition(bool isprivate, UDT *self) {
-        // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
-        // current namespace (which is same as !self).
-        auto idname = st.MaybeNameSpace(ExpectId(), !isprivate && !self);
+        string idname;
+        if (IsNext(T_OPERATOR)) {
+            auto op = lex.token;
+            if ((op < T_PLUS || op > T_ASREQ) && op != T_LEFTBRACKET)
+                Error(cat("illegal token for operator overloading: ", TName(op)));
+            idname = cat(TName(T_OPERATOR), TName(op));
+            lex.Next();
+            if (op == T_LEFTBRACKET) {
+                Expect(T_RIGHTBRACKET);
+                idname += ']';
+            }
+        } else {
+            // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
+            // current namespace (which is same as !self).
+            idname = st.MaybeNameSpace(ExpectId(), !isprivate && !self);
+        }
         return ParseFunction(&idname, isprivate, true, true, self);
     }
 
@@ -459,7 +472,7 @@ struct Parser {
         block_stack.pop_back();
     }
 
-    Node *ParseFunction(string_view *name, bool isprivate, bool parens, bool parseargs,
+    Node *ParseFunction(string *name, bool isprivate, bool parens, bool parseargs,
                         UDT *self = nullptr) {
         auto sf = st.FunctionScopeStart();
         st.bound_typevars_stack.push_back(&sf->generics);

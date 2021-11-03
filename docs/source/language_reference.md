@@ -718,6 +718,38 @@ as writing `da(1, 2, x + 1)`. That's why you can even use variables in these
 default arguments, as long as they're in scope when called.
 
 
+### Operator overloading.
+
+You can overload what operators do on `class` and `struct` types, by writing
+a function that defines what the `operator` should do:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct A:
+    x:int
+    def operator+(o:A): return A { x + o.x }
+    def operator-(): return A { -x }
+
+print - A { 2 } + A { 3 }  // A { 1 }
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You may currently overload: `+` `-` `*` `/` `%` `++` `--` `==` `!=` `<` `>`
+`<=` `>=` `&` `|` `^` `~` `<<` `>>` `=` `+=` `-=` `*=` `/=` `%=` `&=` `|=`
+`^=` `<<=` `>>=` `[]` (indexing).
+
+Overloaded operators are parsed with the same operator precedence as for the
+built-in operators, but when it comes to typechecking, they are handled as
+regular function calls, with all that endtails. The above expression is thus
+handled internally as `operator+(operator-(A { 2 }), A { 3 })` where `operator+`
+is just an ordinary function name.
+
+The assignment operators make most sense to overload on `class` types, since
+there you can overwrite the members of the `this` (or left) argument of the
+operator. There is currently no way to do this with `struct` which are always
+copied by value.
+
+See more examples in `modules/quaternion.lobster` and `tests/operators.lobster`.
+
+
 Typing
 ------
 
