@@ -698,9 +698,6 @@ struct VM : VMArgs {
 
     int ret_unwind_to = -1;
 
-    size_t codelen = 0;
-    const int *codestart = nullptr;
-    vector<int> codebigendian;
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts = nullptr;
 
@@ -765,7 +762,6 @@ struct VM : VMArgs {
     type_elem_t GetFloatVectorType(int which);
 
     void DumpVal(RefObj *ro, const char *prefix);
-    void DumpFileLine(const int *fip, string &sd);
     void DumpLeaks();
 
     string &TraceStream();

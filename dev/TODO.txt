@@ -3,9 +3,6 @@
     - true, but this doesn't save a lot of memory or make a ton of code
       more elegant, and actually a LOT of these vars get modified by specialization.
 
-- remove bytecode from generated C/C++ code, and make metadata more readable.
-  - could make other changes to bytecode format now that tocpp/disasm/trace is only consumer.
-
 - (mortimersnerd) Type system: allow any struct of same set of fields to be converted to any other
   such struct?
   Goes a bit agains strong typing?
@@ -706,6 +703,9 @@
 - contribute Lobster syntax highlighting to:
   https://github.com/github/linguist/blob/master/CONTRIBUTING.md#fixing-syntax-highlighting
 
+- make metadata more readable in generated C/C++.
+- could make simplifications to bytecode format now that tocpp/disasm is only consumer.
+
 - add support for pure functions.
   introduce functions with e.g. "fun" instead of "def" to indicate they are pure (much like
   currently "let" and "var").
@@ -1010,6 +1010,8 @@
   e.g. astar.lobster
 
 - bring indent based syntax for struct defs also to struct use, vectors, enums..
+
+- support loading from pak files in --cpp mode.
 
 - compile-time lobster execution would be super simple: simply allow a string that contains
   lobster code, spin up a VM to eval it, and insert its result back in the code.

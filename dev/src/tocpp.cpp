@@ -127,7 +127,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         }
         if ((false)) {  // Debug corrupt bytecode.
             string da;
-            DisAsmIns(natreg, da, ip, code, typetable, bcf, true);
+            DisAsmIns(natreg, da, ip, code, typetable, bcf);
             LOG_DEBUG(da);
         }
         int opc = *ip++;
@@ -462,13 +462,21 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     sd += "    0\n};\n";  // Make sure table is never empty.
 
     if (cpp) {
-        // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
-        // in fact, it be nice if those were in readable format in the generated code.
+        // Output only the metadata part of the bytecode, not the bytecode itself.
+        // TODO: it be nice if this metadate were in readable format in the generated code.
         sd += "\nstatic const int bytecodefb[] = {";
         auto bytecode_ints = (const int *)bytecode_buffer.data();
-        for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
+        for (size_t i = 0; i < size_t(code - bytecode_ints); i++) {
             if ((i & 0xF) == 0) sd += "\n ";
-            append(sd, " ", bytecode_ints[i], ",");
+            auto x = bytecode_ints[i];
+            sd += " ";
+            if (x < 0x10000 && x > -0x10000) {
+                append(sd, x);
+            } else {
+                if (x < 0) sd += "(int)";
+                to_string_hex(sd, (uint32_t)x);
+            }
+            sd += ",";
         }
         sd += "\n};\n\n";
     }

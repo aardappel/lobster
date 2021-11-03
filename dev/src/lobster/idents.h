@@ -905,6 +905,8 @@ struct SymbolTable {
                    string &bytecode,
                    vector<int> &vtables) {
         flatbuffers::FlatBufferBuilder fbb;
+        // Always serialize this first! that way it can easily be left out of the generated C code.
+        auto codevec = fbb.CreateVector(code);
         vector<flatbuffers::Offset<flatbuffers::String>> fns;
         for (auto &f : filenames) fns.push_back(fbb.CreateString(f));
         vector<flatbuffers::Offset<bytecode::Function>> functionoffsets;
@@ -917,7 +919,7 @@ struct SymbolTable {
         for (auto e : enumtable) enumoffsets.push_back(e->Serialize(fbb));
         auto bcf = bytecode::CreateBytecodeFile(fbb,
             LOBSTER_BYTECODE_FORMAT_VERSION,
-            fbb.CreateVector(code),
+            codevec,
             fbb.CreateVector((vector<int> &)typetable),
             fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(stringtable.size(),
                 [&](size_t i) {

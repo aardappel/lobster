@@ -45,8 +45,7 @@ const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
                                      const bytecode::BytecodeFile *bcf);
 
 const int *DisAsmIns(NativeRegistry &natreg, string &sd, const int *ip, const int *code,
-                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf,
-                     bool in_bytecode);
+                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf);
 
 void DisAsm(NativeRegistry &natreg, string &sd, string_view bytecode_buffer);
 

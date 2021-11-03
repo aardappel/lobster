@@ -37,14 +37,15 @@ const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
 }
 
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
-                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf,
-                     bool in_bytecode) {
+                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
-    auto li = LookupLine(ip, code, bcf);
-    // FIXME: some indication of the filename, maybe with a table index?
-    if (in_bytecode) append(sd, "I ", ip - code, " \t");
-    append(sd, "L ", li->line(), " \t");
+    if (code) {
+        auto li = LookupLine(ip, code, bcf);
+        // FIXME: some indication of the filename, maybe with a table index?
+        append(sd, "I ", ip - code, " \t");
+        append(sd, "L ", li->line(), " \t");
+    }
     auto ins_start = ip;
     int opc = *ip++;
     if (opc < 0 || opc >= IL_MAX_OPS) {
@@ -88,10 +89,14 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
 
         case IL_CALL: {
             auto bc = *ip++;
-            assert(code[bc] == IL_FUNSTART);
-            auto id = code[bc + 2];
-            auto nargs = code[bc + 4];
-            append(sd, nargs, " ", bcf->functions()->Get(id)->name()->string_view(), " ", bc);
+            if (code) {
+                assert(code[bc] == IL_FUNSTART);
+                auto id = code[bc + 2];
+                auto nargs = code[bc + 4];
+                append(sd, nargs, " ", bcf->functions()->Get(id)->name()->string_view(), " ", bc);
+            } else {
+                append(sd, " ", bc);
+            }
             break;
         }
 
@@ -194,7 +199,7 @@ void DisAsm(NativeRegistry &nfr, string &sd, string_view bytecode_buffer) {
     const int *ip = code;
     while (ip < code + len) {
         if (*ip == IL_FUNSTART) sd += "------- ------- ---\n";
-        ip = DisAsmIns(nfr, sd, ip, code, typetable, bcf, true);
+        ip = DisAsmIns(nfr, sd, ip, code, typetable, bcf);
         sd += "\n";
         if (!ip) break;
     }

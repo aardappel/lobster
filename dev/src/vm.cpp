@@ -24,16 +24,10 @@ namespace lobster {
 VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
     : VMArgs(std::move(vmargs)), bcf(bcf) {
 
-    codelen = bcf->bytecode()->Length();
     if (FLATBUFFERS_LITTLEENDIAN) {
         // We can use the buffer directly.
-        codestart = (const int *)bcf->bytecode()->Data();
         typetable = (const type_elem_t *)bcf->typetable()->Data();
     } else {
-        for (uint32_t i = 0; i < codelen; i++)
-            codebigendian.push_back(bcf->bytecode()->Get(i));
-        codestart = codebigendian.data();
-
         for (uint32_t i = 0; i < bcf->typetable()->Length(); i++)
             typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
         typetable = typetablebigendian.data();
@@ -108,12 +102,6 @@ void VM::DumpVal(RefObj *ro, const char *prefix) {
     RefToString(*this, sd, ro, debugpp);
     append(sd, " (", ro->refc, "): ", (size_t)ro);
     LOG_DEBUG(sd);
-}
-
-void VM::DumpFileLine(const int *fip, string &sd) {
-    // error is usually in the byte before the current ip.
-    auto li = LookupLine(fip - 1, codestart, bcf);
-    append(sd, bcf->filenames()->Get(li->fileidx())->string_view(), "(", li->line(), ")");
 }
 
 void VM::DumpLeaks() {
@@ -621,8 +609,7 @@ using namespace lobster;
 void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
     auto ip = _ip.begin();
     auto &sd = vm->TraceStream();
-    DisAsmIns(vm->nfr, sd, ip, vm->bcf->bytecode()->data(),
-              (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf, false);
+    DisAsmIns(vm->nfr, sd, ip, nullptr, (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf);
     #if RTT_ENABLED
         (void)sp;
         /*
