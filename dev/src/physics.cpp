@@ -205,6 +205,27 @@ nfr("ph_dynamic", "shape,on", "RB", "",
         return NilVal();
     });
 
+nfr("ph_set_linear_velocity", "id,velocity", "RF}:2", "",
+    "sets the linear velocity of a shape's center of mass.",
+    [](StackPtr &sp, VM &vm) {
+        CheckPhysics();
+        auto vel = PopB2(sp);
+        auto id = Pop(sp);
+        GetObject(vm, id)
+            .fixture->GetBody()
+            ->SetLinearVelocity(vel);
+    });
+
+nfr("ph_apply_linear_impulse_to_center", "id,impulse", "RF}:2", "",
+    "applies a linear impulse to a shape at its center of mass.",
+    [](StackPtr &sp, VM &vm) {
+        CheckPhysics();
+        auto imp = PopB2(sp);
+        auto id = Pop(sp);
+        auto body = GetObject(vm, id).fixture->GetBody();
+        body->ApplyLinearImpulse(imp, body->GetWorldCenter(), true);
+    });
+
 nfr("ph_set_color", "id,color", "R?F}:4", "",
     "sets a shape (or nil for particles) to be rendered with a particular color.",
     [](StackPtr &sp, VM &vm) {
@@ -238,6 +259,13 @@ nfr("ph_get_position", "id", "R", "F}:2",
     [](StackPtr &sp, VM &vm) {
         auto id = Pop(sp);
         PushVec(sp, GetObject(vm, id).Pos());
+    });
+
+nfr("ph_get_mass", "id", "R", "F",
+    "gets a shape's mass.",
+    [](StackPtr &sp, VM &vm) {
+        auto id = Pop(sp);
+        Push(sp, GetObject(vm, id).fixture->GetBody()->GetMass());
     });
 
 nfr("ph_create_particle", "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
