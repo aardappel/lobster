@@ -261,6 +261,13 @@ nfr("ph_get_position", "id", "R", "F}:2",
         PushVec(sp, GetObject(vm, id).Pos());
     });
 
+nfr("ph_get_mass", "id", "R", "F",
+    "gets a shape's mass.",
+    [](StackPtr &sp, VM &vm) {
+        auto id = Pop(sp);
+        Push(sp, GetObject(vm, id).fixture->GetBody()->GetMass());
+    });
+
 nfr("ph_create_particle", "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
     "creates an individual particle. For flags, see include/physics.lobster",
     [](StackPtr &sp, VM &) {
