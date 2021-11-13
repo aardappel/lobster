@@ -2,7 +2,7 @@
     "name": "lobster",
     "displayName": "Lobster",
     "description": "Lobster programming language support",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "publisher": "wvo",
     "engines": {
         "vscode": "^1.5.0"
@@ -20,7 +20,7 @@
         "grammars": [{
             "language": "lobster",
             "scopeName": "source.lobster",
-            "path": "./syntaxes/lobster.tmLanguage"
+            "path": "./syntaxes/lobster.tmLanguage.json"
         }]
     }
 }
