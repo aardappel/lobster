@@ -216,6 +216,16 @@ nfr("ph_set_linear_velocity", "id,velocity", "RF}:2", "",
             ->SetLinearVelocity(vel);
     });
 
+nfr("ph_apply_linear_impulse_to_center", "id,impulse", "RF}:2", "",
+    "applies a linear impulse to a shape at its center of mass.",
+    [](StackPtr &sp, VM &vm) {
+        CheckPhysics();
+        auto imp = PopB2(sp);
+        auto id = Pop(sp);
+        auto body = GetObject(vm, id).fixture->GetBody();
+        body->ApplyLinearImpulse(imp, body->GetWorldCenter(), true);
+    });
+
 nfr("ph_set_color", "id,color", "R?F}:4", "",
     "sets a shape (or nil for particles) to be rendered with a particular color.",
     [](StackPtr &sp, VM &vm) {
