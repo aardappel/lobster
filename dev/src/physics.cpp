@@ -205,6 +205,17 @@ nfr("ph_dynamic", "shape,on", "RB", "",
         return NilVal();
     });
 
+nfr("ph_set_linear_velocity", "id,velocity", "RF}:2", "",
+    "sets the linear velocity of a shape's center of mass.",
+    [](StackPtr &sp, VM &vm) {
+        CheckPhysics();
+        auto vel = PopB2(sp);
+        auto id = Pop(sp);
+        GetObject(vm, id)
+            .fixture->GetBody()
+            ->SetLinearVelocity(vel);
+    });
+
 nfr("ph_set_color", "id,color", "R?F}:4", "",
     "sets a shape (or nil for particles) to be rendered with a particular color.",
     [](StackPtr &sp, VM &vm) {
