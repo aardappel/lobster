@@ -69,6 +69,7 @@ class = ( `class` \| `struct` ) ident
           indlist( ident [ `:` type ] [ `=` exp ] \| functiondef ) )
 
 specializers = `<` list( type ) `>`
+
 generics = `<` list( ident ) `>`
 
 vardef = ( `var` \| `let` ) list( ident ) `=` opexp
@@ -76,6 +77,7 @@ vardef = ( `var` \| `let` ) list( ident ) `=` opexp
 enumdef = ( `enum` | `enum_flags` ) indlist( ident [ `=` integer\_constant ] )
 
 functiondef = `def` ident generics functionargsbody
+
 functionargsbody = `(` args `) :` body
 
 block = [ args ] `:` body \| functionargsbody

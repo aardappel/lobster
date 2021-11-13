@@ -40,10 +40,12 @@
 <p>stats = topexp … linefeed</p>
 <p>topexp = <code>namespace</code> ident |<code>import</code> [ <code>from</code> ] ( string_constant | ( ident … <code>.</code> ) ) | [ <code>private</code> ] ( functiondef | class | vardef | enumdef ) | expstat</p>
 <p>class = ( <code>class</code> | <code>struct</code> ) ident ( <code>=</code> ident specializers | [ generics ] <code>:</code> [ ident [ specializers ] ] indlist( ident [ <code>:</code> type ] [ <code>=</code> exp ] | functiondef ) )</p>
-<p>specializers = <code>&lt;</code> list( type ) <code>&gt;</code> generics = <code>&lt;</code> list( ident ) <code>&gt;</code></p>
+<p>specializers = <code>&lt;</code> list( type ) <code>&gt;</code></p>
+<p>generics = <code>&lt;</code> list( ident ) <code>&gt;</code></p>
 <p>vardef = ( <code>var</code> | <code>let</code> ) list( ident ) <code>=</code> opexp</p>
 <p>enumdef = ( <code>enum</code> | <code>enum_flags</code> ) indlist( ident [ <code>=</code> integer_constant ] )</p>
-<p>functiondef = <code>def</code> ident generics functionargsbody functionargsbody = <code>(</code> args <code>) :</code> body</p>
+<p>functiondef = <code>def</code> ident generics functionargsbody</p>
+<p>functionargsbody = <code>(</code> args <code>) :</code> body</p>
 <p>block = [ args ] <code>:</code> body | functionargsbody</p>
 <p>args = [ list( ident [ ( <code>:</code> | <code>::</code> ) type ] ) ]</p>
 <p>body = ( expstat | indent stats dedent )</p>
