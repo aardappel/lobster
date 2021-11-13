@@ -4,6 +4,7 @@
 *.suo
 *.vcxproj.user
 .vscode/
+*.code-workspace
 
 *.lbc
 *.exp
