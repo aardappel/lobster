@@ -43,7 +43,7 @@
 <p>specializers = <code>&lt;</code> list( type ) <code>&gt;</code></p>
 <p>generics = <code>&lt;</code> list( ident ) <code>&gt;</code></p>
 <p>vardef = ( <code>var</code> | <code>let</code> ) list( ident ) <code>=</code> opexp</p>
-<p>enumdef = ( <code>enum</code> | <code>enum_flags</code> ) indlist( ident [ <code>=</code> integer_constant ] )</p>
+<p>enumdef = ( <code>enum</code> | <code>enum_flags</code> ) ident <code>:</code> indlist( ident [ <code>=</code> integer_constant ] )</p>
 <p>functiondef = <code>def</code> ident generics functionargsbody</p>
 <p>functionargsbody = <code>(</code> args <code>) :</code> body</p>
 <p>block = [ args ] <code>:</code> body | functionargsbody</p>

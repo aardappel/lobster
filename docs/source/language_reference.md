@@ -74,7 +74,7 @@ generics = `<` list( ident ) `>`
 
 vardef = ( `var` \| `let` ) list( ident ) `=` opexp
 
-enumdef = ( `enum` | `enum_flags` ) indlist( ident [ `=` integer\_constant ] )
+enumdef = ( `enum` | `enum_flags` ) ident `:` indlist( ident [ `=` integer\_constant ] )
 
 functiondef = `def` ident generics functionargsbody
 
