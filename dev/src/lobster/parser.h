@@ -30,7 +30,11 @@ struct Parser {
     vector<ForwardFunctionCall> forwardfunctioncalls;
     bool call_noparens = false;
     set<string> pakfiles;
-    struct BlockScope { Block *block; int for_nargs; };
+    struct BlockScope {
+        Block *block;
+        int for_nargs;
+        int implicits;
+    };
     vector<BlockScope> block_stack;
 
     Parser(NativeRegistry &natreg, string_view _src, SymbolTable &_st, string_view _stringsource)
@@ -462,7 +466,7 @@ struct Parser {
     }
 
     void ParseBody(Block *block, int for_nargs) {
-        block_stack.push_back({ block, for_nargs });
+        block_stack.push_back({ block, for_nargs, 0 });
         if (IsNext(T_INDENT)) {
             return ParseStatements(block, T_DEDENT);
         } else {
@@ -1295,6 +1299,19 @@ struct Parser {
         }
     }
 
+    void ForLoopVar(int existing, SpecIdent *sid, UnresolvedTypeRef type, vector<Node *> &list) {
+        Node *init = nullptr;
+        if (existing == 0)
+            init = new ForLoopElem(lex);
+        else if (existing == 1)
+            init = new ForLoopCounter(lex);
+        else
+            Error("for loop takes at most an element and index variable");
+        auto def = new Define(lex, init);
+        def->sids.push_back({ sid , type });
+        list.insert(list.begin() + existing, def);
+    }
+
     Block *ParseBlock(int for_args = -1, bool parse_args = false) {
         st.BlockScopeStart();
         auto block = new Block(lex);
@@ -1302,7 +1319,6 @@ struct Parser {
             auto parens = IsNext(T_LEFTPAREN);
             for (;;) {
                 ExpectId();
-                for_args++;
                 bool withtype = lex.token == T_TYPEIN;
                 auto id = st.LookupDef(lastid, lex, true, withtype);
                 id->single_assignment = false;  // Mostly to stop warning that it is constant.
@@ -1312,13 +1328,8 @@ struct Parser {
                     type = ParseType(withtype, nullptr);
                     if (withtype) st.AddWithStruct(type.utr, id, lex, st.defsubfunctionstack.back());
                 }
-                Node *init = nullptr;
-                if (for_args == 1) init = new ForLoopElem(lex);
-                else if (for_args == 2) init = new ForLoopCounter(lex);
-                else Error("for loop takes at most an element and index variable");
-                auto def = new Define(lex, init);
-                def->sids.push_back({ id->cursid, type });
-                block->Add(def);
+                ForLoopVar(for_args, id->cursid, type, block->children);
+                for_args++;
                 if (!IsNext(T_COMMA)) break;
             }
             if (parens) Expect(T_RIGHTPAREN);
@@ -1447,10 +1458,8 @@ struct Parser {
                               " with existing arguments");
                     }
                     id->constant = true;
-                    auto def = new Define(lex, new ForLoopElem(lex));
-                    def->sids.push_back({ id->cursid, type });
-                    bs.block->children.insert(bs.block->children.begin(), def);
-                    bs.for_nargs++;
+                    ForLoopVar(bs.implicits, id->cursid, type, bs.block->children);
+                    bs.implicits++;
                 } else {
                     id = st.LookupDef(idname, lex, false, false);
                     if (st.defsubfunctionstack.size() <= 1)
