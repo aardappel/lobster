@@ -486,6 +486,10 @@ Lobster's  built-in control structures `if` `for` and `while` have syntax
 that is closely compatible with this function call syntax (and in the case of
 `for` allow the same argument simplifications).
 
+The return value of these functions is the last expression in `body`. You don't
+use explicit `return` statements, as those are used with the enclosing named
+function instead, see "Explicit Returns" below.
+
 Though not recommend (as readability suffers), it is even possible to pass
 multiple function values to a function, but then every function value except the
 first can't omit the `fn` keyword:
@@ -572,6 +576,9 @@ you to implement fully general exception handling in Lobster code, see
 
 You can use the keyword `program` instead of a function name to force returning
 from the entire program.
+
+If you need to return from a function value with an explicit return, you need
+to turn that particular function into a named function instead.
 
 ### Multiple Return Values
 
