@@ -139,6 +139,18 @@ else:<br>
 </tr>
 
 <tr>
+<td>for(list) a, i:<br>&nbsp; &nbsp; print a<br>&nbsp; &nbsp; print i</td>
+<td>for(int i = 0; i &lt; list.size(); i++) {<br>&nbsp; &nbsp; auto a = list[i];<br>&nbsp; &nbsp; print(a);<br>&nbsp; &nbsp; print(i);<br>}</td>
+<td>Where `a` is the item at index `i` of `list.</td>
+</tr>
+
+<tr>
+<td>for(list):<br>&nbsp; &nbsp; print _<br>&nbsp; &nbsp; print _i</td>
+<td>for(int _i = 0; _i &lt; list.size(); _i++) {<br>&nbsp; &nbsp; auto _ = list[_i];<br>&nbsp; &nbsp; print(_);<br>&nbsp; &nbsp; print(_i);<br>}</td>
+<td>Where `_` is the item at index `_i` of `list`. Here `_` and `_i` are anonymous parameters that Lobster auto populates. They must be prefixed with `_`, and are assigned by their declaration order in the body. </td>
+</tr>
+
+<tr>
 <td>for(list) a: print a</td>
 <td>foreach (var a in list) print(a);</td>
 <td></td>
