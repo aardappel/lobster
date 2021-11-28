@@ -1468,8 +1468,6 @@
 
 - make more args const
 
-- add support for http://vallentinsource.com/opengl/debug-output
-
 - Add #line to C++ output: http://yosefk.com/blog/c-as-an-intermediate-language.html
 
 - Implement these examples in gui.lobster: https://github.com/eugenkiss/7guis/wiki

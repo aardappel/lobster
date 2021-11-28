@@ -148,6 +148,17 @@ void OpenGLFrameEnd() {
     //glFinish();
 }
 
+#ifdef PLATFORM_WINNIX
+void DebugCallBack(GLenum, GLenum, GLuint, GLenum severity, GLsizei length,
+                   const GLchar *message, const void *) {
+    auto ll = OUTPUT_INFO;
+    if (severity == GL_DEBUG_SEVERITY_HIGH) ll = OUTPUT_ERROR;
+    else if (severity == GL_DEBUG_SEVERITY_MEDIUM) ll = OUTPUT_WARN;
+    if (ll < min_output_level) return;
+    LogOutput(ll, "GLDEBUG: ", string_view(message, length));
+}
+#endif
+
 string OpenGLInit(int samples, bool srgb) {
     GL_CHECK("before_init");
     // If not called, flashes red framebuffer on OS X before first gl_clear() is called.
@@ -161,6 +172,8 @@ string OpenGLInit(int samples, bool srgb) {
             }
         GLBASEEXTS GLEXTS
         #undef GLEXT
+        glEnable(GL_DEBUG_OUTPUT);
+        glDebugMessageCallback(DebugCallBack, nullptr);
     #endif
     #ifndef PLATFORM_ES3
         GL_CALL(glEnable(GL_LINE_SMOOTH));

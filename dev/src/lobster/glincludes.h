@@ -130,7 +130,8 @@
         GLEXT(PFNGLGETPROGRAMBINARYPROC              , glGetProgramBinary              , 0) \
         GLEXT(PFNGLBINDBUFFERBASEPROC                , glBindBufferBase                , 0) \
         GLEXT(PFNGLMEMORYBARRIERPROC                 , glMemoryBarrier                 , 0) \
-        GLEXT(PFNGLMAPBUFFERRANGEPROC                , glMapBufferRange                , 0)
+        GLEXT(PFNGLMAPBUFFERRANGEPROC                , glMapBufferRange                , 0) \
+        GLEXT(PFNGLDEBUGMESSAGECALLBACKPROC          , glDebugMessageCallback          , 0)
     #define GLEXT(type, name, needed) extern type name;
         GLBASEEXTS
         GLEXTS
