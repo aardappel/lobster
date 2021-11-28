@@ -161,6 +161,9 @@ void DebugCallBack(GLenum, GLenum, GLuint, GLenum severity, GLsizei length,
 
 string OpenGLInit(int samples, bool srgb) {
     GL_CHECK("before_init");
+    LOG_INFO((const char *)glGetString(GL_VENDOR), " - ",
+             (const char *)glGetString(GL_RENDERER), " - ",
+             (const char *)glGetString(GL_VERSION));
     // If not called, flashes red framebuffer on OS X before first gl_clear() is called.
     ClearFrameBuffer(float3_0);
     #ifdef PLATFORM_WINNIX
@@ -173,7 +176,7 @@ string OpenGLInit(int samples, bool srgb) {
         GLBASEEXTS GLEXTS
         #undef GLEXT
         glEnable(GL_DEBUG_OUTPUT);
-        glDebugMessageCallback(DebugCallBack, nullptr);
+        if (glDebugMessageCallback) glDebugMessageCallback(DebugCallBack, nullptr);
     #endif
     #ifndef PLATFORM_ES3
         GL_CALL(glEnable(GL_LINE_SMOOTH));
