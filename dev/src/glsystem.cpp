@@ -223,3 +223,11 @@ void LogGLError(const char *file, int line, const char *call) {
     LOG_ERROR(file, "(", line, "): OpenGL Error: ", err_str, " from ", call);
     assert(false);
 }
+
+#ifdef _WIN32
+// This magically forces GL to pick dedicated over integrated?
+extern "C" {
+_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
