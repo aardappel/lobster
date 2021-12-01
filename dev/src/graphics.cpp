@@ -619,7 +619,7 @@ nfr("gl_unit_square", "centered", "I?", "",
         return NilVal();
     });
 
-nfr("gl_line", "start,end,thickness", "F}F}F", "",
+nfr("gl_line", "start,end,thickness", "F}F}1F", "",
     "renders a line with the given thickness",
     [](StackPtr &sp, VM &vm) {
         TestGL(vm);
@@ -651,7 +651,7 @@ nfr("gl_ortho", "rh,depth", "I?I?", "",
         return NilVal();
     });
 
-nfr("gl_ortho3d", "center,extends", "F}F}", "",
+nfr("gl_ortho3d", "center,extends", "F}:3F}:3", "",
     "sets a custom ortho projection as 3D projection.",
     [](StackPtr &sp, VM &) {
         auto extends = PopVec<float3>(sp);

@@ -25,7 +25,7 @@ struct CodeGen  {
     vector<const Node *> linenumbernodes;
     vector<tuple<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
-    vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
+    vector<type_elem_t> type_table;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
     vector<TypeLT> rettypes, temptypestack;
     vector<const Node *> loops;
@@ -62,7 +62,7 @@ struct CodeGen  {
 
     void PushTemp(ILOP op) {
         tstack.push_back(op);
-        tstack_max = max(tstack_max, tstack.size());
+        tstack_max = std::max(tstack_max, tstack.size());
     }
 
     struct BlockStack {
@@ -206,10 +206,6 @@ struct CodeGen  {
         Type type_v_v_int(V_VECTOR, &*type_vector_int);     GetTypeTableOffset(&type_v_v_int);
         Type type_v_v_float(V_VECTOR, &*type_vector_float); GetTypeTableOffset(&type_v_v_float);
         assert(type_table.size() == TYPE_ELEM_FIXED_OFFSET_END);
-        for (auto type : st.default_int_vector_types[0])
-            vint_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
-        for (auto type : st.default_float_vector_types[0])
-            vfloat_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
         for (auto f : parser.st.functiontable) {
             if (!f->istype) {
                 for (auto &ov : f->overloads) for (auto sf = ov.sf; sf; sf = sf->next) {
@@ -1569,8 +1565,8 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
             if (!istart || !iend || istart->integer > iend->integer)
                 return false;
             num += iend->integer - istart->integer + 1;
-            mini = min(mini, istart->integer);
-            maxi = max(maxi, iend->integer);
+            mini = std::min(mini, istart->integer);
+            maxi = std::max(maxi, iend->integer);
         }
     }
     // Decide if jump table is economic.

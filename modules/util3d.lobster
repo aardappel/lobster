@@ -50,7 +50,7 @@ def camera_left_vector():    return vecfromyawpitch(camera_yaw, camera_pitch,   
 
 def camera_direction(v):
     v = normalize(v)
-    camera_yaw = atan2(v) - 90  // look along Y rather than X
+    camera_yaw = atan2(xy(v)) - 90  // look along Y rather than X
     camera_pitch = asin(v.z)
 
 def camera_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):

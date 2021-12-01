@@ -178,7 +178,7 @@ nfr("ensure_size", "string,size,char,extra", "SkIII?", "S",
     " char. You can specify a negative size to mean relative to the end, i.e. new"
     " characters will be added at the start. ",
     [](StackPtr &, VM &vm, Value &str, Value &size, Value &c, Value &extra) {
-        auto asize = abs(size.ival());
+        auto asize = std::abs(size.ival());
         return str.sval()->len >= asize
             ? str
             : Value(vm.ResizeString(str.sval(), asize + extra.ival(), c.intval(), size.ival() < 0));

@@ -598,6 +598,13 @@ struct TypeChecker {
         return &n;
     }
 
+    void StructCompResult(BinOp& n, TypeRef u) {
+        auto nfields = u->udt->fields.size();
+        n.exptype = st.GetVectorType(type_vector_int, 0, (int)nfields);
+        if (n.exptype.Null())
+            Error(n, "no suitable struct of int type of size ", nfields, " known");
+    }
+
     Node *TypeCheckComp(BinOp &n) {
         if (auto nn = OperatorOverload(n)) return nn;
         TT(n.right, 1, LT_BORROW);
@@ -609,12 +616,14 @@ struct TypeChecker {
                 if (u->t != V_VECTOR && !IsUDT(u->t) && u->t != V_NIL && u->t != V_FUNCTION)
                     RequiresError(TypeName(n.left->exptype), n.right->exptype, n,
                                   "right-hand side");
+                if (u->t == V_STRUCT_S && !u->udt->sametype->Numeric())
+                    RequiresError("numeric struct", u, n);
             } else {
                 // Comparison vector op: vector inputs, vector out.
                 if (u->t == V_STRUCT_S && u->udt->sametype->Numeric()) {
-                    n.exptype = st.default_int_vector_types[0][u->udt->fields.size()];
+                    StructCompResult(n, u);
                 } else if (MathCheckVector(n.exptype, n.left, n.right)) {
-                    n.exptype = st.default_int_vector_types[0][n.exptype->udt->fields.size()];
+                    StructCompResult(n, n.exptype);
                     // Don't do SubTypeLR since type already verified and `u` not
                     // appropriate anyway.
                     goto out;
@@ -696,9 +705,7 @@ struct TypeChecker {
         if (udt.FullyBound()) {
             // NOTE: all users of sametype will only act on it if it is numeric, since
             // otherwise it would a scalar field to become any without boxing.
-            // Much of the implementation relies on these being 2-4 component vectors, so
-            // deny this functionality to any other structs.
-            if (udt.fields.size() >= 2 && udt.fields.size() <= 4) {
+            if (udt.fields.size() >= 1) {
                 udt.sametype = udt.fields[0].resolvedtype;
                 for (size_t i = 1; i < udt.fields.size(); i++) {
                     // Can't use Union here since it will bind variables, use simplified alternative:
@@ -1314,7 +1321,7 @@ struct TypeChecker {
                     }
                 }
                 overload_idxs.push_back({ best, bestdist == 0 });
-                vtable_idx = max(vtable_idx, (int)sub->dispatch.size());
+                vtable_idx = std::max(vtable_idx, (int)sub->dispatch.size());
             }
             // Add functions to all vtables.
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
@@ -2121,17 +2128,19 @@ struct TypeChecker {
                     // Special case for "F}?" style types that can be matched against a
                     // DefaultArg, would be good to solve this more elegantly..
                     // FIXME: don't know arity, but it doesn't matter, so we pick 2..
-                    return st.VectorType(vt, i, 2);
+                    return st.GetVectorType(vt, i, 2);
                 }
-                if (flen >= 2 && flen <= 4) {
+                if (flen >= 1) {
                     if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->fields.size() == flen &&
                         e->udt->sametype->Equal(*vt->sub)) {
                         // Allow any similar vector type, like "color".
                         return etype;
-                    }
-                    else {
+                    } else {
                         // Require xy/xyz/xyzw
-                        return st.VectorType(vt, i, flen);
+                        auto nvt = st.GetVectorType(vt, i, flen);
+                        if (nvt.Null())
+                            break;
+                        return nvt;
                     }
                 }
             }
@@ -2837,7 +2846,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                                             CF_NONE, this);
                 }
                 tc.SubType(c,
-                        nf->args[sa].type->t == V_VECTOR && argtype->t != V_VECTOR
+                           nf->args[sa].type->t == V_VECTOR && argtypes[sa]->t == V_VECTOR && argtype->t != V_VECTOR
                             ? argtypes[sa]->sub
                             : argtypes[sa],
                         tc.ArgName(i),
@@ -2938,6 +2947,8 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 assert(rlt == LT_KEEP);
                 break;
         }
+        // This allows the 0th retval to inherit the type of the 0th arg, and is
+        // a bit special purpose..
         type = tc.ActualBuiltinType(ret.fixed_len, type, ret.flags,
                                     !i && Arity() ? children[0] : nullptr, nf, false,
                                     0, *this);

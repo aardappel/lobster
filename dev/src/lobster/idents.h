@@ -871,7 +871,8 @@ struct SymbolTable {
                default_bool_type;
     }
 
-    TypeRef VectorType(TypeRef vt, size_t level, int arity) const {
+    TypeRef GetVectorType(TypeRef vt, size_t level, int arity) const {
+        if (arity > 4) return nullptr;
         return vt->sub->t == V_INT
             ? default_int_vector_types[level][arity]
             : default_float_vector_types[level][arity];
@@ -897,8 +898,6 @@ struct SymbolTable {
 
     void Serialize(vector<int> &code,
                    vector<type_elem_t> &typetable,
-                   vector<type_elem_t> &vint_typeoffsets,
-                   vector<type_elem_t> &vfloat_typeoffsets,
                    vector<bytecode::LineInfo> &linenumbers,
                    vector<bytecode::SpecIdent> &sids,
                    vector<string_view> &stringtable,
@@ -932,8 +931,6 @@ struct SymbolTable {
             fbb.CreateVector(udtoffsets),
             fbb.CreateVector(identoffsets),
             fbb.CreateVectorOfStructs(sids),
-            fbb.CreateVector((vector<int> &)vint_typeoffsets),
-            fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
             fbb.CreateVector(enumoffsets),
             fbb.CreateVector(vtables));
         bytecode::FinishBytecodeFileBuffer(fbb, bcf);
@@ -973,13 +970,18 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
             return s;
         }
         case V_VECTOR:
-            return flen && type->Element()->Numeric()
-                ? (flen < 0
-                    ? (type->Element()->t == V_INT ? "vec_i" : "vec_f")  // FIXME: better names?
-                    : TypeName(st->VectorType(type, 0, flen)))
-                : (type->Element()->t == V_VAR
-                    ? "[]"
-                    : "[" + TypeName(type->Element(), flen, st) + "]");
+            if (flen && type->Element()->Numeric()) {
+                if (flen > 0) {
+                    auto nvt = st->GetVectorType(type, 0, flen);
+                    if (!nvt.Null()) return TypeName(nvt);
+                }
+                // FIXME: better names?
+                return type->Element()->t == V_INT ? "vec_i" : "vec_f";
+            } else {
+                return type->Element()->t == V_VAR
+                           ? "[]"
+                           : "[" + TypeName(type->Element(), flen, st) + "]";
+            }
         case V_FUNCTION:
             return type->sf // || type->sf->anonymous
                 ? type->sf->parent->name

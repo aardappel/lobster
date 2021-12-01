@@ -185,11 +185,11 @@ nfr("equal", "a,b", "AA", "B",
 nfr("push", "xs,x", "A]*Akw1", "Ab]1",
     "appends one element to a vector, returns existing vector",
     [](StackPtr &sp, VM &vm) {
-        auto val = PopVecPtr(sp);
+        auto v = DangleVec<RefObjPtr>(sp);
         auto l = Pop(sp).vval();
-        assert(val.second == l->width);
-        l->PushVW(vm, val.first);
-        Push(sp,  l);
+        assert(v.len == l->width);
+        l->PushVW(vm, v.vals);
+        Push(sp, l);
     });
 
 nfr("pop", "xs", "A]*", "A1",
@@ -198,7 +198,7 @@ nfr("pop", "xs", "A]*", "A1",
         auto l = Pop(sp).vval();
         if (!l->len) vm.BuiltinError("pop: empty vector");
         l->PopVW(TopPtr(sp));
-        PushN(sp,  (int)l->width);
+        PushN(sp, (int)l->width);
     });
 
 nfr("top", "xs", "A]*", "Ab1",
@@ -207,21 +207,21 @@ nfr("top", "xs", "A]*", "Ab1",
         auto l = Pop(sp).vval();
         if (!l->len) vm.BuiltinError("top: empty vector");
         l->TopVW(TopPtr(sp));
-        PushN(sp,  (int)l->width);
+        PushN(sp, (int)l->width);
     });
 
 nfr("insert", "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
     " returns original vector",
     [](StackPtr &sp, VM &vm) {
-        auto val = PopVecPtr(sp);
+        auto v = DangleVec<RefObjPtr>(sp);
         auto i = Pop(sp).ival();
         auto l = Pop(sp).vval();
         if (i < 0 || i > l->len)
             vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
-        assert(val.second == l->width);
-        l->Insert(vm, val.first, i);
-        Push(sp,  l);
+        assert(v.len == l->width);
+        l->Insert(vm, v.vals, i);
+        Push(sp, l);
     });
 
 nfr("remove", "xs,i,n", "A]*II?", "A1",
@@ -231,7 +231,7 @@ nfr("remove", "xs,i,n", "A]*II?", "A1",
         auto n = Pop(sp).ival();
         auto i = Pop(sp).ival();
         auto l = Pop(sp).vval();
-        auto amount = max(n, 1_L);
+        auto amount = std::max(n, 1_L);
         if (n < 0 || amount > l->len || i < 0 || i > l->len - amount)
             vm.BuiltinError(cat("remove: index (", i, ") or n (", amount,
                                     ") out of range (", l->len, ")"));
@@ -392,7 +392,7 @@ nfr("replace_string", "s,a,b,count", "SSSI?", "S",
             s = a;
         } else {
             for (size_t i = 0;;) {
-                auto j = min(sv.find(a, i), sv.size());
+                auto j = std::min(sv.find(a, i), sv.size());
                 auto prefix = sv.substr(i, j - i);;
                 s += prefix;
                 i += prefix.size();
@@ -441,14 +441,14 @@ nfr("tokenize", "s,delimiters,whitespace", "SSS", "S]",
         auto ws = whitespace.sval()->strv();
         auto dl = delims.sval()->strv();
         auto p = s.sval()->strv();
-        p.remove_prefix(min(p.find_first_not_of(ws), p.size()));
+        p.remove_prefix(std::min(p.find_first_not_of(ws), p.size()));
         while (!p.empty()) {
-            auto delim = min(p.find_first_of(dl), p.size());
-            auto end = min(p.find_last_not_of(ws) + 1, delim);
+            auto delim = std::min(p.find_first_of(dl), p.size());
+            auto end = std::min(p.find_last_not_of(ws) + 1, delim);
             v->Push(vm, vm.NewString(string_view(p.data(), end)));
             p.remove_prefix(delim);
-            p.remove_prefix(min(p.find_first_not_of(dl), p.size()));
-            p.remove_prefix(min(p.find_first_not_of(ws), p.size()));
+            p.remove_prefix(std::min(p.find_first_not_of(dl), p.size()));
+            p.remove_prefix(std::min(p.find_first_not_of(ws), p.size()));
         }
         return Value(v);
     });
@@ -558,7 +558,7 @@ nfr("concat_string", "v,sep", "S]S", "S",
 nfr("repeat_string", "s,n", "SI", "S",
     "returns a string consisting of n copies of the input string.",
     [](StackPtr &, VM &vm, Value &s, Value &_n) {
-        auto n = max(iint(0), _n.ival());
+        auto n = std::max(iint(0), _n.ival());
         auto len = s.sval()->len;
         auto ns = vm.NewString(len * n);
         for (iint i = 0; i < n; i++) {
@@ -567,16 +567,18 @@ nfr("repeat_string", "s,n", "SI", "S",
         return Value(ns);
     });
 
-#define VECTOROPT(op, typeinfo) \
+
+#define VECTORVARS \
     auto len = Pop(sp).ival(); \
-    auto elems = TopPtr(sp) - len; \
+    auto elems = TopPtr(sp) - len;
+
+#define VECTOROPNR(op) \
     for (iint i = 0; i < len; i++) { \
         auto f = elems[i]; \
-        elems[i] = Value(op); \
+        op; \
     }
-#define VECTOROP(op) VECTOROPT(op, a.oval()->tti)
-#define VECTOROPI(op) VECTOROPT(op, vm.GetIntVectorType((int)len))
-#define VECTOROPF(op) VECTOROPT(op, vm.GetFloatVectorType((int)len))
+
+#define VECTOROP(op) VECTORVARS VECTOROPNR(elems[i] = Value(op))
 
 nfr("pow", "a,b", "FF", "F",
     "a raised to the power of b",
@@ -592,7 +594,7 @@ nfr("pow", "a,b", "F}F", "F}",
     "vector elements raised to the power of b",
     [](StackPtr &sp, VM &) {
         auto exp = Pop(sp).fval();
-        VECTOROPF(pow(f.fval(), exp));
+        VECTOROP(pow(f.fval(), exp));
     });
 
 nfr("log", "a", "F", "F",
@@ -608,21 +610,21 @@ nfr("ceiling", "f", "F", "I",
     [](StackPtr &, VM &, Value &a) { return Value(fceil(a.fval())); });
 nfr("ceiling", "v", "F}", "I}",
     "the nearest ints >= each component of v",
-    [](StackPtr &sp, VM &) { VECTOROPI(iint(fceil(f.fval()))); });
+    [](StackPtr &sp, VM &) { VECTOROP(iint(fceil(f.fval()))); });
 
 nfr("floor", "f", "F", "I",
     "the nearest int <= f",
     [](StackPtr &, VM &, Value &a) { return Value(ffloor(a.fval())); });
 nfr("floor", "v", "F}", "I}",
     "the nearest ints <= each component of v",
-    [](StackPtr &sp, VM &) { VECTOROPI(ffloor(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROP(ffloor(f.fval())); });
 
 nfr("int", "f", "F", "I",
     "converts a float to an int by dropping the fraction",
     [](StackPtr &, VM &, Value &a) { return Value(iint(a.fval())); });
 nfr("int", "v", "F}", "I}",
     "converts a vector of floats to ints by dropping the fraction",
-    [](StackPtr &sp, VM &) { VECTOROPI(iint(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval())); });
 
 nfr("round", "f", "F", "I",
     "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
@@ -630,7 +632,7 @@ nfr("round", "f", "F", "I",
     [](StackPtr &, VM &, Value &a) { return Value(iint(a.fval() + 0.5f)); });
 nfr("round", "v", "F}", "I}",
     "converts a vector of floats to the closest ints",
-    [](StackPtr &sp, VM &) { VECTOROPI(iint(f.fval() + 0.5f)); });
+    [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval() + 0.5f)); });
 
 nfr("fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - int(f)",
@@ -644,7 +646,7 @@ nfr("float", "i", "I", "F",
     [](StackPtr &, VM &, Value &a) { return Value(double(a.ival())); });
 nfr("float", "v", "I}", "F}",
     "converts a vector of ints to floats",
-    [](StackPtr &sp, VM &) { VECTOROPF(double(f.ival())); });
+    [](StackPtr &sp, VM &) { VECTOROP(double(f.ival())); });
 
 nfr("sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)",
@@ -680,11 +682,11 @@ nfr("degrees", "angle", "F", "F",
     "converts an angle in radians to degrees",
     [](StackPtr &, VM &, Value &a) { return Value(a.fval() / RAD); });
 
-nfr("atan2", "vec", "F}" , "F",
+nfr("atan2", "vec", "F}:2" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector",
     [](StackPtr &sp, VM &) {
         auto v = PopVec<double2>(sp);
-        Push(sp,  atan2(v.y, v.x) / RAD);
+        Push(sp, atan2(v.y, v.x) / RAD);
     });
 
 nfr("radians", "angle", "F", "F",
@@ -697,47 +699,33 @@ nfr("degrees", "angle", "F", "F",
 nfr("normalize", "vec",  "F}" , "F}",
     "returns a vector of unit length",
     [](StackPtr &sp, VM &) {
-        switch (Top(sp).ival()) {
-            case 2: {
-                auto v = PopVec<double2>(sp);
-                PushVec(sp, v == double2_0 ? v : normalize(v));
-                break;
-            }
-            case 3: {
-                auto v = PopVec<double3>(sp);
-                PushVec(sp, v == double3_0 ? v : normalize(v));
-                break;
-            }
-            case 4: {
-                auto v = PopVec<double4>(sp);
-                PushVec(sp, v == double4_0 ? v : normalize(v));
-                break;
-            }
-            default:
-                assert(false);
-        }
+        double sql = 0.0;
+        VECTORVARS;
+        VECTOROPNR(sql += f.fval() * f.fval());
+        double m = sqrt(sql);
+        VECTOROPNR(elems[i] = f.fval() / m);
     });
 
-nfr("dot", "a,b", "F}F}", "F",
+nfr("dot", "a,b", "F}F}1", "F",
     "the length of vector a when projected onto b (or vice versa)",
     [](StackPtr &sp, VM &) {
-        auto b = PopVec<double4>(sp);
-        auto a = PopVec<double4>(sp);
-        Push(sp,  dot(a, b));
+        auto b = DangleVec<double>(sp);
+        auto a = DangleVec<double>(sp);
+        Push(sp, a.dot(b));
     });
 
 nfr("magnitude", "v", "F}", "F",
     "the geometric length of a vector",
     [](StackPtr &sp, VM &) {
-        auto a = PopVec<double4>(sp);
-        Push(sp,  length(a));
+        auto a = DangleVec<double>(sp);
+        Push(sp, a.length());
     });
 
 nfr("manhattan", "v", "I}", "I",
     "the manhattan distance of a vector",
     [](StackPtr &sp, VM &) {
-        auto a = PopVec<iint4>(sp);
-        Push(sp,  manhattan(a));
+        auto a = DangleVec<iint>(sp);
+        Push(sp, a.manhattan());
     });
 
 nfr("cross", "a,b", "F}:3F}:3", "F}:3",
@@ -750,10 +738,10 @@ nfr("cross", "a,b", "F}:3F}:3", "F}:3",
 
 nfr("rnd", "max", "I", "I",
     "a random value [0..max).",
-    [](StackPtr &, VM &, Value &a) { return Value(rnd(max(1, (int)a.ival()))); });
+    [](StackPtr &, VM &, Value &a) { return Value(rnd(std::max(1, (int)a.ival()))); });
 nfr("rnd", "max", "I}", "I}",
     "a random vector within the range of an input vector.",
-    [](StackPtr &sp, VM &) { VECTOROP(rnd(max(1, (int)f.ival()))); });
+    [](StackPtr &sp, VM &) { VECTOROP(rnd(std::max(1, (int)f.ival()))); });
 nfr("rnd_float", "", "", "F",
     "a random float [0..1)",
     [](StackPtr &, VM &) { return Value(rnd.rnddouble()); });
@@ -780,7 +768,7 @@ nfr("clamp", "x,min,max", "FFF", "F",
         return Value(geom::clamp(a.fval(), b.fval(), c.fval()));
     });
 
-nfr("clamp", "x,min,max", "I}I}I}", "I}",
+nfr("clamp", "x,min,max", "I}I}1I}1", "I}",
     "forces an integer vector to be in the range between min and max (inclusive)",
     [](StackPtr &sp, VM &) {
         auto l = Top(sp).intval();
@@ -790,7 +778,7 @@ nfr("clamp", "x,min,max", "I}I}I}", "I}",
         PushVec(sp, geom::clamp(a, b, c), l);
     });
 
-nfr("clamp", "x,min,max", "F}F}F}", "F}",
+nfr("clamp", "x,min,max", "F}F}1F}1", "F}",
     "forces a float vector to be in the range between min and max (inclusive)",
     [](StackPtr &sp, VM &) {
         auto l = Top(sp).intval();
@@ -812,7 +800,7 @@ nfr("in_range", "x,range,bias", "FFF?", "B",
         return Value(x.fval() >= bias.fval() && x.fval() < bias.fval() + range.fval());
     });
 
-nfr("in_range", "x,range,bias", "I}I}I}?", "B",
+nfr("in_range", "x,range,bias", "I}I}1I}1?", "B",
     "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
     [](StackPtr &sp, VM &) {
         auto bias  = Top(sp).True() ? PopVec<iint3>(sp) : (Pop(sp), iint3_0);
@@ -821,7 +809,7 @@ nfr("in_range", "x,range,bias", "I}I}I}?", "B",
         Push(sp,  x >= bias && x < bias + range);
     });
 
-nfr("in_range", "x,range,bias", "F}F}F}?", "B",
+nfr("in_range", "x,range,bias", "F}F}1F}1?", "B",
     "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.",
     [](StackPtr &sp, VM &) {
         auto bias  = Top(sp).True() ? PopVec<double3>(sp) : (Pop(sp), double3_0);
@@ -832,13 +820,13 @@ nfr("in_range", "x,range,bias", "F}F}F}?", "B",
 
 nfr("abs", "x", "I", "I",
     "absolute value of an integer",
-    [](StackPtr &, VM &, Value &a) { return Value(abs(a.ival())); });
+    [](StackPtr &, VM &, Value &a) { return Value(std::abs(a.ival())); });
 nfr("abs", "x", "F", "F",
     "absolute value of a float",
     [](StackPtr &, VM &, Value &a) { return Value(fabs(a.fval())); });
 nfr("abs", "x", "I}", "I}",
     "absolute value of an int vector",
-    [](StackPtr &sp, VM &) { VECTOROP(abs(f.ival())); });
+    [](StackPtr &sp, VM &) { VECTOROP(std::abs(f.ival())); });
 nfr("abs", "x", "F}", "F}",
     "absolute value of a float vector",
     [](StackPtr &sp, VM &) { VECTOROP(fabs(f.fval())); });
@@ -854,14 +842,7 @@ nfr("sign", "x", "I}", "I}",
     [](StackPtr &sp, VM &) { VECTOROP(signum(f.ival())); });
 nfr("sign", "x", "F}", "I}",
     "signs of a float vector",
-    [](StackPtr &sp, VM &) { VECTOROPI(signum(f.fval())); });
-
-// FIXME: need to guarantee in typechecking that both vectors are the same len.
-#define VECBINOP(name, T) \
-    auto len = Top(sp).intval(); \
-    auto y = PopVec<T>(sp); \
-    auto x = PopVec<T>(sp); \
-    PushVec(sp, name(x, y), len);
+    [](StackPtr &sp, VM &) { VECTOROP(signum(f.fval())); });
 
 #define VECSCALAROP(type, init, fun, acc, len, at) \
     type v = init; \
@@ -884,83 +865,91 @@ nfr("sign", "x", "F}", "I}",
 nfr("min", "x,y", "II", "I",
     "smallest of 2 integers.",
     [](StackPtr &, VM &, Value &x, Value &y) {
-        return Value(min(x.ival(), y.ival()));
+        return Value(std::min(x.ival(), y.ival()));
     });
 nfr("min", "x,y", "FF", "F",
     "smallest of 2 floats.",
     [](StackPtr &, VM &, Value &x, Value &y) {
-        return Value(min(x.fval(), y.fval()));
+        return Value(std::min(x.fval(), y.fval()));
     });
-nfr("min", "x,y", "I}I}", "I}",
+nfr("min", "x,y", "I}I}1", "I}",
     "smallest components of 2 int vectors",
     [](StackPtr &sp, VM &) {
-        VECBINOP(min, iint4)
+        auto y = DangleVec<iint>(sp);
+        auto x = ResultVec<iint>(sp);
+        x.min_assign(y);
     });
-nfr("min", "x,y", "F}F}", "F}",
+nfr("min", "x,y", "F}F}1", "F}",
     "smallest components of 2 float vectors",
     [](StackPtr &sp, VM &) {
-        VECBINOP(min, double4)
+        auto y = DangleVec<double>(sp);
+        auto x = ResultVec<double>(sp);
+        x.min_assign(y);
     });
 nfr("min", "v", "I}", "I",
     "smallest component of a int vector.",
     [](StackPtr &sp, VM &) {
-        STSCALAROP(iint, INT_MAX, v = min(v, f.ival()))
+        STSCALAROP(iint, INT_MAX, v = std::min(v, f.ival()))
     });
 nfr("min", "v", "F}", "F",
     "smallest component of a float vector.",
     [](StackPtr &sp, VM &) {
-        STSCALAROP(double, FLT_MAX, v = min(v, f.fval()))
+        STSCALAROP(double, FLT_MAX, v = std::min(v, f.fval()))
     });
 nfr("min", "v", "I]", "I",
     "smallest component of a int vector, or INT_MAX if length 0.",
     [](StackPtr &, VM &, Value &x) {
-        VECSCALAROP(iint, INT_MAX, v = min(v, f.ival()), vval, len, At(i))
+        VECSCALAROP(iint, INT_MAX, v = std::min(v, f.ival()), vval, len, At(i))
     });
 nfr("min", "v", "F]", "F",
     "smallest component of a float vector, or FLT_MAX if length 0.",
     [](StackPtr &, VM &, Value &x) {
-        VECSCALAROP(double, FLT_MAX, v = min(v, f.fval()), vval, len, At(i))
+        VECSCALAROP(double, FLT_MAX, v = std::min(v, f.fval()), vval, len, At(i))
     });
 
 nfr("max", "x,y", "II", "I",
     "largest of 2 integers.",
     [](StackPtr &, VM &, Value &x, Value &y) {
-        return Value(max(x.ival(), y.ival()));
+        return Value(std::max(x.ival(), y.ival()));
     });
 nfr("max", "x,y", "FF", "F",
     "largest of 2 floats.",
     [](StackPtr &, VM &, Value &x, Value &y) {
-        return Value(max(x.fval(), y.fval()));
+        return Value(std::max(x.fval(), y.fval()));
     });
-nfr("max", "x,y", "I}I}", "I}",
+nfr("max", "x,y", "I}I}1", "I}",
     "largest components of 2 int vectors",
     [](StackPtr &sp, VM &) {
-        VECBINOP(max, iint4)
+        auto y = DangleVec<iint>(sp);
+        auto x = ResultVec<iint>(sp);
+        x.max_assign(y);
     });
-nfr("max", "x,y", "F}F}", "F}",
+nfr("max", "x,y", "F}F}1", "F}",
     "largest components of 2 float vectors",
     [](StackPtr &sp, VM &) {
-        VECBINOP(max, double4)
+        auto y = DangleVec<double>(sp);
+        auto x = ResultVec<double>(sp);
+        x.max_assign(y);
     });
 nfr("max", "v", "I}", "I",
     "largest component of a int vector.",
     [](StackPtr &sp, VM &) {
-        STSCALAROP(iint, INT_MIN, v = max(v, f.ival()))
+        STSCALAROP(iint, INT_MIN, v = std::max(v, f.ival()))
     });
 nfr("max", "v", "F}", "F",
     "largest component of a float vector.",
     [](StackPtr &sp, VM &) {
-        STSCALAROP(double, FLT_MIN, v = max(v, f.fval()))
+        STSCALAROP(double, FLT_MIN, v = std::max(v, f.fval()))
     });
 nfr("max", "v", "I]", "I",
     "largest component of a int vector, or INT_MIN if length 0.",
     [](StackPtr &, VM &, Value &x) {
-        VECSCALAROP(iint, INT_MIN, v = max(v, f.ival()), vval, len, At(i))
+        VECSCALAROP(iint, INT_MIN, v = std::max(v, f.ival()), vval, len, At(i))
     });
 nfr("max", "v", "F]", "F",
     "largest component of a float vector, or FLT_MIN if length 0.",
     [](StackPtr &, VM &, Value &x) {
-        VECSCALAROP(double, FLT_MIN, v = max(v, f.fval()), vval, len, At(i))
+        VECSCALAROP(double, FLT_MIN, v = std::max(v, f.fval()), vval, len, At(i))
     });
 
 nfr("lerp", "x,y,f", "FFF", "F",
@@ -969,7 +958,7 @@ nfr("lerp", "x,y,f", "FFF", "F",
         return Value(mix(x.fval(), y.fval(), (float)f.fval()));
     });
 
-nfr("lerp", "a,b,f", "F}F}F", "F}",
+nfr("lerp", "a,b,f", "F}F}1F", "F}",
     "linearly interpolates between a and b vectors with factor f [0..1]",
     [](StackPtr &sp, VM &) {
         auto f = Pop(sp).fltval();
@@ -997,17 +986,18 @@ nfr("smootherstep", "x", "F", "F",
         return Value(smootherstep(x.fltval()));
     });
 
-nfr("cardinal_spline", "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
+nfr("cardinal_spline", "z,a,b,c,f,tension", "F}F}1F}1F}1FF", "F}",
     "computes the position between a and b with factor f [0..1], using z (before a) and c"
     " (after b) to form a cardinal spline (tension at 0.5 is a good default)",
     [](StackPtr &sp, VM &) {
         auto t = Pop(sp).fval();
         auto f = Pop(sp).fval();
+        auto numelems = Top(sp).intval();
         auto c = PopVec<double3>(sp);
         auto b = PopVec<double3>(sp);
         auto a = PopVec<double3>(sp);
         auto z = PopVec<double3>(sp);
-        PushVec(sp, cardinal_spline(z, a, b, c, f, t));
+        PushVec(sp, cardinal_spline(z, a, b, c, f, t), numelems);
     });
 
 nfr("line_intersect", "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
@@ -1059,7 +1049,7 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
             maxpos = max(maxpos, p);
             n.pos = p;
             auto r = radiuses2->At(i).fval();
-            maxrad = max(maxrad, r);
+            maxrad = std::max(maxrad, r);
             n.rad = r;
             n.idx = i;
             n.next = nullptr;

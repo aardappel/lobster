@@ -29,12 +29,6 @@
 
 - Fix FIXME in Break::Generate
 
-- Would be nice to remove the 2..4 limitation on "numeric structs", which is really only limited by
-  codegen.
-  First, can enable it for 1 size structs by simply emitting scalar ops in codegen.
-  Then, add ops for 5+ by simply adding a dynamic size, will be mildy slower than 4 but still useful.
-  Most builtin functions can already work with a dynamic size so should work as-is.
-
 - natgen refactor
   - start moving vmops into tocpp for all simple ops.
   - most access to local arrays still thru memory, clearly alias analysis failing.
@@ -68,6 +62,9 @@
   - Serene: https://jamiemoschella.com/serene-ideas/mkdocs/site/index.html
   - Koka/Perceus: https://www.microsoft.com/en-us/research/publication/perceus-garbage-free-reference-counting-with-reuse/
 - docs only show switch used as exp
+
+- FIXME: replace more uses of PopVec in the builtins with versions that work
+  on any struct size.
 
 - should really have a way to test errors.
 

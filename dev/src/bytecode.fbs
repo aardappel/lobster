@@ -76,8 +76,8 @@ table BytecodeFile {
     idents:[Ident];
     specidents:[SpecIdent];
 
-    default_int_vector_types:[int];
-    default_float_vector_types:[int];
+    default_int_vector_types:[int] (deprecated);
+    default_float_vector_types:[int] (deprecated);
 
     logvars:[int] (deprecated);
 

@@ -446,6 +446,67 @@ struct Value {
     Value CopyRef(VM &vm, bool deep);
 };
 
+template<typename T> T add(Value, Value) { assert(false); return 0; }
+template<typename T> T mul(Value, Value) { assert(false); return 0; }
+template<typename T> T min(Value, Value) { assert(false); return 0; }
+template<typename T> T max(Value, Value) { assert(false); return 0; }
+template<typename T> T abs(Value)        { assert(false); return 0; }
+
+template<> inline iint   add<iint  >(Value a, Value b) { return a.ival() + b.ival(); }
+template<> inline double add<double>(Value a, Value b) { return a.fval() + b.fval(); }
+template<> inline iint   mul<iint  >(Value a, Value b) { return a.ival() * b.ival(); }
+template<> inline double mul<double>(Value a, Value b) { return a.fval() * b.fval(); }
+template<> inline iint   min<iint  >(Value a, Value b) { return a.ival() < b.ival() ? a.ival() : b.ival(); }
+template<> inline double min<double>(Value a, Value b) { return a.fval() < b.fval() ? a.fval() : b.fval(); }
+template<> inline iint   max<iint  >(Value a, Value b) { return a.ival() < b.ival() ? b.ival() : a.ival(); }
+template<> inline double max<double>(Value a, Value b) { return a.fval() < b.fval() ? b.fval() : a.fval(); }
+template<> inline iint   abs<iint  >(Value a         ) { return std::abs(a.ival()); }
+template<> inline double abs<double>(Value a         ) { return std::abs(a.fval()); }
+
+
+template<typename T> struct ValueVec {
+    Value *vals;
+    iint len;
+
+    ValueVec() : vals(nullptr), len(0) {}
+    ValueVec(Value *_c, iint _l) : vals(_c), len(_l) {}
+
+    T dot(ValueVec<T> o) {
+        assert(o.len == len);
+        T r = 0;
+        for (iint i = 0; i < len; i++) {
+            r += mul<T>(vals[i], o.vals[i]);
+        }
+        return r;
+    }
+
+    T length() {
+        return sqrt(dot(*this));
+    }
+
+    T manhattan() {
+        T r = 0;
+        for (iint i = 0; i < len; i++) {
+            r += abs<T>(vals[i]);
+        }
+        return r;
+    }
+
+    void min_assign(ValueVec<T> o) {
+        assert(o.len == len);
+        for (iint i = 0; i < len; i++) {
+            vals[i] = min<T>(vals[i], o.vals[i]);
+        }
+    }
+
+    void max_assign(ValueVec<T> o) {
+        assert(o.len == len);
+        for (iint i = 0; i < len; i++) {
+            vals[i] = max<T>(vals[i], o.vals[i]);
+        }
+    }
+};
+
 template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti);
 template<typename T> inline void DeallocSubBuf(VM &vm, T *v, iint size);
 
@@ -568,7 +629,7 @@ struct LVector : RefObj {
 
     void Insert(VM &vm, const Value *vals, iint i) {
         assert(i >= 0 && i <= len); // note: insertion right at the end is legal, hence <=
-        if (len + 1 > maxl) Resize(vm, max(len + 1, maxl ? maxl * 2 : 4));
+        if (len + 1 > maxl) Resize(vm, std::max(len + 1, maxl ? maxl * 2 : 4));
         t_memmove(v + (i + 1) * width, v + i * width, (len - i) * width);
         len++;
         tsnz_memcpy(v + i * width, vals, width);
@@ -758,9 +819,6 @@ struct VM : VMArgs {
 
     string_view GetProgramName() { return programname; }
 
-    type_elem_t GetIntVectorType(int which);
-    type_elem_t GetFloatVectorType(int which);
-
     void DumpVal(RefObj *ro, const char *prefix);
     void DumpLeaks();
 
@@ -844,12 +902,6 @@ VM_INLINE Value *TopPtr(StackPtr sp) { return sp; }
 VM_INLINE void PushN(StackPtr &sp, iint n) { sp += n; }
 VM_INLINE void PopN(StackPtr &sp, iint n) { sp -= n; }
 
-VM_INLINE pair<Value *, iint> PopVecPtr(StackPtr &sp) {
-    auto width = Pop(sp).ival();
-    PopN(sp, width);
-    return { TopPtr(sp), width };
-}
-
 // Codegen helpers.
 
 VM_INLINE void SwapVars(VM &vm, int i, StackPtr psp, int off) {
@@ -888,9 +940,26 @@ VM_INLINE void SetLVal(VM &vm, Value *v) {
 }
 
 template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {
-    auto l = min(N, truncate);
+    auto l = std::min(N, truncate);
     for (int i = 0; i < l; i++) Push(sp, v[i]);
 }
+
+// Returns a reference to a struct on the stack that can only be
+// referred to before the next push.
+template<typename T> ValueVec<T> DangleVec(StackPtr &sp) {
+    auto l = Pop(sp).ival();
+    PopN(sp, l);
+    return ValueVec<T>(TopPtr(sp), l);
+}
+
+// Returns a reference to a struct on the stack that that can be
+// overwritten to become the return value (which doesn't need the
+// length field on the stack.
+template<typename T> ValueVec<T> ResultVec(StackPtr &sp) {
+    auto l = Pop(sp).ival();
+    return ValueVec<T>(TopPtr(sp) - l, l);
+}
+
 template<typename T> T PopVec(StackPtr &sp, typename T::CTYPE def = 0) {
     T v;
     auto l = Pop(sp).intval();
@@ -910,7 +979,7 @@ inline int64_t Int64FromInts(int a, int b) {
 inline const TypeInfo &DynAlloc::ti(VM &vm) const { return vm.GetTypeInfo(tti); }
 
 template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti) {
-    auto header_sz = max(salignof<T>(), ssizeof<DynAlloc>());
+    auto header_sz = std::max(salignof<T>(), ssizeof<DynAlloc>());
     auto mem = (uint8_t *)vm.pool.alloc(size * ssizeof<T>() + header_sz);
     ((DynAlloc *)mem)->tti = tti;
     mem += header_sz;
@@ -918,7 +987,7 @@ template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti) {
 }
 
 template<typename T> inline void DeallocSubBuf(VM &vm, T *v, iint size) {
-    auto header_sz = max(salignof<T>(), ssizeof<DynAlloc>());
+    auto header_sz = std::max(salignof<T>(), ssizeof<DynAlloc>());
     auto mem = ((uint8_t *)v) - header_sz;
     vm.pool.dealloc(mem, size * ssizeof<T>() + header_sz);
 }
@@ -965,7 +1034,7 @@ template<int N> inline vec<int, N> ValueToINT(const Value *v, iint width, int de
 }
 
 template <typename T, int N> inline void ToValue(Value *dest, iint width, const vec<T, N> &v) {
-    for (iint i = 0; i < width; i++) dest[i] = i < N ? v[i] : 0;
+    for (iint i = 0; i < width; i++) dest[i] = i < N ? v.c[i] : 0;
 }
 
 inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {

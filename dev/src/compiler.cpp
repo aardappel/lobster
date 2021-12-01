@@ -314,7 +314,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     Optimizer opt(parser, st, tc);
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value, runtime_checks);
-    st.Serialize(cg.code, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
+    st.Serialize(cg.code, cg.type_table,
         cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, bytecode, parser.pakfiles);

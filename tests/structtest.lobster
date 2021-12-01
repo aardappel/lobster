@@ -114,3 +114,24 @@ run_test("struct"):
         let rns = [ RN { "AA", R { "one", [ 1 ] } }, RN { "BB", R { "two", [ 2 ] } } ]
         frn = fun(rns[1])
         assert frn.a == "BBBB" and frn.r.b[1] == 2
+
+    // We used to only support math on structs of sizes 2..4
+    do():
+        struct V1:
+            x:int
+        assert V1 { 1 } + V1 { 1 } == V1 { 2 }
+        assert min(V1 { 2 }, max(V1 { 1 }, V1 { -1 })) == V1 { 1 }
+        assert manhattan(V1 { 2 }) == 2
+
+        struct V5:
+            x:float
+            y:float
+            z:float
+            w:float
+            v:float
+        let v5test = V5 { 1.0, 2.0, 3.0, 4.0, 5.0 }
+        let v5test2 = v5test + v5test
+        assert v5test2 == v5test * 2
+        assert magnitude(normalize(v5test2)) == 1.0
+        assert min(v5test, max(v5test, v5test2)) == v5test
+        assert dot(v5test, v5test2) == 110.0

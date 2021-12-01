@@ -190,7 +190,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 }
                 // FIXME: don't emit array.
                 // (there may be functions that don't use regs yet still refer to sp?)
-                append(sd, "    Value regs[", max(1, regs_max), "];\n");
+                append(sd, "    Value regs[", std::max(1, regs_max), "];\n");
                 if (!regs_max) append(sd, "    (void)regs;\n");
                 if (nkeepvars) append(sd, "    Value keepvar[", nkeepvars, "];\n");
                 if (numlocals) append(sd, "    Value locals[", numlocals, "];\n");

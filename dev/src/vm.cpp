@@ -77,15 +77,6 @@ const TypeInfo &VM::GetVarTypeInfo(int varidx) {
     return GetTypeInfo((type_elem_t)bcf->specidents()->Get(varidx)->typeidx());
 }
 
-type_elem_t VM::GetIntVectorType(int which) {
-    auto i = bcf->default_int_vector_types()->Get(which);
-    return type_elem_t(i < 0 ? -1 : i);
-}
-type_elem_t VM::GetFloatVectorType(int which) {
-    auto i = bcf->default_float_vector_types()->Get(which);
-    return type_elem_t(i < 0 ? -1 : i);
-}
-
 static bool _LeakSorter(void *va, void *vb) {
     auto a = (RefObj *)va;
     auto b = (RefObj *)vb;
@@ -512,7 +503,7 @@ void VM::StartWorkers(iint numthreads) {
     if (is_worker) Error("workers can\'t start more worker threads");
     if (tuple_space) Error("workers already running");
     // Stop bad values from locking up the machine :)
-    numthreads = min(numthreads, 256_L);
+    numthreads = std::min(numthreads, 256_L);
     tuple_space = new TupleSpace(bcf->udts()->size());
     for (iint i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
