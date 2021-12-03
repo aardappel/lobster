@@ -771,21 +771,19 @@ nfr("clamp", "x,min,max", "FFF", "F",
 nfr("clamp", "x,min,max", "I}I}1I}1", "I}",
     "forces an integer vector to be in the range between min and max (inclusive)",
     [](StackPtr &sp, VM &) {
-        auto l = Top(sp).intval();
-        auto c = PopVec<iint4>(sp);
-        auto b = PopVec<iint4>(sp);
-        auto a = PopVec<iint4>(sp);
-        PushVec(sp, geom::clamp(a, b, c), l);
+        auto c = DangleVec<iint>(sp);
+        auto b = DangleVec<iint>(sp);
+        auto a = ResultVec<iint>(sp);
+        a.clamp(b, c);
     });
 
 nfr("clamp", "x,min,max", "F}F}1F}1", "F}",
     "forces a float vector to be in the range between min and max (inclusive)",
     [](StackPtr &sp, VM &) {
-        auto l = Top(sp).intval();
-        auto c = PopVec<double4>(sp);
-        auto b = PopVec<double4>(sp);
-        auto a = PopVec<double4>(sp);
-        PushVec(sp, geom::clamp(a, b, c), l);
+        auto c = DangleVec<double>(sp);
+        auto b = DangleVec<double>(sp);
+        auto a = DangleVec<double>(sp);
+        a.clamp(b, c);
     });
 
 nfr("in_range", "x,range,bias", "III?", "B",
@@ -803,19 +801,19 @@ nfr("in_range", "x,range,bias", "FFF?", "B",
 nfr("in_range", "x,range,bias", "I}I}1I}1?", "B",
     "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
     [](StackPtr &sp, VM &) {
-        auto bias  = Top(sp).True() ? PopVec<iint3>(sp) : (Pop(sp), iint3_0);
-        auto range = PopVec<iint3>(sp, 1);
-        auto x     = PopVec<iint3>(sp);
-        Push(sp,  x >= bias && x < bias + range);
+        auto bias = Top(sp).True() ? DangleVec<iint>(sp) : (Pop(sp), ValueVec<iint>());
+        auto range = DangleVec<iint>(sp);
+        auto x = DangleVec<iint>(sp);
+        Push(sp, x.in_range(range, bias));
     });
 
 nfr("in_range", "x,range,bias", "F}F}1F}1?", "B",
     "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.",
     [](StackPtr &sp, VM &) {
-        auto bias  = Top(sp).True() ? PopVec<double3>(sp) : (Pop(sp), double3_0);
-        auto range = PopVec<double3>(sp, 1);
-        auto x     = PopVec<double3>(sp);
-        Push(sp,  x >= bias && x < bias + range);
+        auto bias = Top(sp).True() ? DangleVec<double>(sp) : (Pop(sp), ValueVec<double>());
+        auto range = DangleVec<double>(sp);
+        auto x = DangleVec<double>(sp);
+        Push(sp, x.in_range(range, bias));
     });
 
 nfr("abs", "x", "I", "I",
@@ -962,10 +960,9 @@ nfr("lerp", "a,b,f", "F}F}1F", "F}",
     "linearly interpolates between a and b vectors with factor f [0..1]",
     [](StackPtr &sp, VM &) {
         auto f = Pop(sp).fltval();
-        auto numelems = Top(sp).intval();
-        auto y = PopVec<double4>(sp);
-        auto x = PopVec<double4>(sp);
-        PushVec(sp, mix(x, y, f), numelems);
+        auto y = DangleVec<double>(sp);
+        auto x = ResultVec<double>(sp);
+        x.mix(y, f);
     });
 
 nfr("smoothmin", "x,y,k", "FFF", "F",
@@ -1154,15 +1151,15 @@ nfr("hash", "x", "F", "I",
     });
 nfr("hash", "v", "I}", "I",
     "hashes a int vector into a positive int",
-    [](StackPtr &sp, VM &) {
-        auto a = PopVec<iint4>(sp);
-        Push(sp, positive_bits(FNV1A64(string_view((char *)a.data(), sizeof(a)))));
+    [](StackPtr &sp, VM &vm) {
+        auto a = DangleVec<iint>(sp);
+        Push(sp, positive_bits(a.hash(vm, V_INT)));
     });
 nfr("hash", "v", "F}", "I",
     "hashes a float vector into a positive int",
-    [](StackPtr &sp, VM &) {
-        auto a = PopVec<double4>(sp);
-        Push(sp, positive_bits(FNV1A64(string_view((char *)a.data(), sizeof(a)))));
+    [](StackPtr &sp, VM &vm) {
+        auto a = DangleVec<double>(sp);
+        Push(sp, positive_bits(a.hash(vm, V_FLOAT)));
     });
 
 nfr("program_name", "", "", "S",

@@ -446,23 +446,86 @@ struct Value {
     Value CopyRef(VM &vm, bool deep);
 };
 
-template<typename T> T add(Value, Value) { assert(false); return 0; }
-template<typename T> T mul(Value, Value) { assert(false); return 0; }
-template<typename T> T min(Value, Value) { assert(false); return 0; }
-template<typename T> T max(Value, Value) { assert(false); return 0; }
-template<typename T> T abs(Value)        { assert(false); return 0; }
+namespace vmath {
 
-template<> inline iint   add<iint  >(Value a, Value b) { return a.ival() + b.ival(); }
-template<> inline double add<double>(Value a, Value b) { return a.fval() + b.fval(); }
-template<> inline iint   mul<iint  >(Value a, Value b) { return a.ival() * b.ival(); }
-template<> inline double mul<double>(Value a, Value b) { return a.fval() * b.fval(); }
-template<> inline iint   min<iint  >(Value a, Value b) { return a.ival() < b.ival() ? a.ival() : b.ival(); }
-template<> inline double min<double>(Value a, Value b) { return a.fval() < b.fval() ? a.fval() : b.fval(); }
-template<> inline iint   max<iint  >(Value a, Value b) { return a.ival() < b.ival() ? b.ival() : a.ival(); }
-template<> inline double max<double>(Value a, Value b) { return a.fval() < b.fval() ? b.fval() : a.fval(); }
-template<> inline iint   abs<iint  >(Value a         ) { return std::abs(a.ival()); }
-template<> inline double abs<double>(Value a         ) { return std::abs(a.fval()); }
+template<typename T> T add(Value, Value) {
+    assert(false);
+    return 0;
+}
+template<> inline iint add<iint>(Value a, Value b) {
+    return a.ival() + b.ival();
+}
+template<> inline double add<double>(Value a, Value b) {
+    return a.fval() + b.fval();
+}
 
+template<typename T> T mul(Value, Value) {
+    assert(false);
+    return 0;
+}
+template<> inline iint mul<iint>(Value a, Value b) {
+    return a.ival() * b.ival();
+}
+template<> inline double mul<double>(Value a, Value b) {
+    return a.fval() * b.fval();
+}
+
+template<typename T> T min(Value, Value) {
+    assert(false);
+    return 0;
+}
+template<> inline iint min<iint>(Value a, Value b) {
+    return a.ival() < b.ival() ? a.ival() : b.ival();
+}
+template<> inline double min<double>(Value a, Value b) {
+    return a.fval() < b.fval() ? a.fval() : b.fval();
+}
+
+template<typename T> T max(Value, Value) {
+    assert(false);
+    return 0;
+}
+template<> inline iint max<iint>(Value a, Value b) {
+    return a.ival() < b.ival() ? b.ival() : a.ival();
+}
+template<> inline double max<double>(Value a, Value b) {
+    return a.fval() < b.fval() ? b.fval() : a.fval();
+}
+
+template<typename T> T abs(Value) {
+    assert(false);
+    return 0;
+}
+template<> inline iint abs<iint>(Value a) {
+    return std::abs(a.ival());
+}
+template<> inline double abs<double>(Value a) {
+    return std::abs(a.fval());
+}
+
+template<typename T> T clamp(Value, Value, Value) {
+    assert(false);
+    return 0;
+}
+template<> inline iint clamp<iint>(Value a, Value b, Value c) {
+    return geom::clamp(a.ival(), b.ival(), c.ival());
+}
+template<> inline double clamp<double>(Value a, Value b, Value c) {
+    return geom::clamp(a.fval(), b.fval(), c.fval());
+}
+
+template<typename T> bool in_range(Value, Value, Value) {
+    assert(false);
+    return 0;
+}
+template<> inline bool in_range<iint>(Value x, Value range, Value bias) {
+    return x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival();
+}
+template<> inline bool in_range<double>(Value x, Value range, Value bias) {
+    return x.fval() >= bias.fval() && x.fval() < bias.fval() + range.fval();
+}
+
+}  // namespace vmath
 
 template<typename T> struct ValueVec {
     Value *vals;
@@ -475,7 +538,7 @@ template<typename T> struct ValueVec {
         assert(o.len == len);
         T r = 0;
         for (iint i = 0; i < len; i++) {
-            r += mul<T>(vals[i], o.vals[i]);
+            r += vmath::mul<T>(vals[i], o.vals[i]);
         }
         return r;
     }
@@ -487,7 +550,7 @@ template<typename T> struct ValueVec {
     T manhattan() {
         T r = 0;
         for (iint i = 0; i < len; i++) {
-            r += abs<T>(vals[i]);
+            r += vmath::abs<T>(vals[i]);
         }
         return r;
     }
@@ -495,15 +558,46 @@ template<typename T> struct ValueVec {
     void min_assign(ValueVec<T> o) {
         assert(o.len == len);
         for (iint i = 0; i < len; i++) {
-            vals[i] = min<T>(vals[i], o.vals[i]);
+            vals[i] = vmath::min<T>(vals[i], o.vals[i]);
         }
     }
 
     void max_assign(ValueVec<T> o) {
         assert(o.len == len);
         for (iint i = 0; i < len; i++) {
-            vals[i] = max<T>(vals[i], o.vals[i]);
+            vals[i] = vmath::max<T>(vals[i], o.vals[i]);
         }
+    }
+
+    void mix(ValueVec<double> o, float f) {
+        assert(o.len == len);
+        for (iint i = 0; i < len; i++) {
+            vals[i] = geom::mix(vals[i].fval(), o.vals[i].fval(), f);
+        }
+    }
+
+    void clamp(ValueVec<T> mi, ValueVec<T> ma) {
+        assert(mi.len == len && ma.len == len);
+        for (iint i = 0; i < len; i++) {
+            vals[i] = vmath::clamp<T>(vals[i], mi.vals[i], ma.vals[i]);
+        }
+    }
+
+    bool in_range(ValueVec<T> range, ValueVec<T> bias) {
+        assert(range.len == len);
+        for (iint i = 0; i < len; i++) {
+            if (!vmath::in_range<T>(vals[i], range.vals[i], bias.len > i ? bias.vals[i] : 0))
+                return false;
+        }
+        return true;
+    }
+
+    uint64_t hash(VM &vm, ValueType vt) {
+        uint64_t r = 0;
+        for (iint i = 0; i < len; i++) {
+            r ^= vals[i].Hash(vm, vt);
+        }
+        return r;
     }
 };
 

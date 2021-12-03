@@ -63,9 +63,6 @@
   - Koka/Perceus: https://www.microsoft.com/en-us/research/publication/perceus-garbage-free-reference-counting-with-reuse/
 - docs only show switch used as exp
 
-- FIXME: replace more uses of PopVec in the builtins with versions that work
-  on any struct size.
-
 - should really have a way to test errors.
 
 - Detect this case:
