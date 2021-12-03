@@ -287,6 +287,11 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
         if (flags & INIT_LINEAR_COLOR) SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     #endif
 
+    #ifdef _DEBUG
+        // Hopefully get some more validation out of OpenGL.
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+    #endif
+
     LOG_INFO("SDL about to figure out display mode...");
 
     // FIXME: for emscripten, this picks screen size, not browser window size, and doesn't resize.

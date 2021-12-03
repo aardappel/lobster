@@ -176,7 +176,11 @@ string OpenGLInit(int samples, bool srgb) {
         GLBASEEXTS GLEXTS
         #undef GLEXT
         glEnable(GL_DEBUG_OUTPUT);
-        if (glDebugMessageCallback) glDebugMessageCallback(DebugCallBack, nullptr);
+        if (glDebugMessageCallback && glDebugMessageInsert) {
+            glDebugMessageCallback(DebugCallBack, nullptr);
+            glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 0,
+                                 GL_DEBUG_SEVERITY_NOTIFICATION, 2, "on");
+        }
     #endif
     #ifndef PLATFORM_ES3
         GL_CALL(glEnable(GL_LINE_SMOOTH));
