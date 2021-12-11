@@ -384,19 +384,33 @@ nfr("flexbuffers_binary_to_value", "typeid,flex", "TS", "A1?S?",
     [](StackPtr &sp, VM &vm) {
         auto fsv = Pop(sp).sval()->strv();
         auto id = Pop(sp).ival();
-        auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
-        ParseFlexData(sp, vm, (type_elem_t)id, root);
+        vector<bool> reuse_buffer;
+        if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
+            auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
+            ParseFlexData(sp, vm, (type_elem_t)id, root);
+        } else { 
+            Push(sp, NilVal());
+            Push(sp, vm.NewString("flexbuffer binary does not verify!"));
+        }
     });
 
-nfr("flexbuffers_binary_to_json", "flex,field_quotes", "SB?", "S",
+nfr("flexbuffers_binary_to_json", "flex,field_quotes", "SB?", "S?S?",
     "turns a flexbuffer into a JSON string",
-    [](StackPtr &, VM &vm, Value &flex, Value &quoted) {
-        auto fsv = flex.sval()->strv();
-        auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
-        string json;
-        root.ToString(true, quoted.True(), json);
-        auto s = vm.NewString(json);
-        return Value(s);
+    [](StackPtr &sp, VM &vm) {
+        auto quoted = Pop(sp).ival();
+        auto fsv = Pop(sp).sval()->strv();
+        vector<bool> reuse_buffer;
+        if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
+            auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
+            string json;
+            root.ToString(true, quoted, json);
+            auto s = vm.NewString(json);
+            Push(sp, s);
+            Push(sp, NilVal());
+        } else {
+            Push(sp, NilVal());
+            Push(sp, vm.NewString("flexbuffer binary does not verify!"));
+        }
     });
 
 nfr("flexbuffers_json_to_binary", "json", "S", "SS?",
