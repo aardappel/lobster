@@ -112,7 +112,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     var_to_local.resize(specidents->size(), -1);
     int numlocals = -1;
 
-    auto len = bcf->bytecode()->Length();
+    auto len = bcf->bytecode()->size();
     auto ip = code;
     // Skip past 1st jump.
     assert(*ip == IL_JUMP);

@@ -195,7 +195,7 @@ void DisAsm(NativeRegistry &nfr, string &sd, string_view bytecode_buffer) {
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
     auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
-    auto len = bcf->bytecode()->Length();
+    auto len = bcf->bytecode()->size();
     const int *ip = code;
     while (ip < code + len) {
         if (*ip == IL_FUNSTART) sd += "------- ------- ---\n";

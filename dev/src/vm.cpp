@@ -28,7 +28,7 @@ VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
         // We can use the buffer directly.
         typetable = (const type_elem_t *)bcf->typetable()->Data();
     } else {
-        for (uint32_t i = 0; i < bcf->typetable()->Length(); i++)
+        for (uint32_t i = 0; i < bcf->typetable()->size(); i++)
             typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
         typetable = typetablebigendian.data();
     }
