@@ -35,7 +35,7 @@
 #include <stdint.h>
 #include <float.h>
 #include <limits.h>
-#include <csetjmp>
+#include <setjmp.h>
 
 #include <string>
 #include <map>
@@ -51,6 +51,7 @@
 #include <memory>
 #include <optional>
 #include <charconv>
+#include <span>
 
 #if defined(__has_include) && __has_include(<string_view>)
     #include <string_view>
@@ -66,10 +67,6 @@
 #include <iomanip>
 
 using namespace std;
-
-#include "gsl/gsl-lite.hpp"
-
-using namespace gsl;
 
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"

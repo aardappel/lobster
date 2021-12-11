@@ -171,7 +171,7 @@ void BitmapFont::RenderText(string_view text) {
         x += glyph.advance;
     }
     SetTexture(0, tex);
-    RenderArraySlow(PRIM_TRIS, make_span(vbuf), "pT", make_span(ibuf));
+    RenderArraySlow(PRIM_TRIS, span(vbuf), "pT", span(ibuf));
 }
 
 const int2 BitmapFont::TextSize(string_view text) {
