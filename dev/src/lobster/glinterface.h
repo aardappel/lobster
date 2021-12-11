@@ -74,7 +74,7 @@ struct Surface : Textured {
     string name;
     Primitive prim;
 
-    Surface(span<int> indices, Primitive _prim = PRIM_TRIS);
+    Surface(gsl::span<int> indices, Primitive _prim = PRIM_TRIS);
     ~Surface();
 
     void Render(Shader *sh);
@@ -107,7 +107,7 @@ class Geometry  {
     const size_t nverts;
 
     template<typename T, typename U = float>
-    Geometry(span<T> verts1, string_view _fmt, span<U> verts2 = span<float>(),
+    Geometry(gsl::span<T> verts1, string_view _fmt, gsl::span<U> verts2 = gsl::span<float>(),
              size_t elem_multiple = 1)
         : vertsize1(sizeof(T) * elem_multiple), vertsize2(sizeof(U) * elem_multiple), fmt(_fmt),
           nverts(verts1.size() / elem_multiple) {
@@ -206,15 +206,16 @@ extern int2 GetFrameBufferSize(const int2 &screensize);
 extern uint8_t *ReadPixels(const int2 &pos, const int2 &size);
 
 extern int GenBO_(int type, size_t bytesize, const void *data);
-template <typename T> int GenBO(int type, span<T> d) {
+template<typename T> int GenBO(int type, gsl::span<T> d) {
     return GenBO_(type, sizeof(T) * d.size(), d.data());
 }
 extern void DeleteBO(int id);
 extern void RenderArray(Primitive prim, Geometry *geom, int ibo = 0, size_t tcount = 0);
 
 template<typename T, typename U = float>
-void RenderArraySlow(Primitive prim, span<T> vbuf1, string_view fmt,
-                     span<int> ibuf = span<int>(), span<U> vbuf2 = span<float>()) {
+void RenderArraySlow(Primitive prim, gsl::span<T> vbuf1, string_view fmt,
+                     gsl::span<int> ibuf = gsl::span<int>(),
+                     gsl::span<U> vbuf2 = gsl::span<float>()) {
     Geometry geom(vbuf1, fmt, vbuf2);
     if (ibuf.empty()) {
         RenderArray(prim, &geom);

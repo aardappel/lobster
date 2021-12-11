@@ -51,7 +51,7 @@ GLenum GetPrimitive(Primitive prim) {
     }
 }
 
-Surface::Surface(span<int> indices, Primitive _prim) : numidx(indices.size()), prim(_prim) {
+Surface::Surface(gsl::span<int> indices, Primitive _prim) : numidx(indices.size()), prim(_prim) {
     ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, indices);
 }
 
@@ -252,7 +252,7 @@ void GeometryCache::RenderUnitSquare(Shader *sh, Primitive prim, bool centered) 
             SpriteVert{ float2( 1, -1), float2(1, 0) },
         };
         quadgeom[centered] =
-            new Geometry(make_span(centered ? vb_square_centered : vb_square, 4), "pT");
+            new Geometry(gsl::make_span(centered ? vb_square_centered : vb_square, 4), "pT");
     }
     sh->Set();
     RenderArray(prim, quadgeom[centered]);
@@ -314,8 +314,8 @@ void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
                 verts.push_back(vert);
             }
         }
-        cube_geom[inside] = new Geometry(make_span(verts), "PNT");
-        cube_ibo[inside] = GenBO(GL_ELEMENT_ARRAY_BUFFER, make_span(triangles));
+        cube_geom[inside] = new Geometry(gsl::make_span(verts), "PNT");
+        cube_ibo[inside] = GenBO(GL_ELEMENT_ARRAY_BUFFER, gsl::make_span(triangles));
     }
     sh->Set();
     RenderArray(PRIM_TRIS, cube_geom[inside], cube_ibo[inside], 36);
@@ -332,7 +332,7 @@ void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float
             vbuf[i] = float3(sinf(i * step + 1),
                              cosf(i * step + 1), 0);
         }
-        geom = new Geometry(make_span(vbuf), "P");
+        geom = new Geometry(gsl::make_span(vbuf), "P");
     }
     Transform(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();
@@ -363,8 +363,8 @@ void GeometryCache::RenderOpenCircle(Shader *sh, int segments, float radius, flo
             ibuf[i * 6 + 4] = ((i + 1) * 2 + 1) % nverts;
             ibuf[i * 6 + 5] = ((i + 1) * 2 + 0) % nverts;
         }
-        vibo.first = new Geometry(make_span(vbuf), "P");
-        vibo.second = GenBO(GL_ELEMENT_ARRAY_BUFFER, make_span(ibuf));
+        vibo.first = new Geometry(gsl::make_span(vbuf), "P");
+        vibo.second = GenBO(GL_ELEMENT_ARRAY_BUFFER, gsl::make_span(ibuf));
     }
     Transform(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();

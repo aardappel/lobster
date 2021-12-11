@@ -981,7 +981,7 @@ inline bool clamp_bb(const float3 &bbmin, const float3 &bbmax, const float3 &ray
     return ok;
 }
 
-inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t vsize,
+inline void normalize_mesh(gsl::span<int> idxs, void *verts, size_t vertlen, size_t vsize,
                            size_t normaloffset, bool ignore_bad_tris = true) {
     for (size_t i = 0; i < vertlen; i++) {
         *(float3 *)((uint8_t *)verts + i * vsize + normaloffset) = float3_0;

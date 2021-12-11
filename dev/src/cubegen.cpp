@@ -317,13 +317,13 @@ nfr("cg_create_mesh", "block", "R", "R",
                 }
             }
         }
-        normalize_mesh(make_span(triangles), verts.data(), verts.size(),
+        normalize_mesh(gsl::make_span(triangles), verts.data(), verts.size(),
                        sizeof(cvert), (uint8_t *)&verts.data()->normal - (uint8_t *)&verts.data()->pos,
                        false);
         LOG_INFO("cubegen verts = ", verts.size(), ", tris = ", triangles.size() / 3);
-        auto m = new Mesh(new Geometry(make_span(verts), "PNC"),
+        auto m = new Mesh(new Geometry(gsl::make_span(verts), "PNC"),
                           PRIM_TRIS);
-        m->surfs.push_back(new Surface(make_span(triangles), PRIM_TRIS));
+        m->surfs.push_back(new Surface(gsl::make_span(triangles), PRIM_TRIS));
         extern ResourceType mesh_type;
         return Value(vm.NewResource(m, &mesh_type));
     });

@@ -123,7 +123,7 @@ Mesh *CreatePolygon(VM &vm, Value &vl) {
         vbuf[i].tc = vbuf[i].pos.xy();
         vbuf[i].col = byte4_255;
     }
-    auto m = new Mesh(new Geometry(make_span(vbuf), "PNTC"), polymode);
+    auto m = new Mesh(new Geometry(gsl::make_span(vbuf), "PNTC"), polymode);
     return m;
 }
 
@@ -608,7 +608,7 @@ nfr("gl_rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
             { sz.x, 0,    0, te.x, t.y,  _GETCOL(3) }
         };
         currentshader->Set();
-        RenderArraySlow(PRIM_FAN, make_span(vb_square, 4), "PTC");
+        RenderArraySlow(PRIM_FAN, gsl::make_span(vb_square, 4), "PTC");
     });
 
 nfr("gl_unit_square", "centered", "I?", "",
@@ -741,11 +741,12 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
         }
         if (normal_offset) {
             // if no normals were specified, generate them.
-            normalize_mesh(make_span(idxs), verts, nverts, vsize, normal_offset);
+            normalize_mesh(gsl::make_span(idxs), verts, nverts, vsize, normal_offset);
         }
-        auto m = new Mesh(new Geometry(make_span(verts, nverts * vsize), fmt, span<uint8_t>(), vsize),
+        auto m = new Mesh(
+            new Geometry(gsl::make_span(verts, nverts * vsize), fmt, gsl::span<uint8_t>(), vsize),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
-        if (idxs.size()) m->surfs.push_back(new Surface(make_span(idxs)));
+        if (idxs.size()) m->surfs.push_back(new Surface(gsl::make_span(idxs)));
         delete[] verts;
         return Value(vm.NewResource(m, &mesh_type));
     });
@@ -1103,7 +1104,7 @@ nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
             vbuf[i * 6 + 5].tc = t + float2_x / msize;
         }
         currentshader->Set();
-        RenderArraySlow(PRIM_TRIS, make_span(vbuf), "pT");
+        RenderArraySlow(PRIM_TRIS, gsl::make_span(vbuf), "pT");
     });
 
 nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",

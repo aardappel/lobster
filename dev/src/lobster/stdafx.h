@@ -69,8 +69,6 @@ using namespace std;
 
 #include "gsl/gsl-lite.hpp"
 
-using namespace gsl;
-
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"
 

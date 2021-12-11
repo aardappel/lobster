@@ -335,13 +335,13 @@ Mesh *LoadIQM(string_view filename) {
         v.indices = inblendindex  ? *(byte4  *)&inblendindex [i * 4] : byte4_0;
     }
     if (!innormal)
-        normalize_mesh(make_span((int *)tris, numtris * 3), verts.data(), numverts, sizeof(AnimVert),
+        normalize_mesh(gsl::make_span((int *)tris, numtris * 3), verts.data(), numverts, sizeof(AnimVert),
                        (uint8_t *)&verts[0].norm - (uint8_t *)&verts[0].pos);
-    auto geom = new Geometry(make_span(verts), "PNTCWI");
+    auto geom = new Geometry(gsl::make_span(verts), "PNTCWI");
     auto mesh = new Mesh(geom);
     for (int i = 0; i < nummeshes; i++) {
         auto surf =
-            new Surface(make_span((int *)(tris + meshes[i].first_triangle), meshes[i].num_triangles * 3));
+            new Surface(gsl::make_span((int *)(tris + meshes[i].first_triangle), meshes[i].num_triangles * 3));
         surf->name = textures[i];
         mesh->surfs.push_back(surf);
     }

@@ -767,7 +767,7 @@ struct TypeChecker {
             // If this type has fields inherited from the superclass that refer to the
             // superclass, make it refer to this type instead. There may be corner cases where
             // this is not what you want, but generally you do.
-            for (auto &field : make_span(udt.fields.data(),
+            for (auto &field : gsl::make_span(udt.fields.data(),
                 udt.resolved_superclass->fields.size())) {
                 PromoteStructIdx(field.resolvedtype, udt.resolved_superclass, udt);
             }
