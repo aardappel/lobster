@@ -314,6 +314,13 @@ This means that the above .cpp file doesn't need any extra mechanism to be added
 to a Lobster implementation, simply link in the file and the functions will be
 available.
 
+You can add the above file to whatever build system you're using, but that
+may involve modifying the Lobster project files which you may not want to do.
+Instead, if your extension is small enough to sit in a header file, you can
+make use of the automatic inclusion of `projects/include/lobster_engine_plugins.h`
+(see comments in `engine.cpp`) which will then automatically be picked up as
+part of any Lobster build.
+
 ### Adding Lobster to your project
 
 This should still be fairly easy, as Lobster was made to be fairly modular, but

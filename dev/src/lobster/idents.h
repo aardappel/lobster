@@ -853,6 +853,23 @@ struct SymbolTable {
         return true;
     }
 
+    static const char **DefaultIntVectorTypeNames() {
+        static const char *names[] = { "xy_i", "xyz_i", "xyzw_i", nullptr };
+        return names;
+    }
+
+    static const char **DefaultFloatVectorTypeNames() {
+        static const char *names[] = { "xy_f", "xyz_f", "xyzw_f", nullptr };
+        return names;
+    }
+
+    static const char *GetVectorName(TypeRef type, int flen) {
+        if (flen < 2 || flen > 4) return nullptr;
+        if (type->t == V_INT) return DefaultIntVectorTypeNames()[flen - 2];
+        if (type->t == V_FLOAT) return DefaultFloatVectorTypeNames()[flen - 2];
+        return nullptr;
+    }
+
     bool RegisterDefaultTypes() {
         // TODO: This isn't great hardcoded in the compiler, would be better if it was declared in
         // lobster code.
@@ -862,12 +879,8 @@ struct SymbolTable {
                 break;
             }
         }
-        static const char *default_int_vector_type_names[]   =
-            { "xy_i", "xyz_i", "xyzw_i", nullptr };
-        static const char *default_float_vector_type_names[] =
-            { "xy_f", "xyz_f", "xyzw_f", nullptr };
-        return RegisterTypeVector(default_int_vector_types, default_int_vector_type_names) &&
-               RegisterTypeVector(default_float_vector_types, default_float_vector_type_names) &&
+        return RegisterTypeVector(default_int_vector_types, DefaultIntVectorTypeNames()) &&
+               RegisterTypeVector(default_float_vector_types, DefaultFloatVectorTypeNames()) &&
                default_bool_type;
     }
 
@@ -938,7 +951,7 @@ struct SymbolTable {
     }
 };
 
-inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullptr) {
+inline string TypeName(TypeRef type, int flen = 0) {
     switch (type->t) {
         case V_STRUCT_R:
         case V_STRUCT_S:
@@ -971,16 +984,14 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
         }
         case V_VECTOR:
             if (flen && type->Element()->Numeric()) {
-                if (flen > 0) {
-                    auto nvt = st->GetVectorType(type, 0, flen);
-                    if (!nvt.Null()) return TypeName(nvt);
-                }
+                auto nvt = SymbolTable::GetVectorName(type->Element(), flen);
+                if (nvt) return nvt;
                 // FIXME: better names?
                 return type->Element()->t == V_INT ? "vec_i" : "vec_f";
             } else {
                 return type->Element()->t == V_VAR
                            ? "[]"
-                           : "[" + TypeName(type->Element(), flen, st) + "]";
+                           : "[" + TypeName(type->Element(), flen) + "]";
             }
         case V_FUNCTION:
             return type->sf // || type->sf->anonymous
@@ -989,7 +1000,7 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
         case V_NIL:
             return type->Element()->t == V_VAR
                 ? "nil"
-                : TypeName(type->Element(), flen, st) + "?";
+                : TypeName(type->Element(), flen) + "?";
         case V_TUPLE: {
             string s = "(";
             for (auto [i, te] : enumerate(*type->tup)) {

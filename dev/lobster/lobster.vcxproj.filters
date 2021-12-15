@@ -361,9 +361,6 @@
     <ClInclude Include="..\src\lobster\cubegen.h">
       <Filter>engine\meshgen</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\lobster\octree.h">
-      <Filter>engine\meshgen</Filter>
-    </ClInclude>
     <ClInclude Include="..\external\SDL\include\SDL_config_os2.h">
       <Filter>engine\sdl\headers</Filter>
     </ClInclude>
@@ -1149,9 +1146,6 @@
     <ClCompile Include="..\external\imgui\imgui_demo.cpp">
       <Filter>engine\imgui\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\octree.cpp">
-      <Filter>engine\meshgen</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\SDL\src\audio\wasapi\SDL_wasapi_win32.c">
       <Filter>engine\sdl\lib</Filter>
     </ClCompile>
@@ -1196,9 +1190,6 @@
     </ClCompile>
     <ClCompile Include="..\external\SDL\src\libm\e_log10.c">
       <Filter>engine\sdl\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\octree_physics.cpp">
-      <Filter>engine\meshgen</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

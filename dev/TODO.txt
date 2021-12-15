@@ -11,8 +11,6 @@
   https://learnopengl.com/Advanced-OpenGL/Instancing
   or GL_ARB_multi_draw_indirect even more flexible.
 
-- octree + physics example
-
 - check that constant string caching works with e.g. FlatBufferBuilder?
 
     for(10) i:

@@ -23,7 +23,7 @@ enum { RUNTIME_NO_ASSERT, RUNTIME_ASSERT, RUNTIME_ASSERT_PLUS };
 
 extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
                     string &bytecode, string *parsedump, string *pakfile,
-                    bool dump_builtins, bool dump_names, bool return_value, int runtime_checks);
+                    bool return_value, int runtime_checks);
 
 extern string RunTCC(NativeRegistry &nfr,
                      string_view bytecode_buffer,
@@ -43,6 +43,9 @@ extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);
 extern FileLoader EnginePreInit(NativeRegistry &nfr);
 extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uint8_t *bytecodefb,
                                    size_t static_size, const lobster::fun_base_t *vtables);
+
+extern void DumpBuiltinNames(NativeRegistry &nfr);
+extern void DumpBuiltinDoc(NativeRegistry &nfr);
 
 }  // namespace lobster
 

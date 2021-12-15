@@ -147,6 +147,9 @@ int main(int argc, char* argv[]) {
         RegisterCoreLanguageBuiltins(nfr);
         auto loader = EnginePreInit(nfr);
 
+        if (dump_builtins) { DumpBuiltinDoc(nfr); return 0; }
+        if (dump_names) { DumpBuiltinNames(nfr); return 0; }
+
         if (!InitPlatform(GetMainDirFromExePath(argv[0]), fn ? fn : default_lpak, from_bundle,
                           loader))
             THROW_OR_ABORT("cannot find location to read/write data on this platform!");
@@ -174,8 +177,7 @@ int main(int argc, char* argv[]) {
             pakfile.clear();
             bytecode_buffer.clear();
             Compile(nfr, StripDirPart(fn), {}, bytecode_buffer,
-                    parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr, dump_builtins,
-                    dump_names, false, runtime_checks);
+                    parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr, false, runtime_checks);
             LOG_INFO("time to compile (seconds): ", SecondsSinceStart() - start_time);
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump);

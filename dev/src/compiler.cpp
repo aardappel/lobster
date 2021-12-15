@@ -237,14 +237,19 @@ void RegisterBuiltin(NativeRegistry &nfr, const char *name,
     regfun(nfr);
 }
 
-void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
+void DumpBuiltinNames(NativeRegistry &nfr) {
     string s;
-    if (justnames) {
-        for (auto nf : nfr.nfuns) { s += nf->name; s += "|"; }
-        WriteFile("builtin_functions_names.txt", false, s);
-        return;
+    for (auto nf : nfr.nfuns) {
+        if (nfr.subsystems[nf->subsystemid] == "plugin") continue;
+        s += nf->name;
+        s += "|";
     }
-    s = "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
+    WriteFile("builtin_functions_names.txt", false, s);
+}
+
+void DumpBuiltinDoc(NativeRegistry &nfr) {
+    string s =
+        "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
         "<html>\n<head>\n<title>lobster builtin function reference</title>\n"
         "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
         "<style type=\"text/css\">"
@@ -256,6 +261,7 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
     int cursubsystem = -1;
     bool tablestarted = false;
     for (auto nf : nfr.nfuns) {
+        if (nfr.subsystems[nf->subsystemid] == "plugin") continue;
         if (nf->subsystemid != cursubsystem) {
             if (tablestarted) s += "</table>\n";
             tablestarted = false;
@@ -280,7 +286,7 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
                 s += ":";
                 s += a.flags & NF_BOOL
                     ? "bool"
-                    : TypeName(a.type->ElementIfNil(), a.fixed_len, &st);
+                    : TypeName(a.type->ElementIfNil(), a.fixed_len);
             }
             s += "</font>";
             if (a.type->t == V_NIL && (int)i > last_non_nil)
@@ -291,7 +297,7 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
             s += " -> ";
             for (auto [i, a] : enumerate(nf->retvals)) {
                 s += "<font color=\"#666666\">";
-                s += TypeName(a.type, a.fixed_len, &st);
+                s += TypeName(a.type, a.fixed_len);
                 s += "</font>";
                 if (i < nf->retvals.size() - 1) s += ", ";
             }
@@ -303,7 +309,7 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
 }
 
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
-    string *parsedump, string *pakfile, bool dump_builtins, bool dump_names, bool return_value,
+    string *parsedump, string *pakfile, bool return_value,
     int runtime_checks) {
     SymbolTable st;
     Parser parser(nfr, fn, st, stringsource);
@@ -320,8 +326,6 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
         auto err = BuildPakFile(*pakfile, bytecode, parser.pakfiles);
         if (!err.empty()) THROW_OR_ABORT(err);
     }
-    if (dump_builtins) DumpBuiltins(nfr, false, st);
-    if (dump_names) DumpBuiltins(nfr, true, st);
 }
 
 string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
@@ -380,7 +384,7 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
     {
         string bytecode_buffer;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                bytecode_buffer, nullptr, nullptr, false, false, true, RUNTIME_ASSERT);
+                bytecode_buffer, nullptr, nullptr, true, RUNTIME_ASSERT);
         string error;
         auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, nullptr, std::move(args),
                           TraceMode::OFF, false, error);

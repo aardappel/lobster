@@ -22,6 +22,22 @@
 
 #include "lobster/compiler.h"
 
+
+// The code below allows for lightweight "plugins" to the
+// engine, by seeing if there's a header file with this name
+// in the "projects" directory of the Lobster repo.
+// This header can define custom functions needed for your
+// project, or include files that do, allowing you to extend
+// Lobster without the needs for DLL/so files or whatever.
+// "projects" is already in .gitignore so can even be a
+// separate git repo.
+#if __has_include("../../projects/include/lobster_engine_plugins.h")
+    #include "../../projects/include/lobster_engine_plugins.h"
+    #define HAVE_PLUGINS
+    void AddPlugins(NativeRegistry &nfr);
+#endif
+
+
 using namespace lobster;
 
 extern void AddGraphics(NativeRegistry &nfr);
@@ -31,8 +47,6 @@ extern void AddPhysics(NativeRegistry &nfr);
 extern void AddNoise(NativeRegistry &nfr);
 extern void AddMeshGen(NativeRegistry &nfr);
 extern void AddCubeGen(NativeRegistry &nfr);
-extern void AddOcTree(NativeRegistry &nfr);
-extern void AddOcTreePhysics(NativeRegistry &nfr);
 extern void AddVR(NativeRegistry &nfr);
 extern void AddSteam(NativeRegistry &nfr);
 extern void AddIMGUI(NativeRegistry &nfr);
@@ -47,11 +61,12 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "noise",     AddNoise);
     RegisterBuiltin(nfr, "meshgen",   AddMeshGen);
     RegisterBuiltin(nfr, "cubegen",   AddCubeGen);
-    RegisterBuiltin(nfr, "octree",    AddOcTree);
-    RegisterBuiltin(nfr, "octreeph",  AddOcTreePhysics);
     RegisterBuiltin(nfr, "vr",        AddVR);
     RegisterBuiltin(nfr, "steam",     AddSteam);
     RegisterBuiltin(nfr, "imgui",     AddIMGUI);
+    #ifdef HAVE_PLUGINS
+        RegisterBuiltin(nfr, "plugin", AddPlugins);
+    #endif
     return SDLLoadFile;
 }
 
