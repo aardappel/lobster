@@ -19,9 +19,6 @@
 		332249F722482B13009BDE0E /* tocpp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F422482B13009BDE0E /* tocpp.cpp */; };
 		332249F822482B13009BDE0E /* tocpp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F422482B13009BDE0E /* tocpp.cpp */; };
 		332249F922482B13009BDE0E /* tocpp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F422482B13009BDE0E /* tocpp.cpp */; };
-		33224A0422504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
-		33224A0522504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
-		33224A0622504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
 		3327344524F1C6DA00599D4E /* tccbind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3327344424F1C6DA00599D4E /* tccbind.cpp */; };
 		3327344624F1C6DA00599D4E /* tccbind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3327344424F1C6DA00599D4E /* tccbind.cpp */; };
 		3327344924F1C72700599D4E /* libtcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3327344824F1C72700599D4E /* libtcc.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -651,9 +648,6 @@
 		33EABE5115DAE20D00C1590D /* lobster.gif in Resources */ = {isa = PBXBuildFile; fileRef = 33EABE5015DAE20D00C1590D /* lobster.gif */; };
 		33EABE5715DAECA100C1590D /* icon.iconset in Resources */ = {isa = PBXBuildFile; fileRef = 33EABE5615DAECA000C1590D /* icon.iconset */; };
 		33EABE5815DAECA100C1590D /* icon.iconset in Resources */ = {isa = PBXBuildFile; fileRef = 33EABE5615DAECA000C1590D /* icon.iconset */; };
-		33F01C0E26334FAC000341DA /* octree_physics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F01C0D26334FAC000341DA /* octree_physics.cpp */; };
-		33F01C0F26334FAC000341DA /* octree_physics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F01C0D26334FAC000341DA /* octree_physics.cpp */; };
-		33F01C1026334FAC000341DA /* octree_physics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F01C0D26334FAC000341DA /* octree_physics.cpp */; };
 		33F7F3D517236720005B7988 /* glgeom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C51723671F005B7988 /* glgeom.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33F7F3D617236720005B7988 /* glgeom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C51723671F005B7988 /* glgeom.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33F7F3D717236720005B7988 /* glsystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C81723671F005B7988 /* glsystem.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -893,7 +887,6 @@
 		3307DA3D21098A8100B98515 /* idl_parser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = idl_parser.cpp; path = ../../external/flatbuffers/src/idl_parser.cpp; sourceTree = "<group>"; };
 		331D9B66148BFD0300F1069A /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../lib/libfreetype.a; sourceTree = "<group>"; };
 		332249F422482B13009BDE0E /* tocpp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tocpp.cpp; sourceTree = "<group>"; };
-		33224A0322504341009BDE0E /* octree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = octree.cpp; sourceTree = "<group>"; };
 		3327344424F1C6DA00599D4E /* tccbind.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tccbind.cpp; sourceTree = "<group>"; };
 		3327344824F1C72700599D4E /* libtcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libtcc.c; path = ../../../external/libtcc/libtcc.c; sourceTree = "<group>"; };
 		3331455717596B6100D488CC /* lobster */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lobster; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1290,7 +1283,6 @@
 		33EABDF715D9EE8400C1590D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		33EABE5015DAE20D00C1590D /* lobster.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = lobster.gif; sourceTree = "<group>"; };
 		33EABE5615DAECA000C1590D /* icon.iconset */ = {isa = PBXFileReference; lastKnownFileType = folder.iconset; name = icon.iconset; path = ../icon.iconset; sourceTree = "<group>"; };
-		33F01C0D26334FAC000341DA /* octree_physics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = octree_physics.cpp; sourceTree = "<group>"; };
 		33F7F3C51723671F005B7988 /* glgeom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = glgeom.cpp; path = ../../src/glgeom.cpp; sourceTree = "<group>"; };
 		33F7F3C81723671F005B7988 /* glsystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = glsystem.cpp; path = ../../src/glsystem.cpp; sourceTree = "<group>"; };
 		33F7F3C91723671F005B7988 /* sdlsystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sdlsystem.cpp; sourceTree = "<group>"; };
@@ -1785,8 +1777,6 @@
 		3395A8C0176140870047BE1F /* MeshGen */ = {
 			isa = PBXGroup;
 			children = (
-				33F01C0D26334FAC000341DA /* octree_physics.cpp */,
-				33224A0322504341009BDE0E /* octree.cpp */,
 				333FE1E21D53E23B0064979E /* cubegen.cpp */,
 				3381CAC5162340540069B2E8 /* meshgen.cpp */,
 			);
@@ -2901,7 +2891,6 @@
 				33D1615D1BAB9A2200BAD84D /* SDL_qsort.c in Sources */,
 				8C7603A0195E457400EADF6F /* b2FrictionJoint.cpp in Sources */,
 				33D15CB71BAB7DD200BAD84D /* psnames.c in Sources */,
-				33F01C1026334FAC000341DA /* octree_physics.cpp in Sources */,
 				8C7603BE195E457400EADF6F /* b2WheelJoint.cpp in Sources */,
 				33DAC55E1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */,
 				33878CF81F7B201D007BB196 /* load_flac.c in Sources */,
@@ -2982,7 +2971,6 @@
 				33FDF15B220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
 				33D160931BAB9A2200BAD84D /* SDL_joystick.c in Sources */,
 				33D160301BAB9A2200BAD84D /* SDL_keyboard.c in Sources */,
-				33224A0622504342009BDE0E /* octree.cpp in Sources */,
 				33878CF51F7B201D007BB196 /* load_mp3.c in Sources */,
 				33878CE01F7B201D007BB196 /* music_flac.c in Sources */,
 				3342B7A31B2B4CE500FA2F0B /* compiler.cpp in Sources */,
@@ -3170,7 +3158,6 @@
 				33D1615C1BAB9A2200BAD84D /* SDL_qsort.c in Sources */,
 				8C7603BD195E457400EADF6F /* b2WheelJoint.cpp in Sources */,
 				33D15CB61BAB7DD200BAD84D /* psnames.c in Sources */,
-				33F01C0F26334FAC000341DA /* octree_physics.cpp in Sources */,
 				8C7603C9195E457400EADF6F /* b2VoronoiDiagram.cpp in Sources */,
 				33DAC55D1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */,
 				33878CF71F7B201D007BB196 /* load_flac.c in Sources */,
@@ -3251,7 +3238,6 @@
 				33FDF15A220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
 				33D160921BAB9A2200BAD84D /* SDL_joystick.c in Sources */,
 				33D1602F1BAB9A2200BAD84D /* SDL_keyboard.c in Sources */,
-				33224A0522504342009BDE0E /* octree.cpp in Sources */,
 				33878CF41F7B201D007BB196 /* load_mp3.c in Sources */,
 				33878CDF1F7B201D007BB196 /* music_flac.c in Sources */,
 				3342B7A21B2B4CE500FA2F0B /* compiler.cpp in Sources */,
@@ -3535,7 +3521,6 @@
 				33FDF161220A59C400D7B010 /* imbind.cpp in Sources */,
 				33878CD81F7B201D007BB196 /* load_voc.c in Sources */,
 				33D1636D1BAB9A2200BAD84D /* SDL_x11events.c in Sources */,
-				33F01C0E26334FAC000341DA /* octree_physics.cpp in Sources */,
 				8C7603CD195E457400EADF6F /* b2Rope.cpp in Sources */,
 				33D163C71BABA2FB00BAD84D /* SDL_syspower.m in Sources */,
 				33AE2431164ABCE2007F578F /* stdafx.cpp in Sources */,
@@ -3667,7 +3652,6 @@
 				33DAC5831E5CCE930003767C /* SDL_sysjoystick.m in Sources */,
 				33878D151F7B20D8007BB196 /* steamworks.cpp in Sources */,
 				33D161581BAB9A2200BAD84D /* SDL_malloc.c in Sources */,
-				33224A0422504342009BDE0E /* octree.cpp in Sources */,
 				33D161AF1BAB9A2200BAD84D /* SDL_sysmutex.c in Sources */,
 				33D162181BAB9A2200BAD84D /* SDL_cocoashape.m in Sources */,
 				33D160281BAB9A2200BAD84D /* SDL_events.c in Sources */,

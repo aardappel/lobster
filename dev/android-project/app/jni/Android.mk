@@ -46,8 +46,6 @@ LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/src/lobsterreader.cpp \
 	$(LOBSTER_PATH)/src/meshgen.cpp \
 	$(LOBSTER_PATH)/src/cubegen.cpp \
-	$(LOBSTER_PATH)/src/octree.cpp \
-	$(LOBSTER_PATH)/src/octree_physics.cpp \
 	$(LOBSTER_PATH)/src/imbind.cpp \
 	$(LOBSTER_PATH)/src/platform.cpp \
 	$(LOBSTER_PATH)/src/sdlaudiosfxr.cpp \
