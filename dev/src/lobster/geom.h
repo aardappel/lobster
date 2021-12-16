@@ -220,6 +220,13 @@ template<typename T, int N> struct vec : basevec<T, N> {
     vec<int, N> eq (T e) const { DOVECRI(c[i] == e); }
     vec<int, N> ne (T e) const { DOVECRI(c[i] != e); }
 
+    vec<int, N> lte(const vec &v) const { DOVECRI(c[i] <= v.c[i]); }
+    vec<int, N> lt (const vec &v) const { DOVECRI(c[i] <  v.c[i]); }
+    vec<int, N> gte(const vec &v) const { DOVECRI(c[i] >= v.c[i]); }
+    vec<int, N> gt (const vec &v) const { DOVECRI(c[i] >  v.c[i]); }
+    vec<int, N> eq (const vec &v) const { DOVECRI(c[i] == v.c[i]); }
+    vec<int, N> ne (const vec &v) const { DOVECRI(c[i] != v.c[i]); }
+
     vec iflt(T e, const vec &a, const vec &b) const {
         DOVECR(c[i] < e ? a.c[i] : b.c[i]);
     }
@@ -304,10 +311,10 @@ template<typename T, int N> inline vec<T, N> to_srgb(const vec<T, N> &a) {
 }
 
 template<typename T, int N> inline T min(const vec<T,N> &a) {
-    DOVECF(FLT_MAX, std::min(a.c[i], _));
+    DOVECF(std::numeric_limits<T>::max(), std::min(a.c[i], _));
 }
 template<typename T, int N> inline T max(const vec<T,N> &a) {
-    DOVECF(-FLT_MAX, std::max(a.c[i], _));
+    DOVECF(-std::numeric_limits<T>::max(), std::max(a.c[i], _));
 }
 
 template<typename T, int N> inline T sum(const vec<T,N> &a) {
@@ -896,8 +903,8 @@ inline float4x4 ortho(float left, float right, float bottom, float top, float zn
     );
 }
 
-inline byte4 quantizec(const float3 &v) { return byte4(float4(v, 1) * 255); }
-inline byte4 quantizec(const float4 &v) { return byte4(v            * 255); }
+inline byte4 quantizec(const float3 &v, float w) { return byte4(float4(v, w) * 255); }
+inline byte4 quantizec(const float4 &v) { return byte4(v * 255); }
 
 inline float4 color2vec(const byte4 &col) { return float4(col) / 255; }
 

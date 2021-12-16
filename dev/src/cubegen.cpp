@@ -62,6 +62,104 @@ const unsigned int default_palette[256] = {
     0xffbbbbbb, 0xffaaaaaa, 0xff888888, 0xff777777, 0xff555555, 0xff444444, 0xff222222, 0xff111111
 };
 
+const uint8_t normal_table_size = 162;
+const float3 default_normals[normal_table_size] = {
+    { -0.525731f,  0.000000f,  0.850651f }, { -0.442863f,  0.238856f,  0.864188f }, 
+    { -0.295242f,  0.000000f,  0.955423f }, { -0.309017f,  0.500000f,  0.809017f }, 
+    { -0.162460f,  0.262866f,  0.951056f }, {  0.000000f,  0.000000f,  1.000000f }, 
+    {  0.000000f,  0.850651f,  0.525731f }, { -0.147621f,  0.716567f,  0.681718f }, 
+    {  0.147621f,  0.716567f,  0.681718f }, {  0.000000f,  0.525731f,  0.850651f }, 
+    {  0.309017f,  0.500000f,  0.809017f }, {  0.525731f,  0.000000f,  0.850651f }, 
+    {  0.295242f,  0.000000f,  0.955423f }, {  0.442863f,  0.238856f,  0.864188f }, 
+    {  0.162460f,  0.262866f,  0.951056f }, { -0.681718f,  0.147621f,  0.716567f }, 
+    { -0.809017f,  0.309017f,  0.500000f }, { -0.587785f,  0.425325f,  0.688191f }, 
+    { -0.850651f,  0.525731f,  0.000000f }, { -0.864188f,  0.442863f,  0.238856f }, 
+    { -0.716567f,  0.681718f,  0.147621f }, { -0.688191f,  0.587785f,  0.425325f }, 
+    { -0.500000f,  0.809017f,  0.309017f }, { -0.238856f,  0.864188f,  0.442863f }, 
+    { -0.425325f,  0.688191f,  0.587785f }, { -0.716567f,  0.681718f, -0.147621f }, 
+    { -0.500000f,  0.809017f, -0.309017f }, { -0.525731f,  0.850651f,  0.000000f }, 
+    {  0.000000f,  0.850651f, -0.525731f }, { -0.238856f,  0.864188f, -0.442863f }, 
+    {  0.000000f,  0.955423f, -0.295242f }, { -0.262866f,  0.951056f, -0.162460f }, 
+    {  0.000000f,  1.000000f,  0.000000f }, {  0.000000f,  0.955423f,  0.295242f }, 
+    { -0.262866f,  0.951056f,  0.162460f }, {  0.238856f,  0.864188f,  0.442863f }, 
+    {  0.262866f,  0.951056f,  0.162460f }, {  0.500000f,  0.809017f,  0.309017f }, 
+    {  0.238856f,  0.864188f, -0.442863f }, {  0.262866f,  0.951056f, -0.162460f }, 
+    {  0.500000f,  0.809017f, -0.309017f }, {  0.850651f,  0.525731f,  0.000000f }, 
+    {  0.716567f,  0.681718f,  0.147621f }, {  0.716567f,  0.681718f, -0.147621f }, 
+    {  0.525731f,  0.850651f,  0.000000f }, {  0.425325f,  0.688191f,  0.587785f }, 
+    {  0.864188f,  0.442863f,  0.238856f }, {  0.688191f,  0.587785f,  0.425325f }, 
+    {  0.809017f,  0.309017f,  0.500000f }, {  0.681718f,  0.147621f,  0.716567f }, 
+    {  0.587785f,  0.425325f,  0.688191f }, {  0.955423f,  0.295242f,  0.000000f }, 
+    {  1.000000f,  0.000000f,  0.000000f }, {  0.951056f,  0.162460f,  0.262866f }, 
+    {  0.850651f, -0.525731f,  0.000000f }, {  0.955423f, -0.295242f,  0.000000f }, 
+    {  0.864188f, -0.442863f,  0.238856f }, {  0.951056f, -0.162460f,  0.262866f }, 
+    {  0.809017f, -0.309017f,  0.500000f }, {  0.681718f, -0.147621f,  0.716567f }, 
+    {  0.850651f,  0.000000f,  0.525731f }, {  0.864188f,  0.442863f, -0.238856f }, 
+    {  0.809017f,  0.309017f, -0.500000f }, {  0.951056f,  0.162460f, -0.262866f }, 
+    {  0.525731f,  0.000000f, -0.850651f }, {  0.681718f,  0.147621f, -0.716567f }, 
+    {  0.681718f, -0.147621f, -0.716567f }, {  0.850651f,  0.000000f, -0.525731f }, 
+    {  0.809017f, -0.309017f, -0.500000f }, {  0.864188f, -0.442863f, -0.238856f }, 
+    {  0.951056f, -0.162460f, -0.262866f }, {  0.147621f,  0.716567f, -0.681718f }, 
+    {  0.309017f,  0.500000f, -0.809017f }, {  0.425325f,  0.688191f, -0.587785f }, 
+    {  0.442863f,  0.238856f, -0.864188f }, {  0.587785f,  0.425325f, -0.688191f }, 
+    {  0.688191f,  0.587785f, -0.425325f }, { -0.147621f,  0.716567f, -0.681718f }, 
+    { -0.309017f,  0.500000f, -0.809017f }, {  0.000000f,  0.525731f, -0.850651f }, 
+    { -0.525731f,  0.000000f, -0.850651f }, { -0.442863f,  0.238856f, -0.864188f }, 
+    { -0.295242f,  0.000000f, -0.955423f }, { -0.162460f,  0.262866f, -0.951056f }, 
+    {  0.000000f,  0.000000f, -1.000000f }, {  0.295242f,  0.000000f, -0.955423f }, 
+    {  0.162460f,  0.262866f, -0.951056f }, { -0.442863f, -0.238856f, -0.864188f }, 
+    { -0.309017f, -0.500000f, -0.809017f }, { -0.162460f, -0.262866f, -0.951056f }, 
+    {  0.000000f, -0.850651f, -0.525731f }, { -0.147621f, -0.716567f, -0.681718f }, 
+    {  0.147621f, -0.716567f, -0.681718f }, {  0.000000f, -0.525731f, -0.850651f }, 
+    {  0.309017f, -0.500000f, -0.809017f }, {  0.442863f, -0.238856f, -0.864188f }, 
+    {  0.162460f, -0.262866f, -0.951056f }, {  0.238856f, -0.864188f, -0.442863f }, 
+    {  0.500000f, -0.809017f, -0.309017f }, {  0.425325f, -0.688191f, -0.587785f }, 
+    {  0.716567f, -0.681718f, -0.147621f }, {  0.688191f, -0.587785f, -0.425325f }, 
+    {  0.587785f, -0.425325f, -0.688191f }, {  0.000000f, -0.955423f, -0.295242f }, 
+    {  0.000000f, -1.000000f,  0.000000f }, {  0.262866f, -0.951056f, -0.162460f }, 
+    {  0.000000f, -0.850651f,  0.525731f }, {  0.000000f, -0.955423f,  0.295242f }, 
+    {  0.238856f, -0.864188f,  0.442863f }, {  0.262866f, -0.951056f,  0.162460f }, 
+    {  0.500000f, -0.809017f,  0.309017f }, {  0.716567f, -0.681718f,  0.147621f }, 
+    {  0.525731f, -0.850651f,  0.000000f }, { -0.238856f, -0.864188f, -0.442863f }, 
+    { -0.500000f, -0.809017f, -0.309017f }, { -0.262866f, -0.951056f, -0.162460f }, 
+    { -0.850651f, -0.525731f,  0.000000f }, { -0.716567f, -0.681718f, -0.147621f }, 
+    { -0.716567f, -0.681718f,  0.147621f }, { -0.525731f, -0.850651f,  0.000000f }, 
+    { -0.500000f, -0.809017f,  0.309017f }, { -0.238856f, -0.864188f,  0.442863f }, 
+    { -0.262866f, -0.951056f,  0.162460f }, { -0.864188f, -0.442863f,  0.238856f }, 
+    { -0.809017f, -0.309017f,  0.500000f }, { -0.688191f, -0.587785f,  0.425325f }, 
+    { -0.681718f, -0.147621f,  0.716567f }, { -0.442863f, -0.238856f,  0.864188f }, 
+    { -0.587785f, -0.425325f,  0.688191f }, { -0.309017f, -0.500000f,  0.809017f }, 
+    { -0.147621f, -0.716567f,  0.681718f }, { -0.425325f, -0.688191f,  0.587785f }, 
+    { -0.162460f, -0.262866f,  0.951056f }, {  0.442863f, -0.238856f,  0.864188f }, 
+    {  0.162460f, -0.262866f,  0.951056f }, {  0.309017f, -0.500000f,  0.809017f }, 
+    {  0.147621f, -0.716567f,  0.681718f }, {  0.000000f, -0.525731f,  0.850651f }, 
+    {  0.425325f, -0.688191f,  0.587785f }, {  0.587785f, -0.425325f,  0.688191f }, 
+    {  0.688191f, -0.587785f,  0.425325f }, { -0.955423f,  0.295242f,  0.000000f }, 
+    { -0.951056f,  0.162460f,  0.262866f }, { -1.000000f,  0.000000f,  0.000000f }, 
+    { -0.850651f,  0.000000f,  0.525731f }, { -0.955423f, -0.295242f,  0.000000f }, 
+    { -0.951056f, -0.162460f,  0.262866f }, { -0.864188f,  0.442863f, -0.238856f }, 
+    { -0.951056f,  0.162460f, -0.262866f }, { -0.809017f,  0.309017f, -0.500000f }, 
+    { -0.864188f, -0.442863f, -0.238856f }, { -0.951056f, -0.162460f, -0.262866f }, 
+    { -0.809017f, -0.309017f, -0.500000f }, { -0.681718f,  0.147621f, -0.716567f }, 
+    { -0.681718f, -0.147621f, -0.716567f }, { -0.850651f,  0.000000f, -0.525731f }, 
+    { -0.688191f,  0.587785f, -0.425325f }, { -0.587785f,  0.425325f, -0.688191f }, 
+    { -0.425325f,  0.688191f, -0.587785f }, { -0.425325f, -0.688191f, -0.587785f }, 
+    { -0.587785f, -0.425325f, -0.688191f }, { -0.688191f, -0.587785f, -0.425325f }
+};
+
+uint8_t FindClosestNormal(float3 normal) {
+    float bestdot = -1;
+    uint8_t besti = 0;
+    for (uint8_t i = 0; i < normal_table_size; i++) {
+        auto d = dot(normal, default_normals[i]);
+        if (d > bestdot) {
+            bestdot = d;
+            besti = i;
+        }
+    }
+    return besti;
+}
+
 Voxels *NewWorld(const int3 &size, const byte4 *from_palette = nullptr) {
     auto v = new Voxels(size);
     if (!from_palette) from_palette = (byte4 *)default_palette;
@@ -104,7 +202,7 @@ nfr("cg_init", "size", "I}:3", "R",
     " returns the block",
     [](StackPtr &sp, VM &vm) {
         auto v = NewWorld(PopVec<int3>(sp));
-        Push(sp,  vm.NewResource(v, GetVoxelType()));
+        Push(sp, vm.NewResource(v, GetVoxelType()));
     });
 
 nfr("cg_size", "block", "R", "I}:3",
@@ -156,7 +254,7 @@ nfr("cg_clone", "block,pos,size", "RI}:3I}:3", "R",
         auto &v = GetVoxels(vm, res);
         auto nw = NewWorld(sz, v.palette.data());
         v.Clone(p, sz, nw);
-        Push(sp,  vm.NewResource(nw, GetVoxelType()));
+        Push(sp, vm.NewResource(nw, GetVoxelType()));
     });
 
 nfr("cg_color_to_palette", "block,color", "RF}:4", "I",
@@ -165,7 +263,7 @@ nfr("cg_color_to_palette", "block,color", "RF}:4", "I",
     [](StackPtr &sp, VM &vm) {
         auto color = PopVec<float4>(sp);
         auto res = Pop(sp);
-        Push(sp,  GetVoxels(vm, res).Color2Palette(color));
+        Push(sp, GetVoxels(vm, res).Color2Palette(color));
     });
 
 nfr("cg_palette_to_color", "block,paletteindex", "RI", "F}:4",
@@ -661,6 +759,84 @@ nfr("cg_erode", "world,minsolid,maxsolid", "RII", "R", "",
             }
         }
         return Value(vm.NewResource(&d, GetVoxelType()));
+    });
+
+nfr("cg_normal_indices", "block,radius", "RI", "R",
+    "creates a new block with normal indices based on voxel surface shape."
+    "the indices refer to the associated pallette."
+    "empty voxels will have a 0 length normal."
+    "2 is a good radius that balances speed/quality, use 1 for speed, 3 for max quality",
+    [](StackPtr &sp, VM &vm) {
+        auto radius = Pop(sp).intval();
+        auto res = Pop(sp);
+        auto &v = GetVoxels(vm, res);
+        vector<byte4> normal_palette;
+        normal_palette.resize(256, quantizec(float3(0.5), 0));
+        for (uint8_t i = 0; i < normal_table_size; i++) {
+            normal_palette[i] = quantizec((default_normals[i] + 1) / 2, 0);
+        }
+        auto nw = NewWorld(v.grid.dim, normal_palette.data());
+        auto ComputeNormal = [&](int3 c, int rad) {
+            int3 normal = int3_0;
+            for (int x = -rad; x <= rad; x++) {
+                for (int y = -rad; y <= rad; y++) {
+                    for (int z = -rad; z <= rad; z++) {
+                        int3 s = int3(x, y, z) + c;
+                        if (s != c) {
+                            if (s < v.grid.dim && s >= 0 && v.grid.Get(s) != 0) {
+                                // normal -= s - c;
+                            } else {
+                                normal += s - c;
+                            }
+                        }
+                    }
+                }
+            }
+            return normal;
+        };
+        int3 neighbors[6] = {
+            int3(0, 0, 1),  int3(0, 0, -1), int3(0, 1, 0),
+            int3(0, -1, 0), int3(1, 0, 0),  int3(-1, 0, 0),
+        };
+        int num_surface_voxels = 0;
+        for (int x = 0; x < v.grid.dim.x; x++) {
+            for (int y = 0; y < v.grid.dim.y; y++) {
+                for (int z = 0; z < v.grid.dim.z; z++) {
+                    auto pos = int3(x, y, z);
+                    auto p = v.grid.Get(pos);
+                    if (!p) {
+                        // Empty cells don't need a normal.
+                        nw->grid.Get(pos) = 0xFF;
+                        continue;
+                    }
+                    // If the voxel is on the edge of the model it is visible.
+                    if (max(pos.eq(0)) != 1 && max(pos.eq(v.grid.dim - 1)) != 1) {
+                        // Check the 6 neighbors, if any are empty, it is visble.
+                        for (int i = 0; i < 6; i++) {
+                            if (v.grid.Get(pos + neighbors[i]) == 0) goto visible;
+                        }
+                        // Not visible, early out.
+                        nw->grid.Get(pos) = 0xFF;
+                        continue;
+                        visible:;
+                    }
+                    // For surface voxels we compute a normal.
+                    num_surface_voxels++;
+                    auto cn = ComputeNormal(pos, radius);
+                    if (manhattan(cn) <= 1) {
+                        // Most normals cancelled eachother out, let's try once more
+                        // with a wider radius.
+                        cn = ComputeNormal(pos, radius * 2);
+                    }
+                    if (manhattan(cn) == 0) {
+                        // This should be very rare in actual models, just use Z-up.
+                        cn = int3(0, 0, 1);
+                    }
+                    nw->grid.Get(pos) = FindClosestNormal(normalize(float3(cn)));
+                }
+            }
+        }
+        Push(sp, vm.NewResource(nw, GetVoxelType()));
     });
 
 }  // AddCubeGen

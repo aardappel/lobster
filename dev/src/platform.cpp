@@ -345,6 +345,12 @@ FILE *OpenForWriting(string_view relfilename, bool binary) {
     return fopen(fn.c_str(), binary ? "wb" : "w");
 }
 
+FILE *OpenForReading(string_view relfilename, bool binary) {
+    auto fn = WriteFileName(relfilename);
+    LOG_INFO("read: ", fn);
+    return fopen(fn.c_str(), binary ? "rb" : "r");
+}
+
 bool WriteFile(string_view relfilename, bool binary, string_view contents) {
     FILE *f = OpenForWriting(relfilename, binary);
     size_t written = 0;

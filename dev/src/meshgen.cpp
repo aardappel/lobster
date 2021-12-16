@@ -493,7 +493,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                         auto &v = verts.back();
                         v.pos = c.accum;
                         v.norm = float3_0;
-                        v.col = quantizec(c.col);
+                        v.col = quantizec(c.col, 1);
                     }
                     triangles.push_back(c.n);
                 }
@@ -572,7 +572,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                             SimplexNoise(octaves, persistence, scale, float4(v.pos, 0.3f / scale)),
                             SimplexNoise(octaves, persistence, scale, float4(v.pos, 0.6f / scale)));
             v.col = quantizec(color2vec(v.col).xyz() *
-                              (float3_1 - (n + float3_1) / 2 * noiseintensity));
+                              (float3_1 - (n + float3_1) / 2 * noiseintensity), 1);
         }
     }
     /////////// MODULATE LIGHTING BY CREASE FACTOR
