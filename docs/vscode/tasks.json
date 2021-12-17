@@ -15,7 +15,7 @@
                 "command": "bin/lobster"
             },
             "type": "shell",
-            "args": [ "${file}" ],
+            "args": [ "--main", "main.lobster", "${file}" ],
             "presentation": {
                 "reveal": "silent",
                 "echo": true,

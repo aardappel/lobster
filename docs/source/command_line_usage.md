@@ -50,6 +50,12 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
 -   `--runtime-asserts` : Compile with asserts on (default)
 -   `--runtime-verbose` : Compile with asserts on + additional debug.
 
+-   `--main MAIN` : after compiling FILE, if present, compile this file and
+    run it. This is useful when running Lobster from an editor, where you
+    may be editing a module that is not the main file, would like to see that it
+    compiles by itself, but to run it need to be launching the main Lobster
+    program it belongs to (e.g. `main.lobster` in the same folder).
+
 -   `--wait` : makes the compiler wait for commandline input before it exits. Useful
     in Windows batch files.
 -   `--noconsole` : Close console window (Windows)

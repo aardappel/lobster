@@ -67,6 +67,7 @@ int main(int argc, char* argv[]) {
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         const char *fn = nullptr;
+        const char *mainfile = nullptr;
         vector<string> program_args;
         vector<string> imports;
         auto trace = TraceMode::OFF;
@@ -77,6 +78,7 @@ int main(int argc, char* argv[]) {
             "--pak                  Compile to pakfile, don't run.\n"
             "--cpp                  Compile to C++ code, don't run (see implementation.md!).\n"
             "--import RELDIR        Additional dir (relative to FILE) to load imports from\n"
+            "--main MAIN            if present, run this main program file after compiling FILE.\n"
             "--parsedump            Also dump parse tree.\n"
             "--disasm               Also dump bytecode disassembly.\n"
             "--verbose              Output additional informational text.\n"
@@ -124,9 +126,15 @@ int main(int argc, char* argv[]) {
                     arg++;
                     if (arg >= argc) THROW_OR_ABORT("missing import dir");
                     imports.push_back(argv[arg]);
+                } else if (a == "--main") {
+                    arg++;
+                    if (arg >= argc) THROW_OR_ABORT("missing main file");
+                    if (mainfile) THROW_OR_ABORT("--main specified twice");
+                    mainfile = argv[arg];
+                } else if (a == "--") {
+                    arg++;
                     break;
                 }
-                else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
                 else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
                 else THROW_OR_ABORT("unknown command line argument: " + (argv[arg] + helptext));
@@ -175,9 +183,14 @@ int main(int argc, char* argv[]) {
             auto start_time = SecondsSinceStart();
             dump.clear();
             pakfile.clear();
-            bytecode_buffer.clear();
-            Compile(nfr, StripDirPart(fn), {}, bytecode_buffer,
-                    parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr, false, runtime_checks);
+            for (;;) {
+                bytecode_buffer.clear();
+                Compile(nfr, StripDirPart(fn), {}, bytecode_buffer, parsedump ? &dump : nullptr,
+                        lpak ? &pakfile : nullptr, false, runtime_checks);
+                if (!mainfile || !FileExists(mainfile)) break;
+                fn = mainfile;
+                mainfile = nullptr;
+            }
             LOG_INFO("time to compile (seconds): ", SecondsSinceStart() - start_time);
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump);

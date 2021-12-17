@@ -37,6 +37,7 @@
 <li><code>--runtime-shipping</code> : Compile with asserts off.</li>
 <li><code>--runtime-asserts</code> : Compile with asserts on (default)</li>
 <li><p><code>--runtime-verbose</code> : Compile with asserts on + additional debug.</p></li>
+<li><p><code>--main MAIN</code> : after compiling FILE, if present, compile this file and run it. This is useful when running Lobster from an editor, where you may be editing a module that is not the main file, would like to see that it compiles by itself, but to run it need to be launching the main Lobster program it belongs to (e.g. <code>main.lobster</code> in the same folder).</p></li>
 <li><code>--wait</code> : makes the compiler wait for commandline input before it exits. Useful in Windows batch files.</li>
 <li><p><code>--noconsole</code> : Close console window (Windows)</p></li>
 <li><code>--verbose</code> : verbose mode, outputs additional stats about the program being compiled/run. <code>--debug</code> outputs even more, only useful for working on the compiler.</li>

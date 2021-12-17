@@ -262,6 +262,22 @@
 
   The terminal process "bin\lobster.exe infrecurse.lobster" terminated with exit code: 3221225477.
 
+- Would be nice to have more powerful constructors.
+  Current constructors eval the field defaults outside the context of the class, which is a
+  nice way to avoid all the problems around partially constructed objects.
+  And with nil-safety, we can't have any uninitialized fields being accessed.
+  One idea would be to generate a constructor function from all initializers, which then can
+  access other fields and methods. During type-checking of that function, the class would be
+  marked as haveing N of its fields initialized, and any read of the remaining ones would error.
+  That should in theory work with calling any functions thanks to flow analysis, but the
+  problem is functions that have already been typechecked against the normal type, which would
+  have to error or be specialized again.
+  Even more extreme is to include that N in the type itself, such that a sub-typing relationship
+  can be used, but that is a lot of complexity for the priviledge.
+  And frankly creating more specializations just for this distinction doesn't sound great.
+  Also we have some complex logic around tagged constructor args that would have to be wrapped
+  into this generated function..
+
 - Move checking for functions/builtins/selfarg etc to type checker.
   This is quite hard, it requires reworking a lot of stuff:
   - all the withstack related functionality, which in turn requires not only calls and derefs to
