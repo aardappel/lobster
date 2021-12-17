@@ -457,7 +457,7 @@ struct Lex : LoadedFile {
                 }
                 auto tok = c < ' ' || c >= 127
                     ? cat("[ascii ", int(c), "]")
-                    : cat('\'', char(c), '\'');
+                    : cat("\'", string(1, char(c)), "\'");
                 Error("illegal token: " + tok);
                 return T_NONE;
             }
