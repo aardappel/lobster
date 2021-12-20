@@ -56,7 +56,7 @@ import vec
 import color
 import gl
 import texture
-import util3d
+import camera
 
 fatal(gl_window("Lobster Cube", 515, 515))
 check(gl_set_font_name("data/fonts/Droid_Sans/DroidSans.ttf"), "can\'t load font")
@@ -119,18 +119,17 @@ let face_colors = [
 
 // Rotate the camera to place the origin vertex of the cube in the center of
 // the view.
-camera_pitch = 45
-camera_yaw = -45
+let camera = Camera { xyz_0, -45, 45 }
 
-// This demo is able to use camera_FPS_view but uses a different control model
+// This demo is able to use camera.FPS_view but uses a different control model
 // to move the camera about the origin at a fixed “elevation”.
 def camera_GPS_update(upkey, leftkey, downkey, rightkey, elevation:float, mousesens:float, keyspeed:float):
     let long = (gl_button(upkey) >= 1) - (gl_button(downkey) >= 1)
     let lat = (gl_button(rightkey) >= 1) - (gl_button(leftkey) >= 1)
-    camera_pitch -= gl_mouse_delta(0).y / mousesens + long * keyspeed
-    camera_yaw -= gl_mouse_delta(0).x / mousesens - lat * keyspeed
-    camera_pitch = min(85.0, max(-85.0, camera_pitch))
-    camera_position = vecfromyawpitch(camera_yaw, camera_pitch, -elevation, 0.0)
+    camera.pitch -= gl_mouse_delta(0).y / mousesens + long * keyspeed
+    camera.yaw -= gl_mouse_delta(0).x / mousesens - lat * keyspeed
+    camera.pitch = min(85.0, max(-85.0, camera.pitch))
+    camera.position = vecfromyawpitch(camera.yaw, camera.pitch, -elevation, 0.0)
 
 while gl_frame() and gl_button("escape") != -1:
     gl_clear(color_dark_grey)
@@ -138,9 +137,9 @@ while gl_frame() and gl_button("escape") != -1:
     gl_perspective(60, 0.1, 1000)
 
     camera_GPS_update("w", "a", "s", "d", 2.0, 4.0, 4.0)
-    camera_FPS_view()
+    camera.FPS_view()
 
-    gl_light(camera_position, xy { 128.0, 0.1 })
+    gl_light(camera.position, xy { 128.0, 0.1 })
 
     gl_translate(-xyz_1/2)
     gl_set_shader("textured")

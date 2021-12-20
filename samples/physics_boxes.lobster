@@ -3,7 +3,7 @@
 import vec
 import color
 import gl
-import util3d
+import camera
 
 fatal(gl_window("Physics demo : boxes", 1024, 768))
 
@@ -20,7 +20,7 @@ while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
-    camera_2d_worldspace(worldsize, xy { 0.5, 1.0 }, xy { 1.0, -1.0 })
+    set_2d_worldspace(worldsize, xy { 0.5, 1.0 }, xy { 1.0, -1.0 })
 
     ph_step(gl_delta_time(), 8, 3)
     ph_render()

@@ -4,7 +4,7 @@ import vec
 import color
 import gl
 import texture
-import util3d
+import camera
 
 fatal(gl_window("My Lobster OpenGL window!", 1280, 1024))
 
@@ -15,9 +15,7 @@ let textures = map(gl_mesh_parts(iqmtest)) name, i:
 
 for(textures) tex, i: gl_set_mesh_texture(iqmtest, i, 0, tex)
 
-camera_position = xyz { 0.0, 0.0, 8.0 }
-camera_yaw = -45
-camera_pitch = 20
+let camera = Camera { xyz { 0.0, 0.0, 8.0 }, -45, 20 }
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -28,11 +26,11 @@ while gl_frame():
 
     var speed = 10
     if gl_button("left shift") >= 1: speed = 50
-    camera_FPS_update("w", "a", "s", "d", speed, 4, true)
-    if gl_button("space") >= 1: camera_direction(xyz_1 * 10 - camera_position)
-    camera_FPS_view()
+    camera.FPS_update("w", "a", "s", "d", speed, 4, true)
+    if gl_button("space") >= 1: camera.direction(xyz_1 * 10 - camera.position)
+    camera.FPS_view()
 
-    gl_light(camera_position, xy { 128.0, 1.0 })
+    gl_light(camera.position, xy { 128.0, 1.0 })
     //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
     gl_blend(blend_none)

@@ -4,7 +4,7 @@ import vec
 import color
 import gl
 import texture
-import util3d
+import camera
 import gl
 import mg
 
@@ -42,9 +42,7 @@ mg_color(color_red)
 mg_sphere(1)
 let sphere = mg_polygonize(3)
 
-camera_position = xyz { 0.0, 0.0, 3.0 }
-camera_yaw = 135
-camera_pitch = 20
+let camera = Camera { xyz { 0.0, 0.0, 3.0 }, 135, 20 }
 
 let balls = []::[xyz_f]
 
@@ -54,7 +52,7 @@ def drawworld():
     gl_clear(color_grey)
     gl_blend(blend_none)
 
-    gl_light(camera_position, xy { 64.0, 1.0 })
+    gl_light(camera.position, xy { 64.0, 1.0 })
     //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
     gl_set_shader("flat")
@@ -81,7 +79,7 @@ while gl_frame():
         vr_start()
         for(2) e:
             vr_start_eye(e, znear, zfar)
-            camera_set_z_up_worldspace():
+            set_z_up_worldspace():
                 drawworld()
             for(vr_num_motion_controllers()) mc:
                 if vr_motioncontrollerstracking(mc):
@@ -115,11 +113,11 @@ while gl_frame():
     else:
         // This is how we'd render normally, with no HMD connected:
         gl_cursor(false)
-        camera_FPS_update("w", "a", "s", "d", 10, 4, true)
+        camera.FPS_update("w", "a", "s", "d", 10, 4, true)
         gl_clear(color_dark_grey)
         gl_blend(blend_none)
         gl_perspective(70, znear, zfar)
-        camera_FPS_view()
+        camera.FPS_view()
         drawworld()
 
     if balls.length > 100:

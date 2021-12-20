@@ -4,7 +4,7 @@
 import vec
 import color
 import gl
-import util3d
+import camera
 import gl
 import mg
 
@@ -12,8 +12,7 @@ print "generating models... this may take some time!"
 
 fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800, gl_window_init_linear_color))
 
-camera_position = xyz { 10.0, 10.0, 10.0 }
-camera_yaw = 135
+let camera = Camera { xyz { 10.0, 10.0, 10.0 }, 135, 0 }
 
 def mg_mirror_y(dist, body):
     for(2) i:
@@ -152,9 +151,9 @@ while gl_frame():
 
         var speed = 10
         if gl_button("left shift") >= 1: speed = 50
-        camera_FPS_update("w", "a", "s", "d", speed, 4, true)
-        camera_FPS_view()
-        gl_light(camera_position, xy { 128.0, 0.1 })
+        camera.FPS_update("w", "a", "s", "d", speed, 4, true)
+        camera.FPS_view()
+        gl_light(camera.position, xy { 128.0, 0.1 })
     else:
         gl_ortho3d(xyz_0, xyz_f { gl_window_size().x, gl_window_size().y, 2000 } / 100)
         gl_rotate_x(sincos(45))

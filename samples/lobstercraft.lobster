@@ -9,12 +9,11 @@ import vec
 import color
 import gl
 import texture
-import util3d
+import camera
 
 let lssize = 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
 let inventory = []::int // blocks we've mined
-camera_position = xyz_1 * lssize / 2
-camera_yaw = 45
+let camera = Camera { xyz_1 * lssize / 2, 45, 0 }
 
 def inside(v): return all(v > 0) and all(v < lssize - 1)    // keep the outer blocks empty for simplicity
 
@@ -42,9 +41,9 @@ while gl_frame():
     gl_clear(color_light_blue)
     gl_cursor(false)
     gl_perspective(70, 0.1, 1000)
-    camera_FPS_update("w", "a", "s", "d", 10, 4, true)
-    camera_FPS_view()
-    gl_light(camera_position, xy { 64.0, 0.25 })
+    camera.FPS_update("w", "a", "s", "d", 10, 4, true)
+    camera.FPS_view()
+    gl_light(camera.position, xy { 64.0, 0.25 })
     gl_blend(blend_none)
     gl_set_shader("phong")
     for(cells) zl, z: for(zl) yl, y: for(yl) e, x:  // for all cells in the world
@@ -58,9 +57,9 @@ while gl_frame():
                         gl_render_mesh(nbpolys[i])  // draw face
     var first_solid = xyz_1i * -1 // find the first solid and last empty block we're looking at
     var last_empty = xyz_1i * -1
-    let camvec = camera_forward_vector()
+    let camvec = camera.forward_vector()
     for(100) i:  // look at most 10 cubes ahead
-        let pos = int(camera_position + camvec * (i / 10.0))
+        let pos = int(camera.position + camvec * (i / 10.0))
         if inside(pos) and first_solid.x < 0:
             if cells[pos]: first_solid = pos
             else: last_empty = pos

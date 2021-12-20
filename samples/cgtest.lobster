@@ -3,14 +3,13 @@
 import vec
 import color
 import gl
-import util3d
+import camera
 
 fatal(gl_window("cubegen test", 1280, 800))
 
 let dim = xyz_1i * 128
 
-camera_position = float(dim) / 2
-camera_yaw = 135
+let camera = Camera { float(dim) / 2, 135, 0 }
 
 let w = cg_init(dim)
 
@@ -35,9 +34,9 @@ while gl_frame():
     gl_perspective(60, 0.1, 1000)
 
     let speed = 50
-    camera_FPS_update("w", "a", "s", "d", speed, 4, true)
-    camera_FPS_view()
-    gl_light(camera_position, xy { 128.0, 0.1 })
+    camera.FPS_update("w", "a", "s", "d", speed, 4, true)
+    camera.FPS_view()
+    gl_light(camera.position, xy { 128.0, 0.1 })
 
     gl_blend 0:
         gl_set_shader("flat")

@@ -1,3 +1,5 @@
+import std
+
 enum_flags gl_window_init:
     gl_window_init_fullscreen = 1
     gl_window_init_no_vsync
@@ -56,3 +58,8 @@ def gl_scissor(topleft, size, body):
     body()
     gl_scissor(oldtl, oldsz)
 
+private let delta_time_log = map(60): 1 / 30.0
+def gl_deltatime_over_time():
+    delta_time_log.push(gl_delta_time())
+    delta_time_log.remove(0)
+    return (delta_time_log.fold(0.0): _a + _e) / delta_time_log.length
