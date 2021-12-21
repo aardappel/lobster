@@ -146,6 +146,13 @@ nfr("append", "xs,ys", "A]*cA]*u1c", "A]1",
         return Value(nv);
     });
 
+nfr("append_into", "dest,src", "A]*A]1c", "Ab]1",
+    "appends all elements of the second vector into the first",
+    [](StackPtr &, VM &vm, Value &v1, Value &v2) {
+        v1.vval()->Append(vm, v2.vval(), 0, v2.vval()->len);
+        return v1;
+    });
+
 nfr("vector_reserve", "typeid,len", "VI", "A]*",
     "creates a new empty vector much like [] would, except now ensures"
     " it will have space for len push() operations without having to reallocate."
