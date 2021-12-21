@@ -591,7 +591,7 @@ nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 				for (int z = 0; z < v.grid.dim.z; z++) {
 					auto pos = int3(x, y, z);
 					uint8_t c = v.grid.Get(pos);
-					if (c) {
+					if (c != transparant) {
 						nvol++;
 						// Only count voxels that lay on the surface for color average.
 						for (int i = 0; i < 6; i++) {
@@ -609,6 +609,22 @@ nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 		if (nsurf) col /= nsurf;
 		PushVec(sp, nvol < v.grid.dim.volume() / 2 ? float4(0.0f) : float4(col, 1.0f));
 	});
+
+nfr("cg_num_solid", "world", "R", "I", "",
+    [](StackPtr &sp, VM &vm) {
+        auto &v = GetVoxels(vm, Pop(sp));
+        int nvol = 0;
+        for (int x = 0; x < v.grid.dim.x; x++) {
+            for (int y = 0; y < v.grid.dim.y; y++) {
+                for (int z = 0; z < v.grid.dim.z; z++) {
+                    auto pos = int3(x, y, z);
+                    uint8_t c = v.grid.Get(pos);
+                    if (c != transparant) nvol++;
+                }
+            }
+        }
+        Push(sp, nvol);
+    });
 
 nfr("cg_rotate", "block,n", "RI", "R",
     "returns a new block rotated by n 90 degree steps from the input",
