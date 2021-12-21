@@ -55,6 +55,9 @@ struct Shader {
     bool SetUniform(string_view name,           // Optionally, after Activate().
                     const float *val,
                     int components, int elements = 1);
+    bool SetUniform(string_view name,           // Optionally, after Activate().
+                    const int *val,
+                    int components, int elements = 1);
     bool SetUniformMatrix(string_view name, const float *val, int components, int elements, bool morerows);
     bool Dump(string_view filename, bool stripnonascii);
 };

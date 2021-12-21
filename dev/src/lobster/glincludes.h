@@ -92,6 +92,10 @@
         GLEXT(PFNGLUNIFORM2FVARBPROC                 , glUniform2fv                    , 1) \
         GLEXT(PFNGLUNIFORM3FVARBPROC                 , glUniform3fv                    , 1) \
         GLEXT(PFNGLUNIFORM4FVARBPROC                 , glUniform4fv                    , 1) \
+        GLEXT(PFNGLUNIFORM1IVARBPROC                 , glUniform1iv                    , 1) \
+        GLEXT(PFNGLUNIFORM2IVARBPROC                 , glUniform2iv                    , 1) \
+        GLEXT(PFNGLUNIFORM3IVARBPROC                 , glUniform3iv                    , 1) \
+        GLEXT(PFNGLUNIFORM4IVARBPROC                 , glUniform4iv                    , 1) \
         GLEXT(PFNGLUNIFORM1IARBPROC                  , glUniform1i                     , 1) \
         GLEXT(PFNGLUNIFORMMATRIX2FVARBPROC           , glUniformMatrix2fv              , 1) \
         GLEXT(PFNGLUNIFORMMATRIX2FVARBPROC/*type*/   , glUniformMatrix3x2fv            , 1) \

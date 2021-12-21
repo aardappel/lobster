@@ -134,6 +134,13 @@ Value SetUniform(VM &vm, const Value &name, const float *data, int len) {
     return Value(ok);
 }
 
+Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
+    TestGL(vm);
+    currentshader->Activate();
+    auto ok = currentshader->SetUniform(name.sval()->strv(), data, len);
+    return Value(ok);
+}
+
 void AddGraphics(NativeRegistry &nfr) {
 
 nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?", "S?",
@@ -837,6 +844,25 @@ nfr("gl_set_uniform", "name,value", "SF", "B",
     [](StackPtr &, VM &vm, Value &name, Value &vec) {
         auto f = vec.fltval();
         return SetUniform(vm, name, &f, 1);
+    });
+
+nfr("gl_set_uniform", "name,value", "SI}", "B",
+    "set a uniform on the current shader. size of int vector must match size of uniform"
+    " in the shader. returns false on error.",
+    [](StackPtr &sp, VM &vm) {
+        auto len = Top(sp).intval();
+        auto v = PopVec<int4>(sp);
+        auto name = Pop(sp);
+        auto r = SetUniform(vm, name, v.begin(), len);
+        Push(sp, r);
+    });
+
+nfr("gl_set_uniform", "name,value", "SI", "B",
+    "set a uniform on the current shader. uniform"
+    " in the shader must be a single int. returns false on error.",
+    [](StackPtr &, VM &vm, Value &name, Value &vec) {
+        auto i = vec.intval();
+        return SetUniform(vm, name, &i, 1);
     });
 
 nfr("gl_set_uniform_array", "name,value", "SF}:4]", "B",

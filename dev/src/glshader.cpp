@@ -388,6 +388,18 @@ bool Shader::SetUniform(string_view name, const float *val, int components, int 
     }
 }
 
+bool Shader::SetUniform(string_view name, const int *val, int components, int elements) {
+    auto loc = glGetUniformLocation(program, null_terminated(name));
+    if (loc < 0) return false;
+    switch (components) {
+        case 1: GL_CALL(glUniform1iv(loc, elements, val)); return true;
+        case 2: GL_CALL(glUniform2iv(loc, elements, val)); return true;
+        case 3: GL_CALL(glUniform3iv(loc, elements, val)); return true;
+        case 4: GL_CALL(glUniform4iv(loc, elements, val)); return true;
+        default: return false;
+    }
+}
+
 bool Shader::SetUniformMatrix(string_view name, const float *val, int components, int elements,
                               bool mr) {
     auto loc = glGetUniformLocation(program, null_terminated(name));
