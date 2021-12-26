@@ -974,21 +974,21 @@ nfr("gl_blend", "on", "I", "I",
 
 nfr("gl_load_texture", "name,textureformat", "SI?", "R?",
     "returns texture if succesfully loaded from file name, otherwise nil."
-    " see texture.lobster for texture format. Uses stb_image internally"
-    " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
-    " PIC.",
+    " see texture.lobster for texture format. If textureformat includes cubemap,"
+    " will load 6 images with \"_ft\" etc inserted before the \".\" in the filename."
+    " Uses stb_image internally (see http://nothings.org/), loads JPEG Baseline,"
+    " subsets of PNG, TGA, BMP, PSD, GIF, HDR, PIC.",
     [](StackPtr &, VM &vm, Value &name, Value &tf) {
         TestGL(vm);
         auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
         return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : NilVal();
     });
 
-nfr("gl_set_primitive_texture", "i,tex,textureformat", "IRI?", "",
+nfr("gl_set_primitive_texture", "i,tex,textureformat", "IRI?", "I",
     "sets texture unit i to texture (for use with rect/circle/polygon/line)",
     [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
-        SetTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
-        return NilVal();
+        return Value(SetTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval()));
     });
 
 nfr("gl_set_mesh_texture", "mesh,part,i,texture", "RIIR", "",

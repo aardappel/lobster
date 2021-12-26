@@ -197,7 +197,7 @@ extern Texture CreateTexture(const uint8_t *buf, int3 dim, int tf = TF_NONE);
 extern Texture CreateTextureFromFile(string_view name, int tf = TF_NONE);
 extern Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
-extern void SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
+extern bool SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
 extern uint8_t *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
 extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,

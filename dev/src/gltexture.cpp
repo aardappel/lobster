@@ -104,11 +104,12 @@ Texture CreateTexture(const uint8_t *buf, int3 dim, int tf) {
     } else {
         int mipl = 0;
         for (auto d = dim.xy(); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
-            for (int i = 0; i < texnumfaces; i++)
+            for (int i = 0; i < texnumfaces; i++) {
                 GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x, d.y, 0,
                                      bufferformat, buffercomponent, buf));
+                buf += d.volume() * buffersize;
+            }
             mipl++;
-            buf += d.volume() * buffersize;
         }
     }
     if (!(tf & TF_NOMIPMAP) && !(tf & TF_BUFFER_HAS_MIPS)) {
@@ -124,16 +125,44 @@ Texture CreateTexture(const uint8_t *buf, int3 dim, int tf) {
 Texture CreateTextureFromFile(string_view name, int tf) {
     tf &= ~TF_FLOAT;  // Not supported yet.
     string fbuf;
-    if (LoadFile(name, &fbuf) < 0)
-        return Texture();
-    int3 dim(0);
-    int comp;
-    auto buf = stbi_load_from_memory((uint8_t *)fbuf.c_str(), (int)fbuf.length(), &dim.x, &dim.y,
-                                     &comp, 4);
-    if (!buf)
-        return Texture();
-    auto tex = CreateTexture(buf, dim, tf);
-    stbi_image_free(buf);
+    vector<uint8_t *> bufs;
+    Texture tex;
+    int3 adim = int3_0;
+    static const char *cubesides[6] = { "_ft", "_bk", "_up", "_dn", "_rt", "_lf" };
+    for (int i = 0; i < (tf & TF_CUBEMAP ? 6 : 1); i++) {
+        auto fn = string(name);
+        if (tf & TF_CUBEMAP) {
+            auto pos = fn.find_last_of('.');
+            if (pos != string::npos) {
+                fn.insert(pos, cubesides[i]);
+            }
+        }
+        if (LoadFile(fn, &fbuf) < 0)
+            goto out;
+        int3 dim(0);
+        int comp;
+        auto buf = stbi_load_from_memory((uint8_t *)fbuf.c_str(), (int)fbuf.length(), &dim.x,
+                                         &dim.y, &comp, 4);
+        if (!buf)
+            goto out;
+        bufs.push_back(buf);
+        if (i && dim != adim)
+            goto out;
+        adim = dim;
+    }
+    if (tf & TF_CUBEMAP) {
+        auto bsize = adim.x * adim.y * 4;
+        auto buf = (uint8_t *)malloc(bsize * 6);
+        for (int i = 0; i < 6; i++) {
+            memcpy(buf + bsize * i, bufs[i], bsize);
+        }
+        tex = CreateTexture(buf, adim, tf);
+        free(buf);
+    } else {
+        tex = CreateTexture(bufs[0], adim, tf);
+    }
+    out:
+    for (auto b : bufs) stbi_image_free(b);
     return tex;
 }
 
@@ -159,10 +188,12 @@ void DeleteTexture(Texture &tex) {
     tex.id = 0;
 }
 
-void SetTexture(int textureunit, const Texture &tex, int tf) {
+bool SetTexture(int textureunit, const Texture &tex, int tf) {
     GL_CALL(glActiveTexture(GL_TEXTURE0 + textureunit));
-    GL_CALL(glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP
-                                          : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), tex.id));
+    glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP
+                                          : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), tex.id);
+    // glBindTexture can fail if the wrong flags are passed for the texture.
+    return glGetError() != 0;
 }
 
 uint8_t *ReadTexture(const Texture &tex) {
