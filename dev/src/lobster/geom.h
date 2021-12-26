@@ -988,6 +988,24 @@ inline bool clamp_bb(const float3 &bbmin, const float3 &bbmax, const float3 &ray
     return ok;
 }
 
+struct sphere {
+    float3 center;
+    float rad;
+};
+
+inline sphere bounding_sphere(sphere a, sphere b) {
+    float dist = length(a.center - b.center);
+    if (a.rad + dist < b.rad) {
+        return b;
+    } else if (b.rad + dist < a.rad) {
+        return a;
+    } else {
+        auto rad = (a.rad + b.rad + dist) / 2;
+        auto center = a.center + (b.center - a.center) * ((rad - a.rad) / dist);
+        return sphere { center, rad };
+    }
+}
+
 inline void normalize_mesh(gsl::span<int> idxs, void *verts, size_t vertlen, size_t vsize,
                            size_t normaloffset, bool ignore_bad_tris = true) {
     for (size_t i = 0; i < vertlen; i++) {
