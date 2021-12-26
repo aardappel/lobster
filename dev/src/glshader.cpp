@@ -380,10 +380,11 @@ bool Shader::SetUniform(string_view name, const float *val, int components, int 
     auto loc = glGetUniformLocation(program, null_terminated(name));
     if (loc < 0) return false;
     switch (components) {
-        case 1: GL_CALL(glUniform1fv(loc, elements, val)); return true;
-        case 2: GL_CALL(glUniform2fv(loc, elements, val)); return true;
-        case 3: GL_CALL(glUniform3fv(loc, elements, val)); return true;
-        case 4: GL_CALL(glUniform4fv(loc, elements, val)); return true;
+        // glUniform fails on mismatched type, so this not an assert.
+        case 1: glUniform1fv(loc, elements, val); return glGetError() == 0;
+        case 2: glUniform2fv(loc, elements, val); return glGetError() == 0;
+        case 3: glUniform3fv(loc, elements, val); return glGetError() == 0;
+        case 4: glUniform4fv(loc, elements, val); return glGetError() == 0;
         default: return false;
     }
 }
@@ -392,10 +393,11 @@ bool Shader::SetUniform(string_view name, const int *val, int components, int el
     auto loc = glGetUniformLocation(program, null_terminated(name));
     if (loc < 0) return false;
     switch (components) {
-        case 1: GL_CALL(glUniform1iv(loc, elements, val)); return true;
-        case 2: GL_CALL(glUniform2iv(loc, elements, val)); return true;
-        case 3: GL_CALL(glUniform3iv(loc, elements, val)); return true;
-        case 4: GL_CALL(glUniform4iv(loc, elements, val)); return true;
+        // glUniform fails on mismatched type, so this not an assert.
+        case 1: glUniform1iv(loc, elements, val); return glGetError() == 0;
+        case 2: glUniform2iv(loc, elements, val); return glGetError() == 0;
+        case 3: glUniform3iv(loc, elements, val); return glGetError() == 0;
+        case 4: glUniform4iv(loc, elements, val); return glGetError() == 0;
         default: return false;
     }
 }
