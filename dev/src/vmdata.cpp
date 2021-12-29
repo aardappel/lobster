@@ -490,4 +490,12 @@ void VM::StructToFlexBuffer(VM &vm, flexbuffers::Builder &builder, const TypeInf
 }
 
 
+type_elem_t LVector::SingleType(VM &vm) {
+    auto &vect = ti(vm);
+    auto eto = vect.subt;
+    auto &ti = vm.GetTypeInfo(eto);
+    return IsStruct(ti.t) ? ti.SingleType() : eto;
+}
+
+
 }  // namespace lobster

@@ -171,6 +171,45 @@ nfr("write_file", "file,contents,textmode", "SSI?", "B",
         return Value(ok);
     });
 
+nfr("vector_to_buffer", "vec,width", "A]*I", "S?",
+    "converts a vector of ints/floats (or structs of them) to a buffer, where"
+    " each scalar is written with \"width\" bytes (1/2/4/8). Returns nil if the"
+    " type couldn't be converted. Uses native endianness.",
+    [](StackPtr &, VM &vm, Value &vec, Value &width) {
+        auto v = vec.vval();
+        auto &ti = vm.GetTypeInfo(v->SingleType(vm));
+        if (ti.t != V_INT && ti.t != V_FLOAT) return NilVal();
+        auto w = width.intval();
+        if (w != 1 && w != 2 && w != 4 && w != 8) return NilVal();
+        if (ti.t == V_FLOAT && (w == 1 || w == 2)) return NilVal();
+        auto nelems = v->len * v->width;
+        auto s = vm.NewString(nelems * w);
+        auto buf = (uint8_t *)s->data();
+        if (ti.t == V_INT) {
+            for (iint i = 0; i < nelems; i++) {
+                auto x = v->AtSlot(i).ival();
+                #if FLATBUFFERS_LITTLEENDIAN
+                    memcpy(buf, &x, w);
+                #else
+                    memcpy(buf, (uint8_t *)&x + (8 - w), w);
+                #endif
+                buf += w;
+            }
+        } else {
+            for (iint i = 0; i < nelems; i++) {
+                auto x = v->AtSlot(i).fval();
+                if (w == sizeof(double)) {
+                    memcpy(buf, &x, sizeof(double));
+                } else {
+                    auto xf = (float)x;
+                    memcpy(buf, &xf, sizeof(float));
+                }
+                buf += w;
+            }
+        }
+        return Value(s);
+    });
+
 nfr("ensure_size", "string,size,char,extra", "SkIII?", "S",
     "ensures a string is at least size characters. if it is, just returns the existing"
     " string, otherwise returns a new string of that size (with optionally extra bytes"

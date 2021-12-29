@@ -145,6 +145,14 @@ struct TypeInfo {
         auto pti = elemtypes[len + i];
         return pti >= 0 ? pti : elemtypes[i];
     }
+
+    type_elem_t SingleType() const {
+        if (!len) return TYPE_ELEM_ANY;
+        for (int i = 1; i < len; i++)
+            if (elemtypes[i] != elemtypes[0])
+                return TYPE_ELEM_ANY;
+        return elemtypes[0];
+    }
 };
 
 struct Value;
@@ -801,6 +809,8 @@ struct LVector : RefObj {
             AtSlot(i) = AtSlot(i).CopyRef(vm, true);
         }
     }
+
+    type_elem_t SingleType(VM &vm);
 };
 
 struct StackFrame {
