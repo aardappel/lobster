@@ -102,3 +102,4 @@ run_test("operators"):
     // Quaternions!
     assert -quat { 1.0, 1.0, 1.0, 1.0 } == quat { -1.0, -1.0, -1.0, 1.0 }
     assert quat { 1.0, 1.0, 1.0, 1.0 } * quat { 2.0, 2.0, 2.0, 1.0 } == quat{ 3.0, 3.0, 3.0, -5.0 }
+    assert quat { 1.0, 1.0, 1.0, 1.0 } * 2.0 == quat { 2.0, 2.0, 2.0, 2.0 }

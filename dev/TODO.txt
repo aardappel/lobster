@@ -1,3 +1,5 @@
+- split builtins into categories for helpfile
+
 - always clone on specialization.
   - see CloneFunction: all these things should be moved to Overload?
     - true, but this doesn't save a lot of memory or make a ton of code

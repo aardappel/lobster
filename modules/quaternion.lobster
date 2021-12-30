@@ -12,6 +12,9 @@ struct quat : xyzw_f
                       w * o.z + x * o.y - y * o.x + z * o.w,
                       w * o.w - x * o.x - y * o.y - z * o.z }
 
+    def operator*(f:float):
+        return quat { x * f, y * f, z * f, w * f }
+
     def operator-():
         return quat { -x, -y, -z, w }
 
@@ -21,8 +24,8 @@ struct quat : xyzw_f
 
 def quat_from_angle_axis(angle:float, axis:xyz_f):
     angle *= 0.5
-    let v = sin(angle) * axis
+    let v = axis * sin(angle)
     return quat { v.x, v.y, v.z, cos(angle) }
 
 def quat_from_vec(v:xyz_f):
-    return quat { v.x, v.y, v.z, -sqrt(max(1.0 - manhattan(v), 0.0)) }
+    return quat { v.x, v.y, v.z, -sqrt(max(1.0 - dot(v, v), 0.0)) }

@@ -541,22 +541,41 @@ struct TypeChecker {
             f = f->sibf;
             if (!f) return no_overload();
         }
+        vector<pair<Overload *, size_t>> candidates;
         for (auto [i, ov] : enumerate(f->overloads)) {
             // FIXME: this does not support inheriting an overload.
             if (ov.sf->args[0].type->Equal(*child1->exptype)) {
                 if (n.SideEffect() && IsStruct(child1->exptype->t))
                     Error(n, "struct types can\'t model side effecting overloaded operators");
-                auto c = new Call(n.line, ov.sf);
-                c->children.insert(c->children.end(), n.Children(), n.Children() + n.Arity());
-                n.ClearChildren();
-                if (n.Arity() > 1) TT(c->Children()[1], 1, LT_ANY);
-                c->exptype = TypeCheckCallStatic(c->sf, *c, 1, nullptr, (int)i, true, false);
-                c->lt = c->sf->ltret;
-                delete &n;
-                return c;
+                candidates.push_back({ &ov, i });
             }
         }
-        return no_overload();
+        if (candidates.empty()) return no_overload();
+        if (n.Arity() > 1) TT(n.Children()[1], 1, LT_ANY);
+        if (candidates.size() > 1) {
+            // FIXME: odd we support overloading on 2nd arg here, and not elsewhere..
+            // generalize this!
+            if (n.Arity() == 1)
+                Error(n, "identical overloads for " + opname);
+            auto child2 = n.Children()[1];
+            candidates.erase(remove_if(candidates.begin(), candidates.end(),
+                                       [&](pair<Overload *, size_t> p) {
+                    return !ConvertsTo(child2->exptype, p.first->sf->args[1].type, CF_NONE);
+                }),
+                candidates.end());
+            if (candidates.empty())
+                Error(n, "no overloads apply based on 2nd arg to " + opname);
+            if (candidates.size() > 1)
+                Error(n, "multiple overloads apply based on 2nd arg to " + opname);
+        }
+        auto c = new Call(n.line, candidates[0].first->sf);
+        c->children.insert(c->children.end(), n.Children(), n.Children() + n.Arity());
+        n.ClearChildren();
+        c->exptype = TypeCheckCallStatic(c->sf, *c, 1, nullptr, (int)candidates[0].second,
+            true, false);
+        c->lt = c->sf->ltret;
+        delete &n;
+        return c;
     }
 
     Node *TypeCheckMathOp(BinOp &n) {
