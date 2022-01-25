@@ -205,6 +205,7 @@ struct CodeGen  {
         Type type_vec_str(V_VECTOR, &*type_string);         GetTypeTableOffset(&type_vec_str);
         Type type_v_v_int(V_VECTOR, &*type_vector_int);     GetTypeTableOffset(&type_v_v_int);
         Type type_v_v_float(V_VECTOR, &*type_vector_float); GetTypeTableOffset(&type_v_v_float);
+                                                            GetTypeTableOffset(type_vector_resource);
         assert(type_table.size() == TYPE_ELEM_FIXED_OFFSET_END);
         for (auto f : parser.st.functiontable) {
             if (!f->istype) {

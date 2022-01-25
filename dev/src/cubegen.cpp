@@ -855,4 +855,57 @@ nfr("cg_normal_indices", "block,radius", "RI", "R",
         Push(sp, vm.NewResource(nw, GetVoxelType()));
     });
 
+
+nfr("cg_load_image", "name,depth,edge,numtiles", "SIII}:2", "R]",
+    "loads an image file (same formats as gl_load_texture) and turns it into blocks."
+    " returns blocks or [] if file failed to load",
+    [](StackPtr &sp, VM &vm) {
+        auto numtiles = PopVec<int2>(sp);
+        auto edge = Pop(sp).intval();
+        auto depth = Pop(sp).intval();
+        auto name = Pop(sp).sval()->strv();
+        auto idim = int2_0;
+        auto buf = LoadImageFile(name, idim);
+        auto dim = idim / numtiles;
+        auto vec = vm.NewVec(0, numtiles.x * numtiles.y, TYPE_ELEM_VECTOR_OF_RESOURCE);
+        if (buf) {
+            for (int ty = 0; ty < numtiles.y; ty++) {
+                for (int tx = 0; tx < numtiles.x; tx++) {
+                    // FIXME: make orientation configurable.
+                    auto size = int3(dim.x, depth, dim.y);
+                    Voxels *voxels = NewWorld(size);
+                    int2 neighbors[] = { int2(0, 1), int2(0, -1), int2(1, 0), int2(-1, 0) };
+                    auto Get = [&](int2 p) {
+                        return ((byte4 *)buf)[(p.x + tx * dim.x) + (dim.y - p.y - 1 + ty * dim.y) * idim.x];
+                    };
+                    for (int y = 0; y < dim.y; y++) {
+                        for (int x = 0; x < dim.x; x++) {
+                            int ndist = 0;
+                            for (int e = 1; e <= edge; e++) {
+                                for (int c = 0; c < 4; c++) {
+                                    auto p = int2(x, y) + neighbors[c] * e;
+                                    if (!(p >= 0 && p < dim) || Get(p).w < 128) {
+                                        ndist = edge - e + 1;
+                                        goto done;
+                                    }
+                                }
+                            }
+                            done:
+                            auto col = color2vec(Get(int2(x, y)));
+                            auto pi = voxels->Color2Palette(col);
+                            for (int d = 0; d < depth; d++) {
+                                auto p = int3(x, d, y);
+                                auto dd = d < depth / 2 ? d : depth - 1 - d;
+                                voxels->grid.Get(p) = dd < ndist ? transparant : pi;
+                            }
+                        }
+                    }
+                    vec->Push(vm, vm.NewResource(voxels, GetVoxelType()));
+                }
+            }
+            FreeImageFromFile(buf);
+        }
+        Push(sp, vec);
+    });
+
 }  // AddCubeGen

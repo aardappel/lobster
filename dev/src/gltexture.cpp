@@ -166,6 +166,18 @@ Texture CreateTextureFromFile(string_view name, int tf) {
     return tex;
 }
 
+uint8_t *LoadImageFile(string_view fn, int2 &dim) {
+    string fbuf;
+    if (LoadFile(fn, &fbuf) < 0) return nullptr;
+    int comp;
+    return stbi_load_from_memory((uint8_t *)fbuf.c_str(), (int)fbuf.length(), &dim.x, &dim.y,
+                                 &comp, 4);
+}
+
+void FreeImageFromFile(uint8_t *img) {
+    stbi_image_free(img);
+}
+
 Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
     if (tf & TF_MULTISAMPLE) {
         return CreateTexture(nullptr, int3(size, 0), tf);  // No buffer required.

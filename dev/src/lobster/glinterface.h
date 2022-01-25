@@ -206,6 +206,9 @@ extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,
                                 const Texture &depthtex = Texture());
 extern int2 GetFrameBufferSize(const int2 &screensize);
 
+extern uint8_t *LoadImageFile(string_view fn, int2 &dim);
+extern void FreeImageFromFile(uint8_t *img);
+
 extern uint8_t *ReadPixels(const int2 &pos, const int2 &size);
 
 extern int GenBO_(int type, size_t bytesize, const void *data);

@@ -40,6 +40,7 @@ const Type g_type_vector_int(V_VECTOR, &g_type_int);
 const Type g_type_vector_float(V_VECTOR, &g_type_float);
 const Type g_type_function_null(V_FUNCTION);
 const Type g_type_resource(V_RESOURCE);
+const Type g_type_vector_resource(V_VECTOR, &g_type_resource);
 const Type g_type_typeid(V_TYPEID, &g_type_any);
 const Type g_type_typeid_vec(V_TYPEID, &g_type_vector_any);
 const Type g_type_void(V_VOID);
@@ -53,6 +54,7 @@ TypeRef type_vector_int = &g_type_vector_int;
 TypeRef type_vector_float = &g_type_vector_float;
 TypeRef type_function_null = &g_type_function_null;
 TypeRef type_resource = &g_type_resource;
+TypeRef type_vector_resource = &g_type_vector_resource;
 TypeRef type_typeid = &g_type_typeid;
 TypeRef type_typeid_vec = &g_type_typeid_vec;
 TypeRef type_void = &g_type_void;
@@ -66,13 +68,14 @@ const Type g_type_vector_vector_vector_float(V_VECTOR, &g_type_vector_vector_flo
 TypeRef WrapKnown(TypeRef elem, ValueType with) {
     if (with == V_VECTOR) {
         switch (elem->t) {
-            case V_ANY:    return &g_type_vector_any;
-            case V_INT:    return elem->e ? nullptr : type_vector_int;
-            case V_FLOAT:  return type_vector_float;
-            case V_STRING: return &g_type_vector_string;
-            case V_VECTOR: switch (elem->sub->t) {
-                case V_INT:   return elem->sub->e ? nullptr : &g_type_vector_vector_int;
-                case V_FLOAT: return &g_type_vector_vector_float;
+            case V_ANY:      return &g_type_vector_any;
+            case V_INT:      return elem->e ? nullptr : type_vector_int;
+            case V_FLOAT:    return type_vector_float;
+            case V_STRING:   return &g_type_vector_string;
+            case V_RESOURCE: return &g_type_vector_resource;
+            case V_VECTOR:   switch (elem->sub->t) {
+                case V_INT:    return elem->sub->e ? nullptr : &g_type_vector_vector_int;
+                case V_FLOAT:  return &g_type_vector_vector_float;
                 case V_VECTOR: switch (elem->sub->sub->t) {
                     case V_FLOAT: return &g_type_vector_vector_vector_float;
                     default: return nullptr;

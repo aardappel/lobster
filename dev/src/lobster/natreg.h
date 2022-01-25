@@ -203,6 +203,7 @@ extern TypeRef type_vector_float;
 extern TypeRef type_function_null;
 extern TypeRef type_function_cocl;
 extern TypeRef type_resource;
+extern TypeRef type_vector_resource;
 extern TypeRef type_typeid;
 extern TypeRef type_typeid_vec;
 extern TypeRef type_void;
