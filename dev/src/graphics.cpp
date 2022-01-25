@@ -893,22 +893,6 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I", "I",
-    "creates a uniform buffer object, and attaches it to the current shader at the given"
-    " uniform block name. uniforms in the shader must be all vec4s, or an array of them."
-    " ssbo indicates if you want a shader storage block instead."
-    " returns buffer id or 0 on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo) {
-        TestGL(vm);
-        vector<float4> vals(vec.vval()->len);
-        for (int i = 0; i < vec.vval()->len; i++)
-            vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
-        auto id = UniformBufferObject(currentshader, vals.data()->data(),
-                                      4 * sizeof(float) * vals.size(), -1,
-                                      name.sval()->strv(), ssbo.True(), 0);
-        return Value((int)id);
-    });
-
 nfr("gl_uniform_buffer_object", "name,value,ssbo", "SSI", "I",
     "creates a uniform buffer object, and attaches it to the current shader at the given"
     " uniform block name. uniforms in the shader can be any type, as long as it matches the"
@@ -916,12 +900,12 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SSI", "I",
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
     [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo) {
-    TestGL(vm);
-    auto id = UniformBufferObject(currentshader, vec.sval()->strv().data(),
-                                  vec.sval()->strv().size(), -1,
-                                  name.sval()->strv(), ssbo.True(), 0);
-    return Value((int)id);
-});
+        TestGL(vm);
+        auto id = UniformBufferObject(currentshader, vec.sval()->strv().data(),
+                                      vec.sval()->strv().size(), -1,
+                                      name.sval()->strv(), ssbo.True(), 0);
+        return Value((int)id);
+    });
 
 nfr("gl_delete_buffer_object", "id", "I", "",
     "deletes a buffer objects, e.g. one allocated by gl_uniform_buffer_object().",

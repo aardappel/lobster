@@ -171,17 +171,21 @@ nfr("write_file", "file,contents,textmode", "SSI?", "B",
         return Value(ok);
     });
 
-nfr("vector_to_buffer", "vec,width", "A]*I", "S?",
+nfr("vector_to_buffer", "vec,width", "A]*I?", "S",
     "converts a vector of ints/floats (or structs of them) to a buffer, where"
-    " each scalar is written with \"width\" bytes (1/2/4/8). Returns nil if the"
+    " each scalar is written with \"width\" bytes (1/2/4/8, default 4). Returns nil if the"
     " type couldn't be converted. Uses native endianness.",
     [](StackPtr &, VM &vm, Value &vec, Value &width) {
         auto v = vec.vval();
         auto &ti = vm.GetTypeInfo(v->SingleType(vm));
-        if (ti.t != V_INT && ti.t != V_FLOAT) return NilVal();
+        if (ti.t != V_INT && ti.t != V_FLOAT)
+            vm.Error("vector_to_buffer: non-numeric data");
         auto w = width.intval();
-        if (w != 1 && w != 2 && w != 4 && w != 8) return NilVal();
-        if (ti.t == V_FLOAT && (w == 1 || w == 2)) return NilVal();
+        if (!w) w = 4;
+        if (w != 1 && w != 2 && w != 4 && w != 8)
+            vm.Error("vector_to_buffer: width out of range");
+        if (ti.t == V_FLOAT && (w == 1 || w == 2))
+            vm.Error("vector_to_buffer: 8/16 floats not supported yet");
         auto nelems = v->len * v->width;
         auto s = vm.NewString(nelems * w);
         auto buf = (uint8_t *)s->data();
