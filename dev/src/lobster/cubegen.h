@@ -55,20 +55,20 @@ struct Voxels {
     }
 
     uint8_t Color2Palette(const float4 &color) const {
+        if (color.w < 0.5f) return transparant;
+        if (is_default_palette) {  // Fast path.
+            auto ic = byte4((int4(quantizec(color)) + (0x33 / 2)) / 0x33);
+            // For some reason the palette has red where black should be??
+            if (!ic.x && !ic.y && !ic.z) return 255;
+            return (5 - ic.x) * 36 +
+                    (5 - ic.y) * 6 +
+                    (5 - ic.z) + 1;
+        }
+        float error = 999999;
         uint8_t pi = transparant;
-        if (color.w >= 0.5f) {
-            if (is_default_palette) {  // Fast path.
-                auto ic = byte4((int4(quantizec(color)) + (0x33 / 2)) / 0x33);
-                pi = (5 - ic.x) * 36 +
-                     (5 - ic.y) * 6 +
-                     (5 - ic.z) + 1;
-            } else {
-                float error = 999999;
-                for (size_t i = 1; i < palette.size(); i++) {
-                    auto err = squaredlength(color2vec(palette[i]) - color);
-                    if (err < error) { error = err; pi = (uint8_t)i; }
-                }
-            }
+        for (size_t i = 1; i < palette.size(); i++) {
+            auto err = squaredlength(color2vec(palette[i]) - color);
+            if (err < error) { error = err; pi = (uint8_t)i; }
         }
         return pi;
     }
