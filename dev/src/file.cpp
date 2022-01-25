@@ -132,13 +132,16 @@ Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, const Value &schema,
 
 void AddFile(NativeRegistry &nfr) {
 
-nfr("scan_folder", "folder", "S", "S]?I]?",
+nfr("scan_folder", "folder,rel", "SB?", "S]?I]?",
     "returns two vectors representing all elements in a folder, the first vector containing all"
     " names, the second vector containing sizes in bytes (or -1 if a directory)."
+    " set rel use a relative path, default is absolute."
     " Returns nil if folder couldn't be scanned.",
-    [](StackPtr &sp, VM &vm, Value &fld) {
+    [](StackPtr &sp, VM &vm, Value &fld, Value &rel) {
         vector<pair<string, int64_t>> dir;
-        auto ok = ScanDirAbs(fld.sval()->strv(), dir);
+        auto ok = rel.True()
+            ? ScanDir(fld.sval()->strv(), dir)
+            : ScanDirAbs(fld.sval()->strv(), dir);
         if (!ok) {
             Push(sp, NilVal());
             return NilVal();
