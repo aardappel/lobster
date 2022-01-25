@@ -54,6 +54,7 @@ string GLSLError(int obj, bool isprogram, const char *source) {
 }
 
 int CompileGLSLShader(GLenum type, int program, const GLchar *source, string &err)  {
+    //WriteFile(cat("shaderdump_", program, "_", type, ".glsl"), false, source);
     int obj = glCreateShader(type);
     GL_CALL(glShaderSource(obj, 1, &source, nullptr));
     GL_CALL(glCompileShader(obj));
