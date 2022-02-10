@@ -392,8 +392,8 @@ combinations of incompatible arguments, you automatically get multiple
 is very easy. Alternatively, you can specify generic types explicitly as well
 (more in [type system](type_checker.html)).
 
-You can use :: instead of : for typed vector arguments, which allows you to
-access all fields / functions of that vector directly, without having to prefix
+You can use :: instead of : for typed class/struct arguments, which allows you to
+access all fields / functions of that object directly, without having to prefix
 them with the argument name, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
