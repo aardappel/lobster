@@ -5,53 +5,81 @@
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Notepad++ as Lobster IDE</title>
-  <style type="text/css">
-      code{white-space: pre-wrap;}
-      span.smallcaps{font-variant: small-caps;}
-      span.underline{text-decoration: underline;}
-      div.line-block{white-space: pre-line;}
-      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
-  <link rel="stylesheet" href="github.css">
+  <link rel="stylesheet" href="github.css" />
   <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
   <![endif]-->
 </head>
 <body>
-<header>
+<header id="title-block-header">
 <h1 class="title">Notepad++ as Lobster IDE</h1>
 </header>
-<h2 id="running-lobster-programs-from-within-the-editor">Running Lobster programs from within the editor</h2>
+<h2 id="running-lobster-programs-from-within-the-editor">Running Lobster
+programs from within the editor</h2>
 <ul>
-<li><p>Install <a href="http://notepad-plus-plus.org/">Notepad++</a> (default install) and the NppExec plugin (<a href="http://sourceforge.net/projects/npp-plugins/files/NppExec/">download</a>, unzip the .dll and other files into the plugins folder of where you installed Notepad++).</p></li>
+<li><p>Install <a href="http://notepad-plus-plus.org/">Notepad++</a>
+(default install) and the NppExec plugin (<a
+href="http://sourceforge.net/projects/npp-plugins/files/NppExec/">download</a>,
+unzip the .dll and other files into the plugins folder of where you
+installed Notepad++).</p></li>
 <li><p>Open menu Plugins -&gt; NppExec -&gt; Execute and enter:</p>
 <pre><code>NPP_SAVE
 cmd /C C:\path_to_lobster_goes_here\bin\lobster.exe &quot;$(FULL_CURRENT_PATH)&quot;</code></pre></li>
 <li><p>Save script under name “<code>lobster</code>”</p></li>
-<li><p>Load some lobster code. pressing <code>F6</code> and then “ok” should run it. Next time press <code>Ctrl+F6</code> to bypass the dialog.</p></li>
-<li><p>NOTE: running from within Notepad++ doesn’t work for programs that do console input thru e.g. <code>get_line()</code>. Output (thru <code>print()</code>) does work, but is sometimes delayed. Graphical programs work well.</p></li>
+<li><p>Load some lobster code. pressing <code>F6</code> and then “ok”
+should run it. Next time press <code>Ctrl+F6</code> to bypass the
+dialog.</p></li>
+<li><p>NOTE: running from within Notepad++ doesn’t work for programs
+that do console input thru e.g. <code>get_line()</code>. Output (thru
+<code>print()</code>) does work, but is sometimes delayed. Graphical
+programs work well.</p></li>
 </ul>
 <h2 id="editing">Editing</h2>
-<p>By default, Notepad++ comes set up insert tabs into your code, which is against the Lobster <a href="style_guide.html">style guide</a>, and can result in errors if you modify the existing examples. In Settings -&gt; Preferences -&gt; Language Menu / Tab Settings you can change this.</p>
+<p>By default, Notepad++ comes set up insert tabs into your code, which
+is against the Lobster <a href="style_guide.html">style guide</a>, and
+can result in errors if you modify the existing examples. In Settings
+-&gt; Preferences -&gt; Language Menu / Tab Settings you can change
+this.</p>
 <h2 id="error-highlighting">Error Highlighting</h2>
 <ul>
-<li><p>in Plugins -&gt; NppExec -&gt; Console Output Filters, add these on individual lines:</p>
+<li><p>in Plugins -&gt; NppExec -&gt; Console Output Filters, add these
+on individual lines:</p>
 <pre><code>%FILE%(%LINE%): error:*
 %FILE%(%LINE%): VM error:*
 in block -&gt; %FILE%(%LINE%)</code></pre></li>
-<li><p>make sure to checkmark them to on, and check bold, or change the color to red (<code>FF 00 00</code>) or something.</p></li>
-<li><p>This will highlight errors you get from Lobster, and allow you to double click on them to go directly to the line of the error. The first one is for compile errors, the second for runtime errors, and the third for the stacktrace part of runtime errors.</p></li>
+<li><p>make sure to checkmark them to on, and check bold, or change the
+color to red (<code>FF 00 00</code>) or something.</p></li>
+<li><p>This will highlight errors you get from Lobster, and allow you to
+double click on them to go directly to the line of the error. The first
+one is for compile errors, the second for runtime errors, and the third
+for the stacktrace part of runtime errors.</p></li>
 </ul>
 <h2 id="syntax-highlighting">Syntax Highlighting</h2>
 <ul>
-<li><p>NOTE: this file currently only seems to work with a dark background theme, so be sure to choose in menu Settings -&gt; Style Configurator under “Select Theme” something like Zenburn first.</p></li>
-<li><p>Language -&gt; Define your language.., then Import… and choose the <code>docs/notepad++/notepadpp_udl_lobster.xml</code> file.</p></li>
+<li><p>NOTE: this file currently only seems to work with a dark
+background theme, so be sure to choose in menu Settings -&gt; Style
+Configurator under “Select Theme” something like Zenburn first.</p></li>
+<li><p>Language -&gt; Define your language.., then Import… and choose
+the <code>docs/notepad++/notepadpp_udl_lobster.xml</code> file.</p></li>
 <li><p>Save As… “<code>lobster</code>”</p></li>
-<li><p>It should now show <code>.lobster</code> files with correct highlighting, or you can set it explicitly from the Language menu.</p></li>
+<li><p>It should now show <code>.lobster</code> files with correct
+highlighting, or you can set it explicitly from the Language
+menu.</p></li>
 </ul>
 <h2 id="optionally">Optionally</h2>
 <ul>
-<li>in Plugins -&gt; NppExec -&gt; Advanced Options, you can add the lobster script as a menu item, or toolbar button, or special hotkey.</li>
+<li>in Plugins -&gt; NppExec -&gt; Advanced Options, you can add the
+lobster script as a menu item, or toolbar button, or special
+hotkey.</li>
 </ul>
 </body>
 </html>

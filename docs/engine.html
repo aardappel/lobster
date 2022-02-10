@@ -5,33 +5,55 @@
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Lobster built-in engine functionality</title>
-  <style type="text/css">
-      code{white-space: pre-wrap;}
-      span.smallcaps{font-variant: small-caps;}
-      span.underline{text-decoration: underline;}
-      div.line-block{white-space: pre-line;}
-      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
-  <link rel="stylesheet" href="github.css">
+  <link rel="stylesheet" href="github.css" />
   <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
   <![endif]-->
 </head>
 <body>
-<header>
+<header id="title-block-header">
 <h1 class="title">Lobster built-in engine functionality</h1>
 </header>
-<p>Lobster comes with “batteries included”: a small (games/graphics) engine that allows you to start drawing straight away. This doc collects some notes on the the built-in functionality.</p>
+<p>Lobster comes with “batteries included”: a small (games/graphics)
+engine that allows you to start drawing straight away. This doc collects
+some notes on the the built-in functionality.</p>
 <h2 id="basics">Basics</h2>
-<p>The basic list of <a href="builtin_functions_reference.html">builtin functions</a> is worth browsing first, as well as the <a href="shooter_tutorial.html">shooter tutorial</a> for some basic explanation of how to render stuff. Most examples in the <code>samples</code> dir are graphical and provide further examples.</p>
-<p>While it easy to render stuff with simple functions like <code>gl_rect</code>, <code>gl_line</code> and stuff, for anything more advanced some understanding of OpenGL style rendering is required.</p>
-<h2 id="default-rendering-environment">Default rendering environment</h2>
-<p>After you call <code>gl_window</code> you are left with a default black background, a white drawing color, and the <code>color</code> shader set.</p>
+<p>The basic list of <a href="builtin_functions_reference.html">builtin
+functions</a> is worth browsing first, as well as the <a
+href="shooter_tutorial.html">shooter tutorial</a> for some basic
+explanation of how to render stuff. Most examples in the
+<code>samples</code> dir are graphical and provide further examples.</p>
+<p>While it easy to render stuff with simple functions like
+<code>gl_rect</code>, <code>gl_line</code> and stuff, for anything more
+advanced some understanding of OpenGL style rendering is required.</p>
+<h2 id="default-rendering-environment">Default rendering
+environment</h2>
+<p>After you call <code>gl_window</code> you are left with a default
+black background, a white drawing color, and the <code>color</code>
+shader set.</p>
 <h2 id="shaders">Shaders</h2>
-<p>All basic shaders, including <code>color</code>, can be found in <code>data/shaders/default.materials</code>.</p>
-<p>You can use one of the many useful shaders from there with <code>gl_set_shader</code>, but more fun is to use a custom shader. You can define these in-line in your Lobster program as well, an example of that can be found in <code>samples/custom_shader_metaballs.lobster</code>.</p>
-<p>Lobster uses glsl shaders compatible with OpenGL 3+ and OpenGL ES 3+, and you’ll have to look elsewhere to learn the details of this language.</p>
-<p>Lobster wraps these shaders in a custom declaration language, to cut down on some of the boilerplate of putting a vertex and pixel shader together.</p>
+<p>All basic shaders, including <code>color</code>, can be found in
+<code>data/shaders/default.materials</code>.</p>
+<p>You can use one of the many useful shaders from there with
+<code>gl_set_shader</code>, but more fun is to use a custom shader. You
+can define these in-line in your Lobster program as well, an example of
+that can be found in
+<code>samples/custom_shader_metaballs.lobster</code>.</p>
+<p>Lobster uses glsl shaders compatible with OpenGL 3+ and OpenGL ES 3+,
+and you’ll have to look elsewhere to learn the details of this
+language.</p>
+<p>Lobster wraps these shaders in a custom declaration language, to cut
+down on some of the boilerplate of putting a vertex and pixel shader
+together.</p>
 <p>Lets look at the <code>textured</code> shader as an example:</p>
 <pre><code>SHADER textured
     VERTEX
@@ -43,14 +65,46 @@
         INPUTS itc:2
         UNIFORMS tex0 col
         frag_color = texture(tex0, itc) * col;</code></pre>
-<p>In all caps we have keywords that help declare these shaders for you. We have a <code>VERTEX</code> and <code>PIXEL</code> part (alternatively, you could have only a <code>COMPUTE</code> part).</p>
-<p>The inputs to the vertex shader must match your vertex attributes, specify the number of components you care about after <code>:</code>, and come from a fixed set of: * <code>apos</code> (position, 2 or 3 components in the vertex buffer, but usually 4 in the shader to work with matrix transforms). * <code>anormal</code> (3 components). * <code>atc</code> (texture coordinate, 2 components). * <code>acolor</code> (4 components) * <code>aweights</code> and <code>aindices</code> (used with character animation).</p>
-<p>The outputs of the vertex shader are automatically the same as the pixel shader inputs, here <code>itc</code> (interpolated texture coordinate).</p>
-<p>Using <code>UNIFORMS</code> you declare variables automatically provided by the engine: * <code>mvp</code>: the Model View Projection matrix composed of the various <code>gl_scale</code>, <code>gl_translate</code> and <code>gl_rotate</code> transforms (the <code>mv</code> part) and the <code>gl_ortho</code> or <code>gl_perspective</code> transforms (the <code>p</code> part). * <code>col</code>: set by <code>gl_color</code>. * <code>camera</code>: position of the camera relative to the primitive being rendered. * <code>light1</code> and <code>lightparams1</code>: set by <code>gl_light</code>. * <code>framebuffer_size</code>: size in pixels. * <code>bones</code>: see character animation shaders. * <code>pointscale</code>: used with point rendering.</p>
-<p>In addition you can add any custom uniforms with a <code>UNIFORM</code> declaration, for example by adding <code>UNIFORM float time</code> to the shader and <code>gl_set_uniform(&quot;time&quot;, gl_time())</code> you can animate your shader to the current time.</p>
-<p>Following these is the raw glsl implementing the shader. This is the body of the shader, if you want to add additional helper functions, write a <code>VERTEXFUNCTIONS</code> or <code>PIXELFUNCTIONS</code> block before the shader. The functions declared here will be available to all shaders following it.</p>
-<p>Additionally <code>DEFINE name val</code> defines macros to be used in the shaders below.</p>
-<p>For compute shaders, e.g. <code>COMPUTE 8 8</code> at the end of the uniforms declares the dispatch size.</p>
+<p>In all caps we have keywords that help declare these shaders for you.
+We have a <code>VERTEX</code> and <code>PIXEL</code> part
+(alternatively, you could have only a <code>COMPUTE</code> part).</p>
+<p>The inputs to the vertex shader must match your vertex attributes,
+specify the number of components you care about after <code>:</code>,
+and come from a fixed set of: * <code>apos</code> (position, 2 or 3
+components in the vertex buffer, but usually 4 in the shader to work
+with matrix transforms). * <code>anormal</code> (3 components). *
+<code>atc</code> (texture coordinate, 2 components). *
+<code>acolor</code> (4 components) * <code>aweights</code> and
+<code>aindices</code> (used with character animation).</p>
+<p>The outputs of the vertex shader are automatically the same as the
+pixel shader inputs, here <code>itc</code> (interpolated texture
+coordinate).</p>
+<p>Using <code>UNIFORMS</code> you declare variables automatically
+provided by the engine: * <code>mvp</code>: the Model View Projection
+matrix composed of the various <code>gl_scale</code>,
+<code>gl_translate</code> and <code>gl_rotate</code> transforms (the
+<code>mv</code> part) and the <code>gl_ortho</code> or
+<code>gl_perspective</code> transforms (the <code>p</code> part). *
+<code>col</code>: set by <code>gl_color</code>. * <code>camera</code>:
+position of the camera relative to the primitive being rendered. *
+<code>light1</code> and <code>lightparams1</code>: set by
+<code>gl_light</code>. * <code>framebuffer_size</code>: size in pixels.
+* <code>bones</code>: see character animation shaders. *
+<code>pointscale</code>: used with point rendering.</p>
+<p>In addition you can add any custom uniforms with a
+<code>UNIFORM</code> declaration, for example by adding
+<code>UNIFORM float time</code> to the shader and
+<code>gl_set_uniform("time", gl_time())</code> you can animate your
+shader to the current time.</p>
+<p>Following these is the raw glsl implementing the shader. This is the
+body of the shader, if you want to add additional helper functions,
+write a <code>VERTEXFUNCTIONS</code> or <code>PIXELFUNCTIONS</code>
+block before the shader. The functions declared here will be available
+to all shaders following it.</p>
+<p>Additionally <code>DEFINE name val</code> defines macros to be used
+in the shaders below.</p>
+<p>For compute shaders, e.g. <code>COMPUTE 8 8</code> at the end of the
+uniforms declares the dispatch size.</p>
 <p>Any more details, see <code>glshader.cpp</code> ;)</p>
 </body>
 </html>

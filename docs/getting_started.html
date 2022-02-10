@@ -5,31 +5,44 @@
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Quick Getting Started Guide.</title>
-  <style type="text/css">
-      code{white-space: pre-wrap;}
-      span.smallcaps{font-variant: small-caps;}
-      span.underline{text-decoration: underline;}
-      div.line-block{white-space: pre-line;}
-      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
-  <link rel="stylesheet" href="github.css">
+  <link rel="stylesheet" href="github.css" />
   <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
   <![endif]-->
 </head>
 <body>
-<header>
+<header id="title-block-header">
 <h1 class="title">Quick Getting Started Guide.</h1>
 </header>
-<h2 id="get-pre-built-binaries-windows-mac-linux">Get pre-built binaries (Windows, Mac, Linux)</h2>
+<h2 id="get-pre-built-binaries-windows-mac-linux">Get pre-built binaries
+(Windows, Mac, Linux)</h2>
 <h3 id="latest-version-from-ci">Latest version from CI</h3>
-<p>If you don’t want to deal with building it yourself, go to <a href="https://github.com/aardappel/lobster/actions?query=workflow%3ACI">github CI</a> (click on the latest succesful run to get a list of binaries). These are 64-bit for all platforms.</p>
-<p>Now get https://github.com/aardappel/lobster (download zip). This has all the data files and examples. Place the binary you obtained in <code>bin</code>.</p>
+<p>If you don’t want to deal with building it yourself, go to <a
+href="https://github.com/aardappel/lobster/actions?query=workflow%3ACI">github
+CI</a> (click on the latest succesful run to get a list of binaries).
+These are 64-bit for all platforms.</p>
+<p>Now get https://github.com/aardappel/lobster (download zip). This has
+all the data files and examples. Place the binary you obtained in
+<code>bin</code>.</p>
 <h3 id="releases">Releases</h3>
-<p>You can also get both from https://github.com/aardappel/lobster/releases (<code>lobster_&lt;date&gt;_&lt;platform&gt;.zip</code> and <code>Source code (zip)</code>), but these are usually way behind using the most recent builds above, so not recommended.</p>
+<p>You can also get both from
+https://github.com/aardappel/lobster/releases
+(<code>lobster_&lt;date&gt;_&lt;platform&gt;.zip</code> and
+<code>Source code (zip)</code>), but these are usually way behind using
+the most recent builds above, so not recommended.</p>
 <h2 id="or-build-it-yourself">Or, build it yourself!</h2>
 <h3 id="linux">Linux</h3>
-<p>Pre-Requirements: Git, CMake, a C++17 compiler, Mesa dev files (<code>apt-get install mesa-common-dev</code>).</p>
+<p>Pre-Requirements: Git, CMake, a C++17 compiler, Mesa dev files
+(<code>apt-get install mesa-common-dev</code>).</p>
 <pre><code>git clone https://github.com/aardappel/lobster.git
 cd lobster/dev
 cmake -DCMAKE_BUILD_TYPE=Release
@@ -37,15 +50,26 @@ make -j8
 cd ..
 bin/lobster samples/pythtree.lobster</code></pre>
 <h3 id="windows">Windows</h3>
-<p>Pre-Requirements: VS2019 Community edition or better, C++ desktop tools installed.</p>
-<p>Get https://github.com/aardappel/lobster using your favorite git tool (best), or just download a <code>.zip</code> from there otherwise.</p>
-<p>Open <code>dev\lobster\lobster.sln</code>, ensure <code>Release</code> is selected in the top bar, <code>Build -&gt; Build Solution</code>, then close if no errors.</p>
+<p>Pre-Requirements: VS2019 Community edition or better, C++ desktop
+tools installed.</p>
+<p>Get https://github.com/aardappel/lobster using your favorite git tool
+(best), or just download a <code>.zip</code> from there otherwise.</p>
+<p>Open <code>dev\lobster\lobster.sln</code>, ensure
+<code>Release</code> is selected in the top bar,
+<code>Build -&gt; Build Solution</code>, then close if no errors.</p>
 <h3 id="mac">Mac</h3>
 <p>Pre-Requirements: Latest XCode.</p>
-<p>Get https://github.com/aardappel/lobster using your favorite git tool (best), or just download a <code>.zip</code> otherwise.</p>
-<p>Open <code>dev/xcode/lobster/lobster.xcodeproj</code>, ensure <code>lobster_release &gt; My Mac</code> is selected as scheme in the top bar, <code>Product -&gt; Build</code>, then close if no errors.</p>
+<p>Get https://github.com/aardappel/lobster using your favorite git tool
+(best), or just download a <code>.zip</code> otherwise.</p>
+<p>Open <code>dev/xcode/lobster/lobster.xcodeproj</code>, ensure
+<code>lobster_release &gt; My Mac</code> is selected as scheme in the
+top bar, <code>Product -&gt; Build</code>, then close if no errors.</p>
 <h2 id="running-it">Running it</h2>
-<p>You now have a <code>lobster</code> executable in your <code>bin</code> folder. You can run this with any Lobster file as argument to run it, for example <code>bin/lobster.exe samples/pythtree.lobster</code> should work.</p>
-<p>For more advanced usage, including how to run it from an editor, check the rest of <a href="README_FIRST.html">the docs</a></p>
+<p>You now have a <code>lobster</code> executable in your
+<code>bin</code> folder. You can run this with any Lobster file as
+argument to run it, for example
+<code>bin/lobster.exe samples/pythtree.lobster</code> should work.</p>
+<p>For more advanced usage, including how to run it from an editor,
+check the rest of <a href="README_FIRST.html">the docs</a></p>
 </body>
 </html>

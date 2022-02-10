@@ -5,29 +5,45 @@
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Lobster Style Guide</title>
-  <style type="text/css">
-      code{white-space: pre-wrap;}
-      span.smallcaps{font-variant: small-caps;}
-      span.underline{text-decoration: underline;}
-      div.line-block{white-space: pre-line;}
-      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
-  <link rel="stylesheet" href="github.css">
+  <link rel="stylesheet" href="github.css" />
   <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
   <![endif]-->
 </head>
 <body>
-<header>
+<header id="title-block-header">
 <h1 class="title">Lobster Style Guide</h1>
 </header>
-<p>This document defines the style that ideally should be used for all lobster programs.</p>
+<p>This document defines the style that ideally should be used for all
+lobster programs.</p>
 <h2 id="why-this-document">Why this document?</h2>
-<p>There is no such thing as the provably best style for writing code: it all comes down to human preference. But one thing is extremely detrimental to reading code: inconsistent source code formatting. Hence why it is good to have a fixed style.</p>
-<p>You are free to pick any style the compiler will accept for your own projects, of course. But if you wish to cooperate with other Lobster programmers, using the style set forth in this document will be helpful. Most code you will find will use this style, so trying to enforce another style may be tricky.</p>
-<p>Python, being the language closest in syntax to Lobster, has a well defined <a href="http://www.python.org/dev/peps/pep-0008/">style guide</a>, and so do other languages, like Java. C/C++ in particular has failed to establish a clear style, which is a constant source of confusion and disagreement.</p>
+<p>There is no such thing as the provably best style for writing code:
+it all comes down to human preference. But one thing is extremely
+detrimental to reading code: inconsistent source code formatting. Hence
+why it is good to have a fixed style.</p>
+<p>You are free to pick any style the compiler will accept for your own
+projects, of course. But if you wish to cooperate with other Lobster
+programmers, using the style set forth in this document will be helpful.
+Most code you will find will use this style, so trying to enforce
+another style may be tricky.</p>
+<p>Python, being the language closest in syntax to Lobster, has a well
+defined <a href="http://www.python.org/dev/peps/pep-0008/">style
+guide</a>, and so do other languages, like Java. C/C++ in particular has
+failed to establish a clear style, which is a constant source of
+confusion and disagreement.</p>
 <h2 id="default-style">Default Style</h2>
-<p>Unless noted explicitly in this document, the style to follow is that of the samples in the Lobster documentation and distribution. Let’s look at a typical example:</p>
+<p>Unless noted explicitly in this document, the style to follow is that
+of the samples in the Lobster documentation and distribution. Let’s look
+at a typical example:</p>
 <pre><code>def qsort(xs, lt):
     if xs.length &lt;= 1:
         xs
@@ -37,18 +53,40 @@
         append(append(qsort(tail.filter():     lt(_, pivot), lt), [ pivot ]),
                       qsort(tail.filter(): not lt(_, pivot), lt))</code></pre>
 <h3 id="indentation-tabs-vs-spaces">Indentation: Tabs vs Spaces</h3>
-<p>By default, you should use 4 spaces to indent (same as Python). The compiler will allow you to use tabs (discouraged), and in some cases even a mix (highly discouraged).</p>
-<p>The compiler will error on mixed use of tabs and spaces, as that could change what code appears to mean.</p>
-<p>In theory, tabs are superior for editing, but in practice, different editors and different methods of displaying code can make tab based code work inconsistently, which is more of a problem for a language with significant indentation like Lobster and Python.</p>
+<p>By default, you should use 4 spaces to indent (same as Python). The
+compiler will allow you to use tabs (discouraged), and in some cases
+even a mix (highly discouraged).</p>
+<p>The compiler will error on mixed use of tabs and spaces, as that
+could change what code appears to mean.</p>
+<p>In theory, tabs are superior for editing, but in practice, different
+editors and different methods of displaying code can make tab based code
+work inconsistently, which is more of a problem for a language with
+significant indentation like Lobster and Python.</p>
 <h3 id="whitespace">Whitespace</h3>
-<p>Typical use of whitespace is around any binary operator (in the example <code>&lt;=</code> <code>=</code>), after a <code>,</code> and inside <code>[]</code> when used as vector constructor or definition (but not when used for indexing, and not inside <code>()</code>).</p>
+<p>Typical use of whitespace is around any binary operator (in the
+example <code>&lt;=</code> <code>=</code>), after a <code>,</code> and
+inside <code>[]</code> when used as vector constructor or definition
+(but not when used for indexing, and not inside <code>()</code>).</p>
 <h3 id="alignment">Alignment</h3>
-<p>As seen in the <code>append</code> call, you are encouraged to make similar code line up using extra spaces. Because the first part of the <code>append</code> call ended in a <code>,</code> the second line is not counted as an indentation in the same way as the indentation blocks above it.</p>
+<p>As seen in the <code>append</code> call, you are encouraged to make
+similar code line up using extra spaces. Because the first part of the
+<code>append</code> call ended in a <code>,</code> the second line is
+not counted as an indentation in the same way as the indentation blocks
+above it.</p>
 <h3 id="identifiers">Identifiers</h3>
-<p>Lobster uses lowercase for almost all indentifiers. If an identifier consists of multiple words, they are preferably just written consecutively, though for cases where that becomes unreadable using an <code>_</code> to separate them is ok. Do not uses <code>_</code> to start or end regular identifiers (see the reference manual about anonymously declared variables).</p>
+<p>Lobster uses lowercase for almost all indentifiers. If an identifier
+consists of multiple words, they are preferably just written
+consecutively, though for cases where that becomes unreadable using an
+<code>_</code> to separate them is ok. Do not uses <code>_</code> to
+start or end regular identifiers (see the reference manual about
+anonymously declared variables).</p>
 <h3 id="indentation-vs-one-liners">Indentation vs one-liners</h3>
-<p>Prefer indentation over one liners unless the block is very short, e.g. <code>if a &lt; 0: 10 else: a - 5</code> is better in-line than indented. Avoid the use of <code>;</code> generally, if you need multiple expressions in a block, indentation is superior.</p>
+<p>Prefer indentation over one liners unless the block is very short,
+e.g. <code>if a &lt; 0: 10 else: a - 5</code> is better in-line than
+indented. Avoid the use of <code>;</code> generally, if you need
+multiple expressions in a block, indentation is superior.</p>
 <h3 id="prefer-the-shortest-form">Prefer the shortest form</h3>
-<p>Whenever short forms are available for a particular syntax, prefer to use that, unless readability would suffer.</p>
+<p>Whenever short forms are available for a particular syntax, prefer to
+use that, unless readability would suffer.</p>
 </body>
 </html>
