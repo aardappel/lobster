@@ -348,74 +348,74 @@ struct Lex : LoadedFile {
                     sattr = string_view(tokenstart, p - tokenstart);
                     switch (sattr[0]) {
                         case 'a':
-                            if (sattr == "and") { cont = true; return T_AND; }
-                            if (sattr == "any") return T_ANYTYPE;
+                            if (sattr == TName(T_AND)) { cont = true; return T_AND; }
+                            if (sattr == TName(T_ANYTYPE)) return T_ANYTYPE;
                             break;
                         case 'b':
-                            if (sattr == "break") return T_BREAK;
+                            if (sattr == TName(T_BREAK)) return T_BREAK;
                             break;
                         case 'c':
-                            if (sattr == "class") return T_CLASS;
-                            if (sattr == "case") return T_CASE;
+                            if (sattr == TName(T_CLASS)) return T_CLASS;
+                            if (sattr == TName(T_CASE)) return T_CASE;
                             break;
                         case 'd':
-                            if (sattr == "def") return T_FUN;
-                            if (sattr == "default") return T_DEFAULT;
+                            if (sattr == TName(T_FUN)) return T_FUN;
+                            if (sattr == TName(T_DEFAULT)) return T_DEFAULT;
                             break;
                         case 'e':
-                            if (sattr == "else") return T_ELSE;
-                            if (sattr == "elif") return T_ELIF;
-                            if (sattr == "enum") return T_ENUM;
-                            if (sattr == "enum_flags") return T_ENUM_FLAGS;
+                            if (sattr == TName(T_ELSE)) return T_ELSE;
+                            if (sattr == TName(T_ELIF)) return T_ELIF;
+                            if (sattr == TName(T_ENUM)) return T_ENUM;
+                            if (sattr == TName(T_ENUM_FLAGS)) return T_ENUM_FLAGS;
                             break;
                         case 'f':
-                            if (sattr == "float") return T_FLOATTYPE;
-                            if (sattr == "for") return T_FOR;
-                            if (sattr == "fn") return T_LAMBDA;
-                            if (sattr == "from") return T_FROM;
+                            if (sattr == TName(T_FLOATTYPE)) return T_FLOATTYPE;
+                            if (sattr == TName(T_FOR)) return T_FOR;
+                            if (sattr == TName(T_LAMBDA)) return T_LAMBDA;
+                            if (sattr == TName(T_FROM)) return T_FROM;
                             break;
                         case 'i':
-                            if (sattr == "int") return T_INTTYPE;
-                            if (sattr == "if") return T_IF;
-                            if (sattr == "import") return T_INCLUDE;
-                            if (sattr == "is") return T_IS;
+                            if (sattr == TName(T_INTTYPE)) return T_INTTYPE;
+                            if (sattr == TName(T_IF)) return T_IF;
+                            if (sattr == TName(T_INCLUDE)) return T_INCLUDE;
+                            if (sattr == TName(T_IS)) return T_IS;
                             break;
                         case 'l':
-                            if (sattr == "let") return T_CONST;
+                            if (sattr == TName(T_CONST)) return T_CONST;
                             break;
                         case 'n':
-                            if (sattr == "nil") return T_NIL;
-                            if (sattr == "not") return T_NOT;
-                            if (sattr == "namespace") return T_NAMESPACE;
+                            if (sattr == TName(T_NIL)) return T_NIL;
+                            if (sattr == TName(T_NOT)) return T_NOT;
+                            if (sattr == TName(T_NAMESPACE)) return T_NAMESPACE;
                             break;
                         case 'o':
-                            if (sattr == "or") { cont = true; return T_OR; }
-                            if (sattr == "operator") { cont = true; return T_OPERATOR; }
+                            if (sattr == TName(T_OR)) { cont = true; return T_OR; }
+                            if (sattr == TName(T_OPERATOR)) { cont = true; return T_OPERATOR; }
                             break;
                         case 'p':
-                            if (sattr == "program") return T_PROGRAM;
-                            if (sattr == "private") return T_PRIVATE;
-                            if (sattr == "pakfile") return T_PAKFILE;
+                            if (sattr == TName(T_PROGRAM)) return T_PROGRAM;
+                            if (sattr == TName(T_PRIVATE)) return T_PRIVATE;
+                            if (sattr == TName(T_PAKFILE)) return T_PAKFILE;
                             break;
                         case 'r':
-                            if (sattr == "return") return T_RETURN;
-                            if (sattr == "resource") return T_RESOURCE;
+                            if (sattr == TName(T_RETURN)) return T_RETURN;
+                            if (sattr == TName(T_RESOURCE)) return T_RESOURCE;
                             break;
                         case 's':
-                            if (sattr == "struct") return T_STRUCT;
-                            if (sattr == "string") return T_STRTYPE;
-                            if (sattr == "switch") return T_SWITCH;
-                            if (sattr == "super") return T_SUPER;
+                            if (sattr == TName(T_STRUCT)) return T_STRUCT;
+                            if (sattr == TName(T_STRTYPE)) return T_STRTYPE;
+                            if (sattr == TName(T_SWITCH)) return T_SWITCH;
+                            if (sattr == TName(T_SUPER)) return T_SUPER;
                             break;
                         case 't':
-                            if (sattr == "typeof") return T_TYPEOF;
+                            if (sattr == TName(T_TYPEOF)) return T_TYPEOF;
                             break;
                         case 'v':
-                            if (sattr == "void") return T_VOIDTYPE;
-                            if (sattr == "var") return T_VAR;
+                            if (sattr == TName(T_VOIDTYPE)) return T_VOIDTYPE;
+                            if (sattr == TName(T_VAR)) return T_VAR;
                             break;
                         case 'w':
-                            if (sattr == "while") return T_WHILE;
+                            if (sattr == TName(T_WHILE)) return T_WHILE;
                             break;
                     }
                     return T_IDENT;
