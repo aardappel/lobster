@@ -89,7 +89,7 @@ namespace lobster {
     TOK(T_COLON, ":") \
     TOK(T_TYPEIN, "::") \
     TOK(T_STRUCT, "struct") \
-    TOK(T_INCLUDE, "include") \
+    TOK(T_INCLUDE, "import") \
     TOK(T_INTTYPE, "int") \
     TOK(T_FLOATTYPE, "float") \
     TOK(T_STRTYPE, "string") \
