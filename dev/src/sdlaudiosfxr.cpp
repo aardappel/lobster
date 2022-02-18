@@ -460,6 +460,11 @@ void SDLSoundClose() {
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
+int SDLLoadSound(string_view filename, SoundType st) {
+    if (!SDLSoundInit()) return 0;
+    return LoadSound(filename, st) != 0;
+}
+
 int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int pri) {
     if (!SDLSoundInit()) return 0;
     auto snd = LoadSound(filename, st);

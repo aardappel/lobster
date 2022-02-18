@@ -34,6 +34,14 @@ nfr("play_wav", "filename,loops,prio", "SI?I?", "I",
         return Value(ch);
     });
 
+nfr("load_wav", "filename", "S", "B",
+    "loads a sound the same way play_sound does, but ahead of playback, to avoid any"
+    " delays later. returns false on error",
+    [](StackPtr &, VM &, Value &ins) {
+        int ok = SDLLoadSound(ins.sval()->strv(), SOUND_WAV);
+        return Value(ok);
+    });
+
 nfr("play_sfxr", "filename,loops,prio", "SI?I?", "I",
     "plays a synth sound defined by a .sfs file (use http://www.drpetter.se/project_sfxr.html"
     " to generate these). the default volume is the max volume (1.0)"
@@ -46,6 +54,14 @@ nfr("play_sfxr", "filename,loops,prio", "SI?I?", "I",
         return Value(ch);
     });
 
+nfr("load_sfxr", "filename", "S", "B",
+    "loads a sound the same way play_sfxr does, but ahead of playback, to avoid any"
+    " delays later. returns false on error",
+    [](StackPtr &, VM &, Value &ins) {
+        int ok = SDLLoadSound(ins.sval()->strv(), SOUND_SFXR);
+        return Value(ok);
+    });
+
 nfr("play_ogg", "filename,loops,prio", "SI?I?", "I",
     "plays an ogg file. the default volume is the max volume (1.0)"
     " loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats)."
@@ -55,6 +71,14 @@ nfr("play_ogg", "filename,loops,prio", "SI?I?", "I",
     [](StackPtr &, VM &, Value &ins, Value &loops, Value &prio) {
         int ch = SDLPlaySound(ins.sval()->strv(), SOUND_OGG, 1.0, loops.intval(), prio.intval());
         return Value(ch);
+    });
+
+nfr("load_ogg", "filename", "S", "B",
+    "loads a sound the same way play_ogg does, but ahead of playback, to avoid any"
+    " delays later. returns false on error",
+    [](StackPtr &, VM &, Value &ins) {
+        int ok = SDLLoadSound(ins.sval()->strv(), SOUND_OGG);
+        return Value(ok);
     });
 
 nfr("sound_status", "channel", "I", "I",
