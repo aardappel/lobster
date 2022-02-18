@@ -710,7 +710,11 @@ nfr("normalize", "vec",  "F}" , "F}",
         VECTORVARS;
         VECTOROPNR(sql += f.fval() * f.fval());
         double m = sqrt(sql);
-        VECTOROPNR(elems[i] = f.fval() / m);
+        if (m == 0.0) {
+            VECTOROPNR((void)f; elems[i] = 0.0);
+        } else {
+            VECTOROPNR(elems[i] = f.fval() / m);
+        }
     });
 
 nfr("dot", "a,b", "F}F}1", "F",
