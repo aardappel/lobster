@@ -38,6 +38,8 @@ run_test("struct"):
         var nv = xy_0
         nv = normalize(xy { 123.0, 456.0 })
         assert abs(magnitude(nv) - 1.0) < 0.001
+        nv = normalize(xy_0)
+        assert abs(magnitude(nv)) < 0.001  // Passthrough of zero vec
         let v = [ xy { 1, 2 }, xy { 3, 4 } ]
         assert v[1] == xy { 3, 4 }
         v[1] = xy { 5, 6 }
