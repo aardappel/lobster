@@ -995,11 +995,13 @@ struct sphere {
 
 inline sphere bounding_sphere(sphere a, sphere b) {
     float dist = length(a.center - b.center);
-    if (a.rad + dist < b.rad) {
+    // <= accounts for equal rad & pos.
+    if (a.rad + dist <= b.rad) {
         return b;
-    } else if (b.rad + dist < a.rad) {
+    } else if (b.rad + dist <= a.rad) {
         return a;
     } else {
+        assert(dist);
         auto rad = (a.rad + b.rad + dist) / 2;
         auto center = a.center + (b.center - a.center) * ((rad - a.rad) / dist);
         return sphere { center, rad };
