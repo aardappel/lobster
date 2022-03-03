@@ -36,6 +36,10 @@ static int StringCompare(const Value &a, const Value &b) {
     return (_a > _b) - (_b > _a);
 }
 
+static int ObjectCompare(const Value &a, const Value &b) {
+    return a.any() < b.any() ? -1 : a.any() > b.any();
+}
+
 template<typename T> Value BinarySearch(StackPtr &sp, Value &l, Value &key, T comparefun) {
     iint size = l.vval()->len;
     iint i = 0;
@@ -281,6 +285,13 @@ nfr("binary_search", "xs,key", "S]S", "II",
     "string version.",
     [](StackPtr &sp, VM &, Value &l, Value &key) {
         auto r = BinarySearch(sp, l, key, StringCompare);
+        return r;
+    });
+
+nfr("binary_search_object", "xs,key", "A]*A1", "II",
+    "object version. compares by reference rather than contents.",
+    [](StackPtr &sp, VM &, Value &l, Value &key) {
+        auto r = BinarySearch(sp, l, key, ObjectCompare);
         return r;
     });
 
