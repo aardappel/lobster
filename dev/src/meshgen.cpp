@@ -69,6 +69,8 @@ static int3 axesi[] = { int3(1, 0, 0), int3(0, 1, 0), int3(0, 0, 1) };
 
 float max_smoothmink = 0;
 
+static const float grid_epsilon = 0.01f;
+
 // use curiously recurring template pattern to allow implicit function to be inlined in
 // rasterization loop
 template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
@@ -249,8 +251,8 @@ struct Group : ImplicitFunctionImpl<Group> {
                 auto trans = gridtrans + c->orig * gridscale;
                 auto scale = gridscale * c->size;
                 auto rsize = rotated_size(c->rot, csize);
-                auto start = int3(trans - rsize * gridscale - 0.01f);
-                auto end   = int3(trans + rsize * gridscale + 2.01f);
+                auto start = int3(trans - rsize * gridscale - grid_epsilon);
+                auto end   = int3(trans + rsize * gridscale + grid_epsilon + 2.0f);
                 auto bs    = end - start;
                 if (bs > 1) c->FillGrid(start, end, distgrid, scale, trans, c->rot, threadpool);
             }
@@ -650,7 +652,9 @@ Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly)
     auto scenesize = root->Size() * 2;
     float biggestdim = max(scenesize.x, max(scenesize.y, scenesize.z));
     auto gridscale = targetgridsize / biggestdim;
-    auto gridsize = int3(scenesize * gridscale + float3(2.001f));
+    // Add a boundary of 1 cell in all directions, and additionally 10xepsilon to ensure
+    // shapes always fit in the grid, even with some float imprecision.
+    auto gridsize = int3(scenesize * gridscale + float3(grid_epsilon * 10.0f + 2.0f));
     auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;
     auto distgrid = new DistGrid(gridsize, DistVert());
     ThreadPool threadpool((size_t)NumHWThreads());
