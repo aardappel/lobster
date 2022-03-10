@@ -653,8 +653,8 @@ nfr("round", "v", "F}", "I}",
     [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval() + 0.5f)); });
 
 nfr("fraction", "f", "F", "F",
-    "returns the fractional part of a float: short for f - int(f)",
-    [](StackPtr &, VM &, Value &a) { return Value(a.fval() - int(a.fval())); });
+    "returns the fractional part of a float: short for f - floor(f)",
+    [](StackPtr &, VM &, Value &a) { return Value(a.fval() - floor(a.fval())); });
 nfr("fraction", "v", "F}", "F}",
     "returns the fractional part of a vector of floats",
     [](StackPtr &sp, VM &) { VECTOROP(f.fval() - int(f.fval())); });
