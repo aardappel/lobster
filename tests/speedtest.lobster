@@ -18,13 +18,13 @@ print "VM MODE: " + (if vm_compiled_mode(): "C++-compiled" else: "JIT")
 
 // Balance these numbers to get a good blend of what kind of code we're optimizing for.
 
-number_of_runs = 8200
+number_of_runs = 8500
 import structtest
 
-number_of_runs = 2180
+number_of_runs = 2300
 import misctest
 
-number_of_runs = 4700
+number_of_runs = 5000
 import typetest
 
 number_of_runs = 150
@@ -36,7 +36,7 @@ import goaptest
 number_of_runs = 200
 import knightstest
 
-number_of_runs = 5750
+number_of_runs = 6000
 import parsertest
 
 number_of_runs = 100
@@ -57,7 +57,7 @@ import smallpttest
 
 // We interleave all tests, and take the min of all meta runs, to eliminate variance as best as
 // possible.
-let meta_runs = 17
+let meta_runs = 19
 var total_time_taken = 0.0
 for meta_runs:
     for(tests) t:
