@@ -1,3 +1,22 @@
+- stack traces for asserts and other runtime errors
+
+- problematic error:
+    error: no version of function `f` takes 0 arguments
+  - where `f` is a method yet to be declared in the current class, but also used in other classes.
+  - and even if it is already declared it gets confused, since strictly there's only versions with >0 args.
+  really need to move decision on which function is being called to the type checker.
+  possibly even store methods on a per type basis.
+
+- problematic error:
+  test_worldmove.lobster(21): error: cannot define a variation of function set at a different scope level
+  in:                 def set(p, s, e):
+  (this with a `set` method somewhere on a class, and this set local to another function)
+
+- problematic error:
+  cannot override built-in function `remove` with same (or less) arity
+
+- set up oss-fuzz for Parser etc.
+
 - split builtins into categories for helpfile
 
 - always clone on specialization.
@@ -104,6 +123,23 @@
     Actually, can keep it semi scriptable by allowing the "host" to set a call-back on fatal
     runtime error, and they can still choose to throw an exception or otherwise terminate the
     VM.
+
+- Add this to replace any use of the terrible std:: hashing functionality:
+  https://github.com/martinus/robin-hood-hashing
+
+  Also would be nice to have a good hash-map as part of the language, to compliment the
+  simplistic binary_search.
+  Could cheap-out and add one as a resource, but that would make retrieved values have no
+  type.
+  Maybe allow resources to have a type parameter?
+  Add a type cast? :)
+  Or add a proper map type to the language, probably not that hard? That would make it easier
+  to optimize for all sorts of types.
+  Since this is a C++ template, could do a map from Value->Value, but that would forego some of
+  the optimisations this has specifically for string keys etc.
+  Also, int3/float3 can be very useful as keys and would want to support.
+  dictionary.lobster is already nicely generic if constant speed is not too important.
+  may want to update my builtin Hash for integers with robin_hood::hash
 
 - stefandd: multiple assign doesn't work on fields.
 
@@ -404,7 +440,7 @@
       You can even go further: have CMake control which submodules are installed:
       https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
     - We can now add new optional modules:
-      - Bullet physics
+      - Physics engine (see below for options).
     - We can now may make existing things optional:
       - imgui
       - box2d/liquidfun
@@ -1260,6 +1296,8 @@
 - also, == should not do pointer equality on value types! have to use equal for now
 
 - excellent candidate for a 3D physics engine to integrate: https://github.com/RandyGaul/qu3e
+  Or: https://github.com/jrouwe/JoltPhysics see https://twitter.com/erwincoumans/status/1496513233146068992
+  Or of course Bullet!
 
 - for any error related to a builtin function, can also print argument names and helptext.
 
@@ -2258,7 +2296,7 @@ C++64-MSVC            : secs  4.3, deeper inlining.
 C++64-MSVC            : secs  4.2, explicit stackptr.
 C++64-Clang10-LTO     : secs  3.3, explicit stackptr.
 C++64-MSVC+TCC        : secs 13.1, explicit stackptr.
-C++64-MSVC+TCC        : secs 12.1, newer VS updates?
+C++64-MSVC+TCC        : secs 12.5, newer VS updates?
 
 debug speed:
 
