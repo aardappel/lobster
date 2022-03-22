@@ -48,6 +48,19 @@
 
 - Fix FIXME in Break::Generate
 
+- One not so nice thing about `::` to create a type scope is that it forces you to declare the type, e.g.
+  hof() x: ..       // don't have to declare type of X, derived from `hof` arg.
+  hof() (x::X): ..  // Must declare type.
+  hof() (x::): ..   // Type inferred much like above
+  hof() (::): ..    // We're not going to use `x`, so should this be possible?
+  hof() (_::): ..   // Or just this as a convention.
+  Why does this matter? Well this style is awesome for DSLs, where `X` basically brings
+  a whole bunch of methods in scope that can be used to construct or render something
+  in a very lightweight fashion, where the context (`X`) is implicit.
+  `hof` here may be something you want to nest, and the repeated decl of `X` would be unwelcome.
+  See: Kotlin, that made a very cool feature out of this:
+  https://kotlinlang.org/docs/lambdas.html#function-types
+
 - natgen refactor
   - start moving vmops into tocpp for all simple ops.
   - most access to local arrays still thru memory, clearly alias analysis failing.
