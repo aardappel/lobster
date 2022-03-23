@@ -36,9 +36,10 @@ class dictionary<K,V>:
 
     def get(key:K, default_val:V) -> V:
         let h = hash(key) % size
-        var c = buckets[h]
-        while c:
-            if c.key == key:
-                return c.value
-            c = c.next
+        if h < length(buckets):
+           var c = buckets[h]
+           while c:
+               if c.key == key:
+                   return c.value
+               c = c.next
         return default_val

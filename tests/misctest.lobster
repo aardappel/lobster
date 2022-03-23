@@ -254,6 +254,8 @@ run_test("misc"):
 
     // Dictionary.
     let dict = dictionary<float, float> { 17 }
+    // Check get before first set()
+    assert dict.get(1.0, -1.0) == -1.0
     rnd_seed(0)
     for(32):
         let key = rnd_float()  // 0..1
