@@ -7,6 +7,9 @@ option(LOBSTER_TOCPP "Build Lobster with the output of --to-cpp" OFF)
 option(LOBSTER_JIT "Build Lobster with JIT" ON)
 option(LOBSTER_WERROR "Treat warnings as errors" OFF)
 
+# Needed on some Linux distros to not get legacy OpenGL?
+set(OpenGL_GL_PREFERENCE GLVND)
+
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/..)
 endif()
