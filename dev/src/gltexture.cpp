@@ -183,6 +183,7 @@ Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
         return CreateTexture(nullptr, int3(size, 0), tf);  // No buffer required.
     } else {
         auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+        if (tf & TF_CUBEMAP) sz *= 6;
         auto buf = new uint8_t[size.x * size.y * sz];
         for (int y = 0; y < size.y; y++) for (int x = 0; x < size.x; x++) {
             auto idx = y * size.x + x;
