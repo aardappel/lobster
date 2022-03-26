@@ -3,6 +3,8 @@
 
 - stack traces for asserts and other runtime errors
 
+- move this TODO.txt to github issues.
+
 - problematic error:
     error: no version of function `f` takes 0 arguments
   - where `f` is a method yet to be declared in the current class, but also used in other classes.
@@ -20,6 +22,26 @@
 
 - use this instead of the current lib for span? supposedly better than the std version:
   https://github.com/abseil/abseil-cpp/blob/master/absl/types/span.h
+
+- Really need some better tools for flexible construction, see e.g.
+  https://github.com/aardappel/lobster/pull/166
+  One simple thing would be an actual constructor function, but this doesn't help with
+  wanting to keep fields non-nil.
+  It be nice to somehow allow field initializers to depend on prior field initializer
+  args, but the problem is that this code runs before the object is contructed, so
+  there is no obvious way to pass these values.
+  The most flexible system would be a free-standing function that is able to take
+  N construction args, and returns M values that must correspond to the uninit fields.
+  Or actually, instead of M value, just contruct the object.
+  Of course you can already write this manually:
+  def new_dictionary(size): return dictionary { map(size): nil, size }
+  So the question really is to a) make this syntactically more pleasing/standard/obvious,
+  and b) disallow construction without this function since the map encodes an invariant.
+  And disallow that, _except_ for in this construction function.
+  Probably have it declared outside of a class to make it obvious it can't access
+  fields/methods, maybe with a new "constructor" keyword instead of "def".
+  Then just change constructor syntax to calls to these functions for any use
+  outside this function.
 
 - set up oss-fuzz for Parser etc.
 
