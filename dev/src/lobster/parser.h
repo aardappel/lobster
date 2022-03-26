@@ -1182,12 +1182,8 @@ struct Parser {
                 if (lex.token != T_LEFTPAREN) Error("type used as expression");
                 return IdentFactor(idname);
             }
-            case T_TYPEOF: {  // "return", ident or type.
+            case T_TYPEOF: {  // ident or type.
                 lex.Next();
-                if (lex.token == T_RETURN) {
-                    lex.Next();
-                    return new TypeOf(lex, new DefaultVal(lex));
-                }
                 if (lex.token == T_IDENT) {
                     auto id = st.Lookup(lex.sattr);
                     if (id) {

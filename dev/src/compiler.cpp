@@ -42,7 +42,6 @@ const Type g_type_function_null(V_FUNCTION);
 const Type g_type_resource(V_RESOURCE);
 const Type g_type_vector_resource(V_VECTOR, &g_type_resource);
 const Type g_type_typeid(V_TYPEID, &g_type_any);
-const Type g_type_typeid_vec(V_TYPEID, &g_type_vector_any);
 const Type g_type_void(V_VOID);
 const Type g_type_undefined(V_UNDEFINED);
 
@@ -56,7 +55,6 @@ TypeRef type_function_null = &g_type_function_null;
 TypeRef type_resource = &g_type_resource;
 TypeRef type_vector_resource = &g_type_vector_resource;
 TypeRef type_typeid = &g_type_typeid;
-TypeRef type_typeid_vec = &g_type_typeid_vec;
 TypeRef type_void = &g_type_void;
 TypeRef type_undefined = &g_type_undefined;
 

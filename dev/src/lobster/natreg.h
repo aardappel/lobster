@@ -205,7 +205,6 @@ extern TypeRef type_function_cocl;
 extern TypeRef type_resource;
 extern TypeRef type_vector_resource;
 extern TypeRef type_typeid;
-extern TypeRef type_typeid_vec;
 extern TypeRef type_void;
 extern TypeRef type_undefined;
 
@@ -257,7 +256,6 @@ struct Narg {
             case 'L': type = type_function_null; break;  // FIXME: only used by hash(), in gui.lobster
             case 'R': type = type_resource; break;
             case 'T': type = type_typeid; break;
-            case 'V': type = type_typeid_vec; break;
             default:  assert(0);
         }
         while (*tid && !isupper(*tid)) {

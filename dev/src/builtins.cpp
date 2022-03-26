@@ -157,12 +157,14 @@ nfr("append_into", "dest,src", "A]*A]1c", "Ab]1",
         return v1;
     });
 
-nfr("vector_reserve", "typeid,len", "VI", "A]*",
-    "creates a new empty vector much like [] would, except now ensures"
-    " it will have space for len push() operations without having to reallocate."
-    " pass \"typeof return\" as typeid.",
-    [](StackPtr &, VM &vm, Value &type, Value &len) {
-        return Value(vm.NewVec(0, len.ival(), (type_elem_t)type.ival()));
+nfr("vector_capacity", "xs,len", "A]*I", "Ab]1",
+    "ensures the vector capacity (number of elements it can contain before re-allocating)"
+    " is at least \"len\". Does not actually add (or remove) elements. This function is"
+    " just for efficiency in the case the amount of \"push\" operations is known."
+    " returns original vector.",
+    [](StackPtr &, VM &vm, Value &vec, Value &len) {
+        vec.vval()->MinCapacity(vm, len.ival());
+        return vec;
     });
 
 nfr("length", "x", "I", "I",

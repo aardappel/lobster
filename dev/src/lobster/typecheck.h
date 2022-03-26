@@ -287,12 +287,6 @@ struct TypeChecker {
                 if (type->t != V_TYPEID) return false;
                 bound = bound->sub;
                 type = type->sub;
-                // FIXME: should bind to vector of var? See typeof return in map.
-                if (type->t == V_VAR) return true;
-                if (bound->t == V_VECTOR && type->t == V_VECTOR) {
-                    bound = bound->sub;
-                    type = type->sub;
-                }
                 // This is minimalistic, but suffices for the current uses of V_TYPEID.
                 return bound->t == V_ANY;
             default:
@@ -2937,7 +2931,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 if (nftype->t == V_TYPEID) {
                     assert(!sa);  // assumes always first.
                     auto tin = AssertIs<TypeOf>(children[0]);
-                    if (!Is<DefaultVal>(tin->child)) type = tin->child->exptype;
+                    type = tin->child->exptype;
                 }
 
                 if (ret.type->t == V_NIL) {

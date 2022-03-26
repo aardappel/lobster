@@ -1720,17 +1720,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {
-    if (auto dv = Is<DefaultVal>(child)) {
-        if (cg.node_context.size() >= 2) {
-            auto parent = cg.node_context[cg.node_context.size() - 2];
-            if (Is<NativeCall>(parent)) {
-                cg.EmitOp(IL_PUSHINT);
-                cg.Emit(cg.GetTypeTableOffset(parent->exptype));
-                return;
-            }
-        }
-        cg.parser.ErrorAt(dv, "typeof return out of call context");
-    } else  if (auto idr = Is<IdentRef>(child)) {
+    if (auto idr = Is<IdentRef>(child)) {
         cg.EmitOp(IL_PUSHINT);
         cg.Emit(cg.GetTypeTableOffset(idr->exptype));
     } else {

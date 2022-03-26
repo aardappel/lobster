@@ -699,6 +699,10 @@ struct LVector : RefObj {
 
     void Resize(VM &vm, iint newmax);
 
+    void MinCapacity(VM& vm, iint newmax) {
+        if (newmax > maxl) Resize(vm, newmax);
+    }
+
     void Push(VM &vm, const Value &val) {
         assert(width == 1);
         if (len == maxl) Resize(vm, maxl ? maxl * 2 : 4);

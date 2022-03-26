@@ -1,3 +1,6 @@
+- "C-style language to Lobster Cheat Sheet" contains instances of :=
+  and probably could use other fixes.. ?: example? more about types.
+
 - stack traces for asserts and other runtime errors
 
 - problematic error:
@@ -14,6 +17,9 @@
 
 - problematic error:
   cannot override built-in function `remove` with same (or less) arity
+
+- use this instead of the current lib for span? supposedly better than the std version:
+  https://github.com/abseil/abseil-cpp/blob/master/absl/types/span.h
 
 - set up oss-fuzz for Parser etc.
 
@@ -166,6 +172,7 @@
   - use namespaces
     - remove keywords?
   - iterate them? return a vector of all values?
+  - convert to string.
 
 - jpp: support labels in function calls just like with constructors.
 
@@ -179,10 +186,6 @@
   To be more precise, it is safe if the dest can't ever mutate (is const, and doesn't create
   aliases that could mutate in the future) OR if the src has a refc of 1 (a constructor), since
   in this case the dest will be the only alias ever.
-
-- let x:T = vector_reserve(typeof U, ) may crash if U is not compatible with T.
-  Maybe at least in the docs mark this function as private, people should use `map` instead.
-  Or re-think this feature entirely?
 
 - it's possible to bypass variable initialization with forward calls which will crash.
 
@@ -200,7 +203,7 @@
   - formatted printing?
   - serialization?
 
-- jpp: remove “can't use named function as value” restriction.
+- jpp: remove can't use named function as value restriction.
 
 - jpp: would be good to be able to overload print/string for own types.
 
@@ -1193,8 +1196,6 @@
 
 - in def(x::type) if x is subtype: should children of the subtype be available inside the if?
 
-- replace typeof return with something better directly part of the syntax.
-
 - add options to either show more extensive stacktrace dump to either stdout or file.
 
 - Typechecker can actually blow the 1MB Windows stack space on complex programs.
@@ -1326,9 +1327,6 @@
   - flow analysis should also know about if !a: return; a // not nil here
 
   - if you do [int] + [float] you get "error: "+" (left argument) requires type: [any], got: [int]"
-
-  - You're able to pass a value to vector_reserve that's a different typeof than "return", which potentially
-    gets the wrong type set.
 
   - should constants be excluded from freevars to reduce clutter?
 
