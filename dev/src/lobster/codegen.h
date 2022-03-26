@@ -125,7 +125,7 @@ struct CodeGen  {
         for (auto &field : udt->fields) {
             auto ti = GetTypeTableOffset(field.resolvedtype);
             if (IsStruct(field.resolvedtype->t)) {
-                PushFields(field.resolvedtype->udt, tt, ti);
+                PushFields(field.resolvedtype->udt, tt, parent < 0 ? ti : parent);
             } else {
                 tt.insert(tt.begin() + (ssize(tt) - ti_num_udt_fields) / ti_num_udt_per_field +
                           ti_num_udt_fields, ti);
