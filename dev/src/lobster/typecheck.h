@@ -800,13 +800,6 @@ struct TypeChecker {
                 u->subudts.push_back(&udt);
             }
         }
-        for (auto [i, f] : enumerate(udt.fields)) {
-            // FIXME: this is a temp limitation, remove.
-            if (udt.thistype.t == V_STRUCT_R && i &&
-                IsRefNil(f.resolvedtype->t) != IsRefNil(udt.fields[0].resolvedtype->t))
-                Error(errn, "structs fields of ", Q(udt.name),
-                            " must be either all scalar or all references");
-        }
         if (!udt.ComputeSizes())
             Error(errn, "struct ", Q(udt.name), " cannot be self-referential");
     }

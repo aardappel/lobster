@@ -70,7 +70,6 @@ enum MathOp {
     F(POP,          0, 1, 0) \
     F(POPREF,       0, 1, 0) \
     F(POPV,         1, ILUNKNOWN, 0) \
-    F(POPVREF,      1, ILUNKNOWN, 0) \
     F(DUP,          0, 1, 2) \
     F(EXIT,         1, ILUNKNOWN, 0) \
     F(ABORT,        0, 0, 0) \
@@ -125,7 +124,7 @@ enum MathOp {
     F(LV_DUP, 0, 0, 1) \
     F(LV_DUPV, 1, 0, ILUNKNOWN) \
     F(LV_WRITE, 0, 1, 0)  F(LV_WRITEREF, 0, 1, 0)  \
-    F(LV_WRITEV, 1, ILUNKNOWN, 0) F(LV_WRITEREFV, 1, ILUNKNOWN, 0) \
+    F(LV_WRITEV, 1, ILUNKNOWN, 0) F(LV_WRITEREFV, 2, ILUNKNOWN, 0) \
     F(LV_IADD, 0, 1, 0)   F(LV_ISUB, 0, 1, 0)   F(LV_IMUL, 0, 1, 0)   F(LV_IDIV, 0, 1, 0)   \
     F(LV_IMOD, 0, 1, 0)   \
     F(LV_BINAND, 0, 1, 0) F(LV_BINOR, 0, 1, 0)  F(LV_XOR, 0, 1, 0)    \

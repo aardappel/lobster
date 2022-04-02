@@ -293,9 +293,7 @@ VM_INLINE void U_NEWOBJECT(VM &vm, StackPtr sp, int ty) {
 
 VM_INLINE void U_POP(VM &, StackPtr sp) { Pop(sp); }
 VM_INLINE void U_POPREF(VM &vm, StackPtr sp) { auto x = Pop(sp); x.LTDECRTNIL(vm); }
-
 VM_INLINE void U_POPV(VM &, StackPtr sp, int len) { PopN(sp, len); }
-VM_INLINE void U_POPVREF(VM &vm, StackPtr sp, int len) { while (len--) Pop(sp).LTDECRTNIL(vm); }
 
 VM_INLINE void U_DUP(VM &, StackPtr sp) { auto x = Top(sp); Push(sp, x); }
 
@@ -831,9 +829,12 @@ VM_INLINE void U_LV_WRITEV(VM &vm, StackPtr sp, int l) {
     PopN(sp, l);
 }
 
-VM_INLINE void U_LV_WRITEREFV(VM &vm, StackPtr sp, int l) {
+VM_INLINE void U_LV_WRITEREFV(VM &vm, StackPtr sp, int l, int bitmask) {
+    // TODO: if this bitmask checking is expensive, either make a version of
+    // this op for structs with all ref elems, or better yet, special case for
+    // structs with a single elem.
     auto &a = *vm.temp_lval;
-    for (int i = 0; i < l; i++) (&a)[i].LTDECRTNIL(vm);
+    for (int i = 0; i < l; i++) if ((1 << i) & bitmask) (&a)[i].LTDECRTNIL(vm);
     auto b = TopPtr(sp) - l;
     tsnz_memcpy(&a, b, l);
     PopN(sp, l);
