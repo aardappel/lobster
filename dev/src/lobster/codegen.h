@@ -1112,7 +1112,7 @@ void ToBool::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
     cg.TakeTemp(1, false);
-    cg.EmitOp(IsRefNil(child->exptype->t) ? IL_E2BREF : IL_E2B);
+    cg.EmitOp(cg.ShouldDec(TypeLT(*child, 0)) ? IL_E2BREF : IL_E2B);
 }
 
 void ToInt::Generate(CodeGen &cg, size_t retval) const {

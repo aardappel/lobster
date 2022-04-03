@@ -563,8 +563,9 @@ VM_INLINE void U_E2B(VM &, StackPtr sp) {
     Push(sp, a.True());
 }
 
-VM_INLINE void U_E2BREF(VM &, StackPtr sp) {
+VM_INLINE void U_E2BREF(VM &vm, StackPtr sp) {
     Value a = Pop(sp);
+    a.LTDECRTNIL(vm);
     Push(sp, a.True());
 }
 
