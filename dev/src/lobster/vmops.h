@@ -165,7 +165,7 @@ VM_INLINE void U_CALLV(VM &vm, StackPtr sp) {
 VM_INLINE void U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     auto self = TopM(sp, stack_idx);
     VMTYPEEQ(self, V_CLASS);
-    auto start = self.oval()->ti(vm).vtable_start;
+    auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
     vm.next_call_target = vm.native_vtables[start + vtable_idx];
     assert(vm.next_call_target);
 }
@@ -222,12 +222,24 @@ VM_INLINE bool U_IFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).ival
 VM_INLINE bool U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval()->len); }
 VM_INLINE bool U_SFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).sval()->len); }
 
-VM_INLINE void U_IFORELEM(VM &, StackPtr sp)      { FORELEM(iter.ival()); (void)iter; Push(sp, i); }
-VM_INLINE void U_SFORELEM(VM &, StackPtr sp)      { FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i])); }
-VM_INLINE void U_VFORELEM(VM &, StackPtr sp)      { FORELEM(iter.vval()->len); Push(sp, iter.vval()->At(i)); }
-VM_INLINE void U_VFORELEM2S(VM &, StackPtr sp)    { FORELEM(iter.vval()->len); iter.vval()->AtVW(sp, i); }
-VM_INLINE void U_VFORELEMREF(VM &, StackPtr sp)   { FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); Push(sp, el); }
-VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp) { FORELEM(iter.vval()->len); iter.vval()->AtVWInc(sp, i); }
+VM_INLINE void U_IFORELEM(VM &, StackPtr sp) {
+    FORELEM(iter.ival()); (void)iter; Push(sp, i);
+}
+VM_INLINE void U_SFORELEM(VM &, StackPtr sp) {
+    FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i]));
+}
+VM_INLINE void U_VFORELEM(VM &, StackPtr sp) {
+    FORELEM(iter.vval()->len); Push(sp, iter.vval()->At(i));
+}
+VM_INLINE void U_VFORELEM2S(VM &, StackPtr sp) {
+    FORELEM(iter.vval()->len); iter.vval()->AtVW(sp, i);
+}
+VM_INLINE void U_VFORELEMREF(VM &, StackPtr sp) {
+    FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); Push(sp, el);
+}
+VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp, int bitmask) {
+    FORELEM(iter.vval()->len); iter.vval()->AtVWInc(sp, i, bitmask);
+}
 
 VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
     auto &i = TopM(sp, 1);  // This relies on for being inlined, otherwise it would be 2.

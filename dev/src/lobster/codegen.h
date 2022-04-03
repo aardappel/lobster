@@ -161,7 +161,10 @@ struct CodeGen  {
                 type_table.insert(type_table.end(), ttsize, (type_elem_t)0);
                 tt.push_back((type_elem_t)type->udt->idx);
                 tt.push_back((type_elem_t)type->udt->numslots);
-                tt.push_back((type_elem_t)type->udt->vtable_start);
+                if (type->t == V_CLASS)
+                    tt.push_back((type_elem_t)type->udt->vtable_start);
+                else
+                    tt.push_back((type_elem_t)ComputeBitMask(*type->udt, nullptr));
                 PushFields(type->udt, tt);
                 assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + type->udt->typeinfo);
@@ -477,7 +480,7 @@ struct CodeGen  {
     void GenPop(TypeLT typelt) {
         if (IsStruct(typelt.type->t)) {
             if (typelt.type->t == V_STRUCT_R) {
-                // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskIfRefStuct
+                // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
                     EmitOp(IsRefNil(FindSlot(*typelt.type->udt, j)->resolvedtype->t) ? IL_POPREF
                                                                                      : IL_POP);
@@ -541,19 +544,21 @@ struct CodeGen  {
         if (IsStruct(type->t)) Emit(ValWidth(type));
     }
 
-    void EmitBitMaskIfRefStuct(ILOP lvalop, TypeRef type, const Node *errloc) {
-        if (lvalop != IL_LV_WRITEREFV) return;
-        assert(type->t == V_STRUCT_R);
+    int ComputeBitMask(const UDT &udt, const Node *errloc) {
         int bits = 0;
-        for (int j = 0; j < type->udt->numslots; j++) {
-            if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t)) {
+        for (int j = 0; j < udt.numslots; j++) {
+            if (IsRefNil(FindSlot(udt, j)->resolvedtype->t)) {
                 if (j > 31)
-                    parser.ErrorAt(errloc,
-                        "internal error: struct with too many reference fields");
+                    parser.ErrorAt(errloc, "internal error: struct with too many reference fields");
                 bits |= 1 << j;
             }
         }
-        Emit(bits);
+        return bits;
+    }
+
+    void EmitBitMaskForRefStuct(TypeRef type, const Node *errloc) {
+        assert(type->t == V_STRUCT_R);
+        Emit(ComputeBitMask(*type->udt, errloc));
     }
 
     void GenValueWidth(TypeRef type) {
@@ -593,7 +598,7 @@ struct CodeGen  {
             if (!post) {
                 EmitOp(lvalop, ValWidth(lval->exptype));
                 EmitWidthIfStruct(lvt);
-                EmitBitMaskIfRefStuct(lvalop, lvt, lval);
+                if (lvalop == IL_LV_WRITEREFV) EmitBitMaskForRefStuct(lvt, lval);
             }
             if (retval) {
                 // FIXME: it seems these never need a refcount increase because they're always
@@ -605,7 +610,7 @@ struct CodeGen  {
             if (post) {
                 EmitOp(lvalop, ValWidth(lval->exptype));
                 EmitWidthIfStruct(lvt);
-                EmitBitMaskIfRefStuct(lvalop, lvt, lval);
+                if (lvalop == IL_LV_WRITEREFV) EmitBitMaskForRefStuct(lvt, lval);
             }
         };
         if (auto idr = Is<IdentRef>(lval)) {
@@ -980,7 +985,7 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
         auto op = cg.AssignBaseOp({ *sid });
         cg.EmitOp(op, ValWidth(sid->type));
         cg.EmitWidthIfStruct(sid->type);
-        cg.EmitBitMaskIfRefStuct(op, sid->type, this);
+        if (op == IL_LV_WRITEREFV) cg.EmitBitMaskForRefStuct(sid->type, this);
     }
     assert(!retval);  // Parser guarantees this.
     (void)retval;
@@ -1129,11 +1134,11 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
             if (incref & (1LL << i)) {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
-                    // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskIfRefStuct
+                    // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t)) {
                             cg.EmitOp(IL_INCREF);
-                            cg.Emit(stack_offset + j);
+                            cg.Emit(stack_offset + type->udt->numslots - 1 - j);
                         }
                     }
                 } else {
@@ -1144,7 +1149,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
             if (decref & (1LL << i)) {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
-                    // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskIfRefStuct
+                    // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t))
                             cg.EmitKeep(stack_offset + j, 0);
@@ -1456,12 +1461,14 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
         case V_STRING:
             cg.EmitOp(IL_SFORELEM);
             break;
-        case V_VECTOR:
-            cg.EmitOp(IsRefNil(typelt.type->sub->t)
-                    ? (IsStruct(typelt.type->sub->t) ? IL_VFORELEMREF2S : IL_VFORELEMREF)
-                    : (IsStruct(typelt.type->sub->t) ? IL_VFORELEM2S : IL_VFORELEM),
-                2, ValWidth(typelt.type->sub) + 2);
+        case V_VECTOR: {
+            auto op = IsRefNil(typelt.type->sub->t)
+                          ? (IsStruct(typelt.type->sub->t) ? IL_VFORELEMREF2S : IL_VFORELEMREF)
+                          : (IsStruct(typelt.type->sub->t) ? IL_VFORELEM2S : IL_VFORELEM);
+            cg.EmitOp(op, 2, ValWidth(typelt.type->sub) + 2);
+            if (op == IL_VFORELEMREF2S) cg.EmitBitMaskForRefStuct(typelt.type->sub, this);
             break;
+        }
         default:
             assert(false);
     }

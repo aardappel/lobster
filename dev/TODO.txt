@@ -3,22 +3,82 @@
 
 - stack traces for asserts and other runtime errors
 
+- a function to show memory usage by type
+
 - move this TODO.txt to github issues.
 
-- problematic error:
-    error: no version of function `f` takes 0 arguments
-  - where `f` is a method yet to be declared in the current class, but also used in other classes.
-  - and even if it is already declared it gets confused, since strictly there's only versions with >0 args.
-  really need to move decision on which function is being called to the type checker.
-  possibly even store methods on a per type basis.
+- move function checking into typechecker.
+    - problematic error:
+        error: no version of function `f` takes 0 arguments
+      - where `f` is a method yet to be declared in the current class, but also used in other classes.
+      - and even if it is already declared it gets confused, since strictly there's only versions with >0 args.
+      really need to move decision on which function is being called to the type checker.
+      possibly even store methods on a per type basis.
+    - problematic error:
+      test_worldmove.lobster(21): error: cannot define a variation of function set at a different scope level
+      in:                 def set(p, s, e):
+      (this with a `set` method somewhere on a class, and this set local to another function)
+    - problematic error:
+      cannot override built-in function `remove` with same (or less) arity
+  before:
+    - Move checking for functions/builtins/selfarg etc to type checker.
+      This is quite hard, it requires reworking a lot of stuff:
+      - all the withstack related functionality, which in turn requires not only calls and derefs to
+        be generic, but also individual idents since they can become derefs.
+      - there are still parsing decisions being made based on wether something could be a function,
+        in particular calls without parens.
+    - It would be better if we could leave the decision wether something is a builtin or a user
+      defined function to the type checker, since that would allow user defined types to have
+      a length function, or anything else that clashes with builtins.
+      Problem is, we rely on deciding this in the parser for things like parsing lambda args,
+      and optional things etc.
+      Maybe if both are available, we could simply require that the user function corresponds to
+      the builtin one in terms of these features, and otherwise error?
+    - the parser deciding between a field or function upon x.y is very brittle, the moment someone adds a field
+      called "length" anywhere, suddenly all calls to length() don't work anymore.
+      Only way to fix this is to delay this decision until typechecking.
+    - should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
+      clash with typechecking.
+      - this would also allow defining methods with the same name as builtins, which is sorely needed.
+      - after cleaning up parser, for every top level definition should mark from which file it comes,
+        and then each use should make sure that file has been included in the current file, to avoid
+        suprises when things are included independently.
+      - if we can delay looking up the function to the type checker, then we can allow
+        "functions as environments", e.g.
+        def env(f):
+            v := 1
+            def m(): return v++
+            f()
+        env():
+            for 10: print m()
+            env():
+                m()  // increments different variable!
+        This is kinda like "with" or dynamic scope, and could benefit match.lobster, gui.lobster.
+        The type checker already supports this, its just the parser lookup!
+        Using this recursively will make it harder to optimize stack frame usage in the future,
+        though neither match nor gui is properly recursive, it is all instantiated.
+      - example of deciding between different methods going wrong:
+        class foo:
+            def f(): g(3)
+            def g(n): print(n)
+        class bar:
+            def f(): g(3, 4)
+            def g(n, m): print(n + " " + m)
+        bar{}.f()
+        bar{}.g(1, 2)
+        foo{}.f()
+        foo{}.g(1)
+        error: "g" (1st argument) requires type: foo, got: int
+      - can things like closures be parsed conservatively after a function call without knowing
+        the function? It seems to already work for some calls:
+        def foo(fun):
+          fun() x: print x
+      - SharedField can be removed, only needed in deciding how to parse x.y and x.y(
+    - If we're NOT going to do the above, then some more uses of new GenericCall can
+      already be made to specific calls in the parser.
 
-- problematic error:
-  test_worldmove.lobster(21): error: cannot define a variation of function set at a different scope level
-  in:                 def set(p, s, e):
-  (this with a `set` method somewhere on a class, and this set local to another function)
-
-- problematic error:
-  cannot override built-in function `remove` with same (or less) arity
+- error on `if a:` where `a` is non-nillable ref type?
+  - would make specialization more restrictive, but avoids errors while refactoring etc.
 
 - use this instead of the current lib for span? supposedly better than the std version:
   https://github.com/abseil/abseil-cpp/blob/master/absl/types/span.h
@@ -42,6 +102,22 @@
   fields/methods, maybe with a new "constructor" keyword instead of "def".
   Then just change constructor syntax to calls to these functions for any use
   outside this function.
+  older:
+    - Would be nice to have more powerful constructors.
+      Current constructors eval the field defaults outside the context of the class, which is a
+      nice way to avoid all the problems around partially constructed objects.
+      And with nil-safety, we can't have any uninitialized fields being accessed.
+      One idea would be to generate a constructor function from all initializers, which then can
+      access other fields and methods. During type-checking of that function, the class would be
+      marked as haveing N of its fields initialized, and any read of the remaining ones would error.
+      That should in theory work with calling any functions thanks to flow analysis, but the
+      problem is functions that have already been typechecked against the normal type, which would
+      have to error or be specialized again.
+      Even more extreme is to include that N in the type itself, such that a sub-typing relationship
+      can be used, but that is a lot of complexity for the priviledge.
+      And frankly creating more specializations just for this distinction doesn't sound great.
+      Also we have some complex logic around tagged constructor args that would have to be wrapped
+      into this generated function..
 
 - set up oss-fuzz for Parser etc.
 
@@ -61,7 +137,6 @@
   or GL_ARB_multi_draw_indirect even more flexible.
 
 - check that constant string caching works with e.g. FlatBufferBuilder?
-
     for(10) i:
         var s = "                           "
         s = write_int8_le(s, i, 'A' + i)
@@ -90,6 +165,11 @@
   https://kotlinlang.org/docs/lambdas.html#function-types
 
 - natgen refactor
+  - inline tocpp into codegen, removing bytecode entirely.
+    - will likely make all refactorings below easier!
+    - this stops us from being able to ship bytecode in a pak as a quick way to distribute programs
+      without building C++.. people have to now either ship C output or source.
+    - makes it easier to output C that looks like normal C, which would benefit libtcc codegen.
   - start moving vmops into tocpp for all simple ops.
   - most access to local arrays still thru memory, clearly alias analysis failing.
     - split up arrays into individual vars where possible.
@@ -337,78 +417,6 @@
   "managed") programming language? You get:
 
   The terminal process "bin\lobster.exe infrecurse.lobster" terminated with exit code: 3221225477.
-
-- Would be nice to have more powerful constructors.
-  Current constructors eval the field defaults outside the context of the class, which is a
-  nice way to avoid all the problems around partially constructed objects.
-  And with nil-safety, we can't have any uninitialized fields being accessed.
-  One idea would be to generate a constructor function from all initializers, which then can
-  access other fields and methods. During type-checking of that function, the class would be
-  marked as haveing N of its fields initialized, and any read of the remaining ones would error.
-  That should in theory work with calling any functions thanks to flow analysis, but the
-  problem is functions that have already been typechecked against the normal type, which would
-  have to error or be specialized again.
-  Even more extreme is to include that N in the type itself, such that a sub-typing relationship
-  can be used, but that is a lot of complexity for the priviledge.
-  And frankly creating more specializations just for this distinction doesn't sound great.
-  Also we have some complex logic around tagged constructor args that would have to be wrapped
-  into this generated function..
-
-- Move checking for functions/builtins/selfarg etc to type checker.
-  This is quite hard, it requires reworking a lot of stuff:
-  - all the withstack related functionality, which in turn requires not only calls and derefs to
-    be generic, but also individual idents since they can become derefs.
-  - there are still parsing decisions being made based on wether something could be a function,
-    in particular calls without parens.
-- It would be better if we could leave the decision wether something is a builtin or a user
-  defined function to the type checker, since that would allow user defined types to have
-  a length function, or anything else that clashes with builtins.
-  Problem is, we rely on deciding this in the parser for things like parsing lambda args,
-  and optional things etc.
-  Maybe if both are available, we could simply require that the user function corresponds to
-  the builtin one in terms of these features, and otherwise error?
-- the parser deciding between a field or function upon x.y is very brittle, the moment someone adds a field
-  called "length" anywhere, suddenly all calls to length() don't work anymore.
-  Only way to fix this is to delay this decision until typechecking.
-- should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
-  clash with typechecking.
-  - this would also allow defining methods with the same name as builtins, which is sorely needed.
-  - after cleaning up parser, for every top level definition should mark from which file it comes,
-    and then each use should make sure that file has been included in the current file, to avoid
-    suprises when things are included independently.
-  - if we can delay looking up the function to the type checker, then we can allow
-    "functions as environments", e.g.
-    def env(f):
-        v := 1
-        def m(): return v++
-        f()
-    env():
-        for 10: print m()
-        env():
-            m()  // increments different variable!
-    This is kinda like "with" or dynamic scope, and could benefit match.lobster, gui.lobster.
-    The type checker already supports this, its just the parser lookup!
-    Using this recursively will make it harder to optimize stack frame usage in the future,
-    though neither match nor gui is properly recursive, it is all instantiated.
-  - example of deciding between different methods going wrong:
-    class foo:
-        def f(): g(3)
-        def g(n): print(n)
-    class bar:
-        def f(): g(3, 4)
-        def g(n, m): print(n + " " + m)
-    bar{}.f()
-    bar{}.g(1, 2)
-    foo{}.f()
-    foo{}.g(1)
-    error: "g" (1st argument) requires type: foo, got: int
-  - can things like closures be parsed conservatively after a function call without knowing
-    the function? It seems to already work for some calls:
-    def foo(fun):
-      fun() x: print x
-  - SharedField can be removed, only needed in deciding how to parse x.y and x.y(
-- If we're NOT going to do the above, then some more uses of new GenericCall can
-  already be made to specific calls in the parser.
 
 - Would be good to finally make SDL modular, and get rid of that silly main-redef
   There's this: https://wiki.libsdl.org/SDL_SetMainReady

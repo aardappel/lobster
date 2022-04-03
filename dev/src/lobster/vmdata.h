@@ -129,7 +129,7 @@ struct TypeInfo {
         struct {           // V_CLASS, V_STRUCT_*
             int structidx;
             int len;
-            int vtable_start;
+            int vtable_start_or_bitmask;
             type_elem_t elemtypes[1];  // len elems, followed by len parent types.
         };
         int enumidx;       // V_INT, -1 if not an enum.
@@ -689,9 +689,7 @@ struct LVector : RefObj {
         if (v) DeallocSubBuf(vm, v, maxl * width);
     }
 
-    void DecSlot(VM &vm, iint i, ValueType et) const {
-        AtSlot(i).LTDECTYPE(vm, et);
-    }
+    void DestructElementRange(VM &vm, iint from, iint to);
 
     void DeleteSelf(VM &vm);
 
@@ -767,7 +765,7 @@ struct LVector : RefObj {
     }
 
     void AtVW(StackPtr &sp, iint i) const;
-    void AtVWInc(StackPtr &sp, iint i) const;
+    void AtVWInc(StackPtr &sp, iint i, int bitmask) const;
     void AtVWSub(StackPtr &sp, iint i, int w, int off) const;
 
     void Append(VM &vm, LVector *from, iint start, iint amount);

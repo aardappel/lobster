@@ -100,12 +100,9 @@ void LVector::Remove(StackPtr &sp, VM &vm, iint i, iint n, iint decfrom, bool st
     assert(n >= 0 && n <= len && i >= 0 && i <= len - n);
     if (stack_ret) {
         tsnz_memcpy(TopPtr(sp), v + i * width, width);
-        PushN(sp,  (int)width);
+        PushN(sp, (int)width);
     }
-    auto et = ElemType(vm).t;
-    if (IsRefNil(et)) {
-        for (iint j = decfrom * width; j < n * width; j++) DecSlot(vm, i * width + j, et);
-    }
+    DestructElementRange(vm, i + decfrom, i + n - decfrom);
     t_memmove(v + i * width, v + (i + n) * width, (len - i - n) * width);
     len -= n;
 }
@@ -116,11 +113,11 @@ void LVector::AtVW(StackPtr &sp, iint i) const {
     PushN(sp, (int)width);
 }
 
-void LVector::AtVWInc(StackPtr &sp, iint i) const {
+void LVector::AtVWInc(StackPtr &sp, iint i, int bitmask) const {
     auto src = AtSt(i);
     for (int j = 0; j < width; j++) {
         auto e = src[j];
-        e.LTINCRTNIL();
+        if ((1 << j) & bitmask) e.LTINCRTNIL();
         lobster::Push(sp, e);
     }
 }
@@ -131,11 +128,28 @@ void LVector::AtVWSub(StackPtr &sp, iint i, int w, int off) const {
     PushN(sp,  w);
 }
 
-void LVector::DeleteSelf(VM &vm) {
-    auto et = ElemType(vm).t;
-    if (IsRefNil(et)) {
-        for (iint i = 0; i < len * width; i++) DecSlot(vm, i, et);
+void LVector::DestructElementRange(VM& vm, iint from, iint to) {
+    auto &eti = ElemType(vm);
+    if (IsRefNil(eti.t)) {
+        if (eti.t == V_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
+            // We only run this special loop for mixed ref/scalar.
+            for (int j = 0; j < width; j++) {
+                if ((1 << j) & eti.vtable_start_or_bitmask) {
+                    for (iint i = from; i < to; i++) {
+                        AtSlot(i * width + j).LTDECRTNIL(vm);
+                    }
+                }
+            }
+        } else {
+            for (iint i = from * width; i < to * width; i++) {
+                AtSlot(i).LTDECRTNIL(vm);
+            }
+        }
     }
+}
+
+void LVector::DeleteSelf(VM &vm) {
+    DestructElementRange(vm, 0, len);
     DeallocBuf(vm);
     vm.pool.dealloc_small(this);
 }
@@ -410,7 +424,8 @@ void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char
 
 void LObject::ToString(VM &vm, string &sd, PrintPrefs &pp) {
     if (CycleCheck(sd, pp)) return;
-    sd += vm.ReverseLookupType(ti(vm).structidx);
+    auto name = vm.ReverseLookupType(ti(vm).structidx);
+    sd += name;
     if (pp.indent) sd += ' ';
     VectorOrObjectToString(vm, sd, pp, '{', '}', Len(vm), 1, Elems(), false,
         [&](iint i) -> const TypeInfo & {

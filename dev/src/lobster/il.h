@@ -104,7 +104,7 @@ enum MathOp {
     F(VFORELEM, 0, 2, 3) \
     F(VFORELEMREF, 0, 2, 3) \
     F(VFORELEM2S, 0, 2, ILUNKNOWN) \
-    F(VFORELEMREF2S, 0, 2, ILUNKNOWN) \
+    F(VFORELEMREF2S, 1, 2, ILUNKNOWN) \
     F(INCREF, 1, 0, 0) \
     F(KEEPREF, 2, 0, 0) \
     F(KEEPREFLOOP, 2, 0, 0) \
