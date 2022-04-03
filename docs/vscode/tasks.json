@@ -15,7 +15,7 @@
                 "command": "bin/lobster"
             },
             "type": "shell",
-            "args": [ "--main", "main.lobster", "${file}" ],
+            "args": [ "--runtime-verbose", "--main", "main.lobster", "${file}" ],
             "presentation": {
                 "reveal": "silent",
                 "echo": true,

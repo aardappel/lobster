@@ -184,11 +184,9 @@ VM_INLINE void U_SAVERETS(VM &, StackPtr) {
 }
 
 VM_INLINE void U_ENDSTATEMENT(VM &vm, StackPtr, int line, int fileidx) {
-    #ifdef NDEBUG
-        (void)line;
-        (void)fileidx;
-        (void)vm;
-    #else
+    vm.last_line = line;
+    vm.last_fileidx = fileidx;
+    #ifndef NDEBUG
         if (vm.trace != TraceMode::OFF) {
             auto &sd = vm.TraceStream();
             append(sd, vm.bcf->filenames()->Get(fileidx)->string_view(), "(", line, ")");
@@ -273,11 +271,9 @@ VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringi
     (void)line;
     (void)fileidx;
     if (Top(sp).False()) {
-        vm.Error(cat(
-            #if !VM_JIT_MODE
-                vm.bcf->filenames()->Get(fileidx)->string_view(), "(", line, "): ",
-            #endif
-            "assertion failed: ", vm.bcf->stringtable()->Get(stringidx)->string_view()));
+        vm.last_line = line;
+        vm.last_fileidx = fileidx;
+        vm.Error(cat("assertion failed: ", vm.bcf->stringtable()->Get(stringidx)->string_view()));
     }
 }
 

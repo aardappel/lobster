@@ -127,7 +127,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         }
         if ((false)) {  // Debug corrupt bytecode.
             string da;
-            DisAsmIns(natreg, da, ip, code, typetable, bcf);
+            DisAsmIns(natreg, da, ip, code, typetable, bcf, -1);
             LOG_DEBUG(da);
         }
         int opc = *ip++;

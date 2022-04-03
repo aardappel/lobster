@@ -230,7 +230,13 @@ void VM::ErrorBase(const string &err) {
         errmsg += err;
         UnwindOnError();
     }
-    append(errmsg, "VM error (", programname, "): ", err);
+    append(errmsg, "VM error (");
+    if (last_line >= 0 && last_fileidx >= 0) {
+        append(errmsg, bcf->filenames()->Get(last_fileidx)->string_view(), ":", last_line);
+    } else {
+        append(errmsg, programname);
+    }
+    append(errmsg, "): ", err);
 }
 
 // This function is now way less important than it was when the language was still dynamically
@@ -600,7 +606,8 @@ using namespace lobster;
 void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
     auto ip = _ip.begin();
     auto &sd = vm->TraceStream();
-    DisAsmIns(vm->nfr, sd, ip, nullptr, (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf);
+    DisAsmIns(vm->nfr, sd, ip, nullptr, (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf,
+              vm->last_line);
     #if RTT_ENABLED
         (void)sp;
         /*

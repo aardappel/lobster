@@ -885,6 +885,9 @@ struct VM : VMArgs {
     vector<string> trace_output;
     size_t trace_ring_idx = 0;
 
+    int last_line = -1;
+    int last_fileidx = -1;
+
     vector<RefObj *> delete_delay;
 
     vector<LString *> constant_strings;
