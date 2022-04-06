@@ -763,10 +763,10 @@ nfr("cross", "a,b", "F}:3F}:3", "F}:3",
 
 nfr("rnd", "max", "I", "I",
     "a random value [0..max).",
-    [](StackPtr &, VM &, Value &a) { return Value(rndx.rnd_int64(std::max(1LL, a.ival()))); });
+    [](StackPtr &, VM &, Value &a) { return Value(rndx.rnd_int64(std::max((iint)1, a.ival()))); });
 nfr("rnd", "max", "I}", "I}",
     "a random vector within the range of an input vector.",
-    [](StackPtr &sp, VM &) { VECTOROP(rndx.rnd_int64(std::max(1LL, f.ival()))); });
+    [](StackPtr &sp, VM &) { VECTOROP(rndx.rnd_int64(std::max((iint)1, f.ival()))); });
 nfr("rnd_float", "", "", "F",
     "a random float [0..1)",
     [](StackPtr &, VM &) { return Value(rndx.rnd_double()); });

@@ -148,10 +148,10 @@ template<typename T, int N> struct vec : basevec<T, N> {
     }
 
     vec(const vec<T, 3> &v, T e) {
-        DOVEC(c[i] = i < 3 ? v.c[i] : e);
+        DOVEC(if constexpr (i < 3) c[i] = v.c[i]; else c[i] = e);
     }
     vec(const vec<T, 2> &v, T e) {
-        DOVEC(c[i] = i < 2 ? v.c[i] : e);
+        DOVEC(if constexpr (i < 2) c[i] = v.c[i]; else c[i] = e);
     }
 
     vec<T,3>   xyz()     const { assert(N == 4); return vec<T,3>(c); }

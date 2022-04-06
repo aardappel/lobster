@@ -332,7 +332,7 @@ class Xoshiro256SS {
 template<typename T> struct RandomNumberGenerator {
     T rnd;
 
-    void seed(T::rnd_type s) {
+    void seed(typename T::rnd_type s) {
         rnd.ReSeed(s);
     }
 
@@ -345,12 +345,12 @@ template<typename T> struct RandomNumberGenerator {
     }
 
     int64_t rnd_int64(int64_t max) {
-        assert(sizeof(T::rnd_type) == 8);
+        assert(sizeof(typename T::rnd_type) == 8);
         return (int64_t)(rnd.Random() % max);
     }
 
     double rnd_double() {
-        assert(sizeof(T::rnd_type) == 8);
+        assert(sizeof(typename T::rnd_type) == 8);
         return (rnd.Random() >> 11) * 0x1.0p-53;
     }
 
