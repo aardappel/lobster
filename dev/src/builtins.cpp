@@ -20,7 +20,8 @@
 
 namespace lobster {
 
-static RandomNumberGenerator<MersenneTwister> rnd;
+static RandomNumberGenerator<MersenneTwister> rndm;
+static RandomNumberGenerator<Xoshiro256SS> rndx;
 
 static int IntCompare(const Value &a, const Value &b) {
     return a.ival() < b.ival() ? -1 : a.ival() > b.ival();
@@ -762,19 +763,27 @@ nfr("cross", "a,b", "F}:3F}:3", "F}:3",
 
 nfr("rnd", "max", "I", "I",
     "a random value [0..max).",
-    [](StackPtr &, VM &, Value &a) { return Value(rnd(std::max(1, (int)a.ival()))); });
+    [](StackPtr &, VM &, Value &a) { return Value(rndx.rnd_int64(std::max(1LL, a.ival()))); });
 nfr("rnd", "max", "I}", "I}",
     "a random vector within the range of an input vector.",
-    [](StackPtr &sp, VM &) { VECTOROP(rnd(std::max(1, (int)f.ival()))); });
+    [](StackPtr &sp, VM &) { VECTOROP(rndx.rnd_int64(std::max(1LL, f.ival()))); });
 nfr("rnd_float", "", "", "F",
     "a random float [0..1)",
-    [](StackPtr &, VM &) { return Value(rnd.rnddouble()); });
+    [](StackPtr &, VM &) { return Value(rndx.rnd_double()); });
 nfr("rnd_gaussian", "", "", "F",
     "a random float in a gaussian distribution with mean 0 and stddev 1",
-    [](StackPtr &, VM &) { return Value(rnd.rnd_gaussian()); });
+    [](StackPtr &, VM &) { return Value(rndx.rnd_gaussian()); });
 nfr("rnd_seed", "seed", "I", "",
     "explicitly set a random seed for reproducable randomness",
-    [](StackPtr &, VM &, Value &seed) { rnd.seed((int)seed.ival()); return NilVal(); });
+    [](StackPtr &, VM &, Value &seed) { rndx.seed(seed.ival()); return NilVal(); });
+
+
+nfr("rndm", "max", "I", "I",
+    "deprecated: old mersenne twister version of the above for backwards compat.",
+    [](StackPtr &, VM &, Value &a) { return Value(rndm.rnd_int(std::max(1, (int)a.ival()))); });
+nfr("rndm_seed", "seed", "I", "",
+    "deprecated: old mersenne twister version of the above for backwards compat.",
+    [](StackPtr &, VM &, Value &seed) { rndm.seed((int)seed.ival()); return NilVal(); });
 
 nfr("div", "a,b", "II", "F",
     "forces two ints to be divided as floats",
@@ -1142,7 +1151,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         for (int i = 0; i < sz.y; i++) outmap[i] = (char *)outstrings.vval()->At(i).sval()->data();
         int num_contradictions = 0;
         auto ok = WaveFunctionCollapse(int2(iint2(cols, ssize(inmap))), inmap.data(), sz, outmap.data(),
-                                        rnd, num_contradictions);
+                                       rndx, num_contradictions);
         if (!ok)
             vm.BuiltinError("tilemap contained too many tile ids");
         Push(sp,  outstrings);

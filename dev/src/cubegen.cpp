@@ -367,7 +367,7 @@ nfr("cg_create_mesh", "block", "R", "R",
         };
         unordered_map<VKey, int, decltype(hasher)> vertlookup(optimize_verts ? 100000 : 10, hasher);
         vector<float> rnd_offset(1024);
-        for (auto &f : rnd_offset) { f = (cg_rnd.rnd_float() - 0.5f) * 0.15f; }
+        for (auto &f : rnd_offset) { f = cg_rnd.rnd_float_signed() * 0.075f; }
         // Woah nested loops!
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
@@ -734,7 +734,7 @@ nfr("cg_randomize", "world,rnd_range,cutoff,paletteindex,filter", "RIIII", "", "
                 for (int z = 0; z < v.grid.dim.z; z++) {
                     auto pos = int3(x, y, z);
                     auto &p = v.grid.Get(pos);
-                    if (p != filter.ival() && cg_rnd(rnd_range.intval()) < cutoff.intval())
+                    if (p != filter.ival() && cg_rnd.rnd_int(rnd_range.intval()) < cutoff.intval())
                         p = (uint8_t)paletteindex.ival();
                 }
             }

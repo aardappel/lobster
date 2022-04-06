@@ -183,7 +183,7 @@ template<typename T> T *Prev(T *n) { return (T *)n->prev; }
 #define loopdllistreverse(L, n) \
     for (auto n = (L).Prev(), p = Prev(n); n != (void *)&(L); (n = p),(p = Prev(n)))
 
-class MersenneTwister          {
+class MersenneTwister {
     const static uint32_t N = 624;
     const static uint32_t M = 397;
     const static uint32_t K = 0x9908B0DFU;
@@ -199,6 +199,8 @@ class MersenneTwister          {
     int left = -1;
 
     public:
+
+    typedef uint32_t rnd_type;
 
     void Seed(uint32_t seed) {
         uint32_t x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
@@ -250,6 +252,8 @@ class PCG32 {
 
     public:
 
+    typedef uint32_t rnd_type;
+
     uint32_t Random() {
         uint64_t oldstate = state;
         // Advance internal state.
@@ -266,17 +270,97 @@ class PCG32 {
     }
 };
 
+// https://thompsonsed.co.uk/random-number-generators-for-c-performance-tested
+class SplitMix64 {
+    uint64_t x = 0; /* The state can be seeded with any value. */
+
+    public:
+
+    typedef uint64_t rnd_type;
+
+    uint64_t Random() {
+        uint64_t z = (x += UINT64_C(0x9E3779B97F4A7C15));
+        z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
+        z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
+        return z ^ (z >> 31);
+    }
+
+    void ReSeed(uint64_t s) {
+        x = s;
+    }
+};
+
+// https://prng.di.unimi.it/
+// https://nullprogram.com/blog/2017/09/21/
+class Xoshiro256SS {
+    uint64_t s[4];
+
+    static inline uint64_t rotl(const uint64_t x, int k) {
+        return (x << k) | (x >> (64 - k));
+    }
+
+    public:
+
+    typedef uint64_t rnd_type;
+
+    Xoshiro256SS() {
+        ReSeed(0);
+    }
+
+    uint64_t Random() {
+        const uint64_t result = rotl(s[1] * 5, 7) * 9;
+        const uint64_t t = s[1] << 17;
+        s[2] ^= s[0];
+        s[3] ^= s[1];
+        s[1] ^= s[2];
+        s[0] ^= s[3];
+        s[2] ^= t;
+        s[3] = rotl(s[3], 45);
+        return result;
+    }
+
+    void ReSeed(uint64_t x) {
+        SplitMix64 sm;
+        sm.ReSeed(x);
+        for (int i = 0; i < 4; i++) {
+            s[i] = sm.Random();
+        }
+    }
+
+};
+
 template<typename T> struct RandomNumberGenerator {
     T rnd;
 
-    void seed(uint32_t s) { rnd.ReSeed(s); }
+    void seed(T::rnd_type s) {
+        rnd.ReSeed(s);
+    }
 
-    int operator()(int max) { return rnd.Random() % max; }
-    int operator()() { return rnd.Random(); }
+    int rnd_int(int max) {
+        return (int)(rnd.Random() % max);
+    }
 
-    double rnddouble() { return rnd.Random() * (1.0 / 4294967296.0); }
-    float rnd_float() { return (float)rnddouble(); } // FIXME: performance?
-    float rndfloatsigned() { return (float)(rnddouble() * 2 - 1); }
+    int rnd_int() {
+        return (int)rnd.Random();
+    }
+
+    int64_t rnd_int64(int64_t max) {
+        assert(sizeof(T::rnd_type) == 8);
+        return (int64_t)(rnd.Random() % max);
+    }
+
+    double rnd_double() {
+        assert(sizeof(T::rnd_type) == 8);
+        return (rnd.Random() >> 11) * 0x1.0p-53;
+    }
+
+    float rnd_float() {
+        return float(rnd_double());
+    }
+
+    float rnd_float_signed() {
+        return float(rnd_double() * 2 - 1);
+    }
 
     double n2 = 0.0;
     bool n2_cached = false;
@@ -287,8 +371,8 @@ template<typename T> struct RandomNumberGenerator {
         if (n2_cached) {
             double x, y, r;
             do {
-                x = 2.0 * rnddouble() - 1;
-                y = 2.0 * rnddouble() - 1;
+                x = 2.0 * rnd_double() - 1;
+                y = 2.0 * rnd_double() - 1;
                 r = x * x + y * y;
             } while (r == 0.0 || r > 1.0);
             double d = sqrt(-2.0 * log(r) / r);

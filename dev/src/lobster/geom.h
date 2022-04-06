@@ -353,11 +353,11 @@ template<typename T, int N, typename R> inline vec<float, N> rndunitvec(RandomNu
     DOVECR(r.rnd_float());
 }
 template<typename T, int N, typename R> inline vec<float, N> rndsignedvec(RandomNumberGenerator<R> &r) {
-    DOVECR(r.rndfloatsigned());
+    DOVECR(r.rnd_float_signed());
 }
 template<typename T, int N, typename R> inline vec<int, N> rndivec(RandomNumberGenerator<R> &r,
                                                                    const vec<int, N> &max) {
-    DOVECR(r(max[i]));
+    DOVECR(r.rnd_int(max[i]));
 }
 
 #undef DOVEC
@@ -447,7 +447,7 @@ inline float smootherstep(float x) {
 
 template<typename T> inline float3 random_point_in_sphere(RandomNumberGenerator<T> &r) {
     for (;;) {
-        const float3 p(r.rndfloatsigned(), r.rndfloatsigned(), r.rndfloatsigned());
+        auto p = rndsignedvec<float, 3, T>(r);
         if (dot(p, p) < 1.f)
             return p;
     }

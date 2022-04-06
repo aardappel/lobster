@@ -325,9 +325,6 @@
   - especially so since insatiable random generators (to get multiple
     independent streams) would be great in addition to / instead of a shared
     global generator
-- doug currie: rnd(9223372036854775807) always returns 1.
-  rnd only works in 32-bit currently. could make it use 64-bit, but this will change the
-  results for existing code..
 
 - NEWVEC can defeat the STACKMARGIN check if called with sufficient args.
 
