@@ -498,12 +498,12 @@ struct SymbolTable {
     }
 
     Ident *Lookup(string_view name) {
-        auto it = idents.find(name);
-        if (it != idents.end()) return it->second->Read();
         if (!current_namespace.empty()) {
             auto it = idents.find(NameSpaced(name));
             if (it != idents.end()) return it->second->Read();
         }
+        auto it = idents.find(name);
+        if (it != idents.end()) return it->second->Read();
         return nullptr;
     }
 
@@ -650,16 +650,18 @@ struct SymbolTable {
     }
 
     EnumVal *EnumValLookup(string_view name, Lex &lex, bool decl) {
+        if (!decl) {
+            if (!current_namespace.empty()) {
+                auto evit = enumvals.find(NameSpaced(name));
+                if (evit != enumvals.end()) return evit->second;
+            }
+        }
         auto evit = enumvals.find(name);
         if (evit != enumvals.end()) {
             if (decl) lex.Error("double declaration of enum value: " + name);
             return evit->second;
         }
         if (!decl) {
-            if (!current_namespace.empty()) {
-                evit = enumvals.find(NameSpaced(name));
-                if (evit != enumvals.end()) return evit->second;
-            }
             return nullptr;
         }
         auto ev = new EnumVal(name, 0);
@@ -684,12 +686,12 @@ struct SymbolTable {
     }
 
     UDT *LookupStruct(string_view name) {
-        auto uit = udts.find(name);
-        if (uit != udts.end()) return uit->second;
         if (!current_namespace.empty()) {
-            uit = udts.find(NameSpaced(name));
+            auto uit = udts.find(NameSpaced(name));
             if (uit != udts.end()) return uit->second;
         }
+        auto uit = udts.find(name);
+        if (uit != udts.end()) return uit->second;
         return nullptr;
     }
 
@@ -774,12 +776,12 @@ struct SymbolTable {
     }
 
     Function *FindFunction(string_view name) {
-        auto it = functions.find(name);
-        if (it != functions.end()) return it->second;
         if (!current_namespace.empty()) {
             auto it = functions.find(NameSpaced(name));
             if (it != functions.end()) return it->second;
         }
+        auto it = functions.find(name);
+        if (it != functions.end()) return it->second;
         return nullptr;
     }
 

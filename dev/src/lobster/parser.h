@@ -196,14 +196,14 @@ struct Parser {
                 bool incremental = lex.token == T_ENUM;
                 lex.Next();
                 int64_t cur = incremental ? 0 : 1;
-                auto enumname = st.MaybeNameSpace(ExpectId(), !isprivate);
+                auto enumname = st.MaybeNameSpace(ExpectId(), true);
                 auto def = st.EnumLookup(enumname, lex, true);
                 def->isprivate = isprivate;
                 def->flags = !incremental;
                 Expect(T_COLON);
                 Expect(T_INDENT);
                 for (;;) {
-                    auto evname = st.MaybeNameSpace(ExpectId(), !isprivate);
+                    auto evname = st.MaybeNameSpace(ExpectId(), true);
                     if (IsNext(T_ASSIGN)) {
                         auto e = ParseExp();
                         Value val = NilVal();
@@ -275,7 +275,7 @@ struct Parser {
 
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list) {
         lex.Next();
-        auto sname = st.MaybeNameSpace(ExpectId(), !isprivate);
+        auto sname = st.MaybeNameSpace(ExpectId(), true);
         UDT *udt = &st.StructDecl(sname, lex, is_struct);
         auto parse_sup = [&] () {
             ExpectId();
@@ -430,7 +430,7 @@ struct Parser {
         } else {
             // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
             // current namespace (which is same as !self).
-            idname = st.MaybeNameSpace(ExpectId(), !isprivate && !self);
+            idname = st.MaybeNameSpace(ExpectId(), !self);
         }
         return ParseFunction(&idname, isprivate, true, true, self);
     }
@@ -571,6 +571,9 @@ struct Parser {
                     Error("function ", Q(f.name), " with ", f.nargs(),
                           " arguments is ambiguous with the ", ff->nargs(),
                           " version because of default arguments");
+                if (ff->isprivate != isprivate)
+                    Error("inconsistent private annotation of same function with different number"
+                          " of arguments ", Q(*name));
             }
             ff = ff->sibf;
         }

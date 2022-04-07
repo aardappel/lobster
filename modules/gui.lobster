@@ -243,7 +243,7 @@ def key(key_name, f):  // Surround a button with this to also allow keyboard act
     f()
     button_key.pop()
 
-private def button(id, render, do, dofocus:bool, focusf):
+private def btn(id, render, do, dofocus:bool, focusf):
     overlay(false, id, render) size:
         if interactive.top:
             let hit = gl_hit(float(size), 0)
@@ -270,42 +270,42 @@ private def button(id, render, do, dofocus:bool, focusf):
                         do()
 
 def button(f:fun, do:fun):
-    button(hash(f), f, do, false): nil
+    btn(hash(f), f, do, false): nil
 
 def button(f:fun, do:fun, focus:fun):
-    button(hash(f), f, do, true, focus)
+    btn(hash(f), f, do, true, focus)
 
 def button_id(id:int, f:fun, do:fun):
-    button(id, f, do, false): nil
+    btn(id, f, do, false): nil
 
 def button_id(id:int, f:fun, do:fun, focus:fun):
-    button(id, f, do, true, focus)
+    btn(id, f, do, true, focus)
 
 def button_text(msg:string, do:fun):
-    button(hash(msg), fn: text(msg), do, false): nil
+    btn(hash(msg), fn: text(msg), do, false): nil
 
 def button_id_text(id:int, msg:string, do:fun):
-    button(id, fn: text(msg), do, false): nil
+    btn(id, fn: text(msg), do, false): nil
 
 def button_id_text(id:int, msg:string, do:fun, focus:fun):
-    button(id, fn: text(msg), do, true, focus)
+    btn(id, fn: text(msg), do, true, focus)
 
 def button_text_color(msg:string, col:color, do:fun):
     color(col):
-        button(hash(msg), fn: text(msg), do, false): nil
+        btn(hash(msg), fn: text(msg), do, false): nil
 
 def button_image(size, tex, do:fun):
-    button(hash(tex), fn: image(size, tex), do, false): nil
+    btn(hash(tex), fn: image(size, tex), do, false): nil
 
 def button_id_image(id:int, size, tex, do:fun):
-    button(id, fn: image(size, tex), do, false): nil
+    btn(id, fn: image(size, tex), do, false): nil
 
 def button_id_image(id:int, size, tex, do:fun, focus:fun):
-    button(id, fn: image(size, tex), do, true, focus)
+    btn(id, fn: image(size, tex), do, true, focus)
 
 def button_image_color(size, tex, col:color, do:fun):
     color(col):
-        button(hash(tex), fn: image(size, tex), do, false): nil
+        btn(hash(tex), fn: image(size, tex), do, false): nil
 
 def custombackground(f:funs): if render_pass: f(overalsize)
 
