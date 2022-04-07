@@ -62,3 +62,8 @@ def im_group(label, body):
     im_group_start(label)
     body()
     im_group_end()
+
+def im_width(width, body):
+    im_width_start(width)
+    body()
+    im_width_end()

@@ -37,12 +37,14 @@ bool imgui_init = false;
 int imgui_frame = 0;
 int imgui_windows = 0;
 int imgui_group = 0;
+int imgui_width = 0;
 int imgui_treenode = 0;
 
 void IMGUIFrameCleanup() {
     imgui_frame = 0;
     imgui_windows = 0;
     imgui_group = 0;
+    imgui_width = 0;
     imgui_treenode = 0;
 }
 
@@ -472,6 +474,23 @@ nfr("im_group_end", "", "", "",
         ImGui::PopID();
         imgui_group--;
     });
+
+nfr("im_width_start", "width", "F", "",
+    "Sets the width of an item: 0 = default, -1 = use full width without label,"
+    " any other value is custom width. Use im_width instead",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto width = Pop(sp).fltval();
+        ImGui::PushItemWidth(width);
+        imgui_width++;
+    });
+
+nfr("im_width_end", "", "", "", "", [](StackPtr &, VM &vm) {
+    IsInit(vm);
+    if (!imgui_width) return;
+    ImGui::PopItemWidth();
+    imgui_width--;
+});
 
 nfr("im_edit_anything", "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version",
