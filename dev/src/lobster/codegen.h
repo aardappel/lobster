@@ -456,6 +456,13 @@ struct CodeGen  {
                 GenPop({ sf, i });
             }
         }
+        for (size_t i = nretvals; i < retval; i++) {
+            // This can happen in a function that ends in a non-local return (thus nretvals==0)
+            // but retval>0 because it is inside an if-then-else branch.
+            // FIXME: take care of this in Gen() instead? Are there other nodes for which this
+            // can happen?
+            PushTemp(IL_EXIT);
+        }
     };
 
     void GenFloat(double f) {
@@ -1750,6 +1757,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     // We can promise to be providing whatever retvals the caller wants.
     for (size_t i = 0; i < retval; i++) {
         cg.rettypes.push_back({ type_undefined, LT_ANY });
+        cg.PushTemp(IL_RETURN);  // FIXME: is this necessary? do more generally?
     }
 }
 
