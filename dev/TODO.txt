@@ -78,7 +78,14 @@
       already be made to specific calls in the parser.
 
 - error on `if a:` where `a` is non-nillable ref type?
+  - same for `assert a`.
   - would make specialization more restrictive, but avoids errors while refactoring etc.
+
+- this should not need an assert:
+  var a = nil
+  if not a:
+      a = val {}
+  (assert a).x
 
 - use this instead of the current lib for span? supposedly better than the std version:
   https://github.com/abseil/abseil-cpp/blob/master/absl/types/span.h

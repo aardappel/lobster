@@ -743,6 +743,7 @@ struct LVector : RefObj {
     void Remove(StackPtr &sp, VM &vm, iint i, iint n, iint decfrom, bool stack_ret);
 
     Value *Elems() { return v; }
+    const Value *Elems() const { return v; }
 
     Value &At(iint i) const {
         assert(i < len && width == 1);

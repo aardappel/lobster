@@ -759,7 +759,7 @@ struct TypeChecker {
             // See if we can find a matching specialization instead.
             for (auto sti = udt.given_superclass->spec_udt->udt->first; sti; sti = sti->next) {
                 for (size_t i = 0; i < sti->fields.size(); i++) {
-                    if (!sti->fields[i].resolvedtype->Equal(*udt.fields[i].resolvedtype)) {
+                    if (!sti->fields[i].resolvedtype->Equal(*udt.fields[i].resolvedtype, true)) {
                         goto fail;
                     }
                 }
