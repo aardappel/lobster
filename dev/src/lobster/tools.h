@@ -131,7 +131,7 @@ struct DLNodeBase : DLNodeRaw {
 
     bool Connected() { return next && prev; }
 
-    virtual ~DLNodeBase() {
+    ~DLNodeBase() {
         if (Connected()) Remove();
     }
 
