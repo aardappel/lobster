@@ -170,11 +170,12 @@ LObject *VM::NewObject(iint max, type_elem_t tti) {
 LString *VM::NewString(iint l) {
     auto s = new (pool.alloc(ssizeof<LString>() + l + 1)) LString(l);
     OnAlloc(s);
-    return s;\
+    return s;
 }
 
 LResource *VM::NewResource(void *v, const ResourceType *t) {
     auto r = new (pool.alloc(sizeof(LResource))) LResource(v, t);
+    if (t->newfun) t->newfun(r->val);
     OnAlloc(r);
     return r;
 }

@@ -260,6 +260,10 @@ struct LString : RefObj {
 struct ResourceType {
     const char *name;
     void (* deletefun)(void *);
+    void (* newfun)(void *);
+
+    ResourceType(const char *n, void (*df)(void *), void (*nf)(void *) = nullptr)
+        : name(n), deletefun(df), newfun(nf) {}
 };
 
 struct LResource : RefObj {
