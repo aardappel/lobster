@@ -201,6 +201,7 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
         case V_STRING:      return *((LString *)a) == *((LString *)b);
         case V_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
         case V_CLASS:       return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
+        case V_RESOURCE:    return structural && ((LResource *)a)->val == ((LResource *)b)->val;
         default:            assert(0); return false;
     }
 }
