@@ -8,6 +8,7 @@
 - move this TODO.txt to github issues.
 
 - move function checking into typechecker.
+    - generally having all functions global is a big source of confusion, should have methods separate.
     - problematic error:
         error: no version of function `f` takes 0 arguments
       - where `f` is a method yet to be declared in the current class, but also used in other classes.
