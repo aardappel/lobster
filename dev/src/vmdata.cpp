@@ -87,12 +87,7 @@ void LVector::Append(VM &vm, LVector *from, iint start, iint amount) {
     if (len + amount > maxl) Resize(vm, len + amount);  // FIXME: check overflow
     assert(width == from->width);
     t_memcpy(v + len * width, from->v + start * width, amount * width);
-    auto et = from->ElemType(vm).t;
-    if (IsRefNil(et)) {
-        for (int i = 0; i < amount * width; i++) {
-            v[len * width + i].LTINCRTNIL();
-        }
-    }
+    IncElementRange(vm, len, len + amount);
     len += amount;
 }
 
@@ -130,20 +125,38 @@ void LVector::AtVWSub(StackPtr &sp, iint i, int w, int off) const {
 
 void LVector::DestructElementRange(VM& vm, iint from, iint to) {
     auto &eti = ElemType(vm);
-    if (IsRefNil(eti.t)) {
-        if (eti.t == V_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
-            // We only run this special loop for mixed ref/scalar.
-            for (int j = 0; j < width; j++) {
-                if ((1 << j) & eti.vtable_start_or_bitmask) {
-                    for (iint i = from; i < to; i++) {
-                        AtSlot(i * width + j).LTDECRTNIL(vm);
-                    }
+    if (!IsRefNil(eti.t)) return;
+    if (eti.t == V_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
+        // We only run this special loop for mixed ref/scalar.
+        for (int j = 0; j < width; j++) {
+            if ((1 << j) & eti.vtable_start_or_bitmask) {
+                for (iint i = from; i < to; i++) {
+                    AtSlot(i * width + j).LTDECRTNIL(vm);
                 }
             }
-        } else {
-            for (iint i = from * width; i < to * width; i++) {
-                AtSlot(i).LTDECRTNIL(vm);
+        }
+    } else {
+        for (iint i = from * width; i < to * width; i++) {
+            AtSlot(i).LTDECRTNIL(vm);
+        }
+    }
+}
+
+void LVector::IncElementRange(VM &vm, iint from, iint to) {
+    auto &eti = ElemType(vm);
+    if (!IsRefNil(eti.t)) return;
+    if (eti.t == V_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
+        // We only run this special loop for mixed ref/scalar.
+        for (int j = 0; j < width; j++) {
+            if ((1 << j) & eti.vtable_start_or_bitmask) {
+                for (iint i = from; i < to; i++) {
+                    AtSlot(i * width + j).LTINCRTNIL();
+                }
             }
+        }
+    } else {
+        for (iint i = from * width; i < to * width; i++) {
+            AtSlot(i).LTINCRTNIL();
         }
     }
 }

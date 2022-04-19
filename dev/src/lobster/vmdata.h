@@ -694,6 +694,7 @@ struct LVector : RefObj {
     }
 
     void DestructElementRange(VM &vm, iint from, iint to);
+    void IncElementRange(VM &vm, iint from, iint to);
 
     void DeleteSelf(VM &vm);
 
@@ -803,18 +804,19 @@ struct LVector : RefObj {
     }
 
     void IncRefElems(VM &vm) {
-        auto et = ElemType(vm).t;
-        if (!IsRefNil(et)) return;
-        for (iint i = 0; i < len * width; i++) {
-            AtSlot(i).LTINCRTNIL();
-        }
+        IncElementRange(vm, 0, len);
     }
 
     void CopyRefElemsDeep(VM &vm) {
-        auto et = ElemType(vm).t;
-        if (!IsRefNil(et)) return;
-        for (iint i = 0; i < len * width; i++) {
-            AtSlot(i) = AtSlot(i).CopyRef(vm, true);
+        auto &eti = ElemType(vm);
+        if (!IsRefNil(eti.t)) return;
+        for (int j = 0; j < width; j++) {
+            if (eti.t != V_STRUCT_R || (1 << j) & eti.vtable_start_or_bitmask) {
+                for (iint i = 0; i < len; i++) {
+                    auto l = i * width + j;
+                    AtSlot(l) = AtSlot(l).CopyRef(vm, true);
+                }
+            }
         }
     }
 
