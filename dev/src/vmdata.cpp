@@ -87,8 +87,8 @@ void LVector::Append(VM &vm, LVector *from, iint start, iint amount) {
     if (len + amount > maxl) Resize(vm, len + amount);  // FIXME: check overflow
     assert(width == from->width);
     t_memcpy(v + len * width, from->v + start * width, amount * width);
-    IncElementRange(vm, len, len + amount);
     len += amount;
+    IncElementRange(vm, len - amount, len);
 }
 
 void LVector::Remove(StackPtr &sp, VM &vm, iint i, iint n, iint decfrom, bool stack_ret) {
