@@ -475,6 +475,7 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     });
 
+// https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
 nfr("cg_load_vox", "name", "S", "R?",
     "loads a file in the .vox format (MagicaVoxel). returns block or nil if file failed to"
     " load",
@@ -487,12 +488,18 @@ nfr("cg_load_vox", "name", "S", "R?",
         int3 size = int3_0;
         Voxels *voxels = nullptr;
         auto p = buf.c_str() + 8;
+        bool chunks_skipped = false;
         while (p < buf.c_str() + buf.length()) {
             auto id = p;
             p += 4;
             auto contentlen = *((int *)p);
             p += 8;
             if (!strncmp(id, "SIZE", 4)) {
+                if (voxels) {
+                    // Multiple voxel models in this file, not currently supported.
+                    delete voxels;
+                    return NilVal();
+                }
                 size = int3((int *)p);
                 voxels = NewWorld(size);
             } else if (!strncmp(id, "RGBA", 4)) {
@@ -514,9 +521,15 @@ nfr("cg_load_vox", "name", "S", "R?",
                     auto pos = int3(vox.xyz());
                     if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
                 }
+            } else if (!strncmp(id, "MAIN", 4)) {
+                // Ignore, wrapper around the above chunks.
+            } else {
+                chunks_skipped = true;
             }
             p += contentlen;
         }
+        if (!voxels) return NilVal();
+        voxels->chunks_skipped = chunks_skipped;
         return Value(vm.NewResource(voxels, GetVoxelType()));
     });
 
@@ -525,9 +538,7 @@ nfr("cg_save_vox", "block,name", "RS", "B",
     " this format can only save blocks < 256^3, will fail if bigger",
     [](StackPtr &, VM &vm, Value &wid, Value &name) {
         auto &v = GetVoxels(vm, wid);
-        if (!(v.grid.dim < 256)) {
-            return Value(false);
-        }
+        if (!(v.grid.dim < 256)) { return Value(false); }
         vector<byte4> voxels;
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
@@ -546,25 +557,36 @@ nfr("cg_save_vox", "block,name", "RS", "B",
         wint(150);
         wstr("MAIN");
         wint(0);
-        wint(24 /* SIZE */ + 12 + 1024 /* RGBA */ + 16 + (int)voxels.size() * 4 /* XYZI */);
+        int bsize = 24;                                 // SIZE chunk.
+        bsize += 16 + (int)voxels.size() * 4;           // XYZI chunk.
+        if (!v.is_default_palette) bsize += 12 + 1024;  // RGBA chunk.
+        wint(bsize);
         wstr("SIZE");
         wint(12);
         wint(0);
         wint(v.grid.dim.x);
         wint(v.grid.dim.y);
         wint(v.grid.dim.z);
-        wstr("RGBA");
-        wint(256 * 4);
-        wint(0);
-        fwrite(v.palette.data() + 1, 4, 255, f);
-        wint(0);
         wstr("XYZI");
         wint((int)voxels.size() * 4 + 4);
         wint(0);
         wint((int)voxels.size());
         fwrite(voxels.data(), 4, voxels.size(), f);
+        if (!v.is_default_palette) {
+            wstr("RGBA");
+            wint(256 * 4);
+            wint(0);
+            fwrite(v.palette.data() + 1, 4, 255, f);
+            wint(0);
+        }
         fclose(f);
         return Value(true);
+    });
+
+nfr("cg_chunks_skipped", "block", "R", "B", "",
+    [](StackPtr &, VM &vm, Value &wid) {
+        auto &v = GetVoxels(vm, wid);
+        return Value(v.chunks_skipped);
     });
 
 nfr("cg_get_buf", "block", "R", "S",

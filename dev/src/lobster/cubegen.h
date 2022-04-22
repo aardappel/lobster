@@ -20,10 +20,11 @@ const uint8_t transparant = 0;
 struct Voxels {
     vector<byte4> palette;
     bool is_default_palette;
+    bool chunks_skipped;
     Chunk3DGrid<uint8_t> grid;
     int idx = 0;
 
-    Voxels(const int3 &dim) : is_default_palette(true), grid(dim, transparant) {}
+    Voxels(const int3 &dim) : is_default_palette(true), chunks_skipped(false), grid(dim, transparant) {}
 
     template<typename F> void Do(const int3 &p, const int3 &sz, F f) {
         for (int x = max(0, p.x); x < min(p.x + sz.x, grid.dim.x); x++) {
