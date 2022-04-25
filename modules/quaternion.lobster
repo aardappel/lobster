@@ -29,3 +29,20 @@ def quat_from_angle_axis(angle:float, axis:xyz_f):
 
 def quat_from_vec(v:xyz_f):
     return quat { v.x, v.y, v.z, -sqrt(max(1.0 - dot(v, v), 0.0)) }
+
+def quat_from_euler(yaw, pitch):
+    let cy = cos(yaw * 0.5)
+    let sy = sin(yaw * 0.5)
+    let cp = cos(pitch * 0.5)
+    let sp = sin(pitch * 0.5)
+    return quat { sp * sy, sp * cy, cp * sy, cp * cy }
+
+def quat_from_yaw(yaw):
+    let cy = cos(yaw * 0.5)
+    let sy = sin(yaw * 0.5)
+    return quat { 0.0, 0.0, sy, cy }
+
+def quat_from_pitch(pitch):
+    let cp = cos(pitch * 0.5)
+    let sp = sin(pitch * 0.5)
+    return quat { 0.0, sp, 0.0, cp }
