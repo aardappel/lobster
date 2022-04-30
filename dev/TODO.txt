@@ -686,6 +686,10 @@
     https://gobyexample.com/
   - redo philosophy doc.
 
+- imgui additions:
+  - File Selector:
+    https://github.com/dfranx/ImFileDialog
+
 - move all string formatting and parsing to to_chars and from_chars
 
 - We support implicit this.member in multi-assign, but not explicit.
