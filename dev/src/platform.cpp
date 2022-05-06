@@ -53,7 +53,9 @@
     #include "lobster/sdlincludes.h"  // FIXME
 #endif
 
-#include "subprocess.h"
+#ifndef PLATFORM_ES3
+    #include "subprocess.h"
+#endif
 
 // Dirs to load files relative to, they typically contain, and will be searched in this order:
 // - The project specific files. This is where the bytecode file you're running or the main
@@ -535,29 +537,36 @@ void SetConsole(bool on) {
 }
 
 iint LaunchSubProcess(const char **cmdl, const char *stdins, string &out) {
-    struct subprocess_s subprocess;
-    int result = subprocess_create(cmdl, 0, &subprocess);
-    if (result) return -1;
-    if (stdins) {
-        FILE *p_stdin = subprocess_stdin(&subprocess);
-        fputs(stdins, p_stdin);
-        fclose(p_stdin);
-    }
-    int process_return;
-    result = subprocess_join(&subprocess, &process_return);
-    if (result) {
-        subprocess_destroy(&subprocess);
-        return -1;
-    }
-    auto readall = [&](FILE *f) {
-        for (;;) {
-            auto c = getc(f);
-            if (c < 0) break;
-            out.push_back((char)c);
+    #ifndef PLATFORM_ES3
+        struct subprocess_s subprocess;
+        int result = subprocess_create(cmdl, 0, &subprocess);
+        if (result) return -1;
+        if (stdins) {
+            FILE *p_stdin = subprocess_stdin(&subprocess);
+            fputs(stdins, p_stdin);
+            fclose(p_stdin);
         }
-    };
-    readall(subprocess_stdout(&subprocess));
-    readall(subprocess_stderr(&subprocess));
-    subprocess_destroy(&subprocess);
-    return process_return;
+        int process_return;
+        result = subprocess_join(&subprocess, &process_return);
+        if (result) {
+            subprocess_destroy(&subprocess);
+            return -1;
+        }
+        auto readall = [&](FILE *f) {
+            for (;;) {
+                auto c = getc(f);
+                if (c < 0) break;
+                out.push_back((char)c);
+            }
+        };
+        readall(subprocess_stdout(&subprocess));
+        readall(subprocess_stderr(&subprocess));
+        subprocess_destroy(&subprocess);
+        return process_return;
+    #else
+        (void)cmdl;
+        (void)stdins;
+        (void)out;
+        return -1;
+    #endif
 }
