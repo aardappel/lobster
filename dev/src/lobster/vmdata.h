@@ -560,6 +560,10 @@ template<typename T> struct ValueVec {
         return sqrt(dot(*this));
     }
 
+    T length_squared() {
+        return dot(*this);
+    }
+
     T manhattan() {
         T r = 0;
         for (iint i = 0; i < len; i++) {
