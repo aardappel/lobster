@@ -746,6 +746,20 @@ nfr("magnitude", "v", "F}", "F",
         Push(sp, a.length());
     });
 
+nfr("magnitude_squared", "v", "F}", "F",
+    "the geometric length of a vector squared",
+    [](StackPtr &sp, VM &) {
+        auto a = DangleVec<double>(sp);
+        Push(sp, a.length_squared());
+    });
+
+nfr("magnitude_squared", "v", "I}", "I",
+    "the geometric length of a vector squared",
+    [](StackPtr &sp, VM &) {
+        auto a = DangleVec<long>(sp);
+        Push(sp, a.length_squared());
+    });
+
 nfr("manhattan", "v", "I}", "I",
     "the manhattan distance of a vector",
     [](StackPtr &sp, VM &) {
