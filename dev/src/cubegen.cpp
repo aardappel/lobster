@@ -23,6 +23,8 @@
 #include "lobster/cubegen.h"
 #include "lobster/simplex.h"
 
+vector<Palette> palettes;
+
 namespace lobster {
 
 RandomNumberGenerator<PCG32> cg_rnd;
@@ -160,15 +162,42 @@ uint8_t FindClosestNormal(float3 normal) {
     return besti;
 }
 
-Voxels *NewWorld(const int3 &size, const byte4 *from_palette = nullptr) {
-    auto v = new Voxels(size);
-    if (!from_palette) from_palette = (byte4 *)default_palette;
-    v->palette.insert(v->palette.end(), from_palette, from_palette + 256);
+const size_t palette_size = 256 * sizeof(byte4);
+
+size_t NewPalette(const byte4 *p) {
+    auto hash = FNV1A64(string_view((const char *)&p, palette_size));
+    // See if there's an existing matching palette.
+    for (auto [pali, pal] : enumerate(palettes)) {
+        if (pal.hash == hash &&  // Quick reject.
+            memcmp(pal.colors.data(), p, palette_size) == 0) {
+            return pali;  // Yay, found existing matching palette!
+        }
+    }
+    // Need to create a new one.
+    palettes.emplace_back(Palette{});
+    auto &palette = palettes.back();
+    palette.hash = hash;
+    palette.colors.insert(palette.colors.end(), p, p + 256);
+    return palettes.size() - 1;
+}
+
+Voxels *NewWorld(const int3 &size, size_t palette_idx) {
+    auto v = new Voxels(size, palette_idx);
+    if (palettes.empty()) {
+        // Guarantees init of default_palette_idx (0) and normal_palette_idx (1).
+        NewPalette((byte4 *)default_palette);
+        vector<byte4> normal_palette;
+        normal_palette.resize(256, quantizec(float3(0.5), 0));
+        for (uint8_t i = 0; i < normal_table_size; i++) {
+            normal_palette[i] = quantizec((default_normals[i] + 1) / 2, 0);
+        }
+        NewPalette(normal_palette.data());
+    }
     return v;
 }
 
 Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset) {
-    auto &v = *NewWorld(int3_1 * targetgridsize);
+    auto &v = *NewWorld(int3_1 * targetgridsize, default_palette_idx);
     auto off = (grid.dim - v.grid.dim) / 2;
     off.z += zoffset;
     for (int x = 0; x < v.grid.dim.x; x++) {
@@ -201,7 +230,7 @@ nfr("cg_init", "size", "I}:3", "R",
     "initializes a new, empty 3D cube block. 1 byte per cell, careful with big sizes :)"
     " returns the block",
     [](StackPtr &sp, VM &vm) {
-        auto v = NewWorld(PopVec<int3>(sp));
+        auto v = NewWorld(PopVec<int3>(sp), default_palette_idx);
         Push(sp, vm.NewResource(v, GetVoxelType()));
     });
 
@@ -252,7 +281,7 @@ nfr("cg_clone", "block,pos,size", "RI}:3I}:3", "R",
         auto p = PopVec<int3>(sp);
         auto res = Pop(sp);
         auto &v = GetVoxels(vm, res);
-        auto nw = NewWorld(sz, v.palette.data());
+        auto nw = NewWorld(sz, v.palette_idx);
         v.Clone(p, sz, nw);
         Push(sp, vm.NewResource(nw, GetVoxelType()));
     });
@@ -271,15 +300,14 @@ nfr("cg_palette_to_color", "block,paletteindex", "RI", "F}:4",
     [](StackPtr &sp, VM &vm) {
         auto p = uint8_t(Pop(sp).ival());
         auto res = Pop(sp);
-        PushVec(sp, color2vec(GetVoxels(vm, res).palette[p]));
+        PushVec(sp, color2vec(palettes[GetVoxels(vm, res).palette_idx].colors[p]));
     });
 
 nfr("cg_copy_palette", "fromworld,toworld", "RR", "", "",
     [](StackPtr &, VM &vm, Value &fromworld, Value &toworld) {
         auto &w1 = GetVoxels(vm, fromworld);
         auto &w2 = GetVoxels(vm, toworld);
-        w2.palette.clear();
-        w2.palette.insert(w2.palette.end(), w1.palette.begin(), w1.palette.end());
+        w2.palette_idx = w1.palette_idx;
         return NilVal();
     });
 
@@ -289,6 +317,7 @@ nfr("cg_sample_down", "scale,world", "IR", "", "",
         if (sc < 2 || sc > 128)
             vm.Error("cg_sample_down: scale out of range");
         auto &v = GetVoxels(vm, world);
+        auto &palette = palettes[v.palette_idx].colors;
         for (int x = 0; x < v.grid.dim.x / sc; x++) {
             for (int y = 0; y < v.grid.dim.y / sc; y++) {
                 for (int z = 0; z < v.grid.dim.z / sc; z++) {
@@ -299,7 +328,7 @@ nfr("cg_sample_down", "scale,world", "IR", "", "",
                             for (int zd = 0; zd < sc; zd++) {
                                 auto d = int3(xd, yd, zd);
                                 auto c = v.grid.Get(pos * sc + d);
-                                acc += int4(v.palette[c]);  // FIXME: not SRGB aware.
+                                acc += int4(palette[c]);  // FIXME: not SRGB aware.
                             }
                         }
                     }
@@ -318,7 +347,7 @@ nfr("cg_scale_up", "scale,world", "IR", "R", "",
         auto &v = GetVoxels(vm, world);
         if (sc < 2 || sc > 256 || squaredlength(v.grid.dim) * sc > 2048)
             vm.Error("cg_scale_up: scale out of range");
-        auto &d = *NewWorld(v.grid.dim * sc, v.palette.data());
+        auto &d = *NewWorld(v.grid.dim * sc, v.palette_idx);
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
                 for (int z = 0; z < v.grid.dim.z; z++) {
@@ -342,6 +371,7 @@ nfr("cg_create_mesh", "block", "R", "R",
     "converts block to a mesh",
     [](StackPtr &, VM &vm, Value &wid) {
         auto &v = GetVoxels(vm, wid);
+        auto &palette = palettes[v.palette_idx].colors;
         static int3 neighbors[] = {
             int3(1, 0, 0), int3(-1,  0,  0),
             int3(0, 1, 0), int3( 0, -1,  0),
@@ -402,7 +432,7 @@ nfr("cg_create_mesh", "block", "R", "R",
                                     auto offset = float3(&rnd_offset[oi]);
                                     vert.pos = float3(vpos) + offset;
                                     vert.normal = float3(neighbors[n]);
-                                    vert.color = v.palette[c];
+                                    vert.color = palette[c];
                                     vindices[vn] = (int)verts.size();
                                     verts.push_back(vert);
                                     if (optimize_verts) vertlookup[vkey] = vindices[vn];
@@ -431,6 +461,7 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
     " 3d|single_channel|has_mips",
     [](StackPtr &, VM &vm, Value &wid, Value &textureflags, Value &monochrome) {
         auto &v = GetVoxels(vm, wid);
+        auto &palette = palettes[v.palette_idx].colors;
         auto mipsizes = 0;
         for (auto d = v.grid.dim; d.x; d /= 2) mipsizes += d.volume();
         auto buf = new uint8_t[mipsizes];
@@ -452,7 +483,7 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
                                 for (int sx = 0; sx < 2; sx++) {
                                     auto i = mipb[(zb + sz) * db.x * db.y +
                                                     (yb + sy) * db.x + xb + sx];
-                                    if (i != transparant) { sum += float4(v.palette[i]); filled++; }
+                                    if (i != transparant) { sum += float4(palette[i]); filled++; }
                                 }
                             }
                         }
@@ -501,18 +532,13 @@ nfr("cg_load_vox", "name", "S", "R?",
                     return NilVal();
                 }
                 size = int3((int *)p);
-                voxels = NewWorld(size);
+                voxels = NewWorld(size, default_palette_idx);
             } else if (!strncmp(id, "RGBA", 4)) {
                 if (!voxels) return NilVal();
-                voxels->palette.clear();
-                voxels->palette.push_back(byte4_0);
-                voxels->palette.insert(voxels->palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
-                for (size_t i = 0; i < voxels->palette.size(); i++) {
-                    if (voxels->palette[i] != *(byte4 *)&default_palette[i]) {
-                        voxels->is_default_palette = false;
-                        break;
-                    }
-                }
+                vector<byte4> palette;
+                palette.push_back(byte4_0);
+                palette.insert(palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
+                voxels->palette_idx = NewPalette(palette.data());
             } else if (!strncmp(id, "XYZI", 4)) {
                 if (!voxels) return NilVal();
                 auto numvoxels = *((int *)p);
@@ -559,7 +585,7 @@ nfr("cg_save_vox", "block,name", "RS", "B",
         wint(0);
         int bsize = 24;                                 // SIZE chunk.
         bsize += 16 + (int)voxels.size() * 4;           // XYZI chunk.
-        if (!v.is_default_palette) bsize += 12 + 1024;  // RGBA chunk.
+        if (v.palette_idx != default_palette_idx) bsize += 12 + 1024;  // RGBA chunk.
         wint(bsize);
         wstr("SIZE");
         wint(12);
@@ -572,11 +598,11 @@ nfr("cg_save_vox", "block,name", "RS", "B",
         wint(0);
         wint((int)voxels.size());
         fwrite(voxels.data(), 4, voxels.size(), f);
-        if (!v.is_default_palette) {
+        if (v.palette_idx != default_palette_idx) {
             wstr("RGBA");
             wint(256 * 4);
             wint(0);
-            fwrite(v.palette.data() + 1, 4, 255, f);
+            fwrite(palettes[v.palette_idx].colors.data() + 1, 4, 255, f);
             wint(0);
         }
         fclose(f);
@@ -601,6 +627,7 @@ nfr("cg_get_buf", "block", "R", "S",
 nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 	[](StackPtr &sp, VM &vm) {
 		auto &v = GetVoxels(vm, Pop(sp));
+        auto &palette = palettes[v.palette_idx].colors;
 		float3 col(0.0f);
 		float nsurf = 0;
 		int nvol = 0;
@@ -619,7 +646,7 @@ nfr("cg_average_surface_color", "world", "R", "F}:4", "",
 						for (int i = 0; i < 6; i++) {
 							auto p = pos + neighbors[i];
 							if (!(p >= 0) || !(p < v.grid.dim) || !v.grid.Get(p)) {
-								col += from_srgb(float3(v.palette[c].xyz()) / 255.0f);
+								col += from_srgb(float3(palette[c].xyz()) / 255.0f);
 								nsurf++;
 								break;
 							}
@@ -654,9 +681,8 @@ nfr("cg_rotate", "block,n", "RI", "R",
         auto &v = GetVoxels(vm, wid);
         auto n = rots.ival();
         auto &d = n == 1 || n == 3
-			? *NewWorld(int3(v.grid.dim.y, v.grid.dim.x, v.grid.dim.z))
-            : *NewWorld(v.grid.dim);
-        d.palette.assign(v.palette.begin(), v.palette.end());
+			? *NewWorld(int3(v.grid.dim.y, v.grid.dim.x, v.grid.dim.z), v.palette_idx)
+            : *NewWorld(v.grid.dim, v.palette_idx);
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
                 for (int z = 0; z < v.grid.dim.z; z++) {
@@ -767,7 +793,7 @@ nfr("cg_randomize", "world,rnd_range,cutoff,paletteindex,filter", "RIIII", "", "
 nfr("cg_erode", "world,minsolid,maxsolid", "RII", "R", "",
     [](StackPtr &, VM &vm, Value &world, Value &minsolid, Value &maxsolid) {
         auto &v = GetVoxels(vm, world);
-        auto &d = *NewWorld(v.grid.dim, v.palette.data());
+        auto &d = *NewWorld(v.grid.dim, v.palette_idx);
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
                 for (int z = 0; z < v.grid.dim.z; z++) {
@@ -808,12 +834,8 @@ nfr("cg_normal_indices", "block,radius", "RI", "R",
         auto radius = Pop(sp).intval();
         auto res = Pop(sp);
         auto &v = GetVoxels(vm, res);
-        vector<byte4> normal_palette;
-        normal_palette.resize(256, quantizec(float3(0.5), 0));
-        for (uint8_t i = 0; i < normal_table_size; i++) {
-            normal_palette[i] = quantizec((default_normals[i] + 1) / 2, 0);
-        }
-        auto nw = NewWorld(v.grid.dim, normal_palette.data());
+
+        auto nw = NewWorld(v.grid.dim, normal_palette_idx);
         auto ComputeNormal = [&](int3 c, int rad) {
             int3 normal = int3_0;
             for (int x = -rad; x <= rad; x++) {
@@ -895,7 +917,7 @@ nfr("cg_load_image", "name,depth,edge,numtiles", "SIII}:2", "R]",
                 for (int tx = 0; tx < numtiles.x; tx++) {
                     // FIXME: make orientation configurable.
                     auto size = int3(dim.x, depth, dim.y);
-                    Voxels *voxels = NewWorld(size);
+                    Voxels *voxels = NewWorld(size, default_palette_idx);
                     int2 neighbors[] = { int2(0, 1), int2(0, -1), int2(1, 0), int2(-1, 0) };
                     auto Get = [&](int2 p) {
                         return ((byte4 *)buf)[(p.x + tx * dim.x) + (dim.y - p.y - 1 + ty * dim.y) * idim.x];
@@ -928,6 +950,27 @@ nfr("cg_load_image", "name,depth,edge,numtiles", "SIII}:2", "R]",
             FreeImageFromFile(buf);
         }
         Push(sp, vec);
+    });
+
+nfr("cg_palette_storage_index", "block", "R", "I", "",
+    [](StackPtr &sp, VM &vm) {
+        auto res = Pop(sp);
+        Push(sp, GetVoxels(vm, res).palette_idx);
+    });
+
+nfr("cg_get_palette_storage_len", "", "", "I", "",
+    [](StackPtr &, VM &) {
+        return Value(palettes.size());
+    });
+
+nfr("cg_get_palette_storage_buf", "", "", "S", "",
+    [](StackPtr &, VM &vm) {
+        auto buf = vm.NewString(palettes.size() * palette_size);
+        for (auto [i, pal] : enumerate(palettes)) {
+            memcpy((uint8_t *)buf->strv().data() + i * palette_size, pal.colors.data(),
+                   palette_size);
+        }
+        return Value(buf);
     });
 
 }  // AddCubeGen
