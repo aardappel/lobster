@@ -8,9 +8,12 @@ private var i = 0
 
 // match with a particular vector, all matching functions must be used inside of the function
 def match_with(it, f):
+    assert not iterv
     iterv = it
     i = 0
-    return f()
+    let result = f()
+    iterv = nil
+    return result
 
 def match_elem(f):     // match single element
     let iv = assert iterv  // if this fails, you're calling match() outside of a match_with() block
