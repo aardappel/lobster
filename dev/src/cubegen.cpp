@@ -507,15 +507,21 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
     });
 
 // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
-nfr("cg_load_vox", "name", "S", "R?",
+nfr("cg_load_vox", "name", "S", "R?S?",
     "loads a file in the .vox format (MagicaVoxel). returns block or nil if file failed to"
     " load",
-    [](StackPtr &, VM &vm, Value &name) {
+    [](StackPtr &sp, VM &vm, Value &name) {
         auto namep = name.sval()->strv();
         string buf;
+        auto errf = [&](string_view err) {
+            Push(sp, NilVal());
+            return Value(vm.NewString(err));
+        };
         auto l = LoadFile(namep, &buf);
-        if (l < 0) return Value(0);
-        if (strncmp(buf.c_str(), "VOX ", 4)) return NilVal();
+        if (l < 0)
+            return errf(cat("could not load ", namep));
+        if (strncmp(buf.c_str(), "VOX ", 4))
+            return errf(".vox file missing file header");
         int3 size = int3_0;
         Voxels *voxels = nullptr;
         auto p = buf.c_str() + 8;
@@ -529,18 +535,20 @@ nfr("cg_load_vox", "name", "S", "R?",
                 if (voxels) {
                     // Multiple voxel models in this file, not currently supported.
                     delete voxels;
-                    return NilVal();
+                    return errf(".vox file contains multiple models (not supported)");
                 }
                 size = int3((int *)p);
                 voxels = NewWorld(size, default_palette_idx);
             } else if (!strncmp(id, "RGBA", 4)) {
-                if (!voxels) return NilVal();
+                if (!voxels)
+                    return errf(".vox file RGBA chunk in wrong order");
                 vector<byte4> palette;
                 palette.push_back(byte4_0);
                 palette.insert(palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
                 voxels->palette_idx = NewPalette(palette.data());
             } else if (!strncmp(id, "XYZI", 4)) {
-                if (!voxels) return NilVal();
+                if (!voxels)
+                    return errf(".vox file XYZI chunk in wrong order");
                 auto numvoxels = *((int *)p);
                 for (int i = 0; i < numvoxels; i++) {
                     auto vox = byte4((uint8_t *)(p + i * 4 + 4));
@@ -554,9 +562,11 @@ nfr("cg_load_vox", "name", "S", "R?",
             }
             p += contentlen;
         }
-        if (!voxels) return NilVal();
+        if (!voxels)
+            return errf(".vox file missing SIZE chunk");
         voxels->chunks_skipped = chunks_skipped;
-        return Value(vm.NewResource(voxels, GetVoxelType()));
+        Push(sp, Value(vm.NewResource(voxels, GetVoxelType())));
+        return NilVal();
     });
 
 nfr("cg_save_vox", "block,name", "RS", "B",
