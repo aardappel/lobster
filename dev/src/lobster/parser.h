@@ -68,7 +68,7 @@ struct Parser {
         auto &ov = f.overloads[0];
         sf->SetParent(f, ov.sf);
         f.anonymous = true;
-        lex.Include("stdtype.lobster");
+        lex.Include("stdtype.lobster", false);
         ov.gbody = new Block(lex);
         ParseStatements(ov.gbody, T_ENDOFFILE);
         ImplicitReturn(ov);

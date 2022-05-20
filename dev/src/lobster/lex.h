@@ -54,6 +54,8 @@ struct LoadedFile : Line {
 
     vector<Tok> gentokens;
 
+    string filename;
+
     LoadedFile(string_view fn, vector<string> &fns, string_view stringsource)
         : Line(1, (int)fns.size()) {
         if (!stringsource.empty()) {
@@ -69,6 +71,7 @@ struct LoadedFile : Line {
         indentstack.push_back({ 0, false });
 
         fns.push_back(string(fn));
+        filename = fn;
     }
 };
 
@@ -93,7 +96,20 @@ struct Lex : LoadedFile {
         if (token == T_LINEFEED) Next();
     }
 
-    void Include(string_view _fn) {
+    void Include(string_view _fn, bool do_cycle_check = true) {
+        auto cycle_check = [&](const LoadedFile &pf) {
+            if (pf.filename == _fn) {
+                string err = "cyclic import: ";
+                for (auto &ef : parentfiles) append(err, ef.filename, " -> ");
+                append(err, filename, " -> ", _fn);
+                Error(err);
+            }
+        };
+        if (do_cycle_check) {
+            cycle_check(*this);
+            for (auto &pf : parentfiles)
+                cycle_check(pf);
+        }
         if (allfiles.find(_fn) != allfiles.end()) {
             return;
         }
