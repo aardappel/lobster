@@ -298,6 +298,22 @@ run_test("misc"):
         assert a + b == 3
     outer()
 
+    // Multiple different paths thru same unwind point.
+
+    def outer_dest2(mode):
+        def outer_dest1():
+            def return_past() -> float:
+                switch mode:
+                    case 0: return "a" from outer_dest1
+                    case 1: return xy { 4, 5 } from outer_dest2  // Different number and type.
+                    default: return 3.1  // local return.
+            // The unwind check of the return_past call must deal with different return types and sizes.
+            return string(return_past())
+        return xy { length(outer_dest1()), 0 }
+    assert outer_dest2(0) == xy { 1, 0 }
+    assert outer_dest2(1) == xy { 4, 5 }
+    assert outer_dest2(2) == xy { 3, 0 }
+
     // Like Python, but actually a built-in function.
     if false:
         pass()

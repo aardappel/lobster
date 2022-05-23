@@ -876,6 +876,7 @@ struct VM : VMArgs {
     fun_base_t next_call_target = 0;
 
     int ret_unwind_to = -1;
+    int ret_slots = -1;
 
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts = nullptr;
@@ -1058,6 +1059,10 @@ VM_INLINE StackPtr PopArg(VM &vm, int i, StackPtr psp) {
 
 VM_INLINE void SetLVal(VM &vm, Value *v) {
     vm.temp_lval = v;
+}
+
+VM_INLINE int RetSlots(VM &vm) {
+    return vm.ret_slots;
 }
 
 template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {

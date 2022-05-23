@@ -947,7 +947,7 @@ struct TypeChecker {
         sf->method_of = esf->method_of;
         sf->generics = esf->generics;
         sf->giventypes = esf->giventypes;
-        sf->returned_thru_to = nullptr;
+        sf->returned_thru_to_max = -1;
         return sf;
     }
 
@@ -977,14 +977,9 @@ struct TypeChecker {
                 Error(context, "cannot return out of dynamic function value (",
                       Q(sf_to->parent->name), " not found on the callstack)");
             }
-            // Mark any functions we may be returning thru as such.
-            if (sf->returned_thru_to && sf->returned_thru_to != sf_to) {
-                Error(context, "non-local return to ", Q(sf_to->parent->name), " (through ",
-                      Q(sf->parent->name), ") already returned to ",
-                      Q(sf->returned_thru_to->parent->name));
-            }
         }
-        sf->returned_thru_to = sf_to;
+        auto nretslots = ValWidthMulti(sf_to->returntype, sf_to->returntype->NumValues());
+        sf->returned_thru_to_max = std::max(sf->returned_thru_to_max, nretslots);
     }
 
     TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
@@ -1356,7 +1351,7 @@ struct TypeChecker {
             // Typecheck all the individual functions.
             SubFunction *last_sf = nullptr;
             bool any_recursive = false;
-            const SubFunction *any_returned_thru = nullptr;
+            int any_returned_thru_max = -1;
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
                 auto sf = udt->dispatch[vtable_idx].sf;
                 // Missing implementation for unused UDT.
@@ -1377,15 +1372,7 @@ struct TypeChecker {
                 sf->method_of = udt;
                 sf->method_of->dispatch[vtable_idx].sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
-                if (sf->returned_thru_to) {
-                    if (any_returned_thru && any_returned_thru != sf->returned_thru_to) {
-                        Error(*sf->sbody, "non-local return through dynamic dispatch of ",
-                                          Q(sf->parent->name), " to both ",
-                                          Q(any_returned_thru->parent->name), " and ",
-                                          Q(sf->returned_thru_to->parent->name));
-                    }
-                    any_returned_thru = sf->returned_thru_to;
-                }
+                any_returned_thru_max = std::max(any_returned_thru_max, sf->returned_thru_to_max);
                 auto u = sf->returntype;
                 if (de->returntype->IsBoundVar()) {
                     // FIXME: can this still happen now that recursive cases use explicit return
@@ -1431,10 +1418,13 @@ struct TypeChecker {
                     }
                 }
                 last_sf = sf;
+                // Even if this sf is not returned thru, there may be an unwind check due to other
+                // sfs in the dispatch.
+                sf->returned_thru_to_max = std::max(sf->returned_thru_to_max, any_returned_thru_max);
             }
-            if (any_returned_thru) {
-                dispatch_udt.dispatch[vtable_idx].returned_thru_to = any_returned_thru;
-            }
+            dispatch_udt.dispatch[vtable_idx].returned_thru_to_max =
+                std::max(dispatch_udt.dispatch[vtable_idx].returned_thru_to_max,
+                         any_returned_thru_max);
             call_args.children[0]->exptype = &dispatch_udt.thistype;
         }
         return dispatch_udt.dispatch[vtable_idx].returntype;
@@ -3025,15 +3015,6 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             break;
         }
     }
-    // Now we can check what we're returning past as well.
-    for (auto isc : reverse(tc.scopes)) {
-        if (isc.sf->parent == sf->parent) {
-            goto destination_found;
-        }
-        tc.CheckReturnPast(isc.sf, sf, *this);
-    }
-    tc.Error(*this, "return from ", Q(sf->parent->name), " called out of context");
-    destination_found:
     // TODO: LT_KEEP here is to keep it simple for now, since ideally we want to also allow
     // LT_BORROW, but then we have to prove that we don't outlive the owner.
     // Additionally, we have to do this for reused specializations on new SpecIdents.
@@ -3095,6 +3076,14 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         tc.RetVal(type_void, sf, *this);
         tc.SubType(child, sf->returntype, "", *this);
     }
+    // Now we can check what we're returning past as well.
+    // Do this last, since we want RetVal to have been called on sf.
+    for (auto isc : reverse(tc.scopes)) {
+        if (isc.sf->parent == sf->parent) { goto destination_found; }
+        tc.CheckReturnPast(isc.sf, sf, *this);
+    }
+    tc.Error(*this, "return from ", Q(sf->parent->name), " called out of context");
+    destination_found:
     return this;
 }
 

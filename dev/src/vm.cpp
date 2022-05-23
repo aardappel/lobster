@@ -666,6 +666,7 @@ void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
 void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
 void CVM_SetLVal(VM *vm, Value *v) { SetLVal(*vm, v); }
+int CVM_RetSlots(VM *vm) { return RetSlots(*vm); }
 
 #define F(N, A, USE, DEF) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
@@ -723,6 +724,7 @@ const void *vm_ops_jit_table[] = {
     "RestoreBackup", (void *)CVM_RestoreBackup,
     "PopArg", (void *)CVM_PopArg,
     "SetLVal", (void *)CVM_SetLVal,
+    "RetSlots", (void *)CVM_RetSlots,
     #if LOBSTER_ENGINE
     "GLFrame", (void *)GLFrame,
     #endif

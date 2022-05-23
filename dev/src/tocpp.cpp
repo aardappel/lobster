@@ -105,6 +105,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
               "extern void RestoreBackup(VMRef, int);\n"
               "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
               "extern void SetLVal(VMRef, Value *);\n"
+              "extern int RetSlots(VMRef);\n"
               "\n";
     }
 
@@ -321,7 +322,8 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                     comment(natreg.nfuns[args[0]]->name);
                 }
                 break;
-            case IL_RETURN:
+            case IL_RETURNLOCAL:
+            case IL_RETURNNONLOCAL:
             case IL_RETURNANY: {
                 // FIXME: emit epilogue stuff only once at end of function.
                 auto fip = funstart;
@@ -334,13 +336,13 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 auto defvars = fip;
                 fip += ndef;
                 fip++;  // nkeepvars, already parsed above
-                int nrets;
-                if (opc == IL_RETURN) {
-                    nrets = args[1];
-                    append(sd, "U_RETURN(vm, 0, ", args[0], ", ", nrets, ");");
+                int nrets = args[0];
+                if (opc == IL_RETURNLOCAL) {
+                    append(sd, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
+                } else if (opc == IL_RETURNNONLOCAL) {
+                    append(sd, "U_RETURNNONLOCAL(vm, 0, ", nrets, ", ", args[1], ");");
                 } else {
-                    nrets = args[0];
-                    append(sd, "U_RETURNANY(vm, 0, ", nrets, ", ", args[1], ");");
+                    append(sd, "U_RETURNANY(vm, 0, ", nrets, ");");
                 }
                 auto ownedvars = *fip++;
                 for (int i = 0; i < ownedvars; i++) {
@@ -360,9 +362,13 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                         append(sd, "\n    Pop(psp);");
                     }
                 }
-                auto unwind_diff = opc == IL_RETURNANY ? nrets - args[1] : 0;
-                for (int i = 0; i < nrets; i++) {
-                    append(sd, "\n    Push(psp, regs[", regso - nrets + i + unwind_diff, "]);");
+                if (opc == IL_RETURNANY) {
+                    append(sd, "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
+                                          "Push(psp, regs[i + ", regso - nrets, "]); }");
+                } else {
+                    for (int i = 0; i < nrets; i++) {
+                        append(sd, "\n    Push(psp, regs[", i + regso - nrets, "]);");
+                    }
                 }
                 sdt.clear();  // FIXME: remove
                 for (int i = ndef - 1; i >= 0; i--) {
@@ -371,7 +377,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                         append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
                     }
                 }
-                if (opc == IL_RETURN) {
+                if (opc != IL_RETURNANY) {
                     append(sd, "\n    goto epilogue;");
                 }
                 break;
