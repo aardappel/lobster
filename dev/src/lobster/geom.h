@@ -413,11 +413,6 @@ template<typename T, int N> inline bool in_range(const vec<T, N> &v, const vec<T
     DOVECB(true, _ && v[i] >= bias.c[i] && v[i] < (bias.c[i] + range.c[i]));
 }
 
-template<typename T, int N> inline bool within_bounds(const vec<T, N> &v, const vec<T, N> &lo,
-                                                   const vec<T, N> &hi) {
-    DOVECB(true, _ && v[i] >= lo.c[i] && v[i] < hi.c[i]);
-}
-
 template<typename T, int N, typename R> inline vec<float, N> rndunitvec(RandomNumberGenerator<R> &r) {
     DOVECR(r.rnd_float());
 }
