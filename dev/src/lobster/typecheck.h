@@ -805,21 +805,25 @@ struct TypeChecker {
             Error(errn, "struct ", Q(udt.name), " cannot be self-referential");
     }
 
-    void RetVal(TypeRef type, SubFunction *sf, const Node &err, bool register_return = true) {
-        if (register_return) {
-            for (auto isc : reverse(scopes)) {
-                if (isc.sf->parent == sf->parent) break;
-                // isc.sf is a function in the call chain between the return statement and the
-                // function it is returning from. Since we're affecting the return type of the
-                // function we're returning from, if it gets specialized but a function along the
-                // call chain (isc.sf) does not, we must ensure that return type affects the second
-                // specialization.
-                // We do this by tracking return types, and replaying them when a function gets
-                // reused.
-                // A simple test case is in return_from unit test, and recursive_exception is also
-                // affected.
-                isc.sf->reuse_return_events.push_back({ sf, type });
+    void RetVal(TypeRef type, SubFunction *sf, const Node &err) {
+        for (auto isc : reverse(scopes)) {
+            if (isc.sf->parent == sf->parent) break;
+            // isc.sf is a function in the call chain between the return statement and the
+            // function it is returning from. Since we're affecting the return type of the
+            // function we're returning from, if it gets specialized but a function along the
+            // call chain (isc.sf) does not, we must ensure that return type affects the second
+            // specialization.
+            // We do this by tracking return types, and replaying them when a function gets
+            // reused.
+            // A simple test case is in return_from unit test, and recursive_exception is also
+            // affected.
+            // Check if return event already exists, which may happen for multiple similar return
+            // statement of when called from ReplayReturns in a similar call context. 
+            for (auto &rre : isc.sf->reuse_return_events) {
+                if (rre.first == sf && rre.second->Equal(*type)) goto found;
             }
+            isc.sf->reuse_return_events.push_back({ sf, type });
+            found:;
         }
         sf->num_returns++;
         if (sf != scopes.back().sf) sf->num_returns_non_local++;
@@ -1041,7 +1045,7 @@ struct TypeChecker {
                 if (isc.sf->parent == isf->parent) {
                     // NOTE: will have to re-apply lifetimes as well if we change
                     // from default of LT_KEEP.
-                    RetVal(type, isc.sf, call_context, false);
+                    RetVal(type, isc.sf, call_context);
                     // This should in theory not cause an error, since the previous
                     // specialization was also ok with this set of return types.
                     // It could happen though if this specialization has an
