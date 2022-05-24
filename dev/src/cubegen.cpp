@@ -27,7 +27,7 @@ vector<Palette> palettes;
 
 namespace lobster {
 
-RandomNumberGenerator<PCG32> cg_rnd;
+RandomNumberGenerator<Xoshiro256SS> cg_rnd;
 
 const unsigned int default_palette[256] = {
     0x00000000, 0xffffffff, 0xffccffff, 0xff99ffff, 0xff66ffff, 0xff33ffff, 0xff00ffff, 0xffffccff,

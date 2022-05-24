@@ -345,12 +345,12 @@ template<typename T> struct RandomNumberGenerator {
     }
 
     int64_t rnd_int64(int64_t max) {
-        assert(sizeof(typename T::rnd_type) == 8);
+        static_assert(sizeof(typename T::rnd_type) == 8);
         return (int64_t)(rnd.Random() % max);
     }
 
     double rnd_double() {
-        assert(sizeof(typename T::rnd_type) == 8);
+        static_assert(sizeof(typename T::rnd_type) == 8);
         return (rnd.Random() >> 11) * 0x1.0p-53;
     }
 
