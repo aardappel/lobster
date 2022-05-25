@@ -107,7 +107,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
               "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
               "extern void SetLVal(VMRef, Value *);\n"
               "extern int RetSlots(VMRef);\n"
-              "extern void PushFunId(VMRef, int *, Value *);\n"
+              "extern void PushFunId(VMRef, const int *, StackPtr);\n"
               "extern void PopFunId(VMRef);\n"
               "\n";
     }

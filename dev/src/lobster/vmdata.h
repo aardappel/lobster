@@ -925,8 +925,8 @@ struct VM : VMArgs {
     #endif
 
     struct FunStack {
-        int *funstartinfo;
-        Value *locals;
+        const int *funstartinfo;
+        StackPtr locals;
     };
     vector<FunStack> fun_id_stack;
 
@@ -1070,7 +1070,7 @@ VM_INLINE int RetSlots(VM &vm) {
     return vm.ret_slots;
 }
 
-VM_INLINE void PushFunId(VM &vm, int *funstart, Value *locals) {
+VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {
     vm.fun_id_stack.push_back({ funstart, locals });
 }
 VM_INLINE void PopFunId(VM &vm) {
