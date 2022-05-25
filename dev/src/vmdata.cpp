@@ -377,6 +377,28 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
     return s;
 }
 
+void TypeInfo::Print(VM &vm, string &sd) const {
+    switch (t) {
+        case V_VECTOR:
+            append(sd, "[");
+            vm.GetTypeInfo(subt).Print(vm, sd);
+            append(sd, "]");
+            break;
+        case V_NIL:
+            vm.GetTypeInfo(subt).Print(vm, sd);
+            append(sd, "?");
+            break;
+        case V_CLASS:
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+            append(sd, vm.StructName(*this));
+            break;
+        default:
+            append(sd, BaseTypeName(t));
+            break;
+    }
+}
+
 #define ELEMTYPE(acc, ass) \
     auto &_ti = ti(vm); \
     ass; \

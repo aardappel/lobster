@@ -50,7 +50,7 @@ VMAllocator::VMAllocator(VMArgs &&args) {
     if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
         THROW_OR_ABORT("bytecode is from a different version of Lobster");
 
-    // Allocate enough memory to fit the "vars" array inline.
+    // Allocate enough memory to fit the "fvars" array inline.
     auto size = sizeof(VM) + sizeof(Value) * bcf->specidents()->size();
     auto mem = malloc(size);
     assert(mem);
@@ -240,69 +240,78 @@ void VM::ErrorBase(const string &err) {
     append(errmsg, "): ", err);
 }
 
-// This function is now way less important than it was when the language was still dynamically
-// typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
 Value VM::Error(string err) {
     ErrorBase(err);
-    #ifdef USE_EXCEPTION_HANDLING
-    try {
-    #endif
-        // FIXME: figure out a way to show runtime stacks again :(
-        /*
-        vector<bool> invalid(bcf->specidents()->size());
-        while (!stackframes.empty()) {
-            int deffun = *(stackframes.back().funstart);
-            if (deffun >= 0) {
-                append(errmsg, "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view());
-            } else {
-                errmsg += "\nin block";
-            }
-            auto &stf = stackframes.back();
-            auto fip = stf.funstart;
-            fip++;  // function id.
-            fip++;  // regs_max
-            auto nargs = *fip++;
-            auto freevars = fip + nargs;
-            fip += nargs;
-            auto ndef = *fip++;
-            fip += ndef;
-            auto defvars = fip;
-            auto nkeepvars = *fip++;
-            if (errmsg.size() < 10000) {
-                // FIXME: merge with loops below.
-                for (int j = 0; j < ndef; ) {
-                    auto i = *(defvars - j - 1);
-                    j += DumpVar(errmsg, vars[i], i, invalid[i]);
+    if (!fun_id_stack.empty()) {
+        #ifdef USE_EXCEPTION_HANDLING
+        try {
+        #endif
+            auto DumpVar = [&](string &sd, Value *x, int idx) {
+                auto sid = bcf->specidents()->Get((uint32_t)idx);
+                auto id = bcf->idents()->Get(sid->ididx());
+                // FIXME: this is not ideal, it filters global "let" declared vars.
+                // It should probably instead filter global let vars whose values are entirely
+                // constructors, and which are never written to.
+                auto name = id->name()->string_view();
+                auto &ti = GetVarTypeInfo(idx);
+                auto size = IsStruct(ti.t) ? ti.len : 1;
+                //if (id->readonly() && id->global()) return size;
+                append(sd, "        ", name);
+                if (fvars[idx].True() && x->False()) {
+                    // Free vars live in fvars, but we can't tell which.
+                    // fvars are NIL when not in use, so swapping when not-nil is safe?
+                    x = &fvars[idx];
                 }
-                for (int j = 0; j < nargs; ) {
-                    auto i = *(freevars - j - 1);
-                    j += DumpVar(errmsg, vars[i], i, invalid[i]);
+                #if RTT_ENABLED
+                    if (ti.t != x->type && !IsStruct(ti.t)) {
+                        append(sd, ":");
+                        ti.Print(*this, sd);
+                        append(sd, " != ", BaseTypeName(x->type));
+                        return size;  // Likely uninitialized.
+                    }
+                #endif
+                append(sd, " = ");
+                PrintPrefs minipp { 1, 20, true, -1 };
+                if (IsStruct(ti.t)) {
+                    StructToString(sd, minipp, ti, x);
+                } else {
+                    x->ToString(*this, sd, ti, minipp);
                 }
+                return size;
+            };
+            for (auto [fip, locals] : reverse(fun_id_stack)) {
+                auto deffun = *fip++;
+                append(errmsg,
+                       "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view(), "(");
+                fip++;  // regs_max
+                auto nargs = *fip++;
+                auto args = fip;
+                fip += nargs;
+                auto ndef = *fip++;
+                fip += ndef;
+                //auto defvars = fip;
+                *fip++;  // nkeepvars
+                if (nargs) append(errmsg, "\n");
+                locals -= nargs;
+                for (int j = 0; j < nargs;) {
+                    auto i = *(args + j);
+                    j += DumpVar(errmsg, locals + j, i);
+                    if (j < nargs) append(errmsg, ",\n");
+                }
+                append(errmsg, ")");
+                //for (int j = 0; j < ndef;) {
+                //    auto i = *(defvars - j - 1);
+                //    j += DumpVar(errmsg, nullptr, i);
+                //}
+                fip++;  // Owned vars.
             }
-            auto sp = stf.spstart + stack;
-            sp -= nkeepvars;
-            fip++;  // Owned vars.
-            while (ndef--) {
-                auto i = *--defvars;
-                vars[i] = Pop(sp);
-            }
-            while (nargs--) {
-                auto i = *--freevars;
-                // FIXME: old value must come from the psp on the C stack instead!
-                //vars[i] = Pop(sp);
-                // For now, make sure they don't get printed anymore in the stackframes below.
-                // This only affects recursive functions, so no big deal.
-                invalid[i] = true;
-            }
-            stackframes.pop_back();
+        #ifdef USE_EXCEPTION_HANDLING
+        } catch (string &s) {
+            // Error happened while we were building this stack trace.
+            append(errmsg, "\nRECURSIVE ERROR:\n", s);
         }
-        */
-    #ifdef USE_EXCEPTION_HANDLING
-    } catch (string &s) {
-        // Error happened while we were building this stack trace.
-        append(errmsg, "\nRECURSIVE ERROR:\n", s);
+        #endif
     }
-    #endif
     UnwindOnError();
     return NilVal();
 }
@@ -317,29 +326,6 @@ Value VM::SeriousError(string err) {
 
 void VM::VMAssert(const char *what)  {
     SeriousError(string("VM internal assertion failure: ") + what);
-}
-
-int VM::DumpVar(string &sd, const Value &x, int idx, bool invalid) {
-    auto sid = bcf->specidents()->Get((uint32_t)idx);
-    auto id = bcf->idents()->Get(sid->ididx());
-    // FIXME: this is not ideal, it filters global "let" declared vars.
-    // It should probably instead filter global let vars whose values are entirely
-    // constructors, and which are never written to.
-    auto name = id->name()->string_view();
-    auto &ti = GetVarTypeInfo(idx);
-    auto size = IsStruct(ti.t) ? ti.len : 1;
-    if (invalid) return size;
-    if (id->readonly() && id->global()) return size;
-#if RTT_ENABLED
-        if (ti.t != x.type) return size;  // Likely uninitialized.
-    #endif
-    append(sd, "\n   ", name, " = ");
-    if (IsStruct(ti.t)) {
-        StructToString(sd, debugpp, ti, &x);
-    } else {
-        x.ToString(*this, sd, ti, debugpp);
-    }
-    return size;
 }
 
 void VM::EndEval(StackPtr &, const Value &ret, const TypeInfo &ti) {
@@ -667,6 +653,8 @@ void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
 void CVM_SetLVal(VM *vm, Value *v) { SetLVal(*vm, v); }
 int CVM_RetSlots(VM *vm) { return RetSlots(*vm); }
+void CVM_PushFunId(VM *vm, int *id, Value *locals) { PushFunId(*vm, id, locals); }
+void CVM_PopFunId(VM *vm) { PopFunId(*vm); }
 
 #define F(N, A, USE, DEF) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
@@ -725,6 +713,8 @@ const void *vm_ops_jit_table[] = {
     "PopArg", (void *)CVM_PopArg,
     "SetLVal", (void *)CVM_SetLVal,
     "RetSlots", (void *)CVM_RetSlots,
+    "PushFunId", (void *)CVM_PushFunId,
+    "PopFunId", (void *)CVM_PopFunId,
     #if LOBSTER_ENGINE
     "GLFrame", (void *)GLFrame,
     #endif

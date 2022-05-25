@@ -310,8 +310,7 @@ void DumpBuiltinDoc(NativeRegistry &nfr) {
 }
 
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
-    string *parsedump, string *pakfile, bool return_value,
-    int runtime_checks) {
+             string *parsedump, string *pakfile, bool return_value, int runtime_checks) {
     SymbolTable st;
     Parser parser(nfr, fn, st, stringsource);
     parser.Parse();
@@ -331,9 +330,9 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
 
 string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
               const char *object_name, vector<string> &&program_args, TraceMode trace,
-              bool compile_only, string &error) {
+              bool compile_only, string &error, int runtime_checks) {
     string sd;
-    error = ToCPP(nfr, sd, bytecode_buffer, false);
+    error = ToCPP(nfr, sd, bytecode_buffer, false, runtime_checks);
     if (!error.empty()) return "";
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
@@ -383,12 +382,13 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
     try
     #endif
     {
+        int runtime_checks = RUNTIME_ASSERT;  // FIXME: let caller decide?
         string bytecode_buffer;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                bytecode_buffer, nullptr, nullptr, true, RUNTIME_ASSERT);
+                bytecode_buffer, nullptr, nullptr, true, runtime_checks);
         string error;
         auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, nullptr, std::move(args),
-                          TraceMode::OFF, false, error);
+                          TraceMode::OFF, false, error, runtime_checks);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret)));
         return NilVal();
@@ -416,7 +416,7 @@ nfr("compile_run_code", "code,args", "SS]", "SS?",
 nfr("compile_run_file", "filename,args", "SS]", "SS?",
     "same as compile_run_code(), only now you pass a filename.",
     [](StackPtr &sp, VM &vm, Value &filename, Value &args) {
-        return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings( args));
+        return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings(args));
     });
 
 }

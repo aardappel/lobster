@@ -141,6 +141,7 @@ struct TypeInfo {
     TypeInfo &operator=(const TypeInfo &) = delete;
 
     string Debug(VM &vm, bool rec = true) const;
+    void Print(VM &vm, string &sd) const;
 
     type_elem_t GetElemOrParent(iint i) const {
         auto pti = elemtypes[len + i];
@@ -923,6 +924,12 @@ struct VM : VMArgs {
         jmp_buf jump_buffer;
     #endif
 
+    struct FunStack {
+        int *funstartinfo;
+        Value *locals;
+    };
+    vector<FunStack> fun_id_stack;
+
     vector<Value> fvar_def_backup;
 
     // We stick this in here directly, since the constant offsets into this array in
@@ -961,8 +968,6 @@ struct VM : VMArgs {
     void ErrorBase(const string &err);
     void VMAssert(const char *what);
     void UnwindOnError();
-
-    int DumpVar(string &sd, const Value &x, int idx, bool invalid);
 
     void StartWorkers(iint numthreads);
     void TerminateWorkers();
@@ -1063,6 +1068,13 @@ VM_INLINE void SetLVal(VM &vm, Value *v) {
 
 VM_INLINE int RetSlots(VM &vm) {
     return vm.ret_slots;
+}
+
+VM_INLINE void PushFunId(VM &vm, int *funstart, Value *locals) {
+    vm.fun_id_stack.push_back({ funstart, locals });
+}
+VM_INLINE void PopFunId(VM &vm) {
+    vm.fun_id_stack.pop_back();
 }
 
 template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {

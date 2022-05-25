@@ -214,12 +214,13 @@ int main(int argc, char* argv[]) {
                    std::move(program_args),
                    trace,
                    compile_only,
-                   error);
+                   error,
+                   runtime_checks);
             if (!error.empty())
                 THROW_OR_ABORT(error);
         } else {
             string sd;
-            auto err = ToCPP(nfr, sd, bytecode_buffer, true);
+            auto err = ToCPP(nfr, sd, bytecode_buffer, true, runtime_checks);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/compiled_lobster/src/compiled_lobster.cpp";
