@@ -508,8 +508,8 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
 
 // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
 nfr("cg_load_vox", "name", "S", "R?S?",
-    "loads a file in the .vox format (MagicaVoxel). returns block or nil if file failed to"
-    " load",
+    "loads a .vox file (supports both MagicaVoxel or VoxLap formats). "
+    "returns block or nil if file failed to load",
     [](StackPtr &sp, VM &vm, Value &name) {
         auto namep = name.sval()->strv();
         string buf;
@@ -520,51 +520,84 @@ nfr("cg_load_vox", "name", "S", "R?S?",
         auto l = LoadFile(namep, &buf);
         if (l < 0)
             return errf(cat("could not load ", namep));
-        if (strncmp(buf.c_str(), "VOX ", 4))
-            return errf(".vox file missing file header");
-        int3 size = int3_0;
         Voxels *voxels = nullptr;
-        auto p = buf.c_str() + 8;
-        bool chunks_skipped = false;
-        while (p < buf.c_str() + buf.length()) {
-            auto id = p;
-            p += 4;
-            auto contentlen = *((int *)p);
-            p += 8;
-            if (!strncmp(id, "SIZE", 4)) {
-                if (voxels) {
-                    // Multiple voxel models in this file, not currently supported.
-                    delete voxels;
-                    return errf(".vox file contains multiple models (not supported)");
+        if (strncmp(buf.c_str(), "VOX ", 4) == 0) {
+            // This looks like a MagicaVoxel file.
+            int3 size = int3_0;
+            auto p = buf.c_str() + 8;
+            bool chunks_skipped = false;
+            while (p < buf.c_str() + buf.length()) {
+                auto id = p;
+                p += 4;
+                auto contentlen = *((int *)p);
+                p += 8;
+                if (!strncmp(id, "SIZE", 4)) {
+                    if (voxels) {
+                        // Multiple voxel models in this file, not currently supported.
+                        delete voxels;
+                        return errf(".vox file contains multiple models (not supported)");
+                    }
+                    size = int3((int *)p);
+                    voxels = NewWorld(size, default_palette_idx);
+                } else if (!strncmp(id, "RGBA", 4)) {
+                    if (!voxels) return errf(".vox file RGBA chunk in wrong order");
+                    vector<byte4> palette;
+                    palette.push_back(byte4_0);
+                    palette.insert(palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
+                    voxels->palette_idx = NewPalette(palette.data());
+                } else if (!strncmp(id, "XYZI", 4)) {
+                    if (!voxels) return errf(".vox file XYZI chunk in wrong order");
+                    auto numvoxels = *((int *)p);
+                    for (int i = 0; i < numvoxels; i++) {
+                        auto vox = byte4((uint8_t *)(p + i * 4 + 4));
+                        auto pos = int3(vox.xyz());
+                        if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
+                    }
+                } else if (!strncmp(id, "MAIN", 4)) {
+                    // Ignore, wrapper around the above chunks.
+                } else {
+                    chunks_skipped = true;
                 }
-                size = int3((int *)p);
-                voxels = NewWorld(size, default_palette_idx);
-            } else if (!strncmp(id, "RGBA", 4)) {
-                if (!voxels)
-                    return errf(".vox file RGBA chunk in wrong order");
-                vector<byte4> palette;
-                palette.push_back(byte4_0);
-                palette.insert(palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
-                voxels->palette_idx = NewPalette(palette.data());
-            } else if (!strncmp(id, "XYZI", 4)) {
-                if (!voxels)
-                    return errf(".vox file XYZI chunk in wrong order");
-                auto numvoxels = *((int *)p);
-                for (int i = 0; i < numvoxels; i++) {
-                    auto vox = byte4((uint8_t *)(p + i * 4 + 4));
-                    auto pos = int3(vox.xyz());
-                    if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
-                }
-            } else if (!strncmp(id, "MAIN", 4)) {
-                // Ignore, wrapper around the above chunks.
-            } else {
-                chunks_skipped = true;
+                p += contentlen;
             }
-            p += contentlen;
+            if (!voxels) return errf(".vox file missing SIZE chunk");
+            voxels->chunks_skipped = chunks_skipped;
+        } else {
+            // It may be a voxlap file which uses the same extension, exported e.g. from Qubicle.
+            // Sadly these don't have a header, so rely on verifying the size.
+            const int voxlap_palette_size = 256 * 3;
+            if (buf.size() < sizeof(int3) + voxlap_palette_size + 1)
+                return errf(".vox file too small");
+            auto p = (const uint8_t *)buf.c_str();
+            int3 size = int3((int *)p);
+            p += sizeof(int3);
+            if (!(size > 0) || !(size <= 1024)) return errf("voxlap XYZ size out of range");
+            auto vol = size.volume();
+            if (vol + voxlap_palette_size + sizeof(int3) != buf.size())
+                return errf("voxlap XYZ size does not match file size");
+            // Now should be save to read.
+            voxels = NewWorld(size, default_palette_idx);
+            for (int i = 0; i < vol; i++) {
+                auto c = *p++;
+                c = c == 255 ? 0 : c + 1;  // 255 is transparent;
+                auto z = i % size.z;
+                auto y = (i / size.z) % size.y;
+                auto x = i / (size.z * size.y);
+                auto pos = int3(x, y, z);
+                pos = size - pos - 1;  // Coords are flipped?
+                voxels->grid.Get(pos) = c;
+            }
+            vector<byte4> palette;
+            palette.push_back(byte4_0);
+            for (int i = 0; i < 255; i++) {
+                byte4 c = byte4(p);
+                p += 3;
+                c *= 4;  // Values range from 0..63?
+                c.w = 0xFF;
+                palette.push_back(c);
+            }
+            voxels->palette_idx = NewPalette(palette.data());
         }
-        if (!voxels)
-            return errf(".vox file missing SIZE chunk");
-        voxels->chunks_skipped = chunks_skipped;
         Push(sp, Value(vm.NewResource(voxels, GetVoxelType())));
         return NilVal();
     });
