@@ -421,11 +421,22 @@ bool ScanDirAbs(string_view absdir, vector<pair<string, int64_t>> &dest) {
 }
 
 bool ScanDir(string_view reldir, vector<pair<string, int64_t>> &dest) {
+    // First check the pakfile.
+    for (auto [prfn, tup] : pakfile_registry) {
+        if (prfn.find(reldir) == 0) {
+            auto pos = reldir.size();
+            if (prfn.find_first_of("/\\", pos) == pos) pos++;  // Skip first separator if any.
+            if (prfn.find_first_of("/\\", pos) != string::npos) continue;  // Item in subdir.
+            dest.push_back({ prfn.substr(pos), get<2>(tup) });
+        }
+    }
+    // Even if we found things in pakfile, we scan filesystem additionally, since LoadFile
+    // supports loading from both in this order too.
     auto srfn = SanitizePath(reldir);
     for (auto &dir : data_dirs) {
         if (ScanDirAbs(dir + srfn, dest)) return true;
     }
-    return false;
+    return !dest.empty();  // If we found some in pak, missing filesystem dir is not a failure.
 }
 
 OutputType min_output_level = OUTPUT_WARN;
