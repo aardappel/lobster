@@ -550,7 +550,7 @@ void SetConsole(bool on) {
 iint LaunchSubProcess(const char **cmdl, const char *stdins, string &out) {
     #ifndef PLATFORM_ES3
         struct subprocess_s subprocess;
-        int result = subprocess_create(cmdl, 0, &subprocess);
+        int result = subprocess_create(cmdl, subprocess_option_inherit_environment, &subprocess);
         if (result) return -1;
         if (stdins) {
             FILE *p_stdin = subprocess_stdin(&subprocess);
