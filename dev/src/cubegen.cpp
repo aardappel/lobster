@@ -367,6 +367,32 @@ nfr("cg_scale_up", "scale,world", "IR", "R", "",
         return Value(vm.NewResource(&d, GetVoxelType()));
     });
 
+nfr("cg_stretch", "newsize,world", "I}:3R", "R", "",
+    [](StackPtr &sp, VM &vm) {
+        auto &v = GetVoxels(vm, Pop(sp));
+        auto ns = PopVec<int3>(sp);
+        if (!(v.grid.dim <= ns) || !(ns < 256))
+            vm.Error("cg_stretch: newsize out of range");
+        auto &d = *NewWorld(ns, v.palette_idx);
+        auto delta = ns - v.grid.dim;
+        for (int xd = 0; xd < ns.x; xd++) {
+            for (int yd = 0; yd < ns.y; yd++) {
+                for (int zd = 0; zd < ns.z; zd++) {
+                    auto vd = int3(xd, yd, zd);
+                    auto od = vd;
+                    for (int i = 0; i < 3; i++) {
+                        int mid = v.grid.dim[i] / 2;
+                        if (vd[i] >= mid) {
+                            od[i] = vd[i] >= mid + delta[i] ? vd[i] - delta[i] : mid;
+                        }
+                    }
+                    d.grid.Get(vd) = v.grid.Get(od);
+                }
+            }
+        }
+        Push(sp, Value(vm.NewResource(&d, GetVoxelType())));
+    });
+
 nfr("cg_create_mesh", "block", "R", "R",
     "converts block to a mesh",
     [](StackPtr &, VM &vm, Value &wid) {
