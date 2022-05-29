@@ -26,9 +26,9 @@
       This is quite hard, it requires reworking a lot of stuff:
       - all the withstack related functionality, which in turn requires not only calls and derefs to
         be generic, but also individual idents since they can become derefs.
-      - there are still parsing decisions being made based on wether something could be a function,
+      - there are still parsing decisions being made based on whether something could be a function,
         in particular calls without parens.
-    - It would be better if we could leave the decision wether something is a builtin or a user
+    - It would be better if we could leave the decision whether something is a builtin or a user
       defined function to the type checker, since that would allow user defined types to have
       a length function, or anything else that clashes with builtins.
       Problem is, we rely on deciding this in the parser for things like parsing lambda args,
@@ -1536,7 +1536,7 @@
     - actually adding a dec-ref is complicated, if an arg is a new string, or some exp that
       returns a new string, the dec-ref needs to be after the call if the builtin isn't going to
       dec-ref.
-  - now in the type checker we can do an analysis wether any variable will ever have inc/dec-ref
+  - now in the type checker we can do an analysis whether any variable will ever have inc/dec-ref
     applied to it, this then transitively works through functions.
   - initially this just reduces reference counting overhead, but this paves the way for
     efficient value types.

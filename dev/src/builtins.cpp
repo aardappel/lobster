@@ -326,7 +326,7 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
     });
 
 nfr("any", "xs", "A]*", "B",
-    "returns wether any elements of the vector are true values",
+    "returns whether any elements of the vector are true values",
     [](StackPtr &, VM &, Value &v) {
         Value r(false);
         iint l = v.vval()->len;
@@ -337,7 +337,7 @@ nfr("any", "xs", "A]*", "B",
     });
 
 nfr("any", "xs", "I}", "B",
-    "returns wether any elements of the numeric struct are true values",
+    "returns whether any elements of the numeric struct are true values",
     [](StackPtr &sp, VM &) {
         auto r = false;
         auto l = Pop(sp).ival();
@@ -348,7 +348,7 @@ nfr("any", "xs", "I}", "B",
     });
 
 nfr("all", "xs", "A]*", "B",
-    "returns wether all elements of the vector are true values",
+    "returns whether all elements of the vector are true values",
     [](StackPtr &, VM &, Value &v) {
         Value r(true);
         for (iint i = 0; i < v.vval()->len; i++) {
@@ -358,7 +358,7 @@ nfr("all", "xs", "A]*", "B",
     });
 
 nfr("all", "xs", "I}", "B",
-    "returns wether all elements of the numeric struct are true values",
+    "returns whether all elements of the numeric struct are true values",
     [](StackPtr &sp, VM &) {
         auto r = true;
         auto l = Pop(sp).ival();
@@ -1313,7 +1313,7 @@ nfr("thread_information", "", "", "II",
     });
 
 nfr("is_worker_thread", "", "", "B",
-    "wether the current thread is a worker thread",
+    "whether the current thread is a worker thread",
     [](StackPtr &, VM &vm) {
         return Value(vm.is_worker);
     });
@@ -1335,7 +1335,7 @@ nfr("stop_worker_threads", "", "", "",
     });
 
 nfr("workers_alive", "", "", "B",
-    "wether workers should continue doing work. returns false after"
+    "whether workers should continue doing work. returns false after"
             " stop_worker_threads() has been called.",
     [](StackPtr &, VM &vm) {
         return Value(vm.tuple_space && vm.tuple_space->alive);

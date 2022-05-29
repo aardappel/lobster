@@ -455,7 +455,7 @@ bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
     auto enum_def = bcf->enums()->Get(enumidx);
     auto &vals = *enum_def->vals();
     auto lookup = [&](iint val) -> bool {
-        // FIXME: can store a bool that says wether this enum is contiguous, so we just index instead.
+        // FIXME: can store a bool that says whether this enum is contiguous, so we just index instead.
         for (auto v : vals)
             if (v->val() == val) {
                 sd += v->name()->string_view();
