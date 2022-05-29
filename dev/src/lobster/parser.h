@@ -919,7 +919,7 @@ struct Parser {
             }
         }();
         // FIXME: move more of the code below into the type checker, and generalize the remaining
-        // code to be as little dependent as possible on wether nf or f are available.
+        // code to be as little dependent as possible on whether nf or f are available.
         // It should only parse args and construct a GenericCall.
         auto wse = st.GetWithStackBack();
         // We give precedence to builtins, unless

@@ -1036,7 +1036,7 @@ inline float2 ray_bb_intersect(const float3 &bbmin, const float3 &bbmax,
     return float2(tmin, tmax);
 }
 
-// Call this on the result of ray_bb_intersect() if it isn't known wether there is an intersection.
+// Call this on the result of ray_bb_intersect() if it isn't known whether there is an intersection.
 inline bool does_intersect(const float2 &minmax) {
     return minmax.y >= std::max(minmax.x, 0.0f);
 }

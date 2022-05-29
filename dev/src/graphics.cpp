@@ -241,14 +241,14 @@ nfr("gl_visible", "", "", "B",
 
 nfr("gl_cursor", "on", "B", "B",
     "default the cursor is visible, turn off for implementing FPS like control schemes. return"
-    " wether it's on.",
+    " whether it's on.",
     [](StackPtr &, VM &vm, Value &on) {
         TestGL(vm);
         return Value(SDLCursor(on.ival() != 0));
     });
 
 nfr("gl_grab", "on", "B", "B",
-    "grabs the mouse when the window is active. return wether it's on.",
+    "grabs the mouse when the window is active. return whether it's on.",
     [](StackPtr &, VM &vm, Value &on) {
         TestGL(vm);
         return Value(SDLGrab(on.ival() != 0));
@@ -307,7 +307,7 @@ nfr("gl_end_text_input", "", "", "",
     });
 
 nfr("gl_touchscreen", "", "", "B",
-    "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)",
+    "whether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)",
     [](StackPtr &, VM &) {
         #ifdef PLATFORM_TOUCH
             return Value(true);
@@ -556,7 +556,7 @@ nfr("gl_line_mode", "on", "I", "I",
     });
 
 nfr("gl_hit", "vec,i", "F}I", "B",
-    "wether the mouse/finger is inside of the rectangle specified in terms of the current"
+    "whether the mouse/finger is inside of the rectangle specified in terms of the current"
     " transform (for touch screens only if the corresponding gl_isdown is true). Only true if"
     " the last rectangle for which gl_hit was true last frame is of the same size as this one"
     " (allows you to safely test in most cases of overlapping rendering)",
