@@ -636,33 +636,31 @@ double SDLTime() { return lasttime; }
 double SDLDeltaTime() { return frametime; }
 
 pair<int64_t, int64_t> GetKS(string_view name) {
-    auto ks = keymap.find(name);
-    if (ks == keymap.end()) return {};
+    auto &ks = keymap[string(name)];
     #ifdef PLATFORM_TOUCH
         // delayed results by one frame, that way they get 1 frame over finger hovering over target,
         // which makes gl_hit work correctly
         // FIXME: this causes more lag on mobile, instead, set a flag that this is the first frame we're touching,
         // and make that into a special case inside gl_hit
-        return ks->second.Prev();
+        return ks.Prev();
     #else
-        return ks->second.State();
+        return ks.State();
     #endif
 }
 
 bool KeyRepeat(string_view name) {
-    auto ks = keymap.find(name);
-    if (ks == keymap.end()) return {};
-    return ks->second.repeat;
+    auto &ks = keymap[string(name)];
+    return ks.repeat;
 }
 
 double GetKeyTime(string_view name, int on) {
-    auto ks = keymap.find(name);
-    return ks == keymap.end() ? -3600 : ks->second.lasttime[on];
+    auto &ks = keymap[string(name)];
+    return ks.lasttime[on];
 }
 
 int2 GetKeyPos(string_view name, int on) {
-    auto ks = keymap.find(name);
-    return ks == keymap.end() ? int2(-1, -1) : ks->second.lastpos[on];
+    auto &ks = keymap[string(name)];
+    return ks.lastpos[on];
 }
 
 void SDLTitle(string_view title) { SDL_SetWindowTitle(_sdl_window, null_terminated(title)); }
