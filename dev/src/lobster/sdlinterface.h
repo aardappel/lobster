@@ -28,7 +28,7 @@ extern void SDLWindowMinMax(int dir);
 extern const int2 &GetScreenSize();
 
 extern const int2 &GetFinger(int i, bool delta);
-extern TimeBool8 GetKS(string_view name);
+extern pair<int64_t, int64_t> GetKS(string_view name);
 extern bool KeyRepeat(string_view name);
 extern double GetKeyTime(string_view name, int on);
 extern int2 GetKeyPos(string_view name, int on);

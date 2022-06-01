@@ -257,7 +257,7 @@ do():
     let tex = gl_load_texture("data/textures/lobster.jpg")
     assert tex
 
-    while gl_frame() and gl_button("escape") != -1:
+    while gl_frame() and not gl_button("escape"):
         let tween = next()
 
         gl_clear(first_rule_color)

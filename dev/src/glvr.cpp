@@ -350,6 +350,8 @@ nfr("vr_create_motion_controller_mesh", "n", "I", "R?",
         return mcd ? Value(vm.NewResource(VRCreateMesh(mcd->device), &mesh_type)) : NilVal();
     });
 
+// TODO: make it return an "up" value much like gl_button, since this doesn't represent
+// down+up in the same frame.
 nfr("vr_motion_controller_button", "n,button", "IS", "I",
     "returns the button state for motion controller n."
     " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
@@ -358,10 +360,10 @@ nfr("vr_motion_controller_button", "n,button", "IS", "I",
         #ifdef PLATFORM_VR
             auto mcd = GetMC(mc);
             auto mask = ButtonMaskFromId(GetButtonId(vm, button));
-            if (!mcd) return Value(TimeBool8().Step());
+            if (!mcd) return Value(-1);
             auto masknow = mcd->state.ulButtonPressed & mask;
             auto maskbef = mcd->laststate.ulButtonPressed & mask;
-            return Value(TimeBool8(masknow != 0, maskbef != 0).Step());
+            return Value(int(masknow != 0) * 2 - int(!(maskbef != 0)));
         #else
             return Value(0);
         #endif

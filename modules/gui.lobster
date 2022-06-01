@@ -247,24 +247,24 @@ private def btn(id, render, do, dofocus:bool, focusf):
     overlay(false, id, render) size:
         if interactive.top:
             let hit = gl_hit(float(size), 0)
-            let key = gl_button(button_key.top)
-            let active = hit or key >= 0
+            let keydown, keyup = gl_button(button_key.top)
+            let active = hit or keydown or keyup == 1
             if active or (focus_id == id and gl_touchscreen()):
                 // Use the hover color both for mouse-hover, and touch screen buttons that have focus.
                 gl_color hover_color:
                     gl_rect(float(size))
                 if active:
                     num_interactive_elements_hit++
-                    let mouse1 = gl_button("mouse1")
-                    if mouse1 >= 1 or key >= 1:
+                    let mouse1down, mouse1up = gl_button("mouse1")
+                    if mouse1down or keydown:
                         gl_color(select_color):
                             gl_rect(float(size))
-                    if dofocus and focus_id != id and (mouse1 == 0 or not gl_touchscreen()):
+                    if dofocus and focus_id != id and (mouse1up == 1 or not gl_touchscreen()):
                         // If we have a focus action and this button wasn't the focus, then on a touch screen
                         // we're going to give this button focus on touch, and on desktop merely on hover.
                         focus_id = id
                         focusf()
-                    elif mouse1 == 0 or key == 0:
+                    elif mouse1up == 1 or keyup == 1:
                         if actionsfxr: play_sfxr(actionsfxr)
                         elif actionwav: play_wav(actionwav)
                         do()

@@ -33,7 +33,7 @@ class scrollzoomview:
         viewsteps = max(min(viewsteps, maxs), mins)
         let viewscale = pow(rate, viewsteps)
         var center = float(gl_mouse_pos(0))
-        if gl_button("mouse1") >= 1 and gl_button("mouse11") >= 1:
+        if gl_button("mouse1") and gl_button("mouse11"):
             let dist = magnitude(float(gl_mouse_pos(0) - gl_mouse_pos(1)))
             center = float(gl_mouse_pos(0) + gl_mouse_pos(1)) / 2.0
             if(lastdistance):
@@ -45,7 +45,7 @@ class scrollzoomview:
         center /= oldscale
         panoffset -= center / (scale / oldscale) - center
         // Update panning:
-        if gl_button(buttonname) >= 1:
+        if gl_button(buttonname):
             let delta = float(gl_mouse_delta(0)) / scale
             panoffset -= delta
             // mild amount of dampening/smoothing from previous frames:

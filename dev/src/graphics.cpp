@@ -254,21 +254,25 @@ nfr("gl_grab", "on", "B", "B",
         return Value(SDLGrab(on.ival() != 0));
     });
 
-nfr("gl_button", "name", "S", "I",
-    "returns the state of a key/mousebutton/finger."
-    " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
-    " (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1/joy1 etc."
-    " mouse11 and on are additional fingers)",
-    [](StackPtr &, VM &, Value &name) {
+nfr("gl_button", "name", "S", "II",
+    "returns the number of frames a key/mousebutton/finger has been down."
+    " went down this frame: == 1, is already down: >= 1, not down: == 0."
+    " the second return value is the same, but for the up direction:"
+    " went up this frame: == 1, is already up: >= 1, not up: == 0."
+    " it is possible both happen inside one frame, i.e. down==1 and up==1! "
+    " for name, pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1/joy1 etc."
+    " mouse11 and on are additional fingers",
+    [](StackPtr &sp, VM &, Value &name) {
         auto ks = GetKS(name.sval()->strv());
-        return Value(ks.Step());
+        Push(sp, ks.first);
+        return Value(ks.second);
     });
 
 nfr("gl_key_repeat", "name", "S", "B",
     "returns if a key was a key repeat (went down, or is down with a key repeat)",
     [](StackPtr &, VM &, Value &name) {
         auto ks = GetKS(name.sval()->strv());
-        return Value(ks.Step() == 1 || (ks.Step() > 1 && KeyRepeat(name.sval()->strv())));
+        return Value(ks.first == 1 || (ks.first > 1 && KeyRepeat(name.sval()->strv())));
     });
 
 nfr("gl_start_text_input", "pos,size", "I}:2I}:2", "",
