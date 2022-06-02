@@ -314,7 +314,6 @@ nfr("im_frame_start", "", "", "",
     "(use im_frame instead)",
     [](StackPtr &, VM &vm) {
         IsInit(vm, N_NONE);
-        if (!nstack.empty()) return;
         IMGUIFrameCleanup();
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(_sdl_window);
