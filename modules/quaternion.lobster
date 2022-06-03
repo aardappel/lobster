@@ -46,3 +46,5 @@ def quat_from_pitch(pitch):
     let cp = cos(pitch * 0.5)
     let sp = sin(pitch * 0.5)
     return quat { 0.0, sp, 0.0, cp }
+
+let quat_unit = quat { 0.0, 0.0, 0.0, 1.0 }
