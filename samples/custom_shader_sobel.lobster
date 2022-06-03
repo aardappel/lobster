@@ -48,5 +48,5 @@ while(gl_frame()):
         rnd_seed(0)
         gl_clear(color_black)
         for(256) i:
-            gl_translate xy_rnd() * (sincos(gl_time() * 10 + i) * 0.5 + 0.5) * float(gl_window_size()):
-                gl_circle(50, 7)
+            gl_translate xy_rnd() * (sincos(gl_time() * 10.0 + i) * 0.5 + 0.5) * float(gl_window_size()):
+                gl_circle(50.0, 7)

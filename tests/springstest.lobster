@@ -25,8 +25,8 @@ run_test("springs"):
             for(verts) w, i:
                 let tow = w - v
                 let dist = magnitude(tow)
-                if(dist < 1 and v != w):
-                    disps[i] += tow * (1 / dist) * (1 - dist)
+                if(dist < 1.0 and v != w):
+                    disps[i] += tow * (1.0 / dist) * (1.0 - dist)
         var totaldisp = 0.0
         for(disps) d, i:
             verts[i] += d
@@ -38,7 +38,7 @@ run_test("springs"):
     edges = []
     forxy(wsize) p:
         verts.push(float(p) + xy_rnd() - float(wsize) / 2.0)
-    while(wiggleverts() > 1): nil
+    while(wiggleverts() > 1.0): nil
     struct pedge:
         i1:int
         i2:int
@@ -48,10 +48,10 @@ run_test("springs"):
         for(verts) w, j:
             if(i < j):
                 let dist = magnitude(w - v)
-                if(dist < 2):
+                if(dist < 2.0):
                     pedges.push(pedge { i, j, dist })
     pedges = qsort(pedges) (a, b): a.dist < b.dist
-    let edgedistnocross = pedges[0].dist * sqrt(2)
+    let edgedistnocross = pedges[0].dist * sqrt(2.0)
     var vnbs = map(verts): []
     for(pedges) pe:
         if(pe.dist < edgedistnocross):

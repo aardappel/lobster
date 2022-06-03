@@ -384,6 +384,8 @@ struct TypeChecker {
         switch (bound->t) {
             case V_FLOAT:
                 if (a->exptype->t == V_INT) {
+                    if (auto ic = Is<IntConstant>(a))
+                        parser.WarnAt(a, "integer literal (", ic->integer, ") where float expected");
                     MakeFloat(a);
                     return;
                 }

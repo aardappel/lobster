@@ -100,7 +100,7 @@ let cube_face_textures = map(6) i:
         let label = "{i+1}"
         gl_set_font_size(detail/2)
         let size = gl_text_size(label)
-        gl_translate(xy_1 * float(detail) / 2 - float(size) / 2)
+        gl_translate(xy_1 * float(detail) / 2.0 - float(size) / 2.0)
         gl_clear(color_grey)
         gl_color(color_white)
         gl_text(label)
@@ -119,7 +119,7 @@ let face_colors = [
 
 // Rotate the camera to place the origin vertex of the cube in the center of
 // the view.
-let camera = Camera { xyz_0, -45, 45 }
+let camera = Camera { xyz_0, -45.0, 45.0 }
 
 // This demo is able to use camera.FPS_view but uses a different control model
 // to move the camera about the origin at a fixed “elevation”.
@@ -134,7 +134,7 @@ def camera_GPS_update(upkey, leftkey, downkey, rightkey, elevation:float, mouses
 while gl_frame() and not gl_button("escape"):
     gl_clear(color_dark_grey)
     gl_cursor(false)
-    gl_perspective(60, 0.1, 1000)
+    gl_perspective(60.0, 0.1, 1000.0)
 
     camera_GPS_update("w", "a", "s", "d", 2.0, 4.0, 4.0)
     camera.FPS_view()

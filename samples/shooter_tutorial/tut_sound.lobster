@@ -18,7 +18,7 @@ if ufobuzz: sound_volume(ufobuzz, 0.0) else: print "can\'t load sound!"
 let worldsize = 20.0
 
 var playerpos = xy_0
-let playerspeed = 10
+let playerspeed = 10.0
 var playerhealth = 0.0
 
 class bullet:
@@ -26,7 +26,7 @@ class bullet:
     dir:xy_f
 
 let firerate = 0.1
-let bulletspeed = 15
+let bulletspeed = 15.0
 var bullets = []
 var lastbullet = 0.0
 
@@ -35,7 +35,7 @@ class enemy:
     hp:int
 
 var enemyrate = 1.0
-let enemyspeed = 3
+let enemyspeed = 3.0
 let enemymaxhp = 5
 var enemies = []
 var lastenemy = 0.0
@@ -73,7 +73,7 @@ while gl_frame() and gl_button("escape") != 1:
             delta_time = gl_delta_time()
             game_time += delta_time
         else:
-            delta_time = 0
+            delta_time = 0.0
 
         gl_translate float(gl_window_size()) / 2.0:
             let scale = gl_window_size().y / worldsize
@@ -82,13 +82,13 @@ while gl_frame() and gl_button("escape") != 1:
             let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                           (gl_button("s") >= 1) - (gl_button("w") >= 1) }
             let newpos = playerpos + normalize(dir) * delta_time * playerspeed
-            if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
+            if not any(abs(newpos) > float(gl_window_size()) / scale / 2.0):
                 playerpos = newpos
 
             let tomouse = normalize(gl_local_mouse_pos(0) - playerpos)
 
             if lastenemy < game_time:
-                enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
+                enemies.push(enemy { sincos(rnd(360)) * worldsize * 2.0, enemymaxhp })
                 lastenemy += enemyrate
                 enemyrate *= 0.999
 
@@ -105,17 +105,17 @@ while gl_frame() and gl_button("escape") != 1:
                     closest_enemy_dist = playerdist
                 e.pos += playerdir * delta_time * enemyspeed
                 for(bullets) b:
-                    if magnitude(b.pos - e.pos) < 1:
+                    if magnitude(b.pos - e.pos) < 1.0:
                         sound_volume(play_ogg("data/sounds/tutorial/ufo hit.ogg"), clamp(1.0 / (playerdist + 0.001), 0.1, 1.0)) // distance-dependent volume of bullet hit
                         e.hp--
                         if(e.hp <= 0):
                             e.hp = 0
                             score++
-                        b.pos = xy_x * worldsize * 10
-                if playerdist < 1:
-                    playerhealth -= delta_time * 50
-                    if playerhealth <= 0:
-                        playerhealth = 0
+                        b.pos = xy_x * worldsize * 10.0
+                if playerdist < 1.0:
+                    playerhealth -= delta_time * 50.0
+                    if playerhealth <= 0.0:
+                        playerhealth = 0.0
                         highscore = max(highscore, score)
                         sound_pause(ufobuzz)
                         playing = false
@@ -135,7 +135,7 @@ while gl_frame() and gl_button("escape") != 1:
                         gl_circle(0.2, 20)
 
             bullets = filter(bullets) b:
-                magnitude(b.pos) < worldsize * 2
+                magnitude(b.pos) < worldsize * 2.0
 
             gl_translate gl_local_mouse_pos(0):
                 gl_line_mode 1:
@@ -145,7 +145,7 @@ while gl_frame() and gl_button("escape") != 1:
             renderpointytriangle(playerpos, tomouse)
     else:
         let msg = "press space to play!"
-        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
+        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2.0:
             gl_text(msg)
         if gl_button("space") == 1:
             score = 0
@@ -158,4 +158,4 @@ while gl_frame() and gl_button("escape") != 1:
             paused = false
             sound_resume(bgmusic)
             sound_resume(ufobuzz)
-            sound_volume(ufobuzz, 0)
+            sound_volume(ufobuzz, 0.0)
