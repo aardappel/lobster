@@ -7,7 +7,7 @@ import color
 import gl
 
 let num_balls = 1000  // try 10000 !
-let ball_size = 1.0 / sqrt(float(num_balls)) / 3.0
+let ball_size = 1.0 / sqrt(num_balls) / 3.0
 let ball_speed = 0.001
 let push_force = 0.2  // Needs to be balanced with speed.
 

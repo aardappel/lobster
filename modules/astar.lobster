@@ -75,8 +75,8 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
     return if isocta:
         directions = append(directions, diagonal_directions)
         astar_distance() v:
-            let x = float(abs(v.x))
-            let y = float(abs(v.y))
+            let x = abs(v.x)
+            let y = abs(v.y)
             let big = max(x, y)
             let small = min(x, y)
             sqrt(2.0) * small + big - small
