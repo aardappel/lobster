@@ -9,9 +9,10 @@
    comment.
 */
 
-namespace syntax
-import threads
+import vec
 import from "shooter_tutorial/tut1.lobster"
+
+namespace syntax
 
 // Numbers
 let integer1 = 1234
@@ -25,7 +26,7 @@ let hex_mix = 0xDeAdBeEf
 
 // Strings
 let string1 = "I am a string"
-let string2 = "I am a string with 'internal quotes'"
+let string2 = "I am a string with \'internal quotes\'"
 let string3 = """I'm a super string
    that can contain escape codes \n \t 
    and embedded strings: "like this"
@@ -42,31 +43,30 @@ let const_char3 = '\t'
 let const_char4 = '\r'
 let const_char5 = '\"'
 let const_char6 = '\''
-let const_char7 = '\'
+let const_char7 = '\\'
 let const_char8 = '\xFF'
 let const_char9 = '5'
 
 // Types
-var int_type = int
-var float_type = float
-var string_type = string
-var vector_type = [float]
-var void_type = void
-var resouce_type = resource
+let int_type:int = 0
+let float_type:float = 0.0
+let string_type:string = ""
+let vector_type:[float] = []
+let resouce_type:resource? = nil
 // bool is actually a built-in enum, but is treated as a first-class type.
-var bool_type = bool
+let bool_type:bool = true
 
 // Constants
-var nil_literal = nil
-var nil_with_type_literal = nil::float
-var true_literal = true
-var false_literal = false
+let nil_literal = nil
+let nil_with_type_literal = nil::string
+let true_literal = true
+let false_literal = false
 
 // Identifiers
-var random_ident1 = "test"
-var random_ident2 = random_ident1
-var _indent_with_underscore = true
-var a = "single character identifier"
+let random_ident1 = "test"
+let random_ident2 = random_ident1
+let _indent_with_underscore = true
+let aa = "single character identifier"
 
 // Statements
 
@@ -77,16 +77,16 @@ using_var = 2
 
 let using_let_no_space=1234
 var using_var_no_space=1234
-using_let_no_space=4321
+using_var_no_space=4321
 
-// Multiple Assignment
-var a,b = 1,2
+// Multiple Assignmentusing_var_no_space
+let a,b = 1,2
 
 // Functions
 def somefunction1(arg1, arg2):
    return arg1 + arg2
 
-def somefunction2(arg1, with_type::float, with_single_colon:int):
+def somefunction2(arg1, with_type::xyz_f, with_single_colon:int):
    return arg1 + with_type
 
 def noParameterFunction():
@@ -95,8 +95,8 @@ def noParameterFunction():
 def withReturn() -> string:
    return "a string"
 
-def withCustomReturnType() -> xyz:
-   return xzy {}
+def withCustomReturnType() -> xyz_f:
+   return xyz_0
 
 def withReturnNospace()->int:
    return 1234
@@ -108,16 +108,16 @@ enum someEnum:
    baz
 
 enum_flags flagEnum:
-   foo = 1
-   bar
-   baz
+   f_foo = 1
+   f_bar
+   f_baz
 
 // Struct
-struct xy:
+struct n_xy:
    x:int
    y:int
 
-struct xyz : xy
+struct n_xyz : n_xy
    z:int
 
 // Keywords
