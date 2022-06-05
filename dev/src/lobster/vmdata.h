@@ -230,7 +230,7 @@ struct RefObj : DynAlloc {
     void DECDELETENOW(VM &vm);
     void DECSTAT(VM &vm);
 
-    iint Hash(VM &vm);
+    uint64_t Hash(VM &vm);
 };
 
 extern bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural);
@@ -254,7 +254,7 @@ struct LString : RefObj {
     bool operator> (LString &o) { return strv() >  o.strv(); }
     bool operator>=(LString &o) { return strv() >= o.strv(); }
 
-    iint Hash();
+    uint64_t Hash();
 };
 
 // There must be a single of these per type, since they are compared by pointer.
@@ -456,7 +456,7 @@ struct Value {
     void ToFlexBuffer(VM &vm, flexbuffers::Builder &builder, ValueType t) const;
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
-    iint Hash(VM &vm, ValueType vtype);
+    uint64_t Hash(VM &vm, ValueType vtype);
     Value CopyRef(VM &vm, bool deep);
 };
 
@@ -610,12 +610,12 @@ template<typename T> struct ValueVec {
         return true;
     }
 
-    uint64_t hash(VM &vm, ValueType vt) {
-        uint64_t r = 0;
+    uint64_t Hash(VM &vm, ValueType vt) {
+        auto hash = SplitMix64Hash((uint64_t)len);
         for (iint i = 0; i < len; i++) {
-            r ^= vals[i].Hash(vm, vt);
+            hash = hash * 31 + vals[i].Hash(vm, vt);
         }
-        return r;
+        return hash;
     }
 };
 
@@ -656,9 +656,11 @@ struct LObject : RefObj {
         return true;
     }
 
-    iint Hash(VM &vm) {
-        iint hash = 0;
-        for (int i = 0; i < Len(vm); i++) hash ^= AtS(i).Hash(vm, ElemTypeS(vm, i).t);
+    uint64_t Hash(VM &vm) {
+        auto hash = SplitMix64Hash((uint64_t)Len(vm));
+        for (iint i = 0; i < Len(vm); i++) {
+            hash = hash * 31 + AtS(i).Hash(vm, ElemTypeS(vm, i).t);
+        }
         return hash;
     }
 
@@ -796,15 +798,7 @@ struct LVector : RefObj {
         return true;
     }
 
-    iint Hash(VM &vm) {
-        uint64_t hash = 0;
-        assert(width == 1);
-        auto et = ElemType(vm).t;
-        hash = static_cast<uint64_t>(SplitMix64Hash(len));
-        for (int i = 0; i < len; i++)
-            hash = hash * 31 + static_cast<uint64_t>(At(i).Hash(vm, et));
-        return static_cast<iint>(hash);
-    }
+    uint64_t Hash(VM &vm);
 
     void CopyElemsShallow(Value *from) {
         t_memcpy(v, from, len * width);

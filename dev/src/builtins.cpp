@@ -1200,13 +1200,13 @@ nfr("hash", "v", "I}", "I",
     "hashes a int vector into a positive int",
     [](StackPtr &sp, VM &vm) {
         auto a = DangleVec<iint>(sp);
-        Push(sp, positive_bits(a.hash(vm, V_INT)));
+        Push(sp, positive_bits(a.Hash(vm, V_INT)));
     });
 nfr("hash", "v", "F}", "I",
     "hashes a float vector into a positive int",
     [](StackPtr &sp, VM &vm) {
         auto a = DangleVec<double>(sp);
-        Push(sp, positive_bits(a.hash(vm, V_FLOAT)));
+        Push(sp, positive_bits(a.Hash(vm, V_FLOAT)));
     });
 
 nfr("program_name", "", "", "S",

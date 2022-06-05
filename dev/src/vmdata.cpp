@@ -297,7 +297,7 @@ void Value::ToFlexBuffer(VM &vm, flexbuffers::Builder &builder, ValueType t) con
 }
 
 
-iint RefObj::Hash(VM &vm) {
+uint64_t RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:      return ((LVector *)this)->Hash(vm);
@@ -306,11 +306,30 @@ iint RefObj::Hash(VM &vm) {
     }
 }
 
-iint LString::Hash() {
+uint64_t LString::Hash() {
     return FNV1A64(strv());
 }
 
-iint Value::Hash(VM &vm, ValueType vtype) {
+uint64_t LVector::Hash(VM &vm) {
+    auto &eti = ElemType(vm);
+    auto hash = SplitMix64Hash((uint64_t)(len * width));
+    if (IsStruct(eti.t)) {
+        for (iint i = 0; i < len; i++) {
+            for (int j = 0; j < width; j++) {
+                assert(width == eti.len);
+                auto &ti = vm.GetTypeInfo(eti.elemtypes[j]);
+                hash = hash * 31 + AtSub(i, j).Hash(vm, ti.t);
+            }
+        }
+    } else {
+        for (iint i = 0; i < len; i++) {
+            hash = hash * 31 + At(i).Hash(vm, eti.t);
+        }
+    }
+    return hash;
+}
+
+uint64_t Value::Hash(VM &vm, ValueType vtype) {
     switch (vtype) {
         case V_INT:
         case V_FUNCTION:

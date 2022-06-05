@@ -268,7 +268,6 @@
   the optimisations this has specifically for string keys etc.
   Also, int3/float3 can be very useful as keys and would want to support.
   dictionary.lobster is already nicely generic if constant speed is not too important.
-  may want to update my builtin Hash for integers with robin_hood::hash
 
 - stefandd: multiple assign doesn't work on fields.
 
