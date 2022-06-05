@@ -17,10 +17,10 @@ while gl_frame():
     gl_color(color_white)
 
     // Center the image on the window.
-    gl_translate(float(gl_window_size())/2)
+    gl_translate(float(gl_window_size()) / 2.0)
 
     // Stretches the image vertically and horizontally to fill the window.
-    gl_scale(float(gl_window_size())/2)
+    gl_scale(float(gl_window_size()) / 2.0)
 
     // Draw a unit rectangle, as scaled and centered above, and filled with the
     // selected texture: the lobster image.

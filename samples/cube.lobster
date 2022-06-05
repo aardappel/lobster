@@ -141,7 +141,7 @@ while gl_frame() and not gl_button("escape"):
 
     gl_light(camera.position, xy { 128.0, 0.1 })
 
-    gl_translate(-xyz_1/2)
+    gl_translate(xyz_1 / -2.0)
     gl_set_shader("textured")
     for(6) i:
         // The texture colors are multiplied by the color in context.

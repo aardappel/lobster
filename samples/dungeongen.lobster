@@ -72,7 +72,7 @@ def cave(with_player):
             field[xy_rndi(csize) + start] =
                 if rnd(4) == 0: '$' else: 'A' + rnd('~' - 'A' + 1)
 
-rnd_seed(int(seconds_elapsed() * 1000000))
+rnd_seed(int(seconds_elapsed() * 1000000.0))
 
 // A call to cave() is not guaranteed to actually make a new cave,
 // so call it many times

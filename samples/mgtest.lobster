@@ -12,7 +12,7 @@ print "generating models... this may take some time!"
 
 fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800, gl_window_init_linear_color))
 
-let camera = Camera { xyz_1 * 10.0, 135, 0.0 }
+let camera = Camera { xyz_1 * 10.0, 135.0, 0.0 }
 
 def mg_mirror_y(dist, body):
     for(2) i:

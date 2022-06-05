@@ -14,7 +14,7 @@ def curve(depth, d) -> void:
         gl_translate(xy { d, 0.0 })
     else:
         for (seq) angle:
-            curve(depth - 1, d / 3)
+            curve(depth - 1, d / 3.0)
             gl_rotate_z(sincos(angle))
 
 fatal(gl_window("Von Koch\'s curve", 640, 640))
@@ -36,7 +36,7 @@ while gl_frame():
     // Draw the Von koch's curve segments around a tringle
     for (3):
         curve(setup.depth, 1.0)
-        gl_rotate_z(sincos(120))
+        gl_rotate_z(sincos(120.0))
 
     im_frame():
         im_window("Parameters", im_window_always_autoresize):

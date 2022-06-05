@@ -167,9 +167,9 @@ def viz():
     let status_size = gl_text_size(status)
 
     for(N) i:
-        gl_translate(xy_f { unit * (1 + i), 0 }):
+        gl_translate(xy_f { unit * (1.0 + i), 0.0 }):
             gl_text("{i}")
-        gl_translate(xy_f { 0, unit * (1 + i) }):
+        gl_translate(xy_f { 0.0, unit * (1.0 + i) }):
             gl_text("{i}")
     gl_scale(unit):
         for(N) i: for(N) j:

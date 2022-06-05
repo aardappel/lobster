@@ -35,7 +35,7 @@ while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
-    set_2d_worldspace(worldsize, xy { 0.5, 1 }, xy { 1.0, -1.0 })
+    set_2d_worldspace(worldsize, xy { 0.5, 1.0 }, xy { 1.0, -1.0 })
 
     if gl_button("mouse1") >= 1:
         ph_create_particle_circle(gl_local_mouse_pos(0), 0.5, color_blue, ph_colormixingparticle)

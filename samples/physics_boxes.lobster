@@ -26,7 +26,7 @@ while gl_frame() and gl_button("escape") != 1:
     ph_render()
 
     // spawn tumbling boxes
-    if gl_time() > boxtime and gl_time() < 500:
+    if gl_time() > boxtime and gl_time() < 500.0:
         boxtime += 0.1  // spawn 10 boxes per second
         let box = ph_create_box(xy { rnd(50) - 25.0, rnd(50) + 2.0 }, xy { 0.5, 0.5 })
         ph_dynamic(box, true)

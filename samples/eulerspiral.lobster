@@ -22,7 +22,7 @@ let szv = scrollzoomview {
 while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
-    let scale, panoffset = szv.update(xy_1 * -50, xy_1 * 50, gl_window_size())
+    let scale, panoffset = szv.update(xy_1 * -50.0, xy_1 * 50.0, gl_window_size())
     gl_scale(scale)
     gl_translate(panoffset)
     if pts.length < 10000:

@@ -32,5 +32,5 @@ while gl_frame():
             gl_set_text_input(unicode_to_string(uv))
     // Render all strings input so far:
     for(log) l, i:
-        gl_translate(xy_f { 0, gl_get_font_size() * (i + 2) }):
+        gl_translate(xy_f { 0.0, gl_get_font_size() * (i + 2.0) }):
             gl_text(l)
