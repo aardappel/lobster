@@ -77,6 +77,7 @@ struct TypeChecker {
     vector<Scope> scopes, named_scopes;
     vector<FlowItem> flowstack;
     vector<Borrow> borrowstack;
+    set<pair<Line, int64_t>> integer_literal_warnings;
 
     TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq) : parser(_p), st(_st) {
         // FIXME: this is unfriendly.
@@ -384,8 +385,16 @@ struct TypeChecker {
         switch (bound->t) {
             case V_FLOAT:
                 if (a->exptype->t == V_INT) {
-                    if (auto ic = Is<IntConstant>(a))
-                        parser.WarnAt(a, "integer literal (", ic->integer, ") where float expected");
+                    if (auto ic = Is<IntConstant>(a)) {
+                        auto this_warn = make_pair(ic->line, ic->integer);
+                        if (integer_literal_warnings.find(this_warn) !=
+                            integer_literal_warnings.end()) {
+                            parser.WarnAt(a, "integer literal (", ic->integer,
+                                          ") where float expected");
+                        } else {
+                            integer_literal_warnings.insert(this_warn);
+                        }
+                    }
                     MakeFloat(a);
                     return;
                 }
