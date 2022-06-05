@@ -797,11 +797,13 @@ struct LVector : RefObj {
     }
 
     iint Hash(VM &vm) {
-        iint hash = 0;
+        uint64_t hash = 0;
         assert(width == 1);
         auto et = ElemType(vm).t;
-        for (int i = 0; i < len; i++) hash ^= At(i).Hash(vm, et);
-        return hash;
+        hash = static_cast<uint64_t>(SplitMix64Hash(len));
+        for (int i = 0; i < len; i++)
+            hash = hash * 31 + static_cast<uint64_t>(At(i).Hash(vm, et));
+        return static_cast<iint>(hash);
     }
 
     void CopyElemsShallow(Value *from) {
