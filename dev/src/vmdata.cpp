@@ -302,7 +302,7 @@ iint RefObj::Hash(VM &vm) {
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:      return ((LVector *)this)->Hash(vm);
         case V_CLASS:       return ((LObject *)this)->Hash(vm);
-        default:            return (iint)this;
+        default:            return SplitMix64Hash((uint64_t)this);
     }
 }
 
@@ -312,10 +312,13 @@ iint LString::Hash() {
 
 iint Value::Hash(VM &vm, ValueType vtype) {
     switch (vtype) {
-        case V_INT: return ival_;
-        case V_FLOAT: return ReadMem<iint>(&fval_);
-        case V_FUNCTION: return ival_;
-        default: return refnil() ? ref()->Hash(vm) : 0;
+        case V_INT:
+        case V_FUNCTION:
+            return SplitMix64Hash((uint64_t)ival_);
+        case V_FLOAT:
+            return SplitMix64Hash(ReadMem<uint64_t>(&fval_));
+        default:
+            return refnil() ? ref()->Hash(vm) : 0;
     }
 }
 
