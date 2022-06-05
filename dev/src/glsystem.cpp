@@ -151,10 +151,14 @@ void OpenGLFrameEnd() {
 #ifdef PLATFORM_WINNIX
 void DebugCallBack(GLenum, GLenum, GLuint, GLenum severity, GLsizei length,
                    const GLchar *message, const void *) {
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;  // Spam.
     auto ll = OUTPUT_INFO;
     if (severity == GL_DEBUG_SEVERITY_HIGH) ll = OUTPUT_ERROR;
     else if (severity == GL_DEBUG_SEVERITY_MEDIUM) ll = OUTPUT_WARN;
     if (ll < min_output_level) return;
+    // These messages are useless too, as they're hard to correlate to what needs to be
+    // reordered in Lobster code to make them go away.
+    if (strstr(message, "being recompiled based on GL state")) return;
     LogOutput(ll, "GLDEBUG: ", string_view(message, length));
 }
 #endif
