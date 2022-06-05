@@ -13,7 +13,7 @@ import camera
 
 let lssize = 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
 let inventory = []::int // blocks we've mined
-let camera = Camera { xyz_1 * lssize / 2, 45, 0 }
+let camera = Camera { xyz_1 * lssize / 2.0, 45.0, 0.0 }
 
 def inside(v): return all(v > 0) and all(v < lssize - 1)    // keep the outer blocks empty for simplicity
 
@@ -21,11 +21,11 @@ let cells = map(lssize) z:
             map(lssize) y:
                 map(lssize) x:
                     let v = xyz { x, y, z }
-                    let h = simplex(float(v) / lssize + 11, 6, 1, 0.55)   // generate blocks using noise
+                    let h = simplex(float(v) / lssize + 11.0, 6, 1.0, 0.55)   // generate blocks using noise
                     // more likely to be solid the lower it is, and only when not on the outside:
                     let solid = h / 1.5 > div(z, lssize) - 0.5 and inside(v)
                     // pick material with noise too:
-                    if solid: int((simplex(float(v) / lssize, 8, 3, 0.55) + 1) * 2) + 1
+                    if solid: int((simplex(float(v) / lssize, 8, 3.0, 0.55) + 1.0) * 2.0) + 1
                     else: 0
 
 let colors = [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
@@ -40,8 +40,8 @@ while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_light_blue)
     gl_cursor(false)
-    gl_perspective(70, 0.1, 1000)
-    camera.FPS_update("w", "a", "s", "d", 10, 4, true)
+    gl_perspective(70.0, 0.1, 1000.0)
+    camera.FPS_update("w", "a", "s", "d", 10.0, 4.0, true)
     camera.FPS_view()
     gl_light(camera.position, xy { 64.0, 0.25 })
     gl_blend(blend_none)
@@ -77,5 +77,5 @@ while gl_frame():
                  xyz { lssize - 1.0, lssize - 1.0, wh }, xyz {lssize - 1.0, 1.0, wh } ])
     gl_ortho()
     gl_color(color_white)
-    gl_translate float(gl_window_size()) / 2:
-        gl_circle(5, 20)    // simplified crosshairs
+    gl_translate float(gl_window_size()) / 2.0:
+        gl_circle(5.0, 20)    // simplified crosshairs

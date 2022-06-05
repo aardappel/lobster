@@ -18,7 +18,7 @@ fatal(gl_window(if vrmode: "VR Test" else: "No VR device", 1280, 640,
 def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
     if numb:
         mg_translate(xyz_z * branchl):
-            mg_tapered_cylinder(1, narrowf, branchl)
+            mg_tapered_cylinder(1.0, narrowf, branchl)
             mg_translate(xyz_z * branchl):
                 let axis = sincos(rnd(360))
                 let branches = rnd(3) + 1
@@ -26,7 +26,7 @@ def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
                     mg_rotate(xyz_z, 360 * i / branches):
                         mg_rotate(xyz(axis, 0), 12 * branches):
                             mg_scale(narrowf):
-                                mg_sphere(1)
+                                mg_sphere(1.0)
                                 model_tree(numb - 1, branchl, narrowf, leafs, leafc)
     else:
         mg_color(leafc):
@@ -39,10 +39,10 @@ let tree = mg_polygonize(50)
 
 mg_smooth(0.0)
 mg_color(color_red)
-mg_sphere(1)
+mg_sphere(1.0)
 let sphere = mg_polygonize(3)
 
-let camera = Camera { xyz { 0.0, 0.0, 3.0 }, 135, 20 }
+let camera = Camera { xyz { 0.0, 0.0, 3.0 }, 135.0, 20.0 }
 
 let balls = []::[xyz_f]
 
@@ -57,14 +57,14 @@ def drawworld():
 
     gl_set_shader("flat")
     for(10) i:
-        gl_translate sincos(i * 72) * 3:
+        gl_translate sincos(i * 72.0) * 3.0:
             gl_scale(0.3):
                 gl_render_mesh(tree)
 
     for(balls) b:
         gl_translate b[0]:
             gl_scale(0.1):
-                gl_rotate_z(sincos(gl_time() * 30)):
+                gl_rotate_z(sincos(gl_time() * 30.0)):
                     gl_render_mesh(sphere)
 
     gl_set_shader("color")
@@ -113,14 +113,14 @@ while gl_frame():
     else:
         // This is how we'd render normally, with no HMD connected:
         gl_cursor(false)
-        camera.FPS_update("w", "a", "s", "d", 10, 4, true)
+        camera.FPS_update("w", "a", "s", "d", 10.0, 4.0, true)
         gl_clear(color_dark_grey)
         gl_blend(blend_none)
-        gl_perspective(70, znear, zfar)
+        gl_perspective(70.0, znear, zfar)
         camera.FPS_view()
         drawworld()
 
     if balls.length > 100:
         balls.remove(0, balls.length - 100)
     for(balls) b:
-        b[0] += b[1] * gl_delta_time() / 10
+        b[0] += b[1] * gl_delta_time() / 10.0

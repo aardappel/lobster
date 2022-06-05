@@ -23,5 +23,5 @@ let str = unicode_to_string(indices)
 
 while gl_frame():
     gl_clear(color_black)
-    gl_translate xy_1 * 50
+    gl_translate xy_1 * 50.0
     gl_text(str)

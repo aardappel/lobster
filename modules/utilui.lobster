@@ -40,7 +40,7 @@ class scrollzoomview:
                 pinchfactor *= dist / lastdistance
             lastdistance = dist
         else:
-            lastdistance = 0
+            lastdistance = 0.0
         let scale = gl_window_size().x / viewscale * pinchfactor
         center /= oldscale
         panoffset -= center / (scale / oldscale) - center
@@ -49,12 +49,12 @@ class scrollzoomview:
             let delta = float(gl_mouse_delta(0)) / scale
             panoffset -= delta
             // mild amount of dampening/smoothing from previous frames:
-            touchvelocity = (touchvelocity + delta / gl_delta_time()) / 2
+            touchvelocity = (touchvelocity + delta / gl_delta_time()) / 2.0
         else:
             panoffset -= touchvelocity * gl_delta_time()
             var speed = touchvelocity.magnitude()
-            if speed > 0:
-                let reduction = gl_delta_time() / scale * 1000
+            if speed > 0.0:
+                let reduction = gl_delta_time() / scale * 1000.0
                 if reduction < speed:
                     speed -= reduction
                     touchvelocity = touchvelocity.normalize() * speed
@@ -63,11 +63,11 @@ class scrollzoomview:
         if oldpanoffset != panoffset and mousewheeldelta <= 0:
             maxo -= float(viewsize) / scale
             if(maxo.x < mino.x):
-                mino = xy { (mino.x + maxo.x) / 2, mino.y }  // FIXME!!!
-                maxo = xy { (mino.x + maxo.x) / 2, maxo.y }
+                mino = xy { (mino.x + maxo.x) / 2.0, mino.y }  // FIXME!!!
+                maxo = xy { (mino.x + maxo.x) / 2.0, maxo.y }
             if(maxo.y < mino.y):
-                mino = xy { mino.x, (mino.y + maxo.y) / 2 }
-                maxo = xy { maxo.x, (mino.y + maxo.y) / 2 }
+                mino = xy { mino.x, (mino.y + maxo.y) / 2.0 }
+                maxo = xy { maxo.x, (mino.y + maxo.y) / 2.0 }
             panoffset = xy { max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
                             max(min(maxo.y, panoffset.y), mino.y) }
         return scale, -panoffset

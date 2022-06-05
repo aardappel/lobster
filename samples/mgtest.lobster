@@ -12,7 +12,7 @@ print "generating models... this may take some time!"
 
 fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800, gl_window_init_linear_color))
 
-let camera = Camera { xyz { 10.0, 10.0, 10.0 }, 135, 0 }
+let camera = Camera { xyz_1 * 10.0, 135, 0.0 }
 
 def mg_mirror_y(dist, body):
     for(2) i:
@@ -23,17 +23,17 @@ let aspoints = false
 mg_set_point_mode(aspoints)
 if not aspoints:
     //mg_set_polygon_reduction(3, 0.98, 0.95)
-    mg_set_vertex_randomize(0)
+    mg_set_vertex_randomize(0.0)
 
 let density = 80
 
 var abstract = nil
 if true:
-    mg_smooth(1)
+    mg_smooth(1.0)
     mg_color(color_white)
     mg_rotate(xyz_1, 45):
         //mg_cube(xyz_1)
-        mg_superquadric(xyz_1 * 10, xyz_1)  // Cube with rounded edges
+        mg_superquadric(xyz_1 * 10.0, xyz_1)  // Cube with rounded edges
     abstract = mg_polygonize(density)
 
 var gun = nil
@@ -56,7 +56,7 @@ if true:
         mg_superquadric(xyz { 3.0, 100.0, 3.0 }, xyz { 2.0, 10.0, 3.0 })
     mg_translate(xyz { 0.0, 14.0, 5.0 }):
         mg_rotate(xyz_x, 90.0):
-            mg_cylinder(1, 3)
+            mg_cylinder(1.0, 3.0)
     gun = mg_polygonize(density)
 
 var spaceship = nil
@@ -89,7 +89,7 @@ if true:
 def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
     if numb:
         mg_translate(xyz_z * branchl):
-            mg_tapered_cylinder(1, narrowf, branchl)
+            mg_tapered_cylinder(1.0, narrowf, branchl)
             mg_translate(xyz_z * branchl):
                 let axis = xyz(sincos(rnd(360)), 0)
                 let branches = rnd(3) + 1
@@ -97,7 +97,7 @@ def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
                     mg_rotate(xyz_z, 360 * i / branches):
                         mg_rotate(axis, 12 * branches):
                             mg_scale(narrowf):
-                                mg_sphere(1)
+                                mg_sphere(1.0)
                                 model_tree(numb - 1, branchl, narrowf, leafs, leafc)
     else:
         mg_color(leafc):
@@ -147,11 +147,11 @@ while gl_frame():
 
     if true:
         gl_cursor(false)
-        gl_perspective(60, 0.1, 1000)
+        gl_perspective(60.0, 0.1, 1000.0)
 
         var speed = 10
         if gl_button("left shift") >= 1: speed = 50
-        camera.FPS_update("w", "a", "s", "d", speed, 4, true)
+        camera.FPS_update("w", "a", "s", "d", speed, 4.0, true)
         camera.FPS_view()
         gl_light(camera.position, xy { 128.0, 0.1 })
     else:
@@ -164,32 +164,32 @@ while gl_frame():
         gl_set_shader(aspoints and "phong_particle" or "flat")
 
         if spaceship:
-            gl_translate(xy_1 * 10):
-                gl_point_scale(1 * fovscale)
+            gl_translate(xy_1 * 10.0):
+                gl_point_scale(1.0 * fovscale)
                 gl_render_mesh(spaceship)
 
         if gun:
-            gl_translate(xy_1 * 20):
+            gl_translate(xy_1 * 20.0):
                 gl_scale(0.2):
                     gl_point_scale(0.2 * fovscale)
                     gl_render_mesh(gun)
 
         if landscape:
-            gl_translate(xy_y * 30):
+            gl_translate(xy_y * 30.0):
                 gl_scale(10):
-                    gl_point_scale(10 * fovscale)
+                    gl_point_scale(10.0 * fovscale)
                     gl_render_mesh(landscape)
 
         if abstract:
-            gl_translate(xy_y * 10):
+            gl_translate(xy_y * 10.0):
                 gl_scale(2):
-                    gl_point_scale(3 * fovscale)
+                    gl_point_scale(3.0 * fovscale)
                     gl_render_mesh(abstract)
 
         for(10) j:
             gl_translate(xyz_y * j * -5):
                 for(trees) t, i:
-                    gl_translate(xyz_x * i * 10):
+                    gl_translate(xyz_x * i * 10.0):
                         gl_scale(0.5):
                             gl_point_scale(0.5 * fovscale)
                             gl_render_mesh(t)

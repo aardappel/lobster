@@ -205,7 +205,7 @@ private def around(m, draw, id, f):
             position(size): // FIXME: clean this up
                 gl_rect(xy_f{ size.x, m.y })
                 gl_rect(xy_f { m.x, size.y })
-                gl_translate xy_f { size.x - m.x, 0 }:
+                gl_translate xy_f { size.x - m.x, 0.0 }:
                     gl_rect(xy_f { m.x, size.y })
                 gl_translate xy_f { 0.0, size.y - m.y }:
                     gl_rect(xy_f { size.x, m.y })

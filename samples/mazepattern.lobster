@@ -15,7 +15,7 @@ fatal(gl_window("rndmaze", 1024, 768))
 
 def endcap_line(pts, thickness):
     gl_line(pts[0], pts[1], thickness)
-    for pts: gl_translate _: gl_circle(thickness / 2, 40)
+    for pts: gl_translate _: gl_circle(thickness / 2.0, 40)
 
 while gl_frame():
     if gl_button("escape") == 1: return
