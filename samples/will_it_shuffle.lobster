@@ -18,7 +18,7 @@ enum shuffle_mode:
     shuffle_push_remove
     shuffle_fisher_yates
 
-var mode = shuffle_none
+let mode = shuffle_none
 
 def do_shuffle(array): switch mode:
     case shuffle_none: array
@@ -122,7 +122,7 @@ def reshuffle():
         let t = if t0 == t1: 0.5 else: clamp((v - t0) / (t1 - t0), 0.0, 1.0)
         fills[k] = spline(t)
 
-var shuffling = true
+let shuffling = true
 
 fatal(gl_window("Will It Shuffle?", 640, 480))
 check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "cannot load gl font")

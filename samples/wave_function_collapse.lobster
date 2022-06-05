@@ -22,7 +22,7 @@ let benchmark = false
 if benchmark:
     var no_conflicts = 0
     for(1000) i:
-        let outmap, conflicts = wave_function_collapse(tilemap, xy { 100, 100 })
+        let _, conflicts = wave_function_collapse(tilemap, xy { 100, 100 })
         print "{i}: {conflicts}"
         if not conflicts: no_conflicts++
     print no_conflicts
