@@ -58,7 +58,7 @@ def gl_scissor(topleft, size, body):
     body()
     gl_scissor(oldtl, oldsz)
 
-private let delta_time_log = map(60): 1 / 30.0
+private let delta_time_log = map(60): 1.0 / 30.0
 def gl_deltatime_over_time():
     delta_time_log.push(gl_delta_time())
     delta_time_log.remove(0)

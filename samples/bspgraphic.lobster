@@ -24,8 +24,8 @@ def square(pos, size, depth) -> void:
         gl_translate float(pos):
             gl_color(color_black)
             gl_rect(float(size))
-            let range = max(0.1, min(0.7, 1 - sqrt(size.x * size.y) / 250))
-            let col = color { rnd_float(), rnd_float() * range + (1 - range), rnd_float(), 1 } * 0.15 + 0.75
+            let range = max(0.1, min(0.7, 1.0 - sqrt(size.x * size.y) / 250.0))
+            let col = color { rnd_float(), rnd_float() * range + (1.0 - range), rnd_float(), 1.0 } * 0.15 + 0.75
             gl_color(col)
             gl_rect(float(size - xy_1i * 2))
 

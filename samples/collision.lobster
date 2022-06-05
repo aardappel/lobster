@@ -7,7 +7,7 @@ import color
 import gl
 
 let num_balls = 1000  // try 10000 !
-let ball_size = 1 / sqrt(num_balls) / 3
+let ball_size = 1.0 / sqrt(num_balls) / 3.0
 let ball_speed = 0.001
 let push_force = 0.2  // Needs to be balanced with speed.
 
@@ -19,7 +19,7 @@ fatal(gl_window("collision", 1024, 1024))
 
 while gl_frame():
     if gl_button("escape") == 1: return
-    gl_window_title("FPS: {(1 / gl_delta_time())}")
+    gl_window_title("FPS: {(1.0 / gl_delta_time())}")
     gl_clear(color_black)
     gl_scale(float(gl_window_size().y))
 
@@ -31,7 +31,7 @@ while gl_frame():
         if not positions[i].y.in_range(1.0): dirs[i] *= xy {  1.0, -1.0 }
 
     // For each ball, find all nearby balls in an efficient manner.
-    let push_indices = circles_within_range(0, positions, radiuses, [], [], xy_0i)
+    let push_indices = circles_within_range(0.0, positions, radiuses, [], [], xy_0i)
 
     // Now use this information to push other balls away.
     for(push_indices) iv, j:

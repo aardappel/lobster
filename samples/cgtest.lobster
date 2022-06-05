@@ -9,7 +9,7 @@ fatal(gl_window("cubegen test", 1280, 800))
 
 let dim = xyz_1i * 128
 
-let camera = Camera { float(dim) / 2, 135, 0 }
+let camera = Camera { float(dim) / 2.0, 135.0, 0.0 }
 
 let w = cg_init(dim)
 
@@ -31,10 +31,10 @@ while gl_frame():
     gl_clear(color_dark_grey)
 
     gl_cursor(false)
-    gl_perspective(60, 0.1, 1000)
+    gl_perspective(60.0, 0.1, 1000.0)
 
-    let speed = 50
-    camera.FPS_update("w", "a", "s", "d", speed, 4, true)
+    let speed = 50.0
+    camera.FPS_update("w", "a", "s", "d", speed, 4.0, true)
     camera.FPS_view()
     gl_light(camera.position, xy { 128.0, 0.1 })
 

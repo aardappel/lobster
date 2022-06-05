@@ -68,37 +68,37 @@ let colors = map([
     div( (_ >> 16) & 0xFF, 255),
     div( (_ >> 8)  & 0xFF, 255),
     div(  _        & 0xFF, 255),
-    1,
+    1.0,
 }
 
 def spline_value(values, t):
     // uniforem b-spline interpolation adapted from d3-scale-chromactic
-    t = clamp(t, 0, 1)
+    t = clamp(t, 0.0, 1.0)
     let n = values.length - 1
     let i = clamp(floor(t * n), 0, n-1)
 
     let v1 = values[i]
     let v2 = values[i + 1]
-    let v0 = if i > 0:     values[i - 1] else: v1 * 2 - v2
-    let v3 = if i < n - 1: values[i + 2] else: v2 * 2 - v1
+    let v0 = if i > 0:     values[i - 1] else: v1 * 2.0 - v2
+    let v3 = if i < n - 1: values[i + 2] else: v2 * 2.0 - v1
 
     let t1 = (t - div(i, n)) * n
     let t2 = t1 * t1
     let t3 = t2 * t1
     return (
-        v0 * (1 - 3 * t1 + 3 * t2 - t3) +
-        v1 * (4 - 6 * t2 + 3 * t3) +
-        v2 * (1 + 3 * t1 + 3 * t2 - 3 * t3) +
+        v0 * (1.0 - 3.0 * t1 + 3.0 * t2 - t3) +
+        v1 * (4.0 - 6.0 * t2 + 3.0 * t3) +
+        v2 * (1.0 + 3.0 * t1 + 3.0 * t2 - 3.0 * t3) +
         v3 * t3
-    ) / 6
+    ) / 6.0
 
 def spline(t):
     let c = spline_value(colors, t)
     return color {
-        clamp(c.red,   0, 1),
-        clamp(c.green, 0, 1),
-        clamp(c.blue,  0, 1),
-        clamp(c.alpha, 0, 1),
+        clamp(c.red,   0.0, 1.0),
+        clamp(c.green, 0.0, 1.0),
+        clamp(c.blue,  0.0, 1.0),
+        clamp(c.alpha, 0.0, 1.0),
     }
 
 var N = 60
@@ -119,7 +119,7 @@ def reshuffle():
         let t0 = color_domain_lo
         let t1 = color_domain_hi
         let v = clamp(log(n), t0, t1)
-        let t = if t0 == t1: 0.5 else: clamp((v - t0) / (t1 - t0), 0, 1)
+        let t = if t0 == t1: 0.5 else: clamp((v - t0) / (t1 - t0), 0.0, 1.0)
         fills[k] = spline(t)
 
 var shuffling = true
@@ -139,7 +139,7 @@ class shuffle_routine:
             let max_work = 60 * 10000
             if N * M > max_work:
                 if N != last_n:
-                    M = floor(div(max_work, N) / 100) * 100
+                    M = floor(div(max_work, N) / 100.0) * 100
                 else:
                     N = floor(div(max_work, M))
             if N != last_n:
@@ -182,7 +182,7 @@ def viz():
 class ui:
     def init():
         im_init(true)
-        let im_fontsize = 32
+        let im_fontsize = 32.0
         // check(im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", im_fontsize), "cannot load imgui font")
         check(im_add_font("data/fonts/Inconsolata/Inconsolata-Bold.ttf", im_fontsize), "cannot load imgui font")
 

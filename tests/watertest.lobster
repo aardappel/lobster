@@ -24,9 +24,9 @@ run_test("water"):
     let cells = map(lssize) y:
                 map(lssize) x:
                     var h = rnd_float()  // Original had simplex noise, which is expensive.
-                    h += 1
-                    h = pow(h, 3)  // Simplest form of erosion: amplify points that are high.
-                    h = h * 10
+                    h += 1.0
+                    h = pow(h, 3.0)  // Simplest form of erosion: amplify points that are high.
+                    h = h * 10.0
                     if h > highh:
                         highh = h
                         highest = xy { x, y }
@@ -51,9 +51,9 @@ run_test("water"):
             n += xy { x, y }
             ifinworld(n): f(cells[n.y][n.x])
 
-    let starting_extra_water = 0 //10000
-    let water_per_second = 4
-    let give_water_divider = 40  // Higher means goes to neighbors more slowly.
+    let starting_extra_water = 0.0 //10000
+    let water_per_second = 4.0
+    let give_water_divider = 40.0  // Higher means goes to neighbors more slowly.
     let minimum_water_accumulation = 0.2  // Before it overflows into any neighbors.
 
     cells[highest].wh += starting_extra_water
@@ -77,8 +77,8 @@ run_test("water"):
                     nc.nw += give
                     c.nw -= give
         loopworld() x, y, c:
-            if c.nw != 0:
+            if c.nw != 0.0:
                 c.wh += c.nw
-                c.nw = 0
+                c.nw = 0.0
 
     for 5: sim()

@@ -63,7 +63,7 @@ run_test("misc"):
         g:int
 
     let direct = parsetest {
-        false, 1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
+        false, 1, 2.0, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
         [ 0, -64 ], nil, true
     }
     var parsed, err = parse_data(typeof direct, "{direct}")
@@ -166,7 +166,7 @@ run_test("misc"):
     var aa = 5
     aa %= 2
     assert aa == 1
-    assert sign(xyz_f { -6, 0, 6 }) == xyz_i { -1, 0, 1 }
+    assert sign(xyz_f { -6.0, 0.0, 6.0 }) == xyz_i { -1, 0, 1 }
 
     // multiple return values
     let bb, cc, dd, ee = 1, 1, 1, 1
@@ -176,7 +176,7 @@ run_test("misc"):
     ff, gg = 8, 9
     assert ff == 8 and gg == 9
     def multiret():
-        if sin(0): return 4, 5
+        if sin(0.0): return 4, 5
         return 6, 7
     let hh, ii = multiret()
     assert hh == 6 and ii == 7
@@ -263,7 +263,7 @@ run_test("misc"):
     rnd_seed(0)
     for(32):
         let key = rnd_float()
-        let value = dict.get(key, -1)
+        let value = dict.get(key, -1.0)
         assert value == key
     // Test using nil as default value.
     let dict2 = dictionary<string, string?> { 17 }

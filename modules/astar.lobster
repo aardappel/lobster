@@ -57,7 +57,7 @@ def astar_graph(startnode, endnode, costf, distancef, neighbors):
     fn n, f:
         neighbors(n) nn:
             let cost = costf(n, nn)
-            if cost > 0:
+            if cost > 0.0:
                 f(nn.state - n.state, cost, nn)
     fn state:
         distancef(state - endnode.state)
@@ -79,7 +79,7 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
             let y = abs(v.y)
             let big = max(x, y)
             let small = min(x, y)
-            sqrt(2) * small + big - small
+            sqrt(2.0) * small + big - small
     else:
         astar_distance(): manhattan(_)
 

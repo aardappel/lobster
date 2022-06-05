@@ -96,7 +96,7 @@ def index_of_point(v, size): return v.y * size + v.x
 def center_unit_square():
     let size = float(gl_window_size())
     let scale = xy_1 * min(size)
-    gl_translate((size - scale) / 2)
+    gl_translate((size - scale) / 2.0)
     gl_scale(scale)
 
 // world captures all allocations necessary to run the langton’s lobsters
@@ -182,10 +182,10 @@ class world:
             let v2 = float(points[i] + directions[i])
             func(i, v1, v2)
             // render lobsters again if they transit the edge of the world
-            if v2.x < 0:
+            if v2.x < 0.0:
                 let d = xy_x * size
                 func(i, v1+d, v2+d)
-            if v2.y < 0:
+            if v2.y < 0.0:
                 let d = xy_y * size
                 func(i, v1+d, v2+d)
 
@@ -233,7 +233,7 @@ def new_world(size, count, rules):
 
 do():
 
-    let hz = 3
+    let hz = 3.0
     let size = 9
     let count = 5
     let rules = [1, -1, 0]
@@ -299,8 +299,8 @@ do():
 
             gl_translate v / w.size:
                 gl_scale(xy_1 / w.size)
-                gl_translate(xy_1 / 2)
+                gl_translate(xy_1 / 2.0)
                 gl_rotate_z(rotate2D(xy_x, a))
                 gl_scale(0.75)
-                gl_translate(xy_1 / -2)
+                gl_translate(xy_1 / -2.0)
                 gl_rect(xy_1, 0)

@@ -144,7 +144,7 @@ run_test("struct"):
             v:float
         let v5test = V5 { 1.0, 2.0, 3.0, 4.0, 5.0 }
         let v5test2 = v5test + v5test
-        assert v5test2 == v5test * 2
+        assert v5test2 == v5test * 2.0
         assert magnitude(normalize(v5test2)) == 1.0
         assert min(v5test, max(v5test, v5test2)) == v5test
         assert dot(v5test, v5test2) == 110.0
