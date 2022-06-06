@@ -387,12 +387,9 @@ struct TypeChecker {
                 if (a->exptype->t == V_INT) {
                     if (auto ic = Is<IntConstant>(a)) {
                         auto this_warn = make_pair(ic->line, ic->integer);
-                        if (integer_literal_warnings.find(this_warn) ==
-                            integer_literal_warnings.end()) {
+                        if (integer_literal_warnings.insert(this_warn).second) {
                             parser.WarnAt(a, "integer literal (", ic->integer,
                                           ") where float expected");
-                        } else {
-                            integer_literal_warnings.insert(this_warn);
                         }
                     }
                     MakeFloat(a);
