@@ -134,9 +134,11 @@ Finger fingers[MAXFINGERS];
 
 void updatebutton(string &name, bool on, int posfinger, bool repeat) {
     auto &ks = keymap[name];
-    ks.Set(on);
-    ks.lasttime[on] = lasttime;
-    ks.lastpos[on] = fingers[posfinger].mousepos;
+    if (!repeat) {
+        ks.Set(on);
+        ks.lasttime[on] = lasttime;
+        ks.lastpos[on] = fingers[posfinger].mousepos;
+    }
     ks.repeat = repeat;
 }
 
