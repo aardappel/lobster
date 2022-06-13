@@ -26,7 +26,7 @@ class scrollzoomview:
     def update(mino:xy_f, maxo:xy_f, viewsize:xy_i):
         // Update zooming:
         if viewsteps == 0: viewsteps = defaults
-        let oldscale = gl_window_size().x / pow(rate, viewsteps) * pinchfactor
+        let oldscale = gl_framebuffer_size().x / pow(rate, viewsteps) * pinchfactor
         let oldpanoffset = panoffset
         let mousewheeldelta = gl_mousewheel_delta()
         viewsteps -= mousewheeldelta
@@ -41,7 +41,7 @@ class scrollzoomview:
             lastdistance = dist
         else:
             lastdistance = 0.0
-        let scale = gl_window_size().x / viewscale * pinchfactor
+        let scale = gl_framebuffer_size().x / viewscale * pinchfactor
         center /= oldscale
         panoffset -= center / (scale / oldscale) - center
         // Update panning:

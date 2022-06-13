@@ -74,7 +74,7 @@ void ClearFrameBuffer(const float3 &c) {
 }
 
 void SetScissorRect(int2 topleft, int2 size, pair<int2, int2>& prev) {
-    int2 scrnsz = GetScreenSize();
+    int2 scrnsz = GetFrameBufferSize(GetScreenSize());
     GLboolean enabled;
 
     GL_CALL(glGetBooleanv(GL_SCISSOR_TEST, &enabled));

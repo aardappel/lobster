@@ -50,7 +50,7 @@ def to_z_up(v):
     return xyz { v.x, -v.z, v.y }
 
 def set_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
-    let ws = float(gl_window_size())
+    let ws = float(gl_framebuffer_size())
     gl_translate(ws * origin)
     let sc = ws / size
     gl_scale(scale * min(sc))

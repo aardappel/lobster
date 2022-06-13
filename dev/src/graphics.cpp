@@ -641,14 +641,18 @@ nfr("gl_line", "start,end,thickness", "F}F}1F", "",
         else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness);
     });
 
-nfr("gl_perspective", "fovy,znear,zfar", "FFF", "",
+nfr("gl_perspective", "fovy,znear,zfar,framebuffersize", "FFFI}:2?", "",
     "changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try"
     " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
-    " 1)",
-    [](StackPtr &, VM &, Value &fovy, Value &znear, Value &zfar) {
-        Set3DMode(fovy.fltval() * RAD, GetScreenSize().x / (float)GetScreenSize().y, znear.fltval(),
-                  zfar.fltval());
-        return NilVal();
+    " 1). Optionally specify a framebuffer size to override the current gl_framebuffer_size",
+    [](StackPtr &sp, VM &) {
+        int2 fbs = Top(sp).True()
+            ? PopVec<int2>(sp)
+            : (Pop(sp), GetFrameBufferSize(GetScreenSize()));
+        auto zfar = Pop(sp).fltval();
+        auto znear = Pop(sp).fltval();
+        auto fovy = Pop(sp).fltval();
+        Set3DMode(fovy * RAD, fbs.x / (float)fbs.y, znear, zfar);
     });
 
 nfr("gl_ortho", "rh,depth", "I?I?", "",
@@ -1073,6 +1077,13 @@ nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex"
         return Value(SwitchToFrameBuffer(tex, GetScreenSize(),
                                          depth.True(), tf.intval(), GetTexture(vm, retex),
                                          GetTexture(vm, depthtex)));
+    });
+
+nfr("gl_framebuffer_size", "", "", "I}:2",
+    "a vector representing the size (in pixels) of the framebuffer, according to the last call"
+    " to gl_switch_to_framebuffer, or same as gl_window_size otherwise",
+    [](StackPtr &sp, VM &) {
+        PushVec(sp, GetFrameBufferSize(GetScreenSize()));
     });
 
 nfr("gl_light", "pos,params", "F}:3F}:2", "",

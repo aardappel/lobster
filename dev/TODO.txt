@@ -149,6 +149,13 @@
         var s = "                           "
         s = write_int8_le(s, i, 'A' + i)
         print s
+- It may be worth separating out strings from buffers, that way we can do zero-copy-alloc
+  string views onto buffers which is really the ultimate way a language can do strings:
+  https://twitter.com/wvo/status/1535311563992666112
+  Thing is, the ideal view type would be
+  struct string: s:string_buffer, offset:int, size:int
+  and making all string functions take this struct may be troublesome?
+  Can also make it heap allocated for now since these are still cheap since they're small & fixed size.
 
 - Should we specialize own vs borrow on a per string constant basis?
 
