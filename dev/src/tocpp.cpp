@@ -467,7 +467,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             for (int i = 0; i < nkeepvars; i++) {
                 append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
             }
-            if (*ip == IL_FUNSTART && runtime_checks >= RUNTIME_ASSERT_PLUS) {
+            if (*(funstart - 2) == IL_FUNSTART && runtime_checks >= RUNTIME_ASSERT_PLUS) {
                 append(sd, "    PopFunId(vm);\n");
             }
             sd += "}\n";
