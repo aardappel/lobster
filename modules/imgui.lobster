@@ -67,3 +67,26 @@ def im_width(width, body):
     im_width_start(width)
     body()
     im_width_end()
+
+private let stack_traces = []
+// Collect stack traces for the location this function is called from,
+// as a rudimentary form of debugging.
+// Pass positive n to collect the first n.
+// Pass negative n to colledt the last n.
+// Pass 0 to collect all (warning: may be slow if many!)
+def im_stack_trace(n):
+    if n > 0:
+        if stack_traces.length >= n:
+            return
+    elif n < 0:
+        if stack_traces.length >= -n: stack_traces.remove(0)
+    let st = get_stack_trace()
+    if st.length: stack_traces.push(st)
+
+// Show the stack traces collected last frame, and clear them afterwards.
+def im_show_stack_traces():
+    im_treenode("Stack Traces"):
+        for(stack_traces) st, i:
+            im_treenode("{i}"):
+                im_text(st)
+    while stack_traces.length: stack_traces.pop()

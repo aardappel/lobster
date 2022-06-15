@@ -27,8 +27,14 @@ var d = Thingy { map(3): Thingy { [] } }
 var demo = false
 let foo = "bar"  // Will show up in debug view.
 
+def test(test_value):
+    // Imagine this is a function deep down in your code where that you want to debug. 
+    im_stack_trace(10)
+
 while gl_frame():
     gl_clear(color_grey)
+
+    for(100): test("test {_}")
 
     // <- Render game here.
 
@@ -61,3 +67,4 @@ while gl_frame():
         im_window("Realtime Debugger", im_window_always_autoresize):
             im_show_engine_stats()
             im_show_vars()
+            im_show_stack_traces()

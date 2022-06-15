@@ -944,6 +944,9 @@ struct VM : VMArgs {
 
     string_view GetProgramName() { return programname; }
 
+    int DumpVar(string &sd, Value *x, int idx);
+    void DumpStackTrace(string &sd);
+
     void DumpVal(RefObj *ro, const char *prefix);
     void DumpLeaks();
 

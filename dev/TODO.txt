@@ -127,6 +127,23 @@
       Also we have some complex logic around tagged constructor args that would have to be wrapped
       into this generated function..
 
+- More debugging functionality using imgui.
+  - We have absolutely minimalistic debugging of a program location using get_stack_trace and
+    im_stack_trace, this needs:
+    - a way to track locals besides args.. due to aggressive inlining there are often many
+      stack frames missing.
+    - maybe a --runtime-debug that turns of a lot of inlining.
+    - turn the stack trace into an imgui instead of a text representation.
+      - need to capture values at the moment of inspection, so would need reliable deep copy
+        instead of just incref.. that's a shame since it makes it way more expensive? limit to deep copy?
+        maybe do incref anyway and document it?
+  - document all this!
+  - besides "live" stack-traces like above, also have "breaking" stack traces.
+    once the breaking function is hit, go into own renderloop that shows debugger imgui instead of game
+    render (which is paused). Then have ways to continue to the next hit etc.
+  - Once you have that, can have a mode where a statement that checks if it needs to debug break is
+    inserted with each statement, for traditional debug stepping mechanisms.
+
 - set up oss-fuzz for Parser etc.
 
 - split builtins into categories for helpfile

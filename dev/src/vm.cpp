@@ -240,78 +240,87 @@ void VM::ErrorBase(const string &err) {
     append(errmsg, "): ", err);
 }
 
+int VM::DumpVar(string &sd, Value *x, int idx) {
+    auto sid = bcf->specidents()->Get((uint32_t)idx);
+    auto id = bcf->idents()->Get(sid->ididx());
+    // FIXME: this is not ideal, it filters global "let" declared vars.
+    // It should probably instead filter global let vars whose values are entirely
+    // constructors, and which are never written to.
+    auto name = id->name()->string_view();
+    auto &ti = GetVarTypeInfo(idx);
+    auto size = IsStruct(ti.t) ? ti.len : 1;
+    //if (id->readonly() && id->global()) return size;
+    append(sd, "        ", name);
+    if (fvars[idx].True() && x->False()) {
+        // Free vars live in fvars, but we can't tell which.
+        // fvars are NIL when not in use, so swapping when not-nil is safe?
+        x = &fvars[idx];
+    }
+    #if RTT_ENABLED
+        if (ti.t != x->type && !IsStruct(ti.t)) {
+            append(sd, ":");
+            ti.Print(*this, sd);
+            append(sd, " != ", BaseTypeName(x->type));
+            return size;  // Likely uninitialized.
+        }
+    #endif
+    append(sd, " = ");
+    PrintPrefs minipp { 1, 20, true, -1 };
+    if (IsStruct(ti.t)) {
+        StructToString(sd, minipp, ti, x);
+    } else {
+        x->ToString(*this, sd, ti, minipp);
+    }
+    return size;
+}
+
+void VM::DumpStackTrace(string &sd) {
+    if (fun_id_stack.empty()) return;
+
+    #ifdef USE_EXCEPTION_HANDLING
+    try {
+    #endif
+
+    if (!sd.empty()) append(sd, "\n");
+    for (auto [fip, locals] : reverse(fun_id_stack)) {
+        auto deffun = *fip++;
+        append(sd, "in function: ", bcf->functions()->Get(deffun)->name()->string_view(), "(");
+        fip++;  // regs_max
+        auto nargs = *fip++;
+        auto args = fip;
+        fip += nargs;
+        auto ndef = *fip++;
+        fip += ndef;
+        // auto defvars = fip;
+        *fip++;  // nkeepvars
+        if (nargs) append(sd, "\n");
+        locals -= nargs;
+        for (int j = 0; j < nargs;) {
+            auto i = *(args + j);
+            j += DumpVar(sd, locals + j, i);
+            if (j < nargs) append(sd, ",\n");
+        }
+        append(sd, ")\n");
+        // for (int j = 0; j < ndef;) {
+        //    auto i = *(defvars - j - 1);
+        //    j += DumpVar(sd, nullptr, i);
+        //}
+        fip++;  // Owned vars.
+    }
+
+    #ifdef USE_EXCEPTION_HANDLING
+    } catch (string &s) {
+        // Error happened while we were building this stack trace.
+        // That may happen if the reason we're dumping the stack trace is because something got in an
+        // inconsistent state in the first place.
+        append(sd, "\nRECURSIVE ERROR:\n", s);
+    }
+    #endif
+}
+
 Value VM::Error(string err) {
     ErrorBase(err);
-    if (!fun_id_stack.empty()) {
-        #ifdef USE_EXCEPTION_HANDLING
-        try {
-        #endif
-            auto DumpVar = [&](string &sd, Value *x, int idx) {
-                auto sid = bcf->specidents()->Get((uint32_t)idx);
-                auto id = bcf->idents()->Get(sid->ididx());
-                // FIXME: this is not ideal, it filters global "let" declared vars.
-                // It should probably instead filter global let vars whose values are entirely
-                // constructors, and which are never written to.
-                auto name = id->name()->string_view();
-                auto &ti = GetVarTypeInfo(idx);
-                auto size = IsStruct(ti.t) ? ti.len : 1;
-                //if (id->readonly() && id->global()) return size;
-                append(sd, "        ", name);
-                if (fvars[idx].True() && x->False()) {
-                    // Free vars live in fvars, but we can't tell which.
-                    // fvars are NIL when not in use, so swapping when not-nil is safe?
-                    x = &fvars[idx];
-                }
-                #if RTT_ENABLED
-                    if (ti.t != x->type && !IsStruct(ti.t)) {
-                        append(sd, ":");
-                        ti.Print(*this, sd);
-                        append(sd, " != ", BaseTypeName(x->type));
-                        return size;  // Likely uninitialized.
-                    }
-                #endif
-                append(sd, " = ");
-                PrintPrefs minipp { 1, 20, true, -1 };
-                if (IsStruct(ti.t)) {
-                    StructToString(sd, minipp, ti, x);
-                } else {
-                    x->ToString(*this, sd, ti, minipp);
-                }
-                return size;
-            };
-            for (auto [fip, locals] : reverse(fun_id_stack)) {
-                auto deffun = *fip++;
-                append(errmsg,
-                       "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view(), "(");
-                fip++;  // regs_max
-                auto nargs = *fip++;
-                auto args = fip;
-                fip += nargs;
-                auto ndef = *fip++;
-                fip += ndef;
-                //auto defvars = fip;
-                *fip++;  // nkeepvars
-                if (nargs) append(errmsg, "\n");
-                locals -= nargs;
-                for (int j = 0; j < nargs;) {
-                    auto i = *(args + j);
-                    j += DumpVar(errmsg, locals + j, i);
-                    if (j < nargs) append(errmsg, ",\n");
-                }
-                append(errmsg, ")");
-                //for (int j = 0; j < ndef;) {
-                //    auto i = *(defvars - j - 1);
-                //    j += DumpVar(errmsg, nullptr, i);
-                //}
-                fip++;  // Owned vars.
-            }
-        #ifdef USE_EXCEPTION_HANDLING
-        } catch (string &s) {
-            // Error happened while we were building this stack trace.
-            append(errmsg, "\nRECURSIVE ERROR:\n", s);
-        }
-        #endif
-    }
+    DumpStackTrace(errmsg);
     UnwindOnError();
     return NilVal();
 }
