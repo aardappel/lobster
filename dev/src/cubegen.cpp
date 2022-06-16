@@ -533,44 +533,45 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
     });
 
 // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
-nfr("cg_load_vox", "name", "S", "R?S?",
+nfr("cg_load_vox", "name", "S", "R]S?",
     "loads a .vox file (supports both MagicaVoxel or VoxLap formats). "
-    "returns block or nil if file failed to load",
+    "returns vector of blocks or empty if file failed to load, and error string if any",
     [](StackPtr &sp, VM &vm, Value &name) {
         auto namep = name.sval()->strv();
         string buf;
+        auto voxvec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_RESOURCE);
         auto errf = [&](string_view err) {
-            Push(sp, NilVal());
+            // TODO: could clear voxvec elements if any?
+            Push(sp, Value(voxvec));
             return Value(vm.NewString(err));
         };
         auto l = LoadFile(namep, &buf);
         if (l < 0)
             return errf(cat("could not load ", namep));
-        Voxels *voxels = nullptr;
         if (strncmp(buf.c_str(), "VOX ", 4) == 0) {
             // This looks like a MagicaVoxel file.
             int3 size = int3_0;
             auto p = buf.c_str() + 8;
             bool chunks_skipped = false;
+            Voxels *voxels = nullptr;
             while (p < buf.c_str() + buf.length()) {
                 auto id = p;
                 p += 4;
                 auto contentlen = *((int *)p);
                 p += 8;
                 if (!strncmp(id, "SIZE", 4)) {
-                    if (voxels) {
-                        // Multiple voxel models in this file, not currently supported.
-                        delete voxels;
-                        return errf(".vox file contains multiple models (not supported)");
-                    }
                     size = int3((int *)p);
                     voxels = NewWorld(size, default_palette_idx);
+                    voxvec->Push(vm, Value(vm.NewResource(voxels, GetVoxelType())));
                 } else if (!strncmp(id, "RGBA", 4)) {
                     if (!voxels) return errf(".vox file RGBA chunk in wrong order");
                     vector<byte4> palette;
                     palette.push_back(byte4_0);
                     palette.insert(palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
-                    voxels->palette_idx = NewPalette(palette.data());
+                    auto pi = NewPalette(palette.data());
+                    for (iint i = 0; i < voxvec->len; i++) {
+                        GetVoxels(vm, voxvec->At(i)).palette_idx = pi;
+                    }
                 } else if (!strncmp(id, "XYZI", 4)) {
                     if (!voxels) return errf(".vox file XYZI chunk in wrong order");
                     auto numvoxels = *((int *)p);
@@ -581,13 +582,15 @@ nfr("cg_load_vox", "name", "S", "R?S?",
                     }
                 } else if (!strncmp(id, "MAIN", 4)) {
                     // Ignore, wrapper around the above chunks.
+                } else if (!strncmp(id, "PACK", 4)) {
+                    // Ignore, tells us how many models, but we simply load em all.
                 } else {
                     chunks_skipped = true;
                 }
                 p += contentlen;
             }
             if (!voxels) return errf(".vox file missing SIZE chunk");
-            voxels->chunks_skipped = chunks_skipped;
+            voxels->chunks_skipped = chunks_skipped;  // FIXME: only on last model.
         } else {
             // It may be a voxlap file which uses the same extension, exported e.g. from Qubicle.
             // Sadly these don't have a header, so rely on verifying the size.
@@ -602,7 +605,8 @@ nfr("cg_load_vox", "name", "S", "R?S?",
             if (vol + voxlap_palette_size + sizeof(int3) != buf.size())
                 return errf("voxlap XYZ size does not match file size");
             // Now should be save to read.
-            voxels = NewWorld(size, default_palette_idx);
+            auto voxels = NewWorld(size, default_palette_idx);
+            voxvec->Push(vm, Value(vm.NewResource(voxels, GetVoxelType())));
             for (int i = 0; i < vol; i++) {
                 auto c = *p++;
                 c = c == 255 ? 0 : c + 1;  // 255 is transparent;
@@ -624,7 +628,7 @@ nfr("cg_load_vox", "name", "S", "R?S?",
             }
             voxels->palette_idx = NewPalette(palette.data());
         }
-        Push(sp, Value(vm.NewResource(voxels, GetVoxelType())));
+        Push(sp, Value(voxvec));
         return NilVal();
     });
 

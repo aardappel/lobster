@@ -1,7 +1,12 @@
+- support resource<T> ?
+
+- continue vmcore experiment.
+
+- Inline tocpp into codegen, see below.
+
 - "C-style language to Lobster Cheat Sheet" contains instances of :=
   and probably could use other fixes.. ?: example? more about types.
-
-- stack traces for asserts and other runtime errors
+  Also def for function values.
 
 - a function to show memory usage by type
 
