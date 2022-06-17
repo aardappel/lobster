@@ -791,7 +791,7 @@ nfr("mg_set_point_mode", "on", "B", "",
         return NilVal();
     });
 
-nfr("mg_polygonize", "subdiv", "I", "R",
+nfr("mg_polygonize", "subdiv", "I", "R:mesh",
     "returns a generated mesh from past mg_ commands."
     " subdiv determines detail and number of polygons (relative to the largest dimension of the"
     " model), try 30.. 300 depending on the subject."
@@ -800,7 +800,7 @@ nfr("mg_polygonize", "subdiv", "I", "R",
         return eval_and_polygonize(vm, subdiv.intval(), 0, true);
     });
 
-nfr("mg_convert_to_cubes", "subdiv,zoffset", "II", "R",
+nfr("mg_convert_to_cubes", "subdiv,zoffset", "II", "R:voxels",
     "returns a cubegen block (see cg_ functions) from past mg_ commands."
     " subdiv determines detail and number of cubes (relative to the largest dimension of the"
     " model).",

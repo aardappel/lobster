@@ -86,7 +86,7 @@ args = [ list( ident [ ( `:` \| `::` ) type ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` \| `void`
+type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void`
     \| ident
 
 call = specializers `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
@@ -166,6 +166,13 @@ a value of one of the following types:
         specify a value of type `string?` (a type that denotes the value can be
         a string or nil), though in most cases type inference makes writing
         just `nil` sufficient.
+
+    -   `resource<T>` : an opaque object managed by the engine / C++ code.
+        `T` is the type, e.g. `texture` or `mesh`, the availability of these
+        depends on what engine functionality is linked in to Lobster, see
+        `builtin_functions_reference.html` for what functions create and use
+        these resources. Their lifetime is managed by the language much like
+        other reference types above.
 
 Lobster does not have a built-in boolean type, though it does have a pre-defined
 `bool` enum (see enums below). In general, for boolean tests such

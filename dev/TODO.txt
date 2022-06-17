@@ -1,5 +1,3 @@
-- support resource<T> ?
-
 - continue vmcore experiment.
 
 - Inline tocpp into codegen, see below.

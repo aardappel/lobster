@@ -342,7 +342,7 @@ nfr("vr_motion_controller", "n", "I", "",
         otransforms.append_object2view(mcd ? mcd->mat : float4x4_1);
     });
 
-nfr("vr_create_motion_controller_mesh", "n", "I", "R?",
+nfr("vr_create_motion_controller_mesh", "n", "I", "R:mesh?",
     "returns the mesh for motion controller n, or nil if not available",
     [](StackPtr &, VM &vm, Value &mc) {
         auto mcd = GetMC(mc);

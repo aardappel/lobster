@@ -257,15 +257,8 @@ struct LString : RefObj {
     uint64_t Hash();
 };
 
-// There must be a single of these per type, since they are compared by pointer.
-struct ResourceType {
-    const char *name;
-    void (* deletefun)(void *);
-    void (* newfun)(void *);
-
-    ResourceType(const char *n, void (*df)(void *), void (*nf)(void *) = nullptr)
-        : name(n), deletefun(df), newfun(nf) {}
-};
+struct ResourceType;
+extern ResourceType *g_resource_type_list;
 
 struct LResource : RefObj {
     void *val;
@@ -273,11 +266,8 @@ struct LResource : RefObj {
 
     LResource(void *v, const ResourceType *t);
 
+    void ToString(string &sd);
     void DeleteSelf(VM &vm);
-
-    void ToString(string &sd) {
-        append(sd, "(resource:", type->name, ")");
-    }
 };
 
 #if RTT_ENABLED
@@ -986,6 +976,7 @@ struct VM : VMArgs {
 
     void Div0() { Error("division by zero"); }
     void IDXErr(iint i, iint n, const RefObj *v);
+    void ResourceTypeError(const ResourceType *needed, const ResourceType *got);
     void BCallRetCheck(StackPtr sp, const NativeFun *nf);
     iint GrabIndex(StackPtr &sp, int len);
 
@@ -1181,13 +1172,12 @@ inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {
     return i;
 }
 
+
 template<typename T> inline T GetResourceDec(VM &vm, const Value &val, const ResourceType *type) {
     if (val.False())
         return nullptr;
     auto x = val.xval();
-    if (x->type != type)
-        vm.BuiltinError(string_view("needed resource type: ") + type->name + ", got: " +
-            x->type->name);
+    if (x->type != type) vm.ResourceTypeError(type, x->type);
     return (T)x->val;
 }
 

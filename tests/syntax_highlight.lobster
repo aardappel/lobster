@@ -52,7 +52,7 @@ let int_type:int = 0
 let float_type:float = 0.0
 let string_type:string = ""
 let vector_type:[float] = []
-let resouce_type:resource? = nil
+let resouce_type:resource<texture>? = nil
 // bool is actually a built-in enum, but is treated as a first-class type.
 let bool_type:bool = true
 

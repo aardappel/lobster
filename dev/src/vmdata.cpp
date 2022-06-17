@@ -15,6 +15,7 @@
 #include "lobster/stdafx.h"
 
 #include "lobster/vmdata.h"
+#include "lobster/natreg.h"
 
 namespace lobster {
 
@@ -499,6 +500,10 @@ void LVector::ToString(VM &vm, string &sd, PrintPrefs &pp) {
             return ElemType(vm);
         }
     );
+}
+
+void LResource::ToString(string &sd) {
+    append(sd, "(resource:", type->name, ")");
 }
 
 void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems) {

@@ -31,7 +31,7 @@ enum blend_mode:
 
 // FIXME: put this in a generic map type.
 private let texture_names:[string] = []
-private let textures:[resource] = []
+private let textures:[resource<texture>] = []
 
 def loadtexturecached(name, tf:texture_format = texture_format_none):
     let n, i = binary_search(texture_names, name)

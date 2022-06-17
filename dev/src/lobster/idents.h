@@ -1018,6 +1018,8 @@ inline string TypeName(TypeRef type, int flen = 0) {
             return "typeid(" + TypeName(type->sub) + ")";
         case V_TYPEVAR:
             return string(type->tv->name);
+        case V_RESOURCE:
+            return type->rt ? cat("resource<", type->rt->name, ">") : "resource";
         default:
             return string(BaseTypeName(type->t));
     }

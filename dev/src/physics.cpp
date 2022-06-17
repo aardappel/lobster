@@ -70,7 +70,7 @@ struct PhysicsObject {
     float2 Pos() { return B2ToFloat2(fixture->GetBody()->GetPosition()); }
 };
 
-static ResourceType physics_type = { "physical", [](void *v) { delete ((PhysicsObject *)v); } };
+static ResourceType physics_type = { "fixture", [](void *v) { delete ((PhysicsObject *)v); } };
 
 PhysicsObject &GetObject(VM &vm, const Value &res) {
     return *GetResourceDec<PhysicsObject *>(vm, res, &physics_type);
@@ -142,7 +142,7 @@ nfr("ph_initialize", "gravityvector", "F}:2", "",
         InitPhysics(PopVec<float2>(sp));
     });
 
-nfr("ph_create_box", "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R?", "R",
+nfr("ph_create_box", "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R:fixture?", "R:fixture",
     "creates a physical box shape in the world at position, with size the half-extends around"
     " the center, offset from the center if needed, at a particular rotation (in degrees)."
     " attachto is a previous physical object to attach this one to, to become a combined"
@@ -159,7 +159,7 @@ nfr("ph_create_box", "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R
         Push(sp,  CreateFixture(vm, body, shape));
     });
 
-nfr("ph_create_circle", "position,radius,offset,attachto", "F}:2FF}:2?R?", "R",
+nfr("ph_create_circle", "position,radius,offset,attachto", "F}:2FF}:2?R:fixture?", "R:fixture",
     "creates a physical circle shape in the world at position, with the given radius, offset"
     " from the center if needed. attachto is a previous physical object to attach this one to,"
     " to become a combined physical body.",
@@ -175,7 +175,7 @@ nfr("ph_create_circle", "position,radius,offset,attachto", "F}:2FF}:2?R?", "R",
         Push(sp,  CreateFixture(vm, body, shape));
     });
 
-nfr("ph_create_polygon", "position,vertices,attachto", "F}:2F}:2]R?", "R",
+nfr("ph_create_polygon", "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:fixture",
     "creates a polygon circle shape in the world at position, with the given list of vertices."
     " attachto is a previous physical object to attach this one to, to become a combined"
     " physical body.",
@@ -195,7 +195,7 @@ nfr("ph_create_polygon", "position,vertices,attachto", "F}:2F}:2]R?", "R",
         Push(sp,  CreateFixture(vm, body, shape));
     });
 
-nfr("ph_dynamic", "shape,on", "RB", "",
+nfr("ph_dynamic", "shape,on", "R:fixtureB", "",
     "makes a shape dynamic (on = true) or not.",
     [](StackPtr &, VM &vm, Value &fixture_id, Value &on) {
         CheckPhysics();
@@ -205,7 +205,7 @@ nfr("ph_dynamic", "shape,on", "RB", "",
         return NilVal();
     });
 
-nfr("ph_set_linear_velocity", "id,velocity", "RF}:2", "",
+nfr("ph_set_linear_velocity", "id,velocity", "R:fixtureF}:2", "",
     "sets the linear velocity of a shape's center of mass.",
     [](StackPtr &sp, VM &vm) {
         CheckPhysics();
@@ -216,7 +216,7 @@ nfr("ph_set_linear_velocity", "id,velocity", "RF}:2", "",
             ->SetLinearVelocity(vel);
     });
 
-nfr("ph_apply_linear_impulse_to_center", "id,impulse", "RF}:2", "",
+nfr("ph_apply_linear_impulse_to_center", "id,impulse", "R:fixtureF}:2", "",
     "applies a linear impulse to a shape at its center of mass.",
     [](StackPtr &sp, VM &vm) {
         CheckPhysics();
@@ -226,7 +226,7 @@ nfr("ph_apply_linear_impulse_to_center", "id,impulse", "RF}:2", "",
         body->ApplyLinearImpulse(imp, body->GetWorldCenter(), true);
     });
 
-nfr("ph_set_color", "id,color", "R?F}:4", "",
+nfr("ph_set_color", "id,color", "R:fixture?F}:4", "",
     "sets a shape (or nil for particles) to be rendered with a particular color.",
     [](StackPtr &sp, VM &vm) {
         auto c = PopVec<float4>(sp);
@@ -235,7 +235,7 @@ nfr("ph_set_color", "id,color", "R?F}:4", "",
         r.color = c;
     });
 
-nfr("ph_set_shader", "id,shadername", "R?S", "",
+nfr("ph_set_shader", "id,shadername", "R:fixture?S", "",
     "sets a shape (or nil for particles) to be rendered with a particular shader.",
     [](StackPtr &, VM &vm, Value &fixture_id, Value &shader) {
         auto &r = GetRenderable(vm, fixture_id);
@@ -244,7 +244,7 @@ nfr("ph_set_shader", "id,shadername", "R?S", "",
         return NilVal();
     });
 
-nfr("ph_set_texture", "id,tex,texunit", "R?RI?", "",
+nfr("ph_set_texture", "id,tex,texunit", "R:fixture?R:textureI?", "",
     "sets a shape (or nil for particles) to be rendered with a particular texture"
     " (assigned to a texture unit, default 0).",
     [](StackPtr &, VM &vm, Value &fixture_id, Value &tex, Value &tex_unit) {
@@ -254,14 +254,14 @@ nfr("ph_set_texture", "id,tex,texunit", "R?RI?", "",
         return NilVal();
     });
 
-nfr("ph_get_position", "id", "R", "F}:2",
+nfr("ph_get_position", "id", "R:fixture", "F}:2",
     "gets a shape's position.",
     [](StackPtr &sp, VM &vm) {
         auto id = Pop(sp);
         PushVec(sp, GetObject(vm, id).Pos());
     });
 
-nfr("ph_get_mass", "id", "R", "F",
+nfr("ph_get_mass", "id", "R:fixture", "F",
     "gets a shape's mass.",
     [](StackPtr &sp, VM &vm) {
         auto id = Pop(sp);
@@ -328,7 +328,7 @@ nfr("ph_step", "seconds,viter,piter", "FII", "",
         return NilVal();
     });
 
-nfr("ph_particle_contacts", "id", "R", "I]",
+nfr("ph_particle_contacts", "id", "R:fixture", "I]",
     "gets the particle indices that are currently contacting a giving physics object."
     " Call after step(). Indices may be invalid after next step().",
     [](StackPtr &, VM &vm, Value &id) {

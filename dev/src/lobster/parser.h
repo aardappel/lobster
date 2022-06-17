@@ -648,7 +648,19 @@ struct Parser {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
             case T_FLOATTYPE: dest = type_float;      lex.Next(); break;
             case T_STRTYPE:   dest = type_string;     lex.Next(); break;
-            case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
+            case T_RESOURCE: {
+                lex.Next();
+                Expect(T_LT);
+                auto id = ExpectId();
+                auto rt = LookupResourceType(id);
+                if (!rt) Error("unknown resource type ", Q(id));
+                // This may be the end of the line, so make sure Lex doesn't see it
+                // as a GT op.
+                lex.OverrideCont(false);
+                Expect(T_GT);
+                dest = &rt->thistype;
+                break;
+            }
             case T_IDENT: {
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {

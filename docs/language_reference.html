@@ -90,8 +90,9 @@ expstat</p>
 ]</p>
 <p>body = ( expstat | indent stats dedent )</p>
 <p>type = <code>int</code> | <code>float</code> | <code>string</code> |
-<code>[</code> type <code>]</code> | <code>resource</code> |
-<code>void</code> | ident</p>
+<code>[</code> type <code>]</code> | <code>resource</code>
+<code>&lt;</code> ident <code>&gt;</code> | <code>void</code> |
+ident</p>
 <p>call = specializers <code>(</code> [ list( exp ) ] <code>)</code> [
 block [ <code>fn</code> block … ] ]</p>
 <p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list(
@@ -163,6 +164,13 @@ you can use e.g. <code>nil::string</code> to specify a value of type
 <code>string?</code> (a type that denotes the value can be a string or
 nil), though in most cases type inference makes writing just
 <code>nil</code> sufficient.</p></li>
+<li><p><code>resource&lt;T&gt;</code> : an opaque object managed by the
+engine / C++ code. <code>T</code> is the type, e.g. <code>texture</code>
+or <code>mesh</code>, the availability of these depends on what engine
+functionality is linked in to Lobster, see
+<code>builtin_functions_reference.html</code> for what functions create
+and use these resources. Their lifetime is managed by the language much
+like other reference types above.</p></li>
 </ul></li>
 </ul>
 <p>Lobster does not have a built-in boolean type, though it does have a

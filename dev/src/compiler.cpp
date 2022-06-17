@@ -63,6 +63,8 @@ const Type g_type_vector_vector_int(V_VECTOR, &g_type_vector_int);
 const Type g_type_vector_vector_float(V_VECTOR, &g_type_vector_float);
 const Type g_type_vector_vector_vector_float(V_VECTOR, &g_type_vector_vector_float);
 
+ResourceType *g_resource_type_list = nullptr;
+
 TypeRef WrapKnown(TypeRef elem, ValueType with) {
     if (with == V_VECTOR) {
         switch (elem->t) {
@@ -70,7 +72,7 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
             case V_INT:      return elem->e ? nullptr : type_vector_int;
             case V_FLOAT:    return type_vector_float;
             case V_STRING:   return &g_type_vector_string;
-            case V_RESOURCE: return &g_type_vector_resource;
+            case V_RESOURCE: return &elem->rt->thistypevec;
             case V_VECTOR:   switch (elem->sub->t) {
                 case V_INT:    return elem->sub->e ? nullptr : &g_type_vector_vector_int;
                 case V_FLOAT:  return &g_type_vector_vector_float;
@@ -89,7 +91,7 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
             case V_FLOAT:     { static const Type t(V_NIL, &g_type_float); return &t; }
             case V_STRING:    { static const Type t(V_NIL, &g_type_string); return &t; }
             case V_FUNCTION:  { static const Type t(V_NIL, &g_type_function_null); return &t; }
-            case V_RESOURCE:  { static const Type t(V_NIL, &g_type_resource); return &t; }
+            case V_RESOURCE:  { return &elem->rt->thistypenil; }
             case V_VECTOR: switch (elem->sub->t) {
                 case V_INT:    { static const Type t(V_NIL, &g_type_vector_int); return elem->sub->e ? nullptr : &t; }
                 case V_FLOAT:  { static const Type t(V_NIL, &g_type_vector_float); return &t; }
@@ -248,6 +250,19 @@ void DumpBuiltinNames(NativeRegistry &nfr) {
     WriteFile("builtin_functions_names.txt", false, s);
 }
 
+string HTMLEscape(string_view in) {
+    string s;
+    for (auto c : in) {
+        switch (c) {
+            case '&': s += "&amp;"; break;
+            case '<': s += "&lt;"; break;
+            case '>': s += "&gt;"; break;
+            default: s += c; break;
+        }
+    }
+    return s;
+}
+
 void DumpBuiltinDoc(NativeRegistry &nfr) {
     string s =
         "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
@@ -287,7 +302,7 @@ void DumpBuiltinDoc(NativeRegistry &nfr) {
                 s += ":";
                 s += a.flags & NF_BOOL
                     ? "bool"
-                    : TypeName(a.type->ElementIfNil(), a.fixed_len);
+                    : HTMLEscape(TypeName(a.type->ElementIfNil(), a.fixed_len));
             }
             s += "</font>";
             if (a.type->t == V_NIL && (int)i > last_non_nil)
@@ -298,12 +313,12 @@ void DumpBuiltinDoc(NativeRegistry &nfr) {
             s += " -> ";
             for (auto [i, a] : enumerate(nf->retvals)) {
                 s += "<font color=\"#666666\">";
-                s += TypeName(a.type, a.fixed_len);
+                s += HTMLEscape(TypeName(a.type, a.fixed_len));
                 s += "</font>";
                 if (i < nf->retvals.size() - 1) s += ", ";
             }
         }
-        s += cat("</tt></td><td class=\"a\">", nf->help, "</td></tr>\n");
+        s += cat("</tt></td><td class=\"a\">", HTMLEscape(nf->help), "</td></tr>\n");
     }
     s += "</table>\n</td></tr></table></center></body>\n</html>\n";
     WriteFile("builtin_functions_reference.html", false, s);
