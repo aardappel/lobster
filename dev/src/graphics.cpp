@@ -38,11 +38,11 @@ ResourceType texture_type = { "texture", [](void *t) {
     delete tex;
 } };
 
-Mesh &GetMesh(VM &vm, Value &res) {
-    return *GetResourceDec<Mesh *>(vm, res, &mesh_type);
+Mesh &GetMesh(Value &res) {
+    return *GetResourceDec<Mesh *>(res, &mesh_type);
 }
-Texture GetTexture(VM &vm, const Value &res) {
-    auto tex = GetResourceDec<Texture *>(vm, res, &texture_type);
+Texture GetTexture(const Value &res) {
+    auto tex = GetResourceDec<Texture *>(res, &texture_type);
     return tex ? *tex : Texture();
 }
 
@@ -777,7 +777,7 @@ nfr("gl_new_mesh_iqm", "filename", "S", "R:mesh?",
 nfr("gl_mesh_parts", "m", "R:mesh", "S]",
     "returns an array of names of all parts of mesh m (names may be empty)",
     [](StackPtr &, VM &vm, Value &i) {
-        auto &m = GetMesh(vm, i);
+        auto &m = GetMesh(i);
         auto v = (LVector *)vm.NewVec(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (auto s : m.surfs) v->Push(vm, Value(vm.NewString(s->name)));
         return Value(v);
@@ -785,15 +785,15 @@ nfr("gl_mesh_parts", "m", "R:mesh", "S]",
 
 nfr("gl_mesh_size", "m", "R:mesh", "I",
     "returns the number of verts in this mesh",
-    [](StackPtr &, VM &vm, Value &i) {
-        auto &m = GetMesh(vm, i);
+    [](StackPtr &, VM &, Value &i) {
+        auto &m = GetMesh(i);
         return Value((int)m.geom->nverts);
     });
 
 nfr("gl_animate_mesh", "m,frame", "R:meshF", "",
     "set the frame for animated mesh m",
-    [](StackPtr &, VM &vm, Value &i, Value &f) {
-        GetMesh(vm, i).curanim = f.fltval();
+    [](StackPtr &, VM &, Value &i, Value &f) {
+        GetMesh(i).curanim = f.fltval();
         return NilVal();
     });
 
@@ -801,7 +801,7 @@ nfr("gl_render_mesh", "m", "R:mesh", "",
     "renders the specified mesh",
     [](StackPtr &, VM &vm, Value &i) {
         TestGL(vm);
-        GetMesh(vm, i).Render(currentshader);
+        GetMesh(i).Render(currentshader);
         return NilVal();
     });
 
@@ -810,7 +810,7 @@ nfr("gl_save_mesh", "m,name", "R:meshS", "B",
     " procedurally. returns false if the file could not be written",
     [](StackPtr &, VM &vm, Value &i, Value &name) {
         TestGL(vm);
-        bool ok = GetMesh(vm, i).SaveAsPLY(name.sval()->strv());
+        bool ok = GetMesh(i).SaveAsPLY(name.sval()->strv());
         return Value(ok);
     });
 
@@ -818,8 +818,8 @@ nfr("gl_mesh_pointsize", "m,pointsize", "R:meshF", "",
     "sets the pointsize for this mesh. "
     "the mesh must have been created with indices = nil for point rendering to be used. "
     "you also want to use a shader that works with points, such as color_attr_particle.",
-    [](StackPtr &, VM &vm, Value &i, Value &ps) {
-        auto &m = GetMesh(vm, i);
+    [](StackPtr &, VM &, Value &i, Value &ps) {
+        auto &m = GetMesh(i);
         m.pointsize = ps.fltval();
         return NilVal();
     });
@@ -930,7 +930,7 @@ nfr("gl_bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
     " unbind.",
     [](StackPtr &, VM &vm, Value &mesh, Value &name) {
         TestGL(vm);
-        if (mesh.True()) GetMesh(vm, mesh).geom->BindAsSSBO(currentshader, name.sval()->strv());
+        if (mesh.True()) GetMesh(mesh).geom->BindAsSSBO(currentshader, name.sval()->strv());
         else UniformBufferObject(currentshader, nullptr, 0, -1, name.sval()->strv(), true, 0);
         return NilVal();
     });
@@ -980,16 +980,16 @@ nfr("gl_set_primitive_texture", "i,tex,textureformat", "IR:textureI?", "I",
     "sets texture unit i to texture (for use with rect/circle/polygon/line)",
     [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
-        return Value(SetTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval()));
+        return Value(SetTexture(GetSampler(vm, i), GetTexture(id), tf.intval()));
     });
 
 nfr("gl_set_mesh_texture", "mesh,part,i,texture", "R:meshIIR:texture", "",
     "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)",
     [](StackPtr &, VM &vm, Value &mid, Value &part, Value &i, Value &id) {
-        auto &m = GetMesh(vm, mid);
+        auto &m = GetMesh(mid);
         if (part.ival() < 0 || part.ival() >= (int)m.surfs.size())
             vm.BuiltinError("setmeshtexture: illegal part index");
-        m.surfs[part.ival()]->Get(GetSampler(vm, i)) = GetTexture(vm, id);
+        m.surfs[part.ival()]->Get(GetSampler(vm, i)) = GetTexture(id);
         return NilVal();
     });
 
@@ -999,7 +999,7 @@ nfr("gl_set_image_texture", "i,tex,textureformat", "IR:textureI", "",
     " with optionally writeonly/readwrite flags.",
     [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
-        SetImageTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
+        SetImageTexture(GetSampler(vm, i), GetTexture(id), tf.intval());
         return NilVal();
     });
 
@@ -1045,14 +1045,14 @@ nfr("gl_texture_size", "tex", "R:texture", "I}:2",
     [](StackPtr &sp, VM &vm) {
         TestGL(vm);
         auto v = Pop(sp);
-        PushVec(sp, GetTexture(vm, v).size.xy());
+        PushVec(sp, GetTexture(v).size.xy());
     });
 
 nfr("gl_read_texture", "tex", "R:texture", "S?",
     "read back RGBA texture data into a string or nil on failure",
     [](StackPtr &, VM &vm, Value &t) {
         TestGL(vm);
-        auto tex = GetTexture(vm, t);
+        auto tex = GetTexture(t);
         auto numpixels = tex.size.x * tex.size.y;
         if (!numpixels) return NilVal();
         auto buf = ReadTexture(tex);
@@ -1074,10 +1074,10 @@ nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex"
     [](StackPtr &, VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
                                        Value &depthtex) {
         TestGL(vm);
-        auto tex = GetTexture(vm, t);
+        auto tex = GetTexture(t);
         return Value(SwitchToFrameBuffer(tex, GetScreenSize(),
-                                         depth.True(), tf.intval(), GetTexture(vm, retex),
-                                         GetTexture(vm, depthtex)));
+                                         depth.True(), tf.intval(), GetTexture(retex),
+                                         GetTexture(depthtex)));
     });
 
 nfr("gl_framebuffer_size", "", "", "I}:2",

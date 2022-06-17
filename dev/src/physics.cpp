@@ -72,8 +72,8 @@ struct PhysicsObject {
 
 static ResourceType physics_type = { "fixture", [](void *v) { delete ((PhysicsObject *)v); } };
 
-PhysicsObject &GetObject(VM &vm, const Value &res) {
-    return *GetResourceDec<PhysicsObject *>(vm, res, &physics_type);
+PhysicsObject &GetObject(const Value &res) {
+    return *GetResourceDec<PhysicsObject *>(res, &physics_type);
 }
 
 void CleanPhysics() {
@@ -104,9 +104,9 @@ void CheckParticles(float size = 0.1f) {
     }
 }
 
-b2Body &GetBody(StackPtr &, VM &vm, Value &id, float2 wpos) {
+b2Body &GetBody(StackPtr &, VM &, Value &id, float2 wpos) {
     CheckPhysics();
-    b2Body *body = id.True() ? GetObject(vm, id).fixture->GetBody() : nullptr;
+    b2Body *body = id.True() ? GetObject(id).fixture->GetBody() : nullptr;
     if (!body) {
         b2BodyDef bd;
         bd.type = b2_staticBody;
@@ -127,9 +127,9 @@ b2Vec2 OptionalOffset(StackPtr &sp) {
     return Top(sp).True() ? PopB2(sp) : (Pop(sp), b2Vec2_zero);
 }
 
-Renderable &GetRenderable(VM &vm, const Value &id) {
+Renderable &GetRenderable(VM &, const Value &id) {
     CheckPhysics();
-    return id.True() ? GetObject(vm, id).r : *particlematerial;
+    return id.True() ? GetObject(id).r : *particlematerial;
 }
 
 extern int GetSampler(VM &vm, Value &i);  // from graphics
@@ -197,9 +197,9 @@ nfr("ph_create_polygon", "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R
 
 nfr("ph_dynamic", "shape,on", "R:fixtureB", "",
     "makes a shape dynamic (on = true) or not.",
-    [](StackPtr &, VM &vm, Value &fixture_id, Value &on) {
+    [](StackPtr &, VM &, Value &fixture_id, Value &on) {
         CheckPhysics();
-        GetObject(vm, fixture_id)
+        GetObject(fixture_id)
             .fixture->GetBody()
             ->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
         return NilVal();
@@ -207,22 +207,22 @@ nfr("ph_dynamic", "shape,on", "R:fixtureB", "",
 
 nfr("ph_set_linear_velocity", "id,velocity", "R:fixtureF}:2", "",
     "sets the linear velocity of a shape's center of mass.",
-    [](StackPtr &sp, VM &vm) {
+    [](StackPtr &sp, VM &) {
         CheckPhysics();
         auto vel = PopB2(sp);
         auto id = Pop(sp);
-        GetObject(vm, id)
+        GetObject(id)
             .fixture->GetBody()
             ->SetLinearVelocity(vel);
     });
 
 nfr("ph_apply_linear_impulse_to_center", "id,impulse", "R:fixtureF}:2", "",
     "applies a linear impulse to a shape at its center of mass.",
-    [](StackPtr &sp, VM &vm) {
+    [](StackPtr &sp, VM &) {
         CheckPhysics();
         auto imp = PopB2(sp);
         auto id = Pop(sp);
-        auto body = GetObject(vm, id).fixture->GetBody();
+        auto body = GetObject(id).fixture->GetBody();
         body->ApplyLinearImpulse(imp, body->GetWorldCenter(), true);
     });
 
@@ -249,23 +249,23 @@ nfr("ph_set_texture", "id,tex,texunit", "R:fixture?R:textureI?", "",
     " (assigned to a texture unit, default 0).",
     [](StackPtr &, VM &vm, Value &fixture_id, Value &tex, Value &tex_unit) {
         auto &r = GetRenderable(vm, fixture_id);
-        extern Texture GetTexture(VM &vm, const Value &res);
-        r.Get(GetSampler(vm, tex_unit)) = GetTexture(vm, tex);
+        extern Texture GetTexture(const Value &res);
+        r.Get(GetSampler(vm, tex_unit)) = GetTexture(tex);
         return NilVal();
     });
 
 nfr("ph_get_position", "id", "R:fixture", "F}:2",
     "gets a shape's position.",
-    [](StackPtr &sp, VM &vm) {
+    [](StackPtr &sp, VM &) {
         auto id = Pop(sp);
-        PushVec(sp, GetObject(vm, id).Pos());
+        PushVec(sp, GetObject(id).Pos());
     });
 
 nfr("ph_get_mass", "id", "R:fixture", "F",
     "gets a shape's mass.",
-    [](StackPtr &sp, VM &vm) {
+    [](StackPtr &sp, VM &) {
         auto id = Pop(sp);
-        Push(sp, GetObject(vm, id).fixture->GetBody()->GetMass());
+        Push(sp, GetObject(id).fixture->GetBody()->GetMass());
     });
 
 nfr("ph_create_particle", "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
@@ -333,7 +333,7 @@ nfr("ph_particle_contacts", "id", "R:fixture", "I]",
     " Call after step(). Indices may be invalid after next step().",
     [](StackPtr &, VM &vm, Value &id) {
         CheckPhysics();
-        auto &po = GetObject(vm, id);
+        auto &po = GetObject(id);
         if (!po.particle_contacts) po.particle_contacts = new vector<int>();
         auto numelems = (int)po.particle_contacts->size();
         auto v = vm.NewVec(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);

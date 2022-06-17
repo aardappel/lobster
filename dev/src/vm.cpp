@@ -447,10 +447,6 @@ void VM::IDXErr(iint i, iint n, const RefObj *v) {
     Error(sd);
 }
 
-void VM::ResourceTypeError(const ResourceType *needed, const ResourceType *got) {
-    BuiltinError(string_view("needed resource type: ") + needed->name + ", got: " + got->name);
-}
-
 string_view VM::StructName(const TypeInfo &ti) {
     return bcf->udts()->Get(ti.structidx)->name()->string_view();
 }

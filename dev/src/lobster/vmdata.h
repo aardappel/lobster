@@ -976,7 +976,6 @@ struct VM : VMArgs {
 
     void Div0() { Error("division by zero"); }
     void IDXErr(iint i, iint n, const RefObj *v);
-    void ResourceTypeError(const ResourceType *needed, const ResourceType *got);
     void BCallRetCheck(StackPtr sp, const NativeFun *nf);
     iint GrabIndex(StackPtr &sp, int len);
 
@@ -1173,11 +1172,12 @@ inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {
 }
 
 
-template<typename T> inline T GetResourceDec(VM &vm, const Value &val, const ResourceType *type) {
+template<typename T> inline T GetResourceDec(const Value &val, const ResourceType *type) {
     if (val.False())
         return nullptr;
     auto x = val.xval();
-    if (x->type != type) vm.ResourceTypeError(type, x->type);
+    assert(x->type == type);  // If hit, the `R:type` your specified is not the same as `type`.
+    (void)type;
     return (T)x->val;
 }
 

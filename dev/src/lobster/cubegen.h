@@ -89,8 +89,8 @@ namespace lobster {
 
 extern ResourceType voxel_type;
 
-inline Voxels &GetVoxels(VM &vm, const Value &res) {
-    return *GetResourceDec<Voxels *>(vm, res, &voxel_type);
+inline Voxels &GetVoxels(const Value &res) {
+    return *GetResourceDec<Voxels *>(res, &voxel_type);
 }
 
 Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset);
