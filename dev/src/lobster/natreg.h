@@ -324,7 +324,7 @@ struct Narg {
                     if (type->t == V_RESOURCE) {
                         auto nstart = tid;
                         while (islower(*tid)) tid++;
-                        auto rt = LookupResourceType(string_view(nstart, tid));
+                        auto rt = LookupResourceType(string_view(nstart, tid - nstart));
                         assert(rt);  // If hit, "R:name" is not a resource type.
                         type = &rt->thistype;
                     } else {
