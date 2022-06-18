@@ -11,7 +11,7 @@ Building Lobster
 ----------------
 
 Lobster uses recent C++17 features, so will need
-Visual Studio 2019 (the free community edition will do), Xcode 10.x, or a recent
+Visual Studio 2022 (the free community edition will do), Xcode 10.x, or a recent
 GCC (9+) / Clang (9+) to be compiled.
 
 Lobster uses OpenGL, SDL 2.x and FreeType, these are included in the repo, so should compile
