@@ -43,7 +43,7 @@ bin/lobster samples/pythtree.lobster
 
 ### Windows
 
-Pre-Requirements: VS2019 Community edition or better, C++ desktop tools installed.
+Pre-Requirements: VS2022 Community edition or better, C++ desktop tools installed.
 
 Get https://github.com/aardappel/lobster using your favorite git tool (best),
 or just download a `.zip` from there otherwise.
