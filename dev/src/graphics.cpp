@@ -652,7 +652,7 @@ nfr("gl_perspective", "fovy,znear,zfar,framebuffersize", "FFFI}:2?", "",
         auto zfar = Pop(sp).fltval();
         auto znear = Pop(sp).fltval();
         auto fovy = Pop(sp).fltval();
-        Set3DMode(fovy * RAD, fbs.x / (float)fbs.y, znear, zfar);
+        Set3DMode(fovy * RAD, fbs, znear, zfar);
     });
 
 nfr("gl_ortho", "rh,depth", "I?I?", "",
