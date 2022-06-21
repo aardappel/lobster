@@ -114,11 +114,10 @@ void Set3DOrtho(const float3 &center, const float3 &extends) {
     mode2d = false;
 }
 
-void Set3DMode(float fovy, int2 fbs, float znear, float zfar) {
+void Set3DMode(float fovy, int2 fbo, int2 fbs, float znear, float zfar) {
     GL_CALL(glEnable(GL_DEPTH_TEST));
     GL_CALL(glEnable(GL_CULL_FACE));
-    if (fbs.volume() > 1)
-        glViewport(0, 0, fbs.x, fbs.y);
+    glViewport(fbo.x, fbo.y, fbs.x, fbs.y);
     otransforms = objecttransforms();
     float ratio = fbs.x / (float)fbs.y;
     view2clip = perspective(fovy, ratio, znear, zfar, 1);
