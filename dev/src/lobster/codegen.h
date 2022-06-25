@@ -124,9 +124,9 @@ struct CodeGen  {
 
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
         for (auto &field : udt->fields) {
-            auto ti = GetTypeTableOffset(field.resolvedtype);
-            if (IsStruct(field.resolvedtype->t)) {
-                PushFields(field.resolvedtype->udt, tt, parent < 0 ? ti : parent);
+            auto ti = GetTypeTableOffset(field.resolvedtype());
+            if (IsStruct(field.resolvedtype()->t)) {
+                PushFields(field.resolved_udt(), tt, parent < 0 ? ti : parent);
             } else {
                 tt.insert(tt.begin() + (ssize(tt) - ti_num_udt_fields) / ti_num_udt_per_field +
                           ti_num_udt_fields, ti);
@@ -333,9 +333,9 @@ struct CodeGen  {
                     Emit(arg.sid->Idx() + i);
                     nvars++;
                     if (ShouldDec(IsStruct(arg.sid->type->t)
-                                  ? TypeLT { FindSlot(*arg.sid->type->udt, i)->resolvedtype,
+                                      ? TypeLT{ FindSlot(*arg.sid->type->udt, i)->resolvedtype(),
                                              arg.sid->lt }
-                                  : TypeLT { *arg.sid }) && (!ir || arg.sid != ir->sid)) {
+                                      : TypeLT { *arg.sid }) && (!ir || arg.sid != ir->sid)) {
                         ownedvars.push_back(arg.sid->Idx() + i);
                     }
                 }
@@ -493,7 +493,7 @@ struct CodeGen  {
             if (typelt.type->t == V_STRUCT_R) {
                 // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
-                    EmitOp(IsRefNil(FindSlot(*typelt.type->udt, j)->resolvedtype->t) ? IL_POPREF
+                    EmitOp(IsRefNil(FindSlot(*typelt.type->udt, j)->resolvedtype()->t) ? IL_POPREF
                                                                                      : IL_POP);
                 }
             } else {
@@ -558,7 +558,7 @@ struct CodeGen  {
     int ComputeBitMask(const UDT &udt, const Node *errloc) {
         int bits = 0;
         for (int j = 0; j < udt.numslots; j++) {
-            if (IsRefNil(FindSlot(udt, j)->resolvedtype->t)) {
+            if (IsRefNil(FindSlot(udt, j)->resolvedtype()->t)) {
                 if (j > 31)
                     parser.ErrorAt(errloc, "internal error: struct with too many reference fields");
                 bits |= 1 << j;
@@ -638,7 +638,7 @@ struct CodeGen  {
             TakeTemp(take_temp + 1, true);
             EmitOp(IL_LVAL_FLD);
             Emit(field.slot);
-            GenLvalRet(field.resolvedtype);
+            GenLvalRet(field.resolvedtype());
         } else if (auto indexing = Is<Indexing>(lval)) {
             Gen(indexing->object, 1);
             Gen(indexing->index, 1);
@@ -958,7 +958,7 @@ void Dot::Generate(CodeGen &cg, size_t retval) const {
     assert(idx >= 0);
     auto &field = stype->udt->fields[idx];
     assert(field.slot >= 0);
-    cg.GenPushField(retval, child, stype, field.resolvedtype, field.slot);
+    cg.GenPushField(retval, child, stype, field.resolvedtype(), field.slot);
 }
 
 void Indexing::Generate(CodeGen &cg, size_t retval) const {
@@ -1147,7 +1147,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
-                        if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t)) {
+                        if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype()->t)) {
                             cg.EmitOp(IL_INCREF);
                             cg.Emit(stack_offset + type->udt->numslots - 1 - j);
                         }
@@ -1162,7 +1162,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
-                        if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t))
+                        if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype()->t))
                             cg.EmitKeep(stack_offset + j, 0);
                     }
                 } else {
@@ -1710,7 +1710,7 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     if (retval) {
         cg.TakeTemp(1, false);
         cg.EmitOp(IL_ISTYPE);
-        cg.Emit(cg.GetTypeTableOffset(resolvedtype));
+        cg.Emit(cg.GetTypeTableOffset(gr.resolvedtype()));
     }
 }
 

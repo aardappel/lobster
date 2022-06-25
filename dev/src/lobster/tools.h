@@ -769,6 +769,7 @@ range_wrapper<T> range(const T &end) {
 */
 
 // From: http://reedbeta.com/blog/python-like-enumerate-in-cpp17/
+// FIXME: doesn't work with T* types.
 
 template <typename T,
           typename TIter = decltype(std::begin(std::declval<T>())),

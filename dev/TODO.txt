@@ -303,6 +303,11 @@
 - See if audio works again under emscripten:
   https://github.com/emscripten-ports/SDL2/commit/865eaddffed50dbd13e6564c3f73902472cf74e8
 
+- If we want a replacement for SDLMixer:
+  https://miniaud.io/
+  - 3D spatialization built-in.
+  - supports ogg thru stb_vorbis
+
 - enums
   - mortimersnerd: get min/max
   - use namespaces
