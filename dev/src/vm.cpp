@@ -96,6 +96,7 @@ void VM::DumpVal(RefObj *ro, const char *prefix) {
 }
 
 void VM::DumpLeaks() {
+    if (!dump_leaks) return;
     vector<void *> leaks = pool.findleaks();
     auto filename = "leaks.txt";
     if (leaks.empty()) {

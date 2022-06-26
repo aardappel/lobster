@@ -63,6 +63,7 @@ int main(int argc, char* argv[]) {
         bool dump_names = false;
         bool tcc_out = false;
         bool compile_only = false;
+        bool non_interactive_test = false;
         int runtime_checks = RUNTIME_ASSERT;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
@@ -117,7 +118,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--compile-only") { compile_only = true; }
                 #if LOBSTER_ENGINE
-                else if (a == "--non-interactive-test") { SDLTestMode(); }
+                else if (a == "--non-interactive-test") { non_interactive_test = true; SDLTestMode(); }
                 #endif
                 else if (a == "--trace") { trace = TraceMode::ON; runtime_checks = RUNTIME_ASSERT_PLUS; }
                 else if (a == "--trace-tail") { trace = TraceMode::TAIL; runtime_checks = RUNTIME_ASSERT_PLUS; }
@@ -215,7 +216,8 @@ int main(int argc, char* argv[]) {
                    trace,
                    compile_only,
                    error,
-                   runtime_checks);
+                   runtime_checks,
+                   !non_interactive_test);
             if (!error.empty())
                 THROW_OR_ABORT(error);
         } else {

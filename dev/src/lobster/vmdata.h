@@ -853,6 +853,7 @@ struct VMArgs {
     const fun_base_t *native_vtables = nullptr;
     fun_base_t jit_entry = nullptr;
     TraceMode trace = TraceMode::OFF;
+    bool dump_leaks = true;
 };
 
 struct VM : VMArgs {

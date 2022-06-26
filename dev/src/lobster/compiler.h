@@ -33,7 +33,8 @@ extern string RunTCC(NativeRegistry &nfr,
                      TraceMode trace,
                      bool compile_only,
                      string &error,
-                     int runtime_checks);
+                     int runtime_checks,
+                     bool dump_leaks);
 
 extern bool LoadPakDir(const char *lpak);
 extern bool LoadByteCode(string &bytecode);
