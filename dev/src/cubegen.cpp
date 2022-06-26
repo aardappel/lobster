@@ -702,8 +702,9 @@ nfr("cg_get_buf", "block", "R:voxels", "S",
         return Value(buf);
     });
 
-nfr("cg_average_surface_color", "world", "R:voxels", "F}:4", "",
+nfr("cg_average_surface_color", "world,threshold", "R:voxelsI", "F}:4", "",
 	[](StackPtr &sp, VM &) {
+        auto threshold = Pop(sp).intval();
 		auto &v = GetVoxels(Pop(sp));
         auto &palette = palettes[v.palette_idx].colors;
 		float3 col(0.0f);
@@ -734,7 +735,7 @@ nfr("cg_average_surface_color", "world", "R:voxels", "F}:4", "",
 			}
 		}
 		if (nsurf) col /= nsurf;
-		PushVec(sp, nvol < v.grid.dim.volume() / 2 ? float4(0.0f) : float4(col, 1.0f));
+		PushVec(sp, nsurf < threshold ? float4(col, 0.0f) : float4(col, 1.0f));
 	});
 
 nfr("cg_num_solid", "world", "R:voxels", "I", "",
