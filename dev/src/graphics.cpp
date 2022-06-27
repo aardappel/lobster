@@ -674,7 +674,7 @@ nfr("gl_ortho3d", "center,extends", "F}:3F}:3", "",
     [](StackPtr &sp, VM &) {
         auto extends = PopVec<float3>(sp);
         auto center = PopVec<float3>(sp);
-        Set3DOrtho(center, extends);
+        Set3DOrtho(GetFrameBufferSize(GetScreenSize()), center, extends);
     });
 
 nfr("gl_new_poly", "positions", "F}]", "R:mesh",

@@ -98,15 +98,17 @@ void Set2DMode(const int2 &ssize, bool lh, bool depthtest) {
     GL_CALL(glDisable(GL_CULL_FACE));
     if (depthtest) GL_CALL(glEnable(GL_DEPTH_TEST));
     else GL_CALL(glDisable(GL_DEPTH_TEST));
+    glViewport(0, 0, ssize.x, ssize.y);
     otransforms = objecttransforms();
     auto y = (float)ssize.y;
     view2clip = ortho(0, (float)ssize.x, lh ? y : 0, lh ? 0 : y, 1, -1);
     mode2d = true;
 }
 
-void Set3DOrtho(const float3 &center, const float3 &extends) {
+void Set3DOrtho(const int2 &ssize, const float3 &center, const float3 &extends) {
     GL_CALL(glEnable(GL_DEPTH_TEST));
     GL_CALL(glEnable(GL_CULL_FACE));
+    glViewport(0, 0, ssize.x, ssize.y);
     otransforms = objecttransforms();
     auto p = center + extends;
     auto m = center - extends;
