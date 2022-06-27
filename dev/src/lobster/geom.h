@@ -327,6 +327,11 @@ template<typename T> T ipow(T base, T exp) {
 template<typename T> int ffloor(T f) { int i = (int)f; return i - (f < i); }
 template<typename T> int fceil(T f) { int i = (int)f; return i + (f > i); }
 
+template<typename T> bool in_range(T x, T range, T bias = 0) {
+    return x >= bias && x < bias + range;
+}
+
+
 template<typename T> int signum(T val) {
     return (T(0) < val) - (val < T(0));
 }

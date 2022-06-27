@@ -756,7 +756,7 @@ nfr("magnitude_squared", "v", "F}", "F",
 nfr("magnitude_squared", "v", "I}", "I",
     "the geometric length of a vector squared",
     [](StackPtr &sp, VM &) {
-        auto a = DangleVec<long>(sp);
+        auto a = DangleVec<iint>(sp);
         Push(sp, a.length_squared());
     });
 
@@ -773,6 +773,18 @@ nfr("cross", "a,b", "F}:3F}:3", "F}:3",
         auto b = PopVec<double3>(sp);
         auto a = PopVec<double3>(sp);
         PushVec(sp, cross(a, b));
+    });
+
+nfr("volume", "v", "F}", "F", "the volume of the area spanned by the vector",
+    [](StackPtr &sp, VM &) {
+        auto a = DangleVec<double>(sp);
+        Push(sp, a.volume());
+    });
+
+nfr("volume", "v", "I}", "I", "the volume of the area spanned by the vector",
+    [](StackPtr &sp, VM &) {
+        auto a = DangleVec<iint>(sp);
+        Push(sp, a.volume());
     });
 
 nfr("rnd", "max", "I", "I",

@@ -450,86 +450,16 @@ struct Value {
     Value CopyRef(VM &vm, bool deep);
 };
 
-namespace vmath {
-
-template<typename T> T add(Value, Value) {
+template<typename T> T get_T(Value) {
     assert(false);
     return 0;
 }
-template<> inline iint add<iint>(Value a, Value b) {
-    return a.ival() + b.ival();
+template<> inline iint get_T<iint>(Value a) {
+    return a.ival();
 }
-template<> inline double add<double>(Value a, Value b) {
-    return a.fval() + b.fval();
+template<> inline double get_T<double>(Value a) {
+    return a.fval();
 }
-
-template<typename T> T mul(Value, Value) {
-    assert(false);
-    return 0;
-}
-template<> inline iint mul<iint>(Value a, Value b) {
-    return a.ival() * b.ival();
-}
-template<> inline double mul<double>(Value a, Value b) {
-    return a.fval() * b.fval();
-}
-
-template<typename T> T min(Value, Value) {
-    assert(false);
-    return 0;
-}
-template<> inline iint min<iint>(Value a, Value b) {
-    return a.ival() < b.ival() ? a.ival() : b.ival();
-}
-template<> inline double min<double>(Value a, Value b) {
-    return a.fval() < b.fval() ? a.fval() : b.fval();
-}
-
-template<typename T> T max(Value, Value) {
-    assert(false);
-    return 0;
-}
-template<> inline iint max<iint>(Value a, Value b) {
-    return a.ival() < b.ival() ? b.ival() : a.ival();
-}
-template<> inline double max<double>(Value a, Value b) {
-    return a.fval() < b.fval() ? b.fval() : a.fval();
-}
-
-template<typename T> T abs(Value) {
-    assert(false);
-    return 0;
-}
-template<> inline iint abs<iint>(Value a) {
-    return std::abs(a.ival());
-}
-template<> inline double abs<double>(Value a) {
-    return std::abs(a.fval());
-}
-
-template<typename T> T clamp(Value, Value, Value) {
-    assert(false);
-    return 0;
-}
-template<> inline iint clamp<iint>(Value a, Value b, Value c) {
-    return geom::clamp(a.ival(), b.ival(), c.ival());
-}
-template<> inline double clamp<double>(Value a, Value b, Value c) {
-    return geom::clamp(a.fval(), b.fval(), c.fval());
-}
-
-template<typename T> bool in_range(Value, Value, Value) {
-    assert(false);
-    return 0;
-}
-template<> inline bool in_range<iint>(Value x, Value range, Value bias) {
-    return x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival();
-}
-template<> inline bool in_range<double>(Value x, Value range, Value bias) {
-    return x.fval() >= bias.fval() && x.fval() < bias.fval() + range.fval();
-}
-
-}  // namespace vmath
 
 template<typename T> struct ValueVec {
     Value *vals;
@@ -542,7 +472,7 @@ template<typename T> struct ValueVec {
         assert(o.len == len);
         T r = 0;
         for (iint i = 0; i < len; i++) {
-            r += vmath::mul<T>(vals[i], o.vals[i]);
+            r += get_T<T>(vals[i]) * get_T<T>(o.vals[i]);
         }
         return r;
     }
@@ -558,7 +488,15 @@ template<typename T> struct ValueVec {
     T manhattan() {
         T r = 0;
         for (iint i = 0; i < len; i++) {
-            r += vmath::abs<T>(vals[i]);
+            r += std::abs(get_T<T>(vals[i]));
+        }
+        return r;
+    }
+
+    T volume() {
+        T r = 1;
+        for (iint i = 0; i < len; i++) {
+            r *= get_T<T>(vals[i]);
         }
         return r;
     }
@@ -566,14 +504,14 @@ template<typename T> struct ValueVec {
     void min_assign(ValueVec<T> o) {
         assert(o.len == len);
         for (iint i = 0; i < len; i++) {
-            vals[i] = vmath::min<T>(vals[i], o.vals[i]);
+            vals[i] = std::min(get_T<T>(vals[i]), get_T<T>(o.vals[i]));
         }
     }
 
     void max_assign(ValueVec<T> o) {
         assert(o.len == len);
         for (iint i = 0; i < len; i++) {
-            vals[i] = vmath::max<T>(vals[i], o.vals[i]);
+            vals[i] = std::max(get_T<T>(vals[i]), get_T<T>(o.vals[i]));
         }
     }
 
@@ -587,14 +525,18 @@ template<typename T> struct ValueVec {
     void clamp(ValueVec<T> mi, ValueVec<T> ma) {
         assert(mi.len == len && ma.len == len);
         for (iint i = 0; i < len; i++) {
-            vals[i] = vmath::clamp<T>(vals[i], mi.vals[i], ma.vals[i]);
+            vals[i] = std::clamp(get_T<T>(vals[i]),
+                                 get_T<T>(mi.vals[i]),
+                                 get_T<T>(ma.vals[i]));
         }
     }
 
     bool in_range(ValueVec<T> range, ValueVec<T> bias) {
         assert(range.len == len);
         for (iint i = 0; i < len; i++) {
-            if (!vmath::in_range<T>(vals[i], range.vals[i], bias.len > i ? bias.vals[i] : 0))
+            if (!geom::in_range<T>(get_T<T>(vals[i]),
+                                   get_T<T>(range.vals[i]),
+                                   bias.len > i ? get_T<T>(bias.vals[i]) : 0))
                 return false;
         }
         return true;
