@@ -702,13 +702,12 @@ nfr("cg_get_buf", "block", "R:voxels", "S",
         return Value(buf);
     });
 
-nfr("cg_average_surface_color", "world,threshold", "R:voxelsI", "F}:4", "",
+nfr("cg_average_surface_color", "world", "R:voxels", "F}:3II", "",
 	[](StackPtr &sp, VM &) {
-        auto threshold = Pop(sp).intval();
 		auto &v = GetVoxels(Pop(sp));
         auto &palette = palettes[v.palette_idx].colors;
 		float3 col(0.0f);
-		float nsurf = 0;
+		int nsurf = 0;
 		int nvol = 0;
 		int3 neighbors[] = {
 			int3(0, 0, 1),  int3(0, 1, 0),  int3(1, 0, 0),
@@ -734,8 +733,10 @@ nfr("cg_average_surface_color", "world,threshold", "R:voxelsI", "F}:4", "",
 				}
 			}
 		}
-		if (nsurf) col /= nsurf;
-		PushVec(sp, nsurf < threshold ? float4(col, 0.0f) : float4(col, 1.0f));
+		if (nsurf) col /= float(nsurf);
+		PushVec(sp, col);
+        Push(sp, nsurf);
+        Push(sp, nvol);
 	});
 
 nfr("cg_num_solid", "world", "R:voxels", "I", "",
