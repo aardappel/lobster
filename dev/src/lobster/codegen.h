@@ -203,7 +203,6 @@ struct CodeGen  {
                                                             GetTypeTableOffset(type_resource);
                                                             GetTypeTableOffset(type_any);
         Type type_valuebuf(V_VALUEBUF);                     GetTypeTableOffset(&type_valuebuf);
-        Type type_stackframebuf(V_STACKFRAMEBUF);           GetTypeTableOffset(&type_stackframebuf);
                                                             GetTypeTableOffset(type_vector_int);
                                                             GetTypeTableOffset(type_vector_float);
         Type type_vec_str(V_VECTOR, &*type_string);         GetTypeTableOffset(&type_vec_str);

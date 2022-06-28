@@ -112,7 +112,6 @@ void VM::DumpLeaks() {
             auto ro = (RefObj *)p;
             switch(ro->ti(*this).t) {
                 case V_VALUEBUF:
-                case V_STACKFRAMEBUF:
                     break;
                 case V_STRING:
                 case V_RESOURCE:

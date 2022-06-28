@@ -50,9 +50,8 @@ namespace lobster {
 
 enum ValueType : int {
     // refc types are negative
-    V_MINVMTYPES = -9,
-    V_ANY = -8,         // any other reference type.
-    V_STACKFRAMEBUF = -7,
+    V_MINVMTYPES = -8,
+    V_ANY = -7,         // any other reference type.
     V_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, not used by Value.
     V_STRUCT_R = -5,
     V_RESOURCE = -4,
@@ -87,7 +86,7 @@ inline bool IsUDT(ValueType t) { return t == V_CLASS || IsStruct(t); }
 
 inline string_view BaseTypeName(ValueType t) {
     static const char *typenames[] = {
-        "any", "<stackframe_buffer>", "<value_buffer>",
+        "any", "<value_buffer>",
         "struct_ref",
         "resource", "string", "class", "vector",
         "nil", "int", "float", "function", "struct_scalar",
@@ -109,15 +108,14 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
     TYPE_ELEM_RESOURCE = 4,
     TYPE_ELEM_ANY = 5,
     TYPE_ELEM_VALUEBUF = 6,
-    TYPE_ELEM_STACKFRAMEBUF = 7,
-    TYPE_ELEM_VECTOR_OF_INT = 8,   // 2 each.
-    TYPE_ELEM_VECTOR_OF_FLOAT = 10,
-    TYPE_ELEM_VECTOR_OF_STRING = 12,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 14,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 16,
-    TYPE_ELEM_VECTOR_OF_RESOURCE = 18,
+    TYPE_ELEM_VECTOR_OF_INT = 7,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 9,
+    TYPE_ELEM_VECTOR_OF_STRING = 11,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 13,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 15,
+    TYPE_ELEM_VECTOR_OF_RESOURCE = 17,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 20
+    TYPE_ELEM_FIXED_OFFSET_END = 19
 };
 
 struct VM;
