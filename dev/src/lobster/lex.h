@@ -651,7 +651,7 @@ struct Lex : LoadedFile {
             }
         }
         //LOG_DEBUG(err);
-        THROW_OR_ABORT(err);
+         THROW_OR_ABORT(err);
     }
 
     void Warn(string_view msg, const Line *ln = nullptr) {

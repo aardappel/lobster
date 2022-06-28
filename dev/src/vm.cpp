@@ -143,6 +143,84 @@ void VM::DumpLeaks() {
     pool.printstats(false);
 }
 
+
+struct Stat {
+    size_t num = 0;
+    size_t bytes = 0;
+    size_t max = 0;
+    size_t gpu = 0;
+    const ResourceType *rt = nullptr;
+
+    void Add(size_t2 size, const ResourceType *_rt = nullptr) {
+        num++;
+        bytes += size.x + size.y;
+        max = std::max(max, size.x + size.y);
+        gpu += size.y;
+        rt = _rt;
+    }
+
+    void Add(size_t size) {
+        Add(size_t2(size, 0));
+    }
+};
+
+static bool _UsageSorter(const pair<const void *, Stat> &a, const pair<const void *, Stat> &b) {
+    return a.second.bytes != b.second.bytes ? a.second.bytes > b.second.bytes : false;
+}
+
+string VM::MemoryUsage(size_t show_max) {
+    vector<void *> leaks = pool.findleaks();
+    string sd;
+    map<const void *, Stat> stats;
+    for (auto p : leaks) {
+        auto ro = (RefObj *)p;
+        auto &ti = ro->ti(*this);
+        switch(ti.t) {
+            case V_VALUEBUF:
+                break;
+            case V_STRING:
+                stats[&ti].Add(((LString *)ro)->MemoryUsage());
+                break;
+            case V_RESOURCE:
+                stats[((LResource *)ro)->type].Add(((LResource *)ro)->MemoryUsage(),
+                                                   ((LResource *)ro)->type);
+                break;
+            case V_VECTOR:
+                stats[&ti].Add(((LVector *)ro)->MemoryUsage());
+                break;
+            case V_CLASS:
+                stats[&ti].Add(((LObject *)ro)->MemoryUsage(*this));
+                break;
+            default:
+                assert(false);
+        }
+    }
+    vector<pair<const void *, Stat>> sorted;
+    size_t total = 0;
+    size_t totalgpu = 0;
+    for (auto &p : stats) {
+        sorted.push_back(p);
+        total += p.second.bytes;
+        totalgpu += p.second.gpu;
+    }
+    sort(sorted.begin(), sorted.end(), _UsageSorter);
+    append(sd, "TOTAL: ", total / 1024, " K (", totalgpu * 100 / total, "% on GPU)\n");
+    for (auto [i, p] : enumerate(sorted)) {
+        if (i >= show_max || p.second.bytes < 1024) break;
+        if (p.second.rt) append(sd, "resource<", p.second.rt->name, ">");
+        else append(sd, ((const TypeInfo *)p.first)->Debug(*this, false));
+        append(sd, ": ", p.second.bytes / 1024, " K in ", p.second.num, " objects");
+        if (p.second.max >= 1024 && p.second.max != p.second.bytes / p.second.num) {
+            append(sd, " (biggest: ", p.second.max / 1024, " K)");
+        }
+        if (p.second.gpu) {
+            append(sd, " (", p.second.gpu * 100 / p.second.bytes, "% on GPU)");
+        }
+        append(sd, "\n");
+    }
+    return sd;
+}
+
 void VM::OnAlloc(RefObj *ro) {
     #if DELETE_DELAY
         LOG_DEBUG("alloc: ", (size_t)ro, " - ", ro->refc);

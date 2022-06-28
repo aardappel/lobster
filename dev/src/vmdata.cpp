@@ -383,21 +383,22 @@ Value Value::CopyRef(VM &vm, bool deep) {
 }
 
 string TypeInfo::Debug(VM &vm, bool rec) const {
-    string s;
-    s += BaseTypeName(t);
-    if (t == V_VECTOR || t == V_NIL) {
-        s += "[" + vm.GetTypeInfo(subt).Debug(vm, false) + "]";
+    if (t == V_VECTOR) {
+        return cat("[", vm.GetTypeInfo(subt).Debug(vm, false), "]");
+    } else if (t == V_NIL) {
+        return cat(vm.GetTypeInfo(subt).Debug(vm, false), "?");
     } else if (IsUDT(t)) {
-        auto sname = vm.StructName(*this);
-        s += ":" + sname;
+        string s = string(vm.StructName(*this));
         if (rec) {
             s += "{";
             for (int i = 0; i < len; i++)
                 s += vm.GetTypeInfo(elemtypes[i]).Debug(vm, false) + ",";
             s += "}";
         }
+        return s;
+    } else {
+        return string(BaseTypeName(t));
     }
-    return s;
 }
 
 void TypeInfo::Print(VM &vm, string &sd) const {
@@ -504,6 +505,10 @@ void LVector::ToString(VM &vm, string &sd, PrintPrefs &pp) {
 
 void LResource::ToString(string &sd) {
     append(sd, "(resource:", type->name, ")");
+}
+
+size_t2 LResource::MemoryUsage() {
+    return size_t2(sizeof(LResource), 0) + type->sizefun(val);
 }
 
 void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems) {

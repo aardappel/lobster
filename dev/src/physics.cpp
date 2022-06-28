@@ -67,10 +67,23 @@ struct PhysicsObject {
         if (!body->GetFixtureList()) world->DestroyBody(body);
         if (particle_contacts) delete particle_contacts;
     }
-    float2 Pos() { return B2ToFloat2(fixture->GetBody()->GetPosition()); }
+
+    float2 Pos() {
+        return B2ToFloat2(fixture->GetBody()->GetPosition());
+    }
+
+    size_t2 MemoryUsage() {
+        // FIXME: this is very inexact.
+        return { sizeof(PhysicsObject) + sizeof(b2Fixture), 0 };
+    }
 };
 
-static ResourceType physics_type = { "fixture", [](void *v) { delete ((PhysicsObject *)v); } };
+static ResourceType physics_type = {
+    "fixture",
+    [](void *v) { delete ((PhysicsObject *)v); },
+    nullptr,
+    [](void *m) { return ((PhysicsObject *)m)->MemoryUsage(); }
+};
 
 PhysicsObject &GetObject(const Value &res) {
     return *GetResourceDec<PhysicsObject *>(res, &physics_type);

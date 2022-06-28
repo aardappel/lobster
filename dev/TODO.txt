@@ -6,9 +6,9 @@
   and probably could use other fixes.. ?: example? more about types.
   Also def for function values.
 
-- a function to show memory usage by type
-
 - move this TODO.txt to github issues.
+  - That's going to create 100+ issues, and not necessarily easier to overview since github doesn't have a good way to
+    order issues by priority, and search for things.
 
 - move function checking into typechecker.
     - generally having all functions global is a big source of confusion, should have methods separate.
@@ -90,6 +90,20 @@
   if not a:
       a = val {}
   (assert a).x
+
+- Since we compile on the fly, we can actually add a library like
+  https://github.com/Celtoys/Remotery 2K*thing 
+  https://github.com/wolfpld/tracy 4K*
+  https://github.com/zeux/microprofile 400*
+  https://optick.dev/ (free for commercial use, no opengl profiling) 2K*
+  https://github.com/yse/easy_profiler 2K*
+  https://github.com/google/orbit (sampling only) 2K*
+  https://superluminal.eu/ (commercial, only pdb based)
+  https://www.puredevsoftware.com/framepro/index.htm (commercial)
+  http://www.radgametools.com/telemetry.htm (commercial)
+  and insert an instrumented scope for every single compiled function conditionally when --profile
+  is supplied or whatever, and get very real stats on what is using CPU (and opengl GPU).
+  Additionally allow explicitly scoped blocks from Lobster.
 
 - use this instead of the current lib for span? supposedly better than the std version:
   https://github.com/abseil/abseil-cpp/blob/master/absl/types/span.h

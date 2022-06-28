@@ -28,15 +28,23 @@ float3 lasthitsize = float3_0;
 float3 lastframehitsize = float3_0;
 bool graphics_initialized = false;
 
-ResourceType mesh_type = { "mesh", [](void *m) {
-    delete (Mesh *)m;
-} };
+ResourceType mesh_type = {
+    "mesh",
+    [](void *m) { delete (Mesh *)m; },
+    nullptr,
+    [](void *m) { return ((Mesh *)m)->MemoryUsage(); }
+};
 
-ResourceType texture_type = { "texture", [](void *t) {
-    auto tex = (Texture *)t;
-    DeleteTexture(*tex);
-    delete tex;
-} };
+ResourceType texture_type = {
+    "texture",
+    [](void *t) {
+        auto tex = (Texture *)t;
+        DeleteTexture(*tex);
+        delete tex;
+    },
+    nullptr,
+    [](void *t) { return ((Texture *)t)->MemoryUsage(); }
+};
 
 Mesh &GetMesh(Value &res) {
     return *GetResourceDec<Mesh *>(res, &mesh_type);

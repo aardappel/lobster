@@ -31,7 +31,9 @@ RandomNumberGenerator<Xoshiro256SS> cg_rnd;
 
 ResourceType voxel_type = {
     "voxels",
-    [](void *v) { delete (Voxels *)v; }
+    [](void *v) { delete (Voxels *)v; },
+    nullptr,
+    [](void *v) { return ((Voxels *)v)->MemoryUsage(); }
 };
 
 const unsigned int default_palette[256] = {

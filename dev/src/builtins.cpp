@@ -1293,6 +1293,12 @@ nfr("get_stack_trace", "", "", "S",
         return Value(vm.NewString(sd));
     });
 
+nfr("get_memory_usage", "n", "I", "S",
+    "gets a text showing the top n object types that are using the most memory.",
+    [](StackPtr &, VM &vm, Value &n) {
+        return Value(vm.NewString(vm.MemoryUsage(n.intval())));
+    });
+
 nfr("pass", "", "", "",
     "does nothing. useful for empty bodies of control structures.",
     [](StackPtr &, VM &) {

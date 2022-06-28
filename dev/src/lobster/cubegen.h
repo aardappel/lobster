@@ -83,6 +83,11 @@ struct Voxels {
         }
         return pi;
     }
+
+    size_t2 MemoryUsage() {
+        // FIXME: does NOT account for shared palettes.
+        return { sizeof(Voxels) + grid.dim.volume() + grid.dim.x * sizeof(void *), 0 };
+    }
 };
 
 namespace lobster {

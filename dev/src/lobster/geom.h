@@ -47,12 +47,14 @@ namespace geom {
 
 union int2float { int i; float f; };
 union int2float64 { int64_t i; double f; };
-inline void default_debug_value(float   &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
-inline void default_debug_value(double  &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
-inline void default_debug_value(int64_t &a) { a = 0x1BADCAFEABADD00D; }
-inline void default_debug_value(int32_t &a) { a = 0x1BADCAFE; }
-inline void default_debug_value(uint16_t&a) { a = 0x1BAD; }
-inline void default_debug_value(uint8_t &a) { a = 0x1B; }
+inline void default_debug_value(float    &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
+inline void default_debug_value(double   &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
+inline void default_debug_value(uint64_t &a) { a = 0x1BADCAFEABADD00D; }
+inline void default_debug_value(int64_t  &a) { a = 0x1BADCAFEABADD00D; }
+inline void default_debug_value(uint32_t &a) { a = 0x1BADCAFE; }
+inline void default_debug_value(int32_t  &a) { a = 0x1BADCAFE; }
+inline void default_debug_value(uint16_t &a) { a = 0x1BAD; }
+inline void default_debug_value(uint8_t  &a) { a = 0x1B; }
 
 template<typename T, int C, int R> class matrix;
 
@@ -452,6 +454,8 @@ typedef vec<iint, 3> iint3;
 typedef vec<iint, 4> iint4;
 
 typedef vec<uint8_t, 4> byte4;
+
+typedef vec<size_t, 2> size_t2;
 
 const float4 float4_0 = float4(0.0f);
 const float4 float4_1 = float4(1.0f);

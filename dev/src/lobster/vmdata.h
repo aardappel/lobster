@@ -253,6 +253,10 @@ struct LString : RefObj {
     bool operator>=(LString &o) { return strv() >= o.strv(); }
 
     uint64_t Hash();
+
+    size_t MemoryUsage() {
+        return sizeof(LString) + len + 1;
+    }
 };
 
 struct ResourceType;
@@ -266,6 +270,9 @@ struct LResource : RefObj {
 
     void ToString(string &sd);
     void DeleteSelf(VM &vm);
+
+    
+    size_t2 MemoryUsage();
 };
 
 #if RTT_ENABLED
@@ -609,6 +616,10 @@ struct LObject : RefObj {
             if (IsRefNil(ElemTypeS(vm, i).t)) AtS(i) = AtS(i).CopyRef(vm, true);
         }
     }
+
+    size_t MemoryUsage(VM &vm) {
+        return sizeof(LObject) + Len(vm) * sizeof(iint);
+    }
 };
 
 struct LVector : RefObj {
@@ -752,6 +763,10 @@ struct LVector : RefObj {
     }
 
     type_elem_t SingleType(VM &vm);
+
+    size_t MemoryUsage() {
+        return sizeof(LVector) + len * width * sizeof(iint);
+    }
 };
 
 struct StackFrame {
@@ -880,6 +895,8 @@ struct VM : VMArgs {
 
     void DumpVal(RefObj *ro, const char *prefix);
     void DumpLeaks();
+
+    string MemoryUsage(size_t show_max);
 
     string &TraceStream();
 

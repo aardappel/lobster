@@ -66,5 +66,7 @@ while gl_frame():
         // Also show some engine stats, like e.g. a framerate graph.
         im_window("Realtime Debugger", im_window_always_autoresize):
             im_show_engine_stats()
+            im_treenode("Memory Usage"):
+                im_text(get_memory_usage(20))
             im_show_vars()
             im_show_stack_traces()
