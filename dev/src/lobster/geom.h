@@ -45,16 +45,22 @@ namespace geom {
 #define DOVECF(I, F) { T _ = I; DOVEC(_ = F); return _; }
 #define DOVECB(I, F) { bool _ = I; DOVEC(_ = F); return _; }
 
+
+template<typename T> void default_debug_value(T &a) {
+    a = (T)(0xABADCAFEDEADBEEF >> ((8 - sizeof(T)) * 8));
+}
 union int2float { int i; float f; };
+template<> inline void default_debug_value<float>(float &a) {
+    int2float nan;
+    nan.i = 0x7Fc00000;
+    a = nan.f;
+}
 union int2float64 { int64_t i; double f; };
-inline void default_debug_value(float    &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
-inline void default_debug_value(double   &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
-inline void default_debug_value(uint64_t &a) { a = 0x1BADCAFEABADD00D; }
-inline void default_debug_value(int64_t  &a) { a = 0x1BADCAFEABADD00D; }
-inline void default_debug_value(uint32_t &a) { a = 0x1BADCAFE; }
-inline void default_debug_value(int32_t  &a) { a = 0x1BADCAFE; }
-inline void default_debug_value(uint16_t &a) { a = 0x1BAD; }
-inline void default_debug_value(uint8_t  &a) { a = 0x1B; }
+template<> inline void default_debug_value<double>(double &a) {
+    int2float64 nan;
+    nan.i = 0x7ff8000000000000;
+    a = nan.f;
+}
 
 template<typename T, int C, int R> class matrix;
 
