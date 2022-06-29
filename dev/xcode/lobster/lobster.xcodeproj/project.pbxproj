@@ -23,7 +23,7 @@
 		3327344624F1C6DA00599D4E /* tccbind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3327344424F1C6DA00599D4E /* tccbind.cpp */; };
 		3327344924F1C72700599D4E /* libtcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3327344824F1C72700599D4E /* libtcc.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3327344A24F1C72700599D4E /* libtcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3327344824F1C72700599D4E /* libtcc.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		3331456017596D7300D488CC /* lobster in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3331455717596B6100D488CC /* lobster */; };
+		3331456017596D7300D488CC /* lobster in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3331455717596B6100D488CC /* lobster */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3331456117596E1100D488CC /* glgeom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C51723671F005B7988 /* glgeom.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3331456217596E1100D488CC /* glsystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C81723671F005B7988 /* glsystem.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3331456317596E1100D488CC /* sdlsystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C91723671F005B7988 /* sdlsystem.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
