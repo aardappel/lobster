@@ -4,13 +4,18 @@
     #define TCC_TARGET_X86_64 1
 #elif defined(__aarch64__)
     #define TCC_TARGET_ARM64 1
+    #define TCC_IS_NATIVE
 #elif defined(__arm__)
     #define TCC_TARGET_ARM 1
+    #define TCC_IS_NATIVE
 #elif defined(__i386__)
     #define TCC_TARGET_I386 1
 #else
     #define TCC_TARGET_X86_64 1
 #endif
 
-#define TCC_IS_NATIVE 1
+#ifdef _WIN32
+    #define TCC_TARGET_PE 1
+#endif
+
 #define CONFIG_TCC_PREDEFS 1
