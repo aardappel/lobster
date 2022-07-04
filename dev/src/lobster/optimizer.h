@@ -138,7 +138,11 @@ Node *Call::Optimize(Optimizer &opt) {
     if (is_inlinable) opt.OptimizeFunction(*sf);
     // Check if we should inline this call.
     if (!is_inlinable ||
-        (sf->numcallers > 1 && sf->sbody->Count() >= 16)) { // FIXME: configurable.
+        // Inline small functions even if called multiple times.
+        (sf->numcallers > 1 && sf->sbody->Count() >= 16) ||
+        // Don't inline really gigantic functions, this helps with not flattening the call-graph too
+        // much for stack traces and such, and may also make them easier to reg-alloc etc.
+        (sf->numcallers <= 1 && sf->sbody->Count() >= 256)) {  // FIXME: configurable.
         return this;
     }
     auto AddToLocals = [&](const vector<Arg> &av) {
