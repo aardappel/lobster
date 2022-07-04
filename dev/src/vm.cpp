@@ -34,11 +34,35 @@ VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
     }
     constant_strings.resize(bcf->stringtable()->size());
     assert(native_vtables);
+
+    #if LOBSTER_FRAME_PROFILER
+        auto funs = bcf->functions();
+        for (flatbuffers::uoffset_t i = 0; i < funs->size(); i++) {
+            auto f = funs->Get(i);
+            pre_allocated_function_locations.push_back(
+                ___tracy_source_location_data { f->name()->c_str(), f->name()->c_str(), "", 0, 0x008888 });
+        }
+    #endif
 }
 
 VM::~VM() {
     TerminateWorkers();
     if (byteprofilecounts) delete[] byteprofilecounts;
+
+    #if LOBSTER_FRAME_PROFILER
+        // FIXME: this is not ideal, because there may be multiple VMs.
+        // But the profiler runs its own thread, and may be accessing pre_allocated_function_locations
+        // stored in this VM.
+        if (tracy::GetProfiler().IsConnected()) {
+            tracy::GetProfiler().RequestShutdown();
+            //while (!tracy::GetProfiler().HasShutdownFinished()) {
+            //    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            //}
+            tracy::GetProfiler().~Profiler();
+            // FIXME: have to do this to avoid it crashing when destructed twice.
+            abort();
+        }
+    #endif
 }
 
 VMAllocator::VMAllocator(VMArgs &&args) {
@@ -360,7 +384,9 @@ void VM::DumpStackTrace(string &sd) {
     #endif
 
     if (!sd.empty()) append(sd, "\n");
-    for (auto [fip, locals] : reverse(fun_id_stack)) {
+    for (auto &funstackelem : reverse(fun_id_stack)) {
+        auto fip = funstackelem.funstartinfo;
+        auto locals = funstackelem.locals;
         auto deffun = *fip++;
         append(sd, "in function: ", bcf->functions()->Get(deffun)->name()->string_view(), "(");
         fip++;  // regs_max
@@ -742,6 +768,10 @@ void CVM_SetLVal(VM *vm, Value *v) { SetLVal(*vm, v); }
 int CVM_RetSlots(VM *vm) { return RetSlots(*vm); }
 void CVM_PushFunId(VM *vm, const int *id, StackPtr locals) { PushFunId(*vm, id, locals); }
 void CVM_PopFunId(VM *vm) { PopFunId(*vm); }
+#if LOBSTER_FRAME_PROFILER
+TracyCZoneCtx CVM_StartProfile(___tracy_source_location_data *tsld) { return StartProfile(tsld); }
+void CVM_EndProfile(TracyCZoneCtx ctx) { EndProfile(ctx); }
+#endif
 
 #define F(N, A, USE, DEF) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
@@ -804,6 +834,10 @@ const void *vm_ops_jit_table[] = {
     "PopFunId", (void *)CVM_PopFunId,
     #if LOBSTER_ENGINE
     "GLFrame", (void *)GLFrame,
+    #endif
+    #if LOBSTER_FRAME_PROFILER
+    "StartProfile", (void *)CVM_StartProfile,
+    "EndProfile", (void *)CVM_EndProfile,
     #endif
     0, 0
 };

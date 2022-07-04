@@ -265,6 +265,8 @@ struct Parser {
                         default:
                             Error("attribute value must be an identifier or string/int/float constant");
                     }
+                } else {
+                    st.defsubfunctionstack.back()->attributes[key];
                 }
                 break;
             }

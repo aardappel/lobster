@@ -20,7 +20,7 @@
 
 namespace lobster {
 
-const int LOBSTER_BYTECODE_FORMAT_VERSION = 19;
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 20;
 
 // Any type specialized ops below must always have this ordering.
 enum MathOp {
@@ -65,6 +65,7 @@ enum MathOp {
     F(ASSERT,       3, 1, 0) \
     F(ASSERTR,      3, 1, 1) \
     F(ENDSTATEMENT, 2, 0, 0) \
+    F(PROFILE,      1, 0, 0) \
     F(NEWVEC,       2, ILUNKNOWN, 1) \
     F(NEWOBJECT,    1, ILUNKNOWN, 1) \
     F(POP,          0, 1, 0) \

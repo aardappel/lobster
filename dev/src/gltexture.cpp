@@ -32,6 +32,7 @@ const int nummultisamples = 4;
 #endif
 
 Texture CreateTexture(const uint8_t *buf, int3 dim, int tf) {
+    LOBSTER_FRAME_PROFILE_THIS_FUNCTION;
     int id;
     GL_CALL(glGenTextures(1, (GLuint *)&id));
     assert(id);
@@ -271,6 +272,7 @@ int2 GetFrameBufferSize(const int2 &screensize) {
 
 bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize, bool depth, int tf,
                          const Texture &resolvetex, const Texture &depthtex) {
+    LOBSTER_FRAME_PROFILE_THIS_FUNCTION;
 	#ifdef PLATFORM_WINNIX
 		if (!glGenRenderbuffers)
 			return false;

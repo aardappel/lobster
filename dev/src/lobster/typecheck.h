@@ -956,6 +956,7 @@ struct TypeChecker {
         sf->generics = esf->generics;
         sf->giventypes = esf->giventypes;
         sf->returned_thru_to_max = -1;
+        sf->attributes = esf->attributes;
         return sf;
     }
 

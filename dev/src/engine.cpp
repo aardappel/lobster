@@ -67,6 +67,7 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
     #ifdef HAVE_PLUGINS
         RegisterBuiltin(nfr, "plugin", AddPlugins);
     #endif
+    nfr.DoneRegistering();
     return SDLLoadFile;
 }
 

@@ -135,6 +135,12 @@
         GLEXT(PFNGLBINDBUFFERBASEPROC                , glBindBufferBase                , 0) \
         GLEXT(PFNGLMEMORYBARRIERPROC                 , glMemoryBarrier                 , 0) \
         GLEXT(PFNGLMAPBUFFERRANGEPROC                , glMapBufferRange                , 0) \
+        GLEXT(PFNGLGENQUERIESPROC                    , glGenQueries                    , 0) \
+        GLEXT(PFNGLGETINTEGER64VPROC                 , glGetInteger64v                 , 0) \
+        GLEXT(PFNGLGETQUERYIVPROC                    , glGetQueryiv                    , 0) \
+        GLEXT(PFNGLGETQUERYOBJECTIVPROC              , glGetQueryObjectiv              , 0) \
+        GLEXT(PFNGLGETQUERYOBJECTUI64VPROC           , glGetQueryObjectui64v           , 0) \
+        GLEXT(PFNGLQUERYCOUNTERPROC                  , glQueryCounter                  , 0) \
         GLEXT(PFNGLDEBUGMESSAGECALLBACKPROC          , glDebugMessageCallback          , 0) \
         GLEXT(PFNGLDEBUGMESSAGEINSERTPROC            , glDebugMessageInsert            , 0)
     #define GLEXT(type, name, needed) extern type name;
@@ -155,3 +161,7 @@
 
 // Implementation-only enum.
 enum { VATRR_POS, VATRR_NOR, VATRR_TC1, VATRR_COL, VATRR_WEI, VATRR_IDX, VATRR_TC2 };
+
+#if LOBSTER_FRAME_PROFILER
+    #include "TracyOpenGL.hpp"
+#endif

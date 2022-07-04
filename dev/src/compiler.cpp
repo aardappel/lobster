@@ -445,6 +445,7 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
 
 #if !LOBSTER_ENGINE
 FileLoader EnginePreInit(NativeRegistry &) {
+    nfr.DoneRegistering();
     return DefaultLoadFile;
 }
 #endif

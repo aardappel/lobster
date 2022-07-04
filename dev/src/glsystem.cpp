@@ -150,6 +150,9 @@ void OpenGLFrameEnd() {
     //glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
     //glFlush();
     //glFinish();
+    #if LOBSTER_FRAME_PROFILER
+    FrameMark
+    #endif
 }
 
 #ifdef PLATFORM_WINNIX
@@ -203,6 +206,15 @@ string OpenGLInit(int samples, bool srgb) {
     GL_CALL(glCullFace(GL_FRONT));
     assert(!geomcache);
     geomcache = new GeometryCache();
+    #if LOBSTER_FRAME_PROFILER
+        #undef new
+        TracyGpuContext;
+        #ifdef _MSC_VER
+            #ifndef NDEBUG
+                #define new DEBUG_NEW
+            #endif
+        #endif
+    #endif
     return "";
 }
 

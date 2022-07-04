@@ -435,12 +435,25 @@ struct NativeRegistry {
     vector<NativeFun *> nfuns;
     unordered_map<string_view, NativeFun *> nfunlookup;  // Key points to value!
     vector<string> subsystems;
+    #if LOBSTER_FRAME_PROFILER_BUILTINS
+        vector<tracy::SourceLocationData> pre_allocated_function_locations;
+    #endif
 
     ~NativeRegistry() {
         for (auto f : nfuns) delete f;
     }
 
     void NativeSubSystemStart(const char *name) { subsystems.push_back(name); }
+
+    void DoneRegistering() {
+        #if LOBSTER_FRAME_PROFILER_BUILTINS
+            for (size_t i = 0; i < nfuns.size(); i++) {
+                auto f = nfuns[i];
+                pre_allocated_function_locations.push_back(
+                    tracy::SourceLocationData { f->name.c_str(), f->name.c_str(), "", 0, 0x880088 });
+            }
+        #endif
+    }
 
     #define REGISTER(N) \
     void operator()(const char *name, const char *ids, const char *typeids, \

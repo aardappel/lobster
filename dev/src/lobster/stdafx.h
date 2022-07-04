@@ -98,3 +98,29 @@ using namespace geom;
     // Build systems can override this for a console-only build.
     #define LOBSTER_ENGINE 1
 #endif
+
+#if LOBSTER_ENGINE && defined(_WIN32)
+    #define LOBSTER_FRAME_PROFILER 1
+    #define TRACY_ENABLE 1
+    #define TRACY_ON_DEMAND 1
+    #define TRACY_ONLY_LOCALHOST 1
+    // These are too expensive to always have on, but can give maximum info automatically.
+    #define LOBSTER_FRAME_PROFILER_BUILTINS 0
+    #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0   // Only works with --runtime-verbose on.
+    #define LOBSTER_FRAME_PROFILE_THIS_FUNCTION ZoneScoped
+    #define LOBSTER_FRAME_PROFILE_GPU(N) TracyGpuZone(N)
+    #undef new
+    #include "Tracy.hpp"
+    #include "TracyC.h"
+    #ifdef _MSC_VER
+        #ifndef NDEBUG
+            #define new DEBUG_NEW
+        #endif
+    #endif
+#else
+    #define LOBSTER_FRAME_PROFILER 0
+    #define LOBSTER_FRAME_PROFILER_BUILTINS 0
+    #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0
+    #define LOBSTER_FRAME_PROFILE_THIS_FUNCTION
+    #define LOBSTER_FRAME_PROFILE_GPU(N)
+#endif

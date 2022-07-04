@@ -255,14 +255,22 @@ VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
     Push(sp, i);
 }
 
+#if LOBSTER_FRAME_PROFILER_BUILTINS
+    #define BPROF(NFI) tracy::ScopedZone ___tracy_scoped_zone(&vm.nfr.pre_allocated_function_locations[NFI])
+#else
+    #define BPROF(NFI)
+#endif
+
 VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
     auto nf = vm.nfr.nfuns[nfi];
+    BPROF(nfi);
     nf->fun.fV(sp, vm);
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
 VM_INLINE void U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
     auto nf = vm.nfr.nfuns[nfi]; \
+    BPROF(nfi); \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
     if (has_ret) { Push(sp, v); vm.BCallRetCheck(sp, nf); } \
@@ -878,6 +886,10 @@ VM_INLINE void U_LV_FPP(VM & vm, StackPtr) {
 VM_INLINE void U_LV_FMM(VM & vm, StackPtr) {
     auto &a = *vm.temp_lval;
     a.setfval(a.fval() - 1);
+}
+
+VM_INLINE void U_PROFILE(VM &, StackPtr, int) {
+    assert(false);
 }
 
 }  // namespace lobster

@@ -665,7 +665,10 @@ int2 GetKeyPos(string_view name, int on) {
     return ks.lastpos[on];
 }
 
-void SDLTitle(string_view title) { SDL_SetWindowTitle(_sdl_window, null_terminated(title)); }
+void SDLTitle(string_view title) {
+    LOBSTER_FRAME_PROFILE_THIS_FUNCTION;
+    SDL_SetWindowTitle(_sdl_window, null_terminated(title));
+}
 
 int SDLWheelDelta() { return mousewheeldelta; }
 bool SDLIsMinimized() { return minimized; }

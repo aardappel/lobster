@@ -349,6 +349,19 @@ struct CodeGen  {
         // ownership of them.
         Emit((int)ownedvars.size());
         for (auto si : ownedvars) Emit(si);
+        auto profile = sf.attributes.find("profile");
+        if (LOBSTER_FRAME_PROFILER && profile != sf.attributes.end()) {
+            EmitOp(IL_PROFILE);
+            auto str = string(profile->second);
+            if (str.empty()) {
+                str = sf.parent->name;
+                if (!sf.args.empty() && !sf.parent->overloads.empty()) {
+                    append(str, "(", TypeName(sf.args[0].type), (sf.args.size() > 1 ? ", .." : ""), ")");
+                }
+            }
+            Emit((int)stringtable.size());
+            stringtable.push_back(st.StoreName(str));
+        }
         if (sf.sbody) for (auto c : sf.sbody->children) {
             Gen(c, 0);
             if (runtime_checks >= RUNTIME_ASSERT_PLUS) {

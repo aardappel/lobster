@@ -56,6 +56,9 @@
     <Filter Include="engine\imgui\lib">
       <UniqueIdentifier>{84e80957-0fc1-4af5-9e8d-c01f02de8783}</UniqueIdentifier>
     </Filter>
+    <Filter Include="engine\profiler">
+      <UniqueIdentifier>{3e09970e-2639-4da7-a5a2-d16db1b7d1ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\external\SDL\include\begin_code.h">
@@ -372,6 +375,12 @@
     </ClInclude>
     <ClInclude Include="..\external\SDL\include\SDL_vulkan.h">
       <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\tracy\TracyOpenGL.hpp">
+      <Filter>engine\profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\tracy\Tracy.hpp">
+      <Filter>engine\profiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1190,6 +1199,9 @@
     </ClCompile>
     <ClCompile Include="..\external\SDL\src\libm\e_log10.c">
       <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\tracy\TracyClient.cpp">
+      <Filter>engine\profiler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -139,10 +139,13 @@ Node *Call::Optimize(Optimizer &opt) {
     // Check if we should inline this call.
     if (!is_inlinable ||
         // Inline small functions even if called multiple times.
+        // FIXME: configurable.
         (sf->numcallers > 1 && sf->sbody->Count() >= 16) ||
         // Don't inline really gigantic functions, this helps with not flattening the call-graph too
-        // much for stack traces and such, and may also make them easier to reg-alloc etc.
-        (sf->numcallers <= 1 && sf->sbody->Count() >= 256)) {  // FIXME: configurable.
+        // much for stack traces, profiling and such, and may also make them easier to reg-alloc etc.
+        (sf->numcallers <= 1 && sf->sbody->Count() >= 256) ||
+        // Don't inline functions that are being profiled.
+        (LOBSTER_FRAME_PROFILER && sf->attributes.find("profile") != sf->attributes.end())) {
         return this;
     }
     auto AddToLocals = [&](const vector<Arg> &av) {

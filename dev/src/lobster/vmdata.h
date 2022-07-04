@@ -869,8 +869,14 @@ struct VM : VMArgs {
     struct FunStack {
         const int *funstartinfo;
         StackPtr locals;
+        #if LOBSTER_FRAME_PROFILER_FUNCTIONS
+            ___tracy_c_zone_context ctx;
+        #endif
     };
     vector<FunStack> fun_id_stack;
+    #if LOBSTER_FRAME_PROFILER
+        vector<___tracy_source_location_data> pre_allocated_function_locations;
+    #endif
 
     vector<Value> fvar_def_backup;
 
@@ -1018,11 +1024,27 @@ VM_INLINE int RetSlots(VM &vm) {
 }
 
 VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {
-    vm.fun_id_stack.push_back({ funstart, locals });
+    vm.fun_id_stack.push_back({ funstart, locals
+    #if LOBSTER_FRAME_PROFILER_FUNCTIONS
+        , ___tracy_emit_zone_begin(&vm.pre_allocated_function_locations[*funstart], true)
+    #endif
+    });
 }
 VM_INLINE void PopFunId(VM &vm) {
+    #if LOBSTER_FRAME_PROFILER_FUNCTIONS
+        ___tracy_emit_zone_end(vm.fun_id_stack.back().ctx);
+    #endif
     vm.fun_id_stack.pop_back();
 }
+
+#if LOBSTER_FRAME_PROFILER
+VM_INLINE TracyCZoneCtx StartProfile(___tracy_source_location_data *tsld) {
+    return ___tracy_emit_zone_begin(tsld, true);
+}
+VM_INLINE void EndProfile(TracyCZoneCtx ctx) {
+    ___tracy_emit_zone_end(ctx);
+}
+#endif
 
 template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {
     auto l = std::min(N, truncate);

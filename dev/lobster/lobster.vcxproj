@@ -85,7 +85,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\tracy;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -120,7 +120,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\tracy;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
@@ -160,7 +160,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\tracy;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
@@ -285,8 +285,10 @@
     <ClInclude Include="..\external\SDL\include\SDL_version.h" />
     <ClInclude Include="..\external\SDL\include\SDL_video.h" />
     <ClInclude Include="..\external\SDL\include\SDL_vulkan.h" />
+    <ClInclude Include="..\external\tracy\TracyOpenGL.hpp" />
     <ClInclude Include="..\include\StackWalker\StackWalker.h" />
     <ClInclude Include="..\include\StackWalker\StackWalkerHelpers.h" />
+    <ClInclude Include="..\include\tracy\Tracy.hpp" />
     <ClInclude Include="..\src\lobster\3dgrid.h" />
     <ClInclude Include="..\src\lobster\cubegen.h" />
     <ClInclude Include="..\src\lobster\fontrenderer.h" />
@@ -969,6 +971,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseASAN|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\external\tracy\TracyClient.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseASAN|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TRACY_ONLY_LOCALHOST;TRACY_ENABLE;TRACY_ON_DEMAND;WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='ReleaseASAN|x64'">TRACY_ONLY_LOCALHOST;TRACY_ENABLE;TRACY_ON_DEMAND;WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TRACY_ONLY_LOCALHOST;TRACY_ENABLE;TRACY_ON_DEMAND;WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\include\Box2D\Collision\b2BroadPhase.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

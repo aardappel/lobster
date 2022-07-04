@@ -456,6 +456,7 @@ map<string, BOEntry, less<>> ubomap;
 // If offset < 0 then its a buffer replacement/creation.
 int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
                          string_view uniformblockname, bool ssbo, int bo) {
+    LOBSTER_FRAME_PROFILE_THIS_FUNCTION;
     #ifdef PLATFORM_WINNIX
         if (sh && glGetProgramResourceIndex && glShaderStorageBlockBinding && glBindBufferBase &&
                   glUniformBlockBinding && glGetUniformBlockIndex) {
