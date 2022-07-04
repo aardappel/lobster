@@ -63,7 +63,10 @@ jobs:
       working-directory: dev/lobster
       run: msbuild.exe lobster.sln /p:Configuration=Release /p:Platform=x64
     - name: test
-      run: bin/lobster.exe tests/unittest.lobster
+      run: |
+        chcp 65001 #set code page to utf-8
+        echo "TRACY_NO_INVARIANT_CHECK=1" >> $env:GITHUB_ENV
+        bin/lobster.exe tests/unittest.lobster
     - name: upload build artifacts
       uses: actions/upload-artifact@v1
       with:

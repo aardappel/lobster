@@ -104,7 +104,6 @@ using namespace geom;
     #define TRACY_ENABLE 1
     #define TRACY_ON_DEMAND 1
     #define TRACY_ONLY_LOCALHOST 1
-    #define TRACY_NO_INVARIANT_CHECK 1  // Needed for CI, as CPUs there are missing TSC?
     // These are too expensive to always have on, but can give maximum info automatically.
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0   // Only works with --runtime-verbose on.
