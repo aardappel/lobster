@@ -318,6 +318,11 @@ run_test("misc"):
     if false:
         pass()
 
+    def function_with_attributes():
+        attribute foo
+        attribute bar = baz
+        pass()
+
     // default args.
     let dav = 1  // Can even reference vars.
     def da(a:int, b, c = dav + 1): return a + b + c

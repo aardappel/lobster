@@ -250,6 +250,24 @@ struct Parser {
                 list->Add(def);
                 break;
             }
+            case T_ATTRIBUTE: {
+                lex.Next();
+                auto key = ExpectId();
+                if (IsNext(T_ASSIGN)) {
+                    switch (lex.token) {
+                        case T_IDENT:
+                        case T_STR:
+                        case T_INT:
+                        case T_FLOAT:
+                            st.defsubfunctionstack.back()->attributes[key] = lex.sattr;
+                            lex.Next();
+                            break;
+                        default:
+                            Error("attribute value must be an identifier or string/int/float constant");
+                    }
+                }
+                break;
+            }
             default: {
                 if (isprivate)
                     Error("private only applies to declarations");

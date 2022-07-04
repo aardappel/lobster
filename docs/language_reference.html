@@ -52,7 +52,7 @@ constant (e.g. <code>123</code>) or hex digits with a leading
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
 <li><p>Keywords:
-<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or</code></p></li>
+<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an
 incomplete expression (such as <code>+</code> or <code>,</code>) and an
 actual token otherwise (used to separate lists of expressions inside a
@@ -72,7 +72,7 @@ a precedence level difference.</p>
 <p>topexp = <code>namespace</code> ident |<code>import</code> [
 <code>from</code> ] ( string_constant | ( ident … <code>.</code> ) ) | [
 <code>private</code> ] ( functiondef | class | vardef | enumdef ) |
-expstat</p>
+expstat | attrdef</p>
 <p>class = ( <code>class</code> | <code>struct</code> ) ident (
 <code>=</code> ident specializers | [ generics ] <code>:</code> [ ident
 [ specializers ] ] indlist( ident [ <code>:</code> type ] [
@@ -117,6 +117,8 @@ ident [ call ] | <code>-&gt;</code> ident | <code>++</code> |
 <code>}</code></p>
 <p>constant = numeric_constant | string_constant | character_constant |
 <code>nil</code> [ <code>::</code> type ]</p>
+<p>attrdef = <code>attribute</code> ident [ <code>=</code> (
+string_constant | numeric_constant | ident ) ]</p>
 <p>indlist(e) = indent list(e) [ linefeed ] dedent linefeed</p>
 <p>list(e) = e … <code>,</code></p>
 <h2 id="types">Types</h2>

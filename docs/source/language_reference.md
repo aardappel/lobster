@@ -37,7 +37,7 @@ Lexical definition
 
 -   Keywords: `nil return class struct import int float string any void
     def fn is from program private resource enum enum_flags typeof
-    var let pakfile switch case default namespace not and or`
+    var let pakfile switch case default namespace not and or attribute`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
     expression (such as `+` or `,`) and an actual token otherwise (used to
@@ -61,7 +61,7 @@ stats = topexp … linefeed
 topexp = `namespace` ident
       \|`import` [ `from` ] ( string\_constant \| ( ident ... `.` ) )
       \| [ `private` ] ( functiondef \| class \| vardef \| enumdef )
-      \| expstat
+      \| expstat \| attrdef
 
 class = ( `class` \| `struct` ) ident
         ( `=` ident specializers
@@ -112,6 +112,8 @@ constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list(
 exp ) ] `}`
 
 constant = numeric\_constant \| string\_constant \| character\_constant \| `nil` [ `::` type ]
+
+attrdef = `attribute` ident [ `=` ( string\_constant \| numeric\_constant \| ident ) ]
 
 indlist(e) = indent list(e) [ linefeed ] dedent linefeed
 

@@ -29,7 +29,7 @@
       "patterns": [
         {
           "name": "keyword.source.lobster",
-          "match": "\\b(break|return|struct|class|import|namespace|pakfile|def|is|from|program|private|enum|enum_flags|typeof|var|let|not|and|or)\\b"
+          "match": "\\b(attribute|break|return|struct|class|import|namespace|pakfile|def|is|from|program|private|enum|enum_flags|typeof|var|let|not|and|or)\\b"
         },
         {
           "name": "storage.type.source.lobster",

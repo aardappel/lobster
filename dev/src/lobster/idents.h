@@ -408,6 +408,7 @@ struct SubFunction {
     int numcallers = 0;
     Type thistype { V_FUNCTION, this };  // convenient place to store the type corresponding to this
     vector<BoundTypeVariable> generics;
+    map<string_view, string_view> attributes;
 
     SubFunction(int _idx) : idx(_idx) {}
 
