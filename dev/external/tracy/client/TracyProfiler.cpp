@@ -326,6 +326,7 @@ static void InitFailure( const char* msg )
 
 static bool CheckHardwareSupportsInvariantTSC()
 {
+    return true;
     const char* noCheck = GetEnvVar( "TRACY_NO_INVARIANT_CHECK" );
     if( noCheck && noCheck[0] == '1' ) return true;
 

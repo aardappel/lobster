@@ -18,10 +18,7 @@ jobs:
       working-directory: dev/lobster
       run: msbuild.exe lobster.sln /p:Configuration=Release /p:Platform=x64
     - name: test
-      run: |
-        chcp 65001 #set code page to utf-8
-        echo "TRACY_NO_INVARIANT_CHECK=1" >> $env:GITHUB_ENV
-        bin/lobster.exe tests/unittest.lobster
+      run: bin/lobster.exe tests/unittest.lobster
     - name: Zip
       run: powershell Compress-Archive -Path bin, data, docs, modules, samples, tests, README.md -DestinationPath lobster_windows_release.zip
     - name: Release
