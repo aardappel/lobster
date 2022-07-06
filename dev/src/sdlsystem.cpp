@@ -62,7 +62,7 @@ struct KeyState {
 
     void Set(bool on) {
         if (on) {
-            frames_down = 1;
+            if (!frames_down) frames_down = 1; // set if not a repeat
             if (frames_up > 1) frames_up = 0;  // Not in this frame, so turn off.
         } else {
             frames_up = 1;
