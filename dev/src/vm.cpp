@@ -122,7 +122,7 @@ void VM::DumpVal(RefObj *ro, const char *prefix) {
 void VM::DumpLeaks() {
     if (!dump_leaks) return;
     vector<void *> leaks = pool.findleaks();
-    auto filename = "leaks.txt";
+    auto filename = "memory_leaks.txt";
     if (leaks.empty()) {
         if (FileExists(filename)) FileDelete(filename);
     } else {

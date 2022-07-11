@@ -66,8 +66,8 @@
 // - Any additional dirs declared with "include from".
 vector<string> data_dirs;
 
-// Folder to write to, usually the same as project dir, special folder on mobile platforms.
-string write_dir;
+// Folders to write to, usually the same as project dir, special folder on mobile platforms.
+vector<string> write_dirs;
 
 string maindir;
 string projectdir;
@@ -225,12 +225,13 @@ bool InitPlatform(string _maindir, const char *auxfilepath, bool from_bundle,
             data_dirs.push_back(resources_dir);
             #ifdef __IOS__
                 // There's probably a better way to do this in CF.
-                write_dir = StripFilePart(path) + "Documents/";
+                auto write_dir = StripFilePart(path) + "Documents/";
+                write_dirs.push_back(write_dir);
                 data_dirs.push_back(write_dir);
             #else
                 // FIXME: This should probably be ~/Library/Application Support/AppName,
                 // but for now this works for non-app store apps.
-                write_dir = resources_dir;
+                write_dirs.push_back(resources_dir);
             #endif
             return true;
         }
@@ -246,20 +247,23 @@ bool InitPlatform(string _maindir, const char *auxfilepath, bool from_bundle,
         LOG_INFO(internalstoragepath);
         LOG_INFO(externalstoragepath);
         if (internalstoragepath) data_dirs.push_back(internalstoragepath + string_view("/"));
-        if (externalstoragepath) write_dir = externalstoragepath + string_view("/");
         // For some reason, the above SDL functionality doesn't actually work,
         // we have to use the relative path only to access APK files:
         data_dirs.clear();  // FIXME.
         data_dirs.push_back("");
-        data_dirs.push_back(write_dir);
+        if (externalstoragepath) {
+            auto write_dir = externalstoragepath + string_view("/");
+            write_dirs.push_back(write_dir);
+            data_dirs.push_back(write_dir);
+        }
     #else  // Linux, Windows, and OS X console mode.
 
         if (auxfilepath) {
             projectdir = StripFilePart(SanitizePath(auxfilepath));
             data_dirs.push_back(projectdir);
-            write_dir = projectdir;
+            write_dirs.push_back(projectdir);
         } else {
-            write_dir = maindir;
+            write_dirs.push_back(maindir);
         }
         data_dirs.push_back(maindir);
         #ifdef PLATFORM_DATADIR
@@ -273,8 +277,13 @@ bool InitPlatform(string _maindir, const char *auxfilepath, bool from_bundle,
 }
 
 void AddDataDir(string_view path) {
-    for (auto &dir : data_dirs) if (dir == path) return;
+    for (auto &dir : data_dirs) if (dir == path) goto skipd;
     data_dirs.push_back(projectdir + SanitizePath(path));
+    skipd:
+    // FIXME: this is not the greatest solution, maybe we should should separate
+    // setting these from import dirs.
+    for (auto &dir : write_dirs) if (dir == path) return;
+    write_dirs.push_back(projectdir + SanitizePath(path));
 }
 
 string SanitizePath(string_view path) {
@@ -339,20 +348,24 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
     return size;
 }
 
-string WriteFileName(string_view relfilename) {
-    return write_dir + SanitizePath(relfilename);
+FILE *OpenFor(string_view relfilename, const char *mode) {
+    for (auto &wd : write_dirs) {
+        auto f = fopen((wd + SanitizePath(relfilename)).c_str(), mode);
+        if (f) return f;
+    }
+    return nullptr;
 }
 
 FILE *OpenForWriting(string_view relfilename, bool binary) {
-    auto fn = WriteFileName(relfilename);
-    LOG_INFO("write: ", fn);
-    return fopen(fn.c_str(), binary ? "wb" : "w");
+    auto f = OpenFor(relfilename, binary ? "wb" : "w");
+    LOG_INFO("write: ", relfilename);
+    return f;
 }
 
 FILE *OpenForReading(string_view relfilename, bool binary) {
-    auto fn = WriteFileName(relfilename);
-    LOG_INFO("read: ", fn);
-    return fopen(fn.c_str(), binary ? "rb" : "r");
+    auto f = OpenFor(relfilename, binary ? "rb" : "r");
+    LOG_INFO("read: ", relfilename);
+    return f;
 }
 
 bool WriteFile(string_view relfilename, bool binary, string_view contents) {
@@ -366,13 +379,17 @@ bool WriteFile(string_view relfilename, bool binary, string_view contents) {
 }
 
 bool FileExists(string_view relfilename) {
-    auto f = fopen(WriteFileName(relfilename).c_str(), "rb");
+    auto f = OpenForReading(relfilename, true);
     if (f) fclose(f);
     return f;
 }
 
 bool FileDelete(string_view relfilename) {
-    return remove(WriteFileName(relfilename).c_str()) == 0;
+    // FIXME: not super safe? tries to delete in every import dir.
+    for (auto &wd : write_dirs) {
+        if (remove((wd + SanitizePath(relfilename)).c_str()) == 0) return true;
+    }
+    return false;
 }
 
 // TODO: can now replace all this platform specific stuff with std::filesystem code.
