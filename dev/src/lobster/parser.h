@@ -1240,7 +1240,7 @@ struct Parser {
                 auto call = Is<GenericCall>(*n);
                 if (!call || !call->sf || !call->sf->method_of ||
                     call->sf->method_of->superclass.giventype.utr.Null()) {
-                    Error("super must be used on a method of a subclass");
+                    Error("super must be used on a method that has a superclass implementation");
                 }
                 call->super = true;
                 return n;
