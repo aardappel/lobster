@@ -574,6 +574,13 @@ struct quat : float4 {
     }
 };
 
+inline quat normalize(const quat &q) { return quat(normalize((float4)q)); }
+
+inline quat mix(quat a, quat b, float f) {
+    if(dot(a, b) < 0.0f) b.flip();
+    return normalize(quat(mix((float4)a, (float4)b, f)));
+}
+
 template<typename T, int C, int R> class matrix {
     typedef vec<T,R> V;
     V m[C];
