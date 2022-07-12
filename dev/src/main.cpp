@@ -67,8 +67,8 @@ int main(int argc, char* argv[]) {
         int runtime_checks = RUNTIME_ASSERT;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
-        const char *fn = nullptr;
-        const char *mainfile = nullptr;
+        string fn;
+        string mainfile;
         vector<string> program_args;
         vector<string> imports;
         auto trace = TraceMode::OFF;
@@ -130,8 +130,8 @@ int main(int argc, char* argv[]) {
                 } else if (a == "--main") {
                     arg++;
                     if (arg >= argc) THROW_OR_ABORT("missing main file");
-                    if (mainfile) THROW_OR_ABORT("--main specified twice");
-                    mainfile = argv[arg];
+                    if (!mainfile.empty()) THROW_OR_ABORT("--main specified twice");
+                    mainfile = SanitizePath(argv[arg]);
                 } else if (a == "--") {
                     arg++;
                     break;
@@ -140,8 +140,8 @@ int main(int argc, char* argv[]) {
                 else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
                 else THROW_OR_ABORT("unknown command line argument: " + (argv[arg] + helptext));
             } else {
-                if (fn) THROW_OR_ABORT("more than one file specified" + helptext);
-                fn = argv[arg];
+                if (!fn.empty()) THROW_OR_ABORT("more than one file specified" + helptext);
+                fn = SanitizePath(argv[arg]);
             }
         }
         for (; arg < argc; arg++) { program_args.push_back(argv[arg]); }
@@ -159,17 +159,21 @@ int main(int argc, char* argv[]) {
         if (dump_builtins) { DumpBuiltinDoc(nfr); return 0; }
         if (dump_names) { DumpBuiltinNames(nfr); return 0; }
 
-        if (!InitPlatform(GetMainDirFromExePath(argv[0]), fn ? fn : default_lpak, from_bundle,
+        if (!InitPlatform(GetMainDirFromExePath(argv[0]),
+                          !mainfile.empty() ? mainfile
+                                            : (!fn.empty() ? fn : string(default_lpak)),
+                          from_bundle,
                           loader))
             THROW_OR_ABORT("cannot find location to read/write data on this platform!");
+        if (!mainfile.empty() && !fn.empty()) AddDataDir(StripFilePart(fn), false);
 
         LOG_INFO("lobster version " GIT_COMMIT_INFOSTR);
 
-        for (auto &import : imports) AddDataDir(import);
-        if (fn) fn = StripDirPart(fn);
+        for (auto &import : imports) AddDataDir(import, true);
+        if (!fn.empty()) fn = StripDirPart(fn);
 
         string bytecode_buffer;
-        if (!fn) {
+        if (fn.empty()) {
             if (!LoadPakDir(default_lpak))
                 THROW_OR_ABORT("Lobster programming language compiler/runtime (version "
                                GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load "
@@ -186,11 +190,15 @@ int main(int argc, char* argv[]) {
             pakfile.clear();
             for (;;) {
                 bytecode_buffer.clear();
-                Compile(nfr, StripDirPart(fn), {}, bytecode_buffer, parsedump ? &dump : nullptr,
+                Compile(nfr, fn, {}, bytecode_buffer, parsedump ? &dump : nullptr,
                         lpak ? &pakfile : nullptr, false, runtime_checks);
-                if (!mainfile || !FileExists(mainfile)) break;
-                fn = mainfile;
-                mainfile = nullptr;
+                if (mainfile.empty()) break;
+                if (!FileExists(mainfile, true)) {
+                    LOG_WARN(mainfile, " does not exist, skipping");
+                    break;
+                }
+                fn = StripDirPart(mainfile);
+                mainfile.clear();
             }
             LOG_INFO("time to compile (seconds): ", SecondsSinceStart() - start_time);
             if (parsedump) {
@@ -210,7 +218,7 @@ int main(int argc, char* argv[]) {
             string error;
             RunTCC(nfr,
                    bytecode_buffer,
-                   fn ? fn : "",
+                   !fn.empty() ? fn : "",
                    tcc_out ? "tcc_out.o" : nullptr,
                    std::move(program_args),
                    trace,

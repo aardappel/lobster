@@ -16,17 +16,17 @@
 typedef int64_t (* FileLoader)(string_view absfilename, string *dest, int64_t start, int64_t len);
 
 // Call this at init to determine default folders to load stuff from.
-string GetMainDirFromExePath(const char *argv_0);
+string GetMainDirFromExePath(string_view argv_0);
 // Then pass the result as maindir to InitPlatform.
 // This also initializes anything else functions in this file need.
-extern bool InitPlatform(string maindir, const char *auxfilepath, bool from_bundle,
+extern bool InitPlatform(string maindir, string_view auxfilepath, bool from_bundle,
                              FileLoader loader);
-extern void AddDataDir(string_view path);  // Any additional dirs besides the above.
+extern void AddDataDir(string_view path, bool is_rel);  // Any additional dirs besides the above.
 extern string_view ProjectDir();
 extern string_view MainDir();
 
 extern string_view StripFilePart(string_view filepath);
-extern const char *StripDirPart(const char *filepath);
+extern string StripDirPart(string_view filepath);
 
 // Read all or part of a file.
 // To read the whole file, pass -1 for len.
@@ -41,7 +41,7 @@ extern int64_t DefaultLoadFile(string_view absfilename, string *dest, int64_t st
 extern FILE *OpenForWriting(string_view relfilename, bool binary);
 extern FILE *OpenForReading(string_view relfilename, bool binary);
 extern bool WriteFile(string_view relfilename, bool binary, string_view contents);
-extern bool FileExists(string_view relfilename);
+extern bool FileExists(string_view filename, bool allow_absolute);
 extern bool FileDelete(string_view relfilename);
 extern string SanitizePath(string_view path);
 

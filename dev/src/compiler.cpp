@@ -358,7 +358,7 @@ string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
                 LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
                 if (compile_only) return true;
                 auto vmargs = VMArgs {
-                    nfr, fn, (uint8_t *)bytecode_buffer.data(),
+                    nfr, string(fn), (uint8_t *)bytecode_buffer.data(),
                     bytecode_buffer.size(), std::move(program_args),
                     (fun_base_t *)exports[1], (fun_base_t)exports[0], trace, dump_leaks
                 };
