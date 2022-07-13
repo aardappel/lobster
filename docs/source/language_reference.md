@@ -1033,6 +1033,49 @@ except from the fact that these have to be referred to by their full name everyw
 inside the module that defines them.
 
 
+Declaration order
+-----------------
+Lobster is a language that relies heavily on type inference and generic types, and generally
+not requiring you to specify types, the order in which things get type-checked sometimes
+matters.
+
+Lobster type-checks function calls in call order, but type declaration in the order in which
+they are specified in the source code, or imported.
+
+As such, to allow the maximum amount of freedom it what can refer to what, it is recommended
+to import files and declare types (structs and classes) as much as possible in the order of
+dependencies (least dependent things first), and call functions from top level (which triggers
+a lot of use of these types) only after all have been declared.
+
+This is not always possible, so there are ways to declare things ahead of definition, for
+example:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class Monster
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+(note the lack of `:` introducing the definition) pre-declares this type, so it can
+be referred to by types defined before `Monster` is finally defined. This allows for
+circular dependancies.
+
+Similarly, you may declare variables before you define them:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class World
+var world:World
+
+// Lots of types that may want to access `world` as a global in their methods goes here.
+// Then finally `World` gets defined based on the earlier types.
+
+var world:World = World {}
+world.init()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is an error to access `world` by code in between its declaration and definition.
+Typically, all code accessing `world` in any methods in between only gets called
+below, so this works out fine.
+
+
 Type Checking
 -------------
 

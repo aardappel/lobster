@@ -81,7 +81,7 @@ struct Parser {
         for (;;) {
             ParseTopExp(block);
             if (lex.token == T_ENDOFINCLUDE) {
-                ResolveForwardFunctionCalls(false);
+                ResolveForwardFunctionCalls();
                 st.EndOfInclude();
                 lex.PopIncludeContinue();
             } else if (!IsNext(T_LINEFEED)) {
@@ -99,7 +99,7 @@ struct Parser {
     }
 
     void CleanupStatements(Block *list) {
-        ResolveForwardFunctionCalls(true);
+        ResolveForwardFunctionCalls();
         for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
                 st.Unregister(er->e, st.enums);
@@ -123,6 +123,8 @@ struct Parser {
                     if (!id->read && !id->static_constant && id->scopelevel != 1 &&
                         (id->name[0] != '_' || d->sids.size() == 1))
                         Warn("unused variable ", Q(id->name));
+                    if (id->predeclaration)
+                        Error("missing declaration for ", id->name);
                 }
                 if (warn_all) {
                     for (auto p : d->sids) {
@@ -231,6 +233,7 @@ struct Parser {
                 auto isconst = lex.token == T_CONST;
                 lex.Next();
                 auto def = new Define(lex, nullptr);
+                bool has_predeclaration_init = false;
                 for (;;) {
                     auto idname = ExpectId();
                     bool withtype = lex.token == T_TYPEIN;
@@ -240,13 +243,37 @@ struct Parser {
                         type = ParseType(withtype);
                     }
                     auto id = st.LookupDef(idname, lex, true, withtype);
+                    if (id->predeclaration) {
+                        if (type.utr.Null() || !type.utr->Equal(*id->giventype.utr))
+                            Error("must specify same type as pre-declaration");
+                        if (isconst != id->constant)
+                            Error("let/var doesn\'t match pre-declaration");
+                        if (isprivate != id->isprivate)
+                            Error("private doesn\'t match pre-declaration");
+                        has_predeclaration_init = true;
+                        id->predeclaration = false;
+                    }
                     if (isconst)  id->constant = true;
                     if (isprivate) id->isprivate = true;
                     def->sids.push_back({ id->cursid, type });
+                    id->giventype = type;
                     if (!IsNext(T_COMMA)) break;
                 }
-                Expect(T_ASSIGN);
-                def->child = ParseMultiRet(ParseOpExp());
+                if (IsNext(T_ASSIGN)) {
+                    def->child = ParseMultiRet(ParseOpExp());
+                } else {
+                    if (has_predeclaration_init)
+                        Error("missing initialization");
+                    if (st.scopelevels.size() != 1)
+                        // For now, since we track it in Idents which don't work with specialization in TC.
+                        Error("variable pre-declarations only allowed at top level");
+                    for (auto &sid : def->sids) {
+                        if (sid.second.utr.Null())
+                            Error("a variable pre-declaration must have a type specified");
+                        sid.first->id->predeclaration = true;
+                    }
+                    def->child = new DefaultVal(lex);
+                }
                 list->Add(def);
                 break;
             }
@@ -432,7 +459,7 @@ struct Parser {
             g.set_resolvedtype(type.utr);
         }
         udt->unspecialized.is_generic = udt->is_generic;
-        parent_list->Add(new UDTRef(lex, udt));
+        parent_list->Add(new UDTRef(lex, udt, udt->predeclaration));
     }
 
     Node *ParseNamedFunctionDefinition(bool isprivate, UDT *self) {
@@ -901,15 +928,20 @@ struct Parser {
         }
     }
 
-    List *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
+    List *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *dotarg,
                             bool noparens, vector<UnresolvedTypeRef> *specializers) {
         vector<Node *> list;
+        bool parens_parsed = false;
         [&]() {
-            if (firstarg) {
-                list.push_back(firstarg);
+            if (dotarg) {
+                list.push_back(dotarg);
                 if (!IsNext(T_LEFTPAREN)) return;
+                parens_parsed = true;
             } else {
-                if (!noparens) Expect(T_LEFTPAREN);
+                if (!noparens) {
+                    Expect(T_LEFTPAREN);
+                    parens_parsed = true;
+                }
             }
             // Parse regular arguments.
             bool needscomma = false;
@@ -980,14 +1012,14 @@ struct Parser {
             argsok:
             return nc;
         }
-        auto id = st.Lookup(idname);
+        auto id = dotarg ? nullptr : st.Lookup(idname);
         // If both a var and a function are in scope, the deepest scope wins.
         // Note: <, because functions are inside their own scope.
         if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type ", Q(f->name));
             auto call = new GenericCall(lex, idname, nullptr, false, false, specializers);
             call->children = list;
-            if (!firstarg) {
+            if (!dotarg) {
                 SelfArg(f, wse, call->Arity(), call);
             }
             f = FindFunctionWithNargs(f, call, idname, nullptr);
@@ -1000,10 +1032,11 @@ struct Parser {
             dc->children = list;
             return dc;
         } else {
-            auto call = new GenericCall(lex, idname, nullptr, false, false, specializers);
+            auto call = new GenericCall(lex, idname, nullptr, dotarg && !parens_parsed,
+                                        false, specializers);
             call->children = list;
             ForwardFunctionCall ffc = {
-                st.scopelevels.size(), st.current_namespace, call, !!firstarg, wse
+                st.scopelevels.size(), st.current_namespace, call, !!dotarg, wse
             };
             forwardfunctioncalls.push_back(ffc);
             return call;
@@ -1046,7 +1079,7 @@ struct Parser {
         return nullptr;
     }
 
-    void ResolveForwardFunctionCalls(bool error_on_not_found) {
+    void ResolveForwardFunctionCalls() {
         for (auto ffc = forwardfunctioncalls.begin(); ffc != forwardfunctioncalls.end(); ) {
             if (ffc->maxscopelevel >= st.scopelevels.size()) {
                 swap(ffc->call_namespace, st.current_namespace);
@@ -1061,10 +1094,7 @@ struct Parser {
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 } else {
-                    if (st.scopelevels.size() == 1) {
-                        if (error_on_not_found)
-                            ErrorAt(ffc->n, "call to unknown function ", Q(ffc->n->name));
-                    } else {
+                    if (st.scopelevels.size() != 1) {
                         // Prevent it being found in sibling scopes.
                         ffc->maxscopelevel = st.scopelevels.size() - 1;
                     }
@@ -1085,19 +1115,15 @@ struct Parser {
                 auto fld = st.FieldUse(idname);
                 auto f = st.FindFunction(idname);
                 auto nf = natreg.FindNative(idname);
-                if (fld || f || nf) {
-                    if (fld && lex.token != T_LEFTPAREN) {
-                        auto dot = new GenericCall(lex, idname,
-                                                   f ? f->overloads.back().sf : nullptr,
-                                                   true, false, nullptr);
-                        dot->Add(n);
-                        n = dot;
-                    } else {
-                        auto specializers = ParseSpecializers(f && !nf);
-                        n = ParseFunctionCall(f, nf, idname, n, false, &specializers);
-                    }
+                if (fld && lex.token != T_LEFTPAREN) {
+                    auto dot = new GenericCall(lex, idname,
+                                                f ? f->overloads.back().sf : nullptr,
+                                                true, false, nullptr);
+                    dot->Add(n);
+                    n = dot;
                 } else {
-                    Error("unknown field/function ", Q(idname));
+                    auto specializers = ParseSpecializers(f && !nf);
+                    n = ParseFunctionCall(f, nf, idname, n, false, &specializers);
                 }
                 break;
             }
