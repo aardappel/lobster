@@ -164,6 +164,7 @@ struct TypeChecker {
                 err += SignatureWithFreeVars(*scope.sf, &already_seen);
                 for (auto dl : scope.sf->sbody->children) {
                     if (auto def = Is<Define>(dl)) {
+                        if (Is<DefaultVal>(def->child)) continue;  // A pre-decl.
                         for (auto p : def->sids) {
                             err += ", " + p.first->id->name + ":" + TypeName(p.first->type);
                         }
@@ -691,11 +692,13 @@ struct TypeChecker {
         return _scopes.empty() ? nullptr : _scopes.back().sf;
     }
 
-    void TypeCheckUDT(UDT &udt, const Node &errn) {
+    void TypeCheckUDT(UDT &udt, const Node &errn, bool predeclaration) {
+        //if (predeclaration) return;
+        LOG_DEBUG("TypeCheckUDT: ", udt.name);
         if (udt.FullyBound()) {
             // Give a type for fields that don't have one specified.
             for (auto &f : udt.fields) {
-                if (f.defaultval && f.giventype.utr->t == V_ANY) {
+                if (f.defaultval && f.giventype.utr->t == V_ANY && !predeclaration) {
                     // FIXME: would be good to not call TT here generically but instead have some
                     // specialized checking, just in case TT has a side effect on type checking.
                     // Sadly that is not easy given the amount of type-checking code this already
@@ -1128,7 +1131,7 @@ struct TypeChecker {
                     g.Resolve(types[i]);
                     udt->unspecialized.specializers.push_back(&*types[i]);
                 }
-                TypeCheckUDT(*udt, *errn);
+                TypeCheckUDT(*udt, *errn, false);
                 return &udt->thistype;
             }
             case V_TYPEVAR: {
@@ -2469,20 +2472,25 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         auto var = TypeLT(*child, i);
         if (!p.second.utr.Null()) {
             var.type = tc.ResolveTypeVars(p.second, this);
-            // Have to subtype the initializer value, as that node may contain
-            // unbound vars (a:[int] = []) or values that that need to be coerced
-            // (a:float = 1)
-            if (sids.size() == 1) {
-                tc.SubType(child, var.type, "initializer", "definition");
+            if (Is<DefaultVal>(child)) {  // A pre-decl.
+                p.first->id->predeclaration = true;
             } else {
-                // FIXME: no coercion when mult-return?
-                tc.SubTypeT(child->exptype->Get(i), var.type, *this, p.first->id->name);
+                p.first->id->predeclaration = false;
+                // Have to subtype the initializer value, as that node may contain
+                // unbound vars (a:[int] = []) or values that that need to be coerced
+                // (a:float = 1)
+                if (sids.size() == 1) {
+                    tc.SubType(child, var.type, "initializer", "definition");
+                } else {
+                    // FIXME: no coercion when mult-return?
+                    tc.SubTypeT(child->exptype->Get(i), var.type, *this, p.first->id->name);
+                }
+                // In addition, the initializer may already cause the type to be promoted.
+                // a:string? = ""
+                FlowItem fi(p.first, var.type, child->exptype);
+                // Similar to AssignFlowPromote (TODO: refactor):
+                if (fi.now->t != V_NIL && fi.old->t == V_NIL) tc.flowstack.push_back(fi);
             }
-            // In addition, the initializer may already cause the type to be promoted.
-            // a:string? = ""
-            FlowItem fi(p.first, var.type, child->exptype);
-            // Similar to AssignFlowPromote (TODO: refactor):
-            if (fi.now->t != V_NIL && fi.old->t == V_NIL) tc.flowstack.push_back(fi);
         }
         auto sid = p.first;
         sid->type = var.type;
@@ -2708,6 +2716,8 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     for (auto &sc : reverse(tc.scopes)) if (sc.sf == sid->sf_def) goto in_scope;
     tc.Error(*this, "free variable ", Q(sid->id->name), " not in scope");
     in_scope:
+    if (sid->id->predeclaration)
+        tc.Error(*this, "access of ", Q(sid->id->name), " before being initialized");
     exptype = tc.TypeCheckId(sid);
     FlowItem fi(*this, exptype);
     assert(fi.IsValid());
@@ -3155,7 +3165,12 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     } else {
         exptype = tc.ResolveTypeVars(giventype, this);
         auto udt = IsUDT(exptype->t) ? exptype->udt : nullptr;
-        if (udt) tc.st.bound_typevars_stack.push_back(&udt->generics);
+        if (udt) {
+            // Sadly, this causes more problems than it solves, since these UDTs may depend
+            // on global vars not typechecked, etc.
+            //tc.TypeCheckUDT(*udt, *this, true);
+            tc.st.bound_typevars_stack.push_back(&udt->generics);
+        }
         // These may include field initializers copied from the definition, which may include
         // type variables that are now bound.
         tc.TypeCheckList(this, LT_KEEP);
@@ -3310,7 +3325,7 @@ Node *EnumRef::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 }
 
 Node *UDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckUDT(*udt, *this);
+    tc.TypeCheckUDT(*udt, *this, predeclaration);
     exptype = type_void;
     lt = LT_ANY;
     return this;

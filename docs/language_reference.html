@@ -859,6 +859,39 @@ this module, but must be referred to as <code>foo_bar</code> and
 <code>_</code> baked into them, except from the fact that these have to
 be referred to by their full name everywhere, even inside the module
 that defines them.</p>
+<h2 id="declaration-order">Declaration order</h2>
+<p>Lobster is a language that relies heavily on type inference and
+generic types, and generally not requiring you to specify types, the
+order in which things get type-checked sometimes matters.</p>
+<p>Lobster type-checks function calls in call order, but type
+declaration in the order in which they are specified in the source code,
+or imported.</p>
+<p>As such, to allow the maximum amount of freedom it what can refer to
+what, it is recommended to import files and declare types (structs and
+classes) as much as possible in the order of dependencies (least
+dependent things first), and call functions from top level (which
+triggers a lot of use of these types) only after all have been
+declared.</p>
+<p>This is not always possible, so there are ways to declare things
+ahead of definition, for example:</p>
+<pre><code>class Monster</code></pre>
+<p>(note the lack of <code>:</code> introducing the definition)
+pre-declares this type, so it can be referred to by types defined before
+<code>Monster</code> is finally defined. This allows for circular
+dependancies.</p>
+<p>Similarly, you may declare variables before you define them:</p>
+<pre><code>class World
+var world:World
+
+// Lots of types that may want to access `world` as a global in their methods goes here.
+// Then finally `World` gets defined based on the earlier types.
+
+var world:World = World {}
+world.init()</code></pre>
+<p>It is an error to access <code>world</code> by code in between its
+declaration and definition. Typically, all code accessing
+<code>world</code> in any methods in between only gets called below, so
+this works out fine.</p>
 <h2 id="type-checking">Type Checking</h2>
 <p>This has its own document, <a href="type_checker.html">here</a>.</p>
 <h2 id="built-in-functions">Built-in Functions</h2>

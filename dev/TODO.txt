@@ -11,6 +11,10 @@
     order issues by priority, and search for things.
 
 - move function checking into typechecker.
+    - the biggest issue is that it first selects on args, then on 1st arg type, it should be the other
+      way around. Parser needs to stop trying to select Function based on args, and typechecker should
+      first filter on type. Possibly not separate Function on args in the first place. different scopes
+      should have completely separate set of functions.
     - generally having all functions global is a big source of confusion, should have methods separate.
     - problematic error:
         error: no version of function `f` takes 0 arguments

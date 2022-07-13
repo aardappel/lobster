@@ -40,8 +40,11 @@ struct Ident : Named {
     bool constant = false;          // declared const
     bool static_constant = false;   // not declared const but def only, exp is const.
     bool read = false;              // has been read at least once.
+    bool predeclaration = false;
 
     SpecIdent *cursid = nullptr;
+
+    UnresolvedTypeRef giventype = { nullptr };
 
     Ident(string_view _name, int _idx, size_t _sl)
         : Named(_name, _idx), scopelevel(_sl) {}
@@ -611,12 +614,17 @@ struct SymbolTable {
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
+        ident = Lookup(name);
+        if (ident) {
+            if (scopelevels.size() != ident->scopelevel)
+                lex.Error(cat("identifier shadowing: ", name));
+            if (!ident->predeclaration)
+                lex.Error(cat("identifier redefinition: ", name));
+            return ident;
+        }
         ident = NewId(name, sf);
         (islocal ? sf->locals : sf->args).push_back(
             Arg(ident->cursid, type_any, withtype));
-        if (Lookup(name)) {
-            lex.Error("identifier redefinition / shadowing: " + ident->name);
-        }
         idents[ident->name /* must be in value */] = ident;
         identstack.push_back(ident);
         return ident;

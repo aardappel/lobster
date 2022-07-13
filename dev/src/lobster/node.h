@@ -351,7 +351,9 @@ struct EnumRef : Node {
 
 struct UDTRef : Node {
     UDT *udt;
-    UDTRef(const Line &ln, UDT *_udt) : Node(ln), udt(_udt) {}
+    bool predeclaration;
+    UDTRef(const Line &ln, UDT *_udt, bool predeclaration)
+        : Node(ln), udt(_udt), predeclaration(predeclaration) {}
     void Dump(string &sd) const { append(sd, udt->is_struct ? "struct " : "class ", udt->name); }
     bool EqAttr(const Node *o) const {
         return udt == ((UDTRef *)o)->udt;

@@ -994,6 +994,9 @@ void AssignList::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Define::Generate(CodeGen &cg, size_t retval) const {
+    if (Is<DefaultVal>(child)) {
+        return;  // Pre-decl. 
+    }
     cg.Gen(child, sids.size());
     for (size_t i = sids.size(); i-- > 0; ) {
         auto sid = sids[i].first;
