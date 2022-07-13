@@ -143,10 +143,11 @@ string_view StripFilePart(string_view filepath) {
     return fpos != string_view::npos ? filepath.substr(0, fpos + 1) : "";
 }
 
-const char *StripDirPart(const char *filepath) {
-    auto fpos = strrchr(filepath, FILESEP);
-    if (!fpos) fpos = strrchr(filepath, ':');
-    return fpos ? fpos + 1 : filepath;
+string StripDirPart(string_view filepath) {
+    auto fp = null_terminated(filepath);
+    auto fpos = strrchr(fp, FILESEP);
+    if (!fpos) fpos = strrchr(fp, ':');
+    return fpos ? fpos + 1 : string(filepath);
 }
 
 string_view StripTrailing(string_view in, string_view tail) {
@@ -155,7 +156,7 @@ string_view StripTrailing(string_view in, string_view tail) {
     return in;
 }
 
-string GetMainDirFromExePath(const char *argv_0) {
+string GetMainDirFromExePath(string_view argv_0) {
     string md = SanitizePath(argv_0);
     #ifdef _WIN32
         // Windows can pass just the exe name without a full path, which is useless.
@@ -202,7 +203,7 @@ int64_t DefaultLoadFile(string_view absfilename, string *dest, int64_t start, in
     return len != (int64_t)rlen ? -1 : len;
 }
 
-bool InitPlatform(string _maindir, const char *auxfilepath, bool from_bundle,
+bool InitPlatform(string _maindir, string_view auxfilepath, bool from_bundle,
                       FileLoader loader) {
     maindir = _maindir;
     InitTime();
@@ -258,7 +259,7 @@ bool InitPlatform(string _maindir, const char *auxfilepath, bool from_bundle,
         }
     #else  // Linux, Windows, and OS X console mode.
 
-        if (auxfilepath) {
+        if (!auxfilepath.empty()) {
             projectdir = StripFilePart(SanitizePath(auxfilepath));
             data_dirs.push_back(projectdir);
             write_dirs.push_back(projectdir);
@@ -276,14 +277,16 @@ bool InitPlatform(string _maindir, const char *auxfilepath, bool from_bundle,
     return true;
 }
 
-void AddDataDir(string_view path) {
-    for (auto &dir : data_dirs) if (dir == path) goto skipd;
-    data_dirs.push_back(projectdir + SanitizePath(path));
+void AddDataDir(string_view path, bool is_rel) {
+    auto fpath = SanitizePath(path);
+    if (is_rel) fpath = projectdir + fpath;
+    for (auto &dir : data_dirs) if (dir == fpath) goto skipd;
+    data_dirs.push_back(fpath);
     skipd:
     // FIXME: this is not the greatest solution, maybe we should should separate
     // setting these from import dirs.
-    for (auto &dir : write_dirs) if (dir == path) return;
-    write_dirs.push_back(projectdir + SanitizePath(path));
+    for (auto &dir : write_dirs) if (dir == fpath) return;
+    write_dirs.push_back(fpath);
 }
 
 string SanitizePath(string_view path) {
@@ -378,8 +381,9 @@ bool WriteFile(string_view relfilename, bool binary, string_view contents) {
     return written == 1;
 }
 
-bool FileExists(string_view relfilename) {
-    auto f = OpenForReading(relfilename, true);
+bool FileExists(string_view filename, bool allow_absolute) {
+    auto f = OpenForReading(filename, true);
+    if (!f && allow_absolute) f = fopen(null_terminated(filename), "rb");
     if (f) fclose(f);
     return f;
 }

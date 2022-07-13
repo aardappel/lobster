@@ -124,7 +124,7 @@ void VM::DumpLeaks() {
     vector<void *> leaks = pool.findleaks();
     auto filename = "memory_leaks.txt";
     if (leaks.empty()) {
-        if (FileExists(filename)) FileDelete(filename);
+        if (FileExists(filename, false)) FileDelete(filename);
     } else {
         LOG_ERROR("LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster)");

@@ -801,7 +801,7 @@ enum class TraceMode { OFF, ON, TAIL };
 
 struct VMArgs {
     NativeRegistry &nfr;
-    string_view programname;
+    string programname;
     const uint8_t *static_bytecode = nullptr;
     size_t static_size = 0;
     vector<string> program_args;
