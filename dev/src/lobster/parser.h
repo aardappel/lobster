@@ -74,7 +74,9 @@ struct Parser {
         ImplicitReturn(ov);
         st.FunctionScopeCleanup();
         root = new Call(lex, sf);
-        assert(forwardfunctioncalls.empty());
+        // Not empty anymore whenever there are any uses of forward declared variables.
+        // FIXME: remove the need for forwardfunctioncalls entirely.
+        //assert(forwardfunctioncalls.empty());
     }
 
     void ParseStatements(Block *block, TType terminator) {
