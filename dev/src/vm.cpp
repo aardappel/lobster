@@ -388,7 +388,12 @@ void VM::DumpStackTrace(string &sd) {
         auto fip = funstackelem.funstartinfo;
         auto locals = funstackelem.locals;
         auto deffun = *fip++;
-        append(sd, "in function: ", bcf->functions()->Get(deffun)->name()->string_view(), "(");
+        append(sd, "in function");
+        if (funstackelem.line >= 0 && funstackelem.fileidx >= 0) {
+            append(sd, "[", bcf->filenames()->Get(funstackelem.fileidx)->string_view(), ":",
+                   funstackelem.line, "]");
+        }
+        append(sd, ": ", bcf->functions()->Get(deffun)->name()->string_view(), "(");
         fip++;  // regs_max
         auto nargs = *fip++;
         auto args = fip;

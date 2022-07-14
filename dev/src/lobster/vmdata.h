@@ -869,6 +869,8 @@ struct VM : VMArgs {
     struct FunStack {
         const int *funstartinfo;
         StackPtr locals;
+        int line;
+        int fileidx;
         #if LOBSTER_FRAME_PROFILER_FUNCTIONS
             ___tracy_c_zone_context ctx;
         #endif
@@ -1024,7 +1026,7 @@ VM_INLINE int RetSlots(VM &vm) {
 }
 
 VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {
-    vm.fun_id_stack.push_back({ funstart, locals
+    vm.fun_id_stack.push_back({ funstart, locals, vm.last_line, vm.last_fileidx,
     #if LOBSTER_FRAME_PROFILER_FUNCTIONS
         , ___tracy_emit_zone_begin(&vm.pre_allocated_function_locations[*funstart], true)
     #endif
