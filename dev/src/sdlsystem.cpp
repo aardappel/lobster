@@ -36,6 +36,9 @@
 SDL_Window *_sdl_window = nullptr;
 SDL_GLContext _sdl_context = nullptr;
 
+SDL_Window *_sdl_debugger_window = nullptr;
+SDL_GLContext _sdl_debugger_context = nullptr;
+
 
 /*
 // FIXME: document this, especially the ones containing spaces.
@@ -59,6 +62,12 @@ struct KeyState {
 
     double lasttime[2] = { -1, -1 };
     int2 lastpos[2] = { int2(-1, -1), int2(-1, -1) };
+
+    void Reset() {
+        frames_down = 0;
+        frames_up = 2;
+        repeat = false;
+    }
 
     void Set(bool on) {
         if (on) {
@@ -405,12 +414,75 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
     return OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
 }
 
+string SDLDebuggerWindow() {
+    #ifdef PLATFORM_ES3
+        return false;
+    #endif
+    if (!_sdl_debugger_context) {
+        _sdl_debugger_window = SDL_CreateWindow(
+            "Lobster Debugger", 100, SDL_WINDOWPOS_CENTERED, 600, 800,
+            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
+                SDL_WINDOW_ALLOW_HIGHDPI);
+        if (!_sdl_debugger_window)
+            return "Debugger SDL_CreateWindow fail";
+        _sdl_debugger_context = SDL_GL_CreateContext(_sdl_debugger_window);
+        if (!_sdl_debugger_context)
+            return "Debugger SDL_GL_CreateContext fail";
+        return OpenGLInit(1, true);
+    } else {
+        SDL_GL_MakeCurrent(_sdl_debugger_window, _sdl_debugger_context);
+        return {};
+    }
+}
+
+void SDLDebuggerOff() {
+    SDL_GL_MakeCurrent(_sdl_window, _sdl_context);
+    // Reset since we may have interrupted a user interaction.
+    for (auto &it : keymap) it.second.Reset();
+}
+
+bool SDLDebuggerFrame() {
+    #ifndef __EMSCRIPTEN__
+        SDL_GL_SwapWindow(_sdl_debugger_window);
+    #endif
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        extern pair<bool, bool> IMGUIEvent(SDL_Event *event);
+        IMGUIEvent(&event);
+        switch (event.type) {
+            case SDL_QUIT:
+                return true;
+            case SDL_WINDOWEVENT: 
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_CLOSE:
+                        return true;
+                }
+                break;
+        }
+    }
+    return false;
+}
+
 double GetSeconds() { return (double)(SDL_GetPerformanceCounter() - timestart) / (double)timefreq; }
 
 void SDLShutdown() {
     // FIXME: SDL gives ERROR: wglMakeCurrent(): The handle is invalid. upon SDL_GL_DeleteContext
-    if (_sdl_context) { /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = nullptr; }
-    if (_sdl_window) { SDL_DestroyWindow(_sdl_window); _sdl_window = nullptr; }
+    if (_sdl_context) {
+        //SDL_GL_DeleteContext(_sdl_context);
+        _sdl_context = nullptr;
+    }
+    if (_sdl_window) {
+        SDL_DestroyWindow(_sdl_window);
+        _sdl_window = nullptr;
+    }
+    if (_sdl_debugger_context) {
+        //SDL_GL_DeleteContext(_sdl_debugger_context);
+        _sdl_debugger_context = nullptr;
+    }
+    if (_sdl_debugger_window) {
+        SDL_DestroyWindow(_sdl_debugger_window);
+        _sdl_debugger_window = nullptr;
+    }
 
     SDL_Quit();
 }
@@ -575,6 +647,9 @@ bool SDLFrame() {
                         for (int i = 1; i <= 5; i++)
                             updatemousebutton(i, false);
                         */
+                        break;
+                    case SDL_WINDOWEVENT_CLOSE:
+                        closebutton = true;
                         break;
                 }
                 break;

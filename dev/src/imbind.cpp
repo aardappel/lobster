@@ -26,11 +26,14 @@
 
 #include "lobster/sdlincludes.h"
 #include "lobster/sdlinterface.h"
+#include "lobster/glinterface.h"
 
 using namespace lobster;
 
 extern SDL_Window *_sdl_window;
 extern SDL_GLContext _sdl_context;
+extern SDL_Window *_sdl_debugger_window;
+extern SDL_GLContext _sdl_debugger_context;
 
 bool imgui_init = false;
 
@@ -111,6 +114,20 @@ pair<bool, bool> IMGUIEvent(SDL_Event *event) {
     return { ImGui::GetIO().WantCaptureMouse, ImGui::GetIO().WantCaptureKeyboard };
 }
 
+bool LoadFont(string_view name, float size) {
+    string buf;
+    auto l = LoadFile(name, &buf);
+    if (l < 0) return false;
+    auto mb = malloc(buf.size());  // FIXME.
+    assert(mb);
+    std::memcpy(mb, buf.data(), buf.size());
+    ImFontConfig imfc;
+    imfc.FontDataOwnedByAtlas = true;
+    auto font =
+        ImGui::GetIO().Fonts->AddFontFromMemoryTTF(mb, (int)buf.size(), size, &imfc);
+    return font != nullptr;
+}
+
 LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTextFlags flags = 0) {
     struct InputTextCallbackData {
         LString *str;
@@ -133,7 +150,40 @@ LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTex
     return cbd.str;
 }
 
-void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expanded) {
+bool BeginTable() {
+    if (ImGui::BeginTable("", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuter)) {
+        // FIXME: There seems to be no reliable way to make the first column fixed:
+        // https://github.com/ocornut/imgui/issues/5478
+        ImGui::TableSetupColumn(
+            nullptr, ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn(
+            nullptr, ImGuiTableColumnFlags_WidthStretch, 4.0f);
+        return true;
+    }
+    return false;
+}
+
+void EndTable() {
+    ImGui::EndTable();
+}
+
+void Nil() {
+    auto label = string_view("nil");
+    ImGui::TextUnformatted(label.data(), label.data() + label.size());
+}
+
+void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expanded, bool in_table = true) {
+    if (in_table) {
+        // Early out for types that don't make sense to display.
+        if (ti.t == V_FUNCTION) return;
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted(label.data(), label.data() + label.size());
+        ImGui::TableSetColumnIndex(1);
+        ImGui::SetNextItemWidth(-1);
+        ImGui::PushID(v);  // Name may occur multiple times.
+        label = "";
+    }
     auto l = null_terminated(label);
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
     switch (ti.t) {
@@ -156,29 +206,38 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                 ImGui::Combo(l, &sel, items.data(), (int)items.size());
                 *v = vals[sel]->val();
             } else {
-                int i = v->intval();  // FIXME: what if int64_t?
-                if (ImGui::InputInt(l, &i)) *v = i;
+                iint i = v->ival();
+                if (ImGui::InputScalar(l, ImGuiDataType_S64, (void *)&i, nullptr, nullptr, "%" PRId64, 0)) *v = i;
             }
-            return;
+            break;
         }
         case V_FLOAT: {
-            float f = v->fltval();  // FIXME: what if double?
-            if (ImGui::InputFloat(l, &f)) *v = f;
-            return;
+            double f = v->fval();
+            if (ImGui::InputDouble(l, &f)) *v = f;
+            break;
         }
         case V_VECTOR:
-            if (v->False()) break;
+            if (v->False()) {
+                Nil();
+                break;
+            }
             if (ImGui::TreeNodeEx(*l ? l : "[]", flags)) {
-                auto &sti = vm.GetTypeInfo(ti.subt);
-                auto vec = v->vval();
-                for (iint i = 0; i < vec->len; i++) {
-                    ValToGUI(vm, vec->AtSt(i), sti, to_string(i), false);
+                if (BeginTable()) {
+                    auto &sti = vm.GetTypeInfo(ti.subt);
+                    auto vec = v->vval();
+                    for (iint i = 0; i < vec->len; i++) {
+                        ValToGUI(vm, vec->AtSt(i), sti, to_string(i), false);
+                    }
+                    EndTable();
                 }
                 ImGui::TreePop();
             }
-            return;
+            break;
         case V_CLASS:
-            if (v->False()) break;
+            if (v->False()) {
+                Nil();
+                break;
+            }
             v = v->oval()->Elems();  // To iterate it like a struct.
         case V_STRUCT_R:
         case V_STRUCT_S: {
@@ -194,8 +253,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                             (void *)nums.data(), ti.len, NULL, NULL, "%d", flags)) {
                         ToValue(v, ti.len, nums);
                     }
-
-                    return;
+                    break;
                 } else if (ti.elemtypes[0] == TYPE_ELEM_FLOAT) {
                     if (strcmp(st->name()->c_str(), "color") == 0) {
                         auto c = ValueToFLT<4>(v, ti.len);
@@ -213,54 +271,72 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                             ToValue(v, ti.len, nums);
                         }
                     }
-                    return;
+                    break;
                 }
             }
-        generic:
+            generic:
             if (ImGui::TreeNodeEx(*l ? l : st->name()->c_str(), flags)) {
-                auto fields = st->fields();
-                int fi = 0;
-                for (int i = 0; i < ti.len; i++) {
-                    auto &sti = vm.GetTypeInfo(ti.GetElemOrParent(i));
-                    ValToGUI(vm, v + i, sti,
-                             fields->Get(fi++)->name()->string_view(), false);
-                    if (IsStruct(sti.t)) i += sti.len - 1;
+                if (BeginTable()) {
+                    auto fields = st->fields();
+                    int fi = 0;
+                    for (int i = 0; i < ti.len; i++) {
+                        auto &sti = vm.GetTypeInfo(ti.GetElemOrParent(i));
+                        ValToGUI(vm, v + i, sti, fields->Get(fi++)->name()->string_view(),
+                                    false);
+                        if (IsStruct(sti.t)) i += sti.len - 1;
+                    }
+                    EndTable();
                 }
                 ImGui::TreePop();
             }
-            return;
+            break;
         }
         case V_STRING: {
-            if (v->False()) break;
+            if (v->False()) {
+                Nil();
+                break;
+            }
             *v = LStringInputText(vm, l, v->sval());
-            return;
+            break;
         }
         case V_NIL:
-            ValToGUI(vm, v, vm.GetTypeInfo(ti.subt), label, expanded);
-            return;
+            ValToGUI(vm, v, vm.GetTypeInfo(ti.subt), label, expanded, false);
+            break;
+        default:
+            string sd;
+            v->ToString(vm, sd, ti, vm.debugpp);
+            ImGui::LabelText(l, "%s", sd.c_str());  // FIXME: no formatting?
+            break;
     }
-    string sd;
-    v->ToString(vm, sd, ti, vm.debugpp);
-    ImGui::LabelText(l, "%s", sd.c_str());  // FIXME: no formatting?
+    if (in_table) {
+        ImGui::PopID();
+        //ImGui::PopItemWidth();
+    }
 }
 
 void VarsToGUI(VM &vm) {
     auto DumpVars = [&](bool constants) {
-        for (uint32_t i = 0; i < vm.bcf->specidents()->size(); i++) {
-            auto &val = vm.fvars[i];
-            auto sid = vm.bcf->specidents()->Get(i);
-            auto id = vm.bcf->idents()->Get(sid->ididx());
-            if (!id->global() || id->readonly() != constants) continue;
-            auto name = id->name()->string_view();
-            auto &ti = vm.GetVarTypeInfo(i);
-            #if RTT_ENABLED
-            if (ti.t != val.type) continue;  // Likely uninitialized.
-            #endif
-            ValToGUI(vm, &val, ti, name, false);
-            if (IsStruct(ti.t)) i += ti.len - 1;
+        if (BeginTable()) {
+            for (uint32_t i = 0; i < vm.bcf->specidents()->size(); i++) {
+                auto &val = vm.fvars[i];
+                auto sid = vm.bcf->specidents()->Get(i);
+                auto id = vm.bcf->idents()->Get(sid->ididx());
+                if (!id->global() || id->readonly() != constants) continue;
+                auto name = id->name()->string_view();
+                auto &ti = vm.GetVarTypeInfo(i);
+                #if RTT_ENABLED
+                if (ti.t != val.type) continue;  // Likely uninitialized.
+                #endif
+                ValToGUI(vm, &val, ti, name, false);
+                if (IsStruct(ti.t)) i += ti.len - 1;
+            }
+            EndTable();
         }
     };
-    DumpVars(false);
+    if (ImGui::TreeNodeEx("Globals", 0)) {
+        DumpVars(false);
+        ImGui::TreePop();
+    }
     if (ImGui::TreeNodeEx("Constants", 0)) {
         DumpVars(true);
         ImGui::TreePop();
@@ -270,6 +346,133 @@ void VarsToGUI(VM &vm) {
 void EngineStatsGUI() {
     auto &ft = SDLGetFrameTimeLog();
     ImGui::PlotLines("gl_deltatime", ft.data(), (int)ft.size());
+}
+
+// See also VM::DumpStackTrace
+void DumpStackTrace(VM &vm) {
+    if (vm.fun_id_stack.empty()) return;
+
+    VM::DumperFun dumper = [](VM &vm, string_view name, const TypeInfo &ti, Value *x) {
+        #if RTT_ENABLED
+            auto debug_type = x->type;
+        #else
+            auto debug_type = ti.t;
+        #endif
+        if (debug_type == V_NIL && ti.t != V_NIL) {
+            // Uninitialized.
+            auto sd = string(name);
+            append(sd, ":");
+            ti.Print(vm, sd);
+            append(sd, " (uninitialized)");
+            ImGui::TextUnformatted(sd.data(), sd.data() + sd.size());
+        } else if (ti.t != debug_type && !IsStruct(ti.t)) {
+            // Some runtime type corruption, show the problem rather than crashing.
+            auto sd = string(name);
+            append(sd, ":");
+            ti.Print(vm, sd);
+            append(sd, " (ERROR != ", BaseTypeName(debug_type), ")");
+            ImGui::TextUnformatted(sd.data(), sd.data() + sd.size());
+        } else {
+            ValToGUI(vm, x, ti, name, false);
+        }
+    };
+
+    for (auto &funstackelem : reverse(vm.fun_id_stack)) {
+        auto [name, fip] = vm.DumpStackFrameStart(funstackelem);
+        if (ImGui::TreeNode(name.c_str())) {
+            if (BeginTable()) {
+                vm.DumpStackFrame(fip, funstackelem.locals, dumper);
+                EndTable();
+            }
+            ImGui::TreePop();
+        }
+    }
+}
+
+void BreakPoint(VM &vm, string_view reason) {
+    if (!imgui_init) vm.Error("Debugger requires im_init()");
+
+    auto cursor_was_on = SDLCursor(true);
+
+    auto err = SDLDebuggerWindow();
+    if (!err.empty()) vm.Error("Couldn\'t create debugger: " + err);
+
+    auto existing_context = ImGui::GetCurrentContext();
+    // FIXME: this is supposed to be able to share the font atlas with the other context,
+    // but that seems to destroy it when the debugger context gets destroyed.
+    ImGuiContext *debugger_imgui_context = ImGui::CreateContext();
+    ImGui::SetCurrentContext(debugger_imgui_context);
+
+    ImGui_ImplSDL2_InitForOpenGL(_sdl_debugger_window, _sdl_debugger_context);
+    ImGui_ImplOpenGL3_Init("#version 150");
+
+    // Set our own font.. would be better to inherit the one from the game.
+    LoadFont("data/fonts/Droid_Sans/DroidSans.ttf", 16.0);
+
+    bool quit = false;
+    int cont = 0;
+    for (;;) {
+        quit = SDLDebuggerFrame();
+        if (quit) break;
+
+        ClearFrameBuffer(float3(0.5f));
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame(_sdl_debugger_window);
+
+        ImGui::NewFrame();
+
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+        ImGui::GetStyle().WindowRounding = 0.0f;
+        ImGui::Begin("Lobster Debugger", nullptr,
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+
+        if (cont) {
+            ImGui::Text("Program Running, debugger inactive");
+            // Ensure we've rendered a full frame with the above text before aborting,
+            // since this window will get no rendering updates.
+            if (++cont == 3) break;
+        } else {
+            ImGui::TextUnformatted(reason.data(), reason.data() + reason.size());
+            if (ImGui::Button("Continue")) {
+                cont = 1;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Quit")) {
+                quit = true;
+                break;
+            }
+
+            DumpStackTrace(vm);
+            VarsToGUI(vm);
+
+            if (ImGui::TreeNode("Memory Usage")) {
+                // FIXME: imgui-ify? Table?
+                auto mu = vm.MemoryUsage(25);
+                ImGui::TextUnformatted(mu.data(), mu.data() + mu.size());
+                ImGui::TreePop();
+            }
+        }
+
+        ImGui::End();
+
+        ImGui::Render();
+        SetTexture(0, Texture{}, 0);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+
+    ImGui::SetCurrentContext(existing_context);
+    ImGui::DestroyContext(debugger_imgui_context);
+
+    SDLDebuggerOff();
+
+    if (quit) vm.NormalExit("Program terminated by debugger");
+
+    SDLCursor(cursor_was_on);
 }
 
 void AddIMGUI(NativeRegistry &nfr) {
@@ -298,16 +501,7 @@ nfr("im_add_font", "font_path,size", "SF", "B",
     "",
     [](StackPtr &, VM &vm, Value &fontname, Value &size) {
         IsInit(vm, N_NONE);
-        string buf;
-        auto l = LoadFile(fontname.sval()->strv(), &buf);
-        if (l < 0) return NilVal();
-        auto mb = malloc(buf.size());  // FIXME.
-        memcpy(mb, buf.data(), buf.size());
-        ImFontConfig imfc;
-        imfc.FontDataOwnedByAtlas = true;
-        auto font = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(mb, (int)buf.size(),
-                                                               size.fltval(), &imfc);
-        return Value(font != nullptr);
+        return Value(LoadFont(fontname.sval()->strv(), size.fltval()));
     });
 
 nfr("im_frame_start", "", "", "",
@@ -382,7 +576,8 @@ nfr("im_text", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
-        ImGui::Text("%s", text.sval()->data());
+        auto &s = *text.sval();
+        ImGui::TextUnformatted(s.data(), s.data() + s.len);
         return NilVal();
     });
 
@@ -531,8 +726,7 @@ nfr("im_edit_anything", "value,label", "AkS?", "A1",
         IsInit(vm);
         // FIXME: would be good to support structs, but that requires typeinfo, not just len.
         auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
-        ValToGUI(vm, &v, ti,
-                 label.True() ? label.sval()->strv() : "", true);
+        ValToGUI(vm, &v, ti, label.True() ? label.sval()->strv() : "", true, false);
         return v;
     });
 
@@ -566,6 +760,22 @@ nfr("im_show_engine_stats", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         EngineStatsGUI();
+        return NilVal();
+    });
+
+nfr("breakpoint", "condition", "I", "",
+    "stops the program in the debugger if passed true."
+    " debugger needs --runtime-verbose on, and im_init() to have run.",
+    [](StackPtr &, VM &vm, Value &c) {
+        if (c.True()) BreakPoint(vm, "Conditional breakpoint hit!");
+        return NilVal();
+    });
+
+nfr("breakpoint", "", "", "",
+    "stops the program in the debugger always."
+    " debugger needs --runtime-verbose on, and im_init() to have run.",
+    [](StackPtr &, VM &vm) {
+        BreakPoint(vm, "Breakpoint hit!");
         return NilVal();
     });
 

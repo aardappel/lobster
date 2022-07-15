@@ -303,6 +303,14 @@ struct CodeGen  {
         while (retval--) EmitOp(IL_PUSHNIL);
     }
 
+    void GenStatDebug(const Node *c) {
+        if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
+            EmitOp(IL_STATEMENT);
+            Emit(c->line.line);
+            Emit(c->line.fileidx);
+        }
+    }
+
     void GenScope(SubFunction &sf) {
         if (sf.subbytecodestart > 0) return;
         cursf = &sf;
@@ -363,13 +371,9 @@ struct CodeGen  {
             stringtable.push_back(st.StoreName(str));
         }
         if (sf.sbody) for (auto c : sf.sbody->children) {
+            GenStatDebug(c);
             Gen(c, 0);
-            if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
-                EmitOp(IL_ENDSTATEMENT);
-                Emit(c->line.line);
-                Emit(c->line.fileidx);
-                assert(tstack.empty());
-            }
+            assert(tstack.empty());
         }
         else Dummy(sf.reqret);
         assert(temptypestack.empty());
@@ -1311,6 +1315,7 @@ void Block::Generate(CodeGen &cg, size_t retval) const {
     auto tstack_start = cg.tstack.size();
     (void)tstack_start;
     for (auto c : children) {
+        cg.GenStatDebug(c);
         if (c != children.back()) {
             // Not the last element.
             cg.Gen(c, 0);

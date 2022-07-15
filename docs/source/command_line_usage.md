@@ -47,9 +47,12 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     of your program.
 
 -   `--runtime-shipping` : Compile with asserts off.
--   `--runtime-asserts` : Compile with asserts on (default)
--   `--runtime-verbose` : Compile with asserts on + line info for better runtime
-    errors.
+-   `--runtime-asserts` : Compile with asserts on (default).
+-   `--runtime-verbose` : Compile with asserts on + line info + function tracking
+    for better runtime errors (stack traces) and profiling. Small effect on speed.
+    `--runtime-debug` : Same as verbose, but now tones inlining way down to get
+    better stack traces. Larger effect on speed. Automatically breaks into the
+    graphical debugger on assertion failures.
 
 -   `--main MAIN` : after compiling FILE, if present, compile this file and
     run it. This is useful when running Lobster from an editor, where you

@@ -191,6 +191,10 @@ string OpenGLInit(int samples, bool srgb) {
             glDebugMessageCallback(DebugCallBack, nullptr);
             glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 0,
                                  GL_DEBUG_SEVERITY_NOTIFICATION, 2, "on");
+            #ifndef NDEBUG
+                // This allows breakpoints in DebugCallBack above that show the caller.
+                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            #endif
         }
     #endif
     #ifndef PLATFORM_ES3
@@ -204,8 +208,7 @@ string OpenGLInit(int samples, bool srgb) {
         }
     #endif
     GL_CALL(glCullFace(GL_FRONT));
-    assert(!geomcache);
-    geomcache = new GeometryCache();
+    if (!geomcache) geomcache = new GeometryCache();
     #if LOBSTER_FRAME_PROFILER
         #undef new
         TracyGpuContext;
@@ -215,7 +218,7 @@ string OpenGLInit(int samples, bool srgb) {
             #endif
         #endif
     #endif
-    return "";
+    return {};
 }
 
 void OpenGLCleanup() {

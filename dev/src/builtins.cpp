@@ -1279,8 +1279,8 @@ nfr("date_time_string", "utc", "B?", "S",
 nfr("assert", "condition", "A*", "Ab1",
     "halts the program with an assertion failure if passed false. returns its input."
     " runtime errors like this will contain a stack trace if --runtime-verbose is on.",
-    [](StackPtr &, VM &vm, Value &c) {
-        if (c.False()) vm.BuiltinError("assertion failed");
+    [](StackPtr &, VM &, Value &c) {
+        assert(false);  // This builtin implemented as IL_ASSERT.
         return c;
     });
 
