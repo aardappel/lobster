@@ -136,6 +136,7 @@
         GLEXT(PFNGLMEMORYBARRIERPROC                 , glMemoryBarrier                 , 0) \
         GLEXT(PFNGLMAPBUFFERRANGEPROC                , glMapBufferRange                , 0) \
         GLEXT(PFNGLGENQUERIESPROC                    , glGenQueries                    , 0) \
+        GLEXT(PFNGLGETSTRINGIPROC                    , glGetStringi                    , 0) \
         GLEXT(PFNGLGETINTEGER64VPROC                 , glGetInteger64v                 , 0) \
         GLEXT(PFNGLGETQUERYIVPROC                    , glGetQueryiv                    , 0) \
         GLEXT(PFNGLGETQUERYOBJECTIVPROC              , glGetQueryObjectiv              , 0) \
