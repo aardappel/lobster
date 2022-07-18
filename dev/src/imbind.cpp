@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
 
@@ -360,6 +361,16 @@ nfr("im_button", "label", "S", "B",
         IsInit(vm);
         auto title = Pop(sp);
         auto press = ImGui::Button(title.sval()->data());
+        Push(sp, press);
+    });
+
+nfr("im_button_enabled", "label", "SB", "B",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto enabled = !!Pop(sp).ival();
+        auto title = Pop(sp);
+        auto press = ImGui::ButtonEx(title.sval()->data(), ImVec2(0,0), enabled?0:ImGuiButtonFlags_Disabled);
         Push(sp, press);
     });
 
