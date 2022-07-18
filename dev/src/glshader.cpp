@@ -196,6 +196,7 @@ string ParseMaterialFile(string_view mbuf) {
                         bool cubemap = false;
                         bool floatingp = false;
                         bool d3 = false;
+                        bool Uav = accum == &compute;
                         if (starts_with(tp, "cube")) {
                             tp.remove_prefix(4);
                             cubemap = true;
@@ -208,13 +209,18 @@ string ParseMaterialFile(string_view mbuf) {
                             tp.remove_prefix(1);
                             floatingp = true;
                         }
+                        if (starts_with(tp, "Uav")) {
+                            tp.remove_prefix(3);
+                            Uav = true;
+                        }
                         auto unit = parse_int<int>(tp);
-                        if (accum == &compute) {
+                        if (Uav)
+                        {
                             decl += cat("layout(binding = ", unit, ", ",
                                         (floatingp ? "rgba32f" : "rgba8"), ") ");
                         }
                         decl += "uniform ";
-                        decl += accum == &compute ? (cubemap ? "imageCube" : "image2D")
+                        decl += Uav ? (cubemap ? "imageCube" : "image2D")
                                                   : (cubemap ? "samplerCube" : (d3 ? "sampler3D" :
                                                                                      "sampler2D"));
                         decl += " " + last + ";\n";
