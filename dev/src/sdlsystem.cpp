@@ -416,7 +416,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
 
 string SDLDebuggerWindow() {
     #ifdef PLATFORM_ES3
-        return false;
+        return "Can\'t open debugger window on non-desktop platform";
     #endif
     if (!_sdl_debugger_context) {
         _sdl_debugger_window = SDL_CreateWindow(

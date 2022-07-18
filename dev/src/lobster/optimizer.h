@@ -22,8 +22,8 @@ struct Optimizer {
     vector<SubFunction *> sfstack;
     bool functions_removed = false;
     int runtime_checks;
-    int always_inline = 16;
-    int never_inline = 256;
+    size_t always_inline = 16;
+    size_t never_inline = 256;
 
     Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc, int runtime_checks)
         : parser(_p), st(_st), tc(_tc), runtime_checks(runtime_checks) {
