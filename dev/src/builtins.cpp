@@ -452,23 +452,26 @@ nfr("string_to_float", "s", "S", "F",
         return Value(f);
     });
 
-nfr("tokenize", "s,delimiters,whitespace", "SSS", "S]",
+nfr("tokenize", "s,delimiters,whitespace,dividing", "SSSI?", "S]",
     "splits a string into a vector of strings, by splitting into segments upon each dividing or"
     " terminating delimiter. Segments are stripped of leading and trailing whitespace."
-    " Example: \"; A ; B C; \" becomes [ \"\", \"A\", \"B C\" ] with \";\" as delimiter and"
-    " \" \" as whitespace.",
-    [](StackPtr &, VM &vm, Value &s, Value &delims, Value &whitespace) {
+    " Example: \"; A ; B C;; \" becomes [ \"\", \"A\", \"B C\", \"\" ] with \";\" as delimiter and"
+    " \" \" as whitespace. If dividing was true, there would be a 5th empty string element.",
+    [](StackPtr &, VM &vm, Value &s, Value &delims, Value &whitespace, Value &dividing) {
         auto v = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto ws = whitespace.sval()->strv();
         auto dl = delims.sval()->strv();
         auto p = s.sval()->strv();
         p.remove_prefix(std::min(p.find_first_not_of(ws), p.size()));
-        while (!p.empty()) {
+        bool has_delim = false;
+        while (!p.empty() || (has_delim && dividing.True())) {
             auto delim = std::min(p.find_first_of(dl), p.size());
-            auto end = std::min(p.find_last_not_of(ws) + 1, delim);
+            auto delimstr = p.substr(0, delim);
+            auto end = std::min(delimstr.find_last_not_of(ws) + 1, delim);
             v->Push(vm, vm.NewString(string_view(p.data(), end)));
             p.remove_prefix(delim);
-            p.remove_prefix(std::min(p.find_first_not_of(dl), p.size()));
+            has_delim = std::min(p.find_first_not_of(dl), p.size()) != 0;
+            if (has_delim) p.remove_prefix(1);
             p.remove_prefix(std::min(p.find_first_not_of(ws), p.size()));
         }
         return Value(v);
