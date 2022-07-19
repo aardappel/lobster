@@ -571,29 +571,32 @@ void SetConsole(bool on) {
 iint LaunchSubProcess(const char **cmdl, const char *stdins, string &out) {
     #ifndef PLATFORM_ES3
         struct subprocess_s subprocess;
-        int result = subprocess_create(cmdl, subprocess_option_inherit_environment, &subprocess);
+        int result = subprocess_create(cmdl,
+            subprocess_option_inherit_environment
+            | subprocess_option_enable_async, &subprocess);
         if (result) return -1;
         if (stdins) {
             FILE *p_stdin = subprocess_stdin(&subprocess);
             fputs(stdins, p_stdin);
             fclose(p_stdin);
         }
-        int process_return;
-        result = subprocess_join(&subprocess, &process_return);
-        if (result) {
-            subprocess_destroy(&subprocess);
-            return -1;
-        }
-        auto readall = [&](FILE *f) {
+        const unsigned int buflen = 256;
+        const char buf[buflen] = "";
+        auto read_async = [&](unsigned int (*subprocess_read)(subprocess_s*, char *const, const unsigned int)) {
             for (;;) {
-                auto c = getc(f);
-                if (c < 0) break;
-                out.push_back((char)c);
+                unsigned int readlength = subprocess_read(&subprocess, (char *const)buf, buflen);
+                if (!readlength) break;
+                out.append(buf, readlength);
             }
         };
-        readall(subprocess_stdout(&subprocess));
-        readall(subprocess_stderr(&subprocess));
+        read_async(subprocess_read_stdout);
+        read_async(subprocess_read_stderr);
+        int process_return;
+        result = subprocess_join(&subprocess, &process_return);
         subprocess_destroy(&subprocess);
+        if (result) {
+            return -1;
+        }
         return process_return;
     #else
         (void)cmdl;
