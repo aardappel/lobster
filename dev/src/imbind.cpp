@@ -22,8 +22,6 @@
 #include "lobster/vmdata.h"
 
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
-#include <corecrt_io.h>
-
 #include "lobster/bytecode_generated.h"
 
 #include "lobster/sdlincludes.h"
