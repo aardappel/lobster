@@ -157,9 +157,6 @@ int main(int argc, char* argv[]) {
         RegisterCoreLanguageBuiltins(nfr);
         auto loader = EnginePreInit(nfr);
 
-        if (dump_builtins) { DumpBuiltinDoc(nfr); return 0; }
-        if (dump_names) { DumpBuiltinNames(nfr); return 0; }
-
         if (!InitPlatform(GetMainDirFromExePath(argv[0]),
                           !mainfile.empty() ? mainfile
                                             : (!fn.empty() ? fn : string(default_lpak)),
@@ -167,6 +164,9 @@ int main(int argc, char* argv[]) {
                           loader))
             THROW_OR_ABORT("cannot find location to read/write data on this platform!");
         if (!mainfile.empty() && !fn.empty()) AddDataDir(StripFilePart(fn), false);
+
+        if (dump_builtins) { DumpBuiltinDoc(nfr); return 0; }
+        if (dump_names) { DumpBuiltinNames(nfr); return 0; }
 
         LOG_INFO("lobster version " GIT_COMMIT_INFOSTR);
 
