@@ -568,7 +568,7 @@ void SetConsole(bool on) {
     #endif
 }
 
-iint LaunchSubProcess(const char** cmdl, const char* stdins, string& out) {
+iint LaunchSubProcess(const char **cmdl, const char *stdins, string &out) {
     #ifndef PLATFORM_ES3
         struct subprocess_s subprocess;
         int result = subprocess_create(cmdl,
@@ -576,22 +576,21 @@ iint LaunchSubProcess(const char** cmdl, const char* stdins, string& out) {
             | subprocess_option_enable_async, &subprocess);
         if (result) return -1;
         if (stdins) {
-            FILE* p_stdin = subprocess_stdin(&subprocess);
+            FILE *p_stdin = subprocess_stdin(&subprocess);
             fputs(stdins, p_stdin);
             fclose(p_stdin);
         }
         const unsigned int buflen = 256;
         const char buf[buflen] = "";
-        unsigned int readlength = subprocess_read_stdout(&subprocess, (char* const)buf, buflen);
-        while (readlength) {
-            out.append(buf, readlength);
-            readlength = subprocess_read_stdout(&subprocess, (char* const)buf, buflen);
-        }
-        readlength = subprocess_read_stderr(&subprocess, (char* const)buf, buflen);
-        while (readlength) {
-            out.append(buf, readlength);
-            readlength = subprocess_read_stderr(&subprocess, (char* const)buf, buflen);
-        }
+        auto read_async = [&](unsigned int (*subprocess_read)(subprocess_s*, char *const, const unsigned int)) {
+            for (;;) {
+                unsigned int readlength = subprocess_read(&subprocess, (char *const)buf, buflen);
+                if (!readlength) break;
+                out.append(buf, readlength);
+            }
+        };
+        read_async(subprocess_read_stdout);
+        read_async(subprocess_read_stderr);
         int process_return;
         result = subprocess_join(&subprocess, &process_return);
         subprocess_destroy(&subprocess);
