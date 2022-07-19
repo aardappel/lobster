@@ -568,32 +568,36 @@ void SetConsole(bool on) {
     #endif
 }
 
-iint LaunchSubProcess(const char **cmdl, const char *stdins, string &out) {
+iint LaunchSubProcess(const char** cmdl, const char* stdins, string& out) {
     #ifndef PLATFORM_ES3
         struct subprocess_s subprocess;
-        int result = subprocess_create(cmdl, subprocess_option_inherit_environment, &subprocess);
+        int result = subprocess_create(cmdl,
+            subprocess_option_inherit_environment
+            | subprocess_option_enable_async, &subprocess);
         if (result) return -1;
         if (stdins) {
-            FILE *p_stdin = subprocess_stdin(&subprocess);
+            FILE* p_stdin = subprocess_stdin(&subprocess);
             fputs(stdins, p_stdin);
             fclose(p_stdin);
         }
+        const unsigned int buflen = 256;
+        const char buf[buflen] = "";
+        unsigned int readlength = subprocess_read_stdout(&subprocess, (char* const)buf, buflen);
+        while (readlength) {
+            out.append(buf, readlength);
+            readlength = subprocess_read_stdout(&subprocess, (char* const)buf, buflen);
+        }
+        readlength = subprocess_read_stderr(&subprocess, (char* const)buf, buflen);
+        while (readlength) {
+            out.append(buf, readlength);
+            readlength = subprocess_read_stderr(&subprocess, (char* const)buf, buflen);
+        }
         int process_return;
         result = subprocess_join(&subprocess, &process_return);
+        subprocess_destroy(&subprocess);
         if (result) {
-            subprocess_destroy(&subprocess);
             return -1;
         }
-        auto readall = [&](FILE *f) {
-            for (;;) {
-                auto c = getc(f);
-                if (c < 0) break;
-                out.push_back((char)c);
-            }
-        };
-        readall(subprocess_stdout(&subprocess));
-        readall(subprocess_stderr(&subprocess));
-        subprocess_destroy(&subprocess);
         return process_return;
     #else
         (void)cmdl;
