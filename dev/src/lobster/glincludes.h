@@ -161,6 +161,14 @@
     #define GL_CALL(call) do { call; } while (0)
 #endif
 
+#ifdef PLATFORM_WINNIX
+    #define GL_NAME(type, id, name) \
+        { if (glObjectLabel) { auto _name = name; glObjectLabel(type, id, (GLsizei)_name.size(), _name.data()); } }
+#else
+    #define GL_NAME(type, id, name) \
+        { (void)(name); }
+#endif
+
 // Implementation-only enum.
 enum { VATRR_POS, VATRR_NOR, VATRR_TC1, VATRR_COL, VATRR_WEI, VATRR_IDX, VATRR_TC2 };
 

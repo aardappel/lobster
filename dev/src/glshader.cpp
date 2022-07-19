@@ -30,10 +30,6 @@ void ShaderShutDown() {
         delete it.second;
 }
 
-void GiveName(unsigned int type, unsigned int id, string_view name) {
-    if (glObjectLabel) glObjectLabel(type, id, (GLsizei)name.size(), name.data());
-}
-
 string GLSLError(int obj, bool isprogram, const char *source) {
     GLint length = 0;
     if (isprogram) GL_CALL(glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &length));
@@ -293,14 +289,14 @@ string LoadMaterialFile(string_view mfile) {
 
 string Shader::Compile(string_view name, const char *vscode, const char *pscode) {
     program = glCreateProgram();
-    GiveName(GL_PROGRAM, program, name);
+    GL_NAME(GL_PROGRAM, program, name);
     string err;
     vs = CompileGLSLShader(GL_VERTEX_SHADER, program, vscode, err);
     if (!vs) return string_view("couldn't compile vertex shader: ") + name + "\n" + err;
-    GiveName(GL_SHADER, vs, name + "_vs");
+    GL_NAME(GL_SHADER, vs, name + "_vs");
     ps = CompileGLSLShader(GL_FRAGMENT_SHADER, program, pscode, err);
     if (!ps) return string_view("couldn't compile pixel shader: ") + name + "\n" + err;
-    GiveName(GL_SHADER, ps, name + "_ps");
+    GL_NAME(GL_SHADER, ps, name + "_ps");
     GL_CALL(glBindAttribLocation(program, VATRR_POS, "apos"));
     GL_CALL(glBindAttribLocation(program, VATRR_NOR, "anormal"));
     GL_CALL(glBindAttribLocation(program, VATRR_TC1, "atc"));
@@ -314,11 +310,11 @@ string Shader::Compile(string_view name, const char *vscode, const char *pscode)
 string Shader::Compile(string_view name, const char *cscode) {
     #ifdef PLATFORM_WINNIX
         program = glCreateProgram();
-        GiveName(GL_PROGRAM, program, name);
+        GL_NAME(GL_PROGRAM, program, name);
         string err;
         cs = CompileGLSLShader(GL_COMPUTE_SHADER, program, cscode, err);
         if (!cs) return string_view("couldn't compile compute shader: ") + name + "\n" + err;
-        GiveName(GL_SHADER, cs, name + "_cs");
+        GL_NAME(GL_SHADER, cs, name + "_cs");
         return Link(name);
     #else
         return "compute shaders not supported";

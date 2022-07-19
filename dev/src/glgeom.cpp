@@ -21,7 +21,7 @@ int GenBO_(string_view name, int type, size_t bytesize, const void *data) {
     GL_CALL(glGenBuffers(1, (GLuint *)&bo));
     GL_CALL(glBindBuffer(type, bo));
     GL_CALL(glBufferData(type, bytesize, data, GL_STATIC_DRAW));
-    GiveName(GL_BUFFER, bo, name);
+    GL_NAME(GL_BUFFER, bo, name);
     return bo;
 }
 

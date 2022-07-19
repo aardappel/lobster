@@ -120,7 +120,7 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
             GL_CALL(glGenerateMipmap(textype));
     }
     GL_CALL(glBindTexture(textype, 0));
-    GiveName(GL_TEXTURE, id, name);
+    GL_NAME(GL_TEXTURE, id, name);
     return Texture(id, dim, int(elemsize));
 }
 

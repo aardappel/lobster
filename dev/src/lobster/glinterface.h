@@ -350,5 +350,3 @@ template<typename F> void Transform(const float4x4 &mat, F body) {
 
 extern bool VRInit();
 extern void VRShutDown();
-
-extern void GiveName(unsigned int type, unsigned int id, string_view name);
