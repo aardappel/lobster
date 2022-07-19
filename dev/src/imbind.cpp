@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "imgui.h"
-#include "imgui_internal.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
 
@@ -23,6 +22,8 @@
 #include "lobster/vmdata.h"
 
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+#include <corecrt_io.h>
+
 #include "lobster/bytecode_generated.h"
 
 #include "lobster/sdlincludes.h"
@@ -558,16 +559,6 @@ nfr("im_button", "label", "S", "B",
         Push(sp, press);
     });
 
-nfr("im_button_enabled", "label", "SB", "B",
-    "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(vm);
-        auto enabled = !!Pop(sp).ival();
-        auto title = Pop(sp);
-        auto press = ImGui::ButtonEx(title.sval()->data(), ImVec2(0,0), enabled?0:ImGuiButtonFlags_Disabled);
-        Push(sp, press);
-    });
-
 nfr("im_same_line", "", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
@@ -714,6 +705,21 @@ nfr("im_group_end", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_GROUP);
+    });
+
+nfr("im_disabled_start", "label", "B", "B",
+    "(use im_disabled instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        const auto disabled = !!Pop(sp).ival();
+        ImGui::BeginDisabled(disabled);
+    });
+
+nfr("im_disabled_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::EndDisabled();
     });
 
 nfr("im_width_start", "width", "F", "",

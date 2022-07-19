@@ -63,6 +63,11 @@ def im_group(label, body):
     body()
     im_group_end()
 
+def im_disabled(disabled, body):
+    im_disabled_start(disabled)
+    body()
+    im_disabled_end()
+
 def im_width(width, body):
     im_width_start(width)
     body()
