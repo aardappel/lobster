@@ -188,6 +188,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             if (f) append(sd, "// ", f->name()->string_view(), "\n");
             append(sd, "static void fun_", id, "(VMRef vm, StackPtr psp) {\n");
             const int *funstartend = nullptr;
+            int numlocals = 0;
             if (opc == IL_FUNSTART) {
                 auto fip = funstart;
                 fip++;  // definedfunction
@@ -204,7 +205,6 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                     var_to_local.clear();
                     var_to_local.resize(specidents->size(), -1);
                 #endif
-                int numlocals = 0;
                 for (int j = 0; j < 2; j++) {
                     auto vars = j ? defs : nargs;
                     auto len = j ? ndefsave : nargs_fun;
@@ -226,12 +226,6 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "    Value regs[1];\n");
             }
             if (opc == IL_FUNSTART) {
-                if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
-                    // FIXME: can make this just and index and instead store funinfo_table ref in VM.
-                    append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", psp);\n");
-                    // TODO: this doesn't need to correspond to to funstart, can stick any info we want in here.
-                    funstarttables.insert(funstarttables.end(), funstart, funstartend);
-                }
                 auto fip = funstart;
                 fip++;  // definedfunction
                 fip++;  // regs_max.
@@ -261,6 +255,15 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                         else
                             append(sd, "    NilVal(&locals[", var_to_local[varidx], "]);\n");
                     }
+                }
+                if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
+                    // FIXME: can make this just and index and instead store funinfo_table ref in VM.
+                    // Calling this here because now locals have been fully initialized.
+                    append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
+                           numlocals ? "locals" : "0", ");\n");
+                    // TODO: this doesn't need to correspond to to funstart, can stick any info we
+                    // want in here.
+                    funstarttables.insert(funstarttables.end(), funstart, funstartend);
                 }
                 nkeepvars = *fip++;
                 for (int i = 0; i < nkeepvars; i++) {

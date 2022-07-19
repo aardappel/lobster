@@ -382,6 +382,9 @@
     <ClInclude Include="..\include\tracy\Tracy.hpp">
       <Filter>engine\profiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\external\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>engine\imgui\lib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -1202,6 +1205,9 @@
     </ClCompile>
     <ClCompile Include="..\external\tracy\TracyClient.cpp">
       <Filter>engine\profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\imgui\imgui_tables.cpp">
+      <Filter>engine\imgui\lib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

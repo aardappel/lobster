@@ -342,40 +342,64 @@ void VM::ErrorBase(const string &err) {
     append(errmsg, "): ", err);
 }
 
-int VM::DumpVar(string &sd, Value *x, int idx) {
+void VM::DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump) {
     auto sid = bcf->specidents()->Get((uint32_t)idx);
+    auto is_freevar = sid->used_as_freevar();
     auto id = bcf->idents()->Get(sid->ididx());
+    auto name = id->name()->string_view();
+    auto &ti = GetVarTypeInfo(idx);
+    auto width = IsStruct(ti.t) ? ti.len : 1;
+    auto x = is_freevar ? &fvars[idx] : locals + jl;
     // FIXME: this is not ideal, it filters global "let" declared vars.
     // It should probably instead filter global let vars whose values are entirely
     // constructors, and which are never written to.
-    auto name = id->name()->string_view();
-    auto &ti = GetVarTypeInfo(idx);
-    auto size = IsStruct(ti.t) ? ti.len : 1;
-    //if (id->readonly() && id->global()) return size;
-    append(sd, "        ", name);
-    if (fvars[idx].True() && x->False()) {
-        // Free vars live in fvars, but we can't tell which.
-        // fvars are NIL when not in use, so swapping when not-nil is safe?
-        x = &fvars[idx];
+    if (!id->readonly() || !id->global()) {
+        dump(*this, name, ti, x);
     }
-    #if RTT_ENABLED
-        if (ti.t != x->type && !IsStruct(ti.t)) {
-            append(sd, ":");
-            ti.Print(*this, sd);
-            append(sd, " != ", BaseTypeName(x->type));
-            return size;  // Likely uninitialized.
-        }
-    #endif
-    append(sd, " = ");
-    PrintPrefs minipp { 1, 20, true, -1 };
-    if (IsStruct(ti.t)) {
-        StructToString(sd, minipp, ti, x);
-    } else {
-        x->ToString(*this, sd, ti, minipp);
-    }
-    return size;
+    j += width;
+    if (!is_freevar) jl += width;
 }
 
+void VM::DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump) {
+    fip++;  // regs_max
+    auto nargs = *fip++;
+    auto args = fip;
+    fip += nargs;
+    auto ndef = *fip++;
+    auto defvars = fip;
+    fip += ndef;
+    fip++;  // nkeepvars
+    fip++;  // Owned vars.
+    int jla = 0;
+    for (int j = 0; j < nargs;) {
+        auto i = *(args + j);
+        DumpVar(locals, i, j, jla, dump);
+    }
+    for (int j = 0, jld = 0; j < ndef;) {
+        auto i = *(defvars + j);
+        DumpVar(locals + jla, i, j, jld, dump);
+    }
+}
+
+pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
+    auto fip = funstackelem.funstartinfo;
+    auto deffun = *fip++;
+    string fname;
+    auto nargs = fip[1];
+    if (nargs) {
+        auto &ti = GetVarTypeInfo(fip[2]);
+        ti.Print(*this, fname);
+        append(fname, ".");
+    }
+    append(fname, bcf->functions()->Get(deffun)->name()->string_view());
+    if (funstackelem.line >= 0 && funstackelem.fileidx >= 0) {
+        append(fname, "[", bcf->filenames()->Get(funstackelem.fileidx)->string_view(), ":",
+               funstackelem.line, "]");
+    }
+    return { fname, fip };
+}
+
+// See also imbind.cpp:DumpStackTrace
 void VM::DumpStackTrace(string &sd) {
     if (fun_id_stack.empty()) return;
 
@@ -383,38 +407,40 @@ void VM::DumpStackTrace(string &sd) {
     try {
     #endif
 
+    DumperFun dumper = [&sd](VM &vm, string_view name, const TypeInfo &ti, Value *x) {
+        append(sd, "        ", name);
+        #if RTT_ENABLED
+            auto debug_type = x->type;
+        #else
+            auto debug_type = ti.t;
+        #endif
+        if (debug_type == V_NIL && ti.t != V_NIL) {
+            // Uninitialized.
+            append(sd, ":");
+            ti.Print(vm, sd);
+            append(sd, " (uninitialized)");
+        } else if (ti.t != debug_type && !IsStruct(ti.t)) {
+            // Some runtime type corruption, show the problem rather than crashing.
+            append(sd, ":");
+            ti.Print(vm, sd);
+            append(sd, " ERROR != ", BaseTypeName(debug_type));
+        } else {
+            append(sd, " = ");
+            PrintPrefs minipp { 1, 20, true, -1 };
+            if (IsStruct(ti.t)) {
+                vm.StructToString(sd, minipp, ti, x);
+            } else {
+                x->ToString(vm, sd, ti, minipp);
+            }
+        }
+        append(sd, "\n");
+    };
+
     if (!sd.empty()) append(sd, "\n");
     for (auto &funstackelem : reverse(fun_id_stack)) {
-        auto fip = funstackelem.funstartinfo;
-        auto locals = funstackelem.locals;
-        auto deffun = *fip++;
-        append(sd, "in function");
-        if (funstackelem.line >= 0 && funstackelem.fileidx >= 0) {
-            append(sd, "[", bcf->filenames()->Get(funstackelem.fileidx)->string_view(), ":",
-                   funstackelem.line, "]");
-        }
-        append(sd, ": ", bcf->functions()->Get(deffun)->name()->string_view(), "(");
-        fip++;  // regs_max
-        auto nargs = *fip++;
-        auto args = fip;
-        fip += nargs;
-        auto ndef = *fip++;
-        fip += ndef;
-        // auto defvars = fip;
-        *fip++;  // nkeepvars
-        if (nargs) append(sd, "\n");
-        locals -= nargs;
-        for (int j = 0; j < nargs;) {
-            auto i = *(args + j);
-            j += DumpVar(sd, locals + j, i);
-            if (j < nargs) append(sd, ",\n");
-        }
-        append(sd, ")\n");
-        // for (int j = 0; j < ndef;) {
-        //    auto i = *(defvars - j - 1);
-        //    j += DumpVar(sd, nullptr, i);
-        //}
-        fip++;  // Owned vars.
+        auto [name, fip] = DumpStackFrameStart(funstackelem);
+        append(sd, "in function ", name, "\n");
+        DumpStackFrame(fip, funstackelem.locals, dumper);
     }
 
     #ifdef USE_EXCEPTION_HANDLING
@@ -438,6 +464,12 @@ Value VM::Error(string err) {
 // in an inconsistent state.
 Value VM::SeriousError(string err) {
     ErrorBase(err);
+    UnwindOnError();
+    return NilVal();
+}
+
+Value VM::NormalExit(string err) {
+    errmsg = err;
     UnwindOnError();
     return NilVal();
 }

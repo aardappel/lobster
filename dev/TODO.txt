@@ -1,3 +1,11 @@
+- debugger todo
+  - "d" in sample without value?
+  - doesn't show some global constants inited?
+  - tables column widths: https://github.com/ocornut/imgui/issues/5478
+  - just omit uninit vars? but only in debug...
+
+- `remove` shows a default value of `0` in the docs, could add integer defaults to the type string.
+
 - continue vmcore experiment.
 
 - Inline tocpp into codegen, see below.

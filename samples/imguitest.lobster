@@ -27,14 +27,8 @@ var d = Thingy { map(3): Thingy { [] } }
 var demo = false
 let foo = "bar"  // Will show up in debug view.
 
-def test(test_value):
-    // Imagine this is a function deep down in your code where that you want to debug. 
-    im_stack_trace(10)
-
 while gl_frame():
     gl_clear(color_grey)
-
-    for(100): test("test {_}")
 
     // <- Render game here.
 
@@ -58,15 +52,21 @@ while gl_frame():
             for(2) g: im_graph("Sin", map(20): sin(_ * 20.0) + 1.0, g)
             im_separator()
             if not demo and im_button("show demo window"): demo = true
+            if im_button("Cause breakpoint() hit"):
+                // The debugger should have popped up!
+                // The program is frozen until you hit continue.
+                // Try putting these breakpoints anywhere in your own code.
+                breakpoint()
 
         // Show the built-in imgui demo window, for testing.
         if demo: demo = im_window_demo()
 
         // Realtime debugging! Show all lobster variables as editable UI.
         // Also show some engine stats, like e.g. a framerate graph.
+        // These are shown in realtime, if you want to pause and see local
+        // variables in functions, try breakpoint() above
         im_window("Realtime Debugger", im_window_always_autoresize):
             im_show_engine_stats()
             im_treenode("Memory Usage"):
                 im_text(get_memory_usage(20))
             im_show_vars()
-            im_show_stack_traces()

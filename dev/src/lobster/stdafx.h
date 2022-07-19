@@ -51,6 +51,7 @@
 #include <memory>
 #include <optional>
 #include <charconv>
+#include <cinttypes>
 
 #if defined(__has_include) && __has_include(<string_view>)
     #include <string_view>

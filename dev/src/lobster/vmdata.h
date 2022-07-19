@@ -798,6 +798,7 @@ struct TupleSpace {
 };
 
 enum class TraceMode { OFF, ON, TAIL };
+enum { RUNTIME_NO_ASSERT, RUNTIME_ASSERT, RUNTIME_ASSERT_PLUS, RUNTIME_DEBUG };
 
 struct VMArgs {
     NativeRegistry &nfr;
@@ -809,6 +810,7 @@ struct VMArgs {
     fun_base_t jit_entry = nullptr;
     TraceMode trace = TraceMode::OFF;
     bool dump_leaks = true;
+    int runtime_checks = RUNTIME_ASSERT;
 };
 
 struct VM : VMArgs {
@@ -898,7 +900,10 @@ struct VM : VMArgs {
 
     string_view GetProgramName() { return programname; }
 
-    int DumpVar(string &sd, Value *x, int idx);
+    typedef function<void(VM &, string_view, const TypeInfo &, Value *)> DumperFun;
+    void DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump);
+    void DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump);
+    pair<string, const int *> DumpStackFrameStart(FunStack &funstackelem);
     void DumpStackTrace(string &sd);
 
     void DumpVal(RefObj *ro, const char *prefix);
@@ -920,6 +925,7 @@ struct VM : VMArgs {
     Value Error(string err);
     Value BuiltinError(string err) { return Error(err); }
     Value SeriousError(string err);
+    Value NormalExit(string err);
     void ErrorBase(const string &err);
     void VMAssert(const char *what);
     void UnwindOnError();

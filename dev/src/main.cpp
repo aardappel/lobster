@@ -113,6 +113,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--runtime-shipping") { runtime_checks = RUNTIME_NO_ASSERT; }
                 else if (a == "--runtime-asserts") { runtime_checks = RUNTIME_ASSERT; }
                 else if (a == "--runtime-verbose") { runtime_checks = RUNTIME_ASSERT_PLUS; }
+                else if (a == "--runtime-debug") { runtime_checks = RUNTIME_DEBUG; }
                 else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
@@ -120,8 +121,8 @@ int main(int argc, char* argv[]) {
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") { non_interactive_test = true; SDLTestMode(); }
                 #endif
-                else if (a == "--trace") { trace = TraceMode::ON; runtime_checks = RUNTIME_ASSERT_PLUS; }
-                else if (a == "--trace-tail") { trace = TraceMode::TAIL; runtime_checks = RUNTIME_ASSERT_PLUS; }
+                else if (a == "--trace") { trace = TraceMode::ON; runtime_checks = RUNTIME_DEBUG; }
+                else if (a == "--trace-tail") { trace = TraceMode::TAIL; runtime_checks = RUNTIME_DEBUG; }
                 else if (a == "--tcc-out") { tcc_out = true; }
                 else if (a == "--import") {
                     arg++;

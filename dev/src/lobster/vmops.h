@@ -3,6 +3,8 @@
 #include "lobster/natreg.h"
 #include "lobster/bytecode_generated.h"
 
+extern void BreakPoint(lobster::VM &vm, string_view reason);
+
 namespace lobster {
 
 #define VM_OP_ARGS0
@@ -193,7 +195,7 @@ VM_INLINE void U_RETURNANY(VM &, StackPtr, int /*nretslots_norm*/) {
 VM_INLINE void U_SAVERETS(VM &, StackPtr) {
 }
 
-VM_INLINE void U_ENDSTATEMENT(VM &vm, StackPtr, int line, int fileidx) {
+VM_INLINE void U_STATEMENT(VM &vm, StackPtr, int line, int fileidx) {
     vm.last_line = line;
     vm.last_fileidx = fileidx;
     #ifndef NDEBUG
@@ -291,7 +293,14 @@ VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringi
     if (Top(sp).False()) {
         vm.last_line = line;
         vm.last_fileidx = fileidx;
-        vm.Error(cat("assertion failed: ", vm.bcf->stringtable()->Get(stringidx)->string_view()));
+        auto assert_exp = vm.bcf->stringtable()->Get(stringidx)->string_view();
+        #if LOBSTER_ENGINE
+            if (vm.runtime_checks >= RUNTIME_DEBUG) {
+                auto msg = cat("Assertion hit: ", assert_exp);
+                BreakPoint(vm, msg);
+            }
+        #endif
+        vm.Error(cat("assertion failed: ", assert_exp));
     }
 }
 
