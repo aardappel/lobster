@@ -445,11 +445,15 @@ nfr("string_to_int", "s,base", "SI?", "IB",
         return Value(end == sv.data() + sv.size());
     });
 
-nfr("string_to_float", "s", "S", "F",
-    "converts a string to a float. returns 0.0 if no numeric data could be parsed",
-    [](StackPtr &, VM &, Value &s) {
-        auto f = strtod(s.sval()->data(), nullptr);
-        return Value(f);
+nfr("string_to_float", "s", "S", "FB",
+    "converts a string to a float. returns 0.0 if no numeric data could be parsed;"
+    "second return value is true if all characters of the string were parsed.",
+    [](StackPtr &sp, VM &, Value &s) {
+        char *end;
+        auto sv = s.sval()->strv();
+        auto f = strtod(sv.data(), &end);
+        Push(sp, f);
+        return Value(end == sv.data() + sv.size());
     });
 
 nfr("tokenize", "s,delimiters,whitespace", "SSS", "S]",
