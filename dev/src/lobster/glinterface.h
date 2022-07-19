@@ -52,9 +52,9 @@ struct Shader {
 
     ~Shader();
 
-    string Compile(const char *name, const char *vscode, const char *pscode);
-    string Compile(const char *name, const char *comcode);
-    string Link(const char *name);
+    string Compile(string_view name, const char *vscode, const char *pscode);
+    string Compile(string_view name, const char *comcode);
+    string Link(string_view);
     void Activate();                            // Makes shader current;
     void Set();                                 // Activate + sets common uniforms.
     void SetAnim(float3x4 *bones, int num);     // Optionally, after Activate().
@@ -84,7 +84,7 @@ struct Surface : Textured {
     string name;
     Primitive prim;
 
-    Surface(gsl::span<int> indices, Primitive _prim = PRIM_TRIS);
+    Surface(string_view name, gsl::span<int> indices, Primitive _prim = PRIM_TRIS);
     ~Surface();
 
     void Render(Shader *sh);
@@ -121,17 +121,18 @@ class Geometry  {
     const size_t nverts;
 
     template<typename T, typename U = float>
-    Geometry(gsl::span<T> verts1, string_view _fmt, gsl::span<U> verts2 = gsl::span<float>(),
+    Geometry(string_view name, gsl::span<T> verts1, string_view _fmt,
+             gsl::span<U> verts2 = gsl::span<float>(),
              size_t elem_multiple = 1)
         : vertsize1(sizeof(T) * elem_multiple), vertsize2(sizeof(U) * elem_multiple), fmt(_fmt),
           nverts(verts1.size() / elem_multiple) {
         assert(verts2.empty() || verts2.size() == verts1.size());
-        Init(verts1.data(), verts2.data());
+        Init(name, verts1.data(), verts2.data());
     }
 
     ~Geometry();
 
-    void Init(const void *verts1, const void *verts2);
+    void Init(string_view name, const void *verts1, const void *verts2);
 
     void RenderSetup();
     void BindAsSSBO(Shader *sh, string_view name);
@@ -217,9 +218,10 @@ enum TextureFlag {
     TF_DEPTH = 4096
 };
 
-extern Texture CreateTexture(const uint8_t *buf, int3 dim, int tf = TF_NONE);
+extern Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf = TF_NONE);
 extern Texture CreateTextureFromFile(string_view name, int tf = TF_NONE);
-extern Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
+extern Texture CreateBlankTexture(string_view name, const int2 &size, const float4 &color,
+                                  int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
 extern bool SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
 extern uint8_t *ReadTexture(const Texture &tex);
@@ -235,22 +237,22 @@ extern void FreeImageFromFile(uint8_t *img);
 
 extern uint8_t *ReadPixels(const int2 &pos, const int2 &size);
 
-extern int GenBO_(int type, size_t bytesize, const void *data);
-template<typename T> int GenBO(int type, gsl::span<T> d) {
-    return GenBO_(type, sizeof(T) * d.size(), d.data());
+extern int GenBO_(string_view name, int type, size_t bytesize, const void *data);
+template<typename T> int GenBO(string_view name, int type, gsl::span<T> d) {
+    return GenBO_(name, type, sizeof(T) * d.size(), d.data());
 }
 extern void DeleteBO(int id);
 extern void RenderArray(Primitive prim, Geometry *geom, int ibo = 0, size_t tcount = 0);
 
 template<typename T, typename U = float>
-void RenderArraySlow(Primitive prim, gsl::span<T> vbuf1, string_view fmt,
+void RenderArraySlow(string_view name, Primitive prim, gsl::span<T> vbuf1, string_view fmt,
                      gsl::span<int> ibuf = gsl::span<int>(),
                      gsl::span<U> vbuf2 = gsl::span<float>()) {
-    Geometry geom(vbuf1, fmt, vbuf2);
+    Geometry geom(name, vbuf1, fmt, vbuf2);
     if (ibuf.empty()) {
         RenderArray(prim, &geom);
     } else {
-        Surface surf(ibuf, prim);
+        Surface surf(name, ibuf, prim);
         RenderArray(prim, &geom, surf.ibo, ibuf.size());
     }
 }
@@ -348,3 +350,5 @@ template<typename F> void Transform(const float4x4 &mat, F body) {
 
 extern bool VRInit();
 extern void VRShutDown();
+
+extern void GiveName(unsigned int type, unsigned int id, string_view name);

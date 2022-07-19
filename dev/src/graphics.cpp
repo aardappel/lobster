@@ -131,7 +131,7 @@ Mesh *CreatePolygon(VM &vm, Value &vl) {
         vbuf[i].tc = vbuf[i].pos.xy();
         vbuf[i].col = byte4_255;
     }
-    auto m = new Mesh(new Geometry(gsl::make_span(vbuf), "PNTC"), polymode);
+    auto m = new Mesh(new Geometry("CreatePolygon", gsl::make_span(vbuf), "PNTC"), polymode);
     return m;
 }
 
@@ -627,7 +627,7 @@ nfr("gl_rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
             { sz.x, 0,    0, te.x, t.y,  _GETCOL(3) }
         };
         currentshader->Set();
-        RenderArraySlow(PRIM_FAN, gsl::make_span(vb_square, 4), "PTC");
+        RenderArraySlow("gl_rect_tc_col", PRIM_FAN, gsl::make_span(vb_square, 4), "PTC");
     });
 
 nfr("gl_unit_square", "centered", "I?", "",
@@ -769,10 +769,10 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
             // if no normals were specified, generate them.
             normalize_mesh(gsl::make_span(idxs), verts, nverts, vsize, normal_offset);
         }
-        auto m = new Mesh(
-            new Geometry(gsl::make_span(verts, nverts * vsize), fmt, gsl::span<uint8_t>(), vsize),
+        auto m = new Mesh(new Geometry("gl_new_mesh_verts", gsl::make_span(verts, nverts * vsize), fmt,
+                                       gsl::span<uint8_t>(), vsize),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
-        if (idxs.size()) m->surfs.push_back(new Surface(gsl::make_span(idxs)));
+        if (idxs.size()) m->surfs.push_back(new Surface("gl_new_mesh_idxs", gsl::make_span(idxs)));
         delete[] verts;
         return Value(vm.NewResource(m, &mesh_type));
     });
@@ -1034,7 +1034,7 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R:texture",
                 else                      ((byte4  *)buf)[idx] = quantizec(col);
             }
         }
-        auto tex = CreateTexture(buf, int3((int)xs, (int)ys, 0), tf.intval());
+        auto tex = CreateTexture("gl_create_texture", buf, int3((int)xs, (int)ys, 0), tf.intval());
         delete[] buf;
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     });
@@ -1047,7 +1047,7 @@ nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R:text
         auto tf = Pop(sp).intval();
         auto col = PopVec<float4>(sp);
         auto size = PopVec<int2>(sp);
-        auto tex = CreateBlankTexture(size, col, tf);
+        auto tex = CreateBlankTexture("gl_create_blank_texture", size, col, tf);
         Push(sp,  vm.NewResource(new Texture(tex), &texture_type));
     });
 
@@ -1141,7 +1141,7 @@ nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
             vbuf[i * 6 + 5].tc = t + float2_x / msize;
         }
         currentshader->Set();
-        RenderArraySlow(PRIM_TRIS, gsl::make_span(vbuf), "pT");
+        RenderArraySlow("gl_render_tiles", PRIM_TRIS, gsl::make_span(vbuf), "pT");
     });
 
 nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",

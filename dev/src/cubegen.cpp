@@ -482,9 +482,10 @@ nfr("cg_create_mesh", "block", "R:voxels", "R:mesh",
                        sizeof(cvert), (uint8_t *)&verts.data()->normal - (uint8_t *)&verts.data()->pos,
                        false);
         LOG_INFO("cubegen verts = ", verts.size(), ", tris = ", triangles.size() / 3);
-        auto m = new Mesh(new Geometry(gsl::make_span(verts), "PNC"),
+        auto m = new Mesh(new Geometry("cg_create_mesh_verts", gsl::make_span(verts), "PNC"),
                           PRIM_TRIS);
-        m->surfs.push_back(new Surface(gsl::make_span(triangles), PRIM_TRIS));
+        m->surfs.push_back(
+            new Surface("cg_create_mesh_idxs", gsl::make_span(triangles), PRIM_TRIS));
         extern ResourceType mesh_type;
         return Value(vm.NewResource(m, &mesh_type));
     });
@@ -531,7 +532,8 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "R:voxelsII?", "R:
         if (monochrome.True()) {
             for (int i = 0; i < mipsizes; i++) buf[i] = buf[i] ? 255 : 0;
         }
-        auto tex = CreateTexture(buf, v.grid.dim,
+        auto tex = CreateTexture(
+            "cg_create_3d_texture", buf, v.grid.dim,
             TF_3D | /*TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP |*/ TF_SINGLE_CHANNEL |
             TF_BUFFER_HAS_MIPS | textureflags.intval());
         delete[] buf;
