@@ -255,7 +255,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                     }
                     break;
                 } else if (ti.elemtypes[0] == TYPE_ELEM_FLOAT) {
-                    if (strcmp(st->name()->c_str(), "color") == 0) {
+                    if (st->name()->string_view() == "color") {
                         auto c = ValueToFLT<4>(v, ti.len);
                         if (ImGui::ColorEdit4(l, (float *)c.data())) {
                             ToValue(v, ti.len, c);
