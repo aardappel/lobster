@@ -2,7 +2,13 @@
   - "d" in sample without value?
   - doesn't show some global constants inited?
   - tables column widths: https://github.com/ocornut/imgui/issues/5478
+  - Show file/line for exact current position.
+  - Always unfold first stackframe?
+  - Mark all stack-frames up to breakpoint (and maybe assert) as no-inline, then increase limits for all other functions?
   - Add custom view for textures, or any resource types..
+  - Much like assert, break into debugger on any runtime error, like array out of bounds etc.
+  - Add a small source code view, will help quickly spotting the problem.
+    - Maybe a "Source" treenode at the end of each stack frame item?
   - Add user-specified UI for structs/classes?
   - just omit uninit vars? but only in debug...
 

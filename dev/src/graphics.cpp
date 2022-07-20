@@ -46,12 +46,22 @@ ResourceType texture_type = {
     [](void *t) { return ((Texture *)t)->MemoryUsage(); }
 };
 
+ResourceType shader_type = {
+    "shader",
+    [](void *) { /* Not actually owned by the resource */ },
+    nullptr,
+    [](void *s) { return ((Shader *)s)->MemoryUsage(); }
+};
+
 Mesh &GetMesh(Value &res) {
     return *GetResourceDec<Mesh *>(res, &mesh_type);
 }
 Texture GetTexture(const Value &res) {
     auto tex = GetResourceDec<Texture *>(res, &texture_type);
     return tex ? *tex : Texture();
+}
+Shader &GetShader(Value &res) {
+    return *GetResourceDec<Shader *>(res, &shader_type);
 }
 
 // Should be safe to call even if it wasn't initialized partially or at all.
@@ -844,6 +854,23 @@ nfr("gl_set_shader", "shader", "S", "",
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
         currentshader = sh;
         return NilVal();
+    });
+
+nfr("gl_set_shader", "shader", "R:shader", "",
+    "changes the current shader from a value received from gl_get_shader",
+    [](StackPtr &, VM &vm, Value &shader) {
+        TestGL(vm);
+        currentshader = &GetShader(shader);
+        return NilVal();
+    });
+
+nfr("gl_get_shader", "shader", "S", "R:shader",
+    "gets a shader by name, for use with gl_set_shader",
+    [](StackPtr &, VM &vm, Value &shader) {
+        TestGL(vm);
+        auto sh = LookupShader(shader.sval()->strv());
+        if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
+        return Value(vm.NewResource(sh, &shader_type));
     });
 
 nfr("gl_set_uniform", "name,value", "SF}", "B",

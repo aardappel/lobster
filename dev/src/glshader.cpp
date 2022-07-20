@@ -457,9 +457,6 @@ void DispatchCompute(const int3 &groups) {
 
 // Simple function for getting some uniform / shader storage attached to a shader. Should ideally
 // be split up for more flexibility.
-// Use this for reusing BO's for now:
-struct BOEntry { int bo; int bpi; size_t size; };
-map<string, BOEntry, less<>> ubomap;
 // Note that bo_binding_point_index is assigned automatically based on unique block names.
 // You can also specify these in the shader using `binding=`, but GL doesn't seem to have a way
 // to retrieve these programmatically.
@@ -484,13 +481,13 @@ int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offs
             if (idx != GL_INVALID_INDEX && len <= size_t(maxsize)) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
                 static int binding_point_index_alloc = 0;
-                auto it = ubomap.find(uniformblockname);
+                auto it = sh->ubomap.find(uniformblockname);
                 int bo_binding_point_index = 0;
-                if (it == ubomap.end()) {
+                if (it == sh->ubomap.end()) {
                     assert(offset < 0);
                     if (data) bo = GenBO_("UniformBufferObject", type, len, data);
                     bo_binding_point_index = binding_point_index_alloc++;
-                    ubomap[string(uniformblockname)] = { bo, bo_binding_point_index, len };
+                    sh->ubomap[string(uniformblockname)] = { bo, bo_binding_point_index, len };
 				} else {
                     if (data) bo = it->second.bo;
                     bo_binding_point_index = it->second.bpi;

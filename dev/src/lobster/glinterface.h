@@ -50,6 +50,14 @@ struct Shader {
 
     enum { MAX_SAMPLERS = 32 };
 
+    // Use this for reusing BO's for now:
+    struct BOEntry {
+        int bo;
+        int bpi;
+        size_t size;
+    };
+    map<string, BOEntry, less<>> ubomap;
+
     ~Shader();
 
     string Compile(string_view name, const char *vscode, const char *pscode);
@@ -67,6 +75,11 @@ struct Shader {
                     int components, int elements = 1);
     bool SetUniformMatrix(string_view name, const float *val, int components, int elements, bool morerows);
     bool Dump(string_view filename, bool stripnonascii);
+
+    size_t2 MemoryUsage() {
+        // FIXME: somehow find out sizes of all attached GPU blocks?
+        return { sizeof(Shader), 0 };
+    }
 };
 
 struct Textured {
