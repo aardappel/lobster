@@ -199,6 +199,7 @@ struct Parser {
             case T_ENUM_FLAGS: {
                 bool incremental = lex.token == T_ENUM;
                 lex.Next();
+                Line line = lex;
                 int64_t cur = incremental ? 0 : 1;
                 auto enumname = st.MaybeNameSpace(ExpectId(), true);
                 auto def = st.EnumLookup(enumname, lex, true);
@@ -227,7 +228,7 @@ struct Parser {
                         Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
                 Expect(T_DEDENT);
-                list->Add(new EnumRef(lex, def));
+                list->Add(new EnumRef(line, def));
                 break;
             }
             case T_VAR:
@@ -324,6 +325,7 @@ struct Parser {
 
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list) {
         lex.Next();
+        Line line = lex;
         auto sname = st.MaybeNameSpace(ExpectId(), true);
         UDT *udt = &st.StructDecl(sname, lex, is_struct);
         auto parse_sup = [&] () {
@@ -461,7 +463,7 @@ struct Parser {
             g.set_resolvedtype(type.utr);
         }
         udt->unspecialized.is_generic = udt->is_generic;
-        parent_list->Add(new UDTRef(lex, udt, udt->predeclaration));
+        parent_list->Add(new UDTRef(line, udt, udt->predeclaration));
     }
 
     Node *ParseNamedFunctionDefinition(bool isprivate, UDT *self) {
@@ -664,6 +666,7 @@ struct Parser {
             f.anonymous = true;
         }
         // Parse the body.
+        Line line = lex;
         if (!f.istype) {
             auto block = new Block(lex);
             f.overloads.back().gbody = block;
@@ -674,7 +677,7 @@ struct Parser {
         if (non_inline_method) st.bound_typevars_stack.pop_back();
         st.bound_typevars_stack.pop_back();
         st.FunctionScopeCleanup();
-        return new FunRef(lex, sf);
+        return new FunRef(line, sf);
     }
 
     UnresolvedTypeRef ParseTypes(SubFunction *sfreturntype, Lifetime lt) {
@@ -930,7 +933,7 @@ struct Parser {
         }
     }
 
-    List *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *dotarg,
+    List *ParseFunctionCall(Line line, Function *f, NativeFun *nf, string_view idname, Node *dotarg,
                             bool noparens, vector<UnresolvedTypeRef> *specializers) {
         vector<Node *> list;
         bool parens_parsed = false;
@@ -994,7 +997,7 @@ struct Parser {
         if (nf &&
             (!f || !wse.id || (f->overloads.size() == 1 && !f->overloads[0].sf->method_of)) &&
             (!f || list.size() <= nf->args.size() || list.size() != f->nargs())) {
-            auto nc = new GenericCall(lex, idname, nullptr, false, false, specializers);
+            auto nc = new GenericCall(line, idname, nullptr, false, false, specializers);
             nc->children = list;
             for (auto [i, arg] : enumerate(nf->args)) {
                 if (i >= nc->Arity()) {
@@ -1019,7 +1022,7 @@ struct Parser {
         // Note: <, because functions are inside their own scope.
         if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type ", Q(f->name));
-            auto call = new GenericCall(lex, idname, nullptr, false, false, specializers);
+            auto call = new GenericCall(line, idname, nullptr, false, false, specializers);
             call->children = list;
             if (!dotarg) {
                 SelfArg(f, wse, call->Arity(), call);
@@ -1034,7 +1037,7 @@ struct Parser {
             dc->children = list;
             return dc;
         } else {
-            auto call = new GenericCall(lex, idname, nullptr, dotarg && !parens_parsed,
+            auto call = new GenericCall(line, idname, nullptr, dotarg && !parens_parsed,
                                         false, specializers);
             call->children = list;
             ForwardFunctionCall ffc = {
@@ -1125,7 +1128,7 @@ struct Parser {
                     n = dot;
                 } else {
                     auto specializers = ParseSpecializers(f && !nf);
-                    n = ParseFunctionCall(f, nf, idname, n, false, &specializers);
+                    n = ParseFunctionCall(lex, f, nf, idname, n, false, &specializers);
                 }
                 break;
             }
@@ -1263,7 +1266,7 @@ struct Parser {
             case T_SUPER: {
                 lex.Next();
                 auto idname = ExpectId();
-                auto n = ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr, false,
+                auto n = ParseFunctionCall(lex, st.FindFunction(idname), nullptr, idname, nullptr, false,
                                            nullptr);
                 auto call = Is<GenericCall>(*n);
                 if (!call || !call->sf || !call->sf->method_of ||
@@ -1282,27 +1285,30 @@ struct Parser {
             }
             case T_IF: {
                 lex.Next();
-                return ParseIf();
+                return ParseIf(lex);
             }
             case T_WHILE: {
                 lex.Next();
+                Line line = lex;
                 auto cond = ParseExp(true);
-                return new While(lex, cond, ParseBlock());
+                return new While(line, cond, ParseBlock());
             }
             case T_FOR: {
                 lex.Next();
+                Line line = lex;
                 Node *iter;
                 if (IsNext(T_LEFTPAREN)) {
                     iter = ParseExp(false);
                     Expect(T_RIGHTPAREN);
-                    return new For(lex, iter, ParseBlock(0, true));
+                    return new For(line, iter, ParseBlock(0, true));
                 } else {
                     iter = ParseExp(true);
-                    return new For(lex, iter, ParseBlock(0));
+                    return new For(line, iter, ParseBlock(0));
                 }
             }
             case T_SWITCH: {
                 lex.Next();
+                Line line = lex;
                 auto value = ParseExp(true);
                 Expect(T_COLON);
                 Expect(T_INDENT);
@@ -1310,6 +1316,7 @@ struct Parser {
                 auto cases = new List(lex);
                 for (;;) {
                     List *pattern = new List(lex);
+                    Line cline = lex;
                     if (lex.token == T_DEFAULT) {
                         if (have_default) Error("cannot have more than one default in a switch");
                         lex.Next();
@@ -1327,12 +1334,12 @@ struct Parser {
                             Expect(T_COMMA);
                         }
                     }
-                    cases->Add(new Case(lex, pattern, ParseBlock()));
+                    cases->Add(new Case(cline, pattern, ParseBlock()));
                     if (!IsNext(T_LINEFEED)) break;
                     if (lex.token == T_DEDENT) break;
                 }
                 Expect(T_DEDENT);
-                return new Switch(lex, value, cases);
+                return new Switch(line, value, cases);
             }
             default:
                 Error("illegal start of expression: ", Q(lex.TokStr()));
@@ -1340,19 +1347,19 @@ struct Parser {
         }
     }
 
-    Node *ParseIf() {
+    Node *ParseIf(Line line) {
         auto cond = ParseExp(true);
         auto thenp = ParseBlock();
         auto islf = IsNext(T_LINEFEED);
         if (IsNext(T_ELIF)) {
-            return new IfElse(lex, cond, thenp, (new Block(lex))->Add(ParseIf()));
+            return new IfElse(line, cond, thenp, (new Block(lex))->Add(ParseIf(lex)));
         } else if (IsNext(T_ELSE)) {
-            return new IfElse(lex, cond, thenp, ParseBlock());
+            return new IfElse(line, cond, thenp, ParseBlock());
         } else {
             lex.PushCur();
             if (islf) lex.Push(T_LINEFEED);
             lex.Next();
-            return new IfThen(lex, cond, thenp);
+            return new IfThen(line, cond, thenp);
         }
     }
 
@@ -1437,6 +1444,7 @@ struct Parser {
         }
         if (udt) {
             Expect(T_LEFTCURLY);
+            Line line = lex;
             udt->constructed = true;
             vector<Node *> exps(udt->fields.size(), nullptr);
             ParseVector([&] () {
@@ -1466,7 +1474,7 @@ struct Parser {
                 exps.push_back(ParseExp());
             }, T_RIGHTCURLY);
             // Now fill in defaults, check for missing fields, and construct list.
-            auto constructor = new Constructor(lex, type);
+            auto constructor = new Constructor(line, type);
             for (size_t i = 0; i < exps.size(); i++) {
                 if (!exps[i]) {
                     if (udt->fields[i].defaultval)
@@ -1495,11 +1503,11 @@ struct Parser {
                 Expect(T_RIGHTPAREN);
                 return ec;
             }
-            return ParseFunctionCall(f, nf, idname, nullptr, false, nullptr);
+            return ParseFunctionCall(lex, f, nf, idname, nullptr, false, nullptr);
         }
         auto specializers = ParseSpecializers(f && !nf && !e);
         if (!specializers.empty())
-            return ParseFunctionCall(f, nf, idname, nullptr, false, &specializers);
+            return ParseFunctionCall(lex, f, nf, idname, nullptr, false, &specializers);
         // Check for implicit variable.
         if (idname[0] == '_') {
             if (block_stack.empty())
@@ -1543,7 +1551,7 @@ struct Parser {
             (nf || f) &&
             lex.whitespacebefore > 0 &&
             lex.token != T_LINEFEED) {
-            return ParseFunctionCall(f, nf, idname, nullptr, true, nullptr);
+            return ParseFunctionCall(lex, f, nf, idname, nullptr, true, nullptr);
         }
         // Check for enum value.
         auto ev = st.EnumValLookup(idname, lex, false);

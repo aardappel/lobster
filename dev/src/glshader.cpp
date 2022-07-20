@@ -287,13 +287,16 @@ string LoadMaterialFile(string_view mfile) {
     return err;
 }
 
-string Shader::Compile(const char *name, const char *vscode, const char *pscode) {
+string Shader::Compile(string_view name, const char *vscode, const char *pscode) {
     program = glCreateProgram();
+    GL_NAME(GL_PROGRAM, program, name);
     string err;
-    vs = CompileGLSLShader(GL_VERTEX_SHADER,   program, vscode, err);
+    vs = CompileGLSLShader(GL_VERTEX_SHADER, program, vscode, err);
     if (!vs) return string_view("couldn't compile vertex shader: ") + name + "\n" + err;
+    GL_NAME(GL_SHADER, vs, name + "_vs");
     ps = CompileGLSLShader(GL_FRAGMENT_SHADER, program, pscode, err);
     if (!ps) return string_view("couldn't compile pixel shader: ") + name + "\n" + err;
+    GL_NAME(GL_SHADER, ps, name + "_ps");
     GL_CALL(glBindAttribLocation(program, VATRR_POS, "apos"));
     GL_CALL(glBindAttribLocation(program, VATRR_NOR, "anormal"));
     GL_CALL(glBindAttribLocation(program, VATRR_TC1, "atc"));
@@ -304,19 +307,21 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     return Link(name);
 }
 
-string Shader::Compile(const char *name, const char *cscode) {
+string Shader::Compile(string_view name, const char *cscode) {
     #ifdef PLATFORM_WINNIX
         program = glCreateProgram();
+        GL_NAME(GL_PROGRAM, program, name);
         string err;
         cs = CompileGLSLShader(GL_COMPUTE_SHADER, program, cscode, err);
         if (!cs) return string_view("couldn't compile compute shader: ") + name + "\n" + err;
+        GL_NAME(GL_SHADER, cs, name + "_cs");
         return Link(name);
     #else
         return "compute shaders not supported";
     #endif
 }
 
-string Shader::Link(const char *name) {
+string Shader::Link(string_view name) {
     GL_CALL(glLinkProgram(program));
     GLint status;
     GL_CALL(glGetProgramiv(program, GL_LINK_STATUS, &status));
@@ -483,7 +488,7 @@ int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offs
                 int bo_binding_point_index = 0;
                 if (it == ubomap.end()) {
                     assert(offset < 0);
-                    if (data) bo = GenBO_(type, len, data);
+                    if (data) bo = GenBO_("UniformBufferObject", type, len, data);
                     bo_binding_point_index = binding_point_index_alloc++;
                     ubomap[string(uniformblockname)] = { bo, bo_binding_point_index, len };
 				} else {

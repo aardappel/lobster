@@ -100,8 +100,15 @@ using namespace geom;
     #define LOBSTER_ENGINE 1
 #endif
 
-#if LOBSTER_ENGINE && defined(_WIN32)
-    #define LOBSTER_FRAME_PROFILER 1
+// Disabled by default because of several out-standing bugs with Tracy.
+// https://github.com/wolfpld/tracy/issues/422
+// https://github.com/wolfpld/tracy/issues/419
+// Overhead should be low enough that eventually we want this on in all builds.
+#ifndef LOBSTER_FRAME_PROFILER
+    #define LOBSTER_FRAME_PROFILER 0
+#endif
+
+#if LOBSTER_FRAME_PROFILER && LOBSTER_ENGINE && defined(_WIN32)
     #define TRACY_ENABLE 1
     #define TRACY_ON_DEMAND 1
     #define TRACY_ONLY_LOCALHOST 1
@@ -119,7 +126,6 @@ using namespace geom;
         #endif
     #endif
 #else
-    #define LOBSTER_FRAME_PROFILER 0
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0
     #define LOBSTER_FRAME_PROFILE_THIS_FUNCTION

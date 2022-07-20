@@ -339,6 +339,10 @@ run_test("misc"):
     assert replace_string("abcdabcd", "bc", "X") == "aXdaXd"
     assert replace_string("abcdabcd", "bc", "X", 1) == "aXdabcd"
 
+    assert equal(tokenize(" A | B C |", "|", " ", true), ["A", "B C", ""])
+    assert equal(tokenize("; A ; B C;; ", ";", " "), ["", "A", "B C", ""])
+    assert equal(tokenize(", A , B C,, ", ",", " ", true), ["", "A", "B C", "", ""])
+
     // Single return not being the last return.
     def G():
         return H() + 1

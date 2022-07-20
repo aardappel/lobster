@@ -532,7 +532,7 @@ struct SymbolTable {
 
     vector<size_t> scopelevels;
 
-    struct WithStackElem { UDT *udt; Ident *id = nullptr; SubFunction *sf = nullptr; };
+    struct WithStackElem { UDT *udt = nullptr; Ident *id = nullptr; SubFunction *sf = nullptr; };
     vector<WithStackElem> withstack;
     vector<size_t> withstacklevels;
 

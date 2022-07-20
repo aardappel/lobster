@@ -417,7 +417,7 @@ nfr("ph_render", "", "", "",
                     case b2Shape::e_polygon: {
                         r.Set();
                         auto polyshape = (b2PolygonShape *)fixture->GetShape();
-                        RenderArraySlow(
+                        RenderArraySlow("ph_render",
                             PRIM_FAN, gsl::make_span(polyshape->m_vertices, polyshape->m_count), "pn", gsl::span<int>(),
                                         gsl::make_span(polyshape->m_normals, polyshape->m_count));
                         break;
@@ -452,9 +452,8 @@ nfr("ph_render_particles", "scale", "F", "",
         auto scale = length(otransforms.object2view()[0].xy());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fltval());
         particlematerial->Set();
-        RenderArraySlow(PRIM_POINT, gsl::make_span(verts, particlesystem->GetParticleCount()), "pC",
-                        gsl::span<int>(),
-                        gsl::make_span(colors, particlesystem->GetParticleCount()));
+        RenderArraySlow("ph_render_particles", PRIM_POINT, gsl::make_span(verts, particlesystem->GetParticleCount()),
+                        "pC", gsl::span<int>(), gsl::make_span(colors, particlesystem->GetParticleCount()));
         return NilVal();
     });
 
