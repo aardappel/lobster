@@ -301,6 +301,7 @@
     <ClInclude Include="..\src\lobster\fontrenderer.h" />
     <ClInclude Include="..\src\lobster\glincludes.h" />
     <ClInclude Include="..\src\lobster\glinterface.h" />
+    <ClInclude Include="..\src\lobster\graphics.h" />
     <ClInclude Include="..\src\lobster\mctables.h" />
     <ClInclude Include="..\src\lobster\meshgen.h" />
     <ClInclude Include="..\src\lobster\polyreduce.h" />

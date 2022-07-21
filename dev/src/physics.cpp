@@ -22,10 +22,8 @@
 
 #include "Box2D/Box2D.h"
 
-#ifdef _MSC_VER
-#ifndef NDEBUG
-#define new DEBUG_NEW
-#endif
+#if defined(_MSC_VER) && !defined(NDEBUG)
+    #define new DEBUG_NEW
 #endif
 
 using namespace lobster;
@@ -54,7 +52,7 @@ b2Vec2 PopB2(StackPtr &sp) {
     return Float2ToB2(v);
 }
 
-struct PhysicsObject {
+struct PhysicsObject : Resource {
     Renderable r;
     b2Fixture *fixture;
     vector<int> *particle_contacts;
@@ -78,15 +76,10 @@ struct PhysicsObject {
     }
 };
 
-static ResourceType physics_type = {
-    "fixture",
-    [](void *v) { delete ((PhysicsObject *)v); },
-    nullptr,
-    [](void *m) { return ((PhysicsObject *)m)->MemoryUsage(); }
-};
+static ResourceType physics_type = { "fixture" };
 
 PhysicsObject &GetObject(const Value &res) {
-    return *GetResourceDec<PhysicsObject *>(res, &physics_type);
+    return GetResourceDec<PhysicsObject>(res, &physics_type);
 }
 
 void CleanPhysics() {
@@ -133,7 +126,7 @@ Value CreateFixture(VM &vm, b2Body &body, b2Shape &shape) {
     auto fixture = body.CreateFixture(&shape, 1.0f);
     auto po = new PhysicsObject(Renderable("color"), fixture);
     fixture->SetUserData(po);
-    return Value(vm.NewResource(po, &physics_type));
+    return Value(vm.NewResource(&physics_type, po));
 }
 
 b2Vec2 OptionalOffset(StackPtr &sp) {

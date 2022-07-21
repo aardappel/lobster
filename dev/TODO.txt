@@ -9,8 +9,12 @@
   - Much like assert, break into debugger on any runtime error, like array out of bounds etc.
   - Add a small source code view, will help quickly spotting the problem.
     - Maybe a "Source" treenode at the end of each stack frame item?
+  - Better docs for all this?
   - Add user-specified UI for structs/classes?
   - just omit uninit vars? but only in debug...
+  - A debugging mode where a breakpoint can be set when the programming is already running?
+    Would be expensive to have a breakpoint check between every statement..
+    But this would enable traditional step by step debugging.
 
 - `remove` shows a default value of `0` in the docs, could add integer defaults to the type string.
 
@@ -163,23 +167,6 @@
       And frankly creating more specializations just for this distinction doesn't sound great.
       Also we have some complex logic around tagged constructor args that would have to be wrapped
       into this generated function..
-
-- More debugging functionality using imgui.
-  - We have absolutely minimalistic debugging of a program location using get_stack_trace and
-    im_stack_trace, this needs:
-    - a way to track locals besides args.. due to aggressive inlining there are often many
-      stack frames missing.
-    - maybe a --runtime-debug that turns of a lot of inlining.
-    - turn the stack trace into an imgui instead of a text representation.
-      - need to capture values at the moment of inspection, so would need reliable deep copy
-        instead of just incref.. that's a shame since it makes it way more expensive? limit to deep copy?
-        maybe do incref anyway and document it?
-  - document all this!
-  - besides "live" stack-traces like above, also have "breaking" stack traces.
-    once the breaking function is hit, go into own renderloop that shows debugger imgui instead of game
-    render (which is paused). Then have ways to continue to the next hit etc.
-  - Once you have that, can have a mode where a statement that checks if it needs to debug break is
-    inserted with each statement, for traditional debug stepping mechanisms.
 
 - set up oss-fuzz for Parser etc.
 
@@ -577,6 +564,13 @@
   make it such you can only use one style per file
 
 - run coverage to see where more tests are needed.
+
+- Would be nice to merge Texture and OwnedTexture, since they are generally owned by Lobster
+  code.. exceptions are Textured and SwitchToFrameBuffer where we have weak references to
+  Texture.. this could be cleaned up by making these locations do inc/decref, but that
+  means a Resource should hold a ref to LResource to get to refc, and gltexture.cpp now relies
+  on Lobster refcounting etc.
+  Or, give Resource its own refc, such that if LResource drops to 0 it only decrements Resource.
 
 - Remove exceptions completely by making each function call always check for a target function,
   and then make runtime errors use the same mechanism

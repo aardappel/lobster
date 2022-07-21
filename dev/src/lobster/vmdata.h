@@ -15,8 +15,6 @@
 #ifndef LOBSTER_VMDATA
 #define LOBSTER_VMDATA
 
-#include "il.h"
-
 namespace bytecode { struct BytecodeFile; }  // FIXME
 
 namespace lobster {
@@ -262,17 +260,31 @@ struct LString : RefObj {
 struct ResourceType;
 extern ResourceType *g_resource_type_list;
 
-struct LResource : RefObj {
-    void *val;
-    const ResourceType *type;
+struct Resource : NonCopyable {
+    virtual ~Resource() {}
+    virtual size_t2 MemoryUsage() {
+        return size_t2(sizeof(Resource), 0);
+    }
+};
 
-    LResource(void *v, const ResourceType *t);
+struct LResource : RefObj {
+    const ResourceType *type;
+    Resource *res;
+    bool owned = true;
+
+    LResource(const ResourceType *t, Resource *res);
 
     void ToString(string &sd);
     void DeleteSelf(VM &vm);
 
-    
-    size_t2 MemoryUsage();
+    size_t2 MemoryUsage() {
+        return res->MemoryUsage() + size_t2(sizeof(LResource), 0);
+    }
+
+    LResource *NotOwned() {
+        owned = false;
+        return this;
+    }
 };
 
 #if RTT_ENABLED
@@ -916,11 +928,11 @@ struct VM : VMArgs {
     void OnAlloc(RefObj *ro);
     LVector *NewVec(iint initial, iint max, type_elem_t tti);
     LObject *NewObject(iint max, type_elem_t tti);
-    LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(iint l);
     LString *NewString(string_view s);
     LString *NewString(string_view s1, string_view s2);
     LString *ResizeString(LString *s, iint size, int c, bool back);
+    LResource *NewResource(const ResourceType *type, Resource *res);
 
     Value Error(string err);
     Value BuiltinError(string err) { return Error(err); }
@@ -1160,13 +1172,12 @@ inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {
 }
 
 
-template<typename T> inline T GetResourceDec(const Value &val, const ResourceType *type) {
-    if (val.False())
-        return nullptr;
+template<typename T> inline T &GetResourceDec(const Value &val, const ResourceType *type) {
+    assert(val.True());
     auto x = val.xval();
-    assert(x->type == type);  // If hit, the `R:type` your specified is not the same as `type`.
+    assert(x->type == type);  // If hit, the `R:type` you specified is not the same as `type`.
     (void)type;
-    return (T)x->val;
+    return *(T *)x->res;
 }
 
 inline vector<string> ValueToVectorOfStrings(Value &v) {

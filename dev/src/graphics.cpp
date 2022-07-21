@@ -19,6 +19,8 @@
 #include "lobster/glinterface.h"
 #include "lobster/sdlinterface.h"
 
+#include "lobster/graphics.h"
+
 using namespace lobster;
 
 Primitive polymode = PRIM_FAN;
@@ -28,40 +30,19 @@ float3 lasthitsize = float3_0;
 float3 lastframehitsize = float3_0;
 bool graphics_initialized = false;
 
-ResourceType mesh_type = {
-    "mesh",
-    [](void *m) { delete (Mesh *)m; },
-    nullptr,
-    [](void *m) { return ((Mesh *)m)->MemoryUsage(); }
-};
-
-ResourceType texture_type = {
-    "texture",
-    [](void *t) {
-        auto tex = (Texture *)t;
-        DeleteTexture(*tex);
-        delete tex;
-    },
-    nullptr,
-    [](void *t) { return ((Texture *)t)->MemoryUsage(); }
-};
-
-ResourceType shader_type = {
-    "shader",
-    [](void *) { /* Not actually owned by the resource */ },
-    nullptr,
-    [](void *s) { return ((Shader *)s)->MemoryUsage(); }
-};
+ResourceType mesh_type = { "mesh" };
+ResourceType texture_type = { "texture" };
+ResourceType shader_type = { "shader" };
 
 Mesh &GetMesh(Value &res) {
-    return *GetResourceDec<Mesh *>(res, &mesh_type);
+    return GetResourceDec<Mesh>(res, &mesh_type);
 }
 Texture GetTexture(const Value &res) {
-    auto tex = GetResourceDec<Texture *>(res, &texture_type);
-    return tex ? *tex : Texture();
+    if (res.False()) return Texture();
+    return GetResourceDec<OwnedTexture>(res, &texture_type).t;
 }
 Shader &GetShader(Value &res) {
-    return *GetResourceDec<Shader *>(res, &shader_type);
+    return GetResourceDec<Shader>(res, &shader_type);
 }
 
 // Should be safe to call even if it wasn't initialized partially or at all.
@@ -702,7 +683,7 @@ nfr("gl_new_poly", "positions", "F}]", "R:mesh",
     " returns mesh id",
     [](StackPtr &, VM &vm, Value &positions) {
         auto m = CreatePolygon(vm, positions);
-        return Value(vm.NewResource(m, &mesh_type));
+        return Value(vm.NewResource(&mesh_type, m));
     });
 
 nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices", "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "R:mesh",
@@ -784,7 +765,7 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface("gl_new_mesh_idxs", gsl::make_span(idxs)));
         delete[] verts;
-        return Value(vm.NewResource(m, &mesh_type));
+        return Value(vm.NewResource(&mesh_type, m));
     });
 
 nfr("gl_new_mesh_iqm", "filename", "S", "R:mesh?",
@@ -792,7 +773,7 @@ nfr("gl_new_mesh_iqm", "filename", "S", "R:mesh?",
     [](StackPtr &, VM &vm, Value &fn) {
         TestGL(vm);
         auto m = LoadIQM(fn.sval()->strv());
-        return m ? Value(vm.NewResource(m, &mesh_type)) : NilVal();
+        return m ? Value(vm.NewResource(&mesh_type, m)) : NilVal();
     });
 
 nfr("gl_mesh_parts", "m", "R:mesh", "S]",
@@ -870,7 +851,7 @@ nfr("gl_get_shader", "shader", "S", "R:shader",
         TestGL(vm);
         auto sh = LookupShader(shader.sval()->strv());
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
-        return Value(vm.NewResource(sh, &shader_type));
+        return Value(vm.NewResource(&shader_type, sh)->NotOwned());
     });
 
 nfr("gl_set_uniform", "name,value", "SF}", "B",
@@ -1011,7 +992,7 @@ nfr("gl_load_texture", "name,textureformat", "SI?", "R:texture?",
     [](StackPtr &, VM &vm, Value &name, Value &tf) {
         TestGL(vm);
         auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
-        return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : NilVal();
+        return tex.id ? vm.NewResource(&texture_type, new OwnedTexture(tex)) : NilVal();
     });
 
 nfr("gl_set_primitive_texture", "i,tex,textureformat", "IR:textureI?", "I",
@@ -1063,7 +1044,7 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R:texture",
         }
         auto tex = CreateTexture("gl_create_texture", buf, int3((int)xs, (int)ys, 0), tf.intval());
         delete[] buf;
-        return Value(vm.NewResource(new Texture(tex), &texture_type));
+        return Value(vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
 
 nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R:texture",
@@ -1075,7 +1056,7 @@ nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R:text
         auto col = PopVec<float4>(sp);
         auto size = PopVec<int2>(sp);
         auto tex = CreateBlankTexture("gl_create_blank_texture", size, col, tf);
-        Push(sp,  vm.NewResource(new Texture(tex), &texture_type));
+        Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
 
 nfr("gl_texture_size", "tex", "R:texture", "I}:2",

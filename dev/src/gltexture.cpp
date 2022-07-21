@@ -14,6 +14,7 @@
 
 #include "lobster/stdafx.h"
 
+#include "lobster/vmdata.h"
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 
@@ -30,6 +31,10 @@
 #ifndef __EMSCRIPTEN__
 const int nummultisamples = 4;
 #endif
+
+OwnedTexture::~OwnedTexture() {
+    DeleteTexture(t);
+}
 
 Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     LOBSTER_FRAME_PROFILE_THIS_FUNCTION;

@@ -42,7 +42,15 @@ struct Texture {
     }
 };
 
-struct Shader {
+struct OwnedTexture : lobster::Resource {
+    Texture t;
+
+    OwnedTexture(Texture t) : t(t) {}
+    ~OwnedTexture();
+    size_t2 MemoryUsage() { return t.MemoryUsage(); }
+};
+
+struct Shader : lobster::Resource {
     int vs = 0, ps = 0, cs = 0, program = 0;
     int mvp_i, col_i, camera_i, light1_i, lightparams1_i, framebuffer_size_i,
         bones_i, pointscale_i;
@@ -158,7 +166,7 @@ class Geometry  {
     }
 };
 
-struct Mesh {
+struct Mesh : lobster::Resource {
     Geometry *geom;
     vector<Surface *> surfs;
     Primitive prim;  // If surfs is empty, this determines how to draw the verts.

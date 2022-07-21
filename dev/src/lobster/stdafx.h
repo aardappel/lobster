@@ -120,10 +120,8 @@ using namespace geom;
     #undef new
     #include "Tracy.hpp"
     #include "TracyC.h"
-    #ifdef _MSC_VER
-        #ifndef NDEBUG
-            #define new DEBUG_NEW
-        #endif
+    #if defined(_MSC_VER) && !defined(NDEBUG)
+        #define new DEBUG_NEW
     #endif
 #else
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0

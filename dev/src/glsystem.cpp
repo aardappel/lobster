@@ -14,6 +14,7 @@
 
 #include "lobster/stdafx.h"
 
+#include "lobster/vmdata.h"
 #include "lobster/glincludes.h"
 #include "lobster/glinterface.h"
 #include "lobster/sdlincludes.h"
@@ -212,10 +213,8 @@ string OpenGLInit(int samples, bool srgb) {
     #if LOBSTER_FRAME_PROFILER
         #undef new
         TracyGpuContext;
-        #ifdef _MSC_VER
-            #ifndef NDEBUG
-                #define new DEBUG_NEW
-            #endif
+        #if defined(_MSC_VER) && !defined(NDEBUG)
+            #define new DEBUG_NEW
         #endif
     #endif
     return {};
