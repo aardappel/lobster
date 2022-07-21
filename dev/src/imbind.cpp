@@ -709,7 +709,7 @@ nfr("im_disabled_start", "label", "B", "B",
     "(use im_disabled instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
-        const auto disabled = !!Pop(sp).ival();
+        const auto disabled = Pop(sp).True();
         ImGui::BeginDisabled(disabled);
     });
 
