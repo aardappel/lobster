@@ -375,7 +375,7 @@ nfr("substring", "s,start,size", "SII", "S",
         iint size = e.ival();
         iint start = s.ival();
         if (size < 0) size = l.sval()->len - start;
-        if (start < 0 || start + size > l.sval()->len)
+        if (start < 0 || size < 0 || start + size > l.sval()->len)
             vm.BuiltinError("substring: values out of range");
 
         auto ns = vm.NewString(string_view(l.sval()->data() + start, (size_t)size));
