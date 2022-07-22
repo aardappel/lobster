@@ -465,6 +465,10 @@ typedef vec<size_t, 2> size_t2;
 
 const float4 float4_0 = float4(0.0f);
 const float4 float4_1 = float4(1.0f);
+const float4 float4_x = float4(1, 0, 0, 0);
+const float4 float4_y = float4(0, 1, 0, 0);
+const float4 float4_z = float4(0, 0, 1, 0);
+const float4 float4_w = float4(0, 0, 0, 1);
 
 const float3 float3_0 = float3(0.0f);
 const float3 float3_1 = float3(1.0f);
