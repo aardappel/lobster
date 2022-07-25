@@ -692,17 +692,17 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 p += contentlen;
             }
             for (auto &i : node_to_layer)
-                if (layer_names.contains(i.second) && !node_names.contains(i.first))
+                if ((layer_names.find(i.second) != layer_names.end()) && (node_names.find(i.first) == node_names.end()))
                     node_names.insert_or_assign(i.first, layer_names[i.second]);
             for (auto &i : node_to_model) {
                 auto node_id = i.first;
                 auto model_id = i.second;
                 while (true) {
-                    if (node_names.contains(node_id)) {
+                    if (node_names.find(node_id) != node_names.end()) {
                         GetVoxels(voxvec->At(model_id)).name = node_names[node_id];
                         break;
                     }
-                    if (!node_graph.contains(node_id))
+                    if (node_graph.find(node_id) == node_graph.end())
                         break;
                     node_id = node_graph[node_id];
                 }
