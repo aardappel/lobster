@@ -613,11 +613,14 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     auto node_id = ReadMemInc<int32_t>(c);
                     auto dict_len = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<dict_len; ++i) {
-                        string key, value;
+                        string key;
                         ReadVec<string, int32_t>(c, key);
-                        ReadVec<string, int32_t>(c, value);
-                        if (key == "_name")
+                        if (key == "_name") {
+                            string value;
+                            ReadVec<string, int32_t>(c, value);
                             node_names.insert_or_assign(node_id, value);
+                        } else
+                            SkipVec<string, int32_t>(c);
                     }
                     auto child_node_id = ReadMemInc<int32_t>(c);
                     node_graph.insert_or_assign(child_node_id, node_id);
@@ -629,11 +632,14 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     auto node_id = ReadMemInc<int32_t>(c);
                     auto dict_len = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<dict_len; ++i) {
-                        string key, value;
+                        string key;
                         ReadVec<string, int32_t>(c, key);
-                        ReadVec<string, int32_t>(c, value);
-                        if (key == "_name")
+                        if (key == "_name") {
+                            string value;
+                            ReadVec<string, int32_t>(c, value);
                             node_names.insert_or_assign(node_id, value);
+                        } else
+                            SkipVec<string, int32_t>(c);
                     }
                     auto child_num = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<child_num; ++i) {
@@ -645,11 +651,14 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     auto node_id = ReadMemInc<int32_t>(c);
                     auto dict_len = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<dict_len; ++i) {
-                        string key, value;
+                        string key;
                         ReadVec<string, int32_t>(c, key);
-                        ReadVec<string, int32_t>(c, value);
-                        if (key == "_name")
+                        if (key == "_name") {
+                            string value;
+                            ReadVec<string, int32_t>(c, value);
                             node_names.insert_or_assign(node_id, value);
+                        } else
+                            SkipVec<string, int32_t>(c);
                     }
                     auto models_num = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<models_num; ++i) {
@@ -657,9 +666,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                         node_to_model.insert_or_assign(node_id, model_id);
                         auto dict_len = ReadMemInc<int32_t>(c);
                         for (int i = 0; i<dict_len; ++i) {
-                            string key, value;
-                            ReadVec<string, int32_t>(c, key);
-                            ReadVec<string, int32_t>(c, value);
+                            SkipVec<string, int32_t>(c);
+                            SkipVec<string, int32_t>(c);
                         }
                         [[maybe_unused]]auto reserved = ReadMemInc<int32_t>(c);
                     }
@@ -669,11 +677,14 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     auto layer_id = ReadMemInc<int32_t>(c);
                     auto dict_len = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<dict_len; ++i) {
-                        string key, value;
+                        string key;
                         ReadVec<string, int32_t>(c, key);
-                        ReadVec<string, int32_t>(c, value);
-                        if (key == "_name")
+                        if (key == "_name") {
+                            string value;
+                            ReadVec<string, int32_t>(c, value);
                             layer_names.insert_or_assign(layer_id, value);
+                        } else
+                            SkipVec<string, int32_t>(c);
                     }
                 } else {
                     chunks_skipped = true;
