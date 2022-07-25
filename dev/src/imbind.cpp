@@ -705,7 +705,7 @@ nfr("im_group_end", "", "", "",
         NPop(vm, N_GROUP);
     });
 
-nfr("im_disabled_start", "label", "B", "B",
+nfr("im_disabled_start", "disabled", "B", "",
     "(use im_disabled instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
