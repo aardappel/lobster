@@ -704,6 +704,21 @@ nfr("im_group_end", "", "", "",
         NPop(vm, N_GROUP);
     });
 
+nfr("im_disabled_start", "disabled", "B", "",
+    "(use im_disabled instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        const auto disabled = Pop(sp).True();
+        ImGui::BeginDisabled(disabled);
+    });
+
+nfr("im_disabled_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::EndDisabled();
+    });
+
 nfr("im_width_start", "width", "F", "",
     "Sets the width of an item: 0 = default, -1 = use full width without label,"
     " any other value is custom width. Use im_width instead",
