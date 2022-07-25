@@ -568,11 +568,11 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             auto p = buf.c_str() + 8;
             bool chunks_skipped = false;
             Voxels *voxels = nullptr;
-            map<int32_t, int32_t> node_graph;
-            map<int32_t, int32_t> node_to_model;
-            map<int32_t, int32_t> node_to_layer;
-            map<int32_t, string> layer_names;
-            map<int32_t, string> node_names;
+            unordered_map<int32_t, int32_t> node_graph;
+            unordered_map<int32_t, int32_t> node_to_model;
+            unordered_map<int32_t, int32_t> node_to_layer;
+            unordered_map<int32_t, string> layer_names;
+            unordered_map<int32_t, string> node_names;
 
             while (p < buf.c_str() + buf.length()) {
                 auto id = p;
@@ -614,8 +614,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     auto dict_len = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<dict_len; ++i) {
                         string key, value;
-                        ReadVec32(c, key);
-                        ReadVec32(c, value);
+                        ReadVec<string, int32_t>(c, key);
+                        ReadVec<string, int32_t>(c, value);
                         if (key == "_name")
                             node_names.insert_or_assign(node_id, value);
                     }
@@ -630,8 +630,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     auto dict_len = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<dict_len; ++i) {
                         string key, value;
-                        ReadVec32(c, key);
-                        ReadVec32(c, value);
+                        ReadVec<string, int32_t>(c, key);
+                        ReadVec<string, int32_t>(c, value);
                         if (key == "_name")
                             node_names.insert_or_assign(node_id, value);
                     }
@@ -646,8 +646,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     auto dict_len = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<dict_len; ++i) {
                         string key, value;
-                        ReadVec32(c, key);
-                        ReadVec32(c, value);
+                        ReadVec<string, int32_t>(c, key);
+                        ReadVec<string, int32_t>(c, value);
                         if (key == "_name")
                             node_names.insert_or_assign(node_id, value);
                     }
@@ -658,8 +658,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                         auto dict_len = ReadMemInc<int32_t>(c);
                         for (int i = 0; i<dict_len; ++i) {
                             string key, value;
-                            ReadVec32(c, key);
-                            ReadVec32(c, value);
+                            ReadVec<string, int32_t>(c, key);
+                            ReadVec<string, int32_t>(c, value);
                         }
                         auto reserved = ReadMemInc<int32_t>(c);
                     }
@@ -670,8 +670,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     auto dict_len = ReadMemInc<int32_t>(c);
                     for (int i = 0; i<dict_len; ++i) {
                         string key, value;
-                        ReadVec32(c, key);
-                        ReadVec32(c, value);
+                        ReadVec<string, int32_t>(c, key);
+                        ReadVec<string, int32_t>(c, value);
                         if (key == "_name")
                             layer_names.insert_or_assign(layer_id, value);
                     }

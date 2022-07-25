@@ -1037,16 +1037,8 @@ template<typename T> T ReadMemInc(const uint8_t *&p) {
     return dest;
 }
 
-template<typename T> void ReadVec(const uint8_t *&p, T &v) {
-    auto len = ReadMemInc<uint64_t>(p);
-    v.resize((size_t)len);
-    auto blen = sizeof(typename T::value_type) * v.size();
-    memcpy(v.data(), p, blen);
-    p += blen;
-}
-
-template<typename T> void ReadVec32(const uint8_t *&p, T &v) {
-    auto len = ReadMemInc<uint32_t>(p);
+template<typename T, typename K = uint64_t> void ReadVec(const uint8_t *&p, T &v) {
+    auto len = ReadMemInc<K>(p);
     v.resize((size_t)len);
     auto blen = sizeof(typename T::value_type) * v.size();
     memcpy(v.data(), p, blen);
