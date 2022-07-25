@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "lobster/stdafx.h"
+
+#include "lobster/vmdata.h"
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 

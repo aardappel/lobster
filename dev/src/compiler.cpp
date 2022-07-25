@@ -16,6 +16,8 @@
 //
 #include "lobster/stdafx.h"
 
+#include "lobster/il.h"
+
 #include "lobster/lex.h"
 #include "lobster/idents.h"
 #include "lobster/node.h"

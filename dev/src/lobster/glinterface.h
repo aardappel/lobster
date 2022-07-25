@@ -42,13 +42,29 @@ struct Texture {
     }
 };
 
-struct Shader {
+struct OwnedTexture : lobster::Resource {
+    Texture t;
+
+    OwnedTexture(Texture t) : t(t) {}
+    ~OwnedTexture();
+    size_t2 MemoryUsage() { return t.MemoryUsage(); }
+};
+
+struct Shader : lobster::Resource {
     int vs = 0, ps = 0, cs = 0, program = 0;
     int mvp_i, col_i, camera_i, light1_i, lightparams1_i, framebuffer_size_i,
         bones_i, pointscale_i;
     int max_tex_defined = 0;
 
     enum { MAX_SAMPLERS = 32 };
+
+    // Use this for reusing BO's for now:
+    struct BOEntry {
+        int bo;
+        int bpi;
+        size_t size;
+    };
+    map<string, BOEntry, less<>> ubomap;
 
     ~Shader();
 
@@ -67,6 +83,11 @@ struct Shader {
                     int components, int elements = 1);
     bool SetUniformMatrix(string_view name, const float *val, int components, int elements, bool morerows);
     bool Dump(string_view filename, bool stripnonascii);
+
+    size_t2 MemoryUsage() {
+        // FIXME: somehow find out sizes of all attached GPU blocks?
+        return { sizeof(Shader), 0 };
+    }
 };
 
 struct Textured {
@@ -145,7 +166,7 @@ class Geometry  {
     }
 };
 
-struct Mesh {
+struct Mesh : lobster::Resource {
     Geometry *geom;
     vector<Surface *> surfs;
     Primitive prim;  // If surfs is empty, this determines how to draw the verts.

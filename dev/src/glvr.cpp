@@ -14,6 +14,7 @@
 
 #include "lobster/stdafx.h"
 
+#include "lobster/vmdata.h"
 #include "lobster/natreg.h"
 
 #include "lobster/glinterface.h"
@@ -21,6 +22,8 @@
 
 #include "lobster/sdlinterface.h"
 #include "lobster/sdlincludes.h"
+
+#include "lobster/graphics.h"
 
 #ifdef PLATFORM_VR
 
@@ -348,7 +351,7 @@ nfr("vr_create_motion_controller_mesh", "n", "I", "R:mesh?",
     [](StackPtr &, VM &vm, Value &mc) {
         auto mcd = GetMC(mc);
         extern ResourceType mesh_type;
-        return mcd ? Value(vm.NewResource(VRCreateMesh(mcd->device), &mesh_type)) : NilVal();
+        return mcd ? Value(vm.NewResource(&mesh_type, VRCreateMesh(mcd->device))) : NilVal();
     });
 
 // TODO: make it return an "up" value much like gl_button, since this doesn't represent

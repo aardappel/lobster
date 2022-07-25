@@ -25,10 +25,11 @@
 
 #include "lobster/simplex.h"
 
+#include "lobster/graphics.h"
+
 #include "ThreadPool/ThreadPool.h"
 
 using namespace lobster;
-
 
 /* TODO:
 
@@ -668,7 +669,7 @@ Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly)
         auto mesh = polygonize_mc(gridsize, gridscale, gridtrans, distgrid, id_grid_to_world);
         MeshGenClear();
         extern ResourceType mesh_type;
-        return Value(vm.NewResource(mesh, &mesh_type));
+        return Value(vm.NewResource(&mesh_type, mesh));
     } else {
         auto cg = CubesFromMeshGen(vm, *distgrid, targetgridsize, zoffset);
         MeshGenClear();

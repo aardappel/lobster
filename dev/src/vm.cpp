@@ -14,6 +14,7 @@
 
 #include "lobster/stdafx.h"
 
+#include "lobster/il.h"
 #include "lobster/disasm.h"
 
 #include "lobster/vmops.h"
@@ -84,10 +85,8 @@ VMAllocator::VMAllocator(VMArgs &&args) {
 
     vm = new (mem) VM(std::move(args), bcf);
 
-    #ifdef _MSC_VER
-    #ifndef NDEBUG
-    #define new DEBUG_NEW
-    #endif
+    #if defined(_MSC_VER) && !defined(NDEBUG)
+        #define new DEBUG_NEW
     #endif
 }
 
@@ -275,17 +274,8 @@ LString *VM::NewString(iint l) {
     return s;
 }
 
-LResource *VM::NewResource(void *v, const ResourceType *t) {
-    auto r = new (pool.alloc(sizeof(LResource))) LResource(v, t);
-    if (t->newfun) t->newfun(r->val);
-    OnAlloc(r);
-    return r;
-}
-
-#ifdef _MSC_VER
-#ifndef NDEBUG
-#define new DEBUG_NEW
-#endif
+#if defined(_MSC_VER) && !defined(NDEBUG)
+    #define new DEBUG_NEW
 #endif
 
 LString *VM::NewString(string_view s) {

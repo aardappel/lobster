@@ -23,18 +23,19 @@
 #include "lobster/cubegen.h"
 #include "lobster/simplex.h"
 
+#include "lobster/graphics.h"
+
 vector<Palette> palettes;
 
 namespace lobster {
 
 RandomNumberGenerator<Xoshiro256SS> cg_rnd;
 
-ResourceType voxel_type = {
-    "voxels",
-    [](void *v) { delete (Voxels *)v; },
-    nullptr,
-    [](void *v) { return ((Voxels *)v)->MemoryUsage(); }
-};
+ResourceType voxel_type = { "voxels" };
+
+Voxels &GetVoxels(const Value &res) {
+    return GetResourceDec<Voxels>(res, &voxel_type);
+}
 
 const unsigned int default_palette[256] = {
     0x00000000, 0xffffffff, 0xffccffff, 0xff99ffff, 0xff66ffff, 0xff33ffff, 0xff00ffff, 0xffffccff,
@@ -221,7 +222,7 @@ Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zof
             }
         }
     }
-    return vm.NewResource(&v, &voxel_type);
+    return vm.NewResource(&voxel_type, &v);
 }
 
 }
@@ -238,7 +239,7 @@ nfr("cg_init", "size", "I}:3", "R:voxels",
     " returns the block",
     [](StackPtr &sp, VM &vm) {
         auto v = NewWorld(PopVec<int3>(sp), default_palette_idx);
-        Push(sp, vm.NewResource(v, &voxel_type));
+        Push(sp, vm.NewResource(&voxel_type, v));
     });
 
 nfr("cg_size", "block", "R:voxels", "I}:3",
@@ -290,7 +291,7 @@ nfr("cg_clone", "block,pos,size", "R:voxelsI}:3I}:3", "R:voxels",
         auto &v = GetVoxels(res);
         auto nw = NewWorld(sz, v.palette_idx);
         v.Clone(p, sz, nw);
-        Push(sp, vm.NewResource(nw, &voxel_type));
+        Push(sp, vm.NewResource(&voxel_type, nw));
     });
 
 nfr("cg_color_to_palette", "block,color", "R:voxelsF}:4", "I",
@@ -371,7 +372,7 @@ nfr("cg_scale_up", "scale,world", "IR:voxels", "R:voxels", "",
                 }
             }
         }
-        return Value(vm.NewResource(&d, &voxel_type));
+        return Value(vm.NewResource(&voxel_type, &d));
     });
 
 nfr("cg_stretch", "newsize,world", "I}:3R:voxels", "R:voxels", "",
@@ -397,7 +398,7 @@ nfr("cg_stretch", "newsize,world", "I}:3R:voxels", "R:voxels", "",
                 }
             }
         }
-        Push(sp, Value(vm.NewResource(&d, &voxel_type)));
+        Push(sp, Value(vm.NewResource(&voxel_type, &d)));
     });
 
 nfr("cg_create_mesh", "block", "R:voxels", "R:mesh",
@@ -486,8 +487,7 @@ nfr("cg_create_mesh", "block", "R:voxels", "R:mesh",
                           PRIM_TRIS);
         m->surfs.push_back(
             new Surface("cg_create_mesh_idxs", gsl::make_span(triangles), PRIM_TRIS));
-        extern ResourceType mesh_type;
-        return Value(vm.NewResource(m, &mesh_type));
+        return Value(vm.NewResource(&mesh_type, m));
     });
 
 nfr("cg_create_3d_texture", "block,textureformat,monochrome", "R:voxelsII?", "R:texture",
@@ -537,8 +537,7 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "R:voxelsII?", "R:
             TF_3D | /*TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP |*/ TF_SINGLE_CHANNEL |
             TF_BUFFER_HAS_MIPS | textureflags.intval());
         delete[] buf;
-        extern ResourceType texture_type;
-        return Value(vm.NewResource(new Texture(tex), &texture_type));
+        return Value(vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
 
 // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
@@ -571,7 +570,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 if (!strncmp(id, "SIZE", 4)) {
                     size = int3((int *)p);
                     voxels = NewWorld(size, default_palette_idx);
-                    voxvec->Push(vm, Value(vm.NewResource(voxels, &voxel_type)));
+                    voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
                 } else if (!strncmp(id, "RGBA", 4)) {
                     if (!voxels) return errf(".vox file RGBA chunk in wrong order");
                     vector<byte4> palette;
@@ -615,7 +614,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 return errf("voxlap XYZ size does not match file size");
             // Now should be save to read.
             auto voxels = NewWorld(size, default_palette_idx);
-            voxvec->Push(vm, Value(vm.NewResource(voxels, &voxel_type)));
+            voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
             for (int i = 0; i < vol; i++) {
                 auto c = *p++;
                 c = c == 255 ? 0 : c + 1;  // 255 is transparent;
@@ -788,7 +787,7 @@ nfr("cg_rotate", "block,n", "R:voxelsI", "R:voxels",
                 }
             }
         }
-        return Value(vm.NewResource(&d, &voxel_type));
+        return Value(vm.NewResource(&voxel_type, &d));
     });
 
 nfr("cg_simplex", "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,zscale,zbias", "R:voxelsI}:3I}:3F}:3F}:3IFFIFF", "",
@@ -906,7 +905,7 @@ nfr("cg_erode", "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "",
                 }
             }
         }
-        return Value(vm.NewResource(&d, &voxel_type));
+        return Value(vm.NewResource(&voxel_type, &d));
     });
 
 nfr("cg_normal_indices", "block,radius", "R:voxelsI", "R:voxels",
@@ -980,7 +979,7 @@ nfr("cg_normal_indices", "block,radius", "R:voxelsI", "R:voxels",
                 }
             }
         }
-        Push(sp, vm.NewResource(nw, &voxel_type));
+        Push(sp, vm.NewResource(&voxel_type, nw));
     });
 
 
@@ -1028,7 +1027,7 @@ nfr("cg_load_image", "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
                             }
                         }
                     }
-                    vec->Push(vm, vm.NewResource(voxels, &voxel_type));
+                    vec->Push(vm, vm.NewResource(&voxel_type, voxels));
                 }
             }
             FreeImageFromFile(buf);

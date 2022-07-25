@@ -15,6 +15,8 @@
 // IQM model loader, see: http://sauerbraten.org/iqm/ https://github.com/lsalzman/iqm
 
 #include "lobster/stdafx.h"
+
+#include "lobster/vmdata.h"
 #include "lobster/glinterface.h"
 
 #define IQM_MAGIC "INTERQUAKEMODEL"

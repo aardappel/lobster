@@ -15,6 +15,7 @@
 #include "lobster/stdafx.h"
 
 #include "lobster/compiler.h"
+#include "lobster/il.h"
 #include "lobster/disasm.h"
 #include "lobster/tonative.h"
 

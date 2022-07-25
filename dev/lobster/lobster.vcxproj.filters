@@ -385,6 +385,9 @@
     <ClInclude Include="..\external\imgui\imgui_impl_opengl3_loader.h">
       <Filter>engine\imgui\lib</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\graphics.h">
+      <Filter>engine\lobster_bindings</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">

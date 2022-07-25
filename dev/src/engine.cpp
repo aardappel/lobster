@@ -20,7 +20,8 @@
 
 #include "lobster/sdlinterface.h"
 
-#include "lobster/compiler.h"
+#include "lobster/glinterface.h"
+#include "lobster/graphics.h"
 
 
 // The code below allows for lightweight "plugins" to the

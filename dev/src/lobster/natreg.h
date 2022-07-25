@@ -227,16 +227,13 @@ TypeRef WrapKnown(TypeRef elem, ValueType with);
 // There must be a single of these per type, since they are compared by pointer.
 struct ResourceType {
     string_view name;
-    void (*deletefun)(void *);
-    void (*newfun)(void *);  // May be nullptr.
-    size_t2 (*sizefun)(void *);
     ResourceType *next;
     const Type thistype;
     const Type thistypenil;
     const Type thistypevec;
 
-    ResourceType(string_view n, void (*df)(void *), void (*nf)(void *), size_t2 (*sf)(void *))
-        : name(n), deletefun(df), newfun(nf), sizefun(sf), next(nullptr), thistype(this),
+    ResourceType(string_view n)
+        : name(n), next(nullptr), thistype(this),
           thistypenil(V_NIL, &thistype), thistypevec(V_VECTOR, &thistype) {
         next = g_resource_type_list;
         g_resource_type_list = this;

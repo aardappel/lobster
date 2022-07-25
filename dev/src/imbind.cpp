@@ -19,7 +19,6 @@
 #include "lobster/stdafx.h"
 
 #include "lobster/natreg.h"
-#include "lobster/vmdata.h"
 
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "lobster/bytecode_generated.h"

@@ -21,8 +21,8 @@ namespace lobster {
 
 LString::LString(iint _l) : RefObj(TYPE_ELEM_STRING), len(_l) { ((char *)data())[_l] = 0; }
 
-LResource::LResource(void *v, const ResourceType *t)
-    : RefObj(TYPE_ELEM_RESOURCE), val(v), type(t) {}
+LResource::LResource(const ResourceType *t, Resource *res)
+    : RefObj(TYPE_ELEM_RESOURCE), type(t), res(res) {}
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
@@ -177,8 +177,18 @@ void LObject::DeleteSelf(VM &vm) {
 }
 
 void LResource::DeleteSelf(VM &vm) {
-    type->deletefun(val);
+    if (owned) delete res;
     vm.pool.dealloc(this, sizeof(LResource));
+}
+
+LResource *VM::NewResource(const ResourceType *type, Resource *res) {
+    #undef new
+    auto r = new (pool.alloc(sizeof(LResource))) LResource(type, res);
+    #if defined(_MSC_VER) && !defined(NDEBUG)
+        #define new DEBUG_NEW
+    #endif
+    OnAlloc(r);
+    return r;
 }
 
 void RefObj::DECDELETENOW(VM &vm) {
@@ -215,7 +225,7 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
         case V_STRING:      return *((LString *)a) == *((LString *)b);
         case V_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
         case V_CLASS:       return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
-        case V_RESOURCE:    return structural && ((LResource *)a)->val == ((LResource *)b)->val;
+        case V_RESOURCE:    return false;
         default:            assert(0); return false;
     }
 }
@@ -377,7 +387,7 @@ Value Value::CopyRef(VM &vm, bool deep) {
         return Value(s);
     }
     default:
-        assert(false);
+        vm.BuiltinError("Can\'t copy type: " + ti.Debug(vm, false));
         return NilVal();
     }
 }
@@ -507,10 +517,6 @@ void LResource::ToString(string &sd) {
     append(sd, "(resource:", type->name, ")");
 }
 
-size_t2 LResource::MemoryUsage() {
-    return size_t2(sizeof(LResource), 0) + type->sizefun(val);
-}
-
 void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems) {
     sd += ReverseLookupType(ti.structidx);
     if (pp.indent) sd += ' ';
@@ -520,7 +526,6 @@ void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Va
         }
     );
 }
-
 
 void ElemToFlexBuffer(VM &vm, flexbuffers::Builder &builder, const TypeInfo &ti,
                       iint &i, iint width, const Value *elems, bool is_vector) {
