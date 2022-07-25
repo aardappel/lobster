@@ -621,7 +621,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     }
                     auto child_node_id = ReadMemInc<int32_t>(c);
                     node_graph.insert_or_assign(child_node_id, node_id);
-                    auto reserved = ReadMemInc<int32_t>(c);
+                    [[maybe_unused]]auto reserved = ReadMemInc<int32_t>(c);
                     auto layer_id = ReadMemInc<int32_t>(c);
                     node_to_layer.insert_or_assign(node_id, layer_id);
                 } else if (!strncmp(id, "nGRP", 4)) {
@@ -661,7 +661,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                             ReadVec<string, int32_t>(c, key);
                             ReadVec<string, int32_t>(c, value);
                         }
-                        auto reserved = ReadMemInc<int32_t>(c);
+                        [[maybe_unused]]auto reserved = ReadMemInc<int32_t>(c);
                     }
                 } else if (!strncmp(id, "LAYR", 4)) {
                     // Layer metadata
