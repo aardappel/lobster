@@ -558,16 +558,17 @@ declaration, like so:</p>
 <p>This definition of <code>f</code> for <code>A</code> is entirely
 equivalent to the one above, except the name of the first argument is
 now <code>this</code> instead of <code>a</code> above.</p>
-<p>Only the first argument to a function is used to resolve which
-overload to call, either statically or dynamically. Lobster used to have
-the ability to dispatch on all arguments, called “multi-methods”, which
-at least academically seem very elegant. In practice however, these are
-slow (require complicated look-up tables) and ambiguous (hard to tell
-which function will get called, sometimes accidentally combine unrelated
-functions into a multimethod and get unexpected errors or slow-down).
-Single dispatch gives predictable, fast polymorphism that seems to work
-well for most languages, so for the moment, multi-methods are removed
-from the language.</p>
+<p>Only the first argument to a function is used to resolve dynamic
+dispatch, but for static overloading, all arguments will be taken into
+consideration. Lobster used to have the ability to dispatch on all
+arguments, called “multi-methods”, which at least academically seem very
+elegant. In practice however, these are slow (require complicated
+look-up tables) and ambiguous (hard to tell which function will get
+called, sometimes accidentally combine unrelated functions into a
+multimethod and get unexpected errors or slow-down). Single dispatch
+gives predictable, fast polymorphism that seems to work well for most
+languages, so for the moment, multi-methods are removed from the
+language.</p>
 <p>Overloading and dynamic dispatch can even be mixed with type
 specialization (see <a href="type_checker.html">type system</a>),
 meaning you can generate multiple versions of a polymorphic call that do

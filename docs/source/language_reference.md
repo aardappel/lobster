@@ -670,9 +670,10 @@ class A:
 This definition of `f` for `A` is entirely equivalent to the one above, except
 the name of the first argument is now `this` instead of `a` above.
 
-Only the first argument to a function is used to resolve which overload to call,
-either statically or dynamically. Lobster used to have the ability to dispatch on
-all arguments, called "multi-methods", which at least academically seem very elegant.
+Only the first argument to a function is used to resolve dynamic dispatch, but
+for static overloading, all arguments will be taken into consideration.
+Lobster used to have the ability to dispatch on all arguments, called "multi-methods",
+which at least academically seem very elegant.
 In practice however, these are slow (require complicated look-up tables) and ambiguous
 (hard to tell which function will get called, sometimes accidentally combine unrelated
 functions into a multimethod and get unexpected errors or slow-down). Single dispatch
