@@ -626,22 +626,22 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     if (!ReadSpanInc<int32_t>(p, dict_len)) return erreof();
                     for (int i = 0; i < dict_len; ++i) {
                         string key;
-                        if (ReadSpanVec<string, int32_t>(p, key))
-                            if (key == "_name") {
-                                string value;
-                                if (ReadSpanVec<string, int32_t>(p, value))
-                                    node_names.insert_or_assign(node_id, value);
-                            } else if (!SkipSpanVec<string, int32_t>(p))
-                                break;
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
+                        if (key == "_name") {
+                            string value;
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
+                            node_names.insert_or_assign(node_id, value);
+                        } else
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                     }
                     int32_t child_node_id;
-                    if (ReadSpanInc<int32_t>(p, child_node_id))
-                        node_graph.insert_or_assign(child_node_id, node_id);
+                    if (!ReadSpanInc<int32_t>(p, child_node_id)) return erreof();
+                    node_graph.insert_or_assign(child_node_id, node_id);
                     [[maybe_unused]] int32_t reserved;
                     ReadSpanInc(p, reserved);
                     int32_t layer_id;
-                    if (ReadSpanInc(p, layer_id))
-                        node_to_layer.insert_or_assign(node_id, layer_id);
+                    if (!ReadSpanInc(p, layer_id)) return erreof();
+                    node_to_layer.insert_or_assign(node_id, layer_id);
                 } else if (!strncmp(id, "nGRP", 4)) {
                     int32_t node_id;
                     if (!ReadSpanInc(p, node_id)) return erreof();
@@ -649,21 +649,21 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     if (!ReadSpanInc(p, dict_len)) return erreof();
                     for (int i = 0; i < dict_len; ++i) {
                         string key;
-                        if (ReadSpanVec<string, int32_t>(p, key))
-                            if (key == "_name") {
-                                string value;
-                                if (ReadSpanVec<string, int32_t>(p, value))
-                                    node_names.insert_or_assign(node_id, value);
-                            } else
-                                SkipSpanVec<string, int32_t>(p);
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
+                        if (key == "_name") {
+                            string value;
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
+                            node_names.insert_or_assign(node_id, value);
+                        } else
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                     }
                     int32_t child_num;
-                    if (ReadSpanInc(p, child_num))
-                        for (int i = 0; i < child_num; ++i) {
-                            int32_t child_node_id;
-                            if (ReadSpanInc(p, child_node_id))
-                                node_graph.insert_or_assign(child_node_id, node_id);
-                        }
+                    if (!ReadSpanInc(p, child_num)) return erreof();
+                    for (int i = 0; i < child_num; ++i) {
+                        int32_t child_node_id;
+                        if (!ReadSpanInc(p, child_node_id)) return erreof();
+                        node_graph.insert_or_assign(child_node_id, node_id);
+                    }
                 } else if (!strncmp(id, "nSHP", 4)) {
                     int32_t node_id;
                     if (!ReadSpanInc(p, node_id)) return erreof();
@@ -671,29 +671,29 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     if (!ReadSpanInc(p, dict_len)) return erreof();
                     for (int i = 0; i < dict_len; ++i) {
                         string key;
-                        if (ReadSpanVec<string, int32_t>(p, key))
-                            if (key == "_name") {
-                                string value;
-                                if (ReadSpanVec<string, int32_t>(p, value))
-                                    node_names.insert_or_assign(node_id, value);
-                            } else
-                                SkipSpanVec<string, int32_t>(p);
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
+                        if (key == "_name") {
+                            string value;
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
+                            node_names.insert_or_assign(node_id, value);
+                        } else
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                     }
                     int32_t models_num;
-                    if (ReadSpanInc(p, models_num))
-                        for (int i = 0; i < models_num; ++i) {
-                            int32_t model_id;
-                            if (ReadSpanInc(p, model_id))
-                                node_to_model.insert_or_assign(node_id, model_id);
-                            int32_t dict_len;
-                            if (ReadSpanInc(p, dict_len))
-                                for (int i = 0; i < dict_len; ++i) {
-                                    SkipSpanVec<string, int32_t>(p);
-                                    SkipSpanVec<string, int32_t>(p);
-                                }
-                            [[maybe_unused]] int32_t reserved;
-                            ReadSpanInc(p, reserved);
+                    if (!ReadSpanInc(p, models_num)) return erreof();
+                    for (int i = 0; i < models_num; ++i) {
+                        int32_t model_id;
+                        if (ReadSpanInc(p, model_id))
+                            node_to_model.insert_or_assign(node_id, model_id);
+                        int32_t dict_len;
+                        if (!ReadSpanInc(p, dict_len)) return erreof();
+                        for (int i = 0; i < dict_len; ++i) {
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                         }
+                        [[maybe_unused]] int32_t reserved;
+                        if (!ReadSpanInc(p, reserved)) return erreof();
+                    }
                 } else if (!strncmp(id, "LAYR", 4)) {
                     // Layer metadata
                     int32_t layer_id;
@@ -702,13 +702,13 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     if (!ReadSpanInc(p, dict_len)) return erreof();
                     for (int i = 0; i < dict_len; ++i) {
                         string key;
-                        if (ReadSpanVec<string, int32_t>(p, key))
-                            if (key == "_name") {
-                                string value;
-                                if (ReadSpanVec<string, int32_t>(p, value))
-                                    layer_names.insert_or_assign(layer_id, value);
-                            } else
-                                SkipSpanVec<string, int32_t>(p);
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
+                        if (key == "_name") {
+                            string value;
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
+                            layer_names.insert_or_assign(layer_id, value);
+                        } else
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                     }
                 } else {
                     chunks_skipped = true;
