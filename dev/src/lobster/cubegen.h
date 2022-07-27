@@ -32,6 +32,7 @@ struct Voxels : lobster::Resource {
     bool chunks_skipped = false;
     Chunk3DGrid<uint8_t> grid;
     int idx = 0;
+    string name;
 
     Voxels(const int3 &dim, size_t idx) : palette_idx(idx), grid(dim, transparant) {}
 

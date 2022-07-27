@@ -248,6 +248,12 @@ nfr("cg_size", "block", "R:voxels", "I}:3",
         PushVec(sp, GetVoxels(Pop(sp)).grid.dim);
     });
 
+nfr("cg_name", "block", "R:voxels", "S",
+    "returns the current block name",
+    [](StackPtr &sp, VM &vm) {
+        Push(sp, vm.NewString(GetVoxels(Pop(sp)).name));
+    });
+
 nfr("cg_set", "block,pos,size,paletteindex", "R:voxelsI}:3I}:3I", "",
     "sets a range of cubes to palette index. index 0 is considered empty space."
     "Coordinates automatically clipped to the size of the grid",
@@ -562,6 +568,12 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             auto p = buf.c_str() + 8;
             bool chunks_skipped = false;
             Voxels *voxels = nullptr;
+            unordered_map<int32_t, int32_t> node_graph;
+            unordered_map<int32_t, int32_t> node_to_model;
+            unordered_map<int32_t, int32_t> node_to_layer;
+            unordered_map<int32_t, string> layer_names;
+            unordered_map<int32_t, string> node_names;
+
             while (p < buf.c_str() + buf.length()) {
                 auto id = p;
                 p += 4;
@@ -588,14 +600,112 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                         auto pos = int3(vox.xyz());
                         if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
                     }
+
                 } else if (!strncmp(id, "MAIN", 4)) {
                     // Ignore, wrapper around the above chunks.
                 } else if (!strncmp(id, "PACK", 4)) {
                     // Ignore, tells us how many models, but we simply load em all.
+
+                } else if (!strncmp(id, "nTRN", 4)) {
+                    // parse node and layer metadata and apply the name bit to the model
+                    // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
+                    auto c = (const uint8_t*)p;
+                    auto node_id = ReadMemInc<int32_t>(c);
+                    auto dict_len = ReadMemInc<int32_t>(c);
+                    for (int i = 0; i<dict_len; ++i) {
+                        string key;
+                        ReadVec<string, int32_t>(c, key);
+                        if (key == "_name") {
+                            string value;
+                            ReadVec<string, int32_t>(c, value);
+                            node_names.insert_or_assign(node_id, value);
+                        } else
+                            SkipVec<string, int32_t>(c);
+                    }
+                    auto child_node_id = ReadMemInc<int32_t>(c);
+                    node_graph.insert_or_assign(child_node_id, node_id);
+                    [[maybe_unused]]auto reserved = ReadMemInc<int32_t>(c);
+                    auto layer_id = ReadMemInc<int32_t>(c);
+                    node_to_layer.insert_or_assign(node_id, layer_id);
+                } else if (!strncmp(id, "nGRP", 4)) {
+                    auto c = (const uint8_t*)p;
+                    auto node_id = ReadMemInc<int32_t>(c);
+                    auto dict_len = ReadMemInc<int32_t>(c);
+                    for (int i = 0; i<dict_len; ++i) {
+                        string key;
+                        ReadVec<string, int32_t>(c, key);
+                        if (key == "_name") {
+                            string value;
+                            ReadVec<string, int32_t>(c, value);
+                            node_names.insert_or_assign(node_id, value);
+                        } else
+                            SkipVec<string, int32_t>(c);
+                    }
+                    auto child_num = ReadMemInc<int32_t>(c);
+                    for (int i = 0; i<child_num; ++i) {
+                        auto child_node_id = ReadMemInc<int32_t>(c);
+                        node_graph.insert_or_assign(child_node_id, node_id);
+                    }
+                } else if (!strncmp(id, "nSHP", 4)) {
+                    auto c = (const uint8_t*)p;
+                    auto node_id = ReadMemInc<int32_t>(c);
+                    auto dict_len = ReadMemInc<int32_t>(c);
+                    for (int i = 0; i<dict_len; ++i) {
+                        string key;
+                        ReadVec<string, int32_t>(c, key);
+                        if (key == "_name") {
+                            string value;
+                            ReadVec<string, int32_t>(c, value);
+                            node_names.insert_or_assign(node_id, value);
+                        } else
+                            SkipVec<string, int32_t>(c);
+                    }
+                    auto models_num = ReadMemInc<int32_t>(c);
+                    for (int i = 0; i<models_num; ++i) {
+                        auto model_id = ReadMemInc<int32_t>(c);
+                        node_to_model.insert_or_assign(node_id, model_id);
+                        auto dict_len = ReadMemInc<int32_t>(c);
+                        for (int i = 0; i<dict_len; ++i) {
+                            SkipVec<string, int32_t>(c);
+                            SkipVec<string, int32_t>(c);
+                        }
+                        [[maybe_unused]]auto reserved = ReadMemInc<int32_t>(c);
+                    }
+                } else if (!strncmp(id, "LAYR", 4)) {
+                    // Layer metadata
+                    auto c = (const uint8_t*)p;
+                    auto layer_id = ReadMemInc<int32_t>(c);
+                    auto dict_len = ReadMemInc<int32_t>(c);
+                    for (int i = 0; i<dict_len; ++i) {
+                        string key;
+                        ReadVec<string, int32_t>(c, key);
+                        if (key == "_name") {
+                            string value;
+                            ReadVec<string, int32_t>(c, value);
+                            layer_names.insert_or_assign(layer_id, value);
+                        } else
+                            SkipVec<string, int32_t>(c);
+                    }
                 } else {
                     chunks_skipped = true;
                 }
                 p += contentlen;
+            }
+            for (auto &i : node_to_layer)
+                if ((layer_names.find(i.second) != layer_names.end()) && (node_names.find(i.first) == node_names.end()))
+                    node_names.insert_or_assign(i.first, layer_names[i.second]);
+            for (auto &i : node_to_model) {
+                auto node_id = i.first;
+                auto model_id = i.second;
+                while (true) {
+                    if (node_names.find(node_id) != node_names.end()) {
+                        GetVoxels(voxvec->At(model_id)).name = node_names[node_id];
+                        break;
+                    }
+                    if (node_graph.find(node_id) == node_graph.end())
+                        break;
+                    node_id = node_graph[node_id];
+                }
             }
             if (!voxels) return errf(".vox file missing SIZE chunk");
             voxels->chunks_skipped = chunks_skipped;  // FIXME: only on last model.
