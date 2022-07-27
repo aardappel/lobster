@@ -582,8 +582,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 bufs =bufs.subspan(4);
                 int contentlen;
                 if (!ReadSpanInc(bufs, contentlen)) return erreof();
-                bufs= bufs.subspan(4);
-                if (bufs.size() < contentlen) return erreof();
+                bufs = bufs.subspan(4);
+                if ((ptrdiff_t)bufs.size() < (ptrdiff_t)contentlen) return erreof();
                 auto p = bufs.subspan(0, contentlen);
                 bufs = bufs.subspan(contentlen);
                 if (!strncmp(id, "SIZE", 4)) {
