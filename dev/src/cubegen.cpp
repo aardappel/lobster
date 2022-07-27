@@ -691,8 +691,6 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                             if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                             if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                         }
-                        [[maybe_unused]] int32_t reserved;
-                        if (!ReadSpanInc(p, reserved)) return erreof();
                     }
                 } else if (!strncmp(id, "LAYR", 4)) {
                     // Layer metadata
