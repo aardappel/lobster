@@ -1036,7 +1036,7 @@ template<typename T> void WriteMemInc(uint8_t *&dest, const T &src) {
     dest += sizeof(T);
 }
 
-template<typename T> bool ReadSpan(const span<const uint8_t> &&p, T &v) {
+template<typename T> bool ReadSpan(const span<const uint8_t> p, T &v) {
     if (p.size_bytes() < sizeof(T))
         return false;
     memcpy(&v, p.data(), sizeof(T));
