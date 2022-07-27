@@ -1478,131 +1478,120 @@ struct TypeChecker {
             }
             // Yay there are no sub-class implementations, we can just statically dispatch.
         }
-        // Do a static dispatch, if there are overloads, figure out from first arg which to pick,
+        // Do a static dispatch.
+        // if there are overloads, figure out from first arg which to pick,
         // much like dynamic dispatch. Unlike dynamic dispatch, we also include non-class types.
         // TODO: also involve the other arguments for more complex static overloads?
-
-        // FIXME: the use of args[0].type here and further downstream only works because
+        // FIXME: the use of args[].type here and further downstream only works because
         // we pre-resolve these in the TypeChecker constructor, instead we should use giventypes
         // properly here, and resolve them.
-        int overload_idx = 0;
-        if (f.nargs() && f.overloads.size() > 1) {
-            overload_idx = -1;
+        vector<int> from;
+        for (int i = 0; i < (int)f.overloads.size(); i++) from.push_back(i);
+        for (int argidx = 0; ; argidx++) {
+            if (from.size() == 1) {
+                // We're done, found unique match.
+                LOG_DEBUG("static dispatch: ", Signature(*f.overloads[from[0]].sf));
+                return TypeCheckCallStatic(csf, call_args, reqret, specializers, from[0], true,
+                                           false);
+            }
+            if ((int)f.nargs() == argidx) {
+                // Gotten to the end and we still have multiple matches!
+                Error(call_args, "multiple overloads for ", Q(f.name), " match the argument types");
+            }
+            // Now filter existing matches into a new set of matches based on current arg.
+            vector<int> matches;
+            auto type = argidx ? call_args.children[argidx]->exptype : type0;
             // First see if there is an exact match.
-            for (auto [i, ov] : enumerate(f.overloads)) {
-                if (type0->Equal(*ov.sf->args[0].type)) {
-                    if (overload_idx >= 0)
-                        Error(call_args, "multiple overloads for ", Q(f.name),
-                                         " have the same first argument type ", Q(TypeName(type0)));
-                    overload_idx = (int)i;
-                }
+            for (auto i : from) {
+                auto &ov = f.overloads[i];
+                if (type->Equal(*ov.sf->args[argidx].type)) matches.push_back(i);
             }
             // Then see if there's a match if we'd instantiate a generic UDT  first arg.
-            if (overload_idx < 0 && IsUDT(type0->t)) {
-                for (auto [i, ov] : enumerate(f.overloads)) {
-                    auto arg0 = ov.sf->giventypes[0].utr;  // Want unresolved type.
-                    if (arg0->t == V_UUDT && arg0->spec_udt->udt == type0->udt->first) {
-                        if (overload_idx >= 0) {
-                            Error(call_args, "multiple generic overloads for ", Q(f.name),
-                                             " can instantiate the first argument type ",
-                                             Q(TypeName(type0)));
-                        }
-                        overload_idx = (int)i;
+            if (matches.empty() && IsUDT(type->t)) {
+                for (auto i : from) {
+                    auto &ov = f.overloads[i];
+                    auto arg = ov.sf->giventypes[argidx].utr;  // Want unresolved type.
+                    if (arg->t == V_UUDT && arg->spec_udt->udt == type->udt->first) {
+                        matches.push_back(i);
                     }
                 }
             }
             // Then see if there's a match by subtyping.
-            if (overload_idx < 0) {
-                for (auto [i, ov] : enumerate(f.overloads)) {
-                    auto arg0 = ov.sf->args[0].type;
-                    if (ConvertsTo(type0, arg0, CF_NONE)) {
-                        if (overload_idx >= 0) {
-                            if (type0->t == V_CLASS) {
-                                auto oarg0 = f.overloads[overload_idx].sf->args[0].type;
-                                // Prefer "closest" supertype.
-                                auto dist = st.SuperDistance(arg0->udt, type0->udt);
-                                auto odist = st.SuperDistance(oarg0->udt, type0->udt);
-                                if (dist < odist) overload_idx = (int)i;
-                                else if (odist < dist) { /* keep old one */ }
-                                else {
-                                    Error(call_args, "multiple overloads for ", Q(f.name),
-                                                     " have the same class for first argument type ",
-                                                      Q(TypeName(type0)));
-                                }
+            if (matches.empty()) {
+                for (auto i : from) {
+                    auto &ov = f.overloads[i];
+                    auto arg = ov.sf->args[argidx].type;
+                    if (ConvertsTo(type, arg, CF_NONE)) {
+                        if (matches.size() == 1 && type->t == V_CLASS) {
+                            auto oarg = f.overloads[matches[0]].sf->args[argidx].type;
+                            // Prefer "closest" supertype.
+                            auto dist = st.SuperDistance(arg->udt, type->udt);
+                            auto odist = st.SuperDistance(oarg->udt, type->udt);
+                            if (dist < odist) {
+                                matches[0] = i;  // Overwrite with better pick.
+                            } else if (odist < dist) {
+                                // Keep old one.
                             } else {
-                                Error(call_args, "multiple overloads for ", Q(f.name),
-                                                 " apply for the first argument type ",
-                                                 Q(TypeName(type0)));
+                                // Keep both, and hope the next arg disambiguates.
+                                matches.push_back(i);
                             }
                         } else {
-                            overload_idx = (int)i;
+                            matches.push_back(i);
                         }
                     }
                 }
             }
             // Then see if there's a match if we'd instantiate a fully generic first arg.
-            if (overload_idx < 0) {
-                for (auto [i, ov] : enumerate(f.overloads)) {
-                    auto arg0 = ov.sf->giventypes[0].utr;  // Want unresolved type.
-                    if (arg0->t == V_TYPEVAR) {
-                        if (overload_idx >= 0) {
-                            Error(call_args, "multiple generic overloads for ", Q(f.name),
-                                             " can instantiate the first argument type ",
-                                             Q(TypeName(type0)));
-                        }
-                        overload_idx = (int)i;
-                    }
+            if (matches.empty()) {
+                for (auto i : from) {
+                    auto &ov = f.overloads[i];
+                    auto arg = ov.sf->giventypes[argidx].utr;  // Want unresolved type.
+                    if (arg->t == V_TYPEVAR) { matches.push_back(i); }
                 }
             }
             // If the call has specializers, we should see bind those and see if they
             // uniquely identify an overload, e.g. for a [T] arg where T is now bound, or other
             // cases where the trivial case of T above doesn't apply.
-            if (overload_idx < 0 && specializers && !specializers->empty()) {
+            if (matches.empty() && specializers && !specializers->empty()) {
                 // FIXME: This overlaps somewhat with resolving them during TypeCheckCallStatic
                 vector<BoundTypeVariable> generics(specializers->size());
                 for (auto [i, btv] : enumerate(generics)) {
                     btv.set_resolvedtype(nullptr);
                     btv.giventype = specializers->at(i);
                 }
-                for (auto [i, ov] : enumerate(f.overloads)) {
+                for (auto i : from) {
+                    auto &ov = f.overloads[i];
                     if (generics.size() != ov.sf->generics.size()) continue;
                     for (auto [i, btv] : enumerate(generics)) {
                         btv.tv = ov.sf->generics[i].tv;
                         btv.Resolve(ResolveTypeVars(btv.giventype, &call_args));
                     }
                     st.bound_typevars_stack.push_back(&generics);
-                    auto arg0 = ResolveTypeVars(ov.sf->giventypes[0], &call_args);
+                    auto arg = ResolveTypeVars(ov.sf->giventypes[argidx], &call_args);
                     st.bound_typevars_stack.pop_back();
                     // TODO: Should we instead do ConvertsTo here?
-                    if (type0->Equal(*arg0)) {
-                        if (overload_idx >= 0)
-                            Error(call_args, "multiple overloads for ", Q(f.name),
-                                             " apply when specialized for the first argument type ",
-                                             Q(TypeName(type0)));
-                        overload_idx = (int)i;
+                    if (type->Equal(*arg)) {
+                        matches.push_back(i);
                     }
                 }
             }
             // Then finally try with coercion.
-            if (overload_idx < 0) {
-                for (auto [i, ov] : enumerate(f.overloads)) {
-                    if (ConvertsTo(type0, ov.sf->args[0].type, CF_COERCIONS)) {
-                        if (overload_idx >= 0) {
-                            Error(call_args, "multiple overloads for ", Q(f.name),
-                                             " can coerce to first argument type ",
-                                             Q(TypeName(type0)));
-                        }
-                        overload_idx = (int)i;
+            if (matches.empty()) {
+                for (auto i : from) {
+                    auto &ov = f.overloads[i];
+                    if (ConvertsTo(type, ov.sf->args[argidx].type, CF_COERCIONS)) {
+                        matches.push_back(i);
                     }
                 }
             }
-            if (overload_idx < 0)
-                Error(call_args, "no overloads apply for ", Q(f.name), " with first argument type ",
-                                 Q(TypeName(type0)));
+            // Empty set: current arg can't select with any of the above methods.
+            if (matches.empty()) {
+                Error(call_args, "no overloads apply for ", Q(f.name), " with ", ArgName(argidx),
+                      " argument type ", Q(TypeName(type)));
+            }
+            // We still have multiple matches that apply, so let the next arg(s) decide.
+            from = matches;
         }
-        LOG_DEBUG("static dispatch: ", Signature(*f.overloads[overload_idx].sf));
-        return TypeCheckCallStatic(csf, call_args, reqret, specializers,
-                                   overload_idx, true, false);
     }
 
     SubFunction *PreSpecializeFunction(SubFunction *hsf) {

@@ -568,12 +568,11 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             auto p = buf.c_str() + 8;
             bool chunks_skipped = false;
             Voxels *voxels = nullptr;
-            unordered_map<int32_t, int32_t> node_graph;
-            unordered_map<int32_t, int32_t> node_to_model;
-            unordered_map<int32_t, int32_t> node_to_layer;
-            unordered_map<int32_t, string> layer_names;
-            unordered_map<int32_t, string> node_names;
-
+            map<int32_t, int32_t> node_graph;
+            map<int32_t, int32_t> node_to_model;
+            map<int32_t, int32_t> node_to_layer;
+            map<int32_t, string> layer_names;
+            map<int32_t, string> node_names;
             while (p < buf.c_str() + buf.length()) {
                 auto id = p;
                 p += 4;
@@ -600,12 +599,10 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                         auto pos = int3(vox.xyz());
                         if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
                     }
-
                 } else if (!strncmp(id, "MAIN", 4)) {
                     // Ignore, wrapper around the above chunks.
                 } else if (!strncmp(id, "PACK", 4)) {
                     // Ignore, tells us how many models, but we simply load em all.
-
                 } else if (!strncmp(id, "nTRN", 4)) {
                     // parse node and layer metadata and apply the name bit to the model
                     // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
@@ -697,7 +694,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             for (auto &i : node_to_model) {
                 auto node_id = i.first;
                 auto model_id = i.second;
-                while (true) {
+                for (;;) {
                     if (node_names.find(node_id) != node_names.end()) {
                         GetVoxels(voxvec->At(model_id)).name = node_names[node_id];
                         break;
