@@ -1036,14 +1036,14 @@ template<typename T> void WriteMemInc(uint8_t *&dest, const T &src) {
     dest += sizeof(T);
 }
 
-template<typename T> bool ReadSpan(const span<const uint8_t> p, T &v) {
+template<typename T> bool ReadSpan(const gsl::span<const uint8_t> p, T &v) {
     if (p.size_bytes() < sizeof(T))
         return false;
     memcpy(&v, p.data(), sizeof(T));
     return true;
 }
 
-template<typename T> bool ReadSpanInc(span<const uint8_t> &p, T &v) {
+template<typename T> bool ReadSpanInc(gsl::span<const uint8_t> &p, T &v) {
     if (p.size_bytes() < sizeof(T))
         return false;
     memcpy(&v, p.data(), sizeof(T));
@@ -1051,7 +1051,7 @@ template<typename T> bool ReadSpanInc(span<const uint8_t> &p, T &v) {
     return true;
 }
 
-template<typename T, typename K = uint64_t> bool ReadSpanVec(span<const uint8_t> &p, T &v) {
+template<typename T, typename K = uint64_t> bool ReadSpanVec(gsl::span<const uint8_t> &p, T &v) {
     K len;
     if (!ReadSpanInc<K>(p, len))
         return false;
@@ -1064,7 +1064,7 @@ template<typename T, typename K = uint64_t> bool ReadSpanVec(span<const uint8_t>
     return true;
 }
 
-template<typename T, typename K = uint64_t> bool SkipSpanVec(span<const uint8_t> &p) {
+template<typename T, typename K = uint64_t> bool SkipSpanVec(gsl::span<const uint8_t> &p) {
     K len;
     if (!ReadSpanInc(p, len))
         return false;
