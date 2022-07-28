@@ -1031,29 +1031,50 @@ template<typename T> T ReadMem(const void *p) {
     return dest;
 }
 
-template<typename T> T ReadMemInc(const uint8_t *&p) {
-    T dest = ReadMem<T>(p);
-    p += sizeof(T);
-    return dest;
-}
-
-template<typename T, typename K = uint64_t> void ReadVec(const uint8_t *&p, T &v) {
-    auto len = ReadMemInc<K>(p);
-    v.resize((size_t)len);
-    auto blen = sizeof(typename T::value_type) * v.size();
-    memcpy(v.data(), p, blen);
-    p += blen;
-}
-
-template<typename T, typename K = uint64_t> void SkipVec(const uint8_t *&p) {
-    auto len = ReadMemInc<K>(p);
-    p += len * sizeof(typename T::value_type);
-}
-
 template<typename T> void WriteMemInc(uint8_t *&dest, const T &src) {
     memcpy(dest, &src, sizeof(T));
     dest += sizeof(T);
 }
+
+template<typename T> bool ReadSpan(const gsl::span<const uint8_t> p, T &v) {
+    if (p.size_bytes() < sizeof(T))
+        return false;
+    memcpy(&v, p.data(), sizeof(T));
+    return true;
+}
+
+template<typename T> bool ReadSpanInc(gsl::span<const uint8_t> &p, T &v) {
+    if (p.size_bytes() < sizeof(T))
+        return false;
+    memcpy(&v, p.data(), sizeof(T));
+    p = p.subspan(sizeof(T));
+    return true;
+}
+
+template<typename T, typename K = uint64_t> bool ReadSpanVec(gsl::span<const uint8_t> &p, T &v) {
+    K len;
+    if (!ReadSpanInc<K>(p, len))
+        return false;
+    auto blen = len * sizeof(typename T::value_type);
+    if (p.size_bytes() < blen)
+        return false;
+    v.resize((size_t)len);
+    memcpy(v.data(), p.data(), blen);
+    p = p.subspan(blen);
+    return true;
+}
+
+template<typename T, typename K = uint64_t> bool SkipSpanVec(gsl::span<const uint8_t> &p) {
+    K len;
+    if (!ReadSpanInc(p, len))
+        return false;
+    auto blen = len * sizeof(typename T::value_type);
+    if (p.size_bytes() < blen)
+        return false;
+    p = p.subspan(blen);
+    return true;
+}
+
 
 // Enum operators.
 

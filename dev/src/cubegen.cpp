@@ -559,13 +559,16 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             Push(sp, Value(voxvec));
             return Value(vm.NewString(err));
         };
+        auto erreof = [&]() {
+            return errf("Unexpected end of vox file.");
+        };
         auto l = LoadFile(namep, &buf);
-        if (l < 0)
-            return errf(cat("could not load ", namep));
-        if (strncmp(buf.c_str(), "VOX ", 4) == 0) {
+        if (l < 0) return errf(cat("could not load ", namep));
+        auto bufs = gsl::span<const uint8_t>((const uint8_t *)buf.c_str(), buf.size());
+        if ((bufs.size() >= 8) && (strncmp((const char *)bufs.data(), "VOX ", 4) == 0)) {
             // This looks like a MagicaVoxel file.
             int3 size = int3_0;
-            auto p = buf.c_str() + 8;
+            bufs = bufs.subspan(8);
             bool chunks_skipped = false;
             Voxels *voxels = nullptr;
             map<int32_t, int32_t> node_graph;
@@ -573,120 +576,141 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             map<int32_t, int32_t> node_to_layer;
             map<int32_t, string> layer_names;
             map<int32_t, string> node_names;
-            while (p < buf.c_str() + buf.length()) {
-                auto id = p;
-                p += 4;
-                auto contentlen = *((int *)p);
-                p += 8;
+
+            while (bufs.size() >= 8) {
+                auto id = (const char *)bufs.data();
+                bufs =bufs.subspan(4);
+                int contentlen;
+                if (!ReadSpanInc(bufs, contentlen)) return erreof();
+                bufs = bufs.subspan(4);
+                if ((ptrdiff_t)bufs.size() < (ptrdiff_t)contentlen) return erreof();
+                auto p = bufs.subspan(0, contentlen);
+                bufs = bufs.subspan(contentlen);
                 if (!strncmp(id, "SIZE", 4)) {
-                    size = int3((int *)p);
+                    if (!ReadSpanInc(p, size)) return erreof();
                     voxels = NewWorld(size, default_palette_idx);
                     voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
                 } else if (!strncmp(id, "RGBA", 4)) {
                     if (!voxels) return errf(".vox file RGBA chunk in wrong order");
                     vector<byte4> palette;
                     palette.push_back(byte4_0);
-                    palette.insert(palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
+                    if (p.size() < 256) return erreof();
+                    palette.insert(palette.end(), (byte4 *)p.data(), ((byte4 *)p.data()) + 255);
                     auto pi = NewPalette(palette.data());
                     for (iint i = 0; i < voxvec->len; i++) {
                         GetVoxels(voxvec->At(i)).palette_idx = pi;
                     }
                 } else if (!strncmp(id, "XYZI", 4)) {
                     if (!voxels) return errf(".vox file XYZI chunk in wrong order");
-                    auto numvoxels = *((int *)p);
+                    int numvoxels;
+                    if (!ReadSpanInc(p, numvoxels)) return erreof();
+                    if (p.size_bytes() < numvoxels * sizeof(byte4)) return erreof();
+                    auto vp = (uint8_t *)p.data();
                     for (int i = 0; i < numvoxels; i++) {
-                        auto vox = byte4((uint8_t *)(p + i * 4 + 4));
+                        auto vox = byte4((vp + i * 4));
                         auto pos = int3(vox.xyz());
                         if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
                     }
+
                 } else if (!strncmp(id, "MAIN", 4)) {
                     // Ignore, wrapper around the above chunks.
                 } else if (!strncmp(id, "PACK", 4)) {
                     // Ignore, tells us how many models, but we simply load em all.
+
                 } else if (!strncmp(id, "nTRN", 4)) {
                     // parse node and layer metadata and apply the name bit to the model
                     // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
-                    auto c = (const uint8_t*)p;
-                    auto node_id = ReadMemInc<int32_t>(c);
-                    auto dict_len = ReadMemInc<int32_t>(c);
-                    for (int i = 0; i<dict_len; ++i) {
+                    int node_id;
+                    if (!ReadSpanInc<int32_t>(p, node_id)) return erreof();
+                    int dict_len;
+                    if (!ReadSpanInc<int32_t>(p, dict_len)) return erreof();
+                    for (int i = 0; i < dict_len; ++i) {
                         string key;
-                        ReadVec<string, int32_t>(c, key);
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
                         if (key == "_name") {
                             string value;
-                            ReadVec<string, int32_t>(c, value);
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
                             node_names.insert_or_assign(node_id, value);
                         } else
-                            SkipVec<string, int32_t>(c);
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                     }
-                    auto child_node_id = ReadMemInc<int32_t>(c);
+                    int32_t child_node_id;
+                    if (!ReadSpanInc<int32_t>(p, child_node_id)) return erreof();
                     node_graph.insert_or_assign(child_node_id, node_id);
-                    [[maybe_unused]]auto reserved = ReadMemInc<int32_t>(c);
-                    auto layer_id = ReadMemInc<int32_t>(c);
+                    [[maybe_unused]] int32_t reserved;
+                    ReadSpanInc(p, reserved);
+                    int32_t layer_id;
+                    if (!ReadSpanInc(p, layer_id)) return erreof();
                     node_to_layer.insert_or_assign(node_id, layer_id);
                 } else if (!strncmp(id, "nGRP", 4)) {
-                    auto c = (const uint8_t*)p;
-                    auto node_id = ReadMemInc<int32_t>(c);
-                    auto dict_len = ReadMemInc<int32_t>(c);
-                    for (int i = 0; i<dict_len; ++i) {
+                    int32_t node_id;
+                    if (!ReadSpanInc(p, node_id)) return erreof();
+                    int32_t dict_len;
+                    if (!ReadSpanInc(p, dict_len)) return erreof();
+                    for (int i = 0; i < dict_len; ++i) {
                         string key;
-                        ReadVec<string, int32_t>(c, key);
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
                         if (key == "_name") {
                             string value;
-                            ReadVec<string, int32_t>(c, value);
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
                             node_names.insert_or_assign(node_id, value);
                         } else
-                            SkipVec<string, int32_t>(c);
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                     }
-                    auto child_num = ReadMemInc<int32_t>(c);
-                    for (int i = 0; i<child_num; ++i) {
-                        auto child_node_id = ReadMemInc<int32_t>(c);
+                    int32_t child_num;
+                    if (!ReadSpanInc(p, child_num)) return erreof();
+                    for (int i = 0; i < child_num; ++i) {
+                        int32_t child_node_id;
+                        if (!ReadSpanInc(p, child_node_id)) return erreof();
                         node_graph.insert_or_assign(child_node_id, node_id);
                     }
                 } else if (!strncmp(id, "nSHP", 4)) {
-                    auto c = (const uint8_t*)p;
-                    auto node_id = ReadMemInc<int32_t>(c);
-                    auto dict_len = ReadMemInc<int32_t>(c);
-                    for (int i = 0; i<dict_len; ++i) {
+                    int32_t node_id;
+                    if (!ReadSpanInc(p, node_id)) return erreof();
+                    int32_t dict_len;
+                    if (!ReadSpanInc(p, dict_len)) return erreof();
+                    for (int i = 0; i < dict_len; ++i) {
                         string key;
-                        ReadVec<string, int32_t>(c, key);
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
                         if (key == "_name") {
                             string value;
-                            ReadVec<string, int32_t>(c, value);
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
                             node_names.insert_or_assign(node_id, value);
                         } else
-                            SkipVec<string, int32_t>(c);
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                     }
-                    auto models_num = ReadMemInc<int32_t>(c);
-                    for (int i = 0; i<models_num; ++i) {
-                        auto model_id = ReadMemInc<int32_t>(c);
-                        node_to_model.insert_or_assign(node_id, model_id);
-                        auto dict_len = ReadMemInc<int32_t>(c);
-                        for (int i = 0; i<dict_len; ++i) {
-                            SkipVec<string, int32_t>(c);
-                            SkipVec<string, int32_t>(c);
+                    int32_t models_num;
+                    if (!ReadSpanInc(p, models_num)) return erreof();
+                    for (int i = 0; i < models_num; ++i) {
+                        int32_t model_id;
+                        if (ReadSpanInc(p, model_id))
+                            node_to_model.insert_or_assign(node_id, model_id);
+                        int32_t dict_len;
+                        if (!ReadSpanInc(p, dict_len)) return erreof();
+                        for (int i = 0; i < dict_len; ++i) {
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                         }
-                        [[maybe_unused]]auto reserved = ReadMemInc<int32_t>(c);
                     }
                 } else if (!strncmp(id, "LAYR", 4)) {
                     // Layer metadata
-                    auto c = (const uint8_t*)p;
-                    auto layer_id = ReadMemInc<int32_t>(c);
-                    auto dict_len = ReadMemInc<int32_t>(c);
-                    for (int i = 0; i<dict_len; ++i) {
+                    int32_t layer_id;
+                    if (!ReadSpanInc(p, layer_id)) return erreof();
+                    int32_t dict_len;
+                    if (!ReadSpanInc(p, dict_len)) return erreof();
+                    for (int i = 0; i < dict_len; ++i) {
                         string key;
-                        ReadVec<string, int32_t>(c, key);
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
                         if (key == "_name") {
                             string value;
-                            ReadVec<string, int32_t>(c, value);
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
                             layer_names.insert_or_assign(layer_id, value);
                         } else
-                            SkipVec<string, int32_t>(c);
+                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
                     }
                 } else {
                     chunks_skipped = true;
                 }
-                p += contentlen;
             }
             for (auto &i : node_to_layer)
                 if ((layer_names.find(i.second) != layer_names.end()) && (node_names.find(i.first) == node_names.end()))

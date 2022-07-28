@@ -70,6 +70,8 @@ using namespace std;
 
 #include "gsl/gsl-lite.hpp"
 
+using gsl::span;
+
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"
 
