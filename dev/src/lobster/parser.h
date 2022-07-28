@@ -303,21 +303,27 @@ struct Parser {
             default: {
                 if (isprivate)
                     Error("private only applies to declarations");
-                if (IsNextId()) {
+                auto e = ParseExpStat();
+                // TODO: add Indexed to this.
+                if (Is<IdentRef>(e) || Is<Dot>(e) || Is<GenericCall>(e)) {
                     // Regular assign is handled in normal expression parsing below.
                     if (lex.token == T_COMMA) {
-                        auto al = new AssignList(lex, Modify(IdentUseOrWithStruct(lastid)));
-                        while (IsNext(T_COMMA))
-                            al->children.push_back(Modify(IdentUseOrWithStruct(ExpectId())));
+                        auto al = new AssignList(lex, Modify(e));
+                        while (IsNext(T_COMMA)) {
+                            e = ParseDeref();
+                            if (Is<IdentRef>(e) || Is<Dot>(e) || Is<GenericCall>(e)) {
+                                al->children.push_back(Modify(e));
+                            } else {
+                                Error("assignment list elements must be variables or class members");
+                            }
+                        }
                         Expect(T_ASSIGN);
                         al->children.push_back(ParseMultiRet(ParseOpExp()));
                         list->Add(al);
                         break;
-                    } else {
-                        lex.Undo(T_IDENT, lastid);
                     }
                 }
-                list->Add(ParseExpStat());
+                list->Add(e);
                 break;
             }
         }

@@ -2508,6 +2508,9 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         if (c != children.back()) {
             tc.TT(c, 1, LT_BORROW);
             tc.DecBorrowers(c->lt, *this);
+            if (!Is<IdentRef>(c) && !Is<Dot>(c)) {
+                tc.Error(*this, "assignment list elements must be variables or class members");
+            }
         } else {
             tc.TT(c, children.size() - 1, LT_MULTIPLE /*unused*/, &children);
         }
