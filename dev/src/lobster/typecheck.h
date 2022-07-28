@@ -2435,7 +2435,9 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
     // natural here, as this will introduce a lot of keeprefs. Alternatively make sure
     // string consts don't introduce keeprefs.
     tc.TypeCheckList(pattern, LT_BORROW);
+    auto flowstart = tc.flowstack.size();
     tc.TT(cbody, reqret, LT_KEEP);
+    tc.CleanUpFlow(flowstart);
     exptype = cbody->exptype;
     lt = LT_KEEP;
     return this;

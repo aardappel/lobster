@@ -26,9 +26,10 @@
   and probably could use other fixes.. ?: example? more about types.
   Also def for function values.
 
-- move this TODO.txt to github issues.
+- move this TODO.txt to github issues?
   - That's going to create 100+ issues, and not necessarily easier to overview since github doesn't have a good way to
     order issues by priority, and search for things.
+  - Right now, searches for keywords hit both code and this TODO.txt.
 
 - move function checking into typechecker.
     - the biggest issue is that it first selects on args, then on 1st arg type, it should be the other
@@ -116,6 +117,23 @@
   if not a:
       a = val {}
   (assert a).x
+
+- This complains about `a` being nillable in the else branch:
+    var a:string? = "a"
+    if a:
+        if seconds_elapsed():
+            a = nil
+        else:
+            print a.substring(0, 1)
+  If you switch the two branch blocks it works fine.
+  The problem is that AssignFlowDemote for `a = nil` has to conservatively reset a's promotion to non-nil,
+  which then also holds for the else branch. Same thing happens across switch cases.
+  A real solution would be some kind of "pending demotions" scope around the whole inner-if that
+  gets applied at the end of the inner-if. Meanwhile, the demotion still has to hold for any code
+  in the same block as `a = nil`, so demotions should should be added to the flowstack also rather
+  than only invalidating past promotions.
+  For single block scopes like for/while it doesn't matter, but probably should use the same delayed
+  demotion system for consistency.
 
 - Since we compile on the fly, we can actually add a library like
   https://github.com/Celtoys/Remotery 2K*thing 
