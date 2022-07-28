@@ -535,6 +535,7 @@ struct Parser {
             // Parse generic params if any.
             // TODO: can this be extended to non-named functions syntactically?
             if (IsNext(T_LT)) {
+                sf->explicit_generics = true;
                 for (;;) {
                     auto ng = st.NewGeneric(ExpectId());
                     for (auto &btv : sf->generics) if (btv.tv->name == ng->name)

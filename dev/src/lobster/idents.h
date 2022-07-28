@@ -406,6 +406,7 @@ struct SubFunction {
     bool isdynamicfunctionvalue = false;
     bool consumes_vars_on_return = false;
     bool optimized = false;
+    bool explicit_generics = false;
     int returned_thru_to_max = -1;  // >=0: there exist return statements that may skip the caller.
     UDT *method_of = nullptr;
     int numcallers = 0;
@@ -1151,6 +1152,15 @@ inline string Signature(const UDT &udt) {
 
 inline string Signature(const SubFunction &sf) {
     string r = sf.parent->name;
+    if (!sf.generics.empty() && sf.explicit_generics) {
+        r += "<";
+        for (auto [i, btv] : enumerate(sf.generics)) {
+            if (!btv.was_resolved) break;
+            if (i) r += ",";
+            r += TypeName(btv.resolvedtype());
+        }
+        r += ">";
+    }
     r += "(";
     for (auto [i, arg] : enumerate(sf.args)) {
         FormatArg(r, arg.sid->id->name, i, arg.type);
