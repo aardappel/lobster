@@ -528,7 +528,7 @@ struct ToLifetime : Coercion {
     bool EqAttr(const Node *) const {
         return false;  // FIXME
     }
-    SHARED_SIGNATURE_NO_TT(ToLifetime, "lifetime change", true)
+    SHARED_SIGNATURE_NO_TT(ToLifetime, "lifetime change", false)
 };
 
 inline string DumpNode(Node &n, int indent, bool single_line) {
