@@ -1496,6 +1496,16 @@ struct TypeChecker {
             }
             if ((int)f.nargs() == argidx) {
                 // Gotten to the end and we still have multiple matches!
+                if (specializers) {
+                    // Last ditch effort: remove overloads that don't match the generic params.
+                    from.erase(remove_if(from.begin(), from.end(), [&](int i) {
+                        return specializers->size() != f.overloads[i].sf->generics.size();
+                    }), from.end());
+                    if (from.size() == 1) {
+                        argidx--;
+                        continue;
+                    }
+                }
                 Error(call_args, "multiple overloads for ", Q(f.name), " match the argument types");
             }
             // Now filter existing matches into a new set of matches based on current arg.
