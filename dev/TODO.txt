@@ -1,3 +1,7 @@
+- trafficsim.lobster(120): error: can't find specialized superclass for `node`
+
+- `sum` and some other std functions run into the int/float constant warning.
+
 - debugger todo
   - "d" in sample without value?
   - doesn't show some global constants inited?
