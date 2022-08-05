@@ -73,9 +73,10 @@ struct SpecIdent {
     int idx, sidx = -1;     // Into specidents, and into vm ordering.
     SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
     bool used_as_freevar = false;  // determined in codegen.
+    bool withtype = false;
 
-    SpecIdent(Ident *_id, TypeRef _type, int idx)
-        : id(_id), type(_type), idx(idx){}
+    SpecIdent(Ident *_id, TypeRef _type, int idx, bool withtype)
+        : id(_id), type(_type), idx(idx), withtype(withtype) {}
     int Idx() { assert(sidx >= 0); return sidx; }
     SpecIdent *&Current() { return id->cursid; }
 };
@@ -371,12 +372,11 @@ inline const Field *FindSlot(const UDT &udt, int i) {
 struct Arg {
     TypeRef type = type_undefined;
     SpecIdent *sid = nullptr;
-    bool withtype = false;
 
     Arg() = default;
     Arg(const Arg &o) = default;
-    Arg(SpecIdent *_sid, TypeRef _type, bool _withtype)
-        : type(_type), sid(_sid), withtype(_withtype) {}
+    Arg(SpecIdent *_sid, TypeRef _type)
+        : type(_type), sid(_sid) {}
 };
 
 struct Function;
@@ -516,7 +516,7 @@ struct SymbolTable {
     unordered_map<string_view, SharedField *> fields;  // Key points to value!
     vector<SharedField *> fieldtable;
 
-    unordered_map<string_view, Function *> functions;  // Key points to value!
+    unordered_map<string, vector<Function *>> functions;
     unordered_map<string_view, Function *> operators;  // Key points to value!
     vector<Function *> functiontable;
     vector<SubFunction *> subfunctiontable;
@@ -549,7 +549,7 @@ struct SymbolTable {
     vector<vector<Type::TupleElem> *> tuplelist;
     vector<SpecUDT *> specudts;
 
-    string current_namespace;
+    string_view current_namespace;
     // FIXME: because we cleverly use string_view's into source code everywhere, we now have
     // no way to refer to constructed strings, and need to store them seperately :(
     // TODO: instead use larger buffers and constuct directly into those, so no temp string?
@@ -603,9 +603,9 @@ struct SymbolTable {
         return nullptr;
     }
 
-    Ident *NewId(string_view name, SubFunction *sf) {
+    Ident *NewId(string_view name, SubFunction *sf, bool withtype) {
         auto ident = new Ident(name, (int)identtable.size(), scopelevels.size());
-        ident->cursid = NewSid(ident, sf);
+        ident->cursid = NewSid(ident, sf, withtype);
         identtable.push_back(ident);
         return ident;
     }
@@ -623,9 +623,9 @@ struct SymbolTable {
                 lex.Error(cat("identifier redefinition: ", name));
             return ident;
         }
-        ident = NewId(name, sf);
+        ident = NewId(name, sf, withtype);
         (islocal ? sf->locals : sf->args).push_back(
-            Arg(ident->cursid, type_any, withtype));
+            Arg(ident->cursid, type_any));
         idents[ident->name /* must be in value */] = ident;
         identstack.push_back(ident);
         return ident;
@@ -640,6 +640,10 @@ struct SymbolTable {
         // with the struct, or do so in LookupUse
         assert(type->spec_udt->udt);
         withstack.push_back({ type->spec_udt->udt, id, sf });
+    }
+
+    void AddWithStructTT(TypeRef type, Ident *id) {
+        withstack.push_back({ type->udt, id, nullptr });
     }
 
     SharedField *LookupWithStruct(string_view name, Lex &lex, Ident *&id) {
@@ -692,7 +696,7 @@ struct SymbolTable {
         BlockScopeCleanup();
     }
 
-    void Unregister(const Enum *e, unordered_map<string_view, Enum *> &dict) {
+    void    ister(const Enum *e, unordered_map<string_view, Enum *> &dict) {
         auto it = dict.find(e->name);
         if (it != dict.end()) {
             for (auto &ev : e->vals) {
@@ -704,9 +708,28 @@ struct SymbolTable {
         }
     }
 
+    void Unregister(const Function *f) {
+        auto &v = functions[f->name];
+        if (!v.empty() && v.back() == f) {
+            v.pop_back();
+        }
+    }
+
     template<typename T> void Unregister(const T *x, unordered_map<string_view, T *> &dict) {
         auto it = dict.find(x->name);
         if (it != dict.end()) dict.erase(it);
+    }
+
+    void ErasePrivate(unordered_map<string, vector<Function *>> &dict) {
+        auto it = dict.begin();
+        while (it != dict.end()) {
+            auto &v = it->second;
+            it++;
+            if (!v.empty() && v.back()->isprivate) {
+                assert(v.back()->scopelevel == 2);
+                v.pop_back();
+            }
+        }
     }
 
     template<typename T> void ErasePrivate(unordered_map<string_view, T *> &dict) {
@@ -719,7 +742,7 @@ struct SymbolTable {
     }
 
     void EndOfInclude() {
-        current_namespace.clear();
+        current_namespace = {};
         ErasePrivate(idents);
         ErasePrivate(udts);
         ErasePrivate(functions);
@@ -842,47 +865,55 @@ struct SymbolTable {
         return *f;
     }
 
-    Function &FunctionDecl(string_view name, size_t nargs, Lex &lex) {
-        auto fit = functions.find(name);
-        if (fit != functions.end()) {
-            if (fit->second->scopelevel != scopelevels.size())
-                lex.Error("cannot define a variation of function " + name +
-                          " at a different scope level");
-            for (auto f = fit->second; f; f = f->sibf)
-                if (f->nargs() == nargs)
+    Function &FunctionDecl(const string &name, size_t nargs) {
+        auto &v = functions[name];
+        if (!v.empty() && v.back()->scopelevel == scopelevels.size()) {
+            for (auto f = v.back(); f; f = f->sibf) {
+                if (f->nargs() == nargs) {
                     return *f;
-        }
-        auto &f = CreateFunction(name);
-        if (fit != functions.end()) {
-            f.sibf = fit->second->sibf;
-            fit->second->sibf = &f;
+                }
+            }
+            auto &f = CreateFunction(name);
+            f.sibf = v.back()->sibf;
+            v.back()->sibf = &f;
+            return f;
         } else {
-            functions[f.name /* must be in value */] = &f;
+            auto &f = CreateFunction(name);
+            v.push_back(&f);
             // Store top level functions, for now only operators needed.
             if (scopelevels.size() == 2 && name.substr(0, 8) == TName(T_OPERATOR)) {
                 operators[f.name /* must be in value */] = &f;
             }
+            return f;
         }
-        return f;
     }
 
-    Function *GetFirstFunction(string_view name) {
-        auto it = functions.find(name);
-        return it != functions.end() ? it->second : nullptr;
+    void FunctionDeclTT(Function &f) {
+        auto &v = functions[f.name];
+        if (!v.empty()) {
+            for (auto ff = v.back(); ff; ff = ff->sibf)
+                if (ff == &f) return;
+        }
+        v.push_back(&f);
+    }
+
+    Function *GetFirstFunction(const string &name) {
+        auto &v = functions[name];
+        return v.empty() ? nullptr : v.back();
     }
 
     Function *FindFunction(string_view name) {
         if (!current_namespace.empty()) {
-            auto it = functions.find(NameSpaced(name));
-            if (it != functions.end()) return it->second;
+            auto &v = functions[NameSpaced(name)];
+            if (!v.empty()) return v.back();
         }
-        auto it = functions.find(name);
-        if (it != functions.end()) return it->second;
+        auto &v = functions[string(name)];
+        if (!v.empty()) return v.back();
         return nullptr;
     }
 
-    SpecIdent *NewSid(Ident *id, SubFunction *sf, TypeRef type = nullptr) {
-        auto sid = new SpecIdent(id, type, (int)specidents.size());
+    SpecIdent *NewSid(Ident *id, SubFunction *sf, bool withtype, TypeRef type = nullptr) {
+        auto sid = new SpecIdent(id, type, (int)specidents.size(), withtype);
         sid->sf_def = sf;
         specidents.push_back(sid);
         return sid;
@@ -890,7 +921,7 @@ struct SymbolTable {
 
     void CloneSids(vector<Arg> &av, SubFunction *sf) {
         for (auto &a : av) {
-            a.sid = NewSid(a.sid->id, sf);
+            a.sid = NewSid(a.sid->id, sf, a.sid->withtype);
         }
     }
 

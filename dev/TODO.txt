@@ -36,6 +36,12 @@
   - Right now, searches for keywords hit both code and this TODO.txt.
 
 - move function checking into typechecker.
+  This is now mostly done.
+  - Fix non-lexical ordering issues in GenericCall::TypeCheck
+  - Make decision-making in GenericCall::TypeCheck more robust.
+  - Further reduce whatever is happening in ParseFunctionCall
+    - also merge with DynCall and Dot parsed elsewehere.
+  - check that we're fixed all below:
     - the biggest issue is that it first selects on args, then on 1st arg type, it should be the other
       way around. Parser needs to stop trying to select Function based on args, and typechecker should
       first filter on type (important: foo.unknown should complain about unknown, not about foo because
