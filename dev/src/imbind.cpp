@@ -149,6 +149,11 @@ LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTex
     return cbd.str;
 }
 
+double InputFloat(const char *label, double value, double step = 0, double step_fast = 0, ImGuiInputTextFlags flags = 0) {
+    ImGui::InputDouble(label, &value, step, step_fast, "%.3f", flags);
+    return value;
+}
+
 bool BeginTable() {
     if (ImGui::BeginTable("", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuter)) {
         // FIXME: There seems to be no reliable way to make the first column fixed:
@@ -602,6 +607,13 @@ nfr("im_input_text", "label,str", "SSk", "S",
     [](StackPtr &, VM &vm, Value &text, Value &str) {
         IsInit(vm);
         return Value(LStringInputText(vm, text.sval()->data(), str.sval()));
+    });
+
+nfr("im_input_float", "label,val", "SF", "F",
+    "",
+    [](StackPtr &, VM &vm, Value &text, Value &val) {
+        IsInit(vm);
+        return Value(InputFloat(text.sval()->data(), val.fval()));
     });
 
 nfr("im_radio", "labels,active,horiz", "S]II", "I",

@@ -494,7 +494,10 @@ struct Lex : LoadedFile {
         if (!interp && !character_constant && p[0] == '\"' && p[1] == '\"') {
             p += 2;
             if (*p == '\r') p++;
-            if (*p == '\n') p++;
+            if (*p == '\n') {
+                p++;
+                tokline++;
+            }
             for (;;) {
                 switch (c = *p++) {
                     case '\0':
