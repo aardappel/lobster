@@ -388,6 +388,7 @@ string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
         (void)program_args;
         (void)trace;
         (void)compile_only;
+        (void)dump_leaks;
         error = "cannot JIT code: libtcc not enabled";
         return "";
     #endif
@@ -463,7 +464,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uin
         RegisterCoreLanguageBuiltins(nfr);
         auto loader = EnginePreInit(nfr);
         min_output_level = OUTPUT_WARN;
-        InitPlatform("../../", "", false, loader);  // FIXME: path.
+        InitPlatform("../", "main.lobster", false, loader);  // FIXME: path.
         auto vmargs = VMArgs {
             nfr, StripDirPart(argv[0]), bytecodefb, static_size, {},
             vtables, nullptr, TraceMode::OFF, false, RUNTIME_ASSERT
