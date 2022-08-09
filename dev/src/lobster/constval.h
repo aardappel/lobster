@@ -438,6 +438,4 @@ ValueType ToLifetime::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }
 
-
-
 }  // namespace lobster

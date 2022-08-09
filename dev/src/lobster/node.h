@@ -377,17 +377,17 @@ struct FunRef : Node {
 // This is either a Dot, Call, or NativeCall, to be specialized by the typechecker
 struct GenericCall : List {
     string_view name;
-    SubFunction *sf;  // Need to store this, since only parser tracks scopes.
+    string_view ns;
     bool dotnoparens;
     bool super;
     vector<UnresolvedTypeRef> specializers;
-    GenericCall(const Line &ln, string_view name, SubFunction *sf, bool dotnoparens,
-                bool super, vector<UnresolvedTypeRef> *spec)
-        : List(ln), name(name), sf(sf), dotnoparens(dotnoparens), super(super) {
+    GenericCall(const Line &ln, string_view name, string_view ns, bool dotnoparens, bool super,
+                vector<UnresolvedTypeRef> *spec)
+        : List(ln), name(name), ns(ns), dotnoparens(dotnoparens), super(super) {
         if (spec) specializers = *spec;
     };
     bool EqAttr(const Node *o) const {
-        return sf == ((GenericCall *)o)->sf;
+        return name == ((GenericCall *)o)->name && ns == ((GenericCall *)o)->ns;
     }
     SHARED_SIGNATURE(GenericCall, "generic call", true)
 };
@@ -413,8 +413,8 @@ struct Call : List {
     SubFunction *sf;
     vector<UnresolvedTypeRef> specializers;
     bool super;
-    explicit Call(GenericCall &gc)
-        : List(gc.line), sf(gc.sf), specializers(gc.specializers), super(gc.super) {};
+    explicit Call(GenericCall &gc, SubFunction *sf)
+        : List(gc.line), sf(sf), specializers(gc.specializers), super(gc.super) {};
     Call(Line &ln, SubFunction *sf) : List(ln), sf(sf) {};
     void Dump(string &sd) const { sd += sf->parent->name; }
     bool EqAttr(const Node *o) const {

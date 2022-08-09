@@ -80,6 +80,7 @@ struct TypeChecker {
     set<pair<Line, int64_t>> integer_literal_warnings;
 
     TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq) : parser(_p), st(_st) {
+        st.functions.clear();
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultTypes())
             Error(*parser.root, "cannot find standard types (from stdtype.lobster)");
@@ -860,8 +861,12 @@ struct TypeChecker {
         scopes.push_back(scope);
         //for (auto &ns : named_scopes) LOG_DEBUG("named scope: ", ns.sf->parent->name);
         if (!sf.parent->anonymous) named_scopes.push_back(scope);
+        st.BlockScopeStart();
         sf.typechecked = true;
-        for (auto &arg : sf.args) StorageType(arg.type, call_context);
+        for (auto &arg : sf.args) {
+            StorageType(arg.type, call_context);
+            if (arg.sid->withtype) st.AddWithStructTT(arg.type, arg.sid->id);
+        }
         for (auto &fv : sf.freevars) UpdateCurrentSid(fv.sid);
         auto backup_vars = [&](vector<Arg> &in, vector<Arg> &backup) {
             for (auto [i, arg] : enumerate(in)) {
@@ -916,6 +921,7 @@ struct TypeChecker {
             // if done without reason.
             sf.mustspecialize = true;
         }
+        st.BlockScopeCleanup();
         if (!sf.parent->anonymous) named_scopes.pop_back();
         scopes.pop_back();
         LOG_DEBUG("function end ", Signature(sf), " returns ",
@@ -1923,7 +1929,7 @@ struct TypeChecker {
                 break;
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
-            if (sf->Add(sf->freevars, Arg(&sid, sid.type, NF_NONE))) {
+            if (sf->Add(sf->freevars, Arg(&sid, sid.type))) {
                 //LOG_DEBUG("freevar added: ", id.name, " (", TypeName(id.type),
                 //                     ") in ", sf->parent->name);
             }
@@ -2209,11 +2215,26 @@ struct TypeChecker {
 };
 
 Node *Block::TypeCheck(TypeChecker &tc, size_t reqret) {
+    // Bring functions into scope.
+    for (auto def : children) {
+        if (auto fr = Is<FunRef>(def)) {
+            auto f = fr->sf->parent;
+            if (!f->anonymous) tc.st.FunctionDeclTT(*f);
+        }
+    };
+    // Now typecheck the body.
     for (auto &c : children) {
         tc.TT(c, c != children.back() ? 0 : reqret, LT_ANY);
     }
     lt = children.back()->lt;
     exptype = children.back()->exptype;
+    // Remove functions from scope again. See also CleanupStatements.
+    for (auto def : children) {
+        if (auto fr = Is<FunRef>(def)) {
+            auto f = fr->sf->parent;
+            if (!f->anonymous) tc.st.Unregister(f);
+        }
+    };
     return this;
 }
 
@@ -2334,14 +2355,20 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         itertype = itertype->Element();
     else tc.Error(*this, Q("for"), " can only iterate over int / string / vector, not ",
                          Q(TypeName(itertype)));
+    tc.st.BlockScopeStart();
     auto def = Is<Define>(fbody->children[0]);
     if (def) {
         auto fle = Is<ForLoopElem>(def->child);
-        if (fle) fle->exptype = itertype;
+        if (fle) {
+            fle->exptype = itertype;
+            if (def->sids[0].first->withtype)
+                tc.st.AddWithStructTT(itertype, def->sids[0].first->id);
+        }
     }
     tc.scopes.back().loop_count++;
     fbody->TypeCheck(tc, 0);
     tc.scopes.back().loop_count--;
+    tc.st.BlockScopeCleanup();
     tc.DecBorrowers(iter->lt, *this);
     // Currently always return V_NIL
     exptype = type_void;
@@ -2763,6 +2790,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     tc.TypeCheckList(this, LT_ANY);
     auto nf = tc.parser.natreg.FindNative(name);
     auto fld = tc.st.FieldUse(name);
+    tc.st.current_namespace = ns;
     TypeRef type;
     UDT *udt = nullptr;
     if (children.size()) {
@@ -2770,35 +2798,130 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
         if (IsUDT(type->t)) udt = type->udt;
     }
     Node *r = nullptr;
+    auto sup_err = [&]() {
+        if (super) {
+            tc.Error(*this, "super must be used on a method that has a superclass implementation");
+        }
+    };
     if (fld && dotnoparens && udt && udt->Has(fld) >= 0) {
         auto dot = new Dot(fld, *this);
+        sup_err();
         r = dot->TypeCheck(tc, reqret);
     } else {
-        bool prefer_sf = false;
-        if (sf && nf) {
-            // Parser already filters out function that match nf with <= arity.
-            if (sf->parent->nargs() == children.size() &&
-                sf->parent->nargs() > nf->args.size()) {
-                // If we have an sf with more & matching args than the nf, pick that.
-                prefer_sf = true;
-            } else if (udt && sf->parent->nargs()) {
-                // See if any of sf's specializations matches type exactly, then it overrides nf.
-                for (auto &ov : sf->parent->overloads) {
-                    auto ti = ov.sf->args[0].type;
-                    if (IsUDT(ti->t) && ti->udt == udt) {
-                        prefer_sf = true;
-                        break;
-                    }
+        bool prefer_ff = false;
+        // Pick better match if any..
+        auto nargs = children.size();
+        // FIXME: this doesn't always find lexically enclosing functions, since if the typechecker
+        // goes funlevel1a -> funlevel2b -> funlevel1c, it will still find functions from level2!
+        // Not the same as the parser, and not sure how to best fix that.
+        auto ff = tc.st.FindFunction(name);
+        auto f = ff;
+        // Get best one sofar.
+        for (; f; f = f->sibf) {
+            if (nargs == f->nargs()) {
+                break;
+            }
+        }
+        if (!f) f = ff;
+        SubFunction *usf = nullptr;
+        if (udt && f && f->nargs()) {
+            for (auto &ov : f->overloads) {
+                auto ti = ov.sf->args[0].type;
+                if (IsUDT(ti->t) && ti->udt == udt) {
+                    usf = ov.sf;
+                    break;
                 }
             }
         }
-        if (nf && !prefer_sf) {
+        if (f && nf && f->nargs() == nargs) {
+            // If we have an f with more & matching args than the nf, pick that.
+            // Or if any of f's specializations matches type exactly, then it overrides nf.
+            if (f->nargs() > nf->args.size() || usf) {
+                prefer_ff = true;
+            }
+        }
+        if (nf && !prefer_ff) {
             auto nc = new NativeCall(nf, line);
             nc->children = children;
+            sup_err();
+            // FIXME: merge this with the overload checking in NativeCall::TypeCheck
+            for (auto [i, arg] : enumerate(nf->args)) {
+                if (i >= nc->Arity()) {
+                    auto &type = arg.type;
+                    if (type->t == V_NIL) {
+                        nc->Add(new DefaultVal(line));
+                        tc.TT(nc->children.back(), 1, LT_ANY);
+                    } else {
+                        for (auto &ol = nf->overloads; ol; ol = ol->overloads) {
+                            if (ol->args.size() == nc->Arity()) goto argsok;
+                        }
+                        tc.Error(*this, "missing arg to builtin function ", Q(nf->name));
+                    }
+                }
+            }
+            argsok:
             r = nc->TypeCheck(tc, reqret);
-        } else if (sf) {
-            auto fc = new Call(*this);
+        } else if (f) {
+            // Now that we're sure it's going to be a call, pick the right function, fill in default/self args.
+            // FIXME: should we do this in order from least to most args?
+            for (f = ff; f; f = f->sibf) {
+                if (nargs > f->nargs()) {
+                    continue;
+                }
+                if (nargs == f->nargs()) {
+                    ff = f;
+                    break;
+                }
+                // Or, try insert self arg.
+                if (f->nargs() && !usf) {
+                    // FIXME: we have to go down the entire withstack rather than just the last item
+                    // for cases where withcontext1 -> withcontext2 -> lambdaincontext1
+                    // i.e. it is not lexically ordered. This is mostly ok, but is not the same
+                    // as the parser ordering, so would be good to standardize.
+                    for (auto wse : reverse(tc.st.withstack)) {
+                        int best_superdist = INT_MAX;
+                        for (auto &ov : f->overloads) {
+                            auto &arg0 = ov.sf->args[0];
+                            // If we're in the context of a withtype, calling a function that starts
+                            // with an arg of the same type we pass it in automatically. This is
+                            // maybe a bit very liberal, should maybe restrict it?
+                            if (IsUDT(arg0.type->t) && arg0.sid->withtype && wse.id) {
+                                auto superdist = tc.st.SuperDistance(arg0.type->udt, wse.udt);
+                                if (superdist >= 0 && superdist < best_superdist) {
+                                    best_superdist = superdist;
+                                    usf = ov.sf;
+                                }
+                            }
+                        }
+                        if (best_superdist < INT_MAX) {
+                            auto self = new IdentRef(line, wse.id->cursid);
+                            children.insert(children.begin(), self);
+                            tc.TT(children[0], 1, LT_ANY);
+                            nargs++;
+                            ff = f;
+                            goto done;
+                        }
+                    }
+                    done:;
+                }
+                // If we have less args, try insert default args.
+                if ((int)nargs >= f->first_default_arg) {
+                    for (size_t i = nargs; i < f->nargs(); i++) {
+                        children.push_back(f->default_args[i - f->first_default_arg]->Clone());
+                        tc.TT(children.back(), 1, LT_ANY);
+                        nargs++;
+                    }
+                    ff = f;
+                    break;
+                }
+            }
+            if (!usf || !usf->method_of || usf->method_of->superclass.giventype.utr.Null())
+                sup_err();
+            auto fc = new Call(*this, usf && usf->parent == ff ? usf : ff->overloads[0].sf);
             fc->children = children;
+            if (nargs != fc->sf->parent->nargs())
+                tc.Error(*this, "no version of function ", Q(name), " takes ", nargs,
+                        " arguments");
             r = fc->TypeCheck(tc, reqret);
         } else {
             if (fld && dotnoparens) {
@@ -2807,6 +2930,9 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             tc.Error(*this, "unknown field/function reference ", Q(name));
         }
     }
+
+
+
     children.clear();
     delete this;
     return r;

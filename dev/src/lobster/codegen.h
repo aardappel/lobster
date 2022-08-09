@@ -1182,7 +1182,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                     // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype()->t))
-                            cg.EmitKeep(stack_offset + j, 0);
+                            cg.EmitKeep(stack_offset + (type->udt->numslots - j - 1), 0);
                     }
                 } else {
                     cg.EmitKeep(stack_offset, 0);

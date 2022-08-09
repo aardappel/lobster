@@ -20,14 +20,6 @@ struct Parser {
     Node *root = nullptr;
     SymbolTable &st;
     vector<Function *> functionstack;
-    struct ForwardFunctionCall {
-        size_t maxscopelevel;
-        string call_namespace;
-        GenericCall *n;
-        bool has_firstarg;
-        SymbolTable::WithStackElem wse;
-    };
-    vector<ForwardFunctionCall> forwardfunctioncalls;
     bool call_noparens = false;
     set<string> pakfiles;
     struct BlockScope {
@@ -74,16 +66,12 @@ struct Parser {
         ImplicitReturn(ov);
         st.FunctionScopeCleanup();
         root = new Call(lex, sf);
-        // Not empty anymore whenever there are any uses of forward declared variables.
-        // FIXME: remove the need for forwardfunctioncalls entirely.
-        //assert(forwardfunctioncalls.empty());
     }
 
     void ParseStatements(Block *block, TType terminator) {
         for (;;) {
             ParseTopExp(block);
             if (lex.token == T_ENDOFINCLUDE) {
-                ResolveForwardFunctionCalls();
                 st.EndOfInclude();
                 lex.PopIncludeContinue();
             } else if (!IsNext(T_LINEFEED)) {
@@ -101,7 +89,7 @@ struct Parser {
     }
 
     void CleanupStatements(Block *list) {
-        ResolveForwardFunctionCalls();
+        // See also Block::TypeCheck
         for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
                 st.Unregister(er->e, st.enums);
@@ -111,7 +99,7 @@ struct Parser {
                 st.Unregister(sr->udt, st.udts);
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
-                if (!f->anonymous) st.Unregister(f, st.functions);
+                if (!f->anonymous) st.Unregister(f);
             } else if (auto d = Is<Define>(def)) {
                 // For now, don't warn when declaring multiple vars and they are mixed const,
                 // since there is no way to use var for one and let for the other.
@@ -561,7 +549,7 @@ struct Parser {
             arg.type = &self->unspecialized_type;
             sf->giventypes.push_back({ arg.type });
             st.AddWithStruct(arg.type, id, lex, sf);
-            arg.withtype = true;
+            id->cursid->withtype = true;
         }
         bool non_inline_method = false;
         int first_default_arg = -1;
@@ -597,7 +585,7 @@ struct Parser {
         }
         if (parens) Expect(T_RIGHTPAREN);
         sf->method_of = self;
-        auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("");
+        auto &f = name ? st.FunctionDecl(*name, nargs) : st.CreateFunction("");
         auto nf = natreg.FindNative(f.name);
         if (nf && nf->args.size() >= nargs) {
             // TODO: could allow less args if we check nf's default args.
@@ -997,45 +985,13 @@ struct Parser {
         // FIXME: move more of the code below into the type checker, and generalize the remaining
         // code to be as little dependent as possible on whether nf or f are available.
         // It should only parse args and construct a GenericCall.
-        auto wse = st.GetWithStackBack();
-        // We give precedence to builtins, unless
-        // - we're calling a known function in a :: context.
-        // - we have more args than the builtin, and a matching function.
-        if (nf &&
-            (!f || !wse.id || (f->overloads.size() == 1 && !f->overloads[0].sf->method_of)) &&
-            (!f || list.size() <= nf->args.size() || list.size() != f->nargs())) {
-            auto nc = new GenericCall(line, idname, nullptr, false, false, specializers);
-            nc->children = list;
-            for (auto [i, arg] : enumerate(nf->args)) {
-                if (i >= nc->Arity()) {
-                    auto &type = arg.type;
-                    if (type->t == V_NIL) {
-                        nc->Add(new DefaultVal(lex));
-                    } else {
-                        auto nargs = nc->Arity();
-                        for (auto &ol = nf->overloads; ol; ol = ol->overloads) {
-                            // Typechecker will deal with it.
-                            if (ol->args.size() == nargs) goto argsok;
-                        }
-                        Error("missing arg to builtin function ", Q(idname));
-                    }
-                }
-            }
-            argsok:
-            return nc;
-        }
         auto id = dotarg ? nullptr : st.Lookup(idname);
         // If both a var and a function are in scope, the deepest scope wins.
         // Note: <, because functions are inside their own scope.
-        if (f && (!id || id->scopelevel < f->scopelevel)) {
-            if (f->istype) Error("can\'t call function type ", Q(f->name));
-            auto call = new GenericCall(line, idname, nullptr, false, false, specializers);
+        if (nf || (f && (!id || id->scopelevel < f->scopelevel))) {
+            if (f && f->istype) Error("can\'t call function type ", Q(f->name));
+            auto call = new GenericCall(line, idname, st.current_namespace, false, false, specializers);
             call->children = list;
-            if (!dotarg) {
-                SelfArg(f, wse, call->Arity(), call);
-            }
-            f = FindFunctionWithNargs(f, call, idname, nullptr);
-            call->sf = f->overloads.back().sf;
             return call;
         }
         if (noparens) Error("call requires ()");
@@ -1044,75 +1000,9 @@ struct Parser {
             dc->children = list;
             return dc;
         } else {
-            auto call = new GenericCall(line, idname, nullptr, dotarg && !parens_parsed,
-                                        false, specializers);
+            auto call = new GenericCall(line, idname, st.current_namespace, dotarg && !parens_parsed, false, specializers);
             call->children = list;
-            ForwardFunctionCall ffc = {
-                st.scopelevels.size(), st.current_namespace, call, !!dotarg, wse
-            };
-            forwardfunctioncalls.push_back(ffc);
             return call;
-        }
-    }
-
-    void SelfArg(const Function *f, const SymbolTable::WithStackElem &wse, size_t nargs,
-                      GenericCall *call) {
-        if (nargs >= f->nargs()) return;
-        // If we're in the context of a withtype, calling a function that starts with an
-        // arg of the same type we pass it in automatically.
-        // This is maybe a bit very liberal, should maybe restrict it?
-        for (auto &ov : f->overloads) {
-            auto &arg0 = ov.sf->args[0];
-            if (arg0.type->t == V_UUDT &&
-                st.SuperDistance(arg0.type->spec_udt->udt, wse.udt) >= 0 &&
-                arg0.withtype) {
-                if (wse.id) {
-                    auto self = new IdentRef(lex, wse.id->cursid);
-                    call->children.insert(call->children.begin(), self);
-                    return;
-                }
-                break;
-            }
-        }
-        return;
-    }
-
-    Function *FindFunctionWithNargs(Function *f, GenericCall *call, string_view idname, Node *errnode) {
-        auto nargs = call->Arity();
-        for (; f; f = f->sibf) {
-            if (nargs <= f->nargs() && (int)nargs >= f->first_default_arg) {
-                for (size_t i = nargs; i < f->nargs(); i++) {
-                    call->children.push_back(f->default_args[i - f->first_default_arg]->Clone());
-                }
-                return f;
-            }
-        }
-        ErrorAt(errnode, "no version of function ", Q(idname), " takes ", nargs, " arguments");
-        return nullptr;
-    }
-
-    void ResolveForwardFunctionCalls() {
-        for (auto ffc = forwardfunctioncalls.begin(); ffc != forwardfunctioncalls.end(); ) {
-            if (ffc->maxscopelevel >= st.scopelevels.size()) {
-                swap(ffc->call_namespace, st.current_namespace);
-                auto f = st.FindFunction(ffc->n->name);
-                swap(ffc->call_namespace, st.current_namespace);
-                if (f) {
-                    if (!ffc->has_firstarg) {
-                        SelfArg(f, ffc->wse, ffc->n->Arity(), ffc->n);
-                    }
-                    ffc->n->sf = FindFunctionWithNargs(f,
-                        ffc->n, ffc->n->name, ffc->n)->overloads.back().sf;
-                    ffc = forwardfunctioncalls.erase(ffc);
-                    continue;
-                } else {
-                    if (st.scopelevels.size() != 1) {
-                        // Prevent it being found in sibling scopes.
-                        ffc->maxscopelevel = st.scopelevels.size() - 1;
-                    }
-                }
-            }
-            ffc++;
         }
     }
 
@@ -1125,15 +1015,14 @@ struct Parser {
                 lex.Next();
                 auto idname = ExpectId();
                 auto fld = st.FieldUse(idname);
-                auto f = st.FindFunction(idname);
-                auto nf = natreg.FindNative(idname);
                 if (fld && lex.token != T_LEFTPAREN) {
-                    auto dot = new GenericCall(lex, idname,
-                                                f ? f->overloads.back().sf : nullptr,
-                                                true, false, nullptr);
+                    auto dot = new GenericCall(lex, idname, st.current_namespace,
+                                               true, false, nullptr);
                     dot->Add(n);
                     n = dot;
                 } else {
+                    auto nf = natreg.FindNative(idname);
+                    auto f = st.FindFunction(idname);
                     auto specializers = ParseSpecializers(f && !nf);
                     n = ParseFunctionCall(lex, f, nf, idname, n, false, &specializers);
                 }
@@ -1276,10 +1165,6 @@ struct Parser {
                 auto n = ParseFunctionCall(lex, st.FindFunction(idname), nullptr, idname, nullptr, false,
                                            nullptr);
                 auto call = Is<GenericCall>(*n);
-                if (!call || !call->sf || !call->sf->method_of ||
-                    call->sf->method_of->superclass.giventype.utr.Null()) {
-                    Error("super must be used on a method that has a superclass implementation");
-                }
                 call->super = true;
                 return n;
             }
@@ -1399,6 +1284,7 @@ struct Parser {
                     type = ParseType(withtype, nullptr);
                     if (withtype) st.AddWithStruct(type.utr, id, lex, st.defsubfunctionstack.back());
                 }
+                id->cursid->withtype = withtype;
                 ForLoopVar(for_args, id->cursid, type, block->children);
                 for_args++;
                 if (!IsNext(T_COMMA)) break;
