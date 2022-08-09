@@ -33,6 +33,7 @@ struct Voxels : lobster::Resource {
     Chunk3DGrid<uint8_t> grid;
     int idx = 0;
     string name;
+    int3 offset = int3_0;
 
     Voxels(const int3 &dim, size_t idx) : palette_idx(idx), grid(dim, transparant) {}
 

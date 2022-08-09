@@ -254,6 +254,12 @@ nfr("cg_name", "block", "R:voxels", "S",
         Push(sp, vm.NewString(GetVoxels(Pop(sp)).name));
     });
 
+nfr("cg_offset", "block", "R:voxels", "I}:3",
+    "returns the current block offset",
+    [](StackPtr &sp, VM &) {
+        PushVec(sp, GetVoxels(Pop(sp)).offset);
+    });
+
 nfr("cg_set", "block,pos,size,paletteindex", "R:voxelsI}:3I}:3I", "",
     "sets a range of cubes to palette index. index 0 is considered empty space."
     "Coordinates automatically clipped to the size of the grid",
@@ -576,10 +582,11 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             map<int32_t, int32_t> node_to_layer;
             map<int32_t, string> layer_names;
             map<int32_t, string> node_names;
+            map<int32_t, int3> node_offset;
 
             while (bufs.size() >= 8) {
                 auto id = (const char *)bufs.data();
-                bufs =bufs.subspan(4);
+                bufs = bufs.subspan(4);
                 int contentlen;
                 if (!ReadSpanInc(bufs, contentlen)) return erreof();
                 bufs = bufs.subspan(4);
@@ -622,17 +629,19 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
                     int node_id;
                     if (!ReadSpanInc<int32_t>(p, node_id)) return erreof();
-                    int dict_len;
-                    if (!ReadSpanInc<int32_t>(p, dict_len)) return erreof();
-                    for (int i = 0; i < dict_len; ++i) {
-                        string key;
-                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
-                        if (key == "_name") {
-                            string value;
-                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
-                            node_names.insert_or_assign(node_id, value);
-                        } else
-                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
+                    {
+                        int dict_len;
+                        if (!ReadSpanInc<int32_t>(p, dict_len)) return erreof();
+                        for (int i = 0; i < dict_len; ++i) {
+                            string key;
+                            if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
+                            if (key == "_name") {
+                                string value;
+                                if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
+                                node_names.insert_or_assign(node_id, value);
+                            } else
+                                if (!SkipSpanVec<string, int32_t>(p)) return erreof();
+                        }
                     }
                     int32_t child_node_id;
                     if (!ReadSpanInc<int32_t>(p, child_node_id)) return erreof();
@@ -642,6 +651,29 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     int32_t layer_id;
                     if (!ReadSpanInc(p, layer_id)) return erreof();
                     node_to_layer.insert_or_assign(node_id, layer_id);
+
+                    int32_t num_frames;
+                    if (!ReadSpanInc(p, num_frames)) return erreof();
+                    int3 offset = int3_0;
+                    for (int frame = 0; frame < num_frames; ++frame) {
+                        int32_t dict_len;
+                        if (!ReadSpanInc(p, dict_len)) return erreof();
+                        for (int i = 0; i < dict_len; ++i) {
+                            string key,value;
+                            if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
+                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
+                            if (key == "_t") {
+                                const char* cursor = value.c_str();
+                                char* next;
+                                offset.x = std::strtol(cursor, &next, 10);
+                                cursor = next + 1;
+                                offset.y = std::strtol(cursor, &next, 10);
+                                cursor = next + 1;
+                                offset.z = std::strtol(cursor, &next, 10);
+                                node_offset.insert_or_assign(node_id, offset);
+                            }
+                        }
+                    }
                 } else if (!strncmp(id, "nGRP", 4)) {
                     int32_t node_id;
                     if (!ReadSpanInc(p, node_id)) return erreof();
@@ -718,6 +750,16 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             for (auto &i : node_to_model) {
                 auto node_id = i.first;
                 auto model_id = i.second;
+                for (;;) {
+                    if (node_offset.find(node_id) != node_offset.end()) {
+                        GetVoxels(voxvec->At(model_id)).offset = node_offset[node_id];
+                        break;
+                    }
+                    if (node_graph.find(node_id) == node_graph.end())
+                        break;
+                    node_id = node_graph[node_id];
+                }
+                node_id = i.first;
                 for (;;) {
                     if (node_names.find(node_id) != node_names.end()) {
                         GetVoxels(voxvec->At(model_id)).name = node_names[node_id];
