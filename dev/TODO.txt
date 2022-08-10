@@ -10,7 +10,6 @@
   - Always unfold first stackframe?
   - Mark all stack-frames up to breakpoint (and maybe assert) as no-inline, then increase limits for all other functions?
   - Add custom view for textures, or any resource types..
-  - Much like assert, break into debugger on any runtime error, like array out of bounds etc.
   - Add a small source code view, will help quickly spotting the problem.
     - Maybe a "Source" treenode at the end of each stack frame item?
   - Better docs for all this?

@@ -294,12 +294,6 @@ VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringi
         vm.last_line = line;
         vm.last_fileidx = fileidx;
         auto assert_exp = vm.bcf->stringtable()->Get(stringidx)->string_view();
-        #if LOBSTER_ENGINE
-            if (vm.runtime_checks >= RUNTIME_DEBUG) {
-                auto msg = cat("Assertion hit: ", assert_exp);
-                BreakPoint(vm, msg);
-            }
-        #endif
         vm.Error(cat("assertion failed: ", assert_exp));
     }
 }
