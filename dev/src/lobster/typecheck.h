@@ -2803,7 +2803,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             tc.Error(*this, "super must be used on a method that has a superclass implementation");
         }
     };
-    if (fld && dotnoparens && udt && udt->Has(fld) >= 0) {
+    if (fld && fromdot && noparens && udt && udt->Has(fld) >= 0) {
         auto dot = new Dot(fld, *this);
         sup_err();
         r = dot->TypeCheck(tc, reqret);
@@ -2864,6 +2864,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
         } else if (f) {
             // Now that we're sure it's going to be a call, pick the right function, fill in default/self args.
             // FIXME: should we do this in order from least to most args?
+            bool self_inserted = false;  // FIXME: only needed because these functions are not in order?
             for (f = ff; f; f = f->sibf) {
                 if (nargs > f->nargs()) {
                     continue;
@@ -2872,8 +2873,8 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                     ff = f;
                     break;
                 }
-                // Or, try insert self arg.
-                if (f->nargs() && !usf) {
+                // If we have less args, try insert self arg.
+                if (f->nargs() && (!usf || !fromdot) && !self_inserted) {
                     // FIXME: we have to go down the entire withstack rather than just the last item
                     // for cases where withcontext1 -> withcontext2 -> lambdaincontext1
                     // i.e. it is not lexically ordered. This is mostly ok, but is not the same
@@ -2896,6 +2897,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                         if (best_superdist < INT_MAX) {
                             auto self = new IdentRef(line, wse.id->cursid);
                             children.insert(children.begin(), self);
+                            self_inserted = true;
                             tc.TT(children[0], 1, LT_ANY);
                             nargs++;
                             ff = f;
@@ -2904,8 +2906,8 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                     }
                     done:;
                 }
-                // If we have less args, try insert default args.
-                if ((int)nargs >= f->first_default_arg) {
+                // If we have still have less args, try insert default args.
+                if (nargs < f->nargs() && (int)nargs >= f->first_default_arg) {
                     for (size_t i = nargs; i < f->nargs(); i++) {
                         children.push_back(f->default_args[i - f->first_default_arg]->Clone());
                         tc.TT(children.back(), 1, LT_ANY);
@@ -2924,7 +2926,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                         " arguments");
             r = fc->TypeCheck(tc, reqret);
         } else {
-            if (fld && dotnoparens) {
+            if (fld && fromdot && noparens) {
                 tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
             }
             tc.Error(*this, "unknown field/function reference ", Q(name));

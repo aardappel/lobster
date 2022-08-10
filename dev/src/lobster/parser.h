@@ -929,7 +929,7 @@ struct Parser {
     }
 
     List *ParseFunctionCall(Line line, Function *f, NativeFun *nf, string_view idname, Node *dotarg,
-                            bool noparens, vector<UnresolvedTypeRef> *specializers) {
+                            bool noparenscall, vector<UnresolvedTypeRef> *specializers) {
         vector<Node *> list;
         bool parens_parsed = false;
         [&]() {
@@ -938,7 +938,7 @@ struct Parser {
                 if (!IsNext(T_LEFTPAREN)) return;
                 parens_parsed = true;
             } else {
-                if (!noparens) {
+                if (!noparenscall) {
                     Expect(T_LEFTPAREN);
                     parens_parsed = true;
                 }
@@ -946,7 +946,7 @@ struct Parser {
             // Parse regular arguments.
             bool needscomma = false;
             for (;;) {
-                if (!noparens && IsNext(T_RIGHTPAREN)) {
+                if (!noparenscall && IsNext(T_RIGHTPAREN)) {
                     if (call_noparens) {  // This call is an arg to a call that has no parens.
                         // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
                         return;
@@ -954,8 +954,8 @@ struct Parser {
                     break;
                 }
                 if (needscomma) Expect(T_COMMA);
-                list.push_back(ParseExp(noparens));
-                if (noparens) {
+                list.push_back(ParseExp(noparenscall));
+                if (noparenscall) {
                     if (lex.token == T_COLON) break;
                     return;
                 } else {
@@ -990,17 +990,19 @@ struct Parser {
         // Note: <, because functions are inside their own scope.
         if (nf || (f && (!id || id->scopelevel < f->scopelevel))) {
             if (f && f->istype) Error("can\'t call function type ", Q(f->name));
-            auto call = new GenericCall(line, idname, st.current_namespace, false, false, specializers);
+            auto call = new GenericCall(line, idname, st.current_namespace, dotarg != nullptr,
+                                        !parens_parsed, false, specializers);
             call->children = list;
             return call;
         }
-        if (noparens) Error("call requires ()");
+        if (noparenscall) Error("call requires ()");
         if (id) {
             auto dc = new DynCall(lex, nullptr, id->cursid);
             dc->children = list;
             return dc;
         } else {
-            auto call = new GenericCall(line, idname, st.current_namespace, dotarg && !parens_parsed, false, specializers);
+            auto call = new GenericCall(line, idname, st.current_namespace, dotarg != nullptr,
+                                        !parens_parsed, false, specializers);
             call->children = list;
             return call;
         }
@@ -1017,7 +1019,7 @@ struct Parser {
                 auto fld = st.FieldUse(idname);
                 if (fld && lex.token != T_LEFTPAREN) {
                     auto dot = new GenericCall(lex, idname, st.current_namespace,
-                                               true, false, nullptr);
+                                               true, true, false, nullptr);
                     dot->Add(n);
                     n = dot;
                 } else {

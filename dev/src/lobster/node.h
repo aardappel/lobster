@@ -378,12 +378,13 @@ struct FunRef : Node {
 struct GenericCall : List {
     string_view name;
     string_view ns;
-    bool dotnoparens;
+    bool fromdot;
+    bool noparens;
     bool super;
     vector<UnresolvedTypeRef> specializers;
-    GenericCall(const Line &ln, string_view name, string_view ns, bool dotnoparens, bool super,
-                vector<UnresolvedTypeRef> *spec)
-        : List(ln), name(name), ns(ns), dotnoparens(dotnoparens), super(super) {
+    GenericCall(const Line &ln, string_view name, string_view ns, bool fromdot, bool noparens,
+                bool super, vector<UnresolvedTypeRef> *spec)
+        : List(ln), name(name), ns(ns), fromdot(fromdot), noparens(noparens), super(super) {
         if (spec) specializers = *spec;
     };
     bool EqAttr(const Node *o) const {
