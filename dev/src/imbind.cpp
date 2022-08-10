@@ -393,13 +393,13 @@ void DumpStackTrace(VM &vm) {
     }
 }
 
-void BreakPoint(VM &vm, string_view reason) {
-    if (!imgui_init) vm.Error("Debugger requires im_init()");
+string BreakPoint(VM &vm, string_view reason) {
+    if (!imgui_init) return "Debugger requires im_init()";
 
     auto cursor_was_on = SDLCursor(true);
 
     auto err = SDLDebuggerWindow();
-    if (!err.empty()) vm.Error("Couldn\'t create debugger: " + err);
+    if (!err.empty()) return "Couldn\'t create debugger: " + err;
 
     auto existing_context = ImGui::GetCurrentContext();
     // FIXME: this is supposed to be able to share the font atlas with the other context,
@@ -477,6 +477,8 @@ void BreakPoint(VM &vm, string_view reason) {
     if (quit) vm.NormalExit("Program terminated by debugger");
 
     SDLCursor(cursor_was_on);
+
+    return "";
 }
 
 void AddIMGUI(NativeRegistry &nfr) {
@@ -793,7 +795,10 @@ nfr("breakpoint", "condition", "I", "",
     "stops the program in the debugger if passed true."
     " debugger needs --runtime-verbose on, and im_init() to have run.",
     [](StackPtr &, VM &vm, Value &c) {
-        if (c.True()) BreakPoint(vm, "Conditional breakpoint hit!");
+        if (c.True()) {
+            auto err = BreakPoint(vm, "Conditional breakpoint hit!");
+            if (!err.empty()) vm.Error(err);
+        }
         return NilVal();
     });
 
@@ -801,7 +806,8 @@ nfr("breakpoint", "", "", "",
     "stops the program in the debugger always."
     " debugger needs --runtime-verbose on, and im_init() to have run.",
     [](StackPtr &, VM &vm) {
-        BreakPoint(vm, "Breakpoint hit!");
+        auto err = BreakPoint(vm, "Breakpoint hit!");
+        if (!err.empty()) vm.Error(err);
         return NilVal();
     });
 

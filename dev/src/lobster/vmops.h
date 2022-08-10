@@ -3,7 +3,7 @@
 #include "lobster/natreg.h"
 #include "lobster/bytecode_generated.h"
 
-extern void BreakPoint(lobster::VM &vm, string_view reason);
+extern string BreakPoint(lobster::VM &vm, string_view reason);
 
 namespace lobster {
 
