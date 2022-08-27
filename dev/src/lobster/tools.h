@@ -1134,3 +1134,86 @@ struct StackHelper {
 #else
     #define STACK_PROFILE
 #endif
+
+
+
+
+// small_vector, similar to llvm::SmallVector, stores N elements in-line, only dynamically
+// allocated if more than that.
+// Since this is usually used for single-digit lengths, we use a max 16-bit length for
+// compactness (a small_vector<int, 2> is only 12 bytes!).
+// Uses memcpy on growth, so not for elements with non-trivial copy constructors.
+// It stores a pointer overlapping with the fixed elements, so there is no point to
+// make N smaller than sizeof(T *) / sizeof(T).
+
+template<typename T, int N> class small_vector {
+    uint16_t len = 0;
+    uint16_t cap = N;
+    union {
+        T elems[N];
+        T *buf;
+    };
+
+    void grow() {
+        assert((cap & 0x8000) == 0);  // Can't grow beyond 16-bit.
+        uint16_t nc = len * 2;
+        auto b = new T[nc];
+        t_memcpy(b, data(), len);
+        if (cap > N) delete[] buf;
+        cap = nc;
+        buf = b;
+    }
+
+    public:
+
+    small_vector() {}
+
+    ~small_vector() {
+        if (cap > N) delete[] buf;
+    }
+
+    size_t size() {
+        return len;
+    }
+
+    T *data() {
+        return cap == N ? elems : buf;
+    }
+
+    bool empty() {
+        return len == 0;
+    }
+
+    T &operator[](size_t i) {
+        assert(i < len);
+        return data()[i];
+    }
+
+    T *begin() { return data(); }
+    T *end() { return data() + len; }
+
+    T &back() {
+        assert(len);
+        return data()[len - 1];
+    }
+
+    void push_back(const T &e) {
+        if (len == cap) grow();
+        data()[len++] = e;
+    }
+
+    void insert(size_t at, const T &e) {
+        assert(at <= len);
+        if (len == cap) grow();
+        if (at != len) t_memmove(data() + at + 1, data() + at, size() - at);
+        data()[at] = e;
+        len++;
+    }
+
+    void erase(size_t at) {
+        assert(at < len);
+        if (at != len - 1) t_memmove(data() + at, data() + at + 1, size() - at - 1);
+        len--;
+    }
+};
+
