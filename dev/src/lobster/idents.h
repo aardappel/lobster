@@ -99,6 +99,13 @@ struct Enum : Named {
         thistype = Type { this };
     }
 
+    EnumVal *Lookup(int64_t q) {
+        for (auto &v : vals)
+            if (v.get()->val == q)
+                return v.get();
+        return nullptr;
+    }
+
     flatbuffers::Offset<bytecode::Enum> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
         vector<flatbuffers::Offset<bytecode::EnumVal>> valoffsets;
         for (auto &v : vals)

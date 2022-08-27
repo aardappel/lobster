@@ -307,8 +307,21 @@ void DumpBuiltinDoc(NativeRegistry &nfr) {
                     : HTMLEscape(TypeName(a.type->ElementIfNil(), a.fixed_len));
             }
             s += "</font>";
-            if (a.type->t == V_NIL && (int)i > last_non_nil)
-                s += a.type->sub->Numeric() ? " = 0" : " = nil";
+            if (a.type->t == V_NIL && (int)i > last_non_nil) {
+                switch (a.type->sub->t) {
+                    case V_INT:
+                        if (a.flags & NF_BOOL)
+                            append(s, " = ", a.default_val ? "true" : "false");
+                        else
+                            append(s, " = ", a.default_val);
+                        break;
+                    case V_FLOAT:
+                        append(s, " = ", (float)a.default_val);
+                        break;
+                    default:
+                        s += " = nil";
+                }
+            }
         }
         s += ")";
         if (nf->retvals.size()) {

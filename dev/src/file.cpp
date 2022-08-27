@@ -191,7 +191,7 @@ nfr("launch_subprocess", "commandline,stdin", "S]S?", "IS",
         Push(sp, vm.NewString(out));
     });
 
-nfr("vector_to_buffer", "vec,width", "A]*I?", "S",
+nfr("vector_to_buffer", "vec,width", "A]*I?:4", "S",
     "converts a vector of ints/floats (or structs of them) to a buffer, where"
     " each scalar is written with \"width\" bytes (1/2/4/8, default 4). Returns nil if the"
     " type couldn't be converted. Uses native endianness.",
@@ -201,7 +201,6 @@ nfr("vector_to_buffer", "vec,width", "A]*I?", "S",
         if (ti.t != V_INT && ti.t != V_FLOAT)
             vm.Error("vector_to_buffer: non-numeric data");
         auto w = width.intval();
-        if (!w) w = 4;
         if (w != 1 && w != 2 && w != 4 && w != 8)
             vm.Error("vector_to_buffer: width out of range");
         if (ti.t == V_FLOAT && (w == 1 || w == 2))

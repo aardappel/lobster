@@ -238,18 +238,17 @@ nfr("insert", "xs,i,x", "A]*IAkw1", "Ab]1",
         Push(sp, l);
     });
 
-nfr("remove", "xs,i,n", "A]*II?", "A1",
+nfr("remove", "xs,i,n", "A]*II?:1", "A1",
     "remove element(s) at index i, following elements shift down. pass the number of elements"
     " to remove as an optional argument, default 1. returns the first element removed.",
     [](StackPtr &sp, VM &vm) {
-        auto n = Pop(sp).ival();
+        auto amount = Pop(sp).ival();
         auto i = Pop(sp).ival();
         auto l = Pop(sp).vval();
-        auto amount = std::max(n, 1_L);
-        if (n < 0 || amount > l->len || i < 0 || i > l->len - amount)
+        if (amount < 0 || amount > l->len || i < 0 || i > l->len - amount)
             vm.BuiltinError(cat("remove: index (", i, ") or n (", amount,
                                     ") out of range (", l->len, ")"));
-        l->Remove(sp, vm, i, amount, 1, true);
+        if (amount) l->Remove(sp, vm, i, amount, 1, true);
     });
 
 nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
@@ -864,23 +863,40 @@ nfr("in_range", "x,range,bias", "FFF?", "B",
         return Value(x.fval() >= bias.fval() && x.fval() < bias.fval() + range.fval());
     });
 
-nfr("in_range", "x,range,bias", "I}I}1I}1?", "B",
-    "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
+nfr("in_range", "x,range,bias", "I}:2I}:2I}:2?", "B",
+    "checks if a 2d integer vector is >= bias and < bias + range. Bias defaults to 0.",
     [](StackPtr &sp, VM &) {
-        auto bias = Top(sp).True() ? DangleVec<iint>(sp) : (Pop(sp), ValueVec<iint>());
+        auto bias = DangleVec<iint>(sp);
+        auto range = DangleVec<iint>(sp);
+        auto x = DangleVec<iint>(sp);
+        Push(sp, x.in_range(range, bias));
+    });
+nfr("in_range", "x,range,bias", "I}:3I}:3I}:3?", "B",
+    "checks if a 3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
+    [](StackPtr &sp, VM &) {
+        auto bias = DangleVec<iint>(sp);
         auto range = DangleVec<iint>(sp);
         auto x = DangleVec<iint>(sp);
         Push(sp, x.in_range(range, bias));
     });
 
-nfr("in_range", "x,range,bias", "F}F}1F}1?", "B",
-    "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.",
+nfr("in_range", "x,range,bias", "F}:2F}:2F}:2?", "B",
+    "checks if a 2d float vector is >= bias and < bias + range. Bias defaults to 0.",
     [](StackPtr &sp, VM &) {
-        auto bias = Top(sp).True() ? DangleVec<double>(sp) : (Pop(sp), ValueVec<double>());
+        auto bias = DangleVec<double>(sp);
         auto range = DangleVec<double>(sp);
         auto x = DangleVec<double>(sp);
         Push(sp, x.in_range(range, bias));
     });
+nfr("in_range", "x,range,bias", "F}:3F}:3F}:3?", "B",
+    "checks if a 2d float vector is >= bias and < bias + range. Bias defaults to 0.",
+    [](StackPtr &sp, VM &) {
+        auto bias = DangleVec<double>(sp);
+        auto range = DangleVec<double>(sp);
+        auto x = DangleVec<double>(sp);
+        Push(sp, x.in_range(range, bias));
+    });
+
 
 nfr("abs", "x", "I", "I",
     "absolute value of an integer",

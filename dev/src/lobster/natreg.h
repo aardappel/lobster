@@ -278,6 +278,7 @@ struct Narg {
     NArgFlags flags = NF_NONE;
     string_view name;
     char fixed_len = 0;
+    char default_val = 0;
     Lifetime lt = LT_UNDEF;
 
     void Set(const char *&tid, Lifetime def) {
@@ -327,7 +328,11 @@ struct Narg {
                         type = &rt->thistype;
                     } else {
                         assert(*tid >= '/' && *tid <= '9');
-                        fixed_len = *tid++ - '0';
+                        char val = *tid++ - '0';
+                        if (type->ElementIfNil()->Numeric())
+                            default_val = val;
+                        else
+                            fixed_len = val; 
                     }
                     break;
                 default:

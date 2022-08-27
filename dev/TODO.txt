@@ -19,8 +19,6 @@
     Would be expensive to have a breakpoint check between every statement..
     But this would enable traditional step by step debugging.
 
-- `remove` shows a default value of `0` in the docs, could add integer defaults to the type string.
-
 - continue vmcore experiment.
 
 - Inline tocpp into codegen, see below.

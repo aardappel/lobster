@@ -2123,7 +2123,7 @@ struct TypeChecker {
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
-    TypeRef ActualBuiltinType(int flen, TypeRef type, NArgFlags flags, Node *exp,
+    TypeRef ActualBuiltinType(int flen, TypeRef type, NArgFlags flags, TypeRef etype,
                               const NativeFun *nf, bool test_overloads, size_t argn,
                               const Node &errorn) {
         if (flags & NF_BOOL) {
@@ -2135,7 +2135,6 @@ struct TypeChecker {
         // (xy/xyz/xyzw).
         if (!flen) return type;
         type = type->ElementIfNil();
-        auto etype = exp ? exp->exptype : nullptr;
         auto e = etype;
         size_t i = 0;
         for (auto vt = type; vt->t == V_VECTOR && i < SymbolTable::NUM_VECTOR_TYPE_WRAPPINGS;
@@ -2144,12 +2143,6 @@ struct TypeChecker {
                 // Check if we allow any vector length.
                 if (!e.Null() && flen == -1 && e->t == V_STRUCT_S) {
                     flen = (int)e->udt->fields.size();
-                }
-                if (!etype.Null() && flen == -1 && etype->t == V_VAR) {
-                    // Special case for "F}?" style types that can be matched against a
-                    // DefaultArg, would be good to solve this more elegantly..
-                    // FIXME: don't know arity, but it doesn't matter, so we pick 2..
-                    return st.GetVectorType(vt, i, 2);
                 }
                 if (flen >= 1) {
                     if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->fields.size() == flen &&
@@ -2774,12 +2767,8 @@ Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *DefaultVal::TypeCheck(TypeChecker &tc, size_t reqret) {
-    // This is used as a default value for native call arguments. The variable
-    // makes it equal to whatever the function expects, then codegen can use that type
-    // to generate a correct value.
-    // Also used as an empty else branch.
-    exptype = reqret ? tc.NewTypeVar() : type_void;
+Node *DefaultVal::TypeCheck(TypeChecker &, size_t) {
+    exptype = type_void;
     lt = LT_ANY;
     return this;
 }
@@ -2844,22 +2833,6 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             auto nc = new NativeCall(nf, line);
             nc->children = children;
             sup_err();
-            // FIXME: merge this with the overload checking in NativeCall::TypeCheck
-            for (auto [i, arg] : enumerate(nf->args)) {
-                if (i >= nc->Arity()) {
-                    auto &type = arg.type;
-                    if (type->t == V_NIL) {
-                        nc->Add(new DefaultVal(line));
-                        tc.TT(nc->children.back(), 1, LT_ANY);
-                    } else {
-                        for (auto &ol = nf->overloads; ol; ol = ol->overloads) {
-                            if (ol->args.size() == nc->Arity()) goto argsok;
-                        }
-                        tc.Error(*this, "missing arg to builtin function ", Q(nf->name));
-                    }
-                }
-            }
-            argsok:
             r = nc->TypeCheck(tc, reqret);
         } else if (f) {
             // Now that we're sure it's going to be a call, pick the right function, fill in default/self args.
@@ -2948,21 +2921,26 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (nf->first->overloads) {
         // Multiple overloads available, figure out which we want to call.
         auto cnf = nf->first;
-        auto nargs = Arity();
         for (; cnf; cnf = cnf->overloads) {
-            if (cnf->args.size() != nargs) continue;
+            if (cnf->args.size() < Arity()) continue;
             for (auto [i, arg] : enumerate(cnf->args)) {
+                if (i >= children.size()) {
+                    // Default args always good for overload match.
+                    if (arg.type->t == V_NIL) continue;
+                    goto nomatch;
+                }
                 // Special purpose treatment of V_ANY to allow generic vectors in overloaded
                 // length() etc.
+                auto etype = children[i]->exptype;
                 auto cf = CF_NUMERIC_NIL;
                 if (arg.type->t != V_STRING) cf = ConvertFlags(cf | CF_COERCIONS);
                 if (arg.type->t != V_ANY &&
                     (arg.type->t != V_VECTOR ||
-                     children[i]->exptype->t != V_VECTOR ||
+                     etype->t != V_VECTOR ||
                      arg.type->sub->t != V_ANY) &&
-                    !tc.ConvertsTo(children[i]->exptype,
+                    !tc.ConvertsTo(etype,
                                    tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags,
-                                                        children[i], nf, true, i + 1, *this),
+                                                        etype, nf, true, i + 1, *this),
                                    cf)) goto nomatch;
             }
             nf = cnf;
@@ -2972,18 +2950,57 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         if (!cnf)
             tc.NatCallError("arguments match no overloads of ", nf, *this);
     }
-    if (children.size() != nf->args.size())
-        tc.NatCallError("wrong number of many arguments for ", nf, *this);
+    for (auto [i, arg] : enumerate(nf->args)) {
+        if (i >= Arity()) {
+            if (arg.type->t == V_NIL) {
+                assert(arg.fixed_len >= 0);
+                auto type = tc.ActualBuiltinType(arg.fixed_len, arg.type->sub, arg.flags,
+                                                 type_undefined,
+                                                 nf, true, i + 1, *this);
+                switch (type->t) {
+                    case V_INT: {
+                        auto ic = new IntConstant(line, arg.default_val);
+                        Add(ic);
+                        if ((arg.flags & NF_BOOL) && tc.st.default_bool_type) {
+                            auto ev = tc.st.default_bool_type->Lookup(arg.default_val);
+                            if (ev) ic->from = ev;
+                        }
+                        break;
+                    }
+                    case V_FLOAT:
+                        Add(new FloatConstant(line, arg.default_val));
+                        break;
+                    case V_STRUCT_S: {
+                        auto cons = new Constructor(line, { type });
+                        // Could specialize this for floats etc, but its such a rarely used feature,
+                        // might as well have it auto coerced.
+                        for (auto &f : type->udt->fields) {
+                            (void)f;
+                            cons->Add(new IntConstant(line, 0));
+                        }
+                        Add(cons);
+                        break;
+                    }
+                    default:
+                        Add(new Nil(line, { tc.st.Wrap(type, V_NIL) }));
+                        break;
+                }
+                tc.TT(children.back(), 1, LT_ANY);
+            } else {
+                tc.NatCallError("wrong number of many arguments for ", nf, *this);
+            }
+        }
+    }
+    assert(children.size() == nf->args.size());
     vector<TypeRef> argtypes(children.size());
     for (auto [i, c] : enumerate(children)) {
         auto &arg = nf->args[i];
-        auto argtype = tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags, children[i], nf, false, i + 1, *this);
+        auto argtype = tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags, children[i]->exptype, nf, false, i + 1, *this);
         // Filter out functions that are not struct aware.
         bool typed = false;
-        if (argtype->t == V_NIL && argtype->sub->Numeric() && !Is<DefaultVal>(c)) {
+        if (argtype->t == V_NIL && argtype->sub->Numeric()) {
             // This is somewhat of a hack, because we conflate V_NIL with being optional
             // for native functions, but we don't want numeric types to be nilable.
-            // Codegen has a special case for T_DEFAULTVAL however.
             argtype = argtype->sub;
         }
         if (arg.flags & NF_CONVERTANYTOSTRING && c->exptype->t != V_STRING) {
@@ -3105,7 +3122,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         // This allows the 0th retval to inherit the type of the 0th arg, and is
         // a bit special purpose..
         type = tc.ActualBuiltinType(ret.fixed_len, type, ret.flags,
-                                    !i && Arity() ? children[0] : nullptr, nf, false,
+                                    !i && Arity() ? children[0]->exptype : nullptr, nf, false,
                                     0, *this);
         if (!IsRefNilVar(type->t)) rlt = LT_ANY;
         if (nf->retvals.size() > 1) {

@@ -130,7 +130,7 @@ Value CreateFixture(VM &vm, b2Body &body, b2Shape &shape) {
 }
 
 b2Vec2 OptionalOffset(StackPtr &sp) {
-    return Top(sp).True() ? PopB2(sp) : (Pop(sp), b2Vec2_zero);
+    return PopB2(sp);
 }
 
 Renderable &GetRenderable(VM &, const Value &id) {

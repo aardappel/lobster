@@ -142,7 +142,7 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
 
 void AddGraphics(NativeRegistry &nfr) {
 
-nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?", "S?",
+nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
     "opens a window for OpenGL rendering. returns error string if any problems, nil"
     " otherwise. For flags, see modules/gl.lobster",
     [](StackPtr &, VM &vm, Value &title, Value &xs, Value &ys, Value &flags, Value &samples) {
@@ -645,12 +645,10 @@ nfr("gl_perspective", "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset", "
     " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
     " 1). Optionally specify a framebuffer size to override the current gl_framebuffer_size",
     [](StackPtr &sp, VM &) {
-        int2 fbo = Top(sp).True()
-            ? PopVec<int2>(sp)
-            : (Pop(sp), int2_0);
-        int2 fbs = Top(sp).True()
-            ? PopVec<int2>(sp)
-            : (Pop(sp), GetFrameBufferSize(GetScreenSize()) - fbo);
+        int2 fbo = PopVec<int2>(sp);
+        int2 fbs = PopVec<int2>(sp);
+        if (fbs.x + fbs.y == 0)
+            fbs = GetFrameBufferSize(GetScreenSize()) - fbo;
         auto zfar = Pop(sp).fltval();
         auto znear = Pop(sp).fltval();
         auto fovy = Pop(sp).fltval();

@@ -954,13 +954,7 @@ void StringConstant::Generate(CodeGen &cg, size_t retval) const {
 
 void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
-    // Optional args are indicated by being nillable, but for structs passed to builtins the type
-    // has already been made non-nil.
-    switch (exptype->ElementIfNil()->t) {
-        case V_INT:   cg.EmitOp(IL_PUSHINT); cg.Emit(0); break;
-        case V_FLOAT: cg.GenFloat(0); break;
-        default:      cg.EmitOp(IL_PUSHNIL); break;
-    }
+    cg.EmitOp(IL_PUSHNIL);
 }
 
 void IdentRef::Generate(CodeGen &cg, size_t retval) const {
