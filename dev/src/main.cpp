@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
                         lpak ? &pakfile : nullptr, false, runtime_checks);
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
-                    LOG_WARN(mainfile, " does not exist, skipping");
+                    //LOG_WARN(mainfile, " does not exist, skipping");
                     break;
                 }
                 fn = StripDirPart(mainfile);
