@@ -608,15 +608,15 @@ nfr("repeat_string", "s,n", "SI", "S",
 
 #define VECTOROP(op) VECTORVARS VECTOROPNR(elems[i] = Value(op))
 
-nfr("pow", "a,b", "FF", "F",
-    "a raised to the power of b",
-    [](StackPtr &, VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); });
-
 nfr("pow", "a,b", "II", "I",
     "a raised to the power of b, for integers, using exponentiation by squaring",
     [](StackPtr &, VM &, Value &a, Value &b) {
         return Value(b.ival() >= 0 ? ipow<iint>(a.ival(), b.ival()) : 0);
     });
+
+nfr("pow", "a,b", "FF", "F",
+    "a raised to the power of b",
+    [](StackPtr &, VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); });
 
 nfr("pow", "a,b", "F}F", "F}",
     "vector elements raised to the power of b",
