@@ -98,7 +98,7 @@ void LVector::Remove(StackPtr &sp, VM &vm, iint i, iint n, iint decfrom, bool st
         tsnz_memcpy(TopPtr(sp), v + i * width, width);
         PushN(sp, (int)width);
     }
-    DestructElementRange(vm, i + decfrom, i + n - decfrom);
+    DestructElementRange(vm, i + decfrom, i + n);
     t_memmove(v + i * width, v + (i + n) * width, (len - i - n) * width);
     len -= n;
 }

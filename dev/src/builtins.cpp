@@ -245,10 +245,10 @@ nfr("remove", "xs,i,n", "A]*II?:1", "A1",
         auto amount = Pop(sp).ival();
         auto i = Pop(sp).ival();
         auto l = Pop(sp).vval();
-        if (amount < 0 || amount > l->len || i < 0 || i > l->len - amount)
+        if (amount < 1 || amount > l->len || i < 0 || i > l->len - amount)
             vm.BuiltinError(cat("remove: index (", i, ") or n (", amount,
                                     ") out of range (", l->len, ")"));
-        if (amount) l->Remove(sp, vm, i, amount, 1, true);
+        l->Remove(sp, vm, i, amount, 1, true);
     });
 
 nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
