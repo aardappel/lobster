@@ -3233,7 +3233,8 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         return this;
     }
     if (!Is<DefaultVal>(child)) {
-        if (auto mrs = Is<MultipleReturn>(child)) {
+        auto scchild = (Node *)tc.SkipCoercions(child);
+        if (auto mrs = Is<MultipleReturn>(scchild)) {
             tc.RetVal(mrs->exptype, sf, *this);
             for (auto [i, mr] : enumerate(mrs->children)) {
                 if (i < sf->reqret)
