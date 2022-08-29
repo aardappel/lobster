@@ -2488,7 +2488,7 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     //   was really what was intended (since the lval being assigned from may go away).
     // - old := cur cases, where old is meant to hang on to the previous value as cur gets updated,
     //   which then runs into borrowing errors.
-    tc.TT(child, sids.size(), LT_KEEP);
+    tc.TT(child, Is<DefaultVal>(child) ? 0 : sids.size(), LT_KEEP);
     for (auto [i, p] : enumerate(sids)) {
         auto var = TypeLT(*child, i);
         if (!p.second.utr.Null()) {
