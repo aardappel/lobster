@@ -2991,7 +2991,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             }
         }
     }
-    assert(children.size() == nf->args.size());
+    if (children.size() != nf->args.size()) {
+        tc.NatCallError("too many arguments for ", nf, *this);
+    }
     vector<TypeRef> argtypes(children.size());
     for (auto [i, c] : enumerate(children)) {
         auto &arg = nf->args[i];
