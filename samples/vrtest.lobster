@@ -121,6 +121,6 @@ while gl_frame():
         drawworld()
 
     if balls.length > 100:
-        balls.remove(0, balls.length - 100)
+        balls.remove_range(0, balls.length - 100)
     for(balls) b:
         b[0] += b[1] * gl_delta_time() / 10.0

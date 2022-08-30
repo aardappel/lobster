@@ -705,7 +705,8 @@ struct LVector : RefObj {
         tsnz_memcpy(v + i * width, vals, width);
     }
 
-    void Remove(StackPtr &sp, VM &vm, iint i, iint n, iint decfrom, bool stack_ret);
+    void RemovePush(StackPtr &sp, iint i);
+    void Remove(VM &vm, iint i, iint n);
 
     Value *Elems() { return v; }
     const Value *Elems() const { return v; }

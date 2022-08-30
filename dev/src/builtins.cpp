@@ -238,28 +238,37 @@ nfr("insert", "xs,i,x", "A]*IAkw1", "Ab]1",
         Push(sp, l);
     });
 
-nfr("remove", "xs,i,n", "A]*II?:1", "A1",
-    "remove element(s) at index i, following elements shift down. pass the number of elements"
-    " to remove as an optional argument, default 1. returns the first element removed.",
+nfr("remove", "xs,i", "A]*I", "A1",
+    "remove element at index i, following elements shift down. returns the element removed.",
+    [](StackPtr &sp, VM &vm) {
+        auto i = Pop(sp).ival();
+        auto l = Pop(sp).vval();
+        if (i < 0 || i >= l->len)
+            vm.BuiltinError(cat("remove: index (", i, ") out of range (", l->len, ")"));
+        l->RemovePush(sp, i);
+    });
+
+nfr("remove_range", "xs,i,n", "A]*II", "",
+    "remove n elements at index i, following elements shift down.",
     [](StackPtr &sp, VM &vm) {
         auto amount = Pop(sp).ival();
         auto i = Pop(sp).ival();
         auto l = Pop(sp).vval();
-        if (amount < 1 || amount > l->len || i < 0 || i > l->len - amount)
-            vm.BuiltinError(cat("remove: index (", i, ") or n (", amount,
-                                    ") out of range (", l->len, ")"));
-        l->Remove(sp, vm, i, amount, 1, true);
+        if (amount < 0 || amount > l->len || i < 0 || i > l->len - amount)
+            vm.BuiltinError(
+                cat("remove: index (", i, ") or n (", amount, ") out of range (", l->len, ")"));
+        l->Remove(vm, i, amount);
     });
 
 nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
     "remove all elements equal to obj (==), returns obj.",
-    [](StackPtr &sp, VM &vm, Value &l, Value &o) {
+    [](StackPtr &, VM &vm, Value &l, Value &o) {
         iint removed = 0;
         auto vt = vm.GetTypeInfo(l.vval()->ti(vm).subt).t;
         for (iint i = 0; i < l.vval()->len; i++) {
             auto e = l.vval()->At(i);
             if (e.Equal(vm, vt, o, vt, false)) {
-                l.vval()->Remove(sp, vm, i--, 1, 0, false);
+                l.vval()->Remove(vm, i--, 1);
                 removed++;
             }
         }
