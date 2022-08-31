@@ -1512,7 +1512,12 @@ struct TypeChecker {
                         continue;
                     }
                 }
-                Error(call_args, "multiple overloads for ", Q(f.name), " match the argument types");
+                string arguments;
+                for (int a = 0; a< f.nargs(); a++) {
+                    if (a != 0) arguments += ", ";
+                    arguments += TypeName(a ? call_args.children[a]->exptype : type0);
+                }
+                Error(call_args, "multiple overloads for ", Q(f.name), " match the argument types `(", arguments, ")`");
             }
             // Now filter existing matches into a new set of matches based on current arg.
             vector<int> matches;
