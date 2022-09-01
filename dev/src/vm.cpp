@@ -444,12 +444,12 @@ void VM::DumpStackTrace(string &sd) {
 }
 
 Value VM::Error(string err) {
+    ErrorBase(err);
     #if LOBSTER_ENGINE
         if (runtime_checks >= RUNTIME_DEBUG) {
-            BreakPoint(*this, err);
+            BreakPoint(*this, errmsg);
         }
     #endif
-    ErrorBase(err);
     DumpStackTrace(errmsg);
     UnwindOnError();
     return NilVal();

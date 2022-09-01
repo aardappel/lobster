@@ -288,8 +288,6 @@ BCALLOP(6, auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(s
 BCALLOP(7, auto a6 = Pop(sp);auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5, a6));
 
 VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
-    (void)line;
-    (void)fileidx;
     if (Top(sp).False()) {
         vm.last_line = line;
         vm.last_fileidx = fileidx;
