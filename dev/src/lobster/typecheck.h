@@ -713,7 +713,8 @@ struct TypeChecker {
             for (auto &f : udt.fields) {
                 if (f.defaultval && f.giventype.utr->t == V_ANY && !predeclaration) {
                     // FIXME: would be good to not call TT here generically but instead have some
-                    // specialized checking, just in case TT has a side effect on type checking.
+                    // specialized checking, just in case TT has a side effect on type checking,
+                    // especially function calls, whose "return from" may fail here.
                     // Sadly that is not easy given the amount of type-checking code this already
                     // relies on.
                     st.bound_typevars_stack.push_back(&udt.generics);

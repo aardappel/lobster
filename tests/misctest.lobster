@@ -220,10 +220,10 @@ run_test("misc"):
     def recursive_exceptions(n) -> void:
         try():
             if n: recursive_exceptions(n - 1)
-            else: throw 0
+            else: throw ""
         fn v:
-            assert v == n
-            throw n + 1
+            assert v.length == n
+            throw v + "*"
     try():
         recursive_exceptions(10)
 

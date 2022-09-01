@@ -1,15 +1,25 @@
 // exception handling, implemented using the "return from" feature:
 
 def try(body, catch):
-    catch(exception_handler(body)) // catch takes thrown value as arg
+    let err = exception_handler(body)
+    if err:
+        catch(err)
 
 def exception_handler(body):
-    return body() from try // if no exception raised, try returns result of body and skips catch
+    body()
+    return nil
 
+// Throw an exception, which must be a non-scalar value.
+// It will return thru exception_handler then execute the catch function.
+// if you get the error: "return from exception_handler" outside of function,
+// it means you're using throw() outside of try() body
 def throw(v):
-    return v from exception_handler // will invoke catch() of nearest try-catch on the callstack
-    // if you get the runtime error: "return from exception_handler" outside of function,
-    // it means you're using throw() outside of try() body
+    return v from exception_handler
+
+// This can conveniently wrap error-returning functions.
+def throw_if(v):
+    if v:
+        return v from exception_handler
 
 // convenience function: empty catch
 def try(body):
