@@ -1513,7 +1513,7 @@ struct TypeChecker {
                     }
                 }
                 string arguments;
-                for (int a = 0; a< f.nargs(); a++) {
+                for (size_t a = 0; a < f.nargs(); a++) {
                     if (a != 0) arguments += ", ";
                     arguments += TypeName(a ? call_args.children[a]->exptype : type0);
                 }
