@@ -199,6 +199,18 @@ struct TypeChecker {
         Error(callnode, err);
     }
 
+    void AmbiguousOverloadError(const List &call_args, const Function &f, const TypeRef &type0, const vector<int> &from) {
+        string err = "multiple overloads for `" + f.name +"` match the argument types `(";
+        for (size_t a = 0; a < f.nargs(); a++) {
+            if (a != 0) err += ", ";
+            err += TypeName(a ? call_args.children[a]->exptype : type0);
+        }
+        err += ")`";
+        for (auto i: from)
+               err += "\n  overload: " + Signature(*f.overloads[i].sf);
+        Error(call_args, err);
+    }
+
     TypeRef NewTypeVar() {
         auto var = st.NewType();
         *var = Type(V_VAR);
@@ -1512,7 +1524,7 @@ struct TypeChecker {
                         continue;
                     }
                 }
-                Error(call_args, "multiple overloads for ", Q(f.name), " match the argument types");
+                AmbiguousOverloadError(call_args, f, type0, from);
             }
             // Now filter existing matches into a new set of matches based on current arg.
             vector<int> matches;
