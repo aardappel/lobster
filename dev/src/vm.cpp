@@ -159,7 +159,7 @@ void VM::DumpLeaks() {
                 LOG_ERROR(sd);
             } else {
                 LOG_ERROR(leaks.size(), " leaks, details in ", filename);
-                WriteFile(filename, false, sd);
+                WriteFile(filename, false, sd, false);
             }
         #endif
     }

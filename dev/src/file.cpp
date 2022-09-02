@@ -167,10 +167,10 @@ nfr("read_file", "file,textmode", "SI?", "S?",
         return Value(s);
     });
 
-nfr("write_file", "file,contents,textmode", "SSI?", "B",
+nfr("write_file", "file,contents,textmode,absolute_path", "SSI?I?", "B",
     "creates a file with the contents of a string, returns false if writing wasn't possible",
-    [](StackPtr &, VM &, Value &file, Value &contents, Value &textmode) {
-        auto ok = WriteFile(file.sval()->strv(), textmode.False(), contents.sval()->strv());
+    [](StackPtr &, VM &, Value &file, Value &contents, Value &textmode, Value &absolute) {
+        auto ok = WriteFile(file.sval()->strv(), textmode.False(), contents.sval()->strv(), absolute.True());
         return Value(ok);
     });
 

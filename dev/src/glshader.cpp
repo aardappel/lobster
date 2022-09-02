@@ -547,7 +547,7 @@ bool Shader::Dump(string_view filename, bool stripnonascii) {
         return (c < ' ' || c > '~') && c != '\n' && c != '\t';
       }), buf.end());
     }
-    return WriteFile(filename, true, buf);
+    return WriteFile(filename, true, buf, false);
   #else
     return false;
   #endif

@@ -351,28 +351,32 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
     return size;
 }
 
-FILE *OpenFor(string_view relfilename, const char *mode) {
+FILE *OpenFor(string_view relfilename, const char *mode, bool allow_absolute) {
     for (auto &wd : write_dirs) {
         auto f = fopen((wd + SanitizePath(relfilename)).c_str(), mode);
+        if (f) return f;
+    }
+    if (allow_absolute) {
+        auto f = fopen(SanitizePath(relfilename).c_str(), mode);
         if (f) return f;
     }
     return nullptr;
 }
 
-FILE *OpenForWriting(string_view relfilename, bool binary) {
-    auto f = OpenFor(relfilename, binary ? "wb" : "w");
+FILE *OpenForWriting(string_view relfilename, bool binary, bool allow_absolute) {
+    auto f = OpenFor(relfilename, binary ? "wb" : "w", allow_absolute);
     LOG_INFO("write: ", relfilename);
     return f;
 }
 
-FILE *OpenForReading(string_view relfilename, bool binary) {
-    auto f = OpenFor(relfilename, binary ? "rb" : "r");
+FILE *OpenForReading(string_view relfilename, bool binary, bool allow_absolute) {
+    auto f = OpenFor(relfilename, binary ? "rb" : "r", allow_absolute);
     LOG_INFO("read: ", relfilename);
     return f;
 }
 
-bool WriteFile(string_view relfilename, bool binary, string_view contents) {
-    FILE *f = OpenForWriting(relfilename, binary);
+bool WriteFile(string_view relfilename, bool binary, string_view contents, bool allow_absolute) {
+    FILE *f = OpenForWriting(relfilename, binary, allow_absolute);
     size_t written = 0;
     if (f) {
         written = fwrite(contents.data(), contents.size(), 1, f);
@@ -382,8 +386,7 @@ bool WriteFile(string_view relfilename, bool binary, string_view contents) {
 }
 
 bool FileExists(string_view filename, bool allow_absolute) {
-    auto f = OpenForReading(filename, true);
-    if (!f && allow_absolute) f = fopen(null_terminated(filename), "rb");
+    auto f = OpenForReading(filename, true, allow_absolute);
     if (f) fclose(f);
     return f;
 }

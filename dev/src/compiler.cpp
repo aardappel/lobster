@@ -249,7 +249,7 @@ void DumpBuiltinNames(NativeRegistry &nfr) {
         s += nf->name;
         s += "|";
     }
-    WriteFile("builtin_functions_names.txt", false, s);
+    WriteFile("builtin_functions_names.txt", false, s, false);
 }
 
 string HTMLEscape(string_view in) {
@@ -336,7 +336,7 @@ void DumpBuiltinDoc(NativeRegistry &nfr) {
         s += cat("</tt></td><td class=\"a\">", HTMLEscape(nf->help), "</td></tr>\n");
     }
     s += "</table>\n</td></tr></table></center></body>\n</html>\n";
-    WriteFile("builtin_functions_reference.html", false, s);
+    WriteFile("builtin_functions_reference.html", false, s, false);
 }
 
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,

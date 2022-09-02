@@ -829,7 +829,7 @@ nfr("cg_save_vox", "block,name", "R:voxelsS", "B",
                 }
             }
         }
-        FILE *f = OpenForWriting(name.sval()->strv(), true);
+        FILE *f = OpenForWriting(name.sval()->strv(), true, false);
         if (!f) return Value(false);
         auto wint = [&](int i) { fwrite(&i, 4, 1, f); };
         auto wstr = [&](const char *s) { fwrite(s, 4, 1, f); };

@@ -38,9 +38,9 @@ extern int64_t LoadFile(string_view relfilename, string *dest, int64_t start = 0
 // fopen based implementation of FileLoader above to pass to InitPlatform if needed.
 extern int64_t DefaultLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len);
 
-extern FILE *OpenForWriting(string_view relfilename, bool binary);
-extern FILE *OpenForReading(string_view relfilename, bool binary);
-extern bool WriteFile(string_view relfilename, bool binary, string_view contents);
+extern FILE *OpenForWriting(string_view relfilename, bool binary, bool allow_absolute);
+extern FILE *OpenForReading(string_view relfilename, bool binary, bool allow_absolute);
+extern bool WriteFile(string_view relfilename, bool binary, string_view contents, bool allow_absolute);
 extern bool FileExists(string_view filename, bool allow_absolute);
 extern bool FileDelete(string_view relfilename);
 extern string SanitizePath(string_view path);

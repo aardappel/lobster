@@ -214,7 +214,7 @@ bool Mesh::SaveAsPLY(string_view filename) {
     string s;
     if (!geom->WritePLY(s, nindices)) return false;
     for (auto &surf : surfs) surf->WritePLY(s);
-    return WriteFile(filename, true, s);
+    return WriteFile(filename, true, s, false);
 }
 
 void SetPointSprite(float scale) {
