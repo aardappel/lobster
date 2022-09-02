@@ -24,8 +24,8 @@ class Camera:
         position += velocity * gl_delta_time() * movementspeed
 
     def FPS_view():
-        set_z_up_worldspace(): nil
-        gl_rotate_x(sincos(-pitch - 90.0))
+        set_z_up_worldspace()
+        gl_rotate_x(sincos(-pitch))
         gl_rotate_z(sincos(-yaw))
         gl_translate(-position)
 
@@ -35,18 +35,23 @@ class Camera:
 
     // an alternative way to set a 3D camera with an overriding direction, call this instead of FPS_update,
     // then still call FPS_view as before:
-
     def direction(v):
         v = normalize(v)
         yaw = atan2(xy(v)) - 90  // look along Y rather than X
         pitch = asin(v.z)
 
-def set_z_up_worldspace(f):
-    // Default OpenGL view looks along -Z (Y up). We want a worldspace where -Z is down:
-    gl_rotate_x(sincos(-90.0)): f()
+// Default OpenGL view looks along -Z (Y up). This creates a worldspace where Z is up:
+def set_z_up_worldspace():
+    gl_rotate_x(sincos(-90.0))
 
+def set_z_up_worldspace(f):
+    gl_push_model_view()
+    set_z_up_worldspace()
+    body()
+    gl_pop_model_view()
+
+// Convert points that are in Y up space to Z up.
 def to_z_up(v):
-    // Convert points that are in Y up space to Z up.
     return xyz { v.x, -v.z, v.y }
 
 def set_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
