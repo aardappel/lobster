@@ -3,8 +3,6 @@
 - debugger todo
   - "d" in sample without value?
   - doesn't show some global constants inited?
-  - tables column widths: https://github.com/ocornut/imgui/issues/5478
-  - Always unfold first stackframe?
   - Mark all stack-frames up to breakpoint (and maybe assert) as no-inline, then increase limits for all other functions?
   - Add custom view for textures, or any resource types..
   - Add a small source code view, will help quickly spotting the problem.

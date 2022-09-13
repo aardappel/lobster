@@ -155,13 +155,9 @@ double InputFloat(const char *label, double value, double step = 0, double step_
 }
 
 bool BeginTable() {
-    if (ImGui::BeginTable("", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuter)) {
-        // FIXME: There seems to be no reliable way to make the first column fixed:
-        // https://github.com/ocornut/imgui/issues/5478
-        ImGui::TableSetupColumn(
-            nullptr, ImGuiTableColumnFlags_WidthStretch, 1.0f);
-        ImGui::TableSetupColumn(
-            nullptr, ImGuiTableColumnFlags_WidthStretch, 4.0f);
+    if (ImGui::BeginTable("", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersOuter)) {
+        ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch);
         return true;
     }
     return false;
@@ -171,9 +167,12 @@ void EndTable() {
     ImGui::EndTable();
 }
 
+void Text(string_view s) {
+    ImGui::TextUnformatted(s.data(), s.data() + s.size());
+}
+
 void Nil() {
-    auto label = string_view("nil");
-    ImGui::TextUnformatted(label.data(), label.data() + label.size());
+    Text("nil");
 }
 
 void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expanded, bool in_table = true) {
@@ -182,9 +181,11 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
         if (ti.t == V_FUNCTION) return;
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
-        ImGui::TextUnformatted(label.data(), label.data() + label.size());
+        Text(label);
         ImGui::TableSetColumnIndex(1);
-        ImGui::SetNextItemWidth(-1);
+        // This seems to be the only way to make the second column stretch to the available space without it
+        // collapsing to nothing in some cases: https://github.com/ocornut/imgui/issues/5478
+        ImGui::SetNextItemWidth(std::max(200.0f, ImGui::GetContentRegionAvail().x));
         ImGui::PushID(v);  // Name may occur multiple times.
         label = "";
     }
@@ -225,7 +226,11 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                 Nil();
                 break;
             }
-            if (ImGui::TreeNodeEx(*l ? l : "[]", flags)) {
+            if (!v->vval()->len) {
+                Text("[]");
+                break;
+            }
+            if (ImGui::TreeNodeEx(*l ? l : "[..]", flags)) {
                 if (BeginTable()) {
                     auto &sti = vm.GetTypeInfo(ti.subt);
                     auto vec = v->vval();
@@ -368,14 +373,14 @@ void DumpStackTrace(VM &vm) {
             append(sd, ":");
             ti.Print(vm, sd);
             append(sd, " (uninitialized)");
-            ImGui::TextUnformatted(sd.data(), sd.data() + sd.size());
+            Text(sd);
         } else if (ti.t != debug_type && !IsStruct(ti.t)) {
             // Some runtime type corruption, show the problem rather than crashing.
             auto sd = string(name);
             append(sd, ":");
             ti.Print(vm, sd);
             append(sd, " (ERROR != ", BaseTypeName(debug_type), ")");
-            ImGui::TextUnformatted(sd.data(), sd.data() + sd.size());
+            Text(sd);
         } else {
             ValToGUI(vm, x, ti, name, false);
         }
@@ -415,6 +420,7 @@ string BreakPoint(VM &vm, string_view reason) {
 
     bool quit = false;
     int cont = 0;
+    bool first_stack_trace = true;
     for (;;) {
         quit = SDLDebuggerFrame();
         if (quit) break;
@@ -434,11 +440,12 @@ string BreakPoint(VM &vm, string_view reason) {
 
         if (cont) {
             ImGui::Text("Program Running, debugger inactive");
+            first_stack_trace = true;
             // Ensure we've rendered a full frame with the above text before aborting,
             // since this window will get no rendering updates.
             if (++cont == 3) break;
         } else {
-            ImGui::TextUnformatted(reason.data(), reason.data() + reason.size());
+            Text(reason);
             if (ImGui::Button("Continue")) {
                 cont = 1;
             }
@@ -448,13 +455,17 @@ string BreakPoint(VM &vm, string_view reason) {
                 break;
             }
 
+            if (first_stack_trace) {
+                ImGui::SetNextItemOpen(true);
+                first_stack_trace = false;
+            }
             DumpStackTrace(vm);
             VarsToGUI(vm);
 
             if (ImGui::TreeNode("Memory Usage")) {
                 // FIXME: imgui-ify? Table?
                 auto mu = vm.MemoryUsage(25);
-                ImGui::TextUnformatted(mu.data(), mu.data() + mu.size());
+                Text(mu);
                 ImGui::TreePop();
             }
         }
@@ -583,7 +594,7 @@ nfr("im_text", "label", "S", "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
         auto &s = *text.sval();
-        ImGui::TextUnformatted(s.data(), s.data() + s.len);
+        Text(s.strv());
         return NilVal();
     });
 
