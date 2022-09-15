@@ -3335,6 +3335,14 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             // on global vars not typechecked, etc.
             //tc.TypeCheckUDT(*udt, *this, true);
             tc.st.bound_typevars_stack.push_back(&udt->generics);
+            // Fill in default args.. already done in the parser normally, but can happen if
+            // this is a T {} constructor.
+            for (size_t i = children.size(); i < udt->fields.size(); i++) {
+                if (udt->fields[i].defaultval)
+                    Add(udt->fields[i].defaultval->Clone());
+                else
+                    tc.Error(*this, "field ", Q(udt->fields[i].id->name), " not initialized");
+            }
         }
         // These may include field initializers copied from the definition, which may include
         // type variables that are now bound.
