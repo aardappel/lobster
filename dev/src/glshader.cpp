@@ -19,17 +19,16 @@
 #include "lobster/glincludes.h"
 #include "lobster/sdlinterface.h"
 
-map<string, Shader *, less<>> shadermap;
+map<string, unique_ptr<Shader>, less<>> shadermap;
 
 Shader *LookupShader(string_view name) {
     auto shi = shadermap.find(name);
-    if (shi != shadermap.end()) return shi->second;
+    if (shi != shadermap.end()) return shi->second.get();
     return nullptr;
 }
 
 void ShaderShutDown() {
-    for (auto &it : shadermap)
-        delete it.second;
+    shadermap.clear();
 }
 
 string GLSLError(int obj, bool isprogram, const char *source) {
@@ -96,7 +95,7 @@ string ParseMaterialFile(string_view mbuf) {
     };
     auto finish = [&]() -> bool {
         if (!shader.empty()) {
-            auto sh = new Shader();
+            auto sh = make_unique<Shader>();
             if (compute.length()) {
                 #ifdef PLATFORM_WINNIX
                     extern string glslversion;
@@ -133,9 +132,10 @@ string ParseMaterialFile(string_view mbuf) {
                                   (header + pdecl + pfunctions + "void main()\n{\n" + pixel +
                                    "}\n").c_str());
             }
-            if (!err.empty())
+            if (!err.empty()) {
                 return true;
-            shadermap[shader] = sh;
+            }
+            shadermap[shader] = std::move(sh);
             shader.clear();
         }
         return false;
