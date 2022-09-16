@@ -482,13 +482,12 @@ int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offs
             else glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
             if (idx != GL_INVALID_INDEX && len <= size_t(maxsize)) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
-                static int binding_point_index_alloc = 0;
                 auto it = sh->ubomap.find(uniformblockname);
                 int bo_binding_point_index = 0;
                 if (it == sh->ubomap.end()) {
                     assert(offset < 0);
                     if (data) bo = GenBO_("UniformBufferObject", type, len, data);
-                    bo_binding_point_index = binding_point_index_alloc++;
+                    bo_binding_point_index = sh->binding_point_index_alloc++;
                     sh->ubomap[string(uniformblockname)] = { bo, bo_binding_point_index, len };
 				} else {
                     if (data) bo = it->second.bo;
