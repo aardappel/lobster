@@ -663,8 +663,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                             if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
                             if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
                             if (key == "_t") {
-                                const char* cursor = value.c_str();
-                                char* next;
+                                const char *cursor = value.c_str();
+                                char *next;
                                 offset.x = std::strtol(cursor, &next, 10);
                                 cursor = next + 1;
                                 offset.y = std::strtol(cursor, &next, 10);
@@ -673,15 +673,14 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                                 node_offset.insert_or_assign(node_id, offset);
                             }
                             if (key == "_r") {
-                                const char* cursor = value.c_str();
-                                char* next;
+                                const char *cursor = value.c_str();
+                                char *next;
                                 auto rotation = std::strtol(cursor, &next, 10);
                                 // 4 is the noop rotation
                                 if (rotation != 4) {
                                     string msg = ".vox file uses an object rotation that is not supported. :";
                                     msg += value;
-                                    printf("%s\n", msg.c_str());
-                                    //return errf(msg);
+                                    return errf(msg);
                                 }
                             }
                         }
