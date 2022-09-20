@@ -313,6 +313,7 @@ int64_t LoadFileFromAny(string_view srelfilename, string *dest, int64_t start, i
         auto l = cur_loader(dir + srelfilename, dest, start, len);
         if (l >= 0) return l;
     }
+    LOG_INFO("LoadFileFromAny: ", srelfilename, " file not found");
     return -1;
 }
 

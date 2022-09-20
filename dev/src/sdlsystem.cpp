@@ -784,6 +784,7 @@ int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_
     if (filelen < 0 || filelen == LLONG_MAX) {
         // If SDL_RWseek fails it is supposed to return -1, but on Linux it returns LLONG_MAX instead.
         SDL_RWclose(f);
+        LOG_INFO("SDLLoadFile: ", absfilename, " failed to determine file size.");
         return -1;
     }
     if (!len) {  // Just the file length requested.
@@ -795,7 +796,11 @@ int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_
     dest->resize((size_t)len);
     auto rlen = SDL_RWread(f, &(*dest)[0], 1, (size_t)len);
     SDL_RWclose(f);
-    return len != (int64_t)rlen ? -1 : len;
+    if (len != (int64_t)rlen) {
+        LOG_INFO("SDLLoadFile: ", absfilename, " file is not of requested length. requested: ", len, " found: ", rlen);
+        return -1;
+    }
+    return  len;
 }
 
 bool ScreenShot(string_view filename) {
