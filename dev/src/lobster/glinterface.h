@@ -65,6 +65,7 @@ struct Shader : lobster::Resource {
         size_t size;
     };
     map<string, BOEntry, less<>> ubomap;
+    int binding_point_index_alloc = 0;
 
     ~Shader();
 

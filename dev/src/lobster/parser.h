@@ -689,6 +689,17 @@ struct Parser {
         return dest;
     }
 
+    TypeRef FindTypeVar(string_view name) {
+        for (auto gv : reverse(st.bound_typevars_stack)) {
+            for (auto &btv : *gv) {
+                if (btv.tv->name == name) {
+                    return &btv.tv->thistype;
+                }
+            }
+        }
+        return nullptr;
+    }
+
     UnresolvedTypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr) {
         TypeRef dest;
         switch(lex.token) {
@@ -721,14 +732,10 @@ struct Parser {
                     lex.Next();
                     break;
                 }
-                for (auto gv : reverse(st.bound_typevars_stack)) {
-                    for (auto &btv : *gv) {
-                        if (btv.tv->name == lex.sattr) {
-                            lex.Next();
-                            dest = &btv.tv->thistype;
-                            goto done;
-                        }
-                    }
+                dest = FindTypeVar(lex.sattr);
+                if (!dest.Null()) {
+                    lex.Next();
+                    goto done;
                 }
                 dest = &st.StructUse(lex.sattr, lex).unspecialized_type;
                 lex.Next();
@@ -1331,9 +1338,14 @@ struct Parser {
             lex.Undo(T_IDENT, idname);
             type = ParseType(false);
         } else if (lex.token == T_LEFTCURLY) {
-            udt = &st.StructUse(idname, lex);
-            type = { st.NewSpecUDT(udt) };
-            type.utr->spec_udt->is_generic = udt->is_generic;
+            auto tv = FindTypeVar(idname);
+            if (!tv.Null()) {
+                type = { tv };
+            } else {
+                udt = &st.StructUse(idname, lex);
+                type = { st.NewSpecUDT(udt) };
+                type.utr->spec_udt->is_generic = udt->is_generic;
+            }
         } else {
             udt = nullptr;
         }
@@ -1380,6 +1392,21 @@ struct Parser {
                 constructor->Add(exps[i]);
             }
             return constructor;
+        }
+        if (!type.utr.Null()) {
+            Expect(T_LEFTCURLY);
+            if (type.utr->t == V_TYPEVAR) {
+                auto constructor = new Constructor(lex, type);
+                // We don't know what args this type has, so parse any number of them, without tags.
+                while (lex.token != T_RIGHTCURLY) {
+                    constructor->Add(ParseExp());
+                    if (lex.token != T_RIGHTCURLY) Expect(T_COMMA);
+                }
+                lex.Next();
+                return constructor;
+            } else {
+                Error("type ", Q(TypeName(type.utr)), " does not have a {} constructor");
+            }
         }
         // If we see "f(" the "(" is the start of an argument list, but for "f (", "(" is
         // part of an expression of a single argument with no extra "()".

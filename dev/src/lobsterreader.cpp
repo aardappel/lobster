@@ -270,7 +270,8 @@ struct FlexBufferParser {
         auto &ti = vm.GetTypeInfo(typeoff);
         auto vt = ti.t;
         switch (r.GetType()) {
-            case flexbuffers::FBT_INT: {
+            case flexbuffers::FBT_INT:
+            case flexbuffers::FBT_BOOL: {
                 ExpectType(V_INT, vt);
                 stack.emplace_back(r.AsInt64());
                 break;
