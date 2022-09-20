@@ -496,8 +496,9 @@ void AddIMGUI(NativeRegistry &nfr) {
 
 nfr("im_init", "dark_style,flags", "B?I?", "",
     "",
-    [](StackPtr &, VM &, Value &darkstyle, Value &flags) {
+    [](StackPtr &, VM &vm, Value &darkstyle, Value &flags) {
         if (imgui_init) return NilVal();
+        if (!_sdl_window || !_sdl_context) vm.BuiltinError("im_init: no window");
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags.ival();
