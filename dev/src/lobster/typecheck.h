@@ -780,7 +780,7 @@ struct TypeChecker {
         if (!udt.superclass.giventype.utr.Null()) {
             udt.superclass.set_resolvedtype(ResolveTypeVars(udt.superclass.giventype, &errn));
         }
-        if (!udt.superclass.giventype.utr.Null()) {
+        if (!udt.superclass.giventype.utr.Null() && !predeclaration) {
             // This points to a generic version of the superclass of this class.
             // See if we can find a matching specialization instead.
             for (auto sti = udt.superclass.giventype.utr->spec_udt->udt->first; sti;
