@@ -834,6 +834,18 @@
     nice to separate out the default const string from niche mutable use). We also have const/var
     variables. We were also thinking about mut argument annotations which would still also be nice
     being able to say an arg is mut without specifying the type.
+  - Code like this complains about a being modified while borrowed:
+        import imgui
+        class A:
+            s = "hi"
+        var a = A {}
+        im_treenode(a.s):
+            a = A {}
+    This could be avoided if im_treenode was forced to be specialized with own instead of borrow,
+    but to know this, we'd somehow need to know its going to get assigned to.
+    That, or always use own for functions instead of specializing, which would make the whole
+    system more robust (and reduce the amount of specializations), but would probably increase
+    the amount of runtime refc a lot.. something to be measured.
 
 - add to imgui functionality:
   - logging
