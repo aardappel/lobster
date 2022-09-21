@@ -25,7 +25,6 @@ using namespace lobster;
 
 Primitive polymode = PRIM_FAN;
 Shader *currentshader = NULL;
-Shader *colorshader = NULL;
 float3 lasthitsize = float3_0;
 float3 lastframehitsize = float3_0;
 bool graphics_initialized = false;
@@ -57,7 +56,6 @@ void GraphicsShutDown() {
     extern void IMGUICleanup(); IMGUICleanup();
     ShaderShutDown();
     currentshader = NULL;
-    colorshader = NULL;
     OpenGLCleanup();
     SDLSoundClose();
     SDLShutdown();
@@ -69,6 +67,12 @@ void GraphicsShutDown() {
     #endif
 }
 
+void ResetShader() {
+    auto colorshader = LookupShader("color");
+    assert(colorshader);
+    currentshader = colorshader;
+}
+
 bool GraphicsFrameStart() {
     extern void CullFonts(); CullFonts();
     extern void SteamUpdate(); SteamUpdate();
@@ -78,7 +82,7 @@ bool GraphicsFrameStart() {
     lasthitsize = float3_0;
     OpenGLFrameStart(GetScreenSize());
     Set2DMode(GetScreenSize(), true);
-    currentshader = colorshader;
+    ResetShader();
     return cb;
 }
 
@@ -157,9 +161,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
             LOG_INFO(err);
             return Value(vm.NewString(err));
         }
-        colorshader = LookupShader("color");
-        assert(colorshader);
-        currentshader = colorshader;
+        ResetShader();
         LOG_INFO("graphics fully initialized...");
         graphics_initialized = true;
         atexit(GraphicsShutDown);
@@ -182,6 +184,7 @@ nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
         TestGL(vm);
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv())
                                    : LoadMaterialFile(fn.sval()->strv());
+        ResetShader();
         return err[0] ? Value(vm.NewString(err)) : NilVal();
     });
 
