@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
+if(NOT UNIX) 
+  message(FATAL_ERROR "Cmake configuration is only supported for Linux. For "
+  "other platforms, use the included native projects instead.")
+endif()
+
 project(Lobster)
 
 option(LOBSTER_ENGINE "Build a Lobster with the default engine included" ON)
