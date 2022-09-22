@@ -563,13 +563,13 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
         auto errf = [&](string_view err) {
             // TODO: could clear voxvec elements if any?
             Push(sp, Value(voxvec));
-            return Value(vm.NewString(err));
+            return Value(vm.NewString(cat(namep, ": ", err)));
         };
         auto erreof = [&]() {
-            return errf("Unexpected end of vox file.");
+            return errf("unexpected end of .vox file.");
         };
         auto l = LoadFile(namep, &buf);
-        if (l < 0) return errf(cat("could not load ", namep));
+        if (l < 0) return errf("could not load");
         auto bufs = gsl::span<const uint8_t>((const uint8_t *)buf.c_str(), buf.size());
         if ((bufs.size() >= 8) && (strncmp((const char *)bufs.data(), "VOX ", 4) == 0)) {
             // This looks like a MagicaVoxel file.
@@ -678,9 +678,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                                 auto rotation = std::strtol(cursor, &next, 10);
                                 // 4 is the noop rotation
                                 if (rotation != 4) {
-                                    string msg = ".vox file uses an object rotation that is not supported. :";
-                                    msg += value;
-                                    return errf(msg);
+                                    return errf(cat(".vox file uses an object rotation that is not supported: ", value));
                                 }
                             }
                         }
