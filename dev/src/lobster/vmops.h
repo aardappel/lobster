@@ -372,18 +372,18 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
         a = res; \
     } \
 }
-#define _SOPV(op, extras, V_T, field, geta) {   \
+#define _SOPV(op, extras, V_T, field, geta) { \
     PopN(sp, len); \
     auto vecb = TopPtr(sp); \
     auto a = geta; \
     VMTYPEEQ(a, V_T) \
-    for (int j = 0; j < len; j++) {       \
-        auto &b = vecb[j];                \
-        VMTYPEEQ(b, V_T)                  \
-        auto av = a.field();              \
+    for (int j = 0; j < len; j++) { \
+        auto &b = vecb[j]; \
+        VMTYPEEQ(b, V_T) \
+        auto av = a.field(); \
         TYPEOP(op, extras, av, b.field()) \
         Push(sp, res); \
-    }                                     \
+    } \
 }
 #define _VOPV(op, extras, V_T, field, geta) { \
     PopN(sp, len); \
@@ -489,19 +489,19 @@ VM_INLINE void U_FVSGT(VM &vm, StackPtr sp, int len)  { FVSOP(>,  0); }
 VM_INLINE void U_FVSLE(VM &vm, StackPtr sp, int len)  { FVSOP(<=, 0); }
 VM_INLINE void U_FVSGE(VM &vm, StackPtr sp, int len)  { FVSOP(>=, 0); }
 
-VM_INLINE void U_SIVADD(VM &vm, StackPtr sp, int len) { SIVOP(+,  0);  }
-VM_INLINE void U_SIVSUB(VM &vm, StackPtr sp, int len) { SIVOP(-,  0);  }
-VM_INLINE void U_SIVMUL(VM &vm, StackPtr sp, int len) { SIVOP(*,  0);  }
-VM_INLINE void U_SIVDIV(VM &vm, StackPtr sp, int len) { SIVOP(/,  1);  }
+VM_INLINE void U_SIVADD(VM &vm, StackPtr sp, int len) { SIVOP(+,  0); }
+VM_INLINE void U_SIVSUB(VM &vm, StackPtr sp, int len) { SIVOP(-,  0); }
+VM_INLINE void U_SIVMUL(VM &vm, StackPtr sp, int len) { SIVOP(*,  0); }
+VM_INLINE void U_SIVDIV(VM &vm, StackPtr sp, int len) { SIVOP(/,  1); }
 VM_INLINE void U_SIVMOD(VM &vm, StackPtr sp, int len) { SIVOP(% , 1); }
-VM_INLINE void U_SIVLT(VM &vm, StackPtr sp, int len)  { SIVOP(<,  0);  }
-VM_INLINE void U_SIVGT(VM &vm, StackPtr sp, int len)  { SIVOP(>,  0);  }
-VM_INLINE void U_SIVLE(VM &vm, StackPtr sp, int len)  { SIVOP(<=, 0);  }
-VM_INLINE void U_SIVGE(VM &vm, StackPtr sp, int len)  { SIVOP(>=, 0);  }
-VM_INLINE void U_SFVADD(VM &vm, StackPtr sp, int len) { SFVOP(+,  0);  }
-VM_INLINE void U_SFVSUB(VM &vm, StackPtr sp, int len) { SFVOP(-,  0);  }
-VM_INLINE void U_SFVMUL(VM &vm, StackPtr sp, int len) { SFVOP(*,  0);  }
-VM_INLINE void U_SFVDIV(VM &vm, StackPtr sp, int len) { SFVOP(/,  0);  }
+VM_INLINE void U_SIVLT(VM &vm, StackPtr sp, int len)  { SIVOP(<,  0); }
+VM_INLINE void U_SIVGT(VM &vm, StackPtr sp, int len)  { SIVOP(>,  0); }
+VM_INLINE void U_SIVLE(VM &vm, StackPtr sp, int len)  { SIVOP(<=, 0); }
+VM_INLINE void U_SIVGE(VM &vm, StackPtr sp, int len)  { SIVOP(>=, 0); }
+VM_INLINE void U_SFVADD(VM &vm, StackPtr sp, int len) { SFVOP(+,  0); }
+VM_INLINE void U_SFVSUB(VM &vm, StackPtr sp, int len) { SFVOP(-,  0); }
+VM_INLINE void U_SFVMUL(VM &vm, StackPtr sp, int len) { SFVOP(*,  0); }
+VM_INLINE void U_SFVDIV(VM &vm, StackPtr sp, int len) { SFVOP(/,  0); }
 VM_INLINE void U_SFVMOD(VM &vm, StackPtr sp, int len) { SFVOP(/ , 2); }
 VM_INLINE void U_SFVLT(VM &vm, StackPtr sp, int len)  { SFVOP(<,  0); }
 VM_INLINE void U_SFVGT(VM &vm, StackPtr sp, int len)  { SFVOP(>,  0); }
