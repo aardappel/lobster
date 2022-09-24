@@ -148,3 +148,10 @@ run_test("struct"):
         assert magnitude(normalize(v5test2)) == 1.0
         assert min(v5test, max(v5test, v5test2)) == v5test
         assert dot(v5test, v5test2) == 110.0
+
+    // Tests for struct operators with scalars
+    do():
+        assert xy_i{2, 3} * 5 == xy_i{10, 15}
+        assert 5 * xy_i{2, 3} == xy_i{10, 15}
+        assert 5 - xy_i{2, 3} == xy_i{3, 2}
+        assert xy_i{2, 3} - 5 == xy_i{-3, -2}

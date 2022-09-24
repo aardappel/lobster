@@ -758,13 +758,14 @@ struct CodeGen  {
                 TypeRef vectype = opc >= MOP_LT ? ltype : ptype;
                 assert(vectype->t == V_STRUCT_S);
                 auto sub = vectype->udt->sametype;
-                bool withscalar = IsScalar(rtype->t);
+                bool withscalar = IsScalar(rtype->t) || IsScalar(ltype->t);
+                bool leftIsVec = ltype->t == V_STRUCT_S;
                 auto outw = ValWidth(ptype);
                 auto inw = withscalar ? outw + 1 : outw * 2;
-                if (sub->t == V_INT)
-                    EmitOp(GENOP((withscalar ? IL_IVSADD : IL_IVVADD) + opc), inw, outw);
+                if (sub->t == V_INT)                    
+                    EmitOp(GENOP((withscalar ? (leftIsVec ? IL_IVSADD : IL_SIVADD) : IL_IVVADD) + opc), inw, outw);
                 else if (sub->t == V_FLOAT)
-                    EmitOp(GENOP((withscalar ? IL_FVSADD : IL_FVVADD) + opc), inw, outw);
+                    EmitOp(GENOP((withscalar ? (leftIsVec ? IL_FVSADD : IL_SFVADD) : IL_FVVADD) + opc), inw, outw);
                 else assert(false);
                 EmitWidthIfStruct(vectype);
             }
