@@ -20,7 +20,6 @@ run_test("matrix"):
         assert b - a == mat2x2 { 4.0, 4.0, 4.0, 4.0 }
 
         assert 5.0 * a == mat2x2 { 5.0, 10.0, 15.0, 20.0 }
-        assert a * 5.0 == mat2x2 { 5.0, 10.0, 15.0, 20.0 }
 
         // Matrix specific operations
 

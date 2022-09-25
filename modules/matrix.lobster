@@ -14,11 +14,6 @@ struct mat2x2 : xyzw_f
         return xy_f { dot(o, this.xy),
                       dot(o, this.zw) }
 
-    def operator*(f:float):
-        // Note the order is flipped so that it is called with xyzw_f * operator
-        // instead of mat2x2's
-        return f * this
-
     def determinant():
         return x*w - y*z
 
