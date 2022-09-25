@@ -19,6 +19,7 @@ import gradienttest
 import springstest
 import smallpttest
 import stringtest
+import matrixtest
 
 // Not added to speedtest yet.
 import mischtest
