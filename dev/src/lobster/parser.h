@@ -403,7 +403,9 @@ struct Parser {
                 for (auto &fld : sup->fields) {
                     udt->fields.push_back(fld);
                 }
+                st.bound_typevars_stack.push_back(&udt->generics);
                 parse_specializers();
+                st.bound_typevars_stack.pop_back();
                 if (udt->FullyBound()) {
                     for (auto &g : udt->generics) {
                         udt->superclass.giventype.utr->spec_udt->specializers.push_back(&*g.giventype.utr);

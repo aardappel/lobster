@@ -730,7 +730,9 @@ struct TypeChecker {
         }
         for (auto &g : udt.generics) {
             if (!g.giventype.utr.Null()) {
+                st.bound_typevars_stack.push_back(&udt.generics);
                 g.set_resolvedtype(ResolveTypeVars(g.giventype, &errn));
+                st.bound_typevars_stack.pop_back();
             }
         }
         if (!udt.is_generic) {

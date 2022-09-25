@@ -1,5 +1,3 @@
-- trafficsim.lobster(120): error: can't find specialized superclass for `node`
-
 - debugger todo
   - "d" in sample without value?
   - doesn't show some global constants inited?
@@ -26,6 +24,12 @@
   - That's going to create 100+ issues, and not necessarily easier to overview since github doesn't have a good way to
     order issues by priority, and search for things.
   - Right now, searches for keywords hit both code and this TODO.txt.
+
+- move to more of a many-passes architecture to facility cleaning up further messes,
+  in particular resolving generic types, and maybe some of the function checking.
+  Could start by having a number of passes between parser and type-checker, and
+  systematically pull steps from the typechecker into that, with the objective
+  that the final typechecker pass only works on concrete fully specialized types.
 
 - move function checking into typechecker.
   This is now mostly done.
@@ -779,8 +783,11 @@
 - We support implicit this.member in multi-assign, but not explicit.
   See mretfields test.
 
-- should support scalar op vector, not just vector op scalar
-  - that requires yet more vector vm ops, at least for - /
+- we should support e.g.
+    import vec
+    struct mat2x2<T> : xyzw<T>
+    struct mat2x2_f = mat2x2<float>
+    print mat2x2_f { 1.0,  1.0,  1.0,  1.0 } - mat2x2_f { 2.0,  2.0,  2.0,  2.0 }
 
 - Do special purpose codegen for sequences of string concat with I2S etc.
   See GenConcatOp.
