@@ -475,7 +475,7 @@ struct TypeChecker {
             RequiresError(TypeName(bound), type, n, argname, context);
     }
 
-    bool MathCheckVector(TypeRef &type, Node *&left, Node *&right) {
+    bool MathCheckVector(TypeRef &type, Node *&left, Node *&right, bool flipped = false) {
         TypeRef ltype = left->exptype;
         TypeRef rtype = right->exptype;
         // Special purpose check for vector * scalar etc.
@@ -492,6 +492,7 @@ struct TypeChecker {
                 return true;
             }
         }
+        if (!flipped) { return MathCheckVector(type, right, left, true); }
         return false;
     }
 

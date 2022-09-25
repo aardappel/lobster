@@ -148,3 +148,92 @@ run_test("struct"):
         assert magnitude(normalize(v5test2)) == 1.0
         assert min(v5test, max(v5test, v5test2)) == v5test
         assert dot(v5test, v5test2) == 110.0
+
+    // Tests for struct operators with scalars
+    do():
+        // Communitive ops
+
+        // Multiplication
+        assert xy_i{2, 3} * 5 == xy_i{10, 15}
+        assert 5 * xy_i{2, 3} == xy_i{10, 15}
+        assert xyz_i{2,3,4} * 5 == xyz_i{10, 15, 20}
+        assert 5 * xyz_i{2,3,4} == xyz_i{10, 15, 20}
+
+        // Test with float struct
+        assert xy_f{2.1, 3.2} * 5.0 == xy_f{10.5, 16.0}
+        assert 5.0 * xy_f{2.1, 3.2} == xy_f{10.5, 16.0}
+
+         // Test with a large numeric struct
+        struct A:
+            a:int
+            b:int
+            c:int
+            d:int
+            e:int
+        
+        assert A{2, 3, 4, 5, 6} * 5 == A{10, 15, 20, 25, 30} 
+        assert 5 * A{2, 3, 4, 5, 6} == A{10, 15, 20, 25, 30}   
+
+        // Addition
+        assert 5 + xy_i{2, 3} == xy_i{7, 8}
+        assert xy_i{2, 3} + 5 == xy_i{7, 8}
+        assert xyz_i{2,3,4} + 5 == xyz_i{7, 8, 9}
+        assert 5 + xyz_i{2,3,4} == xyz_i{7, 8, 9}
+
+        // Non-communtive ops
+
+        // Subtraction
+        assert 5 - xy_i{2, 3} == xy_i{3, 2}
+        assert xy_i{2, 3} - 5 == xy_i{-3, -2}
+        assert 5 - xyz_i{2, 3, 4} == xyz_i{3, 2, 1}
+        assert xyz_i{2, 3, 4} - 5 == xyz_i{-3, -2, -1}
+
+        // Division
+        assert 10 / xy_i{5, 10} == xy_i{2, 1}
+        assert xy_i{10, 20} / 5 == xy_i{2, 4}
+        assert 10 / xyz_i{5, 10, 1} == xyz_i{2, 1, 10}
+        assert xyz_i{10, 20, 25} / 5 == xyz_i{2, 4, 5}
+
+        // Modulo
+        assert 10 % xy_i{2, 3} == xy_i{0, 1}
+        assert xy_i{10, 21} % 4 == xy_i{2, 1}
+        assert 10 % xyz_i{2, 3, 4} == xyz_i{0, 1, 2}
+        assert xyz_i{10, 21, 24} % 4 == xyz_i{2, 1, 0}
+
+        // Compartive ops
+
+        // Less than
+        assert xy_i{2, 5} < 5 == xy_i{1, 0}
+        assert 5 < xy_i{2, 5} == xy_i{0, 0} 
+        assert xy_i{2, 6} < 5 == xy_i{1, 0}
+        assert 5 < xy_i{2, 6} == xy_i{0, 1} 
+
+        assert xyz_i{2, 5, 6} < 5 == xyz_i{1, 0, 0}
+        assert 5 < xyz_i{2, 5, 6} == xyz_i{0, 0, 1} 
+
+        // Less than or equal
+        assert xy_i{2, 5} <= 5 == xy_i{1, 1}
+        assert 5 <= xy_i{2, 5} == xy_i{0, 1} 
+        assert xy_i{2, 6} <= 5 == xy_i{1, 0}
+        assert 5 <= xy_i{2, 6} == xy_i{0, 1} 
+
+        assert xyz_i{2, 5, 6} <= 5 == xyz_i{1, 1, 0}
+        assert 5 <= xyz_i{2, 5, 6} == xyz_i{0, 1, 1} 
+
+        // Greater than
+        assert xy_i{2, 5} > 5 == xy_i{0, 0}
+        assert 5 > xy_i{2, 5} == xy_i{1, 0} 
+        assert xy_i{2, 6} > 5 == xy_i{0, 1}
+        assert 5 > xy_i{2, 6} == xy_i{1, 0} 
+
+        assert xyz_i{2, 5, 6} > 5 == xyz_i{0, 0, 1}
+        assert 5 > xyz_i{2, 5, 6} == xyz_i{1, 0, 0} 
+
+        // Greater than or equal
+        assert xy_i{2, 5} >= 5 == xy_i{0, 1}
+        assert 5 >= xy_i{2, 5} == xy_i{1, 1} 
+        assert xy_i{2, 6} >= 5 == xy_i{0, 1}
+        assert 5 >= xy_i{2, 6} == xy_i{1, 0} 
+
+        assert xyz_i{2, 5, 6} >= 5 == xyz_i{0, 1, 1}
+        assert 5 >= xyz_i{2, 5, 6} == xyz_i{1, 1, 0} 
