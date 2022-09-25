@@ -7,16 +7,12 @@ import vec
 struct mat2x2 : xyzw_f
 
     def operator*(o:mat2x2):
-        // This could be expressed with 4 dot product if `this.zw` existed (and 
-        // others)
-        return mat2x2 { x*o.x + y*o.z, x*o.y + y*o.w,
-                        z*o.x + w*o.z, z*o.y + w*o.w }  
+        return mat2x2 { dot(this.xy, o.xz), dot(this.xy, o.yw),
+                        dot(this.zw, o.xz), dot(this.zw, o.yw) }
     
     def operator*(o:xy_f):
-        // This would be nicer if `this.zw` existed.
         return xy_f { dot(o, this.xy),
-                      dot(o, xy_f{z,w})}
-
+                      dot(o, this.zw) }
 
     def operator*(f:float):
         // Note the order is flipped so that it is called with xyzw_f * operator
@@ -39,4 +35,4 @@ struct mat2x2 : xyzw_f
 // The identity matrix:
 // |1 0|
 // |0 1|
-let mat2x2_identity = mat2x2{1.0, 0.0, 0.0, 1.0}
+let mat2x2_identity = mat2x2 { 1.0, 0.0, 0.0, 1.0 }

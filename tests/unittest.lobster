@@ -19,7 +19,6 @@ import gradienttest
 import springstest
 import smallpttest
 import stringtest
-import matrixtest
 
 // Not added to speedtest yet.
 import mischtest
@@ -27,5 +26,6 @@ import stringtest
 import lifetimetest
 import builtintest
 import operators
+import matrixtest
 
 "the end"  // FIXME: a file can not be only import files?

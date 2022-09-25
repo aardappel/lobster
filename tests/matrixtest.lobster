@@ -11,21 +11,21 @@ run_test("matrix"):
         assert a == mat2x2 { 1.0, 2.0, 3.0, 4.0 }
         assert a != b
 
-        assert 5.0 + a == mat2x2{ 6.0, 7.0, 8.0, 9.0 }
-        assert a + 5.0 == mat2x2{ 6.0, 7.0, 8.0, 9.0 }
-        assert a + b == mat2x2{ 6.0, 8.0, 10.0, 12.0 }
+        assert 5.0 + a == mat2x2 { 6.0, 7.0, 8.0, 9.0 }
+        assert a + 5.0 == mat2x2 { 6.0, 7.0, 8.0, 9.0 }
+        assert a + b == mat2x2 { 6.0, 8.0, 10.0, 12.0 }
 
-        assert 5.0 - a == mat2x2{ 4.0, 3.0, 2.0, 1.0 }
-        assert a - 5.0 == mat2x2{ -4.0, -3.0, -2.0, -1.0 }
+        assert 5.0 - a == mat2x2 { 4.0, 3.0, 2.0, 1.0 }
+        assert a - 5.0 == mat2x2 { -4.0, -3.0, -2.0, -1.0 }
         assert b - a == mat2x2 { 4.0, 4.0, 4.0, 4.0 }
 
-        assert 5.0 * a == mat2x2{ 5.0, 10.0, 15.0, 20.0 }
-        assert a * 5.0 == mat2x2{ 5.0, 10.0, 15.0, 20.0 }
+        assert 5.0 * a == mat2x2 { 5.0, 10.0, 15.0, 20.0 }
+        assert a * 5.0 == mat2x2 { 5.0, 10.0, 15.0, 20.0 }
 
         // Matrix specific operations
 
-        assert a * b == mat2x2{ 19.0, 22.0, 43.0, 50.0 }
-        assert b * a == mat2x2{ 23.0, 34.0, 31.0, 46.0 }
+        assert a * b == mat2x2 { 19.0, 22.0, 43.0, 50.0 }
+        assert b * a == mat2x2 { 23.0, 34.0, 31.0, 46.0 }
 
         assert a.determinant() == -2.0
         assert a.trace() == 4.0
@@ -36,7 +36,7 @@ run_test("matrix"):
 
         // Matrix and Vector Math
 
-        let c = xy_f{ 2.0, 3.0}
+        let c = xy_f { 2.0, 3.0 }
 
-        assert a * c == xy_f{ 8.0, 18.0 }
-        assert b * c == xy_f{ 28.0, 38.0 }
+        assert a * c == xy_f { 8.0, 18.0 }
+        assert b * c == xy_f { 28.0, 38.0 }
