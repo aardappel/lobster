@@ -19,11 +19,13 @@
 #include "lobster/glincludes.h"
 #include "lobster/sdlinterface.h"
 
-map<string, unique_ptr<Shader>, less<>> shadermap;
+// We use a vector here because gl_get_shader may cause there to be references to
+// old versions of a shader with a given name that has since been reloaded.
+map<string, vector<unique_ptr<Shader>>, less<>> shadermap;
 
 Shader *LookupShader(string_view name) {
     auto shi = shadermap.find(name);
-    if (shi != shadermap.end()) return shi->second.get();
+    if (shi != shadermap.end()) return shi->second.back().get();
     return nullptr;
 }
 
@@ -135,8 +137,19 @@ string ParseMaterialFile(string_view mbuf) {
             if (!err.empty()) {
                 return true;
             }
-            shadermap[shader] = std::move(sh);
+            auto &v = shadermap[shader];
+            // Put latest shader version at the end.
+            v.emplace_back(std::move(sh));
             shader.clear();
+            // Typically, all versions below the latest will not be in used and can be
+            // deleted here, unless still referenced by gl_get_shader.
+            for (size_t i = 0; i < v.size() - 1; ) {
+                if (!v[i]->refc) {
+                    v.erase(v.begin() + i);
+                } else {
+                    i++;
+                }
+            }
         }
         return false;
     };

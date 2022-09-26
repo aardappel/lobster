@@ -261,6 +261,9 @@ struct ResourceType;
 extern ResourceType *g_resource_type_list;
 
 struct Resource : NonCopyable {
+    // This is a "nested" refc, for the cases where more than 1 LResource can be constructed to
+    // point to a single Resource, e.g. with Shader.
+    int refc = 0;
     virtual ~Resource() {}
     virtual size_t2 MemoryUsage() {
         return size_t2(sizeof(Resource), 0);

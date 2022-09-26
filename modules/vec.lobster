@@ -63,6 +63,9 @@ let octant_directions = [
 // FIXME: subtyping should take care of this
 def xy(v):  return xy  { v.x, v.y }
 def xyz(v): return xyz { v.x, v.y, v.z }
+def xz(v):  return xy  { v.x, v.z }
+def yw(v):  return xy  { v.y, v.w }
+def zw(v):  return xy  { v.z, v.w }
 
 // lengthen vectors
 def xyz(v, z):  return xyz  { v.x, v.y, z }

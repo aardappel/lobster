@@ -475,7 +475,7 @@ struct TypeChecker {
             RequiresError(TypeName(bound), type, n, argname, context);
     }
 
-    bool MathCheckVector(TypeRef &type, Node *&left, Node *&right) {
+    bool MathCheckVector(TypeRef &type, Node *&left, Node *&right, bool flipped = false) {
         TypeRef ltype = left->exptype;
         TypeRef rtype = right->exptype;
         // Special purpose check for vector * scalar etc.
@@ -492,6 +492,7 @@ struct TypeChecker {
                 return true;
             }
         }
+        if (!flipped) { return MathCheckVector(type, right, left, true); }
         return false;
     }
 
@@ -729,7 +730,9 @@ struct TypeChecker {
         }
         for (auto &g : udt.generics) {
             if (!g.giventype.utr.Null()) {
+                st.bound_typevars_stack.push_back(&udt.generics);
                 g.set_resolvedtype(ResolveTypeVars(g.giventype, &errn));
+                st.bound_typevars_stack.pop_back();
             }
         }
         if (!udt.is_generic) {
@@ -780,7 +783,7 @@ struct TypeChecker {
         if (!udt.superclass.giventype.utr.Null()) {
             udt.superclass.set_resolvedtype(ResolveTypeVars(udt.superclass.giventype, &errn));
         }
-        if (!udt.superclass.giventype.utr.Null()) {
+        if (!udt.superclass.giventype.utr.Null() && !predeclaration) {
             // This points to a generic version of the superclass of this class.
             // See if we can find a matching specialization instead.
             for (auto sti = udt.superclass.giventype.utr->spec_udt->udt->first; sti;
