@@ -47,7 +47,7 @@ def set_z_up_worldspace():
 def set_z_up_worldspace(f):
     gl_push_model_view()
     set_z_up_worldspace()
-    body()
+    f()
     gl_pop_model_view()
 
 // Convert points that are in Y up space to Z up.
