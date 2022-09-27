@@ -42,7 +42,7 @@ extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);
 
 extern FileLoader EnginePreInit(NativeRegistry &nfr);
 extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uint8_t *bytecodefb,
-                                   size_t static_size, const lobster::fun_base_t *vtables);
+                                   size_t static_size, const lobster::fun_base_t *vtables, void *custom_pre_init);
 
 extern void DumpBuiltinNames(NativeRegistry &nfr);
 extern void DumpBuiltinDoc(NativeRegistry &nfr);

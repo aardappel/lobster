@@ -232,7 +232,7 @@ int main(int argc, char* argv[]) {
                 THROW_OR_ABORT(error);
         } else {
             string sd;
-            auto err = ToCPP(nfr, sd, bytecode_buffer, true, runtime_checks);
+            auto err = ToCPP(nfr, sd, bytecode_buffer, true, runtime_checks, "nullptr");
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/compiled_lobster/src/compiled_lobster.cpp";

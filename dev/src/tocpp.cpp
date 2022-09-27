@@ -21,7 +21,7 @@
 namespace lobster {
 
 string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bool cpp,
-             int runtime_checks) {
+             int runtime_checks, string_view custom_pre_init_name) {
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     if (!FLATBUFFERS_LITTLEENDIAN) return "native code gen requires little endian";
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
@@ -552,8 +552,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     if (cpp) {
         sd += "int main(int argc, char *argv[]) {\n";
         sd += "    // This is hard-coded to call compiled_entry_point()\n";
+        if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
         sd += "    return RunCompiledCodeMain(argc, argv, ";
-        append(sd, "(uint8_t *)bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
+        append(sd, "(uint8_t *)bytecodefb, ", bytecode_buffer.size(), ", vtables, ", custom_pre_init_name, ");\n}\n");
     }
 
     return "";

@@ -362,7 +362,7 @@ string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
               const char *object_name, vector<string> &&program_args, TraceMode trace,
               bool compile_only, string &error, int runtime_checks, bool dump_leaks) {
     string sd;
-    error = ToCPP(nfr, sd, bytecode_buffer, false, runtime_checks);
+    error = ToCPP(nfr, sd, bytecode_buffer, false, runtime_checks, "nullptr");
     if (!error.empty()) return "";
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
@@ -468,16 +468,18 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
 #endif
 
 extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uint8_t *bytecodefb,
-                                   size_t static_size, const lobster::fun_base_t *vtables) {
+                                   size_t static_size, const lobster::fun_base_t *vtables,
+                                   void *custom_pre_init) {
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
         NativeRegistry nfr;
         RegisterCoreLanguageBuiltins(nfr);
+        if (custom_pre_init) ((void (*)(NativeRegistry &))(custom_pre_init))(nfr);
         auto loader = EnginePreInit(nfr);
         min_output_level = OUTPUT_WARN;
-        InitPlatform("../", "main.lobster", false, loader);  // FIXME: path.
+        InitPlatform("./", "src/main.lobster", false, loader);  // FIXME: path.
         auto vmargs = VMArgs {
             nfr, StripDirPart(argv[0]), bytecodefb, static_size, {},
             vtables, nullptr, TraceMode::OFF, false, RUNTIME_ASSERT
