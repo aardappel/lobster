@@ -192,7 +192,7 @@ VM_INLINE void U_RETURNNONLOCAL(VM &vm, StackPtr, int nrv, int df) {
 VM_INLINE void U_RETURNANY(VM &, StackPtr, int /*nretslots_norm*/) {
 }
 
-VM_INLINE void U_SAVERETS(VM &, StackPtr) {
+VM_INLINE void U_GOTOFUNEXIT(VM &, StackPtr) {
 }
 
 VM_INLINE void U_STATEMENT(VM &vm, StackPtr, int line, int fileidx) {

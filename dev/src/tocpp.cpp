@@ -418,7 +418,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 }
                 break;
             }
-            case IL_SAVERETS:  // FIXME: remove
+            case IL_GOTOFUNEXIT:
                 append(sd, "goto epilogue;");
                 break;
             case IL_KEEPREFLOOP:

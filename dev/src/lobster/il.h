@@ -113,7 +113,7 @@ enum MathOp {
     F(INCREF, 1, 0, 0) \
     F(KEEPREF, 2, 0, 0) \
     F(KEEPREFLOOP, 2, 0, 0) \
-    F(SAVERETS, 0, 0, 0) \
+    F(GOTOFUNEXIT, 0, 0, 0) \
     F(CALL, 1, ILUNKNOWN, ILUNKNOWN) \
     F(CALLV, 0, ILUNKNOWN, ILUNKNOWN) \
     F(DDCALL, 2, ILUNKNOWN, ILUNKNOWN) \

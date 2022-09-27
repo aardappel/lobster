@@ -419,13 +419,20 @@ struct CodeGen  {
         for (int i = nretslots_norm; i < nretslots_unwind_max; i++)
             PopTemp();
         auto loc = Pos();
+        // Here we are emitting code executed only if we're falling thru,
+        // so temp modify the tstack to match that.
         auto tstackbackup = tstack;
         EmitOp(IL_RETURNANY);
         Emit(nretslots_norm);
+        //ConditionalBreakpoint(sf.parent->name == "new_monster_animation");
+        // RETURNANY has taken care of falling thru retvals, but the normal retvals are
+        // still on the tstack.
+        for (int i = 0; i < nretslots_norm; i++)
+            PopTemp();
         for (auto &tse : reverse(temptypestack)) {
             GenPop(tse);
         }
-        EmitOp(IL_SAVERETS);
+        EmitOp(IL_GOTOFUNEXIT);
         SetLabel(loc);
         tstack = tstackbackup;
     }
