@@ -424,7 +424,6 @@ struct CodeGen  {
         auto tstackbackup = tstack;
         EmitOp(IL_RETURNANY);
         Emit(nretslots_norm);
-        //ConditionalBreakpoint(sf.parent->name == "new_monster_animation");
         // RETURNANY has taken care of falling thru retvals, but the normal retvals are
         // still on the tstack.
         for (int i = 0; i < nretslots_norm; i++)
