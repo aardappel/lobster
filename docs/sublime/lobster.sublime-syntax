@@ -26,11 +26,9 @@ contexts:
         - match: (?i)\b(switch|case|default)\b
           scope: keyword.control.conditional.lobster
 
-
         # ProgramFlow -- Loops:
         - match: (?i)\b(for|while|do|break)\b
           scope: keyword.control.lobster
-
 
         # ProgramFlow -- UserFunction:
         - match: (?i)\b(def|return|from)\b
@@ -42,19 +40,21 @@ contexts:
         - match: (?i)\b(var|let)\b
           scope: storage.type.lobster
 
+        # Built-in Types:
         - match: (?i)\b(int|float|string|vector|bool|void|resource)\b
           scope: storage.type.lobster
 
+        # Module Types:
+        - match: (?i)\b(xy|xy_i|xy_f|xyz|xyz_i|xyz_f|xyzw|xyzw_i|xyzw_f|color)\b
+          scope: storage.type.lobster
 
         # Class Declaration:
         - match: (?i)\b(class)\b
           scope: keyword.declaration.class.lobster
 
-
         # NameSpace Declaration:
         - match: (?i)\b(namespace)\b
           scope: entity.name.namespace.lobster
-
 
         # UserType Declaration:
         - match: (?i)\b(struct)\b
@@ -546,7 +546,7 @@ contexts:
         #      scope: punctuation.section.brackets.end.lobster
         #      pop: true
 
-        # These break strings, will figure it out later...
+        # @fix These break strings, will figure it out later...
 
 
 
@@ -581,6 +581,84 @@ contexts:
         - match: (?i)\b(this)\b
           scope: variable.language
 
+        # Built-in Constants:
+        #- match: |-
+        #    (?i)\b(?x:
+        #      AAAAA
+        #    | AAAAA
+        #    )\b
+        #  scope: constant.language.lobster
+
+        # Module Constants:
+        - match: |-
+            (?i)\b(?x:
+              color_clear
+            | color_black
+            | color_white
+            | color_red
+            | color_green
+            | color_blue
+            | color_yellow
+            | color_cyan
+            | color_pink
+            | color_grey
+            | color_dark_grey
+            | color_light_grey
+            | color_lightest_grey
+            | color_darkest_grey
+            | color_light_red
+            | color_light_green
+            | color_light_blue
+            | color_light_yellow
+            | color_light_cyan
+            | color_light_pink
+            | color_dark_red
+            | color_dark_green
+            | color_dark_blue
+            | color_olive
+            | color_teal
+            | color_purple
+            | color_orange
+            | color_chartreuse
+            | color_springgreen
+            | color_dodgerblue
+            | color_pink_violet
+            | color_blue_violet
+            | xy_0
+            | xy_1
+            | xy_h
+            | xy_x
+            | xy_y
+            | xyz_0
+            | xyz_1
+            | xyz_x
+            | xyz_y
+            | xyz_z
+            | xyzw_0
+            | xyzw_1
+            | xyzw_x
+            | xyzw_y
+            | xyzw_z
+            | xyzw_w
+            | xy_0i
+            | xy_1i
+            | xy_xi
+            | xy_yi
+            | xyz_0i
+            | xyz_1i
+            | xyz_xi
+            | xyz_yi
+            | xyz_zi
+            | xyzw_0i
+            | xyzw_1i
+            | xyzw_xi
+            | xyzw_yi
+            | xyzw_zi
+            | xyzw_wi
+            )\b
+          scope: constant.language.lobster
+
+
 
         #####################################################################################
         # User Functions:
@@ -593,7 +671,7 @@ contexts:
 
         #####################################################################################
         # Comments:
-        - match: (//)
+        - match: (\/\/)
           scope: comment.line.lobster
           push:
             - meta_scope: comment.line.lobster
@@ -610,32 +688,32 @@ contexts:
 
         #####################################################################################
         # Operators:
-        - match: '[(+)(-)(*)(/)(^)(%)]'
+        - match: '[(\+)(\-)(\*)(\/)(\^)(\%)]'
           scope: keyword.operator.arithmetic.lobster
 
-        - match: '[(=)(++)(--)(+=)(-=)(*=)(/=)(%=)]'
+        - match: '[(\=)(\+\+)(\-\-)(\+\=)(\-\=)(\*\=)(\/\=)(\%\=)(\?)]'
           scope: keyword.operator.assignment.lobster
 
-        - match: '[(==)(!=)(<)(>)(<=)(>=)]'
+        - match: '[(\=\=)(\!\=)(\<)(\>)(\<\=)(\>\=)]'
           scope: keyword.operator.logical.lobster
 
-        - match: '[(\&)(\|)(<<)(>>)]'
+        - match: '[(\&)(\|)(\^)(\~)(<<)(>>)]'
           scope: keyword.operator.bitwise.lobster
 
-        # (,)
-        # (<-)(->)
-        # (?)
-        # (.)
+        - match: '[(\<\-)(\-\>)]'
+          scope: keyword.operator.lobster
+
+        # (.)(,)
 
 
         #####################################################################################
         # Separator:
-        - match: ':'
+        - match: '\:'
           scope: punctuation.separator.lobster
 
 
         #####################################################################################
-        # Statement Terminator:
-        - match: ';'
+        # Explicit Statement Terminator:
+        - match: '\;'
           scope: punctuation.terminator.lobster
 
