@@ -654,6 +654,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
 
                     int32_t num_frames;
                     if (!ReadSpanInc(p, num_frames)) return erreof();
+                    if (num_frames != 1) return errf(cat(".vox file uses an object with multiple frames, which is not supported: ", num_frames));
                     int3 offset = int3_0;
                     for (int frame = 0; frame < num_frames; ++frame) {
                         int32_t dict_len;
@@ -677,9 +678,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                                 char *next;
                                 auto rotation = std::strtol(cursor, &next, 10);
                                 // 4 is the noop rotation
-                                if (rotation != 4) {
-                                    return errf(cat(".vox file uses an object rotation that is not supported: ", value));
-                                }
+                                if (rotation != 4) return errf(cat(".vox file uses an object rotation or flip that is not supported: ", value));
                             }
                         }
                     }
@@ -722,6 +721,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     }
                     int32_t models_num;
                     if (!ReadSpanInc(p, models_num)) return erreof();
+                    if (models_num != 1) return errf(cat(".vox file uses an object with multiple models, which is not supported: ", models_num));
                     for (int i = 0; i < models_num; ++i) {
                         int32_t model_id;
                         if (ReadSpanInc(p, model_id))
@@ -752,6 +752,9 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 } else {
                     chunks_skipped = true;
                 }
+            }
+            if (voxvec->SLen() < (ssize_t)node_to_model.size()) {
+                return errf(".vox file uses object deduplication feature that is not supported\n");
             }
             for (auto &i : node_to_layer)
                 if ((layer_names.find(i.second) != layer_names.end()) && (node_names.find(i.first) == node_names.end()))
