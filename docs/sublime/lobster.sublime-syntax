@@ -40,14 +40,16 @@ contexts:
         - match: (?i)\b(var|let)\b
           scope: storage.type.lobster
 
-        # Built-in Types:
-        - match: (?i)\b(int|float|string|vector|bool|void|resource)\b
-          scope: storage.type.lobster
+        # Enumeration Declaration:
+        - match: (?i)\b(enum|enum_flags)\b
+          scope: keyword.declaration.enum.lobster
 
-        # Module Types:
-        - match: (?i)\b(xy|xy_i|xy_f|xyz|xyz_i|xyz_f|xyzw|xyzw_i|xyzw_f|color)\b
-          scope: storage.type.lobster
+        # UserType Declaration:
+        - match: (?i)\b(struct)\b
+          scope: keyword.declaration.struct.lobster
 
+
+        #####################################################################################
         # Class Declaration:
         - match: (?i)\b(class)\b
           scope: keyword.declaration.class.lobster
@@ -56,9 +58,15 @@ contexts:
         - match: (?i)\b(namespace)\b
           scope: entity.name.namespace.lobster
 
-        # UserType Declaration:
-        - match: (?i)\b(struct)\b
-          scope: keyword.declaration.struct.lobster
+
+        #####################################################################################
+        # Built-in Types:
+        - match: (?i)\b(int|float|string|vector|bool|void|resource)\b
+          scope: storage.type.lobster
+
+        # Module Types:
+        - match: (?i)\b(color|xy|xy_i|xy_f|xyz|xyz_i|xyz_f|xyzw|xyzw_i|xyzw_f)\b
+          scope: storage.type.lobster
 
 
         #####################################################################################
@@ -495,7 +503,60 @@ contexts:
             | write_substring
             | write_substring_back
             )\b
-          scope: entity.name.function.lobster
+          scope: support.function.lobster
+
+
+        #####################################################################################
+        #####################################################################################
+        # Module Functions:
+        # std.lobster:
+        - match: |-
+            (?i)\b(?x:
+              check
+            | collect
+            | connect
+            | exists
+            | fatal
+            | fatal_exit
+            | filter
+            | filter_indices
+            | find
+            | find_best
+            | flatten
+            | fold
+            | fold2
+            | fold_reverse
+            | for_bias
+            | for_range
+            | for_range_incl
+            | for_scale
+            | forever
+            | insert_ordered
+            | insertion_sort
+            | map
+            | map2
+            | nest_if
+            | partition
+            | partition_indices
+            | product
+            | qsort
+            | qsort_in_place
+            | rec
+            | reduce
+            | reduce_reverse
+            | return_after
+            | reverse
+            | reverse_list
+            | reverse_map
+            | rnd_pick
+            | rnd_pick2
+            | shuffle
+            | split
+            | sum
+            | weighted_pick
+            | zip
+            )\b
+          scope: support.function.lobster
 
 
         #####################################################################################
@@ -567,32 +628,26 @@ contexts:
         - match: ((\b((?![a-zA-Z])\d*)\b)|((?<![a-zA-Z\d])-\d{1}\d*))
           scope: constant.numeric.integer.lobster
 
-        # Boolean:
-        - match: (?i)\b(nil|true|false)\b
-          scope: constant.language
-
 
         #####################################################################################
         # User Variables:
         #- match: ([A-Za-z][A-Za-z0-9_]*)
-        #  scope: variable.other.readwrite
+        #  scope: variable.other.readwrite.lobster
 
         # Built-in Variables:
         - match: (?i)\b(this)\b
-          scope: variable.language
+          scope: variable.language.lobster
 
         # Built-in Constants:
-        #- match: |-
-        #    (?i)\b(?x:
-        #      AAAAA
-        #    | AAAAA
-        #    )\b
-        #  scope: constant.language.lobster
+        - match: (?i)\b(nil)\b
+          scope: constant.language.lobster
 
         # Module Constants:
         - match: |-
             (?i)\b(?x:
-              color_clear
+              true
+            | false
+            | color_clear
             | color_black
             | color_white
             | color_red
@@ -664,9 +719,9 @@ contexts:
         # User Functions:
         - match: ([_a-zA-Z0-9]+)(\()
           captures:
-            1: support.function.lobster
+            1: entity.name.function.lobster
             2: constant.numeric.lobster
-          scope: support.function.lobster
+          scope: entity.name.function.lobster
 
 
         #####################################################################################
