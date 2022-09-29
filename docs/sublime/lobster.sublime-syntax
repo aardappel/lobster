@@ -5,8 +5,6 @@ file_extensions: lobster
 scope: source.lobster
 
 contexts:
-    ##################################################################################################################
-    ##################################################################################################################
     main:
         #####################################################################################
         #####################################################################################
@@ -61,11 +59,11 @@ contexts:
 
         #####################################################################################
         # Built-in Types:
-        - match: (?i)\b(int|float|string|vector|bool|void|resource)\b
+        - match: (?i)\b(int|float|string|vector|bool|void|resource)(?!\()\b
           scope: storage.type.lobster
 
         # Module Types:
-        - match: (?i)\b(color|xy|xy_i|xy_f|xyz|xyz_i|xyz_f|xyzw|xyzw_i|xyzw_f)\b
+        - match: (?i)\b(color|xy|xy_i|xy_f|xyz|xyz_i|xyz_f|xyzw|xyzw_i|xyzw_f)(?!\()\b
           scope: storage.type.lobster
 
 
@@ -555,10 +553,49 @@ contexts:
             | sum
             | weighted_pick
             | zip
-            )\b
+            )(?=\()\b
+          scope: support.function.lobster
+
+        # vec.lobster:
+        - match: |-
+            (?i)\b(?x:
+              forxy
+            | forxyz
+            | foryx
+            | mapxy
+            | mapxyz
+            | rotate2D
+            | v_xy
+            | v_xyz
+            | v_xyzw
+            | vecfromyawpitch
+            | xy_rnd
+            | xy_rnd_norm
+            | xy_rndi
+            | xy_v
+            | xy
+            | xyz
+            | xyz_rnd
+            | xyz_rnd_norm
+            | xyz_rndi
+            | xyz_v
+            | xyzw
+            | xyzw_rnd
+            | xyzw_v
+            | yx
+            | zyx
+            | wzyx
+            )(?=\()\b
           scope: support.function.lobster
 
 
+        #####################################################################################
+        # User Functions:
+        - match: ([_a-zA-Z0-9]+)(?=\()
+          scope: entity.name.function.lobster
+
+
+        #####################################################################################
         #####################################################################################
         # "String":
         - match: '"'
@@ -629,6 +666,7 @@ contexts:
           scope: constant.numeric.integer.lobster
 
 
+        #####################################################################################
         #####################################################################################
         # User Variables:
         #- match: ([A-Za-z][A-Za-z0-9_]*)
@@ -714,16 +752,7 @@ contexts:
           scope: constant.language.lobster
 
 
-
         #####################################################################################
-        # User Functions:
-        - match: ([_a-zA-Z0-9]+)(\()
-          captures:
-            1: entity.name.function.lobster
-            2: constant.numeric.lobster
-          scope: entity.name.function.lobster
-
-
         #####################################################################################
         # Comments:
         - match: (\/\/)
@@ -742,6 +771,7 @@ contexts:
 
 
         #####################################################################################
+        #####################################################################################
         # Operators:
         - match: '[(\+)(\-)(\*)(\/)(\^)(\%)]'
           scope: keyword.operator.arithmetic.lobster
@@ -758,12 +788,10 @@ contexts:
         - match: '[(\<\-)(\-\>)]'
           scope: keyword.operator.lobster
 
-        # (.)(,)
-
 
         #####################################################################################
         # Separator:
-        - match: '\:'
+        - match: '[(\:)(\,)]' # (\.)
           scope: punctuation.separator.lobster
 
 
