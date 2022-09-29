@@ -507,7 +507,7 @@ contexts:
         #####################################################################################
         #####################################################################################
         # Module Functions:
-        # std.lobster:
+        # 'std.lobster':
         - match: |-
             (?i)\b(?x:
               check
@@ -556,7 +556,7 @@ contexts:
             )(?=\()\b
           scope: support.function.lobster
 
-        # vec.lobster:
+        # 'vec.lobster':
         - match: |-
             (?i)\b(?x:
               forxy
@@ -782,7 +782,7 @@ contexts:
         - match: '[(\=\=)(\!\=)(\<)(\>)(\<\=)(\>\=)]'
           scope: keyword.operator.logical.lobster
 
-        - match: '[(\&)(\|)(\^)(\~)(<<)(>>)]'
+        - match: '[(\&)(\|)(\^)(\~)(\<\<)(\>\>)]'
           scope: keyword.operator.bitwise.lobster
 
         - match: '[(\<\-)(\-\>)]'
@@ -790,7 +790,7 @@ contexts:
 
 
         #####################################################################################
-        # Separator:
+        # Separators:
         - match: '[(\:)(\,)]' # (\.)
           scope: punctuation.separator.lobster
 
