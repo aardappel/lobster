@@ -1,0 +1,802 @@
+%YAML 1.2
+---
+name: Lobster
+file_extensions: lobster
+scope: source.lobster
+
+contexts:
+    main:
+        #####################################################################################
+        #####################################################################################
+        # CompileTime Execution:
+        - match: (?i)\b(import|pakfile|from)\b
+          scope: keyword.control.import.lobster
+
+
+        #####################################################################################
+        # ProgramFlow -- Conditional:
+        - match: (?i)\b(if|elif|else)\b
+          scope: keyword.control.conditional.lobster
+
+        - match: (?i)\b(and|or|not)\b
+          scope: keyword.operator.word.lobster
+
+        - match: (?i)\b(switch|case|default)\b
+          scope: keyword.control.conditional.lobster
+
+        # ProgramFlow -- Loops:
+        - match: (?i)\b(for|while|do|break)\b
+          scope: keyword.control.lobster
+
+        # ProgramFlow -- UserFunction:
+        - match: (?i)\b(def|return|from)\b
+          scope: keyword.declaration.function
+
+
+        #####################################################################################
+        # Inferenced Variable Declaration:
+        - match: (?i)\b(var|let)\b
+          scope: storage.type.lobster
+
+        # Built-in Types:
+        - match: (?i)\b(int|float|string|vector|bool|void|resource)(?!\()\b
+          scope: storage.type.lobster
+
+        # Module Types:
+        - match: (?i)\b(color|xy|xy_i|xy_f|xyz|xyz_i|xyz_f|xyzw|xyzw_i|xyzw_f)(?!\()\b
+          scope: storage.type.lobster
+
+
+        #####################################################################################
+        # Enumeration Declaration:
+        - match: (?i)\b(enum|enum_flags)\b
+          scope: keyword.declaration.enum.lobster
+
+        # UserType Declaration:
+        - match: (?i)\b(struct)\b
+          scope: keyword.declaration.struct.lobster
+
+        # Class Declaration:
+        - match: (?i)\b(class)\b
+          scope: keyword.declaration.class.lobster
+
+
+        #####################################################################################
+        # NameSpace Declaration:
+        - match: (?i)\b(namespace)\b
+          scope: entity.name.namespace.lobster
+
+
+        #####################################################################################
+        #####################################################################################
+        # Array Functions:
+        #- match: (?i)\.(Find|FromJSON|Insert|InsertSorted|Length|Load|Remove|Reverse|Save|Sort|Swap|ToJSON)\b
+        #  scope: variable.function.lobster
+
+
+        #####################################################################################
+        #####################################################################################
+        # Build-in Functions:
+        - match: |-
+            (?i)\b(?x:
+              abs
+            | acos
+            | all
+            | any
+            | append
+            | append_into
+            | asin
+            | assert
+            | atan
+            | atan2
+            | binary_search
+            | binary_search_object
+            | breakpoint
+            | cardinal_spline
+            | ceiling
+            | cg_average_surface_color
+            | cg_bounding_box
+            | cg_chunks_skipped
+            | cg_clone
+            | cg_color_to_palette
+            | cg_copy
+            | cg_copy_palette
+            | cg_create_3d_texture
+            | cg_create_mesh
+            | cg_erode
+            | cg_get
+            | cg_get_buf
+            | cg_get_palette_storage_buf
+            | cg_get_palette_storage_len
+            | cg_init
+            | cg_load_image
+            | cg_load_vox
+            | cg_name
+            | cg_normal_indices
+            | cg_num_solid
+            | cg_offset
+            | cg_palette_storage_index
+            | cg_palette_to_color
+            | cg_randomize
+            | cg_rotate
+            | cg_sample_down
+            | cg_save_vox
+            | cg_scale_up
+            | cg_set
+            | cg_simplex
+            | cg_size
+            | cg_stretch
+            | circles_within_range
+            | clamp
+            | command_line_arguments
+            | compare_substring
+            | compile_run_code
+            | compile_run_file
+            | concat_string
+            | copy
+            | cos
+            | cross
+            | date_time
+            | date_time_string
+            | deepcopy
+            | degrees
+            | div
+            | dot
+            | ensure_size
+            | equal
+            | escape_string
+            | find_string
+            | find_string_reverse
+            | flatbuffers_binary_to_json
+            | flatbuffers_field_float32
+            | flatbuffers_field_float64
+            | flatbuffers_field_int16
+            | flatbuffers_field_int32
+            | flatbuffers_field_int64
+            | flatbuffers_field_int8
+            | flatbuffers_field_present
+            | flatbuffers_field_string
+            | flatbuffers_field_struct
+            | flatbuffers_field_table
+            | flatbuffers_field_uint16
+            | flatbuffers_field_uint32
+            | flatbuffers_field_uint64
+            | flatbuffers_field_uint8
+            | flatbuffers_field_vector
+            | flatbuffers_field_vector_len
+            | flatbuffers_indirect
+            | flatbuffers_json_to_binary
+            | flatbuffers_string
+            | flexbuffers_binary_to_json
+            | flexbuffers_binary_to_value
+            | flexbuffers_json_to_binary
+            | flexbuffers_value_to_binary
+            | float
+            | floor
+            | fraction
+            | get_line
+            | get_memory_usage
+            | get_stack_trace
+            | gl_animate_mesh
+            | gl_bind_mesh_to_compute
+            | gl_blend
+            | gl_button
+            | gl_circle
+            | gl_clear
+            | gl_color
+            | gl_create_blank_texture
+            | gl_create_texture
+            | gl_cursor
+            | gl_debug_grid
+            | gl_delete_buffer_object
+            | gl_delta_time
+            | gl_dispatch_compute
+            | gl_dpi
+            | gl_dropped_file
+            | gl_dump_shader
+            | gl_end_text_input
+            | gl_frame
+            | gl_framebuffer_size
+            | gl_get_char_code
+            | gl_get_font_size
+            | gl_get_glyph_name
+            | gl_get_outline_size
+            | gl_get_shader
+            | gl_grab
+            | gl_hit
+            | gl_joy_axis
+            | gl_key_repeat
+            | gl_last_pos
+            | gl_last_time
+            | gl_light
+            | gl_line
+            | gl_line_mode
+            | gl_load_materials
+            | gl_load_texture
+            | gl_local_last_pos
+            | gl_local_mouse_pos
+            | gl_mesh_parts
+            | gl_mesh_pointsize
+            | gl_mesh_size
+            | gl_model_view_projection
+            | gl_mouse_delta
+            | gl_mouse_pos
+            | gl_mousewheel_delta
+            | gl_new_mesh
+            | gl_new_mesh_iqm
+            | gl_new_poly
+            | gl_open_circle
+            | gl_origin
+            | gl_ortho
+            | gl_ortho3d
+            | gl_perspective
+            | gl_point_scale
+            | gl_polygon
+            | gl_pop_model_view
+            | gl_push_model_view
+            | gl_read_texture
+            | gl_rect
+            | gl_rect_tc_col
+            | gl_render_mesh
+            | gl_render_tiles
+            | gl_require_version
+            | gl_rotate_x
+            | gl_rotate_y
+            | gl_rotate_z
+            | gl_save_mesh
+            | gl_scale
+            | gl_scaling
+            | gl_scissor
+            | gl_screenshot
+            | gl_set_font_name
+            | gl_set_font_size
+            | gl_set_image_texture
+            | gl_set_max_font_size
+            | gl_set_mesh_texture
+            | gl_set_primitive_texture
+            | gl_set_shader
+            | gl_set_shader
+            | gl_set_text_input
+            | gl_set_uniform
+            | gl_set_uniform_array
+            | gl_set_uniform_matrix
+            | gl_shutdown
+            | gl_start_text_input
+            | gl_switch_to_framebuffer
+            | gl_text
+            | gl_text_input_state
+            | gl_text_size
+            | gl_texture_size
+            | gl_time
+            | gl_touchscreen
+            | gl_translate
+            | gl_uniform_buffer_object
+            | gl_unit_cube
+            | gl_unit_square
+            | gl_visible
+            | gl_window
+            | gl_window_min_max
+            | gl_window_size
+            | gl_window_title
+            | hash
+            | im_add_font
+            | im_button
+            | im_checkbox
+            | im_coloredit
+            | im_combo
+            | im_disabled_end
+            | im_disabled_start
+            | im_edit_anything
+            | im_frame_end
+            | im_frame_start
+            | im_graph
+            | im_group_end
+            | im_group_start
+            | im_init
+            | im_input_float
+            | im_input_text
+            | im_listbox
+            | im_radio
+            | im_same_line
+            | im_separator
+            | im_show_engine_stats
+            | im_show_vars
+            | im_sliderfloat
+            | im_sliderint
+            | im_text
+            | im_tooltip
+            | im_treenode_end
+            | im_treenode_start
+            | im_width_end
+            | im_width_start
+            | im_window_demo
+            | im_window_end
+            | im_window_start
+            | in_range
+            | insert
+            | int
+            | is_worker_thread
+            | launch_subprocess
+            | length
+            | lerp
+            | line_intersect
+            | load_ogg
+            | load_sfxr
+            | load_wav
+            | log
+            | lowercase
+            | magnitude
+            | magnitude_squared
+            | manhattan
+            | max
+            | mg_color
+            | mg_convert_to_cubes
+            | mg_cube
+            | mg_cylinder
+            | mg_landscape
+            | mg_polygonize
+            | mg_pop_transform
+            | mg_push_transform
+            | mg_rotate
+            | mg_scale
+            | mg_scale_vec
+            | mg_set_color_noise
+            | mg_set_point_mode
+            | mg_set_polygon_reduction
+            | mg_set_vertex_randomize
+            | mg_smooth
+            | mg_sphere
+            | mg_superquadric
+            | mg_superquadric_non_uniform
+            | mg_supertoroid
+            | mg_tapered_cylinder
+            | mg_translate
+            | min
+            | normalize
+            | number_to_string
+            | parse_data
+            | pass
+            | ph_apply_linear_impulse_to_center
+            | ph_create_box
+            | ph_create_circle
+            | ph_create_particle
+            | ph_create_particle_circle
+            | ph_create_polygon
+            | ph_delete_particle
+            | ph_dynamic
+            | ph_get_mass
+            | ph_get_position
+            | ph_getparticle_position
+            | ph_initialize
+            | ph_initialize_particles
+            | ph_particle_contacts
+            | ph_raycast
+            | ph_render
+            | ph_render_particles
+            | ph_set_color
+            | ph_set_linear_velocity
+            | ph_set_shader
+            | ph_set_texture
+            | ph_step
+            | play_ogg
+            | play_sfxr
+            | play_wav
+            | pop
+            | pow
+            | print
+            | program_name
+            | push
+            | radians
+            | read_file
+            | read_float32_le
+            | read_float32_le_back
+            | read_float64_le
+            | read_float64_le_back
+            | read_int16_le
+            | read_int16_le_back
+            | read_int32_le
+            | read_int32_le_back
+            | read_int64_le
+            | read_int64_le_back
+            | read_int8_le
+            | read_int8_le_back
+            | read_uint16_le
+            | read_uint16_le_back
+            | read_uint32_le
+            | read_uint32_le_back
+            | read_uint64_le
+            | read_uint64_le_back
+            | read_uint8_le
+            | read_uint8_le_back
+            | reference_count
+            | remove
+            | remove_obj
+            | remove_range
+            | repeat_string
+            | replace_string
+            | rnd
+            | rnd_float
+            | rnd_gaussian
+            | rnd_seed
+            | rndm
+            | rndm_seed
+            | round
+            | scan_folder
+            | seconds_elapsed
+            | set_console
+            | set_print_decimals
+            | set_print_depth
+            | set_print_indent
+            | set_print_length
+            | set_print_quoted
+            | sign
+            | simplex
+            | sin
+            | sincos
+            | slice
+            | smootherstep
+            | smoothmin
+            | smoothstep
+            | sound
+            | sound_halt
+            | sound_pause
+            | sound_position
+            | sound_resume
+            | sound_status
+            | sound_volume
+            | sqrt
+            | start_worker_threads
+            | steam_init
+            | steam_overlay
+            | steam_read_file
+            | steam_unlock_achievement
+            | steam_username
+            | steam_write_file
+            | stop_worker_threads
+            | string
+            | string_to_float
+            | string_to_int
+            | string_to_unicode
+            | substring
+            | tan
+            | thread_information
+            | thread_read
+            | thread_write
+            | tokenize
+            | top
+            | trace_bytecode
+            | unicode_to_string
+            | uppercase
+            | vector_capacity
+            | vector_to_buffer
+            | vm_compiled_mode
+            | volume
+            | vr_create_motion_controller_mesh
+            | vr_finish
+            | vr_hmd_vec
+            | vr_init
+            | vr_motion_controller
+            | vr_motion_controller_button
+            | vr_motion_controller_vec
+            | vr_motioncontrollerstracking
+            | vr_num_motion_controllers
+            | vr_set_eye_texture
+            | vr_start
+            | vr_start_eye
+            | wave_function_collapse
+            | workers_alive
+            | write_file
+            | write_float32_le
+            | write_float32_le_back
+            | write_float64_le
+            | write_float64_le_back
+            | write_int16_le
+            | write_int16_le_back
+            | write_int32_le
+            | write_int32_le_back
+            | write_int64_le
+            | write_int64_le_back
+            | write_int8_le
+            | write_int8_le_back
+            | write_substring
+            | write_substring_back
+            )\b
+          scope: support.function.lobster
+
+
+        #####################################################################################
+        #####################################################################################
+        # Module Functions:
+        # "std.lobster":
+        - match: |-
+            (?i)\b(?x:
+              check
+            | collect
+            | connect
+            | exists
+            | fatal
+            | fatal_exit
+            | filter
+            | filter_indices
+            | find
+            | find_best
+            | flatten
+            | fold
+            | fold2
+            | fold_reverse
+            | for_bias
+            | for_range
+            | for_range_incl
+            | for_scale
+            | forever
+            | insert_ordered
+            | insertion_sort
+            | map
+            | map2
+            | nest_if
+            | partition
+            | partition_indices
+            | product
+            | qsort
+            | qsort_in_place
+            | rec
+            | reduce
+            | reduce_reverse
+            | return_after
+            | reverse
+            | reverse_list
+            | reverse_map
+            | rnd_pick
+            | rnd_pick2
+            | shuffle
+            | split
+            | sum
+            | weighted_pick
+            | zip
+            )(?=\()\b
+          scope: support.function.lobster
+
+        # "vec.lobster":
+        - match: |-
+            (?i)\b(?x:
+              forxy
+            | forxyz
+            | foryx
+            | mapxy
+            | mapxyz
+            | rotate2D
+            | v_xy
+            | v_xyz
+            | v_xyzw
+            | vecfromyawpitch
+            | xy_rnd
+            | xy_rnd_norm
+            | xy_rndi
+            | xy_v
+            | xy
+            | xyz
+            | xyz_rnd
+            | xyz_rnd_norm
+            | xyz_rndi
+            | xyz_v
+            | xyzw
+            | xyzw_rnd
+            | xyzw_v
+            | yx
+            | zyx
+            | wzyx
+            )(?=\()\b
+          scope: support.function.lobster
+
+
+        #####################################################################################
+        # User Functions:
+        - match: ([_a-zA-Z0-9]+)(?=\()
+          scope: entity.name.function.lobster
+
+
+        #####################################################################################
+        #####################################################################################
+        # "String":
+        - match: '"'
+          scope: punctuation.definition.string.begin.lobster
+          push:
+            - meta_scope: string.quoted.double.lobster
+            - match: \\.
+              scope: constant.character.escape.lobster
+            - match: '"'
+              scope: punctuation.definition.string.end.lobster
+              pop: true
+
+
+        #####################################################################################
+        # Braces{}, Parentheses(), Brackets[]:
+        - match: \{|\}
+          scope: constant.numeric.lobster
+
+        - match: \(|\)
+          scope: constant.numeric.lobster
+
+        - match: \[|\]
+          scope: constant.numeric.lobster
+
+        #- match: \{
+        #  scope: punctuation.section.braces.begin.lobster
+        #  push:
+        #    - meta_scope: meta.braces.lobster
+        #    - match: \}
+        #      scope: punctuation.section.braces.end.lobster
+        #      pop: true
+
+        #- match: \(
+        #  scope: punctuation.section.parens.begin.lobster
+        #  push:
+        #    - meta_scope: meta.parens.lobster
+        #    - match: \)
+        #      scope: punctuation.section.parens.end.lobster
+        #      pop: true
+
+        #- match: \[
+        #  scope: punctuation.section.brackets.begin.lobster
+        #  push:
+        #    - meta_scope: meta.brackets.lobster
+        #    - match: \]
+        #      scope: punctuation.section.brackets.end.lobster
+        #      pop: true
+
+        # @fix These break strings, will figure it out later...
+
+
+
+        #####################################################################################
+        # Bin:
+        #- match: \b((0b){1}[01]+)\b
+        #  scope: constant.numeric.integer.binary.lobster
+
+        # Hex:
+        - match: \b((0x){1}[0-9a-fA-F]+)\b
+          scope: constant.numeric.integer.hexadecimal.lobster
+
+        # Float:
+        - match: ((((?<![a-zA-Z\d])\d*)|((?<![a-zA-Z\d])-\d*))(((?<![a-zA-Z\d])-\d{1}\.{1})|((?<![\d])-\.{1}\d{1})|(\d{1}\.{1})|(\.{1}\d{1})){1}\d*)
+          scope: constant.numeric.float.lobster
+
+        # Integer:
+        - match: ((\b((?![a-zA-Z])\d*)\b)|((?<![a-zA-Z\d])-\d{1}\d*))
+          scope: constant.numeric.integer.lobster
+
+
+        #####################################################################################
+        #####################################################################################
+        # User Variables:
+        #- match: ([A-Za-z][A-Za-z0-9_]*)
+        #  scope: variable.other.readwrite.lobster
+
+        # Built-in Variables:
+        - match: (?i)\b(this)\b
+          scope: variable.language.lobster
+
+        # Built-in Constants:
+        - match: (?i)\b(nil)\b
+          scope: constant.language.lobster
+
+        # Module Constants:
+        - match: |-
+            (?i)\b(?x:
+              true
+            | false
+            | color_clear
+            | color_black
+            | color_white
+            | color_red
+            | color_green
+            | color_blue
+            | color_yellow
+            | color_cyan
+            | color_pink
+            | color_grey
+            | color_dark_grey
+            | color_light_grey
+            | color_lightest_grey
+            | color_darkest_grey
+            | color_light_red
+            | color_light_green
+            | color_light_blue
+            | color_light_yellow
+            | color_light_cyan
+            | color_light_pink
+            | color_dark_red
+            | color_dark_green
+            | color_dark_blue
+            | color_olive
+            | color_teal
+            | color_purple
+            | color_orange
+            | color_chartreuse
+            | color_springgreen
+            | color_dodgerblue
+            | color_pink_violet
+            | color_blue_violet
+            | xy_0
+            | xy_1
+            | xy_h
+            | xy_x
+            | xy_y
+            | xyz_0
+            | xyz_1
+            | xyz_x
+            | xyz_y
+            | xyz_z
+            | xyzw_0
+            | xyzw_1
+            | xyzw_x
+            | xyzw_y
+            | xyzw_z
+            | xyzw_w
+            | xy_0i
+            | xy_1i
+            | xy_xi
+            | xy_yi
+            | xyz_0i
+            | xyz_1i
+            | xyz_xi
+            | xyz_yi
+            | xyz_zi
+            | xyzw_0i
+            | xyzw_1i
+            | xyzw_xi
+            | xyzw_yi
+            | xyzw_zi
+            | xyzw_wi
+            )\b
+          scope: constant.language.lobster
+
+
+        #####################################################################################
+        #####################################################################################
+        # Comments:
+        - match: (\/\/)
+          scope: comment.line.lobster
+          push:
+            - meta_scope: comment.line.lobster
+            - match: (\n)
+              pop: true
+
+        - match: (/\*)
+          scope: comment.block.lobster
+          push:
+            - meta_scope: comment.block.lobster
+            - match: (\*/)
+              pop: true
+
+
+        #####################################################################################
+        #####################################################################################
+        # Operators:
+        - match: '[(\+)(\-)(\*)(\/)(\^)(\%)]'
+          scope: keyword.operator.arithmetic.lobster
+
+        - match: '[(\=)(\+\+)(\-\-)(\+\=)(\-\=)(\*\=)(\/\=)(\%\=)(\?)]'
+          scope: keyword.operator.assignment.lobster
+
+        - match: '[(\=\=)(\!\=)(\<)(\>)(\<\=)(\>\=)]'
+          scope: keyword.operator.logical.lobster
+
+        - match: '[(\&)(\|)(\^)(\~)(\<\<)(\>\>)]'
+          scope: keyword.operator.bitwise.lobster
+
+        - match: '[(\<\-)(\-\>)]'
+          scope: keyword.operator.lobster
+
+
+        #####################################################################################
+        # Separators:
+        - match: '[(\:)(\,)]' # (\.)
+          scope: punctuation.separator.lobster
+
+
+        #####################################################################################
+        # Explicit Statement Terminator:
+        - match: '\;'
+          scope: punctuation.terminator.lobster
+
