@@ -34,10 +34,20 @@ contexts:
 
 
         #####################################################################################
-        # Variable Declaration:
+        # Inferenced Variable Declaration:
         - match: (?i)\b(var|let)\b
+          scope: keyword.declaration.function.lobster
+
+        # Built-in Types:
+        - match: (?i)\b(int|float|string|vector|bool|void|resource)(?!\()\b
           scope: storage.type.lobster
 
+        # Module Types:
+        - match: (?i)\b(color|xy|xy_i|xy_f|xyz|xyz_i|xyz_f|xyzw|xyzw_i|xyzw_f)(?!\()\b
+          scope: storage.type.lobster
+
+
+        #####################################################################################
         # Enumeration Declaration:
         - match: (?i)\b(enum|enum_flags)\b
           scope: keyword.declaration.enum.lobster
@@ -46,25 +56,15 @@ contexts:
         - match: (?i)\b(struct)\b
           scope: keyword.declaration.struct.lobster
 
-
-        #####################################################################################
         # Class Declaration:
         - match: (?i)\b(class)\b
           scope: keyword.declaration.class.lobster
 
+
+        #####################################################################################
         # NameSpace Declaration:
         - match: (?i)\b(namespace)\b
           scope: entity.name.namespace.lobster
-
-
-        #####################################################################################
-        # Built-in Types:
-        - match: (?i)\b(int|float|string|vector|bool|void|resource)(?!\()\b
-          scope: storage.type.lobster
-
-        # Module Types:
-        - match: (?i)\b(color|xy|xy_i|xy_f|xyz|xyz_i|xyz_f|xyzw|xyzw_i|xyzw_f)(?!\()\b
-          scope: storage.type.lobster
 
 
         #####################################################################################
@@ -507,7 +507,7 @@ contexts:
         #####################################################################################
         #####################################################################################
         # Module Functions:
-        # 'std.lobster':
+        # "std.lobster":
         - match: |-
             (?i)\b(?x:
               check
@@ -556,7 +556,7 @@ contexts:
             )(?=\()\b
           scope: support.function.lobster
 
-        # 'vec.lobster':
+        # "vec.lobster":
         - match: |-
             (?i)\b(?x:
               forxy
