@@ -36,7 +36,7 @@ contexts:
         #####################################################################################
         # Inferenced Variable Declaration:
         - match: (?i)\b(var|let)\b
-          scope: keyword.declaration.function.lobster
+          scope: storage.type.lobster
 
         # Built-in Types:
         - match: (?i)\b(int|float|string|vector|bool|void|resource)(?!\()\b
