@@ -3250,6 +3250,12 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         tc.RetVal(child->exptype, sf, *this);  // If it's a variable, bind it.
         return this;
     }
+    if (make_void && sf->num_returns && sf->returntype->t != V_VOID) {
+        // Specialized error to not have the code below complain that there is a non-existing
+        // return statement returning void.
+        // FIXME: need V_VOID check because num_returns can be 1 in functions with exp-less "return"??
+        tc.Error(*this, "control reaches end of non-void function");
+    }
     if (!Is<DefaultVal>(child)) {
         auto scchild = (Node *)tc.SkipCoercions(child);
         if (auto mrs = Is<MultipleReturn>(scchild)) {
