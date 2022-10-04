@@ -747,6 +747,8 @@
       always-64-bit values, limiting the amount of cleanup you can do.
       There is some of this (see iint and ssize_t in tools.h), but converting more code
       only makes sense once we can drop 32-bit platforms entirely.
+      See when all compilers support this to experiment with it?
+      https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1227r2.html
     - change bytecode from int to LEB. this will make it more compact, though mildly slower
       to read. would solve issues with 64-bit contants etc. would read into iint or int64_t,
       depending. Can still hard-code instruction into 16-bit. Or make it a 16-bit LEB?
