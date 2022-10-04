@@ -764,8 +764,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 auto model_id = i.second;
                 for (;;) {
                     if (node_offset.find(node_id) != node_offset.end()) {
-                        GetVoxels(voxvec->At(model_id)).offset = node_offset[node_id];
-                        break;
+                        GetVoxels(voxvec->At(model_id)).offset += node_offset[node_id];
                     }
                     if (node_graph.find(node_id) == node_graph.end())
                         break;
