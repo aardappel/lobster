@@ -31,7 +31,7 @@ typedef ptrdiff_t ssize_t;
 
 // Custom _L suffix, since neither L (different size on win/nix) or LL
 // (does not convert to int64_t on nix!) is portable.
-inline constexpr iint operator"" _L(unsigned long long int c) {
+inline constexpr iint operator"" _L64(unsigned long long int c) {
     return (iint)c;
 }
 
