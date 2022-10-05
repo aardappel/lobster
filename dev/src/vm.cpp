@@ -641,7 +641,7 @@ void VM::StartWorkers(iint numthreads) {
     if (is_worker) Error("workers can\'t start more worker threads");
     if (tuple_space) Error("workers already running");
     // Stop bad values from locking up the machine :)
-    numthreads = std::min(numthreads, 256_L);
+    numthreads = std::min(numthreads, 256_L64);
     tuple_space = new TupleSpace(bcf->udts()->size());
     for (iint i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
