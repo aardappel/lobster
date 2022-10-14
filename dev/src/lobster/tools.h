@@ -1103,12 +1103,6 @@ inline void THROW_OR_ABORT(const string &s) {
     #endif
 }
 
-inline void unit_test_tools() {
-    assert(strcmp(null_terminated<0>(string_view("aa", 1)),
-                  null_terminated<1>(string_view("bb", 1))) != 0);
-    assert(cat_parens(1, 2) == "(1, 2)");
-}
-
 
 // Stack profiling.
 
@@ -1154,9 +1148,13 @@ struct StackHelper {
 template<typename T, int N> class small_vector {
     uint16_t len = 0;
     uint16_t cap = N;
+
     union {
         T elems[N];
+
+        #pragma pack(push, 2)  // Stop pointer from requiring more alignment than needed.
         T *buf;
+        #pragma pack(pop)
     };
 
     void grow() {
@@ -1221,4 +1219,13 @@ template<typename T, int N> class small_vector {
         len--;
     }
 };
+
+
+
+inline void unit_test_tools() {
+    assert(strcmp(null_terminated<0>(string_view("aa", 1)),
+                  null_terminated<1>(string_view("bb", 1))) != 0);
+    assert(cat_parens(1, 2) == "(1, 2)");
+    assert(sizeof(small_vector<int, 2>) == 12);
+}
 
