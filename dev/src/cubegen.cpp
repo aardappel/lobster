@@ -173,7 +173,7 @@ uint8_t FindClosestNormal(float3 normal) {
 const size_t palette_size = 256 * sizeof(byte4);
 
 size_t NewPalette(const byte4 *p) {
-    auto hash = FNV1A64(string_view((const char *)&p, palette_size));
+    auto hash = FNV1A64(string_view((const char *)p, palette_size));
     // See if there's an existing matching palette.
     for (auto [pali, pal] : enumerate(palettes)) {
         if (pal.hash == hash &&  // Quick reject.
