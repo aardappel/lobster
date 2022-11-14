@@ -1139,27 +1139,23 @@ struct StackHelper {
 
 // small_vector, similar to llvm::SmallVector, stores N elements in-line, only dynamically
 // allocated if more than that.
-// Since this is usually used for single-digit lengths, we use a max 16-bit length for
-// compactness (a small_vector<int, 2> is only 12 bytes!).
 // Uses memcpy on growth, so not for elements with non-trivial copy constructors.
 // It stores a pointer overlapping with the fixed elements, so there is no point to
 // make N smaller than sizeof(T *) / sizeof(T).
 
 template<typename T, int N> class small_vector {
-    uint16_t len = 0;
-    uint16_t cap = N;
+    // These could be 16-bit, but there's no easy portable way to stop the T* below from
+    // padding the struct in that case.
+    uint32_t len = 0;
+    uint32_t cap = N;
 
     union {
         T elems[N];
-
-        #pragma pack(push, 2)  // Stop pointer from requiring more alignment than needed.
         T *buf;
-        #pragma pack(pop)
     };
 
     void grow() {
-        assert((cap & 0x8000) == 0);  // Can't grow beyond 16-bit.
-        uint16_t nc = len * 2;
+        uint32_t nc = len * 2;
         auto b = new T[nc];
         t_memcpy(b, data(), len);
         if (cap > N) delete[] buf;
@@ -1226,7 +1222,5 @@ inline void unit_test_tools() {
     assert(strcmp(null_terminated<0>(string_view("aa", 1)),
                   null_terminated<1>(string_view("bb", 1))) != 0);
     assert(cat_parens(1, 2) == "(1, 2)");
-    #ifndef __APPLE__  // Apple Clang, unlike Clang on Linux and all other compilers, decides to ignore pragma pack?
-        assert(sizeof(small_vector<int, 2>) == 12);
-    #endif
+    assert(sizeof(small_vector<int, 2>) == 16);
 }
