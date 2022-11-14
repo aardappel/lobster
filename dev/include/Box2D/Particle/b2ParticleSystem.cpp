@@ -704,6 +704,10 @@ int32 b2ParticleSystem::CreateParticle(const b2ParticleDef& def)
 	{
 		m_handleIndexBuffer.data[index] = NULL;
 	}
+	if (m_expirationTimeBuffer.data)
+	{
+		m_expirationTimeBuffer.data[index] = 0;
+	}
 	Proxy& proxy = m_proxyBuffer.Append();
 
 	// If particle lifetimes are enabled or the lifetime is set in the particle
