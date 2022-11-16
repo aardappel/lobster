@@ -35,8 +35,8 @@ struct Optimizer {
         // We don't optimize parser.root, it only contains a single call.
         for (auto f : parser.st.functiontable) {
             again:
-            for (auto &ov : f->overloads) {
-                auto sf = ov.sf;
+            for (auto ov : f->overloads) {
+                auto sf = ov->sf;
                 if (sf && sf->typechecked) {
                     for (; sf; sf = sf->next) {
                         functions_removed = false;

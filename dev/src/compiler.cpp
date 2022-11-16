@@ -507,6 +507,7 @@ Field::Field(const Field &o)
       defined_in(o.defined_in) {}
 
 Function::~Function() {
+    for (auto ov : overloads) delete ov;
     for (auto da : default_args) delete da;
 }
 

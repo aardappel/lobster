@@ -387,6 +387,14 @@ struct Arg {
 };
 
 struct Function;
+struct SubFunction;
+
+struct Overload {
+    SubFunction *sf = nullptr;
+    Block *gbody = nullptr;
+
+    ~Overload();
+};
 
 struct SubFunction {
     int idx;
@@ -420,13 +428,16 @@ struct SubFunction {
     Type thistype { V_FUNCTION, this };  // convenient place to store the type corresponding to this
     vector<BoundTypeVariable> generics;
     map<string_view, string_view> attributes;
+    Overload *lexical_parent = nullptr;
+    Overload *overload = nullptr;
 
     SubFunction(int _idx) : idx(_idx) {}
 
-    void SetParent(Function &f, SubFunction *&link) {
+    void SetParent(Function &f, Overload &ov) {
         parent = &f;
-        next = link;
-        link = this;
+        next = ov.sf;
+        ov.sf = this;
+        ov.sf->overload = &ov;
     }
 
     bool Add(vector<Arg> &v, const Arg &in) {
@@ -440,32 +451,12 @@ struct SubFunction {
     ~SubFunction();
 };
 
-struct Overload : NonCopyable {
-    SubFunction *sf = nullptr;
-    Block *gbody = nullptr;
-
-    Overload() {}
-
-    ~Overload();
-
-    Overload(Overload &&o) {
-        *this = std::move(o);
-    }
-
-    Overload& operator=(Overload &&o) {
-        std::swap(sf, o.sf);
-        std::swap(gbody, o.gbody);
-        return *this;
-
-    }
-};
-
 struct Function : Named {
     // Start of all SubFunctions sequentially.
     int bytecodestart = 0;
     // functions with the same name and args, but different types (dynamic dispatch |
     // specialization)
-    vector<Overload> overloads;
+    vector<Overload *> overloads;
     // functions with the same name but different number of args (overloaded)
     Function *sibf = nullptr;
     // does not have a programmer specified name
@@ -484,21 +475,21 @@ struct Function : Named {
 
     ~Function();
 
-    size_t nargs() const { return overloads[0].sf->args.size(); }
+    size_t nargs() const { return overloads[0]->sf->args.size(); }
 
     int NumSubf() {
         int sum = 0;
-        for (auto &ov : overloads) for (auto sf = ov.sf; sf; sf = sf->next) sum++;
+        for (auto &ov : overloads) for (auto sf = ov->sf; sf; sf = sf->next) sum++;
         return sum;
     }
 
     bool RemoveSubFunction(SubFunction *sf) {
         for (auto [i, ov] : enumerate(overloads)) {
-            for (auto sfp = &ov.sf; *sfp; sfp = &(*sfp)->next) {
+            for (auto sfp = &ov->sf; *sfp; sfp = &(*sfp)->next) {
                 if (*sfp == sf) {
                     *sfp = sf->next;
                     sf->next = nullptr;
-                    if (!ov.sf) overloads.erase(overloads.begin() + i);
+                    if (!ov->sf) overloads.erase(overloads.begin() + i);
                     return true;
                 }
             }
@@ -649,8 +640,8 @@ struct SymbolTable {
         withstack.push_back({ type->spec_udt->udt, id, sf });
     }
 
-    void AddWithStructTT(TypeRef type, Ident *id) {
-        withstack.push_back({ type->udt, id, nullptr });
+    void AddWithStructTT(TypeRef type, Ident *id, SubFunction *sf) {
+        withstack.push_back({ type->udt, id, sf });
     }
 
     SharedField *LookupWithStruct(string_view name, Lex &lex, Ident *&id) {
@@ -694,6 +685,8 @@ struct SymbolTable {
     SubFunction *FunctionScopeStart() {
         BlockScopeStart();
         auto sf = CreateSubFunction();
+        if (!defsubfunctionstack.empty())
+            sf->lexical_parent = defsubfunctionstack.back()->parent->overloads.back();
         defsubfunctionstack.push_back(sf);
         return sf;
     }

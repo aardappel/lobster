@@ -212,7 +212,7 @@ struct CodeGen  {
         assert(type_table.size() == TYPE_ELEM_FIXED_OFFSET_END);
         for (auto f : parser.st.functiontable) {
             if (!f->istype) {
-                for (auto &ov : f->overloads) for (auto sf = ov.sf; sf; sf = sf->next) {
+                for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
                     if (sf->typechecked) {
                         // We only set this here, because any inlining of anonymous functions in
                         // the optimizers is likely to reduce the amount of vars for which this is
@@ -258,7 +258,7 @@ struct CodeGen  {
         for (auto f : parser.st.functiontable) {
             if (f->bytecodestart <= 0 && !f->istype) {
                 f->bytecodestart = Pos();
-                for (auto &ov : f->overloads) for (auto sf = ov.sf; sf; sf = sf->next) {
+                for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
                     if (sf->typechecked) GenScope(*sf);
                 }
                 if (f->bytecodestart == Pos()) f->bytecodestart = 0;

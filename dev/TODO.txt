@@ -114,6 +114,9 @@
     - If we're NOT going to do the above, then some more uses of new GenericCall can
       already be made to specific calls in the parser.
 
+- There's likely all sorts of uses of SubFunction that would be less buggy if Overload was used instead.
+  - To find out, have to audit every use of it.
+
 - error on `if a:` where `a` is non-nillable ref type?
   - same for `assert a`.
   - would make specialization more restrictive, but avoids errors while refactoring etc.
@@ -335,6 +338,9 @@
 
   Also would be nice to have a good hash-map as part of the language, to compliment the
   simplistic binary_search.
+  If we do, would be nice to use a technique like https://github.com/martinus/unordered_dense
+  and have it be based on the existing vector type (either as "subtype" or it owns a vector),
+  that way all the vector ops we have can be reused as-is.
   Could cheap-out and add one as a resource, but that would make retrieved values have no
   type.
   Maybe allow resources to have a type parameter?

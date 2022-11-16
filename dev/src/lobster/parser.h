@@ -56,9 +56,9 @@ struct Parser {
         auto sf = st.FunctionScopeStart();
         st.toplevel = sf;
         auto &f = st.CreateFunction("__top_level_expression");
-        f.overloads.emplace_back(Overload {});
-        auto &ov = f.overloads[0];
-        sf->SetParent(f, ov.sf);
+        f.overloads.emplace_back(new Overload {});
+        auto &ov = *f.overloads[0];
+        sf->SetParent(f, ov);
         f.anonymous = true;
         lex.Include("stdtype.lobster", false);
         ov.gbody = new Block(lex);
@@ -608,8 +608,8 @@ struct Parser {
             }
         }
         // Create the overload.
-        f.overloads.emplace_back(Overload {});
-        sf->SetParent(f, f.overloads.back().sf);
+        f.overloads.emplace_back(new Overload {});
+        sf->SetParent(f, *f.overloads.back());
         // Check if there's any overlap in default argument ranges.
         auto ff = st.GetFirstFunction(f.name);
         while (ff) {
@@ -666,9 +666,10 @@ struct Parser {
         Line line = lex;
         if (!f.istype) {
             auto block = new Block(lex);
-            f.overloads.back().gbody = block;
+            auto &ov = *f.overloads.back();
+            ov.gbody = block;
             ParseBody(block, -1);
-            ImplicitReturn(f.overloads.back());
+            ImplicitReturn(ov);
         }
         if (name) functionstack.pop_back();
         if (non_inline_method) st.bound_typevars_stack.pop_back();
@@ -724,7 +725,7 @@ struct Parser {
             case T_IDENT: {
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {
-                    dest = &f->overloads[0].sf->thistype;
+                    dest = &f->overloads[0]->sf->thistype;
                     lex.Next();
                     break;
                 }
@@ -825,11 +826,11 @@ struct Parser {
                         Error("function ", Q(lastid),
                               " must have single implementation to be used with ",
                               Q("return from"));
-                    sf = f->overloads[0].sf;
+                    sf = f->overloads[0]->sf;
                 }
             } else {
                 if (functionstack.size())
-                    sf = functionstack.back()->overloads.back().sf;
+                    sf = functionstack.back()->overloads.back()->sf;
             }
             return new Return(lex, rv, sf, false);
         } else if (IsNext(T_BREAK)) {
@@ -1539,8 +1540,8 @@ struct Parser {
     string DumpAll(bool onlytypechecked = false) {
         string s;
         for (auto f : st.functiontable) {
-            for (auto &ov : f->overloads) {
-                auto sf = ov.sf;
+            for (auto ov : f->overloads) {
+                auto sf = ov->sf;
                 assert(!sf->next);
                 if (!onlytypechecked || sf->typechecked) {
                     s += "FUNCTION: " + f->name + "(";
@@ -1550,7 +1551,7 @@ struct Parser {
                     s += ") -> ";
                     s += TypeName(sf->returntype);
                     s += "\n";
-                    if (ov.gbody) s += DumpNode(*ov.gbody, 4, false);
+                    if (ov->gbody) s += DumpNode(*ov->gbody, 4, false);
                     s += "\n\n";
                 }
             }
