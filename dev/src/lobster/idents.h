@@ -489,7 +489,10 @@ struct Function : Named {
                 if (*sfp == sf) {
                     *sfp = sf->next;
                     sf->next = nullptr;
-                    if (!ov->sf) overloads.erase(overloads.begin() + i);
+                    if (!ov->sf) {
+                        delete overloads[i];
+                        overloads.erase(overloads.begin() + i);
+                    }
                     return true;
                 }
             }
