@@ -930,11 +930,14 @@ struct Parser {
     Node *ParseUnary() {
         switch (lex.token) {
             case T_MINUS: return new UnaryMinus(lex, UnaryArg());
-            case T_NOT:   return new Not(lex, UnaryArg());
             case T_NEG:   return new Negate(lex, UnaryArg());
             case T_INCR:  return new PreIncr(lex, UnaryArg());
             case T_DECR:  return new PreDecr(lex, UnaryArg());
-            default:      return ParseDeref();
+            case T_NOT:  // Different precedence.
+                lex.Next();
+                return new Not(lex, ParseOpExp(5));
+            default:
+                return ParseDeref();
         }
     }
 
