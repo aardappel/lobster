@@ -743,7 +743,7 @@ int2 GetKeyPos(string_view name, int on) {
 }
 
 void SDLTitle(string_view title) {
-    LOBSTER_FRAME_PROFILE_THIS_FUNCTION;
+    LOBSTER_FRAME_PROFILE_THIS_SCOPE;
     SDL_SetWindowTitle(_sdl_window, null_terminated(title));
 }
 

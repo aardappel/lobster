@@ -35,6 +35,7 @@ float custompointscale = 1.0f;
 bool mode2d = true;
 bool mode_srgb = false;
 GeometryCache *geomcache = nullptr;
+int max_ssbo = 0, max_ubo = 0;
 
 BlendMode SetBlendMode(BlendMode mode) {
     static BlendMode curblendmode = BLEND_NONE;
@@ -197,6 +198,9 @@ string OpenGLInit(int samples, bool srgb) {
                 glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
             #endif
         }
+        // FIXME: call glGetInteger64v if we ever want buffers >2GB.
+        glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_ssbo);
+        glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &max_ubo);
     #endif
     #ifndef PLATFORM_ES3
         GL_CALL(glEnable(GL_LINE_SMOOTH));

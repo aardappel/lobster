@@ -117,7 +117,7 @@ using namespace geom;
     // These are too expensive to always have on, but can give maximum info automatically.
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0   // Only works with --runtime-verbose on.
-    #define LOBSTER_FRAME_PROFILE_THIS_FUNCTION ZoneScoped
+    #define LOBSTER_FRAME_PROFILE_THIS_SCOPE ZoneScoped
     #define LOBSTER_FRAME_PROFILE_GPU(N) TracyGpuZone(N)
     #undef new
     #include "Tracy.hpp"
@@ -128,6 +128,6 @@ using namespace geom;
 #else
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0
-    #define LOBSTER_FRAME_PROFILE_THIS_FUNCTION
+    #define LOBSTER_FRAME_PROFILE_THIS_SCOPE
     #define LOBSTER_FRAME_PROFILE_GPU(N)
 #endif

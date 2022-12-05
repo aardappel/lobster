@@ -63,6 +63,7 @@ struct Shader : lobster::Resource {
         int bo;
         int bpi;
         size_t size;
+        uint32_t idx;
     };
     map<string, BOEntry, less<>> ubomap;
     int binding_point_index_alloc = 0;
@@ -362,6 +363,8 @@ extern float4 curcolor;
 extern float pointscale, custompointscale;
 
 extern GeometryCache *geomcache;
+
+extern int max_ssbo, max_ubo;
 
 template<typename F> void Transform(const float4x4 &mat, F body) {
     auto oldobject2view = otransforms.object2view();
