@@ -1102,7 +1102,7 @@ struct TypeChecker {
                 if (&*nt != &*type->Element()) {
                     return st.Wrap(nt, type->t);
                 }
-                break;
+                return type;
             }
             case V_TUPLE: {
                 vector<TypeRef> types;
@@ -1112,7 +1112,7 @@ struct TypeChecker {
                     types.push_back(tr);
                     if (!tr->Equal(*te.type)) same = false;
                 }
-                if (same) break;
+                if (same) return type;
                 auto nt = st.NewTuple(type->tup->size());
                 for (auto [i, te] : enumerate(*type->tup)) {
                     nt->Set(i, &*types[i], te.lt);
@@ -1162,10 +1162,11 @@ struct TypeChecker {
                     }
                 }
                 if (errn) Error(*errn, "could not resolve type variable ", Q(type->tv->name));
-                break;
+                return type;
             }
+            default:
+                return type;
         }
-        return type;
     }
 
     void UnWrapBoth(TypeRef &otype, TypeRef &atype) {
@@ -3135,6 +3136,8 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 type = ret.type->t == V_VECTOR ? tc.st.Wrap(tc.NewTypeVar(), V_VECTOR)
                                                   : tc.NewTypeVar();
                 assert(rlt == LT_KEEP);
+                break;
+            default:
                 break;
         }
         // This allows the 0th retval to inherit the type of the 0th arg, and is
