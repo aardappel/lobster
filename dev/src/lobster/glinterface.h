@@ -210,6 +210,7 @@ extern void Set3DMode(float fovy, int2 fbo, int2 fbs, float znear, float zfar);
 extern void Set3DOrtho(const int2 &ssize, const float3 &center, const float3 &extends);
 extern bool Is2DMode();
 extern bool IsSRGBMode();
+extern void CullFace(bool on);
 extern void ClearFrameBuffer(const float3 &c);
 extern BlendMode SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);

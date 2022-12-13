@@ -173,7 +173,9 @@ void BitmapFont::RenderText(string_view text) {
         x += glyph.advance;
     }
     SetTexture(0, tex);
+    if (!Is2DMode()) CullFace(false);
     RenderArraySlow("RenderText", PRIM_TRIS, gsl::make_span(vbuf), "pT", gsl::make_span(ibuf));
+    if (!Is2DMode()) CullFace(true);
 }
 
 const int2 BitmapFont::TextSize(string_view text) {

@@ -281,7 +281,7 @@ void GeometryCache::RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, c
 
 void GeometryCache::RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2,
                                  const float3 &/*campos*/, float thickness) {
-    GL_CALL(glDisable(GL_CULL_FACE));  // An exception in 3d mode.
+    CullFace(false);  // An exception in 3d mode.
     // FIXME: need to rotate the line also to make it face the camera.
     //auto camvec = normalize(campos - (v1 + v2) / 2);
     auto v = v2 - v1;
@@ -291,7 +291,7 @@ void GeometryCache::RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2,
                  float3x3to4x4(rotation(vq)) *  // FIXME: cheaper?
                  float4x4(float4(length(v) / 2, thickness, 1, 1));
     RenderQuad(sh, PRIM_FAN, true, trans);
-    GL_CALL(glEnable(GL_CULL_FACE));
+    CullFace(true);
 }
 
 void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
