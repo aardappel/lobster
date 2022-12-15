@@ -24,7 +24,7 @@ template<int FL, typename F> ValueType BinOpConst(TypeChecker *tc, Value &val, c
     if (tl == V_INT && tr == V_INT) {
         auto li = lv.ival();
         auto ri = rv.ival();
-        if constexpr (FL & BINOP_DIVMOD) {
+        if constexpr ((FL & BINOP_DIVMOD) != 0) {
             if (ri <= 0 && ri >= -1 && (!ri || li == LLONG_MIN)) return V_VOID;
         }
         val = f(li, ri);
@@ -33,7 +33,7 @@ template<int FL, typename F> ValueType BinOpConst(TypeChecker *tc, Value &val, c
     if constexpr (!(FL & BINOP_INTONLY)) {
         if (tl == V_FLOAT && tr == V_FLOAT) {
             val = f(lv.fval(), rv.fval());
-            if constexpr (FL & BINOP_CMP) return V_INT;
+            if constexpr ((FL & BINOP_CMP) != 0) return V_INT;
             else return V_FLOAT;
         }
     }
