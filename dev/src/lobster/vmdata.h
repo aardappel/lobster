@@ -962,7 +962,7 @@ struct VM : VMArgs {
 
     string ProperTypeName(const TypeInfo &ti);
 
-    void Div0() { Error("division by zero"); }
+    void DivErr(iint divisor) { Error(divisor ? "integer overflow" : "division by zero"); }
     void IDXErr(iint i, iint n, const RefObj *v);
     void BCallRetCheck(StackPtr sp, const NativeFun *nf);
     iint GrabIndex(StackPtr &sp, int len);

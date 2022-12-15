@@ -344,12 +344,12 @@ VM_INLINE void U_SADDN(VM &vm, StackPtr sp, int len) {
 // This behavior is similar to what Java/C#/JS already do.
 // https://en.cppreference.com/w/cpp/language/operator_arithmetic#Multiplicative_operators
 // We do the same for https://en.cppreference.com/w/c/numeric/math/fmod
-// Integer div by zero is still a language level runtime error.
+// Integer div by zero is still a language level runtime error, as is INT_MIN / -1.
 static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required");
 
 #define GETARGS() Value b = Pop(sp); Value a = Pop(sp)
 #define TYPEOP(op, extras, av, bv) \
-    if constexpr ((extras & 1) != 0) if (bv == 0) vm.Div0(); \
+    if constexpr ((extras & 1) != 0) if (bv <= 0 && bv >= -1 && (!bv || av == LLONG_MIN)) vm.DivErr(bv); \
     Value res = av op bv; \
     if constexpr ((extras & 2) != 0) res = (decltype(res))fmod((double)av, (double)bv);
 
