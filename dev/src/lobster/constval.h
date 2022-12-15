@@ -14,50 +14,31 @@
 
 namespace lobster {
 
-template<typename F> ValueType BinOpConst(TypeChecker *tc, Value &val, const BinOp *b, F f) {
+enum { BINOP_DIVMOD = 1, BINOP_CMP = 2, BINOP_INTONLY = 4 };
+
+template<int FL, typename F> ValueType BinOpConst(TypeChecker *tc, Value &val, const BinOp *b, F f) {
     Value lv = NilVal();
     Value rv = NilVal();
     auto tl = b->left->ConstVal(tc, lv);
     auto tr = b->right->ConstVal(tc, rv);
     if (tl == V_INT && tr == V_INT) {
-        val = f(lv.ival(), rv.ival());
+        auto li = lv.ival();
+        auto ri = rv.ival();
+        if constexpr (FL & BINOP_DIVMOD) {
+            if (ri <= 0 && ri >= -1 && (!ri || li == LLONG_MIN)) return V_VOID;
+        }
+        val = f(li, ri);
         return V_INT;
     }
-    if (tl == V_FLOAT && tr == V_FLOAT) {
-        val = f(lv.fval(), rv.fval());
-        return V_FLOAT;
+    if constexpr (!(FL & BINOP_INTONLY)) {
+        if (tl == V_FLOAT && tr == V_FLOAT) {
+            val = f(lv.fval(), rv.fval());
+            if constexpr (FL & BINOP_CMP) return V_INT;
+            else return V_FLOAT;
+        }
     }
     return V_VOID;
 }
-
-template<typename F> ValueType CmpOpConst(TypeChecker *tc, Value &val, const BinOp *b, F f) {
-    Value lv = NilVal();
-    Value rv = NilVal();
-    auto tl = b->left->ConstVal(tc, lv);
-    auto tr = b->right->ConstVal(tc, rv);
-    if (tl == V_INT && tr == V_INT) {
-        val = f(lv.ival(), rv.ival());
-        return V_INT;
-    }
-    if (tl == V_FLOAT && tr == V_FLOAT) {
-        val = f(lv.fval(), rv.fval());
-        return V_INT;
-    }
-    return V_VOID;
-}
-
-template<typename F> ValueType IntOpConst(TypeChecker *tc, Value &val, const BinOp *b, F f) {
-    Value lv = NilVal();
-    Value rv = NilVal();
-    auto tl = b->left->ConstVal(tc, lv);
-    auto tr = b->right->ConstVal(tc, rv);
-    if (tl == V_INT && tr == V_INT) {
-        val = f(lv.ival(), rv.ival());
-        return V_INT;
-    }
-    return V_VOID;
-}
-
 
 ValueType Nil::ConstVal(TypeChecker *, Value &val) const {
     val = NilVal();
@@ -164,67 +145,69 @@ ValueType EnumCoercion::ConstVal(TypeChecker *tc, Value &val) const {
 }
 
 ValueType Plus::ConstVal(TypeChecker *tc, Value &val) const {
-    return BinOpConst(tc, val, this, [](auto l, auto r) { return l + r; });
+    return BinOpConst<0>(tc, val, this, [](auto l, auto r) { return l + r; });
 }
 
 ValueType Minus::ConstVal(TypeChecker *tc, Value &val) const {
-    return BinOpConst(tc, val, this, [](auto l, auto r) { return l - r; });
+    return BinOpConst<0>(tc, val, this, [](auto l, auto r) { return l - r; });
 }
 
 ValueType Multiply::ConstVal(TypeChecker *tc, Value &val) const {
-    return BinOpConst(tc, val, this, [](auto l, auto r) { return l * r; });
+    return BinOpConst<0>(tc, val, this, [](auto l, auto r) { return l * r; });
 }
 
 ValueType Divide::ConstVal(TypeChecker *tc, Value &val) const {
-    return BinOpConst(tc, val, this, [](auto l, auto r) { return l / r; });
+    return BinOpConst<BINOP_DIVMOD>(tc, val, this, [](auto l, auto r) { return l / r; });
 }
 
 ValueType Mod::ConstVal(TypeChecker *tc, Value &val) const {
-    return IntOpConst(tc, val, this, [](auto l, auto r) { return l % r; });
+    // This is also defined for floats, but since that needs fmod, we for now
+    // simply don't constant fold it.
+    return BinOpConst<BINOP_INTONLY|BINOP_DIVMOD>(tc, val, this, [](auto l, auto r) { return l % r; });
 }
 
 ValueType Equal::ConstVal(TypeChecker *tc, Value &val) const {
-    return CmpOpConst(tc, val, this, [](auto l, auto r) { return l == r; });
+    return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l == r; });
 }
 
 ValueType NotEqual::ConstVal(TypeChecker *tc, Value &val) const {
-    return CmpOpConst(tc, val, this, [](auto l, auto r) { return l != r; });
+    return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l != r; });
 }
 
 ValueType LessThan::ConstVal(TypeChecker *tc, Value &val) const {
-    return CmpOpConst(tc, val, this, [](auto l, auto r) { return l < r; });
+    return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l < r; });
 }
 
 ValueType GreaterThan::ConstVal(TypeChecker *tc, Value &val) const {
-    return CmpOpConst(tc, val, this, [](auto l, auto r) { return l > r; });
+    return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l > r; });
 }
 
 ValueType LessThanEq::ConstVal(TypeChecker *tc, Value &val) const {
-    return CmpOpConst(tc, val, this, [](auto l, auto r) { return l <= r; });
+    return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l <= r; });
 }
 
 ValueType GreaterThanEq::ConstVal(TypeChecker *tc, Value &val) const {
-    return CmpOpConst(tc, val, this, [](auto l, auto r) { return l >= r; });
+    return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l >= r; });
 }
 
 ValueType BitAnd::ConstVal(TypeChecker *tc, Value &val) const {
-    return IntOpConst(tc, val, this, [](auto l, auto r) { return l & r; });
+    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l & r; });
 }
 
 ValueType BitOr::ConstVal(TypeChecker *tc, Value &val) const {
-    return IntOpConst(tc, val, this, [](auto l, auto r) { return l | r; });
+    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l | r; });
 }
 
 ValueType Xor::ConstVal(TypeChecker *tc, Value &val) const {
-    return IntOpConst(tc, val, this, [](auto l, auto r) { return l ^ r; });
+    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l ^ r; });
 }
 
 ValueType ShiftLeft::ConstVal(TypeChecker *tc, Value &val) const {
-    return IntOpConst(tc, val, this, [](auto l, auto r) { return l << r; });
+    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l << r; });
 }
 
 ValueType ShiftRight::ConstVal(TypeChecker *tc, Value &val) const {
-    return IntOpConst(tc, val, this, [](auto l, auto r) { return l >> r; });
+    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l >> r; });
 }
 
 
