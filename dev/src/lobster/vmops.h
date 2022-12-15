@@ -451,39 +451,39 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
 // U-    I F Vif
 // U!    A
 
-VM_INLINE void U_IVVADD(VM &vm, StackPtr sp, int len) { IVVOP(+,  0);  }
-VM_INLINE void U_IVVSUB(VM &vm, StackPtr sp, int len) { IVVOP(-,  0);  }
-VM_INLINE void U_IVVMUL(VM &vm, StackPtr sp, int len) { IVVOP(*,  0);  }
-VM_INLINE void U_IVVDIV(VM &vm, StackPtr sp, int len) { IVVOP(/,  1);  }
-VM_INLINE void U_IVVMOD(VM &vm, StackPtr sp, int len) { IVVOP(% , 1); }
-VM_INLINE void U_IVVLT(VM &vm, StackPtr sp, int len)  { IVVOP(<,  0);  }
-VM_INLINE void U_IVVGT(VM &vm, StackPtr sp, int len)  { IVVOP(>,  0);  }
-VM_INLINE void U_IVVLE(VM &vm, StackPtr sp, int len)  { IVVOP(<=, 0);  }
-VM_INLINE void U_IVVGE(VM &vm, StackPtr sp, int len)  { IVVOP(>=, 0);  }
-VM_INLINE void U_FVVADD(VM &vm, StackPtr sp, int len) { FVVOP(+,  0);  }
-VM_INLINE void U_FVVSUB(VM &vm, StackPtr sp, int len) { FVVOP(-,  0);  }
-VM_INLINE void U_FVVMUL(VM &vm, StackPtr sp, int len) { FVVOP(*,  0);  }
-VM_INLINE void U_FVVDIV(VM &vm, StackPtr sp, int len) { FVVOP(/,  0);  }
-VM_INLINE void U_FVVMOD(VM &vm, StackPtr sp, int len) { FVVOP(/ , 2); }
+VM_INLINE void U_IVVADD(VM &vm, StackPtr sp, int len) { IVVOP(+,  0); }
+VM_INLINE void U_IVVSUB(VM &vm, StackPtr sp, int len) { IVVOP(-,  0); }
+VM_INLINE void U_IVVMUL(VM &vm, StackPtr sp, int len) { IVVOP(*,  0); }
+VM_INLINE void U_IVVDIV(VM &vm, StackPtr sp, int len) { IVVOP(/,  1); }
+VM_INLINE void U_IVVMOD(VM &vm, StackPtr sp, int len) { IVVOP(%,  1); }
+VM_INLINE void U_IVVLT(VM &vm, StackPtr sp, int len)  { IVVOP(<,  0); }
+VM_INLINE void U_IVVGT(VM &vm, StackPtr sp, int len)  { IVVOP(>,  0); }
+VM_INLINE void U_IVVLE(VM &vm, StackPtr sp, int len)  { IVVOP(<=, 0); }
+VM_INLINE void U_IVVGE(VM &vm, StackPtr sp, int len)  { IVVOP(>=, 0); }
+VM_INLINE void U_FVVADD(VM &vm, StackPtr sp, int len) { FVVOP(+,  0); }
+VM_INLINE void U_FVVSUB(VM &vm, StackPtr sp, int len) { FVVOP(-,  0); }
+VM_INLINE void U_FVVMUL(VM &vm, StackPtr sp, int len) { FVVOP(*,  0); }
+VM_INLINE void U_FVVDIV(VM &vm, StackPtr sp, int len) { FVVOP(/,  0); }
+VM_INLINE void U_FVVMOD(VM &vm, StackPtr sp, int len) { FVVOP(/,  2); }
 VM_INLINE void U_FVVLT(VM &vm, StackPtr sp, int len)  { FVVOP(<,  0); }
 VM_INLINE void U_FVVGT(VM &vm, StackPtr sp, int len)  { FVVOP(>,  0); }
 VM_INLINE void U_FVVLE(VM &vm, StackPtr sp, int len)  { FVVOP(<=, 0); }
 VM_INLINE void U_FVVGE(VM &vm, StackPtr sp, int len)  { FVVOP(>=, 0); }
 
-VM_INLINE void U_IVSADD(VM &vm, StackPtr sp, int len) { IVSOP(+,  0);  }
-VM_INLINE void U_IVSSUB(VM &vm, StackPtr sp, int len) { IVSOP(-,  0);  }
-VM_INLINE void U_IVSMUL(VM &vm, StackPtr sp, int len) { IVSOP(*,  0);  }
-VM_INLINE void U_IVSDIV(VM &vm, StackPtr sp, int len) { IVSOP(/,  1);  }
-VM_INLINE void U_IVSMOD(VM &vm, StackPtr sp, int len) { IVSOP(% , 1); }
-VM_INLINE void U_IVSLT(VM &vm, StackPtr sp, int len)  { IVSOP(<,  0);  }
-VM_INLINE void U_IVSGT(VM &vm, StackPtr sp, int len)  { IVSOP(>,  0);  }
-VM_INLINE void U_IVSLE(VM &vm, StackPtr sp, int len)  { IVSOP(<=, 0);  }
-VM_INLINE void U_IVSGE(VM &vm, StackPtr sp, int len)  { IVSOP(>=, 0);  }
-VM_INLINE void U_FVSADD(VM &vm, StackPtr sp, int len) { FVSOP(+,  0);  }
-VM_INLINE void U_FVSSUB(VM &vm, StackPtr sp, int len) { FVSOP(-,  0);  }
-VM_INLINE void U_FVSMUL(VM &vm, StackPtr sp, int len) { FVSOP(*,  0);  }
-VM_INLINE void U_FVSDIV(VM &vm, StackPtr sp, int len) { FVSOP(/,  0);  }
-VM_INLINE void U_FVSMOD(VM &vm, StackPtr sp, int len) { FVSOP(/ , 2); }
+VM_INLINE void U_IVSADD(VM &vm, StackPtr sp, int len) { IVSOP(+,  0); }
+VM_INLINE void U_IVSSUB(VM &vm, StackPtr sp, int len) { IVSOP(-,  0); }
+VM_INLINE void U_IVSMUL(VM &vm, StackPtr sp, int len) { IVSOP(*,  0); }
+VM_INLINE void U_IVSDIV(VM &vm, StackPtr sp, int len) { IVSOP(/,  1); }
+VM_INLINE void U_IVSMOD(VM &vm, StackPtr sp, int len) { IVSOP(%,  1); }
+VM_INLINE void U_IVSLT(VM &vm, StackPtr sp, int len)  { IVSOP(<,  0); }
+VM_INLINE void U_IVSGT(VM &vm, StackPtr sp, int len)  { IVSOP(>,  0); }
+VM_INLINE void U_IVSLE(VM &vm, StackPtr sp, int len)  { IVSOP(<=, 0); }
+VM_INLINE void U_IVSGE(VM &vm, StackPtr sp, int len)  { IVSOP(>=, 0); }
+VM_INLINE void U_FVSADD(VM &vm, StackPtr sp, int len) { FVSOP(+,  0); }
+VM_INLINE void U_FVSSUB(VM &vm, StackPtr sp, int len) { FVSOP(-,  0); }
+VM_INLINE void U_FVSMUL(VM &vm, StackPtr sp, int len) { FVSOP(*,  0); }
+VM_INLINE void U_FVSDIV(VM &vm, StackPtr sp, int len) { FVSOP(/,  0); }
+VM_INLINE void U_FVSMOD(VM &vm, StackPtr sp, int len) { FVSOP(/,  2); }
 VM_INLINE void U_FVSLT(VM &vm, StackPtr sp, int len)  { FVSOP(<,  0); }
 VM_INLINE void U_FVSGT(VM &vm, StackPtr sp, int len)  { FVSOP(>,  0); }
 VM_INLINE void U_FVSLE(VM &vm, StackPtr sp, int len)  { FVSOP(<=, 0); }
@@ -493,7 +493,7 @@ VM_INLINE void U_SIVADD(VM &vm, StackPtr sp, int len) { SIVOP(+,  0); }
 VM_INLINE void U_SIVSUB(VM &vm, StackPtr sp, int len) { SIVOP(-,  0); }
 VM_INLINE void U_SIVMUL(VM &vm, StackPtr sp, int len) { SIVOP(*,  0); }
 VM_INLINE void U_SIVDIV(VM &vm, StackPtr sp, int len) { SIVOP(/,  1); }
-VM_INLINE void U_SIVMOD(VM &vm, StackPtr sp, int len) { SIVOP(% , 1); }
+VM_INLINE void U_SIVMOD(VM &vm, StackPtr sp, int len) { SIVOP(%,  1); }
 VM_INLINE void U_SIVLT(VM &vm, StackPtr sp, int len)  { SIVOP(<,  0); }
 VM_INLINE void U_SIVGT(VM &vm, StackPtr sp, int len)  { SIVOP(>,  0); }
 VM_INLINE void U_SIVLE(VM &vm, StackPtr sp, int len)  { SIVOP(<=, 0); }
@@ -502,7 +502,7 @@ VM_INLINE void U_SFVADD(VM &vm, StackPtr sp, int len) { SFVOP(+,  0); }
 VM_INLINE void U_SFVSUB(VM &vm, StackPtr sp, int len) { SFVOP(-,  0); }
 VM_INLINE void U_SFVMUL(VM &vm, StackPtr sp, int len) { SFVOP(*,  0); }
 VM_INLINE void U_SFVDIV(VM &vm, StackPtr sp, int len) { SFVOP(/,  0); }
-VM_INLINE void U_SFVMOD(VM &vm, StackPtr sp, int len) { SFVOP(/ , 2); }
+VM_INLINE void U_SFVMOD(VM &vm, StackPtr sp, int len) { SFVOP(/,  2); }
 VM_INLINE void U_SFVLT(VM &vm, StackPtr sp, int len)  { SFVOP(<,  0); }
 VM_INLINE void U_SFVGT(VM &vm, StackPtr sp, int len)  { SFVOP(>,  0); }
 VM_INLINE void U_SFVLE(VM &vm, StackPtr sp, int len)  { SFVOP(<=, 0); }
@@ -510,15 +510,17 @@ VM_INLINE void U_SFVGE(VM &vm, StackPtr sp, int len)  { SFVOP(>=, 0); }
 
 VM_INLINE void U_AEQ(VM &, StackPtr sp)  { ACOMPEN(==); }
 VM_INLINE void U_ANE(VM &, StackPtr sp)  { ACOMPEN(!=); }
-VM_INLINE void U_STEQ(VM &, StackPtr sp, int len) { STCOMPEN(==, true, &&); }
+
+VM_INLINE void U_STEQ(VM &, StackPtr sp, int len) { STCOMPEN(==, true,  &&); }
 VM_INLINE void U_STNE(VM &, StackPtr sp, int len) { STCOMPEN(!=, false, ||); }
+
 VM_INLINE void U_LEQ(VM &, StackPtr sp) { LOP(==); }
 VM_INLINE void U_LNE(VM &, StackPtr sp) { LOP(!=); }
 
 VM_INLINE void U_IADD(VM &vm, StackPtr sp) { IOP(+,  0); }
 VM_INLINE void U_ISUB(VM &vm, StackPtr sp) { IOP(-,  0); }
 VM_INLINE void U_IMUL(VM &vm, StackPtr sp) { IOP(*,  0); }
-VM_INLINE void U_IDIV(VM &vm, StackPtr sp) { IOP(/ , 1); }
+VM_INLINE void U_IDIV(VM &vm, StackPtr sp) { IOP(/,  1); }
 VM_INLINE void U_IMOD(VM &vm, StackPtr sp) { IOP(%,  1); }
 VM_INLINE void U_ILT(VM &vm, StackPtr sp)  { IOP(<,  0); }
 VM_INLINE void U_IGT(VM &vm, StackPtr sp)  { IOP(>,  0); }
@@ -539,17 +541,17 @@ VM_INLINE void U_FGE(VM &vm, StackPtr sp)  { FOP(>=, 0); }
 VM_INLINE void U_FEQ(VM &vm, StackPtr sp)  { FOP(==, 0); }
 VM_INLINE void U_FNE(VM &vm, StackPtr sp)  { FOP(!=, 0); }
 
-VM_INLINE void U_SADD(VM &vm, StackPtr sp) { SCAT();  }
-VM_INLINE void U_SSUB(VM &vm, StackPtr) { VMASSERT(vm, 0); }
-VM_INLINE void U_SMUL(VM &vm, StackPtr) { VMASSERT(vm, 0); }
-VM_INLINE void U_SDIV(VM &vm, StackPtr) { VMASSERT(vm, 0); }
-VM_INLINE void U_SMOD(VM &vm, StackPtr) { VMASSERT(vm, 0); }
-VM_INLINE void U_SLT(VM &, StackPtr sp)  { SOP(<);  }
-VM_INLINE void U_SGT(VM &, StackPtr sp)  { SOP(>);  }
-VM_INLINE void U_SLE(VM &, StackPtr sp)  { SOP(<=); }
-VM_INLINE void U_SGE(VM &, StackPtr sp)  { SOP(>=); }
-VM_INLINE void U_SEQ(VM &, StackPtr sp)  { SOP(==); }
-VM_INLINE void U_SNE(VM &, StackPtr sp)  { SOP(!=); }
+VM_INLINE void U_SADD(VM &vm, StackPtr sp) { SCAT(); }
+VM_INLINE void U_SSUB(VM &vm, StackPtr)    { VMASSERT(vm, 0); }
+VM_INLINE void U_SMUL(VM &vm, StackPtr)    { VMASSERT(vm, 0); }
+VM_INLINE void U_SDIV(VM &vm, StackPtr)    { VMASSERT(vm, 0); }
+VM_INLINE void U_SMOD(VM &vm, StackPtr)    { VMASSERT(vm, 0); }
+VM_INLINE void U_SLT(VM &, StackPtr sp)    { SOP(<);  }
+VM_INLINE void U_SGT(VM &, StackPtr sp)    { SOP(>);  }
+VM_INLINE void U_SLE(VM &, StackPtr sp)    { SOP(<=); }
+VM_INLINE void U_SGE(VM &, StackPtr sp)    { SOP(>=); }
+VM_INLINE void U_SEQ(VM &, StackPtr sp)    { SOP(==); }
+VM_INLINE void U_SNE(VM &, StackPtr sp)    { SOP(!=); }
 
 VM_INLINE void U_IUMINUS(VM &, StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.ival())); }
 VM_INLINE void U_FUMINUS(VM &, StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.fval())); }
