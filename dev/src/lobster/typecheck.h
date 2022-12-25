@@ -444,7 +444,8 @@ struct TypeChecker {
                         arg.sid->lt = LT_BORROW;
                     }
                     if (sf->typechecked) {
-                        if (sf->reqret != ss->reqret) goto error;
+                        if (sf->reqret != ss->reqret)
+                            goto error;
                     } else {
                         sf->reqret = ss->reqret;
                     }

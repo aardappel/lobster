@@ -1083,77 +1083,7 @@ struct SymbolTable {
     }
 };
 
-inline string TypeName(TypeRef type, int flen) {
-    switch (type->t) {
-        case V_STRUCT_R:
-        case V_STRUCT_S:
-        case V_CLASS: {
-            string s = type->udt->name;
-            if (type->udt->unnamed_specialization) {
-                s += "<";
-                for (auto [i, t] : enumerate(type->udt->generics)) {
-                    if (i) s += ", ";
-                    s += t.giventype.utr.Null()
-                        ? t.tv->name
-                             : TypeName(t.resolved_null() ? t.giventype.utr : t.resolvedtype());
-                }
-                s += ">";
-            }
-            return s;
-        }
-        case V_UUDT: {
-            string s = type->spec_udt->udt->name;
-            if (!type->spec_udt->specializers.empty() && !type->spec_udt->udt->FullyBound()) {
-                // FIXME! merge with code above..
-                s += "<";
-                for (auto [i, t] : enumerate(type->spec_udt->specializers)) {
-                    if (i) s += ", ";
-                    s += TypeName(t);
-                }
-                s += ">";
-            }
-            return s;
-        }
-        case V_VECTOR:
-            if (flen && type->Element()->Numeric()) {
-                auto nvt = SymbolTable::GetVectorName(type->Element(), flen);
-                if (nvt) return nvt;
-                // FIXME: better names?
-                return type->Element()->t == V_INT ? "vec_i" : "vec_f";
-            } else {
-                return type->Element()->t == V_VAR
-                           ? "[]"
-                           : "[" + TypeName(type->Element(), flen) + "]";
-            }
-        case V_FUNCTION:
-            return type->sf // || type->sf->anonymous
-                ? type->sf->parent->name
-                : "function";
-        case V_NIL:
-            return type->Element()->t == V_VAR
-                ? "nil"
-                : TypeName(type->Element(), flen) + "?";
-        case V_TUPLE: {
-            string s = "(";
-            for (auto [i, te] : enumerate(*type->tup)) {
-                if (i) s += ", ";
-                s += TypeName(te.type);
-            }
-            s += ")";
-            return s;
-        }
-        case V_INT:
-            return type->e ? type->e->name : "int";
-        case V_TYPEID:
-            return "typeid(" + TypeName(type->sub) + ")";
-        case V_TYPEVAR:
-            return string(type->tv->name);
-        case V_RESOURCE:
-            return type->rt ? cat("resource<", type->rt->name, ">") : "resource";
-        default:
-            return string(BaseTypeName(type->t));
-    }
-}
+inline string TypeName(TypeRef type, int flen);
 
 inline void FormatArg(string &r, string_view name, size_t i, TypeRef type) {
     if (i) r += ", ";
@@ -1199,8 +1129,87 @@ inline string Signature(const SubFunction &sf) {
     for (auto [i, arg] : enumerate(sf.args)) {
         FormatArg(r, arg.sid->id->name, i, arg.type);
     }
-    return r + ")";
+    r += ")";
+    if (sf.returntype->t != V_VOID && sf.returntype->t != V_UNDEFINED) {
+        r += "->";
+        r += TypeName(sf.returntype);
+    }
+    return r;
 }
+
+inline string TypeName(TypeRef type, int flen) {
+    switch (type->t) {
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+        case V_CLASS: {
+            string s = type->udt->name;
+            if (type->udt->unnamed_specialization) {
+                s += "<";
+                for (auto [i, t] : enumerate(type->udt->generics)) {
+                    if (i) s += ", ";
+                    s += t.giventype.utr.Null()
+                        ? t.tv->name
+                             : TypeName(t.resolved_null() ? t.giventype.utr : t.resolvedtype());
+                }
+                s += ">";
+            }
+            return s;
+        }
+        case V_UUDT: {
+            string s = type->spec_udt->udt->name;
+            if (!type->spec_udt->specializers.empty() && !type->spec_udt->udt->FullyBound()) {
+                // FIXME! merge with code above..
+                s += "<";
+                for (auto [i, t] : enumerate(type->spec_udt->specializers)) {
+                    if (i) s += ", ";
+                    s += TypeName(t);
+                }
+                s += ">";
+            }
+            return s;
+        }
+        case V_VECTOR:
+            if (flen && type->Element()->Numeric()) {
+                auto nvt = SymbolTable::GetVectorName(type->Element(), flen);
+                if (nvt) return nvt;
+                // FIXME: better names?
+                return type->Element()->t == V_INT ? "vec_i" : "vec_f";
+            } else {
+                return type->Element()->t == V_VAR
+                           ? "[]"
+                           : "[" + TypeName(type->Element(), flen) + "]";
+            }
+        case V_FUNCTION:
+            return type->sf
+                ? Signature(*type->sf)
+                : "function";
+
+        case V_NIL:
+            return type->Element()->t == V_VAR
+                ? "nil"
+                : TypeName(type->Element(), flen) + "?";
+        case V_TUPLE: {
+            string s = "(";
+            for (auto [i, te] : enumerate(*type->tup)) {
+                if (i) s += ", ";
+                s += TypeName(te.type);
+            }
+            s += ")";
+            return s;
+        }
+        case V_INT:
+            return type->e ? type->e->name : "int";
+        case V_TYPEID:
+            return "typeid(" + TypeName(type->sub) + ")";
+        case V_TYPEVAR:
+            return string(type->tv->name);
+        case V_RESOURCE:
+            return type->rt ? cat("resource<", type->rt->name, ">") : "resource";
+        default:
+            return string(BaseTypeName(type->t));
+    }
+}
+
 
 
 }  // namespace lobster
