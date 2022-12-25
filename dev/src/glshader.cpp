@@ -79,6 +79,13 @@ int CompileGLSLShader(GLenum type, int program, const GLchar *source, string &er
     }
     err = GLSLError(obj, false, source);
     GL_CALL(glDeleteShader(obj));
+    #if 0
+        auto f = OpenForWriting(cat("errshaderdump_", program, "_", type, ".glsl"), false, false);
+        if (f) {
+            fwrite(source, strlen(source), 1, f);
+            fclose(f);
+        }
+    #endif
     return 0;
 }
 
@@ -211,7 +218,8 @@ string ParseMaterialFile(string_view mbuf) {
                         bool cubemap = false;
                         bool floatingp = false;
                         bool d3 = false;
-                        bool Uav = accum == &compute;
+                        bool uav = false;
+                        bool write = false;
                         if (starts_with(tp, "cube")) {
                             tp.remove_prefix(4);
                             cubemap = true;
@@ -224,20 +232,24 @@ string ParseMaterialFile(string_view mbuf) {
                             tp.remove_prefix(1);
                             floatingp = true;
                         }
-                        if (starts_with(tp, "Uav")) {
+                        if (starts_with(tp, "uav")) {
                             tp.remove_prefix(3);
-                            Uav = true;
+                            uav = true;
+                            write = true;
                         }
                         auto unit = parse_int<int>(tp);
-                        if (Uav)
-                        {
+                        if (uav) {
                             decl += cat("layout(binding = ", unit, ", ",
                                         (floatingp ? "rgba32f" : "rgba8"), ") ");
                         }
                         decl += "uniform ";
-                        decl += Uav ? (cubemap ? "imageCube" : "image2D")
-                                                  : (cubemap ? "samplerCube" : (d3 ? "sampler3D" :
-                                                                                     "sampler2D"));
+                        if (uav) {
+                            // FIXME: make more general.
+                            decl += write ? "writeonly " : "readonly ";
+                            decl += cubemap ? "imageCube" : "image2D";
+                        } else {
+                            decl += cubemap ? "samplerCube" : (d3 ? "sampler3D" : "sampler2D");
+                        }
                         decl += " " + last + ";\n";
                     } else return "unknown uniform: " + last;
                 }
@@ -458,6 +470,7 @@ bool Shader::SetUniformMatrix(string_view name, const float *val, int components
 }
 
 void DispatchCompute(const int3 &groups) {
+    LOBSTER_FRAME_PROFILE_GPU;  
     #ifdef PLATFORM_WINNIX
         if (glDispatchCompute) GL_CALL(glDispatchCompute(groups.x, groups.y, groups.z));
         // Make sure any imageStore/VBOasSSBO operations have completed.
@@ -484,6 +497,7 @@ int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offs
         return 0;
     #else
         LOBSTER_FRAME_PROFILE_THIS_SCOPE;
+        LOBSTER_FRAME_PROFILE_GPU;
         if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase ||
             !glUniformBlockBinding || !glGetUniformBlockIndex) {
             return 0;
