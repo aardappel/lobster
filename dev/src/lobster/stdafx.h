@@ -118,7 +118,7 @@ using namespace geom;
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0   // Only works with --runtime-verbose on.
     #define LOBSTER_FRAME_PROFILE_THIS_SCOPE ZoneScoped
-    #define LOBSTER_FRAME_PROFILE_GPU(N) TracyGpuZone(N)
+    #define LOBSTER_FRAME_PROFILE_GPU TracyGpuZone(__FUNCTION__)
     #undef new
     #include "Tracy.hpp"
     #include "TracyC.h"
@@ -129,5 +129,5 @@ using namespace geom;
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0
     #define LOBSTER_FRAME_PROFILE_THIS_SCOPE
-    #define LOBSTER_FRAME_PROFILE_GPU(N)
+    #define LOBSTER_FRAME_PROFILE_GPU
 #endif

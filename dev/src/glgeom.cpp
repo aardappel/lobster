@@ -60,7 +60,7 @@ Surface::Surface(string_view name, gsl::span<int> indices, Primitive _prim)
 }
 
 void Surface::Render(Shader *sh) {
-    LOBSTER_FRAME_PROFILE_GPU("Surface::Render");
+    LOBSTER_FRAME_PROFILE_GPU;
     sh->SetTextures(textures);
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
     GL_CALL(glDrawElements(GetPrimitive(prim), (GLsizei)numidx, GL_UNSIGNED_INT, 0));
@@ -232,7 +232,7 @@ void SetPointSprite(float scale) {
 }
 
 void RenderArray(Primitive prim, Geometry *geom, int ibo, size_t tcount) {
-    LOBSTER_FRAME_PROFILE_GPU("RenderArray");
+    LOBSTER_FRAME_PROFILE_GPU;
     GLenum glprim = GetPrimitive(prim);
     geom->RenderSetup();
     if (ibo) {

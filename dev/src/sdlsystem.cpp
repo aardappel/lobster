@@ -497,6 +497,7 @@ bool SDLFrame() {
     } else {
         #ifndef __EMSCRIPTEN__
             SDL_GL_SwapWindow(_sdl_window);
+            OpenGLPostSwapBuffers();
         #else
             emscripten_sleep(0);
         #endif

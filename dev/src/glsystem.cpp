@@ -157,7 +157,13 @@ void OpenGLFrameEnd() {
     //glFlush();
     //glFinish();
     #if LOBSTER_FRAME_PROFILER
-    FrameMark
+        FrameMark
+    #endif
+}
+
+void OpenGLPostSwapBuffers() {
+    #if LOBSTER_FRAME_PROFILER
+        TracyGpuCollect;
     #endif
 }
 

@@ -202,6 +202,7 @@ extern string OpenGLInit(int samples, bool srgb);
 extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
 extern void OpenGLFrameEnd();
+extern void OpenGLPostSwapBuffers();
 extern void LogGLError(const char *file, int line, const char *call);
 extern void SetScissorRect(int2 topleft, int2 size, pair<int2,int2>& prev);
 
