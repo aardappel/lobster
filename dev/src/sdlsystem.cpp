@@ -778,7 +778,7 @@ void SDLMessageBox(string_view title, string_view msg) {
 }
 
 int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len) {
-    LOG_INFO("SDLLoadFile: ", absfilename);
+    LOG_DEBUG("SDLLoadFile: ", absfilename);
     auto f = SDL_RWFromFile(null_terminated(absfilename), "rb");
     if (!f) return -1;
     auto filelen = SDL_RWseek(f, 0, RW_SEEK_END);

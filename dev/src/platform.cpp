@@ -318,7 +318,7 @@ int64_t LoadFileFromAny(string_view filename, string *dest, int64_t start, int64
         auto l = cur_loader(dir + filename, dest, start, len);
         if (l >= 0) return l;
     }
-    LOG_INFO("LoadFileFromAny: ", filename, " file not found");
+    LOG_DEBUG("LoadFileFromAny: ", filename, " file not found");
     return -1;
 }
 
