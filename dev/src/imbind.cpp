@@ -27,6 +27,8 @@
 #include "lobster/sdlinterface.h"
 #include "lobster/glinterface.h"
 
+#include "lobster/graphics.h"
+
 using namespace lobster;
 
 extern SDL_Window *_sdl_window;
@@ -328,6 +330,30 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
         case V_NIL:
             ValToGUI(vm, v, vm.GetTypeInfo(ti.subt), label, expanded, false);
             break;
+        /*
+        // This would be awesome, but can't work as-is because the texture is in a different
+        // context, to fix this, we'd need a vendor specific call like
+        // https://registry.khronos.org/OpenGL/extensions/NV/NV_copy_image.txt
+        // or a simple thing like switching context, glReadPixels etc, which will be super slow.
+        case V_RESOURCE: {
+            if (v->True()) {
+                auto r = v->xval();
+                if (r->type == &texture_type) {
+                    auto t = (OwnedTexture *)r->res;
+                    auto tex = (ImTextureID)(size_t)t->t.id;
+                    auto sz = float2(t->t.size.xy()) / 4.0f;
+                    ImGui::Image(tex, ImVec2(sz.x, sz.y));
+                } else {
+                    string sd;
+                    v->ToString(vm, sd, ti, vm.debugpp);
+                    ImGui::LabelText(l, "%s", sd.c_str());  // FIXME: no formatting?
+                }
+            } else {
+                ImGui::LabelText(l, "nil");
+            }
+            break;
+        }
+        */
         default:
             string sd;
             v->ToString(vm, sd, ti, vm.debugpp);
