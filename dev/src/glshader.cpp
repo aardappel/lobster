@@ -239,8 +239,9 @@ string ParseMaterialFile(string_view mbuf) {
                         }
                         auto unit = parse_int<int>(tp);
                         if (uav) {
-                            decl += cat("layout(binding = ", unit, ", ",
-                                        (floatingp ? "rgba32f" : "rgba8"), ") ");
+                            decl += cat("layout(binding = ", unit);
+                            if (!write) decl += cat(", ", (floatingp ? "rgba32f" : "rgba8"));
+                            decl += ") ";
                         }
                         decl += "uniform ";
                         if (uav) {
@@ -477,7 +478,8 @@ void DispatchCompute(const int3 &groups) {
         // Would be better to decouple this from DispatchCompute.
         if (glMemoryBarrier)
             GL_CALL(glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT |
-                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT));
+                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT |
+                                    GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
     #else
         assert(false);
     #endif
