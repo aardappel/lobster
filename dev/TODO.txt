@@ -1,3 +1,9 @@
+- very easy optimisation: the bulk of binary ops have the second arg as constant.
+  Making specialized ops for these not only generated way more efficient code,
+  but the div by 0 case can be filtered out at compile time too etc.
+  That said, this kind of micro optimisation probably better done once the C/C++ generation is
+  inlined in the codegen.
+
 - debugger todo
   - "d" in sample without value?
   - doesn't show some global constants inited?
