@@ -96,10 +96,16 @@ void SetScissorRect(int2 topleft, int2 size, pair<int2, int2>& prev) {
     }
 }
 
+void DepthTest(bool on) {
+    if (on)
+        GL_CALL(glEnable(GL_DEPTH_TEST));
+    else
+        GL_CALL(glDisable(GL_DEPTH_TEST));
+}
+
 void Set2DMode(const int2 &ssize, bool lh, bool depthtest) {
+    DepthTest(depthtest);
     CullFace(false);
-    if (depthtest) GL_CALL(glEnable(GL_DEPTH_TEST));
-    else GL_CALL(glDisable(GL_DEPTH_TEST));
     glViewport(0, 0, ssize.x, ssize.y);
     otransforms = objecttransforms();
     auto y = (float)ssize.y;
@@ -108,7 +114,7 @@ void Set2DMode(const int2 &ssize, bool lh, bool depthtest) {
 }
 
 void Set3DOrtho(const int2 &ssize, const float3 &center, const float3 &extends) {
-    GL_CALL(glEnable(GL_DEPTH_TEST));
+    DepthTest(true);
     CullFace(true);
     glViewport(0, 0, ssize.x, ssize.y);
     otransforms = objecttransforms();
@@ -118,8 +124,8 @@ void Set3DOrtho(const int2 &ssize, const float3 &center, const float3 &extends) 
     mode2d = false;
 }
 
-void Set3DMode(float fovy, int2 fbo, int2 fbs, float znear, float zfar) {
-    GL_CALL(glEnable(GL_DEPTH_TEST));
+void Set3DMode(float fovy, int2 fbo, int2 fbs, float znear, float zfar, bool nodepth) {
+    DepthTest(!nodepth);
     CullFace(true);
     glViewport(fbo.x, fbo.y, fbs.x, fbs.y);
     otransforms = objecttransforms();

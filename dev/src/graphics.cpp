@@ -643,11 +643,12 @@ nfr("gl_line", "start,end,thickness", "F}F}1F", "",
         else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness);
     });
 
-nfr("gl_perspective", "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset", "FFFI}:2?I}:2?", "",
+nfr("gl_perspective", "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,nodepth", "FFFI}:2?I}:2?,I?", "",
     "changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try"
     " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
     " 1). Optionally specify a framebuffer size to override the current gl_framebuffer_size",
     [](StackPtr &sp, VM &) {
+        auto nodepth = Pop(sp).True();
         int2 fbo = PopVec<int2>(sp);
         int2 fbs = PopVec<int2>(sp);
         if (fbs.x + fbs.y == 0)
@@ -655,7 +656,7 @@ nfr("gl_perspective", "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset", "
         auto zfar = Pop(sp).fltval();
         auto znear = Pop(sp).fltval();
         auto fovy = Pop(sp).fltval();
-        Set3DMode(fovy * RAD, fbo, fbs, znear, zfar);
+        Set3DMode(fovy * RAD, fbo, fbs, znear, zfar, nodepth);
     });
 
 nfr("gl_ortho", "rh,depth", "I?I?", "",

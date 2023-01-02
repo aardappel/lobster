@@ -184,7 +184,7 @@ void VREye(int eye, float znear, float zfar) {
     SwitchToFrameBuffer(mstex[eye], GetScreenSize(), true, mstf, retex[eye]);
     auto proj =
         FromOpenVR(vrsys->GetProjectionMatrix((vr::EVREye)eye, znear, zfar));
-    Set3DMode(80, int2_0, GetScreenSize(), znear, zfar);
+    Set3DMode(80, int2_0, GetScreenSize(), znear, zfar, false);
     view2clip = proj;  // Override the projection set by Set3DMode
     auto eye2head = FromOpenVR(vrsys->GetEyeToHeadTransform((vr::EVREye)eye));
     auto vrview = eye2head;

@@ -207,7 +207,7 @@ extern void LogGLError(const char *file, int line, const char *call);
 extern void SetScissorRect(int2 topleft, int2 size, pair<int2,int2>& prev);
 
 extern void Set2DMode(const int2 &ssize, bool lh, bool depthtest = false);
-extern void Set3DMode(float fovy, int2 fbo, int2 fbs, float znear, float zfar);
+extern void Set3DMode(float fovy, int2 fbo, int2 fbs, float znear, float zfar, bool nodepth);
 extern void Set3DOrtho(const int2 &ssize, const float3 &center, const float3 &extends);
 extern bool Is2DMode();
 extern bool IsSRGBMode();
