@@ -233,14 +233,15 @@ enum TextureFlag {
     TF_NOMIPMAP = 2,
     TF_NEAREST_MAG = 4,
     TF_NEAREST_MIN = 8,
-    TF_FLOAT = 16,                           // rgba32f instead of rgba8
-    TF_WRITEONLY = 32, TF_READWRITE = 64,   // Default is readonly.
+    TF_FLOAT = 16,                         // rgba32f instead of rgba8
+    TF_WRITEONLY = 32, TF_READWRITE = 64,  // Default is readonly (compute).
     TF_CUBEMAP = 128,
     TF_MULTISAMPLE = 256,
-    TF_SINGLE_CHANNEL = 512,                // Default is RGBA.
+    TF_SINGLE_CHANNEL = 512,               // Default is RGBA.
     TF_3D = 1024,
     TF_BUFFER_HAS_MIPS = 2048,
-    TF_DEPTH = 4096
+    TF_DEPTH = 4096,
+    TF_COMPUTE = 8192,                     // For use with compute: do not use SRGB.
 };
 
 extern Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf = TF_NONE);

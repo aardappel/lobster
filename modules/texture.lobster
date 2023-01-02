@@ -18,6 +18,7 @@ enum_flags texture_format:
     texture_format_3d
     texture_format_buffer_has_mips
     texture_format_depth
+    texture_format_compute
 
 // blending constants
 
