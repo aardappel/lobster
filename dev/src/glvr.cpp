@@ -56,7 +56,7 @@ float4x4 FromOpenVR(const vr::HmdMatrix34_t &mat) {
 
 #endif  // PLATFORM_VR
 
-static int2 rtsize = int2_0;
+static int3 rtsize = int3_0;
 static Texture mstex[2];
 static Texture retex[2];
 static float4x4 hmdpose = float4x4_1;

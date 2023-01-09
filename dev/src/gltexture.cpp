@@ -185,19 +185,18 @@ void FreeImageFromFile(uint8_t *img) {
     stbi_image_free(img);
 }
 
-Texture CreateBlankTexture(string_view name, const int2 &size, const float4 &color, int tf) {
+Texture CreateBlankTexture(string_view name, const int3 &size, const float4 &color, int tf) {
     if (tf & TF_MULTISAMPLE) {
-        return CreateTexture(name, nullptr, int3(size, 0), tf);  // No buffer required.
+        return CreateTexture(name, nullptr, size, tf);  // No buffer required.
     } else {
         auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
         if (tf & TF_CUBEMAP) sz *= 6;
-        auto buf = new uint8_t[size.x * size.y * sz];
-        for (int y = 0; y < size.y; y++) for (int x = 0; x < size.x; x++) {
-            auto idx = y * size.x + x;
-            if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
-            else               ((byte4  *)buf)[idx] = quantizec(color);
-        }
-        auto tex = CreateTexture(name, buf, int3(size, 0), tf);
+        auto len = size.x * size.y * ((tf & TF_3D) ? size.z : 1);
+        // initialize and fill texture buffer
+        auto buf = new uint8_t[len * sz];
+        if (tf & TF_FLOAT) for (int i = 0; i < len; i++) ((float4 *)buf)[i] = color;
+        else for (int i = 0; i < len; i++) ((byte4 *)buf)[i] = quantizec(color);
+        auto tex = CreateTexture(name, buf, size, tf);
         delete[] buf;
         return tex;
     }
@@ -214,6 +213,13 @@ bool SetTexture(int textureunit, const Texture &tex, int tf) {
                                           : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), tex.id);
     // glBindTexture can fail if the wrong flags are passed for the texture.
     return glGetError() != 0;
+}
+
+void GenerateTextureMipMap(const Texture &tex, int tf) {
+    GLenum textype = (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D);
+    GL_CALL(glBindTexture(textype, tex.id));
+    GL_CALL(glGenerateMipmap(textype));
+    GL_CALL(glBindTexture(textype, 0));
 }
 
 uint8_t *ReadTexture(const Texture &tex) {

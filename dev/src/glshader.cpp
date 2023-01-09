@@ -247,7 +247,7 @@ string ParseMaterialFile(string_view mbuf) {
                         if (uav) {
                             // FIXME: make more general.
                             decl += write ? "writeonly " : "readonly ";
-                            decl += cubemap ? "imageCube" : "image2D";
+                            decl += cubemap ? "imageCube" : (d3 ? "image3D" : "image2D");
                         } else {
                             decl += cubemap ? "samplerCube" : (d3 ? "sampler3D" : "sampler2D");
                         }

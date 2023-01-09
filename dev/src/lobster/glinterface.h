@@ -246,10 +246,11 @@ enum TextureFlag {
 
 extern Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf = TF_NONE);
 extern Texture CreateTextureFromFile(string_view name, int tf = TF_NONE);
-extern Texture CreateBlankTexture(string_view name, const int2 &size, const float4 &color,
+extern Texture CreateBlankTexture(string_view name, const int3 &size, const float4 &color,
                                   int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
 extern bool SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
+extern void GenerateTextureMipMap(const Texture &tex, int tf);
 extern uint8_t *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
 extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,

@@ -1049,14 +1049,14 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R:texture",
         return Value(vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
 
-nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R:texture",
+nfr("gl_create_blank_texture", "size,color,textureformat", "I}:3F}:4I?", "R:texture",
     "creates a blank texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format",
     [](StackPtr &sp, VM &vm) {
         TestGL(vm);
         auto tf = Pop(sp).intval();
         auto col = PopVec<float4>(sp);
-        auto size = PopVec<int2>(sp);
+        auto size = PopVec<int3>(sp);
         auto tex = CreateBlankTexture("gl_create_blank_texture", size, col, tf);
         Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
@@ -1081,6 +1081,15 @@ nfr("gl_read_texture", "tex", "R:texture", "S?",
         auto s = vm.NewString(string_view((char *)buf, numpixels * 4));
         delete[] buf;
         return Value(s);
+    });
+
+nfr("gl_generate_texture_mipmap", "tex,textureformat", "R:texture?I", "",
+    "generate mipmaps for the specified texture",
+    [](StackPtr &, VM &vm, Value &t, Value &tf) {
+        TestGL(vm);
+        auto tex = GetTexture(t);
+        GenerateTextureMipMap(tex, tf.intval());
+        return NilVal();
     });
 
 nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex",
