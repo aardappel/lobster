@@ -226,22 +226,24 @@ extern void SetImageTexture(int textureunit, const Texture &tex, int tf);
 extern int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
                                string_view uniformblockname, bool ssbo, int bo);
 
-// These must correspond to the constants in color.lobster
+// These must correspond to the constants in texture.lobster
 enum TextureFlag {
-    TF_NONE = 0,
-    TF_CLAMP = 1,
-    TF_NOMIPMAP = 2,
-    TF_NEAREST_MAG = 4,
-    TF_NEAREST_MIN = 8,
-    TF_FLOAT = 16,                         // rgba32f instead of rgba8
-    TF_WRITEONLY = 32, TF_READWRITE = 64,  // Default is readonly (compute).
-    TF_CUBEMAP = 128,
-    TF_MULTISAMPLE = 256,
-    TF_SINGLE_CHANNEL = 512,               // Default is RGBA.
-    TF_3D = 1024,
-    TF_BUFFER_HAS_MIPS = 2048,
-    TF_DEPTH = 4096,
-    TF_COMPUTE = 8192,                     // For use with compute: do not use SRGB.
+    TF_NONE            = 1 << 0,
+    TF_CLAMP           = 1 << 1,
+    TF_NOMIPMAP        = 1 << 2,
+    TF_NEAREST_MAG     = 1 << 3,
+    TF_NEAREST_MIN     = 1 << 4,
+    TF_FLOAT           = 1 << 5, // rgba32f instead of rgba8
+    TF_WRITEONLY       = 1 << 6,
+    TF_READWRITE       = 1 << 7, // Default is readonly (compute).
+    TF_CUBEMAP         = 1 << 8,
+    TF_MULTISAMPLE     = 1 << 9,
+    TF_SINGLE_CHANNEL  = 1 << 10, // Default is RGBA.
+    TF_3D              = 1 << 11,
+    TF_BUFFER_HAS_MIPS = 1 << 12,
+    TF_DEPTH           = 1 << 13,
+    TF_COMPUTE         = 1 << 14, // For use with compute: do not use SRGB.
+    TF_HALF            = 1 << 15, // Use 16-bit representation if possible (only float atm.)
 };
 
 extern Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf = TF_NONE);

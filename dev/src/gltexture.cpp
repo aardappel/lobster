@@ -74,10 +74,11 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     }
     if (tf & TF_FLOAT) {
         #ifdef PLATFORM_WINNIX
-            internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
+            if (tf & TF_HALF) internalformat = tf & TF_SINGLE_CHANNEL ? GL_R16F : GL_RGBA16F;
+            else internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
             bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
-            elemsize = tf & TF_SINGLE_CHANNEL ? sizeof(float) : sizeof(float4);
-            buffercomponent = GL_FLOAT;
+            elemsize = (tf & TF_SINGLE_CHANNEL ? sizeof(float) : sizeof(float4)) / (tf & TF_HALF ? 2 : 1);
+            buffercomponent = tf & TF_HALF ? GL_HALF_FLOAT : GL_FLOAT;
         #else
             assert(false);  // buf points to float data, which we don't support.
         #endif
@@ -189,13 +190,21 @@ Texture CreateBlankTexture(string_view name, const int3 &size, const float4 &col
     if (tf & TF_MULTISAMPLE) {
         return CreateTexture(name, nullptr, size, tf);  // No buffer required.
     } else {
-        auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+        auto sz = (tf & TF_FLOAT ? (sizeof(float4) / (tf & TF_HALF ? 2 : 1)) : sizeof(byte4));
         if (tf & TF_CUBEMAP) sz *= 6;
         auto len = size.x * size.y * ((tf & TF_3D) ? size.z : 1);
-        // initialize and fill texture buffer
+        // Initialize and fill texture buffer
         auto buf = new uint8_t[len * sz];
-        if (tf & TF_FLOAT) for (int i = 0; i < len; i++) ((float4 *)buf)[i] = color;
-        else for (int i = 0; i < len; i++) ((byte4 *)buf)[i] = quantizec(color);
+        if (tf & TF_FLOAT) {
+            if (tf & TF_HALF) {
+                // TODO: Support half-float color initialization?
+                for (int i = 0; i < len; i++) {}
+            } else {
+                for (int i = 0; i < len; i++) ((float4 *)buf)[i] = color;
+            }
+        } else {
+            for (int i = 0; i < len; i++) ((byte4 *)buf)[i] = quantizec(color);
+        }
         auto tex = CreateTexture(name, buf, size, tf);
         delete[] buf;
         return tex;
@@ -235,12 +244,18 @@ uint8_t *ReadTexture(const Texture &tex) {
 
 void SetImageTexture(int textureunit, const Texture &tex, int tf) {
     #ifdef PLATFORM_WINNIX
-        if (glBindImageTexture)
-            GL_CALL(glBindImageTexture(textureunit, tex.id, 0, GL_TRUE, 0,
-                               tf & TF_WRITEONLY
+        if (glBindImageTexture) {
+            GLenum access = tf & TF_WRITEONLY
                                    ? GL_WRITE_ONLY
-                                   : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
-                               tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8));
+                                   : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY);
+            // Handle format
+            GLenum format = tf & TF_SINGLE_CHANNEL ? GL_R8 : GL_RGBA8;
+            if (tf & TF_FLOAT) {
+                if (tf & TF_HALF) format = tf & TF_SINGLE_CHANNEL ? GL_R16F : GL_RGBA16F;
+                else format = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
+            }
+            GL_CALL(glBindImageTexture(textureunit, tex.id, 0, GL_TRUE, 0, access, format));
+        }
     #else
         assert(false);
     #endif
