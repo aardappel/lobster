@@ -32,6 +32,7 @@ bool graphics_initialized = false;
 ResourceType mesh_type = { "mesh" };
 ResourceType texture_type = { "texture" };
 ResourceType shader_type = { "shader" };
+ResourceType buffer_object_type = { "bufferobject" };
 
 Mesh &GetMesh(Value &res) {
     return GetResourceDec<Mesh>(res, &mesh_type);
@@ -42,6 +43,9 @@ Texture GetTexture(const Value &res) {
 }
 Shader &GetShader(Value &res) {
     return GetResourceDec<Shader>(res, &shader_type);
+}
+BufferObject &GetBufferObject(Value &res) {
+    return GetResourceDec<BufferObject>(res, &buffer_object_type);
 }
 
 // Should be safe to call even if it wasn't initialized partially or at all.
@@ -142,6 +146,16 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
     currentshader->Activate();
     auto ok = currentshader->SetUniform(name.sval()->strv(), data, len);
     return Value(ok);
+}
+
+Value UpdateBindBufferObject(VM &vm, Value buf, const void *data, size_t len,
+                             ptrdiff_t offset, string_view name, bool ssbo) {
+    auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
+    bo = UpdateBufferObject(bo, data, len, offset, ssbo);
+    if (!bo) vm.BuiltinError("bufferobject creation failed");
+    auto ok = BindBufferObject(currentshader, bo, name);
+    if (!ok) vm.BuiltinError("bufferobject binding failed");
+    return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));;
 }
 
 void AddGraphics(NativeRegistry &nfr) {
@@ -922,28 +936,27 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("gl_uniform_buffer_object", "name,value,ssbo", "SSI", "I",
+nfr("gl_update_bind_buffer_object", "name,value,ssbo,existing", "SSIRk:bufferobject?", "R:bufferobject?",
     "creates a uniform buffer object, and attaches it to the current shader at the given"
     " uniform block name. uniforms in the shader can be any type, as long as it matches the"
     " data layout in the string buffer."
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo) {
+    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo, Value &buf) {
         TestGL(vm);
-        auto id = UniformBufferObject(currentshader, vec.sval()->strv().data(),
+        return UpdateBindBufferObject(vm, buf, vec.sval()->strv().data(),
                                       vec.sval()->strv().size(), -1,
-                                      name.sval()->strv(), ssbo.True(), 0);
-        return Value((int)id);
+                                      name.sval()->strv(), ssbo.True());
     });
 
-nfr("gl_delete_buffer_object", "id", "I", "",
-    "deletes a buffer objects, e.g. one allocated by gl_uniform_buffer_object().",
-    [](StackPtr &, VM &vm, Value &id) {
+nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",
+    "attaches an existing bo to the current shader at the given"
+    " uniform block name. uniforms in the shader can be any type, as long as it matches the"
+    " data layout in the string buffer."
+    " returns false for error.",
+    [](StackPtr &, VM &vm, Value &name, Value &buf) {
         TestGL(vm);
-        // FIXME: should route this thru a IntResourceManagerCompact to be safe?
-        // I guess GL doesn't care about illegal id's?
-        DeleteBO(id.intval());
-        return NilVal();
+        return Value(BindBufferObject(currentshader, &GetBufferObject(buf), name.sval()->strv()));
     });
 
 nfr("gl_bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
@@ -951,8 +964,7 @@ nfr("gl_bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
     " unbind.",
     [](StackPtr &, VM &vm, Value &mesh, Value &name) {
         TestGL(vm);
-        if (mesh.True()) GetMesh(mesh).geom->BindAsSSBO(currentshader, name.sval()->strv());
-        else UniformBufferObject(currentshader, nullptr, 0, -1, name.sval()->strv(), true, 0);
+        BindAsSSBO(currentshader, name.sval()->strv(), mesh.True() ? GetMesh(mesh).geom->vbo1 : 0);
         return NilVal();
     });
 

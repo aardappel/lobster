@@ -485,89 +485,111 @@ void DispatchCompute(const int3 &groups) {
     #endif
 }
 
-// Simple function for getting some uniform / shader storage attached to a shader. Should ideally
-// be split up for more flexibility.
+// Simple functions for getting some uniform / shader storage attached to a shader.
+
+// If offset < 0 then its a buffer replacement/creation.
+// If buf == nullptr then it is always creation. 
+BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len, ptrdiff_t offset,
+                                 bool ssbo) {
+    #ifndef PLATFORM_WINNIX
+        // UBO's are in ES 3.0, not sure why OS X doesn't have them
+        return nullptr;
+    #else
+        LOBSTER_FRAME_PROFILE_THIS_SCOPE;
+        LOBSTER_FRAME_PROFILE_GPU;
+        if (len > size_t(ssbo ? max_ssbo : max_ubo)) {
+            return 0;
+        }
+        auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
+        if (!buf) {
+            assert(offset < 0);
+            auto bo = GenBO_("UpdateBufferObject", type, len, data);
+            return new BufferObject(bo, type, len);
+		} else {
+            GL_CALL(glBindBuffer(type, buf->bo));
+            // We're going to re-upload the buffer.
+            // See this for what is fast:
+            // https://www.seas.upenn.edu/~pcozzi/OpenGLInsights/OpenGLInsights-AsynchronousBufferTransfers.pdf
+            if (offset < 0) {
+                LOBSTER_FRAME_PROFILE_THIS_SCOPE;
+                // Whole buffer.
+                if (false && len == buf->size) {
+                    // Is this faster than glBufferData if same size?
+                    // Actually, this might cause *more* sync issues than glBufferData.
+                    GL_CALL(glBufferSubData(type, 0, len, data));
+                } else {
+                    // We can "orphan" the buffer before uploading, that way if a draw
+                    // call is still using it, we won't have to sync.
+                    // TODO: this doesn't actually seem faster in testing sofar.
+                    //glBufferData(type, it->second.size, nullptr, GL_STATIC_DRAW);
+                    GL_CALL(glBufferData(type, len, data, GL_STATIC_DRAW));
+                    buf->size = len;
+                }
+            } else {
+                LOBSTER_FRAME_PROFILE_THIS_SCOPE;
+                // Partial buffer.
+                GL_CALL(glBufferSubData(type, offset, len, data));
+            }
+            return buf;
+        }
+    #endif
+}
+
 // Note that bo_binding_point_index is assigned automatically based on unique block names.
 // You can also specify these in the shader using `binding=`, but GL doesn't seem to have a way
 // to retrieve these programmatically.
-// If data is nullptr, bo is used instead.
-// If offset < 0 then its a buffer replacement/creation.
-int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
-                        string_view uniformblockname, bool ssbo, int existing_bo_if_any) {
+bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblockname) {
     #ifndef PLATFORM_WINNIX
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
-        return 0;
+        return false;
     #else
         LOBSTER_FRAME_PROFILE_THIS_SCOPE;
         LOBSTER_FRAME_PROFILE_GPU;
         if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase ||
             !glUniformBlockBinding || !glGetUniformBlockIndex) {
-            return 0;
-        }
-        if (len > size_t(ssbo ? max_ssbo : max_ubo)) {
-            return 0;
+            return false;
         }
         sh->Activate();
-        auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
         int bo_binding_point_index = 0;
-        int bo = existing_bo_if_any;
         uint32_t idx = GL_INVALID_INDEX;
         auto it = sh->ubomap.find(uniformblockname);
         if (it == sh->ubomap.end()) {
             LOBSTER_FRAME_PROFILE_THIS_SCOPE;
-            assert(offset < 0);
-            if (data) bo = GenBO_("UniformBufferObject", type, len, data);
             bo_binding_point_index = sh->binding_point_index_alloc++;
-            idx = ssbo ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK,
+            idx = buf->type == GL_SHADER_STORAGE_BUFFER
+                      ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK,
                                                    null_terminated(uniformblockname))
-                       : glGetUniformBlockIndex(sh->program, null_terminated(uniformblockname));
+                      : glGetUniformBlockIndex(sh->program, null_terminated(uniformblockname));
             if (idx == GL_INVALID_INDEX) {
-                return 0;
+                return false;
             }
-            sh->ubomap[string(uniformblockname)] = { bo, bo_binding_point_index, len, idx };
+            // FIXME: if the BufferObject gets deleted before the shader, then bo is dangling.
+            // This is probably benign-ish since OpenGL is probably tolerant of deleted buffers
+            // still being bound?
+            // If not, must allow Shader to inc refc of BufferObject.
+            sh->ubomap[string(uniformblockname)] = { buf->bo, bo_binding_point_index, idx };
 		} else {
             LOBSTER_FRAME_PROFILE_THIS_SCOPE;
-            if (data) bo = it->second.bo;
             bo_binding_point_index = it->second.bpi;
             idx = it->second.idx;
-            GL_CALL(glBindBuffer(type, bo));
-            if (data) {
-                // We're going to re-upload the buffer.
-                // See this for what is fast:
-                // https://www.seas.upenn.edu/~pcozzi/OpenGLInsights/OpenGLInsights-AsynchronousBufferTransfers.pdf
-                if (offset < 0) {
-                    LOBSTER_FRAME_PROFILE_THIS_SCOPE;
-                    // Whole buffer.
-                    if (false && len == it->second.size) {
-                        // Is this faster than glBufferData if same size?
-                        // Actually, this might cause *more* sync issues than glBufferData.
-                        GL_CALL(glBufferSubData(type, 0, len, data));
-                    } else {
-                        // We can "orphan" the buffer before uploading, that way if a draw
-                        // call is still using it, we won't have to sync.
-                        // TODO: this doesn't actually seem faster in testing sofar.
-                        //glBufferData(type, it->second.size, nullptr, GL_STATIC_DRAW);
-                        GL_CALL(glBufferData(type, len, data, GL_STATIC_DRAW));
-                        it->second.size = len;
-                    }
-                } else {
-                    LOBSTER_FRAME_PROFILE_THIS_SCOPE;
-                    // Partial buffer.
-                    GL_CALL(glBufferSubData(type, offset, len, data));
-                }
-            }
         }
         // Bind to shader.
         {
             LOBSTER_FRAME_PROFILE_THIS_SCOPE;
             // Support for unbinding this way removed in GL 3.1?
-            GL_CALL(glBindBuffer(type, 0));  
-            GL_CALL(glBindBufferBase(type, bo_binding_point_index, bo));
-            if (ssbo) GL_CALL(glShaderStorageBlockBinding(sh->program, idx,
-                                                            bo_binding_point_index));
-            else GL_CALL(glUniformBlockBinding(sh->program, idx, bo_binding_point_index));
+            GL_CALL(glBindBuffer(buf->type, 0));
+            // FIXME: this causes:
+            // GLDEBUG: GL_INVALID_OPERATION error generated. Buffer name does not refer to an buffer object generated by OpenGL.
+            // when this is called from BindAsSSBO a second time with the same bo id on a different shader.
+            // See raytrace_compute_sceneubo_thinstack_points_min.lobster
+            GL_CALL(glBindBufferBase(buf->type, bo_binding_point_index, buf->bo));
+            if (buf->type == GL_SHADER_STORAGE_BUFFER) {
+                GL_CALL(glShaderStorageBlockBinding(sh->program, idx, bo_binding_point_index));
+            } else {
+                GL_CALL(glUniformBlockBinding(sh->program, idx, bo_binding_point_index));
+            }
         }
-        return bo;
+        return true;
     #endif
 }
 
