@@ -47,7 +47,7 @@ template<typename T, bool B> Value WriteVal(StackPtr &sp, VM &vm, const Value &s
                                             const Value &val) {
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
-    Push(sp,  WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T>()));
+    Push(sp, WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T>()));
     return Value(i + ssizeof<T>());
 }
 
@@ -55,14 +55,14 @@ template<bool B> Value WriteStr(StackPtr &sp, VM &vm, const Value &str, const Va
                                 iint extra) {
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
-    Push(sp,  WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
+    Push(sp, WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
     return Value(i + s->len + extra);
 }
 
 template<typename T, bool B> Value ReadVal(StackPtr &sp, VM &vm, const Value &str, const Value &idx) {
     auto i = idx.ival();
     auto val = Read<T, B>(vm, i, str.sval());
-    Push(sp,  val);
+    Push(sp, val);
     return Value(i + ssizeof<T>());
 }
 

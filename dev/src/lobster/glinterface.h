@@ -62,7 +62,6 @@ struct Shader : lobster::Resource {
     struct BOEntry {
         int bo;
         int bpi;
-        size_t size;
         uint32_t idx;
     };
     map<string, BOEntry, less<>> ubomap;
@@ -138,9 +137,9 @@ struct SpriteVert {   // "pT"
 class Geometry  {
     const size_t vertsize1, vertsize2;
     string fmt;
-    int vbo1 = 0, vbo2 = 0, vao = 0;
 
     public:
+    int vbo1 = 0, vbo2 = 0, vao = 0;
     const size_t nverts;
 
     template<typename T, typename U = float>
@@ -158,7 +157,6 @@ class Geometry  {
     void Init(string_view name, const void *verts1, const void *verts2);
 
     void RenderSetup();
-    void BindAsSSBO(Shader *sh, string_view name);
     bool WritePLY(string &s, size_t nindices);
 
     size_t2 MemoryUsage() {
@@ -197,7 +195,6 @@ struct Light {
     float2 params;
 };
 
-
 extern string OpenGLInit(int samples, bool srgb);
 extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
@@ -223,8 +220,7 @@ extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(int textureunit, const Texture &tex, int tf);
-extern int UniformBufferObject(Shader *sh, const void *data, size_t len, ptrdiff_t offset,
-                               string_view uniformblockname, bool ssbo, int bo);
+extern void BindAsSSBO(Shader *sh, string_view name, int id);
 
 // These must correspond to the constants in color.lobster
 enum TextureFlag {
@@ -269,6 +265,27 @@ template<typename T> int GenBO(string_view name, int type, gsl::span<T> d) {
 }
 extern void DeleteBO(int id);
 extern void RenderArray(Primitive prim, Geometry *geom, int ibo = 0, size_t tcount = 0);
+
+struct BufferObject : lobster::Resource {
+    int bo;
+    int type;
+    size_t size;
+
+    BufferObject(int bo, int type, size_t size)
+        : bo(bo), type(type), size(size) {}
+
+    ~BufferObject() {
+        DeleteBO(bo);
+    }
+
+    size_t2 MemoryUsage() {
+        return { sizeof(BufferObject), size };
+    }
+};
+
+extern BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len,
+                                        ptrdiff_t offset, bool ssbo);
+extern bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblockname);
 
 template<typename T, typename U = float>
 void RenderArraySlow(string_view name, Primitive prim, gsl::span<T> vbuf1, string_view fmt,

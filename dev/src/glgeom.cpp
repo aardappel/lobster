@@ -120,9 +120,14 @@ Geometry::~Geometry() {
     GL_CALL(glDeleteVertexArrays(1, (GLuint *)&vao));
 }
 
-void Geometry::BindAsSSBO(Shader *sh, string_view name) {
-    UniformBufferObject(sh, nullptr, 0, -1, name, true, vbo1);
-    assert(!vbo2);
+void BindAsSSBO(Shader *sh, string_view name, int id) {
+    #ifndef PLATFORM_WINNIX
+        (void)sh;
+        (void)name;
+    #else
+        BufferObject tmp(id, GL_SHADER_STORAGE_BUFFER, 0);
+        BindBufferObject(sh, &tmp, name);
+    #endif
 }
 
 void Mesh::Render(Shader *sh) {

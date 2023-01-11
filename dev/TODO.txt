@@ -1,3 +1,17 @@
+- this fails to specialize for the nil case:
+
+let a:[int]? = nil
+
+def f():
+    return a[0]
+
+print if a:
+    f()
+else:
+    f()
+
+
+
 - very easy optimisation: the bulk of binary ops have the second arg as constant.
   Making specialized ops for these not only generated way more efficient code,
   but the div by 0 case can be filtered out at compile time too etc.
@@ -369,6 +383,9 @@
   https://miniaud.io/
   - 3D spatialization built-in.
   - supports ogg thru stb_vorbis
+  https://solhsa.com/soloud/
+  - also 3D built-in.
+  - has a ton of cool features.
 
 - enums
   - mortimersnerd: get min/max

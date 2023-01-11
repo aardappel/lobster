@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "lobster/vmdata.h"
+
 extern lobster::ResourceType mesh_type;
 extern lobster::ResourceType texture_type;
 extern lobster::ResourceType shader_type;
 
-
-
-
+extern lobster::Value UpdateBindBufferObject(lobster::VM &vm, lobster::Value buf, const void *data,
+                                             size_t len, ptrdiff_t offset, string_view name, bool ssbo);
