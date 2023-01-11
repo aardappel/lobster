@@ -489,7 +489,7 @@ void DispatchCompute(const int3 &groups) {
 
 // If offset < 0 then its a buffer replacement/creation.
 // If buf == nullptr then it is always creation. 
-BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len, ptrdiff_t offset,
+BufferObject *UpdateBufferObjectInternal(BufferObject *buf, const void *data, size_t len, ptrdiff_t offset,
                                  bool ssbo) {
     #ifndef PLATFORM_WINNIX
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
@@ -522,7 +522,7 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
                     // call is still using it, we won't have to sync.
                     // TODO: this doesn't actually seem faster in testing sofar.
                     //glBufferData(type, it->second.size, nullptr, GL_STATIC_DRAW);
-                    GL_CALL(glBufferData(type, len, data, GL_STATIC_DRAW));
+                    GL_CALL(glBufferData(type, len, data, GL_STATIC_DRAW)); // TODO: make dynamic, nsight reports invalid usage pattern
                     buf->size = len;
                 }
             } else {
@@ -538,7 +538,7 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
 // Note that bo_binding_point_index is assigned automatically based on unique block names.
 // You can also specify these in the shader using `binding=`, but GL doesn't seem to have a way
 // to retrieve these programmatically.
-bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblockname) {
+bool BindBufferObjectInternal(Shader *sh, BufferObject *buf, string_view uniformblockname) {
     #ifndef PLATFORM_WINNIX
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
         return false;

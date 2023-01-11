@@ -148,14 +148,13 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
     return Value(ok);
 }
 
-Value UpdateBindBufferObject(VM &vm, Value buf, const void *data, size_t len,
+Value UpdateBufferObject(VM &vm, Value buf, const void *data, size_t len,
                              ptrdiff_t offset, string_view name, bool ssbo) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
-    bo = UpdateBufferObject(bo, data, len, offset, ssbo);
+    (void)name; // TODO: Remove name parameter - it's only used in bind, not update
+    bo = UpdateBufferObjectInternal(bo, data, len, offset, ssbo);
     if (!bo) vm.BuiltinError("bufferobject creation failed");
-    auto ok = BindBufferObject(currentshader, bo, name);
-    if (!ok) vm.BuiltinError("bufferobject binding failed");
-    return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));;
+    return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));
 }
 
 void AddGraphics(NativeRegistry &nfr) {
@@ -936,15 +935,14 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("gl_update_bind_buffer_object", "name,value,ssbo,existing", "SSIRk:bufferobject?", "R:bufferobject?",
-    "creates a uniform buffer object, and attaches it to the current shader at the given"
-    " uniform block name. uniforms in the shader can be any type, as long as it matches the"
-    " data layout in the string buffer."
+nfr("gl_update_buffer_object", "name,value,ssbo,existing", "SSIRk:bufferobject?", "R:bufferobject?",
+    "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
     [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo, Value &buf) {
         TestGL(vm);
-        return UpdateBindBufferObject(vm, buf, vec.sval()->strv().data(),
+        // TODO: Remove name, shader association is done in gl_bind_buffer_object
+        return UpdateBufferObject(vm, buf, vec.sval()->strv().data(),
                                       vec.sval()->strv().size(), -1,
                                       name.sval()->strv(), ssbo.True());
     });
@@ -956,7 +954,7 @@ nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",
     " returns false for error.",
     [](StackPtr &, VM &vm, Value &name, Value &buf) {
         TestGL(vm);
-        return Value(BindBufferObject(currentshader, &GetBufferObject(buf), name.sval()->strv()));
+        return Value(BindBufferObjectInternal(currentshader, &GetBufferObject(buf), name.sval()->strv()));
     });
 
 nfr("gl_bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
