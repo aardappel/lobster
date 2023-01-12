@@ -152,7 +152,7 @@ Value UpdateBufferObject(VM &vm, Value buf, const void *data, size_t len,
                              ptrdiff_t offset, string_view name, bool ssbo) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
     (void)name; // TODO: Remove name parameter - it's only used in bind, not update
-    bo = UpdateBufferObjectInternal(bo, data, len, offset, ssbo);
+    bo = UpdateBufferObject(bo, data, len, offset, ssbo);
     if (!bo) vm.BuiltinError("bufferobject creation failed");
     return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));
 }
@@ -954,7 +954,7 @@ nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",
     " returns false for error.",
     [](StackPtr &, VM &vm, Value &name, Value &buf) {
         TestGL(vm);
-        return Value(BindBufferObjectInternal(currentshader, &GetBufferObject(buf), name.sval()->strv()));
+        return Value(BindBufferObject(currentshader, &GetBufferObject(buf), name.sval()->strv()));
     });
 
 nfr("gl_bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",

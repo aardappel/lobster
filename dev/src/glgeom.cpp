@@ -126,7 +126,7 @@ void BindAsSSBO(Shader *sh, string_view name, int id) {
         (void)name;
     #else
         BufferObject tmp(id, GL_SHADER_STORAGE_BUFFER, 0);
-        BindBufferObjectInternal(sh, &tmp, name);
+        BindBufferObject(sh, &tmp, name);
     #endif
 }
 
