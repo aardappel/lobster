@@ -567,7 +567,7 @@ bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblocknam
             // This is probably benign-ish since OpenGL is probably tolerant of deleted buffers
             // still being bound?
             // If not, must allow Shader to inc refc of BufferObject.
-            sh->ubomap[string(uniformblockname)] = { buf->bo, bo_binding_point_index, idx };
+            sh->ubomap[string(uniformblockname)] = { bo_binding_point_index, idx };
 		} else {
             LOBSTER_FRAME_PROFILE_THIS_SCOPE;
             bo_binding_point_index = it->second.bpi;

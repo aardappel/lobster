@@ -108,8 +108,11 @@ struct ValueParser {
     }
 
     void ParseFactor(type_elem_t typeoff, bool push) {
-        auto &ti = vm.GetTypeInfo(typeoff);
-        auto vt = ti.t;
+        auto ti = &vm.GetTypeInfo(typeoff);
+        if (ti->t == V_NIL && lex.token != T_NIL) {
+            ti = &vm.GetTypeInfo(typeoff = ti->subt);
+        }
+        auto vt = ti->t;
         switch (lex.token) {
             case T_INT: {
                 ExpectType(V_INT, vt);
@@ -161,8 +164,8 @@ struct ValueParser {
                 break;
             }
             case T_IDENT: {
-                if (vt == V_INT && ti.enumidx >= 0) {
-                    auto opt = vm.LookupEnum(lex.sattr, ti.enumidx);
+                if (vt == V_INT && ti->enumidx >= 0) {
+                    auto opt = vm.LookupEnum(lex.sattr, ti->enumidx);
                     if (!opt) lex.Error("unknown enum value " + lex.sattr);
                     lex.Next();
                     if (push) stack.emplace_back(*opt);
@@ -173,10 +176,10 @@ struct ValueParser {
                 auto sname = lex.sattr;
                 lex.Next();
                 Expect(T_LEFTCURLY);
-                auto name = vm.StructName(ti);
+                auto name = vm.StructName(*ti);
                 if (name != sname)
                     lex.Error("class/struct type " + name + " required, " + sname + " given");
-                ParseElems(T_RIGHTCURLY, typeoff, ti.len, push);
+                ParseElems(T_RIGHTCURLY, typeoff, ti->len, push);
                 break;
             }
             default:
@@ -267,9 +270,13 @@ struct FlexBufferParser {
     }
 
     void ParseFactor(flexbuffers::Reference r, type_elem_t typeoff) {
-        auto &ti = vm.GetTypeInfo(typeoff);
-        auto vt = ti.t;
-        switch (r.GetType()) {
+        auto ti = &vm.GetTypeInfo(typeoff);
+        auto ft = r.GetType();
+        if (ti->t == V_NIL && ft != flexbuffers::FBT_NULL) {
+            ti = &vm.GetTypeInfo(typeoff = ti->subt);
+        }
+        auto vt = ti->t;
+        switch (ft) {
             case flexbuffers::FBT_INT:
             case flexbuffers::FBT_BOOL: {
                 ExpectType(V_INT, vt);
@@ -299,9 +306,9 @@ struct FlexBufferParser {
                 auto v = r.AsVector();
                 auto stack_start = stack.size();
                 for (size_t i = 0; i < v.size(); i++) {
-                    ParseFactor(v[i], ti.subt);
+                    ParseFactor(v[i], ti->subt);
                 }
-                auto &sti = vm.GetTypeInfo(ti.subt);
+                auto &sti = vm.GetTypeInfo(ti->subt);
                 auto width = IsStruct(sti.t) ? sti.len : 1;
                 auto len = iint(stack.size() - stack_start);
                 auto n = len / width;
@@ -316,7 +323,7 @@ struct FlexBufferParser {
                 if (!IsUDT(vt) && vt != V_ANY)
                     Error(cat("class/struct type required, ", BaseTypeName(vt), " given"));
                 auto m = r.AsMap();
-                auto name = vm.StructName(ti);
+                auto name = vm.StructName(*ti);
                 auto sname = m["_type"];
                 if (sname.IsString() && sname.AsString().c_str() != name) {
                     Error(cat("class/struct type ", name, " required, ", sname.AsString().str(),
@@ -324,9 +331,9 @@ struct FlexBufferParser {
                 }
                 auto stack_start = stack.size();
                 auto NumElems = [&]() { return iint(stack.size() - stack_start); };
-                for (int i = 0; NumElems() != ti.len; i++) {
-                    auto fname = vm.LookupField(ti.structidx, i);
-                    auto eti = ti.GetElemOrParent(NumElems());
+                for (int i = 0; NumElems() != ti->len; i++) {
+                    auto fname = vm.LookupField(ti->structidx, i);
+                    auto eti = ti->GetElemOrParent(NumElems());
                     auto e = m[fname.data()];
                     if (e.IsNull()) {
                         PushDefault(vm.GetTypeInfo(eti), fname);
@@ -334,7 +341,7 @@ struct FlexBufferParser {
                         ParseFactor(e, eti);
                     }
                 }
-                if (ti.t == V_CLASS) {
+                if (vt == V_CLASS) {
                     auto len = NumElems();
                     auto vec = vm.NewObject(len, typeoff);
                     if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
@@ -342,7 +349,7 @@ struct FlexBufferParser {
                     allocated.push_back(vec);
                     stack.emplace_back(vec);
                 }
-                // else if ti.t == V_STRUCT_* then.. do nothing!
+                // else if vt == V_STRUCT_* then.. do nothing!
                 break;
             }
             default:
