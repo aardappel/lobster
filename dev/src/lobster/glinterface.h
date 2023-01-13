@@ -60,7 +60,6 @@ struct Shader : lobster::Resource {
 
     // Use this for reusing BO's for now:
     struct BOEntry {
-        int bo;
         int bpi;
         uint32_t idx;
     };
