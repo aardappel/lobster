@@ -149,20 +149,27 @@ string BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
     // Followed by all files.
     files.insert("data/shaders/default.materials");  // If it hadn't already been added.
     string buf;
-    for (auto &filename : files) {
+    function<string(const string &)> addrec;
+    addrec = [&](const string &filename) -> string {
         auto l = LoadFile(filename, &buf);
         if (l >= 0) {
             add_file(buf, filename);
         } else {
             vector<pair<string, int64_t>> dir;
-            if (!ScanDir(filename, dir))
-                return "cannot load file/dir for pakfile: " + filename;
+            if (!ScanDir(filename, dir)) return "cannot load file/dir for pakfile: " + filename;
             for (auto &[name, size] : dir) {
-                auto fn = filename + name;
-                if (size >= 0 && LoadFile(fn, &buf) >= 0)
-                    add_file(buf, fn);
+                auto fn = filename;
+                if (fn.back() != '/') fn += "/";
+                fn += name;
+                auto err = addrec(fn);
+                if (!err.empty()) return err;
             }
         }
+        return "";
+    };
+    for (auto &filename : files) {
+        auto err = addrec(filename);
+        if (!err.empty()) return err;
     }
     // Now we can write the directory, first the names:
     auto dirstart = LE(pakfile.size());
