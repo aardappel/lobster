@@ -10,26 +10,7 @@
 #pragma once
 #endif
 
-#include "isteamclient.h"
-
-// structure that contains client callback data
-// see callbacks documentation for more details
-#if defined( VALVE_CALLBACK_PACK_SMALL )
-#pragma pack( push, 4 )
-#elif defined( VALVE_CALLBACK_PACK_LARGE )
-#pragma pack( push, 8 )
-#else
-#error isteamclient.h must be included
-#endif 
-struct CallbackMsg_t
-{
-	HSteamUser m_hSteamUser;
-	int m_iCallback;
-	uint8 *m_pubParam;
-	int m_cubParam;
-};
-#pragma pack( pop )
-
+#include "steam_api_common.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: Functions for accessing and manipulating a steam account
@@ -66,11 +47,17 @@ public:
 	//
 	// return value - returns the number of bytes written to pBlob. If the return is 0, then the buffer passed in was too small, and the call has failed
 	// The contents of pBlob should then be sent to the game server, for it to use to complete the authentication process.
-	virtual int InitiateGameConnection( void *pAuthBlob, int cbMaxAuthBlob, CSteamID steamIDGameServer, uint32 unIPServer, uint16 usPortServer, bool bSecure ) = 0;
+	//
+	// DEPRECATED!  This function will be removed from the SDK in an upcoming version.
+	//              Please migrate to BeginAuthSession and related functions.
+	virtual int InitiateGameConnection_DEPRECATED( void *pAuthBlob, int cbMaxAuthBlob, CSteamID steamIDGameServer, uint32 unIPServer, uint16 usPortServer, bool bSecure ) = 0;
 
 	// notify of disconnect
 	// needs to occur when the game client leaves the specified game server, needs to match with the InitiateGameConnection() call
-	virtual void TerminateGameConnection( uint32 unIPServer, uint16 usPortServer ) = 0;
+	//
+	// DEPRECATED!  This function will be removed from the SDK in an upcoming version.
+	//              Please migrate to BeginAuthSession and related functions.
+	virtual void TerminateGameConnection_DEPRECATED( uint32 unIPServer, uint16 usPortServer ) = 0;
 
 	// Legacy functions
 
@@ -165,10 +152,15 @@ public:
 	// Requests a ticket encrypted with an app specific shared key
 	// pDataToInclude, cbDataToInclude will be encrypted into the ticket
 	// ( This is asynchronous, you must wait for the ticket to be completed by the server )
-	CALL_RESULT( EncryptedAppTicketResponse_t )
+	STEAM_CALL_RESULT( EncryptedAppTicketResponse_t )
 	virtual SteamAPICall_t RequestEncryptedAppTicket( void *pDataToInclude, int cbDataToInclude ) = 0;
 
-	// retrieve a finished ticket
+	// Retrieves a finished ticket.
+	// If no ticket is available, or your buffer is too small, returns false.
+	// Upon exit, *pcbTicket will be either the size of the ticket copied into your buffer
+	// (if true was returned), or the size needed (if false was returned).  To determine the
+	// proper size of the ticket, you can pass pTicket=NULL and cbMaxTicket=0; if a ticket
+	// is available, *pcbTicket will contain the size needed, otherwise it will be zero.
 	virtual bool GetEncryptedAppTicket( void *pTicket, int cbMaxTicket, uint32 *pcbTicket ) = 0;
 
 	// Trading Card badges data access
@@ -189,7 +181,7 @@ public:
 	// or else immediately navigate to the result URL using a hidden browser window.
 	// NOTE 2: The resulting authorization cookie has an expiration time of one day,
 	// so it would be a good idea to request and visit a new auth URL every 12 hours.
-	CALL_RESULT( StoreAuthURLResponse_t )
+	STEAM_CALL_RESULT( StoreAuthURLResponse_t )
 	virtual SteamAPICall_t RequestStoreAuthURL( const char *pchRedirectURL ) = 0;
 
 	// gets whether the users phone number is verified 
@@ -204,10 +196,25 @@ public:
 	// gets whether the users phone number is awaiting (re)verification
 	virtual bool BIsPhoneRequiringVerification() = 0;
 
+	STEAM_CALL_RESULT( MarketEligibilityResponse_t )
+	virtual SteamAPICall_t GetMarketEligibility() = 0;
+
+	// Retrieves anti indulgence / duration control for current user
+	STEAM_CALL_RESULT( DurationControl_t )
+	virtual SteamAPICall_t GetDurationControl() = 0;
+
+	// Advise steam china duration control system about the online state of the game.
+	// This will prevent offline gameplay time from counting against a user's
+	// playtime limits.
+	virtual bool BSetDurationControlOnlineState( EDurationControlOnlineState eNewState ) = 0;
+
 };
 
-#define STEAMUSER_INTERFACE_VERSION "SteamUser019"
+#define STEAMUSER_INTERFACE_VERSION "SteamUser021"
 
+// Global interface accessor
+inline ISteamUser *SteamUser();
+STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamUser *, SteamUser, STEAMUSER_INTERFACE_VERSION );
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )
@@ -215,7 +222,7 @@ public:
 #elif defined( VALVE_CALLBACK_PACK_LARGE )
 #pragma pack( push, 8 )
 #else
-#error isteamclient.h must be included
+#error steam_api_common.h should define VALVE_CALLBACK_PACK_xxx
 #endif 
 
 //-----------------------------------------------------------------------------
@@ -362,6 +369,46 @@ struct StoreAuthURLResponse_t
 	char m_szURL[512];
 };
 
+
+//-----------------------------------------------------------------------------
+// Purpose: sent in response to ISteamUser::GetMarketEligibility
+//-----------------------------------------------------------------------------
+struct MarketEligibilityResponse_t
+{
+	enum { k_iCallback = k_iSteamUserCallbacks + 66 };
+	bool m_bAllowed;
+	EMarketNotAllowedReasonFlags m_eNotAllowedReason;
+	RTime32 m_rtAllowedAtTime;
+
+	int m_cdaySteamGuardRequiredDays; // The number of days any user is required to have had Steam Guard before they can use the market
+	int m_cdayNewDeviceCooldown; // The number of days after initial device authorization a user must wait before using the market on that device
+};
+
+
+//-----------------------------------------------------------------------------
+// Purpose: sent for games with enabled anti indulgence / duration control, for
+// enabled users. Lets the game know whether the user can keep playing or
+// whether the game should exit, and returns info about remaining gameplay time.
+//
+// This callback is fired asynchronously in response to timers triggering.
+// It is also fired in response to calls to GetDurationControl().
+//-----------------------------------------------------------------------------
+struct DurationControl_t
+{
+	enum { k_iCallback = k_iSteamUserCallbacks + 67 };
+
+	EResult	m_eResult;								// result of call (always k_EResultOK for asynchronous timer-based notifications)
+	AppId_t m_appid;								// appid generating playtime
+
+	bool	m_bApplicable;							// is duration control applicable to user + game combination
+	int32	m_csecsLast5h;							// playtime since most recent 5 hour gap in playtime, only counting up to regulatory limit of playtime, in seconds
+
+	EDurationControlProgress m_progress;			// recommended progress (either everything is fine, or please exit game)
+	EDurationControlNotification m_notification;	// notification to show, if any (always k_EDurationControlNotification_None for API calls)
+
+	int32	m_csecsToday;							// playtime on current calendar day
+	int32	m_csecsRemaining;						// playtime remaining until the user hits a regulatory limit
+};
 
 
 #pragma pack( pop )
