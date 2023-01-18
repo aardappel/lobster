@@ -218,7 +218,7 @@ extern Shader *LookupShader(string_view name);
 extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
-extern void SetImageTexture(int textureunit, const Texture &tex, int tf);
+extern void SetImageTexture(int textureunit, const Texture &tex, int level, int tf);
 extern void BindAsSSBO(Shader *sh, string_view name, int id);
 
 // These must correspond to the constants in texture.lobster

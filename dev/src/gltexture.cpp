@@ -242,7 +242,7 @@ uint8_t *ReadTexture(const Texture &tex) {
     #endif
 }
 
-void SetImageTexture(int textureunit, const Texture &tex, int tf) {
+void SetImageTexture(int textureunit, const Texture &tex, int level, int tf) {
     #ifdef PLATFORM_WINNIX
         if (glBindImageTexture) {
             GLenum access = tf & TF_WRITEONLY
@@ -254,7 +254,7 @@ void SetImageTexture(int textureunit, const Texture &tex, int tf) {
                 if (tf & TF_HALF) format = tf & TF_SINGLE_CHANNEL ? GL_R16F : GL_RGBA16F;
                 else format = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
             }
-            GL_CALL(glBindImageTexture(textureunit, tex.id, 0, GL_TRUE, 0, access, format));
+            GL_CALL(glBindImageTexture(textureunit, tex.id, level, GL_TRUE, 0, access, format));
         }
     #else
         assert(false);

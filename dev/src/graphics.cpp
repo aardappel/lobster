@@ -1024,13 +1024,13 @@ nfr("gl_set_mesh_texture", "mesh,part,i,texture", "R:meshIIR:texture", "",
         return NilVal();
     });
 
-nfr("gl_set_image_texture", "i,tex,textureformat", "IR:textureI", "",
+nfr("gl_set_image_texture", "i,tex,textureformat", "IR:textureII", "",
     "sets image unit i to texture (for use with compute). texture format must be the same"
     " as what you specified in gl_load_texture / gl_create_texture,"
     " with optionally writeonly/readwrite flags.",
-    [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
+    [](StackPtr &, VM &vm, Value &i, Value &id, Value &level, Value &tf) {
         TestGL(vm);
-        SetImageTexture(GetSampler(vm, i), GetTexture(id), tf.intval());
+        SetImageTexture(GetSampler(vm, i), GetTexture(id), level.intval(), tf.intval());
         return NilVal();
     });
 
