@@ -149,9 +149,9 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
 }
 
 Value UpdateBindBufferObject(VM &vm, Value buf, const void *data, size_t len,
-                             ptrdiff_t offset, string_view name, bool ssbo) {
+                             ptrdiff_t offset, string_view name, bool ssbo, bool dyn) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
-    bo = UpdateBufferObject(bo, data, len, offset, ssbo);
+    bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn);
     if (!bo) vm.BuiltinError("bufferobject creation failed");
     auto ok = BindBufferObject(currentshader, bo, name);
     if (!ok) vm.BuiltinError("bufferobject binding failed");
@@ -946,7 +946,7 @@ nfr("gl_update_bind_buffer_object", "name,value,ssbo,existing", "SSIRk:bufferobj
         TestGL(vm);
         return UpdateBindBufferObject(vm, buf, vec.sval()->strv().data(),
                                       vec.sval()->strv().size(), -1,
-                                      name.sval()->strv(), ssbo.True());
+                                      name.sval()->strv(), ssbo.True(), false);
     });
 
 nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",

@@ -18,11 +18,11 @@
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 
-int GenBO_(string_view name, int type, size_t bytesize, const void *data) {
+int GenBO_(string_view name, int type, size_t bytesize, const void *data, bool dyn) {
     int bo;
     GL_CALL(glGenBuffers(1, (GLuint *)&bo));
     GL_CALL(glBindBuffer(type, bo));
-    GL_CALL(glBufferData(type, bytesize, data, GL_STATIC_DRAW));
+    GL_CALL(glBufferData(type, bytesize, data, dyn ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
     GL_NAME(GL_BUFFER, bo, name);
     return bo;
 }
@@ -56,7 +56,7 @@ GLenum GetPrimitive(Primitive prim) {
 
 Surface::Surface(string_view name, gsl::span<int> indices, Primitive _prim)
     : numidx(indices.size()), prim(_prim) {
-    ibo = GenBO(name, GL_ELEMENT_ARRAY_BUFFER, indices);
+    ibo = GenBO(name, GL_ELEMENT_ARRAY_BUFFER, indices, false);
 }
 
 void Surface::Render(Shader *sh) {
@@ -71,8 +71,8 @@ Surface::~Surface() {
 }
 
 void Geometry::Init(string_view name, const void *verts1, const void *verts2) {
-    vbo1 = GenBO_(name, GL_ARRAY_BUFFER, vertsize1 * nverts, verts1);
-    if (verts2) vbo2 = GenBO_(name, GL_ARRAY_BUFFER, vertsize2 * nverts, verts2);
+    vbo1 = GenBO_(name, GL_ARRAY_BUFFER, vertsize1 * nverts, verts1, false);
+    if (verts2) vbo2 = GenBO_(name, GL_ARRAY_BUFFER, vertsize2 * nverts, verts2, false);
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
     GL_CALL(glGenVertexArrays(1, (GLuint *)&vao));
     GL_CALL(glBindVertexArray(vao));
@@ -125,7 +125,7 @@ void BindAsSSBO(Shader *sh, string_view name, int id) {
         (void)sh;
         (void)name;
     #else
-        BufferObject tmp(id, GL_SHADER_STORAGE_BUFFER, 0);
+        BufferObject tmp(id, GL_SHADER_STORAGE_BUFFER, 0, false);
         BindBufferObject(sh, &tmp, name);
     #endif
 }
@@ -327,7 +327,7 @@ void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
         }
         cube_geom[inside] = new Geometry("RenderUnitCube_verts", gsl::make_span(verts), "PNT");
         cube_ibo[inside] =
-            GenBO("RenderUnitCube_idxs", GL_ELEMENT_ARRAY_BUFFER, gsl::make_span(triangles));
+            GenBO("RenderUnitCube_idxs", GL_ELEMENT_ARRAY_BUFFER, gsl::make_span(triangles), false);
     }
     sh->Set();
     RenderArray(PRIM_TRIS, cube_geom[inside], cube_ibo[inside], 36);
@@ -376,7 +376,7 @@ void GeometryCache::RenderOpenCircle(Shader *sh, int segments, float radius, flo
             ibuf[i * 6 + 5] = ((i + 1) * 2 + 0) % nverts;
         }
         vibo.first = new Geometry("RenderOpenCircle_verts", gsl::make_span(vbuf), "P");
-        vibo.second = GenBO("RenderOpenCircle_idxs", GL_ELEMENT_ARRAY_BUFFER, gsl::make_span(ibuf));
+        vibo.second = GenBO("RenderOpenCircle_idxs", GL_ELEMENT_ARRAY_BUFFER, gsl::make_span(ibuf), false);
     }
     Transform(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();

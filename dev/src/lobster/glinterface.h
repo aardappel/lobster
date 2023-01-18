@@ -258,9 +258,9 @@ extern void FreeImageFromFile(uint8_t *img);
 
 extern uint8_t *ReadPixels(const int2 &pos, const int2 &size);
 
-extern int GenBO_(string_view name, int type, size_t bytesize, const void *data);
-template<typename T> int GenBO(string_view name, int type, gsl::span<T> d) {
-    return GenBO_(name, type, sizeof(T) * d.size(), d.data());
+extern int GenBO_(string_view name, int type, size_t bytesize, const void *data, bool dyn);
+template<typename T> int GenBO(string_view name, int type, gsl::span<T> d, bool dyn) {
+    return GenBO_(name, type, sizeof(T) * d.size(), d.data(), dyn);
 }
 extern void DeleteBO(int id);
 extern void RenderArray(Primitive prim, Geometry *geom, int ibo = 0, size_t tcount = 0);
@@ -269,9 +269,10 @@ struct BufferObject : lobster::Resource {
     int bo;
     int type;
     size_t size;
+    bool dyn;
 
-    BufferObject(int bo, int type, size_t size)
-        : bo(bo), type(type), size(size) {}
+    BufferObject(int bo, int type, size_t size, bool dyn)
+        : bo(bo), type(type), size(size), dyn(dyn) {}
 
     ~BufferObject() {
         DeleteBO(bo);
@@ -283,7 +284,7 @@ struct BufferObject : lobster::Resource {
 };
 
 extern BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len,
-                                        ptrdiff_t offset, bool ssbo);
+                                        ptrdiff_t offset, bool ssbo, bool dyn);
 extern bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblockname);
 
 template<typename T, typename U = float>

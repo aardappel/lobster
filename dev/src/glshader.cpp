@@ -490,7 +490,7 @@ void DispatchCompute(const int3 &groups) {
 // If offset < 0 then its a buffer replacement/creation.
 // If buf == nullptr then it is always creation. 
 BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len, ptrdiff_t offset,
-                                 bool ssbo) {
+                                 bool ssbo, bool dyn) {
     #ifndef PLATFORM_WINNIX
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
         return nullptr;
@@ -503,13 +503,14 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
         auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
         if (!buf) {
             assert(offset < 0);
-            auto bo = GenBO_("UpdateBufferObject", type, len, data);
-            return new BufferObject(bo, type, len);
+            auto bo = GenBO_("UpdateBufferObject", type, len, data, dyn);
+            return new BufferObject(bo, type, len, dyn);
 		} else {
             GL_CALL(glBindBuffer(type, buf->bo));
             // We're going to re-upload the buffer.
             // See this for what is fast:
             // https://www.seas.upenn.edu/~pcozzi/OpenGLInsights/OpenGLInsights-AsynchronousBufferTransfers.pdf
+            // https://thothonegan.tumblr.com/post/135193767243/glbuffersubdata-vs-glbufferdata
             if (offset < 0) {
                 LOBSTER_FRAME_PROFILE_THIS_SCOPE;
                 // Whole buffer.
@@ -518,11 +519,13 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
                     // Actually, this might cause *more* sync issues than glBufferData.
                     GL_CALL(glBufferSubData(type, 0, len, data));
                 } else {
+                    auto drawt = buf->dyn ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
                     // We can "orphan" the buffer before uploading, that way if a draw
                     // call is still using it, we won't have to sync.
-                    // TODO: this doesn't actually seem faster in testing sofar.
-                    //glBufferData(type, it->second.size, nullptr, GL_STATIC_DRAW);
-                    GL_CALL(glBufferData(type, len, data, GL_STATIC_DRAW));
+                    // This doesn't actually seem faster in testing sofar:
+                    // supposedly drivers do this for you nowadays.
+                    //glBufferData(type, len, nullptr, drawt);
+                    GL_CALL(glBufferData(type, len, data, drawt));
                     buf->size = len;
                 }
             } else {
