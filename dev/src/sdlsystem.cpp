@@ -127,7 +127,7 @@ bool landscape = true;
 bool minimized = false;
 bool noninteractivetestmode = false;
 
-const int MAXAXES = 8;
+const int MAXAXES = 16;
 float joyaxes[MAXAXES] = { 0 };
 
 struct Finger {
@@ -619,8 +619,9 @@ bool SDLFrame() {
             #endif
 
             case SDL_JOYAXISMOTION: {
-                const int deadzone = 800; // FIXME
+                const int deadzone = 8192;
                 if (event.jaxis.axis < MAXAXES) {
+                    //LOG_INFO("SDL_JOYAXISMOTION: ", event.jaxis.value);
                     joyaxes[event.jaxis.axis] = abs(event.jaxis.value) > deadzone ? event.jaxis.value / (float)0x8000 : 0;
                 };
                 break;

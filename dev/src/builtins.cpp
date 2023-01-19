@@ -1254,7 +1254,7 @@ nfr("hash", "v", "F}", "I",
     });
 
 nfr("program_name", "", "", "S",
-    "returns the name of the main program (e.g. \"foo.lobster\".",
+    "returns the name of the main program (e.g. \"foo.lobster\"), \"\" if running from lpak.",
     [](StackPtr &, VM &vm) {
         return Value(vm.NewString(vm.GetProgramName()));
     });
