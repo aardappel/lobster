@@ -1,194 +1,65 @@
-//====== Copyright 1996-2015, Valve Corporation, All rights reserved. =======
+//====== Copyright Valve Corporation, All rights reserved. ====================
 //
-// Purpose: Internal private Steamworks API declarations and definitions
+// Internal implementation details of the steamworks SDK.
 //
-//=============================================================================
-
-#ifndef STEAM_API_INTERNAL_H
-#define STEAM_API_INTERNAL_H
-
-S_API HSteamUser SteamAPI_GetHSteamUser();
-S_API void * S_CALLTYPE SteamInternal_ContextInit( void *pContextInitData );
-S_API void * S_CALLTYPE SteamInternal_CreateInterface( const char *ver );
-
-#if !defined( STEAM_API_EXPORTS )
-
-inline void S_CALLTYPE SteamInternal_OnContextInit( void* p )
-{
-	((CSteamAPIContext*)p)->Clear();
-	if ( SteamAPI_GetHSteamPipe() )
-		((CSteamAPIContext*)p)->Init();
-}
-inline CSteamAPIContext& SteamInternal_ModuleContext()
-{
-	// SteamInternal_ContextInit takes a base pointer for the equivalent of
-	// struct { void (*pFn)(void* pCtx); uintp counter; CSteamAPIContext ctx; }
-	// Do not change layout of 2 + sizeof... or add non-pointer aligned data!
-	// NOTE: declaring "static CSteamAPIConext" creates a large function
-	// which queries the initialization status of the object. We know that
-	// it is pointer-aligned and fully memset with zeros, so just alias a
-	// static buffer of the appropriate size and call it a CSteamAPIContext.
-	static void* s_CallbackCounterAndContext[ 2 + sizeof(CSteamAPIContext)/sizeof(void*) ] = { (void*)&SteamInternal_OnContextInit, 0 };
-	return *(CSteamAPIContext*)SteamInternal_ContextInit( s_CallbackCounterAndContext );
-}
-
-inline ISteamClient *SteamClient()							{ return SteamInternal_ModuleContext().SteamClient(); }
-inline ISteamUser *SteamUser()								{ return SteamInternal_ModuleContext().SteamUser(); }
-inline ISteamFriends *SteamFriends()						{ return SteamInternal_ModuleContext().SteamFriends(); }
-inline ISteamUtils *SteamUtils()							{ return SteamInternal_ModuleContext().SteamUtils(); }
-inline ISteamMatchmaking *SteamMatchmaking()				{ return SteamInternal_ModuleContext().SteamMatchmaking(); }
-inline ISteamUserStats *SteamUserStats()					{ return SteamInternal_ModuleContext().SteamUserStats(); }
-inline ISteamApps *SteamApps()								{ return SteamInternal_ModuleContext().SteamApps(); }
-inline ISteamMatchmakingServers *SteamMatchmakingServers()	{ return SteamInternal_ModuleContext().SteamMatchmakingServers(); }
-inline ISteamNetworking *SteamNetworking()					{ return SteamInternal_ModuleContext().SteamNetworking(); }
-inline ISteamRemoteStorage *SteamRemoteStorage()			{ return SteamInternal_ModuleContext().SteamRemoteStorage(); }
-inline ISteamScreenshots *SteamScreenshots()				{ return SteamInternal_ModuleContext().SteamScreenshots(); }
-inline ISteamHTTP *SteamHTTP()								{ return SteamInternal_ModuleContext().SteamHTTP(); }
-inline ISteamUnifiedMessages *SteamUnifiedMessages()		{ return SteamInternal_ModuleContext().SteamUnifiedMessages(); }
-inline ISteamController *SteamController()					{ return SteamInternal_ModuleContext().SteamController(); }
-inline ISteamUGC *SteamUGC()								{ return SteamInternal_ModuleContext().SteamUGC(); }
-inline ISteamAppList *SteamAppList()						{ return SteamInternal_ModuleContext().SteamAppList(); }
-inline ISteamMusic *SteamMusic()							{ return SteamInternal_ModuleContext().SteamMusic(); }
-inline ISteamMusicRemote *SteamMusicRemote()				{ return SteamInternal_ModuleContext().SteamMusicRemote(); }
-inline ISteamHTMLSurface *SteamHTMLSurface()				{ return SteamInternal_ModuleContext().SteamHTMLSurface(); }
-inline ISteamInventory *SteamInventory()					{ return SteamInternal_ModuleContext().SteamInventory(); }
-inline ISteamVideo *SteamVideo()							{ return SteamInternal_ModuleContext().SteamVideo(); }
-inline ISteamParentalSettings *SteamParentalSettings()		{ return SteamInternal_ModuleContext().SteamParentalSettings(); }
-
-#endif // !defined( STEAM_API_EXPORTS )
-
-
-inline void CSteamAPIContext::Clear()
-{
-	m_pSteamClient = NULL;
-	m_pSteamUser = NULL;
-	m_pSteamFriends = NULL;
-	m_pSteamUtils = NULL;
-	m_pSteamMatchmaking = NULL;
-	m_pSteamUserStats = NULL;
-	m_pSteamApps = NULL;
-	m_pSteamMatchmakingServers = NULL;
-	m_pSteamNetworking = NULL;
-	m_pSteamRemoteStorage = NULL;
-	m_pSteamHTTP = NULL;
-	m_pSteamScreenshots = NULL;
-	m_pSteamMusic = NULL;
-	m_pSteamUnifiedMessages = NULL;
-	m_pController = NULL;
-	m_pSteamUGC = NULL;
-	m_pSteamAppList = NULL;
-	m_pSteamMusic = NULL;
-	m_pSteamMusicRemote = NULL;
-	m_pSteamHTMLSurface = NULL;
-	m_pSteamInventory = NULL;
-	m_pSteamVideo = NULL;
-	m_pSteamParentalSettings = NULL;
-}
-
-
-// This function must be declared inline in the header so the module using steam_api.dll gets the version names they want.
-inline bool CSteamAPIContext::Init()
-{
-	HSteamUser hSteamUser = SteamAPI_GetHSteamUser();
-	HSteamPipe hSteamPipe = SteamAPI_GetHSteamPipe();
-	if ( !hSteamPipe )
-		return false;
-
-	m_pSteamClient = (ISteamClient*) SteamInternal_CreateInterface( STEAMCLIENT_INTERFACE_VERSION );
-	if ( !m_pSteamClient )
-		return false;
-	
-	m_pSteamUser = m_pSteamClient->GetISteamUser( hSteamUser, hSteamPipe, STEAMUSER_INTERFACE_VERSION );
-	if ( !m_pSteamUser )
-		return false;
-
-	m_pSteamFriends = m_pSteamClient->GetISteamFriends( hSteamUser, hSteamPipe, STEAMFRIENDS_INTERFACE_VERSION );
-	if ( !m_pSteamFriends )
-		return false;
-
-	m_pSteamUtils = m_pSteamClient->GetISteamUtils( hSteamPipe, STEAMUTILS_INTERFACE_VERSION );
-	if ( !m_pSteamUtils )
-		return false;
-
-	m_pSteamMatchmaking = m_pSteamClient->GetISteamMatchmaking( hSteamUser, hSteamPipe, STEAMMATCHMAKING_INTERFACE_VERSION );
-	if ( !m_pSteamMatchmaking )
-		return false;
-
-	m_pSteamMatchmakingServers = m_pSteamClient->GetISteamMatchmakingServers( hSteamUser, hSteamPipe, STEAMMATCHMAKINGSERVERS_INTERFACE_VERSION );
-	if ( !m_pSteamMatchmakingServers )
-		return false;
-
-	m_pSteamUserStats = m_pSteamClient->GetISteamUserStats( hSteamUser, hSteamPipe, STEAMUSERSTATS_INTERFACE_VERSION );
-	if ( !m_pSteamUserStats )
-		return false;
-
-	m_pSteamApps = m_pSteamClient->GetISteamApps( hSteamUser, hSteamPipe, STEAMAPPS_INTERFACE_VERSION );
-	if ( !m_pSteamApps )
-		return false;
-
-	m_pSteamNetworking = m_pSteamClient->GetISteamNetworking( hSteamUser, hSteamPipe, STEAMNETWORKING_INTERFACE_VERSION );
-	if ( !m_pSteamNetworking )
-		return false;
-
-	m_pSteamRemoteStorage = m_pSteamClient->GetISteamRemoteStorage( hSteamUser, hSteamPipe, STEAMREMOTESTORAGE_INTERFACE_VERSION );
-	if ( !m_pSteamRemoteStorage )
-		return false;
-
-	m_pSteamScreenshots = m_pSteamClient->GetISteamScreenshots( hSteamUser, hSteamPipe, STEAMSCREENSHOTS_INTERFACE_VERSION );
-	if ( !m_pSteamScreenshots )
-		return false;
-
-	m_pSteamHTTP = m_pSteamClient->GetISteamHTTP( hSteamUser, hSteamPipe, STEAMHTTP_INTERFACE_VERSION );
-	if ( !m_pSteamHTTP )
-		return false;
-
-	m_pSteamUnifiedMessages = m_pSteamClient->GetISteamUnifiedMessages( hSteamUser, hSteamPipe, STEAMUNIFIEDMESSAGES_INTERFACE_VERSION );
-	if ( !m_pSteamUnifiedMessages )
-		return false;
-
-	m_pController = m_pSteamClient->GetISteamController( hSteamUser, hSteamPipe, STEAMCONTROLLER_INTERFACE_VERSION );
-	if ( !m_pController )
-		return false;
-
-	m_pSteamUGC = m_pSteamClient->GetISteamUGC( hSteamUser, hSteamPipe, STEAMUGC_INTERFACE_VERSION );
-	if ( !m_pSteamUGC )
-		return false;
-
-	m_pSteamAppList = m_pSteamClient->GetISteamAppList( hSteamUser, hSteamPipe, STEAMAPPLIST_INTERFACE_VERSION );
-	if ( !m_pSteamAppList )
-		return false;
-
-	m_pSteamMusic = m_pSteamClient->GetISteamMusic( hSteamUser, hSteamPipe, STEAMMUSIC_INTERFACE_VERSION );
-	if ( !m_pSteamMusic )
-		return false;
-
-	m_pSteamMusicRemote = m_pSteamClient->GetISteamMusicRemote( hSteamUser, hSteamPipe, STEAMMUSICREMOTE_INTERFACE_VERSION );
-	if ( !m_pSteamMusicRemote )
-		return false;
-
-	m_pSteamHTMLSurface = m_pSteamClient->GetISteamHTMLSurface( hSteamUser, hSteamPipe, STEAMHTMLSURFACE_INTERFACE_VERSION );
-	if ( !m_pSteamHTMLSurface )
-		return false;
-
-	m_pSteamInventory = m_pSteamClient->GetISteamInventory( hSteamUser, hSteamPipe, STEAMINVENTORY_INTERFACE_VERSION );
-	if ( !m_pSteamInventory )
-		return false;
-
-	m_pSteamVideo = m_pSteamClient->GetISteamVideo( hSteamUser, hSteamPipe, STEAMVIDEO_INTERFACE_VERSION );
-	if ( !m_pSteamVideo )
-		return false;
-
-	m_pSteamParentalSettings = m_pSteamClient->GetISteamParentalSettings( hSteamUser, hSteamPipe, STEAMPARENTALSETTINGS_INTERFACE_VERSION );
-	if ( !m_pSteamParentalSettings )
-		return false;
-
-	return true;
-}
-
-
+// You should be able to figure out how to use the SDK by reading
+// steam_api_common.h, and should not need to understand anything in here.
+// 
 //-----------------------------------------------------------------------------
-// The following macros are implementation details, not intended for public use
-//-----------------------------------------------------------------------------
+
+#ifdef STEAM_CALLBACK_BEGIN
+#error "This file should only be included from steam_api_common.h"
+#endif
+
+#include <string.h>
+
+// Internal functions used to locate/create interfaces
+S_API HSteamPipe S_CALLTYPE SteamAPI_GetHSteamPipe();
+S_API HSteamUser S_CALLTYPE SteamAPI_GetHSteamUser();
+S_API HSteamPipe S_CALLTYPE SteamGameServer_GetHSteamPipe();
+S_API HSteamUser S_CALLTYPE SteamGameServer_GetHSteamUser();
+S_API void *S_CALLTYPE SteamInternal_ContextInit( void *pContextInitData );
+S_API void *S_CALLTYPE SteamInternal_CreateInterface( const char *ver );
+S_API void *S_CALLTYPE SteamInternal_FindOrCreateUserInterface( HSteamUser hSteamUser, const char *pszVersion );
+S_API void *S_CALLTYPE SteamInternal_FindOrCreateGameServerInterface( HSteamUser hSteamUser, const char *pszVersion );
+
+// Macro used to define a type-safe accessor that will always return the version
+// of the interface of the *header file* you are compiling with!  We also bounce
+// through a safety function that checks for interfaces being created or destroyed.
+//
+// SteamInternal_ContextInit takes a base pointer for the equivalent of
+// struct { void (*pFn)(void* pCtx); uintptr_t counter; void *ptr; }
+// Do not change layout or add non-pointer aligned data!
+#define STEAM_DEFINE_INTERFACE_ACCESSOR( type, name, expr, kind, version ) \
+	inline void S_CALLTYPE SteamInternal_Init_ ## name( type *p ) { *p = (type)( expr ); } \
+	STEAM_CLANG_ATTR( "interface_accessor_kind:" kind ";interface_accessor_version:" version ";" ) \
+	inline type name() { \
+		static void* s_CallbackCounterAndContext[ 3 ] = { (void*)&SteamInternal_Init_ ## name, 0, 0 }; \
+		return *(type*)SteamInternal_ContextInit( s_CallbackCounterAndContext ); \
+	}
+
+#define STEAM_DEFINE_USER_INTERFACE_ACCESSOR( type, name, version ) \
+	STEAM_DEFINE_INTERFACE_ACCESSOR( type, name, SteamInternal_FindOrCreateUserInterface( SteamAPI_GetHSteamUser(), version ), "user", version )
+#define STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( type, name, version ) \
+	STEAM_DEFINE_INTERFACE_ACCESSOR( type, name, SteamInternal_FindOrCreateGameServerInterface( SteamGameServer_GetHSteamUser(), version ), "gameserver", version )
+
+//
+// Internal stuff used for the standard, higher-level callback mechanism
+//
+
+// Internal functions used by the utility CCallback objects to receive callbacks
+S_API void S_CALLTYPE SteamAPI_RegisterCallback( class CCallbackBase *pCallback, int iCallback );
+S_API void S_CALLTYPE SteamAPI_UnregisterCallback( class CCallbackBase *pCallback );
+// Internal functions used by the utility CCallResult objects to receive async call results
+S_API void S_CALLTYPE SteamAPI_RegisterCallResult( class CCallbackBase *pCallback, SteamAPICall_t hAPICall );
+S_API void S_CALLTYPE SteamAPI_UnregisterCallResult( class CCallbackBase *pCallback, SteamAPICall_t hAPICall );
+
+// disable this warning; this pattern need for steam callback registration
+#ifdef _MSVC_VER
+#pragma warning( push )
+#pragma warning( disable: 4355 )	// 'this' : used in base member initializer list
+#endif
+
 #define _STEAM_CALLBACK_AUTO_HOOK( thisclass, func, param )
 #define _STEAM_CALLBACK_HELPER( _1, _2, SELECTED, ... )		_STEAM_CALLBACK_##SELECTED
 #define _STEAM_CALLBACK_SELECT( X, Y )						_STEAM_CALLBACK_HELPER X Y
@@ -204,18 +75,17 @@ inline bool CSteamAPIContext::Init()
 	} m_steamcallback_ ## func ; void func( param *pParam )
 #define _STEAM_CALLBACK_4( _, thisclass, func, param, var ) \
 	CCallback< thisclass, param > var; void func( param *pParam )
+#define _STEAM_CALLBACK_GS( _, thisclass, func, param, var ) \
+	CCallback< thisclass, param, true > var; void func( param *pParam )
 
+#ifndef API_GEN
 
-//-----------------------------------------------------------------------------
-// Purpose: maps a steam async call result to a class member function
-//			template params: T = local class, P = parameter struct
-//-----------------------------------------------------------------------------
 template< class T, class P >
 inline CCallResult<T, P>::CCallResult()
 {
 	m_hAPICall = k_uAPICallInvalid;
-	m_pObj = NULL;
-	m_Func = NULL;
+	m_pObj = nullptr;
+	m_Func = nullptr;
 	m_iCallback = P::k_iCallback;
 }
 
@@ -247,7 +117,6 @@ inline void CCallResult<T, P>::Cancel()
 		SteamAPI_UnregisterCallResult( this, m_hAPICall );
 		m_hAPICall = k_uAPICallInvalid;
 	}
-
 }
 
 template< class T, class P >
@@ -273,15 +142,9 @@ inline void CCallResult<T, P>::Run( void *pvParam, bool bIOFailure, SteamAPICall
 	}
 }
 
-
-//-----------------------------------------------------------------------------
-// Purpose: maps a steam callback to a class member function
-//			template params: T = local class, P = parameter struct,
-//			bGameserver = listen for gameserver callbacks instead of client callbacks
-//-----------------------------------------------------------------------------
 template< class T, class P, bool bGameserver >
 inline CCallback< T, P, bGameserver >::CCallback( T *pObj, func_t func )
-	: m_pObj( NULL ), m_Func( NULL )
+	: m_pObj( nullptr ), m_Func( nullptr )
 {
 	if ( bGameserver )
 	{
@@ -318,17 +181,226 @@ inline void CCallback< T, P, bGameserver >::Run( void *pvParam )
 	(m_pObj->*m_Func)((P *)pvParam);
 }
 
+#endif // #ifndef API_GEN
 
-#if defined(USE_BREAKPAD_HANDLER) || defined(STEAM_API_EXPORTS)
-// this should be called before the game initialized the steam APIs
-// pchDate should be of the format "Mmm dd yyyy" (such as from the __ DATE __ macro )
-// pchTime should be of the format "hh:mm:ss" (such as from the __ TIME __ macro )
-// bFullMemoryDumps (Win32 only) -- writes out a uuid-full.dmp in the client/dumps folder
-// pvContext-- can be NULL, will be the void * context passed into m_pfnPreMinidumpCallback
-// PFNPreMinidumpCallback m_pfnPreMinidumpCallback   -- optional callback which occurs just before a .dmp file is written during a crash.  Applications can hook this to allow adding additional information into the .dmp comment stream.
-S_API void S_CALLTYPE SteamAPI_UseBreakpadCrashHandler( char const *pchVersion, char const *pchDate, char const *pchTime, bool bFullMemoryDumps, void *pvContext, PFNPreMinidumpCallback m_pfnPreMinidumpCallback );
-S_API void S_CALLTYPE SteamAPI_SetBreakpadAppID( uint32 unAppID );
+// structure that contains client callback data
+// see callbacks documentation for more details
+#if defined( VALVE_CALLBACK_PACK_SMALL )
+#pragma pack( push, 4 )
+#elif defined( VALVE_CALLBACK_PACK_LARGE )
+#pragma pack( push, 8 )
+#else
+#error steam_api_common.h should define VALVE_CALLBACK_PACK_xxx
+#endif 
+
+/// Internal structure used in manual callback dispatch
+struct CallbackMsg_t
+{
+	HSteamUser m_hSteamUser; // Specific user to whom this callback applies.
+	int m_iCallback; // Callback identifier.  (Corresponds to the k_iCallback enum in the callback structure.)
+	uint8 *m_pubParam; // Points to the callback structure
+	int m_cubParam; // Size of the data pointed to by m_pubParam
+};
+#pragma pack( pop )
+
+// Macros to define steam callback structures.  Used internally for debugging
+#ifdef STEAM_CALLBACK_INSPECTION_ENABLED
+	#include "../../clientdll/steam_api_callback_inspection.h"
+#else
+	#define STEAM_CALLBACK_BEGIN( callbackname, callbackid )	struct callbackname { enum { k_iCallback = callbackid };
+	#define STEAM_CALLBACK_MEMBER( varidx, vartype, varname )	vartype varname ; 
+	#define STEAM_CALLBACK_MEMBER_ARRAY( varidx, vartype, varname, varcount ) vartype varname [ varcount ];
+	#define STEAM_CALLBACK_END(nArgs) };
 #endif
 
+// Forward declare all of the Steam interfaces.  (Do we really need to do this?)
+class ISteamClient;
+class ISteamUser;
+class ISteamGameServer;
+class ISteamFriends;
+class ISteamUtils;
+class ISteamMatchmaking;
+class ISteamContentServer;
+class ISteamMatchmakingServers;
+class ISteamUserStats;
+class ISteamApps;
+class ISteamNetworking;
+class ISteamRemoteStorage;
+class ISteamScreenshots;
+class ISteamMusic;
+class ISteamMusicRemote;
+class ISteamGameServerStats;
+class ISteamPS3OverlayRender;
+class ISteamHTTP;
+class ISteamController;
+class ISteamUGC;
+class ISteamAppList;
+class ISteamHTMLSurface;
+class ISteamInventory;
+class ISteamVideo;
+class ISteamParentalSettings;
+class ISteamGameSearch;
+class ISteamInput;
+class ISteamParties;
+class ISteamRemotePlay;
 
-#endif // STEAM_API_INTERNAL_H
+//-----------------------------------------------------------------------------
+// Purpose: Base values for callback identifiers, each callback must
+//			have a unique ID.
+//-----------------------------------------------------------------------------
+enum { k_iSteamUserCallbacks = 100 };
+enum { k_iSteamGameServerCallbacks = 200 };
+enum { k_iSteamFriendsCallbacks = 300 };
+enum { k_iSteamBillingCallbacks = 400 };
+enum { k_iSteamMatchmakingCallbacks = 500 };
+enum { k_iSteamContentServerCallbacks = 600 };
+enum { k_iSteamUtilsCallbacks = 700 };
+enum { k_iSteamAppsCallbacks = 1000 };
+enum { k_iSteamUserStatsCallbacks = 1100 };
+enum { k_iSteamNetworkingCallbacks = 1200 };
+enum { k_iSteamNetworkingSocketsCallbacks = 1220 };
+enum { k_iSteamNetworkingMessagesCallbacks = 1250 };
+enum { k_iSteamNetworkingUtilsCallbacks = 1280 };
+enum { k_iSteamRemoteStorageCallbacks = 1300 };
+enum { k_iSteamGameServerItemsCallbacks = 1500 };
+enum { k_iSteamGameCoordinatorCallbacks = 1700 };
+enum { k_iSteamGameServerStatsCallbacks = 1800 };
+enum { k_iSteam2AsyncCallbacks = 1900 };
+enum { k_iSteamGameStatsCallbacks = 2000 };
+enum { k_iSteamHTTPCallbacks = 2100 };
+enum { k_iSteamScreenshotsCallbacks = 2300 };
+// NOTE: 2500-2599 are reserved
+enum { k_iSteamStreamLauncherCallbacks = 2600 };
+enum { k_iSteamControllerCallbacks = 2800 };
+enum { k_iSteamUGCCallbacks = 3400 };
+enum { k_iSteamStreamClientCallbacks = 3500 };
+enum { k_iSteamAppListCallbacks = 3900 };
+enum { k_iSteamMusicCallbacks = 4000 };
+enum { k_iSteamMusicRemoteCallbacks = 4100 };
+enum { k_iSteamGameNotificationCallbacks = 4400 }; 
+enum { k_iSteamHTMLSurfaceCallbacks = 4500 };
+enum { k_iSteamVideoCallbacks = 4600 };
+enum { k_iSteamInventoryCallbacks = 4700 };
+enum { k_ISteamParentalSettingsCallbacks = 5000 };
+enum { k_iSteamGameSearchCallbacks = 5200 };
+enum { k_iSteamPartiesCallbacks = 5300 };
+enum { k_iSteamSTARCallbacks = 5500 };
+enum { k_iSteamRemotePlayCallbacks = 5700 };
+enum { k_iSteamChatCallbacks = 5900 };
+// NOTE: Internal "IClientXxx" callback IDs go in clientenums.h
+
+#ifdef _MSVC_VER
+#pragma warning( pop )
+#endif
+
+// Macros used to annotate various Steamworks interfaces to generate the
+// flat API
+#ifdef API_GEN
+# define STEAM_CLANG_ATTR(ATTR) __attribute__((annotate( ATTR )))
+#else
+# define STEAM_CLANG_ATTR(ATTR)
+#endif
+
+#define STEAM_OUT_STRUCT() STEAM_CLANG_ATTR( "out_struct: ;" )
+#define STEAM_OUT_STRING() STEAM_CLANG_ATTR( "out_string: ;" )
+#define STEAM_OUT_ARRAY_CALL(COUNTER,FUNCTION,PARAMS) STEAM_CLANG_ATTR( "out_array_call:" #COUNTER "," #FUNCTION "," #PARAMS ";" )
+#define STEAM_OUT_ARRAY_COUNT(COUNTER, DESC) STEAM_CLANG_ATTR( "out_array_count:" #COUNTER  ";desc:" #DESC )
+#define STEAM_ARRAY_COUNT(COUNTER) STEAM_CLANG_ATTR( "array_count:" #COUNTER ";" )
+#define STEAM_ARRAY_COUNT_D(COUNTER, DESC) STEAM_CLANG_ATTR( "array_count:" #COUNTER ";desc:" #DESC )
+#define STEAM_BUFFER_COUNT(COUNTER) STEAM_CLANG_ATTR( "buffer_count:" #COUNTER ";" )
+#define STEAM_OUT_BUFFER_COUNT(COUNTER) STEAM_CLANG_ATTR( "out_buffer_count:" #COUNTER ";" )
+#define STEAM_OUT_STRING_COUNT(COUNTER) STEAM_CLANG_ATTR( "out_string_count:" #COUNTER ";" )
+#define STEAM_DESC(DESC) STEAM_CLANG_ATTR("desc:" #DESC ";")
+#define STEAM_CALL_RESULT(RESULT_TYPE) STEAM_CLANG_ATTR("callresult:" #RESULT_TYPE ";")
+#define STEAM_CALL_BACK(RESULT_TYPE) STEAM_CLANG_ATTR("callback:" #RESULT_TYPE ";")
+#define STEAM_FLAT_NAME(NAME) STEAM_CLANG_ATTR("flat_name:" #NAME ";")
+
+// CSteamAPIContext encapsulates the Steamworks API global accessors into
+// a single object.
+//
+// DEPRECATED: Used the global interface accessors instead!
+//
+// This will be removed in a future iteration of the SDK
+class CSteamAPIContext
+{
+public:
+	CSteamAPIContext() { Clear(); }
+	inline void Clear() { memset( this, 0, sizeof(*this) ); }
+	inline bool Init(); // NOTE: This is defined in steam_api.h, to avoid this file having to include everything
+	ISteamClient*		SteamClient() const					{ return m_pSteamClient; }
+	ISteamUser*			SteamUser() const					{ return m_pSteamUser; }
+	ISteamFriends*		SteamFriends() const				{ return m_pSteamFriends; }
+	ISteamUtils*		SteamUtils() const					{ return m_pSteamUtils; }
+	ISteamMatchmaking*	SteamMatchmaking() const			{ return m_pSteamMatchmaking; }
+	ISteamGameSearch*	SteamGameSearch() const				{ return m_pSteamGameSearch; }
+	ISteamUserStats*	SteamUserStats() const				{ return m_pSteamUserStats; }
+	ISteamApps*			SteamApps() const					{ return m_pSteamApps; }
+	ISteamMatchmakingServers* SteamMatchmakingServers() const { return m_pSteamMatchmakingServers; }
+	ISteamNetworking*	SteamNetworking() const				{ return m_pSteamNetworking; }
+	ISteamRemoteStorage* SteamRemoteStorage() const			{ return m_pSteamRemoteStorage; }
+	ISteamScreenshots*	SteamScreenshots() const			{ return m_pSteamScreenshots; }
+	ISteamHTTP*			SteamHTTP() const					{ return m_pSteamHTTP; }
+	ISteamController*	SteamController() const				{ return m_pController; }
+	ISteamUGC*			SteamUGC() const					{ return m_pSteamUGC; }
+	ISteamAppList*		SteamAppList() const				{ return m_pSteamAppList; }
+	ISteamMusic*		SteamMusic() const					{ return m_pSteamMusic; }
+	ISteamMusicRemote*	SteamMusicRemote() const			{ return m_pSteamMusicRemote; }
+	ISteamHTMLSurface*	SteamHTMLSurface() const			{ return m_pSteamHTMLSurface; }
+	ISteamInventory*	SteamInventory() const				{ return m_pSteamInventory; }
+	ISteamVideo*		SteamVideo() const					{ return m_pSteamVideo; }
+	ISteamParentalSettings* SteamParentalSettings() const	{ return m_pSteamParentalSettings; }
+	ISteamInput*		SteamInput() const					{ return m_pSteamInput; }
+private:
+	ISteamClient		*m_pSteamClient;
+	ISteamUser			*m_pSteamUser;
+	ISteamFriends		*m_pSteamFriends;
+	ISteamUtils			*m_pSteamUtils;
+	ISteamMatchmaking	*m_pSteamMatchmaking;
+	ISteamGameSearch	*m_pSteamGameSearch;
+	ISteamUserStats		*m_pSteamUserStats;
+	ISteamApps			*m_pSteamApps;
+	ISteamMatchmakingServers *m_pSteamMatchmakingServers;
+	ISteamNetworking	*m_pSteamNetworking;
+	ISteamRemoteStorage *m_pSteamRemoteStorage;
+	ISteamScreenshots	*m_pSteamScreenshots;
+	ISteamHTTP			*m_pSteamHTTP;
+	ISteamController	*m_pController;
+	ISteamUGC			*m_pSteamUGC;
+	ISteamAppList		*m_pSteamAppList;
+	ISteamMusic			*m_pSteamMusic;
+	ISteamMusicRemote	*m_pSteamMusicRemote;
+	ISteamHTMLSurface	*m_pSteamHTMLSurface;
+	ISteamInventory		*m_pSteamInventory;
+	ISteamVideo			*m_pSteamVideo;
+	ISteamParentalSettings *m_pSteamParentalSettings;
+	ISteamInput			*m_pSteamInput;
+};
+
+class CSteamGameServerAPIContext
+{
+public:
+	CSteamGameServerAPIContext() { Clear(); }
+	inline void Clear() { memset( this, 0, sizeof(*this) ); }
+	inline bool Init(); // NOTE: This is defined in steam_gameserver.h, to avoid this file having to include everything
+
+	ISteamClient *SteamClient() const					{ return m_pSteamClient; }
+	ISteamGameServer *SteamGameServer() const			{ return m_pSteamGameServer; }
+	ISteamUtils *SteamGameServerUtils() const			{ return m_pSteamGameServerUtils; }
+	ISteamNetworking *SteamGameServerNetworking() const	{ return m_pSteamGameServerNetworking; }
+	ISteamGameServerStats *SteamGameServerStats() const	{ return m_pSteamGameServerStats; }
+	ISteamHTTP *SteamHTTP() const						{ return m_pSteamHTTP; }
+	ISteamInventory *SteamInventory() const				{ return m_pSteamInventory; }
+	ISteamUGC *SteamUGC() const							{ return m_pSteamUGC; }
+
+private:
+	ISteamClient				*m_pSteamClient;
+	ISteamGameServer			*m_pSteamGameServer;
+	ISteamUtils					*m_pSteamGameServerUtils;
+	ISteamNetworking			*m_pSteamGameServerNetworking;
+	ISteamGameServerStats		*m_pSteamGameServerStats;
+	ISteamHTTP					*m_pSteamHTTP;
+	ISteamInventory				*m_pSteamInventory;
+	ISteamUGC					*m_pSteamUGC;
+};
+
+

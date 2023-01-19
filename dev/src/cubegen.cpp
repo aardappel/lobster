@@ -926,6 +926,50 @@ nfr("cg_average_surface_color", "world", "R:voxels", "F}:3II", "",
         Push(sp, nvol);
 	});
 
+nfr("cg_average_face_colors", "world", "R:voxels", "F]",
+    "returns a vector of 4 floats per face: color and alpha",
+	[](StackPtr &sp, VM &vm) {
+		auto &v = GetVoxels(Pop(sp));
+        auto vec = vm.NewVec(0, 6 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
+        auto &palette = palettes[v.palette_idx].colors;
+        int3 dims[] = { int3(0, 1, 2), int3(0, 2, 1), int3(1, 2, 0) };
+		for (int f = 0; f < 6; f++) {
+            auto dim = dims[f % 3];
+            auto positive_dir = f < 3;
+            float3 col(0.0f);
+            int ntransparent = 0;
+            int nsurf = 0;
+            // XY iterate the face, Z goes into the face.
+            for (int x = 0; x < v.grid.dim[dim[0]]; x++) {
+                for (int y = 0; y < v.grid.dim[dim[1]]; y++) {
+                    auto dimz = v.grid.dim[dim[2]];
+                    for (int z = 0; z < dimz; z++) {
+                        auto pos = int3_0;
+                        pos[dim[0]] = x;
+                        pos[dim[1]] = y;
+                        pos[dim[2]] = positive_dir ? z : dimz - 1 - z;
+                        uint8_t c = v.grid.Get(pos);
+                        if (c == transparant) {
+                            ntransparent++;
+                        } else {
+                            col += from_srgb(float3(palette[c].xyz()) / 255.0f);
+                            nsurf++;
+                            break;  // Hit surface, we can stop this Z traversal.
+                        }
+                    }
+				}
+			}
+            if (nsurf) col /= float(nsurf);
+            auto vol = v.grid.dim.volume();
+            auto alpha = float(vol - ntransparent) / float(vol);
+            vec->Push(vm, col.x);
+            vec->Push(vm, col.y);
+            vec->Push(vm, col.z);
+            vec->Push(vm, alpha);
+        }
+        Push(sp, vec);
+	});
+
 nfr("cg_num_solid", "world", "R:voxels", "I", "",
     [](StackPtr &sp, VM &) {
         auto &v = GetVoxels(Pop(sp));
