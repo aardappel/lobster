@@ -781,26 +781,32 @@ struct TypeChecker {
             udt.superclass.set_resolvedtype(ResolveTypeVars(udt.superclass.giventype, &errn));
         }
         if (!udt.superclass.giventype.utr.Null() && !predeclaration) {
-            // This points to a generic version of the superclass of this class.
-            // See if we can find a matching specialization instead.
-            for (auto sti = udt.superclass.giventype.utr->spec_udt->udt->first; sti;
-                 sti = sti->next) {
-                for (size_t i = 0; i < sti->fields.size(); i++) {
-                    if (!sti->fields[i].utype()->Equal(*udt.fields[i].utype(), true)) {
-                        goto fail;
+            // This may point to a generic version of the superclass of this class.
+            auto firstspec = udt.superclass.giventype.utr->spec_udt->udt->first;
+            // Unless there's only a single bound option..
+            if (firstspec->next || !firstspec->FullyBound()) {
+                // See if we can find a matching specialization instead.
+                Field *failed_field = nullptr;
+                for (auto sti = firstspec; sti; sti = sti->next) {
+                    for (size_t i = 0; i < sti->fields.size(); i++) {
+                        if (!sti->fields[i].utype()->Equal(*udt.fields[i].utype(), true)) {
+                            failed_field = &sti->fields[i];
+                            goto fail;
+                        }
                     }
+                    {
+                        auto nt = st.NewSpecUDT(sti);
+                        udt.superclass.giventype.utr = nt;
+                        udt.superclass.set_resolvedtype(&sti->thistype);
+                        goto done;
+                    }
+                    fail:;
                 }
-                {
-                    auto nt = st.NewSpecUDT(sti);
-                    udt.superclass.giventype.utr = nt;
-                    udt.superclass.set_resolvedtype(&sti->thistype);
-                    goto done;
-                }
-                fail:;
+                Error(errn, "can't find specialized superclass (that matches field ",
+                      Q(failed_field->id->name), ") for ", Q(udt.name));
+                //udt.superclass = GivenResolve();
+                done:;
             }
-            Error(errn, "can't find specialized superclass for ", Q(udt.name));
-            //udt.superclass = GivenResolve();
-            done:;
         }
         if (!udt.superclass.resolved_null() && !udt.is_generic) {
             // If this type has fields inherited from the superclass that refer to the
