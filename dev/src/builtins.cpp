@@ -1366,6 +1366,13 @@ nfr("set_output_level", "level", "I", "",
         return NilVal();
     });
 
+nfr("set_exit_code", "code", "I", "",
+    "this will be returned when run as a console application",
+    [](StackPtr &, VM &vm, Value &x) {
+        vm.evalret.second = x.ival();
+        return NilVal();
+    });
+
 nfr("command_line_arguments", "", "", "S]",
     "",
     [](StackPtr &, VM &vm) {

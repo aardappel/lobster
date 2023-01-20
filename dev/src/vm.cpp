@@ -476,7 +476,7 @@ void VM::VMAssert(const char *what)  {
 
 void VM::EndEval(StackPtr &, const Value &ret, const TypeInfo &ti) {
     TerminateWorkers();
-    ret.ToString(*this, evalret, ti, programprintprefs);
+    ret.ToString(*this, evalret.first, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
     for (auto s : constant_strings) {
         if (s) s->Dec(*this);

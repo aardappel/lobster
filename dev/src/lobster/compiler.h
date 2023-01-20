@@ -23,16 +23,16 @@ extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringso
                     string &bytecode, string *parsedump, string *pakfile,
                     bool return_value, int runtime_checks);
 
-extern string RunTCC(NativeRegistry &nfr,
-                     string_view bytecode_buffer,
-                     string_view fn,
-                     const char *object_name /* save instead of run if non-null */,
-                     vector<string> &&program_args,
-                     TraceMode trace,
-                     bool compile_only,
-                     string &error,
-                     int runtime_checks,
-                     bool dump_leaks);
+extern pair<string, iint> RunTCC(NativeRegistry &nfr,
+                          string_view bytecode_buffer,
+                          string_view fn,
+                          const char *object_name /* save instead of run if non-null */,
+                          vector<string> &&program_args,
+                          TraceMode trace,
+                          bool compile_only,
+                          string &error,
+                          int runtime_checks,
+                          bool dump_leaks);
 
 extern bool LoadPakDir(const char *lpak);
 extern bool LoadByteCode(string &bytecode);

@@ -218,18 +218,19 @@ int main(int argc, char* argv[]) {
         }
         if (jit_mode) {
             string error;
-            RunTCC(nfr,
-                   bytecode_buffer,
-                   !fn.empty() ? fn : "",
-                   tcc_out ? "tcc_out.o" : nullptr,
-                   std::move(program_args),
-                   trace,
-                   compile_only,
-                   error,
-                   runtime_checks,
-                   !non_interactive_test);
+            auto ret = RunTCC(nfr,
+                              bytecode_buffer,
+                              !fn.empty() ? fn : "",
+                              tcc_out ? "tcc_out.o" : nullptr,
+                              std::move(program_args),
+                              trace,
+                              compile_only,
+                              error,
+                              runtime_checks,
+                              !non_interactive_test);
             if (!error.empty())
                 THROW_OR_ABORT(error);
+            return (int)ret.second;
         } else {
             string sd;
             auto err = ToCPP(nfr, sd, bytecode_buffer, true, runtime_checks, "nullptr");
