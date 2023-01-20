@@ -1359,6 +1359,13 @@ nfr("set_console", "on", "B", "",
         return NilVal();
     });
 
+nfr("set_output_level", "level", "I", "",
+    "0 = debug, 1 = verbose, 2 = warn (default), 3 = error, 4 = program",
+    [](StackPtr &, VM &, Value &x) {
+        min_output_level = (OutputType)x.intval();
+        return NilVal();
+    });
+
 nfr("command_line_arguments", "", "", "S]",
     "",
     [](StackPtr &, VM &vm) {

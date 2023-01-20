@@ -148,11 +148,10 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
     return Value(ok);
 }
 
-Value UpdateBufferObject(VM &vm, Value buf, const void *data, size_t len,
-                             ptrdiff_t offset, string_view name, bool ssbo) {
+Value UpdateBindBufferObject(VM &vm, Value buf, const void *data, size_t len,
+                             ptrdiff_t offset, string_view name, bool ssbo, bool dyn) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
-    (void)name; // TODO: Remove name parameter - it's only used in bind, not update
-    bo = UpdateBufferObject(bo, data, len, offset, ssbo);
+    bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn);
     if (!bo) vm.BuiltinError("bufferobject creation failed");
     return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));
 }
@@ -944,7 +943,7 @@ nfr("gl_update_buffer_object", "name,value,ssbo,existing", "SSIRk:bufferobject?"
         // TODO: Remove name, shader association is done in gl_bind_buffer_object
         return UpdateBufferObject(vm, buf, vec.sval()->strv().data(),
                                       vec.sval()->strv().size(), -1,
-                                      name.sval()->strv(), ssbo.True());
+                                      name.sval()->strv(), ssbo.True(), false);
     });
 
 nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",

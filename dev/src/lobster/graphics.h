@@ -21,4 +21,5 @@ extern lobster::ResourceType shader_type;
 extern lobster::Value UpdateBufferObject(lobster::VM &vm, lobster::Value buf, const void *data,
                                              size_t len, ptrdiff_t offset, string_view name, bool ssbo);
 extern lobster::Value BindBufferObject(lobster::VM &vm, lobster::Value buf, const void *data,
-                                             size_t len, ptrdiff_t offset, string_view name, bool ssbo);
+                                             size_t len, ptrdiff_t offset, string_view name,
+                                             bool ssbo, bool dyn);
