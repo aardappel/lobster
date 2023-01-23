@@ -1254,7 +1254,7 @@ nfr("hash", "v", "F}", "I",
     });
 
 nfr("program_name", "", "", "S",
-    "returns the name of the main program (e.g. \"foo.lobster\".",
+    "returns the name of the main program (e.g. \"foo.lobster\"), \"\" if running from lpak.",
     [](StackPtr &, VM &vm) {
         return Value(vm.NewString(vm.GetProgramName()));
     });
@@ -1363,6 +1363,13 @@ nfr("set_output_level", "level", "I", "",
     "0 = debug, 1 = verbose, 2 = warn (default), 3 = error, 4 = program",
     [](StackPtr &, VM &, Value &x) {
         min_output_level = (OutputType)x.intval();
+        return NilVal();
+    });
+
+nfr("set_exit_code", "code", "I", "",
+    "this will be returned when run as a console application",
+    [](StackPtr &, VM &vm, Value &x) {
+        vm.evalret.second = x.ival();
         return NilVal();
     });
 

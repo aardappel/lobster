@@ -365,16 +365,16 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     }
 }
 
-string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
-              const char *object_name, vector<string> &&program_args, TraceMode trace,
-              bool compile_only, string &error, int runtime_checks, bool dump_leaks) {
+pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
+                          const char *object_name, vector<string> &&program_args, TraceMode trace,
+                          bool compile_only, string &error, int runtime_checks, bool dump_leaks) {
     string sd;
     error = ToCPP(nfr, sd, bytecode_buffer, false, runtime_checks, "nullptr");
-    if (!error.empty()) return "";
+    if (!error.empty()) return { "", 0 };
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
         auto start_time = SecondsSinceStart();
-        string ret;
+        pair<string, iint> ret;
         auto ok = RunC(sd.c_str(), object_name, error, vm_ops_jit_table, export_names,
             [&](void **exports) -> bool {
                 LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
@@ -398,10 +398,8 @@ string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
                 fclose(f);
             }
             error = "libtcc JIT error: " + string(fn) + ":\n" + error;
-            return "";
-        } else {
-            return ret;
         }
+        return ret;
     #else
         (void)fn;
         (void)object_name;
@@ -410,7 +408,7 @@ string RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
         (void)compile_only;
         (void)dump_leaks;
         error = "cannot JIT code: libtcc not enabled";
-        return "";
+        return { "", 0 };
     #endif
 }
 
@@ -429,7 +427,7 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
         auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, nullptr, std::move(args),
                           TraceMode::OFF, false, error, runtime_checks, true);
         if (!error.empty()) THROW_OR_ABORT(error);
-        Push(parent_sp, Value(parent_vm.NewString(ret)));
+        Push(parent_sp, Value(parent_vm.NewString(ret.first)));
         return NilVal();
     }
     #ifdef USE_EXCEPTION_HANDLING

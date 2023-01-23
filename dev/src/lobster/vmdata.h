@@ -846,7 +846,7 @@ struct VM : VMArgs {
 
     PrintPrefs programprintprefs { 10, 100000, false, -1 };
     const type_elem_t *typetable = nullptr;
-    string evalret;
+    pair<string, iint> evalret;
 
     int currentline = -1;
     iint maxsp = -1;
