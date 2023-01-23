@@ -148,8 +148,8 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
     return Value(ok);
 }
 
-Value UpdateBindBufferObject(VM &vm, Value buf, const void *data, size_t len,
-                             ptrdiff_t offset, string_view name, bool ssbo, bool dyn) {
+Value UpdateBufferObject(VM &vm, Value buf, const void *data, size_t len,
+                             ptrdiff_t offset, bool ssbo, bool dyn) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
     bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn);
     if (!bo) vm.BuiltinError("bufferobject creation failed");
@@ -934,16 +934,16 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("gl_update_buffer_object", "name,value,ssbo,existing", "SSIRk:bufferobject?", "R:bufferobject?",
+nfr("gl_update_buffer_object", "name,value,ssbo,existing", "SIRk:bufferobject?", "R:bufferobject?",
     "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo, Value &buf) {
+    [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &buf) {
         TestGL(vm);
         // TODO: Remove name, shader association is done in gl_bind_buffer_object
         return UpdateBufferObject(vm, buf, vec.sval()->strv().data(),
                                       vec.sval()->strv().size(), -1,
-                                      name.sval()->strv(), ssbo.True(), false);
+                                      ssbo.True(), false);
     });
 
 nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",
