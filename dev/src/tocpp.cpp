@@ -507,7 +507,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     }
 
     if (cpp) sd += "\nstatic";
-    else sd += "\nextern ";
+    else sd += "\nextern";
     sd += " const fun_base_t vtables[] = {\n";
     for (auto id : *bcf->vtables()) {
         sd += "    ";

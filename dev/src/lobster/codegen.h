@@ -194,7 +194,7 @@ struct CodeGen  {
         // Reserve space and index for all vtables.
         for (auto udt : st.udttable) {
             udt->vtable_start = (int)vtables.size();
-            vtables.insert(vtables.end(), udt->dispatch.size(), -1);
+            vtables.insert(vtables.end(), udt->dispatch_table.size(), -1);
         }
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
@@ -285,7 +285,7 @@ struct CodeGen  {
 
         // Now fill in the vtables.
         for (auto udt : st.udttable) {
-            for (auto [i, de] : enumerate(udt->dispatch)) {
+            for (auto [i, de] : enumerate(udt->dispatch_table)) {
                 if (de.sf) {
                     assert(de.sf->subbytecodestart);
                     vtables[udt->vtable_start + i] = de.sf->subbytecodestart;
@@ -466,7 +466,7 @@ struct CodeGen  {
             // doesn't necessarily point to the dispatch root (which may not even have an sf).
             auto dispatch_type = call.children[0]->exptype;
             assert(IsUDT(dispatch_type->t));
-            auto &de = dispatch_type->udt->dispatch[call.vtable_idx];
+            auto &de = dispatch_type->udt->dispatch_table[call.vtable_idx];
             assert(de.is_dispatch_root && !de.returntype.Null() && de.subudts_size);
             if (de.returned_thru_to_max >= 0) {
                 // This works because all overloads of a DD sit under a single Function.
