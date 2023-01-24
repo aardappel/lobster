@@ -52,6 +52,7 @@ CPPSRCS= \
 	../src/glshader.cpp \
 	../src/glsystem.cpp \
 	../src/gltexture.cpp \
+	../src/gltimequery.cpp \
 	../src/glvr.cpp \
 	../src/graphics.cpp \
 	../src/imbind.cpp \

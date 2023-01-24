@@ -32,6 +32,7 @@ bool graphics_initialized = false;
 ResourceType mesh_type = { "mesh" };
 ResourceType texture_type = { "texture" };
 ResourceType shader_type = { "shader" };
+ResourceType timequery_type = { "timequery" };
 ResourceType buffer_object_type = { "bufferobject" };
 
 Mesh &GetMesh(Value &res) {
@@ -46,6 +47,9 @@ Shader &GetShader(Value &res) {
 }
 BufferObject &GetBufferObject(Value &res) {
     return GetResourceDec<BufferObject>(res, &buffer_object_type);
+}
+TimeQuery &GetTimeQuery(Value &res) {
+    return GetResourceDec<TimeQuery>(res, &timequery_type);
 }
 
 // Should be safe to call even if it wasn't initialized partially or at all.
@@ -940,7 +944,6 @@ nfr("gl_update_buffer_object", "name,value,ssbo,existing", "SIRk:bufferobject?",
     " returns buffer id or 0 on error.",
     [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &buf) {
         TestGL(vm);
-        // TODO: Remove name, shader association is done in gl_bind_buffer_object
         return UpdateBufferObject(vm, buf, vec.sval()->strv().data(),
                                       vec.sval()->strv().size(), -1,
                                       ssbo.True(), false);
@@ -1221,5 +1224,29 @@ nfr("gl_dropped_file", "", "", "S",
         return Value(vm.NewString(GetDroppedFile()));
     });
 
-}  // AddGraphics
+nfr("gl_create_time_query", "", "", "R:timequery",
+    "creates a time query object used for profiling GPU events",
+    [](StackPtr &, VM &vm) {
+        TestGL(vm);
+        return Value(vm.NewResource(&timequery_type, new TimeQuery()));
+    });
 
+nfr("gl_start_time_query", "tq", "R:timequery?", "",
+    "starts the time query",
+    [](StackPtr &, VM &vm, Value &tq) {
+        if (!tq.True()) return NilVal();
+        TestGL(vm);
+        GetTimeQuery(tq).Start();
+        return NilVal();
+    });
+
+nfr("gl_stop_time_query", "tq", "R:timequery?", "F",
+    "stops the time query and returns the result",
+    [](StackPtr &, VM &vm, Value &tq) {
+        if (!tq.True()) return NilVal();
+        TestGL(vm);
+        GetTimeQuery(tq).Stop();
+        return Value(GetTimeQuery(tq).Evaluate());
+    });
+
+}  // AddGraphics

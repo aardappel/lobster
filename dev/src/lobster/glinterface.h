@@ -90,6 +90,19 @@ struct Shader : lobster::Resource {
     }
 };
 
+struct TimeQuery : lobster::Resource {
+    bool active = false;
+    uint32_t back_buffer_index = 0u;
+    uint32_t front_buffer_index = 0u;
+    uint32_t query_buffer_ids[2][2];
+
+    ~TimeQuery();
+
+    void Start();
+    void Stop();
+    double Evaluate();
+};
+
 struct Textured {
     vector<Texture> textures;
 
