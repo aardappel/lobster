@@ -48,12 +48,6 @@ void TimeQuery::Start() {
 void TimeQuery::Stop() {
     if (!active) return;
     glQueryCounter(query_buffer_ids[back_buffer_index][1], GL_TIMESTAMP);
-}
-
-double TimeQuery::Evaluate() {
-    if (!active) return 0.0;
-
-    // TODO: average over 16-32 frames
 
     // Retrieve timings
     GLuint64 start = 0;
@@ -66,5 +60,13 @@ double TimeQuery::Evaluate() {
     back_buffer_index = 1 - back_buffer_index;
 
     // Convert into ms
-    return (end - start) / 1000000.0;
+    float timing = (end - start) / 1000000.0;
+    timing_average_buffer[timing_average_buffer_sample] = timing;
+    // Collect & average samples
+    if (timing_average_buffer_sample + 1u == TIME_QUERY_SAMPLE_COUNT) {
+        float sum = 0.0;
+        for (uint32_t i = 0u; i < TIME_QUERY_SAMPLE_COUNT; ++i) sum += timing_average_buffer[i];
+        timing_average_result = sum / float(TIME_QUERY_SAMPLE_COUNT);
+    }
+    timing_average_buffer_sample = (timing_average_buffer_sample + 1u) % TIME_QUERY_SAMPLE_COUNT;
 }

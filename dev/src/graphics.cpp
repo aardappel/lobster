@@ -1246,7 +1246,7 @@ nfr("gl_stop_time_query", "tq", "R:timequery?", "F",
         if (!tq.True()) return NilVal();
         TestGL(vm);
         GetTimeQuery(tq).Stop();
-        return Value(GetTimeQuery(tq).Evaluate());
+        return Value(GetTimeQuery(tq).timing_average_result);
     });
 
 }  // AddGraphics
