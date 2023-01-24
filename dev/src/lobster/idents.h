@@ -154,9 +154,21 @@ struct GivenResolve {
         return resolvedtype_.Null();
     }
 
-    void set_resolvedtype(TypeRef type) {
+    // Give it a default value that is allowed to be a typevar.
+    void set_resolvedtype_default(TypeRef type) {
         resolvedtype_ = type;
-        if (!type.Null()) was_resolved = true;
+        if (!type.Null() && !type->HasValueType(V_TYPEVAR)) {
+            was_resolved = true;
+        }
+    }
+
+    // Must be a resolved type.
+    void set_resolvedtype(TypeRef type){
+        resolvedtype_ = type;
+        if (!type.Null()) {
+            assert(!type->HasValueType(V_TYPEVAR));
+            was_resolved = true;
+        }
     }
 
     UDT *resolved_udt() const {
@@ -252,7 +264,7 @@ struct UDT : Named {
     // Multiple specializations of a method may be in here.
     // Methods whose dispatch can be determined statically for the current program do not end up
     // in here.
-    vector<DispatchEntry> dispatch;
+    vector<DispatchEntry> dispatch_table;
 
     UDT(string_view _name, int _idx, bool is_struct)
         : Named(_name, _idx), is_struct(is_struct), unspecialized(this),
@@ -823,10 +835,21 @@ struct SymbolTable {
         return *udt;
     }
 
+    // Distance to the exact type "super".
     int SuperDistance(const UDT *super, const UDT *subclass) {
         int dist = 0;
         for (auto t = subclass; t; t = t->superclass.resolved_udt()) {
             if (t == super) return dist;
+            dist++;
+        }
+        return -1;
+    }
+
+    // Distance to any specializations of "super".
+    int SpecializedSuperDistance(const UDT *super, const UDT *subclass) {
+        int dist = 0;
+        for (auto t = subclass; t; t = t->superclass.resolved_udt()) {
+            for (auto s = super->first; s; s = s->next) if (t == s) return dist;
             dist++;
         }
         return -1;

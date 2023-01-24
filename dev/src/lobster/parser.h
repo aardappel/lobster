@@ -456,7 +456,7 @@ struct Parser {
             // is_generic is still false, or it is already true if theres other generics.
             if (st.IsGeneric(type)) udt->is_generic = true;
             udt->unspecialized.specializers.push_back(&*type.utr);
-            g.set_resolvedtype(type.utr);
+            g.set_resolvedtype_default(type.utr);
         }
         udt->unspecialized.is_generic = udt->is_generic;
         parent_list->Add(new UDTRef(line, udt, udt->predeclaration));

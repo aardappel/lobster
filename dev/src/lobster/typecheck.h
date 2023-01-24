@@ -1302,7 +1302,7 @@ struct TypeChecker {
         Function &f = *csf->parent;
         // We must assume the instance may dynamically be different, so go thru vtable.
         // See if we already have a vtable entry for this type of call.
-        for (auto [i, disp] : enumerate(dispatch_udt.dispatch)) {
+        for (auto [i, disp] : enumerate(dispatch_udt.dispatch_table)) {
             // FIXME: does this guarantee it find it in the recursive case?
             // TODO: we chould check for a superclass vtable entry also, but chances
             // two levels will be present are low.
@@ -1320,7 +1320,7 @@ struct TypeChecker {
                 for (auto udt : dispatch_udt.subudts) {
                     // Since all functions were specialized with the same args, they should
                     // all be compatible if the root is.
-                    auto sf = udt->dispatch[i].sf;
+                    auto sf = udt->dispatch_table[i].sf;
                     LOG_DEBUG("re-using dyndispatch: ", Signature(*sf));
                     if (sf->typechecked) {
                         // If sf is not typechecked here, it means a function before this in
@@ -1334,7 +1334,7 @@ struct TypeChecker {
                 // Type check this as if it is a static dispatch to just the root function.
                 TypeCheckMatchingCall(csf = disp.sf, call_args, true, false);
                 vtable_idx = (int)i;
-                return dispatch_udt.dispatch[i].returntype;
+                return dispatch_udt.dispatch_table[i].returntype;
             }
             fail:;
         }
@@ -1345,12 +1345,17 @@ struct TypeChecker {
         // Find subclasses and max vtable size.
         {
             vector<pair<Overload *, bool>> overload_picks;
+            // First, for the set of udts part of this dispatch, find the method that would apply.
             for (auto sub : dispatch_udt.subudts) {
                 Overload *best = nullptr;
                 int bestdist = -1;
                 for (auto ov : csf->parent->overloads) {
                     if (ov->sf->method_of) {
-                        auto sdist = st.SuperDistance(ov->sf->method_of, sub->first);
+                        // We want the method "closest to" this udt in the inheritance chain.
+                        // We must search specializations since method_of may be a generic UDT (the
+                        // methods will get specialized and typechecked right below here, and
+                        // method_of pointing to a specialized udt there.
+                        auto sdist = st.SpecializedSuperDistance(ov->sf->method_of, sub->first);
                         if (sdist >= 0 && (!best || bestdist >= sdist)) {
                             if (bestdist == sdist)
                                 Error(call_args, "more than implementation of ", Q(f.name),
@@ -1370,11 +1375,11 @@ struct TypeChecker {
                     }
                 }
                 overload_picks.push_back({ best, bestdist == 0 });
-                vtable_idx = std::max(vtable_idx, (int)sub->dispatch.size());
+                vtable_idx = std::max(vtable_idx, (int)sub->dispatch_table.size());
             }
             // Add functions to all vtables.
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
-                auto &dt = udt->dispatch;
+                auto &dt = udt->dispatch_table;
                 assert((int)dt.size() <= vtable_idx);  // Double entry.
                 // FIXME: this is not great, wasting space, but only way to do this
                 // on the fly without tracking lots of things.
@@ -1387,7 +1392,7 @@ struct TypeChecker {
             // issues finding an existing dispatch above? would be good to guarantee..
             // The fact that in subudts the superclass comes first will help avoid problems
             // in many cases.
-            auto de = &dispatch_udt.dispatch[vtable_idx];
+            auto de = &dispatch_udt.dispatch_table[vtable_idx];
             de->is_dispatch_root = true;
             de->returntype = NewTypeVar();
             de->subudts_size = dispatch_udt.subudts.size();
@@ -1396,7 +1401,7 @@ struct TypeChecker {
             bool any_recursive = false;
             int any_returned_thru_max = -1;
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
-                auto sf = udt->dispatch[vtable_idx].sf;
+                auto sf = udt->dispatch_table[vtable_idx].sf;
                 // Missing implementation for unused UDT.
                 if (!sf) continue;
                 // Skip if it is using a superclass method.
@@ -1410,10 +1415,10 @@ struct TypeChecker {
                 /*auto rtype =*/
                 TypeCheckCallStatic(csf, call_args, reqret, specializers, *overload_picks[i].first,
                                     false, !last_sf);
-                de = &dispatch_udt.dispatch[vtable_idx];  // May have realloced.
+                de = &dispatch_udt.dispatch_table[vtable_idx];  // May have realloced.
                 sf = csf;
                 sf->method_of = udt;
-                sf->method_of->dispatch[vtable_idx].sf = sf;
+                sf->method_of->dispatch_table[vtable_idx].sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
                 any_returned_thru_max = std::max(any_returned_thru_max, sf->returned_thru_to_max);
                 auto u = sf->returntype;
@@ -1442,7 +1447,7 @@ struct TypeChecker {
             // Pass 2.
             last_sf = nullptr;
             for (auto udt : dispatch_udt.subudts) {
-                auto sf = udt->dispatch[vtable_idx].sf;
+                auto sf = udt->dispatch_table[vtable_idx].sf;
                 if (!sf) continue;
                 if (any_recursive && sf->returngiventype.utr.Null())
                     Error(call_args, "recursive dynamic dispatch of ", Q(sf->parent->name),
@@ -1465,12 +1470,12 @@ struct TypeChecker {
                 // sfs in the dispatch.
                 sf->returned_thru_to_max = std::max(sf->returned_thru_to_max, any_returned_thru_max);
             }
-            dispatch_udt.dispatch[vtable_idx].returned_thru_to_max =
-                std::max(dispatch_udt.dispatch[vtable_idx].returned_thru_to_max,
+            dispatch_udt.dispatch_table[vtable_idx].returned_thru_to_max =
+                std::max(dispatch_udt.dispatch_table[vtable_idx].returned_thru_to_max,
                          any_returned_thru_max);
             call_args.children[0]->exptype = &dispatch_udt.thistype;
         }
-        return dispatch_udt.dispatch[vtable_idx].returntype;
+        return dispatch_udt.dispatch_table[vtable_idx].returntype;
     };
 
     TypeRef TypeCheckCall(SubFunction *&csf, List &call_args, size_t reqret, int &vtable_idx,
@@ -1497,7 +1502,7 @@ struct TypeChecker {
                 // Go thru all other overloads, and see if any of them have this one as superclass.
                 for (auto ov : csf->parent->overloads) {
                     auto isf = ov->sf;
-                    if (isf->method_of && st.SuperDistance(dispatch_udt, isf->method_of) > 0) {
+                    if (isf->method_of && st.SpecializedSuperDistance(dispatch_udt, isf->method_of) > 0) {
                         LOG_DEBUG("dynamic dispatch: ", Signature(*isf));
                         return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
                             reqret, specializers, vtable_idx);
