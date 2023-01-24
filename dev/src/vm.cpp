@@ -599,7 +599,6 @@ string_view VM::LookupField(int stidx, iint fieldn) const {
 
 string_view VM::LookupFieldByOffset(int stidx, int offset) const {
     auto st = bcf->udts()->Get((flatbuffers::uoffset_t)stidx);
-    auto name = st->name()->string_view();
     auto fields = st->fields();
     auto fieldn = fields->size() - 1;
     for (flatbuffers::uoffset_t i = 1; i < fields->size(); i++) {
