@@ -69,4 +69,9 @@ void TimeQuery::Stop() {
         timing_average_result = sum / float(TIME_QUERY_SAMPLE_COUNT);
     }
     timing_average_buffer_sample = (timing_average_buffer_sample + 1u) % TIME_QUERY_SAMPLE_COUNT;
+    //timing_average_result = timing;
+}
+
+float TimeQuery::GetResult() {
+    return timing_average_result;
 }

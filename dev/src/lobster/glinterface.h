@@ -14,7 +14,7 @@
 
 // simple rendering interface for OpenGL (ES) (that doesn't depend on its headers)
 
-#define TIME_QUERY_SAMPLE_COUNT 12u
+#define TIME_QUERY_SAMPLE_COUNT 8u
 
 enum BlendMode {
     BLEND_NONE = 0,
@@ -105,6 +105,7 @@ struct TimeQuery : lobster::Resource {
 
     void Start();
     void Stop();
+    float GetResult();
 };
 
 struct Textured {
