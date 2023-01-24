@@ -246,10 +246,15 @@ else:
   struct string: s:string_buffer, offset:int, size:int
   and making all string functions take this struct may be troublesome?
   Can also make it heap allocated for now since these are still cheap since they're small & fixed size.
+  Or could see if we can pack the view data into a single 64-bit quantity..
+  - too limiting probably, even with a global table of buffers
+  - can do a page-aligned arena of buffers to have the view be a single offset+len into that,
+    but then memory can't move.. and mmap based allocation uses too much address space
+    and page aligned not great for small strings :)
+  If we go this route, should see if those views can be given a type for super ergonomic byte
+  buffer read/write instead of write_int8_le and similar functions.
 
 - Should we specialize own vs borrow on a per string constant basis?
-
-- check what it would take to lift the mixed struct ref/scalar restriction, maybe a bitfield?
 
 - Would it be possible to allow overloading of built-ins even with same number of args?
   https://github.com/aardappel/lobster/issues/145
@@ -717,6 +722,16 @@ else:
     - then use this for FlatBuffers handles.
   - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
     especially in vectors, then structs..
+    You'd have to somehow indicate that multiple fields are stored in the same 64-bit slot,
+    because too much of the VM assumes everything is 64-bit Values.
+    Thus, getting such smaller fields to work generically with all vector ops likely wouldn't
+    work.. yet the type system would suggest it would, so a bit messy.
+    An alternative would be a new kind of type, "bitfield", that is simply a subtype of int
+    much like enums. You specify it like a struct, then that type can be used absolutely
+    everywhere, and decay to an int for code that doesn't understand it.
+    You still would have convenient accessors to read and write these values.
+    Yet another alternative is to make buffers with views on them more of a first class
+    language feature to replace write_int8_le and friends.
   - somehow not store LVector::width.
 
 - FlatBuffers implementation:

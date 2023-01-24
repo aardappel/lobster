@@ -367,3 +367,18 @@ run_test("misc"):
     assert "{1.0 / 0.0}" == "inf"
     assert "{1.0 % 0.0}".find_string("nan") >= 0
     assert "{(xy_1 / xy_0).y}" == "inf"
+
+    do():
+        // Reflection
+        class Reflect:
+            c = xy_1
+            s = "hello"
+            v = [ 2 ]
+        let r = Reflect {}
+        assert type_string(r) == "Reflect"
+        assert type_field_count(r) == 4  // Structs are inline
+        assert type_field_string(r, 0) == "float"
+        assert type_field_string(r, 3) == "[int]"
+        assert type_field_name(r, 2) == "s"
+        assert type_field_value(r, 0) == "1.0"
+        assert type_element_string(r.v) == "int"

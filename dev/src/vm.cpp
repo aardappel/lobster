@@ -379,7 +379,7 @@ pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
     auto nargs = fip[1];
     if (nargs) {
         auto &ti = GetVarTypeInfo(fip[2]);
-        ti.Print(*this, fname);
+        ti.Print(*this, fname, nullptr);
         append(fname, ".");
     }
     append(fname, bcf->functions()->Get(deffun)->name()->string_view());
@@ -408,12 +408,12 @@ void VM::DumpStackTrace(string &sd) {
         if (debug_type == V_NIL && ti.t != V_NIL) {
             // Uninitialized.
             append(sd, ":");
-            ti.Print(vm, sd);
+            ti.Print(vm, sd, nullptr);
             append(sd, " (uninitialized)");
         } else if (ti.t != debug_type && !IsStruct(ti.t)) {
             // Some runtime type corruption, show the problem rather than crashing.
             append(sd, ":");
-            ti.Print(vm, sd);
+            ti.Print(vm, sd, nullptr);
             append(sd, " ERROR != ", BaseTypeName(debug_type));
         } else {
             append(sd, " = ");
@@ -595,6 +595,25 @@ string_view VM::ReverseLookupType(int v) {
 string_view VM::LookupField(int stidx, iint fieldn) const {
     auto st = bcf->udts()->Get((flatbuffers::uoffset_t)stidx);
     return st->fields()->Get((flatbuffers::uoffset_t)fieldn)->name()->string_view();
+}
+
+string_view VM::LookupFieldByOffset(int stidx, int offset) const {
+    auto st = bcf->udts()->Get((flatbuffers::uoffset_t)stidx);
+    auto name = st->name()->string_view();
+    auto fields = st->fields();
+    auto fieldn = fields->size() - 1;
+    for (flatbuffers::uoffset_t i = 1; i < fields->size(); i++) {
+        auto foffset = fields->Get(i)->offset();
+        if (foffset < 0) {
+            // Generic type that does not have field offsets.
+            return "";
+        }
+        if (offset < foffset) {
+            fieldn = i - 1;
+            break;
+        }
+    }
+    return fields->Get(fieldn)->name()->string_view();
 }
 
 bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
