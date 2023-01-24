@@ -938,7 +938,7 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("gl_update_buffer_object", "name,value,ssbo,existing", "SIRk:bufferobject?", "R:bufferobject?",
+nfr("gl_update_buffer_object", "value,ssbo,existing", "IRk:bufferobject?", "R:bufferobject?",
     "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
