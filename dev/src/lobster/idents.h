@@ -331,7 +331,7 @@ struct UDT : Named {
 
     flatbuffers::Offset<bytecode::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
         vector<flatbuffers::Offset<bytecode::Field>> fieldoffsets;
-        for (auto f : fields)
+        for (auto &f : fields)
             fieldoffsets.push_back(
                 bytecode::CreateField(fbb, fbb.CreateString(f.id->name), f.slot));
         return bytecode::CreateUDT(fbb, fbb.CreateString(name), idx,

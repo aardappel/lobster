@@ -137,7 +137,7 @@ struct TypeInfo {
     TypeInfo &operator=(const TypeInfo &) = delete;
 
     string Debug(VM &vm, bool rec = true) const;
-    void Print(VM &vm, string &sd) const;
+    void Print(VM &vm, string &sd, void *ref) const;
 
     type_elem_t GetElemOrParent(iint i) const {
         auto pti = elemtypes[len + i];
@@ -971,6 +971,7 @@ struct VM : VMArgs {
     string_view StructName(const TypeInfo &ti);
     string_view ReverseLookupType(int v);
     string_view LookupField(int stidx, iint fieldn) const;
+    string_view LookupFieldByOffset(int stidx, int offset) const;
     void Trace(TraceMode m) { trace = m; }
     double Time() { return SecondsSinceStart(); }
 

@@ -1253,6 +1253,76 @@ nfr("hash", "v", "F}", "I",
         Push(sp, positive_bits(a.Hash(vm, V_FLOAT)));
     });
 
+nfr("type_string", "ref", "A", "S",
+    "string representing the type of the given reference (object/vector/string/resource)",
+    [](StackPtr &sp, VM &vm) {
+        auto a = Pop(sp);
+        auto &ti = a.ref()->ti(vm);
+        string sd;
+        ti.Print(vm, sd, a.ref());
+        Push(sp, vm.NewString(sd));
+    });
+
+nfr("type_element_string", "v", "A]*", "S",
+    "string representing the type of the elements of a vector",
+    [](StackPtr &sp, VM &vm) {
+        auto a = Pop(sp);
+        auto &ti = a.vval()->ti(vm);
+        string sd;
+        vm.GetTypeInfo(ti.subt).Print(vm, sd, nullptr);
+        Push(sp, vm.NewString(sd));
+    });
+
+nfr("type_field_count", "obj", "A", "I",
+    "number of fields in an object, or 0 for other reference types",
+    [](StackPtr &sp, VM &vm) {
+        auto a = Pop(sp);
+        auto &ti = a.ref()->ti(vm);
+        Push(sp, IsUDT(ti.t) ? ti.len : 0);
+    });
+
+nfr("type_field_string", "obj,idx", "AI", "S",
+    "string representing the type of a field in an object, or empty for other reference types",
+    [](StackPtr &sp, VM &vm) {
+        auto i = Pop(sp).ival();
+        auto a = Pop(sp);
+        auto &ti = a.ref()->ti(vm);
+        string sd;
+        if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
+            vm.GetTypeInfo(ti.elemtypes[i]).Print(vm, sd, nullptr);
+        }
+        Push(sp, vm.NewString(sd));
+    });
+
+nfr("type_field_name", "obj,idx", "AI", "S",
+    "name of a field in an object, or empty for other reference types",
+    [](StackPtr &sp, VM &vm) {
+        auto i = Pop(sp).intval();
+        auto a = Pop(sp);
+        auto &ti = a.ref()->ti(vm);
+        string sd;
+        if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
+            sd = vm.LookupFieldByOffset(ti.structidx, i);
+        }
+        Push(sp, vm.NewString(sd));
+    });
+
+nfr("type_field_value", "obj,idx", "AI", "S",
+    "string representing the value of a field in an object, or empty for other reference types",
+    [](StackPtr &sp, VM &vm) {
+        auto i = Pop(sp).ival();
+        auto a = Pop(sp);
+        auto &ti = a.ref()->ti(vm);
+        Value r;
+        if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
+            auto &sti = vm.GetTypeInfo(ti.elemtypes[i]);
+            r = vm.ToString(a.oval()->AtS(i), sti);
+        } else {
+            r = vm.NewString(0);
+        }
+        Push(sp, r);
+    });
+
 nfr("program_name", "", "", "S",
     "returns the name of the main program (e.g. \"foo.lobster\"), \"\" if running from lpak.",
     [](StackPtr &, VM &vm) {

@@ -371,14 +371,14 @@ void DumpStackTrace(VM &vm) {
             // Uninitialized.
             auto sd = string(name);
             append(sd, ":");
-            ti.Print(vm, sd);
+            ti.Print(vm, sd, nullptr);
             append(sd, " (uninitialized)");
             Text(sd);
         } else if (ti.t != debug_type && !IsStruct(ti.t)) {
             // Some runtime type corruption, show the problem rather than crashing.
             auto sd = string(name);
             append(sd, ":");
-            ti.Print(vm, sd);
+            ti.Print(vm, sd, nullptr);
             append(sd, " (ERROR != ", BaseTypeName(debug_type), ")");
             Text(sd);
         } else {

@@ -425,21 +425,28 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
     }
 }
 
-void TypeInfo::Print(VM &vm, string &sd) const {
+void TypeInfo::Print(VM &vm, string &sd, void *ref) const {
     switch (t) {
         case V_VECTOR:
             append(sd, "[");
-            vm.GetTypeInfo(subt).Print(vm, sd);
+            vm.GetTypeInfo(subt).Print(vm, sd, nullptr);
             append(sd, "]");
             break;
         case V_NIL:
-            vm.GetTypeInfo(subt).Print(vm, sd);
+            vm.GetTypeInfo(subt).Print(vm, sd, ref);
             append(sd, "?");
             break;
         case V_CLASS:
         case V_STRUCT_R:
         case V_STRUCT_S:
             append(sd, vm.StructName(*this));
+            break;
+        case V_RESOURCE:
+            append(sd, "resource");
+            if (ref) {
+                auto res = (LResource *)ref;
+                append(sd, "<", res->type->name, ">");
+            }
             break;
         default:
             append(sd, BaseTypeName(t));
