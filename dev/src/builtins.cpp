@@ -637,6 +637,10 @@ nfr("log", "a", "F", "F",
     "natural logaritm of a",
     [](StackPtr &, VM &, Value &a) { return Value(log(a.fval())); });
 
+nfr("log2", "a", "F", "F",
+    "base 2 logaritm of a",
+    [](StackPtr &, VM &, Value &a) { return Value(log2(a.fval())); });
+
 nfr("sqrt", "f", "F", "F",
     "square root",
     [](StackPtr &, VM &, Value &a) { return Value(sqrt(a.fval())); });
