@@ -4,22 +4,22 @@ import gl
 // texture format constants
 
 enum_flags texture_format:
-    texture_format_none            = 1 << 0
-    texture_format_clamp           = 1 << 1
-    texture_format_nomipmap        = 1 << 2
-    texture_format_nearest_mag     = 1 << 3
-    texture_format_nearest_min     = 1 << 4
-    texture_format_float           = 1 << 5
-    texture_format_writeonly       = 1 << 6
-    texture_format_readwrite       = 1 << 7
-    texture_format_cubemap         = 1 << 8
-    texture_format_multisample     = 1 << 9
-    texture_format_single_channel  = 1 << 10
-    texture_format_3d              = 1 << 11
-    texture_format_buffer_has_mips = 1 << 12
-    texture_format_depth           = 1 << 13
-    texture_format_compute         = 1 << 14
-    texture_format_half            = 1 << 15
+    texture_format_none
+    texture_format_clamp
+    texture_format_nomipmap
+    texture_format_nearest_mag
+    texture_format_nearest_min
+    texture_format_float
+    texture_format_writeonly
+    texture_format_readwrite
+    texture_format_cubemap
+    texture_format_multisample
+    texture_format_single_channel
+    texture_format_3d
+    texture_format_buffer_has_mips
+    texture_format_depth
+    texture_format_compute
+    texture_format_half
 
 // blending constants
 

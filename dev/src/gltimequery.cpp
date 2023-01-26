@@ -60,7 +60,7 @@ void TimeQuery::Stop() {
     back_buffer_index = 1 - back_buffer_index;
 
     // Convert into ms
-    float timing = (end - start) / 1000000.0;
+    float timing = (end - start) / 1000000.0f;
     timing_average_buffer[timing_average_buffer_sample] = timing;
     // Collect & average samples
     if (timing_average_buffer_sample + 1u == TIME_QUERY_SAMPLE_COUNT) {

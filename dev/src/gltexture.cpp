@@ -197,8 +197,8 @@ Texture CreateBlankTexture(string_view name, const int3 &size, const float4 &col
         auto buf = new uint8_t[len * sz];
         if (tf & TF_FLOAT) {
             if (tf & TF_HALF) {
-                // TODO: Support half-float color initialization?
-                for (int i = 0; i < len; i++) {}
+                // TODO: Support half-float color-based initialization?
+                for (int i = 0; i < len; i++) buf[i] = 0;
             } else {
                 for (int i = 0; i < len; i++) ((float4 *)buf)[i] = color;
             }
