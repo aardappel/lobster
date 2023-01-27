@@ -556,7 +556,7 @@ struct TypeChecker {
         auto opname = TName(T_OPERATOR) + (n.Name() == "indexing operation" ? "[]" : n.Name());
         auto it = st.operators.find(opname);
         if (it == st.operators.end()) return no_overload();
-        auto f = it->second;
+        auto f = it->second->first;
         while (f->nargs() != n.Arity()) {
             f = f->sibf;
             if (!f) return no_overload();
@@ -1490,7 +1490,7 @@ struct TypeChecker {
         // method that can be called also.
         UDT *dispatch_udt = nullptr;
         TypeRef type0;
-        if (f.nargs()) {
+        if (call_args.Arity()) {
             type0 = call_args.children[0]->exptype;
             if (type0->t == V_CLASS) dispatch_udt = type0->udt;
         }
@@ -1547,7 +1547,7 @@ struct TypeChecker {
             for (auto ov : from) {
                 if (type->Equal(*ov->sf->args[argidx].type)) matches.push_back(ov);
             }
-            // Then see if there's a match if we'd instantiate a generic UDT  first arg.
+            // Then see if there's a match if we'd instantiate a generic UDT first arg.
             if (matches.empty() && IsUDT(type->t)) {
                 for (auto ov : from) {
                     auto arg = ov->sf->giventypes[argidx].utr;  // Want unresolved type.
@@ -2857,18 +2857,17 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             r = nc->TypeCheck(tc, reqret);
         } else if (f) {
             // Now that we're sure it's going to be a call, pick the right function, fill in default/self args.
-            // FIXME: should we do this in order from least to most args?
-            bool self_inserted = false;  // FIXME: only needed because these functions are not in order?
+            // sibf is ordered by most args first, which is the right order for us to check them in,
+            // since if we possibly can insert a self-arg with matching type that should take priority.
+            // And the parser already guaranteed there is no overlap between functions w.r.t. default
+            // args so no risk we match a higher args version unnecessarily.
             for (f = ff; f; f = f->sibf) {
                 if (nargs > f->nargs()) {
-                    continue;
-                }
-                if (nargs == f->nargs()) {
-                    ff = f;
+                    f = nullptr;
                     break;
                 }
                 // If we have less args, try insert self arg.
-                if (f->nargs() && (!usf || !fromdot) && !self_inserted) {
+                if (nargs < f->nargs() && (!usf || !fromdot) && (int)nargs + 1 >= f->first_default_arg) {
                     // We go down the withstack but skip items that don't correspond to lexical order
                     // for cases where withcontext1 -> withcontext2 -> lambdaincontext1
                     // or to simply not use withstack items of unrelated callers.
@@ -2888,8 +2887,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                             // If we're in the context of a withtype, calling a function that starts
                             // with an arg of the same type we pass it in automatically. This is
                             // maybe a bit very liberal, should maybe restrict it?
-                            if (IsUDT(arg0.type->t) && arg0.sid->withtype && wse.id) {
-                                auto superdist = tc.st.SuperDistance(arg0.type->udt, wse.udt);
+                            auto udt0 = IsUDT(arg0.type->t)
+                                ? arg0.type->udt
+                                : (arg0.type->t == V_UUDT ? arg0.type->spec_udt->udt : nullptr);
+                            if (udt0 && arg0.sid->withtype && wse.id) {
+                                auto superdist = tc.st.SpecializedSuperDistance(udt0, wse.udt);
                                 if (superdist >= 0 && superdist < best_superdist) {
                                     best_superdist = superdist;
                                     usf = ov->sf;
@@ -2899,14 +2901,12 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                         if (best_superdist < INT_MAX) {
                             auto self = new IdentRef(line, wse.id->cursid);
                             children.insert(children.begin(), self);
-                            self_inserted = true;
                             tc.TT(children[0], 1, LT_ANY);
                             nargs++;
                             ff = f;
-                            goto done;
+                            break;
                         }
                     }
-                    done:;
                 }
                 // If we have still have less args, try insert default args.
                 if (nargs < f->nargs() && (int)nargs >= f->first_default_arg) {
@@ -2915,17 +2915,19 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                         tc.TT(children.back(), 1, LT_ANY);
                         nargs++;
                     }
+                }
+                if (nargs == f->nargs()) {
                     ff = f;
                     break;
                 }
+            }
+            if (!f) {
+                tc.Error(*this, "no version of function ", Q(name), " takes ", nargs, " arguments");
             }
             if (!usf || !usf->method_of || usf->method_of->superclass.giventype.utr.Null())
                 sup_err();
             auto fc = new Call(*this, usf && usf->parent == ff ? usf : ff->overloads[0]->sf);
             fc->children = children;
-            if (nargs != fc->sf->parent->nargs())
-                tc.Error(*this, "no version of function ", Q(name), " takes ", nargs,
-                        " arguments");
             r = fc->TypeCheck(tc, reqret);
         } else {
             if (fld && fromdot && noparens) {

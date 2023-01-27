@@ -471,6 +471,7 @@ struct Function : Named {
     vector<Overload *> overloads;
     // functions with the same name but different number of args (overloaded)
     Function *sibf = nullptr;
+    Function *first = this;
     // does not have a programmer specified name
     bool anonymous = false;
     // its merely a function type, has no body, but does have a set return type.
@@ -900,8 +901,23 @@ struct SymbolTable {
                 }
             }
             auto &f = CreateFunction(name);
-            f.sibf = v.back()->sibf;
-            v.back()->sibf = &f;
+            f.first = v.back()->first;
+            // Insert in sibf linked list such that highest nargs variants come first,
+            // this is useful later when deciding which variant to use.
+            Function **it = &v.back();
+            for (; *it; it = &(*it)->sibf) {
+                if (nargs > (*it)->nargs()) {
+                    // Insert before this element.
+                    f.sibf = *it;
+                    if (it == &v.back()) {
+                        // We have a new first.
+                        for (auto g = &f; g; g = g->sibf) g->first = &f;
+                    }
+                    break;
+                }
+            }
+            // If we got to the end of loop, just insert last.
+            *it = &f;
             return f;
         } else {
             auto &f = CreateFunction(name);
