@@ -35,7 +35,7 @@ def quat_from_euler(yaw, pitch):
     let sy = sin(yaw * 0.5)
     let cp = cos(pitch * 0.5)
     let sp = sin(pitch * 0.5)
-    return quat { sp * sy, sp * cy, cp * sy, cp * cy }
+    return quat { -sp * sy, sp * cy, cp * sy, cp * cy }
 
 def quat_from_yaw(yaw):
     let cy = cos(yaw * 0.5)
