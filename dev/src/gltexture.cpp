@@ -32,6 +32,14 @@
 const int nummultisamples = 4;
 #endif
 
+// Source: https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion/60047308#60047308
+uint16_t FloatToHalfFloat(const float x) {
+    uint32_t b = (*(uint32_t*)&x) + 0x00001000;
+    uint32_t e = (b & 0x7F800000) >> 23;
+    uint32_t m = b & 0x007FFFFF;
+    return static_cast<uint16_t>((b & 0x80000000) >> 16 | (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) | ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) | (e > 143) * 0x7FFF);
+}
+
 OwnedTexture::~OwnedTexture() {
     DeleteTexture(t);
 }
@@ -74,10 +82,11 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     }
     if (tf & TF_FLOAT) {
         #ifdef PLATFORM_WINNIX
-            internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
+            if (tf & TF_HALF) internalformat = tf & TF_SINGLE_CHANNEL ? GL_R16F : GL_RGBA16F;
+            else internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
             bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
-            elemsize = tf & TF_SINGLE_CHANNEL ? sizeof(float) : sizeof(float4);
-            buffercomponent = GL_FLOAT;
+            elemsize = (tf & TF_SINGLE_CHANNEL ? sizeof(float) : sizeof(float4)) / (tf & TF_HALF ? 2 : 1);
+            buffercomponent = tf & TF_HALF ? GL_HALF_FLOAT : GL_FLOAT;
         #else
             assert(false);  // buf points to float data, which we don't support.
         #endif
@@ -185,19 +194,31 @@ void FreeImageFromFile(uint8_t *img) {
     stbi_image_free(img);
 }
 
-Texture CreateBlankTexture(string_view name, const int2 &size, const float4 &color, int tf) {
+Texture CreateBlankTexture(string_view name, const int3 &size, const float4 &color, int tf) {
     if (tf & TF_MULTISAMPLE) {
-        return CreateTexture(name, nullptr, int3(size, 0), tf);  // No buffer required.
+        return CreateTexture(name, nullptr, size, tf);  // No buffer required.
     } else {
-        auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+        auto sz = (tf & TF_FLOAT ? (sizeof(float4) / (tf & TF_HALF ? 2 : 1)) : sizeof(byte4));
         if (tf & TF_CUBEMAP) sz *= 6;
-        auto buf = new uint8_t[size.x * size.y * sz];
-        for (int y = 0; y < size.y; y++) for (int x = 0; x < size.x; x++) {
-            auto idx = y * size.x + x;
-            if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
-            else               ((byte4  *)buf)[idx] = quantizec(color);
+        auto len = size.x * size.y * ((tf & TF_3D) ? size.z : 1);
+        // Initialize and fill texture buffer
+        auto buf = new uint8_t[len * sz];
+        if (tf & TF_FLOAT) {
+            if (tf & TF_HALF) {
+                auto hfcolor = hfloat4{
+                    FloatToHalfFloat(color[0]),
+                    FloatToHalfFloat(color[1]),
+                    FloatToHalfFloat(color[2]),
+                    FloatToHalfFloat(color[3])
+                };
+                for (int i = 0; i < len; i++) ((hfloat4 *)buf)[i] = hfcolor;
+            } else {
+                for (int i = 0; i < len; i++) ((float4 *)buf)[i] = color;
+            }
+        } else {
+            for (int i = 0; i < len; i++) ((byte4 *)buf)[i] = quantizec(color);
         }
-        auto tex = CreateTexture(name, buf, int3(size, 0), tf);
+        auto tex = CreateTexture(name, buf, size, tf);
         delete[] buf;
         return tex;
     }
@@ -216,6 +237,13 @@ bool SetTexture(int textureunit, const Texture &tex, int tf) {
     return glGetError() != 0;
 }
 
+void GenerateTextureMipMap(const Texture &tex, int tf) {
+    GLenum textype = (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D);
+    GL_CALL(glBindTexture(textype, tex.id));
+    GL_CALL(glGenerateMipmap(textype));
+    GL_CALL(glBindTexture(textype, 0));
+}
+
 uint8_t *ReadTexture(const Texture &tex) {
     #ifndef PLATFORM_ES3
         GL_CALL(glBindTexture(GL_TEXTURE_2D, tex.id));
@@ -227,14 +255,20 @@ uint8_t *ReadTexture(const Texture &tex) {
     #endif
 }
 
-void SetImageTexture(int textureunit, const Texture &tex, int tf) {
+void SetImageTexture(int textureunit, const Texture &tex, int level, int tf) {
     #ifdef PLATFORM_WINNIX
-        if (glBindImageTexture)
-            GL_CALL(glBindImageTexture(textureunit, tex.id, 0, GL_TRUE, 0,
-                               tf & TF_WRITEONLY
+        if (glBindImageTexture) {
+            GLenum access = tf & TF_WRITEONLY
                                    ? GL_WRITE_ONLY
-                                   : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
-                               tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8));
+                                   : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY);
+            // Handle format
+            GLenum format = tf & TF_SINGLE_CHANNEL ? GL_R8 : GL_RGBA8;
+            if (tf & TF_FLOAT) {
+                if (tf & TF_HALF) format = tf & TF_SINGLE_CHANNEL ? GL_R16F : GL_RGBA16F;
+                else format = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
+            }
+            GL_CALL(glBindImageTexture(textureunit, tex.id, level, GL_TRUE, 0, access, format));
+        }
     #else
         assert(false);
     #endif

@@ -39,6 +39,7 @@ LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/src/glshader.cpp \
 	$(LOBSTER_PATH)/src/glsystem.cpp \
 	$(LOBSTER_PATH)/src/gltexture.cpp \
+	$(LOBSTER_PATH)/src/gltimequery.cpp \
 	$(LOBSTER_PATH)/src/glvr.cpp \
 	$(LOBSTER_PATH)/src/steamworks.cpp \
 	$(LOBSTER_PATH)/src/graphics.cpp \

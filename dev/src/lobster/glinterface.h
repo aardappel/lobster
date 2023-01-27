@@ -14,6 +14,8 @@
 
 // simple rendering interface for OpenGL (ES) (that doesn't depend on its headers)
 
+#define TIME_QUERY_SAMPLE_COUNT 8u
+
 enum BlendMode {
     BLEND_NONE = 0,
     BLEND_ALPHA,
@@ -88,6 +90,22 @@ struct Shader : lobster::Resource {
         // FIXME: somehow find out sizes of all attached GPU blocks?
         return { sizeof(Shader), 0 };
     }
+};
+
+struct TimeQuery : lobster::Resource {
+    bool active = false;
+    uint32_t back_buffer_index = 0u;
+    uint32_t front_buffer_index = 0u;
+    uint32_t query_buffer_ids[2][2];
+    float timing_average_buffer[TIME_QUERY_SAMPLE_COUNT];
+    uint32_t timing_average_buffer_sample = 0u;
+    float timing_average_result = 0.0;
+
+    ~TimeQuery();
+
+    void Start();
+    void Stop();
+    float GetResult();
 };
 
 struct Textured {
@@ -218,33 +236,36 @@ extern Shader *LookupShader(string_view name);
 extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
-extern void SetImageTexture(int textureunit, const Texture &tex, int tf);
+extern void SetImageTexture(int textureunit, const Texture &tex, int level, int tf);
 extern void BindAsSSBO(Shader *sh, string_view name, int id);
 
-// These must correspond to the constants in color.lobster
+// These must correspond to the constants in texture.lobster
 enum TextureFlag {
-    TF_NONE = 0,
-    TF_CLAMP = 1,
-    TF_NOMIPMAP = 2,
-    TF_NEAREST_MAG = 4,
-    TF_NEAREST_MIN = 8,
-    TF_FLOAT = 16,                         // rgba32f instead of rgba8
-    TF_WRITEONLY = 32, TF_READWRITE = 64,  // Default is readonly (compute).
-    TF_CUBEMAP = 128,
-    TF_MULTISAMPLE = 256,
-    TF_SINGLE_CHANNEL = 512,               // Default is RGBA.
-    TF_3D = 1024,
-    TF_BUFFER_HAS_MIPS = 2048,
-    TF_DEPTH = 4096,
-    TF_COMPUTE = 8192,                     // For use with compute: do not use SRGB.
+    TF_NONE            = 1 << 0,
+    TF_CLAMP           = 1 << 1,
+    TF_NOMIPMAP        = 1 << 2,
+    TF_NEAREST_MAG     = 1 << 3,
+    TF_NEAREST_MIN     = 1 << 4,
+    TF_FLOAT           = 1 << 5, // rgba32f instead of rgba8
+    TF_WRITEONLY       = 1 << 6,
+    TF_READWRITE       = 1 << 7, // Default is readonly (compute).
+    TF_CUBEMAP         = 1 << 8,
+    TF_MULTISAMPLE     = 1 << 9,
+    TF_SINGLE_CHANNEL  = 1 << 10, // Default is RGBA.
+    TF_3D              = 1 << 11,
+    TF_BUFFER_HAS_MIPS = 1 << 12,
+    TF_DEPTH           = 1 << 13,
+    TF_COMPUTE         = 1 << 14, // For use with compute: do not use SRGB.
+    TF_HALF            = 1 << 15, // Use 16-bit representation if possible (only float atm.)
 };
 
 extern Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf = TF_NONE);
 extern Texture CreateTextureFromFile(string_view name, int tf = TF_NONE);
-extern Texture CreateBlankTexture(string_view name, const int2 &size, const float4 &color,
+extern Texture CreateBlankTexture(string_view name, const int3 &size, const float4 &color,
                                   int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
 extern bool SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
+extern void GenerateTextureMipMap(const Texture &tex, int tf);
 extern uint8_t *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
 extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,

@@ -1452,6 +1452,7 @@
     <ClCompile Include="..\src\glloadiqm.cpp" />
     <ClCompile Include="..\src\glshader.cpp" />
     <ClCompile Include="..\src\gltexture.cpp" />
+    <ClCompile Include="..\src\gltimequery.cpp" />
     <ClCompile Include="..\src\glvr.cpp" />
     <ClCompile Include="..\src\graphics.cpp" />
     <ClCompile Include="..\src\imbind.cpp">

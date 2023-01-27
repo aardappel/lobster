@@ -32,6 +32,7 @@ bool graphics_initialized = false;
 ResourceType mesh_type = { "mesh" };
 ResourceType texture_type = { "texture" };
 ResourceType shader_type = { "shader" };
+ResourceType timequery_type = { "timequery" };
 ResourceType buffer_object_type = { "bufferobject" };
 
 Mesh &GetMesh(Value &res) {
@@ -46,6 +47,9 @@ Shader &GetShader(Value &res) {
 }
 BufferObject &GetBufferObject(Value &res) {
     return GetResourceDec<BufferObject>(res, &buffer_object_type);
+}
+TimeQuery &GetTimeQuery(Value &res) {
+    return GetResourceDec<TimeQuery>(res, &timequery_type);
 }
 
 // Should be safe to call even if it wasn't initialized partially or at all.
@@ -148,14 +152,12 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
     return Value(ok);
 }
 
-Value UpdateBindBufferObject(VM &vm, Value buf, const void *data, size_t len,
-                             ptrdiff_t offset, string_view name, bool ssbo, bool dyn) {
+Value UpdateBufferObject(VM &vm, Value buf, const void *data, size_t len,
+                             ptrdiff_t offset, bool ssbo, bool dyn) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
     bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn);
     if (!bo) vm.BuiltinError("bufferobject creation failed");
-    auto ok = BindBufferObject(currentshader, bo, name);
-    if (!ok) vm.BuiltinError("bufferobject binding failed");
-    return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));;
+    return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));
 }
 
 void AddGraphics(NativeRegistry &nfr) {
@@ -936,17 +938,15 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("gl_update_bind_buffer_object", "name,value,ssbo,existing", "SSIRk:bufferobject?", "R:bufferobject?",
-    "creates a uniform buffer object, and attaches it to the current shader at the given"
-    " uniform block name. uniforms in the shader can be any type, as long as it matches the"
-    " data layout in the string buffer."
+nfr("gl_update_buffer_object", "name,value,ssbo,existing", "SIRk:bufferobject?", "R:bufferobject?",
+    "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &ssbo, Value &buf) {
+    [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &buf) {
         TestGL(vm);
-        return UpdateBindBufferObject(vm, buf, vec.sval()->strv().data(),
+        return UpdateBufferObject(vm, buf, vec.sval()->strv().data(),
                                       vec.sval()->strv().size(), -1,
-                                      name.sval()->strv(), ssbo.True(), false);
+                                      ssbo.True(), false);
     });
 
 nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",
@@ -1026,13 +1026,13 @@ nfr("gl_set_mesh_texture", "mesh,part,i,texture", "R:meshIIR:texture", "",
         return NilVal();
     });
 
-nfr("gl_set_image_texture", "i,tex,textureformat", "IR:textureI", "",
+nfr("gl_set_image_texture", "i,tex,textureformat", "IR:textureII", "",
     "sets image unit i to texture (for use with compute). texture format must be the same"
     " as what you specified in gl_load_texture / gl_create_texture,"
     " with optionally writeonly/readwrite flags.",
-    [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
+    [](StackPtr &, VM &vm, Value &i, Value &id, Value &level, Value &tf) {
         TestGL(vm);
-        SetImageTexture(GetSampler(vm, i), GetTexture(id), tf.intval());
+        SetImageTexture(GetSampler(vm, i), GetTexture(id), level.intval(), tf.intval());
         return NilVal();
     });
 
@@ -1061,14 +1061,14 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R:texture",
         return Value(vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
 
-nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R:texture",
+nfr("gl_create_blank_texture", "size,color,textureformat", "I}:3F}:4I?", "R:texture",
     "creates a blank texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format",
     [](StackPtr &sp, VM &vm) {
         TestGL(vm);
         auto tf = Pop(sp).intval();
         auto col = PopVec<float4>(sp);
-        auto size = PopVec<int2>(sp);
+        auto size = PopVec<int3>(sp);
         auto tex = CreateBlankTexture("gl_create_blank_texture", size, col, tf);
         Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
@@ -1093,6 +1093,15 @@ nfr("gl_read_texture", "tex", "R:texture", "S?",
         auto s = vm.NewString(string_view((char *)buf, numpixels * 4));
         delete[] buf;
         return Value(s);
+    });
+
+nfr("gl_generate_texture_mipmap", "tex,textureformat", "R:texture?I", "",
+    "generate mipmaps for the specified texture",
+    [](StackPtr &, VM &vm, Value &t, Value &tf) {
+        TestGL(vm);
+        auto tex = GetTexture(t);
+        GenerateTextureMipMap(tex, tf.intval());
+        return NilVal();
     });
 
 nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex",
@@ -1215,5 +1224,29 @@ nfr("gl_dropped_file", "", "", "S",
         return Value(vm.NewString(GetDroppedFile()));
     });
 
-}  // AddGraphics
+nfr("gl_create_time_query", "", "", "R:timequery",
+    "creates a time query object used for profiling GPU events",
+    [](StackPtr &, VM &vm) {
+        TestGL(vm);
+        return Value(vm.NewResource(&timequery_type, new TimeQuery()));
+    });
 
+nfr("gl_start_time_query", "tq", "R:timequery?", "",
+    "starts the time query",
+    [](StackPtr &, VM &vm, Value &tq) {
+        if (!tq.True()) return NilVal();
+        TestGL(vm);
+        GetTimeQuery(tq).Start();
+        return NilVal();
+    });
+
+nfr("gl_stop_time_query", "tq", "R:timequery?", "F",
+    "stops the time query and returns the result",
+    [](StackPtr &, VM &vm, Value &tq) {
+        if (!tq.True()) return NilVal();
+        TestGL(vm);
+        GetTimeQuery(tq).Stop();
+        return Value(GetTimeQuery(tq).timing_average_result);
+    });
+
+}  // AddGraphics

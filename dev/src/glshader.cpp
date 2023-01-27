@@ -217,6 +217,7 @@ string ParseMaterialFile(string_view mbuf) {
                         tp.remove_prefix(3);
                         bool cubemap = false;
                         bool floatingp = false;
+                        bool halffloatingp = false;
                         bool d3 = false;
                         bool uav = false;
                         bool write = false;
@@ -232,22 +233,29 @@ string ParseMaterialFile(string_view mbuf) {
                             tp.remove_prefix(1);
                             floatingp = true;
                         }
+                        if (starts_with(tp, "hf")) {
+                            tp.remove_prefix(2);
+                            halffloatingp = true;
+                        }
                         if (starts_with(tp, "uav")) {
                             tp.remove_prefix(3);
                             uav = true;
-                            write = true;
+                            if (starts_with(tp, "w")) {
+                                tp.remove_prefix(1);
+                                write = true;
+                            }
                         }
                         auto unit = parse_int<int>(tp);
                         if (uav) {
                             decl += cat("layout(binding = ", unit);
-                            if (!write) decl += cat(", ", (floatingp ? "rgba32f" : "rgba8"));
+                            if (!write) decl += cat(", ", (floatingp ? "rgba32f" : halffloatingp ? "rgba16f" : "rgba8"));
                             decl += ") ";
                         }
                         decl += "uniform ";
                         if (uav) {
                             // FIXME: make more general.
                             decl += write ? "writeonly " : "readonly ";
-                            decl += cubemap ? "imageCube" : "image2D";
+                            decl += cubemap ? "imageCube" : (d3 ? "image3D" : "image2D");
                         } else {
                             decl += cubemap ? "samplerCube" : (d3 ? "sampler3D" : "sampler2D");
                         }
@@ -286,7 +294,9 @@ string ParseMaterialFile(string_view mbuf) {
                 auto xs = last;
                 word();
                 auto ys = last;
-                csdecl += "layout(local_size_x = " + xs + ", local_size_y = " + ys + ") in;\n";
+                word();
+                auto zs = last;
+                csdecl += "layout(local_size_x = " + xs + ", local_size_y = " + ys + ", local_size_z = " + zs + ") in;\n";
             } else if (last == "DEFINE") {
                 word();
                 auto def = last;

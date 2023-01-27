@@ -408,6 +408,9 @@
     <ClCompile Include="..\src\gltexture.cpp">
       <Filter>engine\opengl</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gltimequery.cpp">
+      <Filter>engine\opengl</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\sdlsystem.cpp">
       <Filter>engine\sdl</Filter>
     </ClCompile>
