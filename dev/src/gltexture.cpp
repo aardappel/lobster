@@ -34,7 +34,9 @@ const int nummultisamples = 4;
 
 // Source: https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion/60047308#60047308
 uint16_t FloatToHalfFloat(const float x) {
-    uint32_t b = (*(uint32_t*)&x) + 0x00001000;
+    int2float i2f;
+    i2f.f = x;
+    uint32_t b = i2f.i + 0x00001000;
     uint32_t e = (b & 0x7F800000) >> 23;
     uint32_t m = b & 0x007FFFFF;
     return static_cast<uint16_t>((b & 0x80000000) >> 16 | (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) | ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) | (e > 143) * 0x7FFF);
