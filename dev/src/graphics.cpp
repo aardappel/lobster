@@ -152,12 +152,19 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
     return Value(ok);
 }
 
-Value UpdateBufferObject(VM &vm, Value buf, const void *data, size_t len,
-                             ptrdiff_t offset, bool ssbo, bool dyn) {
+Value UpdateBufferObjectResource(VM &vm, Value buf, const void *data, size_t len,
+                                 ptrdiff_t offset, bool ssbo, bool dyn) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
     bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn);
     if (!bo) vm.BuiltinError("bufferobject creation failed");
     return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));
+}
+
+void BindBufferObjectResource(VM &vm, Value buf, string_view name) {
+    assert(buf.True());
+    auto bo = &GetBufferObject(buf);
+    auto ok = BindBufferObject(currentshader, bo, name);
+    if (!ok) vm.BuiltinError("bufferobject binding failed");
 }
 
 void AddGraphics(NativeRegistry &nfr) {
@@ -944,9 +951,9 @@ nfr("gl_update_buffer_object", "name,value,ssbo,existing", "SIRk:bufferobject?",
     " returns buffer id or 0 on error.",
     [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &buf) {
         TestGL(vm);
-        return UpdateBufferObject(vm, buf, vec.sval()->strv().data(),
-                                      vec.sval()->strv().size(), -1,
-                                      ssbo.True(), false);
+        return UpdateBufferObjectResource(vm, buf, vec.sval()->strv().data(),
+                                          vec.sval()->strv().size(), -1,
+                                          ssbo.True(), false);
     });
 
 nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",

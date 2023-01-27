@@ -18,8 +18,7 @@ extern lobster::ResourceType mesh_type;
 extern lobster::ResourceType texture_type;
 extern lobster::ResourceType shader_type;
 
-extern lobster::Value UpdateBufferObject(lobster::VM &vm, lobster::Value buf, const void *data,
-                                             size_t len, ptrdiff_t offset, bool ssbo, bool dyn);
-extern lobster::Value BindBufferObject(lobster::VM &vm, lobster::Value buf, const void *data,
-                                             size_t len, ptrdiff_t offset, string_view name,
-                                             bool ssbo);
+extern lobster::Value UpdateBufferObjectResource(lobster::VM &vm, lobster::Value buf, const void *data,
+                                                 size_t len, ptrdiff_t offset, bool ssbo, bool dyn);
+extern void BindBufferObjectResource(lobster::VM &vm, lobster::Value buf, string_view name);
+
