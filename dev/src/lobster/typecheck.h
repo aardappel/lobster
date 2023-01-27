@@ -3236,6 +3236,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             IsRefNil(ir->sid->type->t) &&
             ir->sid->sf_def == sf &&
             sf->num_returns == 0 &&
+            sf->returned_thru_to_max < 0 &&  // Since unwind path still needs this var in ownedvars.
             reqret &&
             sf->sbody->children.back() == this) {
             // NOTE: see also Call::Optimize where we potentially have to undo this when inlined.
