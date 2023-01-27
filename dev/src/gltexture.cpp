@@ -32,6 +32,14 @@
 const int nummultisamples = 4;
 #endif
 
+// Source: https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion/60047308#60047308
+uint16_t FloatToHalfFloat(const float x) {
+    uint32_t b = (*(uint32_t*)&x) + 0x00001000;
+    uint32_t e = (b & 0x7F800000) >> 23;
+    uint32_t m = b & 0x007FFFFF;
+    return static_cast<uint16_t>((b & 0x80000000) >> 16 | (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) | ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) | (e > 143) * 0x7FFF);
+}
+
 OwnedTexture::~OwnedTexture() {
     DeleteTexture(t);
 }
@@ -197,8 +205,13 @@ Texture CreateBlankTexture(string_view name, const int3 &size, const float4 &col
         auto buf = new uint8_t[len * sz];
         if (tf & TF_FLOAT) {
             if (tf & TF_HALF) {
-                // TODO: Support half-float color-based initialization?
-                for (int i = 0; i < len; i++) buf[i] = 0;
+                auto hfcolor = hfloat4{
+                    FloatToHalfFloat(color[0]),
+                    FloatToHalfFloat(color[1]),
+                    FloatToHalfFloat(color[2]),
+                    FloatToHalfFloat(color[3])
+                };
+                for (int i = 0; i < len; i++) ((hfloat4 *)buf)[i] = hfcolor;
             } else {
                 for (int i = 0; i < len; i++) ((float4 *)buf)[i] = color;
             }

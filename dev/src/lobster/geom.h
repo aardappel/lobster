@@ -447,6 +447,10 @@ typedef vec<float, 2> float2;
 typedef vec<float, 3> float3;
 typedef vec<float, 4> float4;
 
+typedef vec<uint16_t, 2> hfloat2;
+typedef vec<uint16_t, 3> hfloat3;
+typedef vec<uint16_t, 4> hfloat4;
+
 typedef vec<int, 2> int2;
 typedef vec<int, 3> int3;
 typedef vec<int, 4> int4;

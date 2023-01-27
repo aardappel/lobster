@@ -22,11 +22,13 @@
 // In case this causes problems, make sure to check platform availability
 
 TimeQuery::~TimeQuery() {
-    if (active) {
-        GL_CALL(glDeleteQueries(2, query_buffer_ids[0]));
-        GL_CALL(glDeleteQueries(2, query_buffer_ids[1]));
-        active = !active;
-    }
+    #ifdef PLATFORM_WINNIX
+        if (active) {
+            GL_CALL(glDeleteQueries(2, query_buffer_ids[0]));
+            GL_CALL(glDeleteQueries(2, query_buffer_ids[1]));
+            active = !active;
+        }
+    #endif
 }
 
 TimeQuery CreateTimeQuery() {
@@ -34,42 +36,46 @@ TimeQuery CreateTimeQuery() {
 }
 
 void TimeQuery::Start() {
-    if (!active) {
-        GL_CALL(glGenQueries(2, query_buffer_ids[0]));
-        GL_CALL(glGenQueries(2, query_buffer_ids[1]));
-        // Otherwise opengl reports errors?
-        GL_CALL(glQueryCounter(query_buffer_ids[front_buffer_index][0], GL_TIMESTAMP));
-        GL_CALL(glQueryCounter(query_buffer_ids[front_buffer_index][1], GL_TIMESTAMP));
-        active = !active;
-    }
-    glQueryCounter(query_buffer_ids[back_buffer_index][0], GL_TIMESTAMP);
+    #ifdef PLATFORM_WINNIX
+        if (!active) {
+            GL_CALL(glGenQueries(2, query_buffer_ids[0]));
+            GL_CALL(glGenQueries(2, query_buffer_ids[1]));
+            // Otherwise opengl reports errors?
+            GL_CALL(glQueryCounter(query_buffer_ids[front_buffer_index][0], GL_TIMESTAMP));
+            GL_CALL(glQueryCounter(query_buffer_ids[front_buffer_index][1], GL_TIMESTAMP));
+            active = !active;
+        }
+        GL_CALL(glQueryCounter(query_buffer_ids[back_buffer_index][0], GL_TIMESTAMP));
+    #endif
 }
 
 void TimeQuery::Stop() {
-    if (!active) return;
-    glQueryCounter(query_buffer_ids[back_buffer_index][1], GL_TIMESTAMP);
+    #ifdef PLATFORM_WINNIX
+        if (!active) return;
+        GL_CALL(glQueryCounter(query_buffer_ids[back_buffer_index][1], GL_TIMESTAMP));
 
-    // Retrieve timings
-    GLuint64 start = 0;
-    GLuint64 end = 0;
-    glGetQueryObjectui64v(query_buffer_ids[front_buffer_index][0], GL_QUERY_RESULT, &start);
-    glGetQueryObjectui64v(query_buffer_ids[front_buffer_index][1], GL_QUERY_RESULT, &end);
+        // Retrieve timings
+        GLuint64 start = 0;
+        GLuint64 end = 0;
+        GL_CALL(glGetQueryObjectui64v(query_buffer_ids[front_buffer_index][0], GL_QUERY_RESULT, &start));
+        GL_CALL(glGetQueryObjectui64v(query_buffer_ids[front_buffer_index][1], GL_QUERY_RESULT, &end));
 
-    // Flip buffer indices
-    front_buffer_index = 1 - front_buffer_index;
-    back_buffer_index = 1 - back_buffer_index;
+        // Flip buffer indices
+        front_buffer_index = 1 - front_buffer_index;
+        back_buffer_index = 1 - back_buffer_index;
 
-    // Convert into ms
-    float timing = (end - start) / 1000000.0f;
-    timing_average_buffer[timing_average_buffer_sample] = timing;
-    // Collect & average samples
-    if (timing_average_buffer_sample + 1u == TIME_QUERY_SAMPLE_COUNT) {
-        float sum = 0.0;
-        for (uint32_t i = 0u; i < TIME_QUERY_SAMPLE_COUNT; ++i) sum += timing_average_buffer[i];
-        timing_average_result = sum / float(TIME_QUERY_SAMPLE_COUNT);
-    }
-    timing_average_buffer_sample = (timing_average_buffer_sample + 1u) % TIME_QUERY_SAMPLE_COUNT;
-    //timing_average_result = timing;
+        // Convert into ms
+        float timing = (end - start) / 1000000.0f;
+        timing_average_buffer[timing_average_buffer_sample] = timing;
+        // Collect & average samples
+        if (timing_average_buffer_sample + 1u == TIME_QUERY_SAMPLE_COUNT) {
+            float sum = 0.0;
+            for (uint32_t i = 0u; i < TIME_QUERY_SAMPLE_COUNT; ++i) sum += timing_average_buffer[i];
+            timing_average_result = sum / float(TIME_QUERY_SAMPLE_COUNT);
+        }
+        timing_average_buffer_sample = (timing_average_buffer_sample + 1u) % TIME_QUERY_SAMPLE_COUNT;
+        //timing_average_result = timing; // No averaging
+    #endif
 }
 
 float TimeQuery::GetResult() {
