@@ -187,6 +187,9 @@
 		3395E40D17668A3E00E06FCE /* Default-Portrait~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 3395E40C17668A3E00E06FCE /* Default-Portrait~ipad.png */; };
 		3395E40F17668A4B00E06FCE /* Default-Landscape@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 3395E40E17668A4B00E06FCE /* Default-Landscape@2x~ipad.png */; };
 		3395E41117668A5400E06FCE /* Default-Landscape~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 3395E41017668A5400E06FCE /* Default-Landscape~ipad.png */; };
+		33A479622984775300EC8F02 /* gltimequery.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33A479612984775300EC8F02 /* gltimequery.cpp */; };
+		33A479632984775300EC8F02 /* gltimequery.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33A479612984775300EC8F02 /* gltimequery.cpp */; };
+		33A479642984775300EC8F02 /* gltimequery.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33A479612984775300EC8F02 /* gltimequery.cpp */; };
 		33AB2989148E96570073A850 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33AB2988148E96570073A850 /* AudioToolbox.framework */; };
 		33AB298A148E96620073A850 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33AB2986148E91460073A850 /* CoreAudio.framework */; };
 		33AB298C148E97CA0073A850 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33AB298B148E97CA0073A850 /* QuartzCore.framework */; };
@@ -993,6 +996,7 @@
 		33A3356E15DB262D0068ECA4 /* libSDL2hw.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2hw.a; path = ../../lib/ios/libSDL2hw.a; sourceTree = "<group>"; };
 		33A3356F15DB262E0068ECA4 /* libSDL2sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2sim.a; path = ../../lib/ios/libSDL2sim.a; sourceTree = "<group>"; };
 		33A3357615DB3D690068ECA4 /* TODO.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = TODO.txt; path = ../../TODO.txt; sourceTree = "<group>"; };
+		33A479612984775300EC8F02 /* gltimequery.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gltimequery.cpp; path = ../../src/gltimequery.cpp; sourceTree = "<group>"; };
 		33AB2887148E878C0073A850 /* libFreetype2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libFreetype2.a; path = ../../lib/ios/libFreetype2.a; sourceTree = "<group>"; };
 		33AB297F148E8B4B0073A850 /* libFreetype2_sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libFreetype2_sim.a; path = ../../lib/ios/libFreetype2_sim.a; sourceTree = "<group>"; };
 		33AB2982148E8F150073A850 /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS5.0.sdk/System/Library/Frameworks/AudioUnit.framework; sourceTree = DEVELOPER_DIR; };
@@ -1696,6 +1700,7 @@
 		3395A8B917613F9B0047BE1F /* OpenGL */ = {
 			isa = PBXGroup;
 			children = (
+				33A479612984775300EC8F02 /* gltimequery.cpp */,
 				333FE1E41D53E2580064979E /* glvr.cpp */,
 				33F7F3C51723671F005B7988 /* glgeom.cpp */,
 				33F7F3CD17236720005B7988 /* glloadiqm.cpp */,
@@ -2893,6 +2898,7 @@
 				33D1637E1BAB9A2200BAD84D /* SDL_x11mouse.c in Sources */,
 				33D161541BAB9A2200BAD84D /* SDL_getenv.c in Sources */,
 				33D15FE11BAB9A2200BAD84D /* SDL_audiodev.c in Sources */,
+				33A479642984775300EC8F02 /* gltimequery.cpp in Sources */,
 				33D1615D1BAB9A2200BAD84D /* SDL_qsort.c in Sources */,
 				8C7603A0195E457400EADF6F /* b2FrictionJoint.cpp in Sources */,
 				33D15CB71BAB7DD200BAD84D /* psnames.c in Sources */,
@@ -3161,6 +3167,7 @@
 				33D1637D1BAB9A2200BAD84D /* SDL_x11mouse.c in Sources */,
 				33D161531BAB9A2200BAD84D /* SDL_getenv.c in Sources */,
 				33D15FE01BAB9A2200BAD84D /* SDL_audiodev.c in Sources */,
+				33A479632984775300EC8F02 /* gltimequery.cpp in Sources */,
 				33D1615C1BAB9A2200BAD84D /* SDL_qsort.c in Sources */,
 				8C7603BD195E457400EADF6F /* b2WheelJoint.cpp in Sources */,
 				33D15CB61BAB7DD200BAD84D /* psnames.c in Sources */,
@@ -3429,6 +3436,7 @@
 				33D1603A1BAB9A2200BAD84D /* SDL_windowevents.c in Sources */,
 				33D163E51BABA50800BAD84D /* SDL_uikitview.m in Sources */,
 				33D163BC1BABA14B00BAD84D /* SDL_render_gles2.c in Sources */,
+				33A479622984775300EC8F02 /* gltimequery.cpp in Sources */,
 				8C7603B6195E457400EADF6F /* b2RopeJoint.cpp in Sources */,
 				33D15C8D1BAB7D3C00BAD84D /* ftbitmap.c in Sources */,
 				33D162151BAB9A2200BAD84D /* SDL_cocoaopengl.m in Sources */,
