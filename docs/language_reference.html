@@ -239,7 +239,7 @@ makes sense. In particular, unlike most languages, many of them work on
 (numeric) structs, which makes typical game code both convenient and
 fast.</p>
 <h3 id="assignment-and-definition">Assignment and Definition</h3>
-<p>The assignment operators simply copies the value on the left hand
+<p>The assignment operators simply copies the value on the right hand
 side into the variable or vector index on the left hand side:</p>
 <pre><code>a = 1
 v[0] = 1
@@ -265,7 +265,7 @@ let pos = xy { 0, 1 }
 print mat[pos]</code></pre>
 <p>This prints <code>3</code>, and is a convenient shortcut for
 <code>mat[pos.y][pos.x]</code>. Note how it uses the last element to
-index with first, this is because in code an other places 2d arrays are
+index with first, this is because in code and other places 2d arrays are
 usually most naturally thought of as row-major.</p>
 <h3 id="mathematical-operators">Mathematical Operators</h3>
 <p>The 5 binary mathematical operators <code>+ - * / %</code> (the last

@@ -267,7 +267,7 @@ makes typical game code both convenient and fast.
 
 ### Assignment and Definition
 
-The assignment operators simply copies the value on the left hand side into the
+The assignment operators simply copies the value on the right hand side into the
 variable or vector index on the left hand side:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -309,7 +309,7 @@ print mat[pos]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This prints `3`, and is a convenient shortcut for `mat[pos.y][pos.x]`. Note how
-it uses the last element to index with first, this is because in code an other
+it uses the last element to index with first, this is because in code and other
 places 2d arrays are usually most naturally thought of as row-major.
 
 ### Mathematical Operators
