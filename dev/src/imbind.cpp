@@ -494,15 +494,23 @@ string BreakPoint(VM &vm, string_view reason) {
 
 void AddIMGUI(NativeRegistry &nfr) {
 
-nfr("im_init", "dark_style,flags", "B?I?", "",
+nfr("im_init", "dark_style,flags,rounding", "B?I?F?", "",
     "",
-    [](StackPtr &, VM &vm, Value &darkstyle, Value &flags) {
+    [](StackPtr &, VM &vm, Value &darkstyle, Value &flags, Value &rounding) {
         if (imgui_init) return NilVal();
         if (!_sdl_window || !_sdl_context) vm.BuiltinError("im_init: no window");
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags.ival();
         if (darkstyle.True()) ImGui::StyleColorsDark(); else ImGui::StyleColorsClassic();
+        auto r = rounding.fltval();
+        ImGui::GetStyle().FrameRounding = r;
+        ImGui::GetStyle().WindowRounding = r;
+        ImGui::GetStyle().GrabRounding = r;
+        ImGui::GetStyle().ChildRounding = r;
+        ImGui::GetStyle().PopupRounding = r;
+        ImGui::GetStyle().ScrollbarRounding = r;
+        ImGui::GetStyle().TabRounding = r;
         ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
         ImGui_ImplOpenGL3_Init(
             #ifdef PLATFORM_ES3
