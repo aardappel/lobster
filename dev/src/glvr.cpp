@@ -179,8 +179,8 @@ void VREye(int eye, float znear, float zfar) {
     if (!vrsys) return;
     auto retf = TF_CLAMP | TF_NOMIPMAP;
     auto mstf = retf | TF_MULTISAMPLE;
-    if (!mstex[eye].id) mstex[eye] = CreateBlankTexture("vr_mstex", rtsize, float4_0, mstf);
-    if (!retex[eye].id) retex[eye] = CreateBlankTexture("vr_retex", rtsize, float4_0, retf);
+    if (!mstex[eye].id) mstex[eye] = CreateColoredTexture("vr_mstex", rtsize, float4_0, mstf);
+    if (!retex[eye].id) retex[eye] = CreateColoredTexture("vr_retex", rtsize, float4_0, retf);
     SwitchToFrameBuffer(mstex[eye], GetScreenSize(), true, mstf, retex[eye]);
     auto proj =
         FromOpenVR(vrsys->GetProjectionMatrix((vr::EVREye)eye, znear, zfar));
