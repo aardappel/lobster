@@ -40,12 +40,15 @@ enum Nesting {
     N_NONE,
     N_FRAME,
     N_WIN,
+    N_TAB_BAR,
+    N_TAB,
     N_GROUP,
     N_WIDTH,
     N_TREE,
 };
 
 vector<Nesting> nstack;
+ImGuiID last_dock_id = 0;
 
 void IMGUIFrameCleanup() {
     nstack.clear();
@@ -91,6 +94,12 @@ void NPop(VM &vm, Nesting n) {
             case N_WIN:
                 ImGui::End();
                 break;
+            case N_TAB_BAR:
+                ImGui::EndTabBar();
+                break;
+            case N_TAB:
+                ImGui::EndTabItem();
+                break;            
             case N_GROUP:
                 ImGui::PopID();
                 break;
@@ -565,13 +574,23 @@ nfr("im_window_demo", "", "", "B",
         return Value(show);
     });
 
-nfr("im_window_start", "title,flags", "SI", "",
+nfr("im_window_start", "title,flags,dock", "SII", "",
     "(use im_window instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, N_FRAME);
+        auto dock = Pop(sp);
         auto flags = Pop(sp);
         auto title = Pop(sp);
+        if (dock.True() && ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+            ImGui::SetNextWindowDockID(last_dock_id, ImGuiCond_FirstUseEver);
+        }
         ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
+        last_dock_id = ImGui::GetWindowDockID();
+        /*
+        if (dock.False() && ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+            ImGui::DockSpace(last_dock_id);
+        }
+        */
         NPush(N_WIN);
     });
 
@@ -728,6 +747,40 @@ nfr("im_treenode_end", "", "", "",
         NPop(vm, N_TREE);
     });
 
+nfr("im_tab_bar_start", "label", "S", "B",
+    "(use im_tab_bar instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto title = Pop(sp);
+        bool open = ImGui::BeginTabBar(title.sval()->data(), 0);
+        Push(sp, open);
+        if (open) NPush(N_TAB_BAR);
+    });
+
+nfr("im_tab_bar_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_TAB_BAR);
+    });
+
+nfr("im_tab_start", "label", "S", "B",
+    "(use im_tab instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto title = Pop(sp);
+        bool open = ImGui::BeginTabItem(title.sval()->data());
+        Push(sp, open);
+        if (open) NPush(N_TAB);
+    });
+
+nfr("im_tab_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_TAB);
+    });
+
 nfr("im_group_start", "label", "Ss", "",
     "an invisble group around some widgets, useful to ensure these widgets are unique"
     " (if they have the same label as widgets in another group that has a different group"
@@ -771,10 +824,11 @@ nfr("im_width_start", "width", "F", "",
         NPush(N_WIDTH);
     });
 
-nfr("im_width_end", "", "", "", "", [](StackPtr &, VM &vm) {
-    IsInit(vm);
-    NPop(vm, N_WIDTH);
-});
+nfr("im_width_end", "", "", "", "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_WIDTH);
+    });
 
 nfr("im_edit_anything", "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version",

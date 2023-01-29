@@ -44,7 +44,7 @@ enum_flags im_window:
     im_window_no_nav_focus                // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
     im_window_unsaved_document            // Append '*' to title without affecting the ID, as a convenience to avoid using the ### operator. When used in a tab/docking context, tab is selected on closure and closure is deferred by one frame to allow code to cancel the closure (with a confirmation popup, etc.) without flicker.
     im_window_no_docking                  // Disable docking of this window
-    
+
 // Utility functions that are more convenient than calling start/end yourself.
 
 def im_frame(body):
@@ -53,7 +53,12 @@ def im_frame(body):
     im_frame_end()
 
 def im_window(title, flags, body):
-    im_window_start(title, flags)
+    im_window_start(title, flags, false)
+    body()
+    im_window_end()
+
+def im_window_dock(title, flags, body):
+    im_window_start(title, flags, true)
     body()
     im_window_end()
 
@@ -62,6 +67,21 @@ def im_treenode(label, body):
     if open:
         body()
         im_treenode_end()
+    return open
+
+def im_tab_bar(label, body):
+    let open = im_tab_bar_start(label)
+    if open:
+        body()
+        im_tab_bar_end()
+    return open
+
+def im_tab(label, body):
+    let open = im_tab_start(label)
+    if open:
+        body()
+        im_tab_end()
+    return open
 
 def im_group(label, body):
     im_group_start(label)

@@ -39,24 +39,26 @@ while gl_frame():
 
         // Manually created widgets, so you can choose how to represent and layout data:
         im_window("Created by code", im_window_no_collapse | im_window_always_autoresize):
-            im_text("A text!")
-            d.on = im_checkbox("Check it out!", d.on)
-            im_tooltip("This is worth checking out, really!")
-            d.ratio = im_sliderfloat("Float", d.ratio, 0.0, 1.0)
-            d.i = im_sliderint("Int", d.i, 0, 10)
-            d.name = im_input_text("Name", d.name)
-            d.i = im_radio(d.fruits, d.i, true)
-            d.i = im_combo("Combo", d.fruits, d.i)
-            d.i = im_listbox("ListBox", d.fruits, d.i, d.fruits.length)
-            d.col = im_coloredit("Color", d.col)
-            for(2) g: im_graph("Sin", map(20): sin(_ * 20.0) + 1.0, g)
-            im_separator()
-            if not demo and im_button("show demo window"): demo = true
-            if im_button("Cause breakpoint() hit"):
-                // The debugger should have popped up!
-                // The program is frozen until you hit continue.
-                // Try putting these breakpoints anywhere in your own code.
-                breakpoint()
+            im_tab_bar("tab_bar"):
+                im_tab("Widgets"):
+                    im_text("A text!")
+                    d.on = im_checkbox("Check it out!", d.on)
+                    im_tooltip("This is worth checking out, really!")
+                    d.ratio = im_sliderfloat("Float", d.ratio, 0.0, 1.0)
+                    d.i = im_sliderint("Int", d.i, 0, 10)
+                    d.name = im_input_text("Name", d.name)
+                    d.i = im_radio(d.fruits, d.i, true)
+                    d.i = im_combo("Combo", d.fruits, d.i)
+                    d.i = im_listbox("ListBox", d.fruits, d.i, d.fruits.length)
+                    d.col = im_coloredit("Color", d.col)
+                    for(2) g: im_graph("Sin", map(20): sin(_ * 20.0) + 1.0, g)
+                im_tab("Debug"):
+                    if not demo and im_button("show demo window"): demo = true
+                    if im_button("Cause breakpoint() hit"):
+                        // The debugger should have popped up!
+                        // The program is frozen until you hit continue.
+                        // Try putting these breakpoints anywhere in your own code.
+                        breakpoint()
 
         // Show the built-in imgui demo window, for testing.
         if demo: demo = im_window_demo()
