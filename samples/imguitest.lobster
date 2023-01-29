@@ -8,7 +8,7 @@ import gl
 
 fatal(gl_window("imgui demo", 1280, 1024))
 
-im_init(false, 0, 3)
+im_init(false, im_config_docking_enable, 3.0)
 assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
 
 // The data we're editing:

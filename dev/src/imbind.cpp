@@ -79,6 +79,14 @@ void NPop(VM &vm, Nesting n) {
             case N_FRAME:
                 ImGui::Render();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                // FIXME: this seems buggy.
+                /*
+                // Update and Render additional Platform Windows
+                if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+                    ImGui::UpdatePlatformWindows();
+                    ImGui::RenderPlatformWindowsDefault();
+                }
+                */
                 break;
             case N_WIN:
                 ImGui::End();
