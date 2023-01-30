@@ -1068,15 +1068,26 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R:texture",
         return Value(vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
 
-nfr("gl_create_blank_texture", "size,color,textureformat", "I}:3F}:4I?", "R:texture",
+nfr("gl_create_blank_texture", "size,textureformat", "I}:3I?", "R:texture",
     "creates a blank texture (for use as frame buffer or with compute shaders)."
+    " see texture.lobster for texture format",
+    [](StackPtr &sp, VM &vm) {
+        TestGL(vm);
+        auto tf = Pop(sp).intval();
+        auto size = PopVec<int3>(sp);
+        auto tex = CreateBlankTexture("gl_create_blank_texture", size, tf);
+        Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
+    });
+
+nfr("gl_create_colored_texture", "size,color,textureformat", "I}:3F}:4I?", "R:texture",
+    "creates a colored texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format",
     [](StackPtr &sp, VM &vm) {
         TestGL(vm);
         auto tf = Pop(sp).intval();
         auto col = PopVec<float4>(sp);
         auto size = PopVec<int3>(sp);
-        auto tex = CreateBlankTexture("gl_create_blank_texture", size, col, tf);
+        auto tex = CreateColoredTexture("gl_create_colored_texture", size, col, tf);
         Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
 

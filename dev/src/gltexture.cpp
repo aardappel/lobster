@@ -109,6 +109,7 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     } else if(tf & TF_3D) {
 		#ifndef __EMSCRIPTEN__
 			int mipl = 0;
+            // TODO: Ideally use glTexStorage3D if no initialization buffer provided
 			for (auto d = dim; tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
 				GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x, d.y, d.z, 0,
 									 bufferformat, buffercomponent, buf));
@@ -120,6 +121,7 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
 		#endif
     } else {
         int mipl = 0;
+        // TODO: Ideally use glTexStorage2D if no initialization buffer provided
         for (auto d = dim.xy(); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
             for (int i = 0; i < texnumfaces; i++) {
                 GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x, d.y, 0,
@@ -196,7 +198,11 @@ void FreeImageFromFile(uint8_t *img) {
     stbi_image_free(img);
 }
 
-Texture CreateBlankTexture(string_view name, const int3 &size, const float4 &color, int tf) {
+Texture CreateBlankTexture(string_view name, const int3 &size, int tf) {
+    return CreateTexture(name, nullptr, size, tf);
+}
+
+Texture CreateColoredTexture(string_view name, const int3 &size, const float4 &color, int tf) {
     if (tf & TF_MULTISAMPLE) {
         return CreateTexture(name, nullptr, size, tf);  // No buffer required.
     } else {
