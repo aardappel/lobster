@@ -303,9 +303,17 @@ string ParseMaterialFile(string_view mbuf) {
                 word();
                 auto val = last;
                 defines += "#define " + (val.empty() ? def : def + " " + val) + "\n";
+            } else if (last == "INCLUDE") {
+                if (!accum)
+                    return "INCLUDE outside of FUNCTIONS/VERTEX/PIXEL/COMPUTE block: " + line;
+                word();
+                string ibuf;
+                if (LoadFile(last, &ibuf) < 0)
+                    return string_view("cannot load include file: ") + last;
+                *accum += ibuf;
             } else {
                 if (!accum)
-                    return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL block: " + line;
+                    return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL/COMPUTE block: " + line;
                 *accum += line;
                 *accum += "\n";
             }
