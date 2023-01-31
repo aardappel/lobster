@@ -34,7 +34,7 @@ struct LValContext {
         for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
         return true;
     }
-    bool IsPrefix(const LValContext &o) {
+    bool IsPrefix(const LValContext &o) {  // Is o a prefix of this?
         if (sid != o.sid || derefs.size() < o.derefs.size()) return false;
         for (auto &shf : o.derefs) if (shf != derefs[&shf - &o.derefs[0]]) return false;
         return true;
@@ -1904,6 +1904,7 @@ struct TypeChecker {
         }
         // FIXME: make this faster.
         for (auto &b : reverse(borrowstack)) {
+            //LOG_INFO("borrow check:", lv.Name(), " vs ", b.Name(), " ", b.refc);
             if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
             Error(*n, "cannot modify ", Q(lv.Name()), " while borrowed in ",

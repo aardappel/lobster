@@ -1,16 +1,53 @@
+- fix this:
+
+    class A
+    class B
+
+    let b:B
+
+    class A:
+        x = "a"
+
+        def ov():
+            // overwriting "b.a" is all cool.
+            b.a = A {}
+
+        def sec():
+            ov()
+            // oops, this A has been deallocated.
+            x = "b"
+
+    class B:
+        a = A {}
+
+        def inb():
+            // this creates a borrow on "this.a", but not on "b.a"
+            a.sec()
+
+    let b:B = B {}
+    b.inb()
+
+    /* 
+    essentially, every time X.Y gets borrowed against and X was defined (arg or local)
+    thru Z which is an active item in the borrow stack, Z.Y must also be added.
+
+    but adding two stack items for one access doesn't work since the lifetime value only refers to one of them.
+
+    Alternatively, CheckLvalBorrowed must check these on the fly but that is likely slower and more complicated.
+    */
+
+
 - this fails to specialize for the nil case:
 
-let a:[int]? = nil
+    let a:[int]? = nil
 
-def f():
-    return a[0]
+    def f():
+        return a[0]
 
-print if a:
-    f()
-else:
-    f()
-
-
+    print if a:
+        f()
+    else:
+        f()
 
 - very easy optimisation: the bulk of binary ops have the second arg as constant.
   Making specialized ops for these not only generated way more efficient code,
