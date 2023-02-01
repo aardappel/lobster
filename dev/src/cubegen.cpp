@@ -583,7 +583,6 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             map<int32_t, string> layer_names;
             map<int32_t, string> node_names;
             map<int32_t, int3> node_offset;
-
             while (bufs.size() >= 8) {
                 auto id = (const char *)bufs.data();
                 bufs = bufs.subspan(4);
@@ -593,6 +592,26 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 if ((ptrdiff_t)bufs.size() < (ptrdiff_t)contentlen) return erreof();
                 auto p = bufs.subspan(0, contentlen);
                 bufs = bufs.subspan(contentlen);
+                auto ReadDict = [&](auto f) -> bool {
+                    int32_t dict_len;
+                    if (!ReadSpanInc(p, dict_len)) return false;
+                    for (int i = 0; i < dict_len; ++i) {
+                        string key, value;
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return false;
+                        if (!ReadSpanVec<string, int32_t>(p, value)) return false;
+                        f(key, value);
+                    }
+                    return true;
+                };
+                auto ParseNames = [&](map<int32_t, string> &names, int &id) -> bool {
+                    if (!ReadSpanInc<int32_t>(p, id)) return false;
+                    if (!ReadDict([&](const string &key, const string &value) {
+                            if (key == "_name") {
+                                names.insert_or_assign(id, value);
+                            }
+                        })) return false;
+                    return true;
+                };
                 if (!strncmp(id, "SIZE", 4)) {
                     if (!ReadSpanInc(p, size)) return erreof();
                     voxels = NewWorld(size, default_palette_idx);
@@ -618,31 +637,15 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                         auto pos = int3(vox.xyz());
                         if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
                     }
-
                 } else if (!strncmp(id, "MAIN", 4)) {
                     // Ignore, wrapper around the above chunks.
                 } else if (!strncmp(id, "PACK", 4)) {
                     // Ignore, tells us how many models, but we simply load em all.
-
                 } else if (!strncmp(id, "nTRN", 4)) {
                     // parse node and layer metadata and apply the name bit to the model
                     // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
                     int node_id;
-                    if (!ReadSpanInc<int32_t>(p, node_id)) return erreof();
-                    {
-                        int dict_len;
-                        if (!ReadSpanInc<int32_t>(p, dict_len)) return erreof();
-                        for (int i = 0; i < dict_len; ++i) {
-                            string key;
-                            if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
-                            if (key == "_name") {
-                                string value;
-                                if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
-                                node_names.insert_or_assign(node_id, value);
-                            } else
-                                if (!SkipSpanVec<string, int32_t>(p)) return erreof();
-                        }
-                    }
+                    if (!ParseNames(node_names, node_id)) return erreof();
                     int32_t child_node_id;
                     if (!ReadSpanInc<int32_t>(p, child_node_id)) return erreof();
                     node_graph.insert_or_assign(child_node_id, node_id);
@@ -651,52 +654,39 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     int32_t layer_id;
                     if (!ReadSpanInc(p, layer_id)) return erreof();
                     node_to_layer.insert_or_assign(node_id, layer_id);
-
                     int32_t num_frames;
                     if (!ReadSpanInc(p, num_frames)) return erreof();
-                    if (num_frames != 1) return errf(cat(".vox file uses an object with multiple frames, which is not supported: ", num_frames));
+                    if (num_frames != 1)
+                        return errf(cat(".vox file uses an object with multiple frames, which is not supported: ",
+                                        num_frames));
                     int3 offset = int3_0;
                     for (int frame = 0; frame < num_frames; ++frame) {
-                        int32_t dict_len;
-                        if (!ReadSpanInc(p, dict_len)) return erreof();
-                        for (int i = 0; i < dict_len; ++i) {
-                            string key,value;
-                            if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
-                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
-                            if (key == "_t") {
-                                const char *cursor = value.c_str();
-                                char *next;
-                                offset.x = std::strtol(cursor, &next, 10);
-                                cursor = next + 1;
-                                offset.y = std::strtol(cursor, &next, 10);
-                                cursor = next + 1;
-                                offset.z = std::strtol(cursor, &next, 10);
-                                node_offset.insert_or_assign(node_id, offset);
-                            }
-                            if (key == "_r") {
-                                const char *cursor = value.c_str();
-                                char *next;
-                                auto rotation = std::strtol(cursor, &next, 10);
-                                // 4 is the noop rotation
-                                if (rotation != 4) return errf(cat(".vox file uses an object rotation or flip that is not supported: ", value));
-                            }
-                        }
+                        bool has_rot = false;
+                        if (!ReadDict([&](const string &key, const string &value) {
+                                if (key == "_t") {
+                                    const char *cursor = value.c_str();
+                                    char *next;
+                                    offset.x = std::strtol(cursor, &next, 10);
+                                    cursor = next + 1;
+                                    offset.y = std::strtol(cursor, &next, 10);
+                                    cursor = next + 1;
+                                    offset.z = std::strtol(cursor, &next, 10);
+                                    node_offset.insert_or_assign(node_id, offset);
+                                }
+                                if (key == "_r") {
+                                    const char *cursor = value.c_str();
+                                    char *next;
+                                    auto rotation = std::strtol(cursor, &next, 10);
+                                    // 4 is the noop rotation
+                                    if (rotation != 4) has_rot = true;
+                                }
+                            })) return erreof();
+                        if (has_rot)
+                            return errf(".vox file uses an object rotation or flip that is not supported");
                     }
                 } else if (!strncmp(id, "nGRP", 4)) {
                     int32_t node_id;
-                    if (!ReadSpanInc(p, node_id)) return erreof();
-                    int32_t dict_len;
-                    if (!ReadSpanInc(p, dict_len)) return erreof();
-                    for (int i = 0; i < dict_len; ++i) {
-                        string key;
-                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
-                        if (key == "_name") {
-                            string value;
-                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
-                            node_names.insert_or_assign(node_id, value);
-                        } else
-                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
-                    }
+                    if (!ParseNames(node_names, node_id)) return erreof();
                     int32_t child_num;
                     if (!ReadSpanInc(p, child_num)) return erreof();
                     for (int i = 0; i < child_num; ++i) {
@@ -706,49 +696,23 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     }
                 } else if (!strncmp(id, "nSHP", 4)) {
                     int32_t node_id;
-                    if (!ReadSpanInc(p, node_id)) return erreof();
-                    int32_t dict_len;
-                    if (!ReadSpanInc(p, dict_len)) return erreof();
-                    for (int i = 0; i < dict_len; ++i) {
-                        string key;
-                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
-                        if (key == "_name") {
-                            string value;
-                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
-                            node_names.insert_or_assign(node_id, value);
-                        } else
-                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
-                    }
+                    if (!ParseNames(node_names, node_id)) return erreof();
                     int32_t models_num;
                     if (!ReadSpanInc(p, models_num)) return erreof();
-                    if (models_num != 1) return errf(cat(".vox file uses an object with multiple models, which is not supported: ", models_num));
+                    if (models_num != 1)
+                        return errf(cat(".vox file uses an object with multiple models, which is not supported: ",
+                                        models_num));
                     for (int i = 0; i < models_num; ++i) {
                         int32_t model_id;
                         if (ReadSpanInc(p, model_id))
                             node_to_model.insert_or_assign(node_id, model_id);
-                        int32_t dict_len;
-                        if (!ReadSpanInc(p, dict_len)) return erreof();
-                        for (int i = 0; i < dict_len; ++i) {
-                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
-                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
-                        }
+                        if (!ReadDict([&](const string &, const string &) {}))
+                            return erreof();
                     }
                 } else if (!strncmp(id, "LAYR", 4)) {
                     // Layer metadata
                     int32_t layer_id;
-                    if (!ReadSpanInc(p, layer_id)) return erreof();
-                    int32_t dict_len;
-                    if (!ReadSpanInc(p, dict_len)) return erreof();
-                    for (int i = 0; i < dict_len; ++i) {
-                        string key;
-                        if (!ReadSpanVec<string, int32_t>(p, key)) return erreof();
-                        if (key == "_name") {
-                            string value;
-                            if (!ReadSpanVec<string, int32_t>(p, value)) return erreof();
-                            layer_names.insert_or_assign(layer_id, value);
-                        } else
-                            if (!SkipSpanVec<string, int32_t>(p)) return erreof();
-                    }
+                    if (!ParseNames(layer_names, layer_id)) return erreof();
                 } else {
                     chunks_skipped = true;
                 }
@@ -757,7 +721,8 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 return errf(".vox file uses object deduplication feature that is not supported\n");
             }
             for (auto &i : node_to_layer)
-                if ((layer_names.find(i.second) != layer_names.end()) && (node_names.find(i.first) == node_names.end()))
+                if ((layer_names.find(i.second) != layer_names.end()) &&
+                    (node_names.find(i.first) == node_names.end()))
                     node_names.insert_or_assign(i.first, layer_names[i.second]);
             for (auto &i : node_to_model) {
                 auto node_id = i.first;
