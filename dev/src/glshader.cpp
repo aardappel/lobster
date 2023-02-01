@@ -41,7 +41,7 @@ string GLSLError(int obj, bool isprogram, const char *source) {
         GLchar *log = new GLchar[length];
         if (isprogram) GL_CALL(glGetProgramInfoLog(obj, length, &length, log));
         else           GL_CALL(glGetShaderInfoLog (obj, length, &length, log));
-        string err = "GLSL ERROR: ";
+        string err;
         err += log;
         int i = 0;
         if (source) {
@@ -57,7 +57,6 @@ string GLSLError(int obj, bool isprogram, const char *source) {
                 }
             }
             // repeat the error, since source often long, to avoid scrolling.
-            err += "GLSL ERROR: ";
             err += log;
         }
         delete[] log;
@@ -160,9 +159,10 @@ string ParseMaterialFile(string_view mbuf) {
         }
         return false;
     };
+    int line_number = 1;
     for (;;) {
         auto start = p;
-        p.remove_suffix(p.size() - min(p.find_first_of("\n"), p.size()));
+        p.remove_suffix(p.size() - min(p.find_first_of("\r\n"), p.size()));
         auto line = p;
         word();
         if (!last.empty()) {
@@ -314,13 +314,15 @@ string ParseMaterialFile(string_view mbuf) {
             } else {
                 if (!accum)
                     return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL/COMPUTE block: " + line;
-                *accum += line;
-                *accum += "\n";
+                *accum += cat(line, "  // ", line_number, "\n");
             }
         }
         if (line.size() == start.size()) break;
-        start.remove_prefix(line.size() + 1);
+        start.remove_prefix(line.size());
+        if (start.starts_with('\r')) start.remove_prefix(1);
+        if (start.starts_with('\n')) start.remove_prefix(1);
         p = start;
+        line_number++;
     }
     finish();
     return err;
