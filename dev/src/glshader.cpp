@@ -319,8 +319,8 @@ string ParseMaterialFile(string_view mbuf) {
         }
         if (line.size() == start.size()) break;
         start.remove_prefix(line.size());
-        if (start.starts_with('\r')) start.remove_prefix(1);
-        if (start.starts_with('\n')) start.remove_prefix(1);
+        if (!start.empty() && start[0] == '\r') start.remove_prefix(1);
+        if (!start.empty() && start[0] == '\n') start.remove_prefix(1);
         p = start;
         line_number++;
     }
