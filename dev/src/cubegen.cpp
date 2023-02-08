@@ -553,10 +553,14 @@ nfr("cg_create_3d_texture", "block,textureformat,monochrome", "R:voxelsII?", "R:
     });
 
 // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
-nfr("cg_load_vox", "name", "S", "R:voxels]S?",
+// https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
+// https://github.com/VoxelChain/voxelchain-formats/blob/main/src/vox.ts
+// https://github.com/ephtracy/voxel-model/issues/19
+nfr("cg_load_vox", "name,material_palette", "SI?", "R:voxels]S?",
     "loads a .vox file (supports both MagicaVoxel or VoxLap formats). "
+    "if material_palette is true the alpha channel will contain material flags. "
     "returns vector of blocks or empty if file failed to load, and error string if any",
-    [](StackPtr &sp, VM &vm, Value &name) {
+    [](StackPtr &sp, VM &vm, Value &name, Value &material_palette) {
         auto namep = name.sval()->strv();
         string buf;
         auto voxvec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_RESOURCE);
@@ -577,6 +581,21 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
             bufs = bufs.subspan(8);
             bool chunks_skipped = false;
             Voxels *voxels = nullptr;
+            vector<byte4> palette;
+            auto palette_init_materials = [&]() {
+                if (material_palette.True()) {
+                    for (auto &c : palette) {
+                        if (c.w) c.w = 0x80;  // High bit is alpha, low bits are material properties.
+                    }
+                }
+            };
+            auto clone_if_default = [&]() {
+                if (material_palette.True() && palette.empty()) {
+                    // File uses default palette, clone it since we're about to modify it.
+                    palette = palettes[0].colors;
+                    palette_init_materials();
+                }
+            };
             map<int32_t, int32_t> node_graph;
             map<int32_t, int32_t> node_to_model;
             map<int32_t, int32_t> node_to_layer;
@@ -618,14 +637,11 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
                 } else if (!strncmp(id, "RGBA", 4)) {
                     if (!voxels) return errf(".vox file RGBA chunk in wrong order");
-                    vector<byte4> palette;
+                    if (!palette.empty()) return errf(".vox file contains >1 palette");
                     palette.push_back(byte4_0);
                     if (p.size() < 256) return erreof();
                     palette.insert(palette.end(), (byte4 *)p.data(), ((byte4 *)p.data()) + 255);
-                    auto pi = NewPalette(palette.data());
-                    for (iint i = 0; i < voxvec->len; i++) {
-                        GetVoxels(voxvec->At(i)).palette_idx = pi;
-                    }
+                    palette_init_materials();
                 } else if (!strncmp(id, "XYZI", 4)) {
                     if (!voxels) return errf(".vox file XYZI chunk in wrong order");
                     int numvoxels;
@@ -672,8 +688,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                                     cursor = next + 1;
                                     offset.z = std::strtol(cursor, &next, 10);
                                     node_offset.insert_or_assign(node_id, offset);
-                                }
-                                if (key == "_r") {
+                                } else if (key == "_r") {
                                     const char *cursor = value.c_str();
                                     char *next;
                                     auto rotation = std::strtol(cursor, &next, 10);
@@ -713,8 +728,68 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                     // Layer metadata
                     int32_t layer_id;
                     if (!ParseNames(layer_names, layer_id)) return erreof();
+                } else if (!strncmp(id, "MATL", 4)) {
+                    enum { M_DIFFUSE, M_METAL, M_GLASS, M_EMIT };
+                    auto type = M_DIFFUSE;
+                    float weight = 0.0f;
+                    float rough = 0.0f;
+                    float spec = 0.0f;
+                    float ior = 0.0f;
+                    float att = 0.0f;
+                    float flux = 0.0f;
+                    int32_t id;
+                    if (!ReadSpanInc(p, id)) return erreof();
+                    if (!ReadDict([&](const string &key, const string &value) {
+                            if (key == "_type") {
+                                if (value == "_diffuse") type = M_DIFFUSE;
+                                else if (value == "_metal") type = M_METAL;
+                                else if (value == "_glass") type = M_GLASS;
+                                else if (value == "_emit") type = M_EMIT;
+                            } else if (key == "_weight") {
+                                weight = strtof(value.c_str(), nullptr);
+                            } else if (key == "_rough") {
+                                rough = strtof(value.c_str(), nullptr);
+                            } else if (key == "_spec") {
+                                spec = strtof(value.c_str(), nullptr);
+                            } else if (key == "_ior") {
+                                ior = strtof(value.c_str(), nullptr);
+                            } else if (key == "_att") {
+                                att = strtof(value.c_str(), nullptr);
+                            } else if (key == "_flux") {
+                                flux = strtof(value.c_str(), nullptr);
+                            }
+                        })) return erreof();
+                    // Now to pack the parts we're interested in into bits in the palette.
+                    if (material_palette.True()) {
+                        switch (type) {
+                            case M_EMIT:
+                                // flux ranges from 1 to 5 if emissive, so uses bottom 3 bits.
+                                clone_if_default();
+                                palette[id].w |= (int)flux + 1;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                } else if (!strncmp(id, "IMAP", 4)) {
+                    // Palette needs to be remapped.. why is this needed??
+                    // FIXME: how does this affect material ids???
+                    vector<byte4> remapped_palette = palette;
+                    auto imap = p.data();
+                    for (int i = 0; i < 255; i++) {
+                        remapped_palette[imap[i]] = palette[i + 1];
+                    }
+                    palette = remapped_palette;
                 } else {
                     chunks_skipped = true;
+                }
+            }
+            // Now finalize the palette once we have read palette + material data.
+            clone_if_default();
+            if (!palette.empty()) {
+                auto pi = NewPalette(palette.data());
+                for (iint i = 0; i < voxvec->len; i++) {
+                    GetVoxels(voxvec->At(i)).palette_idx = pi;
                 }
             }
             if (voxvec->SLen() < (ssize_t)node_to_model.size()) {
@@ -780,7 +855,7 @@ nfr("cg_load_vox", "name", "S", "R:voxels]S?",
                 byte4 c = byte4(p);
                 p += 3;
                 c *= 4;  // Values range from 0..63?
-                c.w = 0xFF;
+                c.w = material_palette.True() ? 0x80 : 0xFF;
                 palette.push_back(c);
             }
             voxels->palette_idx = NewPalette(palette.data());
@@ -1204,7 +1279,7 @@ nfr("cg_load_image", "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
                             for (int e = 1; e <= edge; e++) {
                                 for (int c = 0; c < 4; c++) {
                                     auto p = int2(x, y) + neighbors[c] * e;
-                                    if (!(p >= 0 && p < dim) || Get(p).w < 128) {
+                                    if (!(p >= 0 && p < dim) || Get(p).w < 0x80) {
                                         ndist = edge - e + 1;
                                         goto done;
                                     }
