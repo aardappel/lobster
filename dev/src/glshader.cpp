@@ -529,7 +529,7 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
             GL_CALL(glBindBuffer(type, buf->bo));
             // We're going to re-upload the buffer.
             // See this for what is fast:
-            // https://www.seas.upenn.edu/~pcozzi/OpenGLInsights/OpenGLInsights-AsynchronousBufferTransfers.pdf
+            // https://xeolabs.com/pdfs/OpenGLInsights.pdf chapter 28: Asynchronous Buffer Transfers
             // https://thothonegan.tumblr.com/post/135193767243/glbuffersubdata-vs-glbufferdata
             if (offset < 0) {
                 LOBSTER_FRAME_PROFILE_THIS_SCOPE;
