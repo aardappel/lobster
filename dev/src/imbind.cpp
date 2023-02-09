@@ -51,6 +51,9 @@ enum Nesting {
 
 vector<Nesting> nstack;
 ImGuiID last_dock_id = 0;
+struct ListSelect { int sel = -1; int64_t last_use = -1; };
+map<ImGuiID, ListSelect> list_state;
+int64_t imgui_frame = 0;
 
 void IMGUIFrameCleanup() {
     nstack.clear();
@@ -535,6 +538,20 @@ string BreakPoint(VM &vm, string_view reason) {
     return "";
 }
 
+int &ListState(int &cur, const char* label, iint max, int def) {
+    auto pcur = &cur;
+    if (cur < -1) {
+        auto id = ImGui::GetID(label);
+        auto &ls = list_state[id];
+        if (ls.sel < 0) ls.sel = def;
+        ls.last_use = imgui_frame;
+        pcur = &ls.sel;
+    }
+    // Convenient: user code doesn't need to keep track of changes in size.
+    *pcur = min(*pcur, (int)max - 1);
+    return *pcur;
+}
+
 void AddIMGUI(NativeRegistry &nfr) {
 
 nfr("im_init", "dark_style,flags,rounding", "B?I?F?", "",
@@ -582,6 +599,7 @@ nfr("im_frame_start", "", "", "",
         ImGui_ImplSDL2_NewFrame(_sdl_window);
         ImGui::NewFrame();
         NPush(N_FRAME);
+        imgui_frame++;
     });
 
 nfr("im_frame_end", "", "", "",
@@ -589,6 +607,13 @@ nfr("im_frame_end", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm, N_NONE);
         NPop(vm, N_FRAME);
+        for (auto it = list_state.cbegin(); it != list_state.cend(); ) {
+            if (it->second.last_use != imgui_frame) {
+                it = list_state.erase(it);
+            } else {
+                ++it;
+            }
+        }
     });
 
 nfr("im_window_demo", "", "", "B",
@@ -692,41 +717,48 @@ nfr("im_input_float", "label,val", "SF", "F",
     });
 
 nfr("im_radio", "labels,active,horiz", "S]II", "I",
-    "",
+    "active to select which one is activated, -2 for last frame\'s "
+    "selection or 0",
     [](StackPtr &, VM &vm, Value &strs, Value &active, Value &horiz) {
         IsInit(vm);
-        int sel = active.intval();
-        for (iint i = 0; i < strs.vval()->len; i++) {
+        auto v = strs.vval();
+        auto act = active.intval();
+        int &sel = ListState(act, v->len ? v->At(0).sval()->data() : "", v->len, 0);
+        for (iint i = 0; i < v->len; i++) {
             if (i && horiz.True()) ImGui::SameLine();
-            ImGui::RadioButton(strs.vval()->At(i).sval()->data(), &sel, (int)i);
+            ImGui::RadioButton(v->At(i).sval()->data(), &sel, (int)i);
         }
         return Value(sel);
     });
 
 nfr("im_combo", "label,labels,active", "SS]I", "I",
-    "",
+    "active to select which one is activated, -2 for last frame\'s "
+    "selection or 0",
     [](StackPtr &, VM &vm, Value &text, Value &strs, Value &active) {
         IsInit(vm);
-        int sel = active.intval();
-        vector<const char *> items(strs.vval()->len);
-        for (iint i = 0; i < strs.vval()->len; i++) {
-            items[i] = strs.vval()->At(i).sval()->data();
+        auto v = strs.vval();
+        auto act = active.intval();
+        int &sel = ListState(act, text.sval()->data(), v->len, 0);
+        vector<const char *> items(v->len);
+        for (iint i = 0; i < v->len; i++) {
+            items[i] = v->At(i).sval()->data();
         }
         ImGui::Combo(text.sval()->data(), &sel, items.data(), (int)items.size());
         return Value(sel);
     });
 
 nfr("im_listbox", "label,labels,active,height", "SS]II", "I",
-    "",
+    "active to select which one is activated, -1 for no initial selection, -2 for last frame\'s "
+    "selection or none",
     [](StackPtr &, VM &vm, Value &text, Value &strs, Value &active, Value &height) {
         IsInit(vm);
-        int sel = active.intval();
-        vector<const char *> items(strs.vval()->len);
-        for (iint i = 0; i < strs.vval()->len; i++) {
-            items[i] = strs.vval()->At(i).sval()->data();
+        auto v = strs.vval();
+        auto act = active.intval();
+        int &sel = ListState(act, text.sval()->data(), v->len, -1);
+        vector<const char *> items(v->len);
+        for (iint i = 0; i < v->len; i++) {
+            items[i] = v->At(i).sval()->data();
         }
-        // Convenient: user code doesn't need to keep track of changes in size.
-        sel = min(sel, (int)items.size() - 1);
         ImGui::ListBox(text.sval()->data(), &sel, items.data(), (int)items.size(), height.intval());
         return Value(sel);
     });
