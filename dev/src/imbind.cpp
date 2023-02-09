@@ -725,6 +725,8 @@ nfr("im_listbox", "label,labels,active,height", "SS]II", "I",
         for (iint i = 0; i < strs.vval()->len; i++) {
             items[i] = strs.vval()->At(i).sval()->data();
         }
+        // Convenient: user code doesn't need to keep track of changes in size.
+        sel = min(sel, (int)items.size() - 1);
         ImGui::ListBox(text.sval()->data(), &sel, items.data(), (int)items.size(), height.intval());
         return Value(sel);
     });
