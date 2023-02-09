@@ -1,3 +1,65 @@
+- locally declared class members.
+  * It is super common for some API (e.g. imgui) to leave the across frame state storage to the caller,
+    which results in all these helper variables in the containing class that have no purpose other than
+    in one function.
+  * What if those vars can actually be declared in the function?
+    Kinda like C "static", but for class scopes.
+    Kinda like Lobster's removed frame state feature, but again, for classes.
+  * The variable would be visible only in that scope, but stored in the class.
+    It would need an initializer, since class construction must always initialize it.
+    So in the simplest case it would be:
+    member sel = -1
+    sel = im_listbbox("foo", sel)
+  * Would this only work for "methods", or any first arg with a withtype ::, or any first arg at all?
+    It's a fun feature for a free-standing function with a generic arg to be able to add state to
+    multiple classes in modular fashion:
+    def stateful<T>(t::T, ..):
+        member track_thing = 0
+        // track_thing is now a member of any T this gets called on.
+    Likely requiring :: is a good idea, since it makes the decl/use look identical to inline methods,
+    makes it clear param 1 is special, and it would be odd to declare the var as `a` and then use it as `t.a`.
+    If needed, allow it without :: also but then it has to be declared as `t.a`.
+    If needed, could allow :: to be used on args that are not the first, but this is not in line with
+    the special status of the first param elsewhere.
+  * Since these members are not accessible outside the scope, they are by definition for transient
+    uses of data (since you can't even serialize them manually), so should be excluded also in
+    any generic serialization/parsing/printing functionality.
+  * Philosophically, this makes a lot of sense: frame based state had the issue that you needed
+    conditions and loops to drive the lifetime of the state, which was often tied to particular
+    objects being visited or not. Here you do the same, but much more directly.
+    If an imgui is editing particular object state, then its gui state is tied to that one object,
+    not to the frame.
+  * You can think of this feature more generally: a function that has state it wants to survive
+    over multiple calls. It turns out that the class context as indicated by first argument is a
+    good default, but maybe there are others, there might be such functions when I call them in
+    a loop I want to have that state be a local variable in the parent function instead of
+    in a class? I guess that is not as valueable because you could already have a function that
+    returns the current state and then tracking it in the parent was very local.
+    The class case is both more prevalent (since an object indicates lifetimes we care about)
+    and it also makes a bigger improvement (since member variables are in scope of a LOT of code).
+  * A related idea I had that maybe can be implemented alongside this:
+    Scoped member variables that are lifetime bound to the function they're in.
+    This is kind of the opposite of the above, since it is not meant to survive one call,
+    but is similar that they're bot not visible outside the scope.
+    def garbage_collect(os:[Object]):
+        member visited = false in Object
+        // complex recursive algo goes here that marks objects as visited.
+        return os.filter(): _.visited
+    You can of course do these things with an extra array, but now the array, index, and object
+    need to be passed to other functions where in this case just object would suffice.
+    Of course you permanently take space in the object, but that could be mitigated by the fact
+    that 2 such variables could overlap in storage?
+    Gets maybe a bit complicated as a feature?
+    Though, just having a syntax to indicate that the hidden field is to be added to a specific
+    type instead of the type of the first arg would be cheap to add and enable these kinds of
+    use cases.
+    In the end, besides having decls more local, the other idea is that its cheaper/simpler to
+    piggyback "associated" storage in parent/key objects.
+  * How would this be implemented? In the non-generic inline method case it be easy syntactic sugar,
+    since it could just be lifted to a field decl for the surrounding class, but in the generic
+    example above it can only be added to T once the caller is being compiled, and by then T
+    may already have classes that inherit from it, etc, which would have to be taken into account.
+
 - fix this:
 
     class A
