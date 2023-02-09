@@ -45,6 +45,22 @@ enum_flags im_window:
     im_window_unsaved_document            // Append '*' to title without affecting the ID, as a convenience to avoid using the ### operator. When used in a tab/docking context, tab is selected on closure and closure is deferred by one frame to allow code to cancel the closure (with a confirmation popup, etc.) without flicker.
     im_window_no_docking                  // Disable docking of this window
 
+enum_flags im_treenode:
+    im_treenode_none = 0
+    im_treenode_selected = 1         // Draw as selected
+    im_treenode_framed               // Draw frame with background (e.g. for CollapsingHeader)
+    im_treenode_allow_item_overlap   // Hit testing to allow subsequent widgets to overlap this one
+    im_treenode_no_tree_push_on_open // Don't do a TreePush() when open (e.g. for CollapsingHeader) = no extra indent nor pushing on ID stack
+    im_treenode_no_auto_open_on_log  // Don't automatically and temporarily open node when Logging is active (by default logging will automatically open tree nodes)
+    im_treenode_default_open         // Default node to be open
+    im_treenode_open_on_double_click // Need double-click to open node
+    im_treenode_open_on_arrow        // Only open when clicking on the arrow part. If ImGuiTreeNodeFlags_OpenOnDoubleClick is also set, single-click arrow or double-click all box to open.
+    im_treenode_leaf                 // No collapsing, no arrow (use as a convenience for leaf nodes).
+    im_treenode_bullet               // Display a bullet instead of arrow
+    im_treenode_frame_padding        // Use FramePadding (even for an unframed text node) to vertically align text baseline to regular widget height. Equivalent to calling AlignTextToFramePadding().
+    im_treenode_span_avail_width     // Extend hit box to the right-most edge, even if not framed. This is not the default in order to allow adding other items on the same line. In the future we may refactor the hit system to be front-to-back, allowing natural overlaps and then this can become the default.
+    im_treenode_span_full_width      // Extend hit box to the left-most and right-most edges (bypass the indented area).
+
 // Utility functions that are more convenient than calling start/end yourself.
 
 def im_frame(body):
@@ -63,7 +79,14 @@ def im_window_dock(title, flags, body):
     im_window_end()
 
 def im_treenode(label, body):
-    let open = im_treenode_start(label)
+    let open = im_treenode_start(label, 0)
+    if open:
+        body()
+        im_treenode_end()
+    return open
+
+def im_treenode_open(label, body):
+    let open = im_treenode_start(label, im_treenode_default_open)
     if open:
         body()
         im_treenode_end()

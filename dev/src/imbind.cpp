@@ -758,12 +758,13 @@ nfr("im_coloredit", "label,color", "SF}", "A2",
         PushVec(sp, c);
     });
 
-nfr("im_treenode_start", "label", "S", "B",
+nfr("im_treenode_start", "label,flags", "SI", "B",
     "(use im_treenode instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
+        auto flags = (ImGuiTreeNodeFlags)Pop(sp).intval();
         auto title = Pop(sp);
-        bool open = ImGui::TreeNode(title.sval()->data());
+        bool open = ImGui::TreeNodeEx(title.sval()->data(), flags);
         Push(sp, open);
         if (open) NPush(N_TREE);
     });
