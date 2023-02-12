@@ -20,6 +20,7 @@ struct Parser {
     Node *root = nullptr;
     SymbolTable &st;
     vector<Function *> functionstack;
+    vector<UDT *> udtstack;
     bool call_noparens = false;
     set<string> pakfiles;
     struct BlockScope {
@@ -268,6 +269,33 @@ struct Parser {
                 list->Add(def);
                 break;
             }
+            case T_MEMBER: {
+                lex.Next();
+                if (udtstack.empty()) Error("member declaration outside of class scope");
+                // FIXME: this would also allow it to be declared in nested functions, which is
+                // not really a direct problem but may want to tighten it up.
+                auto udt = udtstack.back();
+                // This is an arbitrary restriction that we could lift, just doesn't seem
+                // great to have invisble extra members in structs.
+                if (udt->is_struct) Error("member declaration only allowed in classes");
+                auto idname = ExpectId();
+                st.bound_typevars_stack.push_back(&udt->generics);
+                auto &sfield = st.FieldDecl(idname, udt, lex);
+                UnresolvedTypeRef type = { type_any };
+                if (IsNext(T_COLON)) {
+                    type = ParseType(false);
+                }
+                Expect(T_ASSIGN);
+                auto init = ParseOpExp();
+                udt->fields.push_back(Field(&sfield, type, init, true, lex));
+                udt->fields.back().in_scope = false;
+                st.bound_typevars_stack.pop_back();
+                auto member = new Member(lex);
+                member->udt = udt;
+                member->field_idx = udt->fields.size() - 1;
+                list->Add(member);
+                break;
+            }
             case T_ATTRIBUTE: {
                 lex.Next();
                 auto key = ExpectId();
@@ -322,6 +350,7 @@ struct Parser {
         Line line = lex;
         auto sname = st.MaybeNameSpace(ExpectId(), true);
         UDT *udt = &st.StructDecl(sname, lex, is_struct);
+        udtstack.push_back(udt);
         auto parse_sup = [&] () {
             ExpectId();
             auto sup = &st.StructUse(lastid, lex);
@@ -425,7 +454,7 @@ struct Parser {
                     else {
                         if (fieldsdone) Error("fields must be declared before methods");
                         ExpectId();
-                        auto &sfield = st.FieldDecl(lastid);
+                        auto &sfield = st.FieldDecl(lastid, udt, lex);
                         UnresolvedTypeRef type = { type_any };
                         if (IsNext(T_COLON)) {
                             type = ParseType(false);
@@ -459,6 +488,7 @@ struct Parser {
             g.set_resolvedtype_default(type.utr);
         }
         udt->unspecialized.is_generic = udt->is_generic;
+        udtstack.pop_back();
         parent_list->Add(new UDTRef(line, udt, udt->predeclaration));
     }
 

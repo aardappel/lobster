@@ -405,6 +405,8 @@ struct Lex : LoadedFile {
                         case 'l':
                             if (sattr == TName(T_CONST)) return T_CONST;
                             break;
+                        case 'm':
+                            if (sattr == TName(T_MEMBER)) return T_MEMBER;
                         case 'n':
                             if (sattr == TName(T_NIL)) return T_NIL;
                             if (sattr == TName(T_NOT)) return T_NOT;

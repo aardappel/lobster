@@ -986,6 +986,12 @@ void GenericCall::Generate(CodeGen &, size_t /*retval*/) const {
     assert(false);
 }
 
+void Member::Generate(CodeGen &cg, size_t retval) const {
+    // TODO: turn into DefaultVal in TT/Opt?
+    if (!retval) return;
+    cg.EmitOp(IL_PUSHNIL);
+}
+
 void AssignList::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(children.back(), children.size() - 1);
     for (size_t i = children.size() - 1; i-- > 0; ) {

@@ -199,6 +199,7 @@ struct Field : GivenResolve {
     Node *defaultval;
     int slot = -1;
     bool isprivate;
+    bool in_scope = true;  // For tracking scopes of ones declared by `member`.
     Line defined_in;
 
     Field(SharedField *_id, UnresolvedTypeRef _type, Node *_defaultval, bool isprivate,
@@ -865,12 +866,16 @@ struct SymbolTable {
         return a;
     }
 
-    SharedField &FieldDecl(string_view name) {
+    SharedField &FieldDecl(string_view name, UDT *udt, Lex &lex) {
         auto fld = FieldUse(name);
-        if (fld) return *fld;
-        fld = new SharedField(name, (int)fieldtable.size());
-        fields[fld->name /* must be in value */] = fld;
-        fieldtable.push_back(fld);
+        if (!fld) {
+            fld = new SharedField(name, (int)fieldtable.size());
+            fields[fld->name /* must be in value */] = fld;
+            fieldtable.push_back(fld);
+        }
+        if (udt->Has(fld) >= 0) {
+            lex.Error("double declaration of field: " + name);
+        }
         return *fld;
     }
 

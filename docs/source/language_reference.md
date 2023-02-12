@@ -769,6 +769,51 @@ copied by value.
 See more examples in `modules/quaternion.lobster` and `tests/operators.lobster`.
 
 
+### Class member variables with method scope.
+
+You may declare a (what appears to be) a local variable with the `member` keyword
+instead of `let`, which automatically stores it in the surrounding class:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class Foo:
+    a = 1
+    def bar():
+        member b = 2
+        b += a
+        return b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Calling `bar` will give different results each time, it really is almost the same
+as writing:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class Foo:
+    a = 1
+    b = 2
+    def bar():
+        b += a
+        return b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The difference is that `b` is not available outside of `bar`, trying to access it
+will result in an error.
+
+But why would you want to do this, if it so similar? A small example doesn't do
+this justice, but in games it is very common to need a lot of variables that
+track state of things that happen across frames, which are often used in just
+a single method, and end up cluttering the class they are in. By using `member`,
+you put the declaration closer to where it is used, which makes it easier to
+view all occurrences in larger classes. It also makes it easy to see that the
+variable is used only in a single method. This reduces "cognitive load" in
+understanding the code, compared to seeing a long list of member variables at the
+top of a class and not knowing what their relationship is. Seeing that the
+variable is local to, say, `render()` also gives additional information what
+the variable may be used for.
+
+Currently, `member` must occur in a function declaration that is declared
+inside a class (not a struct), restrictions that may be lifted in the future.
+
+
 Typing
 ------
 

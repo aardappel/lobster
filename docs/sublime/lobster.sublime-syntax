@@ -35,7 +35,7 @@ contexts:
 
         #####################################################################################
         # Inferenced Variable Declaration:
-        - match: (?i)\b(var|let)\b
+        - match: (?i)\b(var|let|member|attribute)\b
           scope: storage.type.lobster
 
         # Built-in Types:

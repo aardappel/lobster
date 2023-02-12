@@ -490,6 +490,21 @@ struct Define : Unary {
     SHARED_SIGNATURE(Define, "var", true)
 };
 
+struct Member : Node {
+    UDT *udt = nullptr;
+    size_t field_idx = 0;
+    Member(const Line &ln) : Node(ln) {}
+    Field *field() const { return &udt->fields[field_idx]; }
+    void Dump(string &sd) const {
+        append(sd, field()->id->name, " ");
+        sd += Name();
+    }
+    bool EqAttr(const Node *o) const {
+        return field() == ((Member *)o)->field();
+    }
+    SHARED_SIGNATURE(Member, TName(T_MEMBER), false)
+};
+
 struct Dot : Unary {
     SharedField *fld;  // FIXME
     Dot(SharedField *_fld, Line &ln, Node *child) : Unary(ln, child), fld(_fld) {}

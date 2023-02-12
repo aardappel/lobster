@@ -647,6 +647,42 @@ currently no way to do this with <code>struct</code> which are always
 copied by value.</p>
 <p>See more examples in <code>modules/quaternion.lobster</code> and
 <code>tests/operators.lobster</code>.</p>
+<h3 id="class-member-variables-with-method-scope.">Class member
+variables with method scope.</h3>
+<p>You may declare a (what appears to be) a local variable with the
+<code>member</code> keyword instead of <code>let</code>, which
+automatically stores it in the surrounding class:</p>
+<pre><code>class Foo:
+    a = 1
+    def bar():
+        member b = 2
+        b += a
+        return b</code></pre>
+<p>Calling <code>bar</code> will give different results each time, it
+really is almost the same as writing:</p>
+<pre><code>class Foo:
+    a = 1
+    b = 2
+    def bar():
+        b += a
+        return b</code></pre>
+<p>The difference is that <code>b</code> is not available outside of
+<code>bar</code>, trying to access it will result in an error.</p>
+<p>But why would you want to do this, if it so similar? A small example
+doesn’t do this justice, but in games it is very common to need a lot of
+variables that track state of things that happen across frames, which
+are often used in just a single method, and end up cluttering the class
+they are in. By using <code>member</code>, you put the declaration
+closer to where it is used, which makes it easier to view all
+occurrences in larger classes. It also makes it easy to see that the
+variable is used only in a single method. This reduces “cognitive load”
+in understanding the code, compared to seeing a long list of member
+variables at the top of a class and not knowing what their relationship
+is. Seeing that the variable is local to, say, <code>render()</code>
+also gives additional information what the variable may be used for.</p>
+<p>Currently, <code>member</code> must occur in a function declaration
+that is declared inside a class (not a struct), restrictions that may be
+lifted in the future.</p>
 <h2 id="typing">Typing</h2>
 <p>Lobster is statically typed, though most of the time you don’t
 notice, since most types can be inferred. You specify types:</p>

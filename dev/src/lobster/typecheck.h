@@ -73,7 +73,12 @@ enum ConvertFlags {
 struct TypeChecker {
     Parser &parser;
     SymbolTable &st;
-    struct Scope { SubFunction *sf; const Node *call_context; int loop_count = 0; };
+    struct Scope {
+        SubFunction *sf;
+        const Node *call_context;
+        int loop_count = 0;
+        vector<Member *> scoped_fields;
+    };
     vector<Scope> scopes, named_scopes;
     vector<FlowItem> flowstack;
     vector<Borrow> borrowstack;
@@ -941,6 +946,10 @@ struct TypeChecker {
             sf.mustspecialize = true;
         }
         st.BlockScopeCleanup();
+        for (auto member : scopes.back().scoped_fields) {
+            auto f = member->field();
+            f->in_scope = false;
+        }
         if (!sf.parent->anonymous) named_scopes.pop_back();
         scopes.pop_back();
         LOG_DEBUG("function end ", Signature(sf), " returns ",
@@ -2547,6 +2556,15 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
+Node *Member::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    auto f = field();
+    f->in_scope = true;
+    tc.scopes.back().scoped_fields.push_back(this);
+    exptype = type_void;
+    lt = LT_ANY;
+    return this;
+}
+
 Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     for (auto &c : children) {
         if (c != children.back()) {
@@ -3442,6 +3460,7 @@ Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     auto &field = udt->fields[fieldidx];
     if (field.isprivate && line.fileidx != field.defined_in.fileidx)
         tc.Error(*this, "field ", Q(field.id->name), " is private");
+    if (!field.in_scope) tc.Error(*this, "field ", Q(field.id->name), " is not in scope");
     exptype = field.resolvedtype();
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) exptype = tc.UseFlow(fi);

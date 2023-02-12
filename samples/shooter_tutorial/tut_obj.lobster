@@ -70,9 +70,7 @@ class World:
     bullets = []
     lastbullet = gl_time()
 
-    enemyrate = 1.0
     enemies = []
-    lastenemy = gl_time()
 
     score = 0
 
@@ -86,8 +84,10 @@ class World:
 
             let tomouse = player.update(float(gl_window_size()) / scale / 2)
 
+            member lastenemy = gl_time()
             if lastenemy < gl_time():
                 enemies.push(Enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
+                member enemyrate = 1.0
                 lastenemy += enemyrate
                 enemyrate *= 0.999
 
