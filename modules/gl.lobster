@@ -66,6 +66,6 @@ def gl_deltatime_over_time():
 
 // For backwards compatibility, don't use.
 def gl_update_bind_buffer_object(name, buf, ssbo, res = nil):
-    res = gl_update_buffer_object(buf, ssbo, nil)
+    res = gl_update_buffer_object(buf, ssbo, -1, nil)
     assert gl_bind_buffer_object(name, res)
     return res
