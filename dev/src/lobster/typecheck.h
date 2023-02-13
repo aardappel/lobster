@@ -107,7 +107,6 @@ struct TypeChecker {
         assert(borrowstack.empty());
         assert(scopes.empty());
         assert(named_scopes.empty());
-        Stats();
     }
 
     // Needed for any sids in cloned code.
@@ -2205,7 +2204,7 @@ struct TypeChecker {
         return type;
     };
 
-    void Stats() {
+    void Stats(vector<string> &filenames) {
         if (min_output_level > OUTPUT_INFO) return;
         int origsf = 0, clonesf = 0;
         size_t orignodes = 0, clonenodes = 0;
@@ -2230,7 +2229,7 @@ struct TypeChecker {
         for (auto &[fsize, f] : funstats) if (fsize > orignodes / 100) {
             auto s = cat("Most clones: ", f->name);
             if (auto body = f->overloads.back()->sf->sbody) {
-                s += cat(" (", st.filenames[body->line.fileidx], ":", body->line.line, ")");
+                s += cat(" (", filenames[body->line.fileidx], ":", body->line.line, ")");
             }
             LOG_INFO(s, " -> ", fsize, " nodes accross ", f->NumSubf() - f->overloads.size(),
                      " clones (+", f->overloads.size(), " orig)");

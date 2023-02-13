@@ -16,7 +16,7 @@ namespace lobster {
 
 struct Parser {
     NativeRegistry &natreg;
-    Lex lex;
+    Lex &lex;
     Node *root = nullptr;
     SymbolTable &st;
     vector<Function *> functionstack;
@@ -30,8 +30,8 @@ struct Parser {
     };
     vector<BlockScope> block_stack;
 
-    Parser(NativeRegistry &natreg, string_view _src, SymbolTable &_st, string_view _stringsource)
-        : natreg(natreg), lex(_src, _st.filenames, _stringsource), st(_st) {}
+    Parser(NativeRegistry &natreg, Lex &lex, SymbolTable &st)
+        : natreg(natreg), lex(lex), st(st) {}
 
     ~Parser() {
         delete root;
@@ -191,7 +191,7 @@ struct Parser {
                 Line line = lex;
                 int64_t cur = incremental ? 0 : 1;
                 auto enumname = st.MaybeNameSpace(ExpectId(), true);
-                auto def = st.EnumLookup(enumname, lex, true);
+                auto def = st.EnumLookup(enumname, true);
                 def->isprivate = isprivate;
                 def->flags = !incremental;
                 Expect(T_COLON);
@@ -207,7 +207,7 @@ struct Parser {
                             Error("enum value expression must evaluate to an integer constant");
                         cur = val.ival();
                     }
-                    auto ev = st.EnumValLookup(evname, lex, true);
+                    auto ev = st.EnumValLookup(evname, true);
                     ev->isprivate = isprivate;
                     ev->val = cur;
                     ev->e = def;
@@ -234,7 +234,7 @@ struct Parser {
                         lex.Next();
                         type = ParseType(withtype);
                     }
-                    auto id = st.LookupDef(idname, lex, true, withtype);
+                    auto id = st.LookupDef(idname, true, withtype);
                     if (id->predeclaration) {
                         if (type.utr.Null() || !type.utr->Equal(*id->giventype.utr))
                             Error("must specify same type as pre-declaration");
@@ -280,7 +280,7 @@ struct Parser {
                 if (udt->is_struct) Error("member declaration only allowed in classes");
                 auto idname = ExpectId();
                 st.bound_typevars_stack.push_back(&udt->generics);
-                auto &sfield = st.FieldDecl(idname, udt, lex);
+                auto &sfield = st.FieldDecl(idname, udt);
                 UnresolvedTypeRef type = { type_any };
                 if (IsNext(T_COLON)) {
                     type = ParseType(false);
@@ -349,11 +349,11 @@ struct Parser {
         lex.Next();
         Line line = lex;
         auto sname = st.MaybeNameSpace(ExpectId(), true);
-        UDT *udt = &st.StructDecl(sname, lex, is_struct);
+        UDT *udt = &st.StructDecl(sname, is_struct);
         udtstack.push_back(udt);
         auto parse_sup = [&] () {
             ExpectId();
-            auto sup = &st.StructUse(lastid, lex);
+            auto sup = &st.StructUse(lastid);
             if (sup == udt) Error("can\'t inherit from ", Q(lastid));
             if (is_struct != sup->is_struct)
                 Error("class/struct must match parent");
@@ -454,7 +454,7 @@ struct Parser {
                     else {
                         if (fieldsdone) Error("fields must be declared before methods");
                         ExpectId();
-                        auto &sfield = st.FieldDecl(lastid, udt, lex);
+                        auto &sfield = st.FieldDecl(lastid, udt);
                         UnresolvedTypeRef type = { type_any };
                         if (IsNext(T_COLON)) {
                             type = ParseType(false);
@@ -576,11 +576,11 @@ struct Parser {
         size_t nargs = 0;
         if (self) {
             nargs++;
-            auto id = st.LookupDef("this", lex, false, true);
+            auto id = st.LookupDef("this", false, true);
             auto &arg = sf->args.back();
             arg.type = &self->unspecialized_type;
             sf->giventypes.push_back({ arg.type });
-            st.AddWithStruct(arg.type, id, lex, sf);
+            st.AddWithStruct(arg.type, id, sf);
             id->cursid->withtype = true;
         }
         bool non_inline_method = false;
@@ -591,12 +591,12 @@ struct Parser {
                 ExpectId();
                 nargs++;
                 bool withtype = lex.token == T_TYPEIN;
-                auto id = st.LookupDef(lastid, lex, false, withtype);
+                auto id = st.LookupDef(lastid, false, withtype);
                 auto &arg = sf->args.back();
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
                     arg.type = ParseType(withtype, nullptr).utr;
-                    if (withtype) st.AddWithStruct(arg.type, id, lex, sf);
+                    if (withtype) st.AddWithStruct(arg.type, id, sf);
                     if (nargs == 1 && arg.type->t == V_UUDT) {
                         non_inline_method = true;
                         self = arg.type->spec_udt->udt;
@@ -759,7 +759,7 @@ struct Parser {
                     lex.Next();
                     break;
                 }
-                auto e = st.EnumLookup(lex.sattr, lex, false);
+                auto e = st.EnumLookup(lex.sattr, false);
                 if (e) {
                     dest = &e->thistype;
                     lex.Next();
@@ -770,7 +770,7 @@ struct Parser {
                     lex.Next();
                     goto done;
                 }
-                dest = &st.StructUse(lex.sattr, lex).unspecialized_type;
+                dest = &st.StructUse(lex.sattr).unspecialized_type;
                 lex.Next();
                 if (IsNext(T_LT)) {
                     dest = st.NewSpecUDT(dest->spec_udt->udt);
@@ -1321,13 +1321,13 @@ struct Parser {
             for (;;) {
                 ExpectId();
                 bool withtype = lex.token == T_TYPEIN;
-                auto id = st.LookupDef(lastid, lex, true, withtype);
+                auto id = st.LookupDef(lastid, true, withtype);
                 id->single_assignment = false;  // Mostly to stop warning that it is constant.
                 UnresolvedTypeRef type = { nullptr };
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
                     type = ParseType(withtype, nullptr);
-                    if (withtype) st.AddWithStruct(type.utr, id, lex, st.defsubfunctionstack.back());
+                    if (withtype) st.AddWithStruct(type.utr, id, st.defsubfunctionstack.back());
                 }
                 id->cursid->withtype = withtype;
                 ForLoopVar(for_args, id->cursid, type, block->children);
@@ -1378,7 +1378,7 @@ struct Parser {
             if (!tv.Null()) {
                 type = { tv };
             } else {
-                udt = &st.StructUse(idname, lex);
+                udt = &st.StructUse(idname);
                 type = { st.NewSpecUDT(udt) };
                 type.utr->spec_udt->is_generic = udt->is_generic;
             }
@@ -1453,7 +1453,7 @@ struct Parser {
         // don't have C's ","-operator).
         auto nf = natreg.FindNative(idname);
         auto f = st.FindFunction(idname);
-        auto e = st.EnumLookup(idname, lex, false);
+        auto e = st.EnumLookup(idname, false);
         if (lex.token == T_LEFTPAREN && lex.whitespacebefore == 0) {
             if (e && !f && !nf) {
                 lex.Next();
@@ -1475,7 +1475,7 @@ struct Parser {
             auto sf = st.defsubfunctionstack.back();
             if (!id || id->cursid->sf_def != sf) {
                 if (bs.for_nargs >= 0) {
-                    id = st.LookupDef(idname, lex, true, false);
+                    id = st.LookupDef(idname, true, false);
                     if (bs.for_nargs > 0) {
                         Error("cannot add implicit argument ", Q(idname), " to ", Q("for"),
                               " with existing arguments");
@@ -1484,7 +1484,7 @@ struct Parser {
                     ForLoopVar(bs.implicits, id->cursid, type, bs.block->children);
                     bs.implicits++;
                 } else {
-                    id = st.LookupDef(idname, lex, false, false);
+                    id = st.LookupDef(idname, false, false);
                     if (st.defsubfunctionstack.size() <= 1)
                         Error("cannot add implicit argument ", Q(idname), " to top level");
                     if (!sf->parent->anonymous)
@@ -1502,7 +1502,7 @@ struct Parser {
         }
         auto id = st.Lookup(idname);
         Ident *fieldid = nullptr;
-        auto field = st.LookupWithStruct(idname, lex, fieldid);
+        auto field = st.LookupWithStruct(idname, fieldid);
         // Check for function call without ().
         if (!id &&
             !field &&
@@ -1512,7 +1512,7 @@ struct Parser {
             return ParseFunctionCall(lex, f, nf, idname, nullptr, true, nullptr);
         }
         // Check for enum value.
-        auto ev = st.EnumValLookup(idname, lex, false);
+        auto ev = st.EnumValLookup(idname, false);
         if (ev) {
             auto ic = new IntConstant(lex, ev->val);
             ic->from = ev;
@@ -1524,7 +1524,7 @@ struct Parser {
     Node *IdentUseOrWithStruct(string_view idname, bool could_be_function = false) {
         // Check for field reference in function with :: arguments.
         Ident *id = nullptr;
-        auto fld = st.LookupWithStruct(idname, lex, id);
+        auto fld = st.LookupWithStruct(idname, id);
         if (fld) {
             return new Dot(fld, lex, new IdentRef(lex, id->cursid));
         }

@@ -348,17 +348,20 @@ void DumpBuiltinDoc(NativeRegistry &nfr) {
 
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
              string *parsedump, string *pakfile, bool return_value, int runtime_checks) {
-    SymbolTable st;
-    Parser parser(nfr, fn, st, stringsource);
+    vector<string> filenames;
+    Lex lex(fn, filenames, stringsource);
+    SymbolTable st(lex);
+    Parser parser(nfr, lex, st);
     parser.Parse();
     TypeChecker tc(parser, st, return_value);
+    tc.Stats(filenames);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc, runtime_checks);
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value, runtime_checks);
-    st.Serialize(cg.code, cg.type_table,
-        cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables);
+    st.Serialize(cg.code, cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables,
+                 filenames);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, bytecode, parser.pakfiles);
         if (!err.empty()) THROW_OR_ABORT(err);

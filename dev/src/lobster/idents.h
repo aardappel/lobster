@@ -520,6 +520,8 @@ struct Function : Named {
 };
 
 struct SymbolTable {
+    Lex &lex;
+
     unordered_map<string_view, Ident *> idents;  // Key points to value!
     vector<Ident *> identtable;
     vector<Ident *> identstack;
@@ -544,8 +546,6 @@ struct SymbolTable {
     vector<TypeVariable *> typevars;
     vector<vector<BoundTypeVariable> *> bound_typevars_stack;
 
-    vector<string> filenames;
-
     vector<size_t> scopelevels;
 
     struct WithStackElem { UDT *udt = nullptr; Ident *id = nullptr; SubFunction *sf = nullptr; };
@@ -569,6 +569,8 @@ struct SymbolTable {
     // no way to refer to constructed strings, and need to store them seperately :(
     // TODO: instead use larger buffers and constuct directly into those, so no temp string?
     vector<const char *> stored_names;
+
+    SymbolTable(Lex &lex) : lex(lex) {}
 
     ~SymbolTable() {
         for (auto id  : identtable)       delete id;
@@ -625,10 +627,10 @@ struct SymbolTable {
         return ident;
     }
 
-    Ident *LookupDef(string_view name, Lex &lex, bool islocal, bool withtype) {
+    Ident *LookupDef(string_view name, bool islocal, bool withtype) {
         auto sf = defsubfunctionstack.back();
         Ident *ident = nullptr;
-        if (LookupWithStruct(name, lex, ident))
+        if (LookupWithStruct(name, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
         ident = Lookup(name);
         if (ident) {
@@ -646,7 +648,7 @@ struct SymbolTable {
         return ident;
     }
 
-    void AddWithStruct(TypeRef type, Ident *id, Lex &lex, SubFunction *sf) {
+    void AddWithStruct(TypeRef type, Ident *id, SubFunction *sf) {
         if (type->t != V_UUDT) lex.Error(":: can only be used with struct/class types");
         for (auto &wp : withstack)
             if (wp.udt == type->spec_udt->udt)
@@ -661,7 +663,7 @@ struct SymbolTable {
         withstack.push_back({ type->udt, id, sf });
     }
 
-    SharedField *LookupWithStruct(string_view name, Lex &lex, Ident *&id) {
+    SharedField *LookupWithStruct(string_view name, Ident *&id) {
         auto fld = FieldUse(name);
         if (!fld) return nullptr;
         assert(!id);
@@ -766,7 +768,7 @@ struct SymbolTable {
         ErasePrivate(enums);
     }
 
-    Enum *EnumLookup(string_view name, Lex &lex, bool decl) {
+    Enum *EnumLookup(string_view name, bool decl) {
         auto eit = enums.find(name);
         if (eit != enums.end()) {
             if (decl) lex.Error("double declaration of enum: " + name);
@@ -785,7 +787,7 @@ struct SymbolTable {
         return e;
     }
 
-    EnumVal *EnumValLookup(string_view name, Lex &lex, bool decl) {
+    EnumVal *EnumValLookup(string_view name, bool decl) {
         if (!decl) {
             if (!current_namespace.empty()) {
                 auto evit = enumvals.find(NameSpaced(name));
@@ -805,7 +807,7 @@ struct SymbolTable {
         return ev;
     }
 
-    UDT &StructDecl(string_view name, Lex &lex, bool is_struct) {
+    UDT &StructDecl(string_view name, bool is_struct) {
         auto uit = udts.find(name);
         if (uit != udts.end()) {
             if (!uit->second->predeclaration)
@@ -831,7 +833,7 @@ struct SymbolTable {
         return nullptr;
     }
 
-    UDT &StructUse(string_view name, Lex &lex) {
+    UDT &StructUse(string_view name) {
         auto udt = LookupStruct(name);
         if (!udt) lex.Error("unknown type: " + name);
         return *udt;
@@ -866,7 +868,7 @@ struct SymbolTable {
         return a;
     }
 
-    SharedField &FieldDecl(string_view name, UDT *udt, Lex &lex) {
+    SharedField &FieldDecl(string_view name, UDT *udt) {
         auto fld = FieldUse(name);
         if (!fld) {
             fld = new SharedField(name, (int)fieldtable.size());
@@ -1091,7 +1093,8 @@ struct SymbolTable {
                    vector<bytecode::SpecIdent> &sids,
                    vector<string_view> &stringtable,
                    string &bytecode,
-                   vector<int> &vtables) {
+                   vector<int> &vtables,
+                   vector<string> &filenames) {
         flatbuffers::FlatBufferBuilder fbb;
         // Always serialize this first! that way it can easily be left out of the generated C code.
         auto codevec = fbb.CreateVector(code);
