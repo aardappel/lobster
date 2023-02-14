@@ -1574,18 +1574,18 @@ struct Parser {
         string s;
         for (auto f : st.functiontable) {
             for (auto ov : f->overloads) {
-                auto sf = ov->sf;
-                assert(!sf->next);
-                if (!onlytypechecked || sf->typechecked) {
-                    s += "FUNCTION: " + f->name + "(";
-                    for (auto &arg : sf->args) {
-                        s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
+                for (auto sf = ov->sf; sf; sf = sf->next) {
+                    if (!onlytypechecked || sf->typechecked) {
+                        s += "FUNCTION: " + f->name + "(";
+                        for (auto &arg : sf->args) {
+                            s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
+                        }
+                        s += ") -> ";
+                        s += TypeName(sf->returntype);
+                        s += "\n";
+                        if (sf->sbody) s += DumpNode(*sf->sbody, 4, false);
+                        s += "\n\n";
                     }
-                    s += ") -> ";
-                    s += TypeName(sf->returntype);
-                    s += "\n";
-                    if (ov->gbody) s += DumpNode(*ov->gbody, 4, false);
-                    s += "\n\n";
                 }
             }
         }
