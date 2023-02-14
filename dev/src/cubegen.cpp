@@ -779,7 +779,14 @@ nfr("cg_load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                     for (int i = 0; i < 255; i++) {
                         remapped_palette[imap[i]] = palette[i + 1];
                     }
-                    palette = remapped_palette;
+                    // FIXME: for the files that have one of these chunks in,
+                    // the palette entries only correspond correctly to the voxels if
+                    // you DON'T apply this remapping.
+                    // So what is it for?
+                    // The only more extensive description is here and it doesn't seem
+                    // to be correct:
+                    // https://github.com/ephtracy/voxel-model/issues/19
+                    //palette = remapped_palette;
                 } else {
                     chunks_skipped = true;
                 }
