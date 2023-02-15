@@ -577,6 +577,9 @@ struct quat : float4 {
         return quat(x * f, y * f, z * f, w * f);
     }
 
+    quat &operator*=(const quat &o) { *this = *this * o; return *this; }
+    quat &operator*=(float f) { *this = *this * f; return *this; }
+
     quat operator-() const { return quat(-xyz(), w); }
 
     void flip() { *this = quat(-(float4)*this); }
