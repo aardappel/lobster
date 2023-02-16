@@ -790,7 +790,7 @@ nfr("im_coloredit", "label,color", "SF}", "A2",
         PushVec(sp, c);
     });
 
-nfr("im_image", "tex", "R:textureF}:2", "",
+nfr("im_image", "tex,size", "R:textureF}:2", "",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
