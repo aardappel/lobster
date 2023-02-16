@@ -332,6 +332,11 @@ struct TypeChecker {
             if (err && et->Equal(*type_undefined)) goto error;
             return st.Wrap(et, V_VECTOR);
         }
+        if (at->t == V_NIL && bt->t == V_NIL) {
+            auto et = Union(at->Element(), bt->Element(), aname, bname, CF_NONE, nullptr);
+            if (err && et->Equal(*type_undefined)) goto error;
+            return st.Wrap(et, V_NIL);
+        }
         if (at->t == V_CLASS && bt->t == V_CLASS) {
             auto sstruc = st.CommonSuperType(at->udt, bt->udt);
             if (sstruc) return &sstruc->thistype;
