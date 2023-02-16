@@ -790,6 +790,15 @@ nfr("im_coloredit", "label,color", "SF}", "A2",
         PushVec(sp, c);
     });
 
+nfr("im_image", "tex", "R:textureF}:2", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto sz = PopVec<float2>(sp);
+        auto t = GetTexture(Pop(sp));
+        ImGui::Image((ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+    });
+
 nfr("im_treenode_start", "label,flags", "SI", "B",
     "(use im_treenode instead)",
     [](StackPtr &sp, VM &vm) {

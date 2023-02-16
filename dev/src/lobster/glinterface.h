@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_GL_INTERFACE
+#define LOBSTER_GL_INTERFACE
+
 // simple rendering interface for OpenGL (ES) (that doesn't depend on its headers)
 
 #define TIME_QUERY_SAMPLE_COUNT 8u
@@ -417,3 +420,6 @@ template<typename F> void Transform(const float4x4 &mat, F body) {
 
 extern bool VRInit();
 extern void VRShutDown();
+
+
+#endif  // LOBSTER_GL_INTERFACE
