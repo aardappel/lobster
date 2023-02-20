@@ -72,6 +72,7 @@ struct ValueParser {
                     case V_INT:   stack.emplace_back(Value(0)); break;
                     case V_FLOAT: stack.emplace_back(Value(0.0f)); break;
                     case V_NIL:   stack.emplace_back(NilVal()); break;
+                    // FIXME: do something similar to PushDefault below for struct/class elems?
                     default:      lex.Error("no default value exists for missing struct elements");
                 }
             }
@@ -247,7 +248,8 @@ struct FlexBufferParser {
         }
     }
 
-    void PushDefault(const TypeInfo &ti, string_view fname) {
+    void PushDefault(type_elem_t typeoff, string_view fname) {
+        auto &ti = vm.GetTypeInfo(typeoff);
         switch (ti.t) {
             case V_INT:
                 stack.emplace_back(Value(0));
@@ -259,9 +261,17 @@ struct FlexBufferParser {
                 stack.emplace_back(NilVal());
                 break;
             case V_STRUCT_S:
-            case V_STRUCT_R: {
-                auto &st = vm.GetTypeInfo(ti.SingleType());
-                for (int i = 0; i < ti.len; i++) PushDefault(st, fname);
+            case V_STRUCT_R:
+            case V_CLASS: {
+                for (int i = 0; i < ti.len; i++) {
+                    PushDefault(ti.elemtypes[i], fname);
+                }
+                if (ti.t == V_CLASS) {
+                    auto vec = vm.NewObject(ti.len, typeoff);
+                    if (ti.len) vec->CopyElemsShallow(&*stack.end() - ti.len, ti.len);
+                    stack.resize(stack.size() - ti.len);
+                    stack.emplace_back(Value(vec));
+                }
                 break;
             }
             default:
@@ -336,7 +346,7 @@ struct FlexBufferParser {
                     auto eti = ti->GetElemOrParent(NumElems());
                     auto e = m[fname.data()];
                     if (e.IsNull()) {
-                        PushDefault(vm.GetTypeInfo(eti), fname);
+                        PushDefault(eti, fname);
                     } else {
                         ParseFactor(e, eti);
                     }
