@@ -167,14 +167,6 @@ void BindBufferObjectResource(VM &vm, Value buf, string_view name) {
     if (!ok) vm.BuiltinError("bufferobject binding failed");
 }
 
-void CopyBufferObjectResources(VM &vm, Value src, Value dst, ptrdiff_t srcoffset,
-                               ptrdiff_t dstoffset, size_t len) {
-    auto srco = &GetBufferObject(src);
-    auto dsto = &GetBufferObject(dst);
-    if (!srco || !dsto) vm.BuiltinError("buffer object copy failed");
-    CopyBufferObjects(srco, dsto, srcoffset, dstoffset, len);
-}
-
 void AddGraphics(NativeRegistry &nfr) {
 
 nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
@@ -979,9 +971,10 @@ nfr("gl_copy_buffer_object", "source,destination,srcoffset,dstoffset,length", "R
     [](StackPtr &, VM &vm, Value &source, Value &destination, Value &srcoffset,
         Value &dstoffset, Value &length) {
         TestGL(vm);
-        CopyBufferObjectResources(vm, source, destination, srcoffset.intval(),
-                                        dstoffset.intval(), length.intval());
-        return NilVal();
+        auto srco = &GetBufferObject(source);
+        auto dsto = &GetBufferObject(destination);
+        if (!srco || !dsto) vm.BuiltinError("buffer object copy failed");
+        return Value(CopyBufferObjects(srco, dsto, srcoffset.intval(), dstoffset.intval(), length.intval()));
     });
 
 nfr("gl_bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",

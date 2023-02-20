@@ -108,39 +108,27 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
         #endif
     } else if(tf & TF_3D) {
 		#ifndef __EMSCRIPTEN__
-            if (buf == nullptr) {
-                // Direct initialization
-                int levels = 1 + (tf & TF_NOMIPMAP ? 0 : int(log2(max(dim.x, max(dim.y, dim.z)))));
-                GL_CALL(glTexStorage3D(textype, levels, internalformat, dim.x, dim.y, dim.z));
-            } else {
-                // Buffer based initialization
-                int mipl = 0;
-                for (auto d = dim; tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
-                    GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x, d.y, d.z, 0,
-                                        bufferformat, buffercomponent, buf));
-                    mipl++;
-                    buf += d.volume() * elemsize;
-                }
-            }
+			int mipl = 0;
+            // TODO: Ideally use glTexStorage3D if no initialization buffer provided
+			for (auto d = dim; tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+				GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x, d.y, d.z, 0,
+									 bufferformat, buffercomponent, buf));
+				mipl++;
+				buf += d.volume() * elemsize;
+			}
 		#else
 			assert(false);
 		#endif
     } else {
-        if (buf == nullptr) {
-            // Direct initialization
-            int levels = 1 + (tf & TF_NOMIPMAP ? 0 : int(log2(max(dim.x, dim.y))));
-            GL_CALL(glTexStorage2D(textype, levels, internalformat, dim.x, dim.y));
-        } else {
-            // Buffer based initialization
-            int mipl = 0;
-            for (auto d = dim.xy(); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
-                for (int i = 0; i < texnumfaces; i++) {
-                    GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x, d.y, 0,
-                                        bufferformat, buffercomponent, buf));
-                    buf += d.volume() * elemsize;
-                }
-                mipl++;
+        int mipl = 0;
+        // TODO: Ideally use glTexStorage2D if no initialization buffer provided
+        for (auto d = dim.xy(); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+            for (int i = 0; i < texnumfaces; i++) {
+                GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x, d.y, 0,
+                                     bufferformat, buffercomponent, buf));
+                buf += d.volume() * elemsize;
             }
+            mipl++;
         }
     }
     if (!(tf & TF_NOMIPMAP) && !(tf & TF_BUFFER_HAS_MIPS)) {

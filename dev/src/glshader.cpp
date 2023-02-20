@@ -616,11 +616,9 @@ bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblocknam
     #endif
 }
 
-void CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t srcoffset,
+bool CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t srcoffset,
                        ptrdiff_t dstoffset, size_t len) {
-    #ifndef PLATFORM_WINNIX
-        if (!glCopyBufferSubData) return;
-    #else
+    #ifdef PLATFORM_WINNIX
         LOBSTER_FRAME_PROFILE_THIS_SCOPE;
         LOBSTER_FRAME_PROFILE_GPU;
         GL_CALL(glBindBuffer(GL_COPY_READ_BUFFER, src->bo));
@@ -629,7 +627,9 @@ void CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t srcoffset
         // Unbind
         GL_CALL(glBindBuffer(GL_COPY_READ_BUFFER, 0));
         GL_CALL(glBindBuffer(GL_COPY_WRITE_BUFFER, 0));
+        return true;
     #endif
+    return false;
 }
 
 bool Shader::Dump(string_view filename, bool stripnonascii) {
