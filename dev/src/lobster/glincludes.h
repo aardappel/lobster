@@ -50,6 +50,8 @@
         #define GLBASEEXTS \
             GLEXT(PFNGLACTIVETEXTUREARBPROC       , glActiveTexture            , 1) \
             GLEXT(PFNGLTEXIMAGE3DPROC             , glTexImage3D               , 1) \
+            GLEXT(PFNGLTEXSTORAGE2DPROC           , glTexStorage2D             , 1) \
+            GLEXT(PFNGLTEXSTORAGE3DPROC           , glTexStorage3D             , 1) \
             GLEXT(PFNGLBLENDEQUATIONPROC          , glBlendEquation            , 1)
     #else
         #define GLBASEEXTS
