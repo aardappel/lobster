@@ -135,6 +135,7 @@
         GLEXT(PFNGLBINDBUFFERBASEPROC                , glBindBufferBase                , 0) \
         GLEXT(PFNGLMEMORYBARRIERPROC                 , glMemoryBarrier                 , 0) \
         GLEXT(PFNGLMAPBUFFERRANGEPROC                , glMapBufferRange                , 0) \
+        GLEXT(PFNGLCOPYBUFFERSUBDATAPROC             , glCopyBufferSubData             , 0) \
         GLEXT(PFNGLGENQUERIESPROC                    , glGenQueries                    , 0) \
         GLEXT(PFNGLDELETEQUERIESPROC                 , glDeleteQueries                 , 0) \
         GLEXT(PFNGLBEGINQUERYPROC                    , glBeginQuery                    , 0) \

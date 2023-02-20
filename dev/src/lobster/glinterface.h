@@ -311,6 +311,8 @@ struct BufferObject : lobster::Resource {
 extern BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len,
                                         ptrdiff_t offset, bool ssbo, bool dyn);
 extern bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblockname);
+extern void CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t srcoffset,
+                                        ptrdiff_t dstoffset, size_t len);
 
 template<typename T, typename U = float>
 void RenderArraySlow(string_view name, Primitive prim, gsl::span<T> vbuf1, string_view fmt,
