@@ -20,6 +20,9 @@
 
 #include "flatbuffers/idl.h"
 
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+#include "lobster/bytecode_generated.h"
+
 namespace lobster {
 
 struct ValueParser {
@@ -178,8 +181,10 @@ struct ValueParser {
                 lex.Next();
                 Expect(T_LEFTCURLY);
                 auto name = vm.StructName(*ti);
-                if (name != sname)
+                if (name != sname) {
+                    // TODO: support subclasses like flexbuffer code below.
                     lex.Error("class/struct type " + name + " required, " + sname + " given");
+                }
                 ParseElems(T_RIGHTCURLY, typeoff, ti->len, push);
                 break;
             }
@@ -336,8 +341,23 @@ struct FlexBufferParser {
                 auto name = vm.StructName(*ti);
                 auto sname = m["_type"];
                 if (sname.IsString() && sname.AsString().c_str() != name) {
+                    // Attempt to find this a subsclass.
+                    // TODO: subclass of subclass, etc?
+                    vm.EnsureUDTLookupPopulated();
+                    auto &udts = vm.UDTLookup[sname.AsString().c_str()];
+                    for (auto udt : udts) {
+                        if (udt->super_idx() == ti->structidx) {
+                            // Note: this field only not -1 for UDTs actually constructed/used.
+                            typeoff = (type_elem_t)udt->typeidx();
+                            if (typeoff >= 0) {
+                                ti = &vm.GetTypeInfo(typeoff);
+                                goto subclassfound;
+                            }
+                        }
+                    }
                     Error(cat("class/struct type ", name, " required, ", sname.AsString().str(),
                              " given"));
+                    subclassfound:;
                 }
                 auto stack_start = stack.size();
                 auto NumElems = [&]() { return iint(stack.size() - stack_start); };

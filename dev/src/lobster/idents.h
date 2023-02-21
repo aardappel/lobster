@@ -335,8 +335,10 @@ struct UDT : Named {
         for (auto &f : fields)
             fieldoffsets.push_back(
                 bytecode::CreateField(fbb, fbb.CreateString(f.id->name), f.slot));
+        auto sup = superclass.resolved_udt();
         return bytecode::CreateUDT(fbb, fbb.CreateString(name), idx,
-                                        fbb.CreateVector(fieldoffsets), numslots);
+                                        fbb.CreateVector(fieldoffsets), numslots,
+                                        sup ? sup->idx : -1, typeinfo);
     }
 };
 

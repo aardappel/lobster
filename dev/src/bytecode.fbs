@@ -35,6 +35,8 @@ table UDT {
     idx:int;
     fields:[Field];
     size:int;
+    super_idx:int;
+    typeidx:int;
 }
 
 table EnumVal {

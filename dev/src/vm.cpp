@@ -656,6 +656,14 @@ optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
     return {};
 }
 
+void VM::EnsureUDTLookupPopulated() {
+    if (!UDTLookup.empty()) return;
+    for (auto udt : *bcf->udts()) {
+        auto &v = UDTLookup[udt->name()->string_view()];
+        v.push_back(udt);
+    }
+}
+
 void VM::StartWorkers(iint numthreads) {
     if (is_worker) Error("workers can\'t start more worker threads");
     if (tuple_space) Error("workers already running");

@@ -15,7 +15,11 @@
 #ifndef LOBSTER_VMDATA
 #define LOBSTER_VMDATA
 
-namespace bytecode { struct BytecodeFile; }  // FIXME
+// FIXME
+namespace bytecode {
+    struct BytecodeFile;
+    struct UDT;
+}
 
 namespace lobster {
 
@@ -899,6 +903,9 @@ struct VM : VMArgs {
     #endif
 
     vector<Value> fvar_def_backup;
+
+    map<string_view, vector<const bytecode::UDT *>> UDTLookup;
+    void EnsureUDTLookupPopulated();
 
     // We stick this in here directly, since the constant offsets into this array in
     // compiled mode a big win.
