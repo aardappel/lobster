@@ -1357,7 +1357,8 @@ struct TypeChecker {
         // hierarchy will be rare.
         // Find subclasses and max vtable size.
         {
-            vector<pair<Overload *, bool>> overload_picks;
+            struct Pick { Overload *ov; bool supcall; };
+            vector<Pick> overload_picks;
             // First, for the set of udts part of this dispatch, find the method that would apply.
             for (auto sub : dispatch_udt.subudts) {
                 Overload *best = nullptr;
@@ -1387,7 +1388,7 @@ struct TypeChecker {
                         // for it.. like e.g. an abstract base class.
                     }
                 }
-                overload_picks.push_back({ best, bestdist == 0 });
+                overload_picks.push_back({ best, bestdist != 0 });
                 vtable_idx = std::max(vtable_idx, (int)sub->dispatch_table.size());
             }
             // Add functions to all vtables.
@@ -1397,9 +1398,9 @@ struct TypeChecker {
                 // FIXME: this is not great, wasting space, but only way to do this
                 // on the fly without tracking lots of things.
                 while ((int)dt.size() < vtable_idx) dt.push_back({});
-                dt.push_back({ !overload_picks[i].first
+                dt.push_back({ !overload_picks[i].ov
                                 ? nullptr
-                                : overload_picks[i].first->sf });
+                                : overload_picks[i].ov->sf });
             }
             // FIXME: if any of the overloads below contain recursive calls, it may run into
             // issues finding an existing dispatch above? would be good to guarantee..
@@ -1416,9 +1417,22 @@ struct TypeChecker {
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
                 auto sf = udt->dispatch_table[vtable_idx].sf;
                 // Missing implementation for unused UDT.
-                if (!sf) continue;
-                // Skip if it is using a superclass method.
-                if (!overload_picks[i].second) continue;
+                if (!sf)
+                    continue;
+                if (overload_picks[i].supcall) {
+                    // We're using a superclass method. Skip if that superclass is in
+                    // the dispatch table since we can then simply reuse that one.
+                    // This might not be the case when the superclass is above the dispatch
+                    // root and the dispatch root doesn't have its own implementation.
+                    bool found_sup_impl = false;
+                    for (auto &pick : overload_picks) {
+                        if (!pick.supcall && pick.ov == overload_picks[i].ov) {
+                            found_sup_impl = true;
+                        }
+                    }
+                    if (found_sup_impl)
+                        continue;
+                }
                 call_args.children[0]->exptype = &udt->thistype;
                 // FIXME: this has the side effect of giving call_args types relative to the last
                 // overload type-checked, which is strictly speaking not correct, but may not
@@ -1426,7 +1440,7 @@ struct TypeChecker {
                 // to fix that?
                 // FIXME: return value?
                 /*auto rtype =*/
-                TypeCheckCallStatic(csf, call_args, reqret, specializers, *overload_picks[i].first,
+                TypeCheckCallStatic(csf, call_args, reqret, specializers, *overload_picks[i].ov,
                                     false, !last_sf);
                 de = &dispatch_udt.dispatch_table[vtable_idx];  // May have realloced.
                 sf = csf;

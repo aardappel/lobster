@@ -69,13 +69,16 @@ run_test("types"):
         // an S2 to an S1 recipient (structs are fixed size and carry no typeinfo).
         assert f(S1 {}) == 1
         assert f(S2 {}) == 2
-        class C1:
+        class C0:
+            def ad(): return 10
+        class C1 : C0
             a:int = 0
             def f(c:int): return 1 + a + c
             def g(c): return c + 1
             def r(c:int) -> int: return c
             def mr(): return 1, "a"
             def sup(): return 1
+            def sni(): return 12
         class C2 : C1
             b:int = 0
             def f(c:int): return 2 + a + b + c
@@ -83,6 +86,7 @@ run_test("types"):
             def r(c:int) -> int: return if c: r(c - 1) else: (C1 {}).r(c)
             def mr(): return 2, "b"
             def sup(): return 1 + super sup()
+            def ad(): return 11
         class C3<T> : C1
             b:T
             def f(c:int): return c + length(b)
@@ -100,6 +104,11 @@ run_test("types"):
         assert x.r(10) == 0
         // Call super methods:
         assert x.sup() == 2
+        // Call method from above dispatch root:
+        assert x.ad() == 11
+        let x3:C0 = C1 {}
+        // Dynamic dispatch with unused UDT impl missing:
+        assert x3.sni() == 12
         // Multiple return:
         let mr1, mr2 = x.mr()
         assert mr1 == 2 and mr2 == "b"
