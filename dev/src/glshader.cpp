@@ -218,6 +218,7 @@ string ParseMaterialFile(string_view mbuf) {
                         bool cubemap = false;
                         bool floatingp = false;
                         bool halffloatingp = false;
+                        bool singlechannel = false;
                         bool d3 = false;
                         bool uav = false;
                         bool write = false;
@@ -237,6 +238,10 @@ string ParseMaterialFile(string_view mbuf) {
                             tp.remove_prefix(2);
                             halffloatingp = true;
                         }
+                        if (starts_with(tp, "sc")) {
+                            tp.remove_prefix(2);
+                            singlechannel = true;
+                        }
                         if (starts_with(tp, "uav")) {
                             tp.remove_prefix(3);
                             uav = true;
@@ -248,7 +253,12 @@ string ParseMaterialFile(string_view mbuf) {
                         auto unit = parse_int<int>(tp);
                         if (uav) {
                             decl += cat("layout(binding = ", unit);
-                            if (!write) decl += cat(", ", (floatingp ? "rgba32f" : halffloatingp ? "rgba16f" : "rgba8"));
+                            auto format = (
+                                floatingp ? (singlechannel ? "r32f" : "rgba32f") :
+                                halffloatingp ? (singlechannel ? "r16f" : "rgba16f") :
+                                (singlechannel ? "r8" : "rgba8")
+                            );
+                            if (!write) decl += cat(", ", format);
                             decl += ") ";
                         }
                         decl += "uniform ";
