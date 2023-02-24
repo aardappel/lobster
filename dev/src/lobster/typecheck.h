@@ -2857,18 +2857,23 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
         }
         if (!f) f = ff;
         SubFunction *usf = nullptr;
+        int udist = 999;
         if (udt && f && f->nargs()) {
             for (auto ov : f->overloads) {
                 auto ti = ov->sf->args[0].type;
-                if (IsUDT(ti->t) && ti->udt == udt) {
-                    usf = ov->sf;
-                    break;
+                if (IsUDT(ti->t)) {
+                    auto dist = tc.st.SuperDistance(ti->udt, udt);
+                    if (dist >= 0 && dist < udist) {
+                        usf = ov->sf;
+                        udist = dist;
+                        if (dist == 0) break;
+                    }
                 }
             }
         }
         if (f && nf && f->nargs() == nargs) {
             // If we have an f with more & matching args than the nf, pick that.
-            // Or if any of f's specializations matches type exactly, then it overrides nf.
+            // Or if any of f's specializations matches type, then it overrides nf.
             if (f->nargs() > nf->args.size() || usf) {
                 prefer_ff = true;
             }
@@ -2890,7 +2895,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                     break;
                 }
                 // If we have less args, try insert self arg.
-                if (nargs < f->nargs() && (!usf || !fromdot) && (int)nargs + 1 >= f->first_default_arg) {
+                if (nargs < f->nargs() && !fromdot && (int)nargs + 1 >= f->first_default_arg) {
                     // We go down the withstack but skip items that don't correspond to lexical order
                     // for cases where withcontext1 -> withcontext2 -> lambdaincontext1
                     // or to simply not use withstack items of unrelated callers.
