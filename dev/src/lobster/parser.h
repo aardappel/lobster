@@ -278,17 +278,8 @@ struct Parser {
                 // This is an arbitrary restriction that we could lift, just doesn't seem
                 // great to have invisble extra members in structs.
                 if (udt->is_struct) Error("member declaration only allowed in classes");
-                auto idname = ExpectId();
                 st.bound_typevars_stack.push_back(&udt->generics);
-                auto &sfield = st.FieldDecl(idname, udt);
-                UnresolvedTypeRef type = { type_any };
-                if (IsNext(T_COLON)) {
-                    type = ParseType(false);
-                }
-                Expect(T_ASSIGN);
-                auto init = ParseOpExp();
-                udt->fields.push_back(Field(&sfield, type, init, true, lex));
-                udt->fields.back().in_scope = false;
+                ParseField(udt, true, true);
                 st.bound_typevars_stack.pop_back();
                 auto member = new Member(lex);
                 member->udt = udt;
@@ -343,6 +334,29 @@ struct Parser {
                 break;
             }
         }
+    }
+
+    void ParseField(UDT *udt, bool member_private, bool local_member) {
+        ExpectId();
+        auto &sfield = st.FieldDecl(lastid, udt);
+        UnresolvedTypeRef type = { nullptr };
+        if (IsNext(T_COLON)) {
+            type = ParseType(false);
+        }
+        Node *init = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+        if (local_member && !init) {
+            Error("must specify default value");
+        }
+        if (type.utr.Null()) {
+            if (!init) Error("must specify either type or default value");
+            type.utr = init->CFType();
+            if (type.utr.Null()) {
+                // More complex exp, must be typechecked later.
+                type.utr = type_any;
+            }
+        }
+        udt->fields.push_back(Field(&sfield, type, init, member_private, lex));
+        udt->fields.back().in_scope = !local_member;
     }
 
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list) {
@@ -453,16 +467,7 @@ struct Parser {
                     }
                     else {
                         if (fieldsdone) Error("fields must be declared before methods");
-                        ExpectId();
-                        auto &sfield = st.FieldDecl(lastid, udt);
-                        UnresolvedTypeRef type = { type_any };
-                        if (IsNext(T_COLON)) {
-                            type = ParseType(false);
-                        }
-                        Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
-                        if (type.utr->t == V_ANY && !defaultval)
-                            Error("must specify either type or default value");
-                        udt->fields.push_back(Field(&sfield, type, defaultval, member_private, lex));
+                        ParseField(udt, member_private, false);
                     }
                     if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }

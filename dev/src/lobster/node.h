@@ -35,6 +35,8 @@ struct Node {
     virtual bool IsConstInit() const { return false; }
     // Does control flow continue beyond this node?
     virtual bool Terminal(TypeChecker &) const { return false; }
+    // Node will have this type regardless of type-checking context.
+    virtual TypeRef CFType() { return nullptr; }
     virtual string_view Name() const = 0;
     virtual void Dump(string &sd) const { sd += Name(); }
     void Iterate(IterateFun f) {
@@ -308,6 +310,7 @@ struct IntConstant : Node {
     EnumVal *from;
     IntConstant(const Line &ln, int64_t i) : Node(ln), integer(i), from(nullptr) {}
     bool IsConstInit() const { return true; }
+    TypeRef CFType() { return from ? &from->e->thistype : type_int; }
     void Dump(string &sd) const { if (from) sd += from->name; else append(sd, integer); }
     bool EqAttr(const Node *o) const {
         return integer == ((IntConstant *)o)->integer;
@@ -320,6 +323,7 @@ struct FloatConstant : Node {
     double flt;
     FloatConstant(const Line &ln, double f) : Node(ln), flt(f) {}
     bool IsConstInit() const { return true; }
+    TypeRef CFType() { return type_float; }
     void Dump(string &sd) const { sd += to_string_float(flt); }
     bool EqAttr(const Node *o) const {
         return flt == ((FloatConstant *)o)->flt;
@@ -332,6 +336,7 @@ struct StringConstant : Node {
     string str;
     StringConstant(const Line &ln, string &&s) : Node(ln), str(s) {}
     bool IsConstInit() const { return true; }
+    TypeRef CFType() { return type_string; }
     void Dump(string &sd) const { EscapeAndQuote(str, sd); }
     bool EqAttr(const Node *o) const {
         return str == ((StringConstant *)o)->str;

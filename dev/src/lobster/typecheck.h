@@ -216,21 +216,6 @@ struct TypeChecker {
         Error(call_args, err);
     }
 
-    TypeRef NewTypeVar() {
-        auto var = st.NewType();
-        *var = Type(V_VAR);
-        // Vars store a cycle of all vars its been unified with, starting with itself.
-        var->sub = var;
-        return var;
-    }
-
-    TypeRef NewNilTypeVar() {
-        auto nil = st.NewType();
-        *nil = Type(V_NIL);
-        nil->sub = &*NewTypeVar();
-        return nil;
-    }
-
     void UnifyVar(TypeRef type, TypeRef hasvar) {
         // Typically Type is const, but this is the one place we overwrite them.
         // Type objects that are V_VAR are seperate heap instances, so overwriting them has no
@@ -717,20 +702,45 @@ struct TypeChecker {
         LOG_DEBUG("TypeCheckUDT: ", udt.name);
         if (udt.FullyBound()) {
             // Give a type for fields that don't have one specified.
-            for (auto &f : udt.fields) {
+            for (auto [i, f] : enumerate(udt.fields)) {
                 if (f.defaultval && f.giventype.utr->t == V_ANY && !predeclaration) {
-                    // FIXME: would be good to not call TT here generically but instead have some
-                    // specialized checking, just in case TT has a side effect on type checking,
-                    // especially function calls, whose "return from" may fail here.
-                    // Sadly that is not easy given the amount of type-checking code this already
-                    // relies on.
-                    st.bound_typevars_stack.push_back(&udt.generics);
-                    TT(f.defaultval, 1, LT_ANY);
-                    st.bound_typevars_stack.pop_back();
-                    DecBorrowers(f.defaultval->lt, errn);
+                    auto cf_type = f.defaultval->CFType();
+                    if (cf_type.Null()) {
+                        // FIXME: would be good to not call TT here generically but instead rely
+                        // on CFType entirely, just in case TT has a side effect on type
+                        // checking, especially function calls, whose "return from" may fail here.
+                        // Sadly that is not easy given the amount of type-checking code this
+                        // already relies on.
+                        st.bound_typevars_stack.push_back(&udt.generics);
+                        TT(f.defaultval, 1, LT_ANY);
+                        st.bound_typevars_stack.pop_back();
+                        DecBorrowers(f.defaultval->lt, errn);
+                    } else {
+                        // TODO: expand the cases where CFType is sufficient.
+                        f.defaultval->exptype = cf_type;
+                    }
                     f.defaultval->lt = LT_UNDEF;
                     f.giventype.utr = f.defaultval->exptype;
                     f.set_resolvedtype(f.defaultval->exptype);
+                    // Here we force a check against types of this field in superclasses.
+                    // This is necessary because each of these defaultvals have been typechecked
+                    // independently, possibly containing V_VAR instances (for e.g. []) that if
+                    // we don't unify them they could get bound to different types by code,
+                    // causing incompatible fields.
+                    // We skip generic supers because they can legitimately allow different types
+                    // for fields.
+                    for (auto suptype = udt.superclass.giventype.utr; !suptype.Null();) {
+                        auto sudt = suptype->spec_udt->udt;
+                        if (i >= sudt->fields.size()) break;
+                        if (!sudt->is_generic &&
+                            !ConvertsTo(f.defaultval->exptype, sudt->fields[i].giventype.utr,
+                                        ConvertFlags(CF_EXACTTYPE | CF_UNIFICATION)))
+                            Error(errn, "Field ", Q(f.id->name), " has type ",
+                                  Q(TypeName(f.defaultval->exptype)),
+                                  " which is incompatible with the superclass type of ",
+                                  Q(TypeName(sudt->fields[i].giventype.utr)));
+                        suptype = sudt->superclass.giventype.utr;
+                    }
                 }
             }
         }
@@ -914,7 +924,7 @@ struct TypeChecker {
         sf.returntype = sf.reqret
             ? (!sf.returngiventype.utr.Null()
                 ? ResolveTypeVars(sf.returngiventype, &call_context)
-                : NewTypeVar())
+                : st.NewTypeVar())
             : type_void;
         auto start_borrowed_vars = borrowstack.size();
         auto start_promoted_vars = flowstack.size();
@@ -1408,7 +1418,7 @@ struct TypeChecker {
             // in many cases.
             auto de = &dispatch_udt.dispatch_table[vtable_idx];
             de->is_dispatch_root = true;
-            de->returntype = NewTypeVar();
+            de->returntype = st.NewTypeVar();
             de->subudts_size = dispatch_udt.subudts.size();
             // Typecheck all the individual functions.
             SubFunction *last_sf = nullptr;
@@ -2635,7 +2645,7 @@ Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 
 Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (giventype.utr.Null()) {
-        exptype = tc.st.Wrap(tc.NewTypeVar(), V_NIL);
+        exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_NIL);
     } else {
         exptype = tc.ResolveTypeVars(giventype, this);
         if (!tc.st.IsNillable(exptype->sub)) tc.Error(*this, "illegal nil type");
@@ -3106,8 +3116,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         }
         if (arg.flags & NF_ANYVAR) {
             if (argtype->t == V_VECTOR)
-                argtype = tc.st.Wrap(tc.NewTypeVar(), V_VECTOR);
-            else if (argtype->t == V_ANY) argtype = tc.NewTypeVar();
+                argtype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR);
+            else if (argtype->t == V_ANY)
+                argtype = tc.st.NewTypeVar();
             else assert(0);
         }
         if (argtype->t == V_ANY) {
@@ -3189,8 +3200,8 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 break;
             }
             case NF_ANYVAR:
-                type = ret.type->t == V_VECTOR ? tc.st.Wrap(tc.NewTypeVar(), V_VECTOR)
-                                                  : tc.NewTypeVar();
+                type = ret.type->t == V_VECTOR ? tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR)
+                                               : tc.st.NewTypeVar();
                 assert(rlt == LT_KEEP);
                 break;
             default:
@@ -3394,7 +3405,7 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             tc.StorageType(exptype, *this);
         } else {
             // special case for empty vectors
-            exptype = tc.st.Wrap(tc.NewTypeVar(), V_VECTOR);
+            exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR);
         }
     } else {
         exptype = tc.ResolveTypeVars(giventype, this);

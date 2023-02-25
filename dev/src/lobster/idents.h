@@ -354,9 +354,11 @@ inline bool EarlyResolve(const TypeRef type, TypeRef *out) {
             return true;
         case V_TYPEVAR:
             return false;
+        case V_VAR:
+            // This can be bound to a V_TYPEVAR later in theory?
+            return false;
         case V_NIL:
         case V_VECTOR:
-        case V_VAR:
         case V_TYPEID:
             return type->sub && EarlyResolve(type->sub, nullptr);
         case V_TUPLE:
@@ -988,6 +990,21 @@ struct SymbolTable {
         auto t = new Type();
         typelist.push_back(t);
         return t;
+    }
+
+    TypeRef NewTypeVar() {
+        auto var = NewType();
+        *var = Type(V_VAR);
+        // Vars store a cycle of all vars its been unified with, starting with itself.
+        var->sub = var;
+        return var;
+    }
+
+    TypeRef NewNilTypeVar() {
+        auto nil = NewType();
+        *nil = Type(V_NIL);
+        nil->sub = &*NewTypeVar();
+        return nil;
     }
 
     TypeRef NewTuple(size_t sz) {
