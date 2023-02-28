@@ -272,6 +272,7 @@ struct Resource : NonCopyable {
     virtual size_t2 MemoryUsage() {
         return size_t2(sizeof(Resource), 0);
     }
+    virtual void Dump(string &) {};
 };
 
 struct LResource : RefObj {

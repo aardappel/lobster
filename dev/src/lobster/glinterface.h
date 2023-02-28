@@ -53,6 +53,9 @@ struct OwnedTexture : lobster::Resource {
     OwnedTexture(Texture t) : t(t) {}
     ~OwnedTexture();
     size_t2 MemoryUsage() { return t.MemoryUsage(); }
+    void Dump(string &sd) {
+        append(sd, t.size.to_string());
+    }
 };
 
 struct Shader : lobster::Resource {
