@@ -837,12 +837,13 @@ nfr("im_tab_bar_end", "", "", "",
         NPop(vm, N_TAB_BAR);
     });
 
-nfr("im_tab_start", "label", "S", "B",
+nfr("im_tab_start", "label,flags", "SI", "B",
     "(use im_tab instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
+        auto flags = Pop(sp).intval();
         auto title = Pop(sp);
-        bool open = ImGui::BeginTabItem(title.sval()->data());
+        bool open = ImGui::BeginTabItem(title.sval()->data(), nullptr, (ImGuiTabItemFlags)flags);
         Push(sp, open);
         if (open) NPush(N_TAB);
     });

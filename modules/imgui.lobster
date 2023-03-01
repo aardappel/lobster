@@ -61,6 +61,18 @@ enum_flags im_treenode:
     im_treenode_span_avail_width     // Extend hit box to the right-most edge, even if not framed. This is not the default in order to allow adding other items on the same line. In the future we may refactor the hit system to be front-to-back, allowing natural overlaps and then this can become the default.
     im_treenode_span_full_width      // Extend hit box to the left-most and right-most edges (bypass the indented area).
 
+enum_flags im_tabitem:
+    im_tabitem_none = 0
+    im_tabitem_unsaved_document = 1               // Display a dot next to the title + tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
+    im_tabitem_set_selected                       // Trigger flag to programmatically make the tab selected when calling BeginTabItem()
+    im_tabitem_no_close_with_middle_mouse_button  // Disable behavior of closing tabs (that are submitted with p_open != NULL) with middle mouse button. You can still repro this behavior on user's side with if (IsItemHovered() && IsMouseClicked(2)) *p_open = false.
+    im_tabitem_no_push_id                         // Don't call PushID(tab->ID)/PopID() on BeginTabItem()/EndTabItem()
+    im_tabitem_no_tooltip                         // Disable tooltip for the given tab
+    im_tabitem_no_reorder                         // Disable reordering this tab or having another tab cross over this tab
+    im_tabitem_leading                            // Enforce the tab position to the left of the tab bar (after the tab list popup button)
+    im_tabitem_trailing                           // Enforce the tab position to the right of the tab bar (before the scrolling buttons)
+
+
 // Utility functions that are more convenient than calling start/end yourself.
 
 def im_frame(body):
@@ -100,7 +112,14 @@ def im_tab_bar(label, body):
     return open
 
 def im_tab(label, body):
-    let open = im_tab_start(label)
+    let open = im_tab_start(label, im_tabitem_none)
+    if open:
+        body()
+        im_tab_end()
+    return open
+
+def im_tab(label, flags, body):
+    let open = im_tab_start(label, flags)
     if open:
         body()
         im_tab_end()
