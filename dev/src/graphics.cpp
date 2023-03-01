@@ -1002,7 +1002,7 @@ nfr("gl_dump_shader", "filename,stripnonascii", "SB", "B",
     [](StackPtr &, VM &vm, Value &filename, Value &stripnonascii) {
         TestGL(vm);
         currentshader->Activate();
-        auto ok = currentshader->Dump(filename.sval()->strv(), stripnonascii.True());
+        auto ok = currentshader->DumpBinary(filename.sval()->strv(), stripnonascii.True());
         return Value(ok);
     });
 

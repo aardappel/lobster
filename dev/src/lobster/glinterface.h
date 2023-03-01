@@ -90,7 +90,7 @@ struct Shader : lobster::Resource {
                     const int *val,
                     int components, int elements = 1);
     bool SetUniformMatrix(string_view name, const float *val, int components, int elements, bool morerows);
-    bool Dump(string_view filename, bool stripnonascii);
+    bool DumpBinary(string_view filename, bool stripnonascii);
 
     size_t2 MemoryUsage() {
         // FIXME: somehow find out sizes of all attached GPU blocks?

@@ -642,7 +642,7 @@ bool CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t srcoffset
     return false;
 }
 
-bool Shader::Dump(string_view filename, bool stripnonascii) {
+bool Shader::DumpBinary(string_view filename, bool stripnonascii) {
   #ifdef PLATFORM_WINNIX
     if (!glGetProgramBinary) return false;
   #endif
