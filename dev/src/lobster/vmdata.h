@@ -472,7 +472,7 @@ struct Value {
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     uint64_t Hash(VM &vm, ValueType vtype);
-    Value CopyRef(VM &vm, bool deep);
+    Value CopyRef(VM &vm, iint depth);
 };
 
 template<typename T> T get_T(Value) {
@@ -631,9 +631,9 @@ struct LObject : RefObj {
         }
     }
 
-    void CopyRefElemsDeep(VM &vm, iint len) {
+    void CopyRefElemsDeep(VM &vm, iint len, iint depth) {
         for (iint i = 0; i < len; i++) {
-            if (IsRefNil(ElemTypeS(vm, i).t)) AtS(i) = AtS(i).CopyRef(vm, true);
+            if (IsRefNil(ElemTypeS(vm, i).t)) AtS(i) = AtS(i).CopyRef(vm, depth);
         }
     }
 
@@ -770,14 +770,14 @@ struct LVector : RefObj {
         IncElementRange(vm, 0, len);
     }
 
-    void CopyRefElemsDeep(VM &vm) {
+    void CopyRefElemsDeep(VM &vm, iint depth) {
         auto &eti = ElemType(vm);
         if (!IsRefNil(eti.t)) return;
         for (int j = 0; j < width; j++) {
             if (eti.t != V_STRUCT_R || (1 << j) & eti.vtable_start_or_bitmask) {
                 for (iint i = 0; i < len; i++) {
                     auto l = i * width + j;
-                    AtSlot(l) = AtSlot(l).CopyRef(vm, true);
+                    AtSlot(l) = AtSlot(l).CopyRef(vm, depth);
                 }
             }
         }

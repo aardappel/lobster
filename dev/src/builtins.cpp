@@ -309,14 +309,14 @@ nfr("binary_search_object", "xs,key", "A]*A1", "II",
 nfr("copy", "x", "A", "A1",
     "makes a shallow copy of any object/vector/string.",
     [](StackPtr &, VM &vm, Value &v) {
-        return v.CopyRef(vm, false);
+        return v.CopyRef(vm, 1);
     });
 
-nfr("deepcopy", "x", "A", "A1",
-    "makes a deep copy of any object/vector/string. DAGs become trees, and cycles will make it run"
-    " out of memory.",
-    [](StackPtr &, VM &vm, Value &v) {
-        return v.CopyRef(vm, true);
+nfr("deepcopy", "x,depth", "AI", "A1",
+    "makes a deep copy of any object/vector/string. DAGs become trees, and cycles will"
+    " clone until it reach the given depth. depth == 1 would do the same as copy.",
+    [](StackPtr &, VM &vm, Value &v, Value &depth) {
+        return v.CopyRef(vm, max((iint)1, depth.ival()));
     });
 
 nfr("slice", "xs,start,size", "A]*II", "A]1",

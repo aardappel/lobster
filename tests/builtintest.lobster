@@ -13,10 +13,10 @@ run_test("builtins"):
             e:[string]
             f:[[int]]
         let nested = Nest { [], "a", xy { 1.0, 2.0 }, nil, [ "b", "c" ], [ [ 1, 2 ], [ 3, 4 ] ] }
-        let sub = deepcopy(nested)
+        let sub = deepcopy(nested, 10)
         nested.d = sub
         nested.a.push(sub)
         nested.a.push(sub)
-        assert equal(deepcopy(nested), nested)
+        assert equal(deepcopy(nested, 10), nested)
 
 

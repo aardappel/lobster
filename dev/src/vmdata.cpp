@@ -366,43 +366,44 @@ uint64_t Value::Hash(VM &vm, ValueType vtype) {
     }
 }
 
-Value Value::CopyRef(VM &vm, bool deep) {
+Value Value::CopyRef(VM &vm, iint depth) {
     if (!refnil()) return NilVal();
     auto &ti = ref()->ti(vm);
+    depth--;
     switch (ti.t) {
-    case V_VECTOR: {
-        auto len = vval()->len;
-        auto nv = vm.NewVec(len, len, vval()->tti);
-        if (len) {
-            nv->CopyElemsShallow(vval()->Elems());
-            if (deep) {
-                nv->CopyRefElemsDeep(vm);
-            } else {
-                nv->IncRefElems(vm);
+        case V_VECTOR: {
+            auto len = vval()->len;
+            auto nv = vm.NewVec(len, len, vval()->tti);
+            if (len) {
+                nv->CopyElemsShallow(vval()->Elems());
+                if (depth) {
+                    nv->CopyRefElemsDeep(vm, depth);
+                } else {
+                    nv->IncRefElems(vm);
+                }
             }
+            return Value(nv);
         }
-        return Value(nv);
-    }
-    case V_CLASS: {
-        auto len = oval()->Len(vm);
-        auto nv = vm.NewObject(len, oval()->tti);
-        if (len) {
-            nv->CopyElemsShallow(oval()->Elems(), len);
-            if (deep) {
-                nv->CopyRefElemsDeep(vm, len);
-            } else {
-                nv->IncRefElems(vm, len);
+        case V_CLASS: {
+            auto len = oval()->Len(vm);
+            auto nv = vm.NewObject(len, oval()->tti);
+            if (len) {
+                nv->CopyElemsShallow(oval()->Elems(), len);
+                if (depth) {
+                    nv->CopyRefElemsDeep(vm, len, depth);
+                } else {
+                    nv->IncRefElems(vm, len);
+                }
             }
+            return Value(nv);
         }
-        return Value(nv);
-    }
-    case V_STRING: {
-        auto s = vm.NewString(sval()->strv());
-        return Value(s);
-    }
-    default:
-        vm.BuiltinError("Can\'t copy type: " + ti.Debug(vm, false));
-        return NilVal();
+        case V_STRING: {
+            auto s = vm.NewString(sval()->strv());
+            return Value(s);
+        }
+        default:
+            vm.BuiltinError("Can\'t copy type: " + ti.Debug(vm, false));
+            return NilVal();
     }
 }
 
