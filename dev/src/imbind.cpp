@@ -784,6 +784,25 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
         return Value(f);
     });
 
+#define VECSLIDER(Type, type, typeval, T, N)                                                   \
+    nfr("im_slider" #type #N, "label,"#T #N ",min,max", "S" #T "}:" #N #T #T, #T "}:" #N, "",  \
+        [](StackPtr &sp, VM &vm) {                                                             \
+            IsInit(vm);                                                                        \
+            auto max = Pop(sp).typeval();                                                      \
+            auto min = Pop(sp).typeval();                                                      \
+            auto v = PopVec<type ## N>(sp);                                                    \
+            auto label = Pop(sp).sval()->data();                                               \
+            ImGui::Slider ## Type ## N(label, &v.c[0], min, max);                              \
+            PushVec(sp, v);                                                                    \
+        }) // no semicolon.
+VECSLIDER(Int, int, intval, I, 2);
+VECSLIDER(Int, int, intval, I, 3);
+VECSLIDER(Int, int, intval, I, 4);
+VECSLIDER(Float, float, fltval, F, 2);
+VECSLIDER(Float, float, fltval, F, 3);
+VECSLIDER(Float, float, fltval, F, 4);
+#undef VECSLIDER
+
 nfr("im_coloredit", "label,color", "SF}", "A2",
     "",
     [](StackPtr &sp, VM &vm) {
