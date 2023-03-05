@@ -2589,7 +2589,7 @@ Node *Member::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(f.defaultval, 1, LT_KEEP);
     f.in_scope = true;
     tc.scopes.back().scoped_fields.push_back(this);
-    tc.UpdateCurrentSid(this_sid);
+    if (this_sid) tc.UpdateCurrentSid(this_sid);
     exptype = type_void;
     lt = LT_ANY;
     return this;
