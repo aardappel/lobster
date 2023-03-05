@@ -302,12 +302,13 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
             case IL_IFOR:
             case IL_SFOR:
             case IL_VFOR:
-            case IL_JUMPIFUNWOUND: {
-                auto id = args[opc == IL_JUMPIFUNWOUND ? 1 : 0];
+            case IL_JUMPIFUNWOUND:
+            case IL_JUMPIFSTATICLF:
+            case IL_JUMPIFMEMBERLF: {
+                auto id = args[opc >= IL_JUMPIFUNWOUND ? 1 : 0];
                 assert(id >= 0);
-                auto df = opc == IL_JUMPIFUNWOUND ? args[0] : -1;
                 append(sd, "if (!U_", ILNames()[opc], "(vm, ", sp);
-                if (df >= 0) append(sd, ", ", df);
+                if (opc >= IL_JUMPIFUNWOUND) append(sd, ", ", args[0]);
                 append(sd, ")) goto block", id, ";");
                 break;
             }

@@ -2585,9 +2585,20 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Member::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    auto f = field();
-    f->in_scope = true;
+    auto &f = *field();
+    tc.TT(f.defaultval, 1, LT_KEEP);
+    f.in_scope = true;
     tc.scopes.back().scoped_fields.push_back(this);
+    tc.UpdateCurrentSid(this_sid);
+    exptype = type_void;
+    lt = LT_ANY;
+    return this;
+}
+
+Node *Static::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(child, 1, sid->lt);
+    tc.SubType(child, sid->type, "static initializer", *this);
+    // FIXME: not doing any of the flow stuff Assign / Define do, needed?
     exptype = type_void;
     lt = LT_ANY;
     return this;

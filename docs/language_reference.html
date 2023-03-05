@@ -647,8 +647,8 @@ currently no way to do this with <code>struct</code> which are always
 copied by value.</p>
 <p>See more examples in <code>modules/quaternion.lobster</code> and
 <code>tests/operators.lobster</code>.</p>
-<h3 id="class-member-variables-with-method-scope.">Class member
-variables with method scope.</h3>
+<h3 id="global-and-class-member-variables-with-function-scope.">Global
+and Class member variables with function scope.</h3>
 <p>You may declare a (what appears to be) a local variable with the
 <code>member</code> keyword instead of <code>let</code>, which
 automatically stores it in the surrounding class:</p>
@@ -683,6 +683,61 @@ also gives additional information what the variable may be used for.</p>
 <p>Currently, <code>member</code> must occur in a function declaration
 that is declared inside a class (not a struct), restrictions that may be
 lifted in the future.</p>
+<p>You can do the same for functions outside of classes with the keyword
+<code>static</code>:</p>
+<pre><code>let a = 1
+def bar():
+    static b = 2
+    b += a
+    return b</code></pre>
+<p>Which again is pretty much the same as writing:</p>
+<pre><code>let a = 1
+var b = 2
+def bar():
+    b += a
+    return b</code></pre>
+<p>With again the main difference being that in the former,
+<code>b</code>’s scope is restricted to <code>bar</code>. This is not as
+useful as <code>member</code> because there is only ever one instance
+possible, but still nice to use when you can to simplify the complexity
+of global scope elements.</p>
+<p>But these two features are just the start of the real fun: the
+<code>member_frame</code> and <code>static_frame</code> keywords. These
+behave like their counterparts above, with one subtle difference: they
+will be reset to their initializer whenever a frame does NOT use the
+variable. Or rather, their state is persisted as long as frames keep
+using the state. It’s like “immediate mode”, but for state. For example
+using <code>static_frame</code> (<code>member_frame</code> works the
+same other than where the variable is stored):</p>
+<pre><code>def foo():
+    static_frame b = 0
+    print b++
+
+gl_window(&quot;foo&quot;, 100, 100)
+while gl_frame():
+    static a = 0
+    a++
+    if a % 4:
+        foo()
+    else:
+        print &quot;/&quot;</code></pre>
+<p>This will print an endless sequence of
+<code>0 1 2 / 0 1 2 / 0 1 2 / ..</code> until you close the window. Why
+is this special? Notice that <code>foo</code> didn’t need to be told
+when to reset its sequence, that was automatic. In a game, you often
+have a lot of systems and states those systems can be in, and when
+something changes (the user goes into a menu or a particular gameplay or
+animation state), all these systems need to be “updated” to be aware of
+the new situation. Here, much like with an immediate mode gui where you
+don’t need to worry about creating and deleting widgets, simple control
+flow can dictate what systems are “active”, and their associated state
+automatically gets reset when the situation changes. It’s as if the
+variable <code>b</code> doesn’t exist when <code>foo</code> is not being
+used, and it automatically gets created/deleted for you.</p>
+<p>variables declared this way use more space and an extra check (an
+extra variable to check the frame count) but otherwise function just
+like normal variables, so you should feel free to use them wherever they
+make the code simpler/clearer.</p>
 <h2 id="typing">Typing</h2>
 <p>Lobster is statically typed, though most of the time you don’t
 notice, since most types can be inferred. You specify types:</p>

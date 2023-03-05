@@ -269,8 +269,58 @@ struct Parser {
                 list->Add(def);
                 break;
             }
-            case T_MEMBER: {
+            case T_STATIC:
+            case T_STATIC_FRAME: {
+                bool frame = lex.token == T_STATIC_FRAME;
                 lex.Next();
+                if (isprivate) Error("static declaration is always private");
+                auto idname = ExpectId();
+                if (st.scopelevels.size() == 1) {
+                    // This still allows the use inside a top level for as opposed to
+                    // requiring a function, which I suppose is useful?
+                    Error("static must be used in a nested scope");
+                }
+                auto id = st.LookupDefStatic(idname);
+                id->isprivate = true;
+                UnresolvedTypeRef type = { nullptr };
+                if (IsNext(T_COLON)) {
+                    type = ParseType(false);
+                }
+                id->giventype = type;
+                id->Assign(lex);
+                // For now, pin these as freevars, just incase it all gets inlined and they're not.
+                id->cursid->used_as_freevar = true;
+                Expect(T_ASSIGN);
+                Node *init = ParseExp();
+                auto def = new Define(lex, init);
+                def->sids.push_back({ id->cursid, type });
+                // Add to toplevel scope in progress! Should end up before our parent.
+                st.toplevel->parent->overloads[0]->gbody->Add(def);
+                if (frame) {
+                    // Create int var to store frame count.
+                    // FIXME: this var is user accessible.. though that's a benign bug :)
+                    auto cid = st.LookupDefStatic(idname + "_frame_count");
+                    cid->isprivate = true;
+                    cid->giventype = { type_int };
+                    cid->Assign(lex);
+                    cid->cursid->used_as_freevar = true;
+                    auto cdef = new Define(lex, new IntConstant(lex, 0));
+                    cdef->sids.push_back({ cid->cursid, { type_int } });
+                    // Add to toplevel scope too.
+                    st.toplevel->parent->overloads[0]->gbody->Add(cdef);
+                }
+                auto statik = new Static(lex, init->Clone());
+                statik->sid = id->cursid;
+                statik->giventype = type;
+                statik->frame = frame;
+                list->Add(statik);
+                break;
+            }
+            case T_MEMBER:
+            case T_MEMBER_FRAME: {
+                bool frame = lex.token == T_MEMBER_FRAME;
+                lex.Next();
+                if (isprivate) Error("member declaration is always private");
                 if (udtstack.empty()) Error("member declaration outside of class scope");
                 // FIXME: this would also allow it to be declared in nested functions, which is
                 // not really a direct problem but may want to tighten it up.
@@ -279,11 +329,26 @@ struct Parser {
                 // great to have invisble extra members in structs.
                 if (udt->is_struct) Error("member declaration only allowed in classes");
                 st.bound_typevars_stack.push_back(&udt->generics);
+                auto field_idx = udt->fields.size();
                 ParseField(udt, true, true);
                 st.bound_typevars_stack.pop_back();
+                SpecIdent *this_sid = nullptr;
+                if (frame) {
+                    // Create int field to store frame count.
+                    auto fname = udt->fields.back().id->name;
+                    auto &fcsfield = st.FieldDecl(fname + "_frame_count", udt);
+                    udt->fields.push_back(
+                        Field(&fcsfield, { type_int }, new IntConstant(lex, 0), true, false, lex));
+                    Ident *this_id = nullptr;
+                    st.LookupWithStruct(fname, this_id);
+                    assert(this_id);
+                    this_sid = this_id->cursid;
+                }
                 auto member = new Member(lex);
                 member->udt = udt;
-                member->field_idx = udt->fields.size() - 1;
+                member->field_idx = field_idx;
+                member->frame = frame;
+                member->this_sid = this_sid;
                 list->Add(member);
                 break;
             }
@@ -355,8 +420,7 @@ struct Parser {
                 type.utr = type_any;
             }
         }
-        udt->fields.push_back(Field(&sfield, type, init, member_private, lex));
-        udt->fields.back().in_scope = !local_member;
+        udt->fields.push_back(Field(&sfield, type, init, member_private, !local_member, lex));
     }
 
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list) {
@@ -1523,20 +1587,13 @@ struct Parser {
             ic->from = ev;
             return ic;
         }
-        return IdentUseOrWithStruct(idname, f || nf);
-    }
-
-    Node *IdentUseOrWithStruct(string_view idname, bool could_be_function = false) {
         // Check for field reference in function with :: arguments.
-        Ident *id = nullptr;
-        auto fld = st.LookupWithStruct(idname, id);
-        if (fld) {
-            return new Dot(fld, lex, new IdentRef(lex, id->cursid));
+        if (field) {
+            return new Dot(field, lex, new IdentRef(lex, fieldid->cursid));
         }
         // It's likely a regular variable.
-        id = st.Lookup(idname);
         if (!id) {
-            if (could_be_function) Error("can\'t use named function ", Q(idname), " as value");
+            if (f || nf) Error("can\'t use named function ", Q(idname), " as value");
             else Error("unknown identifier ", Q(idname));
         }
         return new IdentRef(lex, id->cursid);

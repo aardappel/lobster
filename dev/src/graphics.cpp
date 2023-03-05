@@ -104,6 +104,7 @@ void TestGL(VM &vm) {
 extern "C" void GLFrame(StackPtr sp, VM &vm) {
     TestGL(vm);
     auto cb = GraphicsFrameStart();
+    vm.FrameStart();
     Push(sp, Value(!cb));
 }
 

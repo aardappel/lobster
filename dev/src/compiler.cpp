@@ -510,8 +510,11 @@ SubFunction::~SubFunction() { if (sbody) delete sbody; }
 Field::~Field() { delete defaultval; }
 
 Field::Field(const Field &o)
-    : GivenResolve(o), id(o.id),
-      defaultval(o.defaultval ? o.defaultval->Clone() : nullptr), isprivate(o.isprivate),
+    : GivenResolve(o),
+      id(o.id),
+      defaultval(o.defaultval ? o.defaultval->Clone() : nullptr),
+      isprivate(o.isprivate),
+      in_scope(o.in_scope),
       defined_in(o.defined_in) {}
 
 Function::~Function() {

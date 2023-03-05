@@ -753,6 +753,21 @@ VM_INLINE bool U_JUMPIFUNWOUND(VM &vm, StackPtr, int df) {
     return vm.ret_unwind_to != df;
 }
 
+VM_INLINE bool U_JUMPIFSTATICLF(VM &vm, StackPtr, int vidx) {
+    auto &v = vm.fvars[vidx];
+    auto jump = v.ival() < vm.frame_count;
+    v = vm.frame_count + 1;
+    return jump;
+}
+
+VM_INLINE bool U_JUMPIFMEMBERLF(VM &vm, StackPtr sp, int slot) {
+    auto self = Pop(sp).oval();
+    auto &v = self->AtS(slot);
+    auto jump = v.ival() < vm.frame_count;
+    v = vm.frame_count + 1;
+    return jump;
+}
+
 VM_INLINE void U_JUMP_TABLE(VM &, StackPtr, const int *) {
     assert(false);
 }

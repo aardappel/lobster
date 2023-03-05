@@ -117,7 +117,10 @@ namespace lobster {
     TOK(T_SUPER, "super") \
     TOK(T_OPERATOR, "operator") \
     TOK(T_ATTRIBUTE, "attribute") \
-    TOK(T_MEMBER, "member")
+    TOK(T_MEMBER, "member") \
+    TOK(T_MEMBER_FRAME, "member_frame") \
+    TOK(T_STATIC, "static") \
+    TOK(T_STATIC_FRAME, "static_frame")
 
 
 enum TType {

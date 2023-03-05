@@ -496,8 +496,10 @@ struct Define : Unary {
 };
 
 struct Member : Node {
+    SpecIdent *this_sid = nullptr;
     UDT *udt = nullptr;
     size_t field_idx = 0;
+    bool frame = false;
     Member(const Line &ln) : Node(ln) {}
     Field *field() const { return &udt->fields[field_idx]; }
     void Dump(string &sd) const {
@@ -505,9 +507,24 @@ struct Member : Node {
         sd += Name();
     }
     bool EqAttr(const Node *o) const {
-        return field() == ((Member *)o)->field();
+        return field() == ((Member *)o)->field() && frame == ((Member *)o)->frame;
     }
     SHARED_SIGNATURE(Member, TName(T_MEMBER), false)
+};
+
+struct Static : Unary {
+    SpecIdent *sid = nullptr;
+    UnresolvedTypeRef giventype;
+    bool frame = false;
+    Static(const Line &ln, Node *init) : Unary(ln, init) {}
+    void Dump(string &sd) const {
+        append(sd, sid->id->name, " ");
+        sd += Name();
+    }
+    bool EqAttr(const Node *) const {
+        return false;  // FIXME
+    }
+    SHARED_SIGNATURE(Static, TName(T_STATIC), false)
 };
 
 struct Dot : Unary {

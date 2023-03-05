@@ -769,7 +769,7 @@ copied by value.
 See more examples in `modules/quaternion.lobster` and `tests/operators.lobster`.
 
 
-### Class member variables with method scope.
+### Global and Class member variables with function scope.
 
 You may declare a (what appears to be) a local variable with the `member` keyword
 instead of `let`, which automatically stores it in the surrounding class:
@@ -813,6 +813,69 @@ the variable may be used for.
 Currently, `member` must occur in a function declaration that is declared
 inside a class (not a struct), restrictions that may be lifted in the future.
 
+You can do the same for functions outside of classes with the keyword `static`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let a = 1
+def bar():
+    static b = 2
+    b += a
+    return b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Which again is pretty much the same as writing:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let a = 1
+var b = 2
+def bar():
+    b += a
+    return b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With again the main difference being that in the former, `b`'s scope is restricted
+to `bar`.
+This is not as useful as `member` because there is only ever one instance possible,
+but still nice to use when you can to simplify the complexity of global scope
+elements.
+
+But these two features are just the start of the real fun: the `member_frame` and
+`static_frame` keywords. These behave like their counterparts above, with one
+subtle difference: they will be reset to their initializer whenever a frame does
+NOT use the variable. Or rather, their state is persisted as long as frames
+keep using the state. It's like "immediate mode", but for state. For example using
+`static_frame` (`member_frame` works the same other than where the variable is stored):
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def foo():
+    static_frame b = 0
+    print b++
+
+gl_window("foo", 100, 100)
+while gl_frame():
+    static a = 0
+    a++
+    if a % 4:
+        foo()
+    else:
+        print "/"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This will print an endless sequence of `0 1 2 / 0 1 2 / 0 1 2 / ..` until you
+close the window. Why is this special? Notice that `foo` didn't need to be told
+when to reset its sequence, that was automatic. In a game, you often have a lot
+of systems and states those systems can be in, and when something changes (the
+user goes into a menu or a particular gameplay or animation state), all these
+systems need to be "updated" to be aware of the new situation. Here, much like
+with an immediate mode gui where you don't need to worry about creating and
+deleting widgets, simple control flow can dictate what systems are "active",
+and their associated state automatically gets reset when the situation changes.
+It's as if the variable `b` doesn't exist when `foo` is not being used, and
+it automatically gets created/deleted for you.
+
+variables declared this way use more space and an extra check (an extra variable
+to check the frame count) but otherwise function just like normal variables,
+so you should feel free to use them wherever they make the code simpler/clearer.
 
 Typing
 ------

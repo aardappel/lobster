@@ -77,7 +77,7 @@ struct SpecIdent {
 
     SpecIdent(Ident *_id, TypeRef _type, int idx, bool withtype)
         : id(_id), type(_type), idx(idx), withtype(withtype) {}
-    int Idx() { assert(sidx >= 0); return sidx; }
+    int Idx() const { assert(sidx >= 0); return sidx; }
     SpecIdent *&Current() { return id->cursid; }
 };
 
@@ -199,15 +199,17 @@ struct Field : GivenResolve {
     Node *defaultval;
     int slot = -1;
     bool isprivate;
-    bool in_scope = true;  // For tracking scopes of ones declared by `member`.
+    bool in_scope;  // For tracking scopes of ones declared by `member`.
     Line defined_in;
 
-    Field(SharedField *_id, UnresolvedTypeRef _type, Node *_defaultval, bool isprivate,
-          const Line &defined_in)
+    Field(SharedField *_id, UnresolvedTypeRef _type, Node *_defaultval,
+          bool isprivate, bool in_scope, const Line &defined_in)
         : GivenResolve(_type),
           id(_id),
           defaultval(_defaultval),
-          isprivate(isprivate), defined_in(defined_in) {}
+          isprivate(isprivate),
+          in_scope(in_scope),
+          defined_in(defined_in) {}
     Field(const Field &o);
     ~Field();
 };
@@ -624,19 +626,24 @@ struct SymbolTable {
         return nullptr;
     }
 
-    Ident *NewId(string_view name, SubFunction *sf, bool withtype) {
-        auto ident = new Ident(name, (int)identtable.size(), scopelevels.size());
+    Ident *NewId(string_view name, SubFunction *sf, bool withtype, size_t scopelevel) {
+        auto ident = new Ident(name, (int)identtable.size(), scopelevel);
         ident->cursid = NewSid(ident, sf, withtype);
         identtable.push_back(ident);
+        idents[ident->name /* must be in value */] = ident;
+        identstack.push_back(ident);
         return ident;
     }
 
-    Ident *LookupDef(string_view name, bool islocal, bool withtype) {
-        auto sf = defsubfunctionstack.back();
+    Ident *LookupDefWS(string_view name) {
         Ident *ident = nullptr;
         if (LookupWithStruct(name, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
-        ident = Lookup(name);
+        return Lookup(name);
+    }
+
+    Ident *LookupDef(string_view name, bool islocal, bool withtype) {
+        auto ident = LookupDefWS(name);
         if (ident) {
             if (scopelevels.size() != ident->scopelevel)
                 lex.Error(cat("identifier shadowing: ", name));
@@ -644,11 +651,21 @@ struct SymbolTable {
                 lex.Error(cat("identifier redefinition: ", name));
             return ident;
         }
-        ident = NewId(name, sf, withtype);
+        auto sf = defsubfunctionstack.back();
+        ident = NewId(name, sf, withtype, scopelevels.size());
         (islocal ? sf->locals : sf->args).push_back(
             Arg(ident->cursid, type_any));
-        idents[ident->name /* must be in value */] = ident;
-        identstack.push_back(ident);
+        return ident;
+    }
+
+    Ident *LookupDefStatic(string_view name) {
+        auto ident = LookupDefWS(name);
+        if (ident)
+            lex.Error(cat("identifier shadowing/redefinition: ", name));
+        auto sf = defsubfunctionstack[0];
+        // Is going to get removed as if it was part of the current function.
+        ident = NewId(name, sf, false, 1);
+        sf->locals.push_back(Arg(ident->cursid, type_any));
         return ident;
     }
 

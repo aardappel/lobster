@@ -417,6 +417,10 @@ ValueType Member::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }
 
+ValueType Static::ConstVal(TypeChecker *, Value &) const {
+    return V_VOID;
+}
+
 ValueType Dot::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }

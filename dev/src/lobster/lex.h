@@ -407,6 +407,8 @@ struct Lex : LoadedFile {
                             break;
                         case 'm':
                             if (sattr == TName(T_MEMBER)) return T_MEMBER;
+                            if (sattr == TName(T_MEMBER_FRAME)) return T_MEMBER_FRAME;
+                            break;
                         case 'n':
                             if (sattr == TName(T_NIL)) return T_NIL;
                             if (sattr == TName(T_NOT)) return T_NOT;
@@ -430,6 +432,8 @@ struct Lex : LoadedFile {
                             if (sattr == TName(T_STRTYPE)) return T_STRTYPE;
                             if (sattr == TName(T_SWITCH)) return T_SWITCH;
                             if (sattr == TName(T_SUPER)) return T_SUPER;
+                            if (sattr == TName(T_STATIC)) return T_STATIC;
+                            if (sattr == TName(T_STATIC_FRAME)) return T_STATIC_FRAME;
                             break;
                         case 't':
                             if (sattr == TName(T_TYPEOF)) return T_TYPEOF;

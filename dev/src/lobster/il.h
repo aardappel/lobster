@@ -162,7 +162,9 @@ enum MathOp {
     F(SFOR, 1, 2, 2) \
     F(VFOR, 1, 2, 2)
 #define ILJUMPNAMES2 \
-    F(JUMPIFUNWOUND, 2, 0, 0)
+    F(JUMPIFUNWOUND, 2, 0, 0) \
+    F(JUMPIFSTATICLF, 2, 0, 0) \
+    F(JUMPIFMEMBERLF, 2, 1, 0)
 
 #define GENOP(OP) ((ILOP)(OP))
 

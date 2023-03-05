@@ -165,7 +165,7 @@ struct CodeGen  {
                 if (type->t == V_CLASS)
                     tt.push_back((type_elem_t)type->udt->vtable_start);
                 else
-                    tt.push_back((type_elem_t)ComputeBitMask(*type->udt, nullptr));
+                    tt.push_back((type_elem_t)ComputeBitMask(*type->udt));
                 PushFields(type->udt, tt);
                 assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + type->udt->typeinfo);
@@ -191,6 +191,7 @@ struct CodeGen  {
 
     CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks)
         : parser(_p), st(_st), runtime_checks(runtime_checks) {
+        node_context.push_back(parser.root);
         // Reserve space and index for all vtables.
         for (auto udt : st.udttable) {
             udt->vtable_start = (int)vtables.size();
@@ -387,7 +388,6 @@ struct CodeGen  {
 
     // This must be called explicitly when any values are consumed.
     void TakeTemp(size_t n, bool can_handle_structs) {
-        assert(node_context.size());
         for (; n; n--) {
             auto tlt = temptypestack.back();
             temptypestack.pop_back();
@@ -416,9 +416,9 @@ struct CodeGen  {
         EmitOp(IL_JUMPIFUNWOUND);
         Emit(sf.parent->idx);
         Emit(0);
+        auto loc = Pos();
         for (int i = nretslots_norm; i < nretslots_unwind_max; i++)
             PopTemp();
-        auto loc = Pos();
         // Here we are emitting code executed only if we're falling thru,
         // so temp modify the tstack to match that.
         auto tstackbackup = tstack;
@@ -577,27 +577,41 @@ struct CodeGen  {
         if (IsStruct(type->t)) Emit(ValWidth(type));
     }
 
-    int ComputeBitMask(const UDT &udt, const Node *errloc) {
+    int ComputeBitMask(const UDT &udt) {
         int bits = 0;
         for (int j = 0; j < udt.numslots; j++) {
             if (IsRefNil(FindSlot(udt, j)->resolvedtype()->t)) {
                 if (j > 31)
-                    parser.ErrorAt(errloc, "internal error: struct with too many reference fields");
+                    parser.ErrorAt(node_context.back(),
+                                   "internal error: struct with too many reference fields");
                 bits |= 1 << j;
             }
         }
         return bits;
     }
 
-    void EmitBitMaskForRefStuct(TypeRef type, const Node *errloc) {
+    void EmitBitMaskForRefStuct(TypeRef type) {
         assert(type->t == V_STRUCT_R);
-        Emit(ComputeBitMask(*type->udt, errloc));
+        Emit(ComputeBitMask(*type->udt));
     }
 
     void GenValueWidth(TypeRef type) {
         // FIXME: struct variable size.
         EmitOp(IL_PUSHINT);
         Emit(ValWidth(type));
+    }
+
+    void GenOpWithStructInfo(ILOP op, TypeRef type) {
+        EmitOp(op, ValWidth(type));
+        EmitWidthIfStruct(type);
+        if (op == IL_LV_WRITEREFV) EmitBitMaskForRefStuct(type);
+    }
+
+    void GenAssignBasic(const SpecIdent &sid) {
+        TakeTemp(1, true);
+        GenLvalVar(sid);
+        auto op = AssignBaseOp({ sid });
+        GenOpWithStructInfo(op, sid.type);
     }
 
     void GenAssign(const Node *lval, ILOP lvalop, size_t retval,
@@ -629,9 +643,7 @@ struct CodeGen  {
         if (rhs) Gen(rhs, 1);
         auto GenLvalRet = [&](TypeRef lvt) {
             if (!post) {
-                EmitOp(lvalop, ValWidth(lval->exptype));
-                EmitWidthIfStruct(lvt);
-                if (lvalop == IL_LV_WRITEREFV) EmitBitMaskForRefStuct(lvt, lval);
+                GenOpWithStructInfo(lvalop, lvt);
             }
             if (retval) {
                 // FIXME: it seems these never need a refcount increase because they're always
@@ -641,9 +653,7 @@ struct CodeGen  {
                 EmitWidthIfStruct(lvt);
             }
             if (post) {
-                EmitOp(lvalop, ValWidth(lval->exptype));
-                EmitWidthIfStruct(lvt);
-                if (lvalop == IL_LV_WRITEREFV) EmitBitMaskForRefStuct(lvt, lval);
+                GenOpWithStructInfo(lvalop, lvt);
             }
         };
         if (auto idr = Is<IdentRef>(lval)) {
@@ -801,7 +811,7 @@ struct CodeGen  {
         Emit(keepvars++ + keep_index_add);
     }
 
-    void GenLvalVar(SpecIdent &sid) {
+    void GenLvalVar(const SpecIdent &sid) {
         EmitOp(sid.used_as_freevar ? IL_LVAL_VARF : IL_LVAL_VARL);
         Emit(sid.Idx());
     }
@@ -987,7 +997,37 @@ void GenericCall::Generate(CodeGen &, size_t /*retval*/) const {
 }
 
 void Member::Generate(CodeGen &cg, size_t retval) const {
-    // TODO: turn into DefaultVal in TT/Opt?
+    if (frame) {
+        cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
+        cg.EmitOp(IL_JUMPIFMEMBERLF);
+        auto &f = *field();
+        cg.Emit(f.slot + ValWidth(f.resolvedtype()));  // It's the var after this one.
+        cg.Emit(0);
+        auto loc = cg.Pos();
+        cg.Gen(f.defaultval, 1);
+        auto stype = this_sid->type;
+        cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
+        cg.TakeTemp(1, true);
+        cg.EmitOp(IL_LVAL_FLD);
+        cg.Emit(f.slot);
+        cg.GenOpWithStructInfo(cg.AssignBaseOp({ *f.defaultval, 0 }), f.resolvedtype());
+        cg.SetLabel(loc);
+    }
+    if (!retval) return;
+    cg.EmitOp(IL_PUSHNIL);
+}
+
+void Static::Generate(CodeGen &cg, size_t retval) const {
+    if (frame) {
+        cg.EmitOp(IL_JUMPIFSTATICLF);
+        assert(sid->used_as_freevar);  // Since we'll access these from the freevar buf.
+        cg.Emit(sid->Idx() + ValWidth(sid->type));  // It's the var after this one.
+        cg.Emit(0);
+        auto loc = cg.Pos();
+        cg.Gen(child, 1);
+        cg.GenAssignBasic(*sid);
+        cg.SetLabel(loc);
+    }
     if (!retval) return;
     cg.EmitOp(IL_PUSHNIL);
 }
@@ -1011,18 +1051,13 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, sids.size());
     for (size_t i = sids.size(); i-- > 0; ) {
         auto sid = sids[i].first;
-        cg.TakeTemp(1, true);
         // FIXME: Sadly, even though FunIntro now guarantees that variables start as V_NIL,
         // we still can't replace this with a WRITE that doesn't have to decrement, since
         // loops with inlined bodies cause this def to be execute multiple times.
         // (also: multiple copies of the same inlined function in one parent).
         // We should emit a specialized opcode for these cases only.
         // NOTE: we already don't decref for borrowed vars generated by the optimizer here (!)
-        cg.GenLvalVar(*sid);
-        auto op = cg.AssignBaseOp({ *sid });
-        cg.EmitOp(op, ValWidth(sid->type));
-        cg.EmitWidthIfStruct(sid->type);
-        if (op == IL_LV_WRITEREFV) cg.EmitBitMaskForRefStuct(sid->type, this);
+        cg.GenAssignBasic(*sid);
     }
     assert(!retval);  // Parser guarantees this.
     (void)retval;
@@ -1504,7 +1539,7 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
                           ? (IsStruct(typelt.type->sub->t) ? IL_VFORELEMREF2S : IL_VFORELEMREF)
                           : (IsStruct(typelt.type->sub->t) ? IL_VFORELEM2S : IL_VFORELEM);
             cg.EmitOp(op, 2, ValWidth(typelt.type->sub) + 2);
-            if (op == IL_VFORELEMREF2S) cg.EmitBitMaskForRefStuct(typelt.type->sub, this);
+            if (op == IL_VFORELEMREF2S) cg.EmitBitMaskForRefStuct(typelt.type->sub);
             break;
         }
         default:

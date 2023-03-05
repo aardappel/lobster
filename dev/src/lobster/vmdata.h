@@ -877,6 +877,8 @@ struct VM : VMArgs {
 
     typedef StackPtr (* f_ins_pointer)(VM &, StackPtr);
 
+    iint frame_count = -1;
+
     bool is_worker = false;
     vector<thread> workers;
     TupleSpace *tuple_space = nullptr;
@@ -962,6 +964,8 @@ struct VM : VMArgs {
     void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 
     void EvalProgram();
+
+    void FrameStart() { frame_count++; }
 
     void LvalueIdxVector(int lvalop, iint i);
     void LvalueIdxStruct(int lvalop, iint i);
