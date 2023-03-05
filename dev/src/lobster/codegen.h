@@ -1005,7 +1005,6 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.Emit(0);
         auto loc = cg.Pos();
         cg.Gen(f.defaultval, 1);
-        auto stype = this_sid->type;
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
         cg.EmitOp(IL_LVAL_FLD);
