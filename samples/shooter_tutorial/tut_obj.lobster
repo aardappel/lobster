@@ -111,13 +111,12 @@ class World:
 
         return player.health
 
-// The only global state.
-var highscore = 0
-var w:World? = nil
-
 while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
+
+    static highscore = 0
+    static w = nil::World
 
     if w:
         gl_text("health: {ceiling(w.player.health)} - score: {w.score} - highscore: {highscore}")
