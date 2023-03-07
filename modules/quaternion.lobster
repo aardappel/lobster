@@ -30,6 +30,24 @@ def quat_from_angle_axis(angle:float, axis:xyz_f):
 def quat_from_vec(v:xyz_f):
     return quat { v.x, v.y, v.z, -sqrt(max(1.0 - dot(v, v), 0.0)) }
 
+def quat_from_2vecs(u:xyz_f, v:xyz_f):
+    let norm_u_norm_v = sqrt(dot(u, u) * dot(v, v))
+    var real_part = norm_u_norm_v + dot(u, v)
+    let w =
+        if real_part < 1.0e-6 * norm_u_norm_v:
+            // If u and v are exactly opposite, rotate 180 degrees
+            // around an arbitrary orthogonal axis. Axis normalisation
+            // can happen later, when we normalise the quaternion.
+            real_part = 0.0
+            if abs(u.x) > abs(u.z):
+                xyz_f { -u.y,  u.x, 0.0 }
+            else:
+                xyz_f {  0.0, -u.z, u.y }
+        else:
+            // Otherwise, build quaternion the standard way.
+            cross(u, v)
+    return normalize(quat{ w.x, w.y, w.z, real_part })
+
 def quat_from_euler(yaw, pitch):
     let cy = cos(yaw * 0.5)
     let sy = sin(yaw * 0.5)
