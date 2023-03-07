@@ -79,8 +79,7 @@
 
 - Inline tocpp into codegen, see below.
 
-- "C-style language to Lobster Cheat Sheet" contains instances of :=
-  and probably could use other fixes.. ?: example? more about types.
+- "C-style language to Lobster Cheat Sheet" could use improvements, and more about types.
   Also def for function values.
 
 - move this TODO.txt to github issues?

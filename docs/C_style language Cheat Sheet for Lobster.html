@@ -155,15 +155,15 @@ else:<br>
 <td>foreach (var a in list) print(a);</td>
 <td></td>
 </tr>
-<tr><td>a := switch i:<br>&nbsp; &nbsp; case 1: "no"<br>&nbsp; &nbsp; case 2, 4..6: "yes"<br>&nbsp; &nbsp; default: "maybe"</td><td>switch (i) {<br>&nbsp; &nbsp; case 1:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "no";<br>&nbsp; &nbsp; &nbsp; &nbsp; break;<br>&nbsp; &nbsp; case 2:<br>&nbsp; &nbsp; case 4:<br>&nbsp; &nbsp; case 5:<br>&nbsp; &nbsp; case 6:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "yes";<br>&nbsp; &nbsp; &nbsp; &nbsp; break;<br>&nbsp; &nbsp; default:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "maybe";<br>}</td><td></td></tr><tr>
-<td>r := map(list) x: x * x</td>
+<tr><td>let a = switch i:<br>&nbsp; &nbsp; case 1: "no"<br>&nbsp; &nbsp; case 2, 4..6: "yes"<br>&nbsp; &nbsp; default: "maybe"</td><td>switch (i) {<br>&nbsp; &nbsp; case 1:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "no";<br>&nbsp; &nbsp; &nbsp; &nbsp; break;<br>&nbsp; &nbsp; case 2:<br>&nbsp; &nbsp; case 4:<br>&nbsp; &nbsp; case 5:<br>&nbsp; &nbsp; case 6:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "yes";<br>&nbsp; &nbsp; &nbsp; &nbsp; break;<br>&nbsp; &nbsp; default:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "maybe";<br>}</td><td></td></tr><tr>
+<td>let r = map(list) x: x * x</td>
 <td>var r = new List();<br>
 foreach(var x in list) r.Add(x * x);</td>
-<td><br>
+<td>(map needs: import std)
 </td>
 </tr>
 <tr>
-<td>r := map(list) x: x * x</td>
+<td>let r = map(list) x: x * x</td>
 <td>var r = list.ConvertAll(x =&gt; x * x);</td>
 <td>C# and pretty much all programming languages except for
 Java (&lt; 8) can nowadays use some form of lambdas that are similar but not
@@ -171,14 +171,14 @@ quite as powerful as the ones in Lobster (for example, you can't use
 "return" to break out of a loop).</td>
 </tr>
 <tr>
-<td>r := filter list: _ &gt; 0</td>
+<td>let r = filter list: _ &gt; 0</td>
 <td>var r = new List();<br>
 foreach (var x in list) if (x
 &gt; 0) r.Add(x);</td>
 <td></td>
 </tr>
 <tr>
-<td style="white-space: nowrap;">r := exists list: _ &gt; 0</td>
+<td style="white-space: nowrap;">let r = exists list: _ &gt; 0</td>
 <td style="white-space: nowrap;">var r = false;<br>
 foreach (var x in list) if (x
 &gt; 0) { r = true; break; }</td>
@@ -264,24 +264,24 @@ list, and apply the function to each element and the previous result,
 effectively "folding" the list into a single value.</td>
 </tr>
 <tr>
-<td>r := fold(list, 0) a, b: a + b</td>
+<td>let r = fold(list, 0) a, b: a + b</td>
 <td>var r = fold(list, 0, (a, b) =&gt; a + b);</td>
 <td>How to call that function with a function value. This sums all values in a list.</td>
 </tr>
 <tr>
-<td>r := fold(list, 0): _a + _b</td>
+<td>let r = fold(list, 0): _a + _b</td>
 <td>var r = fold(list, 0, (a, b) =&gt; a + b);</td>
 <td>Anonymous arguments in lexical order, see language reference.</td>
 </tr>
 <tr>
-<td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; print a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
+<td>let r = fold(list, 0) a, b:<br>&nbsp; &nbsp; print a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
 <td>var r = fold(list, 0, (a, b) =&gt; {<br>&nbsp; &nbsp; print(a);<br>&nbsp; &nbsp; return a + b;<br>});</td>
 <td>Note how in most languages lambda syntax becomes messy when you
 want to use them with a larger body, and looking very different from
 builtin control structures.</td>
 </tr>
 <tr>
-<td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; if a &lt; 0: return a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
+<td>let r = fold(list, 0) a, b:<br>&nbsp; &nbsp; if a &lt; 0: return a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
 <td>/* not possible */</td>
 <td>Another way in which lambdas in most languages differ from Lobster:
 you cannot return/break
