@@ -1,3 +1,15 @@
+- By-value assignment operator, for things like re-initializing objects:
+  this <== Foo {}
+  A bit inefficient in terms of construction/reference counting compared to a dedicated
+  "placement new" syntax, but this can be used from other objects, instead of copy(),
+  and could even be useful with vector/string etc.
+  Note: since this does the equivalent of assigning every field, need to take care this
+  gets registered with lifetime tracking / flow-sensitive typing.
+
+- & is not implemented for structs.
+
+- Enable writing to struct fields.
+
 - recursive class causes typechecker assert even before it runs out of stack:
     class C:
         s = "s"
