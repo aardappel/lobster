@@ -851,8 +851,13 @@ struct TypeChecker {
                 u->subudts.push_back(&udt);
             }
         }
-        if (!udt.ComputeSizes())
+        if (!predeclaration && udt.numslots >= 0) {
+            // Was already run for pre-decl, run again with more accurate field types.
+            udt.numslots = -1;
+        }
+        if (!udt.ComputeSizes()) {
             Error(errn, "struct ", Q(udt.name), " cannot be self-referential");
+        }
     }
 
     void RetVal(TypeRef type, SubFunction *sf, const Node &err) {
