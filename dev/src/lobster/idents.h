@@ -158,7 +158,9 @@ struct GivenResolve {
     void set_resolvedtype_default(TypeRef type) {
         resolvedtype_ = type;
         if (!type.Null() && !type->HasValueType(V_TYPEVAR)) {
-            was_resolved = true;
+            if (type->t != V_ANY) {
+                was_resolved = true;
+            }
         }
     }
 
@@ -167,7 +169,9 @@ struct GivenResolve {
         resolvedtype_ = type;
         if (!type.Null()) {
             assert(!type->HasValueType(V_TYPEVAR));
-            was_resolved = true;
+            if (type->t != V_ANY) {
+                was_resolved = true;
+            }
         }
     }
 
