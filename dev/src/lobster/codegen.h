@@ -1004,7 +1004,7 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.Emit(f.slot + ValWidth(f.resolvedtype()));  // It's the var after this one.
         cg.Emit(0);
         auto loc = cg.Pos();
-        cg.Gen(f.defaultval, 1);
+        cg.Gen(child, 1);
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
         cg.EmitOp(IL_LVAL_FLD);

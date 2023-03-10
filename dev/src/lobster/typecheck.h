@@ -2585,8 +2585,8 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Member::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(child, 1, LT_KEEP);
     auto &f = *field();
-    tc.TT(f.defaultval, 1, LT_KEEP);
     f.in_scope = true;
     tc.scopes.back().scoped_fields.push_back(this);
     if (this_sid) tc.UpdateCurrentSid(this_sid);

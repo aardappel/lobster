@@ -495,12 +495,12 @@ struct Define : Unary {
     SHARED_SIGNATURE(Define, "var", true)
 };
 
-struct Member : Node {
+struct Member : Unary {
     SpecIdent *this_sid = nullptr;
     UDT *udt = nullptr;
     size_t field_idx = 0;
     bool frame = false;
-    Member(const Line &ln) : Node(ln) {}
+    Member(const Line &ln, Node *init) : Unary(ln, init) {}
     Field *field() const { return &udt->fields[field_idx]; }
     void Dump(string &sd) const {
         append(sd, field()->id->name, " ");

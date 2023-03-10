@@ -332,6 +332,7 @@ struct Parser {
                 auto field_idx = udt->fields.size();
                 ParseField(udt, true, true);
                 st.bound_typevars_stack.pop_back();
+                auto initc = udt->fields.back().defaultval->Clone();
                 SpecIdent *this_sid = nullptr;
                 if (frame) {
                     // Create int field to store frame count.
@@ -344,7 +345,7 @@ struct Parser {
                     assert(this_id);
                     this_sid = this_id->cursid;
                 }
-                auto member = new Member(lex);
+                auto member = new Member(lex, initc);
                 member->udt = udt;
                 member->field_idx = field_idx;
                 member->frame = frame;
