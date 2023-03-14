@@ -265,6 +265,9 @@ struct FlexBufferParser {
             case V_NIL:
                 stack.emplace_back(NilVal());
                 break;
+            case V_VECTOR:
+                stack.emplace_back(vm.NewVec(0, 0, typeoff));
+                break;
             case V_STRUCT_S:
             case V_STRUCT_R:
             case V_CLASS: {
