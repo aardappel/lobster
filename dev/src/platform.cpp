@@ -27,6 +27,8 @@
     #include <windows.h>
     #define FILESEP '\\'
     #include <intrin.h>
+    #include <sapi.h>
+    #include <comdef.h>
 #else
     #include <sys/time.h>
 	#ifndef PLATFORM_ES3
@@ -615,5 +617,46 @@ iint LaunchSubProcess(const char **cmdl, const char *stdins, string &out) {
         (void)stdins;
         (void)out;
         return -1;
+    #endif
+}
+
+vector<string> text_to_speech_q;
+void QueueTextToSpeech(string_view text) {
+    text_to_speech_q.emplace_back(string(text));
+}
+
+
+#ifdef _WIN32
+ISpVoice *voice = NULL;
+#endif
+
+bool TextToSpeechInit() {
+    #ifdef _WIN32
+        if (FAILED(::CoInitializeEx(NULL, COINITBASE_MULTITHREADED))) return false;
+    #endif
+    return true;
+}
+
+bool TextToSpeechUpdate() {
+    #ifdef _WIN32
+        // First see if we have active speech, and if so, don't start a new one.
+        if (voice) {
+            SPVOICESTATUS status;
+            if (FAILED(voice->GetStatus(&status, NULL))) return false;
+            if (status.dwRunningState != SPRS_DONE) return true;
+            voice->Release();
+            voice = NULL;
+        }
+        // Have something new to start?
+        if (text_to_speech_q.empty()) return true;
+        _bstr_t wide(text_to_speech_q.front().c_str());
+        text_to_speech_q.erase(text_to_speech_q.begin());
+        if (FAILED(
+                CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&voice)))
+            return false;
+        voice->Speak(wide, SPF_IS_XML | SPF_ASYNC, NULL);
+        return true;
+    #else
+        return false;
     #endif
 }

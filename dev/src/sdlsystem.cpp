@@ -294,7 +294,8 @@ void SDLRequireGLVersion(int major, int minor) {
 
 string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flags, int samples) {
     MakeDPIAware();
-    //SDL_SetMainReady();
+    TextToSpeechInit();  // Needs to be before SDL_Init because COINITBASE_MULTITHREADED
+    // SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0) {
         return SDLError("Unable to initialize SDL");
     }
@@ -502,6 +503,8 @@ bool SDLFrame() {
             emscripten_sleep(0);
         #endif
     }
+
+    TextToSpeechUpdate();
 
     frametime = GetSeconds() - lasttime;
     lasttime += frametime;

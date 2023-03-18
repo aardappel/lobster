@@ -140,4 +140,15 @@ nfr("sound_position", "channel,vecfromlistener,listenerfwd,attnscale", "IF}:3F}:
         if (ch_idx > 0)
             SDLSetPosition(ch_idx, src, fwd, scale);
     });
+
+nfr("text_to_speech", "text", "S", "",
+    "Queues up text for async text to speech output. Currently on: win32",
+    [](StackPtr &, VM &, Value &text) {
+        QueueTextToSpeech(text.sval()->strv());
+        return NilVal();
+    });
+
 }
+
+
+

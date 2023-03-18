@@ -53,6 +53,10 @@ extern bool ScanDirAbs(string_view absdir, vector<pair<string, int64_t>> &dest);
 
 extern iint LaunchSubProcess(const char **cmdl, const char *stdins, string &out);
 
+extern void QueueTextToSpeech(string_view text);
+extern bool TextToSpeechInit();
+extern bool TextToSpeechUpdate();
+
 // Logging:
 
 enum OutputType {

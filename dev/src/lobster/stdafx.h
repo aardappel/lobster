@@ -15,6 +15,7 @@
 #pragma once
 
 #ifdef _MSC_VER
+    #define _HAS_STD_BYTE 0  // clashes with windows headers.
     #define _CRT_SECURE_NO_WARNINGS
     #define _SCL_SECURE_NO_WARNINGS
     #define _CRTDBG_MAP_ALLOC
