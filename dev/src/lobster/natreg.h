@@ -250,7 +250,6 @@ inline ResourceType *LookupResourceType(string_view name) {
 struct Named {
     string name;
     int idx = -1;
-    bool isprivate = false;
 
     Named() = default;
     Named(string_view _name, int _idx = 0) : name(_name), idx(_idx) {}

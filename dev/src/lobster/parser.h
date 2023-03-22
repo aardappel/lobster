@@ -57,7 +57,7 @@ struct Parser {
         auto sf = st.FunctionScopeStart();
         st.toplevel = sf;
         auto &f = st.CreateFunction("__top_level_expression");
-        f.overloads.emplace_back(new Overload {});
+        f.overloads.emplace_back(new Overload { lex, false });
         auto &ov = *f.overloads[0];
         sf->SetParent(f, ov);
         f.anonymous = true;
@@ -562,7 +562,7 @@ struct Parser {
         parent_list->Add(new UDTRef(line, udt, udt->predeclaration));
     }
 
-    Node *ParseNamedFunctionDefinition(bool isprivate, UDT *self) {
+    FunRef *ParseNamedFunctionDefinition(bool isprivate, UDT *self) {
         string idname;
         if (IsNext(T_OPERATOR)) {
             auto op = lex.token;
@@ -623,7 +623,7 @@ struct Parser {
         block_stack.pop_back();
     }
 
-    Node *ParseFunction(string *name, bool isprivate, bool parens, bool parseargs,
+    FunRef *ParseFunction(string *name, bool isprivate, bool parens, bool parseargs,
                         UDT *self = nullptr) {
         auto sf = st.FunctionScopeStart();
         st.bound_typevars_stack.push_back(&sf->generics);
@@ -708,7 +708,7 @@ struct Parser {
             }
         }
         // Create the overload.
-        f.overloads.emplace_back(new Overload {});
+        f.overloads.emplace_back(new Overload { lex, isprivate });
         sf->SetParent(f, *f.overloads.back());
         // Check if there's any overlap in default argument ranges.
         auto ff = st.GetFirstFunction(f.name);
@@ -719,9 +719,6 @@ struct Parser {
                     Error("function ", Q(f.name), " with ", f.nargs(),
                           " arguments is ambiguous with the ", ff->nargs(),
                           " version because of default arguments");
-                if (ff->isprivate != isprivate)
-                    Error("inconsistent private annotation of same function with different number"
-                          " of arguments ", Q(*name));
             }
             ff = ff->sibf;
         }
@@ -754,10 +751,7 @@ struct Parser {
                 // detecting what is a legit overload or not, this is in general better left to the
                 // type checker.
                 if (!f.nargs()) Error("double declaration of ", Q(f.name));
-                if (isprivate != f.isprivate)
-                    Error("inconsistent private annotation of multiple overloads for ", Q(*name));
             }
-            f.isprivate = isprivate;
             functionstack.push_back(&f);
         } else {
             f.anonymous = true;

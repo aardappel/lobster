@@ -36,6 +36,7 @@ struct SpecIdent;
 struct Ident : Named {
     size_t scopelevel;
 
+    bool isprivate = false;
     bool single_assignment = true;  // not declared const but def only, exp may or may not be const
     bool constant = false;          // declared const
     bool static_constant = false;   // not declared const but def only, exp is const.
@@ -84,6 +85,7 @@ struct SpecIdent {
 struct Enum;
 
 struct EnumVal : Named {
+    bool isprivate = false;
     int64_t val = 0;
     Enum *e = nullptr;
 
@@ -91,6 +93,7 @@ struct EnumVal : Named {
 };
 
 struct Enum : Named {
+    bool isprivate = false;
     vector<unique_ptr<EnumVal>> vals;
     Type thistype;
     bool flags = false;
@@ -251,6 +254,7 @@ struct UDT : Named {
     vector<BoundTypeVariable> generics;
     UDT *next = nullptr, *first = this;  // Specializations
     GivenResolve superclass;
+    bool isprivate = false;
     bool is_struct = false, hasref = false;
     bool predeclaration = false;
     bool constructed = false;  // Is this instantiated anywhere in the code?
@@ -415,6 +419,10 @@ struct SubFunction;
 struct Overload {
     SubFunction *sf = nullptr;
     Block *gbody = nullptr;
+    Line declared_at;
+    bool isprivate;
+
+    Overload(Line da, bool p) : declared_at(da), isprivate(p) {}
 
     ~Overload();
 };
@@ -764,18 +772,6 @@ struct SymbolTable {
         if (it != dict.end()) dict.erase(it);
     }
 
-    void ErasePrivate(unordered_map<string, vector<Function *>> &dict) {
-        auto it = dict.begin();
-        while (it != dict.end()) {
-            auto &v = it->second;
-            it++;
-            if (!v.empty() && v.back()->isprivate) {
-                assert(v.back()->scopelevel == 2);
-                v.pop_back();
-            }
-        }
-    }
-
     template<typename T> void ErasePrivate(unordered_map<string_view, T *> &dict) {
         auto it = dict.begin();
         while (it != dict.end()) {
@@ -789,8 +785,8 @@ struct SymbolTable {
         current_namespace = {};
         ErasePrivate(idents);
         ErasePrivate(udts);
-        ErasePrivate(functions);
         ErasePrivate(enums);
+        // Note: can't remove functions here, because final function lookup is in typechecker.
     }
 
     Enum *EnumLookup(string_view name, bool decl) {

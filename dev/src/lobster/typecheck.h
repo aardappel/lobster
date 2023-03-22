@@ -1243,6 +1243,8 @@ struct TypeChecker {
                                 bool static_dispatch, bool first_dynamic) {
         STACK_PROFILE;
         Function &f = *sf->parent;
+        if (ov.isprivate && ov.declared_at.fileidx != call_args.line.fileidx)
+            Error(call_args, "call to (partially) private function ", Q(f.name));
         sf = ov.sf;
         // Collect generic type values.
         vector<BoundTypeVariable> generics = sf->generics;
