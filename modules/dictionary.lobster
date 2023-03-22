@@ -22,24 +22,35 @@ class dictionary<K,V>:
     private buckets:[chain<K,V>?] = []
     private size:int
 
-    def set(key:K, value:V):
+    private def lookup(key:K):
         if not buckets.length:
             buckets = map(size): nil
         let h = hash(key) % size
         var c = buckets[h]
         while c:
             if c.key == key:
-                c.value = value
-                return
+                return c, h
             c = c.next
-        buckets[h] = chain<K,V> { buckets[h], key, value }
+        return nil, h
+
+    def set(key:K, value:V):
+        let c, h = lookup(key)
+        if c:
+            c.value = value
+        else:
+            buckets[h] = chain<K,V> { buckets[h], key, value }
+
+    def add(key:K, value:V):
+        let c, h = lookup(key)
+        if c:
+            c.value += value
+        else:
+            buckets[h] = chain<K,V> { buckets[h], key, value }
 
     def get(key:K, default_val:V) -> V:
-        let h = hash(key) % size
-        if h < length(buckets):
-           var c = buckets[h]
-           while c:
-               if c.key == key:
-                   return c.value
-               c = c.next
-        return default_val
+        let c = lookup(key)
+        return c and c.value or default_val
+
+    def get(key:K) -> V?:
+        let c = lookup(key)
+        return c and c.value or nil
