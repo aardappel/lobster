@@ -49,7 +49,7 @@ class dictionary<K,V>:
 
     def get(key:K, default_val:V) -> V:
         let c = lookup(key)
-        return c and c.value or default_val
+        return if c: c.value else: default_val
 
     def get(key:K) -> V?:
         let c = lookup(key)
