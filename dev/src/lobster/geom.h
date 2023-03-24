@@ -71,7 +71,7 @@ union int2float64 {
 };
 
 template<> inline void default_debug_value<double>(double &a) {
-    a = int2float64(0x7ff8000000000000).f;
+    a = int2float64(0x7ff8000000000000_L64).f;
 }
 
 template<typename T, int C, int R> class matrix;
