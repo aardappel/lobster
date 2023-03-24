@@ -122,6 +122,12 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
 
 struct VM;
 
+struct TIField {
+    type_elem_t type;
+    type_elem_t parent;
+    int defval;
+};
+
 struct TypeInfo {
     ValueType t;
     union {
@@ -130,11 +136,6 @@ struct TypeInfo {
             int structidx;
             int len;
             int vtable_start_or_bitmask;
-            struct TIField {
-                type_elem_t type;
-                type_elem_t parent;
-                int defval;
-            };
             TIField elemtypes[1];  // len elems.
         };
         int enumidx;       // V_INT, -1 if not an enum.
