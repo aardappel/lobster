@@ -342,7 +342,7 @@ uint64_t LVector::Hash(VM &vm) {
         for (iint i = 0; i < len; i++) {
             for (int j = 0; j < width; j++) {
                 assert(width == eti.len);
-                auto &ti = vm.GetTypeInfo(eti.elemtypes[j]);
+                auto &ti = vm.GetTypeInfo(eti.elemtypes[j].type);
                 hash = hash * 31 + AtSub(i, j).Hash(vm, ti.t);
             }
         }
@@ -417,7 +417,7 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
         if (rec) {
             s += "{";
             for (int i = 0; i < len; i++)
-                s += vm.GetTypeInfo(elemtypes[i]).Debug(vm, false) + ",";
+                s += vm.GetTypeInfo(elemtypes[i].type).Debug(vm, false) + ",";
             s += "}";
         }
         return s;
@@ -462,7 +462,7 @@ void TypeInfo::Print(VM &vm, string &sd, void *ref) const {
     return sti.t == V_NIL ? vm.GetTypeInfo(sti.subt) : sti;
 
 const TypeInfo &LObject::ElemTypeS(VM &vm, iint i) const {
-    ELEMTYPE(elemtypes[i], assert(i < _ti.len));
+    ELEMTYPE(elemtypes[i].type, assert(i < _ti.len));
 }
 
 const TypeInfo &LObject::ElemTypeSP(VM &vm, iint i) const {

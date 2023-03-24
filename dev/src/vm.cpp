@@ -721,7 +721,7 @@ void VM::WorkerWrite(RefObj *ref) {
     auto buf = (Value *)malloc(sizeof(Value) * ti.len);
     for (int i = 0; i < ti.len; i++) {
         // FIXME: lift this restriction.
-        if (IsRefNil(GetTypeInfo(ti.elemtypes[i]).t))
+        if (IsRefNil(GetTypeInfo(ti.elemtypes[i].type).t))
             Error("thread write: only scalar class members supported for now");
         buf[i] = st->AtS(i);
     }

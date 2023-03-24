@@ -276,8 +276,8 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
             // Special case for numeric structs & colors.
             if (ti.len >= 2 && ti.len <= 4) {
                 for (int i = 1; i < ti.len; i++)
-                    if (ti.elemtypes[i] != ti.elemtypes[0]) goto generic;
-                if (ti.elemtypes[0] == TYPE_ELEM_INT) {
+                    if (ti.elemtypes[i].type != ti.elemtypes[0].type) goto generic;
+                if (ti.elemtypes[0].type == TYPE_ELEM_INT) {
                     auto nums = ValueToI<4>(v, ti.len);
                     if (ImGui::InputScalarN(
                             l, ImGuiDataType_S64,
@@ -285,7 +285,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                         ToValue(v, ti.len, nums);
                     }
                     break;
-                } else if (ti.elemtypes[0] == TYPE_ELEM_FLOAT) {
+                } else if (ti.elemtypes[0].type == TYPE_ELEM_FLOAT) {
                     if (st->name()->string_view() == "color") {
                         auto c = ValueToFLT<4>(v, ti.len);
                         if (ImGui::ColorEdit4(l, (float *)c.data())) {

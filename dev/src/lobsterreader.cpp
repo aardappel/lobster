@@ -25,16 +25,57 @@
 
 namespace lobster {
 
-struct ValueParser {
-    vector<string> filenames;
+struct Deserializer {
     vector<RefObj *> allocated;
-    Lex lex;
     VM &vm;
     vector<Value> stack;
 
-    ValueParser(VM &vm, string_view _src) : lex("string", filenames, _src), vm(vm) {
+    Deserializer(VM &vm) : vm(vm) {
         stack.reserve(16);
         allocated.reserve(16);
+    }
+
+    bool PushDefault(type_elem_t typeoff, int defval) {
+        auto &ti = vm.GetTypeInfo(typeoff);
+        switch (ti.t) {
+            case V_INT:
+                stack.emplace_back(Value(defval));
+                break;
+            case V_FLOAT:
+                stack.emplace_back(Value(int2float(defval).f));
+                break;
+            case V_NIL:
+                stack.emplace_back(NilVal());
+                break;
+            case V_VECTOR:
+                stack.emplace_back(vm.NewVec(0, 0, typeoff));
+                break;
+            case V_STRUCT_S:
+            case V_STRUCT_R:
+            case V_CLASS: {
+                for (int i = 0; i < ti.len; i++) {
+                    PushDefault(ti.elemtypes[i].type, ti.elemtypes[i].defval);
+                }
+                if (ti.t == V_CLASS) {
+                    auto vec = vm.NewObject(ti.len, typeoff);
+                    if (ti.len) vec->CopyElemsShallow(&*stack.end() - ti.len, ti.len);
+                    stack.resize(stack.size() - ti.len);
+                    stack.emplace_back(Value(vec));
+                }
+                break;
+            }
+            default:
+                return false;
+        }
+        return true;
+    }
+};
+
+struct ValueParser : Deserializer {
+    vector<string> filenames;
+    Lex lex;
+
+    ValueParser(VM &vm, string_view _src) : Deserializer(vm), lex("string", filenames, _src) {
         lex.do_string_interpolation = false;
     }
 
@@ -71,13 +112,8 @@ struct ValueParser {
         if (!push) return;
         if (numelems >= 0) {
             while (NumElems() < numelems) {
-                switch (vm.GetTypeInfo(ti.elemtypes[NumElems()]).t) {
-                    case V_INT:   stack.emplace_back(Value(0)); break;
-                    case V_FLOAT: stack.emplace_back(Value(0.0f)); break;
-                    case V_NIL:   stack.emplace_back(NilVal()); break;
-                    // FIXME: do something similar to PushDefault below for struct/class elems?
-                    default:      lex.Error("no default value exists for missing struct elements");
-                }
+                if (!PushDefault(ti.elemtypes[NumElems()].type, ti.elemtypes[NumElems()].defval))
+                    lex.Error("no default value exists for missing struct elements");
             }
         }
         if (ti.t == V_CLASS) {
@@ -225,15 +261,9 @@ static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp
 }
 
 
-struct FlexBufferParser {
-    vector<RefObj *> allocated;
-    VM &vm;
-    vector<Value> stack;
+struct FlexBufferParser : Deserializer {
 
-    FlexBufferParser(VM &vm) : vm(vm) {
-        stack.reserve(16);
-        allocated.reserve(16);
-    }
+    FlexBufferParser(VM &vm) : Deserializer(vm) {}
 
     void Parse(StackPtr &sp, type_elem_t typeoff, flexbuffers::Reference r) {
         ParseFactor(r, typeoff);
@@ -250,40 +280,6 @@ struct FlexBufferParser {
         if (given != needed && needed != V_ANY) {
             Error(cat("type ", BaseTypeName(needed), " required, ", BaseTypeName(given),
                                " given"));
-        }
-    }
-
-    void PushDefault(type_elem_t typeoff, string_view fname) {
-        auto &ti = vm.GetTypeInfo(typeoff);
-        switch (ti.t) {
-            case V_INT:
-                stack.emplace_back(Value(0));
-                break;
-            case V_FLOAT:
-                stack.emplace_back(Value(0.0f));
-                break;
-            case V_NIL:
-                stack.emplace_back(NilVal());
-                break;
-            case V_VECTOR:
-                stack.emplace_back(vm.NewVec(0, 0, typeoff));
-                break;
-            case V_STRUCT_S:
-            case V_STRUCT_R:
-            case V_CLASS: {
-                for (int i = 0; i < ti.len; i++) {
-                    PushDefault(ti.elemtypes[i], fname);
-                }
-                if (ti.t == V_CLASS) {
-                    auto vec = vm.NewObject(ti.len, typeoff);
-                    if (ti.len) vec->CopyElemsShallow(&*stack.end() - ti.len, ti.len);
-                    stack.resize(stack.size() - ti.len);
-                    stack.emplace_back(Value(vec));
-                }
-                break;
-            }
-            default:
-                Error("no default value exists for missing field " + fname);
         }
     }
 
@@ -369,7 +365,8 @@ struct FlexBufferParser {
                     auto eti = ti->GetElemOrParent(NumElems());
                     auto e = m[fname.data()];
                     if (e.IsNull()) {
-                        PushDefault(eti, fname);
+                        if(!PushDefault(eti, ti->elemtypes[NumElems()].defval))
+                            Error("no default value exists for missing field " + fname);
                     } else {
                         ParseFactor(e, eti);
                     }

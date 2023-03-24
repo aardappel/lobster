@@ -49,17 +49,29 @@ namespace geom {
 template<typename T> void default_debug_value(T &a) {
     a = (T)(0xABADCAFEDEADBEEF >> ((8 - sizeof(T)) * 8));
 }
-union int2float { int i; float f; };
+
+union int2float {
+    int i;
+    float f;
+
+    int2float(int i) : i(i) {}
+    int2float(float f) : f(f) {}
+};
+
 template<> inline void default_debug_value<float>(float &a) {
-    int2float nan;
-    nan.i = 0x7Fc00000;
-    a = nan.f;
+    a = int2float(0x7Fc00000).f;
 }
-union int2float64 { int64_t i; double f; };
+
+union int2float64 {
+    int64_t i;
+    double f;
+
+    int2float64(int64_t i) : i(i) {}
+    int2float64(double f) : f(f) {}
+};
+
 template<> inline void default_debug_value<double>(double &a) {
-    int2float64 nan;
-    nan.i = 0x7ff8000000000000;
-    a = nan.f;
+    a = int2float64(0x7ff8000000000000).f;
 }
 
 template<typename T, int C, int R> class matrix;

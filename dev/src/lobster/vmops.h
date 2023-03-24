@@ -106,9 +106,7 @@ VM_INLINE void U_PUSHINT(VM &, StackPtr sp, int x) {
 }
 
 VM_INLINE void U_PUSHFLT(VM &, StackPtr sp, int x) {
-    int2float i2f;
-    i2f.i = x;
-    Push(sp, Value(i2f.f));
+    Push(sp, Value(int2float(x).f));
 }
 
 VM_INLINE void U_PUSHNIL(VM &, StackPtr sp) {
@@ -121,9 +119,7 @@ VM_INLINE void U_PUSHINT64(VM &, StackPtr sp, int a, int b) {
 }
 
 VM_INLINE void U_PUSHFLT64(VM &, StackPtr sp, int a, int b) {
-    int2float64 i2f;
-    i2f.i = Int64FromInts(a, b);
-    Push(sp, Value(i2f.f));
+    Push(sp, Value(int2float64(Int64FromInts(a, b)).f));
 }
 
 VM_INLINE void U_PUSHFUN(VM &, StackPtr sp, int start, fun_base_t fcont) {

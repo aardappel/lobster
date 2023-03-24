@@ -1293,7 +1293,7 @@ nfr("type_field_string", "obj,idx", "AI", "S",
         auto &ti = a.ref()->ti(vm);
         string sd;
         if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
-            vm.GetTypeInfo(ti.elemtypes[i]).Print(vm, sd, nullptr);
+            vm.GetTypeInfo(ti.elemtypes[i].type).Print(vm, sd, nullptr);
         }
         Push(sp, vm.NewString(sd));
     });
@@ -1319,7 +1319,7 @@ nfr("type_field_value", "obj,idx", "AI", "S",
         auto &ti = a.ref()->ti(vm);
         Value r;
         if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
-            auto &sti = vm.GetTypeInfo(ti.elemtypes[i]);
+            auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
             r = vm.ToString(a.oval()->AtS(i), sti);
         } else {
             r = vm.NewString(0);

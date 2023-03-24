@@ -120,7 +120,7 @@ struct CodeGen  {
     }
 
     const int ti_num_udt_fields = 4;
-    const int ti_num_udt_per_field = 2;
+    const int ti_num_udt_per_field = 3;
 
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
         for (auto &field : udt->fields) {
@@ -128,9 +128,21 @@ struct CodeGen  {
             if (IsStruct(field.resolvedtype()->t)) {
                 PushFields(field.resolved_udt(), tt, parent < 0 ? ti : parent);
             } else {
-                tt.insert(tt.begin() + (ssize(tt) - ti_num_udt_fields) / ti_num_udt_per_field +
-                          ti_num_udt_fields, ti);
+                tt.push_back(ti);
                 tt.push_back(parent);
+                Value val;
+                switch (field.defaultval ? field.defaultval->ConstVal(nullptr, val) : V_VOID) {
+                    case V_INT:
+                        tt.push_back((type_elem_t)(val.intval() == val.ival() ? val.intval() : 0));
+                        break;
+                    case V_FLOAT: {
+                        tt.push_back((type_elem_t)int2float(val.fltval()).i);
+                        break;
+                    }
+                    default:
+                        tt.push_back((type_elem_t)0);  // or 0.0f
+                        break;
+                }
             }
         }
     }
@@ -493,13 +505,10 @@ struct CodeGen  {
 
     void GenFloat(double f) {
         if ((float)f == f) {
-            int2float i2f;
-            i2f.f = (float)f;
             EmitOp(IL_PUSHFLT);
-            Emit(i2f.i);
+            Emit(int2float((float)f).i);
         } else {
-            int2float64 i2f;
-            i2f.f = f;
+            int2float64 i2f(f);
             EmitOp(IL_PUSHFLT64);
             Emit((int)i2f.i);
             Emit((int)(i2f.i >> 32));

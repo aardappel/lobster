@@ -70,11 +70,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             auto a = *ip++;
             auto v = Int64FromInts(a, *ip++);
             if (opc == IL_PUSHINT64) append(sd, v);
-            else {
-                int2float64 i2f;
-                i2f.i = v;
-                sd += to_string_float(i2f.f);
-            }
+            else sd += to_string_float(int2float64(v).f);
             break;
         }
 

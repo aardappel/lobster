@@ -130,7 +130,12 @@ struct TypeInfo {
             int structidx;
             int len;
             int vtable_start_or_bitmask;
-            type_elem_t elemtypes[1];  // len elems, followed by len parent types.
+            struct TIField {
+                type_elem_t type;
+                type_elem_t parent;
+                int defval;
+            };
+            TIField elemtypes[1];  // len elems.
         };
         int enumidx;       // V_INT, -1 if not an enum.
         int sfidx;         // V_FUNCTION;
@@ -144,16 +149,16 @@ struct TypeInfo {
     void Print(VM &vm, string &sd, void *ref) const;
 
     type_elem_t GetElemOrParent(iint i) const {
-        auto pti = elemtypes[len + i];
-        return pti >= 0 ? pti : elemtypes[i];
+        auto pti = elemtypes[i].parent;
+        return pti >= 0 ? pti : elemtypes[i].type;
     }
 
     type_elem_t SingleType() const {
         if (!len) return TYPE_ELEM_ANY;
         for (int i = 1; i < len; i++)
-            if (elemtypes[i] != elemtypes[0])
+            if (elemtypes[i].type != elemtypes[0].type)
                 return TYPE_ELEM_ANY;
-        return elemtypes[0];
+        return elemtypes[0].type;
     }
 };
 
