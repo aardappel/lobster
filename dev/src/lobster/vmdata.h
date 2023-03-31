@@ -237,6 +237,13 @@ struct RefObj : DynAlloc {
     void DECSTAT(VM &vm);
 
     uint64_t Hash(VM &vm);
+
+    string TypeName(VM &vm) {
+        auto &t = ti(vm);
+        string sd;
+        t.Print(vm, sd, this);
+        return sd;
+    }
 };
 
 extern bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural);
@@ -361,6 +368,22 @@ typedef void(*fun_base_t)(VM &, StackPtr);
 static_assert(sizeof(iint) == sizeof(double) && sizeof(iint) == sizeof(RefObjPtr),
               "typedefs need fixing");
 
+struct ToFlexBufferContext {
+    VM &vm;
+    flexbuffers::Builder builder;
+
+    bool cycle_detect = false;
+    set<LObject *> seen_objects;
+
+    iint max_depth = 100;
+    iint cur_depth = 0;
+
+    string max_depth_hit;
+    string cycle_hit;
+
+    ToFlexBufferContext(VM &vm) : vm(vm) {}
+};
+
 struct Value {
     private:
     union {
@@ -474,7 +497,7 @@ struct Value {
     void ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const;
     void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
 
-    void ToFlexBuffer(VM &vm, flexbuffers::Builder &builder, ValueType t) const;
+    void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t) const;
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     uint64_t Hash(VM &vm, ValueType vtype);
@@ -605,7 +628,7 @@ struct LObject : RefObj {
     const TypeInfo &ElemTypeSP(VM &vm, iint i) const;
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
-    void ToFlexBuffer(VM &vm, flexbuffers::Builder &builder);
+    void ToFlexBuffer(ToFlexBufferContext &fbc);
 
     bool Equal(VM &vm, const LObject &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -752,7 +775,7 @@ struct LVector : RefObj {
     void Append(VM &vm, LVector *from, iint start, iint amount);
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
-    void ToFlexBuffer(VM &vm, flexbuffers::Builder &builder);
+    void ToFlexBuffer(ToFlexBufferContext &fbc);
 
     bool Equal(VM &vm, const LVector &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -1004,8 +1027,7 @@ struct VM : VMArgs {
         return NewString(s_reuse);
     }
     void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
-    void StructToFlexBuffer(VM &vm, flexbuffers::Builder &builder, const TypeInfo &ti,
-                            const Value *elems);
+    void StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const Value *elems);
     bool EnumName(string &sd, iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);

@@ -1261,10 +1261,7 @@ nfr("type_string", "ref", "A", "S",
     "string representing the type of the given reference (object/vector/string/resource)",
     [](StackPtr &sp, VM &vm) {
         auto a = Pop(sp);
-        auto &ti = a.ref()->ti(vm);
-        string sd;
-        ti.Print(vm, sd, a.ref());
-        Push(sp, vm.NewString(sd));
+        Push(sp, vm.NewString(a.ref()->TypeName(vm)));
     });
 
 nfr("type_element_string", "v", "A]*", "S",

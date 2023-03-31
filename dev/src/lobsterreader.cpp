@@ -423,14 +423,25 @@ nfr("parse_data", "typeid,stringdata", "TS", "A1?S?",
         ParseData(sp, vm, (type_elem_t)type, ins->strv());
     });
 
-nfr("flexbuffers_value_to_binary", "val", "A", "S",
-    "turns any reference value into a flexbuffer",
-    [](StackPtr &, VM &vm, Value &val) {
-        flexbuffers::Builder builder;
-        val.ToFlexBuffer(vm, builder, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
-        builder.Finish();
-        auto s = vm.NewString(string_view((const char *)builder.GetBuffer().data(),
-                                          builder.GetSize()));
+nfr("flexbuffers_value_to_binary", "val,max_nesting,cycle_detection", "AI?B?", "S",
+    "turns any reference value into a flexbuffer. max_nesting defaults to 100. "
+    "cycle_detection is by default off (expensive)",
+    [](StackPtr &, VM &vm, Value &val, Value &maxnest, Value &cycle_detect) {
+        ToFlexBufferContext fbc(vm);
+        auto mn = maxnest.ival();
+        if (mn > 0) fbc.max_depth = mn;
+        fbc.cycle_detect = cycle_detect.True();
+        val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
+        fbc.builder.Finish();
+        if (!fbc.cycle_hit.empty())
+            vm.BuiltinError("flexbuffers_value_to_binary: data structure contains a cycle: " +
+                            fbc.cycle_hit);
+        if (!fbc.max_depth_hit.empty())
+            vm.BuiltinError(
+                "flexbuffers_value_to_binary: data structure exceeds max nesting depth: " +
+                fbc.max_depth_hit);
+        auto s = vm.NewString(
+            string_view((const char *)fbc.builder.GetBuffer().data(), fbc.builder.GetSize()));
         return Value(s);
     });
 
