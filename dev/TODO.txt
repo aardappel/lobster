@@ -10,6 +10,10 @@
 
 - Enable writing to struct fields.
 
+- Migrate to SDL 3:
+  https://www.libsdl.org/gdc2023/
+  https://github.com/libsdl-org/SDL/blob/main/docs/README-migration.md
+
 - recursive class causes typechecker assert even before it runs out of stack:
     class C:
         s = "s"
