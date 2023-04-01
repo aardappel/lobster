@@ -60,7 +60,7 @@ struct OwnedTexture : lobster::Resource {
 
 struct Shader : lobster::Resource {
     int vs = 0, ps = 0, cs = 0, program = 0;
-    int mvp_i, col_i, camera_i, light1_i, lightparams1_i, framebuffer_size_i,
+    int mvp_i, mv_i, projection_i, col_i, camera_i, light1_i, lightparams1_i, framebuffer_size_i,
         bones_i, pointscale_i;
     int max_tex_defined = 0;
 

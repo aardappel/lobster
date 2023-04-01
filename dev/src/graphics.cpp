@@ -555,6 +555,26 @@ nfr("gl_model_view_projection", "", "", "F]",
         return Value(v);
     });
 
+nfr("gl_model_view", "", "", "F]",
+    "returns a vector representing the current model view matrix"
+    " (16 elements)",
+    [](StackPtr &, VM &vm) {
+        auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
+        auto mv = otransforms.object2view();
+        for (int i = 0; i < 16; i++) v->At(i) = mv.data()[i];
+        return Value(v);
+    });
+
+nfr("gl_projection", "", "", "F]",
+    "returns a vector representing the current projection matrix"
+    " (16 elements)",
+    [](StackPtr &, VM &vm) {
+        auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
+        auto p = view2clip;
+        for (int i = 0; i < 16; i++) v->At(i) = p.data()[i];
+        return Value(v);
+    });
+
 nfr("gl_push_model_view", "", "", "",
     "save the current state of the model view matrix (gl_translate, gl_rotate etc)",
     [](StackPtr &, VM &) {

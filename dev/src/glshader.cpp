@@ -204,6 +204,8 @@ string ParseMaterialFile(string_view mbuf) {
                     word();
                     if (last.empty()) break;
                     else if (last == "mvp")              decl += "uniform mat4 mvp;\n";
+                    else if (last == "mv")               decl += "uniform mat4 mv;\n";
+                    else if (last == "projection")       decl += "uniform mat4 projection;\n";
                     else if (last == "col")              decl += "uniform vec4 col;\n";
                     else if (last == "camera")           decl += "uniform vec3 camera;\n";
                     else if (last == "light1")           decl += "uniform vec3 light1;\n";
@@ -388,6 +390,8 @@ string Shader::Link(string_view name) {
         return string_view("linking failed for shader: ") + name + "\n" + err;
     }
     mvp_i              = glGetUniformLocation(program, "mvp");
+    mv_i               = glGetUniformLocation(program, "mv");
+    projection_i       = glGetUniformLocation(program, "projection");
     col_i              = glGetUniformLocation(program, "col");
     camera_i           = glGetUniformLocation(program, "camera");
     light1_i           = glGetUniformLocation(program, "light1");
@@ -431,6 +435,10 @@ void Shader::Set() {
     Activate();
     if (mvp_i >= 0) GL_CALL(glUniformMatrix4fv(mvp_i, 1, false,
                                                (view2clip * otransforms.object2view()).data()));
+    if (mv_i >= 0) GL_CALL(glUniformMatrix4fv(mv_i, 1, false,
+                                               otransforms.object2view().data()));
+    if (projection_i >= 0) GL_CALL(glUniformMatrix4fv(projection_i, 1, false,
+                                               view2clip.data()));
     if (col_i >= 0) GL_CALL(glUniform4fv(col_i, 1, curcolor.begin()));
     if (camera_i >= 0) GL_CALL(glUniform3fv(camera_i, 1, otransforms.camerapos().begin()));
     if (pointscale_i >= 0) GL_CALL(glUniform1f(pointscale_i, pointscale));
