@@ -515,6 +515,8 @@ template<> inline double get_T<double>(Value a) {
     return a.fval();
 }
 
+// This enables access of an array of Value equally in Debug or Release, which works well
+// for short vectors. We can't just cast to T * because in debug there's a type field.
 template<typename T> struct ValueVec {
     Value *vals;
     iint len;
@@ -602,6 +604,42 @@ template<typename T> struct ValueVec {
             hash = hash * 31 + vals[i].Hash(vm, vt);
         }
         return hash;
+    }
+};
+
+// Like ValueVec, but optimizes for speed in Release mode (no copy).
+template<typename T, int N> struct InlineVec {
+    T *vals;
+    #ifndef NDEBUG
+        T valstore[N];
+    #endif
+
+    // initialized should be false for a result vector where data will be overwritten anyway.
+    InlineVec(const Value *v, bool initialized = true) {
+        #ifdef NDEBUG
+            // In Release mode we may assume this is a contiguous set of T's.
+            vals = (T *)v;  // FIXME: strict aliasing?
+            (void)initialized;
+        #else
+            vals = &valstore[0];
+            if (initialized) {
+                // Sadly in debug there's type values in between, so we must copy.
+                for (int i = 0; i < N; i++) {
+                    valstore[i] = get_T<T>(v[i]);
+                }
+            }
+        #endif
+    }
+
+    void CopyBack(Value *v) {
+        #ifdef NDEBUG
+            // Don't need to do anything, since memory was aliased.
+            (void)v;
+        #else
+            for (int i = 0; i < N; i++) {
+                v[i] = valstore[i];
+            }            
+        #endif
     }
 };
 

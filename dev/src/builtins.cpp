@@ -1502,4 +1502,69 @@ nfr("thread_read", "type", "T", "A1?",
 
 }  // AddBuiltins
 
+
+void AddMatrix(NativeRegistry &nfr) {
+
+nfr("matrix_multiply", "a,b", "F]F]", "F]",
+    "input matrices must be 4x4 elements",
+    [](StackPtr &, VM &vm, Value &a, Value &b) {
+        auto av = a.vval();
+        auto bv = b.vval();
+        if (av->len != 16 || bv->len != 16)
+            vm.BuiltinError("matrix_multiply: input vectors must be length 16");
+        auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
+        InlineVec<double, 16> iva(av->Elems());
+        InlineVec<double, 16> ivb(bv->Elems());
+        InlineVec<double, 16> ivr(r->Elems(), false);
+        (*(double4x4 *)ivr.vals) = (*(double4x4 *)iva.vals) * (*(double4x4 *)ivb.vals);
+        ivr.CopyBack(r->Elems());
+        return Value(r);
+    });
+
+nfr("matrix_rotate_x", "angle", "F}:2", "F]",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        auto angle = PopVec<double2>(sp);
+        auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
+        InlineVec<double, 16> ivr(r->Elems(), false);
+        (*(double4x4 *)ivr.vals) = rotationX(angle);
+        ivr.CopyBack(r->Elems());
+        Push(sp, r);
+    });
+
+nfr("matrix_rotate_y", "angle", "F}:2", "F]",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        auto angle = PopVec<double2>(sp);
+        auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
+        InlineVec<double, 16> ivr(r->Elems(), false);
+        (*(double4x4 *)ivr.vals) = rotationY(angle);
+        ivr.CopyBack(r->Elems());
+        Push(sp, r);
+    });
+
+nfr("matrix_rotate_z", "angle", "F}:2", "F]",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        auto angle = PopVec<double2>(sp);
+        auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
+        InlineVec<double, 16> ivr(r->Elems(), false);
+        (*(double4x4 *)ivr.vals) = rotationZ(angle);
+        ivr.CopyBack(r->Elems());
+        Push(sp, r);
+    });
+
+nfr("matrix_translation", "trans", "F}:3", "F]",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        auto trans = PopVec<double3>(sp);
+        auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
+        InlineVec<double, 16> ivr(r->Elems(), false);
+        (*(double4x4 *)ivr.vals) = translation(trans);
+        ivr.CopyBack(r->Elems());
+        Push(sp, r);
+    });
+
+}  // AddMatrix
+
 }
