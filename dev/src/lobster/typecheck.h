@@ -849,6 +849,15 @@ struct TypeChecker {
                                 Q(u->name), " before it has been declared");
                 }
                 u->subudts.push_back(&udt);
+                // May have already been added by predeclaration, but rather than skipping it in
+                // predeclaration (which would not put the dispatching udt first), just remove this one.
+                for (size_t i = 0; i < u->subudts.size() - 1; i++) {
+                    if (u->subudts[i] == &udt) {
+                        u->subudts.pop_back();
+                        break;
+                    }
+                }
+
             }
         }
         if (!predeclaration && udt.numslots >= 0) {
