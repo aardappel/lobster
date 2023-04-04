@@ -66,7 +66,7 @@ topexp = `namespace` ident
 
 class = ( `class` \| `struct` ) ident
         ( `=` ident specializers
-       \| ( [ generics ] `:` [ ident [ specializers ] ] )
+       \| [ generics ] `:` [ ident [ specializers ] ] 
           indlist( ident [ `:` type ] [ `=` exp ] \| functiondef ) )
 
 specializers = `<` list( type ) `>`
@@ -85,14 +85,14 @@ block = [ args ] `:` body \| functionargsbody
 
 args = [ list( ident [ ( `:` \| `::` ) type ] [ `=` exp ] ) ]
 
-body = expstat \| ( indent stats dedent ) )
+body = ( expstat \| indent stats dedent )
 
 type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void` 
 \| ident [ specializers ]
 
 call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
-expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ] )
+expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ]
 
 exp = opexp [ ( `=` \| `+=` \| `-=` \| `*=` \| `/=` \| `%=` ) exp ]
 
