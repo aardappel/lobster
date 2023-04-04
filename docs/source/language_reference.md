@@ -4,7 +4,7 @@ title: Lobster Language Reference
 
 This is the definition of the language that tries to be a more exact a
 description of how the language works (the most exact description, however, will
-always be the source code :). As such, this is not the easiest way to learn the
+always be the source code :) ). As such, this is not the easiest way to learn the
 language, start with a tutorial first, and then use this for more difficult
 questions.
 
@@ -38,7 +38,7 @@ Lexical definition
 -   Keywords: `nil return class struct import int float string any void
     def fn is from program private resource enum enum_flags typeof
     var let pakfile switch case default namespace not and or attribute
-    if for while`
+    if for while super`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
     expression (such as `+` or `,`) and an actual token otherwise (used to
@@ -105,7 +105,10 @@ unary = ( `-` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 \| `++` \| `--` \| `is` type ]
 
-factor = constant \| `(` exp `)` \| constructor \| `fn` functionargsbody \| ident [ call ]
+factor = constant \| `(` exp `)` \| `super` \| ctrlflow \| pakfile string\_constant \| constructor \| `fn` functionargsbody \| ident [ call ]
+
+ctrlflow = `if` ifpart \| (`for` \| `while`) exp block
+ifpart = exp block (`else` block \| `elif` ifpart) 
 
 constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list( ident `:` exp \| exp ] `}`
 
