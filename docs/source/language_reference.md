@@ -38,7 +38,7 @@ Lexical definition
 -   Keywords: `nil return class struct import int float string any void
     def fn is from program private resource enum enum_flags typeof
     var let pakfile switch case default namespace not and or attribute
-    if for while super false true`
+    if for while super`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
     expression (such as `+` or `,`) and an actual token otherwise (used to
