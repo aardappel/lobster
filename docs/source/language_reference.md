@@ -51,8 +51,8 @@ Lexical definition
 Grammar
 -------
 
-Below, `...` indicates a loop with exit point at that scope level, and `||` is
-like `|` except indicates a precedence level difference.
+Below, `...` indicates a loop with exit point at that scope level (ex. `(ident ... ,)` -> `(ident (, ident)*)`, * meaning optionaly repeating), 
+and `||` islike `|` except indicates a precedence level difference. `[rule]` Means optional. 
 
 program = stats end\_of\_file
 
@@ -64,54 +64,54 @@ topexp = `namespace` ident
       \| expstat \| attrdef
 
 class = ( `class` \| `struct` ) ident
-        ( `=` ident specializers
-       \| [ generics ] `:` [ ident [ specializers ] ]
+        ( ( `=` ident specializers )
+       \| ( [ generics ] `:` [ ident [ specializers ] ] )
           indlist( ident [ `:` type ] [ `=` exp ] \| functiondef ) )
 
 specializers = `<` list( type ) `>`
 
 generics = `<` list( ident ) `>`
 
-vardef = ( `var` \| `let` ) list( ident ) `=` opexp
+vardef = ( `var` \| `let` ) list( ident ) [ `:` type ] `=` opexp
 
 enumdef = ( `enum` | `enum_flags` ) ident `:` indlist( ident [ `=` integer\_constant ] )
 
-functiondef = `def` ident generics functionargsbody
+functiondef = `def` ident [ generics ] functionargsbody
 
-functionargsbody = `(` args `) :` body
+functionargsbody = `(` args `)` `:` body
 
-block = [ args ] `:` body \| functionargsbody
+block = ( [ args ] `:` body ) \| functionargsbody
 
-args = [ list( ident [ ( `:` \| `::` ) type ] ) ]
+args = [ list( ident [ ( `:` \| `::` ) type ] [ `=` exp ] ) ]
 
-body = ( expstat \| indent stats dedent )
+body = ( expstat \| ( indent stats dedent ) )
 
-type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void`
-    \| ident
+type = `int` \| `float` \| `string` \| ( `[` type `]` ) \| ( `resource` `<` ident `>` ) \| `void`
+    \| (ident specializers) \| ident
 
-call = specializers `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
+call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
-expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program`
-\| ident ) ]
+expstat = ( exp … `;` ) \| ( `return` ( [ list( opexp ) ] ) [ `from` ( `program`
+\| ident ) ] )
 
 exp = opexp [ ( `=` \| `+=` \| `-=` \| `*=` \| `/=` \| `%=` ) exp ]
 
-opexp = unary ( `*` \| `/` \| `%` \|\| `+` \| `-` \|\| `<` \| `>` \| `>=` \|
+opexp = unary [ ( `*` \| `/` \| `%` \|\| `+` \| `-` \|\| `<` \| `>` \| `>=` \|
 `<=` \|\| `==` \| `!=` \|\| `&` \| `|` \| `and` \| `or` \| \^ \|
-`<<` \| `>>`) unary
+`<<` \| `>>`) unary ]
 
-unary = ( `-` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
+unary = ( ( `-` \| `++` \| `--` \| \~ \| `not` ) unary ) \| deref
 
-deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
-\| `++` \| `--` \| `is` type ]
+deref = factor [ ( `[` exp `]` ) \| ( `.` ident [ call ] ) \| ( `->` ident )
+\| `++` \| `--` \| ( `is` typ e) ]
 
 factor = constant \| `(` exp `)` \| constructor \| `fn` functionargsbody \|
-ident [ call ]
+( ident [ call ] )
 
-constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list(
+constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list( ( ident `:` exp ) \| (
 exp ) ] `}`
 
-constant = numeric\_constant \| string\_constant \| character\_constant \| `nil` [ `::` type ]
+constant = numeric\_constant \| string\_constant \| character\_constant \| ( `nil` [ `::` type ] )
 
 attrdef = `attribute` ident [ `=` ( string\_constant \| numeric\_constant \| ident ) ]
 
