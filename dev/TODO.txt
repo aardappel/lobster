@@ -1,3 +1,18 @@
+- this is out of date and a bit overly negative: https://aardappel.github.io/lobster/philosophy.html
+
+- consider using something else instead of _ for namespaces
+    .	JS/TS, Ada, C#, CoffeeScript, E, F#, Go, Haskell, Java, Modula-3, OCaml, Pascal, Python, Ruby, SML, Squeak
+    :	XML
+    ::	Rust, C++, merd, Perl, Ruby, Squeak, Tcl, YCP
+    : ::(69)	Common Lisp
+    :-	Maple
+    '	Perl
+    `	Mathematica
+    __	Mercury
+    /	Matlab
+
+- rename vectors to lists.. "vector" is confusing for non-C++ people apparently.
+
 - By-value assignment operator, for things like re-initializing objects:
   this <== Foo {}
   A bit inefficient in terms of construction/reference counting compared to a dedicated
@@ -9,6 +24,8 @@
 - & is not implemented for structs.
 
 - Enable writing to struct fields.
+  Maybe explicit opt in per field or per struct? If per field then also can do the opposite for
+  read-only class members.
 
 - Migrate to SDL 3:
   https://www.libsdl.org/gdc2023/
