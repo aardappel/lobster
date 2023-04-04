@@ -26,29 +26,53 @@
 namespace lobster {
 
 struct Deserializer {
-    vector<RefObj *> allocated;
     VM &vm;
     vector<Value> stack;
+    vector<bool> is_ref;
+
+    ~Deserializer() {
+        assert(stack.size() == is_ref.size());
+        for (size_t i = 0; i < stack.size(); i++) {
+            if (is_ref[i]) stack[i].ref()->Dec(vm);
+        }
+    }
+
+    void PushV(Value v, bool ir = false) {
+        stack.emplace_back(v);
+        is_ref.push_back(ir);
+    }
+
+    Value PopV() {
+        auto v = stack.back();
+        stack.pop_back();
+        is_ref.pop_back();
+        return v;
+    }
+
+    void PopVN(size_t len) {
+        stack.resize(stack.size() - len);
+        is_ref.resize(is_ref.size() - len);
+    }
 
     Deserializer(VM &vm) : vm(vm) {
         stack.reserve(16);
-        allocated.reserve(16);
+        is_ref.reserve(16);
     }
 
     bool PushDefault(type_elem_t typeoff, int defval) {
         auto &ti = vm.GetTypeInfo(typeoff);
         switch (ti.t) {
             case V_INT:
-                stack.emplace_back(Value(defval));
+                PushV(defval);
                 break;
             case V_FLOAT:
-                stack.emplace_back(Value(int2float(defval).f));
+                PushV(int2float(defval).f);
                 break;
             case V_NIL:
-                stack.emplace_back(NilVal());
+                PushV(NilVal());
                 break;
             case V_VECTOR:
-                stack.emplace_back(vm.NewVec(0, 0, typeoff));
+                PushV(vm.NewVec(0, 0, typeoff), true);
                 break;
             case V_STRUCT_S:
             case V_STRUCT_R:
@@ -59,8 +83,8 @@ struct Deserializer {
                 if (ti.t == V_CLASS) {
                     auto vec = vm.NewObject(ti.len, typeoff);
                     if (ti.len) vec->CopyElemsShallow(&*stack.end() - ti.len, ti.len);
-                    stack.resize(stack.size() - ti.len);
-                    stack.emplace_back(Value(vec));
+                    PopVN(ti.len);
+                    PushV(vec, true);
                 }
                 break;
             }
@@ -84,7 +108,7 @@ struct ValueParser : Deserializer {
         Gobble(T_LINEFEED);
         Expect(T_ENDOFFILE);
         assert(stack.size() == 1);
-        Push(sp, stack.back());
+        Push(sp, PopV());
     }
 
     // Vector or struct.
@@ -120,9 +144,8 @@ struct ValueParser : Deserializer {
             auto len = NumElems();
             auto vec = vm.NewObject(len, typeoff);
             if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
-            for (iint i = 0; i < len; i++) stack.pop_back();
-            allocated.push_back(vec);
-            stack.emplace_back(vec);
+            PopVN(len);
+            PushV(vec, true);
         } else if (ti.t == V_VECTOR) {
             auto &sti = vm.GetTypeInfo(ti.subt);
             auto width = IsStruct(sti.t) ? sti.len : 1;
@@ -130,9 +153,8 @@ struct ValueParser : Deserializer {
             auto n = len / width;
             auto vec = vm.NewVec(n, n, typeoff);
             if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
-            for (iint i = 0; i < len; i++) stack.pop_back();
-            allocated.push_back(vec);
-            stack.emplace_back(vec);
+            PopVN(len);
+            PushV(vec, true);
         }
         // else if ti.t == V_STRUCT_* then.. do nothing!
     }
@@ -158,14 +180,14 @@ struct ValueParser : Deserializer {
                 ExpectType(V_INT, vt);
                 auto i = lex.ival;
                 lex.Next();
-                if (push) stack.emplace_back(i);
+                if (push) PushV(i);
                 break;
             }
             case T_FLOAT: {
                 ExpectType(V_FLOAT, vt);
                 auto f = lex.fval;
                 lex.Next();
-                if (push) stack.emplace_back(f);
+                if (push) PushV(f);
                 break;
             }
             case T_STR: {
@@ -174,15 +196,14 @@ struct ValueParser : Deserializer {
                 lex.Next();
                 if (push) {
                     auto str = vm.NewString(s);
-                    allocated.push_back(str);
-                    stack.emplace_back(str);
+                    PushV(str, true);
                 }
                 break;
             }
             case T_NIL: {
                 ExpectType(V_NIL, vt);
                 lex.Next();
-                if (push) stack.emplace_back(NilVal());
+                if (push) PushV(NilVal());
                 break;
             }
             case T_MINUS: {
@@ -208,7 +229,7 @@ struct ValueParser : Deserializer {
                     auto opt = vm.LookupEnum(lex.sattr, ti->enumidx);
                     if (!opt) lex.Error("unknown enum value " + lex.sattr);
                     lex.Next();
-                    if (push) stack.emplace_back(*opt);
+                    if (push) PushV(*opt);
                     break;
                 }
                 if (!IsUDT(vt) && vt != V_ANY)
@@ -226,7 +247,7 @@ struct ValueParser : Deserializer {
             }
             default:
                 lex.Error("illegal start of expression: " + lex.TokStr());
-                stack.emplace_back(NilVal());
+                PushV(NilVal());
                 break;
         }
     }
@@ -253,7 +274,6 @@ static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        for (auto a : parser.allocated) a->Dec(vm);
         Push(sp, NilVal());
         Push(sp, vm.NewString(s));
     }
@@ -268,7 +288,7 @@ struct FlexBufferParser : Deserializer {
     void Parse(StackPtr &sp, type_elem_t typeoff, flexbuffers::Reference r) {
         ParseFactor(r, typeoff);
         assert(stack.size() == 1);
-        Push(sp, stack.back());
+        Push(sp, PopV());
     }
 
     void Error(const string &s) {
@@ -294,25 +314,24 @@ struct FlexBufferParser : Deserializer {
             case flexbuffers::FBT_INT:
             case flexbuffers::FBT_BOOL: {
                 ExpectType(V_INT, vt);
-                stack.emplace_back(r.AsInt64());
+                PushV(r.AsInt64());
                 break;
             }
             case flexbuffers::FBT_FLOAT: {
                 ExpectType(V_FLOAT, vt);
-                stack.emplace_back(r.AsDouble());
+                PushV(r.AsDouble());
                 break;
             }
             case flexbuffers::FBT_STRING: {
                 ExpectType(V_STRING, vt);
                 auto s = r.AsString();
                 auto str = vm.NewString(string_view(s.c_str(), s.size()));
-                allocated.push_back(str);
-                stack.emplace_back(str);
+                PushV(str, true);
                 break;
             }
             case flexbuffers::FBT_NULL: {
                 ExpectType(V_NIL, vt);
-                stack.emplace_back(NilVal());
+                PushV(NilVal());
                 break;
             }
             case flexbuffers::FBT_VECTOR: {
@@ -328,9 +347,8 @@ struct FlexBufferParser : Deserializer {
                 auto n = len / width;
                 auto vec = vm.NewVec(n, n, typeoff);
                 if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
-                for (iint i = 0; i < len; i++) stack.pop_back();
-                allocated.push_back(vec);
-                stack.emplace_back(vec);
+                PopVN(len);
+                PushV(vec, true);
                 break;
             }
             case flexbuffers::FBT_MAP: {
@@ -375,16 +393,15 @@ struct FlexBufferParser : Deserializer {
                     auto len = NumElems();
                     auto vec = vm.NewObject(len, typeoff);
                     if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
-                    for (iint i = 0; i < len; i++) stack.pop_back();
-                    allocated.push_back(vec);
-                    stack.emplace_back(vec);
+                    PopVN(len);
+                    PushV(vec, true);
                 }
                 // else if vt == V_STRUCT_* then.. do nothing!
                 break;
             }
             default:
                 Error("can\'t convert to value: " + r.ToString());
-                stack.emplace_back(NilVal());
+                PushV(NilVal());
                 break;
         }
     }
@@ -401,7 +418,6 @@ static void ParseFlexData(StackPtr &sp, VM &vm, type_elem_t typeoff, flexbuffers
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        for (auto a : parser.allocated) a->Dec(vm);
         Push(sp, NilVal());
         Push(sp, vm.NewString(s));
     }
