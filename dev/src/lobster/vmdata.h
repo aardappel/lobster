@@ -255,6 +255,7 @@ struct LString : RefObj {
 
     const char *data() const { return (char *)(this + 1); }
     string_view strv() const { return string_view(data(), (size_t)len); }
+    string_view_nt strvnt() const { return string_view_nt(strv()); }
 
     void ToString(string &sd, PrintPrefs &pp);
 
@@ -993,7 +994,7 @@ struct VM : VMArgs {
 
     string_view GetProgramName() { return programname; }
 
-    typedef function<void(VM &, string_view, const TypeInfo &, Value *)> DumperFun;
+    typedef function<void(VM &, string_view_nt, const TypeInfo &, Value *)> DumperFun;
     void DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump);
     void DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump);
     pair<string, const int *> DumpStackFrameStart(FunStack &funstackelem);

@@ -292,7 +292,7 @@ void SDLRequireGLVersion(int major, int minor) {
     #endif
 };
 
-string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flags, int samples) {
+string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags flags, int samples) {
     MakeDPIAware();
     TextToSpeechInit();  // Needs to be before SDL_Init because COINITBASE_MULTITHREADED
     // SDL_SetMainReady();
@@ -351,7 +351,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
         #ifdef __EMSCRIPTEN__
             wflags |= SDL_WINDOW_RESIZABLE;
         #endif
-        _sdl_window = SDL_CreateWindow(null_terminated(title),
+        _sdl_window = SDL_CreateWindow(title.c_str(),
                                        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                        screensize.x, screensize.y, wflags);
         LOG_INFO(_sdl_window ? "SDL window passed..." : "SDL window FAILED...");
@@ -368,7 +368,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flag
         if (SDL_GetDisplayDPI(display, NULL, &dpi, NULL)) dpi = default_dpi;
         LOG_INFO(cat("dpi: ", dpi));
         screensize = desired_screensize * int(dpi) / int(default_dpi);
-        _sdl_window = SDL_CreateWindow(null_terminated(title),
+        _sdl_window = SDL_CreateWindow(title.c_str(),
                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                        screensize.x, screensize.y,
                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
@@ -747,9 +747,9 @@ int2 GetKeyPos(string_view name, int on) {
     return ks.lastpos[on];
 }
 
-void SDLTitle(string_view title) {
+void SDLTitle(string_view_nt title) {
     LOBSTER_FRAME_PROFILE_THIS_SCOPE;
-    SDL_SetWindowTitle(_sdl_window, null_terminated(title));
+    SDL_SetWindowTitle(_sdl_window, title.c_str());
 }
 
 int SDLWheelDelta() { return mousewheeldelta; }
@@ -777,13 +777,13 @@ bool SDLGrab(bool on) {
     return SDL_GetWindowGrab(_sdl_window) == SDL_TRUE;
 }
 
-void SDLMessageBox(string_view title, string_view msg) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, null_terminated<0>(title), null_terminated<1>(msg), _sdl_window);
+void SDLMessageBox(string_view_nt title, string_view_nt msg) {
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), msg.c_str(), _sdl_window);
 }
 
-int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len) {
+int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len) {
     LOG_DEBUG("SDLLoadFile: ", absfilename);
-    auto f = SDL_RWFromFile(null_terminated(absfilename), "rb");
+    auto f = SDL_RWFromFile(absfilename.c_str(), "rb");
     if (!f) return -1;
     auto filelen = SDL_RWseek(f, 0, RW_SEEK_END);
     if (filelen < 0 || filelen == LLONG_MAX) {
@@ -808,9 +808,9 @@ int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_
     return  len;
 }
 
-bool ScreenShot(string_view filename) {
+bool ScreenShot(string_view_nt filename) {
     auto pixels = ReadPixels(int2(0), screensize);
-    auto ok = stbi_write_png(null_terminated(filename), screensize.x, screensize.y, 3, pixels,
+    auto ok = stbi_write_png(filename.c_str(), screensize.x, screensize.y, 3, pixels,
                              screensize.x * 3);
     delete[] pixels;
     return ok != 0;

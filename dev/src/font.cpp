@@ -167,7 +167,7 @@ nfr("gl_get_char_code", "name", "S", "I",
     "the char code of a glyph by specifying its name, or 0 if it can not be found"
     " (or if the font doesn\'t have names)",
     [](StackPtr &, VM &, Value &n) {
-        return Value(curface ? curface->GetCharCode(n.sval()->strv()) : 0);
+        return Value(curface ? curface->GetCharCode(n.sval()->strvnt()) : 0);
     });
 
 }  // AddFont

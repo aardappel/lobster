@@ -252,7 +252,7 @@ string ParseMaterialFile(string_view mbuf) {
                                 write = true;
                             }
                         }
-                        auto unit = parse_int<int>(tp);
+                        auto unit = parse_int_not_nt<int>(tp);
                         if (uav) {
                             decl += cat("layout(binding = ", unit);
                             auto format = (
@@ -292,7 +292,7 @@ string ParseMaterialFile(string_view mbuf) {
                         return "input " + last +
                                " doesn't specify number of components, e.g. anormal:3";
                     }
-                    int comp = parse_int<int>(last.substr(pos + 1));
+                    int comp = parse_int_not_nt<int>(last.substr(pos + 1));
                     if (comp <= 0 || comp > 4) {
                         return "input " + last + " can only use 1..4 components";
                     }
@@ -464,8 +464,8 @@ void Shader::SetTextures(const vector<Texture> &textures) {
     }
 }
 
-bool Shader::SetUniform(string_view name, const float *val, int components, int elements) {
-    auto loc = glGetUniformLocation(program, null_terminated(name));
+bool Shader::SetUniform(string_view_nt name, const float *val, int components, int elements) {
+    auto loc = glGetUniformLocation(program, name.c_str());
     if (loc < 0) return false;
     switch (components) {
         // glUniform fails on mismatched type, so this not an assert.
@@ -477,8 +477,8 @@ bool Shader::SetUniform(string_view name, const float *val, int components, int 
     }
 }
 
-bool Shader::SetUniform(string_view name, const int *val, int components, int elements) {
-    auto loc = glGetUniformLocation(program, null_terminated(name));
+bool Shader::SetUniform(string_view_nt name, const int *val, int components, int elements) {
+    auto loc = glGetUniformLocation(program, name.c_str());
     if (loc < 0) return false;
     switch (components) {
         // glUniform fails on mismatched type, so this not an assert.
@@ -490,9 +490,9 @@ bool Shader::SetUniform(string_view name, const int *val, int components, int el
     }
 }
 
-bool Shader::SetUniformMatrix(string_view name, const float *val, int components, int elements,
+bool Shader::SetUniformMatrix(string_view_nt name, const float *val, int components, int elements,
                               bool mr) {
-    auto loc = glGetUniformLocation(program, null_terminated(name));
+    auto loc = glGetUniformLocation(program, name.c_str());
     if (loc < 0) return false;
     switch (components) {
         case 4:  GL_CALL(glUniformMatrix2fv(loc, elements, false, val)); return true;
@@ -579,7 +579,7 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
 // Note that bo_binding_point_index is assigned automatically based on unique block names.
 // You can also specify these in the shader using `binding=`, but GL doesn't seem to have a way
 // to retrieve these programmatically.
-bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblockname) {
+bool BindBufferObject(Shader *sh, BufferObject *buf, string_view_nt uniformblockname) {
     #ifndef PLATFORM_WINNIX
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
         return false;
@@ -593,14 +593,14 @@ bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblocknam
         sh->Activate();
         int bo_binding_point_index = 0;
         uint32_t idx = GL_INVALID_INDEX;
-        auto it = sh->ubomap.find(uniformblockname);
+        auto it = sh->ubomap.find(uniformblockname.sv);
         if (it == sh->ubomap.end()) {
             LOBSTER_FRAME_PROFILE_THIS_SCOPE;
             bo_binding_point_index = sh->binding_point_index_alloc++;
             idx = buf->type == GL_SHADER_STORAGE_BUFFER
                       ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK,
-                                                   null_terminated(uniformblockname))
-                      : glGetUniformBlockIndex(sh->program, null_terminated(uniformblockname));
+                                                  uniformblockname.c_str())
+                      : glGetUniformBlockIndex(sh->program, uniformblockname.c_str());
             if (idx == GL_INVALID_INDEX) {
                 return false;
             }
@@ -608,7 +608,7 @@ bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblocknam
             // This is probably benign-ish since OpenGL is probably tolerant of deleted buffers
             // still being bound?
             // If not, must allow Shader to inc refc of BufferObject.
-            sh->ubomap[string(uniformblockname)] = { bo_binding_point_index, idx };
+            sh->ubomap[string(uniformblockname.sv)] = { bo_binding_point_index, idx };
 		} else {
             LOBSTER_FRAME_PROFILE_THIS_SCOPE;
             bo_binding_point_index = it->second.bpi;

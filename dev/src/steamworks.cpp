@@ -97,10 +97,10 @@ const char *UserName() {
     return "";
 }
 
-bool UnlockAchievement(string_view name) {
+bool UnlockAchievement(string_view_nt name) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            auto ok = SteamUserStats()->SetAchievement(null_terminated(name));
+            auto ok = SteamUserStats()->SetAchievement(name.c_str());
             return SteamUserStats()->StoreStats() && ok;  // Force this to run.
         }
     #else
@@ -109,23 +109,23 @@ bool UnlockAchievement(string_view name) {
     return false;
 }
 
-int SteamReadFile(string_view fn, string &buf) {
+int SteamReadFile(string_view_nt fn, string &buf) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            auto len = SteamRemoteStorage()->GetFileSize(null_terminated(fn));
+            auto len = SteamRemoteStorage()->GetFileSize(fn.c_str());
             if (len) {
                 buf.resize(len);
-                return SteamRemoteStorage()->FileRead(null_terminated(fn), (void *)buf.data(), len);
+                return SteamRemoteStorage()->FileRead(fn.c_str(), (void *)buf.data(), len);
             }
         }
     #endif  // PLATFORM_STEAMWORKS
     return 0;
 }
 
-bool SteamWriteFile(string_view fn, string_view buf) {
+bool SteamWriteFile(string_view_nt fn, string_view buf) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            return SteamRemoteStorage()->FileWrite(null_terminated(fn), buf.data(), (int)buf.size());
+        return SteamRemoteStorage()->FileWrite(fn.c_str(), buf.data(), (int)buf.size());
         }
     #endif  // PLATFORM_STEAMWORKS
     return false;
@@ -170,7 +170,7 @@ nfr("steam_unlock_achievement", "achievementname", "S", "B",
     " Will also Q-up saving achievement to Steam."
     " Returns true if succesful.",
     [](StackPtr &, VM &, Value &name) {
-        auto ok = UnlockAchievement(name.sval()->strv());
+        auto ok = UnlockAchievement(name.sval()->strvnt());
         return Value(ok);
     });
 
@@ -178,11 +178,11 @@ nfr("steam_write_file", "file,contents", "SS", "B",
     "writes a file with the contents of a string to the steam cloud, or local storage if that"
     " fails, returns false if writing wasn't possible at all",
     [](StackPtr &, VM &, Value &file, Value &contents) {
-        auto fn = file.sval()->strv();
+        auto fn = file.sval()->strvnt();
         auto s = contents.sval();
         auto ok = SteamWriteFile(fn, s->strv());
         if (!ok) {
-            ok = WriteFile(fn, true, s->strv(), false);
+            ok = WriteFile(fn.sv, true, s->strv(), false);
         }
         return Value(ok);
     });
@@ -191,10 +191,10 @@ nfr("steam_read_file", "file", "S", "S?",
     "returns the contents of a file as a string from the steam cloud if available, or otherwise"
     " from local storage, or nil if the file can't be found at all.",
     [](StackPtr &, VM &vm, Value &file) {
-        auto fn = file.sval()->strv();
+        auto fn = file.sval()->strvnt();
         string buf;
         auto len = SteamReadFile(fn, buf);
-        if (!len) len = (int)LoadFile(fn, &buf);
+        if (!len) len = (int)LoadFile(fn.sv, &buf);
         if (len < 0) return NilVal();
         auto s = vm.NewString(buf);
         return Value(s);

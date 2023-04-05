@@ -197,21 +197,21 @@ void Nil() {
     Text("nil");
 }
 
-void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expanded, bool in_table = true) {
+void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool expanded, bool in_table = true) {
     if (in_table) {
         // Early out for types that don't make sense to display.
         if (ti.t == V_FUNCTION) return;
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
-        Text(label);
+        Text(label.sv);
         ImGui::TableSetColumnIndex(1);
         // This seems to be the only way to make the second column stretch to the available space without it
         // collapsing to nothing in some cases: https://github.com/ocornut/imgui/issues/5478
         ImGui::SetNextItemWidth(std::max(200.0f, ImGui::GetContentRegionAvail().x));
         ImGui::PushID(v);  // Name may occur multiple times.
-        label = "";
+        label = string_view_nt("");
     }
-    auto l = null_terminated(label);
+    auto l = label.c_str();
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
     switch (ti.t) {
         case V_INT: {
@@ -312,7 +312,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
                     int fi = 0;
                     for (int i = 0; i < ti.len; i++) {
                         auto &sti = vm.GetTypeInfo(ti.GetElemOrParent(i));
-                        ValToGUI(vm, v + i, sti, fields->Get(fi++)->name()->string_view(),
+                        ValToGUI(vm, v + i, sti, string_view_nt(fields->Get(fi++)->name()->string_view()),
                                     false);
                         if (IsStruct(sti.t)) i += sti.len - 1;
                     }
@@ -380,7 +380,7 @@ void VarsToGUI(VM &vm) {
                 auto sid = vm.bcf->specidents()->Get(i);
                 auto id = vm.bcf->idents()->Get(sid->ididx());
                 if (!id->global() || id->readonly() != constants) continue;
-                auto name = id->name()->string_view();
+                auto name = string_view_nt(id->name()->string_view());
                 auto &ti = vm.GetVarTypeInfo(i);
                 #if RTT_ENABLED
                 if (ti.t != val.type) continue;  // Likely uninitialized.
@@ -410,7 +410,7 @@ void EngineStatsGUI() {
 void DumpStackTrace(VM &vm) {
     if (vm.fun_id_stack.empty()) return;
 
-    VM::DumperFun dumper = [](VM &vm, string_view name, const TypeInfo &ti, Value *x) {
+    VM::DumperFun dumper = [](VM &vm, string_view_nt name, const TypeInfo &ti, Value *x) {
         #if RTT_ENABLED
             auto debug_type = x->type;
         #else
@@ -418,14 +418,14 @@ void DumpStackTrace(VM &vm) {
         #endif
         if (debug_type == V_NIL && ti.t != V_NIL) {
             // Uninitialized.
-            auto sd = string(name);
+            auto sd = string(name.sv);
             append(sd, ":");
             ti.Print(vm, sd, nullptr);
             append(sd, " (uninitialized)");
             Text(sd);
         } else if (ti.t != debug_type && !IsStruct(ti.t)) {
             // Some runtime type corruption, show the problem rather than crashing.
-            auto sd = string(name);
+            auto sd = string(name.sv);
             append(sd, ":");
             ti.Print(vm, sd, nullptr);
             append(sd, " (ERROR != ", BaseTypeName(debug_type), ")");
@@ -929,7 +929,8 @@ nfr("im_edit_anything", "value,label", "AkS?", "A1",
         IsInit(vm);
         // FIXME: would be good to support structs, but that requires typeinfo, not just len.
         auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
-        ValToGUI(vm, &v, ti, label.True() ? label.sval()->strv() : "", true, false);
+        ValToGUI(vm, &v, ti, label.True() ? label.sval()->strvnt() : string_view_nt(""), true,
+                 false);
         return v;
     });
 

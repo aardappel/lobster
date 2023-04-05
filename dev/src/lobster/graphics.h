@@ -22,6 +22,6 @@ extern lobster::ResourceType shader_type;
 
 extern lobster::Value UpdateBufferObjectResource(lobster::VM &vm, lobster::Value buf, const void *data,
                                                  size_t len, ptrdiff_t offset, bool ssbo, bool dyn);
-extern void BindBufferObjectResource(lobster::VM &vm, lobster::Value buf, string_view name);
+extern void BindBufferObjectResource(lobster::VM &vm, lobster::Value buf, string_view_nt name);
 
 extern Texture GetTexture(const lobster::Value &res);

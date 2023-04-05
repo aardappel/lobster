@@ -250,7 +250,7 @@ int main(int argc, char* argv[]) {
     catch (string &s) {
         LOG_ERROR(s);
         #if LOBSTER_ENGINE
-            if (from_bundle) SDLMessageBox("Lobster", s.c_str());
+            if (from_bundle) SDLMessageBox(string_view_nt("Lobster"), s);
         #endif
         if (wait) {
             LOG_PROGRAM("press <ENTER> to continue:\n");

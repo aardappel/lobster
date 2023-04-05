@@ -17,11 +17,11 @@
 // See also modules/gl.lobster
 enum InitFlags { INIT_FULLSCREEN = 1, INIT_NO_VSYNC = 2, INIT_LINEAR_COLOR = 4 };
 
-extern string SDLInit(string_view title, const int2 &screensize, InitFlags flags, int samples);
+extern string SDLInit(string_view_nt title, const int2 &screensize, InitFlags flags, int samples);
 extern void SDLRequireGLVersion(int major, int minor);
 extern bool SDLFrame();
 extern void SDLShutdown();
-extern void SDLTitle(string_view title);
+extern void SDLTitle(string_view_nt title);
 extern bool SDLIsMinimized();
 extern void SDLWindowMinMax(int dir);
 
@@ -44,7 +44,7 @@ extern int SDLWheelDelta();
 extern bool SDLCursor(bool on);
 extern bool SDLGrab(bool on);
 
-extern void SDLMessageBox(string_view title, string_view msg);
+extern void SDLMessageBox(string_view_nt title, string_view_nt msg);
 
 enum SoundType { SOUND_WAV, SOUND_SFXR, SOUND_OGG };
 extern int SDLLoadSound(string_view filename, SoundType st);
@@ -57,9 +57,9 @@ extern void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, f
 extern int SDLSoundStatus(int ch);
 extern void SDLSoundClose();
 
-extern int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len);
+extern int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len);
 
-extern bool ScreenShot(string_view filename);
+extern bool ScreenShot(string_view_nt filename);
 
 extern void SDLTestMode();
 

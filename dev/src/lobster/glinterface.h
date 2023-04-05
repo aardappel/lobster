@@ -83,13 +83,13 @@ struct Shader : lobster::Resource {
     void Set();                                 // Activate + sets common uniforms.
     void SetAnim(float3x4 *bones, int num);     // Optionally, after Activate().
     void SetTextures(const vector<Texture> &textures);  // Optionally, after Activate().
-    bool SetUniform(string_view name,           // Optionally, after Activate().
+    bool SetUniform(string_view_nt name,                // Optionally, after Activate().
                     const float *val,
                     int components, int elements = 1);
-    bool SetUniform(string_view name,           // Optionally, after Activate().
+    bool SetUniform(string_view_nt name,                // Optionally, after Activate().
                     const int *val,
                     int components, int elements = 1);
-    bool SetUniformMatrix(string_view name, const float *val, int components, int elements, bool morerows);
+    bool SetUniformMatrix(string_view_nt name, const float *val, int components, int elements, bool morerows);
     bool DumpBinary(string_view filename, bool stripnonascii);
 
     size_t2 MemoryUsage() {
@@ -243,7 +243,7 @@ extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(int textureunit, const Texture &tex, int level, int tf);
-extern void BindAsSSBO(Shader *sh, string_view name, int id);
+extern void BindAsSSBO(Shader *sh, string_view_nt name, int id);
 
 // These must correspond to the constants in texture.lobster
 enum TextureFlag {
@@ -313,7 +313,7 @@ struct BufferObject : lobster::Resource {
 
 extern BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len,
                                         ptrdiff_t offset, bool ssbo, bool dyn);
-extern bool BindBufferObject(Shader *sh, BufferObject *buf, string_view uniformblockname);
+extern bool BindBufferObject(Shader *sh, BufferObject *buf, string_view_nt uniformblockname);
 extern bool CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t srcoffset,
                                         ptrdiff_t dstoffset, size_t len);
 

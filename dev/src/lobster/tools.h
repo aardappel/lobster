@@ -903,6 +903,29 @@ inline int HighZeroBits(uint64_t val) {
 
 // string & string_view helpers.
 
+// Use this instead of string_view where null-termination is statically known.
+struct string_view_nt {
+    string_view sv;
+
+    string_view_nt(const string &s) : sv(s) {}
+    explicit string_view_nt(const char *s) : sv(s) {}
+    explicit string_view_nt(string_view osv) : sv(osv) {
+        check_null_terminated();
+    }
+
+    void check_null_terminated() {
+        assert(!sv.data()[sv.size()]);
+    }
+
+    size_t size() const { return sv.size(); }
+    const char *data() const { return sv.data(); }
+
+    const char *c_str() {
+        check_null_terminated();  // Catch appends to parent buffer since construction.
+        return sv.data();
+    }
+};
+
 inline string operator+(string_view a, string_view b) {
     string r;
     r.reserve(a.size() + b.size());
@@ -913,6 +936,10 @@ inline string operator+(string_view a, string_view b) {
 
 inline auto to_string_conv(string_view sv) {
     return[sv]() { return sv; };
+}
+
+inline auto to_string_conv(string_view_nt svnt) {
+    return [svnt]() { return svnt.sv; };
 }
 
 inline auto to_string_conv(const string &s) {
@@ -1007,24 +1034,20 @@ inline bool starts_with(string_view sv, string_view start) {
     return start.size() <= sv.size() && sv.substr(0, start.size()) == start;
 }
 
-// Efficient passing of string_view to old APIs wanting a null-terminated
-// const char *: only go thru a string if not null-terminated already, which is
-// often the case.
-// NOTE: uses static string, so to call twice inside the same statement supply
-// template args <0>, <1> etc.
-template<int I = 0> const char *null_terminated(string_view sv) {
-  if (!sv.data()[sv.size()]) return sv.data();
-  static string temp;
-  temp = sv;
-  return temp.data();
-}
 
-template<typename T> T parse_int(string_view sv, int base = 10, char **end = nullptr) {
-  // This should be using from_chars(), which apparently is not supported by
-  // gcc/clang yet :(
-  return (T)strtoll(null_terminated(sv), end, base);
+// This should be using from_chars(), which apparently is not supported by
+// gcc/clang yet :(
+template<typename T> T parse_int(string_view_nt sv, int base = 10, char **end = nullptr) {
+    return (T)strtoll(sv.c_str(), end, base);
 }
-
+template<typename T> T parse_int_not_nt(string_view sv, int base = 10) {
+    auto &term = *(char *)(sv.data() + sv.size());
+    auto orig = term;
+    term = 0;
+    auto v = (T)strtoll(sv.data(), nullptr, base);
+    term = orig;
+    return v;
+}
 
 // Strict aliasing safe memory reading and writing.
 // memcpy with a constant size is replaced by a single instruction in VS release mode, and for
@@ -1208,8 +1231,6 @@ template<typename T, int N> class small_vector {
 
 
 inline void unit_test_tools() {
-    assert(strcmp(null_terminated<0>(string_view("aa", 1)),
-                  null_terminated<1>(string_view("bb", 1))) != 0);
     assert(cat_parens(1, 2) == "(1, 2)");
     assert(sizeof(small_vector<int, 2>) == 16);
 }

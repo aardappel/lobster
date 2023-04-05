@@ -489,7 +489,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uin
         min_output_level = OUTPUT_WARN;
         InitPlatform("./", "src/main.lobster", false, loader);  // FIXME: path.
         auto vmargs = VMArgs {
-            nfr, StripDirPart(argv[0]), bytecodefb, static_size, {},
+            nfr, StripDirPart(string_view_nt(argv[0])), bytecodefb, static_size, {},
             vtables, nullptr, TraceMode::OFF, false, RUNTIME_ASSERT
         };
         for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }

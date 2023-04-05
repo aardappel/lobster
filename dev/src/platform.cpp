@@ -145,11 +145,11 @@ string_view StripFilePart(string_view filepath) {
     return fpos != string_view::npos ? filepath.substr(0, fpos + 1) : "";
 }
 
-string StripDirPart(string_view filepath) {
-    auto fp = null_terminated(filepath);
+string StripDirPart(string_view_nt filepath) {
+    auto fp = filepath.c_str();
     auto fpos = strrchr(fp, FILESEP);
     if (!fpos) fpos = strrchr(fp, ':');
-    return fpos ? fpos + 1 : string(filepath);
+    return fpos ? fpos + 1 : string(filepath.sv);
 }
 
 string_view StripTrailing(string_view in, string_view tail) {
@@ -184,9 +184,9 @@ string GetMainDirFromExePath(string_view argv_0) {
     return md;
 }
 
-int64_t DefaultLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len) {
+int64_t DefaultLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len) {
     LOG_INFO("DefaultLoadFile: ", absfilename);
-    auto f = fopen(null_terminated(absfilename), "rb");
+    auto f = fopen(absfilename.c_str(), "rb");
     if (!f) return -1;
     if (fseek(f, 0, SEEK_END)) {
         fclose(f);
@@ -314,7 +314,7 @@ bool IsAbsolute(string_view filename) {
 int64_t LoadFileFromAny(string_view filename, string *dest, int64_t start, int64_t len) {
     if (IsAbsolute(filename)) {
         // Absolute filename.
-        return cur_loader(filename, dest, start, len);
+        return cur_loader(string(filename), dest, start, len);
     }
     for (auto &dir : data_dirs) {
         auto l = cur_loader(dir + filename, dest, start, len);

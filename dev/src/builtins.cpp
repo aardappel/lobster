@@ -447,10 +447,10 @@ nfr("string_to_int", "s,base", "SI?", "IB",
         if (base < 2 || base > 36)
             vm.BuiltinError("string_to_int: values out of range");
         char *end;
-        auto sv = s.sval()->strv();
-        auto i = parse_int<iint>(sv, base, &end);
+        auto svnt = s.sval()->strvnt();
+        auto i = parse_int<iint>(svnt, base, &end);
         Push(sp,  i);
-        return Value(end == sv.data() + sv.size());
+        return Value(end == svnt.data() + svnt.size());
     });
 
 nfr("string_to_float", "s", "S", "FB",

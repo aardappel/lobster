@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Platform independent file access:
-typedef int64_t (* FileLoader)(string_view absfilename, string *dest, int64_t start, int64_t len);
+typedef int64_t (* FileLoader)(string_view_nt absfilename, string *dest, int64_t start, int64_t len);
 
 // Call this at init to determine default folders to load stuff from.
 string GetMainDirFromExePath(string_view argv_0);
@@ -26,7 +26,7 @@ extern string_view ProjectDir();
 extern string_view MainDir();
 
 extern string_view StripFilePart(string_view filepath);
-extern string StripDirPart(string_view filepath);
+extern string StripDirPart(string_view_nt filepath);
 
 // Read all or part of a file.
 // To read the whole file, pass -1 for len.
@@ -36,7 +36,7 @@ extern int64_t LoadFile(string_view relfilename, string *dest, int64_t start = 0
                         bool binary = true);
 
 // fopen based implementation of FileLoader above to pass to InitPlatform if needed.
-extern int64_t DefaultLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len);
+extern int64_t DefaultLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len);
 
 extern FILE *OpenForWriting(string_view relfilename, bool binary, bool allow_absolute);
 extern FILE *OpenForReading(string_view relfilename, bool binary, bool allow_absolute);

@@ -142,14 +142,14 @@ Mesh *CreatePolygon(VM &vm, Value &vl) {
 Value SetUniform(VM &vm, const Value &name, const float *data, int len) {
     TestGL(vm);
     currentshader->Activate();
-    auto ok = currentshader->SetUniform(name.sval()->strv(), data, len);
+    auto ok = currentshader->SetUniform(name.sval()->strvnt(), data, len);
     return Value(ok);
 }
 
 Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
     TestGL(vm);
     currentshader->Activate();
-    auto ok = currentshader->SetUniform(name.sval()->strv(), data, len);
+    auto ok = currentshader->SetUniform(name.sval()->strvnt(), data, len);
     return Value(ok);
 }
 
@@ -161,7 +161,7 @@ Value UpdateBufferObjectResource(VM &vm, Value buf, const void *data, size_t len
     return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));
 }
 
-void BindBufferObjectResource(VM &vm, Value buf, string_view name) {
+void BindBufferObjectResource(VM &vm, Value buf, string_view_nt name) {
     assert(buf.True());
     auto bo = &GetBufferObject(buf);
     auto ok = BindBufferObject(currentshader, bo, name);
@@ -176,7 +176,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
     [](StackPtr &, VM &vm, Value &title, Value &xs, Value &ys, Value &flags, Value &samples) {
         if (graphics_initialized)
             vm.BuiltinError("cannot call gl_window() twice");
-        string err = SDLInit(title.sval()->strv(), int2(iint2(xs.ival(), ys.ival())),
+        string err = SDLInit(title.sval()->strvnt(), int2(iint2(xs.ival(), ys.ival())),
                              (InitFlags)flags.intval(), max(1, samples.intval()));
         if (err.empty()) {
             err = LoadMaterialFile("data/shaders/default.materials");
@@ -246,7 +246,7 @@ nfr("gl_window_title", "title", "S", "Sb",
     "changes the window title.",
     [](StackPtr &, VM &vm, Value &s) {
         TestGL(vm);
-        SDLTitle(s.sval()->strv());
+        SDLTitle(s.sval()->strvnt());
         return s;
     });
 
@@ -947,7 +947,7 @@ nfr("gl_set_uniform_array", "name,value", "SF}:4]", "B",
         for (int i = 0; i < vec.vval()->len; i++)
             vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
         currentshader->Activate();
-        auto ok = currentshader->SetUniform(name.sval()->strv(), vals.data()->data(), 4,
+        auto ok = currentshader->SetUniform(name.sval()->strvnt(), vals.data()->data(), 4,
                                             (int)vals.size());
         return Value(ok);
     });
@@ -961,7 +961,7 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         vector<float> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
         currentshader->Activate();
-        auto ok = currentshader->SetUniformMatrix(name.sval()->strv(), vals.data(),
+        auto ok = currentshader->SetUniformMatrix(name.sval()->strvnt(), vals.data(),
                                                   (int)vals.size(), 1, morerows.True());
         return Value(ok);
     });
@@ -984,7 +984,7 @@ nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",
     " returns false for error.",
     [](StackPtr &, VM &vm, Value &name, Value &buf) {
         TestGL(vm);
-        return Value(BindBufferObject(currentshader, &GetBufferObject(buf), name.sval()->strv()));
+        return Value(BindBufferObject(currentshader, &GetBufferObject(buf), name.sval()->strvnt()));
     });
 
 nfr("gl_copy_buffer_object", "source,destination,srcoffset,dstoffset,length", "R:bufferobject?R:bufferobject?III", "",
@@ -1003,7 +1003,7 @@ nfr("gl_bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
     " unbind.",
     [](StackPtr &, VM &vm, Value &mesh, Value &name) {
         TestGL(vm);
-        BindAsSSBO(currentshader, name.sval()->strv(), mesh.True() ? GetMesh(mesh).geom->vbo1 : 0);
+        BindAsSSBO(currentshader, name.sval()->strvnt(), mesh.True() ? GetMesh(mesh).geom->vbo1 : 0);
         return NilVal();
     });
 
@@ -1264,7 +1264,7 @@ nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
 nfr("gl_screenshot", "filename", "S", "B",
     "saves a screenshot in .png format, returns true if succesful",
     [](StackPtr &, VM &, Value &fn) {
-        bool ok = ScreenShot(fn.sval()->strv());
+        bool ok = ScreenShot(fn.sval()->strvnt());
         return Value(ok);
     });
 

@@ -214,8 +214,8 @@ string OutlineFont::GetName(int i) {
     return buf;
 }
 
-int OutlineFont::GetCharCode(string_view name) {
-    auto glyphi = FT_Get_Name_Index((FT_Face)fthandle, (char *)null_terminated(name));
+int OutlineFont::GetCharCode(string_view_nt name) {
+    auto glyphi = FT_Get_Name_Index((FT_Face)fthandle, (char *)name.c_str());
     if (!glyphi) return 0;
     if (glyph_to_char.empty()) {
         uint32_t cgi = 0;

@@ -337,7 +337,7 @@ void VM::DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump)
     auto sid = bcf->specidents()->Get((uint32_t)idx);
     auto is_freevar = sid->used_as_freevar();
     auto id = bcf->idents()->Get(sid->ididx());
-    auto name = id->name()->string_view();
+    auto name = string_view_nt(id->name()->string_view());
     auto &ti = GetVarTypeInfo(idx);
     auto width = IsStruct(ti.t) ? ti.len : 1;
     auto x = is_freevar ? &fvars[idx] : locals + jl;
@@ -398,7 +398,7 @@ void VM::DumpStackTrace(string &sd) {
     try {
     #endif
 
-    DumperFun dumper = [&sd](VM &vm, string_view name, const TypeInfo &ti, Value *x) {
+    DumperFun dumper = [&sd](VM &vm, string_view_nt name, const TypeInfo &ti, Value *x) {
         append(sd, "        ", name);
         #if RTT_ENABLED
             auto debug_type = x->type;

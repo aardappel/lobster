@@ -120,7 +120,7 @@ Geometry::~Geometry() {
     GL_CALL(glDeleteVertexArrays(1, (GLuint *)&vao));
 }
 
-void BindAsSSBO(Shader *sh, string_view name, int id) {
+void BindAsSSBO(Shader *sh, string_view_nt name, int id) {
     #ifndef PLATFORM_WINNIX
         (void)sh;
         (void)name;
