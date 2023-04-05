@@ -1973,6 +1973,9 @@ struct TypeChecker {
     }
 
     Lifetime PushBorrow(Node *n) {
+        // Because of the Var in the check below, we may end up with things on the borrowstack
+        // that are not refs once the var binds! This should be benign, as all we're doing
+        // is locking it from overwrites, so in the worst case it gives an undeserved error?
         if (!IsRefNilVar(n->exptype->t)) return LT_ANY;
         Borrow lv(*n);
         // FIXME: if this is an exp we don't know how to borrow from (like a[i].b) we
@@ -2071,7 +2074,8 @@ struct TypeChecker {
     void Borrowers(Lifetime lt, int change, const Node &context) {
         if (lt < 0) return;
         auto &b = borrowstack[lt];
-        assert(IsRefNilVar(b.sid->type->t));
+        // NOTE: b may refer to a type that is not a ref, so we can't assert on IsRefNilVar,
+        // see PushBorrow.
         b.refc += change;
         LOG_DEBUG("borrow ", change, ": ", b.sid->id->name, " in ", NiceName(context),
                ", ", b.refc, " remain");
