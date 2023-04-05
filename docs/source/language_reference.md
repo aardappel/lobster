@@ -4,7 +4,7 @@ title: Lobster Language Reference
 
 This is the definition of the language that tries to be a more exact a
 description of how the language works (the most exact description, however, will
-always be the source code :). As such, this is not the easiest way to learn the
+always be the source code :) ). As such, this is not the easiest way to learn the
 language, start with a tutorial first, and then use this for more difficult
 questions.
 
@@ -37,7 +37,8 @@ Lexical definition
 
 -   Keywords: `nil return class struct import int float string any void
     def fn is from program private resource enum enum_flags typeof
-    var let pakfile switch case default namespace not and or attribute`
+    var let pakfile switch case default namespace not and or attribute
+    if for while super`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
     expression (such as `+` or `,`) and an actual token otherwise (used to
@@ -51,8 +52,8 @@ Lexical definition
 Grammar
 -------
 
-Below, `...` indicates a loop with exit point at that scope level, and `||` is
-like `|` except indicates a precedence level difference.
+Below, `...` indicates a loop with exit point at that scope level (ex. `(ident ... ,)` -> `(ident (, ident)*)`, * meaning optionaly repeating), 
+and `||` is like `|` except indicates a precedence level difference. `[rule]` Means optional. 
 
 program = stats end\_of\_file
 
@@ -65,51 +66,52 @@ topexp = `namespace` ident
 
 class = ( `class` \| `struct` ) ident
         ( `=` ident specializers
-       \| [ generics ] `:` [ ident [ specializers ] ]
+       \| [ generics ] `:` [ ident [ specializers ] ] 
           indlist( ident [ `:` type ] [ `=` exp ] \| functiondef ) )
 
 specializers = `<` list( type ) `>`
 
 generics = `<` list( ident ) `>`
 
-vardef = ( `var` \| `let` ) list( ident ) `=` opexp
+vardef = ( `var` \| `let` ) list( ident [ `:` type ] ) `=` opexp
 
 enumdef = ( `enum` | `enum_flags` ) ident `:` indlist( ident [ `=` integer\_constant ] )
 
-functiondef = `def` ident generics functionargsbody
+functiondef = `def` ident [ generics ] functionargsbody
 
-functionargsbody = `(` args `) :` body
+functionargsbody = `(` args `)` `:` body
 
 block = [ args ] `:` body \| functionargsbody
 
-args = [ list( ident [ ( `:` \| `::` ) type ] ) ]
+args = [ list( ident [ ( `:` \| `::` ) type ] [ `=` exp ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void`
-    \| ident
+type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void` 
+\| ident [ specializers ]
 
-call = specializers `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
+call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
-expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program`
-\| ident ) ]
+expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ]
 
 exp = opexp [ ( `=` \| `+=` \| `-=` \| `*=` \| `/=` \| `%=` ) exp ]
 
-opexp = unary ( `*` \| `/` \| `%` \|\| `+` \| `-` \|\| `<` \| `>` \| `>=` \|
+opexp = unary [ ( `*` \| `/` \| `%` \|\| `+` \| `-` \|\| `<` \| `>` \| `>=` \|
 `<=` \|\| `==` \| `!=` \|\| `&` \| `|` \| `and` \| `or` \| \^ \|
-`<<` \| `>>`) unary
+`<<` \| `>>`) unary ]
 
 unary = ( `-` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 \| `++` \| `--` \| `is` type ]
 
-factor = constant \| `(` exp `)` \| constructor \| `fn` functionargsbody \|
-ident [ call ]
+factor = constant \| `(` exp `)` \| `super` \| ctrlflow \| pakfile string\_constant \| constructor \| `fn` functionargsbody \| ident [ call ]
 
-constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list(
-exp ) ] `}`
+ctrlflow = `if` ifpart \| (`for` \| `while`) exp `:` body
+
+ifpart = exp `:` body (`else` `:` body \| `elif` `:` ifpart) 
+
+constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list( ident `:` exp \| exp ] `}`
 
 constant = numeric\_constant \| string\_constant \| character\_constant \| `nil` [ `::` type ]
 
