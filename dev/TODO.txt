@@ -21,6 +21,15 @@
   Note: since this does the equivalent of assigning every field, need to take care this
   gets registered with lifetime tracking / flow-sensitive typing.
 
+- consider adding an interface/trait feature to make our compile time duck typing
+  more controllable.
+  - It would specify a list of function signatures for a type T.
+  - It can be attached to different things to enforce a check if those functions are
+    available for T, and produce an early/clear error if not.
+    - as part of a struct/class decl.
+    - as part of a generic argument to contrain the generic parameter.
+  - It would be purely an error checking feature as it wouldn't actually do anything!
+
 - & is not implemented for structs.
 
 - Enable writing to struct fields.
