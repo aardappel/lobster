@@ -87,7 +87,7 @@ void LVector::Resize(VM &vm, iint newmax) {
 }
 
 void LVector::Append(VM &vm, LVector *from, iint start, iint amount) {
-    if (len + amount > maxl) Resize(vm, len + amount);  // FIXME: check overflow
+    if (len + amount > maxl) Resize(vm, std::max(len + amount, maxl * 2));  // FIXME: check overflow
     assert(width == from->width);
     t_memcpy(v + len * width, from->v + start * width, amount * width);
     len += amount;
