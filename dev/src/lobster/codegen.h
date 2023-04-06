@@ -737,7 +737,7 @@ struct CodeGen  {
         // call that does I2S etc inline with even fewer allocations.
         for (auto s : strs) {
             Gen(s, retval);
-            TakeTemp(1, false);
+            TakeTemp(retval, false);
         }
         if (!retval) return;
         if (strs.size() == 2) {
