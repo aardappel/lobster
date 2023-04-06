@@ -170,6 +170,27 @@ uint8_t FindClosestNormal(float3 normal) {
     return besti;
 }
 
+Chunk3DGrid<uint8_t> *cached_normal_index_grid = nullptr;
+uint8_t FindClosestNormalCached(float3 normal) {
+    int size = 15;  // Must be odd.
+    float half = float(size / 2);
+    if (!cached_normal_index_grid) {
+        cached_normal_index_grid = new Chunk3DGrid<uint8_t>(int3(size), 0);
+        for (int x = 0; x < size; x++) {
+            for (int y = 0; y < size; y++) {
+                for (int z = 0; z < size; z++) {
+                    auto pos = int3(x, y, z);
+                    auto pnorm = normalize(float3(pos) / half - 1);
+                    auto ni = FindClosestNormal(pnorm);
+                    cached_normal_index_grid->Get(pos) = ni;
+                }
+            }
+        }
+    }
+    auto idx = int3(normal * half + half + 0.5);
+    return cached_normal_index_grid->Get(idx);
+}
+
 const size_t palette_size = 256 * sizeof(byte4);
 
 size_t NewPalette(const byte4 *p) {
@@ -1250,7 +1271,7 @@ nfr("cg_normal_indices", "block,radius", "R:voxelsI", "R:voxels",
                         // This should be very rare in actual models, just use Z-up.
                         cn = int3(0, 0, 1);
                     }
-                    nw->grid.Get(pos) = FindClosestNormal(normalize(float3(cn)));
+                    nw->grid.Get(pos) = FindClosestNormalCached(normalize(float3(cn)));
                 }
             }
         }
