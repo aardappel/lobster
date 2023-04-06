@@ -968,6 +968,8 @@ nfr("cg_average_surface_color", "world", "R:voxels", "F}:3II", "",
 			int3(0, 0, 1),  int3(0, 1, 0),  int3(1, 0, 0),
 			int3(0, 0, -1), int3(0, -1, 0), int3(-1, 0, 0),
 		};
+        float3 srgb_cache[256];
+        bool cache_set[256] = { false };
 		for (int x = 0; x < v.grid.dim.x; x++) {
 			for (int y = 0; y < v.grid.dim.y; y++) {
 				for (int z = 0; z < v.grid.dim.z; z++) {
@@ -979,7 +981,11 @@ nfr("cg_average_surface_color", "world", "R:voxels", "F}:3II", "",
 						for (int i = 0; i < 6; i++) {
 							auto p = pos + neighbors[i];
 							if (!(p >= 0) || !(p < v.grid.dim) || !v.grid.Get(p)) {
-								col += from_srgb(float3(palette[c].xyz()) / 255.0f);
+                                if (!cache_set[c]) {
+                                    srgb_cache[c] = from_srgb(float3(palette[c].xyz()) / 255.0f);
+                                    cache_set[c] = true;
+                                }
+                                col += srgb_cache[c];
 								nsurf++;
 								break;
 							}
@@ -1001,6 +1007,8 @@ nfr("cg_average_face_colors", "world", "R:voxels", "F]",
         auto vec = vm.NewVec(0, 6 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto &palette = palettes[v.palette_idx].colors;
         int3 dims[] = { int3(0, 1, 2), int3(0, 2, 1), int3(1, 2, 0) };
+        float3 srgb_cache[256];
+        bool cache_set[256] = { false };
 		for (int f = 0; f < 6; f++) {
             auto dim = dims[f % 3];
             auto positive_dir = f < 3;
@@ -1020,7 +1028,11 @@ nfr("cg_average_face_colors", "world", "R:voxels", "F]",
                         if (c == transparant) {
                             ntransparent++;
                         } else {
-                            col += from_srgb(float3(palette[c].xyz()) / 255.0f);
+                            if (!cache_set[c]) {
+                                srgb_cache[c] = from_srgb(float3(palette[c].xyz()) / 255.0f);
+                                cache_set[c] = true;
+                            }
+                            col += srgb_cache[c];
                             nsurf++;
                             break;  // Hit surface, we can stop this Z traversal.
                         }
