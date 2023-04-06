@@ -935,11 +935,27 @@ struct TypeChecker {
         };
         for (auto &arg : sf.args) enter_scope(arg);
         for (auto &local : sf.locals) enter_scope(local);
-        sf.returntype = sf.reqret
-            ? (!sf.returngiventype.utr.Null()
-                ? ResolveTypeVars(sf.returngiventype, &call_context)
-                : st.NewTypeVar())
-            : type_void;
+        if (sf.reqret) {
+            if (sf.returngiventype.utr.Null()) {
+                sf.returntype = st.NewTypeVar();
+            } else {
+                sf.returntype = ResolveTypeVars(sf.returngiventype, &call_context);
+                auto len = sf.returntype->NumValues();
+                if (len > sf.reqret) {
+                    if (sf.reqret == 1) {
+                        sf.returntype = sf.returntype->Get(0);
+                    } else {
+                        assert(sf.returntype->t == V_TUPLE);
+                        auto nt = st.NewTuple(sf.reqret);
+                        nt->tup->assign(sf.returntype->tup->begin(),
+                                        sf.returntype->tup->begin() + sf.reqret);
+                        sf.returntype = nt;
+                    }
+                }
+            }
+        } else {
+            sf.returntype = type_void;
+        }
         auto start_borrowed_vars = borrowstack.size();
         auto start_promoted_vars = flowstack.size();
         sf.sbody->TypeCheck(*this, 0);
