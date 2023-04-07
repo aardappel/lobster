@@ -137,14 +137,14 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     }
     GL_CALL(glBindTexture(textype, 0));
     GL_NAME(GL_TEXTURE, id, name);
-    return Texture(id, dim, int(elemsize));
+    return Texture(id, dim, int(elemsize), textype, internalformat);
 }
 
 Texture CreateTextureFromFile(string_view name, int tf) {
     tf &= ~TF_FLOAT;  // Not supported yet.
     string fbuf;
     vector<uint8_t *> bufs;
-    Texture tex;
+    Texture tex = DummyTexture();
     int3 adim = int3_0;
     static const char *cubesides[6] = { "_ft", "_bk", "_up", "_dn", "_rt", "_lf" };
     for (int i = 0; i < (tf & TF_CUBEMAP ? 6 : 1); i++) {
@@ -230,31 +230,31 @@ Texture CreateColoredTexture(string_view name, const int3 &size, const float4 &c
     }
 }
 
+Texture DummyTexture() {
+    return Texture(0, int3_0, sizeof(byte4), GL_TEXTURE_2D, GL_RGBA8);
+}
+
 void DeleteTexture(Texture &tex) {
     if (tex.id) GL_CALL(glDeleteTextures(1, (GLuint *)&tex.id));
     tex.id = 0;
 }
 
-bool SetTexture(int textureunit, const Texture &tex, int tf) {
+void SetTexture(int textureunit, const Texture &tex) {
     GL_CALL(glActiveTexture(GL_TEXTURE0 + textureunit));
-    glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP
-                                          : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), tex.id);
-    // glBindTexture can fail if the wrong flags are passed for the texture.
-    return glGetError() != 0;
+    glBindTexture(tex.type, tex.id);
 }
 
-void GenerateTextureMipMap(const Texture &tex, int tf) {
-    GLenum textype = (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D);
-    GL_CALL(glBindTexture(textype, tex.id));
-    GL_CALL(glGenerateMipmap(textype));
-    GL_CALL(glBindTexture(textype, 0));
+void GenerateTextureMipMap(const Texture &tex) {
+    GL_CALL(glBindTexture(tex.type, tex.id));
+    GL_CALL(glGenerateMipmap(tex.type));
+    GL_CALL(glBindTexture(tex.type, 0));
 }
 
 uint8_t *ReadTexture(const Texture &tex) {
     #ifndef PLATFORM_ES3
-        GL_CALL(glBindTexture(GL_TEXTURE_2D, tex.id));
+        GL_CALL(glBindTexture(tex.type, tex.id));
         auto pixels = new uint8_t[tex.size.x * tex.size.y * 4];
-        GL_CALL(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
+        GL_CALL(glGetTexImage(tex.type, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
         return pixels;
     #else
         return nullptr;
@@ -267,13 +267,7 @@ void SetImageTexture(int textureunit, const Texture &tex, int level, int tf) {
             GLenum access = tf & TF_WRITEONLY
                                    ? GL_WRITE_ONLY
                                    : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY);
-            // Handle format
-            GLenum format = tf & TF_SINGLE_CHANNEL ? GL_R8 : GL_RGBA8;
-            if (tf & TF_FLOAT) {
-                if (tf & TF_HALF) format = tf & TF_SINGLE_CHANNEL ? GL_R16F : GL_RGBA16F;
-                else format = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
-            }
-            GL_CALL(glBindImageTexture(textureunit, tex.id, level, GL_TRUE, 0, access, format));
+            GL_CALL(glBindImageTexture(textureunit, tex.id, level, GL_TRUE, 0, access, tex.internalformat));
         }
     #else
         assert(false);
@@ -303,7 +297,8 @@ int CreateFrameBuffer(const Texture &tex, int tf) {
 #ifndef __EMSCRIPTEN__
 static int fb = 0;
 static int rb = 0;
-static Texture retex;  // Texture to resolve to at the end when fb refers to a multisample texture.
+// Texture to resolve to at the end when fb refers to a multisample texture.
+static Texture retex = DummyTexture();
 static int retf = 0;
 static bool hasdepthtex = false;
 static int2 framebuffersize(0);
@@ -343,7 +338,7 @@ bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize, bool depth, i
 								          0, 0, retex.size.x, retex.size.y,
                                           GL_COLOR_BUFFER_BIT, GL_NEAREST));
 				GL_CALL(glDeleteFramebuffers(1, (GLuint *)&refb));
-				retex = Texture();
+				retex = DummyTexture();
 				retf = 0;
 			}
 			GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));

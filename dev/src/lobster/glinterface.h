@@ -32,20 +32,23 @@ enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 
 // Meant to be passed by value.
 struct Texture {
-    int id = 0;
-    int3 size { 0 };
-    int elemsize = sizeof(byte4);
+    int id;
+    int3 size;
+    int elemsize;
+    unsigned type;
+    unsigned internalformat;
 
-    Texture() = default;
-    Texture(int _id, const int2 &_size, int es)
-        : id(_id), size(int3(_size, 0)), elemsize(es) {}
-    Texture(int _id, const int3 &_size, int es)
-        : id(_id), size(_size), elemsize(es) {}
+    Texture(int _id, const int2 &_size, int es, unsigned t, unsigned f)
+        : id(_id), size(int3(_size, 0)), elemsize(es), type(t), internalformat(f) {}
+    Texture(int _id, const int3 &_size, int es, unsigned t, unsigned f)
+        : id(_id), size(_size), elemsize(es), type(t), internalformat(f) {}
 
     size_t2 MemoryUsage() {
         return { sizeof(Texture), size_t(max(size, int3_1).volume() * elemsize) };
     }
 };
+
+extern Texture DummyTexture();
 
 struct OwnedTexture : lobster::Resource {
     Texture t;
@@ -118,7 +121,8 @@ struct Textured {
     vector<Texture> textures;
 
     Texture &Get(size_t i) {
-        textures.resize(max(i + 1, textures.size()));
+        while (i >= textures.size())
+            textures.emplace_back(DummyTexture());
         return textures[i];
     }
 };
@@ -271,14 +275,13 @@ extern Texture CreateBlankTexture(string_view name, const int3 &size, int tf = T
 extern Texture CreateColoredTexture(string_view name, const int3 &size, const float4 &color,
                                   int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
-extern bool SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
-extern void GenerateTextureMipMap(const Texture &tex, int tf);
+extern void SetTexture(int textureunit, const Texture &tex);
+extern void GenerateTextureMipMap(const Texture &tex);
 extern uint8_t *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
 extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,
-                                bool depth = false, int tf = 0,
-                                const Texture &resolvetex = Texture(),
-                                const Texture &depthtex = Texture());
+                                bool depth = false, int tf = 0, const Texture &resolvetex = DummyTexture(),
+                                const Texture &depthtex = DummyTexture());
 extern int2 GetFrameBufferSize(const int2 &screensize);
 
 extern uint8_t *LoadImageFile(string_view fn, int2 &dim);

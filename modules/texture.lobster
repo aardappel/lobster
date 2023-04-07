@@ -82,6 +82,6 @@ def post_process(tex, size, shader, depth, texture_format, f):
     gl_blend(0)
     gl_ortho(true, false)  // Needed to flip the texture.
     gl_set_shader(shader)
-    gl_set_primitive_texture(0, tex, texture_format)
+    gl_set_primitive_texture(0, tex)
     gl_rect(float(size))
     return tex

@@ -39,7 +39,7 @@ Mesh &GetMesh(Value &res) {
     return GetResourceDec<Mesh>(res, &mesh_type);
 }
 Texture GetTexture(const Value &res) {
-    if (res.False()) return Texture();
+    if (res.False()) return DummyTexture();
     return GetResourceDec<OwnedTexture>(res, &texture_type).t;
 }
 Shader &GetShader(Value &res) {
@@ -1048,11 +1048,12 @@ nfr("gl_load_texture", "name,textureformat", "SI?", "R:texture?",
         return tex.id ? vm.NewResource(&texture_type, new OwnedTexture(tex)) : NilVal();
     });
 
-nfr("gl_set_primitive_texture", "i,tex,textureformat", "IR:textureI?", "I",
+nfr("gl_set_primitive_texture", "i,tex", "IR:texture", "",
     "sets texture unit i to texture (for use with rect/circle/polygon/line)",
-    [](StackPtr &, VM &vm, Value &i, Value &id, Value &tf) {
+    [](StackPtr &, VM &vm, Value &i, Value &id) {
         TestGL(vm);
-        return Value(SetTexture(GetSampler(vm, i), GetTexture(id), tf.intval()));
+        SetTexture(GetSampler(vm, i), GetTexture(id));
+        return NilVal();
     });
 
 nfr("gl_set_mesh_texture", "mesh,part,i,texture", "R:meshIIR:texture", "",
@@ -1065,10 +1066,9 @@ nfr("gl_set_mesh_texture", "mesh,part,i,texture", "R:meshIIR:texture", "",
         return NilVal();
     });
 
-nfr("gl_set_image_texture", "i,tex,level,textureformat", "IR:textureII", "",
-    "sets image unit i to texture (for use with compute). texture format must be the same"
-    " as what you specified in gl_load_texture / gl_create_texture,"
-    " with optionally writeonly/readwrite flags.",
+nfr("gl_set_image_texture", "i,tex,level,accessflags", "IR:textureII?", "",
+    "sets image unit i to texture (for use with compute). optionally specify "
+    "writeonly/readwrite flags.",
     [](StackPtr &, VM &vm, Value &i, Value &id, Value &level, Value &tf) {
         TestGL(vm);
         SetImageTexture(GetSampler(vm, i), GetTexture(id), level.intval(), tf.intval());
@@ -1145,20 +1145,20 @@ nfr("gl_read_texture", "tex", "R:texture", "S?",
         return Value(s);
     });
 
-nfr("gl_generate_texture_mipmap", "tex,textureformat", "R:texture?I", "",
+nfr("gl_generate_texture_mipmap", "tex", "R:texture?", "",
     "generate mipmaps for the specified texture",
-    [](StackPtr &, VM &vm, Value &t, Value &tf) {
+    [](StackPtr &, VM &vm, Value &t) {
         TestGL(vm);
         auto tex = GetTexture(t);
-        GenerateTextureMipMap(tex, tf.intval());
+        GenerateTextureMipMap(tex);
         return NilVal();
     });
 
-nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex",
+nfr("gl_switch_to_framebuffer", "tex,hasdepth,multisampleformat,resolvetex,depthtex",
     "R:texture?I?I?R:texture?R:texture?", "B",
     "switches to a new framebuffer, that renders into the given texture."
     " also allocates a depth buffer for it if depth is true."
-    " pass the textureformat that was used for this texture."
+    " pass the multisample flags that was used for this texture."
     " pass a resolve texture if the base texture is multisample."
     " pass your own depth texture if desired."
     " pass a nil texture to switch back to the original framebuffer."
