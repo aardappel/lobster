@@ -44,6 +44,19 @@ OwnedTexture::~OwnedTexture() {
     DeleteTexture(t);
 }
 
+void SetFilterClampWrap(int tf, GLenum textype) {
+    auto wrap = tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+    GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_S, wrap));
+    GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_T, wrap));
+    if (tf & TF_3D) GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_R, wrap));
+    GL_CALL(glTexParameteri(textype, GL_TEXTURE_MAG_FILTER,
+                            tf & TF_NEAREST_MAG ? GL_NEAREST : GL_LINEAR));
+    GL_CALL(glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
+                            tf & TF_NOMIPMAP ? (tf & TF_NEAREST_MIN ? GL_NEAREST : GL_LINEAR)
+                                             : (tf & TF_NEAREST_MIN ? GL_NEAREST_MIPMAP_NEAREST
+                                                                    : GL_LINEAR_MIPMAP_LINEAR)));
+}
+
 Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     LOBSTER_FRAME_PROFILE_THIS_SCOPE;
     int id;
@@ -60,16 +73,7 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     int texnumfaces = tf & TF_CUBEMAP ? 6                              : 1;
     GL_CALL(glActiveTexture(GL_TEXTURE0));
     GL_CALL(glBindTexture(textype, id));
-    auto wrap = tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-    GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_S, wrap));
-    GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_T, wrap));
-    if(tf & TF_3D) GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_R, wrap));
-    GL_CALL(glTexParameteri(textype, GL_TEXTURE_MAG_FILTER,
-                            tf & TF_NEAREST_MAG ? GL_NEAREST : GL_LINEAR));
-    GL_CALL(glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
-        tf & TF_NOMIPMAP ? (tf & TF_NEAREST_MIN ? GL_NEAREST : GL_LINEAR)
-                         : (tf & TF_NEAREST_MIN ? GL_NEAREST_MIPMAP_NEAREST
-                                                : GL_LINEAR_MIPMAP_LINEAR)));
+    SetFilterClampWrap(tf, textype);
     //if (mipmap) glTexParameteri(textype, GL_GENERATE_MIPMAP, GL_TRUE);
     auto internalformat = tf & TF_SINGLE_CHANNEL
             ? GL_R8
@@ -276,6 +280,11 @@ void SetImageTexture(int textureunit, const Texture &tex, int level, int tf) {
 
 // from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards
 int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); return mts; }
+
+void SetTextureFlags(const Texture &tex, int tf) {
+    GL_CALL(glBindTexture(tex.type, tex.id));
+    SetFilterClampWrap(tf, tex.type);
+}
 
 int CreateFrameBuffer(const Texture &tex, int tf) {
 	#ifdef PLATFORM_WINNIX

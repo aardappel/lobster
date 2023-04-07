@@ -1154,6 +1154,14 @@ nfr("gl_generate_texture_mipmap", "tex", "R:texture?", "",
         return NilVal();
     });
 
+nfr("gl_set_texture_flags", "tex,tf", "R:textureI", "",
+    "change texture filter/wrap/clamp flags on an existing texture",
+    [](StackPtr &, VM &vm, Value &id, Value &tf) {
+        TestGL(vm);
+        SetTextureFlags(GetTexture(id), tf.intval());
+        return NilVal();
+    });
+
 nfr("gl_switch_to_framebuffer", "tex,hasdepth,multisampleformat,resolvetex,depthtex",
     "R:texture?I?I?R:texture?R:texture?", "B",
     "switches to a new framebuffer, that renders into the given texture."
