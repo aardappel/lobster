@@ -688,6 +688,15 @@ nfr("im_text", "label", "S", "",
         return NilVal();
     });
 
+nfr("im_text_wrapped", "label", "S", "",
+    "",
+    [](StackPtr &, VM &vm, Value &text) {
+        IsInit(vm);
+        auto &s = *text.sval();
+        ImGui::TextWrapped("%s", s.strvnt().c_str());
+        return NilVal();
+    });
+
 nfr("im_tooltip", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
