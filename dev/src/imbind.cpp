@@ -655,6 +655,15 @@ nfr("im_window_end", "", "", "",
         NPop(vm, N_WIN);
     });
 
+nfr("im_next_window_pos", "pos,pivot", "F}:2F}:2", "",
+    "pos in pixels, pivot values 0..1 relative to pos",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, N_FRAME);
+        auto pivot = PopVec<float2>(sp);
+        auto pos = PopVec<float2>(sp);
+        ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Appearing, ImVec2(pivot.x, pivot.y));
+    });
+
 nfr("im_button", "label", "S", "B",
     "",
     [](StackPtr &sp, VM &vm) {
