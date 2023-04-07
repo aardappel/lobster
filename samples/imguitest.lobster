@@ -52,6 +52,11 @@ while gl_frame():
                     d.i = im_listbox("ListBox", d.fruits, d.i, d.fruits.length)
                     d.col = im_coloredit("Color", d.col)
                     for(2) g: im_graph("Sin", map(20): sin(_ * 20.0) + 1.0, g)
+                    if im_button("popup!"):
+                        im_popup_open("pop1")
+                    im_popup("pop1"):
+                        im_selectable("select a")
+                        im_selectable("select b")
                 im_tab("Debug"):
                     if not demo and im_button("show demo window"): demo = true
                     if im_button("Cause breakpoint() hit"):

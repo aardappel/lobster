@@ -130,6 +130,22 @@ def im_group(label, body):
     body()
     im_group_end()
 
+// Call im_popup_open (from e.g. im_button) with same label as this, followed by im_popup() with body.
+def im_popup(label, body):
+    let open = im_popup_start(label, 0, false)
+    if open:
+        body()
+        im_popup_end()
+    return open
+
+// Call this right after any item for which you want RMB to generate a popup.
+def im_popup_rmb_prev_item(label, body):
+    let open = im_popup_start(label, 0, true)
+    if open:
+        body()
+        im_popup_end()
+    return open
+
 def im_disabled(disabled, body):
     im_disabled_start(disabled)
     body()

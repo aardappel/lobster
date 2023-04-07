@@ -47,6 +47,7 @@ enum Nesting {
     N_GROUP,
     N_WIDTH,
     N_TREE,
+    N_POPUP,
 };
 
 vector<Nesting> nstack;
@@ -113,6 +114,9 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_TREE:
                 ImGui::TreePop();
+                break;
+            case N_POPUP:
+                ImGui::EndPopup();
                 break;
  
         }
@@ -673,6 +677,16 @@ nfr("im_button", "label", "S", "B",
         Push(sp, press);
     });
 
+nfr("im_selectable", "label,selected", "SB?", "B",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto selected = Pop(sp).True();
+        auto title = Pop(sp);
+        auto press = ImGui::Selectable(title.sval()->data(), selected);
+        Push(sp, press);
+    });
+
 nfr("im_same_line", "", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
@@ -919,6 +933,35 @@ nfr("im_group_end", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_GROUP);
+    });
+
+nfr("im_popup_start", "label,winflags,rmbprevitem", "SIB?", "B",
+    "(use im_popup instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto rmb = Pop(sp).True();
+        auto flags = (ImGuiWindowFlags)Pop(sp).intval();
+        auto title = Pop(sp);
+        bool open = rmb
+            ? ImGui::BeginPopupContextItem(title.sval()->data())
+            : ImGui::BeginPopup(title.sval()->data(), flags);
+        Push(sp, open);
+        if (open) NPush(N_POPUP);
+    });
+
+nfr("im_popup_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_POPUP);
+    });
+
+nfr("im_popup_open", "label", "S", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto title = Pop(sp);
+        ImGui::OpenPopup(title.sval()->data());
     });
 
 nfr("im_disabled_start", "disabled", "B", "",
