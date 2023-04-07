@@ -54,3 +54,13 @@ class dictionary<K,V>:
     def get(key:K) -> V?:
         let c = lookup(key)
         return c and c.value or nil
+
+    def get_all() -> [K], [V]:
+        let keys = []
+        let vals = []
+        for(buckets) c:
+            while c:
+                keys.push(c.key)
+                vals.push(c.value)
+                c = c.next
+        return keys, vals
