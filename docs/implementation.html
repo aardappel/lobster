@@ -259,9 +259,11 @@ example, such as <code>audio.cpp</code>, then browse through more
 complex examples in <code>builtin.cpp</code> and
 <code>graphics.cpp</code>.</p>
 <p>Here’s a simple example of a Lobster extension:</p>
-<pre><code>#include &quot;stdafx.h&quot;
+<pre><code>#include &quot;lobster/stdafx.h&quot;
 
-#include &quot;natreg.h&quot;
+#include &quot;lobster/natreg.h&quot;
+
+using namespace lobster;
 
 void MyNativeOps(NativeRegistry &amp;nfr) {
 

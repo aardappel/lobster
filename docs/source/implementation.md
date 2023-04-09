@@ -263,9 +263,11 @@ location without declarations needed elsewhere. To learn how to write your own
 Here's a simple example of a Lobster extension:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "natreg.h"
+#include "lobster/natreg.h"
+
+using namespace lobster;
 
 void MyNativeOps(NativeRegistry &nfr) {
 
