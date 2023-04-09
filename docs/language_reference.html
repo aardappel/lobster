@@ -25,7 +25,7 @@
 </header>
 <p>This is the definition of the language that tries to be a more exact
 a description of how the language works (the most exact description,
-however, will always be the source code :). As such, this is not the
+however, will always be the source code :) ). As such, this is not the
 easiest way to learn the language, start with a tutorial first, and then
 use this for more difficult questions.</p>
 <p>Syntactically Lobster tries to follow a mix of Python and C
@@ -52,7 +52,7 @@ constant (e.g. <code>123</code>) or hex digits with a leading
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
 <li><p>Keywords:
-<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute</code></p></li>
+<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute     if for while super</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an
 incomplete expression (such as <code>+</code> or <code>,</code>) and an
 actual token otherwise (used to separate lists of expressions inside a
@@ -65,8 +65,10 @@ from the way it looks visually.</p></li>
 </ul>
 <h2 id="grammar">Grammar</h2>
 <p>Below, <code>...</code> indicates a loop with exit point at that
-scope level, and <code>||</code> is like <code>|</code> except indicates
-a precedence level difference.</p>
+scope level (ex. <code>(ident ... ,)</code> -&gt;
+<code>(ident (, ident)*)</code>, * meaning optionaly repeating), and
+<code>||</code> is like <code>|</code> except indicates a precedence
+level difference. <code>[rule]</code> Means optional.</p>
 <p>program = stats end_of_file</p>
 <p>stats = topexp … linefeed</p>
 <p>topexp = <code>namespace</code> ident |<code>import</code> [
@@ -79,42 +81,49 @@ expstat | attrdef</p>
 <code>=</code> exp ] | functiondef ) )</p>
 <p>specializers = <code>&lt;</code> list( type ) <code>&gt;</code></p>
 <p>generics = <code>&lt;</code> list( ident ) <code>&gt;</code></p>
-<p>vardef = ( <code>var</code> | <code>let</code> ) list( ident )
-<code>=</code> opexp</p>
+<p>vardef = ( <code>var</code> | <code>let</code> ) list( ident [
+<code>:</code> type ] ) <code>=</code> opexp</p>
 <p>enumdef = ( <code>enum</code> | <code>enum_flags</code> ) ident
 <code>:</code> indlist( ident [ <code>=</code> integer_constant ] )</p>
-<p>functiondef = <code>def</code> ident generics functionargsbody</p>
-<p>functionargsbody = <code>(</code> args <code>) :</code> body</p>
+<p>functiondef = <code>def</code> ident [ generics ]
+functionargsbody</p>
+<p>functionargsbody = <code>(</code> args <code>)</code> <code>:</code>
+body</p>
 <p>block = [ args ] <code>:</code> body | functionargsbody</p>
-<p>args = [ list( ident [ ( <code>:</code> | <code>::</code> ) type ] )
-]</p>
+<p>args = [ list( ident [ ( <code>:</code> | <code>::</code> ) type ] [
+<code>=</code> exp ] ) ]</p>
 <p>body = ( expstat | indent stats dedent )</p>
 <p>type = <code>int</code> | <code>float</code> | <code>string</code> |
 <code>[</code> type <code>]</code> | <code>resource</code>
-<code>&lt;</code> ident <code>&gt;</code> | <code>void</code> |
-ident</p>
-<p>call = specializers <code>(</code> [ list( exp ) ] <code>)</code> [
-block [ <code>fn</code> block … ] ]</p>
+<code>&lt;</code> ident <code>&gt;</code> | <code>void</code> | ident [
+specializers ]</p>
+<p>call = [ specializers ] <code>(</code> [ list( exp ) ] <code>)</code>
+[ block [ <code>fn</code> block … ] ]</p>
 <p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list(
 opexp ) ] ) [ <code>from</code> ( <code>program</code> | ident ) ]</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> |
 <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
-<p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> ||
+<p>opexp = unary [ ( <code>*</code> | <code>/</code> | <code>%</code> ||
 <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code>
 | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> |
 <code>!=</code> || <code>&amp;</code> | <code>|</code> |
 <code>and</code> | <code>or</code> | ^ | <code>&lt;&lt;</code> |
-<code>&gt;&gt;</code>) unary</p>
+<code>&gt;&gt;</code>) unary ]</p>
 <p>unary = ( <code>-</code> | <code>++</code> | <code>--</code> | ~ |
 <code>not</code> ) unary | deref</p>
 <p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code>
 ident [ call ] | <code>-&gt;</code> ident | <code>++</code> |
 <code>--</code> | <code>is</code> type ]</p>
-<p>factor = constant | <code>(</code> exp <code>)</code> | constructor |
+<p>factor = constant | <code>(</code> exp <code>)</code> |
+<code>super</code> | ctrlflow | pakfile string_constant | constructor |
 <code>fn</code> functionargsbody | ident [ call ]</p>
+<p>ctrlflow = <code>if</code> ifpart | (<code>for</code> |
+<code>while</code>) exp <code>:</code> body</p>
+<p>ifpart = exp <code>:</code> body (<code>else</code> <code>:</code>
+body | <code>elif</code> <code>:</code> ifpart)</p>
 <p>constructor = <code>[</code> [ list( exp ) ] <code>]</code> [
-<code>::</code> type ] | ident <code>{</code> [ list( exp ) ]
-<code>}</code></p>
+<code>::</code> type ] | ident <code>{</code> [ list( ident
+<code>:</code> exp | exp ] <code>}</code></p>
 <p>constant = numeric_constant | string_constant | character_constant |
 <code>nil</code> [ <code>::</code> type ]</p>
 <p>attrdef = <code>attribute</code> ident [ <code>=</code> (
