@@ -260,6 +260,14 @@
 <tr class="a" valign=top><td class="a"><tt><b>flexbuffers_binary_to_json</b>(flex<font color="#666666">:string</font>, field_quotes<font color="#666666">:bool</font> = false) -> <font color="#666666">string?</font>, <font color="#666666">string?</font></tt></td><td class="a">turns a flexbuffer into a JSON string</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>flexbuffers_json_to_binary</b>(json<font color="#666666">:string</font>) -> <font color="#666666">string</font>, <font color="#666666">string?</font></tt></td><td class="a">turns a JSON string into a flexbuffer, second value is error, if any</td></tr>
 </table>
+<h3>matrix</h3>
+<table class="a" border=1 cellspacing=0 cellpadding=4>
+<tr class="a" valign=top><td class="a"><tt><b>matrix_multiply</b>(a<font color="#666666">:[float]</font>, b<font color="#666666">:[float]</font>) -> <font color="#666666">[float]</font></tt></td><td class="a">input matrices must be 4x4 elements</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>matrix_rotate_x</b>(angle<font color="#666666">:xy_f</font>) -> <font color="#666666">[float]</font></tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>matrix_rotate_y</b>(angle<font color="#666666">:xy_f</font>) -> <font color="#666666">[float]</font></tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>matrix_rotate_z</b>(angle<font color="#666666">:xy_f</font>) -> <font color="#666666">[float]</font></tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>matrix_translation</b>(trans<font color="#666666">:xyz_f</font>) -> <font color="#666666">[float]</font></tt></td><td class="a"></td></tr>
+</table>
 <h3>graphics</h3>
 <table class="a" border=1 cellspacing=0 cellpadding=4>
 <tr class="a" valign=top><td class="a"><tt><b>gl_window</b>(title<font color="#666666">:string</font>, xs<font color="#666666">:int</font>, ys<font color="#666666">:int</font>, flags<font color="#666666">:int</font> = 0, samples<font color="#666666">:int</font> = 1) -> <font color="#666666">string?</font></tt></td><td class="a">opens a window for OpenGL rendering. returns error string if any problems, nil otherwise. For flags, see modules/gl.lobster</td></tr>

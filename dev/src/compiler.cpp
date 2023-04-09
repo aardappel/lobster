@@ -466,6 +466,7 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern void AddCompiler(NativeRegistry &nfr); RegisterBuiltin(nfr, "compiler",  AddCompiler);
     extern void AddFile(NativeRegistry &nfr);     RegisterBuiltin(nfr, "file",      AddFile);
     extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "parsedata", AddReader);
+    extern void AddMatrix(NativeRegistry &nfr);   RegisterBuiltin(nfr, "matrix",    AddMatrix);
 }
 
 #if !LOBSTER_ENGINE
