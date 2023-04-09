@@ -258,7 +258,7 @@ write your own .cpp of native functions, best to start with a simple
 example, such as <code>audio.cpp</code>, then browse through more
 complex examples in <code>builtin.cpp</code> and
 <code>graphics.cpp</code>.</p>
-<p>Here’s a simple example of a self-contained Lobster extension:</p>
+<p>Here’s a simple example of a Lobster extension:</p>
 <pre><code>#include &quot;stdafx.h&quot;
 
 #include &quot;natreg.h&quot;
@@ -272,21 +272,18 @@ void MyNativeOps(NativeRegistry &amp;nfr) {
         });
 
     // more such declarations here
-}
-
-AutoRegister __mno(&quot;name&quot;, MyNativeOps);</code></pre>
+}</code></pre>
 <p>You’ll need to become somewhat familiar with the Lobster internals to
 write these functions succesfully, in particular with the
 <code>Value</code> type (see <code>vmbase.h</code>), which is a union of
 all possible lobster types. If you specify specific types (such as
 <code>I</code> for <code>int</code>, <code>F</code> for
 <code>float</code>, <code>S</code> for <code>string</code>,
-<code>V</code> for <code>vector</code>, <code>L</code> for a function
-value etc (more details in <code>natreg.h</code>), then the
-<code>Value</code> will already have been typechecked and guaranteed to
-be that type, such that you can directly access the component
-(e.g. <code>.ival()</code>) without checking the type (you’ll get an
-assert if you get this wrong).</p>
+<code>V</code> for <code>vector</code> etc (more details in
+<code>natreg.h</code>), then the <code>Value</code> will already have
+been typechecked and guaranteed to be that type, such that you can
+directly access the component (e.g. <code>.ival()</code>) without
+checking the type (you’ll get an assert if you get this wrong).</p>
 <p>As you can see, even the help text is included in the declaration, so
 everything related to the function is in one location.</p>
 <p>Important is dealing with memory management: by default, you
@@ -303,12 +300,10 @@ functions. Lobster uses <code>_</code> for namespacing also in the
 language. The burden on making sure there are no name clashes is on the
 programmer integrating new libraries (you will get an assert if 2 names
 ever clash).</p>
-<p><code>AutoRegister</code> in the example above simply adds the
-function that contains your native function implementations to a list,
-so that the compiler can bind them. This means that the above .cpp file
-doesn’t need any extra mechanism to be added to a Lobster
-implementation, simply link in the file and the functions will be
-available.</p>
+<p>Now from your main program, you’ll need to call
+<code>RegisterBuiltin(nfr, "name", MyNativeOps)</code> or similar before
+you invoke the Lobster compiler, such that these new functions are
+available during all compiler passes.</p>
 <p>You can add the above file to whatever build system you’re using, but
 that may involve modifying the Lobster project files which you may not
 want to do. Instead, if your extension is small enough to sit in a

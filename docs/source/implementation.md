@@ -260,7 +260,7 @@ location without declarations needed elsewhere. To learn how to write your own
 `audio.cpp`, then browse through more complex examples in `builtin.cpp` and
 `graphics.cpp`.
 
-Here's a simple example of a self-contained Lobster extension:
+Here's a simple example of a Lobster extension:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #include "stdafx.h"
@@ -277,15 +277,13 @@ void MyNativeOps(NativeRegistry &nfr) {
 
     // more such declarations here
 }
-
-AutoRegister __mno("name", MyNativeOps);
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You'll need to become somewhat familiar with the Lobster internals to write
 these functions succesfully, in particular with the `Value` type (see
 `vmbase.h`), which is a union of all possible lobster types. If you specify
 specific types (such as `I` for `int`, `F` for `float`, `S` for `string`, `V`
-for `vector`, `L` for a function value etc (more details in `natreg.h`),
+for `vector` etc (more details in `natreg.h`),
 then the `Value` will already have been typechecked and
 guaranteed to be that type, such that you can directly access the component
 (e.g. `.ival()`) without checking the type (you'll get an assert if you get this
@@ -308,11 +306,10 @@ the language. The burden on making sure there are no name clashes is on the
 programmer integrating new libraries (you will get an assert if 2 names ever
 clash).
 
-`AutoRegister` in the example above simply adds the function that contains your
-native function implementations to a list, so that the compiler can bind them.
-This means that the above .cpp file doesn't need any extra mechanism to be added
-to a Lobster implementation, simply link in the file and the functions will be
-available.
+Now from your main program, you'll need to call
+`RegisterBuiltin(nfr, "name", MyNativeOps)` or similar before you invoke the
+Lobster compiler, such that these new functions are available during all
+compiler passes.
 
 You can add the above file to whatever build system you're using, but that
 may involve modifying the Lobster project files which you may not want to do.
