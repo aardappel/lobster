@@ -17,6 +17,7 @@
 #include "lobster/stdafx.h"
 
 #include "lobster/il.h"
+#include "lobster/natreg.h"
 
 #include "lobster/lex.h"
 #include "lobster/idents.h"
@@ -346,14 +347,31 @@ void DumpBuiltinDoc(NativeRegistry &nfr) {
     WriteFile("builtin_functions_reference.html", false, s, false);
 }
 
+void PrepQuery(Query &query, vector<string> &filenames) {
+    for (auto [i, fn] : enumerate(filenames)) {
+        if (fn == query.file) {
+            query.qloc.fileidx = (int)i;
+            break;
+        }
+    }
+    if (query.qloc.fileidx < 0) {
+        THROW_OR_ABORT("query file not part of compilation: " + query.file);
+    }
+    query.qloc.line = parse_int<int>(string_view_nt(query.line));
+    query.filenames = &filenames;
+}
+
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
-             string *parsedump, string *pakfile, bool return_value, int runtime_checks) {
+             string *parsedump, string *pakfile, bool return_value, int runtime_checks,
+             Query *query) {
     vector<string> filenames;
     Lex lex(fn, filenames, stringsource);
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
-    TypeChecker tc(parser, st, return_value);
+    if (query) PrepQuery(*query, filenames);
+    TypeChecker tc(parser, st, return_value, query);
+    if (query) tc.ProcessQuery();  // Failed to find location during type checking.
     tc.Stats(filenames);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
@@ -425,7 +443,7 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
         int runtime_checks = RUNTIME_ASSERT;  // FIXME: let caller decide?
         string bytecode_buffer;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                bytecode_buffer, nullptr, nullptr, true, runtime_checks);
+                bytecode_buffer, nullptr, nullptr, true, runtime_checks, nullptr);
         string error;
         auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, nullptr, std::move(args),
                           TraceMode::OFF, false, error, runtime_checks, true);

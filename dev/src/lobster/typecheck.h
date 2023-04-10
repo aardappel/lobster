@@ -83,8 +83,10 @@ struct TypeChecker {
     vector<FlowItem> flowstack;
     vector<Borrow> borrowstack;
     set<pair<Line, int64_t>> integer_literal_warnings;
+    Query *query;
 
-    TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq) : parser(_p), st(_st) {
+    TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq, Query *query)
+        : parser(_p), st(_st), query(query) {
         st.functions.clear();
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultTypes())
@@ -1200,7 +1202,8 @@ struct TypeChecker {
                 if (!errn)
                     Error(*parser.root, "internal: need specialization for ", Q(TypeName(type)));
                 // No existing specialization found, create a new one.
-                auto udt = new UDT("", (int)st.udttable.size(), type->spec_udt->udt->is_struct);
+                auto udt = new UDT("", (int)st.udttable.size(), type->spec_udt->udt->is_struct,
+                                   type->spec_udt->udt->line);
                 st.udttable.push_back(udt);
                 udt = type->spec_udt->udt->first->CloneInto(udt, type->spec_udt->udt->first->name,
                                                             st.udttable);
@@ -2215,6 +2218,8 @@ struct TypeChecker {
         }
         // Check if we need to do any lifetime adjustments.
         AdjustLifetime(n, recip, idents);
+        // Check for queries.
+        if (query && query->qloc == n->line) ProcessQuery();
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
@@ -2268,6 +2273,27 @@ struct TypeChecker {
         }
         return type;
     };
+
+    void LocationQuery(Line &line) {
+        THROW_OR_ABORT(
+            cat("query_result: ", (*query->filenames)[line.fileidx], " ", line.line));
+    }
+
+    void ProcessQuery() {
+        if (query->kind == "definition") {
+            auto udt = st.LookupStruct(query->iden);
+            if (udt) {
+                LocationQuery(udt->line);
+            }
+            auto f = st.FindFunction(query->iden);
+            if (f) {
+                auto body = f->overloads[0]->gbody;
+                if (body) LocationQuery(body->line);  // FIXME: ignores function types.
+            }
+        } else {
+            THROW_OR_ABORT("unknown query kind: " + query->kind);
+        }
+    }
 
     void Stats(vector<string> &filenames) {
         if (min_output_level > OUTPUT_INFO) return;

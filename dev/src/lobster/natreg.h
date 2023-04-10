@@ -499,6 +499,30 @@ struct NativeRegistry {
     }
 };
 
+struct Line {
+    int line;
+    int fileidx;
+
+    Line(int _line, int _fileidx) : line(_line), fileidx(_fileidx) {}
+
+    bool operator==(const Line &o) const {
+        return line == o.line && fileidx == o.fileidx;
+    }
+    bool operator<(const Line &o) const {
+        return fileidx < o.fileidx || (fileidx == o.fileidx && line < o.line);
+    }
+};
+
+struct Query {
+    Line qloc{ -1, -1 };
+    string kind;
+    string file;
+    string line;
+    string iden;
+    vector<string> args;
+    vector<string> *filenames = nullptr;
+};
+
 }  // namespace lobster
 
 #endif  // LOBSTER_NATREG

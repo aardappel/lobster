@@ -80,6 +80,21 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
 -   `--non-interactive-test` : Quit after running 1 frame. Useful for running graphical
     programs as part of a test suite.
 
+-   `--query`: Ask the compiler to answer a query about definitions in the program being
+    compiled. When is this mode, the compiler does not try to do a full compilation,
+    but simply tries to answer the query, including ignoring errors or aborting half-way
+    if it has to.
+    This option is for use by an IDE or LSP server implementation.
+    All further args are passed to the query.
+    The first arg is the kind of query (e.g. `definition` or `complete`).
+    The second arg is the file this query should take place in (as a relative path, i.e
+    `foo/bar.lobster`).
+    The 3rd arg is the line where the query should happen.
+    The 4th arg is the identifier the query is about.
+    The rest of the args depend on the query type, if any.
+    For `definition` a response will be the location of the definition.
+    For `complete`, it will return a list of possible fields/methods.
+
 Default directories
 -------------------
 

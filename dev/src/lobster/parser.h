@@ -428,7 +428,7 @@ struct Parser {
         lex.Next();
         Line line = lex;
         auto sname = st.MaybeNameSpace(ExpectId(), true);
-        UDT *udt = &st.StructDecl(sname, is_struct);
+        UDT *udt = &st.StructDecl(sname, is_struct, lex);
         udtstack.push_back(udt);
         auto parse_sup = [&] () {
             ExpectId();

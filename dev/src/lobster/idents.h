@@ -250,6 +250,7 @@ struct DispatchEntry {
 };
 
 struct UDT : Named {
+    Line line;
     vector<Field> fields;
     vector<BoundTypeVariable> generics;
     UDT *next = nullptr, *first = this;  // Specializations
@@ -277,8 +278,8 @@ struct UDT : Named {
     // in here.
     vector<DispatchEntry> dispatch_table;
 
-    UDT(string_view _name, int _idx, bool is_struct)
-        : Named(_name, _idx), is_struct(is_struct), unspecialized(this),
+    UDT(string_view _name, int _idx, bool is_struct, Line &line)
+        : Named(_name, _idx), line(line), is_struct(is_struct), unspecialized(this),
           unspecialized_type(&unspecialized) {
         thistype = is_struct ? Type { V_STRUCT_R, this } : Type { V_CLASS, this };
     }
@@ -828,7 +829,7 @@ struct SymbolTable {
         return ev;
     }
 
-    UDT &StructDecl(string_view name, bool is_struct) {
+    UDT &StructDecl(string_view name, bool is_struct, Line &line) {
         auto uit = udts.find(name);
         if (uit != udts.end()) {
             if (!uit->second->predeclaration)
@@ -838,7 +839,7 @@ struct SymbolTable {
             uit->second->predeclaration = false;
             return *uit->second;
         }
-        auto st = new UDT(name, (int)udttable.size(), is_struct);
+        auto st = new UDT(name, (int)udttable.size(), is_struct, line);
         udts[st->name /* must be in value */] = st;
         udttable.push_back(st);
         return *st;
@@ -1292,8 +1293,6 @@ inline string TypeName(TypeRef type, int flen) {
             return string(BaseTypeName(type->t));
     }
 }
-
-
 
 }  // namespace lobster
 

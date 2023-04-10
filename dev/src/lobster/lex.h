@@ -19,20 +19,6 @@
 
 namespace lobster {
 
-struct Line {
-    int line;
-    int fileidx;
-
-    Line(int _line, int _fileidx) : line(_line), fileidx(_fileidx) {}
-
-    bool operator==(const Line &o) const {
-        return line == o.line && fileidx == o.fileidx;
-    }
-    bool operator<(const Line &o) const {
-        return fileidx < o.fileidx || (fileidx == o.fileidx && line < o.line);
-    }
-};
-
 struct LoadedFile : Line {
     const char *p = nullptr;
     const char *linestart = nullptr;

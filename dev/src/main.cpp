@@ -74,6 +74,7 @@ int main(int argc, char* argv[]) {
         vector<string> imports;
         auto trace = TraceMode::OFF;
         auto jit_mode = true;
+        Query query;
         string helptext = "\nUsage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
@@ -98,7 +99,8 @@ int main(int argc, char* argv[]) {
             "--trace                Log bytecode instructions (SLOW, Debug only).\n"
             "--trace-tail           Show last 50 bytecode instructions on error.\n"
             "--tcc-out              Output tcc .o file instead of running.\n"
-            "--wait                 Wait for input before exiting.\n";
+            "--wait                 Wait for input before exiting.\n"
+            "--query QUERY_ARGS     Queries about definitions in the program being compiled.\n";
             int arg = 1;
         for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {
@@ -136,6 +138,18 @@ int main(int argc, char* argv[]) {
                     mainfile = SanitizePath(argv[arg]);
                 } else if (a == "--") {
                     arg++;
+                    break;
+                } else if (a == "--query") {
+                    arg++;
+                    if (argc - arg < 4)
+                        THROW_OR_ABORT("insufficient --query arguments");
+                    query.kind = argv[arg++];
+                    query.file = argv[arg++];
+                    query.line = argv[arg++];
+                    query.iden = argv[arg++];
+                    for (; arg < argc; arg++) {
+                        query.args.push_back(argv[arg]);
+                    }
                     break;
                 }
                 // process identifier supplied by OS X
@@ -193,7 +207,8 @@ int main(int argc, char* argv[]) {
             for (;;) {
                 bytecode_buffer.clear();
                 Compile(nfr, fn, {}, bytecode_buffer, parsedump ? &dump : nullptr,
-                        lpak ? &pakfile : nullptr, false, runtime_checks);
+                        lpak ? &pakfile : nullptr, false, runtime_checks,
+                        !query.kind.empty() ? &query : nullptr);
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
                     //LOG_WARN(mainfile, " does not exist, skipping");
@@ -201,6 +216,10 @@ int main(int argc, char* argv[]) {
                 }
                 fn = StripDirPart(mainfile);
                 mainfile.clear();
+            }
+            if (!query.kind.empty()) {
+                // We don't actually produce anything in this mode.
+                return 0;
             }
             LOG_INFO("time to compile (seconds): ", SecondsSinceStart() - start_time);
             if (parsedump) {
