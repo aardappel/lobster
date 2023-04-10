@@ -24,6 +24,7 @@
 using namespace lobster;
 
 Primitive polymode = PRIM_FAN;
+bool cull_front = true;
 Shader *currentshader = NULL;
 float3 lasthitsize = float3_0;
 float3 lastframehitsize = float3_0;
@@ -91,6 +92,8 @@ bool GraphicsFrameStart() {
     OpenGLFrameStart(GetScreenSize());
     Set2DMode(GetScreenSize(), true);
     ResetShader();
+    polymode = PRIM_FAN;
+    CullFront(cull_front = true);
     return cb;
 }
 
@@ -603,6 +606,15 @@ nfr("gl_line_mode", "on", "I", "I",
         auto on = Pop(sp);
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         Push(sp, oldmode == PRIM_LOOP);
+    });
+
+nfr("gl_cull_front", "on", "B", "B",
+    "set culling front (true) or back (false), returns previous value.",
+    [](StackPtr &sp, VM &) {
+        auto oldmode = cull_front;
+        cull_front = Pop(sp).True();
+        CullFront(cull_front);
+        Push(sp, oldmode);
     });
 
 nfr("gl_hit", "vec,i", "F}I", "B",

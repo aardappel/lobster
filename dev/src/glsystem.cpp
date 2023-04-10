@@ -138,6 +138,10 @@ void CullFace(bool on) {
     GL_CALL(if (on) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE));
 }
 
+void CullFront(bool on) {
+    GL_CALL(glCullFace(on ? GL_FRONT : GL_BACK));
+}
+
 bool Is2DMode() { return mode2d; }
 bool IsSRGBMode() { return mode_srgb; }
 
@@ -228,7 +232,7 @@ string OpenGLInit(int samples, bool srgb) {
             mode_srgb = true;
         }
     #endif
-    GL_CALL(glCullFace(GL_FRONT));
+    CullFront(true);
     if (!geomcache) geomcache = new GeometryCache();
     #if LOBSTER_FRAME_PROFILER
         #undef new
