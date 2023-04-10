@@ -311,13 +311,16 @@ bool IsAbsolute(string_view filename) {
            (filename[0] == '/' || filename[0] == '\\' || filename[1] == ':');
 }
 
+string last_abs_path_loaded;
+string LastAbsPathLoaded() { return last_abs_path_loaded; }
+
 int64_t LoadFileFromAny(string_view filename, string *dest, int64_t start, int64_t len) {
     if (IsAbsolute(filename)) {
         // Absolute filename.
-        return cur_loader(string(filename), dest, start, len);
+        return cur_loader(last_abs_path_loaded = string(filename), dest, start, len);
     }
     for (auto &dir : data_dirs) {
-        auto l = cur_loader(dir + filename, dest, start, len);
+        auto l = cur_loader(last_abs_path_loaded = dir + filename, dest, start, len);
         if (l >= 0) return l;
     }
     LOG_DEBUG("LoadFileFromAny: ", filename, " file not found");

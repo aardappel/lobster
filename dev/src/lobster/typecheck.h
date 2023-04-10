@@ -2276,7 +2276,7 @@ struct TypeChecker {
 
     void LocationQuery(Line &line) {
         THROW_OR_ABORT(
-            cat("query_location: ", (*query->filenames)[line.fileidx], " ", line.line));
+            cat("query_location: ", (*query->filenames)[line.fileidx].second, " ", line.line));
     }
 
     void FindVar(vector<Arg> &vars) {
@@ -2325,7 +2325,7 @@ struct TypeChecker {
         }
     }
 
-    void Stats(vector<string> &filenames) {
+    void Stats(vector<pair<string, string>> &filenames) {
         if (min_output_level > OUTPUT_INFO) return;
         int origsf = 0, clonesf = 0;
         size_t orignodes = 0, clonenodes = 0;
@@ -2350,7 +2350,7 @@ struct TypeChecker {
         for (auto &[fsize, f] : funstats) if (fsize > orignodes / 100) {
             auto s = cat("Most clones: ", f->name);
             if (auto body = f->overloads.back()->sf->sbody) {
-                s += cat(" (", filenames[body->line.fileidx], ":", body->line.line, ")");
+                s += cat(" (", filenames[body->line.fileidx].first, ":", body->line.line, ")");
             }
             LOG_INFO(s, " -> ", fsize, " nodes accross ", f->NumSubf() - f->overloads.size(),
                      " clones (+", f->overloads.size(), " orig)");

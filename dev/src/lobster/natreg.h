@@ -520,7 +520,7 @@ struct Query {
     string line;
     string iden;
     vector<string> args;
-    vector<string> *filenames = nullptr;
+    vector<pair<string, string>> *filenames = nullptr;
 };
 
 }  // namespace lobster

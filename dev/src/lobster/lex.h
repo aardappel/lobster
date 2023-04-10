@@ -47,7 +47,7 @@ struct LoadedFile : Line {
 
     string filename;
 
-    LoadedFile(string_view fn, vector<string> &fns, string_view stringsource)
+    LoadedFile(string_view fn, vector<pair<string, string>> &fns, string_view stringsource)
         : Line(1, (int)fns.size()) {
         if (!stringsource.empty()) {
             *source.get() = stringsource;
@@ -61,7 +61,7 @@ struct LoadedFile : Line {
 
         indentstack.push_back({ 0, false });
 
-        fns.push_back(string(fn));
+        fns.push_back({ string(fn), LastAbsPathLoaded() });
         filename = fn;
     }
 };
@@ -71,11 +71,11 @@ struct Lex : LoadedFile {
     set<string, less<>> allfiles;
     vector<shared_ptr<string>> allsources;
 
-    vector<string> &filenames;
+    vector<pair<string, string>> &filenames;
 
     bool do_string_interpolation = true;
 
-    Lex(string_view fn, vector<string> &fns, string_view _ss = {})
+    Lex(string_view fn, vector<pair<string, string>> &fns, string_view _ss = {})
         : LoadedFile(fn, fns, _ss), filenames(fns) {
         allsources.push_back(source);
         if (!fn.empty()) allfiles.insert(string(fn));
@@ -627,7 +627,7 @@ struct Lex : LoadedFile {
     }
 
     string Location(const Line &ln) {
-        return cat(filenames[ln.fileidx], "(", ln.line, ")");
+        return cat(filenames[ln.fileidx].first, "(", ln.line, ")");
     }
 
     void Error(string_view msg, const Line *ln = nullptr) {

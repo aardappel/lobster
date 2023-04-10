@@ -35,6 +35,9 @@ extern string StripDirPart(string_view_nt filepath);
 extern int64_t LoadFile(string_view relfilename, string *dest, int64_t start = 0, int64_t len = -1,
                         bool binary = true);
 
+// Full absolute path of last file attempted by LoadFile.
+extern string LastAbsPathLoaded();
+
 // fopen based implementation of FileLoader above to pass to InitPlatform if needed.
 extern int64_t DefaultLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len);
 

@@ -96,7 +96,7 @@ struct Deserializer {
 };
 
 struct ValueParser : Deserializer {
-    vector<string> filenames;
+    vector<pair<string, string>> filenames;
     Lex lex;
 
     ValueParser(VM &vm, string_view _src) : Deserializer(vm), lex("string", filenames, _src) {

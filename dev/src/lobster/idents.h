@@ -1132,12 +1132,12 @@ struct SymbolTable {
                    vector<string_view> &stringtable,
                    string &bytecode,
                    vector<int> &vtables,
-                   vector<string> &filenames) {
+                   vector<pair<string, string>> &filenames) {
         flatbuffers::FlatBufferBuilder fbb;
         // Always serialize this first! that way it can easily be left out of the generated C code.
         auto codevec = fbb.CreateVector(code);
         vector<flatbuffers::Offset<flatbuffers::String>> fns;
-        for (auto &f : filenames) fns.push_back(fbb.CreateString(f));
+        for (auto &f : filenames) fns.push_back(fbb.CreateString(f.first));
         vector<flatbuffers::Offset<bytecode::Function>> functionoffsets;
         for (auto f : functiontable) functionoffsets.push_back(f->Serialize(fbb));
         vector<flatbuffers::Offset<bytecode::UDT>> udtoffsets;

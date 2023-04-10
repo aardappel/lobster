@@ -347,9 +347,9 @@ void DumpBuiltinDoc(NativeRegistry &nfr) {
     WriteFile("builtin_functions_reference.html", false, s, false);
 }
 
-void PrepQuery(Query &query, vector<string> &filenames) {
+void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
     for (auto [i, fn] : enumerate(filenames)) {
-        if (fn == query.file) {
+        if (fn.first == query.file) {
             query.qloc.fileidx = (int)i;
             break;
         }
@@ -364,7 +364,7 @@ void PrepQuery(Query &query, vector<string> &filenames) {
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
              string *parsedump, string *pakfile, bool return_value, int runtime_checks,
              Query *query) {
-    vector<string> filenames;
+    vector<pair<string, string>> filenames;
     Lex lex(fn, filenames, stringsource);
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
