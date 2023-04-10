@@ -35,6 +35,7 @@ struct SpecIdent;
 
 struct Ident : Named {
     size_t scopelevel;
+    Line line;
 
     bool isprivate = false;
     bool single_assignment = true;  // not declared const but def only, exp may or may not be const
@@ -47,8 +48,8 @@ struct Ident : Named {
 
     UnresolvedTypeRef giventype = { nullptr };
 
-    Ident(string_view _name, int _idx, size_t _sl)
-        : Named(_name, _idx), scopelevel(_sl) {}
+    Ident(string_view _name, int _idx, size_t _sl, Line &_line)
+        : Named(_name, _idx), scopelevel(_sl), line(_line) {}
 
     void Assign(Lex &lex) {
         single_assignment = false;
@@ -639,8 +640,8 @@ struct SymbolTable {
         return nullptr;
     }
 
-    Ident *NewId(string_view name, SubFunction *sf, bool withtype, size_t scopelevel) {
-        auto ident = new Ident(name, (int)identtable.size(), scopelevel);
+    Ident *NewId(string_view name, SubFunction *sf, bool withtype, size_t scopelevel, Line &line) {
+        auto ident = new Ident(name, (int)identtable.size(), scopelevel, line);
         ident->cursid = NewSid(ident, sf, withtype);
         identtable.push_back(ident);
         idents[ident->name /* must be in value */] = ident;
@@ -665,7 +666,7 @@ struct SymbolTable {
             return ident;
         }
         auto sf = defsubfunctionstack.back();
-        ident = NewId(name, sf, withtype, scopelevels.size());
+        ident = NewId(name, sf, withtype, scopelevels.size(), lex);
         (islocal ? sf->locals : sf->args).push_back(
             Arg(ident->cursid, type_any));
         return ident;
@@ -677,7 +678,7 @@ struct SymbolTable {
             lex.Error(cat("identifier shadowing/redefinition: ", name));
         auto sf = defsubfunctionstack[0];
         // Is going to get removed as if it was part of the current function.
-        ident = NewId(name, sf, false, 1);
+        ident = NewId(name, sf, false, 1, lex);
         sf->locals.push_back(Arg(ident->cursid, type_any));
         return ident;
     }

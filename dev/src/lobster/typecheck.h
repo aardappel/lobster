@@ -2279,8 +2279,20 @@ struct TypeChecker {
             cat("query_location: ", (*query->filenames)[line.fileidx], " ", line.line));
     }
 
+    void FindVar(vector<Arg> &vars) {
+        for (auto &var : vars) {
+            if (var.sid->id->name == query->iden) LocationQuery(var.sid->id->line);
+        }
+    }
+
     void ProcessQuery() {
         if (query->kind == "definition") {
+            // The top scope includes a list of free vars so should be able to resolve any var
+            // at the given location.. if no scopes, use top fun.
+            auto sf = scopes.empty() ? st.toplevel : scopes.back().sf;
+            FindVar(sf->args);
+            FindVar(sf->locals);
+            FindVar(sf->freevars);
             auto udt = st.LookupStruct(query->iden);
             if (udt) {
                 LocationQuery(udt->line);
@@ -2307,8 +2319,9 @@ struct TypeChecker {
                     }
                 }
             }
+            THROW_OR_ABORT("query_unknown_ident: " + query->iden);
         } else {
-            THROW_OR_ABORT("query_unknown: " + query->kind);
+            THROW_OR_ABORT("query_unknown_kind: " + query->kind);
         }
     }
 
