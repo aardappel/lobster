@@ -2276,7 +2276,7 @@ struct TypeChecker {
 
     void LocationQuery(Line &line) {
         THROW_OR_ABORT(
-            cat("query_result: ", (*query->filenames)[line.fileidx], " ", line.line));
+            cat("query_location: ", (*query->filenames)[line.fileidx], " ", line.line));
     }
 
     void ProcessQuery() {
@@ -2285,13 +2285,30 @@ struct TypeChecker {
             if (udt) {
                 LocationQuery(udt->line);
             }
+            // FIXME: may not work when namespaces are involved.
             auto f = st.FindFunction(query->iden);
             if (f) {
                 auto body = f->overloads[0]->gbody;
                 if (body) LocationQuery(body->line);  // FIXME: ignores function types.
             }
+            auto nf = parser.natreg.FindNative(query->iden);
+            if (nf) {
+                // This doesn't have a source code location, so output a signature the IDE can display.
+                THROW_OR_ABORT("query_signature: " + Signature(*nf));
+            }
+            auto fld = st.FieldUse(query->iden);
+            if (fld) {
+                // To know what this belongs to, would need to find the object it belongs to.
+                // For now, simply see if we can find any class that has this field.
+                for (auto udt : st.udttable) {
+                    if (udt->Has(fld)) {
+                        // FIXME: this is really basic, lets at least find the field line.
+                        LocationQuery(udt->line);
+                    }
+                }
+            }
         } else {
-            THROW_OR_ABORT("unknown query kind: " + query->kind);
+            THROW_OR_ABORT("query_unknown: " + query->kind);
         }
     }
 
