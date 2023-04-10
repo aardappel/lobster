@@ -2274,14 +2274,17 @@ struct TypeChecker {
         return type;
     };
 
-    void LocationQuery(Line &line) {
+    void LocationQuery(Line &line, string_view type) {
         THROW_OR_ABORT(
-            cat("query_location: ", (*query->filenames)[line.fileidx].second, " ", line.line));
+            cat("query_location: ", (*query->filenames)[line.fileidx].second, " ", line.line,
+                " ", type));
     }
 
     void FindVar(vector<Arg> &vars) {
         for (auto &var : vars) {
-            if (var.sid->id->name == query->iden) LocationQuery(var.sid->id->line);
+            if (var.sid->id->name == query->iden) {
+                LocationQuery(var.sid->id->line, TypeName(var.sid->type));
+            }
         }
     }
 
@@ -2295,13 +2298,15 @@ struct TypeChecker {
             FindVar(sf->freevars);
             auto udt = st.LookupStruct(query->iden);
             if (udt) {
-                LocationQuery(udt->line);
+                LocationQuery(udt->line, Signature(*udt));
             }
             // FIXME: may not work when namespaces are involved.
             auto f = st.FindFunction(query->iden);
             if (f) {
-                auto body = f->overloads[0]->gbody;
-                if (body) LocationQuery(body->line);  // FIXME: ignores function types.
+                auto ov = f->overloads[0];
+                if (ov->gbody) {  // FIXME: ignores function types.
+                    LocationQuery(ov->gbody->line, ov->sf ? Signature(*ov->sf) : "");  
+                }
             }
             auto nf = parser.natreg.FindNative(query->iden);
             if (nf) {
@@ -2313,9 +2318,10 @@ struct TypeChecker {
                 // To know what this belongs to, would need to find the object it belongs to.
                 // For now, simply see if we can find any class that has this field.
                 for (auto udt : st.udttable) {
-                    if (udt->Has(fld)) {
+                    int fi = udt->Has(fld);
+                    if (fi >= 0) {
                         // FIXME: this is really basic, lets at least find the field line.
-                        LocationQuery(udt->line);
+                        LocationQuery(udt->line, TypeName(udt->fields[fi].utype()));
                     }
                 }
             }
