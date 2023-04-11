@@ -667,12 +667,11 @@ nfr("int", "v", "F}", "I}",
     [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval())); });
 
 nfr("round", "f", "F", "I",
-    "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
-    " negative numbers",
-    [](StackPtr &, VM &, Value &a) { return Value(iint(a.fval() + 0.5f)); });
+    "converts a float to the closest int",
+    [](StackPtr &, VM &, Value &a) { return Value(iint(a.fval() + (double(a.fval() >= 0) - 0.5))); });
 nfr("round", "v", "F}", "I}",
     "converts a vector of floats to the closest ints",
-    [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval() + 0.5f)); });
+    [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval() + (double(f.fval() >= 0) - 0.5))); });
 
 nfr("fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - floor(f)",
