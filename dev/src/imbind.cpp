@@ -659,6 +659,14 @@ nfr("im_window_end", "", "", "",
         NPop(vm, N_WIN);
     });
 
+nfr("im_next_window_size", "size", "F}:2", "",
+    "size in pixels",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, N_FRAME);
+        auto size = PopVec<float2>(sp);
+        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Appearing);
+    });
+
 nfr("im_next_window_pos", "pos,pivot", "F}:2F}:2", "",
     "pos in pixels, pivot values 0..1 relative to pos",
     [](StackPtr &sp, VM &vm) {

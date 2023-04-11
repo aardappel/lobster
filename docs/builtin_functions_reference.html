@@ -70,7 +70,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>floor</b>(v<font color="#666666">:vec_f</font>) -> <font color="#666666">vec_i</font></tt></td><td class="a">the nearest ints &lt;= each component of v</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>int</b>(f<font color="#666666">:float</font>) -> <font color="#666666">int</font></tt></td><td class="a">converts a float to an int by dropping the fraction</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>int</b>(v<font color="#666666">:vec_f</font>) -> <font color="#666666">vec_i</font></tt></td><td class="a">converts a vector of floats to ints by dropping the fraction</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>round</b>(f<font color="#666666">:float</font>) -> <font color="#666666">int</font></tt></td><td class="a">converts a float to the closest int. same as int(f + 0.5), so does not work well on negative numbers</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>round</b>(f<font color="#666666">:float</font>) -> <font color="#666666">int</font></tt></td><td class="a">converts a float to the closest int</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>round</b>(v<font color="#666666">:vec_f</font>) -> <font color="#666666">vec_i</font></tt></td><td class="a">converts a vector of floats to the closest ints</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>fraction</b>(f<font color="#666666">:float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns the fractional part of a float: short for f - floor(f)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>fraction</b>(v<font color="#666666">:vec_f</font>) -> <font color="#666666">vec_f</font></tt></td><td class="a">returns the fractional part of a vector of floats</td></tr>
@@ -528,6 +528,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im_window_demo</b>() -> <font color="#666666">int</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_window_start</b>(title<font color="#666666">:string</font>, flags<font color="#666666">:int</font>, dock<font color="#666666">:int</font>)</tt></td><td class="a">(use im_window instead)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_window_end</b>()</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_next_window_size</b>(size<font color="#666666">:xy_f</font>)</tt></td><td class="a">size in pixels</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_next_window_pos</b>(pos<font color="#666666">:xy_f</font>, pivot<font color="#666666">:xy_f</font>)</tt></td><td class="a">pos in pixels, pivot values 0..1 relative to pos</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_button</b>(label<font color="#666666">:string</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_selectable</b>(label<font color="#666666">:string</font>, selected<font color="#666666">:bool</font> = false) -> <font color="#666666">int</font></tt></td><td class="a"></td></tr>
