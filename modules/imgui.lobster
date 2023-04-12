@@ -166,10 +166,10 @@ def im_child(title, size, flags, body):
     body()
     im_child_end()
 
-def im_vgroup(body):
-    im_vgroup_start()
+def im_group(body):
+    im_group_start()
     body()
-    im_vgroup_end()
+    im_group_end()
 
 private let stack_traces = []
 // Collect stack traces for the location this function is called from,

@@ -1009,16 +1009,16 @@ nfr("im_child_end", "", "", "",
         NPop(vm, N_CHILD);
     });
 
-nfr("im_vgroup_start", "", "", "",
+nfr("im_group_start", "", "", "",
     "lock the horizontal starting position, and capture all contained widgets"
-    " into one item. Use im_vgroup instead",
+    " into one item. Use im_group instead",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::BeginGroup();
         NPush(N_VGROUP);
     });
 
-nfr("im_vgroup_end", "", "", "",
+nfr("im_group_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
