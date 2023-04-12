@@ -724,14 +724,14 @@ nfr("im_separator", "", "", "",
         return NilVal();
     });
 
-nfr("im_get_cursor_pos", "", "", "F}:2", "",
+nfr("im_get_layout_pos", "", "", "F}:2", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto pos = ImGui::GetCursorPos();
         PushVec(sp, float2(pos.x, pos.y));
     });
 
-nfr("im_set_cursor_pos", "pos", "F}:2", "", "",
+nfr("im_set_layout_pos", "pos", "F}:2", "", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto pos = PopVec<float2>(sp);
