@@ -44,7 +44,7 @@ enum Nesting {
     N_WIN,
     N_TAB_BAR,
     N_TAB,
-    N_GROUP,
+    N_ID,
     N_WIDTH,
     N_TREE,
     N_POPUP,
@@ -108,7 +108,7 @@ void NPop(VM &vm, Nesting n) {
             case N_TAB:
                 ImGui::EndTabItem();
                 break;            
-            case N_GROUP:
+            case N_ID:
                 ImGui::PopID();
                 break;
             case N_WIDTH:
@@ -973,22 +973,22 @@ nfr("im_tab_end", "", "", "",
         NPop(vm, N_TAB);
     });
 
-nfr("im_group_start", "label", "Ss", "",
+nfr("im_id_start", "label", "Ss", "",
     "an invisble group around some widgets, useful to ensure these widgets are unique"
     " (if they have the same label as widgets in another group that has a different group"
-    " label). Use im_group instead",
+    " label). Use im_id instead",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto title = Pop(sp);
         ImGui::PushID(title.sval()->data());
-        NPush(N_GROUP);
+        NPush(N_ID);
     });
 
-nfr("im_group_end", "", "", "",
+nfr("im_id_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
-        NPop(vm, N_GROUP);
+        NPop(vm, N_ID);
     });
 
 nfr("im_child_start", "title,size,flags", "SF}:2I", "",

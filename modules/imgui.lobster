@@ -125,10 +125,10 @@ def im_tab(label, flags, body):
         im_tab_end()
     return open
 
-def im_group(label, body):
-    im_group_start(label)
+def im_id(label, body):
+    im_id_start(label)
     body()
-    im_group_end()
+    im_id_end()
 
 // Call im_popup_open (from e.g. im_button) with same label as this, followed by im_popup() with body.
 def im_popup(label, body):
