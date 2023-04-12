@@ -48,6 +48,8 @@ enum Nesting {
     N_WIDTH,
     N_TREE,
     N_POPUP,
+    N_CHILD,
+    N_VGROUP,
 };
 
 vector<Nesting> nstack;
@@ -117,6 +119,12 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_POPUP:
                 ImGui::EndPopup();
+                break;
+            case N_CHILD:
+                ImGui::EndChild();
+                break;
+            case N_VGROUP:
+                ImGui::EndGroup();
                 break;
  
         }
@@ -702,12 +710,40 @@ nfr("im_same_line", "", "", "", "",
         return NilVal();
     });
 
+nfr("im_new_line", "", "", "", "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::NewLine();
+    });
+
 nfr("im_separator", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::Separator();
         return NilVal();
+    });
+
+nfr("im_get_cursor_pos", "", "", "F}:2", "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto pos = ImGui::GetCursorPos();
+        PushVec(sp, float2(pos.x, pos.y));
+    });
+
+nfr("im_set_cursor_pos", "pos", "F}:2", "", "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto pos = PopVec<float2>(sp);
+        ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
+    });
+
+nfr("im_get_content_region_avail", "", "", "F}:2",
+    "returns the amount of space left in the current region from the cursor pos",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto avail = ImGui::GetContentRegionAvail();
+        PushVec(sp, float2(avail.x, avail.y));
     });
 
 nfr("im_text", "label", "S", "",
@@ -732,7 +768,8 @@ nfr("im_tooltip", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", text.sval()->data());
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            ImGui::SetTooltip("%s", text.sval()->data());
         return NilVal();
     });
 
@@ -872,6 +909,17 @@ nfr("im_image", "tex,size", "R:textureF}:2", "",
         ImGui::Image((ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
     });
 
+nfr("im_image_button", "label,tex,size", "SR:textureF}:2", "B",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto sz = PopVec<float2>(sp);
+        auto t = GetTexture(Pop(sp));
+        auto label = Pop(sp);
+        auto press = ImGui::ImageButton(label.sval()->data(), (ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+        Push(sp, press);
+    });
+
 nfr("im_treenode_start", "label,flags", "SI", "B",
     "(use im_treenode instead)",
     [](StackPtr &sp, VM &vm) {
@@ -941,6 +989,40 @@ nfr("im_group_end", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_GROUP);
+    });
+
+nfr("im_child_start", "title,size,flags", "SF}:2I", "",
+    "create a self-contained scrolling/clipping region with a window. use im_child instead",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto flags = Pop(sp);
+        auto sz = PopVec<float2>(sp);
+        auto title = Pop(sp);
+        ImGui::BeginChild(title.sval()->data(), ImVec2(sz.x, sz.y), false, (ImGuiWindowFlags)flags.ival());
+        NPush(N_CHILD);
+    });
+
+nfr("im_child_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_CHILD);
+    });
+
+nfr("im_vgroup_start", "", "", "",
+    "lock the horizontal starting position, and capture all contained widgets"
+    " into one item. Use im_vgroup instead",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::BeginGroup();
+        NPush(N_VGROUP);
+    });
+
+nfr("im_vgroup_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_VGROUP);
     });
 
 nfr("im_popup_start", "label,winflags,rmbprevitem", "SIB?", "B",

@@ -533,7 +533,11 @@
 <tr class="a" valign=top><td class="a"><tt><b>im_button</b>(label<font color="#666666">:string</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_selectable</b>(label<font color="#666666">:string</font>, selected<font color="#666666">:bool</font> = false) -> <font color="#666666">int</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_same_line</b>()</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_new_line</b>()</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_separator</b>()</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_get_cursor_pos</b>() -> <font color="#666666">xy_f</font></tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_set_cursor_pos</b>(pos<font color="#666666">:xy_f</font>)</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_get_content_region_avail</b>() -> <font color="#666666">xy_f</font></tt></td><td class="a">returns the amount of space left in the current region from the cursor pos</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_text</b>(label<font color="#666666">:string</font>)</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_text_wrapped</b>(label<font color="#666666">:string</font>)</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_tooltip</b>(label<font color="#666666">:string</font>)</tt></td><td class="a"></td></tr>
@@ -554,6 +558,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im_sliderfloat4</b>(label<font color="#666666">:string</font>, F4<font color="#666666">:xyzw_f</font>, min<font color="#666666">:float</font>, max<font color="#666666">:float</font>) -> <font color="#666666">xyzw_f</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_coloredit</b>(label<font color="#666666">:string</font>, color<font color="#666666">:vec_f</font>) -> <font color="#666666">any</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_image</b>(tex<font color="#666666">:resource&lt;texture&gt;</font>, size<font color="#666666">:xy_f</font>)</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_image_button</b>(label<font color="#666666">:string</font>, tex<font color="#666666">:resource&lt;texture&gt;</font>, size<font color="#666666">:xy_f</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_treenode_start</b>(label<font color="#666666">:string</font>, flags<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im_treenode instead)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_treenode_end</b>()</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_tab_bar_start</b>(label<font color="#666666">:string</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im_tab_bar instead)</td></tr>
@@ -562,6 +567,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>im_tab_end</b>()</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_group_start</b>(label<font color="#666666">:string</font>)</tt></td><td class="a">an invisble group around some widgets, useful to ensure these widgets are unique (if they have the same label as widgets in another group that has a different group label). Use im_group instead</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_group_end</b>()</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_child_start</b>(title<font color="#666666">:string</font>, size<font color="#666666">:xy_f</font>, flags<font color="#666666">:int</font>)</tt></td><td class="a">create a self-contained scrolling/clipping region with a window. use im_child instead</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_child_end</b>()</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_vgroup_start</b>()</tt></td><td class="a">lock the horizontal starting position, and capture all contained widgets into one item. Use im_vgroup instead</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_vgroup_end</b>()</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_popup_start</b>(label<font color="#666666">:string</font>, winflags<font color="#666666">:int</font>, rmbprevitem<font color="#666666">:bool</font> = false) -> <font color="#666666">int</font></tt></td><td class="a">(use im_popup instead)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_popup_end</b>()</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_popup_open</b>(label<font color="#666666">:string</font>)</tt></td><td class="a"></td></tr>
