@@ -539,8 +539,9 @@ Besides enforcing the type of function that can be passed (which makes for more
 readable errors when it fails), it also forces the function passed to not be inlined
 (which may reduce code-bloat if functions taking this function type are called
 many times, at a minimal hit in speed). Function values called over a generic
-variable are always inlined, to ensure higher order functions are competitive
-in speed with hard-coded equivalents.
+variable are always inlined (since they represent a unique function type even
+if its signature is accidentally the same as another function value), to ensure
+higher order functions are competitive in speed with hard-coded equivalents.
 
 Lobster really wants you to be able to use function values everywhere at no
 cost, so besides guaranteed inlining, the other way they differ from other
