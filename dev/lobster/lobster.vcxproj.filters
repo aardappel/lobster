@@ -349,9 +349,6 @@
     <ClInclude Include="..\external\imgui\imgui_impl_opengl3.h">
       <Filter>engine\imgui\lib</Filter>
     </ClInclude>
-    <ClInclude Include="..\external\imgui\imgui_impl_sdl.h">
-      <Filter>engine\imgui\lib</Filter>
-    </ClInclude>
     <ClInclude Include="..\external\imgui\imgui_internal.h">
       <Filter>engine\imgui\lib</Filter>
     </ClInclude>
@@ -387,6 +384,9 @@
     </ClInclude>
     <ClInclude Include="..\src\lobster\graphics.h">
       <Filter>engine\lobster_bindings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imgui_impl_sdl2.h">
+      <Filter>engine\imgui\lib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1152,9 +1152,6 @@
     <ClCompile Include="..\external\imgui\imgui_impl_opengl3.cpp">
       <Filter>engine\imgui\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\external\imgui\imgui_impl_sdl.cpp">
-      <Filter>engine\imgui\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\imgui\imgui_widgets.cpp">
       <Filter>engine\imgui\lib</Filter>
     </ClCompile>
@@ -1213,6 +1210,9 @@
       <Filter>engine\profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\external\imgui\imgui_tables.cpp">
+      <Filter>engine\imgui\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\imgui\imgui_impl_sdl2.cpp">
       <Filter>engine\imgui\lib</Filter>
     </ClCompile>
   </ItemGroup>

@@ -696,9 +696,9 @@
 		33FDF156220A599400D7B010 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF148220A599400D7B010 /* imgui_demo.cpp */; };
 		33FDF157220A599400D7B010 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF148220A599400D7B010 /* imgui_demo.cpp */; };
 		33FDF158220A599400D7B010 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF148220A599400D7B010 /* imgui_demo.cpp */; };
-		33FDF159220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */; };
-		33FDF15A220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */; };
-		33FDF15B220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */; };
+		33FDF159220A599400D7B010 /* imgui_impl_sdl2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl2.cpp */; };
+		33FDF15A220A599400D7B010 /* imgui_impl_sdl2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl2.cpp */; };
+		33FDF15B220A599400D7B010 /* imgui_impl_sdl2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl2.cpp */; };
 		33FDF15C220A599400D7B010 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF14A220A599400D7B010 /* imgui_draw.cpp */; };
 		33FDF15D220A599400D7B010 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF14A220A599400D7B010 /* imgui_draw.cpp */; };
 		33FDF15E220A599400D7B010 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF14A220A599400D7B010 /* imgui_draw.cpp */; };
@@ -1323,7 +1323,7 @@
 		33FDF13E220A599400D7B010 /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imconfig.h; sourceTree = "<group>"; };
 		33FDF13F220A599400D7B010 /* imgui_widgets.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_widgets.cpp; sourceTree = "<group>"; };
 		33FDF140220A599400D7B010 /* imstb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_truetype.h; sourceTree = "<group>"; };
-		33FDF141220A599400D7B010 /* imgui_impl_sdl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_sdl.h; sourceTree = "<group>"; };
+		33FDF141220A599400D7B010 /* imgui_impl_sdl2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_sdl2.h; sourceTree = "<group>"; };
 		33FDF142220A599400D7B010 /* imgui_impl_opengl3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_opengl3.h; sourceTree = "<group>"; };
 		33FDF143220A599400D7B010 /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui.cpp; sourceTree = "<group>"; };
 		33FDF144220A599400D7B010 /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_internal.h; sourceTree = "<group>"; };
@@ -1331,7 +1331,7 @@
 		33FDF146220A599400D7B010 /* imstb_rectpack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_rectpack.h; sourceTree = "<group>"; };
 		33FDF147220A599400D7B010 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		33FDF148220A599400D7B010 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_demo.cpp; sourceTree = "<group>"; };
-		33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_impl_sdl.cpp; sourceTree = "<group>"; };
+		33FDF149220A599400D7B010 /* imgui_impl_sdl2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_impl_sdl2.cpp; sourceTree = "<group>"; };
 		33FDF14A220A599400D7B010 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
 		33FDF15F220A59C400D7B010 /* imbind.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imbind.cpp; sourceTree = "<group>"; };
 		33FDF160220A59C400D7B010 /* disasm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = disasm.cpp; sourceTree = "<group>"; };
@@ -2540,7 +2540,7 @@
 				33FDF13E220A599400D7B010 /* imconfig.h */,
 				33FDF13F220A599400D7B010 /* imgui_widgets.cpp */,
 				33FDF140220A599400D7B010 /* imstb_truetype.h */,
-				33FDF141220A599400D7B010 /* imgui_impl_sdl.h */,
+				33FDF141220A599400D7B010 /* imgui_impl_sdl2.h */,
 				33FDF142220A599400D7B010 /* imgui_impl_opengl3.h */,
 				33FDF143220A599400D7B010 /* imgui.cpp */,
 				33FDF144220A599400D7B010 /* imgui_internal.h */,
@@ -2548,7 +2548,7 @@
 				33FDF146220A599400D7B010 /* imstb_rectpack.h */,
 				33FDF147220A599400D7B010 /* LICENSE.txt */,
 				33FDF148220A599400D7B010 /* imgui_demo.cpp */,
-				33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */,
+				33FDF149220A599400D7B010 /* imgui_impl_sdl2.cpp */,
 				33FDF14A220A599400D7B010 /* imgui_draw.cpp */,
 			);
 			name = imgui;
@@ -2980,7 +2980,7 @@
 				8C76039D195E457400EADF6F /* b2DistanceJoint.cpp in Sources */,
 				33D160211BAB9A2200BAD84D /* SDL_dynapi.c in Sources */,
 				8C760358195E457400EADF6F /* b2Draw.cpp in Sources */,
-				33FDF15B220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
+				33FDF15B220A599400D7B010 /* imgui_impl_sdl2.cpp in Sources */,
 				33D160931BAB9A2200BAD84D /* SDL_joystick.c in Sources */,
 				33D160301BAB9A2200BAD84D /* SDL_keyboard.c in Sources */,
 				33878CF51F7B201D007BB196 /* load_mp3.c in Sources */,
@@ -3249,7 +3249,7 @@
 				8C760357195E457400EADF6F /* b2Draw.cpp in Sources */,
 				33D160201BAB9A2200BAD84D /* SDL_dynapi.c in Sources */,
 				8C760399195E457400EADF6F /* b2PolygonContact.cpp in Sources */,
-				33FDF15A220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
+				33FDF15A220A599400D7B010 /* imgui_impl_sdl2.cpp in Sources */,
 				33D160921BAB9A2200BAD84D /* SDL_joystick.c in Sources */,
 				33D1602F1BAB9A2200BAD84D /* SDL_keyboard.c in Sources */,
 				33878CF41F7B201D007BB196 /* load_mp3.c in Sources */,
@@ -3644,7 +3644,7 @@
 				8C76034A195E457400EADF6F /* b2CircleShape.cpp in Sources */,
 				33878CC91F7B201D007BB196 /* dynamic_ogg.c in Sources */,
 				33878CF01F7B201D007BB196 /* music_modplug.c in Sources */,
-				33FDF159220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
+				33FDF159220A599400D7B010 /* imgui_impl_sdl2.cpp in Sources */,
 				33D162B11BAB9A2200BAD84D /* SDL_blit.c in Sources */,
 				33D162031BAB9A2200BAD84D /* SDL_cocoaevents.m in Sources */,
 				33D161611BAB9A2200BAD84D /* SDL_string.c in Sources */,

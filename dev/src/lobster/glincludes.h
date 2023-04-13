@@ -73,6 +73,7 @@
         GLEXT(PFNGLDELETEPROGRAMPROC                 , glDeleteProgram                 , 1) \
         GLEXT(PFNGLDELETESHADERPROC                  , glDeleteShader                  , 1) \
         GLEXT(PFNGLUSEPROGRAMPROC                    , glUseProgram                    , 1) \
+        GLEXT(PFNGLISPROGRAMPROC                     , glIsProgram                     , 1) \
         GLEXT(PFNGLCREATESHADERPROC                  , glCreateShader                  , 1) \
         GLEXT(PFNGLSHADERSOURCEPROC                  , glShaderSource                  , 1) \
         GLEXT(PFNGLCOMPILESHADERPROC                 , glCompileShader                 , 1) \
