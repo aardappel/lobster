@@ -41,7 +41,10 @@ bool imgui_init = false;
 enum Nesting {
     N_NONE,
     N_FRAME,
+    N_MAIN_MENU_BAR,
     N_WIN,
+    N_MENU_BAR,
+    N_MENU,
     N_TAB_BAR,
     N_TAB,
     N_ID,
@@ -126,17 +129,25 @@ void NPop(VM &vm, Nesting n) {
             case N_VGROUP:
                 ImGui::EndGroup();
                 break;
- 
+            case N_MENU_BAR:
+                ImGui::EndMenuBar();
+                break;
+            case N_MAIN_MENU_BAR:
+                ImGui::EndMainMenuBar();
+                break;
+            case N_MENU:
+                ImGui::EndMenu();
+                break;
         }
         // If this was indeed the item we're looking for, we can stop popping.
         if (tn == n) break;
     }
 }
 
-void IsInit(VM &vm, Nesting require = N_WIN) {
+void IsInit(VM &vm, pair<Nesting, Nesting> require = { N_WIN, N_MENU }) {
     if (!imgui_init) vm.BuiltinError("imgui: not running: call im_init first");
-    if (require != N_NONE) {
-        for (auto n : nstack) if (n == require) return;
+    for (auto n : nstack) if (n == require.first || n == require.second) return;
+    if (require.first != N_NONE || require.second != N_NONE) {
         vm.BuiltinError("imgui: invalid nesting (not inside im_window?)");
     }
 }
@@ -601,14 +612,14 @@ nfr("im_init", "dark_style,flags,rounding", "B?I?F?", "",
 nfr("im_add_font", "font_path,size", "SF", "B",
     "",
     [](StackPtr &, VM &vm, Value &fontname, Value &size) {
-        IsInit(vm, N_NONE);
+        IsInit(vm, { N_NONE, N_NONE });
         return Value(LoadFont(fontname.sval()->strv(), size.fltval()));
     });
 
 nfr("im_frame_start", "", "", "",
     "(use im_frame instead)",
     [](StackPtr &, VM &vm) {
-        IsInit(vm, N_NONE);
+        IsInit(vm, { N_NONE, N_NONE });
         IMGUIFrameCleanup();
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(_sdl_window);
@@ -620,7 +631,7 @@ nfr("im_frame_start", "", "", "",
 nfr("im_frame_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
-        IsInit(vm, N_NONE);
+        IsInit(vm, { N_NONE, N_NONE });
         NPop(vm, N_FRAME);
         for (auto it = list_state.cbegin(); it != list_state.cend(); ) {
             if (it->second.last_use != imgui_frame) {
@@ -634,7 +645,7 @@ nfr("im_frame_end", "", "", "",
 nfr("im_window_demo", "", "", "B",
     "",
     [](StackPtr &, VM &vm) {
-        IsInit(vm, N_FRAME);
+        IsInit(vm, { N_FRAME, N_NONE });
         bool show = true;
         ImGui::ShowDemoWindow(&show);
         return Value(show);
@@ -643,7 +654,7 @@ nfr("im_window_demo", "", "", "B",
 nfr("im_window_start", "title,flags,dock", "SII", "",
     "(use im_window instead)",
     [](StackPtr &sp, VM &vm) {
-        IsInit(vm, N_FRAME);
+        IsInit(vm, { N_FRAME, N_NONE });
         auto dock = Pop(sp);
         auto flags = Pop(sp);
         auto title = Pop(sp);
@@ -663,14 +674,14 @@ nfr("im_window_start", "title,flags,dock", "SII", "",
 nfr("im_window_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
-        IsInit(vm, N_FRAME);
+        IsInit(vm, { N_FRAME, N_NONE });
         NPop(vm, N_WIN);
     });
 
 nfr("im_next_window_size", "size", "F}:2", "",
     "size in pixels",
     [](StackPtr &sp, VM &vm) {
-        IsInit(vm, N_FRAME);
+        IsInit(vm, { N_FRAME, N_NONE });
         auto size = PopVec<float2>(sp);
         ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Appearing);
     });
@@ -678,7 +689,7 @@ nfr("im_next_window_size", "size", "F}:2", "",
 nfr("im_next_window_pos", "pos,pivot", "F}:2F}:2", "",
     "pos in pixels, pivot values 0..1 relative to pos",
     [](StackPtr &sp, VM &vm) {
-        IsInit(vm, N_FRAME);
+        IsInit(vm, { N_FRAME, N_NONE });
         auto pivot = PopVec<float2>(sp);
         auto pos = PopVec<float2>(sp);
         ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Appearing, ImVec2(pivot.x, pivot.y));
@@ -972,6 +983,64 @@ nfr("im_tab_end", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_TAB);
+    });
+
+nfr("im_menu_bar_start", "main", "B", "B",
+    "(use im_menu_bar instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_FRAME, N_NONE });
+        auto main = Pop(sp).True();
+        bool open = main ? ImGui::BeginMainMenuBar() : ImGui::BeginMenuBar();
+        Push(sp, open);
+        if (open) NPush(main ? N_MAIN_MENU_BAR: N_MENU_BAR);
+    });
+
+nfr("im_menu_bar_end", "main", "B", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_FRAME, N_NONE });
+        auto main = Pop(sp).True();
+        NPop(vm, main ? N_MAIN_MENU_BAR: N_MENU_BAR);
+    });
+
+nfr("im_menu_start", "label,disabled", "SB?", "B",
+    "(use im_menu instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_MENU_BAR, N_MAIN_MENU_BAR });
+        auto disabled = Pop(sp).True();
+        auto title = Pop(sp);
+        bool open = ImGui::BeginMenu(title.sval()->data(), !disabled);
+        Push(sp, open);
+        if (open) NPush(N_MENU);
+    });
+
+nfr("im_menu_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm, { N_MENU_BAR, N_MAIN_MENU_BAR });
+        NPop(vm, N_MENU);
+    });
+
+nfr("im_menu_item", "label,shortcut,disabled", "SS?B?", "B",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_MENU, N_NONE });
+        auto disabled = Pop(sp).True();
+        auto shortcut = Pop(sp);
+        auto title = Pop(sp);
+        auto press = ImGui::MenuItem(title.sval()->data(), shortcut.sval()->data(), false, !disabled);
+        Push(sp, press);
+    });
+
+nfr("im_menu_item_toggle", "label,selected,disabled", "SB?B?", "B",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_MENU, N_NONE });
+        auto disabled = Pop(sp).True();
+        auto selected = Pop(sp).True();
+        auto title = Pop(sp);
+        ImGui::MenuItem(title.sval()->data(), nullptr, &selected, !disabled);
+        Push(sp, selected);
     });
 
 nfr("im_id_start", "label", "Ss", "",

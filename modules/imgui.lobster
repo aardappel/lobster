@@ -125,6 +125,20 @@ def im_tab(label, flags, body):
         im_tab_end()
     return open
 
+def im_menu_bar(main, body):
+    let open = im_menu_bar_start(main)
+    if open:
+        body()
+        im_menu_bar_end(main)
+    return open
+
+def im_menu(label, disabled, body):
+    let open = im_menu_start(label, disabled)
+    if open:
+        body()
+        im_menu_end()
+    return open
+
 def im_id(label, body):
     im_id_start(label)
     body()
