@@ -139,6 +139,13 @@ def im_menu(label, disabled, body):
         im_menu_end()
     return open
 
+def im_menu(label, body):
+    let open = im_menu_start(label, false)
+    if open:
+        body()
+        im_menu_end()
+    return open
+
 def im_id(label, body):
     im_id_start(label)
     body()

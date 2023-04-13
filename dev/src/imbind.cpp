@@ -1028,7 +1028,10 @@ nfr("im_menu_item", "label,shortcut,disabled", "SS?B?", "B",
         auto disabled = Pop(sp).True();
         auto shortcut = Pop(sp);
         auto title = Pop(sp);
-        auto press = ImGui::MenuItem(title.sval()->data(), shortcut.sval()->data(), false, !disabled);
+        auto press = ImGui::MenuItem(title.sval()->data(),
+                                     shortcut.True() ? shortcut.sval()->data() : nullptr,
+                                     false,
+                                     !disabled);
         Push(sp, press);
     });
 
