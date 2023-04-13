@@ -1447,6 +1447,16 @@ struct TypeChecker {
                                 ? nullptr
                                 : overload_picks[i].ov->sf });
             }
+            // We are now going to type check all functions in the vtable for the given
+            // call_args, which normally determines the lifetimes of the function args.
+            // Problem is, function may change arg lifetimes based on things like internal
+            // assignment, and lifetimes must be the same for all, so either we have to
+            // guarantee that arg lifetimes never change, or for now,
+            // standardize on a lifetime convention of always using LT_KEEP.
+            // TODO: See if we can remove this.
+            for (auto &c : call_args.children) {
+                AdjustLifetime(c, IsRefNilVar(c->exptype->t) ? LT_KEEP : LT_ANY);
+            }            
             // FIXME: if any of the overloads below contain recursive calls, it may run into
             // issues finding an existing dispatch above? would be good to guarantee..
             // The fact that in subudts the superclass comes first will help avoid problems
