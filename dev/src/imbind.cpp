@@ -642,6 +642,14 @@ nfr("im_frame_end", "", "", "",
         }
     });
 
+nfr("im_dockspace_over_viewport", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm, { N_FRAME, N_NONE });
+    ImGui::DockSpaceOverViewport(
+        nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+    });
+
 nfr("im_window_demo", "", "", "B",
     "",
     [](StackPtr &, VM &vm) {
