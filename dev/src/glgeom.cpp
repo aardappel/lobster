@@ -333,6 +333,28 @@ void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
     RenderArray(PRIM_TRIS, cube_geom[inside], cube_ibo[inside], 36);
 }
 
+void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segments, float2 size, float corner_ratio) {
+    assert(segments >= 3);
+    auto &geom = roundedboxvbos[{ segments, corner_ratio }];
+    if (!geom) {
+        vector<float3> vbuf(segments);
+        float step = PI * 2 / segments;
+        for (int i = 0; i < segments; i++) {
+            // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
+            auto xy = float2(sinf(i * step + 1), cosf(i * step + 1)) * corner_ratio;
+            xy += (1.0f - corner_ratio) * sign(xy);
+            xy /= 2.0f;
+            xy += 0.5f;
+            vbuf[i] = float3(xy, 0);
+        }
+        geom = new Geometry("RenderRoundedRectangle", gsl::make_span(vbuf), "P");
+    }
+    Transform(float4x4(float4(size, 1)), [&]() {
+        sh->Set();
+        RenderArray(prim, geom);
+    });
+}
+
 void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float radius) {
     assert(segments >= 3);
     auto &geom = circlevbos[segments];

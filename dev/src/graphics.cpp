@@ -460,6 +460,16 @@ nfr("gl_polygon", "vertlist", "F}]", "",
         return NilVal();
     });
 
+nfr("gl_rounded_rectangle", "size,segments,corner_ratio", "F}:2IF", "",
+    "renders a rounded rectangle, try segments 50, corner_ratio 0.2",
+    [](StackPtr &sp, VM &vm) {
+        TestGL(vm);
+        auto corner_ratio = Pop(sp).fltval();
+        auto segments = Pop(sp).intval();
+        auto size = PopVec<float2>(sp);
+        geomcache->RenderRoundedRectangle(currentshader, polymode, max(segments, 12), size, corner_ratio);
+    });
+
 nfr("gl_circle", "radius,segments", "FI", "",
     "renders a circle",
     [](StackPtr &, VM &vm, Value &radius, Value &segments) {
