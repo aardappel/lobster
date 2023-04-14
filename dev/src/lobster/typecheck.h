@@ -2350,9 +2350,7 @@ struct TypeChecker {
         if (min_output_level > OUTPUT_INFO) return;
         int origsf = 0, clonesf = 0;
         size_t orignodes = 0, clonenodes = 0;
-        typedef pair<size_t, Function *> Pair;
-        vector<Pair> funstats;
-        for (auto f : st.functiontable) funstats.push_back({ 0, f });
+        map<Overload *, size_t> funstats;
         for (auto sf : st.subfunctiontable) {
             auto count = sf->sbody ? sf->sbody->Count() : 0;
             if (!sf->next)        {
@@ -2361,20 +2359,26 @@ struct TypeChecker {
             } else {
                 clonesf++;
                 clonenodes += count;
-                funstats[sf->parent->idx].first += count;
+                funstats[sf->overload] += count;
             }
         }
+        vector<pair<Overload *, size_t>> funstatsv;
+        for (auto &p : funstats)
+            if (p.second > orignodes / 200)
+                funstatsv.push_back(p);
+        sort(funstatsv.begin(), funstatsv.end(),
+             [](const pair<Overload *, size_t> &a, const pair<Overload *, size_t> &b) {
+                 return a.second > b.second;
+             });
         LOG_INFO("SF count: orig: ", origsf, ", cloned: ", clonesf);
         LOG_INFO("Node count: orig: ", orignodes, ", cloned: ", clonenodes);
-        sort(funstats.begin(), funstats.end(),
-            [](const Pair &a, const Pair &b) { return a.first > b.first; });
-        for (auto &[fsize, f] : funstats) if (fsize > orignodes / 100) {
-            auto s = cat("Most clones: ", f->name);
-            if (auto body = f->overloads.back()->sf->sbody) {
+        for (auto [ov, fsize] : funstatsv) {
+            auto f = ov->sf->parent;
+            auto s = cat("Most clones: ", f->name, "/", f->nargs());
+            if (auto body = ov->sf->sbody) {
                 s += cat(" (", filenames[body->line.fileidx].first, ":", body->line.line, ")");
             }
-            LOG_INFO(s, " -> ", fsize, " nodes accross ", f->NumSubf() - f->overloads.size(),
-                     " clones (+", f->overloads.size(), " orig)");
+            LOG_INFO(s, " -> ", fsize, " nodes accross ", ov->NumSubf() - 1, " extra clones");
         }
     }
 };
