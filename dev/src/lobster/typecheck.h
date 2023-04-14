@@ -1005,12 +1005,11 @@ struct TypeChecker {
     bool FreeVarsSameAsCurrent(const SubFunction &sf, bool prespecialize) {
         for (auto &freevar : sf.freevars) {
             //auto atype = Promote(freevar.id->type);
-            if (freevar.sid != freevar.sid->Current() ||
-                !freevar.type->Equal(*freevar.sid->Current()->type)) {
+            auto sid = freevar.sid;
+            auto cur = sid->Current();
+            if (sid != cur || !freevar.type->Equal(*cur->type)) {
                 (void)prespecialize;
-                assert(prespecialize ||
-                       freevar.sid == freevar.sid->Current() ||
-                       (freevar.sid && freevar.sid->Current()));
+                assert(prespecialize || sid == cur || (sid && cur));
                 return false;
             }
             //if (atype->t == V_FUNCTION) return false;
@@ -1365,7 +1364,7 @@ struct TypeChecker {
             // TODO: we chould check for a superclass vtable entry also, but chances
             // two levels will be present are low.
             if (disp.sf && disp.sf->method_of == &dispatch_udt && disp.is_dispatch_root &&
-                &f == disp.sf->parent && SpecializationIsCompatible(*disp.sf, reqret)) {
+                &f == disp.sf->parent) {
                 for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = disp.sf->args[i];
                     if (i && !ConvertsTo(c->exptype, arg.type, CF_NONE))
@@ -1375,15 +1374,21 @@ struct TypeChecker {
                 // which means we'd just have to create a new vtable entry instead, or somehow
                 // avoid the new type.
                 assert(disp.subudts_size == dispatch_udt.subudts.size());
+                // We must check that ALL functions involved are compatible, since some
+                // may touch different freevars that the dispatch root doesn't have, such that
+                // if they were different means we can't reuse this dispatch.
                 for (auto udt : dispatch_udt.subudts) {
-                    // Since all functions were specialized with the same args, they should
-                    // all be compatible if the root is.
+                    auto sf = udt->dispatch_table[i].sf;
+                    if (!SpecializationIsCompatible(*sf, reqret))
+                        goto fail;
+                }
+                // We can reuse!
+                for (auto udt : dispatch_udt.subudts) {
                     auto sf = udt->dispatch_table[i].sf;
                     LOG_DEBUG("re-using dyndispatch: ", Signature(*sf));
                     if (sf->typechecked) {
                         // If sf is not typechecked here, it means a function before this in
                         // the list has a recursive call.
-                        assert(SpecializationIsCompatible(*sf, reqret));
                         for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
                         ReplayReturns(sf, call_args);
                         ReplayAssigns(sf);
