@@ -1067,8 +1067,8 @@ struct TypeChecker {
             if (sf->isdynamicfunctionvalue) {
                 // This is because the function has been typechecked against one context, but
                 // can be called again in a different context that does not have the same callers.
-                Error(context, "cannot return out of dynamic function value (",
-                      Q(sf_to->parent->name), " not found on the callstack)");
+                Error(context, "cannot return through dynamic function value (",
+                      "return statement tries to return from ", Q(sf_to->parent->name), ")");
             }
         }
         auto nretslots = ValWidthMulti(sf_to->returntype, sf_to->returntype->NumValues());
