@@ -184,10 +184,14 @@ struct CodeGen  {
                 return type->udt->typeinfo;
             }
             case V_VAR:
-                // This should really not happen anymore, but if it does, it is probably an unused
-                // value.
-                assert(false);
-                return GetTypeTableOffset(type_any);
+                // This happens for values/types that are never accessed, common case are
+                // [] or nil. It would be nice to ensure this is impossible, but it is too
+                // fragile to have to ensure all vars allways get bound, given how types are
+                // copied arbitrarily in the type checker.
+                // Sadly that means if there are any bugs where this value is indeed used it
+                // will only show up till runtime, but at least V_ANY will make it clear
+                // what is happening, and a breakpoint can be placed here.
+                return TYPE_ELEM_ANY;
             default:
                 assert(IsRuntime(type->t));
                 break;
@@ -553,7 +557,6 @@ struct CodeGen  {
         node_context.pop_back();
 
         assert(n->exptype->t != V_UNDEFINED);
-        assert(!n->exptype->HasValueType(V_VAR));
 
         assert(tempstartsize == temptypestack.size());
         (void)tempstartsize;

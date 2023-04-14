@@ -96,20 +96,10 @@ Node *Node::Optimize(Optimizer &opt) {
 }
 
 Node *Constructor::Optimize(Optimizer &opt) {
-    // Special case that really is not an optimisation but should run at end of type checking:
-    // "seal" empty lists to a type.
-    if (exptype->t == V_VECTOR && children.empty() && exptype->sub->t == V_VAR) {
-        opt.tc.UnifyVar(type_int, exptype->sub);
-    }
     return Node::Optimize(opt);
 }
 
-Node *Nil::Optimize(Optimizer &opt) {
-    // Special case that really is not an optimisation but should run at end of type checking:
-    // "seal" unknown nils to a type.
-    if (exptype->t == V_NIL && exptype->sub->t == V_VAR) {
-        opt.tc.UnifyVar(type_string, exptype->sub);
-    }
+Node *Nil::Optimize(Optimizer &) {
     return this;
 }
 
