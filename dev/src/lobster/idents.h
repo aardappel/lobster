@@ -427,6 +427,8 @@ struct Overload {
     Overload(Line da, bool p) : declared_at(da), isprivate(p) {}
 
     ~Overload();
+
+    int NumSubf();
 };
 
 struct SubFunction {
@@ -455,6 +457,7 @@ struct SubFunction {
     bool consumes_vars_on_return = false;
     bool optimized = false;
     bool explicit_generics = false;
+    bool force_keep = false;
     int returned_thru_to_max = -1;  // >=0: there exist return statements that may skip the caller.
     UDT *method_of = nullptr;
     int numcallers = 0;
@@ -513,7 +516,7 @@ struct Function : Named {
 
     int NumSubf() {
         int sum = 0;
-        for (auto &ov : overloads) for (auto sf = ov->sf; sf; sf = sf->next) sum++;
+        for (auto ov : overloads) sum += ov->NumSubf();
         return sum;
     }
 

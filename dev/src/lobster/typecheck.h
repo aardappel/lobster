@@ -587,7 +587,7 @@ struct TypeChecker {
         c->children.insert(c->children.end(), n.Children(), n.Children() + n.Arity());
         n.ClearChildren();
         c->exptype = TypeCheckCallStatic(c->sf, *c, 1, nullptr, *candidates[0],
-            true, false);
+                                         true, false, false);
         c->lt = c->sf->ltret;
         delete &n;
         return c;
@@ -1267,7 +1267,7 @@ struct TypeChecker {
 
     TypeRef TypeCheckCallStatic(SubFunction *&sf, List &call_args, size_t reqret,
                                 vector<UnresolvedTypeRef> *specializers, Overload &ov,
-                                bool static_dispatch, bool first_dynamic) {
+                                bool static_dispatch, bool first_dynamic, bool force_keep) {
         STACK_PROFILE;
         Function &f = *sf->parent;
         if (ov.isprivate && ov.declared_at.fileidx != call_args.line.fileidx)
@@ -1291,8 +1291,8 @@ struct TypeChecker {
                                  " in call to ", Q(f.name), " (argument doesn't match?)");
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
-        auto AllowAnyLifetime = [&](const Arg &arg) {
-            return arg.sid->id->single_assignment;
+        auto AllowAnyLifetime = [&](const Arg &arg, SubFunction *sf) {
+            return !sf->force_keep && arg.sid->id->single_assignment;
         };
         // Check if any existing specializations match.
         for (sf = ov.sf; sf; sf = sf->next) {
@@ -1301,11 +1301,15 @@ struct TypeChecker {
                 // should be ok to reuse.
                 for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = sf->args[i];
-                    if ((IsBorrow(c->lt) != IsBorrow(arg.sid->lt) && AllowAnyLifetime(arg)) ||
-                        // TODO: we need this check here because arg type may rely on parent
-                        // struct (or function) generic, and thus isn't covered by the checking
-                        // of sf->generics below. Can this be done more elegantly?
-                        (st.IsGeneric(sf->giventypes[i]) && !c->exptype->Equal(*arg.type)))
+                    auto unequal_lifetimes = IsBorrow(c->lt) != IsBorrow(arg.sid->lt);
+                    auto allow_any_lifetime = AllowAnyLifetime(arg, sf);
+                    // TODO: we need this check here because arg type may rely on parent
+                    // struct (or function) generic, and thus isn't covered by the checking
+                    // of sf->generics below. Can this be done more elegantly?
+                    auto parent_generic =
+                        st.IsGeneric(sf->giventypes[i]) && !c->exptype->Equal(*arg.type);
+                    auto incompatible = (unequal_lifetimes && allow_any_lifetime) || parent_generic;
+                    if (incompatible)
                         goto fail;
                 }
                 for (auto [i, btv] : enumerate(sf->generics)) {
@@ -1334,9 +1338,16 @@ struct TypeChecker {
         if (sf->method_of)
             st.bound_typevars_stack.push_back(&call_args.children[0]->exptype->udt->generics);
         st.bound_typevars_stack.push_back(&sf->generics);
+        if (!force_keep) {
+            // Having a lifetime per arg is mostly useful on smaller functions to not get
+            // unnecessary refc overhead on the border, especially if they later get inlined.
+            // But for really big functions it just risks unnecessary specializations for no gain.
+            if (sf->sbody->Count() > 25) force_keep = true;
+        }
+        sf->force_keep = force_keep;
         for (auto [i, c] : enumerate(call_args.children)) {
             auto &arg = sf->args[i];
-            arg.sid->lt = AllowAnyLifetime(arg) ? c->lt : LT_KEEP;
+            arg.sid->lt = AllowAnyLifetime(arg, sf) ? c->lt : LT_KEEP;
             arg.type = ResolveTypeVars(sf->giventypes[i], &call_args);
             LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
         }
@@ -1457,11 +1468,8 @@ struct TypeChecker {
             // Problem is, function may change arg lifetimes based on things like internal
             // assignment, and lifetimes must be the same for all, so either we have to
             // guarantee that arg lifetimes never change, or for now,
-            // standardize on a lifetime convention of always using LT_KEEP.
-            // TODO: See if we can remove this.
-            for (auto &c : call_args.children) {
-                AdjustLifetime(c, IsRefNilVar(c->exptype->t) ? LT_KEEP : LT_ANY);
-            }            
+            // standardize on a lifetime convention of always using LT_KEEP, by passing
+            // force_keep = true below.          
             // FIXME: if any of the overloads below contain recursive calls, it may run into
             // issues finding an existing dispatch above? would be good to guarantee..
             // The fact that in subudts the superclass comes first will help avoid problems
@@ -1501,7 +1509,7 @@ struct TypeChecker {
                 // FIXME: return value?
                 /*auto rtype =*/
                 TypeCheckCallStatic(csf, call_args, reqret, specializers, *overload_picks[i].ov,
-                                    false, !last_sf);
+                                    false, !last_sf, true);
                 de = &dispatch_udt.dispatch_table[vtable_idx];  // May have realloced.
                 sf = csf;
                 sf->method_of = udt;
@@ -1611,7 +1619,7 @@ struct TypeChecker {
                 // We're done, found unique match.
                 LOG_DEBUG("static dispatch: ", Signature(*from[0]->sf));
                 return TypeCheckCallStatic(csf, call_args, reqret, specializers, *from[0], true,
-                                           false);
+                                           false, false);
             }
             if ((int)f.nargs() == argidx) {
                 // Gotten to the end and we still have multiple matches!
@@ -1772,7 +1780,7 @@ struct TypeChecker {
             c->children.insert(c->children.end(), dc->children.begin(), dc->children.end());
             dc->children.clear();
             c->exptype =
-                TypeCheckCallStatic(sf, *c, reqret, nullptr, *sf->parent->overloads[0], true, false);
+                TypeCheckCallStatic(sf, *c, reqret, nullptr, *sf->parent->overloads[0], true, false, false);
             c->lt = sf->ltret;
             c->sf = sf;
             delete dc;

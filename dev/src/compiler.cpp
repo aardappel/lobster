@@ -545,6 +545,13 @@ Overload::~Overload() {
     delete gbody;
 }
 
+int Overload::NumSubf() {
+    int sum = 0;
+    for (auto csf = sf; csf; csf = csf->next)
+        sum++;
+    return sum;
+}
+
 bool SpecUDT::Equal(const SpecUDT &o) const {
     if (udt != o.udt ||
         is_generic != o.is_generic ||
