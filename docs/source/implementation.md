@@ -283,7 +283,7 @@ void MyNativeOps(NativeRegistry &nfr) {
 
 You'll need to become somewhat familiar with the Lobster internals to write
 these functions succesfully, in particular with the `Value` type (see
-`vmbase.h`), which is a union of all possible lobster types. If you specify
+`vmdata.h`), which is a union of all possible lobster types. If you specify
 specific types (such as `I` for `int`, `F` for `float`, `S` for `string`, `V`
 for `vector` etc (more details in `natreg.h`),
 then the `Value` will already have been typechecked and
