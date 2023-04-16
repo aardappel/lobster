@@ -592,7 +592,7 @@ VM_INLINE void U_NEG(VM &, StackPtr sp)    { auto a = Pop(sp); Push(sp, ~a.ival(
 VM_INLINE void U_I2F(VM &vm, StackPtr sp) {
     Value a = Pop(sp);
     VMTYPEEQ(a, V_INT);
-    Push(sp, (float)a.ival());
+    Push(sp, (double)a.ival());
 }
 
 VM_INLINE void U_A2S(VM &vm, StackPtr sp, int ty) {
