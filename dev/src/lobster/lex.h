@@ -54,6 +54,10 @@ struct LoadedFile : Line {
         } else {
             if (LoadFile("modules/" + fn, source.get()) < 0 &&
                 LoadFile(fn, source.get()) < 0) {
+                // Do specialized message for this file, since it always confuses people
+                // that like to move the exe away from the standard location for some reason.
+                if (fn == "stdtype.lobster")
+                    THROW_OR_ABORT("can't find the standard modules (../modules/) relative to the exe location (bin/)");
                 THROW_OR_ABORT("can't open file: " + fn);
             }
         }
