@@ -171,7 +171,7 @@ struct Parser {
                 if (IsNext(T_FROM)) {
                     string fn = std::move(lex.sval);
                     Expect(T_STR);
-                    AddDataDir(fn, true);
+                    AddDataDir(fn);
                 } else {
                     string fn;
                     if (lex.token == T_STR) {
