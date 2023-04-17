@@ -363,15 +363,16 @@ void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
 
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
              string *parsedump, string *pakfile, bool return_value, int runtime_checks,
-             Query *query) {
+             Query *query, int max_errors) {
     vector<pair<string, string>> filenames;
-    Lex lex(fn, filenames, stringsource);
+    Lex lex(fn, filenames, stringsource, max_errors);
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
     if (query) PrepQuery(*query, filenames);
     TypeChecker tc(parser, st, return_value, query);
     if (query) tc.ProcessQuery();  // Failed to find location during type checking.
+    if (lex.num_errors) THROW_OR_ABORT("errors encountered, aborting");
     tc.Stats(filenames);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
@@ -443,7 +444,7 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
         int runtime_checks = RUNTIME_ASSERT;  // FIXME: let caller decide?
         string bytecode_buffer;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                bytecode_buffer, nullptr, nullptr, true, runtime_checks, nullptr);
+                bytecode_buffer, nullptr, nullptr, true, runtime_checks, nullptr, 1);
         string error;
         auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, nullptr, std::move(args),
                           TraceMode::OFF, false, error, runtime_checks, true);

@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
         bool compile_only = false;
         bool non_interactive_test = false;
         int runtime_checks = RUNTIME_ASSERT;
+        int max_errors = 1;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         string fn;
@@ -100,7 +101,8 @@ int main(int argc, char* argv[]) {
             "--trace-tail           Show last 50 bytecode instructions on error.\n"
             "--tcc-out              Output tcc .o file instead of running.\n"
             "--wait                 Wait for input before exiting.\n"
-            "--query QUERY_ARGS     Queries about definitions in the program being compiled.\n";
+            "--query QUERY_ARGS     Queries about definitions in the program being compiled.\n"
+            "--errors N             Output up to N errors (default 1).\n";
             int arg = 1;
         for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {
@@ -139,6 +141,10 @@ int main(int argc, char* argv[]) {
                 } else if (a == "--") {
                     arg++;
                     break;
+                } else if (a == "--errors") {
+                    arg++;
+                    if (arg >= argc) THROW_OR_ABORT("missing error count");
+                    max_errors = std::max(1, std::max(100, parse_int<int>(string_view_nt(argv[arg]))));
                 } else if (a == "--query") {
                     arg++;
                     if (argc - arg < 4)
@@ -208,7 +214,7 @@ int main(int argc, char* argv[]) {
                 bytecode_buffer.clear();
                 Compile(nfr, fn, {}, bytecode_buffer, parsedump ? &dump : nullptr,
                         lpak ? &pakfile : nullptr, false, runtime_checks,
-                        !query.kind.empty() ? &query : nullptr);
+                        !query.kind.empty() ? &query : nullptr, max_errors);
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
                     //LOG_WARN(mainfile, " does not exist, skipping");

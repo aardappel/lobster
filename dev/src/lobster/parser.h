@@ -71,7 +71,27 @@ struct Parser {
 
     void ParseStatements(Block *block, TType terminator) {
         for (;;) {
-            ParseTopExp(block);
+            #ifdef USE_EXCEPTION_HANDLING
+                if (lex.max_errors > 1) {
+                    // We're going to attempt error recovery by catching parsing errors!
+                    try {
+                        ParseTopExp(block);
+                    } catch (string &s) {
+                        if (lex.num_errors >= lex.max_errors) {
+                            THROW_OR_ABORT(s);
+                        }
+                        LOG_ERROR(s);
+                        // Consume rest of statement tokens in the hope next statement is
+                        // again parseable.
+                        while (!Either(T_LINEFEED, T_DEDENT, T_ENDOFFILE, T_ENDOFINCLUDE))
+                            lex.Next();
+                    }
+                } else {
+                    ParseTopExp(block);
+                }
+            #else
+                ParseTopExp(block);
+            #endif
             if (lex.token == T_ENDOFINCLUDE) {
                 st.EndOfInclude();
                 lex.PopIncludeContinue();
@@ -1620,6 +1640,9 @@ struct Parser {
     }
     bool Either(TType t1, TType t2, TType t3) {
         return lex.token == t1 || lex.token == t2 || lex.token == t3;
+    }
+    bool Either(TType t1, TType t2, TType t3, TType t4) {
+        return lex.token == t1 || lex.token == t2 || lex.token == t3 || lex.token == t4;
     }
 
     void Expect(TType t) {
