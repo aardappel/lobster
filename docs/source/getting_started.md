@@ -10,16 +10,19 @@ Get pre-built binaries (Windows, Mac, Linux)
 
 If you don't want to deal with building it yourself, go to
 [github CI](https://github.com/aardappel/lobster/actions?query=workflow%3ACI)
-(click on the latest succesful run to get a list of binaries).
+(click on the latest succesful run to get a list of binaries at the bottom).
 These are 64-bit for all platforms.
+
+Note: if you're NOT seeing a list of artifacts at the bottom of each run, that
+may be because you're not logged in to github.
 
 Now get https://github.com/aardappel/lobster (download zip).
 This has all the data files and examples. Place the binary
-you obtained in `bin`.
+you obtained in `bin` folder of the repo (not `/bin`).
 
 ### Releases
 
-You can also get both from https://github.com/aardappel/lobster/releases
+There may occasionally be builds on https://github.com/aardappel/lobster/releases
 (`lobster_<date>_<platform>.zip` and `Source code (zip)`), but these are
 usually way behind using the most recent builds above, so not recommended.
 
@@ -53,7 +56,7 @@ Open `dev\lobster\lobster.sln`, ensure `Release` is selected in the top bar,
 
 ### Mac
 
-Pre-Requirements: Latest XCode.
+Pre-Requirements: Latest XCode. Command-line CMake build not currently supported.
 
 Get https://github.com/aardappel/lobster using your favorite git tool (best),
 or just download a `.zip` otherwise.
@@ -67,6 +70,9 @@ Running it
 You now have a `lobster` executable in your `bin` folder.
 You can run this with any Lobster file as argument to run it, for example
 `bin/lobster.exe samples/pythtree.lobster` should work.
+
+More Docs
+---------
 
 For more advanced usage, including how to run it from an editor,
 check the rest of [the docs](README_FIRST.html)

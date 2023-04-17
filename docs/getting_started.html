@@ -28,13 +28,15 @@
 <h3 id="latest-version-from-ci">Latest version from CI</h3>
 <p>If you don’t want to deal with building it yourself, go to <a
 href="https://github.com/aardappel/lobster/actions?query=workflow%3ACI">github
-CI</a> (click on the latest succesful run to get a list of binaries).
-These are 64-bit for all platforms.</p>
+CI</a> (click on the latest succesful run to get a list of binaries at
+the bottom). These are 64-bit for all platforms.</p>
+<p>Note: if you’re NOT seeing a list of artifacts at the bottom of each
+run, that may be because you’re not logged in to github.</p>
 <p>Now get https://github.com/aardappel/lobster (download zip). This has
 all the data files and examples. Place the binary you obtained in
-<code>bin</code>.</p>
+<code>bin</code> folder of the repo (not <code>/bin</code>).</p>
 <h3 id="releases">Releases</h3>
-<p>You can also get both from
+<p>There may occasionally be builds on
 https://github.com/aardappel/lobster/releases
 (<code>lobster_&lt;date&gt;_&lt;platform&gt;.zip</code> and
 <code>Source code (zip)</code>), but these are usually way behind using
@@ -58,7 +60,8 @@ tools installed.</p>
 <code>Release</code> is selected in the top bar,
 <code>Build -&gt; Build Solution</code>, then close if no errors.</p>
 <h3 id="mac">Mac</h3>
-<p>Pre-Requirements: Latest XCode.</p>
+<p>Pre-Requirements: Latest XCode. Command-line CMake build not
+currently supported.</p>
 <p>Get https://github.com/aardappel/lobster using your favorite git tool
 (best), or just download a <code>.zip</code> otherwise.</p>
 <p>Open <code>dev/xcode/lobster/lobster.xcodeproj</code>, ensure
@@ -69,6 +72,7 @@ top bar, <code>Product -&gt; Build</code>, then close if no errors.</p>
 <code>bin</code> folder. You can run this with any Lobster file as
 argument to run it, for example
 <code>bin/lobster.exe samples/pythtree.lobster</code> should work.</p>
+<h2 id="more-docs">More Docs</h2>
 <p>For more advanced usage, including how to run it from an editor,
 check the rest of <a href="README_FIRST.html">the docs</a></p>
 </body>
