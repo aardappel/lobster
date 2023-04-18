@@ -53,7 +53,7 @@ jobs:
       run: bin/lobster tests/unittest.lobster
     - name: Zip
       run: |
-          rm *.exe *.dll
+          rm -f bin/*.exe bin/*.dll
           zip -r lobster_linux_release.zip bin data docs modules samples tests README.md
     - name: Release
       uses: softprops/action-gh-release@v1
@@ -74,7 +74,7 @@ jobs:
       run: bin/lobster tests/unittest.lobster
     - name: Zip
       run: |
-          rm *.exe *.dll
+          rm -f bin/*.exe bin/*.dll
           zip -r lobster_osx_release.zip bin data docs modules samples tests README.md
     - name: Release
       uses: softprops/action-gh-release@v1
