@@ -178,7 +178,7 @@ export async function queryDefinition(
 	}
 
 
-	const fileName = file.split('\\').pop();
+	const fileName = file.split(/\\|\//).pop();
 	if (!fileName) throw new Error("Invalid file name");
 
 	return new Promise(back => callLobster(
