@@ -52,7 +52,9 @@ jobs:
     - name: test
       run: bin/lobster tests/unittest.lobster
     - name: Zip
-      run: zip -r lobster_linux_release.zip bin data docs modules samples tests README.md
+      run: |
+          rm *.exe *.dll
+          zip -r lobster_linux_release.zip bin data docs modules samples tests README.md
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
@@ -71,7 +73,9 @@ jobs:
     - name: test
       run: bin/lobster tests/unittest.lobster
     - name: Zip
-      run: zip -r lobster_osx_release.zip bin data docs modules samples tests README.md
+      run: |
+          rm *.exe *.dll
+          zip -r lobster_osx_release.zip bin data docs modules samples tests README.md
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
