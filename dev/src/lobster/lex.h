@@ -462,7 +462,7 @@ struct Lex : LoadedFile {
                         }
                         sattr = string_view(tokenstart, p - tokenstart);
                         if (isfloat) {
-                            fval = strtod(sattr.data(), nullptr);
+                            fval = parse_float<double>(sattr, nullptr);
                             return T_FLOAT;
                         } else {
                             ival = parse_int<int64_t>(sattr);

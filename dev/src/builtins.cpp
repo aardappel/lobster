@@ -457,9 +457,9 @@ nfr("string_to_float", "s", "S", "FB",
     "converts a string to a float. returns 0.0 if no numeric data could be parsed;"
     "second return value is true if all characters of the string were parsed.",
     [](StackPtr &sp, VM &, Value &s) {
-        char *end;
+        const char *end;
         auto sv = s.sval()->strv();
-        auto f = strtod(sv.data(), &end);
+        auto f = parse_float<double>(sv, &end);
         Push(sp, f);
         return Value(end == sv.data() + sv.size());
     });
