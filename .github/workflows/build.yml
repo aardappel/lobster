@@ -55,7 +55,7 @@ jobs:
     - name: test cpp output
       run: bin/compiled_lobster
     - name: test lsp
-      run: cd dev/lsp && npm install && npm test
+      run: cd dev/lsp && npm install && npm run test
 
   build-windows:
     name: Build Windows
