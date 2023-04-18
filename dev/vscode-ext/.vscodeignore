@@ -4,6 +4,7 @@
 .gitignore
 **/tsconfig.json
 **/tsconfig.base.json
+out
 contributing.md
 .travis.yml
 node_modules/**

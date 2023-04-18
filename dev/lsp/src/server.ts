@@ -16,9 +16,7 @@ import {
 	CodeActionKind,
 	uinteger,
 	Location,
-	Hover,
-	MarkupKind,
-	MarkupContent
+	Hover
 } from 'vscode-languageserver/node';
 
 
