@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cxx: [g++-10, clang++-12]
+        cxx: [g++-12, clang++-14]
         include:
-        - cxx: g++-10
-          cc: gcc-10
-        - cxx: clang++-12
-          cc: clang-12
+        - cxx: g++-12
+          cc: gcc-12
+        - cxx: clang++-14
+          cc: clang-14
     steps:
     - uses: actions/checkout@v1
     - name: apt update
@@ -99,7 +99,7 @@ jobs:
     # Without engine should speed this up.
     - name: cmake
       working-directory: dev
-      run: CXX=clang++-12 CC=clang-12 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
+      run: CXX=clang++-14 CC=clang-14 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
     - name: build
       working-directory: dev
       run: make -j4
@@ -134,7 +134,7 @@ jobs:
     # Without engine should speed this up.
     - name: cmake
       working-directory: dev
-      run: CXX=clang++-12 CC=clang-12 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
+      run: CXX=clang++-14 CC=clang-14 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
     - name: build
       working-directory: dev
       run: make -j4
