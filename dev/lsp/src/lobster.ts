@@ -1,11 +1,6 @@
 import { exec } from 'child_process';
 import { Diagnostic, DiagnosticSeverity, integer, uinteger } from 'vscode-languageserver';
-import { getWorkspaceFoldersPaths } from './utils';
-
-export interface LobsterSettings {
-	executable: string,
-	imports: string[]
-}
+import { LobsterSettings } from './lsp';
 
 export interface LobsterLocation {
 	file: string,
@@ -39,28 +34,26 @@ function callLobster(
 	output: (output: string) => void,
 	...params: string[]
 ) {
-	getWorkspaceFoldersPaths().then(folders => {
-		const command = 
-			settings.executable + " " + 
-			[...folders, ...settings.imports].map(i => "--import " + i).join(" ") + " " + 
-			params.join(" ");
+	const command =
+		settings.executable + " " +
+		settings.imports.map(i => "--import " + i).join(" ") + " " +
+		params.join(" ");
 
 
-		console.debug(command);
-		exec(command, (error, stdout, stderr) => {
-			if (stderr) {
-				console.error(`Lobster (${settings.executable}) returned with output: ${stderr}`);
-				return;
-			}
+	console.debug(command);
+	exec(command, (error, stdout, stderr) => {
+		if (stderr) {
+			console.error(`Lobster (${settings.executable}) returned with output: ${stderr}`);
+			return;
+		}
 
-			output(stdout);
-		});
+		output(stdout);
 	});
 }
 
 export async function parseLobster(
-	settings: LobsterSettings, 
-	file: string, 
+	settings: LobsterSettings,
+	file: string,
 	...args: string[]
 ): Promise<Diagnostic[]> {
 	function parseOutput(input: string): Diagnostic[] {
@@ -77,13 +70,13 @@ export async function parseLobster(
 		while ((match = regex.exec(input))) {
 			const at = match[1];
 			if (!file.endsWith(at)) return [];
-			
+
 			const line = parseInt(match[2]) - 1; // Its zero based
 			const messageType = match[3].trim();
 			const message = match[4].trim();
 
-			const severity = messageType == "warning" ? 
-				DiagnosticSeverity.Warning : 
+			const severity = messageType == "warning" ?
+				DiagnosticSeverity.Warning :
 				DiagnosticSeverity.Error;
 
 			output.push({
@@ -97,31 +90,31 @@ export async function parseLobster(
 		}
 
 		if (output.length == 0) throw new Error("Invalid output from lobster: " + input);
-		
+
 		return output;
 	}
 
 
 	return new Promise<Diagnostic[]>(back => callLobster(
-		settings, 
-		i => back(parseOutput(i)), 
-		"--errors", "99", 
-		"--compile-only", 
-		file, 
+		settings,
+		i => back(parseOutput(i)),
+		"--errors", "99",
+		"--compile-only",
+		file,
 		...args
 	));
 }
 
 export async function queryDefinition(
-	settings: LobsterSettings, 
-	file: string, 
-	line: integer, 
-	identifier: string, 
+	settings: LobsterSettings,
+	file: string,
+	line: integer,
+	identifier: string,
 	...args: string[]
 ): Promise<QueryDefinitionResult> {
 	function parseOutput(input: string): QueryDefinitionResult {
 		if (input.length == 0) return {};
-		
+
 		let declartionLocation: LobsterLocation | undefined;
 		let signature: LobsterSignature | undefined;
 
@@ -157,14 +150,14 @@ export async function queryDefinition(
 		}
 
 		const querySignatureB = input.indexOf('query_signature');
-		if (querySignatureB != -1)  {
+		if (querySignatureB != -1) {
 			const querySignatureE = input.substring(querySignatureB).indexOf('\n');
 			const sub = input.substring(querySignatureB, querySignatureE);
 			const match = sub.match(/^query_signature: (.+)\((.*)\)/);
 
 			if (!match) throw new Error("Invalid output from lobster: " + sub);
 
-			
+
 			signature = {
 				name: match[1].trim(),
 				parameters: readParameters(match[2].trim())
@@ -182,10 +175,10 @@ export async function queryDefinition(
 	if (!fileName) throw new Error("Invalid file name");
 
 	return new Promise(back => callLobster(
-		settings, 
-		i => back(parseOutput(i)), 
-		file, 
-		'--query', 'definition', fileName, (line + 1).toString(), identifier, 
+		settings,
+		i => back(parseOutput(i)),
+		file,
+		'--query', 'definition', fileName, (line + 1).toString(), identifier,
 		...args));
 }
 
@@ -196,6 +189,6 @@ function readParameters(input: string): LobsterSignartureParameter[] {
 
 	if (parameters.some(i => i.name == undefined || i.type == undefined))
 		throw new Error("Invalid output from lobster: " + input);
-	
+
 	return parameters;
 }

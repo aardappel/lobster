@@ -1,29 +1,11 @@
-import { Connection, MarkupContent, MarkupKind, WorkspaceFolder } from 'vscode-languageserver';
-import { URI } from 'vscode-uri';
+import { MarkupContent, MarkupKind } from 'vscode-languageserver';
 import { LobsterSignature } from './lobster';
 
-// We don't wanna load ./server.ts when we are testing
-let _connection: Connection | null = null;
-export function setupConnection(connection: Connection) {
-	_connection = connection;
-}
-
-export async function getWorkspaceFolders(): Promise<WorkspaceFolder[] | null> {
-	if (!_connection) return null;
-	return _connection.workspace.getWorkspaceFolders();
-}
-
-export async function getWorkspaceFoldersPaths(): Promise<string[]> {
-	const folders = await getWorkspaceFolders();
-	if (!folders) return [];
-	return folders.map(f => URI.parse(f.uri).fsPath);
-}
-
-export function getWordOnCursor(text: string, character: number): [ string | null, number ] {
+export function getWordOnCursor(text: string, character: number): [string | null, number] {
 	const part1 = text.substring(0, character).match(/[a-zA-Z0-9-_]+$/);
 	const part2 = text.substring(character).match(/^[a-zA-Z0-9-_]+/);
 
-	if (!part1 && !part2) return [ null, 0 ];
+	if (!part1 && !part2) return [null, 0];
 	return [
 		((part1 && part1[0]) || '') + ((part2 && part2[0]) || ''),
 		part1 ? part1[0].length : 0
@@ -33,8 +15,8 @@ export function getWordOnCursor(text: string, character: number): [ string | nul
 export function markupSignature(signature: LobsterSignature): MarkupContent {
 	if ('parameters' in signature) return {
 		kind: MarkupKind.PlainText,
-		value: 
-			signature.name + 
+		value:
+			signature.name +
 			'(' + signature.parameters.map(p => `${p.name}: ${p.type}`).join(', ') + ')'
 	};
 
