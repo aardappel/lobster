@@ -494,7 +494,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                         c.accum /= (float)-c.n;
                         c.col /= (float)-c.n;
                         c.n = (int)verts.size();
-                        verts.push_back(mgvert());
+                        verts.push_back(mgvert{});
                         auto &v = verts.back();
                         v.pos = c.accum;
                         v.norm = float3_0;
@@ -507,7 +507,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         delete dcellindices;
     } else {
         for (edge &e : edges) {
-            verts.push_back(mgvert());
+            verts.push_back(mgvert{});
             auto &v = verts.back();
             assert(e.fmid >= 0 && e.fmid <= float3(gridsize));
             v.pos = e.fmid;
