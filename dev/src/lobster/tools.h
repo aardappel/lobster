@@ -960,7 +960,6 @@ template<typename T> auto to_string_conv(const T *p) {
 
 template<typename T> auto to_string_conv(T i) {
     static_assert(is_scalar<T>::value, "");
-    // FIXME: use to_chars.
     return [s = to_string(i)]() { return string_view(s); };  // Caches to_string!
 }
 
@@ -1039,6 +1038,13 @@ inline bool starts_with(string_view sv, string_view start) {
 template<typename T> T parse_int(string_view sv, int base = 10, const char **end = nullptr) {
     T val = 0;
     auto res = from_chars(sv.data(), sv.data() + sv.size(), val, base);
+    if (end) *end = res.ptr;
+    return val;
+}
+
+template<typename T> T parse_float(string_view sv, const char **end = nullptr) {
+    T val = 0;
+    auto res = from_chars(sv.data(), sv.data() + sv.size(), val);
     if (end) *end = res.ptr;
     return val;
 }
