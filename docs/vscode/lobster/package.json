@@ -5,12 +5,35 @@
     "version": "0.0.2",
     "publisher": "wvo",
     "engines": {
-        "vscode": "^1.5.0"
+        "vscode": "^1.75.0"
     },
     "categories": [
         "Programming Languages"
     ],
+	"keywords": [
+		"lobster"
+	],
+	"activationEvents": [],
+	"main": "./out/extension",
     "contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Lobster",
+			"properties": {
+				"lobster.executable": {
+					"scope": "resource",
+					"type": "string",
+					"default": "",
+					"description": "The lobster executable"
+				},
+				"lobster.imports": {
+					"scope": "resource",
+					"type": "array",
+					"default": [],
+					"description": "Imports for lobster"
+				}
+			}
+		},
         "languages": [{
             "id": "lobster",
             "aliases": ["Lobster", "lobster"],
@@ -21,6 +44,46 @@
             "language": "lobster",
             "scopeName": "source.lobster",
             "path": "./syntaxes/lobster.tmLanguage.json"
-        }]
+        }],
+        "taskDefinitions": [
+			{
+				"type": "lobster",
+				"required": [
+					"main"
+				],
+				"properties": {
+					"main": {
+						"type": "string",
+						"description": "The file to run"
+					},  
+					"lobsterArgs": {
+						"type": "array",
+						"description": "The arguments to pass to lobster"
+					},
+					"programArgs": {
+						"type": "array",
+						"description": "The arguments to pass to the program"
+					}
+				}
+			}
+        ]
+    },
+    "scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"lint": "eslint ./src --ext .ts,.tsx",
+        "postinstall": "cd lsp && npm install && cd .."
+	},
+    "dependencies": {
+		"vscode-languageclient": "^8.1.0"
+	},
+	"devDependencies": {
+        "@types/node": "^16.11.7",
+		"@typescript-eslint/eslint-plugin": "^5.54.0",
+		"@typescript-eslint/parser": "^5.54.0",
+        "@types/vscode": "^1.75.1",
+		"eslint": "^8.35.0",
+		"typescript": "^5.0.2"
     }
 }

@@ -1,0 +1,22 @@
+{
+	"name": "lobster-lsp-server",
+	"description": "Lobster lsp server",
+	"version": "1.0.0",
+	"author": "ewoudje",
+	"license": "Apache-2.0",
+	"engines": {
+		"node": "*"
+	},
+	"dependencies": {
+		"@types/temp": "^0.9.1",
+		"temp": "^0.9.4",
+		"vscode-languageserver": "^8.1.0",
+		"vscode-languageserver-textdocument": "^1.0.8",
+		"vscode-uri": "*"
+	},
+	"scripts": {
+		"compile": "tsc -b",
+		"test": "tsc -b & node out/lobster.test",
+		"lint": "eslint ./src --ext .ts,.tsx"
+	}
+}
