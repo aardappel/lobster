@@ -1048,7 +1048,7 @@ template<typename T> T parse_float(string_view sv, const char **end = nullptr) {
         auto &term = *(char *)(sv.data() + sv.size());
         auto orig = term;
         term = 0;
-        auto v = (T)strtod(sv.data(), end);
+        auto v = (T)strtod(sv.data(), (char **)end);
         term = orig;
         return v;
     #else
