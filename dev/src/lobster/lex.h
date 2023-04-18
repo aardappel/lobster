@@ -446,7 +446,7 @@ struct Lex : LoadedFile {
                         p++;
                         while (IsXDigit(*p)) p++;
                         sattr = string_view(tokenstart, p - tokenstart);
-                        ival = parse_int_not_nt<int64_t>(sattr, 16);
+                        ival = parse_int<int64_t>(sattr.substr(2), 16);
                         return T_INT;
                     } else {
                         while (IsDigit(*p)) p++;
@@ -465,7 +465,7 @@ struct Lex : LoadedFile {
                             fval = strtod(sattr.data(), nullptr);
                             return T_FLOAT;
                         } else {
-                            ival = parse_int_not_nt<int64_t>(sattr);
+                            ival = parse_int<int64_t>(sattr);
                             return T_INT;
                         }
                     }

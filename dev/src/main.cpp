@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
                 } else if (a == "--errors") {
                     arg++;
                     if (arg >= argc) THROW_OR_ABORT("missing error count");
-                    max_errors = std::max(1, std::max(100, parse_int<int>(string_view_nt(argv[arg]))));
+                    max_errors = std::max(1, std::max(100, parse_int<int>(string_view(argv[arg]))));
                 } else if (a == "--query") {
                     arg++;
                     if (argc - arg < 4)

@@ -252,7 +252,7 @@ string ParseMaterialFile(string_view mbuf) {
                                 write = true;
                             }
                         }
-                        auto unit = parse_int_not_nt<int>(tp);
+                        auto unit = parse_int<int>(tp);
                         if (uav) {
                             decl += cat("layout(binding = ", unit);
                             auto format = (
@@ -292,7 +292,7 @@ string ParseMaterialFile(string_view mbuf) {
                         return "input " + last +
                                " doesn't specify number of components, e.g. anormal:3";
                     }
-                    int comp = parse_int_not_nt<int>(last.substr(pos + 1));
+                    int comp = parse_int<int>(last.substr(pos + 1));
                     if (comp <= 0 || comp > 4) {
                         return "input " + last + " can only use 1..4 components";
                     }
