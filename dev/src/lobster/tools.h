@@ -1035,10 +1035,12 @@ inline bool starts_with(string_view sv, string_view start) {
 }
 
 
-// This should be using from_chars(), which apparently is not supported by
-// gcc/clang yet :(
-template<typename T> T parse_int(string_view_nt sv, int base = 10, char **end = nullptr) {
-    return (T)strtoll(sv.c_str(), end, base);
+
+template<typename T> T parse_int(string_view_nt sv, int base = 10, const char **end = nullptr) {
+    T val = 0;
+    auto res = from_chars(sv.data(), sv.data() + sv.size(), val, base);
+    *end = res.ptr;
+    return val;
 }
 template<typename T> T parse_int_not_nt(string_view sv, int base = 10) {
     auto &term = *(char *)(sv.data() + sv.size());

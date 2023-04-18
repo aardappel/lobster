@@ -446,7 +446,7 @@ nfr("string_to_int", "s,base", "SI?", "IB",
         int base = b.True() ? b.intval() : 10;
         if (base < 2 || base > 36)
             vm.BuiltinError("string_to_int: values out of range");
-        char *end;
+        const char *end;
         auto svnt = s.sval()->strvnt();
         auto i = parse_int<iint>(svnt, base, &end);
         Push(sp,  i);
