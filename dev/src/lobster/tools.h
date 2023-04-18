@@ -1043,10 +1043,20 @@ template<typename T> T parse_int(string_view sv, int base = 10, const char **end
 }
 
 template<typename T> T parse_float(string_view sv, const char **end = nullptr) {
-    T val = 0;
-    auto res = from_chars(sv.data(), sv.data() + sv.size(), val);
-    if (end) *end = res.ptr;
-    return val;
+    // FIXME: Upgrade compilers for these platforms on CI.
+    #if defined(__APPLE__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__)
+        auto &term = *(char *)(sv.data() + sv.size());
+        auto orig = term;
+        term = 0;
+        auto v = (T)strtod(sv.data(), end);
+        term = orig;
+        return v;
+    #else
+        T val = 0;
+        auto res = from_chars(sv.data(), sv.data() + sv.size(), val);
+        if (end) *end = res.ptr;
+        return val;
+    #endif
 }
 
 // Strict aliasing safe memory reading and writing.
