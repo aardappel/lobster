@@ -814,6 +814,13 @@
     much like enums. You specify it like a struct, then that type can be used absolutely
     everywhere, and decay to an int for code that doesn't understand it.
     You still would have convenient accessors to read and write these values.
+    An even cheaper way to add them would be to piggyback on the existing enum_flags,
+    and have a way to specify bit-sizes instead of bit-offsets. Then using .enumval
+    on any enum typed integer anywhere would retrieve the corresponding bits, or set them.
+    That would work without structs needing to learn about overlapping fields.
+    However, having them as consecutive overlapping fields in structs/classes would be
+    the most powerful, as that would allow existing fields to be squeezed together and
+    still work the same for all existing code, including serialization etc.
     Yet another alternative is to make buffers with views on them more of a first class
     language feature to replace write_int8_le and friends.
   - somehow not store LVector::width.
