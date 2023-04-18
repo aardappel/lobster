@@ -158,6 +158,11 @@ string_view StripTrailing(string_view in, string_view tail) {
     return in;
 }
 
+
+bool IsAbsolute(string_view filename) {
+    return filename.size() > 1 && (filename[0] == '/' || filename[0] == '\\' || filename[1] == ':');
+}
+
 string GetMainDirFromExePath(string_view argv_0) {
     string md = SanitizePath(argv_0);
     #ifdef _WIN32
@@ -279,9 +284,11 @@ bool InitPlatform(string _maindir, string_view auxfilepath, bool from_bundle,
     return true;
 }
 
-void AddDataDir(string_view path, bool is_rel) {
+void AddDataDir(string_view path) {
     auto fpath = SanitizePath(path);
-    if (is_rel) fpath = projectdir + fpath;
+    // Add slash at the end if missing, otherwise when loading it will fail.
+    if (fpath[fpath.length() - 1] != FILESEP) fpath = fpath + FILESEP;
+    if (!IsAbsolute(fpath)) fpath = projectdir + fpath;
     for (auto &dir : data_dirs) if (dir == fpath) goto skipd;
     data_dirs.push_back(fpath);
     skipd:
@@ -304,11 +311,6 @@ map<string, tuple<string, int64_t, int64_t, int64_t>, less<>> pakfile_registry;
 void AddPakFileEntry(string_view pakfilename, string_view relfilename, int64_t off,
                      int64_t len, int64_t uncompressed) {
     pakfile_registry[string(relfilename)] = make_tuple(pakfilename, off, len, uncompressed);
-}
-
-bool IsAbsolute(string_view filename) {
-    return filename.size() > 1 &&
-           (filename[0] == '/' || filename[0] == '\\' || filename[1] == ':');
 }
 
 string last_abs_path_loaded;

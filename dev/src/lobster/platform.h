@@ -21,7 +21,7 @@ string GetMainDirFromExePath(string_view argv_0);
 // This also initializes anything else functions in this file need.
 extern bool InitPlatform(string maindir, string_view auxfilepath, bool from_bundle,
                              FileLoader loader);
-extern void AddDataDir(string_view path, bool is_rel);  // Any additional dirs besides the above.
+extern void AddDataDir(string_view path);  // Any additional dirs besides the above.
 extern string_view ProjectDir();
 extern string_view MainDir();
 
