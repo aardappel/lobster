@@ -3,7 +3,7 @@
 
 *.suo
 *.vcxproj.user
-.vscode/
+/.vscode
 *.code-workspace
 
 *.lbc
