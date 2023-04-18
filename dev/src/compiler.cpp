@@ -357,7 +357,7 @@ void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
     if (query.qloc.fileidx < 0) {
         THROW_OR_ABORT("query file not part of compilation: " + query.file);
     }
-    query.qloc.line = parse_int<int>(string_view_nt(query.line));
+    query.qloc.line = parse_int<int>(query.line);
     query.filenames = &filenames;
 }
 

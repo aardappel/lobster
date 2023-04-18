@@ -1036,19 +1036,11 @@ inline bool starts_with(string_view sv, string_view start) {
 
 
 
-template<typename T> T parse_int(string_view_nt sv, int base = 10, const char **end = nullptr) {
+template<typename T> T parse_int(string_view sv, int base = 10, const char **end = nullptr) {
     T val = 0;
     auto res = from_chars(sv.data(), sv.data() + sv.size(), val, base);
-    *end = res.ptr;
+    if (end) *end = res.ptr;
     return val;
-}
-template<typename T> T parse_int_not_nt(string_view sv, int base = 10) {
-    auto &term = *(char *)(sv.data() + sv.size());
-    auto orig = term;
-    term = 0;
-    auto v = (T)strtoll(sv.data(), nullptr, base);
-    term = orig;
-    return v;
 }
 
 // Strict aliasing safe memory reading and writing.

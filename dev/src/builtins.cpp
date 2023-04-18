@@ -447,7 +447,7 @@ nfr("string_to_int", "s,base", "SI?", "IB",
         if (base < 2 || base > 36)
             vm.BuiltinError("string_to_int: values out of range");
         const char *end;
-        auto svnt = s.sval()->strvnt();
+        auto svnt = s.sval()->strv();
         auto i = parse_int<iint>(svnt, base, &end);
         Push(sp,  i);
         return Value(end == svnt.data() + svnt.size());
