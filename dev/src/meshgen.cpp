@@ -494,11 +494,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                         c.accum /= (float)-c.n;
                         c.col /= (float)-c.n;
                         c.n = (int)verts.size();
-                        verts.push_back(mgvert{});
-                        auto &v = verts.back();
-                        v.pos = c.accum;
-                        v.norm = float3_0;
-                        v.col = quantizec(c.col, 1);
+                        verts.push_back(mgvert{ c.accum, float3_0, quantizec(c.col, 1) });
                     }
                     triangles.push_back(c.n);
                 }
@@ -507,12 +503,8 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         delete dcellindices;
     } else {
         for (edge &e : edges) {
-            verts.push_back(mgvert{});
-            auto &v = verts.back();
             assert(e.fmid >= 0 && e.fmid <= float3(gridsize));
-            v.pos = e.fmid;
-            v.col = e.material;
-            v.norm = float3_0;
+            verts.push_back(mgvert{ e.fmid, float3_0, e.material });
         }
         triangles.assign(mctriangles.begin(), mctriangles.end());
     }
