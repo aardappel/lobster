@@ -1,4 +1,12 @@
-import { Diagnostic, DiagnosticSeverity, DocumentUri, Position, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver';
+import { 
+	Diagnostic, 
+	DiagnosticSeverity, 
+	DocumentUri, 
+	Position, 
+	Range, 
+	TextDocumentContentChangeEvent, 
+	TextEdit 
+} from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { URI } from 'vscode-uri';
 import { getWorkspaceFolders, mergeSort } from './utils';
@@ -64,8 +72,14 @@ export class LobsterDocument implements TextDocument {
 		if (this._relative) return this._relative;
 
 		const folders = await getWorkspaceFolders();
-		const folder = folders?.filter((folder) => this._uri.fsPath.startsWith(URI.parse(folder.uri).fsPath))[0];
-		return this._relative = path.relative(URI.parse(folder?.uri || '').fsPath, this._uri.fsPath);
+		const folder = folders?.filter(
+			(folder) => this._uri.fsPath.startsWith(URI.parse(folder.uri).fsPath)
+		)[0];
+
+		return this._relative = path.relative(
+			URI.parse(folder?.uri || '').fsPath, 
+			this._uri.fsPath
+		);
 	}
 
 	public async writeToTmp(tmp: string): Promise<string> {
@@ -74,14 +88,16 @@ export class LobsterDocument implements TextDocument {
 		const reldir = path.parse(relative).dir;
 
 		if (reldir.length != 0) {
-			await new Promise((resolve, fail) => fs.mkdir(path.join(tmp, reldir), { recursive: true }, 
+			await new Promise(
+				(resolve, fail) => fs.mkdir(path.join(tmp, reldir), { recursive: true }, 
 				(err, path) => {
 					if (err) {
 						console.error(err);
 						fail(err);
 					} else {
 						resolve(path);
-					}}));
+					}})
+			);
 		}
 
 		await new Promise((resolve, fail) => {
@@ -120,13 +136,14 @@ export class LobsterDocument implements TextDocument {
 
 		this._state = LobsterDocumentState.NoErrors;
 		result.forEach((diag) => {
-			if (diag.severity === DiagnosticSeverity.Warning && this._state === LobsterDocumentState.NoErrors) {
+			if (diag.severity === DiagnosticSeverity.Warning && 
+				this._state === LobsterDocumentState.NoErrors) {
 				this._state = LobsterDocumentState.HasWarnings;
 			} else if (diag.severity === DiagnosticSeverity.Error) {
 				this._state = LobsterDocumentState.HasErrors;
 			}
 		});
-
+		
 		return result;
 	}
 
@@ -139,13 +156,16 @@ export class LobsterDocument implements TextDocument {
 				// update content
 				const startOffset = this.offsetAt(range.start);
 				const endOffset = this.offsetAt(range.end);
-				this._content = this._content.substring(0, startOffset) + change.text + this._content.substring(endOffset, this._content.length);
+				this._content = this._content.substring(0, startOffset) 
+					+ change.text 
+					+ this._content.substring(endOffset, this._content.length);
 
 				// update the offsets
 				const startLine = Math.max(range.start.line, 0);
 				const endLine = Math.max(range.end.line, 0);
 				let lineOffsets = this._lineOffsets!;
 				const addedLineOffsets = computeLineOffsets(change.text, false, startOffset);
+
 				if (endLine - startLine === addedLineOffsets.length) {
 					for (let i = 0, len = addedLineOffsets.length; i < len; i++) {
 						lineOffsets[i + startLine + 1] = addedLineOffsets[i];
@@ -154,12 +174,16 @@ export class LobsterDocument implements TextDocument {
 					if (addedLineOffsets.length < 10000) {
 						lineOffsets.splice(startLine + 1, endLine - startLine, ...addedLineOffsets);
 					} else { // avoid too many arguments for splice
-						this._lineOffsets = lineOffsets = lineOffsets.slice(0, startLine + 1).concat(addedLineOffsets, lineOffsets.slice(endLine + 1));
+						this._lineOffsets = lineOffsets = 
+							lineOffsets.slice(0, startLine + 1)
+								.concat(addedLineOffsets, lineOffsets.slice(endLine + 1));
 					}
 				}
+
 				const diff = change.text.length - (endOffset - startOffset);
+				const start = startLine + 1 + addedLineOffsets.length;
 				if (diff !== 0) {
-					for (let i = startLine + 1 + addedLineOffsets.length, len = lineOffsets.length; i < len; i++) {
+					for (let i = start, len = lineOffsets.length; i < len; i++) {
 						lineOffsets[i] = lineOffsets[i] + diff;
 					}
 				}
@@ -210,7 +234,10 @@ export class LobsterDocument implements TextDocument {
 			return 0;
 		}
 		const lineOffset = lineOffsets[position.line];
-		const nextLineOffset = (position.line + 1 < lineOffsets.length) ? lineOffsets[position.line + 1] : this._content.length;
+		const nextLineOffset = (position.line + 1 < lineOffsets.length) ? 
+			lineOffsets[position.line + 1] : 
+			this._content.length;
+
 		return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
 	}
 
@@ -218,7 +245,9 @@ export class LobsterDocument implements TextDocument {
 		return this.getLineOffsets().length;
 	}
 
-	private static isIncremental(event: TextDocumentContentChangeEvent): event is { range: Range; rangeLength?: number; text: string } {
+	private static isIncremental(event: TextDocumentContentChangeEvent): 
+		event is { range: Range; rangeLength?: number; text: string } 
+	{
 		const candidate: { range: Range; rangeLength?: number; text: string } = event as any;
 		return candidate !== undefined && candidate !== null &&
 			typeof candidate.text === 'string' && candidate.range !== undefined &&
@@ -227,19 +256,31 @@ export class LobsterDocument implements TextDocument {
 
 	private static isFull(event: TextDocumentContentChangeEvent): event is { text: string } {
 		const candidate: { range?: Range; rangeLength?: number; text: string } = event as any;
-		return candidate !== undefined && candidate !== null &&
-			typeof candidate.text === 'string' && candidate.range === undefined && candidate.rangeLength === undefined;
+		return candidate !== undefined && 
+			candidate !== null &&
+			typeof candidate.text === 'string' && 
+			candidate.range === undefined && 
+			candidate.rangeLength === undefined;
 	}
 }
 
 // idk how to do this properly, but this is the only way I could get it to work
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace LobsterDocument {
-	export function create(uri: DocumentUri, languageId: string, version: number, content: string): LobsterDocument {
+	export function create(
+		uri: DocumentUri, 
+		languageId: string, 
+		version: number,
+		content: string
+	): LobsterDocument {
 		return new LobsterDocument(URI.parse(uri), languageId, version, content);
 	}
 
-	export function update(document: LobsterDocument, changes: TextDocumentContentChangeEvent[], version: number): LobsterDocument {
+	export function update(
+		document: LobsterDocument,
+		changes: TextDocumentContentChangeEvent[], 
+		version: number
+	): LobsterDocument {
 		document.update(changes, version);
 			return document;
 	}

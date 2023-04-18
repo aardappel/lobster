@@ -34,7 +34,11 @@ export interface QueryDefinitionResult {
 	signature?: LobsterSignature
 }
 
-function callLobster(settings: LobsterSettings, output: (output: string) => void, ...params: string[]) {
+function callLobster(
+	settings: LobsterSettings,
+	output: (output: string) => void,
+	...params: string[]
+) {
 	getWorkspaceFoldersPaths().then(folders => {
 		const command = 
 			settings.executable + " " + 
@@ -54,7 +58,11 @@ function callLobster(settings: LobsterSettings, output: (output: string) => void
 	});
 }
 
-export async function parseLobster(settings: LobsterSettings, file: string, ...args: string[]): Promise<Diagnostic[]> {
+export async function parseLobster(
+	settings: LobsterSettings, 
+	file: string, 
+	...args: string[]
+): Promise<Diagnostic[]> {
 	function parseOutput(input: string): Diagnostic[] {
 		if (input.length == 0) return [];
 
@@ -74,7 +82,9 @@ export async function parseLobster(settings: LobsterSettings, file: string, ...a
 			const messageType = match[3].trim();
 			const message = match[4].trim();
 
-			const severity = messageType == "warning" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
+			const severity = messageType == "warning" ? 
+				DiagnosticSeverity.Warning : 
+				DiagnosticSeverity.Error;
 
 			output.push({
 				range: {
@@ -92,12 +102,23 @@ export async function parseLobster(settings: LobsterSettings, file: string, ...a
 	}
 
 
-	return new Promise<Diagnostic[]>(back => 
-		callLobster(settings, i => back(parseOutput(i)), "--errors", "99", "--compile-only", file, ...args)
-	);
+	return new Promise<Diagnostic[]>(back => callLobster(
+		settings, 
+		i => back(parseOutput(i)), 
+		"--errors", "99", 
+		"--compile-only", 
+		file, 
+		...args
+	));
 }
 
-export async function queryDefinition(settings: LobsterSettings, file: string, line: integer, identifier: string, ...args: string[]): Promise<QueryDefinitionResult> {
+export async function queryDefinition(
+	settings: LobsterSettings, 
+	file: string, 
+	line: integer, 
+	identifier: string, 
+	...args: string[]
+): Promise<QueryDefinitionResult> {
 	function parseOutput(input: string): QueryDefinitionResult {
 		if (input.length == 0) return {};
 		
@@ -160,8 +181,12 @@ export async function queryDefinition(settings: LobsterSettings, file: string, l
 	const fileName = file.split('\\').pop();
 	if (!fileName) throw new Error("Invalid file name");
 
-	return new Promise(back =>
-		callLobster(settings, i => back(parseOutput(i)), file, '--query', 'definition', fileName, (line + 1).toString(), identifier, ...args));
+	return new Promise(back => callLobster(
+		settings, 
+		i => back(parseOutput(i)), 
+		file, 
+		'--query', 'definition', fileName, (line + 1).toString(), identifier, 
+		...args));
 }
 
 function readParameters(input: string): LobsterSignartureParameter[] {

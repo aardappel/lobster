@@ -11,6 +11,7 @@ module.exports = {
 		'plugin:@typescript-eslint/recommended',
 	],
 	rules: {
+		"max-len": ["warn", { code: 100, ignoreComments: true }],
 		'semi': [2, "always"],
 		'@typescript-eslint/no-unused-vars': 0,
 		'@typescript-eslint/no-explicit-any': 0,

@@ -1,5 +1,14 @@
 import { WorkspaceFolder } from 'vscode';
-import { ExtensionContext, ShellExecution, Task, TaskDefinition, TaskScope, tasks, workspace, window } from 'vscode';
+import { 
+	ExtensionContext, 
+	ShellExecution, 
+	Task, 
+	TaskDefinition, 
+	TaskScope, 
+	tasks, 
+	workspace, 
+	window 
+} from 'vscode';
 
 interface LobsterRunTaskDefinition extends TaskDefinition {
 	main: string;
@@ -10,7 +19,13 @@ interface LobsterRunTaskDefinition extends TaskDefinition {
 export function registerTasks(context: ExtensionContext) {
 	tasks.registerTaskProvider('lobster', {
 		provideTasks: () => {
-			return [makeTask('Run current file', { type: 'lobster', main: window.activeTextEditor.document.uri.fsPath }, TaskScope.Workspace)];
+			return [makeTask(
+				'Run current file', 
+				{ 
+					type: 'lobster',
+					main: window.activeTextEditor.document.uri.fsPath 
+				}, 
+				TaskScope.Workspace)];
 		},
 		resolveTask(task: Task): Task | undefined {
 			const definition: LobsterRunTaskDefinition = <any>task.definition;
@@ -24,7 +39,11 @@ export function registerTasks(context: ExtensionContext) {
 	});
 }
 
-function makeTask(name: string, definition: LobsterRunTaskDefinition, scope: TaskScope | WorkspaceFolder): Task {
+function makeTask(
+	name: string, 
+	definition: LobsterRunTaskDefinition, 
+	scope: TaskScope | WorkspaceFolder
+): Task {
 	const config = workspace.getConfiguration('lobster', null);
 	const executable = config.get<string>('executable');
 	const imports = config.get<string[]>('imports');
@@ -35,6 +54,9 @@ function makeTask(name: string, definition: LobsterRunTaskDefinition, scope: Tas
 		name,
 		'lobster',
 		new ShellExecution(`${executable} ${imports?.map(i => "--import " + i).join(" ")}` +
-			`${definition.lobsterArgs?.join(' ') || ''} ${definition.main} -- ${definition.programArgs?.join(' ') || ''}`)
+			(definition.lobsterArgs?.join(' ') || '') +
+			" " + definition.main +
+			" -- " + (definition.programArgs?.join(' ') || '')
+		)
 	);
 }

@@ -23,7 +23,7 @@ import {
 
 
 import { URI } from 'vscode-uri';
-import { LobsterSettings, LobsterFunctionSignarture, parseLobster, queryDefinition, LobsterSignartureParameter, LobsterSignature } from './lobster';
+import { LobsterSettings, queryDefinition } from './lobster';
 import { LobsterDocument, LobsterDocumentState } from './document';
 import { getWordOnCursor, getWorkspaceFolders, markupSignature, setupConnection } from './utils';
 import * as temp from 'temp';
@@ -61,7 +61,8 @@ connection.onInitialize((params: InitializeParams) => {
 		capabilities.textDocument.publishDiagnostics.relatedInformation
 	);
 
-	hasCodeActionLiteralSupportCapability = capabilities.textDocument?.codeAction?.codeActionLiteralSupport != undefined;
+	hasCodeActionLiteralSupportCapability = 
+		capabilities.textDocument?.codeAction?.codeActionLiteralSupport != undefined;
 
 	const result: InitializeResult = {
 		capabilities: {
@@ -209,7 +210,10 @@ connection.onCodeAction((params): CodeAction[] => {
 
 async function validateTextDocument(document: LobsterDocument): Promise<void> {
 	// Send the computed diagnostics to VSCode.
-	connection.sendDiagnostics({ uri: document.uri, diagnostics: await document.parse(currentTempDir) });
+	connection.sendDiagnostics({ 
+		uri: document.uri, 
+		diagnostics: await document.parse(currentTempDir) 
+	});
 }
 
 
@@ -275,8 +279,14 @@ connection.onHover(async (params): Promise<Hover | null> => {
 		return {
 			contents: markupSignature(result.signature),
 			range: {
-				start: { line: params.position.line, character: params.position.character - inFront },
-				end: { line: params.position.line, character: params.position.character + word.length - inFront }
+				start: { 
+					line: params.position.line, 
+					character: params.position.character - inFront 
+				},
+				end: { 
+					line: params.position.line, 
+					character: params.position.character + word.length - inFront 
+				}
 			}
 		};
 	}
