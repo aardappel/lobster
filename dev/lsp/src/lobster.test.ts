@@ -7,17 +7,17 @@ import {
 }  from './lobster';
 
 const settings: LobsterSettings = {
-	executable: "../../bin/lobster", //TODO add .exe when needed?
+	executable: "..\\..\\bin\\lobster.exe", //TODO add .exe when needed?
 	imports: []
 };
 
 
 console.log("Parsing valid.lobster");
-parseLobster(settings, 'testFixture/valid.lobster')
+parseLobster(settings, 'valid.lobster')
 	.then(result => assert(result.length == 0));
 
 console.log("Parsing invalid.lobster");
-parseLobster(settings, 'testFixture/invalid.lobster')
+parseLobster(settings, 'invalid.lobster')
 	.then(result => {
 		assert(result.length == 1);
 
@@ -30,11 +30,11 @@ parseLobster(settings, 'testFixture/invalid.lobster')
 	});
 
 console.log("Querying valid.lobster");
-queryDefinition(settings, 'testFixture/valid.lobster', 5, 'b')
+queryDefinition(settings, 'valid.lobster', 5, 'b')
 	.then(result => {
 		assert(result.declartionLocation, 
 			"No declaration location?", result);
-		assert(result.declartionLocation?.file == 'server\\testFixture\\valid.lobster', 
+		assert(result.declartionLocation?.file == 'valid.lobster', 
 			"Incorrect file?", result);
 		assert(result.declartionLocation?.line == 2,
 			"Incorrect line?", result);
@@ -50,7 +50,7 @@ queryDefinition(settings, 'testFixture/valid.lobster', 5, 'b')
 	});
 
 console.log("Querying builtin valid.lobster");
-queryDefinition(settings, 'testFixture/valid.lobster', 12, 'print')
+queryDefinition(settings, 'valid.lobster', 12, 'print')
 	.then(result => {
 		assert(result.declartionLocation == null, 
 			"Has declaration location?", result);
