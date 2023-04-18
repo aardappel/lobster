@@ -7,7 +7,8 @@
 		"sourceMap": true,
 		"strict": true,
 		"outDir": "out",
-		"rootDir": "src"
+		"rootDir": "src",
+		"composite": true
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", ".vscode-test"]

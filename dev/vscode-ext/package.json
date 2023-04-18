@@ -7,6 +7,10 @@
     "engines": {
         "vscode": "^1.75.0"
     },
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/aardappel/lobster"
+	},
     "categories": [
         "Programming Languages"
     ],
@@ -73,7 +77,7 @@
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint ./src/* --ext .ts,.tsx",
-        "postinstall": "cd lsp && npm install && cd .."
+        "postinstall": "cd ../lsp && npm install && cd .."
 	},
     "dependencies": {
 		"vscode-languageclient": "^8.1.0"

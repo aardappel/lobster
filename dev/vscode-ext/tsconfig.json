@@ -10,6 +10,6 @@
 	"include": ["src"],
 	"exclude": ["node_modules", ".vscode-test"],
 	"references": [
-		{ "path": "lsp" }
+		{ "path": "../lsp" }
 	]
 }
