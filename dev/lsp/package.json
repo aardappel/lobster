@@ -27,7 +27,7 @@
     },
 	"scripts": {
 		"webpack": "webpack --mode production --config ./webpack.config.js",
-		"compile": "tsc -b",
+		"webpack:dev": "webpack --mode none --config ./webpack.config.js",
 		"test": "tsc -b && node out/lobster.test",
 		"lint": "eslint ./src/* --ext .ts,.tsx"
 	}

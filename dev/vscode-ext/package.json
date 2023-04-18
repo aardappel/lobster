@@ -42,7 +42,11 @@
             "id": "lobster",
             "aliases": ["Lobster", "lobster"],
             "extensions": [".lobster"],
-            "configuration": "./language-configuration.json"
+            "configuration": "./language-configuration.json",
+			"icon": {
+				"light": "./icons/lobster.svg",
+				"dark": "./icons/lobster.svg"
+			}
         }],
         "grammars": [{
             "language": "lobster",
@@ -73,12 +77,13 @@
         ]
     },
     "scripts": {
-		"vscode:prepublish": "npm run webpack && shx cp ../lsp/webpack-out/* ./webpack-out/",
+		"vscode:prepublish": "npm run webpack && shx cp ../lsp/webpack-out/* ./webpack-out/ && npm run icons",
 		"webpack": "webpack --mode production --config ./webpack.config.js && cd ../lsp && npm run webpack",
-		"compile": "tsc -b && cd ../lsp && npm run compile",
+		"webpack:dev": "webpack --mode none --config ./webpack.config.js && cd ../lsp && npm run webpack:dev",
 		"watch": "tsc -b -w",
 		"lint": "eslint ./src/* --ext .ts,.tsx",
-        "postinstall": "cd ../lsp && npm install && cd .."
+        "postinstall": "npm run icons && cd ../lsp && npm install",
+		"icons": "shx mkdir -p icons && shx cp ../../docs/lobster.svg ./icons/lobster.svg"
 	},
     "dependencies": {
 		"vscode-languageclient": "^8.1.0"
