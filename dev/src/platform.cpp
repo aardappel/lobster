@@ -285,8 +285,9 @@ bool InitPlatform(string _maindir, string_view auxfilepath, bool from_bundle,
 }
 
 void AddDataDir(string_view path) {
-    // If the import is written like --import /project/abc add slash at the end.
-    auto fpath = SanitizePath(path) + FILESEP; 
+    auto fpath = SanitizePath(path);
+    // Add slash at the end if missing, otherwise when loading it will fail.
+    if (!fpath.ends_with(FILESEP)) fpath = fpath + FILESEP;
     if (!IsAbsolute(fpath)) fpath = projectdir + fpath;
     for (auto &dir : data_dirs) if (dir == fpath) goto skipd;
     data_dirs.push_back(fpath);
