@@ -1233,12 +1233,8 @@ nfr("cg_normal_indices", "block,radius", "R:voxelsI", "R:voxels",
                 for (int y = -rad; y <= rad; y++) {
                     for (int z = -rad; z <= rad; z++) {
                         int3 s = int3(x, y, z) + c;
-                        if (s != c) {
-                            if (s < v.grid.dim && s >= 0 && v.grid.Get(s) != 0) {
-                                // normal -= s - c;
-                            } else {
-                                normal += s - c;
-                            }
+                        if (!(s < v.grid.dim && s >= 0) || v.grid.Get(s) == 0) {
+                            normal += s - c;
                         }
                     }
                 }
