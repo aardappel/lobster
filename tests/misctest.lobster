@@ -79,7 +79,8 @@ run_test("misc"):
     let flex = flexbuffers_value_to_binary(parsed)
     let json = flexbuffers_binary_to_json(flex)
     assert json
-    let groundj = """{ _type: "parsetest", a: 1, b: 1.0, c: { x: 0.0, y: 0.0, z: 0.0 }, d: "", e: [  ], f: null, g: 0, h: 1 }"""
+    // Fields that are nil or scalar default value should be missing!
+    let groundj = """{ a: 1, b: 1.0, c: {  }, d: "", e: [  ], h: 1 }"""
     assert json == groundj
     let flex2, ferr = flexbuffers_json_to_binary(json)
     assert not ferr
