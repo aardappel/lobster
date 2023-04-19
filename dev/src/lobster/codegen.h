@@ -119,7 +119,7 @@ struct CodeGen  {
         EmitOp(IL_BLOCK_START);
     }
 
-    const int ti_num_udt_fields = 4;
+    const int ti_num_udt_fields = 5;
     const int ti_num_udt_per_field = 3;
 
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
@@ -165,23 +165,27 @@ struct CodeGen  {
             case V_CLASS:
             case V_STRUCT_R:
             case V_STRUCT_S: {
-                if (type->udt->typeinfo >= 0)
-                    return type->udt->typeinfo;
-                type->udt->typeinfo = (type_elem_t)type_table.size();
+                auto udt = type->udt;
+                if (udt->typeinfo >= 0)
+                    return udt->typeinfo;
+                udt->typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
-                assert(type->udt->numslots >= 0);
-                auto ttsize = (type->udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
+                assert(udt->numslots >= 0);
+                auto ttsize = (udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
                 type_table.insert(type_table.end(), ttsize, (type_elem_t)0);
-                tt.push_back((type_elem_t)type->udt->idx);
-                tt.push_back((type_elem_t)type->udt->numslots);
+                tt.push_back((type_elem_t)udt->idx);
+                tt.push_back((type_elem_t)udt->numslots);
                 if (type->t == V_CLASS)
-                    tt.push_back((type_elem_t)type->udt->vtable_start);
+                    tt.push_back((type_elem_t)udt->vtable_start);
                 else
-                    tt.push_back((type_elem_t)ComputeBitMask(*type->udt));
-                PushFields(type->udt, tt);
+                    tt.push_back((type_elem_t)ComputeBitMask(*udt));
+                tt.push_back(udt->superclass.resolved_null()
+                    ? (type_elem_t)-1
+                    : GetTypeTableOffset(udt->superclass.resolvedtype()));
+                PushFields(udt, tt);
                 assert(ssize(tt) == ttsize);
-                std::copy(tt.begin(), tt.end(), type_table.begin() + type->udt->typeinfo);
-                return type->udt->typeinfo;
+                std::copy(tt.begin(), tt.end(), type_table.begin() + udt->typeinfo);
+                return udt->typeinfo;
             }
             case V_VAR:
                 // This happens for values/types that are never accessed, common case are

@@ -447,7 +447,7 @@ nfr("flexbuffers_value_to_binary", "val,max_nesting,cycle_detection", "AI?B?", "
         auto mn = maxnest.ival();
         if (mn > 0) fbc.max_depth = mn;
         fbc.cycle_detect = cycle_detect.True();
-        val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
+        val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : V_NIL, {}, -1);
         fbc.builder.Finish();
         if (!fbc.cycle_hit.empty())
             vm.BuiltinError("flexbuffers_value_to_binary: data structure contains a cycle: " +

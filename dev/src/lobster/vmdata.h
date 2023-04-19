@@ -136,6 +136,7 @@ struct TypeInfo {
             int structidx;
             int len;
             int vtable_start_or_bitmask;
+            type_elem_t superclass;
             TIField elemtypes[1];  // len elems.
         };
         int enumidx;       // V_INT, -1 if not an enum.
@@ -498,7 +499,7 @@ struct Value {
     void ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const;
     void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
 
-    void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t) const;
+    void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const;
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     uint64_t Hash(VM &vm, ValueType vtype);
