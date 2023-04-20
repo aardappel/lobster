@@ -1135,6 +1135,13 @@ nfr("im_popup_open", "label", "S", "",
         ImGui::OpenPopup(title.sval()->data());
     });
 
+nfr("im_close_current_popup", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::CloseCurrentPopup();
+    });
+
 nfr("im_disabled_start", "disabled", "B", "",
     "(use im_disabled instead)",
     [](StackPtr &sp, VM &vm) {
