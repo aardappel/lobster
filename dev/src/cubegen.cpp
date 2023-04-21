@@ -170,12 +170,12 @@ uint8_t FindClosestNormal(float3 normal) {
     return besti;
 }
 
-Chunk3DGrid<uint8_t> *cached_normal_index_grid = nullptr;
+unique_ptr<Chunk3DGrid<uint8_t>> cached_normal_index_grid;
 uint8_t FindClosestNormalCached(float3 normal) {
     int size = 15;  // Must be odd.
     float half = float(size / 2);
-    if (!cached_normal_index_grid) {
-        cached_normal_index_grid = new Chunk3DGrid<uint8_t>(int3(size), 0);
+    if (!cached_normal_index_grid.get()) {
+        cached_normal_index_grid.reset(new Chunk3DGrid<uint8_t>(int3(size), 0));
         for (int x = 0; x < size; x++) {
             for (int y = 0; y < size; y++) {
                 for (int z = 0; z < size; z++) {
