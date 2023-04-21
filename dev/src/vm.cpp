@@ -372,6 +372,14 @@ void VM::DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump) {
     }
 }
 
+string VM::DumpFileLine(int fileidx, int line) {
+    string loc;
+    if (line >= 0 && fileidx >= 0) {
+        append(loc, "[", bcf->filenames()->Get(fileidx)->string_view(), ":", line, "]");
+    }
+    return loc;
+}
+
 pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
     auto fip = funstackelem.funstartinfo;
     auto deffun = *fip++;
@@ -382,17 +390,19 @@ pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
         ti.Print(*this, fname, nullptr);
         append(fname, ".");
     }
-    append(fname, bcf->functions()->Get(deffun)->name()->string_view());
-    if (funstackelem.line >= 0 && funstackelem.fileidx >= 0) {
-        append(fname, "[", bcf->filenames()->Get(funstackelem.fileidx)->string_view(), ":",
-               funstackelem.line, "]");
-    }
+    append(fname, bcf->functions()->Get(deffun)->name()->string_view(),
+           DumpFileLine(funstackelem.fileidx, funstackelem.line));
     return { fname, fip };
 }
 
 // See also imbind.cpp:DumpStackTrace
 void VM::DumpStackTrace(string &sd) {
-    if (fun_id_stack.empty()) return;
+    if (fun_id_stack.empty()) {
+        // We don't have a stack trace, but maybe this minimum information will be better
+        // than nothing:
+        sd += DumpFileLine(last_fileidx, last_line);
+        return;
+    }
 
     #ifdef USE_EXCEPTION_HANDLING
     try {

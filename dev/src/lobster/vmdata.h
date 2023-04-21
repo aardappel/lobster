@@ -998,6 +998,7 @@ struct VM : VMArgs {
     typedef function<void(VM &, string_view_nt, const TypeInfo &, Value *)> DumperFun;
     void DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump);
     void DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump);
+    string DumpFileLine(int fileidx, int line);
     pair<string, const int *> DumpStackFrameStart(FunStack &funstackelem);
     void DumpStackTrace(string &sd);
 
