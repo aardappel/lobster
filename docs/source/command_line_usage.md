@@ -95,6 +95,9 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     For `definition` a response will be the location of the definition.
     For `complete`, it will return a list of possible fields/methods.
 
+Lobster source code may start with a shebang `#!` so you can embed the command-line in
+a Lobster script.
+
 Default directories
 -------------------
 

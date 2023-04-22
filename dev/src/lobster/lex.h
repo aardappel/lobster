@@ -85,6 +85,10 @@ struct Lex : LoadedFile {
         : LoadedFile(fn, fns, _ss), filenames(fns), max_errors(max_errors) {
         allsources.push_back(source);
         if (!fn.empty()) allfiles.insert(string(fn));
+        if (p[0] == '#' && p[1] == '!') {
+            // Main source file starts with a shebang, scan past it. Leave the LF.
+            while (*p != '\n' && *p != '\0') p++;
+        }
         FirstToken();
     }
 
