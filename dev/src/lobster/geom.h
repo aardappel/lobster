@@ -367,7 +367,7 @@ template<typename T, int N> inline T dot(const vec<T,N> &a, const vec<T,N> &b) {
 template<typename T, int N> inline T squaredlength(const vec<T,N> &v) { return dot(v, v); }
 template<typename T, int N> inline T length(const vec<T,N> &v) { return sqrt(squaredlength(v)); }
 template<typename T, int N> inline vec<T,N> normalize(const vec<T,N> &v) { return v / length(v); }
-template<typename T, int N> inline vec<T,N> abs(const vec<T,N> &v) { DOVECR(fabsf(v.c[i])); }
+template<typename T, int N> inline vec<T,N> abs(const vec<T,N> &v) { DOVECR(std::abs(v.c[i])); }
 template<typename T, int N> inline vec<T,N> sign(const vec<T,N> &v) {
     DOVECR((T)(v.c[i] >= 0 ? 1 : -1));
 }
@@ -704,7 +704,7 @@ template<typename T, int C, int R> class matrix {
     }
 
     V operator*(const vec<T,C> &v) const {
-        V res(0.0f);
+        V res((T()));
         for (int i = 0; i < C; i++)
             res += m[i] * v.c[i];
         return res;
