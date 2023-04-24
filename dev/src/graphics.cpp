@@ -988,15 +988,15 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("gl_update_buffer_object", "value,ssbo,offset,existing", "SIIRk:bufferobject?", "R:bufferobject",
+nfr("gl_update_buffer_object", "value,ssbo,offset,existing,dyn", "SIIRk:bufferobject?B?", "R:bufferobject",
     "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
-    [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &offset, Value &buf) {
+    [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &offset, Value &buf, Value &dyn) {
         TestGL(vm);
         return UpdateBufferObjectResource(vm, buf, vec.sval()->strv().data(),
                                           vec.sval()->strv().size(), offset.intval(),
-                                          ssbo.True(), false);
+                                          ssbo.True(), dyn.True());
     });
 
 nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",
