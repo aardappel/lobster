@@ -327,7 +327,7 @@
   string views onto buffers which is really the ultimate way a language can do strings:
   https://twitter.com/wvo/status/1535311563992666112
   Thing is, the ideal view type would be
-  struct string: s:string_buffer, offset:int, size:int
+  struct string: s:buffer, offset:int, size:int
   and making all string functions take this struct may be troublesome?
   Can also make it heap allocated for now since these are still cheap since they're small & fixed size.
   Or could see if we can pack the view data into a single 64-bit quantity..
@@ -337,6 +337,28 @@
     and page aligned not great for small strings :)
   If we go this route, should see if those views can be given a type for super ergonomic byte
   buffer read/write instead of write_int8_le and similar functions.
+  Likely, we'd want buffers to never be able to shrink, since that would possibly make every
+  string access a runtime error if its now out of bounds.
+  buffer type would convert to string automatically, so that mostly it doesn't need to be
+  accepted specifically anywhere.
+  Another issue is the pervasive use of strvnt()/data(), which would now now need an optional copy
+  again. One way to solve that is to allow an implicit string to buffer conversion that
+  copies if the string doesn't address the whole buffer, that way these builtins (like imgui)
+  can demand a buffer for their label? A bit odd to use buffer that way though.
+  Instead, for most functions can do the swap terminator trick on these buffers.
+  The other most frequent op is string concatenation, would be fun if that was optimized?
+  e.g. a + b, if a spans a whole buffer, it should be legal to actually place b into
+  this buffer, making it possibly an alloc-free operation.
+  Problem is, people have to structure their code explicitly around passing in the LHS as an
+  arg to any string producing operations.
+  Could have specialized versions of some string producing ops, i.e. a + 1 could be
+  compiled to generate the int directly in a's buffer.
+  It is somewhat magical, in that if you created a buffer for say serializing a file, then
+  wanted to print the string you just serialized at the end, and if the printing did some
+  concatenation you'd end up with extra data in the buffer, though that is fairly contrived,
+  since you'd have to explictly do buffer.substring to produce that problem.
+
+
 
 - Should we specialize own vs borrow on a per string constant basis?
 
@@ -1187,6 +1209,27 @@
   - extend switch to do pattern matching.
     - failing that, a switch that can use types as case labels would be a good start,
       and simple to do given that we have type indices!
+- Might be better to not piggy-back on struct inheritance.
+  - It really does a different thing, where with normal inheritance the base class is not expected
+    to be the max size of all subclasses.
+  - If you convert an xyz to an xy, you expect to get an xy instance with 2 fields, not 4 fields
+    (type + max of subclasses).
+  - Things get tricky with multiple levels of inheritance.. you'd also be tempted to use
+    type offsets for the type to deal with this, which would lead to slow switches, you'd really want
+    a 0-based union index instead.
+  - Instead, could be a special kind of struct that explicitly lists union members, which may now
+    include scalars and any other type:
+    struct foo = union { int, string, xyz, some_struct }
+  - The tag is the type, no additional ident required.. in the case you want 2 of the same type in a
+    union, you'll need to wrap in a struct first.
+    - Like variant in C++, except supported by the language.
+    - What about union members that don't need a value?
+      - should at least allow the void type to have a union-nil?
+  - Construct with nested constructors, e.g. foo { 1 } that simply stores the value along with the union
+    index.
+  - deconstruct with a switch, or "is", resulting value being the union member without the type tag.
+    - will have to see if changing the flow type of a variable to not just change the type but be
+      a different stack slot is ok, since we can't always modify the original?
 
 - namespaces improvements:
   - also implement them for global variables.
