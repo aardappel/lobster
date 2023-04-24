@@ -623,6 +623,8 @@ nfr("cg_load_vox", "name,material_palette", "SI?", "R:voxels]S?",
             map<int32_t, string> layer_names;
             map<int32_t, string> node_names;
             map<int32_t, int3> node_offset;
+            typedef matrix<int, 3, 3> int3x3;
+            map<int32_t, int3x3> node_rots;
             while (bufs.size() >= 8) {
                 auto id = (const char *)bufs.data();
                 bufs = bufs.subspan(4);
@@ -698,7 +700,6 @@ nfr("cg_load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                                         num_frames));
                     int3 offset = int3_0;
                     for (int frame = 0; frame < num_frames; ++frame) {
-                        bool has_rot = false;
                         if (!ReadDict([&](const string &key, const string &value) {
                                 if (key == "_t") {
                                     const char *cursor = value.c_str();
@@ -712,13 +713,23 @@ nfr("cg_load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                                 } else if (key == "_r") {
                                     const char *cursor = value.c_str();
                                     char *next;
-                                    auto rotation = std::strtol(cursor, &next, 10);
-                                    // 4 is the noop rotation
-                                    if (rotation != 4) has_rot = true;
+                                    auto encoded = std::strtol(cursor, &next, 10);
+                                    if (encoded != 4) { // NOP rotation
+                                        int3 row0 = int3_0;
+                                        int3 row1 = int3_0;
+                                        int3 row2 = int3_0;
+                                        auto row0_idx = encoded & 3;
+                                        if (row0_idx == 3) errf(".vox file has invalid rotation row0");
+                                        auto row1_idx = (encoded >> 2) & 3;
+                                        if (row1_idx == 3 || row0_idx == row1_idx) errf(".vox file has invalid rotation row1");
+                                        auto row2_idx = 3 - row0_idx - row1_idx;
+                                        row0[row0_idx] = (~(encoded >> 4) & 1) * 2 - 1;
+                                        row1[row1_idx] = (~(encoded >> 5) & 1) * 2 - 1;
+                                        row2[row2_idx] = (~(encoded >> 6) & 1) * 2 - 1;
+                                        node_rots.insert_or_assign(node_id, int3x3(row0, row1, row2));
+                                    }
                                 }
                             })) return erreof();
-                        if (has_rot)
-                            return errf(".vox file uses an object rotation or flip that is not supported");
                     }
                 } else if (!strncmp(id, "nGRP", 4)) {
                     int32_t node_id;
@@ -821,7 +832,27 @@ nfr("cg_load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                 }
             }
             if (voxvec->SLen() < (ssize_t)node_to_model.size()) {
-                return errf(".vox file uses object deduplication feature that is not supported\n");
+                auto new_voxvec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_RESOURCE);
+                vector<int> copies_needed(node_to_model.size());
+                for(auto& [_, model_id]: node_to_model) {
+                    assert(model_id < voxvec->SLen());
+                    copies_needed[model_id]++;
+                }
+                for(auto& [_, model_id]: node_to_model) {
+                    auto value = voxvec->At(model_id);
+                    if (--copies_needed[model_id] > 0) {
+                        auto *voxels = &GetVoxels(value);
+                        auto *newvoxels = new Voxels(voxels->grid.dim, voxels->palette_idx);
+                        voxels->Clone(int3_0, voxels->grid.dim, newvoxels);
+                        value = Value(vm.NewResource(&voxel_type, newvoxels));
+                    } else {
+                        value.LTINCRT();
+                    }
+                    model_id = (int)new_voxvec->SLen();
+                    new_voxvec->Push(vm, value);
+                }
+                voxvec->Dec(vm);
+                voxvec = new_voxvec;
             }
             for (auto &i : node_to_layer)
                 if ((layer_names.find(i.second) != layer_names.end()) &&
@@ -831,8 +862,15 @@ nfr("cg_load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                 auto node_id = i.first;
                 auto model_id = i.second;
                 for (;;) {
+                    Voxels& v = GetVoxels(voxvec->At(model_id));
+                    if (node_rots.find(node_id) != node_rots.end()) {
+                        auto& rot = node_rots[node_id];
+                        v.grid.Rotate(rot);
+                        // Adjust pivot point due to rotation.
+                        v.offset -= sign(int3_1 * rot).eq(-1) * (v.grid.dim & 1);
+                    }
                     if (node_offset.find(node_id) != node_offset.end()) {
-                        GetVoxels(voxvec->At(model_id)).offset += node_offset[node_id];
+                        v.offset += node_offset[node_id];
                     }
                     if (node_graph.find(node_id) == node_graph.end())
                         break;
