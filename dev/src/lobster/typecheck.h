@@ -3498,7 +3498,6 @@ Node *TypeAnnotation::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 
 Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
-    tc.NoStruct(*child, "is");  // FIXME
     tc.DecBorrowers(child->lt, *this);
     gr.set_resolvedtype(tc.ResolveTypeVars(gr.giventype, this));
     exptype = &tc.st.default_bool_type->thistype;
@@ -3521,6 +3520,9 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             delete this;
             return intc;
         }
+    } else {
+        // ConstVal should always be const for structs.
+        assert(!IsStruct(gr.resolvedtype()->t));
     }
     return this;
 }
