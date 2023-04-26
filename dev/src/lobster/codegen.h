@@ -298,8 +298,9 @@ struct CodeGen  {
         // Fix up all calls.
         for (auto &[loc, sf] : call_fixups) {
             auto bytecodestart = sf->subbytecodestart;
-            if (!bytecodestart)
+            if (!bytecodestart) {
                 bytecodestart = dummyfun;
+            }
             assert(!code[loc]);
             code[loc] = bytecodestart;
         }
@@ -308,8 +309,8 @@ struct CodeGen  {
         for (auto udt : st.udttable) {
             for (auto [i, de] : enumerate(udt->dispatch_table)) {
                 if (de.sf) {
-                    assert(de.sf->subbytecodestart);
-                    vtables[udt->vtable_start + i] = de.sf->subbytecodestart;
+                    vtables[udt->vtable_start + i] =
+                        de.sf->subbytecodestart ? de.sf->subbytecodestart : dummyfun;
                 }
             }
         }
