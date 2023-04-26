@@ -410,7 +410,9 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
             if (res.ec == errc()) {
                 s.resize(res.ptr - s.data());
                 // We like floats to be recognizable as floats, not integers.
-                if (s.find_last_of('.') == string::npos && isnormal(x)) s += ".0";
+                auto no_dot = s.find_last_of('.') == string::npos;
+                auto is_finite = isfinite(x);
+                if (no_dot && is_finite) s += ".0";
                 return s;
             }
             // It didn't fit, we're going to have to allocate.
