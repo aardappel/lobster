@@ -186,6 +186,9 @@ void DebugCallBack(GLenum source, GLenum type, GLuint id, GLenum severity, GLsiz
     auto ll = OUTPUT_INFO;
     if (severity == GL_DEBUG_SEVERITY_HIGH) ll = OUTPUT_ERROR;
     else if (severity == GL_DEBUG_SEVERITY_MEDIUM) ll = OUTPUT_WARN;
+    else if (severity == GL_DEBUG_SEVERITY_LOW) ll = OUTPUT_INFO;
+    // Suppress notifications in general
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
     if (ll < min_output_level) return;
     LogOutput(ll, "GLDEBUG: ", string_view(message, length));
 }
