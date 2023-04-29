@@ -537,7 +537,7 @@ struct Lex : LoadedFile {
                 if (!character_constant)
                     Error("\' should be prefixed with a \\ in a string constant");
                 sattr = string_view(start, p - start);
-                if (sval.size() > 4) Error("character constant too long");
+                if (sval.size() > 8) Error("character constant too long");
                 ival = 0;
                 for (auto c : sval) ival = (ival << 8) + c;
                 return T_INT;
