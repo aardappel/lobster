@@ -417,9 +417,22 @@ nfr("simplex", "pos,octaves,scale,persistence", "F}IFF", "F",
         auto len = Top(sp).ival();
         auto v = PopVec<float4>(sp);
         switch (len) {
-            case 2: Push(sp,  SimplexNoise(octaves, persistence, scale, v.xy())); break;
-            case 3: Push(sp,  SimplexNoise(octaves, persistence, scale, v.xyz())); break;
-            case 4: Push(sp,  SimplexNoise(octaves, persistence, scale, v)); break;
+            case 2: Push(sp, SimplexNoise(octaves, persistence, scale, v.xy())); break;
+            case 3: Push(sp, SimplexNoise(octaves, persistence, scale, v.xyz())); break;
+            case 4: Push(sp, SimplexNoise(octaves, persistence, scale, v)); break;
+            default: assert(false);
+        }
+    });
+
+nfr("simplex_raw", "pos", "F}", "F",
+    "returns a simplex noise value [-1..1] given a 2D/3D or 4D location",
+    [](StackPtr &sp, VM &) {
+        auto len = Top(sp).ival();
+        auto v = PopVec<float4>(sp);
+        switch (len) {
+            case 2: Push(sp, SimplexRawNoise(v.x, v.y)); break;
+            case 3: Push(sp, SimplexRawNoise(v.x, v.y, v.z)); break;
+            case 4: Push(sp, SimplexRawNoise(v.x, v.y, v.z, v.w)); break;
             default: assert(false);
         }
     });
