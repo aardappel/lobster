@@ -1,4 +1,78 @@
+- tone down compile time errors by default, with a max depth and no locals beyond the first item
+  Then a --full-errors to undo that.
+  95% of the time you don't care to check the stack and its making for very long error messages.
+
 - this is out of date and a bit overly negative: https://aardappel.github.io/lobster/philosophy.html
+
+- A document that explains what samples are available and what they demo.
+  - Also move some more of my (Wouter) projects into the main repo as samples.
+
+- move this TODO.txt to github issues?
+  - That's going to create 100+ issues, and not necessarily easier to overview since github doesn't have a good way to
+    order issues by priority, and search for things.
+    - Actually, the new "projects" can order issues both by a rough priority status, and also within that item by item.
+    - Creating an issue for each bullet point here would be chaos indeed, but
+      first sorting this entire file by language feature or system area, and then creating issues
+      with sub-parts of those indicated by "- [ ]" which creates checkboxes than can show progress.
+      - Pasting the bullets from here mostly creates correctly formatted bullets in github so
+        can be done without too much extra formatting work.
+    - Easier to refer people who want to know what is planned and/or want to help.
+  - Right now, searches for keywords hit both code and this TODO.txt.
+
+- switch on type.
+  see some discussion here: https://github.com/aardappel/lobster/issues/113
+  tagged unions: https://github.com/aardappel/lobster/discussions/242
+  What people really seem to want is a guaranteed exhaustive type switch.
+  We should first add that for objects.
+  The way that would work is that it would expect all subclasses to be covered by a type,
+  including subclasses of subclasses.
+  To make this manageable, we should first implement abstract classes, since that way the
+  base class doesn't need to feature in the cases.
+  Actually, Lobster already knows if a base class is never instanced, but it be nice to give
+  people the option to enforce it.
+  We would give never-instanced the same power for convenience, with of course the downside
+  that if anyone ever tries to instance one suddenly all type switches start complaining
+  about non-exhaustiveness, but I think this is managable.
+  For sub-subclasses, the presence of the middle type in the cases will make the sub-subclasses
+  entirely optional, but if present, should of course get precedence.
+  Typically though these middle types would be marked abstract if intended to be used with
+  type switches a lot, which would force cases for the sub-subclasses.
+  Implementation wise this would go through the same logic that currently constructs vtable
+  entries, but instead results in case-integers instead of function pointers. That way
+  this is guaranteed fast no matter the number of cases, though we could choose to bypass
+  the vtable for 3 or less cases or so.
+
+- We should be making extensive use of https://devblogs.microsoft.com/cppblog/introducing-vector-calling-convention/
+  Especially since we're a closed static build we control, meaning we have no worries of
+  ABI/calling convention mismatches.
+  This would give a bunch of "free" performance boosts in places and likely allow the
+  optimizer to do a better job.
+
+- .xy is very frequently used.. why don't we have xyz -> xy conversion in the language,
+  implemented as a struct shortening op?
+  warning, if the struct is KEEP and contains refs in the chopped fields, it would need
+  drops.
+
+- Debugger: uses static rather than dynamic type to show subclasses, see e.g. gr:GeneratorRef field
+
+- Consider renaming xyz_f and xyz_i to float3 / int3
+  - The current naming seemed nice because it was assumed most of the time you'd use just `xyz`,
+    but in practice almost always the above two are used.. and they look a bit weird compared
+    to float3
+    - We could rename the generic xyz into vec3, but really mostly don't want to use it.
+      type3? t3? tuple3? scalar3? value3? :)
+  - float3 is so nice because it so exactly expresses what it is, looks similar to just float,
+    and is better than vec3 because it specifies the type.
+  - We already use float3 in the C++ code, if we'd also have it Lobster, and maybe add some standard
+    #defines for Lobster GLSL, we'd be a lot closer to universally readable math code (minus
+    the C/Python syntax differences, so still not fully copy-pastable).
+
+- Get Lobster VSCode plugin/LSP to work well - @ewoudje
+  - Implement a --breakpoints that allows inserting of breakpoints as indicated by the plugin?
+    Would not allow changing these during runtime but this is already way better than breakpoint()
+    manually.
+  - LSP: list members etc.
+  - VSCode double click on errors doesn't work, why is that?
 
 - consider using something else instead of _ for namespaces
     .	JS/TS, Ada, C#, CoffeeScript, E, F#, Go, Haskell, Java, Modula-3, OCaml, Pascal, Python, Ruby, SML, Squeak
@@ -117,17 +191,125 @@
     Would be expensive to have a breakpoint check between every statement..
     But this would enable traditional step by step debugging.
 
+- Inline structs, further improvements:
+  - These were immutable in the past, because values were shared by pointer, but now there
+    really is no reason to anymore, as they're always copied, so modifying a field of
+    a struct that sits in a variable would totally be fine and useful.
+    - allow fields in a struct to be preceded by var, and similarly in a class by let
+      to change their respective defaults.
+    - Will greatly expand the zero abstraction use cases where
+    - once structs are mutable, maybe introduce a way to annotate both structs and classes
+      as immutable?
+  - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
+    for anything vector related, like MathCheckVector
+  - finally split builtins into one op per len.
+    - get rid of ToVStruct etc.
+    - get rid of most of GenValueSize
+  - look which ops are most frequent, then specialize them to 1/2/3/4/v widths, as even
+    ts_memcpy still has a cost.
+  - push() for non-struct has superfluous pushint 1.
+  - Support mixed refc/scalar fields in structs.
+    - then use this for FlatBuffers handles.
+  - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
+    especially in vectors, then structs..
+    You'd have to somehow indicate that multiple fields are stored in the same 64-bit slot,
+    because too much of the VM assumes everything is 64-bit Values.
+    Thus, getting such smaller fields to work generically with all vector ops likely wouldn't
+    work.. yet the type system would suggest it would, so a bit messy.
+    An alternative would be a new kind of type, "bitfield", that is simply a subtype of int
+    much like enums. You specify it like a struct, then that type can be used absolutely
+    everywhere, and decay to an int for code that doesn't understand it.
+    You still would have convenient accessors to read and write these values.
+    An even cheaper way to add them would be to piggyback on the existing enum_flags,
+    and have a way to specify bit-sizes instead of bit-offsets. Then using .enumval
+    on any enum typed integer anywhere would retrieve the corresponding bits, or set them.
+    That would work without structs needing to learn about overlapping fields.
+    However, having them as consecutive overlapping fields in structs/classes would be
+    the most powerful, as that would allow existing fields to be squeezed together and
+    still work the same for all existing code, including serialization etc.
+    Yet another alternative is to make buffers with views on them more of a first class
+    language feature to replace write_int8_le and friends.
+  - somehow not store LVector::width.
+
+- Now that we have inline structs, ADTs (tagged unions) should be based on them, since
+  being same-sized and being inline go so wonderfully together!
+  - This would make types like Maybe/Optional etc super cheap.
+  - don't even need to invent some separate enum/adt feature and use pattern matching for this,
+    structs that participate in an inheritance hierarchy can simply have a typeinfo prefixed,
+    ONLY when they are in a context of the superclass! That is even more efficient than enums
+    in Rust, which presumably always carry their tag. In fact it is more similar to "fat" trait
+    pointers in Rust, except without the pointers. A tagged struct can even shrink to not need
+    the padding to bring all these structs to the same size.. and all this is easy because they're
+    always copied.
+- Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
+  possible in even C++, where there is no need to update pointers to an object.
+  Maybe we can have a declaration in Lobster that forces a certain set of derived classes to be
+  padded to the same size, with a special overwrite operator. The type of the variable would need
+  to be of the superclass, and the superclass itself should maybe not be instantiable, or also be
+  the same size.
+  Basically you'd declare the superclass as everything below here is same size.
+  What are examples of algorithms that could be simpler this way?
+  - game objects changing state
+  - AST node being changed
+  - Type variables! This one is hard to do without.
+  - Values in an interpreter
+  Though most of these are easy to do with existing code.. it is more to avoid allocation and
+  allow these values to be inline? Without inline values, you first have to construct on the heap
+  before overwrite. Still useful to be possible for cases like type variables.
+- Features to make it easier to use structs ADT style as opposed to inheritance
+  - ADT is similar to a base class with no members and a fixed set of sub-classes.
+    - So make that use case into a simpler declaration syntax.
+  - extend switch to do pattern matching.
+    - failing that, a switch that can use types as case labels would be a good start,
+      and simple to do given that we have type indices!
+- Might be better to not piggy-back on struct inheritance.
+  - It really does a different thing, where with normal inheritance the base class is not expected
+    to be the max size of all subclasses.
+  - If you convert an xyz to an xy, you expect to get an xy instance with 2 fields, not 4 fields
+    (type + max of subclasses).
+  - Things get tricky with multiple levels of inheritance.. you'd also be tempted to use
+    type offsets for the type to deal with this, which would lead to slow switches, you'd really want
+    a 0-based union index instead.
+  - Instead, could be a special kind of struct that explicitly lists union members, which may now
+    include scalars and any other type:
+    struct foo = union { int, string, xyz, some_struct }
+  - The tag is the type, no additional ident required.. in the case you want 2 of the same type in a
+    union, you'll need to wrap in a struct first.
+    - Like variant in C++, except supported by the language.
+    - What about union members that don't need a value?
+      - should at least allow the void type to have a union-nil?
+      - and/or empty structs if there's multiple such values.
+  - Construct with nested constructors, e.g. foo { 1 } that simply stores the value along with the union
+    index.
+  - deconstruct with a switch, or "is", resulting value being the union member without the type tag.
+    - will have to see if changing the flow type of a variable to not just change the type but be
+      a different stack slot is ok, since we can't always modify the original?
+- For unions, being able to combine this with integer bitfields would be especially sweet, if you
+  assume the type field is always declared as 8-bit, you can now make unions where several integers/bools
+  are packed into the remaining 56 bits!
+- One complication is the bitfield we use for structs to know where refs are.
+  - We could be lazy: allocate slots so that the bits align, making for possibly larger than
+      expected union values.
+  - Alternatively, expand the representation, sticking it as a field in TIField is most elegant
+    (but max 32 cases), or make the existing field an index into a byte array (any number of cases, max
+    8 or 16 or whatever fields) which is probably safer.
+    This lookup is currently only done for destruction of mixed ref/scalar struct vectors, and vector append/copy,
+    since for single structs we codegen POP(REF)/INCREF per field, or emit bitmask as part of the
+    IL_LV_WRITEREFV and IL_VFORELEMREF2S instructions which would now need to look up into the TI instead,
+    which is somewhat expensive..
+- see also: https://github.com/aardappel/lobster/discussions/242
+
+- improvements to the new member/frame functionality:
+  - bundle subsequent decls
+  - how to do if frame_event: do_for_N_seconds
+  - find more places to use it, samples etc
+
 - continue vmcore experiment.
 
 - Inline tocpp into codegen, see below.
 
 - "C-style language to Lobster Cheat Sheet" could use improvements, and more about types.
   Also def for function values.
-
-- move this TODO.txt to github issues?
-  - That's going to create 100+ issues, and not necessarily easier to overview since github doesn't have a good way to
-    order issues by priority, and search for things.
-  - Right now, searches for keywords hit both code and this TODO.txt.
 
 - move to more of a many-passes architecture to facility cleaning up further messes,
   in particular resolving generic types, and maybe some of the function checking.
@@ -261,6 +443,11 @@
   and insert an instrumented scope for every single compiled function conditionally when --profile
   is supplied or whatever, and get very real stats on what is using CPU (and opengl GPU).
   Additionally allow explicitly scoped blocks from Lobster.
+
+- Would be nice to translate the code in https://craftinginterpreters.com/ to Lobster.
+  It is a small amount of code: https://github.com/munificent/craftinginterpreters/tree/master/java/com/craftinginterpreters/lox
+  Learning how to write a compile seems a frequent desire among Lobster users, and
+  being able to do it alongside this great book would be a lot of fun.
 
 - use this instead of the current lib for span? supposedly better than the std version:
   https://github.com/abseil/abseil-cpp/blob/master/absl/types/span.h
@@ -807,46 +994,6 @@
   - Just leave it as is. Prefer not to write HOFs that modify state, and if they do, well,
     the user needs to be aware changes don't get undone with non-local returns.
 
-- Inline structs, further improvements:
-  - These were immutable in the past, because values were shared by pointer, but now there
-    really is no reason to anymore, as they're always copied, so modifying a field of
-    a struct that sits in a variable would totally be fine and useful.
-    - allow fields in a struct to be preceded by var, and similarly in a class by let
-      to change their respective defaults.
-    - Will greatly expand the zero abstraction use cases where
-    - once structs are mutable, maybe introduce a way to annotate both structs and classes
-      as immutable?
-  - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
-    for anything vector related, like MathCheckVector
-  - finally split builtins into one op per len.
-    - get rid of ToVStruct etc.
-    - get rid of most of GenValueSize
-  - look which ops are most frequent, then specialize them to 1/2/3/4/v widths, as even
-    ts_memcpy still has a cost.
-  - push() for non-struct has superfluous pushint 1.
-  - Support mixed refc/scalar fields in structs.
-    - then use this for FlatBuffers handles.
-  - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
-    especially in vectors, then structs..
-    You'd have to somehow indicate that multiple fields are stored in the same 64-bit slot,
-    because too much of the VM assumes everything is 64-bit Values.
-    Thus, getting such smaller fields to work generically with all vector ops likely wouldn't
-    work.. yet the type system would suggest it would, so a bit messy.
-    An alternative would be a new kind of type, "bitfield", that is simply a subtype of int
-    much like enums. You specify it like a struct, then that type can be used absolutely
-    everywhere, and decay to an int for code that doesn't understand it.
-    You still would have convenient accessors to read and write these values.
-    An even cheaper way to add them would be to piggyback on the existing enum_flags,
-    and have a way to specify bit-sizes instead of bit-offsets. Then using .enumval
-    on any enum typed integer anywhere would retrieve the corresponding bits, or set them.
-    That would work without structs needing to learn about overlapping fields.
-    However, having them as consecutive overlapping fields in structs/classes would be
-    the most powerful, as that would allow existing fields to be squeezed together and
-    still work the same for all existing code, including serialization etc.
-    Yet another alternative is to make buffers with views on them more of a first class
-    language feature to replace write_int8_le and friends.
-  - somehow not store LVector::width.
-
 - FlatBuffers implementation:
   - once we have mixed scalar/ref: make accessor handles into structs.
   - Make builder offset struct into specialized structs for the type? Maybe not necessary?
@@ -924,6 +1071,25 @@
 
 - remove or bound LT_ANY, it makes checks for keep/borrow fragile and can perculate.
   - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
+
+- For certain use cases, having "atoms" is a nice language feature, being able to specify
+  undeclared identifiers that map to a unique set of integers.
+  - Could be with a special prefix, such $foo or #foo
+    - Possibly also allowing $'foo bar' to allow characters outside the ident range.
+  - Would typically map to integers 0.., such that they work well with switch and have
+    cheap lookup back to strings.
+    - Means that they are only suitable for unique ids within a running program, not storage.
+    - For storage you'd use the associated string.
+    - Could also have an associated hash.
+      - Would be cool if the value was directly a hash itself, if it were possible to guarantee
+        somehow these values can be given unique unchanging hashes even when the set changes
+        (such that they can be used for storage), but that seems.. impossible?
+    - With 64-bit integers, an alternative design is to only allow lowercase, underscore, and
+      a few others for a 5-bit number, allowing max 12 char identifier unique IDs (or with uppercase
+      and numbers in 6-bit for max 10 chars).
+      This gives uniqueness without hashing!
+      Though frankly we already support 8 inside a character constant, so this would not add much
+      to the current functionality.
 
 - improve docs.
   - better "why should I want this language" intro rather than just a list of features.
@@ -1177,59 +1343,6 @@
   that marks the current function as error catching, since it can simply register the
   current function stack frame function id as such, though that may make future optimisations
   to omit it harder.
-
-- NOTE: now that we have inline structs, ADTs should be based on them, since being same-sized
-  and being inline go so wonderfully together!
-  - This would make types like Maybe/Optional etc super cheap.
-  - don't even need to invent some separate enum/adt feature and use pattern matching for this,
-    structs that participate in an inheritance hierarchy can simply have a typeinfo prefixed,
-    ONLY when they are in a context of the superclass! That is even more efficient than enums
-    in Rust, which presumably always carry their tag. In fact it is more similar to "fat" trait
-    pointers in Rust, except without the pointers. A tagged struct can even shrink to not need
-    the padding to bring all these structs to the same size.. and all this is easy because they're
-    always copied.
-- Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
-  possible in even C++, where there is no need to update pointers to an object.
-  Maybe we can have a declaration in Lobster that forces a certain set of derived classes to be
-  padded to the same size, with a special overwrite operator. The type of the variable would need
-  to be of the superclass, and the superclass itself should maybe not be instantiable, or also be
-  the same size.
-  Basically you'd declare the superclass as everything below here is same size.
-  What are examples of algorithms that could be simpler this way?
-  - game objects changing state
-  - AST node being changed
-  - Type variables! This one is hard to do without.
-  - Values in an interpreter
-  Though most of these are easy to do with existing code.. it is more to avoid allocation and
-  allow these values to be inline? Without inline values, you first have to construct on the heap
-  before overwrite. Still useful to be possible for cases like type variables.
-- Features to make it easier to use structs ADT style as opposed to inheritance
-  - ADT is similar to a base class with no members and a fixed set of sub-classes.
-    - So make that use case into a simpler declaration syntax.
-  - extend switch to do pattern matching.
-    - failing that, a switch that can use types as case labels would be a good start,
-      and simple to do given that we have type indices!
-- Might be better to not piggy-back on struct inheritance.
-  - It really does a different thing, where with normal inheritance the base class is not expected
-    to be the max size of all subclasses.
-  - If you convert an xyz to an xy, you expect to get an xy instance with 2 fields, not 4 fields
-    (type + max of subclasses).
-  - Things get tricky with multiple levels of inheritance.. you'd also be tempted to use
-    type offsets for the type to deal with this, which would lead to slow switches, you'd really want
-    a 0-based union index instead.
-  - Instead, could be a special kind of struct that explicitly lists union members, which may now
-    include scalars and any other type:
-    struct foo = union { int, string, xyz, some_struct }
-  - The tag is the type, no additional ident required.. in the case you want 2 of the same type in a
-    union, you'll need to wrap in a struct first.
-    - Like variant in C++, except supported by the language.
-    - What about union members that don't need a value?
-      - should at least allow the void type to have a union-nil?
-  - Construct with nested constructors, e.g. foo { 1 } that simply stores the value along with the union
-    index.
-  - deconstruct with a switch, or "is", resulting value being the union member without the type tag.
-    - will have to see if changing the flow type of a variable to not just change the type but be
-      a different stack slot is ok, since we can't always modify the original?
 
 - namespaces improvements:
   - also implement them for global variables.
@@ -1589,20 +1702,6 @@
     - though given that the switch/jump method is slower, maybe not a priority.
   - change var access to be relative to top of stack
   - cleanup of id/sid/arg..
-
-- experiment more with frame state now that its faster & cleaner.
-  - currently doesn't work well in loops
-    - if you loop through entities, and do a time_if, then some may have an ongoing animation
-      and some do not, and state of one can easily be used for another.
-    - we really need to be able to pass on object identity
-  - new implementation should allow:
-    - removing arbitrary element in loop - though object identity would be better.
-    - access state from 2 contexts
-    - explicit reset? to avoid 1 frame of nothing if a reset is forced.
-  - dump frame state.
-  - create some generic primitives.. frame-based if-then, sequencing, etc.
-  - save frame state?
-  - DOCS!
 
 - Make loadtexturecached into something using a generic map. But to declare it, need to be
   able to specify generic vectors in struct decls.
