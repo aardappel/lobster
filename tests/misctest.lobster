@@ -383,3 +383,12 @@ run_test("misc"):
         assert type_field_name(r, 2) == "s"
         assert type_field_value(r, 0) == "1.0"
         assert type_element_string(r.v) == "int"
+
+    do():
+        // Calling function values from native.
+        var state = 1
+        let fv = fn() -> void:
+            // Executed from within native code.
+            state = 2
+        call_function_value(fv)
+        assert state == 2

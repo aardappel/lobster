@@ -538,6 +538,11 @@ void VM::EvalProgram() {
     #endif
 }
 
+void VM::CallFunctionValue(Value &f) {
+    auto fv = f.ip();
+    fv(*this, nullptr);
+}
+
 string &VM::TraceStream() {
   size_t trace_size = trace == TraceMode::TAIL ? 50 : 1;
   if (trace_output.size() < trace_size) trace_output.resize(trace_size);

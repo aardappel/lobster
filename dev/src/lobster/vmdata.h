@@ -1037,6 +1037,8 @@ struct VM : VMArgs {
 
     void FrameStart() { frame_count++; }
 
+    void CallFunctionValue(Value &f);
+
     void LvalueIdxVector(int lvalop, iint i);
     void LvalueIdxStruct(int lvalop, iint i);
     void LvalueField(int lvalop, iint i);

@@ -214,7 +214,8 @@ extern TypeRef type_string;
 extern TypeRef type_any;
 extern TypeRef type_vector_int;
 extern TypeRef type_vector_float;
-extern TypeRef type_function_null;
+extern TypeRef type_function_null_any;
+extern TypeRef type_function_null_void;
 extern TypeRef type_function_cocl;
 extern TypeRef type_resource;
 extern TypeRef type_vector_resource;
@@ -290,7 +291,8 @@ struct Narg {
             case 'B': type = type_int; flags = flags | NF_BOOL; break;
             case 'F': type = type_float; break;
             case 'S': type = type_string; break;
-            case 'L': type = type_function_null; break;  // FIXME: only used by hash(), in gui.lobster
+            case 'L': type = type_function_null_any; break;   // NOTE: only used by hash(), in gui.lobster
+            case 'C': type = type_function_null_void; break;  // NOTE: only used by call_function_value()
             case 'R': type = type_resource; break;
             case 'T': type = type_typeid; break;
             default:  assert(0);

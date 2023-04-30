@@ -264,7 +264,7 @@ struct TypeChecker {
                 return (type->t == V_TYPEID && (cf & CF_COERCIONS)) ||
                        (type->t == V_INT && !bound->e);
             case V_FUNCTION:
-                return type->t == V_FUNCTION && !bound->sf;
+                return type->t == V_FUNCTION && &*bound == &*type_function_null_any;  // From "L" in natreg.h.
             case V_NIL: {
                 auto scf = ConvertFlags(cf & CF_UNIFICATION);
                 return (type->t == V_NIL && ConvertsTo(type->Element(), bound->Element(), scf)) ||
@@ -415,24 +415,37 @@ struct TypeChecker {
                 }
                 break;
             case V_FUNCTION:
-                if (a->exptype->IsFunction() && bound->sf) {
+                // If bound was type_function_null_any, then ConvertsTo already handled it.
+                if (a->exptype->IsFunction()) {
                     // See if these functions can be made compatible. Specialize and typecheck if
                     // needed.
                     auto sf = a->exptype->sf;
-                    auto ss = bound->sf;
-                    if (!ss->parent->istype)
-                        Error(*a,
-                            "dynamic function value can only be passed to declared function type");
-                    if (sf->args.size() != ss->args.size()) break;
+                    size_t reqret = 0;
+                    auto returntype = type_void;
+                    vector<Arg> no_args;
+                    auto args = &no_args;
+                    if (bound->sf) {
+                        reqret = bound->sf->reqret;
+                        returntype = bound->sf->returntype;
+                        args = &bound->sf->args;
+                        if (!bound->sf->parent->istype)
+                            Error(*a,
+                                  "dynamic function value can only be passed to declared function "
+                                  "type");
+                    } else {
+                        assert(&*bound == &*type_function_null_void);
+                    }
+
+                    if (sf->args.size() != args->size()) break;
                     for (auto [i, arg] : enumerate(sf->args)) {
                         // Specialize to the function type, if requested.
                         if (!sf->typechecked && st.IsGeneric(sf->giventypes[i])) {
-                            arg.type = ss->args[i].type;
+                            arg.type = (*args)[i].type;
                         } else {
                             arg.type = ResolveTypeVars(sf->giventypes[i], a);
                         }
                         // Note this has the args in reverse: function args are contravariant.
-                        if (!ConvertsTo(ss->args[i].type, arg.type, CF_UNIFICATION))
+                        if (!ConvertsTo((*args)[i].type, arg.type, CF_UNIFICATION))
                             goto error;
                         // This function must be compatible with all other function values that
                         // match this type, so we fix lifetimes to LT_BORROW.
@@ -440,10 +453,10 @@ struct TypeChecker {
                         arg.sid->lt = LT_BORROW;
                     }
                     if (sf->typechecked) {
-                        if (sf->reqret != ss->reqret)
+                        if (sf->reqret != reqret)
                             goto error;
                     } else {
-                        sf->reqret = ss->reqret;
+                        sf->reqret = reqret;
                     }
                     sf->isdynamicfunctionvalue = true;
                     assert(sf->freevarchecked);  // Must have been pre-specialized.
@@ -452,11 +465,11 @@ struct TypeChecker {
                     if (!sf->sbody) sf = CloneFunction(*sf->parent->overloads[0]);
                     TypeCheckFunctionDef(*sf, *sf->sbody);
                     // Covariant again.
-                    if (sf->returntype->NumValues() != ss->returntype->NumValues() ||
-                        !ConvertsTo(sf->returntype, ss->returntype, CF_UNIFICATION))
+                    if (sf->returntype->NumValues() != returntype->NumValues() ||
+                        !ConvertsTo(sf->returntype, returntype, CF_UNIFICATION))
                             break;
                     // Parser only parses one ret type for function types.
-                    assert(ss->returntype->NumValues() <= 1);
+                    assert(returntype->NumValues() <= 1);
                     return;
                 }
                 break;

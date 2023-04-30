@@ -1256,6 +1256,15 @@ nfr("hash", "v", "F}", "I",
         Push(sp, positive_bits(a.Hash(vm, V_FLOAT)));
     });
 
+nfr("call_function_value", "x", "C", "",
+    "calls a void / no args function value.. you shouldn't need to use this, it is"
+    " a demonstration of how native code can call back into Lobster",
+    [](StackPtr &, VM &vm, Value &f) {
+        vm.CallFunctionValue(f);
+        return NilVal();
+    });
+
+
 nfr("type_string", "ref", "A", "S",
     "string representing the type of the given reference (object/vector/string/resource)",
     [](StackPtr &sp, VM &vm) {
