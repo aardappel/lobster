@@ -48,20 +48,19 @@ def exists(xs, fun):
             return true
     return false
 
-def forever(fun): while true: fun()
+def forever(fun):
+    while true:
+        fun()
 
 def fold(xs, acc, fun):
-    for xs: acc = fun(acc, _)
+    for xs:
+        acc = fun(acc, _)
     return acc
 
 def fold2(xs, acc1, acc2, fun):
     for xs:
         acc1, acc2 = fun(acc1, acc2, _)
     return acc1, acc2
-
-def fold_reverse(xs, acc, fun):
-    for xs.length: acc = fun(acc, xs[xs.length - 1 - _])
-    return acc
 
 def reduce(xs, fun):
     assert xs.length
@@ -79,7 +78,9 @@ def reduce_reverse(xs, fun):
     return acc
 
 def find(xs, fun):
-    for(xs) x, i: if fun(x): return i
+    for(xs) x, i:
+        if fun(x):
+            return i
     return -1
 
 // return element index for which fun returns biggest value of type R (float or int).
@@ -117,25 +118,48 @@ def product<T>(xs:[T]):
 
 def zip(xs, ys): return map xs.length: [ xs[_], ys[_] ]
 
-def reverse(xs, fun): for(xs.length) i:
-    let j = xs.length - i - 1
-    fun(xs[j], j)
+def reverse(xs, fun):
+     for(xs.length) i:
+        let j = xs.length - i - 1
+        fun(xs[j], j)
 
-def reverse_map(xs, fun): return map(xs.length) i:
-    let j = xs.length - i - 1
-    fun(xs[j], j)
+def reverse_map(xs, fun):
+    return map(xs.length) i:
+        let j = xs.length - i - 1
+        fun(xs[j], j)
 
-def reverse_list(xs): return map(xs.length) i: xs[xs.length - i - 1]
+def reverse_fold(xs, acc, fun):
+    for(xs.length) i:
+        let j = xs.length - i - 1
+        acc = fun(acc, xs[j])
+    return acc
 
-def flatten(xs): return fold(xs, []): append(_a, _b)
+def reverse_find(xs, fun):
+    for(xs.length) i:
+        let j = xs.length - i - 1
+        if fun(xs[j]):
+            return j
+    return -1
+
+def reverse_list(xs):
+    return map(xs.length) i:
+        let j = xs.length - i - 1
+        xs[j]
+
+def flatten(xs):
+    return fold(xs, []):
+        append(_a, _b)
 
 def split(l, f):
     let r = [ [], [] ]
-    for(l) e: r[f(e)].push(e)
+    for(l) e:
+        r[f(e)].push(e)
     return r
 
-def rnd_pick(xs): return xs[rnd(xs.length)]
-def rnd_pick2(xs): return rnd_pick(rnd_pick(xs))
+def rnd_pick(xs):
+    return xs[rnd(xs.length)]
+def rnd_pick2(xs):
+    return rnd_pick(rnd_pick(xs))
 
 def qsort<T>(xs:[T], lt) -> [T]:
     if xs.length <= 1:
@@ -200,11 +224,17 @@ def return_after(v, f):
 
 def do(f): return f()  // Useful to create a scope where there is none.
 
-def for_bias (num, bias,  fun): for num: fun(_ + bias)
-def for_scale(num, scale, fun): for num: fun(_ * scale)
+def for_bias (num, bias,  fun):
+    for num:
+        fun(_ + bias)
+def for_scale(num, scale, fun):
+    for num:
+        fun(_ * scale)
 
-def for_range     (a, b, fun): for_bias(b - a,     a, fun)
-def for_range_incl(a, b, fun): for_bias(b - a + 1, a, fun)
+def for_range(a, b, fun):
+    for_bias(b - a, a, fun)
+def for_range_incl(a, b, fun):
+    for_bias(b - a + 1, a, fun)
 
 // HOFs that work on other HOFs:
 
