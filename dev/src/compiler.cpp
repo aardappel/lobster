@@ -41,8 +41,7 @@ const Type g_type_any(V_ANY);
 const Type g_type_vector_any(V_VECTOR, &g_type_any);
 const Type g_type_vector_int(V_VECTOR, &g_type_int);
 const Type g_type_vector_float(V_VECTOR, &g_type_float);
-const Type g_type_function_null_any(V_FUNCTION);   // Any args and ret, not typechecked.
-const Type g_type_function_null_void(V_FUNCTION);  // Forced to be void->void.
+const Type g_type_function_null_void(V_FUNCTION);  // no args, void return.
 const Type g_type_resource(V_RESOURCE);
 const Type g_type_vector_resource(V_VECTOR, &g_type_resource);
 const Type g_type_typeid(V_TYPEID, &g_type_any);
@@ -55,7 +54,6 @@ TypeRef type_string = &g_type_string;
 TypeRef type_any = &g_type_any;
 TypeRef type_vector_int = &g_type_vector_int;
 TypeRef type_vector_float = &g_type_vector_float;
-TypeRef type_function_null_any = &g_type_function_null_any;
 TypeRef type_function_null_void = &g_type_function_null_void;
 TypeRef type_resource = &g_type_resource;
 TypeRef type_vector_resource = &g_type_vector_resource;

@@ -1358,7 +1358,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
     }
     size_t nargs = children.size();
     assert(nargs == sf->args.size());
-    cg.GenPushVar(1, type_function_null_any, sid->Idx(), sid->used_as_freevar);
+    cg.GenPushVar(1, type_function_null_void, sid->Idx(), sid->used_as_freevar);
     cg.TakeTemp(nargs, true);
     cg.EmitOp(IL_CALLV, arg_width + 1, ValWidthMulti(exptype, sf->returntype->NumValues()));
     if (sf->reqret) {
