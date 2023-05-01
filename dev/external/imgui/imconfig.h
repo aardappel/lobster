@@ -121,6 +121,16 @@ namespace ImGui
 }
 */
 
+// This doesn't work, sadly requires pulling too much of Lobster ahead of imgui cpp files.
+/*
+#include <stdint.h>
+#include "lobster/geom.h"
+#define IM_VEC2_CLASS_EXTRA \
+    constexpr ImVec2(const float2 &f) : x(f.x), y(f.y) {} \
+    operator float2() const { return float2(x, y); }
+*/
+
+#define IMGUI_DEFINE_MATH_OPERATORS
 
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM "lobster/glincludes.h"
 #include IMGUI_IMPL_OPENGL_LOADER_CUSTOM

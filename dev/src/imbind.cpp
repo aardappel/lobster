@@ -947,6 +947,30 @@ nfr("im_image_button", "label,tex,size,bgcol", "SR:textureF}:2F}:4?", "B",
         Push(sp, press);
     });
 
+nfr("im_image_mouseclick", "tex,size", "R:textureF}:2", "F}:2I",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto sz = PopVec<float2>(sp);
+        auto t = GetTexture(Pop(sp));
+        ImVec2 cursor = ImGui::GetCursorScreenPos();
+        ImVec2 size = ImVec2(sz.x, sz.y);
+        ImGui::Image((ImTextureID)(size_t)t.id, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+        if (ImGui::IsMouseHoveringRect(cursor, cursor + size)) {
+            auto pos = (ImGui::GetMousePos() - cursor) / size;
+            PushVec<float, 2>(sp, float2(pos.x, pos.y));
+            // Create an all-in-one event value similar to gl_button().
+            int event = -1;
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) event = 1;
+            else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) event = 0;
+            else if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) event = 2;
+            Push(sp, event);
+        } else {
+            PushVec<float, 2>(sp, -float2_1);
+            Push(sp, -1);
+        }
+    });
+
 nfr("im_treenode_start", "label,flags", "SI", "B",
     "(use im_treenode instead)",
     [](StackPtr &sp, VM &vm) {
