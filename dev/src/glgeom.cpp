@@ -414,4 +414,5 @@ GeometryCache::~GeometryCache() {
     }
     for (auto &p : circlevbos) delete p.second;
     for (auto &p : opencirclevbos) delete p.second.first;
+    for (auto &p : roundedboxvbos) delete p.second;
 }
