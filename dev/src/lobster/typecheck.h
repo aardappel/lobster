@@ -524,7 +524,7 @@ struct TypeChecker {
 
     const char *MathCheck(TypeRef &type, BinOp &n, bool &unionchecked,
                           bool typechangeallowed) {
-        if (type->Numeric() || IsUDT(type->t))
+        if (type->Numeric() || IsStruct(type->t))
             return nullptr;
         if (MathCheckVector(type, n.left, n.right)) {
             unionchecked = true;
