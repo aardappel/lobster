@@ -1386,6 +1386,23 @@ nfr("date_time_string", "utc", "B?", "S",
         return Value(s);
     });
 
+nfr("date_time_string_format", "format,utc", "SB?", "S",
+    "a string representing date & time information using a formatting string according to"
+    " https://en.cppreference.com/w/cpp/chrono/c/strftime, for example \"%Y_%m_%d_%H_%M_%S\"."
+    " By default returns local time, pass true for UTC instead.",
+    [](StackPtr &, VM &vm, Value &fmt, Value &utc) {
+        auto time = std::time(nullptr);
+        if (!time) return Value(vm.NewString(""));
+        auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
+        if (!tm) return Value(vm.NewString(""));
+        const size_t max = 1024;
+        char buf[max];
+        auto sz = std::strftime(buf, max, fmt.sval()->strvnt().c_str(), tm);
+        if (!sz) return Value(vm.NewString(""));
+        auto s = vm.NewString(string_view(buf, sz));
+        return Value(s);
+    });
+
 nfr("assert", "condition", "A*", "Ab1",
     "halts the program with an assertion failure if passed false. returns its input."
     " runtime errors like this will contain a stack trace if --runtime-verbose is on.",
