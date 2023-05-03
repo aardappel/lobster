@@ -1,13 +1,14 @@
 import { Connection, TextDocuments, WorkspaceFolder } from "vscode-languageserver";
 import { URI } from "vscode-uri";
-import { LobsterDocument } from "./document";
+import { LobsterDocument, LobsterDocumentState } from "./document";
 
 export interface LobsterSettings {
     executable: string,
-    imports: string[]
+    imports: string[],
+    experimental: boolean
 }
 
-const defaultSettings: LobsterSettings = { executable: '', imports: [] };
+const defaultSettings: LobsterSettings = { executable: '', imports: [], experimental: false };
 
 export class LSPInstance {
     connection: Connection;
@@ -51,14 +52,16 @@ export class LSPInstance {
 
         const folders = await this.getWorkspaceFoldersPaths();
         return result.then(s => ({
-            executable: s.executable || defaultSettings.executable,
-            imports: [...s.imports, ...folders]
+            executable: s.executable || this.globalSettings.executable,
+            imports: [...s.imports, ...folders],
+            experimental: s.experimental || this.globalSettings.experimental
         }));
     }
 
     async validateDocument(document: LobsterDocument) {
+        const noErrBefore = document.state === LobsterDocumentState.NoErrors;
         const diagnostics = await document.parse(this);
-        if (diagnostics.length > 0) {
+        if (!noErrBefore || diagnostics.length > 0) {
             this.connection.sendDiagnostics({
                 uri: document.uri,
                 diagnostics

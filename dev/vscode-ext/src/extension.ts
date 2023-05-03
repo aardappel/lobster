@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, debug } from 'vscode';
 
 import {
 	LanguageClient,
@@ -8,24 +8,27 @@ import {
 	TransportKind
 } from 'vscode-languageclient/node';
 import { registerTasks } from './task';
+import { InlineLobsterDebugAdapterFactory } from './dap';
 
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
 	// The server is implemented in node
-	const serverModule = context.asAbsolutePath(
-		path.join('..', 'lsp', 'webpack-out', 'server.js') //TODO when debugging use this path
+	const lspModule = context.asAbsolutePath(
+		path.join('..', 'lsp', 'webpack-out', 'lobster_lsp.js') //TODO when debugging use this path
 		// path.join('webpack-out', 'lobster_lsp.js')
+	);
+
+	const dapModule = context.asAbsolutePath(
+		path.join('..', 'lsp', 'webpack-out', 'lobster_dap.js') //TODO when debugging use this path
+		// path.join('webpack-out', 'lobster_dap.js')
 	);
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
-		run: { module: serverModule, transport: TransportKind.ipc },
-		debug: {
-			module: serverModule,
-			transport: TransportKind.ipc,
-		}
+		run: { module: lspModule, transport: TransportKind.ipc },
+		debug: { module: lspModule, transport: TransportKind.ipc }
 	};
 
 	// Options to control the language clients
@@ -48,6 +51,11 @@ export function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	client.start();
+
+	context.subscriptions.push(debug.registerDebugAdapterDescriptorFactory(
+		'lobster', 
+		new InlineLobsterDebugAdapterFactory(dapModule)
+	));
 
 	registerTasks(context);
 }

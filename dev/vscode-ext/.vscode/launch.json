@@ -15,7 +15,7 @@
 			"outFiles": ["${workspaceRoot}/client/out/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
-				"script": "watch"
+				"script": "webpack:dev"
 			}
         }
     ]

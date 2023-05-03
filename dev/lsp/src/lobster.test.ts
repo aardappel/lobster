@@ -9,7 +9,8 @@ import { LobsterSettings } from './lsp';
 
 const settings: LobsterSettings = {
 	executable: path.join('..', '..', 'bin', 'lobster'),
-	imports: []
+	imports: [],
+	experimental: true
 };
 
 console.log("Parsing valid.lobster");

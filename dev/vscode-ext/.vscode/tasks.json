@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "compile",
+			"script": "webpack:dev",
 			"group": "build",
 			"presentation": {
 				"panel": "dedicated",

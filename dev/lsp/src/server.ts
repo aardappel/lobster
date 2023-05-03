@@ -7,13 +7,10 @@ import {
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
-	CompletionItem,
 	TextDocumentSyncKind,
 	InitializeResult,
 } from 'vscode-languageserver/node';
 
-
-import { LobsterDocument } from './document';
 import * as temp from 'temp';
 import { LSPInstance } from './lsp';
 
@@ -25,7 +22,6 @@ const connection = createConnection(ProposedFeatures.all);
 const instance = new LSPInstance(connection, temp.mkdirSync('lobster-lsp'));
 
 // Create a simple text document manager.
-let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
 let hasCodeActionLiteralSupportCapability = false;
@@ -35,7 +31,7 @@ connection.onInitialize((params: InitializeParams) => {
 
 	// Does the client support the `workspace/configuration` request?
 	// If not, we fall back using global settings.
-	hasConfigurationCapability = !!(
+	instance.hasConfigurationCapability = !!(
 		capabilities.workspace && !!capabilities.workspace.configuration
 	);
 	hasWorkspaceFolderCapability = !!(
@@ -74,7 +70,7 @@ connection.onInitialize((params: InitializeParams) => {
 });
 
 connection.onInitialized(() => {
-	if (hasConfigurationCapability) {
+	if (instance.hasConfigurationCapability) {
 		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
 	}
@@ -86,7 +82,7 @@ connection.onInitialized(() => {
 });
 
 connection.onDidChangeConfiguration(change => {
-	if (hasConfigurationCapability) {
+	if (instance.hasConfigurationCapability) {
 		// Reset all cached document settings
 		instance.documentSettings.clear();
 	} else {
@@ -103,13 +99,15 @@ connection.onDidChangeWatchedFiles(_change => {
 	connection.console.log('We received an file change event');
 });
 
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve(
-	(item: CompletionItem): CompletionItem => {
-		return item;
-	}
-);
+import registerCodeAction from './features/code_action';
+import registerCompletion from './features/completion';
+import registerDefinition from './features/definition';
+import registerHover from './features/hover';
+
+registerCodeAction(instance);
+registerCompletion(instance);
+registerDefinition(instance);
+registerHover(instance);
 
 // Listen on the connection
 connection.listen();
