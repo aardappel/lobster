@@ -174,6 +174,13 @@ nfr("write_file", "file,contents,textmode,absolute_path", "SSI?I?", "B",
         return Value(ok);
     });
 
+nfr("rename_file", "old_file,new_file", "SS", "B",
+    "renames a file, returns false if it wasn't possible",
+    [](StackPtr &, VM &, Value &old_file, Value &new_file) {
+        auto ok = RenameFile(old_file.sval()->strv(), new_file.sval()->strv());
+        return Value(ok);
+    });
+
 nfr("launch_subprocess", "commandline,stdin", "S]S?", "IS",
     "launches a sub process, with optionally a stdin for the process, and returns its"
     " return code (or -1 if it couldn't launch at all), and any output",

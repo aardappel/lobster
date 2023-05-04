@@ -401,6 +401,11 @@ bool WriteFile(string_view filename, bool binary, string_view contents, bool all
     return written == 1;
 }
 
+bool RenameFile(string_view oldfilename, string_view newfilename) {
+    int result = rename(SanitizePath(oldfilename).c_str(), SanitizePath(newfilename).c_str());
+    return result == 0;
+}
+
 bool FileExists(string_view filename, bool allow_absolute) {
     auto f = OpenForReading(filename, true, allow_absolute);
     if (f) fclose(f);
