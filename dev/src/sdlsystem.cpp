@@ -494,7 +494,7 @@ vector<float> &SDLGetFrameTimeLog() { return frametimelog; }
 
 bool SDLFrame() {
     if (minimized) {
-        SDL_Delay(10);  // save CPU/battery
+        SDL_Delay(100);  // save CPU/battery
     } else {
         #ifndef __EMSCRIPTEN__
             SDL_GL_SwapWindow(_sdl_window);
@@ -648,6 +648,16 @@ bool SDLFrame() {
                         // reload and bind shaders/textures here
                         break;
                     }
+                    case SDL_WINDOWEVENT_MINIMIZED:
+                    case SDL_WINDOWEVENT_HIDDEN:
+                        minimized = true;
+                        break;
+                    case SDL_WINDOWEVENT_MAXIMIZED:
+                    case SDL_WINDOWEVENT_RESTORED:
+                    case SDL_WINDOWEVENT_SHOWN:
+                    case SDL_WINDOWEVENT_EXPOSED:
+                        minimized = false;
+                        break;
                     case SDL_WINDOWEVENT_LEAVE:
                         // never gets hit?
                         /*
