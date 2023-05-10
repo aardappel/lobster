@@ -1242,6 +1242,9 @@ struct Parser {
             case T_LEFTPAREN: {
                 lex.Next();
                 auto n = ParseExp();
+                if (lex.token == T_COMMA) {
+                    n = ParseMultiRet(n);
+                }
                 Expect(T_RIGHTPAREN);
                 return n;
             }

@@ -1818,7 +1818,6 @@ struct TypeChecker {
 
     TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *block, size_t reqret) {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
-        assert(reqret <= 1);
         block->TypeCheck(*this, reqret);
         CleanUpFlow(flowstart);
         return block->exptype;

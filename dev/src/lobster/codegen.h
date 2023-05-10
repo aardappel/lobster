@@ -1369,7 +1369,6 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Block::Generate(CodeGen &cg, size_t retval) const {
-    assert(retval <= 1);
     auto tstack_start = cg.tstack.size();
     (void)tstack_start;
     for (auto c : children) {
@@ -1479,7 +1478,7 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
     bs.Start();
     cg.Gen(truepart, retval);
     bs.End();
-    if (retval) cg.TakeTemp(1, true);
+    if (retval) cg.TakeTemp(retval, true);
     cg.EmitOp(IL_JUMP);
     cg.Emit(0);
     auto loc2 = cg.Pos();
@@ -1487,7 +1486,7 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
     bs.Start();
     cg.Gen(falsepart, retval);
     bs.End();
-    if (retval) cg.TakeTemp(1, true);
+    if (retval) cg.TakeTemp(retval, true);
     cg.SetLabel(loc2);
     bs.Exit(cg);
 }

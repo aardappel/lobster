@@ -519,6 +519,11 @@ number of return values.</p>
 each variable in turn. If there are more return values than there are
 variables, additionally values are thrown away, and if there are more
 variables than there are return values, this is an error.</p>
+<p>Other than functions (and in assignments statements, see above),
+expressions can return multiple values in other contexts too, but there
+may need to be placed in parentheses to disambiguate them from other
+uses of <code>,</code>:</p>
+<pre><code>let x, y = if foo: m() else: (1, 2)</code></pre>
 <h3 id="scope">Scope</h3>
 <p>Functions and variables declared there-in always obey lexical scope:
 any use of a variable always refers to the closest enclosing definition

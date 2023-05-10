@@ -610,6 +610,15 @@ If there are more return values than there are variables, additionally
 values are thrown away, and if there are more variables than there are return
 values, this is an error.
 
+Other than functions (and in assignments statements, see above), expressions
+can return multiple values in other contexts too, but there may need to
+be placed in parentheses to disambiguate them from other uses of `,`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let x, y = if foo: m() else: (1, 2)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 ### Scope
 
 Functions and variables declared there-in always obey lexical scope: any use of
