@@ -698,7 +698,9 @@ struct Parser {
                 }
                 if (parens && IsNext(T_ASSIGN)) {
                     if (first_default_arg < 0) first_default_arg = (int)sf->args.size() - 1;
-                    default_args.push_back(ParseExp());
+                    st.PopOutOfFunctionScope([&]() {
+                        default_args.push_back(ParseExp());
+                    });
                 } else {
                     if (first_default_arg >= 0) Error("missing default argument");
                 }

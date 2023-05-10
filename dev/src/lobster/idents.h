@@ -753,6 +753,24 @@ struct SymbolTable {
         BlockScopeCleanup();
     }
 
+    template<typename F> void PopOutOfFunctionScope(F f) {
+        // This is a bit of a hack, but we have the need to parse default expressions while
+        // already inside a function scope, but that exp shouldn't touch the function scope.
+        // So temp remove and put back is the easiest way around that, since starting the scope
+        // later would affect the args being parsed (if this ever is a problem, could attempt to
+        // parse those without processing first).
+        auto sf = defsubfunctionstack.back();
+        auto sl = scopelevels.back();
+        auto ws = withstacklevels.back();
+        defsubfunctionstack.pop_back();
+        scopelevels.pop_back();
+        withstacklevels.pop_back();
+        f();
+        withstacklevels.push_back(ws);
+        scopelevels.push_back(sl);
+        defsubfunctionstack.push_back(sf);
+    }
+
     void    ister(const Enum *e, unordered_map<string_view, Enum *> &dict) {
         auto it = dict.find(e->name);
         if (it != dict.end()) {
