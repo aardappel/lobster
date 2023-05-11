@@ -133,15 +133,16 @@ nfr("gl_text", "text", "S", "Sb",
         auto f = curfont;
         if (!f) return vm.BuiltinError("gl_text: no font / font size set");
         if (!s.sval()->len) return s;
-        float4x4 oldobject2view;
         if (curfontsize > maxfontsize) {
-            oldobject2view = otransforms.object2view();
-            otransforms.set_object2view(otransforms.object2view() * scaling(curfontsize / float(maxfontsize)));
+            otransforms.push();
+            otransforms.append_object2view(scaling(curfontsize / float(maxfontsize)));
         }
         SetTexture(0, f->tex);
         texturedshader->Set();
         f->RenderText(s.sval()->strv());
-        if (curfontsize > maxfontsize) otransforms.set_object2view(oldobject2view);
+        if (curfontsize > maxfontsize) {
+            otransforms.pop();
+        }
         return s;
     });
 

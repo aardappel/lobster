@@ -425,10 +425,10 @@ extern GeometryCache *geomcache;
 extern int max_ssbo, max_ubo;
 
 template<typename F> void Transform(const float4x4 &mat, F body) {
-    auto oldobject2view = otransforms.object2view();
-    otransforms.set_object2view(oldobject2view * mat);
+    otransforms.push();
+    otransforms.append_object2view(mat);
     body();
-    otransforms.set_object2view(oldobject2view);
+    otransforms.pop();
 }
 
 extern bool VRInit();
