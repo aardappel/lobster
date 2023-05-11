@@ -86,6 +86,11 @@ input before it exits. Useful in Windows batch files.</p></li>
 about the program being compiled/run. <code>--debug</code> outputs even
 more, only useful for working on the compiler.</p></li>
 <li><p><code>--silent</code> : Only output errors.</p></li>
+<li><p><code>--full-error</code> : Lobster is able to generate
+<em>compile time stack traces</em> when the typechecker fails, but those
+can get long, so by default they get truncated. Use this option to not
+truncate them, and also dump additional information on free/local
+variables in the function context.</p></li>
 <li><p><code>--gen-builtins-html</code> : dumps a help file of all
 builtin functions the compiler knows about to
 <code>builtin_functions_reference.html</code>.

@@ -1236,7 +1236,7 @@ inline string Signature(const SubFunction &sf) {
         FormatArg(r, arg.sid->id->name, i, arg.type);
     }
     r += ")";
-    if (sf.returntype->t != V_VOID && sf.returntype->t != V_UNDEFINED) {
+    if (sf.returntype->t != V_VOID && sf.returntype->t != V_UNDEFINED && sf.returntype->t != V_VAR) {
         r += "->";
         r += TypeName(sf.returntype);
     }

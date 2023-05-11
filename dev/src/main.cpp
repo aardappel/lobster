@@ -65,6 +65,7 @@ int main(int argc, char* argv[]) {
         bool tcc_out = false;
         bool compile_only = false;
         bool non_interactive_test = false;
+        bool full_error = false;
         int runtime_checks = RUNTIME_ASSERT;
         int max_errors = 1;
         const char *default_lpak = "default.lpak";
@@ -88,6 +89,7 @@ int main(int argc, char* argv[]) {
             "--verbose              Output additional informational text.\n"
             "--debug                Output compiler internal logging.\n"
             "--silent               Only output errors.\n"
+            "--full-error           Output full compile time stack traces.\n"
             "--runtime-shipping     Compile with asserts off.\n"
             "--runtime-asserts      Compile with asserts on (default).\n"
             "--runtime-verbose      Asserts on + code locations + stack traces.\n"
@@ -124,6 +126,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--compile-only") { compile_only = true; }
+                else if (a == "--full-error") { full_error = true; }
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") { non_interactive_test = true; SDLTestMode(); }
                 #endif
@@ -215,7 +218,7 @@ int main(int argc, char* argv[]) {
                 bytecode_buffer.clear();
                 Compile(nfr, fn, {}, bytecode_buffer, parsedump ? &dump : nullptr,
                         lpak ? &pakfile : nullptr, false, runtime_checks,
-                        !query.kind.empty() ? &query : nullptr, max_errors);
+                        !query.kind.empty() ? &query : nullptr, max_errors, full_error);
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
                     //LOG_WARN(mainfile, " does not exist, skipping");

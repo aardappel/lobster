@@ -84,9 +84,10 @@ struct TypeChecker {
     vector<Borrow> borrowstack;
     set<pair<Line, int64_t>> integer_literal_warnings;
     Query *query;
+    bool full_error;
 
-    TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq, Query *query)
-        : parser(_p), st(_st), query(query) {
+    TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq, Query *query, bool full_error)
+        : parser(_p), st(_st), query(query), full_error(full_error) {
         st.functions.clear();
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultTypes())
@@ -165,16 +166,27 @@ struct TypeChecker {
         auto err = cat(args...);
         set<Ident *> already_seen;
         if (!scopes.empty()) {
+            size_t scope_count = 0;
             for (auto scope : reverse(scopes)) {
                 if (scope.sf == st.toplevel) continue;
                 err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
-                err += SignatureWithFreeVars(*scope.sf, &already_seen);
-                for (auto dl : scope.sf->sbody->children) {
-                    if (auto def = Is<Define>(dl)) {
-                        if (Is<DefaultVal>(def->child)) continue;  // A pre-decl.
-                        for (auto p : def->sids) {
-                            err += ", " + p.first->id->name + ":" + TypeName(p.first->type);
+                if (full_error) {
+                    err += SignatureWithFreeVars(*scope.sf, &already_seen);
+                    for (auto dl : scope.sf->sbody->children) {
+                        if (auto def = Is<Define>(dl)) {
+                            if (Is<DefaultVal>(def->child)) continue;  // A pre-decl.
+                            for (auto p : def->sids) {
+                                err += ", " + p.first->id->name + ":" + TypeName(p.first->type);
+                            }
                         }
+                    }
+                } else {
+                    err += Signature(*scope.sf);
+                    scope_count++;
+                    if (scope_count == 5 && scopes.size() > 7) {
+                        err += cat("\n  (", scopes.size() - scope_count,
+                                   " more functions omitted, --full- error to see more) ");
+                        break;
                     }
                 }
             }

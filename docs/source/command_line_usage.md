@@ -68,6 +68,11 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     compiled/run. `--debug` outputs even more, only useful for working on the compiler.
 -   `--silent` : Only output errors.
 
+-   `--full-error` : Lobster is able to generate _compile time stack traces_ when
+    the typechecker fails, but those can get long, so by default they get truncated.
+    Use this option to not truncate them, and also dump additional information on
+    free/local variables in the function context.
+
 -   `--gen-builtins-html` : dumps a help file of all builtin functions the
     compiler knows about to `builtin_functions_reference.html`.
     `--gen-builtins-names` dumps a plain text list of functions, useful for
