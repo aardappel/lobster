@@ -181,6 +181,12 @@ nfr("rename_file", "old_file,new_file", "SS", "B",
         return Value(ok);
     });
 
+nfr("delete_file", "file", "S", "B", "deletes a file, returns false if it wasn't possible. Will search in all import dirs.",
+    [](StackPtr &, VM &, Value &file) {
+        auto ok = FileDelete(file.sval()->strv());
+        return Value(ok);
+    });
+
 nfr("launch_subprocess", "commandline,stdin", "S]S?", "IS",
     "launches a sub process, with optionally a stdin for the process, and returns its"
     " return code (or -1 if it couldn't launch at all), and any output",
