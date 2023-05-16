@@ -1241,6 +1241,51 @@ template<typename T, int N> class small_vector {
 };
 
 
+// Varints optimized for speed and simplicity.
+// This assumes 99% of varints are less than 22 bits, since we just
+// default to full 64-bit beyond.
+
+inline void EncodeVarint(int64_t n, uint8_t *&p) {
+    uint64_t z = (uint64_t(n) << 1) ^ (n >> 63);
+    if (z < 0x40) {
+        *p++ = uint8_t(z << 2);
+    } else if (z < 0x4000) {
+        *p++ = uint8_t(z << 2 | 1);
+        *p++ = uint8_t(z >> 6);
+    } else if (z < 0x400000) {
+        *p++ = uint8_t(z << 2 | 2);
+        *p++ = uint8_t(z >> 6);
+        *p++ = uint8_t(z >> 14);
+        return;
+    } else {
+        *p++ = 3;
+        uint64_t zm = z;
+        memcpy(p, &zm, sizeof(uint64_t));
+        p += sizeof(uint64_t);
+    }
+}
+
+inline int64_t DecodeVarint(uint8_t *&p) {
+    uint8_t f = *p++;
+    uint8_t l = f & 0x03;
+    f >>= 2;
+    uint64_t z;
+    if (!l) {
+        z = f;
+    } else if (l == 1) {
+        z = f | (*p++ << 6);
+    } else if (l == 2) {
+        uint64_t t = *p++ << 6;
+        z = f | t | (*p++ << 14);
+    } else {
+        uint64_t zm;
+        memcpy(&zm, p, sizeof(uint64_t));
+        p += sizeof(uint64_t);
+        z = zm;
+    }
+    return z & 1 ? (z >> 1) ^ -1 : z >> 1;
+}
+
 
 inline void unit_test_tools() {
     assert(cat_parens(1, 2) == "(1, 2)");
