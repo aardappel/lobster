@@ -1247,7 +1247,11 @@ struct TypeChecker {
                 udt = type->spec_udt->udt->first->CloneInto(udt, type->spec_udt->udt->first->name,
                                                             st.udttable);
                 udt->unnamed_specialization = true;
-                assert(udt->generics.size() == types.size());
+                if (udt->generics.size() != types.size()) {
+                    // FIXME: this can happen for class foo<T> : bar<T, .. > where generics
+                    // are inherited from bar.
+                    Error(*parser.root, "internal: missing specializers for ", Q(TypeName(type)));
+                }
                 udt->unspecialized.specializers.clear();
                 for (auto [i, g] : enumerate(udt->generics)) {
                     g.Resolve(types[i]);
