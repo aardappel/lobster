@@ -85,30 +85,27 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
 
 // specialized to do GOAP (nodes created on the fly)
 
-def goapf(state:[int]) -> int
-
 class goapaction:
-    name:string
-    precondition:goapf
-    effect:goapf
+    def precondition(state):
+        return false
+    def effect(state):
+        pass()
 
-class goap_node = astar_node<goap_node?, [int], goapaction?>
+class goap_node<T> : astar_node<goap_node<T>?, T, goapaction?>
 
-def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
+def astar_goap<T>(goapactions:[goapaction], initstate:T, heuristic, endcondition):
     let H = heuristic(initstate)
-    let existingnodes = [ goap_node { H: H, F: H, state: initstate, delta: nil } ]
+    let existingnodes = [ goap_node<T> { H: H, F: H, state: initstate, delta: nil } ]
     return astar_generic(existingnodes[0]):
         endcondition(_.state)
     fn n, f:
         for(goapactions) act:
-            let pre = act.precondition
-            if pre(n.state):
+            if act.precondition(n.state):
                 let nstate = n.state.copy
-                let eff = act.effect
-                eff(nstate)
+                act.effect(nstate)
                 var i = existingnodes.find(): equal(_.state, nstate)
                 if i < 0:
                     i = existingnodes.length
-                    existingnodes.push(goap_node { nstate, nil })
+                    existingnodes.push(goap_node<T> { nstate, nil })
                 f(act, 1, existingnodes[i])
     fn: heuristic(_)
