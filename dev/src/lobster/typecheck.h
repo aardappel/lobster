@@ -3234,11 +3234,14 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                         break;
                     case V_STRUCT_S: {
                         auto cons = new Constructor(line, { type });
-                        // Could specialize this for floats etc, but its such a rarely used feature,
-                        // might as well have it auto coerced.
                         for (auto &f : type->udt->fields) {
-                            (void)f;
-                            cons->Add(new IntConstant(line, 0));
+                            if (f.utype()->t == V_FLOAT) {
+                                cons->Add(new FloatConstant(line, 0.0));
+                            } else {
+                                // FIXME: This may be unresolved/ununified, for now assume int,
+                                // since that will convert to float if needed.
+                                cons->Add(new IntConstant(line, 0));
+                            }
                         }
                         Add(cons);
                         break;
