@@ -1556,8 +1556,7 @@ struct TypeChecker {
                                     false, !last_sf, true);
                 de = &dispatch_udt.dispatch_table[vtable_idx];  // May have realloced.
                 sf = csf;
-                sf->method_of = udt;
-                sf->method_of->dispatch_table[vtable_idx].sf = sf;
+                udt->dispatch_table[vtable_idx].sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
                 any_returned_thru_max = std::max(any_returned_thru_max, sf->returned_thru_to_max);
                 auto u = sf->returntype;
