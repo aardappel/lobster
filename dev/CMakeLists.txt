@@ -97,7 +97,7 @@ if(LOBSTER_ENGINE)
     "external/imgui/*.cpp"
     external/freetype/src/autofit/autofit.c
     external/freetype/src/base/basepic.c
-    external/freetype/src/base/ftapi.c
+    external/freetype/src/base/ftgzip.c
     external/freetype/src/base/ftbase.c
     external/freetype/src/base/ftbbox.c
     external/freetype/src/base/ftbitmap.c

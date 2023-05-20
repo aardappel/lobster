@@ -600,9 +600,6 @@
     <ClCompile Include="..\external\freetype\src\autofit\autofit.c">
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\external\freetype\src\base\ftapi.c">
-      <Filter>engine\freetype\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\freetype\src\base\ftbase.c">
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
@@ -1214,6 +1211,9 @@
     </ClCompile>
     <ClCompile Include="..\external\imgui\imgui_impl_sdl2.cpp">
       <Filter>engine\imgui\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\gzip\ftgzip.c">
+      <Filter>engine\freetype\lib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

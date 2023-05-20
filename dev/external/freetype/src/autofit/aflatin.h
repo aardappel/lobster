@@ -1,24 +1,24 @@
-/***************************************************************************/
-/*                                                                         */
-/*  aflatin.h                                                              */
-/*                                                                         */
-/*    Auto-fitter hinting routines for latin writing system                */
-/*    (specification).                                                     */
-/*                                                                         */
-/*  Copyright 2003-2015 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * aflatin.h
+ *
+ *   Auto-fitter hinting routines for latin writing system
+ *   (specification).
+ *
+ * Copyright (C) 2003-2023 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-#ifndef __AFLATIN_H__
-#define __AFLATIN_H__
+#ifndef AFLATIN_H_
+#define AFLATIN_H_
 
 #include "afhints.h"
 
@@ -45,14 +45,16 @@ FT_BEGIN_HEADER
 
 
   /*
-   *  The following declarations could be embedded in the file `aflatin.c';
-   *  they have been made semi-public to allow alternate writing system
-   *  hinters to re-use some of them.
+   * The following declarations could be embedded in the file `aflatin.c';
+   * they have been made semi-public to allow alternate writing system
+   * hinters to re-use some of them.
    */
 
 
 #define AF_LATIN_IS_TOP_BLUE( b ) \
           ( (b)->properties & AF_BLUE_PROPERTY_LATIN_TOP )
+#define AF_LATIN_IS_SUB_TOP_BLUE( b ) \
+          ( (b)->properties & AF_BLUE_PROPERTY_LATIN_SUB_TOP )
 #define AF_LATIN_IS_NEUTRAL_BLUE( b ) \
           ( (b)->properties & AF_BLUE_PROPERTY_LATIN_NEUTRAL )
 #define AF_LATIN_IS_X_HEIGHT_BLUE( b ) \
@@ -65,8 +67,10 @@ FT_BEGIN_HEADER
 
 #define AF_LATIN_BLUE_ACTIVE      ( 1U << 0 ) /* zone height is <= 3/4px   */
 #define AF_LATIN_BLUE_TOP         ( 1U << 1 ) /* we have a top blue zone   */
-#define AF_LATIN_BLUE_NEUTRAL     ( 1U << 2 ) /* we have neutral blue zone */
-#define AF_LATIN_BLUE_ADJUSTMENT  ( 1U << 3 ) /* used for scale adjustment */
+#define AF_LATIN_BLUE_SUB_TOP     ( 1U << 2 ) /* we have a subscript top   */
+                                              /* blue zone                 */
+#define AF_LATIN_BLUE_NEUTRAL     ( 1U << 3 ) /* we have neutral blue zone */
+#define AF_LATIN_BLUE_ADJUSTMENT  ( 1U << 4 ) /* used for scale adjustment */
                                               /* optimization              */
 
 
@@ -74,6 +78,8 @@ FT_BEGIN_HEADER
   {
     AF_WidthRec  ref;
     AF_WidthRec  shoot;
+    FT_Pos       ascender;
+    FT_Pos       descender;
     FT_UInt      flags;
 
   } AF_LatinBlueRec, *AF_LatinBlue;
@@ -155,8 +161,8 @@ FT_BEGIN_HEADER
 
 
   /*
-   *  The next functions shouldn't normally be exported.  However, other
-   *  writing systems might like to use these functions as-is.
+   * The next functions shouldn't normally be exported.  However, other
+   * writing systems might like to use these functions as-is.
    */
   FT_LOCAL( FT_Error )
   af_latin_hints_compute_segments( AF_GlyphHints  hints,
@@ -182,7 +188,7 @@ FT_BEGIN_HEADER
 
 FT_END_HEADER
 
-#endif /* __AFLATIN_H__ */
+#endif /* AFLATIN_H_ */
 
 
 /* END */

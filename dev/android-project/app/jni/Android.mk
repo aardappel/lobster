@@ -68,7 +68,7 @@ LOCAL_SRC_FILES := \
 	) \
     $(FREETYPE_PATH)/src/autofit/autofit.c \
 	$(FREETYPE_PATH)/src/base/basepic.c \
-	$(FREETYPE_PATH)/src/base/ftapi.c \
+	$(FREETYPE_PATH)/src/base/ftgzip.c \
 	$(FREETYPE_PATH)/src/base/ftbase.c \
 	$(FREETYPE_PATH)/src/base/ftbbox.c \
 	$(FREETYPE_PATH)/src/base/ftbitmap.c \

@@ -1,41 +1,42 @@
-/***************************************************************************/
-/*                                                                         */
-/*  tterrors.h                                                             */
-/*                                                                         */
-/*    TrueType error codes (specification only).                           */
-/*                                                                         */
-/*  Copyright 2001-2015 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * tterrors.h
+ *
+ *   TrueType error codes (specification only).
+ *
+ * Copyright (C) 2001-2023 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-  /*************************************************************************/
-  /*                                                                       */
-  /* This file is used to define the TrueType error enumeration            */
-  /* constants.                                                            */
-  /*                                                                       */
-  /*************************************************************************/
+  /**************************************************************************
+   *
+   * This file is used to define the TrueType error enumeration
+   * constants.
+   *
+   */
 
-#ifndef __TTERRORS_H__
-#define __TTERRORS_H__
+#ifndef TTERRORS_H_
+#define TTERRORS_H_
 
-#include FT_MODULE_ERRORS_H
+#include <freetype/ftmoderr.h>
 
-#undef __FTERRORS_H__
+#undef FTERRORS_H_
 
 #undef  FT_ERR_PREFIX
 #define FT_ERR_PREFIX  TT_Err_
 #define FT_ERR_BASE    FT_Mod_Err_TrueType
 
-#include FT_ERRORS_H
+#include <freetype/fterrors.h>
 
-#endif /* __TTERRORS_H__ */
+#endif /* TTERRORS_H_ */
+
 
 /* END */
