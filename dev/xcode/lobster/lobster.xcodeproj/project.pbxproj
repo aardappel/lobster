@@ -1006,7 +1006,7 @@
 		33C4393A148DF55100E65753 /* libSDLd_sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDLd_sim.a; path = ../../lib/ios/libSDLd_sim.a; sourceTree = "<group>"; };
 		33C4393B148DF55100E65753 /* libSDLd.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDLd.a; path = ../../lib/ios/libSDLd.a; sourceTree = "<group>"; };
 		33D155921BAB797D00BAD84D /* fontrenderer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fontrenderer.cpp; sourceTree = "<group>"; };
-		33D15C751BAB7D3C00BAD84D /* ftapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgzip.c; path = ../../external/freetype/src/base/ftgzip.c; sourceTree = "<group>"; };
+		33D15C751BAB7D3C00BAD84D /* ftapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgzip.c; path = ../../external/freetype/src/gzip/ftgzip.c; sourceTree = "<group>"; };
 		33D15C761BAB7D3C00BAD84D /* ftbase.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbase.c; path = ../../external/freetype/src/base/ftbase.c; sourceTree = "<group>"; };
 		33D15C771BAB7D3C00BAD84D /* ftbbox.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbbox.c; path = ../../external/freetype/src/base/ftbbox.c; sourceTree = "<group>"; };
 		33D15C781BAB7D3C00BAD84D /* ftbitmap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbitmap.c; path = ../../external/freetype/src/base/ftbitmap.c; sourceTree = "<group>"; };

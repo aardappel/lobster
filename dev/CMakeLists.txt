@@ -102,7 +102,7 @@ if(LOBSTER_ENGINE)
     external/freetype/src/base/ftdebug.c
     external/freetype/src/base/ftbitmap.c
     external/freetype/src/base/ftglyph.c
-    external/freetype/src/base/ftgzip.c
+    external/freetype/src/gzip/ftgzip.c
     external/freetype/src/base/ftinit.c
     external/freetype/src/base/ftstroke.c
     external/freetype/src/base/ftsynth.c

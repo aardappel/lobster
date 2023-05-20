@@ -73,7 +73,7 @@ LOCAL_SRC_FILES := \
 	$(FREETYPE_PATH)/src/base/ftdebug.c \
 	$(FREETYPE_PATH)/src/base/ftbitmap.c \
 	$(FREETYPE_PATH)/src/base/ftglyph.c \
-	$(FREETYPE_PATH)/src/base/ftgzip.c \
+	$(FREETYPE_PATH)/src/gzip/ftgzip.c \
 	$(FREETYPE_PATH)/src/base/ftinit.c \
 	$(FREETYPE_PATH)/src/base/ftstroke.c \
 	$(FREETYPE_PATH)/src/base/ftsynth.c \
