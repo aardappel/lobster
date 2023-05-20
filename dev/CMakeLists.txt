@@ -96,20 +96,17 @@ if(LOBSTER_ENGINE)
     "external/SDLMixer/*.c"
     "external/imgui/*.cpp"
     external/freetype/src/autofit/autofit.c
-    external/freetype/src/base/basepic.c
-    external/freetype/src/base/ftgzip.c
+    external/freetype/src/cff/cff.c
     external/freetype/src/base/ftbase.c
     external/freetype/src/base/ftbbox.c
-    external/freetype/src/base/ftbitmap.c
-    external/freetype/src/base/ftdbgmem.c
     external/freetype/src/base/ftdebug.c
+    external/freetype/src/base/ftbitmap.c
     external/freetype/src/base/ftglyph.c
+    external/freetype/src/base/ftgzip.c
     external/freetype/src/base/ftinit.c
-    external/freetype/src/base/ftpic.c
     external/freetype/src/base/ftstroke.c
     external/freetype/src/base/ftsynth.c
     external/freetype/src/base/ftsystem.c
-    external/freetype/src/cff/cff.c
     external/freetype/src/pshinter/pshinter.c
     external/freetype/src/psnames/psnames.c
     external/freetype/src/raster/raster.c
