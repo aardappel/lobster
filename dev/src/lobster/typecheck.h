@@ -693,6 +693,13 @@ struct TypeChecker {
                                   "right-hand side");
                 if (u->t == V_STRUCT_S && !u->udt->sametype->Numeric())
                     RequiresError("numeric struct", u, n);
+                // String comp by value, but nillables compared by ref, so only allow that
+                // if its an explicit comparison against nil, because we don't want to compare
+                // actual strings by ref.
+                if (u->t == V_NIL && u->sub->t == V_STRING &&
+                    !Is<Nil>(n.left) &&
+                    !Is<Nil>(n.right))  
+                    RequiresError("string", u, n);
             } else {
                 // Comparison vector op: vector inputs, vector out.
                 if (u->t == V_STRUCT_S && u->udt->sametype->Numeric()) {
