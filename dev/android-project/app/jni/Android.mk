@@ -78,6 +78,7 @@ LOCAL_SRC_FILES := \
 	$(FREETYPE_PATH)/src/base/ftstroke.c \
 	$(FREETYPE_PATH)/src/base/ftsynth.c \
 	$(FREETYPE_PATH)/src/base/ftsystem.c \
+	$(FREETYPE_PATH)/src/psaux/psaux.c \
 	$(FREETYPE_PATH)/src/pshinter/pshinter.c \
 	$(FREETYPE_PATH)/src/psnames/psnames.c \
 	$(FREETYPE_PATH)/src/raster/raster.c \

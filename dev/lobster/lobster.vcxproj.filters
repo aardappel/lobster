@@ -1215,6 +1215,9 @@
     <ClCompile Include="..\external\freetype\src\gzip\ftgzip.c">
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
+    <ClCompile Include="..\external\freetype\src\psaux\psaux.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />

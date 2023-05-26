@@ -107,6 +107,7 @@ if(LOBSTER_ENGINE)
     external/freetype/src/base/ftstroke.c
     external/freetype/src/base/ftsynth.c
     external/freetype/src/base/ftsystem.c
+    external/freetype/src/psaux/psaux.c
     external/freetype/src/pshinter/pshinter.c
     external/freetype/src/psnames/psnames.c
     external/freetype/src/raster/raster.c
