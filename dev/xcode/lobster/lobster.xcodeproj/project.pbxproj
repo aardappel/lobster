@@ -75,6 +75,9 @@
 		3375EB1020DDBD6000EBAB26 /* engine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3375EB0C20DDBD5F00EBAB26 /* engine.cpp */; };
 		3375EB1120DDBD6000EBAB26 /* lobster in Resources */ = {isa = PBXBuildFile; fileRef = 3375EB0D20DDBD6000EBAB26 /* lobster */; };
 		3375EB1220DDBD6000EBAB26 /* lobster in Resources */ = {isa = PBXBuildFile; fileRef = 3375EB0D20DDBD6000EBAB26 /* lobster */; };
+		337840C92A217FA900A1FF6C /* psaux.c in Sources */ = {isa = PBXBuildFile; fileRef = 337840C82A217FA900A1FF6C /* psaux.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		337840CA2A217FA900A1FF6C /* psaux.c in Sources */ = {isa = PBXBuildFile; fileRef = 337840C82A217FA900A1FF6C /* psaux.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		337840CB2A217FA900A1FF6C /* psaux.c in Sources */ = {isa = PBXBuildFile; fileRef = 337840C82A217FA900A1FF6C /* psaux.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3381CB28162371AB0069B2E8 /* builtins.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CAB6162340540069B2E8 /* builtins.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3381CB29162371AB0069B2E8 /* file.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CABA162340540069B2E8 /* file.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3381CB2A162371AB0069B2E8 /* graphics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CABE162340540069B2E8 /* graphics.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -204,12 +207,12 @@
 		33D155941BAB797D00BAD84D /* fontrenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D155921BAB797D00BAD84D /* fontrenderer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D155951BAB797D00BAD84D /* fontrenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D155921BAB797D00BAD84D /* fontrenderer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D155961BAB797D00BAD84D /* fontrenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D155921BAB797D00BAD84D /* fontrenderer.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C811BAB7D3C00BAD84D /* basepic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C741BAB7D3C00BAD84D /* basepic.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C821BAB7D3C00BAD84D /* basepic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C741BAB7D3C00BAD84D /* basepic.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C831BAB7D3C00BAD84D /* basepic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C741BAB7D3C00BAD84D /* basepic.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C841BAB7D3C00BAD84D /* ftapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C751BAB7D3C00BAD84D /* ftapi.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C851BAB7D3C00BAD84D /* ftapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C751BAB7D3C00BAD84D /* ftapi.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C861BAB7D3C00BAD84D /* ftapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C751BAB7D3C00BAD84D /* ftapi.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C811BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C821BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C831BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C841BAB7D3C00BAD84D /* ftgzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C751BAB7D3C00BAD84D /* ftgzip.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C851BAB7D3C00BAD84D /* ftgzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C751BAB7D3C00BAD84D /* ftgzip.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C861BAB7D3C00BAD84D /* ftgzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C751BAB7D3C00BAD84D /* ftgzip.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C871BAB7D3C00BAD84D /* ftbase.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C761BAB7D3C00BAD84D /* ftbase.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C881BAB7D3C00BAD84D /* ftbase.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C761BAB7D3C00BAD84D /* ftbase.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C891BAB7D3C00BAD84D /* ftbase.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C761BAB7D3C00BAD84D /* ftbase.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -219,9 +222,9 @@
 		33D15C8D1BAB7D3C00BAD84D /* ftbitmap.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C781BAB7D3C00BAD84D /* ftbitmap.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C8E1BAB7D3C00BAD84D /* ftbitmap.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C781BAB7D3C00BAD84D /* ftbitmap.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C8F1BAB7D3C00BAD84D /* ftbitmap.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C781BAB7D3C00BAD84D /* ftbitmap.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C901BAB7D3C00BAD84D /* ftdbgmem.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C791BAB7D3C00BAD84D /* ftdbgmem.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C911BAB7D3C00BAD84D /* ftdbgmem.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C791BAB7D3C00BAD84D /* ftdbgmem.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C921BAB7D3C00BAD84D /* ftdbgmem.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C791BAB7D3C00BAD84D /* ftdbgmem.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C901BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C911BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C921BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C931BAB7D3C00BAD84D /* ftdebug.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7A1BAB7D3C00BAD84D /* ftdebug.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C941BAB7D3C00BAD84D /* ftdebug.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7A1BAB7D3C00BAD84D /* ftdebug.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C951BAB7D3C00BAD84D /* ftdebug.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7A1BAB7D3C00BAD84D /* ftdebug.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -231,9 +234,9 @@
 		33D15C991BAB7D3C00BAD84D /* ftinit.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7C1BAB7D3C00BAD84D /* ftinit.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C9A1BAB7D3C00BAD84D /* ftinit.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7C1BAB7D3C00BAD84D /* ftinit.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C9B1BAB7D3C00BAD84D /* ftinit.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7C1BAB7D3C00BAD84D /* ftinit.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C9C1BAB7D3C00BAD84D /* ftpic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7D1BAB7D3C00BAD84D /* ftpic.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C9D1BAB7D3C00BAD84D /* ftpic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7D1BAB7D3C00BAD84D /* ftpic.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		33D15C9E1BAB7D3C00BAD84D /* ftpic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7D1BAB7D3C00BAD84D /* ftpic.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C9C1BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C9D1BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
+		33D15C9E1BAB7D3C00BAD84D /* (null) in Sources */ = {isa = PBXBuildFile; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15C9F1BAB7D3C00BAD84D /* ftstroke.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7E1BAB7D3C00BAD84D /* ftstroke.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15CA01BAB7D3C00BAD84D /* ftstroke.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7E1BAB7D3C00BAD84D /* ftstroke.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33D15CA11BAB7D3C00BAD84D /* ftstroke.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15C7E1BAB7D3C00BAD84D /* ftstroke.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -911,6 +914,7 @@
 		33632F5E1B5DD16B00550981 /* bytecode.fbs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = bytecode.fbs; sourceTree = "<group>"; };
 		3375EB0C20DDBD5F00EBAB26 /* engine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = engine.cpp; sourceTree = "<group>"; };
 		3375EB0D20DDBD6000EBAB26 /* lobster */ = {isa = PBXFileReference; lastKnownFileType = folder; path = lobster; sourceTree = "<group>"; };
+		337840C82A217FA900A1FF6C /* psaux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = psaux.c; path = ../../external/freetype/src/psaux/psaux.c; sourceTree = "<group>"; };
 		3381CAB6162340540069B2E8 /* builtins.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = builtins.cpp; sourceTree = "<group>"; };
 		3381CABA162340540069B2E8 /* file.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = file.cpp; sourceTree = "<group>"; };
 		3381CABE162340540069B2E8 /* graphics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = graphics.cpp; sourceTree = "<group>"; };
@@ -1006,7 +1010,7 @@
 		33C4393A148DF55100E65753 /* libSDLd_sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDLd_sim.a; path = ../../lib/ios/libSDLd_sim.a; sourceTree = "<group>"; };
 		33C4393B148DF55100E65753 /* libSDLd.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDLd.a; path = ../../lib/ios/libSDLd.a; sourceTree = "<group>"; };
 		33D155921BAB797D00BAD84D /* fontrenderer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fontrenderer.cpp; sourceTree = "<group>"; };
-		33D15C751BAB7D3C00BAD84D /* ftapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgzip.c; path = ../../external/freetype/src/gzip/ftgzip.c; sourceTree = "<group>"; };
+		33D15C751BAB7D3C00BAD84D /* ftgzip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgzip.c; path = ../../external/freetype/src/gzip/ftgzip.c; sourceTree = "<group>"; };
 		33D15C761BAB7D3C00BAD84D /* ftbase.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbase.c; path = ../../external/freetype/src/base/ftbase.c; sourceTree = "<group>"; };
 		33D15C771BAB7D3C00BAD84D /* ftbbox.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbbox.c; path = ../../external/freetype/src/base/ftbbox.c; sourceTree = "<group>"; };
 		33D15C781BAB7D3C00BAD84D /* ftbitmap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbitmap.c; path = ../../external/freetype/src/base/ftbitmap.c; sourceTree = "<group>"; };
@@ -1821,6 +1825,7 @@
 		33D15C731BAB7C8E00BAD84D /* FreeType */ = {
 			isa = PBXGroup;
 			children = (
+				337840C82A217FA900A1FF6C /* psaux.c */,
 				33D15CC41BAB7EA400BAD84D /* truetype.c */,
 				33D15CC01BAB7E8A00BAD84D /* smooth.c */,
 				33D15CBC1BAB7E7100BAD84D /* sfnt.c */,
@@ -1829,16 +1834,13 @@
 				33D15CB01BAB7DBE00BAD84D /* pshinter.c */,
 				33D15CAC1BAB7DA800BAD84D /* cff.c */,
 				33D15CA81BAB7D8C00BAD84D /* autofit.c */,
-				33D15C741BAB7D3C00BAD84D /* basepic.c */,
-				33D15C751BAB7D3C00BAD84D /* ftapi.c */,
+				33D15C751BAB7D3C00BAD84D /* ftgzip.c */,
 				33D15C761BAB7D3C00BAD84D /* ftbase.c */,
 				33D15C771BAB7D3C00BAD84D /* ftbbox.c */,
 				33D15C781BAB7D3C00BAD84D /* ftbitmap.c */,
-				33D15C791BAB7D3C00BAD84D /* ftdbgmem.c */,
 				33D15C7A1BAB7D3C00BAD84D /* ftdebug.c */,
 				33D15C7B1BAB7D3C00BAD84D /* ftglyph.c */,
 				33D15C7C1BAB7D3C00BAD84D /* ftinit.c */,
-				33D15C7D1BAB7D3C00BAD84D /* ftpic.c */,
 				33D15C7E1BAB7D3C00BAD84D /* ftstroke.c */,
 				33D15C7F1BAB7D3C00BAD84D /* ftsynth.c */,
 				33D15C801BAB7D3C00BAD84D /* ftsystem.c */,
@@ -2879,7 +2881,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				33D15C9E1BAB7D3C00BAD84D /* ftpic.c in Sources */,
+				33D15C9E1BAB7D3C00BAD84D /* (null) in Sources */,
 				33D15CC71BAB7EA400BAD84D /* truetype.c in Sources */,
 				3331456117596E1100D488CC /* glgeom.cpp in Sources */,
 				33D161AE1BAB9A2200BAD84D /* SDL_syscond.c in Sources */,
@@ -2934,6 +2936,7 @@
 				8C7603A6195E457400EADF6F /* b2Joint.cpp in Sources */,
 				3331456817596E1100D488CC /* sdlaudiosfxr.cpp in Sources */,
 				33D15C9B1BAB7D3C00BAD84D /* ftinit.c in Sources */,
+				337840CB2A217FA900A1FF6C /* psaux.c in Sources */,
 				33D163931BAB9A2200BAD84D /* SDL_x11xinput2.c in Sources */,
 				3342B7A91B2B4CE500FA2F0B /* vm.cpp in Sources */,
 				3331456917596E1100D488CC /* font.cpp in Sources */,
@@ -2968,12 +2971,12 @@
 				33D1602A1BAB9A2200BAD84D /* SDL_events.c in Sources */,
 				33878CD71F7B201D007BB196 /* dynamic_fluidsynth.c in Sources */,
 				8C760382195E457400EADF6F /* b2ChainAndCircleContact.cpp in Sources */,
-				33D15C921BAB7D3C00BAD84D /* ftdbgmem.c in Sources */,
+				33D15C921BAB7D3C00BAD84D /* (null) in Sources */,
 				33D1615A1BAB9A2200BAD84D /* SDL_malloc.c in Sources */,
 				33D162E01BAB9A2200BAD84D /* SDL_shape.c in Sources */,
 				3331456A17596E1100D488CC /* platform.cpp in Sources */,
 				33D160331BAB9A2200BAD84D /* SDL_mouse.c in Sources */,
-				33D15C831BAB7D3C00BAD84D /* basepic.c in Sources */,
+				33D15C831BAB7D3C00BAD84D /* (null) in Sources */,
 				8C76039D195E457400EADF6F /* b2DistanceJoint.cpp in Sources */,
 				33D160211BAB9A2200BAD84D /* SDL_dynapi.c in Sources */,
 				8C760358195E457400EADF6F /* b2Draw.cpp in Sources */,
@@ -3017,7 +3020,7 @@
 				33D1603C1BAB9A2200BAD84D /* SDL_windowevents.c in Sources */,
 				33D163751BAB9A2200BAD84D /* SDL_x11keyboard.c in Sources */,
 				33D15FE41BAB9A2200BAD84D /* SDL_audiotypecvt.c in Sources */,
-				33D15C861BAB7D3C00BAD84D /* ftapi.c in Sources */,
+				33D15C861BAB7D3C00BAD84D /* ftgzip.c in Sources */,
 				33FDF15E220A599400D7B010 /* imgui_draw.cpp in Sources */,
 				33D163841BAB9A2200BAD84D /* SDL_x11opengles.c in Sources */,
 				33D161E11BAB9A2200BAD84D /* SDL_systimer.c in Sources */,
@@ -3148,7 +3151,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				33D15C9D1BAB7D3C00BAD84D /* ftpic.c in Sources */,
+				33D15C9D1BAB7D3C00BAD84D /* (null) in Sources */,
 				33D15CC61BAB7EA400BAD84D /* truetype.c in Sources */,
 				8C76037E195E457400EADF6F /* b2WorldCallbacks.cpp in Sources */,
 				33D161AD1BAB9A2200BAD84D /* SDL_syscond.c in Sources */,
@@ -3203,6 +3206,7 @@
 				3381CB30162371AB0069B2E8 /* simplex.cpp in Sources */,
 				3381CB31162371AB0069B2E8 /* stdafx.cpp in Sources */,
 				33D15C9A1BAB7D3C00BAD84D /* ftinit.c in Sources */,
+				337840CA2A217FA900A1FF6C /* psaux.c in Sources */,
 				33D163921BAB9A2200BAD84D /* SDL_x11xinput2.c in Sources */,
 				3342B7A81B2B4CE500FA2F0B /* vm.cpp in Sources */,
 				8C76033C195E457400EADF6F /* b2Collision.cpp in Sources */,
@@ -3237,12 +3241,12 @@
 				33D160291BAB9A2200BAD84D /* SDL_events.c in Sources */,
 				33878CD61F7B201D007BB196 /* dynamic_fluidsynth.c in Sources */,
 				3381CB32162371AB0069B2E8 /* vmdata.cpp in Sources */,
-				33D15C911BAB7D3C00BAD84D /* ftdbgmem.c in Sources */,
+				33D15C911BAB7D3C00BAD84D /* (null) in Sources */,
 				33D161591BAB9A2200BAD84D /* SDL_malloc.c in Sources */,
 				33D162DF1BAB9A2200BAD84D /* SDL_shape.c in Sources */,
 				8C76039C195E457400EADF6F /* b2DistanceJoint.cpp in Sources */,
 				33D160321BAB9A2200BAD84D /* SDL_mouse.c in Sources */,
-				33D15C821BAB7D3C00BAD84D /* basepic.c in Sources */,
+				33D15C821BAB7D3C00BAD84D /* (null) in Sources */,
 				8C760357195E457400EADF6F /* b2Draw.cpp in Sources */,
 				33D160201BAB9A2200BAD84D /* SDL_dynapi.c in Sources */,
 				8C760399195E457400EADF6F /* b2PolygonContact.cpp in Sources */,
@@ -3286,7 +3290,7 @@
 				33D1603B1BAB9A2200BAD84D /* SDL_windowevents.c in Sources */,
 				33D163741BAB9A2200BAD84D /* SDL_x11keyboard.c in Sources */,
 				33D15FE31BAB9A2200BAD84D /* SDL_audiotypecvt.c in Sources */,
-				33D15C851BAB7D3C00BAD84D /* ftapi.c in Sources */,
+				33D15C851BAB7D3C00BAD84D /* ftgzip.c in Sources */,
 				33FDF15D220A599400D7B010 /* imgui_draw.cpp in Sources */,
 				33D163831BAB9A2200BAD84D /* SDL_x11opengles.c in Sources */,
 				33D161E01BAB9A2200BAD84D /* SDL_systimer.c in Sources */,
@@ -3440,7 +3444,7 @@
 				33D162DB1BAB9A2200BAD84D /* SDL_RLEaccel.c in Sources */,
 				33D160D51BAB9A2200BAD84D /* SDL_sysloadso.c in Sources */,
 				8C760386195E457400EADF6F /* b2CircleContact.cpp in Sources */,
-				33D15C811BAB7D3C00BAD84D /* basepic.c in Sources */,
+				33D15C811BAB7D3C00BAD84D /* (null) in Sources */,
 				33D162091BAB9A2200BAD84D /* SDL_cocoamessagebox.m in Sources */,
 				33D1637C1BAB9A2200BAD84D /* SDL_x11mouse.c in Sources */,
 				3375EB0E20DDBD6000EBAB26 /* engine.cpp in Sources */,
@@ -3470,10 +3474,10 @@
 				8C760359195E457400EADF6F /* b2FreeList.cpp in Sources */,
 				33D15FE21BAB9A2200BAD84D /* SDL_audiotypecvt.c in Sources */,
 				8C76037A195E457400EADF6F /* b2World.cpp in Sources */,
-				33D15C841BAB7D3C00BAD84D /* ftapi.c in Sources */,
+				33D15C841BAB7D3C00BAD84D /* ftgzip.c in Sources */,
 				33D15CAD1BAB7DA800BAD84D /* cff.c in Sources */,
 				3307DA4121098A8100B98515 /* idl_gen_text.cpp in Sources */,
-				33D15C901BAB7D3C00BAD84D /* ftdbgmem.c in Sources */,
+				33D15C901BAB7D3C00BAD84D /* (null) in Sources */,
 				33D160341BAB9A2200BAD84D /* SDL_quit.c in Sources */,
 				33D163761BAB9A2200BAD84D /* SDL_x11messagebox.c in Sources */,
 				33D163E41BABA50800BAD84D /* SDL_uikitvideo.m in Sources */,
@@ -3610,7 +3614,7 @@
 				33D163A01BAB9A2200BAD84D /* SDL.c in Sources */,
 				33D1620F1BAB9A2200BAD84D /* SDL_cocoamouse.m in Sources */,
 				33D162D81BAB9A2200BAD84D /* SDL_rect.c in Sources */,
-				33D15C9C1BAB7D3C00BAD84D /* ftpic.c in Sources */,
+				33D15C9C1BAB7D3C00BAD84D /* (null) in Sources */,
 				33878D0B1F7B201D007BB196 /* music_mod.c in Sources */,
 				33D161431BAB9A2200BAD84D /* SDL_blendpoint.c in Sources */,
 				33D15CB91BAB7DF900BAD84D /* raster.c in Sources */,
@@ -3680,6 +3684,7 @@
 				3395A8C817615D380047BE1F /* LobsterCocoaSpecific.mm in Sources */,
 				8C76035F195E457400EADF6F /* b2Settings.cpp in Sources */,
 				8C7603BC195E457400EADF6F /* b2WheelJoint.cpp in Sources */,
+				337840C92A217FA900A1FF6C /* psaux.c in Sources */,
 				33D161521BAB9A2200BAD84D /* SDL_getenv.c in Sources */,
 				8C76039B195E457400EADF6F /* b2DistanceJoint.cpp in Sources */,
 				33D163731BAB9A2200BAD84D /* SDL_x11keyboard.c in Sources */,
