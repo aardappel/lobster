@@ -88,6 +88,11 @@ class scrollzoomview:
 // clamp to pixel boundaries,
 // then execute any text rendering contained in f
 
+def ui_rendertextatpixelsize(f):
+    // Translate to nearest pixel:
+    gl_translate(-fraction(gl_origin() + 0.5) + 0.5):
+        f()
+
 def ui_rendertextatlocalsize(localsize:float, f):
     let oldfontsize = gl_get_font_size()
     let oldoutlinesize = gl_get_outline_size()
@@ -96,6 +101,13 @@ def ui_rendertextatlocalsize(localsize:float, f):
     let localfontsize = round(localfontsizef)    // font size to nearest pixel
     gl_set_font_size(localfontsize, oldoutlinesize * (localfontsizef / oldfontsize))
     gl_scale xy_1 / gl_scaling():   // get back to pixel scale
-        gl_translate(-fraction(gl_origin() + 0.5) + 0.5) // translate to nearest pixel
-        f()
+        ui_rendertextatpixelsize(f)
     gl_set_font_size(oldfontsize, oldoutlinesize)
+
+def ui_text_pixel(t):
+    ui_rendertextatpixelsize():
+        gl_text(t)
+
+def ui_text_local(t):
+    ui_rendertextatlocalsize():
+        gl_text(t)
