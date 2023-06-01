@@ -647,7 +647,6 @@ struct CodeGen  {
                 if (sub->t == V_INT) {
                     lvalop = GENOP(lvalop + ((withscalar ? IL_LV_IVSADD : IL_LV_IVVADD) - IL_LV_IADD));
                 } else if (sub->t == V_FLOAT) {
-                    assert(lvalop != IL_LV_IMOD);
                     lvalop = GENOP(lvalop + ((withscalar ? IL_LV_FVSADD : IL_LV_FVVADD) - IL_LV_IADD));
                 } else assert(false);
             } else {

@@ -3,6 +3,8 @@
 - A document that explains what samples are available and what they demo.
   - Also move some more of my (Wouter) projects into the main repo as samples.
 
+- Unknown functions in untypechecked code do not error at all anymore?
+
 - move this TODO.txt to github issues?
   - That's going to create 100+ issues, and not necessarily easier to overview since github doesn't have a good way to
     order issues by priority, and search for things.

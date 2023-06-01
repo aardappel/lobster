@@ -370,6 +370,13 @@ run_test("misc"):
     assert "{(xy_1 / xy_0).y}" == "inf"
 
     do():
+        let divisor = 2.0
+        // mod with floats and vectors.
+        assert 5.0 % divisor == 1.0
+        assert xy_1 * 5.0 % divisor == xy_1 
+        assert xy_1i * 5 % 2 == xy_1i
+
+    do():
         // Reflection
         class Reflect:
             c = xy_1
