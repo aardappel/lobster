@@ -638,7 +638,7 @@ struct CodeGen  {
         if (lvalop >= IL_LV_IADD && lvalop <= IL_LV_IMOD) {
             if (type->t == V_INT) {
             } else if (type->t == V_FLOAT) {
-                assert(lvalop != IL_LV_IMOD); lvalop = GENOP(lvalop + (IL_LV_FADD - IL_LV_IADD));
+                lvalop = GENOP(lvalop + (IL_LV_FADD - IL_LV_IADD));
             } else if (type->t == V_STRING) {
                 assert(lvalop == IL_LV_IADD); lvalop = IL_LV_SADD;
             } else if (type->t == V_STRUCT_S) {

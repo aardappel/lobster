@@ -848,6 +848,7 @@ LVALCASER(FVVADD , _FVOPV(+, 0, &fa))
 LVALCASER(FVVSUB , _FVOPV(-, 0, &fa))
 LVALCASER(FVVMUL , _FVOPV(*, 0, &fa))
 LVALCASER(FVVDIV , _FVOPV(/, 0, &fa))
+LVALCASER(FVVMOD, VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 
 LVALCASER(IVSADD , _IVOPS(+, 0, &fa))
 LVALCASER(IVSSUB , _IVOPS(-, 0, &fa))
@@ -859,6 +860,7 @@ LVALCASER(FVSADD , _FVOPS(+, 0, &fa))
 LVALCASER(FVSSUB , _FVOPS(-, 0, &fa))
 LVALCASER(FVSMUL , _FVOPS(*, 0, &fa))
 LVALCASER(FVSDIV , _FVOPS(/, 0, &fa))
+LVALCASER(FVSMOD, VMASSERT(vm, 0); (void)fa; (void)len; (void)sp)
 
 LVALCASES(IADD   , _IOP(+, 0); a = res;)
 LVALCASES(ISUB   , _IOP(-, 0); a = res;)
@@ -876,6 +878,7 @@ LVALCASES(FADD   , _FOP(+, 0); a = res;)
 LVALCASES(FSUB   , _FOP(-, 0); a = res;)
 LVALCASES(FMUL   , _FOP(*, 0); a = res;)
 LVALCASES(FDIV   , _FOP(/, 0); a = res;)
+LVALCASES(FMOD,    _FOP(/, 2); a = res;)
 
 VM_INLINE void U_LV_SADD(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;

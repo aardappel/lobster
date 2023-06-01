@@ -135,12 +135,15 @@ enum MathOp {
     F(LV_BINAND, 0, 1, 0) F(LV_BINOR, 0, 1, 0)  F(LV_XOR, 0, 1, 0)    \
     F(LV_ASL, 0, 1, 0)    F(LV_ASR, 0, 1, 0)    \
     F(LV_FADD, 0, 1, 0)   F(LV_FSUB, 0, 1, 0)   F(LV_FMUL, 0, 1, 0)   F(LV_FDIV, 0, 1, 0)   \
+    F(LV_FMOD, 0, 1, 0)   \
     F(LV_IVVADD, 1, ILUNKNOWN, 0) F(LV_IVVSUB, 1, ILUNKNOWN, 0) F(LV_IVVMUL, 1, ILUNKNOWN, 0) F(LV_IVVDIV, 1, ILUNKNOWN, 0) \
     F(LV_IVVMOD, 1, ILUNKNOWN, 0) \
     F(LV_FVVADD, 1, ILUNKNOWN, 0) F(LV_FVVSUB, 1, ILUNKNOWN, 0) F(LV_FVVMUL, 1, ILUNKNOWN, 0) F(LV_FVVDIV, 1, ILUNKNOWN, 0) \
+    F(LV_FVVMOD, 1, ILUNKNOWN, 0) \
     F(LV_IVSADD, 1, 1, 0) F(LV_IVSSUB, 1, 1, 0) F(LV_IVSMUL, 1, 1, 0) F(LV_IVSDIV, 1, 1, 0) \
     F(LV_IVSMOD, 1, 1, 0) \
     F(LV_FVSADD, 1, 1, 0) F(LV_FVSSUB, 1, 1, 0) F(LV_FVSMUL, 1, 1, 0) F(LV_FVSDIV, 1, 1, 0) \
+    F(LV_FVSMOD, 1, 1, 0) \
     F(LV_SADD, 0, 1, 0) \
     F(LV_IPP, 0, 0, 0) F(LV_IMM, 0, 0, 0) \
     F(LV_FPP, 0, 0, 0) F(LV_FMM, 0, 0, 0)
