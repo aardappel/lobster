@@ -287,7 +287,7 @@ bool InitPlatform(string _maindir, string_view auxfilepath, bool from_bundle,
 void AddDataDir(string_view path) {
     auto fpath = SanitizePath(path);
     // Add slash at the end if missing, otherwise when loading it will fail.
-    if (fpath[fpath.length() - 1] != FILESEP) fpath = fpath + FILESEP;
+    if (!fpath.empty() && fpath[fpath.length() - 1] != FILESEP) fpath = fpath + FILESEP;
     if (!IsAbsolute(fpath)) fpath = projectdir + fpath;
     for (auto &dir : data_dirs) if (dir == fpath) goto skipd;
     data_dirs.push_back(fpath);
