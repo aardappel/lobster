@@ -1241,53 +1241,97 @@ template<typename T, int N> class small_vector {
 };
 
 
-// Varints optimized for speed and simplicity.
-// This assumes 99% of varints are less than 22 bits, since we just
-// default to full 64-bit beyond.
+// Varints optimized for speed.
+// Bottom 2 bits indicate if this is encoded as 6, 14, 22, or byte sized.
+// This assumes values are heavily skewed towards smaller values.
+// Use "zig-zag" encoding for signed numbers.
+// Most values just 2 compares to encode or decode without loops.
 
-inline void EncodeVarint(int64_t n, uint8_t *&p) {
-    uint64_t z = (uint64_t(n) << 1) ^ (n >> 63);
-    if (z < 0x40) {
-        *p++ = uint8_t(z << 2);
-    } else if (z < 0x4000) {
-        *p++ = uint8_t(z << 2 | 1);
-        *p++ = uint8_t(z >> 6);
-    } else if (z < 0x400000) {
-        *p++ = uint8_t(z << 2 | 2);
-        *p++ = uint8_t(z >> 6);
-        *p++ = uint8_t(z >> 14);
-        return;
+inline void EncodeVarintU(uint64_t z, uint8_t *&p) {
+    if (z < 0x4000) {
+        if (z < 0x40) {
+            *p++ = uint8_t(z << 2);
+        } else {
+            *p++ = uint8_t(z << 2 | 1);
+            *p++ = uint8_t(z >> 6);
+        }
     } else {
-        *p++ = 3;
-        uint64_t zm = z;
-        memcpy(p, &zm, sizeof(uint64_t));
-        p += sizeof(uint64_t);
+        if (z < 0x400000) {
+            *p++ = uint8_t(z << 2 | 2);
+            *p++ = uint8_t(z >> 6);
+            *p++ = uint8_t(z >> 14);
+        } else {
+            // Use remaining bits in starter byte to store bytes needed.
+            auto start = p;
+            *p++ = 3;
+            while (z) {
+                *p++ = uint8_t(z);
+                z >>= 8;
+                *start += 1 << 2;
+            }
+        }
     }
 }
 
-inline int64_t DecodeVarint(uint8_t *&p) {
+inline void EncodeVarintS(int64_t n, uint8_t *&p) {
+    uint64_t z = (uint64_t(n) << 1) ^ (n >> 63);
+    EncodeVarintU(z, p);
+}
+
+inline uint64_t DecodeVarintU(uint8_t *&p) {
     uint8_t f = *p++;
     uint8_t l = f & 0x03;
     f >>= 2;
-    uint64_t z;
-    if (!l) {
-        z = f;
-    } else if (l == 1) {
-        z = f | (*p++ << 6);
-    } else if (l == 2) {
-        uint64_t t = *p++ << 6;
-        z = f | t | (*p++ << 14);
+    if (l <= 1) {
+        if (!l) {
+            return f;
+        } else {
+            return f | (uint64_t(*p++) << 6);
+        }
     } else {
-        uint64_t zm;
-        memcpy(&zm, p, sizeof(uint64_t));
-        p += sizeof(uint64_t);
-        z = zm;
+        if (l == 2) {
+            auto t = uint64_t(*p++) << 6;
+            return f | t | (uint64_t(*p++) << 14);
+        } else {
+            uint64_t zm = 0;
+            int shift = 0;
+            // f contains number of bytes that follow.
+            while (f--) {
+                zm |= uint64_t(*p++) << shift;
+                shift += 8;
+            }
+            return zm;
+        }
     }
-    return z & 1 ? (z >> 1) ^ -1 : z >> 1;
 }
 
+inline int64_t DecodeVarintS(uint8_t *&p) {
+    auto z = DecodeVarintU(p);
+    return z & 1 ? (z >> 1) ^ -1 : z >> 1;
+}
 
 inline void unit_test_tools() {
     assert(cat_parens(1, 2) == "(1, 2)");
     assert(sizeof(small_vector<int, 2>) == 16);
+    uint8_t buf[9];
+    for (size_t b = 0; b < 63; b++) {
+        auto un = uint64_t(1) << b;
+        auto p1 = buf;
+        auto p2 = buf;
+        EncodeVarintU(un, p1);
+        auto und = DecodeVarintU(p2);
+        assert(p1 == p2 && un == und);
+        auto sn = int64_t(un);
+        p1 = buf;
+        p2 = buf;
+        EncodeVarintS(sn, p1);
+        auto snd = DecodeVarintS(p2);
+        assert(p1 == p2 && sn == snd);
+        sn = -sn;
+        p1 = buf;
+        p2 = buf;
+        EncodeVarintS(sn, p1);
+        snd = DecodeVarintS(p2);
+        assert(p1 == p2 && sn == snd);
+    }
 }
