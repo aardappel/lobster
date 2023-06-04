@@ -1321,6 +1321,7 @@ inline void unit_test_tools() {
         EncodeVarintU(un, p1);
         auto und = DecodeVarintU(p2);
         assert(p1 == p2 && un == und);
+        (void)und;
         auto sn = int64_t(un);
         p1 = buf;
         p2 = buf;
@@ -1333,5 +1334,6 @@ inline void unit_test_tools() {
         EncodeVarintS(sn, p1);
         snd = DecodeVarintS(p2);
         assert(p1 == p2 && sn == snd);
+        (void)snd;
     }
 }
