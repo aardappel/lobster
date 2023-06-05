@@ -10,8 +10,8 @@ let seq = [ -60, 120, -60, 0 ]
 def curve(depth, d) -> void:
     if depth <= 0:
         // Draw a single segment and move to its end.
-        gl_line(xy { 0.0, 0.0 }, xy { d, 0.0 }, 0.002)
-        gl_translate(xy { d, 0.0 })
+        gl_line(xy_f { 0.0, 0.0 }, xy_f { d, 0.0 }, 0.002)
+        gl_translate(xy_f { d, 0.0 })
     else:
         for (seq) angle:
             curve(depth - 1, d / 3.0)
@@ -31,7 +31,7 @@ while gl_frame():
     gl_clear(color_white)
     gl_color(color_blue)
     gl_scale(gl_window_size().y * 0.75)
-    gl_translate(xy { 0.1, 0.4 })
+    gl_translate(xy_f { 0.1, 0.4 })
 
     // Draw the Von koch's curve segments around a tringle
     for (3):

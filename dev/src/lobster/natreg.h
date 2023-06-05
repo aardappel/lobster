@@ -48,6 +48,7 @@ struct SubFunction;
 
 struct Enum;
 
+struct GUDT;
 struct UDT;
 
 struct TypeVariable;
@@ -55,12 +56,13 @@ struct TypeVariable;
 struct Type;
 
 struct SpecUDT {
-    UDT *udt;
+    GUDT *gudt;
     vector<const Type *> specializers;
-    bool is_generic = false;
+    //bool is_generic = false;
 
-    SpecUDT(UDT *udt) : udt(udt) {}
+    SpecUDT(GUDT *gudt) : gudt(gudt) {}
 
+    bool IsGeneric() const;
     bool Equal(const SpecUDT &o) const;
 };
 
@@ -90,34 +92,7 @@ struct Type {
     Type(TypeVariable *_tv)              : t(V_TYPEVAR), tv(_tv)      {}
     Type(ResourceType *_rt)              : t(V_RESOURCE),rt(_rt)      {}
 
-    bool Equal(const Type &o, bool allow_unresolved = false) const {
-        if (this == &o) return true;
-        if (t != o.t) {
-            if (!allow_unresolved) return false;
-            // Special case for V_UUDT, since sometime types are resolved in odd orders.
-            // TODO: can the is_generic be removed?
-            switch (t) {
-                case V_UUDT:
-                    return IsUDT(o.t) && spec_udt->udt == o.udt && !spec_udt->is_generic;
-                case V_CLASS:
-                case V_STRUCT_R:
-                case V_STRUCT_S:
-                    return o.t == V_UUDT && o.spec_udt->udt == udt && !o.spec_udt->is_generic;
-                default:
-                    return false;
-            }
-        }
-        if (sub == o.sub) return true;  // Also compares sf/udt
-        switch (t) {
-            case V_VECTOR:
-            case V_NIL:
-                return sub->Equal(*o.sub, allow_unresolved);
-            case V_UUDT:
-                return spec_udt->Equal(*o.spec_udt);
-            default:
-                return false;
-        }
-    }
+    bool Equal(const Type &o, bool allow_unresolved = false) const;
 
     Type &operator=(const Type &o) {
         // Hack: we want t to be const, but still have a working assignment operator.
@@ -202,10 +177,6 @@ class TypeRef {
     const Type *get() const { return type; }
 
     bool Null() const { return type == nullptr; }
-};
-
-struct UnresolvedTypeRef {
-    TypeRef utr;
 };
 
 extern TypeRef type_int;

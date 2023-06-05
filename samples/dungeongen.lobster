@@ -14,12 +14,12 @@ let TILE_OPEN_DOOR   = '\''
 let TILE_CLOSED_DOOR = '+'
 let TILE_PLAYER      = '@'
 
-let fsize = xy { 80, 40 }
+let fsize = xy_i { 80, 40 }
 let field = mapxy(fsize): TILE_VOID
 
 def cave(with_player):
     // csize/start are all inner dimensions/coordinates (w/o walls)
-    let csize = xy_rndi(xy { 10, 6 }) + xy { 5, 3 }
+    let csize = xy_rndi(xy_i { 10, 6 }) + xy_i { 5, 3 }
     let start = xy_rndi(fsize - csize - 2) + 1
 
     // Cave iterator function that supplies wall/corner type.

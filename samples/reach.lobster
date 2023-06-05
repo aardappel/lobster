@@ -9,11 +9,11 @@ class segment:
     pos:xy_f
     dir = xy_0
 
-let segs = map 7: segment { xy { 0.5, 1.0 } }
+let segs = map 7: segment { xy_f { 0.5, 1.0 } }
 
 let ballradius = 0.1
 var ball = xy_h
-var ballvel = xy { 0.005, -0.004 }
+var ballvel = xy_f { 0.005, -0.004 }
 
 fatal(gl_window("reach", 600, 600))
 
@@ -25,8 +25,8 @@ while gl_frame():
 
     ball += ballvel
 
-    if(ball.x > 1.0 - ballradius or ball.x < ballradius): ballvel *= xy { -1.0,  1.0 }
-    if(ball.y > 1.0 - ballradius or ball.y < ballradius): ballvel *= xy {  1.0, -1.0 }
+    if(ball.x > 1.0 - ballradius or ball.x < ballradius): ballvel *= xy_f { -1.0,  1.0 }
+    if(ball.y > 1.0 - ballradius or ball.y < ballradius): ballvel *= xy_f {  1.0, -1.0 }
 
     gl_translate ball:
         gl_color(color_dark_grey)

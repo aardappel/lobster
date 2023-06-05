@@ -3,8 +3,8 @@ import vec
 
 run_test("knightstour"):
 
-    let knight_moves = [ xy { 1, 2 }, xy { 1, -2 }, xy { -1, 2 }, xy { -1, -2 },
-                         xy { 2, 1 }, xy { 2, -1 }, xy { -2, 1 }, xy { -2, -1 } ]
+    let knight_moves = [ xy_i { 1, 2 }, xy_i { 1, -2 }, xy_i { -1, 2 }, xy_i { -1, -2 },
+                         xy_i { 2, 1 }, xy_i { 2, -1 }, xy_i { -2, 1 }, xy_i { -2, -1 } ]
 
     def knights_tour(dim):
         let board = mapxy(dim): -1
@@ -21,4 +21,4 @@ run_test("knightstour"):
         return board
 
     rnd_seed(0)
-    assert knights_tour(xy { 8, 8 })
+    assert knights_tour(xy_i { 8, 8 })

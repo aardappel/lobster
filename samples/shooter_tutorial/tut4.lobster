@@ -55,4 +55,4 @@ while gl_frame() and gl_button("escape") != 1:
 
     gl_translate playerpos:
         gl_rotate_z tomouse:
-            gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
+            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])

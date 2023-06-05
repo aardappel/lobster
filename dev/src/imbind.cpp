@@ -74,6 +74,36 @@ void IMGUICleanup() {
     IMGUIFrameCleanup();
 }
 
+bool IMGUIInit(iint flags, bool dark, float rounding) {
+    if (imgui_init) return true;
+    if (!_sdl_window || !_sdl_context) return false;
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags;
+    if (dark)
+        ImGui::StyleColorsDark();
+    else
+        ImGui::StyleColorsClassic();
+    auto r = rounding;
+    ImGui::GetStyle().FrameRounding = r;
+    ImGui::GetStyle().WindowRounding = r;
+    ImGui::GetStyle().GrabRounding = r;
+    ImGui::GetStyle().ChildRounding = r;
+    ImGui::GetStyle().PopupRounding = r;
+    ImGui::GetStyle().ScrollbarRounding = r;
+    ImGui::GetStyle().TabRounding = r;
+    ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
+    ImGui_ImplOpenGL3_Init(
+        #ifdef PLATFORM_ES3
+            "#version 300 es"
+        #else
+            "#version 150"
+        #endif
+    );
+    imgui_init = true;
+    return true;
+}
+
 void NPush(Nesting n) {
     nstack.push_back(n);
 }
@@ -471,7 +501,13 @@ void DumpStackTrace(VM &vm) {
 }
 
 string BreakPoint(VM &vm, string_view reason) {
-    if (!imgui_init) return "Debugger requires im_init()";
+    // Init just in case it wasn't already.
+    // NOTE: this inits on main window first.
+    if (!IMGUIInit(0, false, 3.0f)) {
+        // FIXME: we could make this work without a main window, but I guess if we're running
+        // in console its good to stay there?
+        return "breakpoint: no main window for imgui";
+    }
 
     auto cursor_was_on = SDLCursor(true);
 
@@ -590,29 +626,8 @@ void AddIMGUI(NativeRegistry &nfr) {
 nfr("im_init", "dark_style,flags,rounding", "B?I?F?", "",
     "",
     [](StackPtr &, VM &vm, Value &darkstyle, Value &flags, Value &rounding) {
-        if (imgui_init) return NilVal();
-        if (!_sdl_window || !_sdl_context) vm.BuiltinError("im_init: no window");
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags.ival();
-        if (darkstyle.True()) ImGui::StyleColorsDark(); else ImGui::StyleColorsClassic();
-        auto r = rounding.fltval();
-        ImGui::GetStyle().FrameRounding = r;
-        ImGui::GetStyle().WindowRounding = r;
-        ImGui::GetStyle().GrabRounding = r;
-        ImGui::GetStyle().ChildRounding = r;
-        ImGui::GetStyle().PopupRounding = r;
-        ImGui::GetStyle().ScrollbarRounding = r;
-        ImGui::GetStyle().TabRounding = r;
-        ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
-        ImGui_ImplOpenGL3_Init(
-            #ifdef PLATFORM_ES3
-                "#version 300 es"
-            #else
-                "#version 150"
-            #endif
-        );
-        imgui_init = true;
+        if (!IMGUIInit(flags.ival(), darkstyle.True(), rounding.fltval()))
+            vm.BuiltinError("im_init: no window");
         return NilVal();
     });
 

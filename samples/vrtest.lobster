@@ -42,7 +42,7 @@ mg_color(color_red)
 mg_sphere(1.0)
 let sphere = mg_polygonize(3)
 
-let camera = Camera { xyz { 0.0, 0.0, 3.0 }, 135.0, 20.0 }
+let camera = Camera { xyz_f { 0.0, 0.0, 3.0 }, 135.0, 20.0 }
 
 let balls = []::[xyz_f]
 
@@ -52,7 +52,7 @@ def drawworld():
     gl_clear(color_grey)
     gl_blend(blend_none)
 
-    gl_light(camera.position, xy { 64.0, 1.0 })
+    gl_light(camera.position, xy_f { 64.0, 1.0 })
     //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
     gl_set_shader("flat")
@@ -68,7 +68,7 @@ def drawworld():
                     gl_render_mesh(sphere)
 
     gl_set_shader("color")
-    gl_debug_grid(xyz { 20, 20, 0 }, xyz_1, 0.005)
+    gl_debug_grid(xyz_i { 20, 20, 0 }, xyz_1, 0.005)
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -108,8 +108,8 @@ while gl_frame():
 
         for(2) e:
             vr_set_eye_texture(0, e)
-            gl_translate(xy { gl_window_size().x * e / 2.0, gl_window_size().y }):
-                    gl_rect(xy { gl_window_size().x / 2.0, -gl_window_size().y })
+            gl_translate(xy_f { gl_window_size().x * e / 2.0, gl_window_size().y }):
+                    gl_rect(xy_f { gl_window_size().x / 2.0, -gl_window_size().y })
     else:
         // This is how we'd render normally, with no HMD connected:
         gl_cursor(false)

@@ -28,6 +28,6 @@ def floodfillpath(sz:xy_i, target:xy_i, traversablef):
     while pathq.length:
         let c = pathq.pop
         for(2) x: for(2) y:
-            flood(xy { 1 - y - x, y - x }, c)
+            flood(xy_i { 1 - y - x, y - x }, c)
     return m
 

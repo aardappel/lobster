@@ -123,15 +123,16 @@ struct CodeGen  {
     const int ti_num_udt_per_field = 3;
 
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
-        for (auto &field : udt->fields) {
-            auto ti = GetTypeTableOffset(field.resolvedtype());
-            if (IsStruct(field.resolvedtype()->t)) {
-                PushFields(field.resolved_udt(), tt, parent < 0 ? ti : parent);
+        for (auto [i, sfield] : enumerate(udt->sfields)) {
+            auto ti = GetTypeTableOffset(sfield.type);
+            if (IsStruct(sfield.type->t)) {
+                PushFields(sfield.type->udt, tt, parent < 0 ? ti : parent);
             } else {
                 tt.push_back(ti);
                 tt.push_back(parent);
                 Value val;
-                switch (field.defaultval ? field.defaultval->ConstVal(nullptr, val) : V_VOID) {
+                auto dv = udt->g.fields[i].defaultval;
+                switch (dv ? dv->ConstVal(nullptr, val) : V_VOID) {
                     case V_INT:
                         tt.push_back((type_elem_t)(val.intval() == val.ival() ? val.intval() : 0));
                         break;
@@ -179,9 +180,9 @@ struct CodeGen  {
                     tt.push_back((type_elem_t)udt->vtable_start);
                 else
                     tt.push_back((type_elem_t)ComputeBitMask(*udt));
-                tt.push_back(udt->superclass.resolved_null()
+                tt.push_back(!udt->ssuperclass
                     ? (type_elem_t)-1
-                    : GetTypeTableOffset(udt->superclass.resolvedtype()));
+                    : GetTypeTableOffset(&udt->ssuperclass->thistype));
                 PushFields(udt, tt);
                 assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + udt->typeinfo);
@@ -362,8 +363,8 @@ struct CodeGen  {
                     Emit(arg.sid->Idx() + i);
                     nvars++;
                     if (ShouldDec(IsStruct(arg.sid->type->t)
-                                      ? TypeLT{ FindSlot(*arg.sid->type->udt, i)->resolvedtype(),
-                                             arg.sid->lt }
+                                      ? TypeLT { FindSlot(*arg.sid->type->udt, i)->type,
+                                                 arg.sid->lt }
                                       : TypeLT { *arg.sid }) && (!ir || arg.sid != ir->sid)) {
                         ownedvars.push_back(arg.sid->Idx() + i);
                     }
@@ -533,8 +534,8 @@ struct CodeGen  {
             if (typelt.type->t == V_STRUCT_R) {
                 // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
-                    EmitOp(IsRefNil(FindSlot(*typelt.type->udt, j)->resolvedtype()->t) ? IL_POPREF
-                                                                                     : IL_POP);
+                    EmitOp(IsRefNil(FindSlot(*typelt.type->udt, j)->type->t) ? IL_POPREF
+                                                                             : IL_POP);
                 }
             } else {
                 EmitOp(IL_POPV, typelt.type->udt->numslots, 0);
@@ -597,7 +598,7 @@ struct CodeGen  {
     int ComputeBitMask(const UDT &udt) {
         int bits = 0;
         for (int j = 0; j < udt.numslots; j++) {
-            if (IsRefNil(FindSlot(udt, j)->resolvedtype()->t)) {
+            if (IsRefNil(FindSlot(udt, j)->type->t)) {
                 if (j > 31)
                     parser.ErrorAt(node_context.back(),
                                    "internal error: struct with too many reference fields");
@@ -679,14 +680,14 @@ struct CodeGen  {
         } else if (auto dot = Is<Dot>(lval)) {
             auto stype = dot->child->exptype;
             assert(IsUDT(stype->t));  // Ensured by typechecker.
-            auto idx = stype->udt->Has(dot->fld);
+            auto idx = stype->udt->g.Has(dot->fld);
             assert(idx >= 0);
-            auto &field = stype->udt->fields[idx];
+            auto &sfield = stype->udt->sfields[idx];
             Gen(dot->child, 1);
             TakeTemp(take_temp + 1, true);
             EmitOp(IL_LVAL_FLD);
-            Emit(field.slot);
-            GenLvalRet(field.resolvedtype());
+            Emit(sfield.slot);
+            GenLvalRet(sfield.type);
         } else if (auto indexing = Is<Indexing>(lval)) {
             Gen(indexing->object, 1);
             Gen(indexing->index, 1);
@@ -854,11 +855,11 @@ struct CodeGen  {
             } else if (auto dot = Is<Dot>(object)) {
                 auto sstype = dot->child->exptype;
                 assert(IsUDT(sstype->t));
-                auto idx = sstype->udt->Has(dot->fld);
+                auto idx = sstype->udt->g.Has(dot->fld);
                 assert(idx >= 0);
-                auto &field = sstype->udt->fields[idx];
-                assert(field.slot >= 0);
-                GenPushField(retval, dot->child, sstype, ftype, field.slot + offset);
+                auto &sfield = sstype->udt->sfields[idx];
+                assert(sfield.slot >= 0);
+                GenPushField(retval, dot->child, sstype, ftype, sfield.slot + offset);
                 return;
             } else if (auto indexing = Is<Indexing>(object)) {
                 // For now only do this for vectors.
@@ -906,8 +907,8 @@ struct CodeGen  {
                     etype = etype->Element();
                 } else {
                     auto &udt = *index->exptype->udt;
-                    for (auto &field : udt.fields) {
-                        (void)field;
+                    for (auto &sfield : udt.sfields) {
+                        (void)sfield;
                         etype = etype->Element();
                     }
                 }
@@ -997,11 +998,11 @@ void IdentRef::Generate(CodeGen &cg, size_t retval) const {
 void Dot::Generate(CodeGen &cg, size_t retval) const {
     auto stype = child->exptype;
     assert(IsUDT(stype->t));
-    auto idx = stype->udt->Has(fld);
+    auto idx = stype->udt->g.Has(fld);
     assert(idx >= 0);
-    auto &field = stype->udt->fields[idx];
-    assert(field.slot >= 0);
-    cg.GenPushField(retval, child, stype, field.resolvedtype(), field.slot);
+    auto &sfield = stype->udt->sfields[idx];
+    assert(sfield.slot >= 0);
+    cg.GenPushField(retval, child, stype, sfield.type, sfield.slot);
 }
 
 void Indexing::Generate(CodeGen &cg, size_t retval) const {
@@ -1017,15 +1018,16 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.EmitOp(IL_JUMPIFMEMBERLF);
         auto &f = *field();
-        cg.Emit(f.slot + ValWidth(f.resolvedtype()));  // It's the var after this one.
+        auto &sfield = this_sid->type->udt->sfields[field_idx];
+        cg.Emit(sfield.slot + ValWidth(sfield.type));  // It's the var after this one.
         cg.Emit(0);
         auto loc = cg.Pos();
         cg.Gen(child, 1);
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
         cg.EmitOp(IL_LVAL_FLD);
-        cg.Emit(f.slot);
-        cg.GenOpWithStructInfo(cg.AssignBaseOp({ *f.defaultval, 0 }), f.resolvedtype());
+        cg.Emit(sfield.slot);
+        cg.GenOpWithStructInfo(cg.AssignBaseOp({ *f.defaultval, 0 }), sfield.type);
         cg.SetLabel(loc);
     }
     if (!retval) return;
@@ -1223,7 +1225,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
-                        if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype()->t)) {
+                        if (IsRefNil(FindSlot(*type->udt, j)->type->t)) {
                             cg.EmitOp(IL_INCREF);
                             cg.Emit(stack_offset + type->udt->numslots - 1 - j);
                         }
@@ -1238,7 +1240,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
-                        if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype()->t))
+                        if (IsRefNil(FindSlot(*type->udt, j)->type->t))
                             cg.EmitKeep(stack_offset + (type->udt->numslots - j - 1), 0);
                     }
                 } else {
@@ -1272,6 +1274,10 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void EnumRef::Generate(CodeGen &cg, size_t retval) const {
+    cg.Dummy(retval);
+}
+
+void GUDTRef::Generate(CodeGen &cg, size_t retval) const {
     cg.Dummy(retval);
 }
 
@@ -1762,7 +1768,7 @@ void Constructor::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(Arity(), true);
     auto offset = cg.GetTypeTableOffset(exptype);
     if (IsUDT(exptype->t)) {
-        assert(exptype->udt->fields.size() == Arity());
+        assert(exptype->udt->sfields.size() == Arity());
         if (IsStruct(exptype->t)) {
             // This is now a no-op! Struct elements sit inline on the stack.
         } else {
@@ -1786,7 +1792,7 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     if (retval) {
         cg.TakeTemp(1, false);
         cg.EmitOp(IL_ISTYPE);
-        cg.Emit(cg.GetTypeTableOffset(gr.resolvedtype()));
+        cg.Emit(cg.GetTypeTableOffset(resolvedtype));
     }
 }
 

@@ -27,8 +27,8 @@ while gl_frame():
     for(num_balls) i:
         positions[i] += dirs[i] * ball_speed
         // Keep within bounds.
-        if not positions[i].x.in_range(1.0): dirs[i] *= xy { -1.0,  1.0 }
-        if not positions[i].y.in_range(1.0): dirs[i] *= xy {  1.0, -1.0 }
+        if not positions[i].x.in_range(1.0): dirs[i] *= xy_f { -1.0,  1.0 }
+        if not positions[i].y.in_range(1.0): dirs[i] *= xy_f {  1.0, -1.0 }
 
     // For each ball, find all nearby balls in an efficient manner.
     let push_indices = circles_within_range(0.0, positions, radiuses, [], [], xy_0i)

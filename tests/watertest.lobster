@@ -29,10 +29,10 @@ run_test("water"):
                     h = h * 10.0
                     if h > highh:
                         highh = h
-                        highest = xy { x, y }
+                        highest = xy_i { x, y }
                     if h < lowh:
                         lowh = h
-                        lowest = xy { x, y }
+                        lowest = xy_i { x, y }
                     cell { h, h, 0.0 }
 
     def loopworld(f):
@@ -48,7 +48,7 @@ run_test("water"):
 
     def forneighboursinworld(x, y, f):
         for(neighbours) n:
-            n += xy { x, y }
+            n += xy_i { x, y }
             ifinworld(n): f(cells[n.y][n.x])
 
     let starting_extra_water = 0.0 //10000

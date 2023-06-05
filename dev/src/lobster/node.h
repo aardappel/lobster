@@ -208,11 +208,11 @@ struct NAME : Node { \
 };
 
 struct TypeAnnotation : Node {
-    UnresolvedTypeRef giventype;
-    TypeAnnotation(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
-    void Dump(string &sd) const { sd += TypeName(giventype.utr); }
+    TypeRef giventype;
+    TypeAnnotation(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
+    void Dump(string &sd) const { sd += TypeName(giventype); }
     bool EqAttr(const Node *o) const {
-        return giventype.utr->Equal(*((TypeAnnotation *)o)->giventype.utr);
+        return giventype->Equal(*((TypeAnnotation *)o)->giventype);
     }
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
@@ -284,10 +284,10 @@ BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD)
 
 struct Nil : Node {
-    UnresolvedTypeRef giventype;
-    Nil(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
+    TypeRef giventype;
+    Nil(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
     bool EqAttr(const Node *o) const {
-        return giventype.utr->Equal(*((Nil *)o)->giventype.utr);
+        return giventype->Equal(*((Nil *)o)->giventype);
     }
     SHARED_SIGNATURE(Nil, TName(T_NIL), false)
     OPTMETHOD
@@ -354,12 +354,23 @@ struct EnumRef : Node {
     SHARED_SIGNATURE(EnumRef, TName(T_ENUM), false)
 };
 
+struct GUDTRef : Node {
+    GUDT *gudt;
+    bool predeclaration;
+    GUDTRef(const Line &ln, GUDT *_gudt, bool predeclaration)
+        : Node(ln), gudt(_gudt), predeclaration(predeclaration) {}
+    void Dump(string &sd) const { append(sd, gudt->is_struct ? "struct " : "class ", gudt->name); }
+    bool EqAttr(const Node *o) const {
+        return gudt == ((GUDTRef *)o)->gudt;
+    }
+    SHARED_SIGNATURE(GUDTRef, TName(T_CLASS), false)
+};
+
 struct UDTRef : Node {
     UDT *udt;
-    bool predeclaration;
-    UDTRef(const Line &ln, UDT *_udt, bool predeclaration)
-        : Node(ln), udt(_udt), predeclaration(predeclaration) {}
-    void Dump(string &sd) const { append(sd, udt->is_struct ? "struct " : "class ", udt->name); }
+    UDTRef(const Line &ln, UDT *_udt)
+        : Node(ln), udt(_udt) {}
+    void Dump(string &sd) const { append(sd, "specialization ", udt->name); }
     bool EqAttr(const Node *o) const {
         return udt == ((UDTRef *)o)->udt;
     }
@@ -386,9 +397,9 @@ struct GenericCall : List {
     bool fromdot;
     bool noparens;
     bool super;
-    vector<UnresolvedTypeRef> specializers;
+    vector<TypeRef> specializers;
     GenericCall(const Line &ln, string_view name, string_view ns, bool fromdot, bool noparens,
-                bool super, vector<UnresolvedTypeRef> *spec)
+                bool super, vector<TypeRef> *spec)
         : List(ln), name(name), ns(ns), fromdot(fromdot), noparens(noparens), super(super) {
         if (spec) specializers = *spec;
     };
@@ -399,8 +410,8 @@ struct GenericCall : List {
 };
 
 struct Constructor : List {
-    UnresolvedTypeRef giventype;
-    Constructor(const Line &ln, UnresolvedTypeRef _type) : List(ln), giventype(_type) {};
+    TypeRef giventype;
+    Constructor(const Line &ln, TypeRef _type) : List(ln), giventype(_type) {};
     bool IsConstInit() const {
         for (auto n : children) {
             if (!n->IsConstInit()) return false;
@@ -408,7 +419,7 @@ struct Constructor : List {
         return true;
     }
     bool EqAttr(const Node *o) const {
-        return giventype.utr->Equal(*((Constructor *)o)->giventype.utr);
+        return giventype->Equal(*((Constructor *)o)->giventype);
     }
     SHARED_SIGNATURE(Constructor, "constructor", false)
     OPTMETHOD
@@ -417,7 +428,7 @@ struct Constructor : List {
 struct Call : List {
     int vtable_idx = -1;
     SubFunction *sf;
-    vector<UnresolvedTypeRef> specializers;
+    vector<TypeRef> specializers;
     bool super;
     explicit Call(GenericCall &gc, SubFunction *sf)
         : List(gc.line), sf(sf), specializers(gc.specializers), super(gc.super) {};
@@ -483,7 +494,7 @@ struct AssignList : List {
 };
 
 struct Define : Unary {
-    vector<pair<SpecIdent *, UnresolvedTypeRef>> sids;
+    vector<pair<SpecIdent *, TypeRef>> sids;
     Define(const Line &ln, Node *_a) : Unary(ln, _a) {}
     void Dump(string &sd) const {
         for (auto p : sids) append(sd, p.first->id->name, " ");
@@ -497,11 +508,11 @@ struct Define : Unary {
 
 struct Member : Unary {
     SpecIdent *this_sid = nullptr;
-    UDT *udt = nullptr;
+    GUDT *gudt = nullptr;
     size_t field_idx = 0;
     bool frame = false;
     Member(const Line &ln, Node *init) : Unary(ln, init) {}
-    Field *field() const { return &udt->fields[field_idx]; }
+    Field *field() const { return &gudt->fields[field_idx]; }
     void Dump(string &sd) const {
         append(sd, field()->id->name, " ");
         sd += Name();
@@ -514,7 +525,7 @@ struct Member : Unary {
 
 struct Static : Unary {
     SpecIdent *sid = nullptr;
-    UnresolvedTypeRef giventype;
+    TypeRef giventype;
     bool frame = false;
     Static(const Line &ln, Node *init) : Unary(ln, init) {}
     void Dump(string &sd) const {
@@ -539,11 +550,12 @@ struct Dot : Unary {
 };
 
 struct IsType : Unary {
-    GivenResolve gr;
-    IsType(const Line &ln, Node *_a, UnresolvedTypeRef _type) : Unary(ln, _a), gr(_type) {}
-    void Dump(string &sd) const { append(sd, Name(), ":", TypeName(gr.giventype.utr)); }
+    TypeRef giventype;
+    TypeRef resolvedtype = nullptr;
+    IsType(const Line &ln, Node *_a, TypeRef _type) : Unary(ln, _a), giventype(_type) {}
+    void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype)); }
     bool EqAttr(const Node *o) const {
-        return gr.giventype.utr->Equal(*((IsType *)o)->gr.giventype.utr);
+        return giventype->Equal(*((IsType *)o)->giventype);
     }
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
 };

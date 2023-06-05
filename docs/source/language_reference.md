@@ -230,14 +230,11 @@ struct xy_f = xy<float>
 You construct values of these types you use a similar syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-let v = xy { 1, 0 }
+let v = xy_i { 1, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-(Or use `xy_f { 1, 0 }` / `xy<bool> { true, false }` to explicitly pick a particular
+(Or use `xy_f { 1, 0 }` / `xy<bool> { true, false }` to explicitly pick a different
 specialization).
-
-The type ensures that the right number of values are given, and they can now be
-accessed as `v.x` etc. in addition to `v[0]`.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct xy:
@@ -257,6 +254,13 @@ xy { x: 1, y: 2 }
 
 Besides being more readable, it allows you to specify the fields in any order,
 and to override fields that have defaults.
+
+To declare a type whose only purpose is to serve as a superclass for other
+types and is not to be instantiated, declare it with `abstract`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+abstract class Node
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Operators
@@ -306,7 +310,7 @@ You may even use a vector as index, e.g.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 let mat = [ [ 1, 2 ],  [ 3, 4 ] ]
-let pos = xy { 0, 1 }
+let pos = xy_i { 0, 1 }
 print mat[pos]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -322,7 +326,7 @@ be `float`). They also work on structs containing ints or floats with either
 another struct or a single int or float. These structs must be the same type.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-xy { 1, 2 } * xy { 4, 5 }  // results in xy { 4, 10 }
+xy_i { 1, 2 } * xy_i { 4, 5 }  // results in xy_i { 4, 10 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All 5 also have have a combined assignment operator version, `+= -= *= /= %=`,

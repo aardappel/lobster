@@ -36,7 +36,7 @@ while gl_frame():
     let speed = 50.0
     camera.FPS_update("w", "a", "s", "d", speed, 4.0, true)
     camera.FPS_view()
-    gl_light(camera.position, xy { 128.0, 0.1 })
+    gl_light(camera.position, xy_f { 128.0, 0.1 })
 
     gl_blend 0:
         gl_set_shader("flat")

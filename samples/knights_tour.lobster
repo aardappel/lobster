@@ -1,7 +1,7 @@
 import vec
 
-let knight_moves = [ xy { 1, 2 }, xy { 1, -2 }, xy { -1, 2 }, xy { -1, -2 },
-                     xy { 2, 1 }, xy { 2, -1 }, xy { -2, 1 }, xy { -2, -1 } ]
+let knight_moves = [ xy_i { 1, 2 }, xy_i { 1, -2 }, xy_i { -1, 2 }, xy_i { -1, -2 },
+                     xy_i { 2, 1 }, xy_i { 2, -1 }, xy_i { -2, 1 }, xy_i { -2, -1 } ]
 
 def knights_tour(dim):
     let board = mapxy(dim): -1
@@ -18,7 +18,7 @@ def knights_tour(dim):
     return board
 
 while true:
-    let board = knights_tour(xy { 8, 8 })
+    let board = knights_tour(xy_i { 8, 8 })
     if board:
         for(board) row: print row
         return

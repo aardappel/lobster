@@ -37,7 +37,7 @@ class Camera:
     // then still call FPS_view as before:
     def direction(v):
         v = normalize(v)
-        yaw = atan2(xy(v)) - 90.0  // look along Y rather than X
+        yaw = atan2(v.xy) - 90.0  // look along Y rather than X
         pitch = asin(v.z)
 
 // Default OpenGL view looks along -Z (Y up). This creates a worldspace where Z is up:
@@ -51,8 +51,8 @@ def set_z_up_worldspace(f):
     gl_pop_model_view()
 
 // Convert points that are in Y up space to Z up.
-def to_z_up(v):
-    return xyz { v.x, -v.z, v.y }
+def to_z_up(v:xyz_f):
+    return xyz_f { v.x, -v.z, v.y }
 
 def set_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
     let ws = float(gl_framebuffer_size())

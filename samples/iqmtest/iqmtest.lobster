@@ -15,7 +15,7 @@ let textures = map(gl_mesh_parts(iqmtest)) name, i:
 
 for(textures) tex, i: gl_set_mesh_texture(iqmtest, i, 0, tex)
 
-let camera = Camera { xyz { 0.0, 0.0, 8.0 }, -45.0, 0.0 }
+let camera = Camera { xyz_f { 0.0, 0.0, 8.0 }, -45.0, 0.0 }
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -30,7 +30,7 @@ while gl_frame():
     if gl_button("space") >= 1: camera.direction(xyz_1 * 10.0 - camera.position)
     camera.FPS_view()
 
-    gl_light(camera.position, xy { 128.0, 1.0 })
+    gl_light(camera.position, xy_f { 128.0, 1.0 })
     //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
     gl_blend(blend_none)
@@ -41,4 +41,4 @@ while gl_frame():
             gl_render_mesh(iqmtest)
 
     gl_set_shader("color")
-    gl_debug_grid(xyz { 20, 20, 0 }, xyz_1, 0.005)
+    gl_debug_grid(xyz_i { 20, 20, 0 }, xyz_1, 0.005)

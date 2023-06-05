@@ -9,10 +9,10 @@ struct xy<T>:
     x:T
     y:T
 
-struct xyz : xy
+struct xyz<T> : xy<T>
     z:T
 
-struct xyzw : xyz
+struct xyzw<T> : xyz<T>
     w:T
 
 // Specialized type names:

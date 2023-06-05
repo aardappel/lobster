@@ -290,7 +290,7 @@ while gl_frame() and gl_button("escape") != 1:
 
     gl_translate playerpos:
         gl_rotate_z tomouse:
-            gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
+            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To be able to shoot, first we have to worry about giving our player an
@@ -382,7 +382,7 @@ modifications to the existing code:
 def renderpointytriangle(pos, dir):
     gl_translate pos:
         gl_rotate_z dir:
-            gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
+            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, let's take the code for rendering the player and put it in it's own

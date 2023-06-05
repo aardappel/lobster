@@ -110,14 +110,6 @@
 
 - Remove `;` entirely from the language? Only used in a few spots, and not that useful.
 
-- Would be good to try and further clean up class/struct generics, in the compiler,
-  as it is a brittle mess.
-  Separate UDT in to a template (which may have generics), and a specialization (which
-  is always fully concrete, and refers to it), rather than sharing it with a simple bool.
-  Make sure the type checker works almost entirely on specializations.
-  See if the concept of spec udt and resolving can be further reduced.
-  - see branch newgoap for a problem case.
-
 - Enable writing to struct fields.
   Maybe explicit opt in per field or per struct? If per field then also can do the opposite for
   read-only class members.
@@ -1772,8 +1764,6 @@
   - why do we need .xy ? shouldn't xyz convert to xy when needed silently thru inheritance?
 
   - can we make the astar_node specialization less ugly?
-
-  - struct pre-declaration can trip up IsGeneric.
 
   - should fields be allowed to have types of generic structs? can be a bit confusing that the containing
     struct becomes generic because of it but doesn't look generic.

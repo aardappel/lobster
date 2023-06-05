@@ -63,7 +63,7 @@ run_test("misc"):
         g:int
 
     let direct = parsetest {
-        false, 1, 2.0, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
+        false, 1, 2.0, xyz_f { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
         [ 0, -64 ], nil, true
     }
     var parsed, err = parse_data(typeof direct, "{direct}")
@@ -74,7 +74,7 @@ run_test("misc"):
     // Test defaults:
     parsed, err = parse_data(typeof direct, "parsetest {{ true, 1, 1.0, xyz_f {{}}, \"\", [] }}")
     if err: print err
-    let groundv = parsetest { true, 1, 1.0, xyz { 0.0, 0.0, 0.0 }, "", [], nil, 0 }
+    let groundv = parsetest { true, 1, 1.0, xyz_f { 0.0, 0.0, 0.0 }, "", [], nil, 0 }
     assert equal(parsed, groundv)
     let flex = flexbuffers_value_to_binary(parsed)
     let json = flexbuffers_binary_to_json(flex, false, "")
@@ -236,11 +236,11 @@ run_test("misc"):
     assert in_range(0, 1, 0)  // Pass int to nillable int type just for builtins.
 
     // Modulo operator extended to vectors and floats.
-    assert xy { 10, 20 } % xy { 3, 6 } == xy { 1, 2 }
-    assert xy { 10, 20 } % 3 == xy { 1, 2 }
+    assert xy_i { 10, 20 } % xy_i { 3, 6 } == xy_i { 1, 2 }
+    assert xy_i { 10, 20 } % 3 == xy_i { 1, 2 }
     assert abs(4.0 % 1.5 - 1.0) < 0.01
-    assert max(abs(xy { 10.1, 20.1 } % xy { 3.0, 6.0 } - xy { 1.1, 2.1 })) < 0.01
-    assert max(abs(xy { 10.1, 20.1 } % 3.0 - xy { 1.1, 2.1 })) < 0.01
+    assert max(abs(xy_f { 10.1, 20.1 } % xy_f { 3.0, 6.0 } - xy_f { 1.1, 2.1 })) < 0.01
+    assert max(abs(xy_f { 10.1, 20.1 } % 3.0 - xy_f { 1.1, 2.1 })) < 0.01
 
     // Unicode in strings: either as escape code, or also direct, if your editor supports it.
     assert "⺆㋇䬈" == "\u2E86\u32C7\u4B08"
@@ -273,8 +273,8 @@ run_test("misc"):
     assert val and val == "b"
     // Test using structs!
     let dict3 = dictionary<xyz_i, xyz_i> { 17 }
-    dict3.set(xyz { 1, 2, 3 }, xyz { 4, 5, 6 })
-    assert dict3.get(xyz { 1, 2, 3 }, xyz_0i) == xyz { 4, 5, 6 }
+    dict3.set(xyz_i { 1, 2, 3 }, xyz_i { 4, 5, 6 })
+    assert dict3.get(xyz_i { 1, 2, 3 }, xyz_0i) == xyz_i { 4, 5, 6 }
 
     // Break.
     var lc = 0
@@ -306,14 +306,14 @@ run_test("misc"):
             def return_past() -> float:
                 switch mode:
                     case 0: return "a" from outer_dest1
-                    case 1: return xy { 4, 5 } from outer_dest2  // Different number and type.
+                    case 1: return xy_i { 4, 5 } from outer_dest2  // Different number and type.
                     default: return 3.1  // local return.
             // The unwind check of the return_past call must deal with different return types and sizes.
             return string(return_past())
-        return xy { length(outer_dest1()), 0 }
-    assert outer_dest2(0) == xy { 1, 0 }
-    assert outer_dest2(1) == xy { 4, 5 }
-    assert outer_dest2(2) == xy { 3, 0 }
+        return xy_i { length(outer_dest1()), 0 }
+    assert outer_dest2(0) == xy_i { 1, 0 }
+    assert outer_dest2(1) == xy_i { 4, 5 }
+    assert outer_dest2(2) == xy_i { 3, 0 }
 
     // Like Python, but actually a built-in function.
     if false:

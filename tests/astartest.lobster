@@ -33,20 +33,20 @@ run_test("astar"):
         ".......OOOOOOOO.................."
     ]
 
-    class pathingcell : astar_node<pathingcell?, xy_i, xy_i = xy_0i>
+    class pathingcell : astar_node<pathingcell?, xy_i, xy_i>
         path:int
         c:int
 
-    let worldsize = xy { initworld[0].length, initworld.length }
+    let worldsize = xy_i { initworld[0].length, initworld.length }
 
     var startpos = xy_0i
     var endpos = xy_0i
 
     let world = worldsize.y.map() y: worldsize.x.map() x:
         let c = initworld[y][x]
-        if c == 'S': startpos = xy { x, y }
-        if c == 'E': endpos   = xy { x, y }
-        pathingcell { xy { x, y }, false, c }
+        if c == 'S': startpos = xy_i { x, y }
+        if c == 'E': endpos   = xy_i { x, y }
+        pathingcell { xy_i { x, y }, xy_0i, false, c }
 
     let path =
         astar_2dgrid(false, worldsize, world[startpos], world[endpos], fn: world[_]) (n, nn::pathingcell):

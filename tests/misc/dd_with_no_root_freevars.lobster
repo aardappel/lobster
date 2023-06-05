@@ -51,7 +51,7 @@ class brush_area:
       return mins + (maxs-mins)*0.5
 
    def contains(p):
-      return (p >= mins) == xyz{true,true,true} and (p <= maxs) == xyz{true, true, true}
+      return (p >= mins) == xyz<bool> { true, true, true } and (p <= maxs) == xyz<bool> { true, true, true }
 
 struct physics_object:
    h:int

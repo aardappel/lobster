@@ -63,12 +63,12 @@ class scrollzoomview:
         if oldpanoffset != panoffset and mousewheeldelta <= 0:
             maxo -= float(viewsize) / scale
             if(maxo.x < mino.x):
-                mino = xy { (mino.x + maxo.x) / 2.0, mino.y }  // FIXME!!!
-                maxo = xy { (mino.x + maxo.x) / 2.0, maxo.y }
+                mino = xy_f { (mino.x + maxo.x) / 2.0, mino.y }  // FIXME!!!
+                maxo = xy_f { (mino.x + maxo.x) / 2.0, maxo.y }
             if(maxo.y < mino.y):
-                mino = xy { mino.x, (mino.y + maxo.y) / 2.0 }
-                maxo = xy { maxo.x, (mino.y + maxo.y) / 2.0 }
-            panoffset = xy { max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
+                mino = xy_f { mino.x, (mino.y + maxo.y) / 2.0 }
+                maxo = xy_f { maxo.x, (mino.y + maxo.y) / 2.0 }
+            panoffset = xy_f { max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
                             max(min(maxo.y, panoffset.y), mino.y) }
         return scale, -panoffset
 

@@ -368,6 +368,7 @@ struct Lex : LoadedFile {
                             if (sattr == TName(T_AND)) { cont = true; return T_AND; }
                             if (sattr == TName(T_ANYTYPE)) return T_ANYTYPE;
                             if (sattr == TName(T_ATTRIBUTE)) return T_ATTRIBUTE;
+                            if (sattr == TName(T_ABSTRACT)) return T_ABSTRACT;
                             break;
                         case 'b':
                             if (sattr == TName(T_BREAK)) return T_BREAK;

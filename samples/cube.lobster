@@ -139,7 +139,7 @@ while gl_frame() and not gl_button("escape"):
     camera_GPS_update("w", "a", "s", "d", 2.0, 4.0, 4.0)
     camera.FPS_view()
 
-    gl_light(camera.position, xy { 128.0, 0.1 })
+    gl_light(camera.position, xy_f { 128.0, 0.1 })
 
     gl_translate(xyz_1 / -2.0)
     gl_set_shader("textured")

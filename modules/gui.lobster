@@ -74,8 +74,8 @@ private def cache_size(id, f):
 private def update_size(v:xy_i):
     let cs = cursize.pop()
     cursize.push(
-        if vertical.top: xy { max(cs.x, v.x), cs.y + v.y + (cs.y and spacing.top) }
-        else:            xy { cs.x + v.x + (cs.x and spacing.top), max(cs.y, v.y) })
+        if vertical.top: xy_i { max(cs.x, v.x), cs.y + v.y + (cs.y and spacing.top) }
+        else:            xy_i { cs.x + v.x + (cs.x and spacing.top), max(cs.y, v.y) })
 
 private def advance(v:xy_i, f):
     if render_pass:
@@ -85,9 +85,9 @@ private def advance(v:xy_i, f):
 
 private def max_space(v:xy_i):
     return if vertical.top:
-        xy { parent_size.top.x, v.y }
+        xy_i { parent_size.top.x, v.y }
     else:
-        xy { v.x, parent_size.top.y }
+        xy_i { v.x, parent_size.top.y }
 
 private def position(v:xy_i, f):
     let r = max_space(v) - v

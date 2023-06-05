@@ -525,13 +525,42 @@ extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uin
     return 0;
 }
 
+bool Type::Equal(const Type &o, bool allow_unresolved) const {
+    if (this == &o) return true;
+    if (t != o.t) {
+        if (!allow_unresolved) return false;
+        // Special case for V_UUDT, since sometime types are resolved in odd orders.
+        // TODO: can the IsGeneric() be removed?
+        switch (t) {
+            case V_UUDT:
+                return IsUDT(o.t) && spec_udt->gudt == &o.udt->g && !spec_udt->IsGeneric();
+            case V_CLASS:
+            case V_STRUCT_R:
+            case V_STRUCT_S:
+                return o.t == V_UUDT && o.spec_udt->gudt == &udt->g && !o.spec_udt->IsGeneric();
+            default:
+                return false;
+        }
+    }
+    if (sub == o.sub) return true;  // Also compares sf/udt
+    switch (t) {
+        case V_VECTOR:
+        case V_NIL:
+            return sub->Equal(*o.sub, allow_unresolved);
+        case V_UUDT:
+            return spec_udt->Equal(*o.spec_udt);
+        default:
+            return false;
+    }
+}
+
 SubFunction::~SubFunction() { if (sbody) delete sbody; }
 
 Field::~Field() { delete defaultval; }
 
 Field::Field(const Field &o)
-    : GivenResolve(o),
-      id(o.id),
+    : id(o.id),
+      giventype(o.giventype),
       defaultval(o.defaultval ? o.defaultval->Clone() : nullptr),
       isprivate(o.isprivate),
       in_scope(o.in_scope),
@@ -554,13 +583,18 @@ int Overload::NumSubf() {
 }
 
 bool SpecUDT::Equal(const SpecUDT &o) const {
-    if (udt != o.udt ||
-        is_generic != o.is_generic ||
+    if (gudt != o.gudt ||
+        IsGeneric() != o.IsGeneric() ||
         specializers.size() != o.specializers.size()) return false;
     for (auto [i, s] : enumerate(specializers)) {
         if (!s->Equal(*o.specializers[i])) return false;
     }
     return true;
+}
+
+bool SpecUDT::IsGeneric() const {
+    assert(specializers.size() == gudt->generics.size());
+    return !gudt->generics.empty();
 }
 
 }  // namespace lobster

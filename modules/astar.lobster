@@ -92,11 +92,11 @@ class goapaction:
     precondition:goapf
     effect:goapf
 
-class goap_node = astar_node<goap_node?, [int], goapaction? = nil>
+class goap_node = astar_node<goap_node?, [int], goapaction?>
 
 def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
     let H = heuristic(initstate)
-    let existingnodes = [ goap_node { H: H, F: H, state: initstate } ]
+    let existingnodes = [ goap_node { H: H, F: H, state: initstate, delta: nil } ]
     return astar_generic(existingnodes[0]):
         endcondition(_.state)
     fn n, f:
@@ -109,6 +109,6 @@ def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endconditio
                 var i = existingnodes.find(): equal(_.state, nstate)
                 if i < 0:
                     i = existingnodes.length
-                    existingnodes.push(goap_node { nstate })
+                    existingnodes.push(goap_node { nstate, nil })
                 f(act, 1, existingnodes[i])
     fn: heuristic(_)

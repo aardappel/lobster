@@ -14,7 +14,7 @@
 import std
 
 private class chain<K,V>:
-    next:chain?
+    next:chain<K,V>?
     key:K
     value:V
 

@@ -18,7 +18,7 @@ struct mat2x2 : xyzw_f
         return x*w - y*z
 
     def adjugate():
-        return mat2x2{ w, -y, -z, x }
+        return mat2x2 { w, -y, -z, x }
 
     def inverse():
         return adjugate() / determinant()

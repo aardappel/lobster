@@ -54,15 +54,15 @@ let bigrad = 1000.0
 let lrad = 100.0
 
 let spheres = [ //Scene: radius, position, emission, color, material
-    Sphere { lrad,   xyz { 50.0,lrad+81.6-1,81.6  }, xyz_1*12, xyz_0,             DIFF }, //Lite
-    Sphere { 16.5,   xyz { 73.0,16.5,78.0         }, xyz_0,    xyz_1*.999,        REFR }, //Glas
-    Sphere { 16.5,   xyz { 27.0,16.5,47.0         }, xyz_0,    xyz_1*.999,        SPEC }, //Mirr
-    Sphere { bigrad, xyz { 50.0,-bigrad+81.6,81.6 }, xyz_0,    xyz_1*.75,         DIFF }, //Top
-    Sphere { bigrad, xyz { 50.0, bigrad, 81.6     }, xyz_0,    xyz_1*.75,         DIFF }, //Botm
-    Sphere { bigrad, xyz { 50.0,40.8,-bigrad+170  }, xyz_0,    xyz_0,             DIFF }, //Frnt
-    Sphere { bigrad, xyz { 50.0,40.8, bigrad      }, xyz_0,    xyz_1*.75,         DIFF }, //Back
-    Sphere { bigrad, xyz { -bigrad+99,40.8,81.6   }, xyz_0,    xyz {.25,.25,.75}, DIFF }, //Rght
-    Sphere { bigrad, xyz {  bigrad+1, 40.8,81.6   }, xyz_0,    xyz {.75,.25,.25}, DIFF }  //Left
+    Sphere { lrad,   xyz_f { 50.0,lrad+81.6-1,81.6  }, xyz_1*12, xyz_0,               DIFF }, //Lite
+    Sphere { 16.5,   xyz_f { 73.0,16.5,78.0         }, xyz_0,    xyz_1*.999,          REFR }, //Glas
+    Sphere { 16.5,   xyz_f { 27.0,16.5,47.0         }, xyz_0,    xyz_1*.999,          SPEC }, //Mirr
+    Sphere { bigrad, xyz_f { 50.0,-bigrad+81.6,81.6 }, xyz_0,    xyz_1*.75,           DIFF }, //Top
+    Sphere { bigrad, xyz_f { 50.0, bigrad, 81.6     }, xyz_0,    xyz_1*.75,           DIFF }, //Botm
+    Sphere { bigrad, xyz_f { 50.0,40.8,-bigrad+170  }, xyz_0,    xyz_0,               DIFF }, //Frnt
+    Sphere { bigrad, xyz_f { 50.0,40.8, bigrad      }, xyz_0,    xyz_1*.75,           DIFF }, //Back
+    Sphere { bigrad, xyz_f { -bigrad+99,40.8,81.6   }, xyz_0,    xyz_f {.25,.25,.75}, DIFF }, //Rght
+    Sphere { bigrad, xyz_f {  bigrad+1, 40.8,81.6   }, xyz_0,    xyz_f {.75,.25,.25}, DIFF }  //Left
 ]
 
 def radiance(r:Ray, depth) -> xyz_f:
@@ -124,7 +124,7 @@ def radiance(r:Ray, depth) -> xyz_f:
 let w = 64
 let h = 48
 
-let cam = Ray { xyz { 50.0,50.0,290.0 }, normalize(xyz { 0.0,-0.042612,-1.0 }) } // cam pos, dir
+let cam = Ray { xyz_f { 50.0,50.0,290.0 }, normalize(xyz_f { 0.0,-0.042612,-1.0 }) } // cam pos, dir
 let cx = xyz_x * (w*.5135/h)
 let cy = normalize(cx.cross(cam.d))*.5135
 

@@ -57,11 +57,11 @@ let body = """
     assert 44 == sum(testvector)
     assert 264 == sum(testvector.map(): _ * _)
 
-    assert xy { 10, 20 } % xy { 3, 6 } == xy { 1, 2 }
-    assert xy { 10, 20 } % 3 == xy { 1, 2 }
+    assert xy_i { 10, 20 } % xy_i { 3, 6 } == xy_i { 1, 2 }
+    assert xy_i { 10, 20 } % 3 == xy_i { 1, 2 }
     assert abs(4.0 % 1.5 - 1.0) < 0.01
-    assert max(abs(xy { 10.1, 20.1 } % xy { 3.0, 6.0 } - xy { 1.1, 2.1 })) < 0.01
-    assert max(abs(xy { 10.1, 20.1 } % 3.0 - xy { 1.1, 2.1 })) < 0.01
+    assert max(abs(xy_f { 10.1, 20.1 } % xy_f { 3.0, 6.0 } - xy_f { 1.1, 2.1 })) < 0.01
+    assert max(abs(xy_f { 10.1, 20.1 } % 3.0 - xy_f { 1.1, 2.1 })) < 0.01
 
 """
 

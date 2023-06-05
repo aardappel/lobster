@@ -13,7 +13,7 @@ class Entity:
     def renderpointytriangle(dir):
         gl_translate pos:
             gl_rotate_z dir:
-                gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
+                gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])
 
 class Player : Entity
     health = 100.0
