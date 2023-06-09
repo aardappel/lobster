@@ -457,7 +457,6 @@ struct SubFunction {
     bool consumes_vars_on_return = false;
     bool optimized = false;
     bool explicit_generics = false;
-    bool force_keep = false;
     int returned_thru_to_max = -1;  // >=0: there exist return statements that may skip the caller.
     UDT *method_of = nullptr;
     int numcallers = 0;

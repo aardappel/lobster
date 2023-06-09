@@ -1340,10 +1340,16 @@ struct TypeChecker {
             if (btv.resolved_null())
                 Error(call_args, "cannot implicitly bind type variable ", Q(btv.tv->name),
                                  " in call to ", Q(f.name), " (argument doesn't match?)");
+        if (!force_keep) {
+            // Having a lifetime per arg is mostly useful on smaller functions to not get
+            // unnecessary refc overhead on the border, especially if they later get inlined.
+            // But for really big functions it just risks unnecessary specializations for no gain.
+            if (ov.gbody->Count() > 25) force_keep = true;
+        }
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
-        auto AllowAnyLifetime = [&](const Arg &arg, SubFunction *sf) {
-            return !sf->force_keep && arg.sid->id->single_assignment;
+        auto ArgLifetime = [&](const Node *c, const Arg &arg) {
+            return !force_keep && arg.sid->id->single_assignment ? c->lt : LT_KEEP;
         };
         // Check if any existing specializations match.
         for (sf = ov.sf; sf; sf = sf->next) {
@@ -1352,14 +1358,14 @@ struct TypeChecker {
                 // should be ok to reuse.
                 for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = sf->args[i];
-                    auto unequal_lifetimes = IsBorrow(c->lt) != IsBorrow(arg.sid->lt);
-                    auto allow_any_lifetime = AllowAnyLifetime(arg, sf);
+                    auto arg_lt = ArgLifetime(c, arg);
+                    auto unequal_lifetimes = IsBorrow(arg_lt) != IsBorrow(arg.sid->lt);
                     // TODO: we need this check here because arg type may rely on parent
                     // struct (or function) generic, and thus isn't covered by the checking
                     // of sf->generics below. Can this be done more elegantly?
                     auto parent_generic =
                         st.IsGeneric(sf->giventypes[i]) && !c->exptype->Equal(*arg.type);
-                    auto incompatible = (unequal_lifetimes && allow_any_lifetime) || parent_generic;
+                    auto incompatible = unequal_lifetimes || parent_generic;
                     if (incompatible)
                         goto fail;
                 }
@@ -1389,16 +1395,9 @@ struct TypeChecker {
         if (sf->method_of)
             st.bound_typevars_stack.push_back(&call_args.children[0]->exptype->udt->generics);
         st.bound_typevars_stack.push_back(&sf->generics);
-        if (!force_keep) {
-            // Having a lifetime per arg is mostly useful on smaller functions to not get
-            // unnecessary refc overhead on the border, especially if they later get inlined.
-            // But for really big functions it just risks unnecessary specializations for no gain.
-            if (sf->sbody->Count() > 25) force_keep = true;
-        }
-        sf->force_keep = force_keep;
         for (auto [i, c] : enumerate(call_args.children)) {
             auto &arg = sf->args[i];
-            arg.sid->lt = AllowAnyLifetime(arg, sf) ? c->lt : LT_KEEP;
+            arg.sid->lt = ArgLifetime(c, arg);
             arg.type = ResolveTypeVars(sf->giventypes[i], &call_args);
             LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
         }
