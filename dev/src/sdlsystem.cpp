@@ -547,7 +547,7 @@ bool SDLFrame() {
                     // Built-in key-press functionality.
                     switch (event.key.keysym.sym) {
                         case SDLK_PRINTSCREEN:
-                            ScreenShot("screenshot-" + GetDateTime() + ".jpg");
+                            ScreenShot("screenshot-" + GetDateTime() + ".png");
                             break;
                     }
                 }
