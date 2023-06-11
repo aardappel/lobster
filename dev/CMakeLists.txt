@@ -149,6 +149,7 @@ find_package(Threads)
 
 include_directories(include
                     src
+                    external/SDL/include-config-/SDL2
                     external/SDL/include
                     external/SDLMixer
                     external/freetype/include
