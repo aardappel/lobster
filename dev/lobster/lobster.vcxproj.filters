@@ -1179,9 +1179,6 @@
     <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapijoystick.c">
       <Filter>engine\sdl\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\external\SDL\src\hidapi\windows\hid.c">
-      <Filter>engine\sdl\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_ps4.c">
       <Filter>engine\sdl\lib</Filter>
     </ClCompile>
@@ -1217,6 +1214,129 @@
     </ClCompile>
     <ClCompile Include="..\external\freetype\src\psaux\psaux.c">
       <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\thread\windows\SDL_syscond_cv.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\hidapi\SDL_hidapi.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_combined.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_gamecube.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_luna.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_ps3.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_ps5.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_rumble.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_shield.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_stadia.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_steam.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_wii.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_xbox360.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_xbox360w.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_xboxone.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\core\windows\SDL_immdevice.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_crc16.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_crc32.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_mslibc.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_strtokr.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\controller_type.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\windows\SDL_rawinputjoystick.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\virtual\SDL_virtualjoystick.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\steam\SDL_steamcontroller.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL_guid.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL_list.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\software\SDL_triangle.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL_utils.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\locale\SDL_locale.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\misc\SDL_url.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\direct3d12\SDL_render_d3d12.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\direct3d12\SDL_shaders_d3d12.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\windows\SDL_windows_gaming_input.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\imKStoUCS.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_displayevents.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_keysym_to_scancode.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_scancode_tables.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\sensor\windows\SDL_windowssensor.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\locale\windows\SDL_syslocale.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\misc\windows\SDL_sysurl.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\core\windows\SDL_hid.c">
+      <Filter>engine\sdl\lib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
