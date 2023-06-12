@@ -95,6 +95,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/aaudio/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/openslES/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/dummy/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/core/android/*.c) \
@@ -104,9 +105,11 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/file/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/hidapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/hidapi/android/*.cpp) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/virtual/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/hidapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/loadso/dlopen/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/power/*.c) \
