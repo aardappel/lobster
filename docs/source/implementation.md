@@ -11,8 +11,8 @@ Building Lobster
 ----------------
 
 Lobster uses recent C++17 features, so will need
-Visual Studio 2022 (the free community edition will do), Xcode 10.x, or a recent
-GCC (9+) / Clang (9+) to be compiled.
+Visual Studio 2022 (the free community edition will do), lastest Xcode, or a very
+recent GCC / Clang to be compiled.
 
 Lobster uses OpenGL, SDL 2.x and FreeType, these are included in the repo, so should compile
 out of the box with no further external dependencies.
@@ -35,29 +35,35 @@ The project is set up to build lobster.exe in the `bin` folder, and will be read
 as described either from the [command line](command_line_usage.html) or [VS Code](vscode_ide.html) /
 [SublimeText](sublime_ide.html) / [Notepad++](notepadpp_ide.html).
 
-### OS X & iOS
+### OS X (& iOS)
 
-Building for either one is easy using the single Xcode project (in
-`dev/xcode/lobster`) which produces a .app bundle for either platform (the
-`lobsterapp` and `lobster_ios` targets), or a command line version for OS X (the
-`lobster` target) placed in the `bin` folder much like Windows.
+You need to first generate the Xcode project using CMake, run `sh build_osx.sh`
+from the `dev` folder, to generate an Xcode project in the `xcode-cmake`
+sub-folder.
 
-To develop Lobster code on OS X, easiest probably is to use the command line
+Open `dev/xcode-cmake/Lobster.xcodeproj`, ensure `lobster > My Mac` is selected
+as scheme in the top bar, `Product -> Build for -> Profiling` (to get a Release
+build), then close if no errors.
+
+Alternatively from the terminal from the `xcode-cmake` folder:
+
+`xcodebuild -toolchain clang -configuration Release -target lobster`
+
+This results in a `bin/lobster` you can use.
+
+To develop Lobster code on OS X, use the command line
 version. Many OS X editors support running a command line compiler, e.g.
 VSCode, SublimeText, or Komodo Edit with Tools -\> Run Command.
 
-Alternatively, you could add your lobster source (and extra data it might need)
-to the Xcode project, and add it to the build rules such that these are copied
-to the Resource location in the bundle, then running from Xcode with the main
-lobster file as command line argument.
+How to turn a Lobster program into an App Bundle for distribution: TBD
+Need to see how to set this up using CMake.
+You'll likely want to produce
+a pak file (see [command line](command_line_usage.html)) to make sticking
+this extra data in a bundle easier.
 
-Distribution is currently a bit clumsier. You'll need to run lobster to produce
-a pak file (see [command line](command_line_usage.html)), then make a copy
-of the bundle, and stick the bytecode file (+data) in the Resource location, and
-you should have something that can be distributed to users. For iOS you can
-compile using the OS X exe, then run that same pak file using the iOS exe.
-
-For iOS be sure to read how to compile to C++ below.
+For iOS be sure to read how to compile to C++ below, since iOS doesn't
+support in Lobster's default JIT mode.
+How to make the above CMake project work for iOS: TBD.
 
 ### Linux
 
