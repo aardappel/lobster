@@ -296,7 +296,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
     MakeDPIAware();
     TextToSpeechInit();  // Needs to be before SDL_Init because COINITBASE_MULTITHREADED
     // SDL_SetMainReady();
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO /* | SDL_INIT_AUDIO*/) < 0) {
         return SDLError("Unable to initialize SDL");
     }
 
@@ -396,18 +396,20 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         if (SDL_GL_SetSwapInterval(flags & INIT_NO_VSYNC ? 0 : -1) < 0) SDL_GL_SetSwapInterval(1);
     #endif
 
-    SDL_JoystickEventState(SDL_ENABLE);
-    SDL_JoystickUpdate();
-    for(int i = 0; i < SDL_NumJoysticks(); i++) {
-        SDL_Joystick *joy = SDL_JoystickOpen(i);
-        if (joy) {
-            LOG_INFO("Detected joystick: ", SDL_JoystickName(joy), " (",
-                                SDL_JoystickNumAxes(joy), " axes, ",
-                                SDL_JoystickNumButtons(joy), " buttons, ",
-                                SDL_JoystickNumBalls(joy), " balls, ",
-                                SDL_JoystickNumHats(joy), " hats)");
+    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) >= 0 && SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) >= 0) {
+        SDL_JoystickEventState(SDL_ENABLE);
+        SDL_JoystickUpdate();
+        for(int i = 0; i < SDL_NumJoysticks(); i++) {
+            SDL_Joystick *joy = SDL_JoystickOpen(i);
+            if (joy) {
+                LOG_INFO("Detected joystick: ", SDL_JoystickName(joy), " (",
+                                    SDL_JoystickNumAxes(joy), " axes, ",
+                                    SDL_JoystickNumButtons(joy), " buttons, ",
+                                    SDL_JoystickNumBalls(joy), " balls, ",
+                                    SDL_JoystickNumHats(joy), " hats)");
+            };
         };
-    };
+    }
 
     timestart = SDL_GetPerformanceCounter();
     timefreq = SDL_GetPerformanceFrequency();
