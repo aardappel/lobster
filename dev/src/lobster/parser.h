@@ -188,6 +188,7 @@ struct Parser {
                         fn += ".lobster";
                     }
                     Expect(T_LINEFEED);
+                    st.StartOfInclude();
                     lex.Include(fn);
                     ParseTopExp(list);
                 }

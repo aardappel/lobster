@@ -587,12 +587,16 @@ struct SymbolTable {
     vector<SpecUDT *> specudts;
 
     string_view current_namespace;
+    vector<string_view> namespace_stack;
+
     // FIXME: because we cleverly use string_view's into source code everywhere, we now have
     // no way to refer to constructed strings, and need to store them seperately :(
     // TODO: instead use larger buffers and constuct directly into those, so no temp string?
     vector<const char *> stored_names;
 
-    SymbolTable(Lex &lex) : lex(lex) {}
+    SymbolTable(Lex &lex) : lex(lex) {
+        namespace_stack.push_back({});
+    }
 
     ~SymbolTable() {
         for (auto id  : identtable)       delete id;
@@ -803,8 +807,14 @@ struct SymbolTable {
         }
     }
 
-    void EndOfInclude() {
+    void StartOfInclude() {
+        namespace_stack.push_back(current_namespace);
         current_namespace = {};
+    }
+
+    void EndOfInclude() {
+        current_namespace = namespace_stack.back();
+        namespace_stack.pop_back();
         ErasePrivate(idents);
         ErasePrivate(udts);
         ErasePrivate(enums);

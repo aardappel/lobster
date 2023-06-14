@@ -3,6 +3,10 @@
 - A document that explains what samples are available and what they demo.
   - Also move some more of my (Wouter) projects into the main repo as samples.
 
+- People often call function values out of context and then get surprising errors.
+  Make sure error at call site pinpoints which free var is not in scope to make
+  this not work.
+
 - Unknown functions in untypechecked code do not error at all anymore?
 
 - move this TODO.txt to github issues?
