@@ -476,16 +476,17 @@ nfr("flexbuffers_binary_to_value", "typeid,flex", "TS", "A1?S?",
         }
     });
 
-nfr("flexbuffers_binary_to_json", "flex,field_quotes", "SB?", "S?S?",
-    "turns a flexbuffer into a JSON string",
+nfr("flexbuffers_binary_to_json", "flex,field_quotes,indent_string", "SBS", "S?S?",
+    "turns a flexbuffer into a JSON string. If indent_string is empty, will be a single line string",
     [](StackPtr &sp, VM &vm) {
+        auto indent_string = Pop(sp).sval()->strvnt();
         auto quoted = Pop(sp).ival();
         auto fsv = Pop(sp).sval()->strv();
         vector<uint8_t> reuse_buffer;
         if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
             auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
             string json;
-            root.ToString(true, quoted, json);
+            root.ToString(true, quoted, json, indent_string.size() != 0, 0, indent_string.c_str());
             auto s = vm.NewString(json);
             Push(sp, s);
             Push(sp, NilVal());
