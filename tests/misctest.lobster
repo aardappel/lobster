@@ -80,7 +80,7 @@ run_test("misc"):
     let json = flexbuffers_binary_to_json(flex)
     assert json
     // Fields that are nil or scalar default value should be missing!
-    let groundj = """{ a: 1, b: 1.0, c: {  }, d: "", e: [  ], h: 1 }"""
+    let groundj = """{ a: 1, b: 1.0, d: "", e: [  ], h: 1 }"""
     assert json == groundj
     let flex2, ferr = flexbuffers_json_to_binary(json)
     assert not ferr

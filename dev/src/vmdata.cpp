@@ -564,8 +564,11 @@ void ElemToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti,
     fbc.cur_depth++;
     if (IsStruct(ti.t)) {
         if (!key.empty()) fbc.builder.Key(key.data());
-        fbc.vm.StructToFlexBuffer(fbc, ti, elems + i * width);
-        if (!key.empty()) i += ti.len - 1;
+        bool emitted = fbc.vm.StructToFlexBuffer(fbc, ti, elems + i * width, !key.empty());
+        if (!key.empty()) {
+            i += ti.len - 1;
+            if (!emitted) fbc.builder.Undo();  // Pop key.
+        }
     } else {
         elems[i].ToFlexBuffer(fbc, ti.t, key, defval);
     }
@@ -615,15 +618,18 @@ void LVector::ToFlexBuffer(ToFlexBufferContext &fbc) {
     fbc.builder.EndVector(start, false, false);
 }
 
-void VM::StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti,
-                            const Value *elems) {
+bool VM::StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti,
+                            const Value *elems, bool omit_if_empty) {
     auto start = fbc.builder.StartMap();
     for (iint i = 0, f = 0; i < sti.len; i++, f++) {
         auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
         auto fname = fbc.vm.LookupField(sti.structidx, f);
         ElemToFlexBuffer(fbc, ti, i, 1, elems, fname, sti.elemtypes[i].defval);
     }
+    if (omit_if_empty && !fbc.builder.MapElementCount(start))
+        return false;
     fbc.builder.EndMap(start);
+    return true;
 }
 
 

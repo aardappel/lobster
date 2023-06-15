@@ -1070,7 +1070,8 @@ struct VM : VMArgs {
         return NewString(s_reuse);
     }
     void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
-    void StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const Value *elems);
+    bool StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const Value *elems,
+                            bool omit_if_empty);
     bool EnumName(string &sd, iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);
