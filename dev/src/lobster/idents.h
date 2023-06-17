@@ -497,8 +497,30 @@ struct Function : Named {
     }
 };
 
-inline string TypeName(TypeRef type, int flen = 0);
+template<typename T> void Unregister(const T *x, unordered_map<string_view, T *> &dict) {
+    auto it = dict.find(x->name);
+    if (it != dict.end()) dict.erase(it);
+}
 
+template<typename T> void ErasePrivate(unordered_map<string_view, T *> &dict) {
+    auto it = dict.begin();
+    while (it != dict.end()) {
+        auto n = it->second;
+        it++;
+        if (n->isprivate) Unregister(n, dict);
+    }
+}
+
+template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
+    auto it = dict.begin();
+    while (it != dict.end()) {
+        auto n = it->second;
+        it++;
+        if (n->g.isprivate) Unregister(n, dict);
+    }
+}
+
+inline string TypeName(TypeRef type, int flen = 0);
 
 struct SymbolTable {
     Lex &lex;
@@ -761,29 +783,6 @@ struct SymbolTable {
         auto &v = functions[f->name];
         if (!v.empty() && v.back() == f) {
             v.pop_back();
-        }
-    }
-
-    template<typename T> void Unregister(const T *x, unordered_map<string_view, T *> &dict) {
-        auto it = dict.find(x->name);
-        if (it != dict.end()) dict.erase(it);
-    }
-
-    template<typename T> void ErasePrivate(unordered_map<string_view, T *> &dict) {
-        auto it = dict.begin();
-        while (it != dict.end()) {
-            auto n = it->second;
-            it++;
-            if (n->isprivate) Unregister(n, dict);
-        }
-    }
-
-    template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
-        auto it = dict.begin();
-        while (it != dict.end()) {
-            auto n = it->second;
-            it++;
-            if (n->g.isprivate) Unregister(n, dict);
         }
     }
 

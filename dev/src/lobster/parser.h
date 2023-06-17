@@ -113,13 +113,13 @@ struct Parser {
         // See also Block::TypeCheck
         for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
-                st.Unregister(er->e, st.enums);
+                Unregister(er->e, st.enums);
             } else if (auto sr = Is<GUDTRef>(def)) {
                 if (sr->gudt->predeclaration)
                     Error("pre-declared struct ", Q(sr->gudt->name), " never defined");
-                st.Unregister(sr->gudt, st.gudts);
+                Unregister(sr->gudt, st.gudts);
             } else if (auto sr = Is<UDTRef>(def)) {
-                st.Unregister(sr->udt, st.udts);
+                Unregister(sr->udt, st.udts);
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
                 if (!f->anonymous) st.Unregister(f);
