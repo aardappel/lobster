@@ -500,6 +500,7 @@ struct Parser {
         UDT *udt = nullptr;
         if (Either(T_COLON, T_LT)) {
             // A regular struct declaration
+            gudt->is_abstract = is_abstract;
             gudt->isprivate = isprivate;
             if (IsNext(T_LT)) {
                 if (was_predeclaration)
