@@ -4,7 +4,7 @@ import vec
 // vectors and can still use Lobster's built-in operators, whereas others
 // have special implementations below.
 
-struct quat : xyzw_f
+struct quat : float4
 
     def operator*(o:quat):
         return quat { w * o.x + x * o.w + y * o.z - z * o.y,
@@ -18,19 +18,19 @@ struct quat : xyzw_f
     def operator-():
         return quat { -x, -y, -z, w }
 
-    def transform(p:xyz_f):
+    def transform(p:float3):
         let v = this.xyz
         return p + cross(v, cross(v, p) + p * w) * 2.0
 
-def quat_from_angle_axis(angle:float, axis:xyz_f):
+def quat_from_angle_axis(angle:float, axis:float3):
     angle *= 0.5
     let v = axis * sin(angle)
     return quat { v.x, v.y, v.z, cos(angle) }
 
-def quat_from_vec(v:xyz_f):
+def quat_from_vec(v:float3):
     return quat { v.x, v.y, v.z, -sqrt(max(1.0 - dot(v, v), 0.0)) }
 
-def quat_from_2vecs(u:xyz_f, v:xyz_f):
+def quat_from_2vecs(u:float3, v:float3):
     let norm_u_norm_v = sqrt(dot(u, u) * dot(v, v))
     var real_part = norm_u_norm_v + dot(u, v)
     let w =
@@ -40,9 +40,9 @@ def quat_from_2vecs(u:xyz_f, v:xyz_f):
             // can happen later, when we normalise the quaternion.
             real_part = 0.0
             if abs(u.x) > abs(u.z):
-                xyz_f { -u.y,  u.x, 0.0 }
+                float3 { -u.y,  u.x, 0.0 }
             else:
-                xyz_f {  0.0, -u.z, u.y }
+                float3 {  0.0, -u.z, u.y }
         else:
             // Otherwise, build quaternion the standard way.
             cross(u, v)

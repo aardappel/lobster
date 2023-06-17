@@ -2,7 +2,7 @@ import vec
 import color
 import gl
 
-let dirs = [ xy_xi, xy_yi ]
+let dirs = [ int2_x, int2_y ]
 
 def square(pos, size, depth) -> void:
     if (rnd(4) or depth < 2) and size.x > 8 and size.y > 8:
@@ -27,7 +27,7 @@ def square(pos, size, depth) -> void:
             let range = max(0.1, min(0.7, 1.0 - sqrt(size.x * size.y) / 250.0))
             let col = color { rnd_float(), rnd_float() * range + (1.0 - range), rnd_float(), 1.0 } * 0.15 + 0.75
             gl_color(col)
-            gl_rect(float(size - xy_1i * 2))
+            gl_rect(float(size - int2_1 * 2))
 
 var seed = 342342432
 
@@ -38,4 +38,4 @@ while gl_frame():
     if gl_button("space") == 1: seed += 675656
     gl_clear(color_black)
     rnd_seed(seed)
-    square(xy_0i, gl_window_size(), 0)
+    square(int2_0, gl_window_size(), 0)

@@ -4,7 +4,7 @@ import vec
 import color
 import gl
 
-let directions = [ xy_0, xy_x, xy_y ]
+let directions = [ float2_0, float2_x, float2_y ]
 
 def sierpinski(depth) -> void:
     if depth:

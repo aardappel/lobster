@@ -53,7 +53,7 @@ def loadtexturecached(name, tf:texture_format = texture_format_none):
 // Depth texture automatically created if depth is true and depthtex is nil.
 def render_to_texture(tex, size, depth, depthtex, texture_format, f):
     if not tex or gl_texture_size(tex) != size:
-        tex = gl_create_colored_texture(xyz(size, 0), color_clear, texture_format)
+        tex = gl_create_colored_texture(int3(size, 0), color_clear, texture_format)
     assert tex  // FIXME
     assert gl_switch_to_framebuffer(tex, depth, texture_format, nil, depthtex)
     f()
@@ -62,7 +62,7 @@ def render_to_texture(tex, size, depth, depthtex, texture_format, f):
 
 def create_depth_texture(tex, size):
     if not tex or gl_texture_size(tex) != size:
-        tex = gl_create_colored_texture(xyz(size, 0), color_black, texture_format_depth |
+        tex = gl_create_colored_texture(int3(size, 0), color_black, texture_format_depth |
             texture_format_nomipmap | texture_format_clamp | texture_format_nearest_mag)
     assert tex  // FIXME
     return tex

@@ -17,14 +17,14 @@ fatal(gl_window(if vrmode: "VR Test" else: "No VR device", 1280, 640,
 
 def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
     if numb:
-        mg_translate(xyz_z * branchl):
+        mg_translate(float3_z * branchl):
             mg_tapered_cylinder(1.0, narrowf, branchl)
-            mg_translate(xyz_z * branchl):
+            mg_translate(float3_z * branchl):
                 let axis = sincos(rnd(360))
                 let branches = rnd(3) + 1
                 for(branches) i:
-                    mg_rotate(xyz_z, 360 * i / branches):
-                        mg_rotate(xyz(axis, 0), 12 * branches):
+                    mg_rotate(float3_z, 360 * i / branches):
+                        mg_rotate(float3(axis, 0), 12 * branches):
                             mg_scale(narrowf):
                                 mg_sphere(1.0)
                                 model_tree(numb - 1, branchl, narrowf, leafs, leafc)
@@ -42,9 +42,9 @@ mg_color(color_red)
 mg_sphere(1.0)
 let sphere = mg_polygonize(3)
 
-let camera = Camera { xyz_f { 0.0, 0.0, 3.0 }, 135.0, 20.0 }
+let camera = Camera { float3 { 0.0, 0.0, 3.0 }, 135.0, 20.0 }
 
-let balls = []::[xyz_f]
+let balls = []::[float3]
 
 let controller_meshes = map(10): nil
 
@@ -52,8 +52,8 @@ def drawworld():
     gl_clear(color_grey)
     gl_blend(blend_none)
 
-    gl_light(camera.position, xy_f { 64.0, 1.0 })
-    //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
+    gl_light(camera.position, float2 { 64.0, 1.0 })
+    //gl_light(float3(sincos(gl_time() * 20), 0) * 100 + float3_z * 100)
 
     gl_set_shader("flat")
     for(10) i:
@@ -68,7 +68,7 @@ def drawworld():
                     gl_render_mesh(sphere)
 
     gl_set_shader("color")
-    gl_debug_grid(xyz_i { 20, 20, 0 }, xyz_1, 0.005)
+    gl_debug_grid(int3 { 20, 20, 0 }, float3_1, 0.005)
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -108,8 +108,8 @@ while gl_frame():
 
         for(2) e:
             vr_set_eye_texture(0, e)
-            gl_translate(xy_f { gl_window_size().x * e / 2.0, gl_window_size().y }):
-                    gl_rect(xy_f { gl_window_size().x / 2.0, -gl_window_size().y })
+            gl_translate(float2 { gl_window_size().x * e / 2.0, gl_window_size().y }):
+                    gl_rect(float2 { gl_window_size().x / 2.0, -gl_window_size().y })
     else:
         // This is how we'd render normally, with no HMD connected:
         gl_cursor(false)

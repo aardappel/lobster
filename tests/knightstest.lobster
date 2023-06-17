@@ -3,12 +3,12 @@ import vec
 
 run_test("knightstour"):
 
-    let knight_moves = [ xy_i { 1, 2 }, xy_i { 1, -2 }, xy_i { -1, 2 }, xy_i { -1, -2 },
-                         xy_i { 2, 1 }, xy_i { 2, -1 }, xy_i { -2, 1 }, xy_i { -2, -1 } ]
+    let knight_moves = [ int2 { 1, 2 }, int2 { 1, -2 }, int2 { -1, 2 }, int2 { -1, -2 },
+                         int2 { 2, 1 }, int2 { 2, -1 }, int2 { -2, 1 }, int2 { -2, -1 } ]
 
     def knights_tour(dim):
         let board = mapxy(dim): -1
-        var cur = xy_rndi(dim)
+        var cur = rnd_int2(dim)
         board[cur] = 0
         for(dim.x * dim.y - 1) step:
             var candidates = map(knight_moves) m: cur + m
@@ -21,4 +21,4 @@ run_test("knightstour"):
         return board
 
     rnd_seed(0)
-    assert knights_tour(xy_i { 8, 8 })
+    assert knights_tour(int2 { 8, 8 })

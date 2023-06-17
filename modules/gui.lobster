@@ -21,11 +21,11 @@ namespace gui
 
 private class elem:
     id:int
-    size:xy_i
+    size:int2
 
-private let cursize = [ xy_0i ]
+private let cursize = [ int2_0 ]
 
-private let parent_size = [ xy_0i ]
+private let parent_size = [ int2_0 ]
 
 private let vertical = [ true ]
 
@@ -39,7 +39,7 @@ private let spacing = [ 0 ]
 private var hover_color = color_dark_grey
 private var select_color = color_grey
 
-private var overalsize = xy_0i
+private var overalsize = int2_0
 
 private let interactive = [ true ]
 
@@ -52,11 +52,11 @@ private var focus_id = -1
 private let button_key = [ "<none>" ]
 
 def fun() -> void
-def funs(v:xy_i) -> void
+def funs(v:int2) -> void
 
 private def cache_size(id, f):
     return if not render_pass:
-        let e = elem { id, xy_0i }
+        let e = elem { id, int2_0 }
         // push first, just in case f() pushes elements also (keep pre-order)
         size_list.push(e)
         e.size = f()
@@ -69,46 +69,46 @@ private def cache_size(id, f):
             if e.id == id:
                 size_index = i
                 return e.size
-        xy_0i   // new element inserted by event handler, do not render yet
+        int2_0   // new element inserted by event handler, do not render yet
 
-private def update_size(v:xy_i):
+private def update_size(v:int2):
     let cs = cursize.pop()
     cursize.push(
-        if vertical.top: xy_i { max(cs.x, v.x), cs.y + v.y + (cs.y and spacing.top) }
-        else:            xy_i { cs.x + v.x + (cs.x and spacing.top), max(cs.y, v.y) })
+        if vertical.top: int2 { max(cs.x, v.x), cs.y + v.y + (cs.y and spacing.top) }
+        else:            int2 { cs.x + v.x + (cs.x and spacing.top), max(cs.y, v.y) })
 
-private def advance(v:xy_i, f):
+private def advance(v:int2, f):
     if render_pass:
         f()
     else:
         update_size(v)
 
-private def max_space(v:xy_i):
+private def max_space(v:int2):
     return if vertical.top:
-        xy_i { parent_size.top.x, v.y }
+        int2 { parent_size.top.x, v.y }
     else:
-        xy_i { v.x, parent_size.top.y }
+        int2 { v.x, parent_size.top.y }
 
-private def position(v:xy_i, f):
+private def position(v:int2, f):
     let r = max_space(v) - v
     gl_translate(float(if(align.top == 1): r / 2 else: r * (align.top / 2)), f)
 
 private def cursize_of(id, f):
     return cache_size(id):
-        cursize.push(xy_0i)
+        cursize.push(int2_0)
         f()
         cursize.pop()
 
-private def element(size:xy_i, f):
-    // (note: object identity compare!) will be xy_0i if we're in the render pass and
+private def element(size:int2, f):
+    // (note: object identity compare!) will be int2_0 if we're in the render pass and
     // element was just deleted
-    if size != xy_0i:
+    if size != int2_0:
         advance(size):
             position(size, f)
             if vertical.top:
-                gl_translate(xy_y * (size.y + spacing.top))
+                gl_translate(float2_y * (size.y + spacing.top))
             else:
-                gl_translate(xy_x * (size.x + spacing.top))
+                gl_translate(float2_x * (size.x + spacing.top))
 
 private def block(al, sp, vert, id, f):
     let spi = round(sp * gl_get_font_size())
@@ -143,13 +143,13 @@ def image(factors, tex):
 
 def divider(thickness:int):
     align.push(0)
-    element(xy_1i * thickness):
-        gl_rect(if vertical.top: xy_f { parent_size.top.x, thickness }
-                else:            xy_f { thickness, parent_size.top.y })
+    element(int2_1 * thickness):
+        gl_rect(if vertical.top: float2 { parent_size.top.x, thickness }
+                else:            float2 { thickness, parent_size.top.y })
     align.pop()
 
 def space(thickness:float):
-    element(xy_1i * round(thickness * gl_get_font_size())): nil
+    element(int2_1 * round(thickness * gl_get_font_size())): nil
 
 def start(size, alignh, alignv, interact, f:fun):   // top level only
     let id = hash(f)
@@ -203,14 +203,14 @@ private def around(m, draw, id, f):
     advance(size):
         if draw:
             position(size): // FIXME: clean this up
-                gl_rect(xy_f{ size.x, m.y })
-                gl_rect(xy_f { m.x, size.y })
-                gl_translate xy_f { size.x - m.x, 0.0 }:
-                    gl_rect(xy_f { m.x, size.y })
-                gl_translate xy_f { 0.0, size.y - m.y }:
-                    gl_rect(xy_f { size.x, m.y })
+                gl_rect(float2{ size.x, m.y })
+                gl_rect(float2 { m.x, size.y })
+                gl_translate float2 { size.x - m.x, 0.0 }:
+                    gl_rect(float2 { m.x, size.y })
+                gl_translate float2 { 0.0, size.y - m.y }:
+                    gl_rect(float2 { size.x, m.y })
         def forward():
-            gl_translate([ xy_x, xy_y ][vertical.top] * m[vertical.top])
+            gl_translate([ float2_x, float2_y ][vertical.top] * m[vertical.top])
         forward()
         f()
         forward()

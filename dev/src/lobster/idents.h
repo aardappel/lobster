@@ -1093,12 +1093,12 @@ struct SymbolTable {
     }
 
     static const char **DefaultIntVectorTypeNames() {
-        static const char *names[] = { "xy_i", "xyz_i", "xyzw_i", nullptr };
+        static const char *names[] = { "int2", "int3", "int4", nullptr };
         return names;
     }
 
     static const char **DefaultFloatVectorTypeNames() {
-        static const char *names[] = { "xy_f", "xyz_f", "xyzw_f", nullptr };
+        static const char *names[] = { "float2", "float3", "float4", nullptr };
         return names;
     }
 

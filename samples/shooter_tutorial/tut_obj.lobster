@@ -8,19 +8,19 @@ fatal(gl_window("Shooter Tutorial", 640, 480))
 check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "can\'t load font!")
 
 class Entity:
-    pos:xy_f
+    pos:float2
 
     def renderpointytriangle(dir):
         gl_translate pos:
             gl_rotate_z dir:
-                gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])
+                gl_polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 
 class Player : Entity
     health = 100.0
 
     def update(bounds):
         let speed = 10
-        let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+        let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                         (gl_button("s") >= 1) - (gl_button("w") >= 1) }
         let newpos = pos + normalize(dir) * gl_delta_time() * speed
         if not any(abs(newpos) > bounds):
@@ -35,7 +35,7 @@ class Player : Entity
             health = 0
 
 class Bullet : Entity
-    dir:xy_f
+    dir:float2
     alive = true
 
     def update(maxdist):
@@ -65,7 +65,7 @@ class Enemy : Entity
             renderpointytriangle(playerdir)
 
 class World:
-    player = Player { xy_0 }
+    player = Player { float2_0 }
 
     bullets = []
     lastbullet = gl_time()

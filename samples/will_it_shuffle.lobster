@@ -160,23 +160,23 @@ def viz():
     let status = "mode:{mode_name()} rounds:{M}"
 
     let window_size = gl_window_size()
-    let unit = min(floor((float(window_size) / xy_f { N + 1, N + 2 })))
-    let size = xy_i { N + 1, N + 2 } * unit
+    let unit = min(floor((float(window_size) / float2 { N + 1, N + 2 })))
+    let size = int2 { N + 1, N + 2 } * unit
     gl_set_font_size(unit)
 
     let status_size = gl_text_size(status)
 
     for(N) i:
-        gl_translate(xy_f { unit * (1.0 + i), 0.0 }):
+        gl_translate(float2 { unit * (1.0 + i), 0.0 }):
             gl_text("{i}")
-        gl_translate(xy_f { 0.0, unit * (1.0 + i) }):
+        gl_translate(float2 { 0.0, unit * (1.0 + i) }):
             gl_text("{i}")
     gl_scale(unit):
         for(N) i: for(N) j:
-            gl_translate(xy_f { 1 + i, 1 + j }):
+            gl_translate(float2 { 1 + i, 1 + j }):
                 gl_color(fills[N*i + j]):
-                    gl_rect(xy_f { 0.95, 0.95 })
-    gl_translate(xy_f { (size.x - status_size.x) / 2, unit * (N + 1) }):
+                    gl_rect(float2 { 0.95, 0.95 })
+    gl_translate(float2 { (size.x - status_size.x) / 2, unit * (N + 1) }):
         gl_text(status)
 
 class ui:

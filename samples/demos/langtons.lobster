@@ -95,7 +95,7 @@ def index_of_point(v, size): return v.y * size + v.x
 // the center of the window, regardless of its aspect ratio.
 def center_unit_square():
     let size = float(gl_window_size())
-    let scale = xy_1 * min(size)
+    let scale = float2_1 * min(size)
     gl_translate((size - scale) / 2.0)
     gl_scale(scale)
 
@@ -127,7 +127,7 @@ class world:
     langtons:[int]
 
     // intermediate
-    points:[xy_i]
+    points:[int2]
     neighborhoods:[[int]]
     bids:[int]
     bid_neighborhoods:[[int]]
@@ -135,7 +135,7 @@ class world:
     winners:[int]
     winner_neighborhoods:[[int]]
     transitions:[int]
-    directions:[xy_i]
+    directions:[int2]
     rotations:[int]
     headings_rotated:[int]
 
@@ -168,13 +168,13 @@ class world:
     def find_transition(i, neighbors, winner, winner_neighbors, langton):
         // A neighbor moves here.
         if winner >= 0:
-            return winner, xy_0i, 0, langton
+            return winner, int2_0, 0, langton
         let found = find(winner_neighbors) j: i == j
         // We move to a neighbor.
         if found >= 0:
             return neighbors[found], cardinal_directions[found], rules[langton], (length(rules) + langton + 1) % length(rules)
         // Rotate in place if cannot proceed.
-        return i, xy_0i, 1, langton
+        return i, int2_0, 1, langton
 
     def for_lobsters(func):
         for(area) i: if lobsters[i]:
@@ -183,14 +183,14 @@ class world:
             func(i, v1, v2)
             // render lobsters again if they transit the edge of the world
             if v2.x < 0.0:
-                let d = xy_x * size
+                let d = float2_x * size
                 func(i, v1+d, v2+d)
             if v2.y < 0.0:
-                let d = xy_y * size
+                let d = float2_y * size
                 func(i, v1+d, v2+d)
 
 def new_world(size, count, rules):
-    let grid = xy_1i * size
+    let grid = int2_1 * size
     let points = flatten(mapxy(grid) v: v)
     let area = size * size
     let headings = map(area): rnd(4)
@@ -278,8 +278,8 @@ do():
                 let c2 = lerp(first_rule_color, last_rule_color, r2)
                 let c = lerp(c1, c2, tween)
                 gl_color(c)
-                gl_scale(xy_1 / w.size)
-                gl_rect(xy_1, 0)
+                gl_scale(float2_1 / w.size)
+                gl_rect(float2_1, 0)
 
         // draw foreground according to presence and heading of lobsters,
         // tweened along their translation and rotation vectors.
@@ -298,9 +298,9 @@ do():
             let a = lerp(a1, a2, tween)
 
             gl_translate v / w.size:
-                gl_scale(xy_1 / w.size)
-                gl_translate(xy_1 / 2.0)
-                gl_rotate_z(rotate2D(xy_x, a))
+                gl_scale(float2_1 / w.size)
+                gl_translate(float2_1 / 2.0)
+                gl_rotate_z(rotate2D(float2_x, a))
                 gl_scale(0.75)
-                gl_translate(xy_1 / -2.0)
-                gl_rect(xy_1, 0)
+                gl_translate(float2_1 / -2.0)
+                gl_rect(float2_1, 0)

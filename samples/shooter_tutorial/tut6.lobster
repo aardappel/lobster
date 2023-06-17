@@ -9,13 +9,13 @@ check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "
 
 let worldsize = 20.0
 
-var playerpos = xy_0
+var playerpos = float2_0
 let playerspeed = 10
 var playerhealth = 0.0
 
 class bullet:
-    pos:xy_f
-    dir:xy_f
+    pos:float2
+    dir:float2
 
 let firerate = 0.1
 let bulletspeed = 15
@@ -23,7 +23,7 @@ var bullets = []
 var lastbullet = gl_time()
 
 class enemy:
-    pos:xy_f
+    pos:float2
     hp:int
 
 var enemyrate = 1.0
@@ -39,7 +39,7 @@ var playing = false
 def renderpointytriangle(pos, dir):
     gl_translate pos:
         gl_rotate_z dir:
-            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])
+            gl_polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 
 while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
@@ -50,7 +50,7 @@ while gl_frame() and gl_button("escape") != 1:
             let scale = gl_window_size().y / worldsize
             gl_scale(scale)
 
-            let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+            let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                           (gl_button("s") >= 1) - (gl_button("w") >= 1) }
             let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
             if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
@@ -77,7 +77,7 @@ while gl_frame() and gl_button("escape") != 1:
                         if(e.hp <= 0):
                             e.hp = 0
                             score++
-                        b.pos = xy_x * worldsize * 10
+                        b.pos = float2_x * worldsize * 10
                 if magnitude(playervec) < 1:
                     playerhealth -= gl_delta_time() * 50
                     if playerhealth <= 0:
@@ -111,7 +111,7 @@ while gl_frame() and gl_button("escape") != 1:
         if gl_button("space") == 1:
             score = 0
             playerhealth = 100.0
-            playerpos = xy_0
+            playerpos = float2_0
             bullets = []
             lastbullet = gl_time()
             enemyrate = 1.0

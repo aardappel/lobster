@@ -2,16 +2,16 @@ import vec
 
 class pathmap:
     steps:int
-    dir:xy_i
-    pos:xy_i
+    dir:int2
+    pos:int2
 
 // This creates a 2d flood fill map where each cell has a direction that points to a the
 // neighboring cell that eventually brings it to the target location. Useful for games where lots
 // of units all need to path to the same location (e.g. the player).
 // Pass it the size of the world, and the target.
 // traversablef receives a position and returns if that location is traversable.
-def floodfillpath(sz:xy_i, target:xy_i, traversablef):
-    let m = mapxy(sz) v: pathmap { -1, xy_0i, v }
+def floodfillpath(sz:int2, target:int2, traversablef):
+    let m = mapxy(sz) v: pathmap { -1, int2_0, v }
     let end = m[target]
     end.steps = 0
     let pathq = [ end ]
@@ -28,6 +28,6 @@ def floodfillpath(sz:xy_i, target:xy_i, traversablef):
     while pathq.length:
         let c = pathq.pop
         for(2) x: for(2) y:
-            flood(xy_i { 1 - y - x, y - x }, c)
+            flood(int2 { 1 - y - x, y - x }, c)
     return m
 

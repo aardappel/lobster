@@ -16,8 +16,8 @@ run_test("water"):
     let lssize = 100
     let hmargin = 0.2
 
-    var highest = xy_0i
-    var lowest  = xy_0i
+    var highest = int2_0
+    var lowest  = int2_0
     var highh = -1000.0
     var lowh  =  1000.0
 
@@ -29,10 +29,10 @@ run_test("water"):
                     h = h * 10.0
                     if h > highh:
                         highh = h
-                        highest = xy_i { x, y }
+                        highest = int2 { x, y }
                     if h < lowh:
                         lowh = h
-                        lowest = xy_i { x, y }
+                        lowest = int2 { x, y }
                     cell { h, h, 0.0 }
 
     def loopworld(f):
@@ -44,11 +44,11 @@ run_test("water"):
         if(pos.x >= 0 and pos.y >= 0 and pos.x < lssize and pos.y < lssize):
             f()
 
-    let neighbours = [ xy_xi, xy_yi, -xy_xi, -xy_yi ]
+    let neighbours = [ int2_x, int2_y, -int2_x, -int2_y ]
 
     def forneighboursinworld(x, y, f):
         for(neighbours) n:
-            n += xy_i { x, y }
+            n += int2 { x, y }
             ifinworld(n): f(cells[n.y][n.x])
 
     let starting_extra_water = 0.0 //10000

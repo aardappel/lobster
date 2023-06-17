@@ -35,7 +35,7 @@ run_test("matrix"):
 
         // Matrix and Vector Math
 
-        let c = xy_f { 2.0, 3.0 }
+        let c = float2 { 2.0, 3.0 }
 
-        assert a * c == xy_f { 8.0, 18.0 }
-        assert b * c == xy_f { 28.0, 38.0 }
+        assert a * c == float2 { 8.0, 18.0 }
+        assert b * c == float2 { 28.0, 38.0 }

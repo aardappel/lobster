@@ -11,9 +11,9 @@ let ball_size = 1.0 / sqrt(num_balls) / 3.0
 let ball_speed = 0.001
 let push_force = 0.2  // Needs to be balanced with speed.
 
-let positions = map(num_balls): xy_rnd()
+let positions = map(num_balls): rnd_float2()
 let radiuses = map(num_balls): (rnd_float() + 0.5) * ball_size
-let dirs = map(num_balls): xy_rnd_norm()
+let dirs = map(num_balls): rnd_float2_norm()
 
 fatal(gl_window("collision", 1024, 1024))
 
@@ -27,11 +27,11 @@ while gl_frame():
     for(num_balls) i:
         positions[i] += dirs[i] * ball_speed
         // Keep within bounds.
-        if not positions[i].x.in_range(1.0): dirs[i] *= xy_f { -1.0,  1.0 }
-        if not positions[i].y.in_range(1.0): dirs[i] *= xy_f {  1.0, -1.0 }
+        if not positions[i].x.in_range(1.0): dirs[i] *= float2 { -1.0,  1.0 }
+        if not positions[i].y.in_range(1.0): dirs[i] *= float2 {  1.0, -1.0 }
 
     // For each ball, find all nearby balls in an efficient manner.
-    let push_indices = circles_within_range(0.0, positions, radiuses, [], [], xy_0i)
+    let push_indices = circles_within_range(0.0, positions, radiuses, [], [], int2_0)
 
     // Now use this information to push other balls away.
     for(push_indices) iv, j:

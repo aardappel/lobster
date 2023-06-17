@@ -86,7 +86,7 @@ let a,b = 1,2
 def somefunction1(arg1, arg2):
    return arg1 + arg2
 
-def somefunction2(arg1, with_type::xyz_f, with_single_colon:int):
+def somefunction2(arg1, with_type::float3, with_single_colon:int):
    return arg1 + with_type
 
 def noParameterFunction():
@@ -95,8 +95,8 @@ def noParameterFunction():
 def withReturn() -> string:
    return "a string"
 
-def withCustomReturnType() -> xyz_f:
-   return xyz_0
+def withCustomReturnType() -> float3:
+   return float3_0
 
 def withReturnNospace()->int:
    return 1234

@@ -13,7 +13,7 @@ while gl_frame():
     gl_scale(gl_window_size().y / 4.0)
     let scalechange = sin(gl_time() * 50.0) * 0.2
     let pts = map(360 * 4 + 1) a:
-        fold(5, xy_0) p, i:
+        fold(5, float2_0) p, i:
             p + sincos(a / 4.0 * pow(3.0, i)) * pow(0.4 + scalechange, i)
     gl_line_mode 1:
         gl_polygon(pts)

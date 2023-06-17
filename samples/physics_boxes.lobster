@@ -7,11 +7,11 @@ import camera
 
 fatal(gl_window("Physics demo : boxes", 1024, 768))
 
-let worldsize = xy_f { 60.0, 40.0 }
+let worldsize = float2 { 60.0, 40.0 }
 
-ph_initialize(xy_f { 0.0, -10.0 })
+ph_initialize(float2 { 0.0, -10.0 })
 
-let floor = ph_create_box(xy_f { 0.0, 1.0 }, xy_f { 40.0, 1.0 })
+let floor = ph_create_box(float2 { 0.0, 1.0 }, float2 { 40.0, 1.0 })
 var boxes = []
 
 var boxtime = 0.0
@@ -20,7 +20,7 @@ while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
-    set_2d_worldspace(worldsize, xy_f { 0.5, 1.0 }, xy_f { 1.0, -1.0 })
+    set_2d_worldspace(worldsize, float2 { 0.5, 1.0 }, float2 { 1.0, -1.0 })
 
     ph_step(gl_delta_time(), 8, 3)
     ph_render()
@@ -28,7 +28,7 @@ while gl_frame() and gl_button("escape") != 1:
     // spawn tumbling boxes
     if gl_time() > boxtime and gl_time() < 500.0:
         boxtime += 0.1  // spawn 10 boxes per second
-        let box = ph_create_box(xy_f { rnd(50) - 25.0, rnd(50) + 2.0 }, xy_f { 0.5, 0.5 })
+        let box = ph_create_box(float2 { rnd(50) - 25.0, rnd(50) + 2.0 }, float2 { 0.5, 0.5 })
         ph_dynamic(box, true)
         boxes.push(box)
 

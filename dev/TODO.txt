@@ -57,17 +57,9 @@
 
 - Debugger: uses static rather than dynamic type to show subclasses, see e.g. gr:GeneratorRef field
 
-- Consider renaming xyz_f and xyz_i to float3 / int3
-  - The current naming seemed nice because it was assumed most of the time you'd use just `xyz`,
-    but in practice almost always the above two are used.. and they look a bit weird compared
-    to float3
-    - We could rename the generic xyz into vec3, but really mostly don't want to use it.
-      type3? t3? tuple3? scalar3? value3? :)
-  - float3 is so nice because it so exactly expresses what it is, looks similar to just float,
-    and is better than vec3 because it specifies the type.
-  - We already use float3 in the C++ code, if we'd also have it Lobster, and maybe add some standard
-    #defines for Lobster GLSL, we'd be a lot closer to universally readable math code (minus
-    the C/Python syntax differences, so still not fully copy-pastable).
+- maybe add some standard #defines for Lobster GLSL for int3/float3,
+  we'd be a lot closer to universally readable math code (minus
+  the C/Python syntax differences, so still not fully copy-pastable).
 
 - Get Lobster VSCode plugin/LSP to work well - @ewoudje
   - Implement a --breakpoints that allows inserting of breakpoints as indicated by the plugin?

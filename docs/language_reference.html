@@ -204,11 +204,11 @@ observed from each).</p>
 <h2 id="user-defined-types">User Defined Types</h2>
 <p>The <code>class</code> and <code>struct</code> keywords allow you to
 define a user defined type. For example:</p>
-<pre><code>struct xy:
+<pre><code>struct int2:
     x:int
     y:int
 
-struct xyz : xy
+struct int3 : int2
     z:int</code></pre>
 <p>You can use either <code>class</code> or <code>struct</code> to
 define these, with the latter being more restrictive: it does not allow
@@ -222,26 +222,26 @@ all the fields of the supertype to the current type, thus making it an
 extension of the former.</p>
 <p>The above example uses ints directly, but you can also define types
 more generically, and then define named specializations of them:</p>
-<pre><code>struct xy&lt;T&gt;:
+<pre><code>struct vec2&lt;T&gt;:
     x:T
     y:T
 
-struct xy_i = xy&lt;int&gt;
-struct xy_f = xy&lt;float&gt;</code></pre>
+struct int2 = vec2&lt;int&gt;
+struct float2 = vec2&lt;float&gt;</code></pre>
 <p>You construct values of these types you use a similar syntax:</p>
-<pre><code>let v = xy_i { 1, 0 }</code></pre>
-<p>(Or use <code>xy_f { 1, 0 }</code> /
-<code>xy&lt;bool&gt; { true, false }</code> to explicitly pick a
+<pre><code>let v = int2 { 1, 0 }</code></pre>
+<p>(Or use <code>float2 { 1, 0 }</code> /
+<code>vec2&lt;bool&gt; { true, false }</code> to explicitly pick a
 different specialization).</p>
-<pre><code>struct xy:
+<pre><code>struct float2:
     x = 0.0
     y = 0.0</code></pre>
 <p>Additionally, you may specify default values, if these are given,
 then these values are not arguments to the constructor,
-e.g. <code>xy {}</code>.</p>
+e.g. <code>vec2 {}</code>.</p>
 <p>For more complex structs, you can use field names as “tags” in a
 constructor call, for example:</p>
-<pre><code>xy { x: 1, y: 2 }</code></pre>
+<pre><code>vec2 { x: 1, y: 2 }</code></pre>
 <p>Besides being more readable, it allows you to specify the fields in
 any order, and to override fields that have defaults.</p>
 <p>To declare a type whose only purpose is to serve as a superclass for
@@ -277,7 +277,7 @@ similarly <code>.</code> can dereference fields of a <code>class</code>
 or <code>struct</code>. These may be chained arbitrarily.</p>
 <p>You may even use a vector as index, e.g.</p>
 <pre><code>let mat = [ [ 1, 2 ],  [ 3, 4 ] ]
-let pos = xy_i { 0, 1 }
+let pos = int2 { 0, 1 }
 print mat[pos]</code></pre>
 <p>This prints <code>3</code>, and is a convenient shortcut for
 <code>mat[pos.y][pos.x]</code>. Note how it uses the last element to
@@ -290,7 +290,7 @@ usually most naturally thought of as row-major.</p>
 They also work on structs containing ints or floats with either another
 struct or a single int or float. These structs must be the same
 type.</p>
-<pre><code>xy_i { 1, 2 } * xy_i { 4, 5 }  // results in xy_i { 4, 10 }</code></pre>
+<pre><code>int2 { 1, 2 } * int2 { 4, 5 }  // results in int2 { 4, 10 }</code></pre>
 <p>All 5 also have have a combined assignment operator version,
 <code>+= -= *= /= %=</code>, which are implemented to have exactly the
 same effect as their expanded form, e.g. <code>a += 1</code> is always
@@ -364,11 +364,11 @@ href="type_checker.html">type system</a>).</p>
 <p>You can use :: instead of : for typed class/struct arguments, which
 allows you to access all fields / functions of that object directly,
 without having to prefix them with the argument name, e.g.:</p>
-<pre><code>def magnitude(v::xy): return sqrt(x * x + y * y)</code></pre>
-<p>You can also leave out the <code>v::xy</code> entirely if you define
-this function as part of a <code>class</code> / <code>struct</code>
-definition of type <code>xy</code> (see above). Both types of definition
-are equivalent.</p>
+<pre><code>def magnitude(v::vec2): return sqrt(x * x + y * y)</code></pre>
+<p>You can also leave out the <code>v::vec2</code> entirely if you
+define this function as part of a <code>class</code> /
+<code>struct</code> definition of type <code>vec2</code> (see above).
+Both types of definition are equivalent.</p>
 <p>You can specify an explicit return type, like so:</p>
 <pre><code>def f(a:int, b:int) -&gt; float: return a + b</code></pre>
 <p>This is typically not necessary, but may be helpful when coercing to

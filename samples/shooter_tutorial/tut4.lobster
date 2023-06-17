@@ -7,12 +7,12 @@ fatal(gl_window("Shooter Tutorial", 640, 480))
 
 let worldsize = 20.0
 
-var playerpos = xy_0
+var playerpos = float2_0
 let playerspeed = 10
 
 class bullet:
-    pos:xy_f
-    dir:xy_f
+    pos:float2
+    dir:float2
 
 let firerate = 0.1
 let bulletspeed = 15
@@ -27,7 +27,7 @@ while gl_frame() and gl_button("escape") != 1:
     let scale = gl_window_size().y / worldsize
     gl_scale(scale)
 
-    let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+    let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                   (gl_button("s") >= 1) - (gl_button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
     if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
@@ -55,4 +55,4 @@ while gl_frame() and gl_button("escape") != 1:
 
     gl_translate playerpos:
         gl_rotate_z tomouse:
-            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])
+            gl_polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])

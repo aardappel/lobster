@@ -4,10 +4,10 @@
 import vec
 
 class Camera:
-    position:xyz_f
+    position:float3
     yaw:float
     pitch:float
-    velocity = xyz_0
+    velocity = float3_0
 
     def FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
         yaw -= gl_mouse_delta(0).x / mousesens
@@ -51,10 +51,10 @@ def set_z_up_worldspace(f):
     gl_pop_model_view()
 
 // Convert points that are in Y up space to Z up.
-def to_z_up(v:xyz_f):
-    return xyz_f { v.x, -v.z, v.y }
+def to_z_up(v:float3):
+    return float3 { v.x, -v.z, v.y }
 
-def set_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
+def set_2d_worldspace(size:float2, origin:float2, scale:float2):
     let ws = float(gl_framebuffer_size())
     gl_translate(ws * origin)
     let sc = ws / size

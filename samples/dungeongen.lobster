@@ -14,13 +14,13 @@ let TILE_OPEN_DOOR   = '\''
 let TILE_CLOSED_DOOR = '+'
 let TILE_PLAYER      = '@'
 
-let fsize = xy_i { 80, 40 }
+let fsize = int2 { 80, 40 }
 let field = mapxy(fsize): TILE_VOID
 
 def cave(with_player):
     // csize/start are all inner dimensions/coordinates (w/o walls)
-    let csize = xy_rndi(xy_i { 10, 6 }) + xy_i { 5, 3 }
-    let start = xy_rndi(fsize - csize - 2) + 1
+    let csize = rnd_int2(int2 { 10, 6 }) + int2 { 5, 3 }
+    let start = rnd_int2(fsize - csize - 2) + 1
 
     // Cave iterator function that supplies wall/corner type.
     def in_box(f):
@@ -38,7 +38,7 @@ def cave(with_player):
 
     // Find a suitable place for a door
     var door_counter = 0
-    var door_pos = xy_0i
+    var door_pos = int2_0
     if not with_player:
         in_box() v, tile:
             // The door should not be created in the cave's corner or over
@@ -63,13 +63,13 @@ def cave(with_player):
 
     if with_player:
         // A cave with the player has only the player inside it
-        field[xy_rndi(csize) + start] = TILE_PLAYER
+        field[rnd_int2(csize) + start] = TILE_PLAYER
     else:
         // A cave without the player has some random mobs and/or gold in it;
         // 1d6 of entities total, 25% chance of gold, 75% of a mob.
         // Mob letters range from 'A' to '~', inclusive
         for rnd(6) + 1:
-            field[xy_rndi(csize) + start] =
+            field[rnd_int2(csize) + start] =
                 if rnd(4) == 0: '$' else: 'A' + rnd('~' - 'A' + 1)
 
 rnd_seed(int(seconds_elapsed() * 1000000.0))

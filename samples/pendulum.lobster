@@ -19,7 +19,7 @@ class link:
 
 class pendulum:
     links:[link]
-    pts = []::xy_f
+    pts = []::float2
     col:color
 
     def update(time):
@@ -40,10 +40,10 @@ class pendulum:
                     gl_circle(10.0, 10)
 
         gl_color(color_white)
-        var pos = xy_0
+        var pos = float2_0
         for(links) l:
             let p = yx(sincos(l.theta)) * l.len
-            gl_line(xy_0, p, 2.0)
+            gl_line(float2_0, p, 2.0)
             gl_translate(p)
             gl_circle(4.0, 10)
             pos += p

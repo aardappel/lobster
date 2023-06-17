@@ -7,8 +7,8 @@ import color
 run_test("smallpt"):
 
     struct Ray:
-        o:xyz_f
-        d:xyz_f
+        o:float3
+        d:float3
 
     enum Material:  // Used in radiance()
         DIFF
@@ -17,9 +17,9 @@ run_test("smallpt"):
 
     class Sphere:
         rad:float       // radius
-        p:xyz_f         // position
-        e:xyz_f         // emission
-        c:xyz_f         // color
+        p:float3         // position
+        e:float3         // emission
+        c:float3         // color
         refl:Material
 
     def intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
@@ -42,18 +42,18 @@ run_test("smallpt"):
     let lrad = 100.0
 
     let spheres = [ //Scene: radius, position, emission, color, material
-        Sphere { lrad,   xyz_f { 50.0, lrad+81.6-1.0, 81.6  }, xyz_1*12.0, xyz_0,               DIFF }, //Lite
-        Sphere { 16.5,   xyz_f { 73.0,16.5,78.0             }, xyz_0,      xyz_1*.999,          REFR }, //Glas
-        Sphere { 16.5,   xyz_f { 27.0,16.5,47.0             }, xyz_0,      xyz_1*.999,          SPEC }, //Mirr
-        Sphere { bigrad, xyz_f { 50.0,-bigrad+81.6,81.6     }, xyz_0,      xyz_1*.75,           DIFF }, //Top
-        Sphere { bigrad, xyz_f { 50.0, bigrad, 81.6         }, xyz_0,      xyz_1*.75,           DIFF }, //Botm
-        Sphere { bigrad, xyz_f { 50.0,40.8,-bigrad+170.0    }, xyz_0,      xyz_0,               DIFF }, //Frnt
-        Sphere { bigrad, xyz_f { 50.0,40.8, bigrad          }, xyz_0,      xyz_1*.75,           DIFF }, //Back
-        Sphere { bigrad, xyz_f { -bigrad+99.0,40.8,81.6     }, xyz_0,      xyz_f {.25,.25,.75}, DIFF }, //Rght
-        Sphere { bigrad, xyz_f {  bigrad+1.0, 40.8,81.6     }, xyz_0,      xyz_f {.75,.25,.25}, DIFF }  //Left
+        Sphere { lrad,   float3 { 50.0, lrad+81.6-1.0, 81.6  }, float3_1*12.0, float3_0,               DIFF }, //Lite
+        Sphere { 16.5,   float3 { 73.0,16.5,78.0             }, float3_0,      float3_1*.999,          REFR }, //Glas
+        Sphere { 16.5,   float3 { 27.0,16.5,47.0             }, float3_0,      float3_1*.999,          SPEC }, //Mirr
+        Sphere { bigrad, float3 { 50.0,-bigrad+81.6,81.6     }, float3_0,      float3_1*.75,           DIFF }, //Top
+        Sphere { bigrad, float3 { 50.0, bigrad, 81.6         }, float3_0,      float3_1*.75,           DIFF }, //Botm
+        Sphere { bigrad, float3 { 50.0,40.8,-bigrad+170.0    }, float3_0,      float3_0,               DIFF }, //Frnt
+        Sphere { bigrad, float3 { 50.0,40.8, bigrad          }, float3_0,      float3_1*.75,           DIFF }, //Back
+        Sphere { bigrad, float3 { -bigrad+99.0,40.8,81.6     }, float3_0,      float3 {.25,.25,.75}, DIFF }, //Rght
+        Sphere { bigrad, float3 {  bigrad+1.0, 40.8,81.6     }, float3_0,      float3 {.75,.25,.25}, DIFF }  //Left
     ]
 
-    def radiance(r:Ray, depth) -> xyz_f:
+    def radiance(r:Ray, depth) -> float3:
         var t = 1000000000000.0                            // distance to intersection
         var id = -1                             // id of intersected object
         for(spheres) s, i:
@@ -61,7 +61,7 @@ run_test("smallpt"):
             if d != 0.0 and d<t:
                 t = d
                 id = i
-        if id < 0: return xyz_0 // if miss, return black
+        if id < 0: return float3_0 // if miss, return black
         let obj = spheres[id]        // the hit object
         let x = r.o+r.d*t
         let n = normalize(x-obj.p)
@@ -74,7 +74,7 @@ run_test("smallpt"):
             let r2 = rnd_float()
             let r2s = sqrt(r2)
             let w = nl
-            let u = normalize((if(abs(w.x)>.1): xyz_y else: xyz_x).cross(w))
+            let u = normalize((if(abs(w.x)>.1): float3_y else: float3_x).cross(w))
             let v = w.cross(u)
             let d = normalize(u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1.0-r2))
             return obj.e + f * radiance(Ray { x, d },depth)
@@ -112,11 +112,11 @@ run_test("smallpt"):
     let w = 32
     let h = 24
 
-    let cam = Ray { xyz_f { 50.0,50.0,290.0 }, normalize(xyz_f { 0.0,-0.042612,-1.0 }) } // cam pos, dir
-    let cx = xyz_x * (w*.5135/h)
+    let cam = Ray { float3 { 50.0,50.0,290.0 }, normalize(float3 { 0.0,-0.042612,-1.0 }) } // cam pos, dir
+    let cx = float3_x * (w*.5135/h)
     let cy = normalize(cx.cross(cam.d))*.5135
 
-    let c = map(h): map(w): xyz_0
+    let c = map(h): map(w): float3_0
 
     var samples = 0
 
@@ -135,5 +135,5 @@ run_test("smallpt"):
             // Camera rays are pushed ^^^^^ forward to start in interior
             c[h-y-1][x] += r
     samples++
-    let r = map(c) row: map(row) col: xyzw(pow(clamp(col / samples, xyz_0, xyz_1), 1.0 / 2.2), 1.0)
+    let r = map(c) row: map(row) col: vec4(pow(clamp(col / samples, float3_0, float3_1), 1.0 / 2.2), 1.0)
     assert r

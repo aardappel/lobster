@@ -195,11 +195,11 @@ The `class` and `struct` keywords allow you to define a user defined type. For
 example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy:
+struct int2:
     x:int
     y:int
 
-struct xyz : xy
+struct int3 : int2
     z:int
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -219,37 +219,37 @@ The above example uses ints directly, but you
 can also define types more generically, and then define named specializations of them:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy<T>:
+struct vec2<T>:
     x:T
     y:T
 
-struct xy_i = xy<int>
-struct xy_f = xy<float>
+struct int2 = vec2<int>
+struct float2 = vec2<float>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You construct values of these types you use a similar syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-let v = xy_i { 1, 0 }
+let v = int2 { 1, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-(Or use `xy_f { 1, 0 }` / `xy<bool> { true, false }` to explicitly pick a different
+(Or use `float2 { 1, 0 }` / `vec2<bool> { true, false }` to explicitly pick a different
 specialization).
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy:
+struct float2:
     x = 0.0
     y = 0.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Additionally, you may specify default values, if these are given, then these
-values are not arguments to the constructor, e.g. `xy {}`.
+values are not arguments to the constructor, e.g. `vec2 {}`.
 
 For more complex structs, you can use field names as "tags" in a constructor
 call, for example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-xy { x: 1, y: 2 }
+vec2 { x: 1, y: 2 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Besides being more readable, it allows you to specify the fields in any order,
@@ -310,7 +310,7 @@ You may even use a vector as index, e.g.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 let mat = [ [ 1, 2 ],  [ 3, 4 ] ]
-let pos = xy_i { 0, 1 }
+let pos = int2 { 0, 1 }
 print mat[pos]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -326,7 +326,7 @@ be `float`). They also work on structs containing ints or floats with either
 another struct or a single int or float. These structs must be the same type.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-xy_i { 1, 2 } * xy_i { 4, 5 }  // results in xy_i { 4, 10 }
+int2 { 1, 2 } * int2 { 4, 5 }  // results in int2 { 4, 10 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All 5 also have have a combined assignment operator version, `+= -= *= /= %=`,
@@ -412,11 +412,11 @@ access all fields / functions of that object directly, without having to prefix
 them with the argument name, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def magnitude(v::xy): return sqrt(x * x + y * y)
+def magnitude(v::vec2): return sqrt(x * x + y * y)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can also leave out the `v::xy` entirely if you define this function as part
-of a `class` / `struct` definition of type `xy` (see above). Both types of
+You can also leave out the `v::vec2` entirely if you define this function as part
+of a `class` / `struct` definition of type `vec2` (see above). Both types of
 definition are equivalent.
 
 You can specify an explicit return type, like so:

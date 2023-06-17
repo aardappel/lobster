@@ -146,7 +146,7 @@ import gl
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
 let worldsize = 20.0
-var playerpos = xy_0
+var playerpos = float2_0
 let playerspeed = 10
 
 while gl_frame() and gl_button("escape") != 1:
@@ -157,7 +157,7 @@ while gl_frame() and gl_button("escape") != 1:
     let scale = gl_window_size().y / worldsize
     gl_scale(scale)
 
-    let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+    let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                      (gl_button("s") >= 1) - (gl_button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
     if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
@@ -169,7 +169,7 @@ while gl_frame() and gl_button("escape") != 1:
 
 To make our player move, we added 2 new variables: `playerpos` and
 `playerspeed`. We initialize the former with a vector constant from
-`vec.lobster`: `xy_0` means all zeroes.
+`vec.lobster`: `float2_0` means all zeroes.
 
 We first figure out which direction the player wants to move by checking the
 current state of the WASD keys: by combining the boolean values (0 / 1) for each
@@ -242,12 +242,12 @@ fatal(gl_window("Shooter Tutorial", 640, 480))
 
 let worldsize = 20.0
 
-var playerpos = xy_0
+var playerpos = float2_0
 let playerspeed = 10
 
 class bullet:
-    pos:xy_f
-    dir:xy_f
+    pos:float2
+    dir:float2
 
 let firerate = 0.1
 let bulletspeed = 15
@@ -262,7 +262,7 @@ while gl_frame() and gl_button("escape") != 1:
     let scale = gl_window_size().y / worldsize
     gl_scale(scale)
 
-    let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+    let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                      (gl_button("s") >= 1) - (gl_button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
     if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
@@ -290,7 +290,7 @@ while gl_frame() and gl_button("escape") != 1:
 
     gl_translate playerpos:
         gl_rotate_z tomouse:
-            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])
+            gl_polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To be able to shoot, first we have to worry about giving our player an
@@ -382,7 +382,7 @@ modifications to the existing code:
 def renderpointytriangle(pos, dir):
     gl_translate pos:
         gl_rotate_z dir:
-            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])
+            gl_polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, let's take the code for rendering the player and put it in it's own
@@ -391,7 +391,7 @@ original code with `renderpointytriangle(playerpos, tomouse)`
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class enemy:
-    pos:xy_f
+    pos:float2
     hp:int
 
 var enemyrate = 1.0
@@ -417,7 +417,7 @@ this to the declarations.
         for(bullets) b:
             if magnitude(b.pos - e.pos) < 1:
                 e.hp = max(e.hp - 1, 0)
-                b.pos = xy_x * worldsize * 10
+                b.pos = float2_x * worldsize * 10
         gl_color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
             renderpointytriangle(e.pos, playerdir)
 
@@ -501,7 +501,7 @@ which simply says:
         if gl_button("space") == 1:
             score = 0
             playerhealth = 100.0
-            playerpos = xy_0
+            playerpos = float2_0
             bullets = []
             lastbullet = gl_time()
             enemyrate = 1.0

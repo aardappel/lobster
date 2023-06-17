@@ -15,7 +15,7 @@ let textures = map(gl_mesh_parts(iqmtest)) name, i:
 
 for(textures) tex, i: gl_set_mesh_texture(iqmtest, i, 0, tex)
 
-let camera = Camera { xyz_f { 0.0, 0.0, 8.0 }, -45.0, 0.0 }
+let camera = Camera { float3 { 0.0, 0.0, 8.0 }, -45.0, 0.0 }
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -27,18 +27,18 @@ while gl_frame():
     var speed = 10.0
     if gl_button("left shift") >= 1: speed = 50.0
     camera.FPS_update("w", "a", "s", "d", speed, 4.0, true)
-    if gl_button("space") >= 1: camera.direction(xyz_1 * 10.0 - camera.position)
+    if gl_button("space") >= 1: camera.direction(float3_1 * 10.0 - camera.position)
     camera.FPS_view()
 
-    gl_light(camera.position, xy_f { 128.0, 1.0 })
-    //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
+    gl_light(camera.position, float2 { 128.0, 1.0 })
+    //gl_light(float3(sincos(gl_time() * 20), 0) * 100 + float3_z * 100)
 
     gl_blend(blend_none)
     gl_set_shader("phong_anim")
     gl_animate_mesh(iqmtest, gl_time() * 60.0)
     for(10) i:
-        gl_translate xy_1 * 10.0 + i * 5.0:
+        gl_translate float2_1 * 10.0 + i * 5.0:
             gl_render_mesh(iqmtest)
 
     gl_set_shader("color")
-    gl_debug_grid(xyz_i { 20, 20, 0 }, xyz_1, 0.005)
+    gl_debug_grid(int3 { 20, 20, 0 }, float3_1, 0.005)

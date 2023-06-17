@@ -13,31 +13,31 @@ class orchestrator:
 
 //REPRODUCTION NOTE adding this as the type annotation to the body parameter in on_brush_collision
 //     will make the assert go away.
-def on_brush_collision_body(plane: int, pos: xyz_f, overlap: xyz_f) -> void
+def on_brush_collision_body(plane: int, pos: float3, overlap: float3) -> void
 
 class collision_shape:
-   def overlaps_aabb(minc: xyz_f, maxc: xyz_f) -> bool:
+   def overlaps_aabb(minc: float3, maxc: float3) -> bool:
       return true
 
-   def plane_split(plane_normal: xyz_f, plane_dist: float, body):
+   def plane_split(plane_normal: float3, plane_dist: float, body):
       pass()
 
-   def on_brush_collision(bsp: bsp_file, brush: int, area_mins: xyz_f, area_maxs: xyz_f, body):
+   def on_brush_collision(bsp: bsp_file, brush: int, area_mins: float3, area_maxs: float3, body):
       pass()
 
    def bounding_sphere_radius() -> float:
       return 0.0
       
 class csphere: collision_shape
-   def on_brush_collision(bsp: bsp_file, brush: int, area_mins: xyz_f, area_maxs: xyz_f, body):
-      body(4, xyz_1, xyz_0)
+   def on_brush_collision(bsp: bsp_file, brush: int, area_mins: float3, area_maxs: float3, body):
+      body(4, float3_1, float3_0)
 
 
 class brush_area:
    // bak_* constants
    kind: int
-   mins: xyz_f
-   maxs: xyz_f
+   mins: float3
+   maxs: float3
    brushes: [int]
    model_ix: int
 
@@ -47,19 +47,19 @@ class brush_area:
 
    clusters = [] :: int
 
-   def centroid() -> xyz_f:
+   def centroid() -> float3:
       return mins + (maxs-mins)*0.5
 
    def contains(p):
-      return (p >= mins) == xyz<bool> { true, true, true } and (p <= maxs) == xyz<bool> { true, true, true }
+      return (p >= mins) == vec3<bool> { true, true, true } and (p <= maxs) == vec3<bool> { true, true, true }
 
 struct physics_object:
    h:int
 
 struct shape_contact:
    face: int
-   pos: xyz_f
-   overlap: xyz_f  
+   pos: float3
+   overlap: float3  
    plane: int = -1
 
 struct model_collision_info:
@@ -72,7 +72,7 @@ struct trigger_collision_info:
    trigger: brush_area
 
 private let po_shape = [ csphere{} ] :: collision_shape
-private let po_overlap = [ xyzw_0 ] :: xyzw_f
+private let po_overlap = [ float4_0 ] :: float4
 private let py_triggers = [] :: brush_area
 private let py_models   = [] :: brush_area
 
@@ -89,7 +89,7 @@ private def for_brushes_colliding_with_shape(bsp: bsp_file, brush_areas: [brush_
 private def perform_model_collisions(bsp: bsp_file, orc: orchestrator, h: int):
    let reportables = []
    for_brushes_colliding_with_shape(bsp, py_models, po_shape[h]) model, plane_no, pos, ovlp:
-      po_overlap[h] += xyzw(ovlp, 1.0)
+      po_overlap[h] += vec4(ovlp, 1.0)
       if mag_squared(ovlp) > 0.0:
          push(reportables, model_collision_info{physics_object{h}, model,
                                                 shape_contact{-1, pos, ovlp, plane: plane_no}})

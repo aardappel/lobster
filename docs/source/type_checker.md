@@ -199,9 +199,9 @@ Assignment can work similar to conditionals:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 var a = nil
-if ..: a = xyz_0
+if ..: a = float3_0
 a.x        // error
-a = xyz_0  // a is guaranteed non-nil below
+a = float3_0  // a is guaranteed non-nil below
 a.x        // ok
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -299,7 +299,7 @@ the type system, as they are accepted as arguments to vector versions of the
 built-in operators (`+ - * /` etc) as well as many vector operations part of
 the built-in functions (e.g. `normalize`).
 
-You can see the default types for these (`xy`, `xyz`, and `xyzw`) defined in
+You can see the default types for these (`vec2`, `vec3`, and `vec4`) defined in
 `modules/stdtype.lobster`. Other types also work with these operations, though
 (e.g. `color`).
 

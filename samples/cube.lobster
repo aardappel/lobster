@@ -74,10 +74,10 @@ let cube_face_vertices = [
 
 // These are in order from top-right, counter-clockwise.
 // I can offer no explanation why the origin is not the top- or bottom-left.
-let square = [xy_0, xy_x, xy_1, xy_y]
+let square = [float2_0, float2_x, float2_1, float2_y]
 
 let cube_face_meshes = map(cube_face_vertices) v:
-    let positions = map(v) c: xyz_v(map(3) i: float(c & (1 << (2 - i)) != 0))
+    let positions = map(v) c: vec3_v(map(3) i: float(c & (1 << (2 - i)) != 0))
     let indices = [0, 1, 2, 2, 3, 0]
     gl_new_mesh(
         "PT",
@@ -95,12 +95,12 @@ let cube_face_meshes = map(cube_face_vertices) v:
 // render the mesh.
 let detail = 256
 let cube_face_textures = map(6) i:
-    render_to_texture(nil, xy_1i * detail, false, nil, 0):
+    render_to_texture(nil, int2_1 * detail, false, nil, 0):
         gl_ortho(true, false)
         let label = "{i+1}"
         gl_set_font_size(detail/2)
         let size = gl_text_size(label)
-        gl_translate(xy_1 * float(detail) / 2.0 - float(size) / 2.0)
+        gl_translate(float2_1 * float(detail) / 2.0 - float(size) / 2.0)
         gl_clear(color_grey)
         gl_color(color_white)
         gl_text(label)
@@ -119,7 +119,7 @@ let face_colors = [
 
 // Rotate the camera to place the origin vertex of the cube in the center of
 // the view.
-let camera = Camera { xyz_0, -45.0, 45.0 }
+let camera = Camera { float3_0, -45.0, 45.0 }
 
 // This demo is able to use camera.FPS_view but uses a different control model
 // to move the camera about the origin at a fixed “elevation”.
@@ -139,9 +139,9 @@ while gl_frame() and not gl_button("escape"):
     camera_GPS_update("w", "a", "s", "d", 2.0, 4.0, 4.0)
     camera.FPS_view()
 
-    gl_light(camera.position, xy_f { 128.0, 0.1 })
+    gl_light(camera.position, float2 { 128.0, 0.1 })
 
-    gl_translate(xyz_1 / -2.0)
+    gl_translate(float3_1 / -2.0)
     gl_set_shader("textured")
     for(6) i:
         // The texture colors are multiplied by the color in context.

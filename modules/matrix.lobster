@@ -4,14 +4,14 @@ import vec
 // |x y|
 // |z w|
 
-struct mat2x2 : xyzw_f
+struct mat2x2 : float4
 
     def operator*(o:mat2x2):
         return mat2x2 { dot(this.xy, o.xz), dot(this.xy, o.yw),
                         dot(this.zw, o.xz), dot(this.zw, o.yw) }
     
-    def operator*(o:xy_f):
-        return xy_f { dot(o, this.xy),
+    def operator*(o:float2):
+        return float2 { dot(o, this.xy),
                       dot(o, this.zw) }
 
     def determinant():
@@ -48,13 +48,13 @@ struct mat4x4:
 
 // Convenience functions for constructing one of these.
 
-def mat4x4_rotate_x(angle:xy_f): return mat4x4 { matrix_rotate_x(angle) }
-def mat4x4_rotate_y(angle:xy_f): return mat4x4 { matrix_rotate_y(angle) }
-def mat4x4_rotate_z(angle:xy_f): return mat4x4 { matrix_rotate_z(angle) }
-def mat4x4_translation(offset:xyz_f): return mat4x4 { matrix_translation(offset) }
+def mat4x4_rotate_x(angle:float2): return mat4x4 { matrix_rotate_x(angle) }
+def mat4x4_rotate_y(angle:float2): return mat4x4 { matrix_rotate_y(angle) }
+def mat4x4_rotate_z(angle:float2): return mat4x4 { matrix_rotate_z(angle) }
+def mat4x4_translation(offset:float3): return mat4x4 { matrix_translation(offset) }
 
 def mat4x4_mvp(): return mat4x4 { gl_model_view_projection() }
 def mat4x4_mv(): return mat4x4 { gl_model_view() }
 def mat4x4_p(): return mat4x4 { gl_projection() }
 
-//print mat4x4_rotate_x(xy_1) * mat4x4_translation(xyz_1)
+//print mat4x4_rotate_x(float2_1) * mat4x4_translation(float3_1)

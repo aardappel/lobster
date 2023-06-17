@@ -14,16 +14,16 @@ run_test("struct"):
         class C:
             a:A  // Also inline, inside heap allocated parent.
             b:int
-        var a = xy_i { 3, 4 } + xy_i { 1, 1 } - xy_i { 1, 1 }
+        var a = int2 { 3, 4 } + int2 { 1, 1 } - int2 { 1, 1 }
         let b = B { A { 5, 6 }, a.x + a.y }
         assert b.a.x + b.a.y + b.b == 18
         var aa = a + a
         assert aa.x + aa.y == 14
-        assert aa + 1 == xy_i { 7, 9 }
+        assert aa + 1 == int2 { 7, 9 }
         a += a
-        assert a == xy_i { 6, 8 }
+        assert a == int2 { 6, 8 }
         aa += 1
-        assert aa == xy_i { 7, 9 }
+        assert aa == int2 { 7, 9 }
         let c = C { A { 10, 11 }, 12 }
         assert c.a.x + c.a.y + c.b == 33
         c.a += 1
@@ -32,66 +32,66 @@ run_test("struct"):
         assert c.a == A { 12, 14 }
         c.a = A { 3, 4 }
         assert c.a == A { 3, 4 }
-        assert int(xy_f { 1.0, 2.0 }) == xy_i { 1, 2 }
-        assert min(xy_i { 1, 2 }) == 1
-        assert manhattan(xy_i { 2, 3 }) == 5
-        var nv = xy_0
-        nv = normalize(xy_f { 123.0, 456.0 })
+        assert int(float2 { 1.0, 2.0 }) == int2 { 1, 2 }
+        assert min(int2 { 1, 2 }) == 1
+        assert manhattan(int2 { 2, 3 }) == 5
+        var nv = float2_0
+        nv = normalize(float2 { 123.0, 456.0 })
         assert abs(magnitude(nv) - 1.0) < 0.001
-        nv = normalize(xy_0)
+        nv = normalize(float2_0)
         assert abs(magnitude(nv)) < 0.001  // Passthrough of zero vec
-        let v = [ xy_i { 1, 2 }, xy_i { 3, 4 } ]
-        assert v[1] == xy_i { 3, 4 }
-        v[1] = xy_i { 5, 6 }
-        assert v[1] == xy_i { 5, 6 }
+        let v = [ int2 { 1, 2 }, int2 { 3, 4 } ]
+        assert v[1] == int2 { 3, 4 }
+        v[1] = int2 { 5, 6 }
+        assert v[1] == int2 { 5, 6 }
         assert v[1].y == 6
-        v[1] += xy_i { 1, 1 }
-        assert v[1] == xy_i { 6, 7 }
+        v[1] += int2 { 1, 1 }
+        assert v[1] == int2 { 6, 7 }
         v[1] += 1
-        assert v[1] == xy_i { 7, 8 }
+        assert v[1] == int2 { 7, 8 }
         let tri = [ [ [ 123 ] ] ]
-        assert tri[xyz_i { 0, 0, 0 }] == 123
-        tri[xyz_i { 0, 0, 0 }] = 124
-        assert tri[xyz_i { 0, 0, 0 }] == 124
-        let triv = [ [ [ xy_i { 10, 11 } ] ] ]
-        assert triv[xyz_i { 0, 0, 0 }] == xy_i { 10, 11 }
-        triv[xyz_i { 0, 0, 0 }] += 4
-        assert triv[xyz_i { 0, 0, 0 }] == xy_i { 14, 15 }
+        assert tri[int3 { 0, 0, 0 }] == 123
+        tri[int3 { 0, 0, 0 }] = 124
+        assert tri[int3 { 0, 0, 0 }] == 124
+        let triv = [ [ [ int2 { 10, 11 } ] ] ]
+        assert triv[int3 { 0, 0, 0 }] == int2 { 10, 11 }
+        triv[int3 { 0, 0, 0 }] += 4
+        assert triv[int3 { 0, 0, 0 }] == int2 { 14, 15 }
         let trivv = [ [ [ B { A { 5, 6 }, 7 } ] ] ]
-        assert trivv[xyz_i { 0, 0, 0 }].a == A { 5, 6 }
-        assert trivv[xyz_i { 0, 0, 0 }].a.y == 6
-        assert trivv[xy_i { 0, 0 }][0].a.y == 6
-        assert xyz_i { 5, 6, 7 }[1] == 6
+        assert trivv[int3 { 0, 0, 0 }].a == A { 5, 6 }
+        assert trivv[int3 { 0, 0, 0 }].a.y == 6
+        assert trivv[int2 { 0, 0 }][0].a.y == 6
+        assert int3 { 5, 6, 7 }[1] == 6
 
     // Control structures.
     do():
-        assert (if manhattan(xy_i { 1, 1 }): xy_i { 1, 2 } else: xy_i { 3, 4 }).y == 2
-        assert (if true: xy_i { 1, 2 } else: xy_i { 3, 4 }).y == 2  // Compile time.
-        assert xy_i { 1, 2 } == switch manhattan(xy_i { 1, 1 }):
-                                case 2: xy_i { 1, 2 }
-                                default: xy_i { 3, 4 }
-        for([ xy_i { 1, 2 }, xy_i { 0, 3 } ]) st: assert st.x + st.y == 3
-        struct xy_s = xy<string>
+        assert (if manhattan(int2 { 1, 1 }): int2 { 1, 2 } else: int2 { 3, 4 }).y == 2
+        assert (if true: int2 { 1, 2 } else: int2 { 3, 4 }).y == 2  // Compile time.
+        assert int2 { 1, 2 } == switch manhattan(int2 { 1, 1 }):
+                                case 2: int2 { 1, 2 }
+                                default: int2 { 3, 4 }
+        for([ int2 { 1, 2 }, int2 { 0, 3 } ]) st: assert st.x + st.y == 3
+        struct xy_s = vec2<string>
         for([ xy_s { "a", "bb" }, xy_s { "ab", "b" } ]) st: assert st.x + st.y == "abb"
 
     // Function calls.
     do():
         def f(a, b, c):
             return a + b.x + b.y + c
-        def g<T>(a:T): return 1, xy<T> { a, a }, 1
-        assert f(1, xy_i { 2, 3 }, 4) == 10
+        def g<T>(a:T): return 1, vec2<T> { a, a }, 1
+        assert f(1, int2 { 2, 3 }, 4) == 10
         let mr1, mr2, mr3 = g(7)
-        assert mr2 == xy_i { 7, 7 } and mr1 == 1 and mr3 == 1
+        assert mr2 == int2 { 7, 7 } and mr1 == 1 and mr3 == 1
 
     // As part of dynamic dispatch.
     do():
         class mm1:
             m:int
         class mm2 : mm1
-        def mm(a:mm1, b:xy_i): return a.m + b.x + b.y
-        def mm(a:mm2, b:xy_i): return a.m + b.x + b.y
-        assert mm(mm1 { 1 }, xy_i { 4, 5 }) == 10
-        assert mm(mm2 { 0 }, xy_i { 4, 5 }) == 9
+        def mm(a:mm1, b:int2): return a.m + b.x + b.y
+        def mm(a:mm2, b:int2): return a.m + b.x + b.y
+        assert mm(mm1 { 1 }, int2 { 4, 5 }) == 10
+        assert mm(mm2 { 0 }, int2 { 4, 5 }) == 9
 
     // Structs with reference counted members.
     // This very preliminary: needs more testing.
@@ -154,14 +154,14 @@ run_test("struct"):
         // Communitive ops
 
         // Multiplication
-        assert xy_i { 2, 3 } * 5 == xy_i { 10, 15 }
-        assert 5 * xy_i { 2, 3 } == xy_i { 10, 15 }
-        assert xyz_i { 2, 3, 4 } * 5 == xyz_i { 10, 15, 20 }
-        assert 5 * xyz_i { 2, 3, 4 } == xyz_i {10, 15, 20 }
+        assert int2 { 2, 3 } * 5 == int2 { 10, 15 }
+        assert 5 * int2 { 2, 3 } == int2 { 10, 15 }
+        assert int3 { 2, 3, 4 } * 5 == int3 { 10, 15, 20 }
+        assert 5 * int3 { 2, 3, 4 } == int3 {10, 15, 20 }
 
         // Test with float struct
-        assert xy_f { 2.1, 3.2 } * 5.0 == xy_f { 10.5, 16.0 }
-        assert 5.0 * xy_f { 2.1, 3.2 } == xy_f { 10.5, 16.0 }
+        assert float2 { 2.1, 3.2 } * 5.0 == float2 { 10.5, 16.0 }
+        assert 5.0 * float2 { 2.1, 3.2 } == float2 { 10.5, 16.0 }
 
          // Test with a large numeric struct
         struct A:
@@ -175,65 +175,65 @@ run_test("struct"):
         assert 5 * A { 2, 3, 4, 5, 6 } == A { 10, 15, 20, 25, 30 }   
 
         // Addition
-        assert 5 + xy_i { 2, 3 } == xy_i { 7, 8 }
-        assert xy_i { 2, 3 } + 5 == xy_i { 7, 8 }
-        assert xyz_i { 2, 3, 4 } + 5 == xyz_i { 7, 8, 9 }
-        assert 5 + xyz_i { 2, 3, 4 } == xyz_i { 7, 8, 9 }
+        assert 5 + int2 { 2, 3 } == int2 { 7, 8 }
+        assert int2 { 2, 3 } + 5 == int2 { 7, 8 }
+        assert int3 { 2, 3, 4 } + 5 == int3 { 7, 8, 9 }
+        assert 5 + int3 { 2, 3, 4 } == int3 { 7, 8, 9 }
 
         // Non-communtive ops
 
         // Subtraction
-        assert 5 - xy_i { 2, 3} == xy_i { 3, 2}
-        assert xy_i { 2, 3} - 5 == xy_i { -3, -2}
-        assert 5 - xyz_i { 2, 3, 4} == xyz_i { 3, 2, 1 }
-        assert xyz_i { 2, 3, 4} - 5 == xyz_i { -3, -2, -1 }
+        assert 5 - int2 { 2, 3} == int2 { 3, 2}
+        assert int2 { 2, 3} - 5 == int2 { -3, -2}
+        assert 5 - int3 { 2, 3, 4} == int3 { 3, 2, 1 }
+        assert int3 { 2, 3, 4} - 5 == int3 { -3, -2, -1 }
 
         // Division
-        assert 10 / xy_i { 5, 10 } == xy_i { 2, 1 }
-        assert xy_i { 10, 20 } / 5 == xy_i { 2, 4 }
-        assert 10 / xyz_i { 5, 10, 1 } == xyz_i { 2, 1, 10 }
-        assert xyz_i { 10, 20, 25 } / 5 == xyz_i { 2, 4, 5 }
+        assert 10 / int2 { 5, 10 } == int2 { 2, 1 }
+        assert int2 { 10, 20 } / 5 == int2 { 2, 4 }
+        assert 10 / int3 { 5, 10, 1 } == int3 { 2, 1, 10 }
+        assert int3 { 10, 20, 25 } / 5 == int3 { 2, 4, 5 }
 
         // Modulo
-        assert 10 % xy_i { 2, 3 } == xy_i { 0, 1 }
-        assert xy_i { 10, 21 } % 4 == xy_i { 2, 1 }
-        assert 10 % xyz_i { 2, 3, 4 } == xyz_i { 0, 1, 2 }
-        assert xyz_i { 10, 21, 24 } % 4 == xyz_i { 2, 1, 0 }
+        assert 10 % int2 { 2, 3 } == int2 { 0, 1 }
+        assert int2 { 10, 21 } % 4 == int2 { 2, 1 }
+        assert 10 % int3 { 2, 3, 4 } == int3 { 0, 1, 2 }
+        assert int3 { 10, 21, 24 } % 4 == int3 { 2, 1, 0 }
 
         // Compartive ops
 
         // Less than
-        assert xy_i { 2, 5 } < 5 == xy_i { 1, 0 }
-        assert 5 < xy_i { 2, 5 } == xy_i { 0, 0 } 
-        assert xy_i { 2, 6 } < 5 == xy_i { 1, 0 }
-        assert 5 < xy_i { 2, 6 } == xy_i { 0, 1 } 
+        assert int2 { 2, 5 } < 5 == int2 { 1, 0 }
+        assert 5 < int2 { 2, 5 } == int2 { 0, 0 } 
+        assert int2 { 2, 6 } < 5 == int2 { 1, 0 }
+        assert 5 < int2 { 2, 6 } == int2 { 0, 1 } 
 
-        assert xyz_i { 2, 5, 6 } < 5 == xyz_i { 1, 0, 0 }
-        assert 5 < xyz_i { 2, 5, 6 } == xyz_i { 0, 0, 1 } 
+        assert int3 { 2, 5, 6 } < 5 == int3 { 1, 0, 0 }
+        assert 5 < int3 { 2, 5, 6 } == int3 { 0, 0, 1 } 
 
         // Less than or equal
-        assert xy_i { 2, 5 } <= 5 == xy_i { 1, 1 }
-        assert 5 <= xy_i { 2, 5 } == xy_i { 0, 1 } 
-        assert xy_i { 2, 6 } <= 5 == xy_i { 1, 0 }
-        assert 5 <= xy_i { 2, 6 } == xy_i { 0, 1 } 
+        assert int2 { 2, 5 } <= 5 == int2 { 1, 1 }
+        assert 5 <= int2 { 2, 5 } == int2 { 0, 1 } 
+        assert int2 { 2, 6 } <= 5 == int2 { 1, 0 }
+        assert 5 <= int2 { 2, 6 } == int2 { 0, 1 } 
 
-        assert xyz_i { 2, 5, 6 } <= 5 == xyz_i { 1, 1, 0 }
-        assert 5 <= xyz_i { 2, 5, 6 } == xyz_i { 0, 1, 1 } 
+        assert int3 { 2, 5, 6 } <= 5 == int3 { 1, 1, 0 }
+        assert 5 <= int3 { 2, 5, 6 } == int3 { 0, 1, 1 } 
 
         // Greater than
-        assert xy_i { 2, 5 } > 5 == xy_i { 0, 0 }
-        assert 5 > xy_i { 2, 5 } == xy_i { 1, 0 } 
-        assert xy_i { 2, 6 } > 5 == xy_i { 0, 1 }
-        assert 5 > xy_i { 2, 6 } == xy_i { 1, 0 } 
+        assert int2 { 2, 5 } > 5 == int2 { 0, 0 }
+        assert 5 > int2 { 2, 5 } == int2 { 1, 0 } 
+        assert int2 { 2, 6 } > 5 == int2 { 0, 1 }
+        assert 5 > int2 { 2, 6 } == int2 { 1, 0 } 
 
-        assert xyz_i { 2, 5, 6 } > 5 == xyz_i { 0, 0, 1 }
-        assert 5 > xyz_i { 2, 5, 6 } == xyz_i { 1, 0, 0 } 
+        assert int3 { 2, 5, 6 } > 5 == int3 { 0, 0, 1 }
+        assert 5 > int3 { 2, 5, 6 } == int3 { 1, 0, 0 } 
 
         // Greater than or equal
-        assert xy_i { 2, 5 } >= 5 == xy_i { 0, 1 }
-        assert 5 >= xy_i { 2, 5 } == xy_i { 1, 1 } 
-        assert xy_i { 2, 6 } >= 5 == xy_i { 0, 1 }
-        assert 5 >= xy_i { 2, 6 } == xy_i { 1, 0 } 
+        assert int2 { 2, 5 } >= 5 == int2 { 0, 1 }
+        assert 5 >= int2 { 2, 5 } == int2 { 1, 1 } 
+        assert int2 { 2, 6 } >= 5 == int2 { 0, 1 }
+        assert 5 >= int2 { 2, 6 } == int2 { 1, 0 } 
 
-        assert xyz_i { 2, 5, 6 } >= 5 == xyz_i { 0, 1, 1 }
-        assert 5 >= xyz_i { 2, 5, 6 } == xyz_i { 1, 1, 0 } 
+        assert int3 { 2, 5, 6 } >= 5 == int3 { 0, 1, 1 }
+        assert 5 >= int3 { 2, 5, 6 } == int3 { 1, 1, 0 } 

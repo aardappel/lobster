@@ -54,11 +54,11 @@ def render_tree(n:node) -> float:
             gl_color color_yellow:
                 gl_rect(size)
         gl_text(text)
-        gl_translate(xy_f { 0.0, fontsize })
+        gl_translate(float2 { 0.0, fontsize })
         if n.size < 0:
-            gl_translate xy_f { indentsize, 0.0 }
+            gl_translate float2 { indentsize, 0.0 }
             for(n.children): width = max(width, indentsize + render_tree(_))
-            gl_translate xy_f { -indentsize, 0.0 }
+            gl_translate float2 { -indentsize, 0.0 }
     return width
 
 def render_entries():
@@ -78,7 +78,7 @@ def render_entries():
                 gl_color color_light_grey:
                     gl_rect(size)
             gl_text(e.name)
-            gl_translate xy_f { 0.0, fontsize }
+            gl_translate float2 { 0.0, fontsize }
     if newsel: select(newsel)
 
 def render_sizes(old_width):
@@ -88,9 +88,9 @@ def render_sizes(old_width):
             let text = if e.size < 0: "---" else: "{e.size}"
             let size = gl_text_size(text)
             width = max(width, size.x)
-            gl_translate xy_f { old_width - size.x - column_margin, 0.0 }:
+            gl_translate float2 { old_width - size.x - column_margin, 0.0 }:
                 gl_text(text)
-            gl_translate xy_f { 0.0, fontsize }
+            gl_translate float2 { 0.0, fontsize }
     return width + column_margin
 
 fatal(gl_window("dirbrowsing", 1024, 768))
@@ -103,12 +103,12 @@ while(gl_frame() and gl_button("escape") != 1):
     gl_clear(color_white)
     gl_color(color_black)
     gl_color color_lightest_grey:
-        gl_rect(xy_f { treesize, gl_window_size().y })
-    gl_translate xy_f { column_margin, 0.0 }:
+        gl_rect(float2 { treesize, gl_window_size().y })
+    gl_translate float2 { column_margin, 0.0 }:
         treesize = render_tree(root) + column_margin * 2
-    gl_translate xy_f { treesize, 0.0 }:
+    gl_translate float2 { treesize, 0.0 }:
         sizesize = render_sizes(sizesize) + column_margin
-    gl_translate xy_f { treesize + sizesize, 0.0 }:
+    gl_translate float2 { treesize + sizesize, 0.0 }:
         render_entries()
 
 // the parent links cause cycles that our refcount VM can't handle. could GC it instead,

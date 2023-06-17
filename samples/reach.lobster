@@ -6,14 +6,14 @@ import color
 import gl
 
 class segment:
-    pos:xy_f
-    dir = xy_0
+    pos:float2
+    dir = float2_0
 
-let segs = map 7: segment { xy_f { 0.5, 1.0 } }
+let segs = map 7: segment { float2 { 0.5, 1.0 } }
 
 let ballradius = 0.1
-var ball = xy_h
-var ballvel = xy_f { 0.005, -0.004 }
+var ball = float2_h
+var ballvel = float2 { 0.005, -0.004 }
 
 fatal(gl_window("reach", 600, 600))
 
@@ -25,8 +25,8 @@ while gl_frame():
 
     ball += ballvel
 
-    if(ball.x > 1.0 - ballradius or ball.x < ballradius): ballvel *= xy_f { -1.0,  1.0 }
-    if(ball.y > 1.0 - ballradius or ball.y < ballradius): ballvel *= xy_f {  1.0, -1.0 }
+    if(ball.x > 1.0 - ballradius or ball.x < ballradius): ballvel *= float2 { -1.0,  1.0 }
+    if(ball.y > 1.0 - ballradius or ball.y < ballradius): ballvel *= float2 {  1.0, -1.0 }
 
     gl_translate ball:
         gl_color(color_dark_grey)
@@ -34,7 +34,7 @@ while gl_frame():
         gl_color(color_light_grey)
         gl_circle(ballradius / 5.0, 20)
 
-    var target = xy_0
+    var target = float2_0
     let seglength = 0.1
 
     for(segs) seg, i:
@@ -50,7 +50,7 @@ while gl_frame():
         gl_translate seg.pos:
             let segwidth = 0.01 + i * 0.005
             gl_color(color_white)
-            gl_line(xy_0, seg.dir, segwidth)
+            gl_line(float2_0, seg.dir, segwidth)
             gl_translate(seg.dir)
             gl_color(color_grey)
             gl_circle(segwidth / 2.0 + 0.005, 20)

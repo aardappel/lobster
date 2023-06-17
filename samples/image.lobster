@@ -25,4 +25,4 @@ while gl_frame():
     // Draw a unit rectangle, as scaled and centered above, and filled with the
     // selected texture: the lobster image.
     // The second parameter renders the rectangle centered.
-    gl_rect(xy_1, 1)
+    gl_rect(float2_1, 1)

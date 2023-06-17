@@ -13,14 +13,14 @@ import camera
 
 let lssize = 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
 let inventory = []::int // blocks we've mined
-let camera = Camera { xyz_1 * lssize / 2.0, 45.0, 0.0 }
+let camera = Camera { float3_1 * lssize / 2.0, 45.0, 0.0 }
 
 def inside(v): return all(v > 0) and all(v < lssize - 1)    // keep the outer blocks empty for simplicity
 
 let cells = map(lssize) z:
             map(lssize) y:
                 map(lssize) x:
-                    let v = xyz_i { x, y, z }
+                    let v = int3 { x, y, z }
                     let h = simplex(float(v) / lssize + 11.0, 6, 1.0, 0.55)   // generate blocks using noise
                     // more likely to be solid the lower it is, and only when not on the outside:
                     let solid = h / 1.5 > div(z, lssize) - 0.5 and inside(v)
@@ -29,12 +29,12 @@ let cells = map(lssize) z:
                     else: 0
 
 let colors = [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
-let nbdirs = [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
+let nbdirs = [ int3_x, -int3_x, int3_y, -int3_y, int3_z, -int3_z ]
 
 fatal(gl_window("LobsterCraft(tm)", 800, 600))
 
 let nbpolys = map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s:
-    gl_new_poly(map(s) c: xyz_v(map(3) i: float(c & (1 << (2 - i)) != 0)))
+    gl_new_poly(map(s) c: vec3_v(map(3) i: float(c & (1 << (2 - i)) != 0)))
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -43,20 +43,20 @@ while gl_frame():
     gl_perspective(70.0, 0.1, 1000.0)
     camera.FPS_update("w", "a", "s", "d", 10.0, 4.0, true)
     camera.FPS_view()
-    gl_light(camera.position, xy_f { 64.0, 0.25 })
+    gl_light(camera.position, float2 { 64.0, 0.25 })
     gl_blend(blend_none)
     gl_set_shader("phong")
     for(cells) zl, z: for(zl) yl, y: for(yl) e, x:  // for all cells in the world
         if e:  // if this cell is solid
-            let v = xyz_i { x, y, z }
+            let v = int3 { x, y, z }
             for(nbdirs) nv, i:
                 if(not cells[nv + v]):  // and neighbor is empty
                     // we do this here rather than outside the loop (there's less visible faces than total solid cubes)
                     gl_color(colors[e - 1])
                     gl_translate float(v):
                         gl_render_mesh(nbpolys[i])  // draw face
-    var first_solid = xyz_1i * -1 // find the first solid and last empty block we're looking at
-    var last_empty = xyz_1i * -1
+    var first_solid = int3_1 * -1 // find the first solid and last empty block we're looking at
+    var last_empty = int3_1 * -1
     let camvec = camera.forward_vector()
     for(100) i:  // look at most 10 cubes ahead
         let pos = int(camera.position + camvec * (i / 10.0))
@@ -73,8 +73,8 @@ while gl_frame():
     gl_blend(blend_alpha)
     let wh = 11.7  // let's add some water!
     gl_color(color { 0.5, 0.5, 1.0, 0.5 })
-    gl_polygon([ xyz_f { 1.0, 1.0, wh }, xyz_f { 1.0, lssize - 1.0, wh },
-                 xyz_f { lssize - 1.0, lssize - 1.0, wh }, xyz_f {lssize - 1.0, 1.0, wh } ])
+    gl_polygon([ float3 { 1.0, 1.0, wh }, float3 { 1.0, lssize - 1.0, wh },
+                 float3 { lssize - 1.0, lssize - 1.0, wh }, float3 {lssize - 1.0, 1.0, wh } ])
     gl_ortho()
     gl_color(color_white)
     gl_translate float(gl_window_size()) / 2.0:
