@@ -1376,7 +1376,7 @@ inline string TypeName(TypeRef type, int flen) {
         case V_STRUCT_S:
         case V_CLASS: {
             string s = type->udt->name;
-            if (type->udt->unnamed_specialization) {
+            if (type->udt->unnamed_specialization && !type->udt->bound_generics.empty()) {
                 s += "<";
                 for (auto [i, t] : enumerate(type->udt->bound_generics)) {
                     if (i) s += ", ";
