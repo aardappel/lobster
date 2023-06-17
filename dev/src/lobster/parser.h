@@ -1006,15 +1006,7 @@ struct Parser {
         } else if (IsNext(T_BREAK)) {
             return new Break(lex);
         }
-        auto e = ParseExp();
-        while (IsNext(T_SEMICOLON)) {
-            if (IsNext(T_LINEFEED)) {
-                // specialized error for all the C-style language users
-                Error(Q(";"), " is not a statement terminator");
-            }
-            e = new Seq(lex, e, ParseExp());
-        }
-        return e;
+        return ParseExp();
     }
 
     Node *Modify(Node *e) {

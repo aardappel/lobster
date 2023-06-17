@@ -17,7 +17,7 @@ Lexical definition
 -   Whitespace is space, tab, carriage return, nested comments delimited by `/*`
     and `*/` or single line comments starting with `//`
 
--   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= ==
+-   Operator tokens are `( ) [ ] { } : , & | + ++ += - -- -= * *= / /= % %= ==
     != < > <= >= <- = ? . -> ^ << >>`
 
 -   Strings delimited by `"` and character constants with `'` using escape codes
@@ -92,7 +92,7 @@ type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` 
 
 call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
-expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ]
+expstat = exp \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ]
 
 exp = opexp [ ( `=` \| `+=` \| `-=` \| `*=` \| `/=` \| `%=` ) exp ]
 
@@ -379,9 +379,9 @@ Named functions can be declared at any scope level (may be local), like so:
 def name(arg1, arg2): body
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`body` can either be a single expression, multiple expressions all on a single
-line separated by `;`, or, most commonly, an indentation (start of code on the
-next line further than the previous line, in this case the `def` keyword), and
+`body` can either be a single expression, or, most commonly, an indentation
+(start of code on the next line further than the previous line,
+in this case the `def` keyword), and
 then any number of expressions on their own line separated by linefeeds, until a
 de-dedentation occurs (return to the indentation level of the parent, in this
 case again the `def` keyword). It is an error to de-dedent less than the parent

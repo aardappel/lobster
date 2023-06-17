@@ -108,8 +108,6 @@
 
 - & is not implemented for structs.
 
-- Remove `;` entirely from the language? Only used in a few spots, and not that useful.
-
 - Enable writing to struct fields.
   Maybe explicit opt in per field or per struct? If per field then also can do the opposite for
   read-only class members.

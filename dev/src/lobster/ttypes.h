@@ -82,7 +82,6 @@ namespace lobster {
     TOK(T_RIGHTBRACKET, "]") \
     TOK(T_LEFTCURLY, "{") \
     TOK(T_RIGHTCURLY, "}") \
-    TOK(T_SEMICOLON, ";") \
     TOK(T_AT, "@") \
     TOK(T_QUESTIONMARK, "?") \
     TOK(T_COMMA, ",") \

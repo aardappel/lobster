@@ -297,7 +297,7 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
 
     gl_translate playerpos:
         gl_rotate_z tomouse:
-            gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])</code></pre>
+            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])</code></pre>
 <p>To be able to shoot, first we have to worry about giving our player
 an orientation. We compute that in the vector <code>tomouse</code> which
 we get by subtracting the player position from the mouse position (what
@@ -380,7 +380,7 @@ terms of modifications to the existing code:</p>
 <pre><code>def renderpointytriangle(pos, dir):
     gl_translate pos:
         gl_rotate_z dir:
-            gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])</code></pre>
+            gl_polygon([ xy_f { -0.5, 0.5 }, xy_x, xy_f { -0.5, -0.5 } ])</code></pre>
 <p>First, let’s take the code for rendering the player and put it in
 it’s own function, since we’ll be needing it for enemies too. Call
 instead of the original code with

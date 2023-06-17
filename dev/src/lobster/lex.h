@@ -256,7 +256,8 @@ struct Lex : LoadedFile {
                 }
                 PopBracket(T_RIGHTCURLY); return T_RIGHTCURLY;
 
-            case ';': return T_SEMICOLON;
+            case ';':
+                Error("\';\' isn\'t used as a statement terminator");
 
             case ',': cont = true; return T_COMMA;
 

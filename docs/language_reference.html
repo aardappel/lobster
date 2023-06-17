@@ -42,7 +42,7 @@ conventions where possible, but has a lot of unique syntax too.</p>
 delimited by <code>/*</code> and <code>*/</code> or single line comments
 starting with <code>//</code></p></li>
 <li><p>Operator tokens are
-<code>( ) [ ] { } : ; , &amp; | + ++ += - -- -= * *= / /= % %= ==     != &lt; &gt; &lt;= &gt;= &lt;- = ? . -&gt; ^ &lt;&lt; &gt;&gt;</code></p></li>
+<code>( ) [ ] { } : , &amp; | + ++ += - -- -= * *= / /= % %= ==     != &lt; &gt; &lt;= &gt;= &lt;- = ? . -&gt; ^ &lt;&lt; &gt;&gt;</code></p></li>
 <li><p>Strings delimited by <code>"</code> and character constants with
 <code>'</code> using escape codes <code>\n \t \r \" \' \ \x</code>
 (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with
@@ -105,8 +105,8 @@ body</p>
 specializers ]</p>
 <p>call = [ specializers ] <code>(</code> [ list( exp ) ] <code>)</code>
 [ block [ <code>fn</code> block … ] ]</p>
-<p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list(
-opexp ) ] ) [ <code>from</code> ( <code>program</code> | ident ) ]</p>
+<p>expstat = exp | <code>return</code> ( [ list( opexp ) ] ) [
+<code>from</code> ( <code>program</code> | ident ) ]</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> |
 <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
 <p>opexp = unary [ ( <code>*</code> | <code>/</code> | <code>%</code> ||
@@ -229,13 +229,10 @@ more generically, and then define named specializations of them:</p>
 struct xy_i = xy&lt;int&gt;
 struct xy_f = xy&lt;float&gt;</code></pre>
 <p>You construct values of these types you use a similar syntax:</p>
-<pre><code>let v = xy { 1, 0 }</code></pre>
+<pre><code>let v = xy_i { 1, 0 }</code></pre>
 <p>(Or use <code>xy_f { 1, 0 }</code> /
 <code>xy&lt;bool&gt; { true, false }</code> to explicitly pick a
-particular specialization).</p>
-<p>The type ensures that the right number of values are given, and they
-can now be accessed as <code>v.x</code> etc. in addition to
-<code>v[0]</code>.</p>
+different specialization).</p>
 <pre><code>struct xy:
     x = 0.0
     y = 0.0</code></pre>
@@ -247,6 +244,10 @@ constructor call, for example:</p>
 <pre><code>xy { x: 1, y: 2 }</code></pre>
 <p>Besides being more readable, it allows you to specify the fields in
 any order, and to override fields that have defaults.</p>
+<p>To declare a type whose only purpose is to serve as a superclass for
+other types and is not to be instantiated, declare it with
+<code>abstract</code>:</p>
+<pre><code>abstract class Node</code></pre>
 <h2 id="operators">Operators</h2>
 <p>Lobster comes with a set of built-in operators mostly familiar from
 other languages that attempt to work on as many of the above types as
@@ -276,7 +277,7 @@ similarly <code>.</code> can dereference fields of a <code>class</code>
 or <code>struct</code>. These may be chained arbitrarily.</p>
 <p>You may even use a vector as index, e.g.</p>
 <pre><code>let mat = [ [ 1, 2 ],  [ 3, 4 ] ]
-let pos = xy { 0, 1 }
+let pos = xy_i { 0, 1 }
 print mat[pos]</code></pre>
 <p>This prints <code>3</code>, and is a convenient shortcut for
 <code>mat[pos.y][pos.x]</code>. Note how it uses the last element to
@@ -289,7 +290,7 @@ usually most naturally thought of as row-major.</p>
 They also work on structs containing ints or floats with either another
 struct or a single int or float. These structs must be the same
 type.</p>
-<pre><code>xy { 1, 2 } * xy { 4, 5 }  // results in xy { 4, 10 }</code></pre>
+<pre><code>xy_i { 1, 2 } * xy_i { 4, 5 }  // results in xy_i { 4, 10 }</code></pre>
 <p>All 5 also have have a combined assignment operator version,
 <code>+= -= *= /= %=</code>, which are implemented to have exactly the
 same effect as their expanded form, e.g. <code>a += 1</code> is always
@@ -336,8 +337,7 @@ values</em>.</p>
 <p>Named functions can be declared at any scope level (may be local),
 like so:</p>
 <pre><code>def name(arg1, arg2): body</code></pre>
-<p><code>body</code> can either be a single expression, multiple
-expressions all on a single line separated by <code>;</code>, or, most
+<p><code>body</code> can either be a single expression, or, most
 commonly, an indentation (start of code on the next line further than
 the previous line, in this case the <code>def</code> keyword), and then
 any number of expressions on their own line separated by linefeeds,

@@ -66,13 +66,19 @@ tools installed.</p>
 <code>Release</code> is selected in the top bar,
 <code>Build -&gt; Build Solution</code>, then close if no errors.</p>
 <h3 id="mac">Mac</h3>
-<p>Pre-Requirements: Latest XCode. Command-line CMake build not
-currently supported.</p>
+<p>Pre-Requirements: Latest XCode &amp; CMake.</p>
 <p>Get https://github.com/aardappel/lobster using your favorite git tool
 (best), or just download a <code>.zip</code> otherwise.</p>
-<p>Open <code>dev/xcode/lobster/lobster.xcodeproj</code>, ensure
-<code>lobster_release &gt; My Mac</code> is selected as scheme in the
-top bar, <code>Product -&gt; Build</code>, then close if no errors.</p>
+<p>From the terminal, in the <code>dev</code> folder, run
+<code>sh build_osx.sh</code> which will generate an Xcode project in the
+<code>xcode-cmake</code> sub-folder.</p>
+<p>Open <code>dev/xcode-cmake/Lobster.xcodeproj</code>, ensure
+<code>lobster &gt; My Mac</code> is selected as scheme in the top bar,
+<code>Product -&gt; Build for -&gt; Profiling</code> (to get a Release
+build), then close if no errors.</p>
+<p>Alternatively from the terminal from the <code>xcode-cmake</code>
+folder:</p>
+<p><code>xcodebuild -toolchain clang -configuration Release -target lobster</code></p>
 <h2 id="running-it">Running it</h2>
 <p>You now have a <code>lobster</code> executable in your
 <code>bin</code> folder. You can run this with any Lobster file as
