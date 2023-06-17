@@ -768,6 +768,10 @@ VM_INLINE void U_JUMP_TABLE(VM &, StackPtr, const int *) {
     assert(false);
 }
 
+VM_INLINE void U_JUMP_TABLE_DISPATCH(VM &, StackPtr, const int *) {
+    assert(false);
+}
+
 VM_INLINE void U_ISTYPE(VM &vm, StackPtr sp, int ty) {
     auto to = (type_elem_t)ty;
     auto v = Pop(sp);

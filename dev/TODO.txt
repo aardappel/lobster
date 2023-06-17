@@ -21,29 +21,6 @@
     - Easier to refer people who want to know what is planned and/or want to help.
   - Right now, searches for keywords hit both code and this TODO.txt.
 
-- switch on type.
-  see some discussion here: https://github.com/aardappel/lobster/issues/113
-  tagged unions: https://github.com/aardappel/lobster/discussions/242
-  What people really seem to want is a guaranteed exhaustive type switch.
-  We should first add that for objects.
-  The way that would work is that it would expect all subclasses to be covered by a type,
-  including subclasses of subclasses.
-  To make this manageable, we should first implement abstract classes, since that way the
-  base class doesn't need to feature in the cases.
-  Actually, Lobster already knows if a base class is never instanced, but it be nice to give
-  people the option to enforce it.
-  We would give never-instanced the same power for convenience, with of course the downside
-  that if anyone ever tries to instance one suddenly all type switches start complaining
-  about non-exhaustiveness, but I think this is managable.
-  For sub-subclasses, the presence of the middle type in the cases will make the sub-subclasses
-  entirely optional, but if present, should of course get precedence.
-  Typically though these middle types would be marked abstract if intended to be used with
-  type switches a lot, which would force cases for the sub-subclasses.
-  Implementation wise this would go through the same logic that currently constructs vtable
-  entries, but instead results in case-integers instead of function pointers. That way
-  this is guaranteed fast no matter the number of cases, though we could choose to bypass
-  the vtable for 3 or less cases or so.
-
 - We should be making extensive use of https://devblogs.microsoft.com/cppblog/introducing-vector-calling-convention/
   Especially since we're a closed static build we control, meaning we have no worries of
   ABI/calling convention mismatches.
@@ -253,9 +230,7 @@
 - Features to make it easier to use structs ADT style as opposed to inheritance
   - ADT is similar to a base class with no members and a fixed set of sub-classes.
     - So make that use case into a simpler declaration syntax.
-  - extend switch to do pattern matching.
-    - failing that, a switch that can use types as case labels would be a good start,
-      and simple to do given that we have type indices!
+  - extend switch to do ADTs.
 - Might be better to not piggy-back on struct inheritance.
   - It really does a different thing, where with normal inheritance the base class is not expected
     to be the max size of all subclasses.
@@ -1358,8 +1333,6 @@
 
 - Make includes explicitly depend on eachother.
 
-- switch jump table based version.
-
 - We have a check in IdentRef::TypeCheck to avoid escaping lambdas, but this only works
   for static ones, not for calls over a function type.
 
@@ -1538,8 +1511,6 @@
 
 - if your forget ":" after "else", it is going to try and declare a following identifier as a
   function parameter, see FIXME in ParseTrailingFunctionValues
-
-- extend switch with pattern match facility?
 
 - Should consider to allow on-the fly data structures as well.
   Writing new_type { field1: val, field2: val } would add such specialization to new_type even
@@ -2181,7 +2152,6 @@
 
 - make comparators non-associative?
 
-- some form or switch or pattern match facility?
 - pattern matching by failing a function into the next
 
 - make bytecode, not intcode.

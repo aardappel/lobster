@@ -613,6 +613,24 @@ keyword:</p>
 <p>That <code>f()</code> is statically dispatched to call
 <code>A</code>’s version of <code>f</code> (or its superclass, if it
 doesn’t have one).</p>
+<p>You can also “dynamic dispatch” with <code>switch</code> ! You can
+use class names as switch cases:</p>
+<pre><code>switch x:
+    case A: print x.field_in_a
+    case B: print x.field_in_b</code></pre>
+<p>As you can see, the type of variable switched on will be “upgraded”
+to the type matched, so you can access its fields.</p>
+<p>switches on types are “exhaustive”, meaning if you don’t use a
+<code>default</code> case (and its a good habit to not use those) you
+will get a compile-time error if a type is not covered by a switch (all
+possible subclasses of the type of the switched on value).</p>
+<p>Superclass cases can apply to subclass cases, and if both are
+present, the most specific case will always be used. It is a good idea
+to make superclasses <code>abstract</code> for use with
+<code>switch</code>, that way you may omit a case for them, causing all
+their subclasses to need their own case.</p>
+<p>The actual implementation use vtables much like the above dynamic
+dispatch, so is similar in speed too.</p>
 <h3
 id="functions-with-different-number-of-arguments-default-arguments.">Functions
 with different number of arguments / default arguments.</h3>

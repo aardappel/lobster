@@ -164,6 +164,18 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             break;
         }
 
+        case IL_JUMP_TABLE_DISPATCH: {
+            auto vtable_idx = *ip++;
+            auto mini = *ip++;
+            auto maxi = *ip++;
+            auto n = maxi - mini + 2;
+            append(sd, vtable_idx, "/", n - 1, " [ ");
+            while (n--)
+                append(sd, *ip++, " ");
+            sd += "]";
+            break;
+        }
+
         case IL_FUNSTART: {
             auto fidx = *ip++;
             sd += (fidx >= 0 ? bcf->functions()->Get(fidx)->name()->string_view() : "__dummy");

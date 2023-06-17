@@ -171,7 +171,9 @@ struct GenericTypeVariable {
 };
 
 struct DispatchEntry {
-    SubFunction *sf = nullptr;
+    SubFunction *sf = nullptr;          // if !is_switch_dispatch
+    int case_index = -1;                // if is_switch_dispatch
+    bool is_switch_dispatch = false;
     bool is_dispatch_root = false;
     // Shared return type if root of dispatch.
     TypeRef returntype = nullptr;

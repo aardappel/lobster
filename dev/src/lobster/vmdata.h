@@ -1133,6 +1133,13 @@ VM_INLINE int RetSlots(VM &vm) {
     return vm.ret_slots;
 }
 
+VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {
+    auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
+    auto id = (int)(size_t)vm.native_vtables[start + vtable_idx];
+    assert(id >= 0);
+    return id;
+}
+
 VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {
     vm.fun_id_stack.push_back({ funstart, locals, vm.last_line, vm.last_fileidx,
     #if LOBSTER_FRAME_PROFILER_FUNCTIONS

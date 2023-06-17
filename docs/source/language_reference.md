@@ -724,6 +724,30 @@ class B : A
 That `f()` is statically dispatched to call `A`'s version of `f` (or its
 superclass, if it doesn't have one).
 
+You can also "dynamic dispatch" with `switch` ! You can use class names as
+switch cases:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+switch x:
+    case A: print x.field_in_a
+    case B: print x.field_in_b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As you can see, the type of variable switched on will be "upgraded" to the type
+matched, so you can access its fields.
+
+switches on types are "exhaustive", meaning if you don't use a `default` case
+(and its a good habit to not use those) you will get a compile-time error if
+a type is not covered by a switch (all possible subclasses of the type of the
+switched on value).
+
+Superclass cases can apply to subclass cases, and if both are present, the
+most specific case will always be used. It is a good idea to make superclasses
+`abstract` for use with `switch`, that way you may omit a case for them,
+causing all their subclasses to need their own case.
+
+The actual implementation use vtables much like the above dynamic dispatch,
+so is similar in speed too.
 
 ### Functions with different number of arguments / default arguments.
 

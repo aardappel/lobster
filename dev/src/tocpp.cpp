@@ -119,6 +119,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
               "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
               "extern void SetLVal(VMRef, Value *);\n"
               "extern int RetSlots(VMRef);\n"
+              "extern int GetTypeSwitchID(VMRef, Value, int);\n"
               "extern void PushFunId(VMRef, const int *, StackPtr);\n"
               "extern void PopFunId(VMRef);\n"
               #if LOBSTER_FRAME_PROFILER
@@ -317,6 +318,16 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 // switch, and generate warnings/errors. Ideally not generate this block at all.
                 append(sd, "block", id, ":;");
                 break;
+            case IL_JUMP_TABLE_DISPATCH:
+                if (cpp) {
+                    append(sd, "switch (GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
+                               ")) {");
+                } else {
+                    append(sd, "{ int top = GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
+                               "); switch (top) {");
+                }
+                jumptables.push_back(args + 1);
+                break;
             case IL_JUMP_TABLE:
                 if (cpp) {
                     append(sd, "switch (regs[", regso - 1, "].ival()) {");
@@ -513,6 +524,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     for (auto id : *bcf->vtables()) {
         sd += "    ";
         if (id >= 0) append(sd, "fun_", id);
+        else if (id <= -2) append(sd, "(fun_base_t)", -id - 2);  // Bit of a hack, would be nice to separate.
         else sd += "0";
         sd += ",\n";
     }

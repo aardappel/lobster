@@ -840,6 +840,7 @@ void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
 void CVM_SetLVal(VM *vm, Value *v) { SetLVal(*vm, v); }
 int CVM_RetSlots(VM *vm) { return RetSlots(*vm); }
+int CVM_GetTypeSwitchID(VM *vm, Value self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
 void CVM_PushFunId(VM *vm, const int *id, StackPtr locals) { PushFunId(*vm, id, locals); }
 void CVM_PopFunId(VM *vm) { PopFunId(*vm); }
 #if LOBSTER_FRAME_PROFILER
@@ -904,6 +905,7 @@ const void *vm_ops_jit_table[] = {
     "PopArg", (void *)CVM_PopArg,
     "SetLVal", (void *)CVM_SetLVal,
     "RetSlots", (void *)CVM_RetSlots,
+    "GetTypeSwitchID", (void *)CVM_GetTypeSwitchID,
     "PushFunId", (void *)CVM_PushFunId,
     "PopFunId", (void *)CVM_PopFunId,
     #if LOBSTER_ENGINE

@@ -85,6 +85,7 @@ struct TypeChecker {
     set<pair<Line, int64_t>> integer_literal_warnings;
     Query *query;
     bool full_error;
+    Switch *switch_case_context = nullptr;
 
     TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq, Query *query, bool full_error)
         : parser(_p), st(_st), query(query), full_error(full_error) {
@@ -1250,7 +1251,7 @@ struct TypeChecker {
             // TODO: we chould check for a superclass vtable entry also, but chances
             // two levels will be present are low.
             if (disp.sf && disp.sf->method_of == &dispatch_udt && disp.is_dispatch_root &&
-                &f == disp.sf->parent) {
+                !disp.is_switch_dispatch && &f == disp.sf->parent) {
                 for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = disp.sf->args[i];
                     if (i && !ConvertsTo(c->exptype, arg.type, CF_NONE))
@@ -2461,8 +2462,8 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     tc.TT(value, 1, LT_BORROW);
     tc.DecBorrowers(value->lt, *this);
     auto ptype = value->exptype;
-    if (!ptype->Numeric() && ptype->t != V_STRING)
-        tc.Error(*this, "switch value must be int / float / string");
+    if (!ptype->Numeric() && ptype->t != V_STRING && ptype->t != V_CLASS)
+        tc.Error(*this, "switch value must be int / float / string / class");
     exptype = nullptr;
     bool have_default = false;
     vector<bool> enum_cases;
@@ -2470,21 +2471,26 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     cases->exptype = type_void;
     cases->lt = LT_ANY;
     for (auto &n : cases->children) {
+        tc.switch_case_context = this;
         tc.TT(n, reqret, LT_KEEP);
         auto cas = AssertIs<Case>(n);
-        if (cas->pattern->children.empty()) have_default = true;
+        if (!cas->pattern->Arity()) have_default = true;
         cas->pattern->exptype = type_void;
         cas->pattern->lt = LT_ANY;
         for (auto c : cas->pattern->children) {
-            tc.SubTypeT(c->exptype, ptype, *c, "", "case");
-            tc.DecBorrowers(c->lt, *cas);
-            if (ptype->IsEnum()) {
-                assert(c->exptype->IsEnum());
-                Value v = NilVal();
-                if (c->ConstVal(&tc, v) != V_VOID) {
-                    for (auto [i, ev] : enumerate(ptype->e->vals)) if (ev->val == v.ival()) {
-                        enum_cases[i] = true;
-                        break;
+            if (ptype->t == V_CLASS) {
+                if (!Is<UDTRef>(c)) tc.Error(*c, "non-type value in switch on type");
+            } else {
+                tc.SubTypeT(c->exptype, ptype, *c, "", "case");
+                tc.DecBorrowers(c->lt, *cas);
+                if (ptype->IsEnum()) {
+                    assert(c->exptype->IsEnum());
+                    Value v = NilVal();
+                    if (c->ConstVal(&tc, v) != V_VOID) {
+                        for (auto [i, ev] : enumerate(ptype->e->vals)) if (ev->val == v.ival()) {
+                            enum_cases[i] = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -2503,12 +2509,62 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         }
     }
     if (exptype.Null()) exptype = type_void;  // Empty switch or all return statements.
-    if (!have_default) {
-        if (reqret) tc.Error(*this, "switch that returns a value must have a default case");
-        if (ptype->IsEnum()) {
-            for (auto [i, ev] : enumerate(ptype->e->vals)) {
-                if (!enum_cases[i])
-                    tc.Error(*value, "enum value ", Q(ev->name), " not tested in switch");
+    if (ptype->t == V_CLASS) {
+        auto &dispatch_udt = *ptype->udt;
+        dispatch_udt.subudts_dispatched = true;
+        vtable_idx = -1;
+        vector<int> case_picks;
+        for (auto udt : dispatch_udt.subudts) {
+            int pick = -1;
+            if (!udt->g.is_abstract) {
+                int best_dist = -1;
+                int default_case = -1;
+                for (auto [i, n] : enumerate(cases->children)) {
+                    auto cas = AssertIs<Case>(n);
+                    if (cas->pattern->Arity()) {
+                        auto udtref = Is<UDTRef>(cas->pattern->children[0]);
+                        auto sdist = SuperDistance(udtref->udt, udt);
+                        if (sdist >= 0 && (pick < 0 || best_dist >= sdist)) {
+                            if (best_dist == sdist)
+                                tc.Error(*udtref, "more than one case applies to ", Q(udt->name));
+                            pick = (int)i;
+                            best_dist = sdist;
+                        }
+                    } else {
+                        default_case = (int)i;
+                    }
+                }
+                if (pick < 0) pick = default_case;
+                if (pick < 0) tc.Error(*this, "no case applies to ", Q(udt->name));
+            }
+            case_picks.push_back(pick);
+            vtable_idx = std::max(vtable_idx, (int)udt->dispatch_table.size());
+        }
+        // FIXME: check here if any vtable entries are equal so we don't need to store
+        // a new one.
+        assert(vtable_idx >= 0);
+        // Add cases to all vtables.
+        for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
+            auto &dt = udt->dispatch_table;
+            assert((int)dt.size() <= vtable_idx);  // Double entry.
+            // FIXME: this is not great, wasting space, but only way to do this
+            // on the fly without tracking lots of things.
+            while ((int)dt.size() < vtable_idx)
+                dt.push_back({});
+            dt.push_back({ nullptr, case_picks[i], true });
+        }
+        auto de = &dispatch_udt.dispatch_table[vtable_idx];
+        de->is_switch_dispatch = true;
+        de->is_dispatch_root = true;
+        de->subudts_size = dispatch_udt.subudts.size();
+    } else {
+        if (!have_default) {
+            if (reqret) tc.Error(*this, "switch that returns a value must have a default case");
+            if (ptype->IsEnum()) {
+                for (auto [i, ev] : enumerate(ptype->e->vals)) {
+                    if (!enum_cases[i])
+                        tc.Error(*value, "enum value ", Q(ev->name), " not tested in switch");
+                }
             }
         }
     }
@@ -2520,8 +2576,17 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
     // FIXME: Since string constants are the real use case, LT_KEEP would be more
     // natural here, as this will introduce a lot of keeprefs. Alternatively make sure
     // string consts don't introduce keeprefs.
-    tc.TypeCheckList(pattern, LT_BORROW);
+    auto sw = tc.switch_case_context;
+    tc.switch_case_context = nullptr;
     auto flowstart = tc.flowstack.size();
+    if (pattern->Arity()) {
+        if (auto udtref = Is<UDTRef>(pattern->children[0])) {
+            tc.CheckFlowTypeIdOrDot(*sw->value, &udtref->udt->thistype);
+            udtref->TypeCheck(tc, 0);
+        } else {
+            tc.TypeCheckList(pattern, LT_BORROW);
+        }
+    }
     tc.TT(cbody, reqret, LT_KEEP);
     tc.CleanUpFlow(flowstart);
     exptype = cbody->exptype;

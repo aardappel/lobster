@@ -1397,10 +1397,20 @@ struct Parser {
                     } else {
                         Expect(T_CASE);
                         for (;;) {
-                            auto f = ParseUnary();
-                            if (lex.token == T_DOTDOT) {
-                                lex.Next();
-                                f = new Range(lex, f, ParseUnary());
+                            Node *f = nullptr;
+                            if (lex.token == T_IDENT) {
+                                auto udt = st.LookupSpecialization(lex.sattr);
+                                if (udt) {
+                                    lex.Next();
+                                    f = new UDTRef(lex, udt);
+                                }
+                            }
+                            if (!f) {
+                                f = ParseUnary();
+                                if (lex.token == T_DOTDOT) {
+                                    lex.Next();
+                                    f = new Range(lex, f, ParseUnary());
+                                }
                             }
                             pattern->Add(f);
                             if (lex.token == T_COLON) break;

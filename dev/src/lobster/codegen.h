@@ -34,7 +34,7 @@ struct CodeGen  {
     vector<const Node *> node_context;
     int keepvars = 0;
     int runtime_checks;
-    vector<int> vtables;
+    vector<int> vtables;  // -1 = uninit, -2 and lower is case idx, positive is code offset.
     vector<ILOP> tstack;
     size_t tstack_max = 0;
     int dummyfun = -1;
@@ -312,6 +312,10 @@ struct CodeGen  {
                 if (de.sf) {
                     vtables[udt->vtable_start + i] =
                         de.sf->subbytecodestart ? de.sf->subbytecodestart : dummyfun;
+                    assert(!de.is_switch_dispatch);
+                } else if (de.case_index >= 0) {
+                    vtables[udt->vtable_start + i] = -de.case_index - 2;
+                    assert(de.is_switch_dispatch);
                 }
             }
         }
@@ -1599,7 +1603,12 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
 void Switch::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(value, 1);
     cg.TakeTemp(1, false);
-    // See if we should do a jump table version.
+    // See if we do a type dispatch (always a jump table).
+    if (value->exptype->t == V_CLASS) {
+        GenerateTypeDispatch(cg, retval);
+        return;
+    }
+    // See if we should do an integer jump table version.
     if (GenerateJumpTable(cg, retval))
         return;
     // Do slow default implementation for sparse integers, expressions and strings.
@@ -1672,20 +1681,22 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
     bs.Exit(cg);
 }
 
+pair<IntConstant *, IntConstant *> get_range(Node *c) {
+    auto start = c;
+    auto end = c;
+    if (auto r = Is<Range>(c)) {
+        start = r->start;
+        end = r->end;
+    }
+    return { Is<IntConstant>(start), Is<IntConstant>(end) };
+};
+
+
 bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
     if (value->exptype->t != V_INT)
         return false;
     int64_t mini = INT64_MAX / 2, maxi = INT64_MIN / 2;
     int64_t num = 0;
-    auto get_range = [&](Node *c) -> pair<IntConstant *, IntConstant *> {
-        auto start = c;
-        auto end = c;
-        if (auto r = Is<Range>(c)) {
-            start = r->start;
-            end = r->end;
-        }
-        return { Is<IntConstant>(start), Is<IntConstant>(end) };
-    };
     for (auto n : cases->children) {
         auto cas = AssertIs<Case>(n);
         for (auto c : cas->pattern->children) {
@@ -1712,19 +1723,28 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
     cg.EmitOp(IL_JUMP_TABLE);
     cg.Emit((int)mini);
     cg.Emit((int)maxi);
+    GenerateJumpTableMain(cg, retval, (int)range, (int)mini);
+    return true;
+}
+
+void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int mini) const {
     auto table_start = cg.Pos();
-    for (int i = 0; i < (int)range + 1; i++) cg.Emit(-1);
+    for (int i = 0; i < range + 1; i++) cg.Emit(-1);
     vector<int> exitswitch;
     int default_pos = -1;
     CodeGen::BlockStack bs(cg.tstack);
-    for (auto n : cases->children) {
+    for (auto [i, n] : enumerate(cases->children)) {
         bs.Start();
         auto cas = AssertIs<Case>(n);
         for (auto c : cas->pattern->children) {
-            auto [istart, iend] = get_range(c);
-            assert(istart && iend);
-            for (auto i = istart->integer; i <= iend->integer; i++) {
-                cg.code[table_start + (int)i - (int)mini] = cg.Pos();
+            if (value->exptype->t == V_CLASS) {
+                cg.code[table_start + (int)i] = cg.Pos();
+            } else {
+                auto [istart, iend] = get_range(c);
+                assert(istart && iend);
+                for (auto i = istart->integer; i <= iend->integer; i++) {
+                    cg.code[table_start + (int)i - mini] = cg.Pos();
+                }
             }
         }
         if (cas->pattern->children.empty()) default_pos = cg.Pos();
@@ -1741,12 +1761,25 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
     cg.EmitOp(IL_JUMP_TABLE_END);
     cg.SetLabels(exitswitch);
     if (default_pos < 0) default_pos = cg.Pos();
-    for (int i = 0; i < (int)range + 1; i++) {
+    for (int i = 0; i < range + 1; i++) {
         if (cg.code[table_start + i] == -1)
             cg.code[table_start + i] = default_pos;
     }
     bs.Exit(cg);
-    return true;
+}
+
+void Switch::GenerateTypeDispatch(CodeGen &cg, size_t retval) const {
+    auto dispatch_udt = value->exptype->udt;
+    auto &dt = dispatch_udt->dispatch_table[vtable_idx];
+    assert(dt.is_dispatch_root && dt.is_switch_dispatch &&
+           dt.subudts_size == dispatch_udt->subudts.size());
+    (void)dt;
+    cg.EmitOp(IL_JUMP_TABLE_DISPATCH);
+    cg.Emit(vtable_idx);
+    cg.Emit(0);
+    int range = (int)cases->children.size();
+    cg.Emit(range - 1);
+    GenerateJumpTableMain(cg, retval, range, 0);
 }
 
 void Case::Generate(CodeGen &/*cg*/, size_t /*retval*/) const {
