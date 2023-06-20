@@ -260,3 +260,10 @@ run_test("types"):
         f([ B {} ])
         // Or from a union:
         f(if as[0].a == 1: [ A {} ] else: [ B {} ])
+
+    do():
+        // Classes may have attributes.
+        class A:
+            attribute foo = 1
+            a = 2
+        A {}

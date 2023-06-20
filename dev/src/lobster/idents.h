@@ -199,6 +199,7 @@ struct GUDT : Named {
     Type unspecialized_type;
     // FIXME: move to UDT!
     bool constructed = false;  // Is this instantiated anywhere in the code?
+    map<string_view, string_view> attributes;
 
     GUDT(string_view _name, int _idx, bool is_struct, Line &line)
         : Named(_name, _idx),

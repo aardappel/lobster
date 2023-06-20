@@ -389,22 +389,7 @@ struct Parser {
             }
             case T_ATTRIBUTE: {
                 lex.Next();
-                auto key = ExpectId();
-                if (IsNext(T_ASSIGN)) {
-                    switch (lex.token) {
-                        case T_IDENT:
-                        case T_STR:
-                        case T_INT:
-                        case T_FLOAT:
-                            st.defsubfunctionstack.back()->attributes[key] = lex.sattr;
-                            lex.Next();
-                            break;
-                        default:
-                            Error("attribute value must be an identifier or string/int/float constant");
-                    }
-                } else {
-                    st.defsubfunctionstack.back()->attributes[key];
-                }
+                ParseAttribute(st.defsubfunctionstack.back()->attributes);
                 break;
             }
             default: {
@@ -434,6 +419,26 @@ struct Parser {
                 break;
             }
         }
+    }
+
+    string_view ParseAttribute(map<string_view, string_view> &attributes) {
+        auto key = ExpectId();
+        string_view value;
+        if (IsNext(T_ASSIGN)) {
+            switch (lex.token) {
+                case T_IDENT:
+                case T_STR:
+                case T_INT:
+                case T_FLOAT:
+                    value = lex.sattr;
+                    lex.Next();
+                    break;
+                default:
+                    Error("attribute value must be an identifier or string/int/float constant");
+            }
+        }
+        attributes[key] = value;
+        return key;
     }
 
     void ParseField(GUDT *gudt, bool member_private, bool local_member) {
@@ -563,14 +568,18 @@ struct Parser {
                 bool fieldsdone = false;
                 st.bound_typevars_stack.push_back(gudt->generics);
                 for (;;) {
-                    bool member_private = IsNext(T_PRIVATE);
-                    if (IsNext(T_FUN)) {
-                        fieldsdone = true;
-                        parent_list->Add(ParseNamedFunctionDefinition(member_private, gudt));
-                    }
-                    else {
-                        if (fieldsdone) Error("fields must be declared before methods");
-                        ParseField(gudt, member_private, false);
+                    if (IsNext(T_ATTRIBUTE)) {
+                        auto key = ParseAttribute(gudt->attributes);
+                    } else {
+                        bool member_private = IsNext(T_PRIVATE);
+                        if (IsNext(T_FUN)) {
+                            fieldsdone = true;
+                            parent_list->Add(ParseNamedFunctionDefinition(member_private, gudt));
+                        }
+                        else {
+                            if (fieldsdone) Error("fields must be declared before methods");
+                            ParseField(gudt, member_private, false);
+                        }
                     }
                     if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
