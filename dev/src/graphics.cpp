@@ -82,11 +82,8 @@ void ResetShader() {
     currentshader = colorshader;
 }
 
-bool GraphicsFrameStart() {
-    extern void CullFonts(); CullFonts();
-    extern void SteamUpdate(); SteamUpdate();
-    OpenGLFrameEnd();
-    bool cb = SDLFrame();
+// Runs both at graphics init and frame start.
+void GraphicsReset() {
     lastframehitsize = lasthitsize;
     lasthitsize = float3_0;
     OpenGLFrameStart(GetScreenSize());
@@ -94,6 +91,14 @@ bool GraphicsFrameStart() {
     ResetShader();
     polymode = PRIM_FAN;
     CullFront(cull_front = true);
+}
+
+bool GraphicsFrameStart() {
+    extern void CullFonts(); CullFonts();
+    extern void SteamUpdate(); SteamUpdate();
+    OpenGLFrameEnd();
+    bool cb = SDLFrame();
+    GraphicsReset();
     return cb;
 }
 
@@ -189,6 +194,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
             return Value(vm.NewString(err));
         }
         ResetShader();
+        GraphicsReset();
         LOG_INFO("graphics fully initialized...");
         graphics_initialized = true;
         atexit(GraphicsShutDown);
