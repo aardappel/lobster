@@ -331,6 +331,44 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
     fbc.vm.Error("cannot convert to FlexBuffer: " + sd);
 }
 
+void Value::ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const {
+    if (IsRefNil(t)) {
+        if (!ref_) {
+            EncodeVarintZero(buf);  // Length of the types below.
+            return;
+        }
+        switch (t) {
+            case V_STRING: {
+                auto strv = sval()->strv();
+                EncodeVarintU(strv.size(), buf);
+                auto data = (const uint8_t *)strv.data();
+                buf.insert(buf.end(), data, data + strv.size());
+                return;
+            }
+            case V_VECTOR:
+                vval()->ToLobsterBinary(vm, buf);
+                return;
+            case V_CLASS:
+                oval()->ToLobsterBinary(vm, buf);
+                return;
+            default:
+                break;
+        }
+    } else if (t == V_INT) {
+        EncodeVarintS(ival_, buf);
+        return;
+    } else if (t == V_FLOAT) {
+        // Serialize as 32-bit by default, native endianness!
+        auto f = fltval();
+        buf.insert(buf.end(), (const uint8_t *)&f, (const uint8_t *)(&f + 1));
+        return;
+    }
+    string sd;
+    ToStringBase(vm, sd, t, vm.debugpp);
+    vm.Error("cannot convert to Lobster binary: " + sd);
+}
+
+
 
 uint64_t RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
@@ -601,7 +639,7 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
         fbc.builder.Key("_type");
         fbc.builder.String(type_name.data(), type_name.size());
     }
-    for (iint i = 0, f = 0; i < Len(fbc.vm); i++, f++) {
+    for (iint i = 0, f = 0; i < stti.len; i++, f++) {
         auto &eti = ElemTypeSP(fbc.vm, i);
         auto fname = fbc.vm.LookupField(stidx, f);
         ElemToFlexBuffer(fbc, eti, i, 1, Elems(), fname, stti.elemtypes[i].defval);
@@ -631,6 +669,47 @@ bool VM::StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti,
     fbc.builder.EndMap(start);
     return true;
 }
+
+void ElemToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, iint &i, iint width,
+                         const Value *elems, bool is_object) {
+    if (IsStruct(ti.t)) {
+        vm.StructToLobsterBinary(vm, buf, ti, elems + i * width);
+        if (is_object) i += ti.len - 1;
+    } else {
+        elems[i].ToLobsterBinary(vm, buf, ti.t);
+    }
+}
+
+void LObject::ToLobsterBinary(VM &vm, vector<uint8_t> &buf) {
+    auto &stti = ti(vm);
+    EncodeVarintU(stti.len, buf);
+    if (stti.serializable_id < 0) {
+        vm.Error("cannot serialize (missing serializable attribute): " + vm.StructName(stti));
+    }
+    EncodeVarintU(stti.serializable_id, buf);
+    for (iint i = 0; i < stti.len; i++) {
+        auto &eti = ElemTypeSP(vm, i);
+        ElemToLobsterBinary(vm, buf, eti, i, 1, Elems(), true);
+    }
+}
+
+void LVector::ToLobsterBinary(VM &vm, vector<uint8_t> &buf) {
+    EncodeVarintU(len, buf);
+    auto &ti = ElemType(vm);
+    for (iint i = 0; i < len; i++) {
+        ElemToLobsterBinary(vm, buf, ti, i, width, v, false);
+    }
+}
+
+void VM::StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &sti,
+                               const Value *elems) {
+    for (iint i = 0; i < sti.len; i++) {
+        auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
+        ElemToLobsterBinary(vm, buf, ti, i, 1, elems, true);
+    }
+}
+
+
 
 
 type_elem_t LVector::SingleType(VM &vm) {

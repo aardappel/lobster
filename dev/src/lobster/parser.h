@@ -29,7 +29,8 @@ struct Parser {
         int implicits;
     };
     vector<BlockScope> block_stack;
-    int serializable_id_cur = -1;
+    int serializable_id_last = -1;
+    int serializable_id_max = 0;
 
     Parser(NativeRegistry &natreg, Lex &lex, SymbolTable &st)
         : natreg(natreg), lex(lex), st(st) {}
@@ -575,11 +576,15 @@ struct Parser {
                             if (!udt || gudt->IsGeneric() || is_abstract || is_struct)
                                 Error("serializable attribute only for non-generic non-abstract classes");
                             if (value.empty()) {
-                                serializable_id_cur++;
+                                ++serializable_id_last;
                             } else {
-                                serializable_id_cur = parse_int<int>(value);
+                                serializable_id_last = parse_int<int>(value);
+                                if (serializable_id_last < 0 || serializable_id_last > 0x10000)
+                                    Error("serializable attribute value out of range");
                             }
-                            udt->serializable_id = serializable_id_cur;
+                            udt->serializable_id = serializable_id_last;
+                            serializable_id_max =
+                                std::max(serializable_id_last, serializable_id_max);
                         }
                     } else {
                         bool member_private = IsNext(T_PRIVATE);

@@ -82,7 +82,7 @@ struct Deserializer {
                 }
                 if (ti.t == V_CLASS) {
                     auto vec = vm.NewObject(ti.len, typeoff);
-                    if (ti.len) vec->CopyElemsShallow(&*stack.end() - ti.len, ti.len);
+                    if (ti.len) vec->CopyElemsShallow(&stack[stack.size() - (size_t)ti.len], ti.len);
                     PopVN(ti.len);
                     PushV(vec, true);
                 }
@@ -92,6 +92,24 @@ struct Deserializer {
                 return false;
         }
         return true;
+    }
+
+    pair<const TypeInfo *, type_elem_t> LookupSubClass(string_view sname,
+            const TypeInfo *ti, type_elem_t typeoff) {
+        // Attempt to find this a subsclass.
+        // TODO: subclass of subclass, etc?
+        vm.EnsureUDTLookupPopulated();
+        auto &udts = vm.UDTLookup[sname];
+        for (auto udt : udts) {
+            if (udt->super_idx() == ti->structidx) {
+                // Note: this field only not -1 for UDTs actually constructed/used.
+                typeoff = (type_elem_t)udt->typeidx();
+                if (typeoff >= 0) {
+                    return { &vm.GetTypeInfo(typeoff), typeoff };
+                }
+            }
+        }
+        return { nullptr, (type_elem_t)-1 };
     }
 };
 
@@ -239,8 +257,11 @@ struct ValueParser : Deserializer {
                 Expect(T_LEFTCURLY);
                 auto name = vm.StructName(*ti);
                 if (name != sname) {
-                    // TODO: support subclasses like flexbuffer code below.
-                    lex.Error("class/struct type " + name + " required, " + sname + " given");
+                    auto p = LookupSubClass(sname, ti, typeoff);
+                    if (!p.first)
+                        lex.Error("class/struct type " + name + " required, " + sname + " given");
+                    ti = p.first;
+                    typeoff = p.second;
                 }
                 ParseElems(T_RIGHTCURLY, typeoff, ti->len, push);
                 break;
@@ -293,7 +314,7 @@ struct FlexBufferParser : Deserializer {
 
     void Error(const string &s) {
         // FIXME: not great on non-exception platforms, this should not abort.
-        THROW_OR_ABORT(s);
+        THROW_OR_ABORT(cat("flexbuffers_binary_to_value: ", s));
     }
 
     void ExpectType(ValueType given, ValueType needed) {
@@ -358,23 +379,12 @@ struct FlexBufferParser : Deserializer {
                 auto name = vm.StructName(*ti);
                 auto sname = m["_type"];
                 if (sname.IsString() && sname.AsString().c_str() != name) {
-                    // Attempt to find this a subsclass.
-                    // TODO: subclass of subclass, etc?
-                    vm.EnsureUDTLookupPopulated();
-                    auto &udts = vm.UDTLookup[sname.AsString().c_str()];
-                    for (auto udt : udts) {
-                        if (udt->super_idx() == ti->structidx) {
-                            // Note: this field only not -1 for UDTs actually constructed/used.
-                            typeoff = (type_elem_t)udt->typeidx();
-                            if (typeoff >= 0) {
-                                ti = &vm.GetTypeInfo(typeoff);
-                                goto subclassfound;
-                            }
-                        }
-                    }
-                    Error(cat("class/struct type ", name, " required, ", sname.AsString().str(),
-                             " given"));
-                    subclassfound:;
+                    auto p = LookupSubClass(sname.AsString().c_str(), ti, typeoff);
+                    if (!p.first)
+                        Error(cat("class/struct type ", name, " required, ", sname.AsString().str(),
+                                  " given"));
+                    ti = p.first;
+                    typeoff = p.second;
                 }
                 auto stack_start = stack.size();
                 auto NumElems = [&]() { return iint(stack.size() - stack_start); };
@@ -414,6 +424,150 @@ static void ParseFlexData(StackPtr &sp, VM &vm, type_elem_t typeoff, flexbuffers
     #endif
     {
         parser.Parse(sp, typeoff, r);
+        Push(sp, NilVal());
+    }
+    #ifdef USE_EXCEPTION_HANDLING
+    catch (string &s) {
+        Push(sp, NilVal());
+        Push(sp, vm.NewString(s));
+    }
+    #endif
+}
+
+struct LobsterBinaryParser : Deserializer {
+
+    LobsterBinaryParser(VM &vm) : Deserializer(vm) {}
+
+    void Parse(StackPtr &sp, type_elem_t typeoff, const uint8_t *data, const uint8_t *end) {
+        ParseElem(data, end, typeoff);
+        assert(stack.size() == 1);
+        Push(sp, PopV());
+    }
+
+    void Error(const string &s) {
+        // FIXME: not great on non-exception platforms, this should not abort.
+        THROW_OR_ABORT(cat("lobster_binary_to_value: ", s));
+    }
+
+    void Truncated() {
+        Error("data truncated");
+    }
+
+    void ParseElem(const uint8_t *&data, const uint8_t *end, type_elem_t typeoff) {
+        auto base_ti = &vm.GetTypeInfo(typeoff);
+        auto ti = base_ti;
+        if (ti->t == V_NIL) {
+            ti = &vm.GetTypeInfo(typeoff = ti->subt);
+        }
+        if (end == data) Truncated();
+        switch (ti->t) {
+            case V_INT: {
+                PushV(DecodeVarintS(data, end));
+                break;
+            }
+            case V_FLOAT: {
+                float f;
+                if (end - data < sizeof(float)) Truncated();
+                memcpy(&f, data, sizeof(float));
+                data += sizeof(float);
+                PushV(f);
+                break;
+            }
+            case V_STRING: {
+                auto len = DecodeVarintU(data, end);
+                if (!len && base_ti->t == V_NIL) {
+                    PushV(NilVal());
+                } else {
+                    auto str = vm.NewString(string_view((const char *)data, (size_t)len));
+                    data += len;
+                    PushV(str, true);
+                }
+                break;
+            }
+            case V_VECTOR: {
+                auto len = DecodeVarintU(data, end);
+                if (!len && base_ti->t == V_NIL) {
+                    PushV(NilVal());
+                } else {
+                    auto stack_start = stack.size();
+                    for (size_t i = 0; i < len; i++) {
+                        ParseElem(data, end, ti->subt);
+                    }
+                    auto &sti = vm.GetTypeInfo(ti->subt);
+                    auto width = IsStruct(sti.t) ? sti.len : 1;
+                    auto len = iint(stack.size() - stack_start);
+                    auto n = len / width;
+                    auto vec = vm.NewVec(n, n, typeoff);
+                    if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
+                    PopVN(len);
+                    PushV(vec, true);
+                }
+                break;
+            }
+            case V_CLASS: {
+                auto elen = (int)DecodeVarintU(data, end);
+                if (!elen && base_ti->t == V_NIL) {
+                    PushV(NilVal());
+                } else {
+                    auto ser_id = DecodeVarintU(data, end);
+                    typeoff = vm.GetSubClassFromSerID(typeoff, (uint32_t)ser_id);
+                    if (typeoff < 0)
+                        Error(cat("serialization id ", ser_id, " is not a sub-class of ",
+                                  vm.StructName(*ti)));
+                    ti = &vm.GetTypeInfo(typeoff);
+                    auto stack_start = stack.size();
+                    auto NumElems = [&]() { return iint(stack.size() - stack_start); };
+                    for (int i = 0; NumElems() != ti->len; i++) {
+                        auto eti = ti->GetElemOrParent(NumElems());
+                        if (NumElems() >= elen) {
+                            if (!PushDefault(eti, ti->elemtypes[NumElems()].defval))
+                                Error("no default value exists for missing field " +
+                                      vm.LookupField(ti->structidx, i));
+                        } else {
+                            ParseElem(data, end, eti);
+                        }
+                    }
+                    if (elen > NumElems()) {
+                        // We have fields from a future version of this class, sadly we don't
+                        // know how to read past these fields since we have no type data.
+                        Error("extra fields presents in " + vm.StructName(*ti));
+                    }
+                    auto len = NumElems();
+                    auto vec = vm.NewObject(len, typeoff);
+                    if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
+                    PopVN(len);
+                    PushV(vec, true);
+                }
+                break;
+            }
+            case V_STRUCT_S:
+            case V_STRUCT_R: {
+                auto stack_start = stack.size();
+                auto NumElems = [&]() { return iint(stack.size() - stack_start); };
+                // NOTE: this provides no protection against structs changing in size,
+                // unlike classes. It will simply parse wrong.
+                while (NumElems() != ti->len) {
+                    auto eti = ti->GetElemOrParent(NumElems());
+                    ParseElem(data, end, eti);
+                }
+                break;
+            }
+            default:
+                Error("can\'t convert to value: " + ti->Debug(vm, false));
+                PushV(NilVal());
+                break;
+        }
+    }
+};
+
+static void ParseLobsterBinaryData(StackPtr &sp, VM &vm, type_elem_t typeoff, const uint8_t *data,
+                                   size_t size) {
+    LobsterBinaryParser parser(vm);
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
+        parser.Parse(sp, typeoff, data, data + size);
         Push(sp, NilVal());
     }
     #ifdef USE_EXCEPTION_HANDLING
@@ -513,6 +667,27 @@ nfr("flexbuffers_json_to_binary", "json", "S", "SS?",
         return err;
     });
 
+nfr("lobster_value_to_binary", "val", "A", "S",
+    "turns any reference value into a binary using a fast & compact Lobster native serialization format. "
+    "this is intended for threads/networking, not for storage (since it is not readable by other languages). "
+    "data structures participating must have been marked by attribute serializable. "
+    "does not provide protection against cycles, use flexbuffers if that is a concern. ",
+    [](StackPtr &, VM &vm, Value &val) {
+        vector<uint8_t> buf;
+        val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
+        // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?
+        auto s = vm.NewString(
+            string_view((const char *)buf.data(), buf.size()));
+        return Value(s);
+    });
+
+nfr("lobster_binary_to_value", "typeid,bin", "TS", "A1?S?",
+    "turns binary created by lobster_value_to_binary back into a value",
+    [](StackPtr &sp, VM &vm) {
+        auto fsv = Pop(sp).sval()->strv();
+        auto id = Pop(sp).ival();
+        ParseLobsterBinaryData(sp, vm, (type_elem_t)id, (const uint8_t *)fsv.data(), fsv.size());
+    });
 }
 
 }

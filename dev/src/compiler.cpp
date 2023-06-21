@@ -380,7 +380,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value, runtime_checks);
     st.Serialize(cg.code, cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables,
-                 filenames);
+                 filenames, cg.ser_ids);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, bytecode, parser.pakfiles);
         if (!err.empty()) THROW_OR_ABORT(err);

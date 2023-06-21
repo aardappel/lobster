@@ -1274,7 +1274,8 @@ struct SymbolTable {
                    vector<string_view> &stringtable,
                    string &bytecode,
                    vector<int> &vtables,
-                   vector<pair<string, string>> &filenames) {
+                   vector<pair<string, string>> &filenames,
+                   vector<type_elem_t> &ser_ids) {
         flatbuffers::FlatBufferBuilder fbb;
         // Always serialize this first! that way it can easily be left out of the generated C code.
         auto codevec = fbb.CreateVector(code);
@@ -1304,7 +1305,8 @@ struct SymbolTable {
             fbb.CreateVector(identoffsets),
             fbb.CreateVectorOfStructs(sids),
             fbb.CreateVector(enumoffsets),
-            fbb.CreateVector(vtables));
+            fbb.CreateVector(vtables),
+            fbb.CreateVector((vector<int> &)ser_ids));
         bytecode::FinishBytecodeFileBuffer(fbb, bcf);
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }

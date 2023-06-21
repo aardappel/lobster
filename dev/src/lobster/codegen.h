@@ -26,6 +26,7 @@ struct CodeGen  {
     vector<tuple<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
     vector<type_elem_t> type_table;
+    vector<type_elem_t> ser_ids;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
     vector<TypeLT> rettypes, temptypestack;
     vector<const Node *> loops;
@@ -255,6 +256,14 @@ struct CodeGen  {
                 sidx += ns;
                 for (int i = 0; i < ns; i++)
                     sids.push_back(bytecode::SpecIdent(sid->id->idx, tti, sid->used_as_freevar));
+            }
+        }
+        auto max_ser_ids = parser.serializable_id_max + 1;
+        ser_ids.resize(max_ser_ids, (type_elem_t)-1);
+        for (auto udt : parser.st.udttable) {
+            if (udt->serializable_id >= 0) {
+                assert(ser_ids[udt->serializable_id] < 0);
+                ser_ids[udt->serializable_id] = GetTypeTableOffset(&udt->thistype);
             }
         }
 

@@ -501,6 +501,7 @@ struct Value {
     void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
 
     void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const;
+    void ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const;
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     uint64_t Hash(VM &vm, ValueType vtype);
@@ -670,6 +671,7 @@ struct LObject : RefObj {
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
     void ToFlexBuffer(ToFlexBufferContext &fbc);
+    void ToLobsterBinary(VM &vm, vector<uint8_t> &buf);
 
     bool Equal(VM &vm, const LObject &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -817,6 +819,7 @@ struct LVector : RefObj {
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
     void ToFlexBuffer(ToFlexBufferContext &fbc);
+    void ToLobsterBinary(VM &vm, vector<uint8_t> &buf);
 
     bool Equal(VM &vm, const LVector &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -993,6 +996,7 @@ struct VM : VMArgs {
         return *(TypeInfo *)(typetable + offset);
     }
     const TypeInfo &GetVarTypeInfo(int varidx);
+    type_elem_t GetSubClassFromSerID(type_elem_t super, uint32_t ser_id);
 
     string_view GetProgramName() { return programname; }
 
@@ -1057,7 +1061,9 @@ struct VM : VMArgs {
     string_view ReverseLookupType(int v);
     string_view LookupField(int stidx, iint fieldn) const;
     string_view LookupFieldByOffset(int stidx, int offset) const;
+
     void Trace(TraceMode m) { trace = m; }
+
     double Time() { return SecondsSinceStart(); }
 
     Value ToString(const Value &a, const TypeInfo &ti) {
@@ -1073,6 +1079,7 @@ struct VM : VMArgs {
     void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
     bool StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const Value *elems,
                             bool omit_if_empty);
+    void StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, const Value *elems);
     bool EnumName(string &sd, iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);

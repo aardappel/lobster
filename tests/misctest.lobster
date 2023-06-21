@@ -36,6 +36,7 @@ run_test("misc"):
     class testa:
         a:int
     class testb : testa
+        attribute serializable
         b:int
 
     def tf(x:int, y:int): return 1
@@ -53,6 +54,7 @@ run_test("misc"):
     assert(tf(to_a(testb { 0, 0 }), 1) == 4)
 
     class parsetest:
+        attribute serializable = 123
         h:bool
         a:int
         b:float
@@ -61,26 +63,25 @@ run_test("misc"):
         e:[int]
         f:string?
         g:int
+        s:testa  // Test subclasses.
 
     let direct = parsetest {
         false, 1, 2.0, float3 { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
-        [ 0, -64 ], nil, true
+        [ 0, -64 ], nil, true, testb { 6, 7 }
     }
     var parsed, err = parse_data(typeof direct, "{direct}")
-    //print(parsed)
-    //print(direct)
     if err: print err
     assert equal(parsed, direct)
     // Test defaults:
-    parsed, err = parse_data(typeof direct, "parsetest {{ true, 1, 1.0, float3 {{}}, \"\", [] }}")
+    parsed, err = parse_data(typeof direct, "parsetest {{ true, 1, 1.0, float3 {{}}, \"\", [], nil, -1, testb {{ 6, 7 }} }}")
     if err: print err
-    let groundv = parsetest { true, 1, 1.0, float3 { 0.0, 0.0, 0.0 }, "", [], nil, 0 }
+    let groundv = parsetest { true, 1, 1.0, float3 { 0.0, 0.0, 0.0 }, "", [], nil, -1, testb { 6, 7 } }
     assert equal(parsed, groundv)
     let flex = flexbuffers_value_to_binary(parsed)
     let json = flexbuffers_binary_to_json(flex, false, "")
     assert json
     // Fields that are nil or scalar default value should be missing!
-    let groundj = """{ a: 1, b: 1.0, d: "", e: [  ], h: 1 }"""
+    let groundj = """{ a: 1, b: 1.0, d: "", e: [  ], g: -1, h: 1, s: { _type: "testb", a: 6, b: 7 } }"""
     assert json == groundj
     let flex2, ferr = flexbuffers_json_to_binary(json)
     assert not ferr
@@ -90,6 +91,10 @@ run_test("misc"):
     let fval, fverr = flexbuffers_binary_to_value(typeof direct, flex2)
     assert not fverr
     assert equal(fval, groundv)
+    let lb = lobster_value_to_binary(parsed)
+    let lbval, lberr = lobster_binary_to_value(typeof direct, lb)
+    assert not lberr
+    assert equal(lbval, groundv)
 
     assert switch rnd(2):
         default: true
@@ -373,7 +378,7 @@ run_test("misc"):
         let divisor = 2.0
         // mod with floats and vectors.
         assert 5.0 % divisor == 1.0
-        assert float2_1 * 5.0 % divisor == float2_1 
+        assert float2_1 * 5.0 % divisor == float2_1
         assert int2_1 * 5 % 2 == int2_1
 
     do():
