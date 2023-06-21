@@ -29,6 +29,7 @@ struct Parser {
         int implicits;
     };
     vector<BlockScope> block_stack;
+    int serializable_id_cur = -1;
 
     Parser(NativeRegistry &natreg, Lex &lex, SymbolTable &st)
         : natreg(natreg), lex(lex), st(st) {}
@@ -421,7 +422,7 @@ struct Parser {
         }
     }
 
-    string_view ParseAttribute(map<string_view, string_view> &attributes) {
+    pair<string_view, string_view> ParseAttribute(map<string_view, string_view> &attributes) {
         auto key = ExpectId();
         string_view value;
         if (IsNext(T_ASSIGN)) {
@@ -438,7 +439,7 @@ struct Parser {
             }
         }
         attributes[key] = value;
-        return key;
+        return { key, value };
     }
 
     void ParseField(GUDT *gudt, bool member_private, bool local_member) {
@@ -569,7 +570,17 @@ struct Parser {
                 st.bound_typevars_stack.push_back(gudt->generics);
                 for (;;) {
                     if (IsNext(T_ATTRIBUTE)) {
-                        auto key = ParseAttribute(gudt->attributes);
+                        auto [key, value] = ParseAttribute(gudt->attributes);
+                        if (key == "serializable") {
+                            if (!udt || gudt->IsGeneric() || is_abstract || is_struct)
+                                Error("serializable attribute only for non-generic non-abstract classes");
+                            if (value.empty()) {
+                                serializable_id_cur++;
+                            } else {
+                                serializable_id_cur = parse_int<int>(value);
+                            }
+                            udt->serializable_id = serializable_id_cur;
+                        }
                     } else {
                         bool member_private = IsNext(T_PRIVATE);
                         if (IsNext(T_FUN)) {

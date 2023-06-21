@@ -264,6 +264,6 @@ run_test("types"):
     do():
         // Classes may have attributes.
         class A:
-            attribute foo = 1
+            attribute serializable = 1
             a = 2
         A {}

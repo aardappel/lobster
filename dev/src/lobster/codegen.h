@@ -119,7 +119,7 @@ struct CodeGen  {
         EmitOp(IL_BLOCK_START);
     }
 
-    const int ti_num_udt_fields = 5;
+    const int ti_num_udt_fields = 6;
     const int ti_num_udt_per_field = 3;
 
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
@@ -183,6 +183,7 @@ struct CodeGen  {
                 tt.push_back(!udt->ssuperclass
                     ? (type_elem_t)-1
                     : GetTypeTableOffset(&udt->ssuperclass->thistype));
+                tt.push_back((type_elem_t)udt->serializable_id);
                 PushFields(udt, tt);
                 assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + udt->typeinfo);

@@ -137,6 +137,7 @@ struct TypeInfo {
             int len;
             int vtable_start_or_bitmask;
             type_elem_t superclass;
+            int serializable_id;
             TIField elemtypes[1];  // len elems.
         };
         int enumidx;       // V_INT, -1 if not an enum.

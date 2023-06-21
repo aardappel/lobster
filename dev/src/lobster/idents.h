@@ -235,6 +235,7 @@ struct UDT : Named {
     type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
     int numslots = -1;
     int vtable_start = -1;
+    int serializable_id = -1;
     vector<UDT *> subudts;  // Including self.
     bool subudts_dispatched = false;
     // Subset of methods that participate in dynamic dispatch. Order in this table determines
