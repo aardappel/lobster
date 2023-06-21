@@ -467,7 +467,7 @@ struct LobsterBinaryParser : Deserializer {
             }
             case V_FLOAT: {
                 float f;
-                if (end - data < sizeof(float)) Truncated();
+                if (end - data < (ptrdiff_t)sizeof(float)) Truncated();
                 memcpy(&f, data, sizeof(float));
                 data += sizeof(float);
                 PushV(f);
