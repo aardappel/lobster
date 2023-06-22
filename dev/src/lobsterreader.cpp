@@ -23,95 +23,9 @@
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "lobster/bytecode_generated.h"
 
+#include "lobster/lobsterreader.h"
+
 namespace lobster {
-
-struct Deserializer {
-    VM &vm;
-    vector<Value> stack;
-    vector<bool> is_ref;
-
-    ~Deserializer() {
-        assert(stack.size() == is_ref.size());
-        for (size_t i = 0; i < stack.size(); i++) {
-            if (is_ref[i]) stack[i].ref()->Dec(vm);
-        }
-    }
-
-    void PushV(Value v, bool ir = false) {
-        stack.emplace_back(v);
-        is_ref.push_back(ir);
-    }
-
-    Value PopV() {
-        auto v = stack.back();
-        stack.pop_back();
-        is_ref.pop_back();
-        return v;
-    }
-
-    void PopVN(size_t len) {
-        stack.resize(stack.size() - len);
-        is_ref.resize(is_ref.size() - len);
-    }
-
-    Deserializer(VM &vm) : vm(vm) {
-        stack.reserve(16);
-        is_ref.reserve(16);
-    }
-
-    bool PushDefault(type_elem_t typeoff, int defval) {
-        auto &ti = vm.GetTypeInfo(typeoff);
-        switch (ti.t) {
-            case V_INT:
-                PushV(defval);
-                break;
-            case V_FLOAT:
-                PushV(int2float(defval).f);
-                break;
-            case V_NIL:
-                PushV(NilVal());
-                break;
-            case V_VECTOR:
-                PushV(vm.NewVec(0, 0, typeoff), true);
-                break;
-            case V_STRUCT_S:
-            case V_STRUCT_R:
-            case V_CLASS: {
-                for (int i = 0; i < ti.len; i++) {
-                    PushDefault(ti.elemtypes[i].type, ti.elemtypes[i].defval);
-                }
-                if (ti.t == V_CLASS) {
-                    auto vec = vm.NewObject(ti.len, typeoff);
-                    if (ti.len) vec->CopyElemsShallow(&stack[stack.size() - (size_t)ti.len], ti.len);
-                    PopVN(ti.len);
-                    PushV(vec, true);
-                }
-                break;
-            }
-            default:
-                return false;
-        }
-        return true;
-    }
-
-    pair<const TypeInfo *, type_elem_t> LookupSubClass(string_view sname,
-            const TypeInfo *ti, type_elem_t typeoff) {
-        // Attempt to find this a subsclass.
-        // TODO: subclass of subclass, etc?
-        vm.EnsureUDTLookupPopulated();
-        auto &udts = vm.UDTLookup[sname];
-        for (auto udt : udts) {
-            if (udt->super_idx() == ti->structidx) {
-                // Note: this field only not -1 for UDTs actually constructed/used.
-                typeoff = (type_elem_t)udt->typeidx();
-                if (typeoff >= 0) {
-                    return { &vm.GetTypeInfo(typeoff), typeoff };
-                }
-            }
-        }
-        return { nullptr, (type_elem_t)-1 };
-    }
-};
 
 struct ValueParser : Deserializer {
     vector<pair<string, string>> filenames;
@@ -121,12 +35,12 @@ struct ValueParser : Deserializer {
         lex.do_string_interpolation = false;
     }
 
-    void Parse(StackPtr &sp, type_elem_t typeoff) {
+    Value Parse(type_elem_t typeoff) {
         ParseFactor(typeoff, true);
         Gobble(T_LINEFEED);
         Expect(T_ENDOFFILE);
         assert(stack.size() == 1);
-        Push(sp, PopV());
+        return PopV();
     }
 
     // Vector or struct.
@@ -284,32 +198,14 @@ struct ValueParser : Deserializer {
     }
 };
 
-static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp) {
-    ValueParser parser(vm, inp);
-    #ifdef USE_EXCEPTION_HANDLING
-    try
-    #endif
-    {
-        parser.Parse(sp, typeoff);
-        Push(sp, NilVal());
-    }
-    #ifdef USE_EXCEPTION_HANDLING
-    catch (string &s) {
-        Push(sp, NilVal());
-        Push(sp, vm.NewString(s));
-    }
-    #endif
-}
-
-
 struct FlexBufferParser : Deserializer {
 
     FlexBufferParser(VM &vm) : Deserializer(vm) {}
 
-    void Parse(StackPtr &sp, type_elem_t typeoff, flexbuffers::Reference r) {
+    Value Parse(type_elem_t typeoff, flexbuffers::Reference r) {
         ParseFactor(r, typeoff);
         assert(stack.size() == 1);
-        Push(sp, PopV());
+        return PopV();
     }
 
     void Error(const string &s) {
@@ -417,13 +313,13 @@ struct FlexBufferParser : Deserializer {
     }
 };
 
-static void ParseFlexData(StackPtr &sp, VM &vm, type_elem_t typeoff, flexbuffers::Reference r) {
-    FlexBufferParser parser(vm);
+static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp) {
+    ValueParser parser(vm, inp);
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        parser.Parse(sp, typeoff, r);
+        Push(sp, parser.Parse(typeoff));
         Push(sp, NilVal());
     }
     #ifdef USE_EXCEPTION_HANDLING
@@ -434,131 +330,22 @@ static void ParseFlexData(StackPtr &sp, VM &vm, type_elem_t typeoff, flexbuffers
     #endif
 }
 
-struct LobsterBinaryParser : Deserializer {
-
-    LobsterBinaryParser(VM &vm) : Deserializer(vm) {}
-
-    void Parse(StackPtr &sp, type_elem_t typeoff, const uint8_t *data, const uint8_t *end) {
-        ParseElem(data, end, typeoff);
-        assert(stack.size() == 1);
-        Push(sp, PopV());
+static void ParseFlexData(StackPtr &sp, VM &vm, type_elem_t typeoff, flexbuffers::Reference r) {
+    FlexBufferParser parser(vm);
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
+        Push(sp, parser.Parse(typeoff, r));
+        Push(sp, NilVal());
     }
-
-    void Error(const string &s) {
-        // FIXME: not great on non-exception platforms, this should not abort.
-        THROW_OR_ABORT(cat("lobster_binary_to_value: ", s));
+    #ifdef USE_EXCEPTION_HANDLING
+    catch (string &s) {
+        Push(sp, NilVal());
+        Push(sp, vm.NewString(s));
     }
-
-    void Truncated() {
-        Error("data truncated");
-    }
-
-    void ParseElem(const uint8_t *&data, const uint8_t *end, type_elem_t typeoff) {
-        auto base_ti = &vm.GetTypeInfo(typeoff);
-        auto ti = base_ti;
-        if (ti->t == V_NIL) {
-            ti = &vm.GetTypeInfo(typeoff = ti->subt);
-        }
-        if (end == data) Truncated();
-        switch (ti->t) {
-            case V_INT: {
-                PushV(DecodeVarintS(data, end));
-                break;
-            }
-            case V_FLOAT: {
-                float f;
-                if (end - data < (ptrdiff_t)sizeof(float)) Truncated();
-                memcpy(&f, data, sizeof(float));
-                data += sizeof(float);
-                PushV(f);
-                break;
-            }
-            case V_STRING: {
-                auto len = DecodeVarintU(data, end);
-                if (!len && base_ti->t == V_NIL) {
-                    PushV(NilVal());
-                } else {
-                    auto str = vm.NewString(string_view((const char *)data, (size_t)len));
-                    data += len;
-                    PushV(str, true);
-                }
-                break;
-            }
-            case V_VECTOR: {
-                auto len = DecodeVarintU(data, end);
-                if (!len && base_ti->t == V_NIL) {
-                    PushV(NilVal());
-                } else {
-                    auto stack_start = stack.size();
-                    for (size_t i = 0; i < len; i++) {
-                        ParseElem(data, end, ti->subt);
-                    }
-                    auto &sti = vm.GetTypeInfo(ti->subt);
-                    auto width = IsStruct(sti.t) ? sti.len : 1;
-                    auto len = iint(stack.size() - stack_start);
-                    auto n = len / width;
-                    auto vec = vm.NewVec(n, n, typeoff);
-                    if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
-                    PopVN(len);
-                    PushV(vec, true);
-                }
-                break;
-            }
-            case V_CLASS: {
-                auto elen = (int)DecodeVarintU(data, end);
-                if (!elen && base_ti->t == V_NIL) {
-                    PushV(NilVal());
-                } else {
-                    auto ser_id = DecodeVarintU(data, end);
-                    typeoff = vm.GetSubClassFromSerID(typeoff, (uint32_t)ser_id);
-                    if (typeoff < 0)
-                        Error(cat("serialization id ", ser_id, " is not a sub-class of ",
-                                  vm.StructName(*ti)));
-                    ti = &vm.GetTypeInfo(typeoff);
-                    auto stack_start = stack.size();
-                    auto NumElems = [&]() { return iint(stack.size() - stack_start); };
-                    for (int i = 0; NumElems() != ti->len; i++) {
-                        auto eti = ti->GetElemOrParent(NumElems());
-                        if (NumElems() >= elen) {
-                            if (!PushDefault(eti, ti->elemtypes[NumElems()].defval))
-                                Error("no default value exists for missing field " +
-                                      vm.LookupField(ti->structidx, i));
-                        } else {
-                            ParseElem(data, end, eti);
-                        }
-                    }
-                    if (elen > NumElems()) {
-                        // We have fields from a future version of this class, sadly we don't
-                        // know how to read past these fields since we have no type data.
-                        Error("extra fields presents in " + vm.StructName(*ti));
-                    }
-                    auto len = NumElems();
-                    auto vec = vm.NewObject(len, typeoff);
-                    if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
-                    PopVN(len);
-                    PushV(vec, true);
-                }
-                break;
-            }
-            case V_STRUCT_S:
-            case V_STRUCT_R: {
-                auto stack_start = stack.size();
-                auto NumElems = [&]() { return iint(stack.size() - stack_start); };
-                // NOTE: this provides no protection against structs changing in size,
-                // unlike classes. It will simply parse wrong.
-                while (NumElems() != ti->len) {
-                    auto eti = ti->GetElemOrParent(NumElems());
-                    ParseElem(data, end, eti);
-                }
-                break;
-            }
-            default:
-                Error("can\'t convert to value: " + ti->Debug(vm, false));
-                PushV(NilVal());
-                break;
-        }
-    }
-};
+    #endif
+}
 
 static void ParseLobsterBinaryData(StackPtr &sp, VM &vm, type_elem_t typeoff, const uint8_t *data,
                                    size_t size) {
@@ -567,7 +354,7 @@ static void ParseLobsterBinaryData(StackPtr &sp, VM &vm, type_elem_t typeoff, co
     try
     #endif
     {
-        parser.Parse(sp, typeoff, data, data + size);
+        Push(sp, parser.Parse(typeoff, data, data + size));
         Push(sp, NilVal());
     }
     #ifdef USE_EXCEPTION_HANDLING

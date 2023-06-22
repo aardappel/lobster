@@ -1521,7 +1521,7 @@ nfr("thread_read", "type", "T", "A1?",
     "get a struct from the thread queue. pass the typeof struct. blocks if no such"
             "structs available. returns struct, or nil if stop_worker_threads() was called",
     [](StackPtr &, VM &vm, Value &t) {
-        return Value(vm.WorkerRead((type_elem_t)t.ival()));
+        return vm.WorkerRead((type_elem_t)t.ival());
     });
 
 }  // AddBuiltins

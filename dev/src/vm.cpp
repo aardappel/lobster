@@ -19,6 +19,8 @@
 
 #include "lobster/vmops.h"
 
+#include "lobster/lobsterreader.h"
+
 namespace lobster {
 
 
@@ -747,40 +749,32 @@ void VM::WorkerWrite(RefObj *ref) {
     auto &ti = ref->ti(*this);
     if (ti.t != V_CLASS) Error("thread write: must be a class");
     auto st = (LObject *)ref;
-    // Use malloc instead of pool, since this is being sent to another thread.
-    auto buf = (Value *)malloc(sizeof(Value) * ti.len);
-    for (int i = 0; i < ti.len; i++) {
-        // FIXME: lift this restriction.
-        if (IsRefNil(GetTypeInfo(ti.elemtypes[i].type).t))
-            Error("thread write: only scalar class members supported for now");
-        buf[i] = st->AtS(i);
-    }
+    vector<uint8_t> buf;
+    st->ToLobsterBinary(*this, buf);
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
         unique_lock<mutex> lock(tt.mtx);
-        tt.tuples.push_back(buf);
+        tt.tuples.emplace_back(std::move(buf));
     }
     tt.condition.notify_one();
 }
 
-LObject *VM::WorkerRead(type_elem_t tti) {
+Value VM::WorkerRead(type_elem_t tti) {
     auto &ti = GetTypeInfo(tti);
     if (ti.t != V_CLASS) Error("thread read: must be a class type");
-    Value *buf = nullptr;
+    vector<uint8_t> buf;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
         unique_lock<mutex> lock(tt.mtx);
         tt.condition.wait(lock, [&] { return !tuple_space->alive || !tt.tuples.empty(); });
         if (!tt.tuples.empty()) {
-            buf = tt.tuples.front();
+            buf = std::move(tt.tuples.front());
             tt.tuples.pop_front();
         }
     }
-    if (!buf) return nullptr;
-    auto ns = NewObject(ti.len, tti);
-    ns->CopyElemsShallow(buf, ti.len);
-    free(buf);
-    return ns;
+    if (buf.empty()) return NilVal();
+    LobsterBinaryParser parser(*this);
+    return parser.Parse(tti, buf.data(), buf.data() + buf.size());
 }
 
 }  // namespace lobster

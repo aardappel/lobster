@@ -304,6 +304,7 @@
     <ClInclude Include="..\src\lobster\idents.h" />
     <ClInclude Include="..\src\lobster\il.h" />
     <ClInclude Include="..\src\lobster\lex.h" />
+    <ClInclude Include="..\src\lobster\lobsterreader.h" />
     <ClInclude Include="..\src\lobster\natreg.h" />
     <ClInclude Include="..\src\lobster\node.h" />
     <ClInclude Include="..\src\lobster\optimizer.h" />

@@ -206,5 +206,8 @@
     <ClInclude Include="..\src\lobster\constval.h">
       <Filter>compiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\lobsterreader.h">
+      <Filter>compiler\builtins</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

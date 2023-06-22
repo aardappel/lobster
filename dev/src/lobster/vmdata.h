@@ -876,7 +876,7 @@ struct TupleSpace {
     struct TupleType {
         // We have an independent list of tuples and synchronization per type, for minimum
         // contention.
-        list<Value *> tuples;
+        list<vector<uint8_t>> tuples;
         mutex mtx;
         condition_variable condition;
     };
@@ -885,10 +885,6 @@ struct TupleSpace {
     atomic<bool> alive;
 
     TupleSpace(size_t numstructs) : tupletypes(numstructs), alive(true) {}
-
-    ~TupleSpace() {
-        for (auto &tt : tupletypes) for (auto p : tt.tuples) delete[] p;
-    }
 };
 
 enum class TraceMode { OFF, ON, TAIL };
@@ -1034,7 +1030,7 @@ struct VM : VMArgs {
     void StartWorkers(iint numthreads);
     void TerminateWorkers();
     void WorkerWrite(RefObj *ref);
-    LObject *WorkerRead(type_elem_t tti);
+    Value WorkerRead(type_elem_t tti);
 
     void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 
