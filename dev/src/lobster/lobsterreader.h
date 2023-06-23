@@ -60,6 +60,9 @@ struct Deserializer {
             case V_NIL:
                 PushV(NilVal());
                 break;
+            case V_STRING:
+                PushV(vm.NewString(0), true);
+                break;
             case V_VECTOR:
                 PushV(vm.NewVec(0, 0, typeoff), true);
                 break;
