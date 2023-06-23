@@ -261,9 +261,16 @@ struct CodeGen  {
         auto max_ser_ids = parser.serializable_id_max + 1;
         ser_ids.resize(max_ser_ids, (type_elem_t)-1);
         for (auto udt : parser.st.udttable) {
-            if (udt->serializable_id >= 0) {
-                assert(ser_ids[udt->serializable_id] < 0);
-                ser_ids[udt->serializable_id] = GetTypeTableOffset(&udt->thistype);
+            if (!udt->g.is_abstract) {
+                // We generate a type table for every UDT regardless of wether it is referred to
+                // anywhere, for example (sub)classes may be constructed by deserializing them and
+                // not in code.
+                udt->ComputeSizes();
+                auto typeoff = GetTypeTableOffset(&udt->thistype);
+                if (udt->serializable_id >= 0) {
+                    assert(ser_ids[udt->serializable_id] < 0);
+                    ser_ids[udt->serializable_id] = typeoff;
+                }
             }
         }
 
