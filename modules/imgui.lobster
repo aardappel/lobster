@@ -104,6 +104,13 @@ def im_treenode_open(label, body):
         im_treenode_end()
     return open
 
+def im_treenode_open_if(label, cond, body):
+    let open = im_treenode_start(label, if cond: im_treenode_default_open else: 0)
+    if open:
+        body()
+        im_treenode_end()
+    return open
+
 def im_tab_bar(label, body):
     let open = im_tab_bar_start(label)
     if open:
