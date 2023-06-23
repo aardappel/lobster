@@ -1571,7 +1571,6 @@ struct Parser {
             Line line = lex;
             if (gudt->is_abstract)
                 Error("cannot instantiate abstract class/struct ", Q(gudt->name));
-            gudt->constructed = true;
             vector<Node *> exps(gudt->fields.size(), nullptr);
             ParseVector([&] () {
                 auto id = lex.sattr;

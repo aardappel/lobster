@@ -69,7 +69,7 @@ run_test("types"):
         // an S2 to an S1 recipient (structs are fixed size and carry no typeinfo).
         assert f(S1 {}) == 1
         assert f(S2 {}) == 2
-        class C0:
+        abstract class C0:
             def ad(): return 10
         class C1 : C0
             a:int = 0

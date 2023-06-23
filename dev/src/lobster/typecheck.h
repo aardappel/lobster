@@ -1318,7 +1318,7 @@ struct TypeChecker {
                     }
                 }
                 if (!best) {
-                    if (sub->g.constructed) {
+                    if (!sub->g.is_abstract) {
                         Error(call_args, "no implementation for ",
                                          Q(cat(sub->name, ".", csf->parent->name)));
                     } else {

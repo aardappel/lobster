@@ -85,7 +85,7 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
 
 // specialized to do GOAP (nodes created on the fly)
 
-class goapaction:
+abstract class goapaction:
     def precondition(state):
         return false
     def effect(state):
