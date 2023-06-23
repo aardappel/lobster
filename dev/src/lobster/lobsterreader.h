@@ -70,7 +70,8 @@ struct Deserializer {
             case V_STRUCT_R:
             case V_CLASS: {
                 for (int i = 0; i < ti.len; i++) {
-                    PushDefault(ti.elemtypes[i].type, ti.elemtypes[i].defval);
+                    if (!PushDefault(ti.elemtypes[i].type, ti.elemtypes[i].defval))
+                        return false;
                 }
                 if (ti.t == V_CLASS) {
                     auto vec = vm.NewObject(ti.len, typeoff);
