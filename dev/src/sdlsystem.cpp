@@ -123,6 +123,7 @@ int2 inputscale = int2_1;
 
 bool fullscreen = false;
 bool cursor = true;
+int cursorx = 0, cursory = 0;
 bool landscape = true;
 bool minimized = false;
 bool noninteractivetestmode = false;
@@ -774,7 +775,9 @@ bool SDLCursor(bool on) {
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_FALSE);
             SDL_ShowCursor(1);
             SDL_SetRelativeMouseMode(SDL_FALSE);
+            SDL_WarpMouseInWindow(_sdl_window, cursorx, cursory);
         } else {
+            SDL_GetMouseState(&cursorx, &cursory);
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_TRUE);
             SDL_ShowCursor(0);
             SDL_SetRelativeMouseMode(SDL_TRUE);
