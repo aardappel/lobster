@@ -32,8 +32,6 @@
   warning, if the struct is KEEP and contains refs in the chopped fields, it would need
   drops.
 
-- Debugger: uses static rather than dynamic type to show subclasses, see e.g. gr:GeneratorRef field
-
 - maybe add some standard #defines for Lobster GLSL for int3/float3,
   we'd be a lot closer to universally readable math code (minus
   the C/Python syntax differences, so still not fully copy-pastable).
@@ -147,6 +145,8 @@
   a) This resolution needs to be moved from parser to type checker (requiring us to add tags: unprocessed to the AST)
   b) We recognise T { .. } (or make it a special node type) in the type checker and duplicate the parser logic
      there. Even so, it be nice to allow tags:, which would just require the same as a).
+
+- a switch where all cases assign a non-nil value to nil variable doesn't make the var non-nil like if-then does.
 
 - very easy optimisation: the bulk of binary ops have the second arg as constant.
   Making specialized ops for these not only generated way more efficient code,

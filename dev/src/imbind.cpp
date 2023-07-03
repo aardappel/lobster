@@ -250,10 +250,10 @@ void Nil() {
     Text("nil");
 }
 
-void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool expanded, bool in_table = true) {
+void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool expanded, bool in_table = true) {
     if (in_table) {
         // Early out for types that don't make sense to display.
-        if (ti.t == V_FUNCTION) return;
+        if (ti->t == V_FUNCTION) return;
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         Text(label.sv);
@@ -266,16 +266,16 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
     }
     auto l = label.c_str();
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
-    switch (ti.t) {
+    switch (ti->t) {
         case V_INT: {
-            if (ti.enumidx == 0) {
-                assert(vm.EnumName(ti.enumidx) == "bool");
+            if (ti->enumidx == 0) {
+                assert(vm.EnumName(ti->enumidx) == "bool");
                 bool b = v->True();
                 if (ImGui::Checkbox(l, &b)) *v = b;
-            } else if (ti.enumidx >= 0) {
+            } else if (ti->enumidx >= 0) {
                 int val = v->intval();
                 int sel = 0;
-                auto &vals = *vm.bcf->enums()->Get(ti.enumidx)->vals();
+                auto &vals = *vm.bcf->enums()->Get(ti->enumidx)->vals();
                 vector<const char *> items(vals.size());
                 int i = 0;
                 for (auto vi : vals) {
@@ -307,10 +307,10 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
             }
             if (ImGui::TreeNodeEx(*l ? l : "[..]", flags)) {
                 if (BeginTable()) {
-                    auto &sti = vm.GetTypeInfo(ti.subt);
+                    auto &sti = vm.GetTypeInfo(ti->subt);
                     auto vec = v->vval();
                     for (iint i = 0; i < vec->len; i++) {
-                        ValToGUI(vm, vec->AtSt(i), sti, to_string(i), false);
+                        ValToGUI(vm, vec->AtSt(i), &sti, to_string(i), false);
                     }
                     EndTable();
                 }
@@ -322,37 +322,39 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
                 Nil();
                 break;
             }
+            // Upgrade to dynamic type if maybe subclass.
+            ti = &v->oval()->ti(vm);
             v = v->oval()->Elems();  // To iterate it like a struct.
         case V_STRUCT_R:
         case V_STRUCT_S: {
-            auto st = vm.bcf->udts()->Get(ti.structidx);
+            auto st = vm.bcf->udts()->Get(ti->structidx);
             // Special case for numeric structs & colors.
-            if (ti.len >= 2 && ti.len <= 4) {
-                for (int i = 1; i < ti.len; i++)
-                    if (ti.elemtypes[i].type != ti.elemtypes[0].type) goto generic;
-                if (ti.elemtypes[0].type == TYPE_ELEM_INT) {
-                    auto nums = ValueToI<4>(v, ti.len);
+            if (ti->len >= 2 && ti->len <= 4) {
+                for (int i = 1; i < ti->len; i++)
+                    if (ti->elemtypes[i].type != ti->elemtypes[0].type) goto generic;
+                if (ti->elemtypes[0].type == TYPE_ELEM_INT) {
+                    auto nums = ValueToI<4>(v, ti->len);
                     if (ImGui::InputScalarN(
                             l, ImGuiDataType_S64,
-                            (void *)nums.data(), ti.len, NULL, NULL, "%d", flags)) {
-                        ToValue(v, ti.len, nums);
+                            (void *)nums.data(), ti->len, NULL, NULL, "%d", flags)) {
+                        ToValue(v, ti->len, nums);
                     }
                     break;
-                } else if (ti.elemtypes[0].type == TYPE_ELEM_FLOAT) {
+                } else if (ti->elemtypes[0].type == TYPE_ELEM_FLOAT) {
                     if (st->name()->string_view() == "color") {
-                        auto c = ValueToFLT<4>(v, ti.len);
+                        auto c = ValueToFLT<4>(v, ti->len);
                         if (ImGui::ColorEdit4(l, (float *)c.data())) {
-                            ToValue(v, ti.len, c);
+                            ToValue(v, ti->len, c);
                         }
                     } else {
-                        auto nums = ValueToF<4>(v, ti.len);
+                        auto nums = ValueToF<4>(v, ti->len);
                         // FIXME: format configurable.
                         if (ImGui::InputScalarN(
                                 l,
                                 sizeof(double) == sizeof(float) ? ImGuiDataType_Float
                                                                 : ImGuiDataType_Double,
-                                (void *)nums.data(), ti.len, NULL, NULL, "%.3f", flags)) {
-                            ToValue(v, ti.len, nums);
+                                (void *)nums.data(), ti->len, NULL, NULL, "%.3f", flags)) {
+                            ToValue(v, ti->len, nums);
                         }
                     }
                     break;
@@ -363,9 +365,9 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
                 if (BeginTable()) {
                     auto fields = st->fields();
                     int fi = 0;
-                    for (int i = 0; i < ti.len; i++) {
-                        auto &sti = vm.GetTypeInfo(ti.GetElemOrParent(i));
-                        ValToGUI(vm, v + i, sti, string_view_nt(fields->Get(fi++)->name()->string_view()),
+                    for (int i = 0; i < ti->len; i++) {
+                        auto &sti = vm.GetTypeInfo(ti->GetElemOrParent(i));
+                        ValToGUI(vm, v + i, &sti, string_view_nt(fields->Get(fi++)->name()->string_view()),
                                     false);
                         if (IsStruct(sti.t)) i += sti.len - 1;
                     }
@@ -384,7 +386,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
             break;
         }
         case V_NIL:
-            ValToGUI(vm, v, vm.GetTypeInfo(ti.subt), label, expanded, false);
+            ValToGUI(vm, v, &vm.GetTypeInfo(ti->subt), label, expanded, false);
             break;
         case V_RESOURCE: {
             if (v->False()) {
@@ -415,7 +417,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
         }
         default:
             string sd;
-            v->ToString(vm, sd, ti, vm.debugpp);
+            v->ToString(vm, sd, *ti, vm.debugpp);
             Text(sd);
             break;
     }
@@ -438,7 +440,7 @@ void VarsToGUI(VM &vm) {
                 #if RTT_ENABLED
                 if (ti.t != val.type) continue;  // Likely uninitialized.
                 #endif
-                ValToGUI(vm, &val, ti, name, false);
+                ValToGUI(vm, &val, &ti, name, false);
                 if (IsStruct(ti.t)) i += ti.len - 1;
             }
             EndTable();
@@ -484,7 +486,7 @@ void DumpStackTrace(VM &vm) {
             append(sd, " (ERROR != ", BaseTypeName(debug_type), ")");
             Text(sd);
         } else {
-            ValToGUI(vm, x, ti, name, false);
+            ValToGUI(vm, x, &ti, name, false);
         }
     };
 
@@ -1224,7 +1226,7 @@ nfr("im_edit_anything", "value,label", "AkS?", "A1",
         IsInit(vm);
         // FIXME: would be good to support structs, but that requires typeinfo, not just len.
         auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
-        ValToGUI(vm, &v, ti, label.True() ? label.sval()->strvnt() : string_view_nt(""), true,
+        ValToGUI(vm, &v, &ti, label.True() ? label.sval()->strvnt() : string_view_nt(""), true,
                  false);
         return v;
     });
