@@ -90,16 +90,20 @@ struct Deserializer {
     pair<const TypeInfo *, type_elem_t> LookupSubClass(string_view sname,
             const TypeInfo *ti, type_elem_t typeoff) {
         // Attempt to find this a subsclass.
-        // TODO: subclass of subclass, etc?
         vm.EnsureUDTLookupPopulated();
         auto &udts = vm.UDTLookup[sname];
         for (auto udt : udts) {
-            if (udt->super_idx() == ti->structidx) {
-                // Note: this field only not -1 for UDTs actually constructed/used.
-                typeoff = (type_elem_t)udt->typeidx();
-                if (typeoff >= 0) {
-                    return { &vm.GetTypeInfo(typeoff), typeoff };
+            for (auto ludt = udt;;) {
+                auto super_idx = ludt->super_idx();
+                if (super_idx < 0) break;
+                if (super_idx == ti->structidx) {
+                    // Note: this field only not -1 for UDTs actually constructed/used.
+                    typeoff = (type_elem_t)udt->typeidx();
+                    if (typeoff >= 0) {
+                        return { &vm.GetTypeInfo(typeoff), typeoff };
+                    }
                 }
+                ludt = vm.bcf->udts()->Get(super_idx);
             }
         }
         return { nullptr, (type_elem_t)-1 };
