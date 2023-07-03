@@ -142,6 +142,12 @@
     else:
         f()
 
+- For a Foo { .. }, the parser does resolution of initialized/named fields, but for T { .. } whatever args
+  are given are applied in-order, which is probably not expected. Either:
+  a) This resolution needs to be moved from parser to type checker (requiring us to add tags: unprocessed to the AST)
+  b) We recognise T { .. } (or make it a special node type) in the type checker and duplicate the parser logic
+     there. Even so, it be nice to allow tags:, which would just require the same as a).
+
 - very easy optimisation: the bulk of binary ops have the second arg as constant.
   Making specialized ops for these not only generated way more efficient code,
   but the div by 0 case can be filtered out at compile time too etc.
@@ -514,7 +520,22 @@
   concatenation you'd end up with extra data in the buffer, though that is fairly contrived,
   since you'd have to explictly do buffer.substring to produce that problem.
 
+- we should add constant size arrays.
+  they would almost be identical to structs: allocated in-line in parent, copied rather
+  than referenced, and help building low cost datatypes.
+  We could even make them piggy-back on structs, as essentially a float[4] is just a
+  struct with 4 float fields that you can also index over. And we already allow
+  indexing on same-type structs?
 
+- Type aliases, in particular for use with int/float/string, to distinguish them from
+  other uses of the same type.
+  They would decay to their base type much like enums, but would need casts to avoid
+  a type error the other direction.
+  They would differ from wrapping in a struct, since by default a struct as a whole
+  is not entirely compatible with the base element type.. though maybe it should be?
+  Would cause more specializations, since you'd need to perculated the type alias
+  to get the full range of type checking from them.
+  Would make it more important to merge specializations on a bytecode level?
 
 - Should we specialize own vs borrow on a per string constant basis?
 
