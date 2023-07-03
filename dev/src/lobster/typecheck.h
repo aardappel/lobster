@@ -1533,12 +1533,28 @@ struct TypeChecker {
                 for (auto ov : from) {
                     auto arg = ov->sf->args[argidx].type;
                     if (arg->t == V_UUDT && type->t == V_CLASS) {
-                        if (DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt) >= 0) {
-                            if (!matches.empty()) {
-                                // FIXME: do similar logic to below to pick one?
+                        auto dist = DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt);
+                        if (dist >= 0) {
+                            if (matches.size() == 1) {
+                                auto oarg = matches[0]->sf->args[argidx].type;
+                                assert(oarg->t == V_UUDT);
+                                auto odist =
+                                    DistanceToSpecializedSuper(oarg->spec_udt->gudt, type->udt);
+                                if (dist < odist) {
+                                    matches[0] = ov;  // Overwrite with better pick.
+                                } else if (odist < dist) {
+                                    // Keep old one.
+                                } else {
+                                    // Keep both, and hope the next arg disambiguates.
+                                    matches.push_back(ov);
+                                }                                
+                            } else {
+                                matches.push_back(ov);
+                            }
+                            if (matches.size() > 1) {
+                                // FIXME: would it be ok to to defer to next arg like below?
                                 Error(call_args, "multiple generic arguments apply");
                             }
-                            matches.push_back(ov);
                         }
                     } else if (ConvertsTo(type, arg, CF_NONE)) {
                         if (matches.size() == 1 && type->t == V_CLASS) {
