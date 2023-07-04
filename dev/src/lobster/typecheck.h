@@ -806,6 +806,12 @@ struct TypeChecker {
                     break;
                 }
             }
+            if (udt.g.is_abstract) {
+                // Only necessary to add itself, but not to superclasses.
+                // FIXME: if we could separate the concept of dispatch_root and subudts,
+                // we wouldn't even need to add the root.
+                break;
+            }
         }
         if (!udt.ComputeSizes()) {
             Error(errn, cat("struct ", Q(udt.name), " cannot be self-referential"));
