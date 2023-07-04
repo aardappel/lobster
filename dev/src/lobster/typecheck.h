@@ -1370,10 +1370,12 @@ struct TypeChecker {
                     // the dispatch table since we can then simply reuse that one.
                     // This might not be the case when the superclass is above the dispatch
                     // root and the dispatch root doesn't have its own implementation.
+                    // Below we set the sf the superclass picked.
                     bool found_sup_impl = false;
                     for (auto &pick : overload_picks) {
                         if (!pick.supcall && pick.ov == overload_picks[i].ov) {
                             found_sup_impl = true;
+                            break;
                         }
                     }
                     if (found_sup_impl)
@@ -1418,12 +1420,23 @@ struct TypeChecker {
             }
             // Pass 2.
             last_sf = nullptr;
-            for (auto udt : dispatch_udt.subudts) {
+            for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
                 auto sf = udt->dispatch_table[vtable_idx].sf;
                 if (!sf) continue;
                 if (any_recursive && sf->returngiventype.Null())
                     Error(call_args, "recursive dynamic dispatch of ", Q(sf->parent->name),
                                      " must have explicit return type");
+                if (overload_picks[i].supcall) {
+                    // Now that everything has been typechecked, set the correct sf just
+                    // in case the superclass picked a different one.
+                    for (auto [j, pick] : enumerate(overload_picks)) {
+                        if (!pick.supcall && pick.ov == overload_picks[i].ov) {
+                            udt->dispatch_table[vtable_idx].sf =
+                                dispatch_udt.subudts[j]->dispatch_table[vtable_idx].sf;
+                            break;
+                        }
+                    }
+                }
                 if (last_sf) {
                     // We do this in pass 2 because otherwise arg types will be unresolved.
                     // FIXME: good to have this check here so it only occurs for functions
