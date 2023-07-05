@@ -395,11 +395,11 @@ nfr("ph_render", "", "", "",
     "renders all rigid body objects.",
     [](StackPtr &, VM &) {
         CheckPhysics();
-        otransforms.push();
         auto oldcolor = curcolor;
         for (b2Body *body = world->GetBodyList(); body; body = body->GetNext()) {
             auto pos = body->GetPosition();
             auto mat = translation(float3(pos.x, pos.y, 0)) * rotationZ(body->GetAngle());
+            otransforms.push();
             otransforms.append_object2view(mat);
             for (b2Fixture *fixture = body->GetFixtureList(); fixture;
                  fixture = fixture->GetNext()) {
@@ -428,8 +428,8 @@ nfr("ph_render", "", "", "",
                     case b2Shape::e_typeCount: assert(0); break;
                 }
             }
+            otransforms.pop();
         }
-        otransforms.pop();
         curcolor = oldcolor;
         return NilVal();
     });
