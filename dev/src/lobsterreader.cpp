@@ -230,8 +230,12 @@ struct FlexBufferParser : Deserializer {
         switch (ft) {
             case flexbuffers::FBT_INT:
             case flexbuffers::FBT_BOOL: {
-                ExpectType(V_INT, vt);
-                PushV(r.AsInt64());
+                if (vt == V_FLOAT) {
+                    PushV((double)r.AsInt64());
+                } else {
+                    ExpectType(V_INT, vt);
+                    PushV(r.AsInt64());
+                }
                 break;
             }
             case flexbuffers::FBT_FLOAT: {
