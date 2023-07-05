@@ -202,7 +202,7 @@ bool LoadFont(string_view name, float size) {
     return font != nullptr;
 }
 
-LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTextFlags flags = 0) {
+LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTextFlags flags = 0, int num_lines = 1) {
     struct InputTextCallbackData {
         LString *str;
         VM &vm;
@@ -219,8 +219,14 @@ LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTex
     };
     flags |= ImGuiInputTextFlags_CallbackResize;
     InputTextCallbackData cbd { str, vm };
-    ImGui::InputText(label, (char *)str->data(), str->len + 1, flags,
-                     InputTextCallbackData::InputTextCallback, &cbd);
+    if (num_lines > 1) {
+        ImGui::InputTextMultiline(label, (char *)str->data(), str->len + 1,
+            ImVec2(ImGui::CalcItemWidth(), ImGui::GetTextLineHeight() * num_lines), flags,
+            InputTextCallbackData::InputTextCallback, &cbd);
+    } else {
+        ImGui::InputText(label, (char *)str->data(), str->len + 1, flags,
+            InputTextCallbackData::InputTextCallback, &cbd);
+    }
     return cbd.str;
 }
 
@@ -830,6 +836,13 @@ nfr("im_input_text", "label,str", "SSk", "S",
     [](StackPtr &, VM &vm, Value &text, Value &str) {
         IsInit(vm);
         return Value(LStringInputText(vm, Label(vm, text), str.sval()));
+    });
+
+nfr("im_input_text_multi_line", "label,str,num_lines", "SSkI", "S",
+    "",
+    [](StackPtr &, VM &vm, Value &text, Value &str, Value &num_lines) {
+        IsInit(vm);
+        return Value(LStringInputText(vm, Label(vm, text), str.sval(), 0, num_lines.intval()));
     });
 
 nfr("im_input_int", "label,val,min,max", "SIII", "I",
