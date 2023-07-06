@@ -184,6 +184,17 @@ void IsInit(VM &vm, pair<Nesting, Nesting> require = { N_WIN, N_MENU }) {
 
 pair<bool, bool> IMGUIEvent(SDL_Event *event) {
     if (!imgui_init) return { false, false };
+    switch (event->type) {
+        case SDL_KEYDOWN:
+        case SDL_KEYUP: {
+            // ImGui likes to use ESC for cancelling edit actions, but pretty much
+            // every game uses ESC to switch menus, which would cause users wanting to
+            // switch menus to lose their edits unintentionally.
+            // TODO: make this behavior configurable from Lobster code?
+            if (event->key.keysym.sym == SDLK_ESCAPE) return { false, false };
+            break;
+        }
+    }
     ImGui_ImplSDL2_ProcessEvent(event);
     return { ImGui::GetIO().WantCaptureMouse, ImGui::GetIO().WantCaptureKeyboard };
 }
