@@ -540,6 +540,10 @@ inline float smoothstep(float x) {
     return x * x * (3 - 2 * x);
 }
 
+inline float smoothstep(float a, float b, float f) {
+    return smoothstep(std::min(std::max((f - a) / (b - a), 0.0f), 1.0f));
+}
+
 inline float smootherstep(float x) {
     return x * x * x * (x * (x * 6 - 15) + 10);
 }

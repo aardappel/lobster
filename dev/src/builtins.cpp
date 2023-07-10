@@ -1071,6 +1071,12 @@ nfr("smoothstep", "x", "F", "F",
         return Value(smoothstep(x.fltval()));
     });
 
+nfr("smoothstep", "a,b,f", "FFF", "F",
+    "hermite interpolation between a and b by f [0..1], https://registry.khronos.org/OpenGL-Refpages/gl4/html/smoothstep.xhtml",
+    [](StackPtr &, VM &, Value &a, Value &b, Value &f) {
+        return Value(smoothstep(a.fltval(), b.fltval(), f.fltval()));
+    });
+
 nfr("smootherstep", "x", "F", "F",
     "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep",
     [](StackPtr &, VM &, Value &x) {
