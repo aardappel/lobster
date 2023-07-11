@@ -53,6 +53,7 @@ enum Nesting {
     N_POPUP,
     N_CHILD,
     N_VGROUP,
+    N_TOOLTIP,
 };
 
 vector<Nesting> nstack;
@@ -167,6 +168,9 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_MENU:
                 ImGui::EndMenu();
+                break;
+            case N_TOOLTIP:
+                ImGui::EndTooltip();
                 break;
         }
         // If this was indeed the item we're looking for, we can stop popping.
@@ -831,6 +835,26 @@ nfr("im_tooltip", "label", "S", "",
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
             ImGui::SetTooltip("%s", Label(vm, text));
         return NilVal();
+    });
+
+nfr("im_tooltip_multi_start", "", "", "B",
+    "(use im_tooltip_multi instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::BeginTooltip();
+            Push(sp, true);
+            NPush(N_TOOLTIP);
+        } else {
+            Push(sp, false);
+        }
+    });
+
+nfr("im_tooltip_multi_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_TOOLTIP);
     });
 
 nfr("im_checkbox", "label,bool", "SI", "I2",

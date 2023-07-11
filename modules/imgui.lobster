@@ -111,6 +111,13 @@ def im_treenode_open_if(label, cond, body):
         im_treenode_end()
     return open
 
+def im_tooltip_multi(body):
+    let open = im_tooltip_multi_start()
+    if open:
+        body()
+        im_tooltip_multi_end()
+    return open
+
 def im_tab_bar(label, body):
     let open = im_tab_bar_start(label)
     if open:
