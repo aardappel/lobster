@@ -372,6 +372,45 @@ Mix_Chunk *RenderSFXR(string_view buf) {
     return AllocChunk(synth.data(), synth.size());
 }
 
+// Copied and modified from stb_vorbis_decode_memory.
+// It is changed to allow passing in the channel count so the automatic channel
+// conversion occurs.
+static int DecodeVorbis(const unsigned char *mem, int len, int channels, short **output) {
+   int data_len, offset, total, limit, error;
+   short *data;
+   stb_vorbis *v = stb_vorbis_open_memory(mem, len, &error, NULL);
+   if (v == NULL) return -1;
+   stb_vorbis_info info = stb_vorbis_get_info(v);
+   limit = channels * 4096;
+   offset = data_len = 0;
+   total = limit;
+   data = (short *) malloc(total * sizeof(*data));
+   if (data == NULL) {
+      stb_vorbis_close(v);
+      return -2;
+   }
+   for (;;) {
+      int n = stb_vorbis_get_frame_short_interleaved(v, channels, data+offset, total-offset);
+      if (n == 0) break;
+      data_len += n;
+      offset += n * channels;
+      if (offset + limit > total) {
+         short *data2;
+         total *= 2;
+         data2 = (short *) realloc(data, total * sizeof(*data));
+         if (data2 == NULL) {
+            free(data);
+            stb_vorbis_close(v);
+            return -2;
+         }
+         data = data2;
+      }
+   }
+   *output = data;
+   stb_vorbis_close(v);
+   return data_len;
+}
+
 Sound *LoadSound(string_view filename, SoundType st) {
     auto it = sound_files.find(filename);
     if (it != sound_files.end()) {
@@ -393,14 +432,12 @@ Sound *LoadSound(string_view filename, SoundType st) {
             break;
         }
         case SOUND_OGG: {
-            int channels = 0;
-            int sample_rate = 0;
             short *out = nullptr;
-            auto read = stb_vorbis_decode_memory((const unsigned char *)buf.c_str(),
-                                                 (int)buf.length(), &channels, &sample_rate, &out);
+            auto read = DecodeVorbis((const unsigned char *)buf.c_str(), (int)buf.length(), 2, &out);
             if (read < 0)
                 return nullptr;
-            chunk = AllocChunk(out, read);
+            // DecodeVorbis returns the number of frames, so multiply by number of channels (2).
+            chunk = AllocChunk(out, read * 2);
             free(out);
             break;
         }
