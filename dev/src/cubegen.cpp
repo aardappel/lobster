@@ -1039,14 +1039,16 @@ nfr("cg_average_surface_color", "world", "R:voxels", "F}:3II", "",
 	});
 
 nfr("cg_average_face_colors", "world", "R:voxels", "F]",
-    "returns a vector of 4 floats per face: color and alpha",
+    "returns a vector of 7 elements with 4 floats per face: color and alpha."
+    "last element contains the total average color and alpha",
 	[](StackPtr &sp, VM &vm) {
 		auto &v = GetVoxels(Pop(sp));
-        auto vec = vm.NewVec(0, 6 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
+        auto vec = vm.NewVec(0, 7 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto &palette = palettes[v.palette_idx].colors;
         int3 dims[] = { int3(0, 1, 2), int3(0, 2, 1), int3(1, 2, 0) };
         float3 srgb_cache[256];
         bool cache_set[256] = { false };
+        float4 total_avg_color = float4_0;
 		for (int f = 0; f < 6; f++) {
             auto dim = dims[f % 3];
             auto positive_dir = f < 3;
@@ -1084,7 +1086,13 @@ nfr("cg_average_face_colors", "world", "R:voxels", "F]",
             vec->Push(vm, col.y);
             vec->Push(vm, col.z);
             vec->Push(vm, alpha);
+            total_avg_color += float4(col.x, col.y, col.z, alpha);
         }
+        total_avg_color *= (1.0f / 6.0f);
+        vec->Push(vm, total_avg_color.x);
+        vec->Push(vm, total_avg_color.y);
+        vec->Push(vm, total_avg_color.z);
+        vec->Push(vm, total_avg_color.w);
         Push(sp, vec);
 	});
 
