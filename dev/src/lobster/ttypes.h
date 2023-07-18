@@ -120,8 +120,8 @@ namespace lobster {
     TOK(T_MEMBER_FRAME, "member_frame") \
     TOK(T_STATIC, "static") \
     TOK(T_STATIC_FRAME, "static_frame") \
-    TOK(T_ABSTRACT, "abstract")
-
+    TOK(T_ABSTRACT, "abstract") \
+    TOK(T_GUARD, "guard")
 
 enum TType {
     #define TOK(ENUM, STR) ENUM,

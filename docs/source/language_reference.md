@@ -52,8 +52,8 @@ Lexical definition
 Grammar
 -------
 
-Below, `...` indicates a loop with exit point at that scope level (ex. `(ident ... ,)` -> `(ident (, ident)*)`, * meaning optionaly repeating), 
-and `||` is like `|` except indicates a precedence level difference. `[rule]` Means optional. 
+Below, `...` indicates a loop with exit point at that scope level (ex. `(ident ... ,)` -> `(ident (, ident)*)`, * meaning optionaly repeating),
+and `||` is like `|` except indicates a precedence level difference. `[rule]` Means optional.
 
 program = stats end\_of\_file
 
@@ -66,7 +66,7 @@ topexp = `namespace` ident
 
 class = ( `class` \| `struct` ) ident
         ( `=` ident specializers
-       \| [ generics ] `:` [ ident [ specializers ] ] 
+       \| [ generics ] `:` [ ident [ specializers ] ]
           indlist( ident [ `:` type ] [ `=` exp ] \| functiondef ) )
 
 specializers = `<` list( type ) `>`
@@ -87,7 +87,7 @@ args = [ list( ident [ ( `:` \| `::` ) type ] [ `=` exp ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void` 
+type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void`
 \| ident [ specializers ]
 
 call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
@@ -107,9 +107,9 @@ deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 
 factor = constant \| `(` exp `)` \| `super` \| ctrlflow \| pakfile string\_constant \| constructor \| `fn` functionargsbody \| ident [ call ]
 
-ctrlflow = `if` ifpart \| (`for` \| `while`) exp `:` body
+ctrlflow = `if` ifpart \| (`for` \| `while`) exp `:` body \| `guard` exp [ `:` body ]
 
-ifpart = exp `:` body (`else` `:` body \| `elif` `:` ifpart) 
+ifpart = exp `:` body (`else` `:` body \| `elif` `:` ifpart)
 
 constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list( ident `:` exp \| exp ] `}`
 
@@ -1146,9 +1146,54 @@ var st = switch i:
         default: "what?"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The value you switch on may be int, float or string. Cases may test for multiple
-values, even ranges (which are inclusive)
+The value you switch on may be int, float, string or class instance. Cases may test for multiple
+values, even ranges (which are inclusive). When testing for class instances, the cases are
+types which must exhaustively cover all non-abstract sub-classes of the class type.
 
+`guard` is a special variant of `if` for writing code in "early-out" style:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+guard a >= 0:
+    print "error: a is negative!"
+imagine_10_lines_of_code_processing_a_here()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Is equivalent to:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if a >= 0:
+    imagine_10_lines_of_code_processing_a_here()
+else:
+    print "error: a is negative!"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Why would you want this over a traditional if-else? The idea that code becomes
+easier to read if it is written in a more linear style, dealing with all cases
+where the code does not apply first, before getting to the main body of code.
+This becomes more obvious if you use nested if-thens.
+
+A lot of code tends to use a `return` inside an `if` for this early-out style of
+programming, but that has the problem that it only works at the top level of
+a function. `guard` works for code anywhere, and does not require the extra
+`return` statement.
+
+If there is no code to run in the error/exceptional case, you may even shorten
+it to:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+guard a >= 0
+imagine_10_lines_of_code_processing_a_here()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Is equivalent to:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if a >= 0:
+    imagine_10_lines_of_code_processing_a_here()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+That reads like an `assert` except instead of aborting the program, it skips the
+rest of the block.
 
 Modules and Name Spaces
 ----------------------

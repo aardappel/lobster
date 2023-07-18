@@ -124,7 +124,8 @@ ident [ call ] | <code>-&gt;</code> ident | <code>++</code> |
 <code>super</code> | ctrlflow | pakfile string_constant | constructor |
 <code>fn</code> functionargsbody | ident [ call ]</p>
 <p>ctrlflow = <code>if</code> ifpart | (<code>for</code> |
-<code>while</code>) exp <code>:</code> body</p>
+<code>while</code>) exp <code>:</code> body | <code>guard</code> exp [
+<code>:</code> body ]</p>
 <p>ifpart = exp <code>:</code> body (<code>else</code> <code>:</code>
 body | <code>elif</code> <code>:</code> ifpart)</p>
 <p>constructor = <code>[</code> [ list( exp ) ] <code>]</code> [
@@ -963,8 +964,39 @@ different:</p>
             &quot;yes{x}&quot;
         case 4..6, 8: &quot;maybe&quot;
         default: &quot;what?&quot;</code></pre>
-<p>The value you switch on may be int, float or string. Cases may test
-for multiple values, even ranges (which are inclusive)</p>
+<p>The value you switch on may be int, float, string or class instance.
+Cases may test for multiple values, even ranges (which are inclusive).
+When testing for class instances, the cases are types which must
+exhaustively cover all non-abstract sub-classes of the class type.</p>
+<p><code>guard</code> is a special variant of <code>if</code> for
+writing code in “early-out” style:</p>
+<pre><code>guard a &gt;= 0:
+    print &quot;error: a is negative!&quot;
+imagine_10_lines_of_code_processing_a_here()</code></pre>
+<p>Is equivalent to:</p>
+<pre><code>if a &gt;= 0:
+    imagine_10_lines_of_code_processing_a_here()
+else:
+    print &quot;error: a is negative!&quot;</code></pre>
+<p>Why would you want this over a traditional if-else? The idea that
+code becomes easier to read if it is written in a more linear style,
+dealing with all cases where the code does not apply first, before
+getting to the main body of code. This becomes more obvious if you use
+nested if-thens.</p>
+<p>A lot of code tends to use a <code>return</code> inside an
+<code>if</code> for this early-out style of programming, but that has
+the problem that it only works at the top level of a function.
+<code>guard</code> works for code anywhere, and does not require the
+extra <code>return</code> statement.</p>
+<p>If there is no code to run in the error/exceptional case, you may
+even shorten it to:</p>
+<pre><code>guard a &gt;= 0
+imagine_10_lines_of_code_processing_a_here()</code></pre>
+<p>Is equivalent to:</p>
+<pre><code>if a &gt;= 0:
+    imagine_10_lines_of_code_processing_a_here()</code></pre>
+<p>That reads like an <code>assert</code> except instead of aborting the
+program, it skips the rest of the block.</p>
 <h2 id="modules-and-name-spaces">Modules and Name Spaces</h2>
 <p>A module is simply a single <code>.lobster</code> file, that can be
 imported into another using the <code>import</code> keyword. You can

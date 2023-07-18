@@ -49,7 +49,7 @@
         },
         {
           "name": "keyword.control.source.lobster",
-          "match": "\\b(if|while|switch|case|default|collectwhile|for|filter|exists|map)\\b"
+          "match": "\\b(guard|if|while|switch|case|default|collectwhile|for|filter|exists|map)\\b"
         },
         {
           "name": "support.function.source.lobster",

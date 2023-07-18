@@ -394,6 +394,9 @@ struct Lex : LoadedFile {
                             if (sattr == TName(T_LAMBDA)) return T_LAMBDA;
                             if (sattr == TName(T_FROM)) return T_FROM;
                             break;
+                        case 'g':
+                            if (sattr == TName(T_GUARD)) return T_GUARD;
+                            break;
                         case 'i':
                             if (sattr == TName(T_INTTYPE)) return T_INTTYPE;
                             if (sattr == TName(T_IF)) return T_IF;

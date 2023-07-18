@@ -15,7 +15,7 @@ contexts:
 
         #####################################################################################
         # ProgramFlow -- Conditional:
-        - match: (?i)\b(if|elif|else)\b
+        - match: (?i)\b(guard|if|elif|else)\b
           scope: keyword.control.conditional.lobster
 
         - match: (?i)\b(and|or|not)\b

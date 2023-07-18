@@ -102,7 +102,7 @@ struct Parser {
             }
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
-        Expect(terminator);
+        if (terminator != T_NONE) Expect(terminator);
         auto b = block->children.back();
         if (Is<EnumRef>(b) || Is<GUDTRef>(b) || Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
             if (terminator == T_ENDOFFILE) block->Add(new IntConstant(lex, 0));
@@ -1385,6 +1385,10 @@ struct Parser {
                 lex.Next();
                 return ParseIf(lex);
             }
+            case T_GUARD: {
+                lex.Next();
+                return ParseGuard(lex);
+            }
             case T_WHILE: {
                 lex.Next();
                 Line line = lex;
@@ -1468,6 +1472,21 @@ struct Parser {
             if (islf) lex.Push(T_LINEFEED);
             lex.Next();
             return new IfThen(line, cond, thenp);
+        }
+    }
+
+    Node *ParseGuard(Line line) {
+        auto cond = ParseExp(true);
+        auto block = new Block(lex);
+        if (lex.token != T_COLON) {
+            Expect(T_LINEFEED);
+            ParseStatements(block, T_NONE);
+            return new IfThen(line, cond, block);
+        } else {
+            auto exitblock = ParseBlock();
+            Expect(T_LINEFEED);
+            ParseStatements(block, T_NONE);
+            return new IfElse(line, cond, block, exitblock);
         }
     }
 

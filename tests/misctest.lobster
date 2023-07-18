@@ -404,3 +404,18 @@ run_test("misc"):
             state = 2
         call_function_value(fv)
         assert state == 2
+
+    do():
+        // Guards.
+        let gs = map(4) i:
+            guard i >= 2:
+                guard i >= 1:
+                    10
+                20
+            guard i >= 3:
+                30
+            40
+        assert equal(gs, [ 10, 20, 30, 40 ])
+        guard true
+        guard false
+        assert false
