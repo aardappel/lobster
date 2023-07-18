@@ -124,6 +124,9 @@
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <EnableModules>true</EnableModules>
+      <BuildStlModules>false</BuildStlModules>
+      <AdditionalOptions>/D_ITERATOR_DEBUG_LEVEL=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,6 +162,8 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableModules>true</EnableModules>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -198,6 +203,8 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableModules>true</EnableModules>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -298,6 +305,7 @@
     <ClInclude Include="..\src\lobster\idents.h" />
     <ClInclude Include="..\src\lobster\il.h" />
     <ClInclude Include="..\src\lobster\lex.h" />
+    <ClInclude Include="..\src\lobster\lobsterreader.h" />
     <ClInclude Include="..\src\lobster\natreg.h" />
     <ClInclude Include="..\src\lobster\node.h" />
     <ClInclude Include="..\src\lobster\optimizer.h" />

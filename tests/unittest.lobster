@@ -27,5 +27,6 @@ import lifetimetest
 import builtintest
 import operators
 import matrixtest
+import typeswitch
 
 "the end"  // FIXME: a file can not be only import files?

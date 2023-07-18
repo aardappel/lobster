@@ -23,77 +23,9 @@
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "lobster/bytecode_generated.h"
 
+#include "lobster/lobsterreader.h"
+
 namespace lobster {
-
-struct Deserializer {
-    VM &vm;
-    vector<Value> stack;
-    vector<bool> is_ref;
-
-    ~Deserializer() {
-        assert(stack.size() == is_ref.size());
-        for (size_t i = 0; i < stack.size(); i++) {
-            if (is_ref[i]) stack[i].ref()->Dec(vm);
-        }
-    }
-
-    void PushV(Value v, bool ir = false) {
-        stack.emplace_back(v);
-        is_ref.push_back(ir);
-    }
-
-    Value PopV() {
-        auto v = stack.back();
-        stack.pop_back();
-        is_ref.pop_back();
-        return v;
-    }
-
-    void PopVN(size_t len) {
-        stack.resize(stack.size() - len);
-        is_ref.resize(is_ref.size() - len);
-    }
-
-    Deserializer(VM &vm) : vm(vm) {
-        stack.reserve(16);
-        is_ref.reserve(16);
-    }
-
-    bool PushDefault(type_elem_t typeoff, int defval) {
-        auto &ti = vm.GetTypeInfo(typeoff);
-        switch (ti.t) {
-            case V_INT:
-                PushV(defval);
-                break;
-            case V_FLOAT:
-                PushV(int2float(defval).f);
-                break;
-            case V_NIL:
-                PushV(NilVal());
-                break;
-            case V_VECTOR:
-                PushV(vm.NewVec(0, 0, typeoff), true);
-                break;
-            case V_STRUCT_S:
-            case V_STRUCT_R:
-            case V_CLASS: {
-                for (int i = 0; i < ti.len; i++) {
-                    PushDefault(ti.elemtypes[i].type, ti.elemtypes[i].defval);
-                }
-                if (ti.t == V_CLASS) {
-                    auto vec = vm.NewObject(ti.len, typeoff);
-                    if (ti.len) vec->CopyElemsShallow(&*stack.end() - ti.len, ti.len);
-                    PopVN(ti.len);
-                    PushV(vec, true);
-                }
-                break;
-            }
-            default:
-                return false;
-        }
-        return true;
-    }
-};
 
 struct ValueParser : Deserializer {
     vector<pair<string, string>> filenames;
@@ -103,12 +35,12 @@ struct ValueParser : Deserializer {
         lex.do_string_interpolation = false;
     }
 
-    void Parse(StackPtr &sp, type_elem_t typeoff) {
+    Value Parse(type_elem_t typeoff) {
         ParseFactor(typeoff, true);
         Gobble(T_LINEFEED);
         Expect(T_ENDOFFILE);
         assert(stack.size() == 1);
-        Push(sp, PopV());
+        return PopV();
     }
 
     // Vector or struct.
@@ -239,8 +171,11 @@ struct ValueParser : Deserializer {
                 Expect(T_LEFTCURLY);
                 auto name = vm.StructName(*ti);
                 if (name != sname) {
-                    // TODO: support subclasses like flexbuffer code below.
-                    lex.Error("class/struct type " + name + " required, " + sname + " given");
+                    auto p = LookupSubClass(sname, ti, typeoff);
+                    if (!p.first)
+                        lex.Error("class/struct type " + name + " required, " + sname + " given");
+                    ti = p.first;
+                    typeoff = p.second;
                 }
                 ParseElems(T_RIGHTCURLY, typeoff, ti->len, push);
                 break;
@@ -263,37 +198,19 @@ struct ValueParser : Deserializer {
     }
 };
 
-static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp) {
-    ValueParser parser(vm, inp);
-    #ifdef USE_EXCEPTION_HANDLING
-    try
-    #endif
-    {
-        parser.Parse(sp, typeoff);
-        Push(sp, NilVal());
-    }
-    #ifdef USE_EXCEPTION_HANDLING
-    catch (string &s) {
-        Push(sp, NilVal());
-        Push(sp, vm.NewString(s));
-    }
-    #endif
-}
-
-
 struct FlexBufferParser : Deserializer {
 
     FlexBufferParser(VM &vm) : Deserializer(vm) {}
 
-    void Parse(StackPtr &sp, type_elem_t typeoff, flexbuffers::Reference r) {
+    Value Parse(type_elem_t typeoff, flexbuffers::Reference r) {
         ParseFactor(r, typeoff);
         assert(stack.size() == 1);
-        Push(sp, PopV());
+        return PopV();
     }
 
     void Error(const string &s) {
         // FIXME: not great on non-exception platforms, this should not abort.
-        THROW_OR_ABORT(s);
+        THROW_OR_ABORT(cat("flexbuffers_binary_to_value: ", s));
     }
 
     void ExpectType(ValueType given, ValueType needed) {
@@ -313,8 +230,12 @@ struct FlexBufferParser : Deserializer {
         switch (ft) {
             case flexbuffers::FBT_INT:
             case flexbuffers::FBT_BOOL: {
-                ExpectType(V_INT, vt);
-                PushV(r.AsInt64());
+                if (vt == V_FLOAT) {
+                    PushV((double)r.AsInt64());
+                } else {
+                    ExpectType(V_INT, vt);
+                    PushV(r.AsInt64());
+                }
                 break;
             }
             case flexbuffers::FBT_FLOAT: {
@@ -358,23 +279,12 @@ struct FlexBufferParser : Deserializer {
                 auto name = vm.StructName(*ti);
                 auto sname = m["_type"];
                 if (sname.IsString() && sname.AsString().c_str() != name) {
-                    // Attempt to find this a subsclass.
-                    // TODO: subclass of subclass, etc?
-                    vm.EnsureUDTLookupPopulated();
-                    auto &udts = vm.UDTLookup[sname.AsString().c_str()];
-                    for (auto udt : udts) {
-                        if (udt->super_idx() == ti->structidx) {
-                            // Note: this field only not -1 for UDTs actually constructed/used.
-                            typeoff = (type_elem_t)udt->typeidx();
-                            if (typeoff >= 0) {
-                                ti = &vm.GetTypeInfo(typeoff);
-                                goto subclassfound;
-                            }
-                        }
-                    }
-                    Error(cat("class/struct type ", name, " required, ", sname.AsString().str(),
-                             " given"));
-                    subclassfound:;
+                    auto p = LookupSubClass(sname.AsString().c_str(), ti, typeoff);
+                    if (!p.first)
+                        Error(cat("class/struct type ", name, " required, ", sname.AsString().str(),
+                                  " given"));
+                    ti = p.first;
+                    typeoff = p.second;
                 }
                 auto stack_start = stack.size();
                 auto NumElems = [&]() { return iint(stack.size() - stack_start); };
@@ -407,13 +317,48 @@ struct FlexBufferParser : Deserializer {
     }
 };
 
+static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp) {
+    ValueParser parser(vm, inp);
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
+        Push(sp, parser.Parse(typeoff));
+        Push(sp, NilVal());
+    }
+    #ifdef USE_EXCEPTION_HANDLING
+    catch (string &s) {
+        Push(sp, NilVal());
+        Push(sp, vm.NewString(s));
+    }
+    #endif
+}
+
 static void ParseFlexData(StackPtr &sp, VM &vm, type_elem_t typeoff, flexbuffers::Reference r) {
     FlexBufferParser parser(vm);
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        parser.Parse(sp, typeoff, r);
+        Push(sp, parser.Parse(typeoff, r));
+        Push(sp, NilVal());
+    }
+    #ifdef USE_EXCEPTION_HANDLING
+    catch (string &s) {
+        Push(sp, NilVal());
+        Push(sp, vm.NewString(s));
+    }
+    #endif
+}
+
+static void ParseLobsterBinaryData(StackPtr &sp, VM &vm, type_elem_t typeoff, const uint8_t *data,
+                                   size_t size) {
+    LobsterBinaryParser parser(vm);
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
+        Push(sp, parser.Parse(typeoff, data, data + size));
         Push(sp, NilVal());
     }
     #ifdef USE_EXCEPTION_HANDLING
@@ -447,7 +392,7 @@ nfr("flexbuffers_value_to_binary", "val,max_nesting,cycle_detection", "AI?B?", "
         auto mn = maxnest.ival();
         if (mn > 0) fbc.max_depth = mn;
         fbc.cycle_detect = cycle_detect.True();
-        val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
+        val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : V_NIL, {}, -1);
         fbc.builder.Finish();
         if (!fbc.cycle_hit.empty())
             vm.BuiltinError("flexbuffers_value_to_binary: data structure contains a cycle: " +
@@ -476,16 +421,17 @@ nfr("flexbuffers_binary_to_value", "typeid,flex", "TS", "A1?S?",
         }
     });
 
-nfr("flexbuffers_binary_to_json", "flex,field_quotes", "SB?", "S?S?",
-    "turns a flexbuffer into a JSON string",
+nfr("flexbuffers_binary_to_json", "flex,field_quotes,indent_string", "SBS", "S?S?",
+    "turns a flexbuffer into a JSON string. If indent_string is empty, will be a single line string",
     [](StackPtr &sp, VM &vm) {
+        auto indent_string = Pop(sp).sval()->strvnt();
         auto quoted = Pop(sp).ival();
         auto fsv = Pop(sp).sval()->strv();
         vector<uint8_t> reuse_buffer;
         if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
             auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
             string json;
-            root.ToString(true, quoted, json);
+            root.ToString(true, quoted, json, indent_string.size() != 0, 0, indent_string.c_str());
             auto s = vm.NewString(json);
             Push(sp, s);
             Push(sp, NilVal());
@@ -512,6 +458,27 @@ nfr("flexbuffers_json_to_binary", "json", "S", "SS?",
         return err;
     });
 
+nfr("lobster_value_to_binary", "val", "A", "S",
+    "turns any reference value into a binary using a fast & compact Lobster native serialization format. "
+    "this is intended for threads/networking, not for storage (since it is not readable by other languages). "
+    "data structures participating must have been marked by attribute serializable. "
+    "does not provide protection against cycles, use flexbuffers if that is a concern. ",
+    [](StackPtr &, VM &vm, Value &val) {
+        vector<uint8_t> buf;
+        val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
+        // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?
+        auto s = vm.NewString(
+            string_view((const char *)buf.data(), buf.size()));
+        return Value(s);
+    });
+
+nfr("lobster_binary_to_value", "typeid,bin", "TS", "A1?S?",
+    "turns binary created by lobster_value_to_binary back into a value",
+    [](StackPtr &sp, VM &vm) {
+        auto fsv = Pop(sp).sval()->strv();
+        auto id = Pop(sp).ival();
+        ParseLobsterBinaryData(sp, vm, (type_elem_t)id, (const uint8_t *)fsv.data(), fsv.size());
+    });
 }
 
 }

@@ -17,7 +17,7 @@ Lexical definition
 -   Whitespace is space, tab, carriage return, nested comments delimited by `/*`
     and `*/` or single line comments starting with `//`
 
--   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= ==
+-   Operator tokens are `( ) [ ] { } : , & | + ++ += - -- -= * *= / /= % %= ==
     != < > <= >= <- = ? . -> ^ << >>`
 
 -   Strings delimited by `"` and character constants with `'` using escape codes
@@ -92,7 +92,7 @@ type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` 
 
 call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
-expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ]
+expstat = exp \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ]
 
 exp = opexp [ ( `=` \| `+=` \| `-=` \| `*=` \| `/=` \| `%=` ) exp ]
 
@@ -195,11 +195,11 @@ The `class` and `struct` keywords allow you to define a user defined type. For
 example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy:
+struct int2:
     x:int
     y:int
 
-struct xyz : xy
+struct int3 : int2
     z:int
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -219,44 +219,48 @@ The above example uses ints directly, but you
 can also define types more generically, and then define named specializations of them:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy<T>:
+struct vec2<T>:
     x:T
     y:T
 
-struct xy_i = xy<int>
-struct xy_f = xy<float>
+struct int2 = vec2<int>
+struct float2 = vec2<float>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You construct values of these types you use a similar syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-let v = xy { 1, 0 }
+let v = int2 { 1, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-(Or use `xy_f { 1, 0 }` / `xy<bool> { true, false }` to explicitly pick a particular
+(Or use `float2 { 1, 0 }` / `vec2<bool> { true, false }` to explicitly pick a different
 specialization).
 
-The type ensures that the right number of values are given, and they can now be
-accessed as `v.x` etc. in addition to `v[0]`.
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy:
+struct float2:
     x = 0.0
     y = 0.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Additionally, you may specify default values, if these are given, then these
-values are not arguments to the constructor, e.g. `xy {}`.
+values are not arguments to the constructor, e.g. `vec2 {}`.
 
 For more complex structs, you can use field names as "tags" in a constructor
 call, for example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-xy { x: 1, y: 2 }
+vec2 { x: 1, y: 2 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Besides being more readable, it allows you to specify the fields in any order,
 and to override fields that have defaults.
+
+To declare a type whose only purpose is to serve as a superclass for other
+types and is not to be instantiated, declare it with `abstract`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+abstract class Node
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Operators
@@ -306,7 +310,7 @@ You may even use a vector as index, e.g.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 let mat = [ [ 1, 2 ],  [ 3, 4 ] ]
-let pos = xy { 0, 1 }
+let pos = int2 { 0, 1 }
 print mat[pos]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -322,7 +326,7 @@ be `float`). They also work on structs containing ints or floats with either
 another struct or a single int or float. These structs must be the same type.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-xy { 1, 2 } * xy { 4, 5 }  // results in xy { 4, 10 }
+int2 { 1, 2 } * int2 { 4, 5 }  // results in int2 { 4, 10 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All 5 also have have a combined assignment operator version, `+= -= *= /= %=`,
@@ -375,9 +379,9 @@ Named functions can be declared at any scope level (may be local), like so:
 def name(arg1, arg2): body
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`body` can either be a single expression, multiple expressions all on a single
-line separated by `;`, or, most commonly, an indentation (start of code on the
-next line further than the previous line, in this case the `def` keyword), and
+`body` can either be a single expression, or, most commonly, an indentation
+(start of code on the next line further than the previous line,
+in this case the `def` keyword), and
 then any number of expressions on their own line separated by linefeeds, until a
 de-dedentation occurs (return to the indentation level of the parent, in this
 case again the `def` keyword). It is an error to de-dedent less than the parent
@@ -408,11 +412,11 @@ access all fields / functions of that object directly, without having to prefix
 them with the argument name, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def magnitude(v::xy): return sqrt(x * x + y * y)
+def magnitude(v::vec2): return sqrt(x * x + y * y)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can also leave out the `v::xy` entirely if you define this function as part
-of a `class` / `struct` definition of type `xy` (see above). Both types of
+You can also leave out the `v::vec2` entirely if you define this function as part
+of a `class` / `struct` definition of type `vec2` (see above). Both types of
 definition are equivalent.
 
 You can specify an explicit return type, like so:
@@ -610,6 +614,15 @@ If there are more return values than there are variables, additionally
 values are thrown away, and if there are more variables than there are return
 values, this is an error.
 
+Other than functions (and in assignments statements, see above), expressions
+can return multiple values in other contexts too, but there may need to
+be placed in parentheses to disambiguate them from other uses of `,`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let x, y = if foo: m() else: (1, 2)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 ### Scope
 
 Functions and variables declared there-in always obey lexical scope: any use of
@@ -711,6 +724,30 @@ class B : A
 That `f()` is statically dispatched to call `A`'s version of `f` (or its
 superclass, if it doesn't have one).
 
+You can also "dynamic dispatch" with `switch` ! You can use class names as
+switch cases:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+switch x:
+    case A: print x.field_in_a
+    case B: print x.field_in_b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As you can see, the type of variable switched on will be "upgraded" to the type
+matched, so you can access its fields.
+
+switches on types are "exhaustive", meaning if you don't use a `default` case
+(and its a good habit to not use those) you will get a compile-time error if
+a type is not covered by a switch (all possible subclasses of the type of the
+switched on value).
+
+Superclass cases can apply to subclass cases, and if both are present, the
+most specific case will always be used. It is a good idea to make superclasses
+`abstract` for use with `switch`, that way you may omit a case for them,
+causing all their subclasses to need their own case.
+
+The actual implementation use vtables much like the above dynamic dispatch,
+so is similar in speed too.
 
 ### Functions with different number of arguments / default arguments.
 

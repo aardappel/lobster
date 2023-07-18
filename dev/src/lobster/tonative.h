@@ -47,6 +47,15 @@ inline int ParseOpAndGetArity(int opc, const int *&ip, int &regso) {
             arity = int(ip - ips);
             break;
         }
+        case IL_JUMP_TABLE_DISPATCH: {
+            ip++;  // vtable_idx
+            auto mini = *ip++;
+            auto maxi = *ip++;
+            auto n = maxi - mini + 2;
+            ip += n;
+            arity = int(ip - ips);
+            break;
+        }
         case IL_FUNSTART: {
             ip++;  // function idx.
             ip++;  // max regs.

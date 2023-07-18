@@ -36,6 +36,7 @@ run_test("misc"):
     class testa:
         a:int
     class testb : testa
+        attribute serializable
         b:int
 
     def tf(x:int, y:int): return 1
@@ -53,42 +54,47 @@ run_test("misc"):
     assert(tf(to_a(testb { 0, 0 }), 1) == 4)
 
     class parsetest:
+        attribute serializable = 123
         h:bool
         a:int
         b:float
-        c:xyz_f
+        c:float3
         d:string
         e:[int]
         f:string?
         g:int
+        s:testa  // Test subclasses.
 
     let direct = parsetest {
-        false, 1, 2.0, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
-        [ 0, -64 ], nil, true
+        false, 1, 2.0, float3 { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
+        [ 0, -64 ], nil, true, testb { 6, 7 }
     }
     var parsed, err = parse_data(typeof direct, "{direct}")
-    //print(parsed)
-    //print(direct)
     if err: print err
     assert equal(parsed, direct)
     // Test defaults:
-    parsed, err = parse_data(typeof direct, "parsetest {{ true, 1, 1.0, xyz_f {{}}, \"\", [] }}")
+    parsed, err = parse_data(typeof direct, "parsetest {{ true, 1, 1.0, float3 {{}}, \"\", [], nil, -1, testb {{ 6, 7 }} }}")
     if err: print err
-    let groundv = parsetest { true, 1, 1.0, xyz { 0.0, 0.0, 0.0 }, "", [], nil, 0 }
+    let groundv = parsetest { true, 1, 1.0, float3 { 0.0, 0.0, 0.0 }, "", [], nil, -1, testb { 6, 7 } }
     assert equal(parsed, groundv)
     let flex = flexbuffers_value_to_binary(parsed)
-    let json = flexbuffers_binary_to_json(flex)
+    let json = flexbuffers_binary_to_json(flex, false, "")
     assert json
-    let groundj = """{ _type: "parsetest", a: 1, b: 1.0, c: { x: 0.0, y: 0.0, z: 0.0 }, d: "", e: [  ], f: null, g: 0, h: 1 }"""
+    // Fields that are nil or scalar default value should be missing!
+    let groundj = """{ a: 1, b: 1.0, d: "", e: [  ], g: -1, h: 1, s: { _type: "testb", a: 6, b: 7 } }"""
     assert json == groundj
     let flex2, ferr = flexbuffers_json_to_binary(json)
     assert not ferr
-    let json2 = flexbuffers_binary_to_json(flex2)
+    let json2 = flexbuffers_binary_to_json(flex2, false, "")
     assert json2
     assert json2 == groundj
     let fval, fverr = flexbuffers_binary_to_value(typeof direct, flex2)
     assert not fverr
     assert equal(fval, groundv)
+    let lb = lobster_value_to_binary(parsed)
+    let lbval, lberr = lobster_binary_to_value(typeof direct, lb)
+    assert not lberr
+    assert equal(lbval, groundv)
 
     assert switch rnd(2):
         default: true
@@ -166,7 +172,7 @@ run_test("misc"):
     var aa = 5
     aa %= 2
     assert aa == 1
-    assert sign(xyz_f { -6.0, 0.0, 6.0 }) == xyz_i { -1, 0, 1 }
+    assert sign(float3 { -6.0, 0.0, 6.0 }) == int3 { -1, 0, 1 }
 
     // multiple return values
     let bb, cc, dd, ee = 1, 1, 1, 1
@@ -235,11 +241,11 @@ run_test("misc"):
     assert in_range(0, 1, 0)  // Pass int to nillable int type just for builtins.
 
     // Modulo operator extended to vectors and floats.
-    assert xy { 10, 20 } % xy { 3, 6 } == xy { 1, 2 }
-    assert xy { 10, 20 } % 3 == xy { 1, 2 }
+    assert int2 { 10, 20 } % int2 { 3, 6 } == int2 { 1, 2 }
+    assert int2 { 10, 20 } % 3 == int2 { 1, 2 }
     assert abs(4.0 % 1.5 - 1.0) < 0.01
-    assert max(abs(xy { 10.1, 20.1 } % xy { 3.0, 6.0 } - xy { 1.1, 2.1 })) < 0.01
-    assert max(abs(xy { 10.1, 20.1 } % 3.0 - xy { 1.1, 2.1 })) < 0.01
+    assert max(abs(float2 { 10.1, 20.1 } % float2 { 3.0, 6.0 } - float2 { 1.1, 2.1 })) < 0.01
+    assert max(abs(float2 { 10.1, 20.1 } % 3.0 - float2 { 1.1, 2.1 })) < 0.01
 
     // Unicode in strings: either as escape code, or also direct, if your editor supports it.
     assert "⺆㋇䬈" == "\u2E86\u32C7\u4B08"
@@ -271,9 +277,9 @@ run_test("misc"):
     let val = dict2.get("a", nil)
     assert val and val == "b"
     // Test using structs!
-    let dict3 = dictionary<xyz_i, xyz_i> { 17 }
-    dict3.set(xyz { 1, 2, 3 }, xyz { 4, 5, 6 })
-    assert dict3.get(xyz { 1, 2, 3 }, xyz_0i) == xyz { 4, 5, 6 }
+    let dict3 = dictionary<int3, int3> { 17 }
+    dict3.set(int3 { 1, 2, 3 }, int3 { 4, 5, 6 })
+    assert dict3.get(int3 { 1, 2, 3 }, int3_0) == int3 { 4, 5, 6 }
 
     // Break.
     var lc = 0
@@ -305,14 +311,14 @@ run_test("misc"):
             def return_past() -> float:
                 switch mode:
                     case 0: return "a" from outer_dest1
-                    case 1: return xy { 4, 5 } from outer_dest2  // Different number and type.
+                    case 1: return int2 { 4, 5 } from outer_dest2  // Different number and type.
                     default: return 3.1  // local return.
             // The unwind check of the return_past call must deal with different return types and sizes.
             return string(return_past())
-        return xy { length(outer_dest1()), 0 }
-    assert outer_dest2(0) == xy { 1, 0 }
-    assert outer_dest2(1) == xy { 4, 5 }
-    assert outer_dest2(2) == xy { 3, 0 }
+        return int2 { length(outer_dest1()), 0 }
+    assert outer_dest2(0) == int2 { 1, 0 }
+    assert outer_dest2(1) == int2 { 4, 5 }
+    assert outer_dest2(2) == int2 { 3, 0 }
 
     // Like Python, but actually a built-in function.
     if false:
@@ -366,12 +372,19 @@ run_test("misc"):
     // IEEE754 div by zero behavior
     assert "{1.0 / 0.0}" == "inf"
     assert "{1.0 % 0.0}".find_string("nan") >= 0
-    assert "{(xy_1 / xy_0).y}" == "inf"
+    assert "{(float2_1 / float2_0).y}" == "inf"
+
+    do():
+        let divisor = 2.0
+        // mod with floats and vectors.
+        assert 5.0 % divisor == 1.0
+        assert float2_1 * 5.0 % divisor == float2_1
+        assert int2_1 * 5 % 2 == int2_1
 
     do():
         // Reflection
         class Reflect:
-            c = xy_1
+            c = float2_1
             s = "hello"
             v = [ 2 ]
         let r = Reflect {}
@@ -382,3 +395,12 @@ run_test("misc"):
         assert type_field_name(r, 2) == "s"
         assert type_field_value(r, 0) == "1.0"
         assert type_element_string(r.v) == "int"
+
+    do():
+        // Calling function values from native.
+        var state = 1
+        let fv = fn() -> void:
+            // Executed from within native code.
+            state = 2
+        call_function_value(fv)
+        assert state == 2

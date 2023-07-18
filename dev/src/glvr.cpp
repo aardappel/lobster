@@ -193,7 +193,7 @@ void VREye(int eye, float znear, float zfar) {
             trackeddeviceposes[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
         vrview = hmdpose * vrview;
     }
-    otransforms.set_object2view(otransforms.object2view() * invert(vrview));
+    otransforms.append_object2view(invert(vrview));
     #endif  // PLATFORM_VR
 }
 

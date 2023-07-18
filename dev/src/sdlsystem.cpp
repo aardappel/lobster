@@ -123,6 +123,7 @@ int2 inputscale = int2_1;
 
 bool fullscreen = false;
 bool cursor = true;
+int cursorx = 0, cursory = 0;
 bool landscape = true;
 bool minimized = false;
 bool noninteractivetestmode = false;
@@ -296,7 +297,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
     MakeDPIAware();
     TextToSpeechInit();  // Needs to be before SDL_Init because COINITBASE_MULTITHREADED
     // SDL_SetMainReady();
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO /* | SDL_INIT_AUDIO*/) < 0) {
         return SDLError("Unable to initialize SDL");
     }
 
@@ -396,18 +397,20 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         if (SDL_GL_SetSwapInterval(flags & INIT_NO_VSYNC ? 0 : -1) < 0) SDL_GL_SetSwapInterval(1);
     #endif
 
-    SDL_JoystickEventState(SDL_ENABLE);
-    SDL_JoystickUpdate();
-    for(int i = 0; i < SDL_NumJoysticks(); i++) {
-        SDL_Joystick *joy = SDL_JoystickOpen(i);
-        if (joy) {
-            LOG_INFO("Detected joystick: ", SDL_JoystickName(joy), " (",
-                                SDL_JoystickNumAxes(joy), " axes, ",
-                                SDL_JoystickNumButtons(joy), " buttons, ",
-                                SDL_JoystickNumBalls(joy), " balls, ",
-                                SDL_JoystickNumHats(joy), " hats)");
+    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) >= 0 && SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) >= 0) {
+        SDL_JoystickEventState(SDL_ENABLE);
+        SDL_JoystickUpdate();
+        for(int i = 0; i < SDL_NumJoysticks(); i++) {
+            SDL_Joystick *joy = SDL_JoystickOpen(i);
+            if (joy) {
+                LOG_INFO("Detected joystick: ", SDL_JoystickName(joy), " (",
+                                    SDL_JoystickNumAxes(joy), " axes, ",
+                                    SDL_JoystickNumButtons(joy), " buttons, ",
+                                    SDL_JoystickNumBalls(joy), " balls, ",
+                                    SDL_JoystickNumHats(joy), " hats)");
+            };
         };
-    };
+    }
 
     timestart = SDL_GetPerformanceCounter();
     timefreq = SDL_GetPerformanceFrequency();
@@ -494,7 +497,7 @@ vector<float> &SDLGetFrameTimeLog() { return frametimelog; }
 
 bool SDLFrame() {
     if (minimized) {
-        SDL_Delay(10);  // save CPU/battery
+        SDL_Delay(100);  // save CPU/battery
     } else {
         #ifndef __EMSCRIPTEN__
             SDL_GL_SwapWindow(_sdl_window);
@@ -547,7 +550,7 @@ bool SDLFrame() {
                     // Built-in key-press functionality.
                     switch (event.key.keysym.sym) {
                         case SDLK_PRINTSCREEN:
-                            ScreenShot("screenshot-" + GetDateTime() + ".jpg");
+                            ScreenShot("screenshot-" + GetDateTime() + ".png");
                             break;
                     }
                 }
@@ -648,6 +651,16 @@ bool SDLFrame() {
                         // reload and bind shaders/textures here
                         break;
                     }
+                    case SDL_WINDOWEVENT_MINIMIZED:
+                    case SDL_WINDOWEVENT_HIDDEN:
+                        minimized = true;
+                        break;
+                    case SDL_WINDOWEVENT_MAXIMIZED:
+                    case SDL_WINDOWEVENT_RESTORED:
+                    case SDL_WINDOWEVENT_SHOWN:
+                    case SDL_WINDOWEVENT_EXPOSED:
+                        minimized = false;
+                        break;
                     case SDL_WINDOWEVENT_LEAVE:
                         // never gets hit?
                         /*
@@ -762,7 +775,9 @@ bool SDLCursor(bool on) {
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_FALSE);
             SDL_ShowCursor(1);
             SDL_SetRelativeMouseMode(SDL_FALSE);
+            SDL_WarpMouseInWindow(_sdl_window, cursorx, cursory);
         } else {
+            SDL_GetMouseState(&cursorx, &cursory);
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_TRUE);
             SDL_ShowCursor(0);
             SDL_SetRelativeMouseMode(SDL_TRUE);

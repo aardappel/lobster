@@ -287,7 +287,7 @@ bool InitPlatform(string _maindir, string_view auxfilepath, bool from_bundle,
 void AddDataDir(string_view path) {
     auto fpath = SanitizePath(path);
     // Add slash at the end if missing, otherwise when loading it will fail.
-    if (fpath[fpath.length() - 1] != FILESEP) fpath = fpath + FILESEP;
+    if (!fpath.empty() && fpath[fpath.length() - 1] != FILESEP) fpath = fpath + FILESEP;
     if (!IsAbsolute(fpath)) fpath = projectdir + fpath;
     for (auto &dir : data_dirs) if (dir == fpath) goto skipd;
     data_dirs.push_back(fpath);
@@ -399,6 +399,11 @@ bool WriteFile(string_view filename, bool binary, string_view contents, bool all
         fclose(f);
     }
     return written == 1;
+}
+
+bool RenameFile(string_view oldfilename, string_view newfilename) {
+    int result = rename(SanitizePath(oldfilename).c_str(), SanitizePath(newfilename).c_str());
+    return result == 0;
 }
 
 bool FileExists(string_view filename, bool allow_absolute) {

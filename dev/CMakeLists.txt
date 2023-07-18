@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-if(NOT UNIX) 
+if(NOT UNIX)
   message(FATAL_ERROR "Cmake configuration is only supported for Linux. For "
   "other platforms, use the included native projects instead.")
 endif()
@@ -87,8 +87,8 @@ file(GLOB_RECURSE EXTERNAL_SRCS
 if(LOBSTER_ENGINE)
   set(SDL_SHARED OFF CACHE INTERNAL "")
   set(SDL_STATIC ON CACHE INTERNAL "")
-  set(VIDEO_VULKAN OFF CACHE INTERNAL "")
-  set(VIDEO_WAYLAND OFF CACHE INTERNAL "")
+  set(SDL_VULKAN OFF CACHE INTERNAL "")
+  set(SDL_WAYLAND OFF CACHE INTERNAL "")
   add_subdirectory(external/SDL EXCLUDE_FROM_ALL)
   file(GLOB_RECURSE EXTERNAL_ENGINE_SRCS
     "include/Box2D/*.cpp"
@@ -96,20 +96,18 @@ if(LOBSTER_ENGINE)
     "external/SDLMixer/*.c"
     "external/imgui/*.cpp"
     external/freetype/src/autofit/autofit.c
-    external/freetype/src/base/basepic.c
-    external/freetype/src/base/ftapi.c
+    external/freetype/src/cff/cff.c
     external/freetype/src/base/ftbase.c
     external/freetype/src/base/ftbbox.c
-    external/freetype/src/base/ftbitmap.c
-    external/freetype/src/base/ftdbgmem.c
     external/freetype/src/base/ftdebug.c
+    external/freetype/src/base/ftbitmap.c
     external/freetype/src/base/ftglyph.c
+    external/freetype/src/gzip/ftgzip.c
     external/freetype/src/base/ftinit.c
-    external/freetype/src/base/ftpic.c
     external/freetype/src/base/ftstroke.c
     external/freetype/src/base/ftsynth.c
     external/freetype/src/base/ftsystem.c
-    external/freetype/src/cff/cff.c
+    external/freetype/src/psaux/psaux.c
     external/freetype/src/pshinter/pshinter.c
     external/freetype/src/psnames/psnames.c
     external/freetype/src/raster/raster.c
@@ -151,6 +149,7 @@ find_package(Threads)
 
 include_directories(include
                     src
+                    external/SDL/include-config-/SDL2
                     external/SDL/include
                     external/SDLMixer
                     external/freetype/include
@@ -187,6 +186,14 @@ if(UNIX)
   set_source_files_properties(src/platform.cpp PROPERTIES COMPILE_FLAGS -DPLATFORM_DATADIR="\\\"${DATADIR}/\\\"")
   if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
+  endif()
+  if(APPLE)
+    if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE)
+      set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/../bin)
+    endif()
+    if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG)
+      set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/../bin)
+    endif()
   endif()
 else()
   set(BINDIR ${CMAKE_INSTALL_PREFIX})

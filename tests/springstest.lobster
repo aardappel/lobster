@@ -8,19 +8,19 @@ run_test("springs"):
     rnd_seed(0)
 
     class triangle:
-        verts:[xy_f]
+        verts:[float2]
         neighbors:[int]
 
     class node:
         t1:triangle
         t2:triangle
 
-    var verts = []::xy_f
+    var verts = []::float2
     var edges = []::[int]
     var quads = []::[int]
 
     def wiggleverts():
-        let disps = map(verts): xy_0
+        let disps = map(verts): float2_0
         for(verts) v:
             for(verts) w, i:
                 let tow = w - v
@@ -33,11 +33,11 @@ run_test("springs"):
             totaldisp += magnitude(d)
         return totaldisp
 
-    let wsize = xy_1i * 9
+    let wsize = int2_1 * 9
     verts = []
     edges = []
     forxy(wsize) p:
-        verts.push(float(p) + xy_rnd() - float(wsize) / 2.0)
+        verts.push(float(p) + rnd_float2() - float(wsize) / 2.0)
     while(wiggleverts() > 1.0): nil
     struct pedge:
         i1:int

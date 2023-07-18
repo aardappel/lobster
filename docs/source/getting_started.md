@@ -56,13 +56,21 @@ Open `dev\lobster\lobster.sln`, ensure `Release` is selected in the top bar,
 
 ### Mac
 
-Pre-Requirements: Latest XCode. Command-line CMake build not currently supported.
+Pre-Requirements: Latest XCode & CMake.
 
 Get https://github.com/aardappel/lobster using your favorite git tool (best),
 or just download a `.zip` otherwise.
 
-Open `dev/xcode/lobster/lobster.xcodeproj`, ensure `lobster_release > My Mac` is selected
-as scheme in the top bar, `Product -> Build`, then close if no errors.
+From the terminal, in the `dev` folder, run `sh build_osx.sh` which will
+generate an Xcode project in the `xcode-cmake` sub-folder.
+
+Open `dev/xcode-cmake/Lobster.xcodeproj`, ensure `lobster > My Mac` is selected
+as scheme in the top bar, `Product -> Build for -> Profiling` (to get a Release
+build), then close if no errors.
+
+Alternatively from the terminal from the `xcode-cmake` folder:
+
+`xcodebuild -toolchain clang -configuration Release -target lobster`
 
 Running it
 ----------

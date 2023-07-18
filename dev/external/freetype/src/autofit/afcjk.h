@@ -1,23 +1,23 @@
-/***************************************************************************/
-/*                                                                         */
-/*  afcjk.h                                                                */
-/*                                                                         */
-/*    Auto-fitter hinting routines for CJK writing system (specification). */
-/*                                                                         */
-/*  Copyright 2006-2015 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * afcjk.h
+ *
+ *   Auto-fitter hinting routines for CJK writing system (specification).
+ *
+ * Copyright (C) 2006-2023 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-#ifndef __AFCJK_H__
-#define __AFCJK_H__
+#ifndef AFCJK_H_
+#define AFCJK_H_
 
 #include "afhints.h"
 #include "aflatin.h"
@@ -41,9 +41,9 @@ FT_BEGIN_HEADER
 
 
   /*
-   *  CJK glyphs tend to fill the square.  So we have both vertical and
-   *  horizontal blue zones.  But some glyphs have flat bounding strokes that
-   *  leave some space between neighbour glyphs.
+   * CJK glyphs tend to fill the square.  So we have both vertical and
+   * horizontal blue zones.  But some glyphs have flat bounding strokes that
+   * leave some space between neighbour glyphs.
    */
 
 #define AF_CJK_IS_TOP_BLUE( b ) \
@@ -115,7 +115,8 @@ FT_BEGIN_HEADER
                      AF_CJKMetrics  metrics );
 
   FT_LOCAL( FT_Error )
-  af_cjk_hints_apply( AF_GlyphHints  hints,
+  af_cjk_hints_apply( FT_UInt        glyph_index,
+                      AF_GlyphHints  hints,
                       FT_Outline*    outline,
                       AF_CJKMetrics  metrics );
 
@@ -134,7 +135,7 @@ FT_BEGIN_HEADER
 
 FT_END_HEADER
 
-#endif /* __AFCJK_H__ */
+#endif /* AFCJK_H_ */
 
 
 /* END */

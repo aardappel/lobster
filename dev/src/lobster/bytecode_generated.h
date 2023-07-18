@@ -577,7 +577,8 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_IDENTS = 22,
     VT_SPECIDENTS = 24,
     VT_ENUMS = 32,
-    VT_VTABLES = 34
+    VT_VTABLES = 34,
+    VT_SER_IDS = 38
   };
   int32_t bytecode_version() const {
     return GetField<int32_t>(VT_BYTECODE_VERSION, 0);
@@ -615,6 +616,9 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *vtables() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_VTABLES);
   }
+  const flatbuffers::Vector<int32_t> *ser_ids() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_SER_IDS);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_BYTECODE_VERSION, 4) &&
@@ -646,6 +650,8 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(enums()) &&
            VerifyOffset(verifier, VT_VTABLES) &&
            verifier.VerifyVector(vtables()) &&
+           VerifyOffset(verifier, VT_SER_IDS) &&
+           verifier.VerifyVector(ser_ids()) &&
            verifier.EndTable();
   }
 };
@@ -690,6 +696,9 @@ struct BytecodeFileBuilder {
   void add_vtables(flatbuffers::Offset<flatbuffers::Vector<int32_t>> vtables) {
     fbb_.AddOffset(BytecodeFile::VT_VTABLES, vtables);
   }
+  void add_ser_ids(flatbuffers::Offset<flatbuffers::Vector<int32_t>> ser_ids) {
+    fbb_.AddOffset(BytecodeFile::VT_SER_IDS, ser_ids);
+  }
   explicit BytecodeFileBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -714,8 +723,10 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<bytecode::Ident>>> idents = 0,
     flatbuffers::Offset<flatbuffers::Vector<const bytecode::SpecIdent *>> specidents = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<bytecode::Enum>>> enums = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> vtables = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> vtables = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> ser_ids = 0) {
   BytecodeFileBuilder builder_(_fbb);
+  builder_.add_ser_ids(ser_ids);
   builder_.add_vtables(vtables);
   builder_.add_enums(enums);
   builder_.add_specidents(specidents);
@@ -744,7 +755,8 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
     const std::vector<flatbuffers::Offset<bytecode::Ident>> *idents = nullptr,
     const std::vector<bytecode::SpecIdent> *specidents = nullptr,
     const std::vector<flatbuffers::Offset<bytecode::Enum>> *enums = nullptr,
-    const std::vector<int32_t> *vtables = nullptr) {
+    const std::vector<int32_t> *vtables = nullptr,
+    const std::vector<int32_t> *ser_ids = nullptr) {
   auto bytecode__ = bytecode ? _fbb.CreateVector<int32_t>(*bytecode) : 0;
   auto typetable__ = typetable ? _fbb.CreateVector<int32_t>(*typetable) : 0;
   auto stringtable__ = stringtable ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*stringtable) : 0;
@@ -756,6 +768,7 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
   auto specidents__ = specidents ? _fbb.CreateVectorOfStructs<bytecode::SpecIdent>(*specidents) : 0;
   auto enums__ = enums ? _fbb.CreateVector<flatbuffers::Offset<bytecode::Enum>>(*enums) : 0;
   auto vtables__ = vtables ? _fbb.CreateVector<int32_t>(*vtables) : 0;
+  auto ser_ids__ = ser_ids ? _fbb.CreateVector<int32_t>(*ser_ids) : 0;
   return bytecode::CreateBytecodeFile(
       _fbb,
       bytecode_version,
@@ -769,7 +782,8 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
       idents__,
       specidents__,
       enums__,
-      vtables__);
+      vtables__,
+      ser_ids__);
 }
 
 inline const bytecode::BytecodeFile *GetBytecodeFile(const void *buf) {

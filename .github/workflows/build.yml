@@ -61,6 +61,7 @@ jobs:
     name: Build Windows
     runs-on: windows-2022
     steps:
+    - uses: actions/checkout@v1
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.0.3
     - name: build
@@ -80,8 +81,12 @@ jobs:
     name: Build Mac
     runs-on: macos-latest
     steps:
+    - uses: actions/checkout@v1
+    - name: cmake
+      working-directory: dev
+      run: sh build_osx.sh
     - name: build
-      working-directory: dev/xcode/lobster
+      working-directory: dev/xcode-cmake
       run: xcodebuild -toolchain clang -configuration Release -target lobster
     - name: test
       run: bin/lobster tests/unittest.lobster
@@ -134,8 +139,8 @@ jobs:
         mkdir $HOME/emsdk
         git clone --depth 1 https://github.com/emscripten-core/emsdk.git $HOME/emsdk
         $HOME/emsdk/emsdk update-tags
-        $HOME/emsdk/emsdk install tot
-        $HOME/emsdk/emsdk activate tot
+        $HOME/emsdk/emsdk install latest
+        $HOME/emsdk/emsdk activate latest
         echo "$HOME/emsdk" >> $GITHUB_PATH
     # Now we're first going to build the native Linux exe, so we can generate C++ code.
     # Without engine should speed this up.

@@ -88,6 +88,8 @@ table BytecodeFile {
     vtables:[int];
 
     nativemode:bool = true (deprecated);
+
+    ser_ids:[int];
 }
 
 root_type BytecodeFile;

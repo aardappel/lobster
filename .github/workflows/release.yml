@@ -67,8 +67,11 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
+    - name: cmake
+      working-directory: dev
+      run: sh build_osx.sh
     - name: build
-      working-directory: dev/xcode/lobster
+      working-directory: dev/xcode-cmake
       run: xcodebuild -toolchain clang -configuration Release -target lobster
     - name: test
       run: bin/lobster tests/unittest.lobster

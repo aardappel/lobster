@@ -108,3 +108,4 @@ dev/android-project/app/src/main/assets/default.lpak
 *.exp.log
 dev/CTestTestfile.cmake
 dev/lobster/lobster.aps
+dev/xcode-cmake

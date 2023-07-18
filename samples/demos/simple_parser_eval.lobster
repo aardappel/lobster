@@ -5,7 +5,7 @@
 
 import std
 
-class node
+abstract class node
 
 class integer : node
     i:int

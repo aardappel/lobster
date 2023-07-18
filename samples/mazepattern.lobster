@@ -26,5 +26,5 @@ while gl_frame():
     forxy(gl_window_size() / scale + 1) v:
         gl_translate float(v):
             if rnd(3):   // this is not in the original, and adds some blank spaces.. comment this line out if needed
-                endcap_line(if rnd(2): [ xy_0, xy_1 ]
-                                 else: [ xy_x, xy_y ], 0.25)
+                endcap_line(if rnd(2): [ float2_0, float2_1 ]
+                                 else: [ float2_x, float2_y ], 0.25)

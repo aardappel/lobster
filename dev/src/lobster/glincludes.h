@@ -149,6 +149,7 @@
         GLEXT(PFNGLQUERYCOUNTERPROC                  , glQueryCounter                  , 0) \
         GLEXT(PFNGLOBJECTLABELPROC                   , glObjectLabel                   , 0) \
         GLEXT(PFNGLDEBUGMESSAGECALLBACKPROC          , glDebugMessageCallback          , 0) \
+        GLEXT(PFNGLDEBUGMESSAGECONTROLPROC           , glDebugMessageControl           , 0) \
         GLEXT(PFNGLDEBUGMESSAGEINSERTPROC            , glDebugMessageInsert            , 0)
     #define GLEXT(type, name, needed) extern type name;
         GLBASEEXTS

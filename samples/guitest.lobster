@@ -44,7 +44,7 @@ while gl_frame():
             gui_space(0.2)
             gui_text("C")
             gui_button():
-                gui_border(xy_1i * 2):
+                gui_border(int2_1 * 2):
                     gui_fontscale(2):
                         gui_text("clickme")
             fn:
@@ -57,10 +57,10 @@ while gl_frame():
                     gui_text("ON")
             gui_text(focused and "C" or "E")
             gui_background(color_blue, false):
-                gui_margin(xy_1i * 4):
+                gui_margin(int2_1 * 4):
                     gui_text("D")
                     if(clicked):
                         gui_blend(2):
-                            gui_image(xy_1, ghosttex)
+                            gui_image(float2_1, ghosttex)
             gui_text("E")
             gui_text("E")

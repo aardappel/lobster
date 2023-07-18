@@ -85,6 +85,10 @@ struct Lex : LoadedFile {
         : LoadedFile(fn, fns, _ss), filenames(fns), max_errors(max_errors) {
         allsources.push_back(source);
         if (!fn.empty()) allfiles.insert(string(fn));
+        if (p[0] == '#' && p[1] == '!') {
+            // Main source file starts with a shebang, scan past it. Leave the LF.
+            while (*p != '\n' && *p != '\0') p++;
+        }
         FirstToken();
     }
 
@@ -252,7 +256,8 @@ struct Lex : LoadedFile {
                 }
                 PopBracket(T_RIGHTCURLY); return T_RIGHTCURLY;
 
-            case ';': return T_SEMICOLON;
+            case ';':
+                Error("\';\' isn\'t used as a statement terminator");
 
             case ',': cont = true; return T_COMMA;
 
@@ -364,6 +369,7 @@ struct Lex : LoadedFile {
                             if (sattr == TName(T_AND)) { cont = true; return T_AND; }
                             if (sattr == TName(T_ANYTYPE)) return T_ANYTYPE;
                             if (sattr == TName(T_ATTRIBUTE)) return T_ATTRIBUTE;
+                            if (sattr == TName(T_ABSTRACT)) return T_ABSTRACT;
                             break;
                         case 'b':
                             if (sattr == TName(T_BREAK)) return T_BREAK;
@@ -533,7 +539,7 @@ struct Lex : LoadedFile {
                 if (!character_constant)
                     Error("\' should be prefixed with a \\ in a string constant");
                 sattr = string_view(start, p - start);
-                if (sval.size() > 4) Error("character constant too long");
+                if (sval.size() > 8) Error("character constant too long");
                 ival = 0;
                 for (auto c : sval) ival = (ival << 8) + c;
                 return T_INT;

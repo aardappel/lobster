@@ -8,7 +8,7 @@ import utilui
 
 fatal(gl_window("euler spiral", 1024, 768))
 
-let pts = [ xy_0, xy_x ]
+let pts = [ float2_0, float2_x ]
 var angle = 0.0
 
 let szv = scrollzoomview {
@@ -22,7 +22,7 @@ let szv = scrollzoomview {
 while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
-    let scale, panoffset = szv.update(xy_1 * -50.0, xy_1 * 50.0, gl_window_size())
+    let scale, panoffset = szv.update(float2_1 * -50.0, float2_1 * 50.0, gl_window_size())
     gl_scale(scale)
     gl_translate(panoffset)
     if pts.length < 10000:

@@ -1,9 +1,11 @@
 // Simple multi-threading example.
 
 class fib_request:
+    attribute serializable
     n:int
 
 class fib_response:
+    attribute serializable
     fr:int
 
 def fib(n:int) -> int:

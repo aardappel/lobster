@@ -18,7 +18,7 @@ class Thingy:
     ratio = 0.5
     name = "Fred"
     col = color_red
-    pos = xy_1
+    pos = float2_1
     fruits = ["apple", "banana", "pear"]
     others:[Thingy]
     windowflag = im_window_always_autoresize

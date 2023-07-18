@@ -523,7 +523,7 @@ contexts:
             | flatten
             | fold
             | fold2
-            | fold_reverse
+            | reverse_fold
             | for_bias
             | for_range
             | for_range_incl

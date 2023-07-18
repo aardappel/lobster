@@ -174,6 +174,25 @@ nfr("write_file", "file,contents,textmode,absolute_path", "SSI?I?", "B",
         return Value(ok);
     });
 
+nfr("rename_file", "old_file,new_file", "SS", "B",
+    "renames a file, returns false if it wasn't possible",
+    [](StackPtr &, VM &, Value &old_file, Value &new_file) {
+        auto ok = RenameFile(old_file.sval()->strv(), new_file.sval()->strv());
+        return Value(ok);
+    });
+
+nfr("delete_file", "file", "S", "B", "deletes a file, returns false if it wasn't possible. Will search in all import dirs.",
+    [](StackPtr &, VM &, Value &file) {
+        auto ok = FileDelete(file.sval()->strv());
+        return Value(ok);
+    });
+
+nfr("exists_file", "file", "S", "B", "checks wether a file exists.",
+    [](StackPtr &, VM &, Value &file) {
+        auto ok = FileExists(file.sval()->strv(), false);
+        return Value(ok);
+    });
+
 nfr("launch_subprocess", "commandline,stdin", "S]S?", "IS",
     "launches a sub process, with optionally a stdin for the process, and returns its"
     " return code (or -1 if it couldn't launch at all), and any output",

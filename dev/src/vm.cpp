@@ -19,6 +19,8 @@
 
 #include "lobster/vmops.h"
 
+#include "lobster/lobsterreader.h"
+
 namespace lobster {
 
 
@@ -98,6 +100,21 @@ VMAllocator::~VMAllocator() {
 
 const TypeInfo &VM::GetVarTypeInfo(int varidx) {
     return GetTypeInfo((type_elem_t)bcf->specidents()->Get(varidx)->typeidx());
+}
+
+type_elem_t VM::GetSubClassFromSerID(type_elem_t super, uint32_t ser_id) {
+    auto ser_ids = bcf->ser_ids();
+    auto size = ser_ids->size();
+    if (ser_id >= size) return (type_elem_t)-1;
+    auto typeoff = (type_elem_t)ser_ids->Get(ser_id);
+    if (typeoff == super) return typeoff;
+    auto sup = &GetTypeInfo(typeoff);
+    for (;;) {
+        auto supoff = sup->superclass;
+        if (supoff < 0) return (type_elem_t)-1;
+        if (supoff == super) return typeoff;
+        sup = &GetTypeInfo(supoff);
+    }
 }
 
 static bool _LeakSorter(void *va, void *vb) {
@@ -372,6 +389,14 @@ void VM::DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump) {
     }
 }
 
+string VM::DumpFileLine(int fileidx, int line) {
+    string loc;
+    if (line >= 0 && fileidx >= 0) {
+        append(loc, "[", bcf->filenames()->Get(fileidx)->string_view(), ":", line, "]");
+    }
+    return loc;
+}
+
 pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
     auto fip = funstackelem.funstartinfo;
     auto deffun = *fip++;
@@ -382,17 +407,19 @@ pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
         ti.Print(*this, fname, nullptr);
         append(fname, ".");
     }
-    append(fname, bcf->functions()->Get(deffun)->name()->string_view());
-    if (funstackelem.line >= 0 && funstackelem.fileidx >= 0) {
-        append(fname, "[", bcf->filenames()->Get(funstackelem.fileidx)->string_view(), ":",
-               funstackelem.line, "]");
-    }
+    append(fname, bcf->functions()->Get(deffun)->name()->string_view(),
+           DumpFileLine(funstackelem.fileidx, funstackelem.line));
     return { fname, fip };
 }
 
 // See also imbind.cpp:DumpStackTrace
 void VM::DumpStackTrace(string &sd) {
-    if (fun_id_stack.empty()) return;
+    if (fun_id_stack.empty()) {
+        // We don't have a stack trace, but maybe this minimum information will be better
+        // than nothing:
+        sd += DumpFileLine(last_fileidx, last_line);
+        return;
+    }
 
     #ifdef USE_EXCEPTION_HANDLING
     try {
@@ -526,6 +553,11 @@ void VM::EvalProgram() {
     #else
         compiled_entry_point(*this, nullptr);
     #endif
+}
+
+void VM::CallFunctionValue(Value &f) {
+    auto fv = f.ip();
+    fv(*this, nullptr);
 }
 
 string &VM::TraceStream() {
@@ -717,40 +749,32 @@ void VM::WorkerWrite(RefObj *ref) {
     auto &ti = ref->ti(*this);
     if (ti.t != V_CLASS) Error("thread write: must be a class");
     auto st = (LObject *)ref;
-    // Use malloc instead of pool, since this is being sent to another thread.
-    auto buf = (Value *)malloc(sizeof(Value) * ti.len);
-    for (int i = 0; i < ti.len; i++) {
-        // FIXME: lift this restriction.
-        if (IsRefNil(GetTypeInfo(ti.elemtypes[i].type).t))
-            Error("thread write: only scalar class members supported for now");
-        buf[i] = st->AtS(i);
-    }
+    vector<uint8_t> buf;
+    st->ToLobsterBinary(*this, buf);
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
         unique_lock<mutex> lock(tt.mtx);
-        tt.tuples.push_back(buf);
+        tt.tuples.emplace_back(std::move(buf));
     }
     tt.condition.notify_one();
 }
 
-LObject *VM::WorkerRead(type_elem_t tti) {
+Value VM::WorkerRead(type_elem_t tti) {
     auto &ti = GetTypeInfo(tti);
     if (ti.t != V_CLASS) Error("thread read: must be a class type");
-    Value *buf = nullptr;
+    vector<uint8_t> buf;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
         unique_lock<mutex> lock(tt.mtx);
         tt.condition.wait(lock, [&] { return !tuple_space->alive || !tt.tuples.empty(); });
         if (!tt.tuples.empty()) {
-            buf = tt.tuples.front();
+            buf = std::move(tt.tuples.front());
             tt.tuples.pop_front();
         }
     }
-    if (!buf) return nullptr;
-    auto ns = NewObject(ti.len, tti);
-    ns->CopyElemsShallow(buf, ti.len);
-    free(buf);
-    return ns;
+    if (buf.empty()) return NilVal();
+    LobsterBinaryParser parser(*this);
+    return parser.Parse(tti, buf.data(), buf.data() + buf.size());
 }
 
 }  // namespace lobster
@@ -825,6 +849,7 @@ void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
 void CVM_SetLVal(VM *vm, Value *v) { SetLVal(*vm, v); }
 int CVM_RetSlots(VM *vm) { return RetSlots(*vm); }
+int CVM_GetTypeSwitchID(VM *vm, Value self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
 void CVM_PushFunId(VM *vm, const int *id, StackPtr locals) { PushFunId(*vm, id, locals); }
 void CVM_PopFunId(VM *vm) { PopFunId(*vm); }
 #if LOBSTER_FRAME_PROFILER
@@ -889,6 +914,7 @@ const void *vm_ops_jit_table[] = {
     "PopArg", (void *)CVM_PopArg,
     "SetLVal", (void *)CVM_SetLVal,
     "RetSlots", (void *)CVM_RetSlots,
+    "GetTypeSwitchID", (void *)CVM_GetTypeSwitchID,
     "PushFunId", (void *)CVM_PushFunId,
     "PopFunId", (void *)CVM_PopFunId,
     #if LOBSTER_ENGINE

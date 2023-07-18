@@ -82,11 +82,8 @@ void ResetShader() {
     currentshader = colorshader;
 }
 
-bool GraphicsFrameStart() {
-    extern void CullFonts(); CullFonts();
-    extern void SteamUpdate(); SteamUpdate();
-    OpenGLFrameEnd();
-    bool cb = SDLFrame();
+// Runs both at graphics init and frame start.
+void GraphicsReset() {
     lastframehitsize = lasthitsize;
     lasthitsize = float3_0;
     OpenGLFrameStart(GetScreenSize());
@@ -94,6 +91,14 @@ bool GraphicsFrameStart() {
     ResetShader();
     polymode = PRIM_FAN;
     CullFront(cull_front = true);
+}
+
+bool GraphicsFrameStart() {
+    extern void CullFonts(); CullFonts();
+    extern void SteamUpdate(); SteamUpdate();
+    OpenGLFrameEnd();
+    bool cb = SDLFrame();
+    GraphicsReset();
     return cb;
 }
 
@@ -189,6 +194,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
             return Value(vm.NewString(err));
         }
         ResetShader();
+        GraphicsReset();
         LOG_INFO("graphics fully initialized...");
         graphics_initialized = true;
         atexit(GraphicsShutDown);
@@ -988,15 +994,15 @@ nfr("gl_set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("gl_update_buffer_object", "value,ssbo,offset,existing", "SIIRk:bufferobject?", "R:bufferobject",
+nfr("gl_update_buffer_object", "value,ssbo,offset,existing,dyn", "SIIRk:bufferobject?B", "R:bufferobject",
     "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer id or 0 on error.",
-    [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &offset, Value &buf) {
+    [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &offset, Value &buf, Value &dyn) {
         TestGL(vm);
         return UpdateBufferObjectResource(vm, buf, vec.sval()->strv().data(),
                                           vec.sval()->strv().size(), offset.intval(),
-                                          ssbo.True(), false);
+                                          ssbo.True(), dyn.True());
     });
 
 nfr("gl_bind_buffer_object", "name,bo", "SR:bufferobject", "I",

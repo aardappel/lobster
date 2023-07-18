@@ -67,20 +67,18 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/$(BOX2D_PATH)/Rope/*.cpp) \
 	) \
     $(FREETYPE_PATH)/src/autofit/autofit.c \
-	$(FREETYPE_PATH)/src/base/basepic.c \
-	$(FREETYPE_PATH)/src/base/ftapi.c \
+	$(FREETYPE_PATH)/src/cff/cff.c \
 	$(FREETYPE_PATH)/src/base/ftbase.c \
 	$(FREETYPE_PATH)/src/base/ftbbox.c \
-	$(FREETYPE_PATH)/src/base/ftbitmap.c \
-	$(FREETYPE_PATH)/src/base/ftdbgmem.c \
 	$(FREETYPE_PATH)/src/base/ftdebug.c \
+	$(FREETYPE_PATH)/src/base/ftbitmap.c \
 	$(FREETYPE_PATH)/src/base/ftglyph.c \
+	$(FREETYPE_PATH)/src/gzip/ftgzip.c \
 	$(FREETYPE_PATH)/src/base/ftinit.c \
-	$(FREETYPE_PATH)/src/base/ftpic.c \
 	$(FREETYPE_PATH)/src/base/ftstroke.c \
 	$(FREETYPE_PATH)/src/base/ftsynth.c \
 	$(FREETYPE_PATH)/src/base/ftsystem.c \
-	$(FREETYPE_PATH)/src/cff/cff.c \
+	$(FREETYPE_PATH)/src/psaux/psaux.c \
 	$(FREETYPE_PATH)/src/pshinter/pshinter.c \
 	$(FREETYPE_PATH)/src/psnames/psnames.c \
 	$(FREETYPE_PATH)/src/raster/raster.c \
@@ -97,6 +95,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/aaudio/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/openslES/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/dummy/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/core/android/*.c) \
@@ -106,9 +105,11 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/file/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/hidapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/hidapi/android/*.cpp) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/virtual/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/hidapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/loadso/dlopen/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/power/*.c) \

@@ -15,15 +15,15 @@ class scrollzoomview:
     // Scroll related:
     buttonname:string  // The button to do dragging with (e.g. "mouse1")
     // Internal state:
-    panoffset = xy_0
-    touchvelocity = xy_0
+    panoffset = float2_0
+    touchvelocity = float2_0
     viewsteps = 0
     pinchfactor = 1.0
     lastdistance = 0.0
 
     // mino/maxo: Bounding box of the scrollable area (in its own units)
     // viewsize: In pixels.
-    def update(mino:xy_f, maxo:xy_f, viewsize:xy_i):
+    def update(mino:float2, maxo:float2, viewsize:int2):
         // Update zooming:
         if viewsteps == 0: viewsteps = defaults
         let oldscale = gl_framebuffer_size().x / pow(rate, viewsteps) * pinchfactor
@@ -59,22 +59,22 @@ class scrollzoomview:
                     speed -= reduction
                     touchvelocity = touchvelocity.normalize() * speed
                 else:
-                    touchvelocity = xy_0
+                    touchvelocity = float2_0
         if oldpanoffset != panoffset and mousewheeldelta <= 0:
             maxo -= float(viewsize) / scale
             if(maxo.x < mino.x):
-                mino = xy { (mino.x + maxo.x) / 2.0, mino.y }  // FIXME!!!
-                maxo = xy { (mino.x + maxo.x) / 2.0, maxo.y }
+                mino = float2 { (mino.x + maxo.x) / 2.0, mino.y }  // FIXME!!!
+                maxo = float2 { (mino.x + maxo.x) / 2.0, maxo.y }
             if(maxo.y < mino.y):
-                mino = xy { mino.x, (mino.y + maxo.y) / 2.0 }
-                maxo = xy { maxo.x, (mino.y + maxo.y) / 2.0 }
-            panoffset = xy { max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
+                mino = float2 { mino.x, (mino.y + maxo.y) / 2.0 }
+                maxo = float2 { maxo.x, (mino.y + maxo.y) / 2.0 }
+            panoffset = float2 { max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
                             max(min(maxo.y, panoffset.y), mino.y) }
         return scale, -panoffset
 
-    def reset(startoffset:xy_f):
+    def reset(startoffset:float2):
         panoffset = startoffset
-        touchvelocity = xy_0
+        touchvelocity = float2_0
         viewsteps = 0
         pinchfactor = 1
         lastdistance = 0
@@ -88,6 +88,11 @@ class scrollzoomview:
 // clamp to pixel boundaries,
 // then execute any text rendering contained in f
 
+def ui_rendertextatpixelsize(f):
+    // Translate to nearest pixel:
+    gl_translate(-fraction(gl_origin() + 0.5) + 0.5):
+        f()
+
 def ui_rendertextatlocalsize(localsize:float, f):
     let oldfontsize = gl_get_font_size()
     let oldoutlinesize = gl_get_outline_size()
@@ -95,7 +100,14 @@ def ui_rendertextatlocalsize(localsize:float, f):
     let localfontsizef = sc * localsize
     let localfontsize = round(localfontsizef)    // font size to nearest pixel
     gl_set_font_size(localfontsize, oldoutlinesize * (localfontsizef / oldfontsize))
-    gl_scale xy_1 / gl_scaling():   // get back to pixel scale
-        gl_translate(-fraction(gl_origin() + 0.5) + 0.5) // translate to nearest pixel
-        f()
+    gl_scale float2_1 / gl_scaling():   // get back to pixel scale
+        ui_rendertextatpixelsize(f)
     gl_set_font_size(oldfontsize, oldoutlinesize)
+
+def ui_text_pixel(t):
+    ui_rendertextatpixelsize():
+        gl_text(t)
+
+def ui_text_local(t):
+    ui_rendertextatlocalsize():
+        gl_text(t)

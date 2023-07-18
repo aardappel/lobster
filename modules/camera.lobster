@@ -4,10 +4,10 @@
 import vec
 
 class Camera:
-    position:xyz_f
+    position:float3
     yaw:float
     pitch:float
-    velocity = xyz_0
+    velocity = float3_0
 
     def FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
         yaw -= gl_mouse_delta(0).x / mousesens
@@ -37,7 +37,7 @@ class Camera:
     // then still call FPS_view as before:
     def direction(v):
         v = normalize(v)
-        yaw = atan2(xy(v)) - 90  // look along Y rather than X
+        yaw = atan2(v.xy) - 90.0  // look along Y rather than X
         pitch = asin(v.z)
 
 // Default OpenGL view looks along -Z (Y up). This creates a worldspace where Z is up:
@@ -51,10 +51,10 @@ def set_z_up_worldspace(f):
     gl_pop_model_view()
 
 // Convert points that are in Y up space to Z up.
-def to_z_up(v):
-    return xyz { v.x, -v.z, v.y }
+def to_z_up(v:float3):
+    return float3 { v.x, -v.z, v.y }
 
-def set_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
+def set_2d_worldspace(size:float2, origin:float2, scale:float2):
     let ws = float(gl_framebuffer_size())
     gl_translate(ws * origin)
     let sc = ws / size

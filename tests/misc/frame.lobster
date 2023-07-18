@@ -21,7 +21,7 @@ class D:
 class C:
     def f():
         member_frame a = 1
-        member_frame b = xy_1
+        member_frame b = float2_1
         member_frame s = "s"
         member_frame r = D {}
         print "c: {a++} {b} {s} {r}"
@@ -31,7 +31,7 @@ class C:
 
 def aa():
     static_frame a = 1
-    static_frame b = xy_1
+    static_frame b = float2_1
     static_frame s = "s"
     static_frame r = D {}
     print "a: {a++} {b} {s} {r}"

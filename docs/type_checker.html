@@ -209,9 +209,9 @@ conditional provides.</p>
 the types are exactly equal, not subtypes.</p>
 <p>Assignment can work similar to conditionals:</p>
 <pre><code>var a = nil
-if ..: a = xyz_0
+if ..: a = float3_0
 a.x        // error
-a = xyz_0  // a is guaranteed non-nil below
+a = float3_0  // a is guaranteed non-nil below
 a.x        // ok</code></pre>
 <p>Note how there are two different cases here: with an assignment
 inside a conditional, the type checker has to be conservative, and can’t
@@ -281,8 +281,8 @@ status in the type system, as they are accepted as arguments to vector
 versions of the built-in operators (<code>+ - * /</code> etc) as well as
 many vector operations part of the built-in functions
 (e.g. <code>normalize</code>).</p>
-<p>You can see the default types for these (<code>xy</code>,
-<code>xyz</code>, and <code>xyzw</code>) defined in
+<p>You can see the default types for these (<code>vec2</code>,
+<code>vec3</code>, and <code>vec4</code>) defined in
 <code>modules/stdtype.lobster</code>. Other types also work with these
 operations, though (e.g. <code>color</code>).</p>
 <p>Confusingly, in math, such N dimensional things are commonly referred

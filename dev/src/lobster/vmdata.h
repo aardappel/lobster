@@ -136,6 +136,8 @@ struct TypeInfo {
             int structidx;
             int len;
             int vtable_start_or_bitmask;
+            type_elem_t superclass;
+            int serializable_id;
             TIField elemtypes[1];  // len elems.
         };
         int enumidx;       // V_INT, -1 if not an enum.
@@ -498,7 +500,8 @@ struct Value {
     void ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const;
     void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
 
-    void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t) const;
+    void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const;
+    void ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const;
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     uint64_t Hash(VM &vm, ValueType vtype);
@@ -668,6 +671,7 @@ struct LObject : RefObj {
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
     void ToFlexBuffer(ToFlexBufferContext &fbc);
+    void ToLobsterBinary(VM &vm, vector<uint8_t> &buf);
 
     bool Equal(VM &vm, const LObject &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -815,6 +819,7 @@ struct LVector : RefObj {
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
     void ToFlexBuffer(ToFlexBufferContext &fbc);
+    void ToLobsterBinary(VM &vm, vector<uint8_t> &buf);
 
     bool Equal(VM &vm, const LVector &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -871,7 +876,7 @@ struct TupleSpace {
     struct TupleType {
         // We have an independent list of tuples and synchronization per type, for minimum
         // contention.
-        list<Value *> tuples;
+        list<vector<uint8_t>> tuples;
         mutex mtx;
         condition_variable condition;
     };
@@ -880,10 +885,6 @@ struct TupleSpace {
     atomic<bool> alive;
 
     TupleSpace(size_t numstructs) : tupletypes(numstructs), alive(true) {}
-
-    ~TupleSpace() {
-        for (auto &tt : tupletypes) for (auto p : tt.tuples) delete[] p;
-    }
 };
 
 enum class TraceMode { OFF, ON, TAIL };
@@ -991,12 +992,14 @@ struct VM : VMArgs {
         return *(TypeInfo *)(typetable + offset);
     }
     const TypeInfo &GetVarTypeInfo(int varidx);
+    type_elem_t GetSubClassFromSerID(type_elem_t super, uint32_t ser_id);
 
     string_view GetProgramName() { return programname; }
 
     typedef function<void(VM &, string_view_nt, const TypeInfo &, Value *)> DumperFun;
     void DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump);
     void DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump);
+    string DumpFileLine(int fileidx, int line);
     pair<string, const int *> DumpStackFrameStart(FunStack &funstackelem);
     void DumpStackTrace(string &sd);
 
@@ -1027,13 +1030,15 @@ struct VM : VMArgs {
     void StartWorkers(iint numthreads);
     void TerminateWorkers();
     void WorkerWrite(RefObj *ref);
-    LObject *WorkerRead(type_elem_t tti);
+    Value WorkerRead(type_elem_t tti);
 
     void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
 
     void EvalProgram();
 
     void FrameStart() { frame_count++; }
+
+    void CallFunctionValue(Value &f);
 
     void LvalueIdxVector(int lvalop, iint i);
     void LvalueIdxStruct(int lvalop, iint i);
@@ -1052,7 +1057,9 @@ struct VM : VMArgs {
     string_view ReverseLookupType(int v);
     string_view LookupField(int stidx, iint fieldn) const;
     string_view LookupFieldByOffset(int stidx, int offset) const;
+
     void Trace(TraceMode m) { trace = m; }
+
     double Time() { return SecondsSinceStart(); }
 
     Value ToString(const Value &a, const TypeInfo &ti) {
@@ -1066,7 +1073,9 @@ struct VM : VMArgs {
         return NewString(s_reuse);
     }
     void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
-    void StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const Value *elems);
+    bool StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const Value *elems,
+                            bool omit_if_empty);
+    void StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, const Value *elems);
     bool EnumName(string &sd, iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);
@@ -1126,6 +1135,13 @@ VM_INLINE void SetLVal(VM &vm, Value *v) {
 
 VM_INLINE int RetSlots(VM &vm) {
     return vm.ret_slots;
+}
+
+VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {
+    auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
+    auto id = (int)(size_t)vm.native_vtables[start + vtable_idx];
+    assert(id >= 0);
+    return id;
 }
 
 VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {

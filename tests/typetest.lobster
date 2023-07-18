@@ -69,7 +69,7 @@ run_test("types"):
         // an S2 to an S1 recipient (structs are fixed size and carry no typeinfo).
         assert f(S1 {}) == 1
         assert f(S2 {}) == 2
-        class C0:
+        abstract class C0:
             def ad(): return 10
         class C1 : C0
             a:int = 0
@@ -137,12 +137,11 @@ run_test("types"):
 
     do():
         // Use of type variables:
-        class Ai               // Pre-declared specialization.
         class A<T>:
             ts:[T]             // Type vars may occur nested.
-            next:A? = nil      // Automatically "upgraded" to A<T>
-            nexts:[A] = []     // Same.
-            nexti:Ai? = nil    // Refer to specialization before fully defined!
+            next:A<T>? = nil
+            nexts:[A<T>] = []
+            nexti:A<int>? = nil
             nexto:A<string>? = nil    // Refer to unnamed specialization.
             def f(t:T):        // Generic from surrounding class.
                 ts.push(t)
@@ -203,7 +202,7 @@ run_test("types"):
         let r, s = q<float>()
         assert r is float and s is float
         def t0(aa:Ai?) -> Ai:
-            return A { [ if aa: aa.ts[0] else: 2 ] }
+            return A<int> { [ if aa: aa.ts[0] else: 2 ] }
         assert t0(a).ts[0] == 1
 
         // Use with various explicit type features.
@@ -218,10 +217,10 @@ run_test("types"):
 
         // Use without an named specialization type.
         def t1<V>(aa:A<V>) -> A<V>:
-            return A { [ aa.ts[0] ] }
+            return A<V> { [ aa.ts[0] ] }
         assert t1(a).ts[0] == 1
         def t2<V>(aa:A<V>?) -> A<V>:
-            return A { [ if aa: aa.ts[0] else: 2 ] }
+            return A<V> { [ if aa: aa.ts[0] else: 2 ] }
         assert t2(a).ts[0] == 1
 
     do():
@@ -261,3 +260,10 @@ run_test("types"):
         f([ B {} ])
         // Or from a union:
         f(if as[0].a == 1: [ A {} ] else: [ B {} ])
+
+    do():
+        // Classes may have attributes.
+        class A:
+            attribute serializable = 1
+            a = 2
+        A {}

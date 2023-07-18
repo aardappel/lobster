@@ -53,6 +53,7 @@ enum Nesting {
     N_POPUP,
     N_CHILD,
     N_VGROUP,
+    N_TOOLTIP,
 };
 
 vector<Nesting> nstack;
@@ -72,6 +73,36 @@ void IMGUICleanup() {
     ImGui::DestroyContext();
     imgui_init = false;
     IMGUIFrameCleanup();
+}
+
+bool IMGUIInit(iint flags, bool dark, float rounding) {
+    if (imgui_init) return true;
+    if (!_sdl_window || !_sdl_context) return false;
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags;
+    if (dark)
+        ImGui::StyleColorsDark();
+    else
+        ImGui::StyleColorsClassic();
+    auto r = rounding;
+    ImGui::GetStyle().FrameRounding = r;
+    ImGui::GetStyle().WindowRounding = r;
+    ImGui::GetStyle().GrabRounding = r;
+    ImGui::GetStyle().ChildRounding = r;
+    ImGui::GetStyle().PopupRounding = r;
+    ImGui::GetStyle().ScrollbarRounding = r;
+    ImGui::GetStyle().TabRounding = r;
+    ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
+    ImGui_ImplOpenGL3_Init(
+        #ifdef PLATFORM_ES3
+            "#version 300 es"
+        #else
+            "#version 150"
+        #endif
+    );
+    imgui_init = true;
+    return true;
 }
 
 void NPush(Nesting n) {
@@ -138,6 +169,9 @@ void NPop(VM &vm, Nesting n) {
             case N_MENU:
                 ImGui::EndMenu();
                 break;
+            case N_TOOLTIP:
+                ImGui::EndTooltip();
+                break;
         }
         // If this was indeed the item we're looking for, we can stop popping.
         if (tn == n) break;
@@ -154,6 +188,17 @@ void IsInit(VM &vm, pair<Nesting, Nesting> require = { N_WIN, N_MENU }) {
 
 pair<bool, bool> IMGUIEvent(SDL_Event *event) {
     if (!imgui_init) return { false, false };
+    switch (event->type) {
+        case SDL_KEYDOWN:
+        case SDL_KEYUP: {
+            // ImGui likes to use ESC for cancelling edit actions, but pretty much
+            // every game uses ESC to switch menus, which would cause users wanting to
+            // switch menus to lose their edits unintentionally.
+            // TODO: make this behavior configurable from Lobster code?
+            if (event->key.keysym.sym == SDLK_ESCAPE) return { false, false };
+            break;
+        }
+    }
     ImGui_ImplSDL2_ProcessEvent(event);
     return { ImGui::GetIO().WantCaptureMouse, ImGui::GetIO().WantCaptureKeyboard };
 }
@@ -172,7 +217,7 @@ bool LoadFont(string_view name, float size) {
     return font != nullptr;
 }
 
-LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTextFlags flags = 0) {
+LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTextFlags flags = 0, int num_lines = 1) {
     struct InputTextCallbackData {
         LString *str;
         VM &vm;
@@ -189,8 +234,14 @@ LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTex
     };
     flags |= ImGuiInputTextFlags_CallbackResize;
     InputTextCallbackData cbd { str, vm };
-    ImGui::InputText(label, (char *)str->data(), str->len + 1, flags,
-                     InputTextCallbackData::InputTextCallback, &cbd);
+    if (num_lines > 1) {
+        ImGui::InputTextMultiline(label, (char *)str->data(), str->len + 1,
+            ImVec2(ImGui::CalcItemWidth(), ImGui::GetTextLineHeight() * num_lines), flags,
+            InputTextCallbackData::InputTextCallback, &cbd);
+    } else {
+        ImGui::InputText(label, (char *)str->data(), str->len + 1, flags,
+            InputTextCallbackData::InputTextCallback, &cbd);
+    }
     return cbd.str;
 }
 
@@ -220,10 +271,10 @@ void Nil() {
     Text("nil");
 }
 
-void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool expanded, bool in_table = true) {
+void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool expanded, bool in_table = true) {
     if (in_table) {
         // Early out for types that don't make sense to display.
-        if (ti.t == V_FUNCTION) return;
+        if (ti->t == V_FUNCTION) return;
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         Text(label.sv);
@@ -236,16 +287,16 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
     }
     auto l = label.c_str();
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
-    switch (ti.t) {
+    switch (ti->t) {
         case V_INT: {
-            if (ti.enumidx == 0) {
-                assert(vm.EnumName(ti.enumidx) == "bool");
+            if (ti->enumidx == 0) {
+                assert(vm.EnumName(ti->enumidx) == "bool");
                 bool b = v->True();
                 if (ImGui::Checkbox(l, &b)) *v = b;
-            } else if (ti.enumidx >= 0) {
+            } else if (ti->enumidx >= 0) {
                 int val = v->intval();
                 int sel = 0;
-                auto &vals = *vm.bcf->enums()->Get(ti.enumidx)->vals();
+                auto &vals = *vm.bcf->enums()->Get(ti->enumidx)->vals();
                 vector<const char *> items(vals.size());
                 int i = 0;
                 for (auto vi : vals) {
@@ -277,10 +328,10 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
             }
             if (ImGui::TreeNodeEx(*l ? l : "[..]", flags)) {
                 if (BeginTable()) {
-                    auto &sti = vm.GetTypeInfo(ti.subt);
+                    auto &sti = vm.GetTypeInfo(ti->subt);
                     auto vec = v->vval();
                     for (iint i = 0; i < vec->len; i++) {
-                        ValToGUI(vm, vec->AtSt(i), sti, to_string(i), false);
+                        ValToGUI(vm, vec->AtSt(i), &sti, to_string(i), false);
                     }
                     EndTable();
                 }
@@ -292,37 +343,39 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
                 Nil();
                 break;
             }
+            // Upgrade to dynamic type if maybe subclass.
+            ti = &v->oval()->ti(vm);
             v = v->oval()->Elems();  // To iterate it like a struct.
         case V_STRUCT_R:
         case V_STRUCT_S: {
-            auto st = vm.bcf->udts()->Get(ti.structidx);
+            auto st = vm.bcf->udts()->Get(ti->structidx);
             // Special case for numeric structs & colors.
-            if (ti.len >= 2 && ti.len <= 4) {
-                for (int i = 1; i < ti.len; i++)
-                    if (ti.elemtypes[i].type != ti.elemtypes[0].type) goto generic;
-                if (ti.elemtypes[0].type == TYPE_ELEM_INT) {
-                    auto nums = ValueToI<4>(v, ti.len);
+            if (ti->len >= 2 && ti->len <= 4) {
+                for (int i = 1; i < ti->len; i++)
+                    if (ti->elemtypes[i].type != ti->elemtypes[0].type) goto generic;
+                if (ti->elemtypes[0].type == TYPE_ELEM_INT) {
+                    auto nums = ValueToI<4>(v, ti->len);
                     if (ImGui::InputScalarN(
                             l, ImGuiDataType_S64,
-                            (void *)nums.data(), ti.len, NULL, NULL, "%d", flags)) {
-                        ToValue(v, ti.len, nums);
+                            (void *)nums.data(), ti->len, NULL, NULL, "%d", flags)) {
+                        ToValue(v, ti->len, nums);
                     }
                     break;
-                } else if (ti.elemtypes[0].type == TYPE_ELEM_FLOAT) {
+                } else if (ti->elemtypes[0].type == TYPE_ELEM_FLOAT) {
                     if (st->name()->string_view() == "color") {
-                        auto c = ValueToFLT<4>(v, ti.len);
+                        auto c = ValueToFLT<4>(v, ti->len);
                         if (ImGui::ColorEdit4(l, (float *)c.data())) {
-                            ToValue(v, ti.len, c);
+                            ToValue(v, ti->len, c);
                         }
                     } else {
-                        auto nums = ValueToF<4>(v, ti.len);
+                        auto nums = ValueToF<4>(v, ti->len);
                         // FIXME: format configurable.
                         if (ImGui::InputScalarN(
                                 l,
                                 sizeof(double) == sizeof(float) ? ImGuiDataType_Float
                                                                 : ImGuiDataType_Double,
-                                (void *)nums.data(), ti.len, NULL, NULL, "%.3f", flags)) {
-                            ToValue(v, ti.len, nums);
+                                (void *)nums.data(), ti->len, NULL, NULL, "%.3f", flags)) {
+                            ToValue(v, ti->len, nums);
                         }
                     }
                     break;
@@ -333,9 +386,9 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
                 if (BeginTable()) {
                     auto fields = st->fields();
                     int fi = 0;
-                    for (int i = 0; i < ti.len; i++) {
-                        auto &sti = vm.GetTypeInfo(ti.GetElemOrParent(i));
-                        ValToGUI(vm, v + i, sti, string_view_nt(fields->Get(fi++)->name()->string_view()),
+                    for (int i = 0; i < ti->len; i++) {
+                        auto &sti = vm.GetTypeInfo(ti->GetElemOrParent(i));
+                        ValToGUI(vm, v + i, &sti, string_view_nt(fields->Get(fi++)->name()->string_view()),
                                     false);
                         if (IsStruct(sti.t)) i += sti.len - 1;
                     }
@@ -354,7 +407,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
             break;
         }
         case V_NIL:
-            ValToGUI(vm, v, vm.GetTypeInfo(ti.subt), label, expanded, false);
+            ValToGUI(vm, v, &vm.GetTypeInfo(ti->subt), label, expanded, false);
             break;
         case V_RESOURCE: {
             if (v->False()) {
@@ -385,7 +438,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view_nt label, bool e
         }
         default:
             string sd;
-            v->ToString(vm, sd, ti, vm.debugpp);
+            v->ToString(vm, sd, *ti, vm.debugpp);
             Text(sd);
             break;
     }
@@ -408,7 +461,7 @@ void VarsToGUI(VM &vm) {
                 #if RTT_ENABLED
                 if (ti.t != val.type) continue;  // Likely uninitialized.
                 #endif
-                ValToGUI(vm, &val, ti, name, false);
+                ValToGUI(vm, &val, &ti, name, false);
                 if (IsStruct(ti.t)) i += ti.len - 1;
             }
             EndTable();
@@ -454,7 +507,7 @@ void DumpStackTrace(VM &vm) {
             append(sd, " (ERROR != ", BaseTypeName(debug_type), ")");
             Text(sd);
         } else {
-            ValToGUI(vm, x, ti, name, false);
+            ValToGUI(vm, x, &ti, name, false);
         }
     };
 
@@ -471,7 +524,13 @@ void DumpStackTrace(VM &vm) {
 }
 
 string BreakPoint(VM &vm, string_view reason) {
-    if (!imgui_init) return "Debugger requires im_init()";
+    // Init just in case it wasn't already.
+    // NOTE: this inits on main window first.
+    if (!IMGUIInit(0, false, 3.0f)) {
+        // FIXME: we could make this work without a main window, but I guess if we're running
+        // in console its good to stay there?
+        return "breakpoint: no main window for imgui";
+    }
 
     auto cursor_was_on = SDLCursor(true);
 
@@ -578,34 +637,20 @@ int &ListState(int &cur, const char* label, iint max, int def) {
     return *pcur;
 }
 
+const char *Label(VM &vm, Value val) {
+    auto l = val.sval()->data();
+    if (!*l)
+        vm.BuiltinError("imgui: widget label must not be empty (use ##something for empty label)");
+    return l;
+}
+
 void AddIMGUI(NativeRegistry &nfr) {
 
 nfr("im_init", "dark_style,flags,rounding", "B?I?F?", "",
     "",
     [](StackPtr &, VM &vm, Value &darkstyle, Value &flags, Value &rounding) {
-        if (imgui_init) return NilVal();
-        if (!_sdl_window || !_sdl_context) vm.BuiltinError("im_init: no window");
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags.ival();
-        if (darkstyle.True()) ImGui::StyleColorsDark(); else ImGui::StyleColorsClassic();
-        auto r = rounding.fltval();
-        ImGui::GetStyle().FrameRounding = r;
-        ImGui::GetStyle().WindowRounding = r;
-        ImGui::GetStyle().GrabRounding = r;
-        ImGui::GetStyle().ChildRounding = r;
-        ImGui::GetStyle().PopupRounding = r;
-        ImGui::GetStyle().ScrollbarRounding = r;
-        ImGui::GetStyle().TabRounding = r;
-        ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
-        ImGui_ImplOpenGL3_Init(
-            #ifdef PLATFORM_ES3
-                "#version 300 es"
-            #else
-                "#version 150"
-            #endif
-        );
-        imgui_init = true;
+        if (!IMGUIInit(flags.ival(), darkstyle.True(), rounding.fltval()))
+            vm.BuiltinError("im_init: no window");
         return NilVal();
     });
 
@@ -669,7 +714,7 @@ nfr("im_window_start", "title,flags,dock", "SII", "",
         if (dock.True() && ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable) {
             ImGui::SetNextWindowDockID(last_dock_id, ImGuiCond_FirstUseEver);
         }
-        ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
+        ImGui::Begin(Label(vm, title), nullptr, (ImGuiWindowFlags)flags.ival());
         last_dock_id = ImGui::GetWindowDockID();
         /*
         if (dock.False() && ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable) {
@@ -708,7 +753,7 @@ nfr("im_button", "label", "S", "B",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto title = Pop(sp);
-        auto press = ImGui::Button(title.sval()->data());
+        auto press = ImGui::Button(Label(vm, title));
         Push(sp, press);
     });
 
@@ -718,7 +763,7 @@ nfr("im_selectable", "label,selected", "SB?", "B",
         IsInit(vm);
         auto selected = Pop(sp).True();
         auto title = Pop(sp);
-        auto press = ImGui::Selectable(title.sval()->data(), selected);
+        auto press = ImGui::Selectable(Label(vm, title), selected);
         Push(sp, press);
     });
 
@@ -788,8 +833,28 @@ nfr("im_tooltip", "label", "S", "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-            ImGui::SetTooltip("%s", text.sval()->data());
+            ImGui::SetTooltip("%s", Label(vm, text));
         return NilVal();
+    });
+
+nfr("im_tooltip_multi_start", "", "", "B",
+    "(use im_tooltip_multi instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::BeginTooltip();
+            Push(sp, true);
+            NPush(N_TOOLTIP);
+        } else {
+            Push(sp, false);
+        }
+    });
+
+nfr("im_tooltip_multi_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_TOOLTIP);
     });
 
 nfr("im_checkbox", "label,bool", "SI", "I2",
@@ -797,7 +862,7 @@ nfr("im_checkbox", "label,bool", "SI", "I2",
     [](StackPtr &, VM &vm, Value &text, Value &boolval) {
         IsInit(vm);
         bool b = boolval.True();
-        ImGui::Checkbox(text.sval()->data(), &b);
+        ImGui::Checkbox(Label(vm, text), &b);
         return Value(b);
     });
 
@@ -805,14 +870,21 @@ nfr("im_input_text", "label,str", "SSk", "S",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &str) {
         IsInit(vm);
-        return Value(LStringInputText(vm, text.sval()->data(), str.sval()));
+        return Value(LStringInputText(vm, Label(vm, text), str.sval()));
+    });
+
+nfr("im_input_text_multi_line", "label,str,num_lines", "SSkI", "S",
+    "",
+    [](StackPtr &, VM &vm, Value &text, Value &str, Value &num_lines) {
+        IsInit(vm);
+        return Value(LStringInputText(vm, Label(vm, text), str.sval(), 0, num_lines.intval()));
     });
 
 nfr("im_input_int", "label,val,min,max", "SIII", "I",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &val, Value &min, Value &max) {
         IsInit(vm);
-        ImGui::InputScalar(text.sval()->data(), ImGuiDataType_S64, (void *)&val,
+        ImGui::InputScalar(Label(vm, text), ImGuiDataType_S64, (void *)&val,
                            nullptr, nullptr, "%d", 0);
         if (val.ival() < min.ival()) val = min;
         if (val.ival() > max.ival()) val = max;
@@ -823,7 +895,7 @@ nfr("im_input_float", "label,val", "SF", "F",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &val) {
         IsInit(vm);
-        return Value(InputFloat(text.sval()->data(), val.fval()));
+        return Value(InputFloat(Label(vm, text), val.fval()));
     });
 
 nfr("im_radio", "labels,active,horiz", "S]II", "I",
@@ -833,10 +905,10 @@ nfr("im_radio", "labels,active,horiz", "S]II", "I",
         IsInit(vm);
         auto v = strs.vval();
         auto act = active.intval();
-        int &sel = ListState(act, v->len ? v->At(0).sval()->data() : "", v->len, 0);
+        int &sel = ListState(act, v->len ? Label(vm, v->At(0)) : "empty?", v->len, 0);
         for (iint i = 0; i < v->len; i++) {
             if (i && horiz.True()) ImGui::SameLine();
-            ImGui::RadioButton(v->At(i).sval()->data(), &sel, (int)i);
+            ImGui::RadioButton(Label(vm, v->At(i)), &sel, (int)i);
         }
         return Value(sel);
     });
@@ -848,12 +920,12 @@ nfr("im_combo", "label,labels,active", "SS]I", "I",
         IsInit(vm);
         auto v = strs.vval();
         auto act = active.intval();
-        int &sel = ListState(act, text.sval()->data(), v->len, 0);
+        int &sel = ListState(act, Label(vm, text), v->len, 0);
         vector<const char *> items(v->len);
         for (iint i = 0; i < v->len; i++) {
-            items[i] = v->At(i).sval()->data();
+            items[i] = Label(vm, v->At(i));
         }
-        ImGui::Combo(text.sval()->data(), &sel, items.data(), (int)items.size());
+        ImGui::Combo(Label(vm, text), &sel, items.data(), (int)items.size());
         return Value(sel);
     });
 
@@ -864,12 +936,12 @@ nfr("im_listbox", "label,labels,active,height", "SS]II", "I",
         IsInit(vm);
         auto v = strs.vval();
         auto act = active.intval();
-        int &sel = ListState(act, text.sval()->data(), v->len, -1);
+        int &sel = ListState(act, Label(vm, text), v->len, -1);
         vector<const char *> items(v->len);
         for (iint i = 0; i < v->len; i++) {
             items[i] = v->At(i).sval()->data();
         }
-        ImGui::ListBox(text.sval()->data(), &sel, items.data(), (int)items.size(), height.intval());
+        ImGui::ListBox(Label(vm, text), &sel, items.data(), (int)items.size(), height.intval());
         return Value(sel);
     });
 
@@ -878,7 +950,7 @@ nfr("im_sliderint", "label,i,min,max", "SIII", "I",
     [](StackPtr &, VM &vm, Value &text, Value &integer, Value &min, Value &max) {
         IsInit(vm);
         int i = integer.intval();
-        ImGui::SliderInt(text.sval()->data(), &i, min.intval(), max.intval());
+        ImGui::SliderInt(Label(vm, text), &i, min.intval(), max.intval());
         return Value(i);
     });
 
@@ -887,7 +959,7 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
     [](StackPtr &, VM &vm, Value &text, Value &flt, Value &min, Value &max) {
         IsInit(vm);
         float f = flt.fltval();
-        ImGui::SliderFloat(text.sval()->data(), &f, min.fltval(), max.fltval());
+        ImGui::SliderFloat(Label(vm, text), &f, min.fltval(), max.fltval());
         return Value(f);
     });
 
@@ -898,7 +970,7 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
             auto max = Pop(sp).typeval();                                                      \
             auto min = Pop(sp).typeval();                                                      \
             auto v = PopVec<type ## N>(sp);                                                    \
-            auto label = Pop(sp).sval()->data();                                               \
+            auto label = Label(vm, Pop(sp));                                                   \
             ImGui::Slider ## Type ## N(label, &v.c[0], min, max);                              \
             PushVec(sp, v);                                                                    \
         }) // no semicolon.
@@ -915,7 +987,7 @@ nfr("im_coloredit", "label,color", "SF}", "A2",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto c = PopVec<float4>(sp);
-        ImGui::ColorEdit4(Pop(sp).sval()->data(), (float *)c.data());
+        ImGui::ColorEdit4(Label(vm, Pop(sp)), (float *)c.data());
         PushVec(sp, c);
     });
 
@@ -936,8 +1008,32 @@ nfr("im_image_button", "label,tex,size,bgcol", "SR:textureF}:2F}:4?", "B",
         auto sz = PopVec<float2>(sp);
         auto t = GetTexture(Pop(sp));
         auto label = Pop(sp);
-        auto press = ImGui::ImageButton(label.sval()->data(), (ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f), ImVec4(bgcol.x, bgcol.y, bgcol.z, bgcol.w));
+        auto press = ImGui::ImageButton(Label(vm, label), (ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f), ImVec4(bgcol.x, bgcol.y, bgcol.z, bgcol.w));
         Push(sp, press);
+    });
+
+nfr("im_image_mouseclick", "tex,size", "R:textureF}:2", "F}:2I",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto sz = PopVec<float2>(sp);
+        auto t = GetTexture(Pop(sp));
+        ImVec2 cursor = ImGui::GetCursorScreenPos();
+        ImVec2 size = ImVec2(sz.x, sz.y);
+        ImGui::Image((ImTextureID)(size_t)t.id, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+        if (ImGui::IsMouseHoveringRect(cursor, cursor + size)) {
+            auto pos = (ImGui::GetMousePos() - cursor) / size;
+            PushVec<float, 2>(sp, float2(pos.x, pos.y));
+            // Create an all-in-one event value similar to gl_button().
+            int event = -1;
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) event = 1;
+            else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) event = 0;
+            else if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) event = 2;
+            Push(sp, event);
+        } else {
+            PushVec<float, 2>(sp, -float2_1);
+            Push(sp, -1);
+        }
     });
 
 nfr("im_treenode_start", "label,flags", "SI", "B",
@@ -946,7 +1042,7 @@ nfr("im_treenode_start", "label,flags", "SI", "B",
         IsInit(vm);
         auto flags = (ImGuiTreeNodeFlags)Pop(sp).intval();
         auto title = Pop(sp);
-        bool open = ImGui::TreeNodeEx(title.sval()->data(), flags);
+        bool open = ImGui::TreeNodeEx(Label(vm, title), flags);
         Push(sp, open);
         if (open) NPush(N_TREE);
     });
@@ -963,7 +1059,7 @@ nfr("im_tab_bar_start", "label", "S", "B",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto title = Pop(sp);
-        bool open = ImGui::BeginTabBar(title.sval()->data(), 0);
+        bool open = ImGui::BeginTabBar(Label(vm, title), 0);
         Push(sp, open);
         if (open) NPush(N_TAB_BAR);
     });
@@ -981,7 +1077,7 @@ nfr("im_tab_start", "label,flags", "SI", "B",
         IsInit(vm);
         auto flags = Pop(sp).intval();
         auto title = Pop(sp);
-        bool open = ImGui::BeginTabItem(title.sval()->data(), nullptr, (ImGuiTabItemFlags)flags);
+        bool open = ImGui::BeginTabItem(Label(vm, title), nullptr, (ImGuiTabItemFlags)flags);
         Push(sp, open);
         if (open) NPush(N_TAB);
     });
@@ -1017,7 +1113,7 @@ nfr("im_menu_start", "label,disabled", "SB?", "B",
         IsInit(vm, { N_MENU_BAR, N_MAIN_MENU_BAR });
         auto disabled = Pop(sp).True();
         auto title = Pop(sp);
-        bool open = ImGui::BeginMenu(title.sval()->data(), !disabled);
+        bool open = ImGui::BeginMenu(Label(vm, title), !disabled);
         Push(sp, open);
         if (open) NPush(N_MENU);
     });
@@ -1036,7 +1132,7 @@ nfr("im_menu_item", "label,shortcut,disabled", "SS?B?", "B",
         auto disabled = Pop(sp).True();
         auto shortcut = Pop(sp);
         auto title = Pop(sp);
-        auto press = ImGui::MenuItem(title.sval()->data(),
+        auto press = ImGui::MenuItem(Label(vm, title),
                                      shortcut.True() ? shortcut.sval()->data() : nullptr,
                                      false,
                                      !disabled);
@@ -1050,7 +1146,7 @@ nfr("im_menu_item_toggle", "label,selected,disabled", "SB?B?", "B",
         auto disabled = Pop(sp).True();
         auto selected = Pop(sp).True();
         auto title = Pop(sp);
-        ImGui::MenuItem(title.sval()->data(), nullptr, &selected, !disabled);
+        ImGui::MenuItem(Label(vm, title), nullptr, &selected, !disabled);
         Push(sp, selected);
     });
 
@@ -1061,7 +1157,7 @@ nfr("im_id_start", "label", "Ss", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto title = Pop(sp);
-        ImGui::PushID(title.sval()->data());
+        ImGui::PushID(Label(vm, title));
         NPush(N_ID);
     });
 
@@ -1079,7 +1175,7 @@ nfr("im_child_start", "title,size,flags", "SF}:2I", "",
         auto flags = Pop(sp);
         auto sz = PopVec<float2>(sp);
         auto title = Pop(sp);
-        ImGui::BeginChild(title.sval()->data(), ImVec2(sz.x, sz.y), false, (ImGuiWindowFlags)flags.ival());
+        ImGui::BeginChild(Label(vm, title), ImVec2(sz.x, sz.y), false, (ImGuiWindowFlags)flags.ival());
         NPush(N_CHILD);
     });
 
@@ -1113,9 +1209,8 @@ nfr("im_popup_start", "label,winflags,rmbprevitem", "SIB?", "B",
         auto rmb = Pop(sp).True();
         auto flags = (ImGuiWindowFlags)Pop(sp).intval();
         auto title = Pop(sp);
-        bool open = rmb
-            ? ImGui::BeginPopupContextItem(title.sval()->data())
-            : ImGui::BeginPopup(title.sval()->data(), flags);
+        bool open = rmb ? ImGui::BeginPopupContextItem(Label(vm, title))
+            : ImGui::BeginPopup(Label(vm, title), flags);
         Push(sp, open);
         if (open) NPush(N_POPUP);
     });
@@ -1132,7 +1227,14 @@ nfr("im_popup_open", "label", "S", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto title = Pop(sp);
-        ImGui::OpenPopup(title.sval()->data());
+        ImGui::OpenPopup(Label(vm, title));
+    });
+
+nfr("im_close_current_popup", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::CloseCurrentPopup();
     });
 
 nfr("im_disabled_start", "disabled", "B", "",
@@ -1172,7 +1274,7 @@ nfr("im_edit_anything", "value,label", "AkS?", "A1",
         IsInit(vm);
         // FIXME: would be good to support structs, but that requires typeinfo, not just len.
         auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
-        ValToGUI(vm, &v, ti, label.True() ? label.sval()->strvnt() : string_view_nt(""), true,
+        ValToGUI(vm, &v, &ti, label.True() ? label.sval()->strvnt() : string_view_nt(""), true,
                  false);
         return v;
     });
@@ -1185,10 +1287,10 @@ nfr("im_graph", "label,values,ishistogram", "SF]I", "",
             return ((Value *)data)[i].fltval();
         };
         if (histogram.True()) {
-            ImGui::PlotHistogram(label.sval()->data(), getter, vals.vval()->Elems(),
+            ImGui::PlotHistogram(Label(vm, label), getter, vals.vval()->Elems(),
                 (int)vals.vval()->len);
         } else {
-            ImGui::PlotLines(label.sval()->data(), getter, vals.vval()->Elems(),
+            ImGui::PlotLines(Label(vm, label), getter, vals.vval()->Elems(),
                 (int)vals.vval()->len);
         }
         return NilVal();

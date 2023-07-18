@@ -44,6 +44,7 @@ extern int64_t DefaultLoadFile(string_view_nt absfilename, string *dest, int64_t
 extern FILE *OpenForWriting(string_view relfilename, bool binary, bool allow_absolute);
 extern FILE *OpenForReading(string_view relfilename, bool binary, bool allow_absolute);
 extern bool WriteFile(string_view relfilename, bool binary, string_view contents, bool allow_absolute);
+extern bool RenameFile(string_view oldfilename, string_view newfilename);
 extern bool FileExists(string_view filename, bool allow_absolute);
 extern bool FileDelete(string_view relfilename);
 extern string SanitizePath(string_view path);
