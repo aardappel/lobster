@@ -380,7 +380,7 @@ static int DecodeVorbis(const unsigned char *mem, int len, int channels, short *
    short *data;
    stb_vorbis *v = stb_vorbis_open_memory(mem, len, &error, NULL);
    if (v == NULL) return -1;
-   stb_vorbis_info info = stb_vorbis_get_info(v);
+   //stb_vorbis_info info = stb_vorbis_get_info(v);
    limit = channels * 4096;
    offset = data_len = 0;
    total = limit;
