@@ -506,7 +506,7 @@ void SDLSetVolume(int ch, float vol) {
 void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, float attnscale) {
     float dist = length(vecfromlistener) / attnscale;
     vecfromlistener = normalize(vecfromlistener);
-    float angle = atan2(vecfromlistener.y, vecfromlistener.x) - atan2(listenerfwd.y, listenerfwd.x);
+    float angle = atan2(listenerfwd.y, listenerfwd.x) - atan2(vecfromlistener.y, vecfromlistener.x);
     Mix_SetPosition(ch - 1, int16_t(angle / RAD), uint8_t(1.0f + min(dist, 254.0f)));
 }
 
