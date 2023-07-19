@@ -22,11 +22,6 @@
 #include "SDL_mixer.h"
 #include "SDL_stdinc.h"
 
-#define STB_VORBIS_HEADER_ONLY 1
-#define STB_VORBIS_NO_STDIO 1
-#define STB_VORBIS_NO_PUSHDATA_API 1
-#include "stb/stb_vorbis.c"
-
 bool sound_init = false;
 
 struct Sound {
@@ -372,45 +367,6 @@ Mix_Chunk *RenderSFXR(string_view buf) {
     return AllocChunk(synth.data(), synth.size());
 }
 
-// Copied and modified from stb_vorbis_decode_memory.
-// It is changed to allow passing in the channel count so the automatic channel
-// conversion occurs.
-static int DecodeVorbis(const unsigned char *mem, int len, int channels, short **output) {
-   int data_len, offset, total, limit, error;
-   short *data;
-   stb_vorbis *v = stb_vorbis_open_memory(mem, len, &error, NULL);
-   if (v == NULL) return -1;
-   //stb_vorbis_info info = stb_vorbis_get_info(v);
-   limit = channels * 4096;
-   offset = data_len = 0;
-   total = limit;
-   data = (short *) malloc(total * sizeof(*data));
-   if (data == NULL) {
-      stb_vorbis_close(v);
-      return -2;
-   }
-   for (;;) {
-      int n = stb_vorbis_get_frame_short_interleaved(v, channels, data+offset, total-offset);
-      if (n == 0) break;
-      data_len += n;
-      offset += n * channels;
-      if (offset + limit > total) {
-         short *data2;
-         total *= 2;
-         data2 = (short *) realloc(data, total * sizeof(*data));
-         if (data2 == NULL) {
-            free(data);
-            stb_vorbis_close(v);
-            return -2;
-         }
-         data = data2;
-      }
-   }
-   *output = data;
-   stb_vorbis_close(v);
-   return data_len;
-}
-
 Sound *LoadSound(string_view filename, SoundType st) {
     auto it = sound_files.find(filename);
     if (it != sound_files.end()) {
@@ -421,7 +377,8 @@ Sound *LoadSound(string_view filename, SoundType st) {
         return nullptr;
     Mix_Chunk *chunk = nullptr;
     switch (st) {
-        case SOUND_WAV: {
+        case SOUND_WAV:
+        case SOUND_OGG: {
             auto rwops = SDL_RWFromMem((void *)buf.c_str(), (int)buf.length());
             if (!rwops) return nullptr;
             chunk = Mix_LoadWAV_RW(rwops, 1);
@@ -431,17 +388,6 @@ Sound *LoadSound(string_view filename, SoundType st) {
             chunk = RenderSFXR(buf);
             break;
         }
-        case SOUND_OGG: {
-            short *out = nullptr;
-            auto read = DecodeVorbis((const unsigned char *)buf.c_str(), (int)buf.length(), 2, &out);
-            if (read < 0)
-                return nullptr;
-            // DecodeVorbis returns the number of frames, so multiply by number of channels (2).
-            chunk = AllocChunk(out, read * 2);
-            free(out);
-            break;
-        }
-
     }
     if (!chunk) return nullptr;
     //Mix_VolumeChunk(chunk, MIX_MAX_VOLUME / 2);
@@ -564,9 +510,6 @@ void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, float at
     Mix_SetPosition(ch - 1, int16_t(angle / RAD), uint8_t(1.0f + min(dist, 254.0f)));
 }
 
-// Implementation part of stb_vorbis.
-#undef STB_VORBIS_HEADER_ONLY
 #ifdef _MSC_VER
     #pragma warning(disable : 4244 4457 4245 4701)
 #endif
-#include "stb/stb_vorbis.c"
