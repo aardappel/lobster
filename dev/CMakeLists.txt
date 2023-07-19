@@ -116,6 +116,7 @@ if(LOBSTER_ENGINE)
     external/freetype/src/truetype/truetype.c
   )
   add_definitions(-DFT2_BUILD_LIBRARY=1)
+  add_definitions(-DMUSIC_WAV -DMUSIC_OGG -DOGG_USE_STB)
   list (APPEND EXTERNAL_SRCS ${EXTERNAL_ENGINE_SRCS})
 endif()
 
@@ -152,6 +153,7 @@ include_directories(include
                     external/SDL/include-config-/SDL2
                     external/SDL/include
                     external/SDLMixer
+                    external/SDLMixer/codecs
                     external/freetype/include
                     external/imgui
                     external/libtcc)

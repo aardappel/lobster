@@ -12,7 +12,7 @@ check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "
 // load music and sound files (for sound/music authorship informations, see AUTHORS.TXT)
 let bgmusic = play_ogg("data/sounds/tutorial/Cyber-Dream-Loop short.ogg", -1) // by Eric Matyas from https://soundimage.org/looping-music/
 if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
-let ufobuzz = play_ogg("data/sounds/tutorial/Alien_buzz2.ogg", -1) // https://freesound.org/people/CommanderDerp/sounds/167921/ (Slenderman static..)
+let ufobuzz = play_ogg("data/sounds/tutorial/alien_buzz2.ogg", -1) // https://freesound.org/people/CommanderDerp/sounds/167921/ (Slenderman static..)
 if ufobuzz: sound_volume(ufobuzz, 0.0) else: print "can\'t load sound!"
 
 let worldsize = 20.0
