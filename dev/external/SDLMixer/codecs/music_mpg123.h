@@ -19,29 +19,10 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef INCLUDE_EFFECTS_INTERNAL_H_
-#define INCLUDE_EFFECTS_INTERNAL_H_
+/* This file supports playing MP3 files with mpg123 */
 
-#ifndef MIX_INTERNAL_EFFECT__
-#error You should not include this file or use these functions.
-#endif
+#include "music.h"
 
-#include "SDL_mixer.h"
-
-extern int _Mix_effects_max_speed;
-extern void *_Eff_volume_table;
-void *_Eff_build_volume_table_u8(void);
-void *_Eff_build_volume_table_s8(void);
-
-void _Mix_InitEffects(void);
-void _Mix_DeinitEffects(void);
-void _Eff_PositionDeinit(void);
-
-int _Mix_RegisterEffect_locked(int channel, Mix_EffectFunc_t f,
-                               Mix_EffectDone_t d, void *arg);
-int _Mix_UnregisterEffect_locked(int channel, Mix_EffectFunc_t f);
-int _Mix_UnregisterAllEffects_locked(int channel);
-
-#endif /* _INCLUDE_EFFECTS_INTERNAL_H_ */
+extern Mix_MusicInterface Mix_MusicInterface_MPG123;
 
 /* vi: set ts=4 sw=4 expandtab: */

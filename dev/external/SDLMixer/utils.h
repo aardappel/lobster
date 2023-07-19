@@ -19,29 +19,26 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef INCLUDE_EFFECTS_INTERNAL_H_
-#define INCLUDE_EFFECTS_INTERNAL_H_
+#ifndef UTILS_H_
+#define UTILS_H_
 
-#ifndef MIX_INTERNAL_EFFECT__
-#error You should not include this file or use these functions.
+/* misc helper routines */
+
+#include "SDL_stdinc.h"
+#include "SDL_version.h"
+
+#if SDL_VERSION_ATLEAST(2,0,12)
+#define HAVE_SDL_STRTOKR
+#else
+#define SDL_strtokr _MIX_strtokr
+extern char *SDL_strtokr(char *s1, const char *s2, char **saveptr);
 #endif
 
-#include "SDL_mixer.h"
+/* Parse time string of the form HH:MM:SS.mmm and return equivalent sample
+ * position */
+extern Sint64 _Mix_ParseTime(char *time, long samplerate_hz);
 
-extern int _Mix_effects_max_speed;
-extern void *_Eff_volume_table;
-void *_Eff_build_volume_table_u8(void);
-void *_Eff_build_volume_table_s8(void);
+extern SDL_bool _Mix_IsLoopTag(const char *tag);
 
-void _Mix_InitEffects(void);
-void _Mix_DeinitEffects(void);
-void _Eff_PositionDeinit(void);
+#endif /* UTILS_H_ */
 
-int _Mix_RegisterEffect_locked(int channel, Mix_EffectFunc_t f,
-                               Mix_EffectDone_t d, void *arg);
-int _Mix_UnregisterEffect_locked(int channel, Mix_EffectFunc_t f);
-int _Mix_UnregisterAllEffects_locked(int channel);
-
-#endif /* _INCLUDE_EFFECTS_INTERNAL_H_ */
-
-/* vi: set ts=4 sw=4 expandtab: */

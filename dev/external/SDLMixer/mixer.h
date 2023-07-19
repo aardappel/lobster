@@ -18,30 +18,15 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
+#ifndef MIXER_H_
+#define MIXER_H_
 
-#ifndef INCLUDE_EFFECTS_INTERNAL_H_
-#define INCLUDE_EFFECTS_INTERNAL_H_
+/* Locking wrapper functions */
+extern void Mix_LockAudio(void);
+extern void Mix_UnlockAudio(void);
 
-#ifndef MIX_INTERNAL_EFFECT__
-#error You should not include this file or use these functions.
-#endif
+extern void add_chunk_decoder(const char *decoder);
 
-#include "SDL_mixer.h"
-
-extern int _Mix_effects_max_speed;
-extern void *_Eff_volume_table;
-void *_Eff_build_volume_table_u8(void);
-void *_Eff_build_volume_table_s8(void);
-
-void _Mix_InitEffects(void);
-void _Mix_DeinitEffects(void);
-void _Eff_PositionDeinit(void);
-
-int _Mix_RegisterEffect_locked(int channel, Mix_EffectFunc_t f,
-                               Mix_EffectDone_t d, void *arg);
-int _Mix_UnregisterEffect_locked(int channel, Mix_EffectFunc_t f);
-int _Mix_UnregisterAllEffects_locked(int channel);
-
-#endif /* _INCLUDE_EFFECTS_INTERNAL_H_ */
+#endif /* MIXER_H_ */
 
 /* vi: set ts=4 sw=4 expandtab: */

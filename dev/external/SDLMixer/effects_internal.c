@@ -1,6 +1,6 @@
 /*
   SDL_mixer:  An audio mixer library based on the SDL library
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,18 +23,12 @@
   These are some helper functions for the internal mixer special effects.
 */
 
-/* $Id$ */
 
+/* ------ These are used internally only. Don't touch. ------ */
 
-     /* ------ These are used internally only. Don't touch. ------ */
-
-
-
-#include <stdio.h>
-#include <stdlib.h>
 #include "SDL_mixer.h"
 
-#define __MIX_INTERNAL_EFFECT__
+#define MIX_INTERNAL_EFFECT__
 #include "effects_internal.h"
 
 /* Should we favor speed over memory usage and/or quality of output? */
@@ -78,7 +72,7 @@ void *_Eff_build_volume_table_u8(void)
             _Eff_volume_table = (void *) rc;
             for (volume = 0; volume < 256; volume++) {
                 for (sample = -128; sample < 128; sample ++) {
-                    *rc = (Uint8)(((float) sample) * ((float) volume / 255.0))
+                    *rc = (Uint8)(((float) sample) * ((float) volume / 255.0f))
                         + 128;
                     rc++;
                 }
@@ -109,7 +103,7 @@ void *_Eff_build_volume_table_s8(void)
             _Eff_volume_table = (void *) rc;
             for (volume = 0; volume < 256; volume++) {
                 for (sample = -128; sample < 128; sample ++) {
-                    *rc = (Sint8)(((float) sample) * ((float) volume / 255.0));
+                    *rc = (Sint8)(((float) sample) * ((float) volume / 255.0f));
                     rc++;
                 }
             }
@@ -122,3 +116,4 @@ void *_Eff_build_volume_table_s8(void)
 
 /* end of effects.c ... */
 
+/* vi: set ts=4 sw=4 expandtab: */
