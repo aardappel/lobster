@@ -20,7 +20,7 @@ def inside(v): return all(v > 0) and all(v < lssize - 1)    // keep the outer bl
 
 let cells = mapxyz(lssize) v:
     // Generate blocks using noise.
-    let h = simplex(float(v) / float3 { 64.0, 64.0, 32.0 } + 11.0, 6, 1.0, 0.55) 
+    let h = simplex(float(v) / float3 { 64.0, 64.0, 32.0 } + 11.0, 6, 1.0, 0.55)
     // more likely to be solid the lower it is, and only when not on the outside:
     let solid = h / 1.5 > div(v.z, lssize.z) - 0.5 and inside(v)
     // pick material with noise too:
@@ -41,13 +41,13 @@ def generate_mesh(ci):
     forxyz(int3_1 * csize) cv:  // For all cells in a chunk
         let v = ci * csize + cv
         let e = cells[v]
-        if e:  // if this cell is solid
-            for(nbdirs) nv, i:
-                if(not cells[nv + v]):  // and neighbor is empty
-                    for(tris) ti: 
-                        vpositions.push(float(v) + nbpolys[i][ti])
-                        vcolors.push(colors[e - 1])
-                        vnormals.push(float(nv))
+        guard e  // if this cell is solid
+        for(nbdirs) nv, i:
+            guard not cells[nv + v]  // and neighbor is empty
+            for(tris) ti:
+                vpositions.push(float(v) + nbpolys[i][ti])
+                vcolors.push(colors[e - 1])
+                vnormals.push(float(nv))
     meshes[ci] = gl_new_mesh("PCN", vpositions, vcolors, vnormals, [], [], [])
 forxyz(lssize / csize) v: generate_mesh(v)
 

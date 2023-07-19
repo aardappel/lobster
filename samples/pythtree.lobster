@@ -11,12 +11,12 @@ def branch(n, max, scale, len) -> void:
     gl_color(color { 0.3, 0.1, 0.0, 0.7 })
     for(2) i:
         gl_line(poly[i], poly[3 - i], 0.2)
-    if n < max:
-        gl_translate(float2 { 0.0, len })
-        gl_scale(scale)
-        for(2) i:
-            gl_rotate_z(sincos((i * 2.0 - 1.0) * 30.0 + sin(gl_time() * 50.0) * n + rnd(40) - 20.0)):
-                branch(n + 1, max, scale, len + 0.5)
+    guard n < max
+    gl_translate(float2 { 0.0, len })
+    gl_scale(scale)
+    for(2) i:
+        gl_rotate_z(sincos((i * 2.0 - 1.0) * 30.0 + sin(gl_time() * 50.0) * n + rnd(40) - 20.0)):
+            branch(n + 1, max, scale, len + 0.5)
 
 fatal(gl_window("Pythagoras tree in Lobster", 1024, 768))
 

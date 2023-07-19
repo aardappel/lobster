@@ -162,42 +162,41 @@ def rnd_pick2(xs):
     return rnd_pick(rnd_pick(xs))
 
 def qsort<T>(xs:[T], lt) -> [T]:
-    if xs.length <= 1:
+    guard xs.length > 1:
         return xs
-    else:
-        let pivot = xs[0]
-        let tail = xs.slice(1, -1)
-        let f1, f2 = tail.partition(): lt(_, pivot)
-        return append(append(qsort(f1, lt), [ pivot ]),
-                             qsort(f2, lt))
+    let pivot = xs[0]
+    let tail = xs.slice(1, -1)
+    let f1, f2 = tail.partition(): lt(_, pivot)
+    return append(append(qsort(f1, lt), [ pivot ]),
+                            qsort(f2, lt))
 
 def qsort_in_place(xs, lt):
     def rec(s, e) -> void:
         let l = e - s
-        if l > 1:
-            let pivot = xs[s]
-            var sp = s + 1
-            var ep = e
-            while sp < ep:
-                let c = xs[sp]
-                if lt(c, pivot):
-                    xs[sp - 1] = xs[sp]
-                    sp++
-                else:
-                    xs[sp] = xs[--ep]
-                    xs[ep] = c
-            xs[--sp] = pivot
-            rec(s, sp)
-            rec(ep, e)
+        guard l > 1
+        let pivot = xs[s]
+        var sp = s + 1
+        var ep = e
+        while sp < ep:
+            let c = xs[sp]
+            if lt(c, pivot):
+                xs[sp - 1] = xs[sp]
+                sp++
+            else:
+                xs[sp] = xs[--ep]
+                xs[ep] = c
+        xs[--sp] = pivot
+        rec(s, sp)
+        rec(ep, e)
     rec(0, xs.length)
 
 def insertion_sort(xs, lt):
     for(xs) key, i:
-        if i:
-            var j = i
-            while j > 0 and lt(key, xs[j - 1]):
-                xs[j--] = xs[j - 1]
-            xs[j] = key
+        guard i
+        var j = i
+        while j > 0 and lt(key, xs[j - 1]):
+            xs[j--] = xs[j - 1]
+        xs[j] = key
 
 def insert_ordered(xs, x, lt):
     for(xs) key, i:
@@ -208,10 +207,10 @@ def insert_ordered(xs, x, lt):
 
 def shuffle(xs):
     for(xs) x, i:
-        if i:
-            let j = rnd(i + 1)
-            xs[i] = xs[j]
-            xs[j] = x
+        guard i
+        let j = rnd(i + 1)
+        xs[i] = xs[j]
+        xs[j] = x
     return xs
 
 def nest_if(c, nest, with):
