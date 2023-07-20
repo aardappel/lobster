@@ -340,7 +340,7 @@ struct GeometryCache {
     Geometry *cube_geom[2] = { nullptr, nullptr };
     int cube_ibo[2] = { 0, 0 };
     map<int, Geometry *> circlevbos;
-    map<pair<int, float>, Geometry *> roundedboxvbos;
+    map<tuple<int, float, float, float>, Geometry *> roundedboxvbos;
     map<pair<int, float>, pair<Geometry *, int>> opencirclevbos;
 
     ~GeometryCache();

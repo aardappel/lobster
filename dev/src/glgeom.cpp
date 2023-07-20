@@ -335,24 +335,26 @@ void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
 
 void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segments, float2 size, float corner_ratio) {
     assert(segments >= 3);
-    auto &geom = roundedboxvbos[{ segments, corner_ratio }];
+    // Use plain floats, as the float2::operator< does not work well with std::map
+    auto &geom = roundedboxvbos[{ segments, size.x, size.y, corner_ratio }];
     if (!geom) {
         vector<float3> vbuf(segments);
         float step = PI * 2 / segments;
+        auto ratio2 = size.x > size.y ? float2(corner_ratio * size.y / size.x, corner_ratio)
+                                      : float2(corner_ratio, corner_ratio * size.x / size.y);
         for (int i = 0; i < segments; i++) {
             // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
-            auto xy = float2(sinf(i * step + 1), cosf(i * step + 1)) * corner_ratio;
-            xy += (1.0f - corner_ratio) * sign(xy);
+            auto xy = float2(sinf(i * step + 1), cosf(i * step + 1)) * ratio2;
+            xy += (1.0f - ratio2) * sign(xy);
             xy /= 2.0f;
             xy += 0.5f;
+            xy *= size;
             vbuf[i] = float3(xy, 0);
         }
         geom = new Geometry("RenderRoundedRectangle", gsl::make_span(vbuf), "P");
     }
-    Transform(float4x4(float4(size, 1)), [&]() {
-        sh->Set();
-        RenderArray(prim, geom);
-    });
+    sh->Set();
+    RenderArray(prim, geom);
 }
 
 void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float radius) {
