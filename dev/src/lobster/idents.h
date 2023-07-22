@@ -195,6 +195,7 @@ struct GUDT : Named {
     bool predeclaration = false;
     //bool is_generic = false;
     bool has_subclasses = false;
+    bool has_constructor_function = false;
     SpecUDT unspecialized;
     Type unspecialized_type;
     map<string_view, string_view> attributes;
@@ -455,6 +456,7 @@ struct Function : Named {
     bool anonymous = false;
     // its merely a function type, has no body, but does have a set return type.
     bool istype = false;
+    GUDT *is_constructor_of = nullptr;
 
     size_t scopelevel;
 

@@ -19,13 +19,10 @@ private class chain<K,V>:
     value:V
 
 class dictionary<K,V>:
-    private buckets:[chain<K,V>?] = []
-    private size:int
+    private buckets:[chain<K,V>?]
 
     private def lookup(key:K):
-        if not buckets.length:
-            buckets = map(size): nil
-        let h = hash(key) % size
+        let h = hash(key) % buckets.length
         var c = buckets[h]
         while c:
             if c.key == key:
@@ -64,3 +61,6 @@ class dictionary<K,V>:
                 vals.push(c.value)
                 c = c.next
         return keys, vals
+
+constructor dictionary<K,V>(size:int):
+    return dictionary<K,V> { map(size): nil }

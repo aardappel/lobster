@@ -215,9 +215,11 @@ struct Parser {
                     ParseTypeDecl(false, isprivate, list, true);
                 }
                 break;
+            case T_CONSTRUCTOR:
             case T_FUN: {
+                auto is_constructor = lex.token == T_CONSTRUCTOR;
                 lex.Next();
-                list->Add(ParseNamedFunctionDefinition(isprivate, nullptr));
+                list->Add(ParseNamedFunctionDefinition(is_constructor, isprivate, nullptr));
                 break;
             }
             case T_ENUM:
@@ -588,11 +590,13 @@ struct Parser {
                         }
                     } else {
                         bool member_private = IsNext(T_PRIVATE);
-                        if (IsNext(T_FUN)) {
+                        if (IsNext(T_CONSTRUCTOR)) {
+                            Error("constructors must be declared outside the type since they don't"
+                                  " have access to the instance");
+                        } else if (IsNext(T_FUN)) {
                             fieldsdone = true;
-                            parent_list->Add(ParseNamedFunctionDefinition(member_private, gudt));
-                        }
-                        else {
+                            parent_list->Add(ParseNamedFunctionDefinition(false, member_private, gudt));
+                        } else {
                             if (fieldsdone) Error("fields must be declared before methods");
                             ParseField(gudt, member_private, false);
                         }
@@ -640,7 +644,7 @@ struct Parser {
         gudtstack.pop_back();
     }
 
-    FunRef *ParseNamedFunctionDefinition(bool isprivate, GUDT *self) {
+    FunRef *ParseNamedFunctionDefinition(bool is_constructor, bool isprivate, GUDT *self) {
         string idname;
         if (IsNext(T_OPERATOR)) {
             auto op = lex.token;
@@ -657,7 +661,7 @@ struct Parser {
             // current namespace (which is same as !self).
             idname = st.MaybeNameSpace(ExpectId(), !self);
         }
-        return ParseFunction(&idname, isprivate, true, true, self);
+        return ParseFunction(&idname, is_constructor, isprivate, true, true, self);
     }
 
     void ImplicitReturn(Overload &ov) {
@@ -701,8 +705,8 @@ struct Parser {
         block_stack.pop_back();
     }
 
-    FunRef *ParseFunction(string *name, bool isprivate, bool parens, bool parseargs,
-                          GUDT *self = nullptr) {
+    FunRef *ParseFunction(string *name, bool is_constructor, bool isprivate, bool parens,
+                          bool parseargs, GUDT *self) {
         auto sf = st.FunctionScopeStart();
         if (name) {
             // Parse generic params if any.
@@ -774,9 +778,11 @@ struct Parser {
         }
         // Check default args are being used consistently with the overloads & siblings.
         if (first_default_arg < 0) first_default_arg = (int)nargs;
+        auto is_constructor_of = is_constructor ? &st.StructUse(*name) : nullptr;
         if (f.overloads.empty()) {
             f.first_default_arg = first_default_arg;
             f.default_args = default_args;
+            f.is_constructor_of = is_constructor_of;
         } else {
             if (f.first_default_arg != first_default_arg)
                 Error("number of default arguments must be the same as previous overload");
@@ -785,6 +791,8 @@ struct Parser {
                     Error("default argument ", i + 1, " must be same as previous overload");
                 delete default_args[i];
             }
+            if (f.is_constructor_of != is_constructor_of)
+                Error("either all overloads of ", Q(f.name), " must be a constructor, or none");
         }
         // Create the overload.
         auto ov = new Overload{ lex, isprivate };
@@ -834,6 +842,9 @@ struct Parser {
                 if (!f.nargs()) Error("double declaration of ", Q(f.name));
             }
             functionstack.push_back(&f);
+            if (is_constructor_of) {
+                is_constructor_of->has_constructor_function = true;
+            }
         } else {
             f.anonymous = true;
         }
@@ -1167,9 +1178,15 @@ struct Parser {
             for (;;) {
                 Node *e = nullptr;
                 switch (lex.token) {
-                    case T_COLON: e = ParseFunction(nullptr, false, false, false); break;
-                    case T_IDENT: e = ParseFunction(nullptr, false, false, true); break;
-                    case T_LEFTPAREN: e = ParseFunction(nullptr, false, true, true); break;
+                    case T_COLON:
+                        e = ParseFunction(nullptr, false, false, false, false, nullptr);
+                        break;
+                    case T_IDENT:
+                        e = ParseFunction(nullptr, false, false, false, true, nullptr);
+                        break;
+                    case T_LEFTPAREN:
+                        e = ParseFunction(nullptr, false, false, true, true, nullptr);
+                        break;
                     default: return;
                 }
                 list.push_back(e);
@@ -1334,8 +1351,8 @@ struct Parser {
             }
             case T_LAMBDA: {
                 lex.Next();
-                return ParseFunction(nullptr, false, lex.token == T_LEFTPAREN,
-                    lex.token != T_COLON);
+                return ParseFunction(nullptr, false, false, lex.token == T_LEFTPAREN,
+                                     lex.token != T_COLON, nullptr);
             }
             case T_FLOATTYPE:
             case T_INTTYPE:
@@ -1560,8 +1577,11 @@ struct Parser {
         // First see if this a type constructor.
         auto udt = st.LookupSpecialization(idname);
         auto gudt = udt ? &udt->g : st.LookupStruct(idname);
+        auto curf = functionstack.empty() ? nullptr : functionstack.back();
         TypeRef type = nullptr;
-        if (gudt && lex.token == T_LT) {
+        if (gudt &&
+            lex.token == T_LT &&
+            (!gudt->has_constructor_function || (curf && curf->is_constructor_of == gudt))) {
             lex.Undo(T_IDENT, idname);
             type = ParseType(false);
         } else if (lex.token == T_LEFTCURLY) {

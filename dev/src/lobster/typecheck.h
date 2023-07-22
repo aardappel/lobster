@@ -945,6 +945,10 @@ struct TypeChecker {
             // if done without reason.
             sf.mustspecialize = true;
         }
+        if (sf.parent->is_constructor_of &&
+            (!IsUDT(sf.returntype->t) || &sf.returntype->udt->g != sf.parent->is_constructor_of)) {
+            Error(*sf.sbody->children.back(), "constructor must return value of its own type");
+        }
         st.BlockScopeCleanup();
         for (auto member : scopes.back().scoped_fields) {
             auto f = member->field();
@@ -3574,11 +3578,16 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         if (udt) tc.st.PopSuperGenerics(udt);
     }
     if (IsUDT(exptype->t)) {
-        // We have to check this here, since the parser couldn't check this yet.
-        if (exptype->udt->sfields.size() < children.size())
-            tc.Error(*this, "too many initializers for ", Q(exptype->udt->name));
         auto udt = exptype->udt;
+        // We have to check this here, since the parser couldn't check this yet.
+        if (udt->sfields.size() < children.size())
+            tc.Error(*this, "too many initializers for ", Q(udt->name));
         exptype = &udt->thistype;
+        if (udt->g.has_constructor_function &&
+            (tc.named_scopes.empty() ||
+                tc.named_scopes.back().sf->parent->is_constructor_of != &udt->g)) {
+            tc.Error(*this, Q(udt->name), " may only be constructed thru its constructor function");
+        }
     }
     for (auto [i, c] : enumerate(children)) {
         TypeRef elemtype = IsUDT(exptype->t) ? exptype->udt->sfields[i].type

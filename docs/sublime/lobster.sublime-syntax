@@ -29,7 +29,7 @@ contexts:
           scope: keyword.control.lobster
 
         # ProgramFlow -- UserFunction:
-        - match: (?i)\b(def|return|from)\b
+        - match: (?i)\b(constructor|def|return|from)\b
           scope: keyword.declaration.function
 
 

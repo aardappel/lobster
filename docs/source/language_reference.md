@@ -38,7 +38,8 @@ Lexical definition
 -   Keywords: `nil return class struct import int float string any void
     def fn is from program private resource enum enum_flags typeof
     var let pakfile switch case default namespace not and or attribute
-    if for while super`
+    if for while super constructor guard abstract member member_frame
+    static static_frame attribute operator`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
     expression (such as `+` or `,`) and an actual token otherwise (used to
@@ -77,7 +78,7 @@ vardef = ( `var` \| `let` ) list( ident [ `:` type ] ) `=` opexp
 
 enumdef = ( `enum` | `enum_flags` ) ident `:` indlist( ident [ `=` integer\_constant ] )
 
-functiondef = `def` ident [ generics ] functionargsbody
+functiondef = ( `def` | `constructor` ) ident [ generics ] functionargsbody
 
 functionargsbody = `(` args `)` `:` body
 
@@ -254,6 +255,8 @@ vec2 { x: 1, y: 2 }
 
 Besides being more readable, it allows you to specify the fields in any order,
 and to override fields that have defaults.
+
+For more complex ways of constructing types, see constructor functions below.
 
 To declare a type whose only purpose is to serve as a superclass for other
 types and is not to be instantiated, declare it with `abstract`:
@@ -916,6 +919,41 @@ it automatically gets created/deleted for you.
 variables declared this way use more space and an extra check (an extra variable
 to check the frame count) but otherwise function just like normal variables,
 so you should feel free to use them wherever they make the code simpler/clearer.
+
+
+### Constructor functions
+
+As shown above, a user defined type always comes with a plain constructor that requires
+exactly all unitialized fields in `{}`. That is sufficient for most cases but sometimes
+you may want to do additional processing on the inputs where the mapping from inputs to
+fields in not 1:1.
+
+In that case you can declare a function with the keyword `constructor`
+instead of `def`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+constructor Foo(n:int):
+    return Foo { map(n): 0, map(n): 1 }
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This function behaves like a normal function, except that it marks type `Foo` as having
+a constructor, and hence forth doesn't allow code outside of this function to be constructed
+using a plain `{}` constructor, it must call this function instead. This is because
+a constructor may encode an invariant, such as in this case that the object is always
+initialized to two vectors of the same length with elements initialized to 0 and 1 respectively.
+You couldn't do this with a plain constructor, since there would be no way to take the
+variable `n` into account.
+
+Another common case is wanting to make a variable non-nil, but there is no way to
+construct a general instance of the type that would work for all cases. Now you can
+make it depend on a caller supplied argument.
+
+You call these constructors with regular function calling syntax (e.g. `Foo(10)`)
+instead of with `{}`, to make it clear that additional code may be executed beyond plain field
+initialization (and that a function is called).
+
+You may create overloads for constructors much like regular functions, or even make them
+dynamically dispatch, as long as they all result in the given type.
 
 Typing
 ------

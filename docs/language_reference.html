@@ -58,7 +58,7 @@ constant (e.g. <code>123</code>) or hex digits with a leading
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
 <li><p>Keywords:
-<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute     if for while super</code></p></li>
+<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute     if for while super constructor guard abstract member member_frame     static static_frame attribute operator</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an
 incomplete expression (such as <code>+</code> or <code>,</code>) and an
 actual token otherwise (used to separate lists of expressions inside a
@@ -91,8 +91,8 @@ expstat | attrdef</p>
 <code>:</code> type ] ) <code>=</code> opexp</p>
 <p>enumdef = ( <code>enum</code> | <code>enum_flags</code> ) ident
 <code>:</code> indlist( ident [ <code>=</code> integer_constant ] )</p>
-<p>functiondef = <code>def</code> ident [ generics ]
-functionargsbody</p>
+<p>functiondef = ( <code>def</code> | <code>constructor</code> ) ident [
+generics ] functionargsbody</p>
 <p>functionargsbody = <code>(</code> args <code>)</code> <code>:</code>
 body</p>
 <p>block = [ args ] <code>:</code> body | functionargsbody</p>
@@ -245,6 +245,8 @@ constructor call, for example:</p>
 <pre><code>vec2 { x: 1, y: 2 }</code></pre>
 <p>Besides being more readable, it allows you to specify the fields in
 any order, and to override fields that have defaults.</p>
+<p>For more complex ways of constructing types, see constructor
+functions below.</p>
 <p>To declare a type whose only purpose is to serve as a superclass for
 other types and is not to be instantiated, declare it with
 <code>abstract</code>:</p>
@@ -779,6 +781,36 @@ used, and it automatically gets created/deleted for you.</p>
 extra variable to check the frame count) but otherwise function just
 like normal variables, so you should feel free to use them wherever they
 make the code simpler/clearer.</p>
+<h3 id="constructor-functions">Constructor functions</h3>
+<p>As shown above, a user defined type always comes with a plain
+constructor that requires exactly all unitialized fields in
+<code>{}</code>. That is sufficient for most cases but sometimes you may
+want to do additional processing on the inputs where the mapping from
+inputs to fields in not 1:1.</p>
+<p>In that case you can declare a function with the keyword
+<code>constructor</code> instead of <code>def</code>:</p>
+<pre><code>constructor Foo(n:int):
+    return Foo { map(n): 0, map(n): 1 }</code></pre>
+<p>This function behaves like a normal function, except that it marks
+type <code>Foo</code> as having a constructor, and hence forth doesn’t
+allow code outside of this function to be constructed using a plain
+<code>{}</code> constructor, it must call this function instead. This is
+because a constructor may encode an invariant, such as in this case that
+the object is always initialized to two vectors of the same length with
+elements initialized to 0 and 1 respectively. You couldn’t do this with
+a plain constructor, since there would be no way to take the variable
+<code>n</code> into account.</p>
+<p>Another common case is wanting to make a variable non-nil, but there
+is no way to construct a general instance of the type that would work
+for all cases. Now you can make it depend on a caller supplied
+argument.</p>
+<p>You call these constructors with regular function calling syntax
+(e.g. <code>Foo(10)</code>) instead of with <code>{}</code>, to make it
+clear that additional code may be executed beyond plain field
+initialization (and that a function is called).</p>
+<p>You may create overloads for constructors much like regular
+functions, or even make them dynamically dispatch, as long as they all
+result in the given type.</p>
 <h2 id="typing">Typing</h2>
 <p>Lobster is statically typed, though most of the time you don’t
 notice, since most types can be inferred. You specify types:</p>
