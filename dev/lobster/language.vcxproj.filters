@@ -209,5 +209,26 @@
     <ClInclude Include="..\src\lobster\lobsterreader.h">
       <Filter>compiler\builtins</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\varint.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\small_vector.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\resource_manager.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\accumulator.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\string_tools.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\rng_hash.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\dllist.h">
+      <Filter>base</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

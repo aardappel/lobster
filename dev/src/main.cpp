@@ -37,7 +37,7 @@ void unit_test_all() {
     #ifdef NDEBUG
         return;
     #endif
-    unit_test_tools();
+    unit_test_varint();
     unit_test_unicode();
 }
 

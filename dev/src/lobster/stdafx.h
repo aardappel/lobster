@@ -78,7 +78,16 @@ using gsl::span;
 
 // Our universally used headers.
 #include "wentropy.h"
+
 #include "tools.h"
+#include "dllist.h"
+#include "rng_hash.h"
+#include "string_tools.h"
+#include "accumulator.h"
+#include "resource_manager.h"
+#include "small_vector.h"
+#include "varint.h"
+
 #include "platform.h"
 #include "slaballoc.h"
 #include "geom.h"

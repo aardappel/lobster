@@ -56,6 +56,13 @@ else()
     src/lobster/stdafx.h
     src/lobster/tonative.h
     src/lobster/tools.h
+    src/lobster/dllist.h
+    src/lobster/rng_hash.h
+    src/lobster/string_tools.h
+    src/lobster/accumulator.h
+    src/lobster/resource_manager.h
+    src/lobster/small_vector.h
+    src/lobster/varint.h
     src/lobster/ttypes.h
     src/lobster/typecheck.h
     src/lobster/unicode.h
