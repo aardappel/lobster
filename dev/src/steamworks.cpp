@@ -400,11 +400,13 @@ bool SteamBroadcastMessage(string_view buf) {
 
 using namespace lobster;
 
+#ifdef PLATFORM_STEAMWORKS
 LString* GetIdentityString(VM &vm, const SteamNetworkingIdentity &identity) {
     char ident[SteamNetworkingIdentity::k_cchMaxString];
     identity.ToString(ident, sizeof(ident));
     return vm.NewString(ident);
 }
+#endif
 
 void AddSteam(NativeRegistry &nfr) {
 
@@ -476,13 +478,18 @@ nfr("steam_update", "", "", "",
         SteamUpdate();
     });
 
-nfr("steam_net_identity", "", "", "S", "returns the steam identity for this"
+nfr("steam_net_identity", "", "", "S",
+    "returns the steam identity for this"
     " user. This same ID will be used for connecting to peers, sending messages,"
     " etc.",
     [](StackPtr &sp, VM &vm) {
-        SteamNetworkingIdentity identity{};
-        SteamNetworkingSockets()->GetIdentity(&identity);
-        Push(sp, GetIdentityString(vm, identity));
+        #ifdef PLATFORM_STEAMWORKS
+            SteamNetworkingIdentity identity{};
+            SteamNetworkingSockets()->GetIdentity(&identity);
+            Push(sp, GetIdentityString(vm, identity));
+        #else
+            Push(sp, vm.NewString("none"));
+        #endif
     });
 
 nfr("steam_p2p_listen", "", "", "B", "open a listen socket to receive new connections",
@@ -507,14 +514,14 @@ nfr("steam_p2p_get_connections", "", "", "S]", "get a list of the steam identite
     [](StackPtr &, VM &vm) {
         auto *peers_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
 
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            for (auto &peer: steam->peers) {
-                if (!peer.is_connected) continue;
-                peers_vec->Push(vm, GetIdentityString(vm, peer.identity));
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) {
+                for (auto &peer: steam->peers) {
+                    if (!peer.is_connected) continue;
+                    peers_vec->Push(vm, GetIdentityString(vm, peer.identity));
+                }
             }
-        }
-    #endif  // PLATFORM_STEAMWORKS
+        #endif  // PLATFORM_STEAMWORKS
 
         return Value(peers_vec);
     });
