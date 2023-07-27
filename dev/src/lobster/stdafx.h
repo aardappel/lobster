@@ -86,6 +86,7 @@ using gsl::span;
 #include "accumulator.h"
 #include "resource_manager.h"
 #include "small_vector.h"
+#include "packed_vector.h"
 #include "varint.h"
 
 #include "platform.h"

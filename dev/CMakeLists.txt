@@ -62,6 +62,7 @@ else()
     src/lobster/accumulator.h
     src/lobster/resource_manager.h
     src/lobster/small_vector.h
+    src/lobster/packed_vector.h
     src/lobster/varint.h
     src/lobster/ttypes.h
     src/lobster/typecheck.h

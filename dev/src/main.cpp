@@ -39,6 +39,7 @@ void unit_test_all() {
     #endif
     unit_test_varint();
     unit_test_unicode();
+    unit_test_packed_vector();
 }
 
 int main(int argc, char* argv[]) {

@@ -311,6 +311,7 @@
     <ClInclude Include="..\src\lobster\natreg.h" />
     <ClInclude Include="..\src\lobster\node.h" />
     <ClInclude Include="..\src\lobster\optimizer.h" />
+    <ClInclude Include="..\src\lobster\packed_vector.h" />
     <ClInclude Include="..\src\lobster\parser.h" />
     <ClInclude Include="..\src\lobster\platform.h" />
     <ClInclude Include="..\src\lobster\resource_manager.h" />

@@ -230,5 +230,8 @@
     <ClInclude Include="..\src\lobster\dllist.h">
       <Filter>base</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\packed_vector.h">
+      <Filter>base</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

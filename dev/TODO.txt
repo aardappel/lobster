@@ -197,6 +197,9 @@
     because too much of the VM assumes everything is 64-bit Values.
     Thus, getting such smaller fields to work generically with all vector ops likely wouldn't
     work.. yet the type system would suggest it would, so a bit messy.
+    Truely supporting smaller sizes in more places (e.g. a vector of int16) would be easier
+    if all vector ops were code-genned instead of calling into generic methods, i.e.
+    after bytecode has been factored out.
     An alternative would be a new kind of type, "bitfield", that is simply a subtype of int
     much like enums. You specify it like a struct, then that type can be used absolutely
     everywhere, and decay to an int for code that doesn't understand it.
