@@ -94,10 +94,14 @@ class packed_vector {
             // This realloc is going to overflow the chosen Offset type.
             assert(false);
             // If you realloc std::vector such that it runs out of memory
-            // it will throw this, so appropriate we do the same, if
+            // it will throw bad_alloc, so appropriate we do the same, if
             // asserts are off. Allowing it to be ignored and would
             // probably be worse.
-            throw std::bad_alloc();
+            #ifdef USE_EXCEPTION_HANDLING
+                throw std::bad_alloc();
+            #else
+                abort();
+            #endif
         }
         auto nbuf = new char[ncap];
         // Now have to figure out of all the extra space how much to give
