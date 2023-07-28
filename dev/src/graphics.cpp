@@ -267,6 +267,14 @@ nfr("gl_window_min_max", "dir", "I", "",
         return NilVal();
     });
 
+nfr("gl_fullscreen", "mode", "I", "",
+    "0: window, 1:fullscreen, 2:borderless",
+    [](StackPtr &, VM &vm, Value &mode) {
+        TestGL(vm);
+        SDLSetFullscreen(mode.intval());
+        return NilVal();
+    });
+
 nfr("gl_visible", "", "", "B",
     "checks if the window is currently visible (not minimized, or on mobile devices, in the"
     " foreground). If false, you should not render anything, nor run the frame's code.",
