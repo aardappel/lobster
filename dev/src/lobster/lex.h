@@ -506,6 +506,12 @@ struct Lex : LoadedFile {
                 p++;
                 tokline++;
             }
+            // Check amount of spaces on first line, as we'll skip that on each line.
+            int spaces = 0;
+            while (*p == ' ') {
+                spaces++;
+                p++;
+            }
             for (;;) {
                 switch (c = *p++) {
                     case '\0':
@@ -521,10 +527,14 @@ struct Lex : LoadedFile {
                         }
                         sval += c;
                         break;
-                    case '\n':
+                    case '\n': {
                         tokline++;
                         sval += c;
+                        // Skip initial spaces.
+                        auto start = p;
+                        while (p - start < spaces && *p == ' ') p++;
                         break;
+                    }
                     default:
                         sval += c;
                         break;
