@@ -819,6 +819,20 @@ nfr("im_text", "label", "S", "",
         return NilVal();
     });
 
+nfr("im_text_styled", "label,font_idx,color", "SIF}:4", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto c = PopVec<float4>(sp);
+        int i = std::max(0, std::min(ImGui::GetIO().Fonts->Fonts.size() - 1, Pop(sp).intval()));
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[i]);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(c.x, c.y, c.z, c.w));
+        auto &s = *Pop(sp).sval();
+        Text(s.strv());
+        ImGui::PopStyleColor();
+        ImGui::PopFont();
+    });
+
 nfr("im_text_wrapped", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
