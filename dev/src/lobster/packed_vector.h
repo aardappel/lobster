@@ -194,5 +194,6 @@ inline void unit_test_packed_vector() {
         pvsv.push_back(string_view(test, i));
         auto r = pvsv[2 + i];
         assert(r == string_view(test, i));
+        (void)r;
     }
 }
