@@ -1282,6 +1282,24 @@ nfr("im_width_end", "", "", "", "",
         NPop(vm, N_WIDTH);
     });
 
+nfr("im_text_table", "id,num_colums,labels,", "SIS]", "", "",
+    [](StackPtr &, VM &vm, Value &id, Value &num_colums, Value &labels) {
+        IsInit(vm);
+        auto nc = num_colums.intval();
+        if (!ImGui::BeginTable(id.sval()->strvnt().c_str(), nc,
+                               ImGuiTableFlags_SizingFixedFit |
+                               ImGuiTableFlags_NoHostExtendX |
+                               ImGuiTableFlags_Borders))
+            return NilVal();
+        for (iint i = 0; i < labels.vval()->len; i++) {
+            if (!(i % nc)) ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(i % nc);
+            Text(labels.vval()->At(i).sval()->strv());
+        }
+        ImGui::EndTable();
+        return NilVal();
+    });
+
 nfr("im_edit_anything", "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version",
     [](StackPtr &, VM &vm, Value &v, Value &label) {
