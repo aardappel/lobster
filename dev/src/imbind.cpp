@@ -250,10 +250,10 @@ double InputFloat(const char *label, double value, double step = 0, double step_
     return value;
 }
 
-bool BeginTable() {
-    if (ImGui::BeginTable("", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersOuter)) {
-        ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch);
+bool BeginTable(const char *id) {
+    if (ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersOuter)) {
+        ImGui::TableSetupColumn("1", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("2", ImGuiTableColumnFlags_WidthStretch);
         return true;
     }
     return false;
@@ -327,7 +327,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                 break;
             }
             if (ImGui::TreeNodeEx(*l ? l : "[..]", flags)) {
-                if (BeginTable()) {
+                if (BeginTable("[]")) {
                     auto &sti = vm.GetTypeInfo(ti->subt);
                     auto vec = v->vval();
                     for (iint i = 0; i < vec->len; i++) {
@@ -383,7 +383,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             }
             generic:
             if (ImGui::TreeNodeEx(*l ? l : st->name()->c_str(), flags)) {
-                if (BeginTable()) {
+                if (BeginTable(st->name()->c_str())) {
                     auto fields = st->fields();
                     int fi = 0;
                     for (int i = 0; i < ti->len; i++) {
@@ -450,7 +450,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
 
 void VarsToGUI(VM &vm) {
     auto DumpVars = [&](bool constants) {
-        if (BeginTable()) {
+        if (BeginTable("vars")) {
             for (uint32_t i = 0; i < vm.bcf->specidents()->size(); i++) {
                 auto &val = vm.fvars[i];
                 auto sid = vm.bcf->specidents()->Get(i);
@@ -514,7 +514,7 @@ void DumpStackTrace(VM &vm) {
     for (auto &funstackelem : reverse(vm.fun_id_stack)) {
         auto [name, fip] = vm.DumpStackFrameStart(funstackelem);
         if (ImGui::TreeNode(name.c_str())) {
-            if (BeginTable()) {
+            if (BeginTable(name.c_str())) {
                 vm.DumpStackFrame(fip, funstackelem.locals, dumper);
                 EndTable();
             }
