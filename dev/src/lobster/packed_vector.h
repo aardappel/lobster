@@ -39,8 +39,8 @@
 // - Offset offsets[elen]
 // - Offset total         // Allows computing size by offsets[i + 1] - offsets[i]
 // - Offset unused[..]    // "ecap" points at the end of this.
-// - char elements[..]  // "blen" points at the end of this.
-// - char unused[..]    // "bcap" points at the end of this.
+// - char elements[..]    // "blen" points at the end of this.
+// - char unused[..]      // "bcap" points at the end of this.
 // (we use char instead of uint8_t/int8_t to be trivially compatible with string_view).
 
 template<typename T = string_view, typename Offset = uint32_t>
@@ -130,9 +130,10 @@ class packed_vector {
                buf + ecap * sizeof(Offset),
                blen - ecap * sizeof(Offset));
         delete[] buf;
+        buf = nbuf;
+        auto shift = (necap - ecap) * sizeof(Offset);
         ecap = (Offset)necap;
         bcap = (Offset)ncap;
-        auto shift = (necap - ecap) * sizeof(Offset);
         blen += (Offset)shift;
         for (size_t i = 0; i <= elen; i++) {
             Offset off;
@@ -140,7 +141,6 @@ class packed_vector {
             off += (Offset)shift;
             memcpy(buf + i * sizeof(Offset), &off, sizeof(Offset));
         }
-        buf = nbuf;
     }
 
     void push_back(const T &e) {
@@ -162,11 +162,29 @@ class packed_vector {
         memcpy(&off2, buf + (i + 1) * sizeof(Offset), sizeof(Offset));
         return T(buf + off1, (size_t)(off2 - off1));
     }
+
+    string dump() {
+        string s = "[";
+        for (size_t i = 0; i < elen; i++) {
+            if (i) s += ", ";
+            auto sv = (*this)[i];
+            s += "\"";
+            for (size_t j = 0; j < sv.size(); j++) {
+                if (sv[j] >= ' ' && sv[j] <= '~')
+                    s += sv[j];
+                else
+                    s += cat("\\", sv[j]);
+            }
+            s += "\"";
+        }
+        s += "]";
+        return s;
+    }
 };
 
 
+
 inline void unit_test_packed_vector() {
-    /*
     packed_vector pvsv;
     pvsv.push_back("hello");
     pvsv.push_back("world");
@@ -177,5 +195,4 @@ inline void unit_test_packed_vector() {
         auto r = pvsv[2 + i];
         assert(r == string_view(test, i));
     }
-    */
 }
