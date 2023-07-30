@@ -259,10 +259,6 @@ bool BeginTable(const char *id) {
     return false;
 }
 
-void EndTable() {
-    ImGui::EndTable();
-}
-
 void Text(string_view s) {
     ImGui::TextUnformatted(s.data(), s.data() + s.size());
 }
@@ -271,24 +267,41 @@ void Nil() {
     Text("nil");
 }
 
-void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool expanded, bool in_table = true) {
-    if (in_table) {
-        // Early out for types that don't make sense to display.
-        if (ti->t == V_FUNCTION) return;
+void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool expanded, bool in_table) {
+    // Early out for types that don't make sense to display.
+    if (ti->t == V_FUNCTION) return;
+    auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+    bool tree_open = false;
+    bool table_open = false;
+    auto header = [&](const char *treename = nullptr) -> bool {
+        if (!in_table) {
+            if (!treename) return false;
+            table_open = true;
+            return BeginTable(treename);
+        }
         ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex(0);
-        Text(label.sv);
-        ImGui::TableSetColumnIndex(1);
-        // This seems to be the only way to make the second column stretch to the available space without it
-        // collapsing to nothing in some cases: https://github.com/ocornut/imgui/issues/5478
-        ImGui::SetNextItemWidth(std::max(200.0f, ImGui::GetContentRegionAvail().x));
+        ImGui::TableNextColumn();
+        if (treename) {
+            tree_open = ImGui::TreeNodeEx(treename, ImGuiTreeNodeFlags_SpanFullWidth | flags);
+            ImGui::TableNextColumn();
+        } else {
+            ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_Leaf |
+                                             ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                             ImGuiTreeNodeFlags_SpanFullWidth);
+            ImGui::TableNextColumn();
+            // This seems to be the only way to make the second column stretch to the available
+            // space without it collapsing to nothing in some cases:
+            // https://github.com/ocornut/imgui/issues/5478
+            ImGui::SetNextItemWidth(std::max(200.0f, ImGui::GetContentRegionAvail().x));
+        }
         ImGui::PushID(v);  // Name may occur multiple times.
         label = string_view_nt("");
-    }
+        return tree_open;
+    };
     auto l = label.c_str();
-    auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
     switch (ti->t) {
         case V_INT: {
+            header();
             if (ti->enumidx == 0) {
                 assert(vm.EnumName(ti->enumidx) == "bool");
                 bool b = v->True();
@@ -313,33 +326,34 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             break;
         }
         case V_FLOAT: {
+            header();
             double f = v->fval();
             if (ImGui::InputDouble(l, &f)) *v = f;
             break;
         }
-        case V_VECTOR:
+        case V_VECTOR: {
             if (v->False()) {
+                header();
                 Nil();
                 break;
             }
             if (!v->vval()->len) {
+                header();
                 Text("[]");
                 break;
             }
-            if (ImGui::TreeNodeEx(*l ? l : "[..]", flags)) {
-                if (BeginTable("[]")) {
-                    auto &sti = vm.GetTypeInfo(ti->subt);
-                    auto vec = v->vval();
-                    for (iint i = 0; i < vec->len; i++) {
-                        ValToGUI(vm, vec->AtSt(i), &sti, to_string(i), false);
-                    }
-                    EndTable();
+            if (header(*l ? l : "[..]")) {
+                auto &sti = vm.GetTypeInfo(ti->subt);
+                auto vec = v->vval();
+                for (iint i = 0; i < vec->len; i++) {
+                    ValToGUI(vm, vec->AtSt(i), &sti, to_string(i), false, true);
                 }
-                ImGui::TreePop();
             }
             break;
+        }
         case V_CLASS:
             if (v->False()) {
+                header();
                 Nil();
                 break;
             }
@@ -353,6 +367,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             if (ti->len >= 2 && ti->len <= 4) {
                 for (int i = 1; i < ti->len; i++)
                     if (ti->elemtypes[i].type != ti->elemtypes[0].type) goto generic;
+                header();
                 if (ti->elemtypes[0].type == TYPE_ELEM_INT) {
                     auto nums = ValueToI<4>(v, ti->len);
                     if (ImGui::InputScalarN(
@@ -382,23 +397,20 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                 }
             }
             generic:
-            if (ImGui::TreeNodeEx(*l ? l : st->name()->c_str(), flags)) {
-                if (BeginTable(st->name()->c_str())) {
-                    auto fields = st->fields();
-                    int fi = 0;
-                    for (int i = 0; i < ti->len; i++) {
-                        auto &sti = vm.GetTypeInfo(ti->GetElemOrParent(i));
-                        ValToGUI(vm, v + i, &sti, string_view_nt(fields->Get(fi++)->name()->string_view()),
-                                    false);
-                        if (IsStruct(sti.t)) i += sti.len - 1;
-                    }
-                    EndTable();
+            if (header(*l ? l : st->name()->c_str())) {
+                auto fields = st->fields();
+                int fi = 0;
+                for (int i = 0; i < ti->len; i++) {
+                    auto &sti = vm.GetTypeInfo(ti->GetElemOrParent(i));
+                    ValToGUI(vm, v + i, &sti, string_view_nt(fields->Get(fi++)->name()->string_view()),
+                                false, true);
+                    if (IsStruct(sti.t)) i += sti.len - 1;
                 }
-                ImGui::TreePop();
             }
             break;
         }
         case V_STRING: {
+            header();
             if (v->False()) {
                 Nil();
                 break;
@@ -407,9 +419,10 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             break;
         }
         case V_NIL:
-            ValToGUI(vm, v, &vm.GetTypeInfo(ti->subt), label, expanded, false);
-            break;
+            ValToGUI(vm, v, &vm.GetTypeInfo(ti->subt), label, expanded, in_table);
+            return;
         case V_RESOURCE: {
+            header();
             if (v->False()) {
                 Nil();
                 break;
@@ -437,6 +450,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             break;
         }
         default:
+            header();
             string sd;
             v->ToString(vm, sd, *ti, vm.debugpp);
             Text(sd);
@@ -444,9 +458,14 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
     }
     if (in_table) {
         ImGui::PopID();
-        //ImGui::PopItemWidth();
     }
-}
+    if (tree_open) {
+        ImGui::TreePop();
+    }
+    if (table_open) {
+        ImGui::EndTable();
+    }
+ }
 
 void VarsToGUI(VM &vm) {
     auto DumpVars = [&](bool constants) {
@@ -461,10 +480,10 @@ void VarsToGUI(VM &vm) {
                 #if RTT_ENABLED
                 if (ti.t != val.type) continue;  // Likely uninitialized.
                 #endif
-                ValToGUI(vm, &val, &ti, name, false);
+                ValToGUI(vm, &val, &ti, name, false, true);
                 if (IsStruct(ti.t)) i += ti.len - 1;
             }
-            EndTable();
+            ImGui::EndTable();
         }
     };
     if (ImGui::TreeNodeEx("Globals", 0)) {
@@ -507,7 +526,7 @@ void DumpStackTrace(VM &vm) {
             append(sd, " (ERROR != ", BaseTypeName(debug_type), ")");
             Text(sd);
         } else {
-            ValToGUI(vm, x, &ti, name, false);
+            ValToGUI(vm, x, &ti, name, false, true);
         }
     };
 
@@ -516,7 +535,7 @@ void DumpStackTrace(VM &vm) {
         if (ImGui::TreeNode(name.c_str())) {
             if (BeginTable(name.c_str())) {
                 vm.DumpStackFrame(fip, funstackelem.locals, dumper);
-                EndTable();
+                ImGui::EndTable();
             }
             ImGui::TreePop();
         }
