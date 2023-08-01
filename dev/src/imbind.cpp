@@ -217,22 +217,41 @@ bool LoadFont(string_view name, float size) {
     return font != nullptr;
 }
 
-LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTextFlags flags = 0, int num_lines = 1) {
+LString *LStringInputText(VM &vm, const char *label, LString *str, int num_lines = 1) {
     struct InputTextCallbackData {
         LString *str;
         VM &vm;
         static int InputTextCallback(ImGuiInputTextCallbackData *data) {
-            if (data->EventFlag != ImGuiInputTextFlags_CallbackResize) return 0;
             auto cbd = (InputTextCallbackData *)data->UserData;
             IM_ASSERT(data->Buf == cbd->str->data());
-            auto str = cbd->vm.NewString(string_view { data->Buf, (size_t)data->BufTextLen });
-            cbd->str->Dec(cbd->vm);
-            cbd->str = str;
-            data->Buf = (char *)str->data();
+            if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+                auto str = cbd->vm.NewString(string_view{ data->Buf, (size_t)data->BufTextLen });
+                cbd->str->Dec(cbd->vm);
+                cbd->str = str;
+                data->Buf = (char *)str->data();
+            } else if (data->EventFlag == ImGuiInputTextFlags_CallbackEdit) {
+                // If we get here the widget changed the buffer, so important we
+                // do nothing and do not overwrite.
+            } else if (data->EventFlag == ImGuiInputTextFlags_CallbackAlways) {
+                if (strcmp(cbd->str->data(), data->Buf)) {
+                    // If we get here, the program is trying to overwrite the widget text.
+                    // https://github.com/ocornut/imgui/issues/5377
+                    auto cursor = data->CursorPos;
+                    data->DeleteChars(0, data->BufTextLen);
+                    data->InsertChars(0, cbd->str->data());
+                    if (cursor <= data->BufTextLen) {
+                        // For algorithmic changes to the input data, nice to not lose cursor pos,
+                        // though for switching unrelated data would be better not?
+                        data->CursorPos = cursor;
+                    }
+                }
+            }
             return 0;
         }
     };
-    flags |= ImGuiInputTextFlags_CallbackResize;
+    ImGuiInputTextFlags flags = ImGuiInputTextFlags_CallbackResize |
+                                ImGuiInputTextFlags_CallbackEdit |
+                                ImGuiInputTextFlags_CallbackAlways;
     InputTextCallbackData cbd { str, vm };
     if (num_lines > 1) {
         ImGui::InputTextMultiline(label, (char *)str->data(), str->len + 1,
@@ -891,7 +910,7 @@ nfr("im_input_text_multi_line", "label,str,num_lines", "SSkI", "S",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &str, Value &num_lines) {
         IsInit(vm);
-        return Value(LStringInputText(vm, Label(vm, text), str.sval(), 0, num_lines.intval()));
+        return Value(LStringInputText(vm, Label(vm, text), str.sval(), num_lines.intval()));
     });
 
 nfr("im_input_int", "label,val,min,max", "SIII", "I",

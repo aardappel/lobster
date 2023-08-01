@@ -1,3 +1,5 @@
+- allow let inside if/guard as syntactic sugar
+
 - this is out of date and a bit overly negative: https://aardappel.github.io/lobster/philosophy.html
 
 - A document that explains what samples are available and what they demo.
