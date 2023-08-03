@@ -186,6 +186,11 @@ def im_disabled(disabled, body):
     body()
     im_disabled_end()
 
+def im_button_repeat(repeat, body):
+    im_button_repeat_start(repeat)
+    body()
+    im_button_repeat_end()
+
 def im_width(width, body):
     im_width_start(width)
     body()

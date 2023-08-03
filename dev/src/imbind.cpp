@@ -1285,6 +1285,21 @@ nfr("im_disabled_end", "", "", "",
         ImGui::EndDisabled();
     });
 
+nfr("im_button_repeat_start", "repeat", "B", "",
+    "(use im_button_repeat instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        const auto repeat = Pop(sp).True();
+        ImGui::PushButtonRepeat(repeat);
+    });
+
+nfr("im_button_repeat_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::PopButtonRepeat();
+    });
+
 nfr("im_width_start", "width", "F", "",
     "Sets the width of an item: 0 = default, -1 = use full width without label,"
     " any other value is custom width. Use im_width instead",
