@@ -86,6 +86,9 @@ bool IMGUIInit(iint flags, bool dark, float rounding) {
     else
         ImGui::StyleColorsClassic();
     auto r = rounding;
+    // For some reason active tabs are by default almost the same color as inactive ones, fix that.
+    // TODO: instead, expose color/style API thru bindings.
+    ImGui::GetStyle().Colors[ImGuiCol_Tab].w = 0.37f;  // More transparent.
     ImGui::GetStyle().FrameRounding = r;
     ImGui::GetStyle().WindowRounding = r;
     ImGui::GetStyle().GrabRounding = r;
