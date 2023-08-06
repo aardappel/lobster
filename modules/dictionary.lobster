@@ -37,6 +37,8 @@ class dictionary<K,V>:
         else:
             buckets[h] = chain<K,V> { buckets[h], key, value }
 
+    // Useful if the value is something that supports the + operator, you can use it
+    // to increment/append.
     def add(key:K, value:V):
         let c, h = lookup(key)
         if c:
@@ -44,13 +46,18 @@ class dictionary<K,V>:
         else:
             buckets[h] = chain<K,V> { buckets[h], key, value }
 
-    def get(key:K, default_val:V) -> V:
-        let c = lookup(key)
-        return if c: c.value else: default_val
-
+    // Use this if the value type is a reference type, such that if `get`
+    // fails to find an element, it returns nil.
     def get(key:K) -> V?:
         let c = lookup(key)
         return c and c.value or nil
+
+    // Use this with non-reference type, and specify the default or sentinal value to return,
+    // e.g. for int use 0 or -1.
+    // Also useful for string to return "" as default instead of nil.
+    def get(key:K, default_val:V) -> V:
+        let c = lookup(key)
+        return if c: c.value else: default_val
 
     def get_all() -> [K], [V]:
         let keys = []
