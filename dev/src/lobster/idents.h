@@ -1068,9 +1068,12 @@ struct SymbolTable {
         return nt;
     }
 
-    TypeRef Wrap(TypeRef elem, ValueType with) {
+    TypeRef Wrap(TypeRef elem, ValueType with, const Line *errl = nullptr) {
+        if (with == V_NIL && elem->t != V_VAR && elem->t != V_TYPEVAR && !IsNillable(elem))
+            lex.Error("cannot construct nillable type from " + Q(TypeName(elem)), errl);
         auto wt = WrapKnown(elem, with);
-        return !wt.Null() ? wt : elem->Wrap(NewType(), with);
+        if (!wt.Null()) return wt;
+        return elem->Wrap(NewType(), with);
     }
 
     bool RegisterTypeVector(vector<TypeRef> *sv, const char **names) {
@@ -1156,7 +1159,7 @@ struct SymbolTable {
             case V_VECTOR: {
                 auto nt = ResolveTypeVars({ type->Element() }, errl);
                 if (&*nt != &*type->Element()) {
-                    return Wrap(nt, type->t);
+                    return Wrap(nt, type->t, &errl);
                 }
                 return type;
             }
