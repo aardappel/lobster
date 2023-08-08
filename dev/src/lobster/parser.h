@@ -1151,6 +1151,10 @@ struct Parser {
                 parens_parsed = true;
             } else {
                 if (!noparenscall) {
+                    if (f && f->is_constructor_of && lex.token == T_LEFTCURLY)
+                        Error(
+                            "This type has an explicit constructor defined and must be called like "
+                            "a function (use () instead of {})");
                     Expect(T_LEFTPAREN);
                     parens_parsed = true;
                 }
