@@ -1049,6 +1049,7 @@ nfr("gl_dispatch_compute", "groups", "I}:3", "",
     [](StackPtr &sp, VM &vm) {
         auto groups = PopVec<int3>(sp);
         TestGL(vm);
+        currentshader->Set();
         DispatchCompute(groups);
     });
 
