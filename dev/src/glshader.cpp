@@ -431,6 +431,7 @@ void Shader::Activate() {
     if (program != last_program) {
         GL_CALL(glUseProgram(program));
         last_program = program;
+        last_shader = this;
     }
 }
 
