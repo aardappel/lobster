@@ -389,6 +389,8 @@ string Shader::Link(string_view name) {
         auto err = GLSLError(program, true, nullptr);
         return string_view("linking failed for shader: ") + name + "\n" + err;
     }
+    assert(name.size());
+    shader_name = name;
     mvp_i              = glGetUniformLocation(program, "mvp");
     mv_i               = glGetUniformLocation(program, "mv");
     projection_i       = glGetUniformLocation(program, "projection");
@@ -423,6 +425,7 @@ Shader::~Shader() {
 
 // FIXME: unlikely to cause ABA problem, but still better to reset once per frame just in case.
 static int last_program = 0;
+static Shader *last_shader = nullptr;  // Just for debugging purposes.
 
 void Shader::Activate() {
     if (program != last_program) {

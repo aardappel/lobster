@@ -77,6 +77,8 @@ struct Shader : lobster::Resource {
     map<string, BOEntry, less<>> ubomap;
     int binding_point_index_alloc = 0;
 
+    string shader_name;
+
     ~Shader();
 
     string Compile(string_view name, const char *vscode, const char *pscode);
