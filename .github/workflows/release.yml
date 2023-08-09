@@ -25,7 +25,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        name: Release ${{ github.event.release.tag_name }}
+        name: Release ${{ github.ref_name }}
         files: |
           lobster_windows_release.zip
   build-linux:
@@ -59,7 +59,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        name: Release ${{ github.event.release.tag_name }}
+        name: Release ${{ github.ref_name }}
         files: |
           lobster_linux_release.zip
   build-mac:
@@ -83,6 +83,6 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        name: Release ${{ github.event.release.tag_name }}
+        name: Release ${{ github.ref_name }}
         files: |
           lobster_osx_release.zip
