@@ -54,6 +54,8 @@ enum Nesting {
     N_CHILD,
     N_VGROUP,
     N_TOOLTIP,
+    N_DRAG_DROP_SOURCE,
+    N_DRAG_DROP_TARGET,
 };
 
 vector<Nesting> nstack;
@@ -174,6 +176,12 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_TOOLTIP:
                 ImGui::EndTooltip();
+                break;
+            case N_DRAG_DROP_SOURCE:
+                ImGui::EndDragDropSource();
+                break;
+            case N_DRAG_DROP_TARGET:
+                ImGui::EndDragDropTarget();
                 break;
         }
         // If this was indeed the item we're looking for, we can stop popping.
@@ -1301,6 +1309,62 @@ nfr("im_button_repeat_end", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::PopButtonRepeat();
+    });
+
+nfr("im_drag_drop_source_start", "flags", "I", "B",
+    "(use im_drag_drop_source instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        const auto flags = Pop(sp).intval();
+        bool open = ImGui::BeginDragDropSource(flags);
+        Push(sp, open);
+        if (open) NPush(N_DRAG_DROP_SOURCE);
+    });
+
+nfr("im_drag_drop_source_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_DRAG_DROP_SOURCE);
+    });
+
+nfr("im_set_drag_drop_payload", "type,data", "SS", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto data = Pop(sp).sval()->strv();
+        auto type = Pop(sp).sval()->strvnt();
+        ImGui::SetDragDropPayload(type.c_str(), data.data(), data.size());
+    });
+
+nfr("im_drag_drop_target_start", "", "", "B",
+    "(use im_drag_drop_target instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        bool open = ImGui::BeginDragDropTarget();
+        Push(sp, open);
+        if (open) NPush(N_DRAG_DROP_TARGET);
+    });
+
+nfr("im_drag_drop_target_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_DRAG_DROP_TARGET);
+    });
+
+nfr("im_accept_drag_drop_payload", "type,flags", "SI", "S?",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        const auto flags = Pop(sp).intval();
+        auto type = Pop(sp).sval()->strvnt();
+        auto *payload = ImGui::AcceptDragDropPayload(type.c_str(), flags);
+        if (payload) {
+            Push(sp, vm.NewString(string_view { (const char*)payload->Data, (size_t)payload->DataSize }));
+        } else {
+            Push(sp, NilVal());
+        }
     });
 
 nfr("im_width_start", "width", "F", "",

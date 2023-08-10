@@ -72,6 +72,18 @@ enum_flags im_tabitem:
     im_tabitem_leading                            // Enforce the tab position to the left of the tab bar (after the tab list popup button)
     im_tabitem_trailing                           // Enforce the tab position to the right of the tab bar (before the scrolling buttons)
 
+enum_flags im_drag_drop:
+    im_drag_drop_none = 0,
+    im_drag_drop_source_no_preview_tooltip = 1   // Disable preview tooltip. By default, a successful call to BeginDragDropSource opens a tooltip so you can display a preview or description of the source contents. This flag disables this behavior.
+    im_drag_drop_source_no_disable_hover         // By default, when dragging we clear data so that IsItemHovered() will return false, to avoid subsequent user code submitting tooltips. This flag disables this behavior so you can still call IsItemHovered() on the source item.
+    im_drag_drop_source_no_hold_to_open_others   // Disable the behavior that allows to open tree nodes and collapsing header by holding over them while dragging a source item.
+    im_drag_drop_source_allow_null_id            // Allow items such as Text(), Image() that have no unique identifier to be used as drag source, by manufacturing a temporary identifier based on their window-relative position. This is extremely unusual within the dear imgui ecosystem and so we made it explicit.
+    im_drag_drop_source_extern                   // External source (from outside of dear imgui), won't attempt to read current item/window info. Will always return true. Only one Extern source can be active simultaneously.
+    im_drag_drop_source_auto_expire_payload      // Automatically expire the payload if the source cease to be submitted (otherwise payloads are persisting while being dragged)
+    im_drag_drop_accept_before_delivery          // AcceptDragDropPayload() will returns true even before the mouse button is released. You can then call IsDelivery() to test if the payload needs to be delivered.
+    im_drag_drop_accept_no_draw_default_rect     // Do not draw the default highlight rectangle when hovering over target.
+    im_drag_drop_accept_no_preview_tooltip       // Request hiding the BeginDragDropSource tooltip from the BeginDragDropTarget site.
+
 
 // Utility functions that are more convenient than calling start/end yourself.
 
@@ -190,6 +202,20 @@ def im_button_repeat(repeat, body):
     im_button_repeat_start(repeat)
     body()
     im_button_repeat_end()
+
+def im_drag_drop_source(flags, body):
+    let open = im_drag_drop_source_start(flags)
+    if open:
+        body()
+        im_drag_drop_source_end()
+    return open
+
+def im_drag_drop_target(body):
+    let open = im_drag_drop_target_start()
+    if open:
+        body()
+        im_drag_drop_target_end()
+    return open
 
 def im_width(width, body):
     im_width_start(width)

@@ -612,6 +612,12 @@
 <tr class="a" valign=top><td class="a"><tt><b>im_disabled_end</b>()</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_button_repeat_start</b>(repeat<font color="#666666">:bool</font>)</tt></td><td class="a">(use im_button_repeat instead)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_button_repeat_end</b>()</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_drag_drop_source_start</b>(flags<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im_drag_drop_source instead)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_drag_drop_source_end</b>()</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_set_drag_drop_payload</b>(type<font color="#666666">:string</font>, data<font color="#666666">:string</font>)</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_drag_drop_target_start</b>() -> <font color="#666666">int</font></tt></td><td class="a">(use im_drag_drop_target instead)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_drag_drop_target_end</b>()</tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im_accept_drag_drop_payload</b>(type<font color="#666666">:string</font>, flags<font color="#666666">:int</font>) -> <font color="#666666">string?</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_width_start</b>(width<font color="#666666">:float</font>)</tt></td><td class="a">Sets the width of an item: 0 = default, -1 = use full width without label, any other value is custom width. Use im_width instead</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_width_end</b>()</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im_text_table</b>(id<font color="#666666">:string</font>, num_colums<font color="#666666">:int</font>, labels<font color="#666666">:[string]</font>)</tt></td><td class="a"></td></tr>
