@@ -707,6 +707,7 @@ struct Parser {
 
     FunRef *ParseFunction(string *name, bool is_constructor, bool isprivate, bool parens,
                           bool parseargs, GUDT *self) {
+        bool in_class = !!self;
         auto sf = st.FunctionScopeStart();
         if (name) {
             // Parse generic params if any.
@@ -800,16 +801,13 @@ struct Parser {
         ov->method_of = self;
         sf->SetParent(f, *ov);
         // Check if there's any overlap in default argument ranges.
-        auto ff = st.GetFirstFunction(f.name);
-        while (ff) {
-            if (ff != &f) {
-                if (first_default_arg <= (int)ff->nargs() &&
-                    ff->first_default_arg <= (int)f.nargs())
-                    Error("function ", Q(f.name), " with ", f.nargs(),
-                          " arguments is ambiguous with the ", ff->nargs(),
-                          " version because of default arguments");
-            }
-            ff = ff->sibf;
+        for (auto ff = st.GetFirstFunction(f.name); ff; ff = ff->sibf) {
+            if (ff == &f) continue;   
+            if (first_default_arg <= (int)ff->nargs() &&
+                ff->first_default_arg <= (int)f.nargs())
+                Error("function ", Q(f.name), " with ", f.nargs(),
+                        " arguments is ambiguous with the ", ff->nargs(),
+                        " version because of default arguments");
         }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
@@ -822,6 +820,8 @@ struct Parser {
                 Error("redefinition of function type ", Q(*name));
             f.istype = true;
             sf->typechecked = true;
+            if (in_class || st.scopelevels.size() != 2)
+                Error("function type must be declared at top level");
             for (auto [i, arg] : enumerate(sf->args)) {
                 if (st.IsGeneric(sf->giventypes[i]))
                     Error("function type arguments can\'t be generic (missing ", Q(":"), " ?)");
@@ -833,6 +833,14 @@ struct Parser {
             if (!sf->generics.empty())
                 Error("function type cannot have generics");
             sf->reqret = sf->returntype->NumValues();
+        }
+        // Check if there's mixed function types.
+        for (auto ff = st.GetFirstFunction(f.name); ff; ff = ff->sibf) {
+            if (ff == &f) continue;
+            // FIXME: we shouldn't have `istype`, instead function types should not be a `Function`
+            // but their own thing with their own lookup.
+            if (ff->istype != f.istype)
+                Error("function ", Q(f.name), " is declared both as function type and regular function");
         }
         if (name) {
             if (f.overloads.size() > 1) {
