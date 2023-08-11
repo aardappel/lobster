@@ -818,6 +818,14 @@ nfr("im_separator", "", "", "",
         return NilVal();
     });
 
+nfr("im_is_item_deactivated_after_edit", "", "", "B",
+    "returns true if the last item was made inactive and made a value change when it was active",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto result = ImGui::IsItemDeactivatedAfterEdit();
+        Push(sp, result);
+    });
+
 nfr("im_get_layout_pos", "", "", "F}:2", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
