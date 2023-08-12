@@ -648,9 +648,11 @@ bool TextToSpeechInit() {
 
 void StopTextToSpeech() {
     text_to_speech_q.clear();
-    if (!voice) return;
-    voice->Release();
-    voice = NULL;
+    #ifdef _WIN32
+        if (!voice) return;
+        voice->Release();
+        voice = NULL;
+    #endif
 }
 
 bool TextToSpeechUpdate() {
