@@ -148,6 +148,13 @@ nfr("text_to_speech", "text", "S", "",
         return NilVal();
     });
 
+nfr("text_to_speech_stop", "", "", "",
+    "Stops current text to speech output and clears queue",
+    [](StackPtr &, VM &) {
+        StopTextToSpeech();
+        return NilVal();
+    });
+
 }
 
 

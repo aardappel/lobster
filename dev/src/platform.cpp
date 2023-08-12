@@ -635,7 +635,6 @@ void QueueTextToSpeech(string_view text) {
     text_to_speech_q.emplace_back(string(text));
 }
 
-
 #ifdef _WIN32
 ISpVoice *voice = NULL;
 #endif
@@ -645,6 +644,13 @@ bool TextToSpeechInit() {
         if (FAILED(::CoInitializeEx(NULL, COINITBASE_MULTITHREADED))) return false;
     #endif
     return true;
+}
+
+void StopTextToSpeech() {
+    text_to_speech_q.clear();
+    if (!voice) return;
+    voice->Release();
+    voice = NULL;
 }
 
 bool TextToSpeechUpdate() {
