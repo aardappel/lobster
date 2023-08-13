@@ -62,6 +62,8 @@
 
 - rename vectors to lists.. "vector" is confusing for non-C++ people apparently.
 
+- "error: dynamic function value call must be on variable" can we remove this restriction?
+
 - By-value assignment operator, for things like re-initializing objects:
   this <== Foo {}
   A bit inefficient in terms of construction/reference counting compared to a dedicated
@@ -94,45 +96,6 @@
         s = "s"
         c = C {}
     print C {}
-
-- fix this:
-
-    class A
-    class B
-
-    let b:B
-
-    class A:
-        x = "a"
-
-        def ov():
-            // overwriting "b.a" is all cool.
-            b.a = A {}
-
-        def sec():
-            ov()
-            // oops, this A has been deallocated.
-            x = "b"
-
-    class B:
-        a = A {}
-
-        def inb():
-            // this creates a borrow on "this.a", but not on "b.a"
-            a.sec()
-
-    let b:B = B {}
-    b.inb()
-
-    /* 
-    essentially, every time X.Y gets borrowed against and X was defined (arg or local)
-    thru Z which is an active item in the borrow stack, Z.Y must also be added.
-
-    but adding two stack items for one access doesn't work since the lifetime value only refers to one of them.
-
-    Alternatively, CheckLvalBorrowed must check these on the fly but that is likely slower and more complicated.
-    */
-
 
 - this fails to specialize for the nil case:
 
@@ -610,19 +573,6 @@
 
 - should really have a way to test errors.
 
-- Detect this case:
-    class Test:
-        t:Test?
-    var a:Test? = Test { Test { Test { Test { nil } } } }
-    var c:Test? = a
-    def f(b):
-        c.t = nil
-        print b
-    if a.t and a.t.t:
-        f(a.t.t)
-  - having final/const fields may help reduce the cases where this is an issue.
-- see also: https://nim-lang.org/docs/manual_experimental.html#view-types
-
 - Do better stats on specialization code bloat, and implement a byte-code level merging pass.
   - would first need to make jumps relative encoded.
 
@@ -1070,6 +1020,92 @@
 
 - remove or bound LT_ANY, it makes checks for keep/borrow fragile and can perculate.
   - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
+
+- we could try an do limited support for indexing [] in flow sensitive typing, e.g. just for
+  constants and variable indices.
+  - Any write to the vector should invalidate all indices
+  - Any write to a variable used as an index would invalidate that index
+- A more conservative mode for both flow-upgrades and borrows.
+  The current algorithm is "optimistic" in that it doesn't detect all forms of aliasing.
+  This works well in "real" code as these upgrades/borrows are typically short lived, and
+  programmers tend to not access the same data over unrelated aliases.
+  However, if we want to be fully sound even just as a check, it be interesting to see what
+  is required for it to be impossible to subvert.
+  - 1. Aliasing: it will always be possible to obtain two refs to the same data structure
+    though independent and complex code that the compiler can't know refer to the same
+    object. This means that writes to any type T must invalidate upgrades/borrows of any
+    such types, even if under different idents/paths.
+    Not unlike C++ compilers that reload array values into regs whenever a write to
+    a similar array happens.
+  - 2. Track all possible VM decrefs in the type system. We currently do assigns, but if
+    we allow array indexing in the path (such as for borrows), we must also track vector
+    functions like pop as a write that invalidates anything in that vector.
+  - 3. Function call reuse. We currently re-apply non-local returns on a reuse, but not
+    writes. Since we already track free variables, we could simply mark free variables
+    written to, and invalidate everything they touch.. that is overly conservative, maybe
+    a more exact system can be made.
+  The above will generate more issues in code when turned on:
+  - For flow upgrades, this can be solved with:
+    - You could actually introduce a new hidden variable for each upgrade for the cases
+      above where the upgrade gets invalidated due to possible aliasing. This would be
+      inefficient because it would introduce a runtime refc++, but if the aliasing is real
+      it will not delete the object.
+      This of course should not be done for regular invalidations over the same var, which
+      are intentional.
+    - Alternatively, just let the error happen and the programmer has to re-establish the upgrade.
+      This is a bit random, but should generally be super rare.
+  - For borrows:
+    - Since we want to keep borrowing automatic, it be nice if it could be downgraded to a
+      keep automatically in only the cases where alias-invalidates happen. That would
+      generally be easy and cheap, the only complication being with code that has already
+      been type-checked againt that borrow, so we'd likely need a more indirect representation.
+    - Could allow it to just be an error, since likely it rarely happens. If it does
+      happen it may be a difficult error, but the programmer likely knows they are doing
+      some tricky aliasing they may want to simplify?
+    - Could allow more explicit borrow annotations.
+  If we go this route, should first unify flow upgrades and borrows more, and e.g. allow
+  Indexing also in upgrades, and track writes to the indexed expression etc.
+  Frankly though, the above is a LOT of complexity, for something that really doesn't ever
+  happen.
+  Existing examples.
+    - fix this:
+        class A
+        class B
+        let b:B
+        class A:
+            x = "a"
+            def ov():
+                // overwriting "b.a" is all cool.
+                b.a = A {}
+            def sec():
+                ov()
+                // oops, this A has been deallocated.
+                x = "b"
+        class B:
+            a = A {}
+            def inb():
+                // this creates a borrow on "this.a", but not on "b.a"
+                a.sec()
+        let b:B = B {}
+        b.inb()
+        /* 
+        essentially, every time X.Y gets borrowed against and X was defined (arg or local)
+        thru Z which is an active item in the borrow stack, Z.Y must also be added.
+        but adding two stack items for one access doesn't work since the lifetime value only refers to one of them.
+        Alternatively, CheckLvalBorrowed must check these on the fly but that is likely slower and more complicated.
+        */
+    - Detect this case:
+        class Test:
+            t:Test?
+        var a:Test? = Test { Test { Test { Test { nil } } } }
+        var c:Test? = a
+        def f(b):
+            c.t = nil
+            print b
+        if a.t and a.t.t:
+            f(a.t.t)
+      - having final/const fields may help reduce the cases where this is an issue.
+    - see also: https://nim-lang.org/docs/manual_experimental.html#view-types
 
 - For certain use cases, having "atoms" is a nice language feature, being able to specify
   undeclared identifiers that map to a unique set of integers.
