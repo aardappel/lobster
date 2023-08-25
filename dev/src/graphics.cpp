@@ -187,7 +187,7 @@ nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
         string err = SDLInit(title.sval()->strvnt(), int2(iint2(xs.ival(), ys.ival())),
                              (InitFlags)flags.intval(), max(1, samples.intval()));
         if (err.empty()) {
-            err = LoadMaterialFile("data/shaders/default.materials");
+            err = LoadMaterialFile("data/shaders/default.materials", "");
         }
         if (!err.empty()) {
             LOG_INFO(err);
@@ -209,14 +209,16 @@ nfr("gl_require_version", "major,minor", "II", "",
         return NilVal();
     });
 
-nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
+nfr("gl_load_materials", "materialdefs,inline,prefix", "SI?S?", "S?",
     "loads an additional materials file (data/shaders/default.materials is already loaded by default"
     " by gl_window()). if inline is true, materialdefs is not a filename, but the actual"
-    " materials. returns error string if any problems, nil otherwise.",
-    [](StackPtr &, VM &vm, Value &fn, Value &isinline) {
+    " materials. prefix will be added to all shader names allowing you to compile the same"
+    " shaders multiple times. returns error string if any problems, nil otherwise.",
+    [](StackPtr &, VM &vm, Value &fn, Value &isinline, Value &prefix) {
         TestGL(vm);
-        auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv())
-                                   : LoadMaterialFile(fn.sval()->strv());
+        auto pf = prefix.True() ? prefix.sval()->strv() : string_view{};
+        auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv(), pf)
+                                   : LoadMaterialFile(fn.sval()->strv(), pf);
         ResetShader();
         return err[0] ? Value(vm.NewString(err)) : NilVal();
     });

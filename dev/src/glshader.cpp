@@ -88,7 +88,7 @@ int CompileGLSLShader(GLenum type, int program, const GLchar *source, string &er
     return 0;
 }
 
-string ParseMaterialFile(string_view mbuf) {
+string ParseMaterialFile(string_view mbuf, string_view prefix) {
     auto p = mbuf;
     string err;
     string_view last;
@@ -190,7 +190,7 @@ string ParseMaterialFile(string_view mbuf) {
             } else if (last == "SHADER") {
                 if (finish()) return err;
                 word();
-                shader = last;
+                shader = cat(prefix, last);
                 vdecl.clear();
                 pdecl.clear();
                 csdecl.clear();
@@ -340,10 +340,10 @@ string ParseMaterialFile(string_view mbuf) {
     return err;
 }
 
-string LoadMaterialFile(string_view mfile) {
+string LoadMaterialFile(string_view mfile, string_view prefix) {
     string mbuf;
     if (LoadFile(mfile, &mbuf) < 0) return string_view("cannot load material file: ") + mfile;
-    auto err = ParseMaterialFile(mbuf);
+    auto err = ParseMaterialFile(mbuf, prefix);
     return err;
 }
 
