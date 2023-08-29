@@ -384,7 +384,7 @@ nfr("vr_motion_controller_vec", "n,i", "II", "F}:3",
         PushVec(sp, mcd->mat[i].xyz());
     });
 
-nfr("vr_hmd_vec", "i", "I", "F]:3",
+nfr("vr_hmd_vec", "i", "I", "F}:3",
     "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.",
     [](StackPtr &sp, VM &vm) {

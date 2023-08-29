@@ -301,8 +301,10 @@ struct Narg {
                         char val = *tid++ - '0';
                         if (type->ElementIfNil()->Numeric())
                             default_val = val;
+                        else if (type->t == V_VECTOR && fixed_len < 0)
+                            fixed_len = val;
                         else
-                            fixed_len = val; 
+                            assert(false);
                     }
                     break;
                 default:
