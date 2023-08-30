@@ -38,6 +38,6 @@ while gl_frame():
         gl_color(if down: color_green else: color_blue)
         let clicktime = gl_time() - gl_last_time("mouse1", down)
         if  clicktime < 1.0:
-            gl_translate float(gl_last_pos("mouse1", down)):
+            gl_translate gl_last_pos("mouse1", down):
                 gl_line_mode 1:
                     gl_circle(clicktime * 20.0, 10)

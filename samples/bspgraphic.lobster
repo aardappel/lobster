@@ -21,7 +21,7 @@ def square(pos, size, depth) -> void:
             let width = if i: size[dir] - split else: split
             square(pos + dirs[dir] * split * i, dirs[dir] * width + dirs[1 - dir] * size[1 - dir], depth + 1)
     else:
-        gl_translate float(pos):
+        gl_translate pos:
             gl_color(color_black)
             gl_rect(float(size))
             let range = max(0.1, min(0.7, 1.0 - sqrt(size.x * size.y) / 250.0))

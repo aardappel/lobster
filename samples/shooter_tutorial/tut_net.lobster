@@ -206,7 +206,7 @@ while gl_frame() and gl_button("escape") != 1:
 
         let alive_players = filter(players): _.alive
         if alive_players.length:
-            gl_translate float(gl_window_size()) / 2.0:
+            gl_translate gl_window_size() / 2:
                 let scale = gl_window_size().y / worldsize
                 gl_scale(scale)
 
@@ -285,14 +285,14 @@ while gl_frame() and gl_button("escape") != 1:
             playing = true
 
         let msg = "waiting for all players to be ready..."
-        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2.0:
+        gl_translate (gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
     else:
         let msg = if is_host:
             "press space to play! ({peers.length + 1} players)"
         else:
             "waiting for host to start game..."
-        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2.0:
+        gl_translate (gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if is_host and gl_button("space") == 1:
             let peers_copy = copy(peers)

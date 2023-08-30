@@ -543,6 +543,13 @@ nfr("gl_translate", "vec", "F}", "",
         otransforms.append_object2view(translation(v));
     });
 
+nfr("gl_translate", "vec", "I}", "",
+    "translates the current coordinate system along a vector",
+    [](StackPtr &sp, VM &) {
+        auto v = PopVec<int3>(sp);
+        otransforms.append_object2view(translation(float3(v)));
+    });
+
 nfr("gl_scale", "factor", "F", "",
     "scales the current coordinate system using a numerical factor",
     [](StackPtr &sp, VM &) {

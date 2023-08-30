@@ -46,7 +46,7 @@ while gl_frame() and gl_button("escape") != 1:
     gl_color(color_white)
 
     if playing:
-        gl_translate float(gl_window_size()) / 2.0:
+        gl_translate gl_window_size() / 2:
             let scale = gl_window_size().y / worldsize
             gl_scale(scale)
 
@@ -106,7 +106,7 @@ while gl_frame() and gl_button("escape") != 1:
             renderpointytriangle(playerpos, tomouse)
     else:
         let msg = "press space to play!"
-        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
+        gl_translate (gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button("space") == 1:
             score = 0

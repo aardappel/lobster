@@ -87,5 +87,5 @@ while gl_frame():
                  float3 { lssize.x - 1.0, lssize.y - 1.0, wh }, float3 { lssize.x - 1.0, 1.0, wh } ])
     gl_ortho()
     gl_color(color_white)
-    gl_translate float(gl_window_size()) / 2.0:
+    gl_translate gl_window_size() / 2:
         gl_circle(5.0, 20)    // simplified crosshairs
