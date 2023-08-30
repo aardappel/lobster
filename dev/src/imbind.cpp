@@ -965,6 +965,17 @@ nfr("im_radio", "labels,active,horiz", "S]II", "I",
         return Value(sel);
     });
 
+nfr("im_progress_bar", "fraction,size,overlay", "FF}:2S", "",
+    "display progress bar filled up to the given fraction. size.x < 0 to use all available space, "
+    " size.x > 0 for a specific pixel width",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto &overlay = *Pop(sp).sval();
+        auto size = PopVec<float2>(sp);
+        auto fraction = Pop(sp).fltval();
+        ImGui::ProgressBar(fraction, ImVec2(size.x, size.y), overlay.strvnt().c_str());
+    });
+
 nfr("im_combo", "label,labels,active", "SS]I", "I",
     "active to select which one is activated, -2 for last frame\'s "
     "selection or 0",
