@@ -1039,16 +1039,18 @@ nfr("cg_average_surface_color", "world", "R:voxels", "F}:3II", "",
 	});
 
 nfr("cg_average_face_colors", "world", "R:voxels", "F]",
-    "returns a vector of 7 elements with 4 floats per face: color and alpha."
-    "last element contains the total average color and alpha",
+    "returns a vector of 8 elements with 4 floats per face: color and alpha."
+    "last element contains the total average color and the average + max alpha in the last channel",
 	[](StackPtr &sp, VM &vm) {
 		auto &v = GetVoxels(Pop(sp));
-        auto vec = vm.NewVec(0, 7 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
+        auto vec = vm.NewVec(0, 8 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto &palette = palettes[v.palette_idx].colors;
         int3 dims[] = { int3(0, 1, 2), int3(0, 2, 1), int3(1, 2, 0) };
         float3 srgb_cache[256];
         bool cache_set[256] = { false };
         float4 total_avg_color = float4_0;
+        float total_min_alpha = 0.0;
+        float total_max_alpha = 0.0;
 		for (int f = 0; f < 6; f++) {
             auto dim = dims[f % 3];
             auto positive_dir = f < 3;
@@ -1080,19 +1082,27 @@ nfr("cg_average_face_colors", "world", "R:voxels", "F]",
 				}
 			}
             if (nsurf) col /= float(nsurf);
-            auto vol = v.grid.dim.volume();
-            auto alpha = float(vol - ntransparent) / float(vol);
+            //auto vol = v.grid.dim.volume();
+            //auto alpha = float(vol - ntransparent) / float(vol);
+            auto surf_alpha = float(nsurf) / float(v.grid.dim[dim[0]] * v.grid.dim[dim[1]]);
             vec->Push(vm, col.x);
             vec->Push(vm, col.y);
             vec->Push(vm, col.z);
-            vec->Push(vm, alpha);
-            total_avg_color += float4(col.x, col.y, col.z, alpha);
+            vec->Push(vm, surf_alpha);
+            total_avg_color += float4(col.x, col.y, col.z, surf_alpha);
+            total_min_alpha = min(total_min_alpha, surf_alpha);
+            total_max_alpha = max(total_max_alpha, surf_alpha);
         }
         total_avg_color *= (1.0f / 6.0f);
         vec->Push(vm, total_avg_color.x);
         vec->Push(vm, total_avg_color.y);
         vec->Push(vm, total_avg_color.z);
         vec->Push(vm, total_avg_color.w);
+        // TODO: pack brightness and luminance?
+        vec->Push(vm, 0.0);
+        vec->Push(vm, 0.0);
+        vec->Push(vm, total_min_alpha);
+        vec->Push(vm, total_max_alpha);
         Push(sp, vec);
 	});
 
