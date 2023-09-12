@@ -98,6 +98,15 @@ bool IMGUIInit(iint flags, bool dark, float rounding) {
     ImGui::GetStyle().PopupRounding = r;
     ImGui::GetStyle().ScrollbarRounding = r;
     ImGui::GetStyle().TabRounding = r;
+    if (IsSRGBMode()) {
+        // Colors are specified as SRGB, so pre-convert them if we're using linear.
+        auto cols = ImGui::GetStyle().Colors;
+        for (int i = 0; i < ImGuiCol_COUNT; i++) {
+            cols[i].x = powf(cols[i].x, 2.2f);
+            cols[i].y = powf(cols[i].y, 2.2f);
+            cols[i].z = powf(cols[i].z, 2.2f);
+        }
+    }
     ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
     ImGui_ImplOpenGL3_Init(
         #ifdef PLATFORM_ES3
