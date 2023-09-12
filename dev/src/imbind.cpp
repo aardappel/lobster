@@ -700,6 +700,16 @@ nfr("im_add_font", "font_path,size", "SF", "B",
         return Value(LoadFont(fontname.sval()->strv(), size.fltval()));
     });
 
+nfr("im_set_style_color", "i,color", "IF}:4", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm,  { N_NONE, N_NONE });
+        auto c = PopVec<float4>(sp);
+        auto i = Pop(sp).intval();
+        if (i < 0 || i >= ImGuiCol_COUNT) return;
+        ImGui::GetStyle().Colors[i] = ImVec4(c.x, c.y, c.z, c.w);
+    });
+
 nfr("im_frame_start", "", "", "",
     "(use im_frame instead)",
     [](StackPtr &, VM &vm) {

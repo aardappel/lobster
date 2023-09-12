@@ -84,6 +84,64 @@ enum_flags im_drag_drop:
     im_drag_drop_accept_no_draw_default_rect     // Do not draw the default highlight rectangle when hovering over target.
     im_drag_drop_accept_no_preview_tooltip       // Request hiding the BeginDragDropSource tooltip from the BeginDragDropTarget site.
 
+enum im_color_idx:
+    im_col_text
+    im_col_text_disabled
+    im_col_window_bg              // Background of normal windows
+    im_col_child_bg               // Background of child windows
+    im_col_popup_bg               // Background of popups, menus, tooltips windows
+    im_col_border
+    im_col_border_shadow
+    im_col_frame_bg               // Background of checkbox, radio button, plot, slider, text input
+    im_col_frame_bg_hovered
+    im_col_frame_bg_active
+    im_col_title_bg
+    im_col_title_bg_active
+    im_col_title_bg_collapsed
+    im_col_menubar_bg
+    im_col_scrollbar_bg
+    im_col_scrollbar_grab
+    im_col_scrollbar_grab_hovered
+    im_col_scrollbar_grab_active
+    im_col_check_mark
+    im_col_slider_grab
+    im_col_slider_grab_active
+    im_col_button
+    im_col_button_hovered
+    im_col_button_active
+    im_col_header                 // Header* colors are used for CollapsingHeader, TreeNode, Selectable, MenuItem
+    im_col_header_hovered
+    im_col_header_active
+    im_col_separator
+    im_col_separator_hovered
+    im_col_separator_active
+    im_col_resize_grip            // Resize grip in lower-right and lower-left corners of windows.
+    im_col_resize_grip_hovered
+    im_col_resize_grip_active
+    im_col_tab                    // TabItem in a TabBar
+    im_col_tab_hovered
+    im_col_tab_active
+    im_col_tab_unfocused
+    im_col_tab_unfocused_active
+    im_col_docking_preview        // Preview overlay color when about to docking something
+    im_col_docking_empty_bg       // Background color for empty node (e.g. CentralNode with no window docked into it)
+    im_col_plot_lines
+    im_col_plot_lines_hovered
+    im_col_plot_histogram
+    im_col_plot_histogram_hovered
+    im_col_table_header_bg        // Table header background
+    im_col_table_border_strong    // Table outer and header borders (prefer using Alpha=1.0 here)
+    im_col_table_border_light     // Table inner borders (prefer using Alpha=1.0 here)
+    im_col_table_row_bg           // Table row background (even rows)
+    im_col_table_row_bg_alt       // Table row background (odd rows)
+    im_col_text_selected_bg
+    im_col_drag_drop_target       // Rectangle highlighting a drop target
+    im_col_nav_highlight          // Gamepad/keyboard: current highlighted item
+    im_col_nav_windowing_highlight// Highlight window when using CTRL+TAB
+    im_col_nav_windowing_dim_bg   // Darken/colorize entire screen behind the CTRL+TAB window list, when active
+    im_col_modal_window_dim_bg    // Darken/colorize entire screen behind a modal window, when one is active
+    im_col_COUNT
+
 
 // Utility functions that are more convenient than calling start/end yourself.
 
