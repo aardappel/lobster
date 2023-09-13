@@ -1059,6 +1059,15 @@ nfr("lerp", "a,b,f", "F}F}1F", "F}",
         x.mix(y, f);
     });
 
+nfr("spherical_lerp", "a,b,f", "F}:4F}:4F", "F}:4",
+    "spherically interpolates between a and b quaternions with factor f [0..1]",
+    [](StackPtr &sp, VM &) {
+        auto f = Pop(sp).fltval();
+        auto y = PopVec<quat>(sp);
+        auto x = PopVec<quat>(sp);
+        PushVec(sp, spherical_lerp(x, y, f));
+    });
+
 nfr("smoothmin", "x,y,k", "FFF", "F",
     "k is the influence range",
     [](StackPtr &, VM &, Value &x, Value &y, Value &k) {
