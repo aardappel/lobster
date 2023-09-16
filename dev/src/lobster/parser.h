@@ -477,6 +477,7 @@ struct Parser {
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list, bool is_abstract) {
         Line line = lex;
         auto sname = st.MaybeNameSpace(ExpectId(), true);
+        if (is_struct && is_abstract) Error("structs cannot be abstract");
         if (IsNext(T_ASSIGN)) {
             // A specialization of an existing struct
             auto [gsup, ssup] = ParseSup(is_struct);
