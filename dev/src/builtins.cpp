@@ -1218,7 +1218,10 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         iint cols = 0;
         for (ssize_t i = 0; i < rows; i++) {
             auto sv = tilemap.vval()->At(i).sval()->strv();
-            if (i) { if (ssize(sv) != cols) vm.BuiltinError("all columns must be equal length"); }
+            if (i) {
+                if (ssize(sv) != cols)
+                    vm.BuiltinError("all columns must be equal length");
+            }
             else cols = sv.size();
             inmap[i] = sv.data();
         }
