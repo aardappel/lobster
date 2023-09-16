@@ -37,7 +37,7 @@ class Camera:
     // then still call FPS_view as before:
     def direction(v):
         v = normalize(v)
-        yaw = atan2(v.xy) - 90.0  // look along Y rather than X
+        yaw = atan2(v) - 90.0  // look along Y rather than X
         pitch = asin(v.z)
 
 // Default OpenGL view looks along -Z (Y up). This creates a worldspace where Z is up:

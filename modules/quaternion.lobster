@@ -19,8 +19,7 @@ struct quat : float4
         return quat { -x, -y, -z, w }
 
     def transform(p:float3):
-        let v = this.xyz
-        return p + cross(v, cross(v, p) + p * w) * 2.0
+        return p + cross(this, cross(this, p) + p * w) * 2.0
 
 def quat_from_angle_axis(angle:float, axis:float3):
     angle *= 0.5

@@ -295,14 +295,14 @@ struct TypeChecker {
                 return cf & CF_EXACTTYPE ? sd == 0 : sd >= 0;
             }
             case V_STRUCT_R:
-            case V_STRUCT_S:
-                return type->t == bound->t &&
-                       (type->udt == bound->udt ||
-                       // FIXME: total hack, allow passing subclass to superclass if same amount of fields.
-                       // Need to also support multiple superclass steps.
-                       // Need to also support extra fields if CF_COERCIONS.
-                       (type->udt->ssuperclass == bound->udt &&
-                        type->udt->ssuperclass->sfields.size() == bound->udt->sfields.size()));
+            case V_STRUCT_S: {
+                if (type->t != bound->t) return false;
+                if (SuperDistance(bound->udt, type->udt) < 0) return false;
+                // If number of fields is same as bound then this trivially converts.
+                if (type->udt->sfields.size() == bound->udt->sfields.size()) return true;
+                // This can convert if we chop off extra fields.
+                return (cf & CF_COERCIONS) != 0;
+            }
             case V_TUPLE:
                 return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *bound->tup);
             case V_TYPEID:
@@ -387,6 +387,13 @@ struct TypeChecker {
         tlt->exptype = n->exptype;
         tlt->lt = lt;
         n = tlt;
+    }
+
+    void MakeStructSuper(Node *&a, TypeRef structsuper) {
+        auto ss = new ToStructSuper(a->line, a);
+        ss->exptype = structsuper;
+        ss->lt = a->lt;
+        a = ss;
     }
 
     void StorageType(TypeRef type, const Node &context) {
@@ -475,7 +482,7 @@ struct TypeChecker {
             extra = ConvertFlags(CF_COVARIANT | extra);
         }
         if (ConvertsTo(a->exptype, bound, ConvertFlags(CF_UNIFICATION | extra))) {
-                return;
+            return;
         }
         // Here follow the cases that needs explicit coercion code to be made compatible.
         switch (bound->t) {
@@ -498,6 +505,16 @@ struct TypeChecker {
                     return;
                 }
                 break;
+            case V_STRUCT_R:
+            case V_STRUCT_S: {
+                if (a->exptype->t == bound->t &&
+                    SuperDistance(bound->udt, a->exptype->udt) > 0 &&
+                    a->exptype->udt->sfields.size() > bound->udt->sfields.size()) {
+                    MakeStructSuper(a, bound);
+                    return;
+                }
+                break;
+            }
             default:
                 ;
         }

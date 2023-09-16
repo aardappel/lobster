@@ -1231,6 +1231,18 @@ void ToInt::Generate(CodeGen &cg, size_t retval) const {
     if (retval) cg.TakeTemp(1, false);
 }
 
+void ToStructSuper::Generate(CodeGen &cg, size_t retval) const {
+    // TODO: rather than chopping off extra fields, can see if child is an IdentRef and make it
+    // not push those fields in the first place.
+    cg.Gen(child, retval);
+    if (!retval) return;
+    cg.TakeTemp(1, true);
+    for (auto i = child->exptype->udt->sfields.size() - 1; i >= exptype->udt->sfields.size(); i--) {
+        auto &sfield = child->exptype->udt->sfields[i];
+        cg.GenPop({ sfield.type, lt });
+    }
+}
+
 void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     int stack_offset = 0;

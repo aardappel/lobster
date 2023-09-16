@@ -7,12 +7,12 @@ import vec
 struct mat2x2 : float4
 
     def operator*(o:mat2x2):
-        return mat2x2 { dot(this.xy, o.xz), dot(this.xy, o.yw),
-                        dot(this.zw, o.xz), dot(this.zw, o.yw) }
-    
+        return mat2x2 { dot(o.xz, this),    dot(o.yw, this),
+                        dot(o.xz, this.zw), dot(o.yw, this.zw) }
+
     def operator*(o:float2):
-        return float2 { dot(o, this.xy),
-                      dot(o, this.zw) }
+        return float2 { dot(o, this),
+                        dot(o, this.zw) }
 
     def determinant():
         return x*w - y*z
@@ -26,7 +26,7 @@ struct mat2x2 : float4
     def trace():
         return x*w
 
-        
+
 // The identity matrix:
 // |1 0|
 // |0 1|
