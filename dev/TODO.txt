@@ -1,5 +1,3 @@
-- https://github.com/aardappel/lobster/issues/259
-- https://github.com/aardappel/lobster/issues/260
 - https://github.com/aardappel/lobster/issues/152
 
 - mutable structs

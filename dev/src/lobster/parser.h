@@ -87,6 +87,10 @@ struct Parser {
                         // again parseable.
                         while (!Either(T_LINEFEED, T_DEDENT, T_ENDOFFILE, T_ENDOFINCLUDE))
                             lex.Next();
+                        // In several places we assume a Block is never empty, and given that error
+                        // recovery is the exception, we fix that here by inserting a dummy statement,
+                        // rather than changing how we handle blocks.
+                        block->Add(new Nil(lex, { nullptr }));
                     }
                 } else {
                     ParseTopExp(block);
