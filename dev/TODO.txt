@@ -1,3 +1,11 @@
+- https://github.com/aardappel/lobster/issues/259
+- https://github.com/aardappel/lobster/issues/260
+- https://github.com/aardappel/lobster/issues/152
+
+- mutable structs
+
+- auto binding generated C++ headers from a Lobster decl
+
 - allow let inside if/guard as syntactic sugar
 
 - this is out of date and a bit overly negative: https://aardappel.github.io/lobster/philosophy.html
@@ -531,6 +539,32 @@
   `hof` here may be something you want to nest, and the repeated decl of `X` would be unwelcome.
   See: Kotlin, that made a very cool feature out of this:
   https://kotlinlang.org/docs/lambdas.html#function-types
+
+- "guard" is a feature to promote early-out programming style, but more deeply it can also
+  be seen as analogous to Icon/ProLog sequence of expressions that can fail.
+  It treats a sequence of Lobster statements/exps and says that an exp may fail (0 results)
+  thus the statements/exps after it should not be executed.
+  But what if you did the same for "success"" of more than 1 result?
+  Lobster already has the ability for a function to "generate" results as a HOF and thus
+  look like a for loop, which can use a ProLog "cut" operation across function boundaries
+  with return, so we can already do this.
+  But much like "guard" is a syntax-only feature, you can imagine a flattened version of iteration
+  that relies on a HOF or for underneath:
+  stat1
+  each a = foo(10)
+  stat2
+  Where "each" is like a "let", except it will iterate the subsequent statements 0..N based
+  the values supplied by its initializer.
+  "foo" would be a 2-arg HOF where is 2nd arg is the function value implicitly passed, so
+  it is equivalent to:
+  stat1
+  foo(10) a:
+    stat2
+  If the initializer is not a HOF it would default to the args passed to for, i.e. you could
+  write "each a = 10" or whatever.
+  "guard" is a special case of this, since you could implement guard as "each _ = boolean_exp"
+  I guess additionally "each" doesn't have an optional else block, so the distinction is still
+  useful, besides the clear naming.
 
 - natgen refactor
   - inline tocpp into codegen, removing bytecode entirely.
