@@ -205,10 +205,8 @@ struct int3 : int2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use either `class` or `struct` to define these, with the latter being more
-restrictive: it does not allow fields to be modified (assigned to) after it has
-been constructed, they are stored in-inline in their parent and copied.
-This makes sense for small objects such as the one in this example, and can be used
-to enforce a more functional style of programming.
+restrictive: they are stored in-inline in their parent and copied.
+This makes sense for small objects such as the one in this example.
 
 You specify a list of fields using indentation.
 

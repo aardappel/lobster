@@ -212,11 +212,9 @@ define a user defined type. For example:</p>
 struct int3 : int2
     z:int</code></pre>
 <p>You can use either <code>class</code> or <code>struct</code> to
-define these, with the latter being more restrictive: it does not allow
-fields to be modified (assigned to) after it has been constructed, they
-are stored in-inline in their parent and copied. This makes sense for
-small objects such as the one in this example, and can be used to
-enforce a more functional style of programming.</p>
+define these, with the latter being more restrictive: they are stored
+in-inline in their parent and copied. This makes sense for small objects
+such as the one in this example.</p>
 <p>You specify a list of fields using indentation.</p>
 <p>Optionally, you specify a supertype, which has the effect of adding
 all the fields of the supertype to the current type, thus making it an

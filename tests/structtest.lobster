@@ -63,6 +63,37 @@ run_test("struct"):
         assert trivv[int2 { 0, 0 }][0].a.y == 6
         assert int3 { 5, 6, 7 }[1] == 6
 
+    // Member assign.
+    do():
+        // This should be use carefully, because structs pass by copy.
+        let a = int2_0
+        let b = a  // Copy, not ref.
+        a.y = 1
+        assert a == int2_y  // Not surprising.
+        assert b == int2_0  // May surprise people not aware of struct semantics.
+        // Now with a parent class.
+        class C:
+            g = int3_1
+            f = int2_0
+        let c = C {}
+        c.f.y = 1
+        assert c.f == int2_y
+        // Parent struct.
+        struct S:
+            g = int3_1
+            f = int2_0
+        let s = S {}
+        s.f.y = 1
+        assert s.f == int2_y
+        // Nested struct assign.
+        s.f = int2_x
+        assert s.f == int2_x
+        // With indexing as parent.
+        let v = [ int2_0 ]
+        v[0].y = 1
+        print v[0]
+        assert v[0] == int2_y
+
     // Control structures.
     do():
         assert (if manhattan(int2 { 1, 1 }): int2 { 1, 2 } else: int2 { 3, 4 }).y == 2
@@ -170,9 +201,9 @@ run_test("struct"):
             c:int
             d:int
             e:int
-        
-        assert A { 2, 3, 4, 5, 6 } * 5 == A { 10, 15, 20, 25, 30 } 
-        assert 5 * A { 2, 3, 4, 5, 6 } == A { 10, 15, 20, 25, 30 }   
+
+        assert A { 2, 3, 4, 5, 6 } * 5 == A { 10, 15, 20, 25, 30 }
+        assert 5 * A { 2, 3, 4, 5, 6 } == A { 10, 15, 20, 25, 30 }
 
         // Addition
         assert 5 + int2 { 2, 3 } == int2 { 7, 8 }
@@ -204,36 +235,36 @@ run_test("struct"):
 
         // Less than
         assert int2 { 2, 5 } < 5 == int2 { 1, 0 }
-        assert 5 < int2 { 2, 5 } == int2 { 0, 0 } 
+        assert 5 < int2 { 2, 5 } == int2 { 0, 0 }
         assert int2 { 2, 6 } < 5 == int2 { 1, 0 }
-        assert 5 < int2 { 2, 6 } == int2 { 0, 1 } 
+        assert 5 < int2 { 2, 6 } == int2 { 0, 1 }
 
         assert int3 { 2, 5, 6 } < 5 == int3 { 1, 0, 0 }
-        assert 5 < int3 { 2, 5, 6 } == int3 { 0, 0, 1 } 
+        assert 5 < int3 { 2, 5, 6 } == int3 { 0, 0, 1 }
 
         // Less than or equal
         assert int2 { 2, 5 } <= 5 == int2 { 1, 1 }
-        assert 5 <= int2 { 2, 5 } == int2 { 0, 1 } 
+        assert 5 <= int2 { 2, 5 } == int2 { 0, 1 }
         assert int2 { 2, 6 } <= 5 == int2 { 1, 0 }
-        assert 5 <= int2 { 2, 6 } == int2 { 0, 1 } 
+        assert 5 <= int2 { 2, 6 } == int2 { 0, 1 }
 
         assert int3 { 2, 5, 6 } <= 5 == int3 { 1, 1, 0 }
-        assert 5 <= int3 { 2, 5, 6 } == int3 { 0, 1, 1 } 
+        assert 5 <= int3 { 2, 5, 6 } == int3 { 0, 1, 1 }
 
         // Greater than
         assert int2 { 2, 5 } > 5 == int2 { 0, 0 }
-        assert 5 > int2 { 2, 5 } == int2 { 1, 0 } 
+        assert 5 > int2 { 2, 5 } == int2 { 1, 0 }
         assert int2 { 2, 6 } > 5 == int2 { 0, 1 }
-        assert 5 > int2 { 2, 6 } == int2 { 1, 0 } 
+        assert 5 > int2 { 2, 6 } == int2 { 1, 0 }
 
         assert int3 { 2, 5, 6 } > 5 == int3 { 0, 0, 1 }
-        assert 5 > int3 { 2, 5, 6 } == int3 { 1, 0, 0 } 
+        assert 5 > int3 { 2, 5, 6 } == int3 { 1, 0, 0 }
 
         // Greater than or equal
         assert int2 { 2, 5 } >= 5 == int2 { 0, 1 }
-        assert 5 >= int2 { 2, 5 } == int2 { 1, 1 } 
+        assert 5 >= int2 { 2, 5 } == int2 { 1, 1 }
         assert int2 { 2, 6 } >= 5 == int2 { 0, 1 }
-        assert 5 >= int2 { 2, 6 } == int2 { 1, 0 } 
+        assert 5 >= int2 { 2, 6 } == int2 { 1, 0 }
 
         assert int3 { 2, 5, 6 } >= 5 == int3 { 0, 1, 1 }
-        assert 5 >= int3 { 2, 5, 6 } == int3 { 1, 1, 0 } 
+        assert 5 >= int3 { 2, 5, 6 } == int3 { 1, 1, 0 }

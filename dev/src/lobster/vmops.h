@@ -796,20 +796,20 @@ VM_INLINE void U_LVAL_FLD(VM &vm, StackPtr sp, int i) {
     vm.temp_lval = &GetFieldLVal(vm, sp, i);
 }
 
-VM_INLINE void U_LVAL_IDXVI(VM &vm, StackPtr sp) {
+VM_INLINE void U_LVAL_IDXVI(VM &vm, StackPtr sp, int offset) {
     auto x = Pop(sp).ival();
-    vm.temp_lval = &GetVecLVal(vm, sp, x);
+    vm.temp_lval = &GetVecLVal(vm, sp, x) + offset;
 }
 
-VM_INLINE void U_LVAL_IDXVV(VM &vm, StackPtr sp, int l) {
+VM_INLINE void U_LVAL_IDXVV(VM &vm, StackPtr sp, int offset, int l) {
     auto x = vm.GrabIndex(sp, l);
-    vm.temp_lval = &GetVecLVal(vm, sp, x);
+    vm.temp_lval = &GetVecLVal(vm, sp, x) + offset;
 }
 
 // Class accessed by index.
-VM_INLINE void U_LVAL_IDXNI(VM &vm, StackPtr sp) {
+VM_INLINE void U_LVAL_IDXNI(VM &vm, StackPtr sp, int offset) {
     auto x = Pop(sp).ival();
-    vm.temp_lval = &GetFieldILVal(vm, sp, x);
+    vm.temp_lval = &GetFieldILVal(vm, sp, x) + offset;
 }
 
 VM_INLINE void U_LV_DUP(VM &vm, StackPtr sp) {

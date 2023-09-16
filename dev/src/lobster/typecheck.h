@@ -1901,11 +1901,6 @@ struct TypeChecker {
     }
 
     void CheckLval(Node *n) {
-        if (auto dot = Is<Dot>(n)) {
-            auto type = dot->child->exptype;
-            if (IsStruct(type->t))
-                Error(*n, "cannot write to field of value ", Q(type->udt->name));
-        }
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
             Error(*n, "function-call cannot be an l-value");

@@ -648,9 +648,59 @@ struct CodeGen  {
 
     void GenAssignBasic(const SpecIdent &sid) {
         TakeTemp(1, true);
-        GenLvalVar(sid);
+        GenLvalVar(sid, 0);
         auto op = AssignBaseOp({ sid });
         GenOpWithStructInfo(op, sid.type);
+    }
+
+    void GenAssignLvalRec(const Node *lval, int offset, int take_temp, TypeRef type) {
+        if (auto idr = Is<IdentRef>(lval)) {
+            TakeTemp(take_temp, true);
+            GenLvalVar(*idr->sid, offset);
+        } else if (auto dot = Is<Dot>(lval)) {
+            auto stype = dot->child->exptype;
+            assert(IsUDT(stype->t));  // Ensured by typechecker.
+            auto idx = stype->udt->g.Has(dot->fld);
+            assert(idx >= 0);
+            auto &sfield = stype->udt->sfields[idx];
+            if (stype->t == V_CLASS) {
+                Gen(dot->child, 1);
+                TakeTemp(take_temp + 1, true);
+                EmitOp(IL_LVAL_FLD);
+                Emit(sfield.slot + offset);
+            } else {
+                GenAssignLvalRec(dot->child, sfield.slot + offset, take_temp, type);
+            }
+        } else if (auto indexing = Is<Indexing>(lval)) {
+            Gen(indexing->object, 1);
+            Gen(indexing->index, 1);
+            TakeTemp(take_temp + 2, true);
+            switch (indexing->object->exptype->t) {
+                case V_VECTOR:
+                    EmitOp(indexing->index->exptype->t == V_INT ? IL_LVAL_IDXVI : IL_LVAL_IDXVV,
+                           ValWidth(indexing->index->exptype) + 1);
+                    Emit(offset);
+                    EmitWidthIfStruct(indexing->index->exptype);  // When index is struct.
+                    break;
+                case V_CLASS:
+                    assert(indexing->index->exptype->t == V_INT &&
+                           indexing->object->exptype->udt->sametype->Numeric());
+                    EmitOp(IL_LVAL_IDXNI);
+                    Emit(offset);
+                    assert(!IsStruct(type->t));
+                    break;
+                case V_STRUCT_R:
+                case V_STRUCT_S:
+                case V_STRING:
+                    // FIXME: Would be better to catch this in typechecking, but typechecker does
+                    // not currently distinquish lvalues.
+                    parser.ErrorAt(lval, "cannot use this type as lvalue");
+                default:
+                    assert(false);
+            }
+        } else {
+            parser.ErrorAt(lval, "lvalue required");
+        }
     }
 
     void GenAssign(const Node *lval, ILOP lvalop, size_t retval,
@@ -679,65 +729,19 @@ struct CodeGen  {
             else assert(type->t == V_INT);
         }
         if (rhs) Gen(rhs, 1);
-        auto GenLvalRet = [&](TypeRef lvt) {
-            if (!post) {
-                GenOpWithStructInfo(lvalop, lvt);
-            }
-            if (retval) {
-                // FIXME: it seems these never need a refcount increase because they're always
-                // borrowed? Be good to assert that somehow.
-                auto outw = ValWidth(lvt);
-                EmitOp(IsStruct(lvt->t) ? IL_LV_DUPV : IL_LV_DUP, 0, outw);
-                EmitWidthIfStruct(lvt);
-            }
-            if (post) {
-                GenOpWithStructInfo(lvalop, lvt);
-            }
-        };
-        if (auto idr = Is<IdentRef>(lval)) {
-            TakeTemp(take_temp, true);
-            GenLvalVar(*idr->sid);
-            GenLvalRet(idr->sid->type);
-        } else if (auto dot = Is<Dot>(lval)) {
-            auto stype = dot->child->exptype;
-            assert(IsUDT(stype->t));  // Ensured by typechecker.
-            auto idx = stype->udt->g.Has(dot->fld);
-            assert(idx >= 0);
-            auto &sfield = stype->udt->sfields[idx];
-            Gen(dot->child, 1);
-            TakeTemp(take_temp + 1, true);
-            EmitOp(IL_LVAL_FLD);
-            Emit(sfield.slot);
-            GenLvalRet(sfield.type);
-        } else if (auto indexing = Is<Indexing>(lval)) {
-            Gen(indexing->object, 1);
-            Gen(indexing->index, 1);
-            TakeTemp(take_temp + 2, true);
-            switch (indexing->object->exptype->t) {
-                case V_VECTOR:
-                    EmitOp(indexing->index->exptype->t == V_INT ? IL_LVAL_IDXVI : IL_LVAL_IDXVV,
-                           ValWidth(indexing->index->exptype) + 1);
-                    EmitWidthIfStruct(indexing->index->exptype);  // When index is struct.
-                    GenLvalRet(type);
-                    break;
-                case V_CLASS:
-                    assert(indexing->index->exptype->t == V_INT &&
-                           indexing->object->exptype->udt->sametype->Numeric());
-                    EmitOp(IL_LVAL_IDXNI);
-                    assert(!IsStruct(type->t));
-                    GenLvalRet(type);
-                    break;
-                case V_STRUCT_R:
-                case V_STRUCT_S:
-                case V_STRING:
-                    // FIXME: Would be better to catch this in typechecking, but typechecker does
-                    // not currently distinquish lvalues.
-                    parser.ErrorAt(lval, "cannot use this type as lvalue");
-                default:
-                    assert(false);
-            }
-        } else {
-            parser.ErrorAt(lval, "lvalue required");
+        GenAssignLvalRec(lval, 0, take_temp, type);
+        if (!post) {
+            GenOpWithStructInfo(lvalop, type);
+        }
+        if (retval) {
+            // FIXME: it seems these never need a refcount increase because they're always
+            // borrowed? Be good to assert that somehow.
+            auto outw = ValWidth(type);
+            EmitOp(IsStruct(type->t) ? IL_LV_DUPV : IL_LV_DUP, 0, outw);
+            EmitWidthIfStruct(type);
+        }
+        if (post) {
+            GenOpWithStructInfo(lvalop, type);
         }
     }
 
@@ -849,9 +853,9 @@ struct CodeGen  {
         Emit(keepvars++ + keep_index_add);
     }
 
-    void GenLvalVar(const SpecIdent &sid) {
+    void GenLvalVar(const SpecIdent &sid, int offset) {
         EmitOp(sid.used_as_freevar ? IL_LVAL_VARF : IL_LVAL_VARL);
-        Emit(sid.Idx());
+        Emit(sid.Idx() + offset);
     }
 
 
