@@ -304,10 +304,13 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
             } else if (last == "LAYOUT") {
                 word();
                 auto xs = last;
+                if (xs.empty()) xs = "1";
                 word();
                 auto ys = last;
+                if (ys.empty()) ys = "1";
                 word();
                 auto zs = last;
+                if (zs.empty()) zs = "1";
                 csdecl += "layout(local_size_x = " + xs + ", local_size_y = " + ys + ", local_size_z = " + zs + ") in;\n";
             } else if (last == "DEFINE") {
                 word();
