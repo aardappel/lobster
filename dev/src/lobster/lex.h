@@ -268,13 +268,22 @@ struct Lex : LoadedFile {
 
             #define secondb(s, t, b) if (*p == s) { p++; b; return t; }
             #define second(s, t) secondb(s, t, {})
+            #define infcheck(s, n) \
+                if (strncmp(p, s, n) == 0 && !IsIdentCont(p[n])) { \
+                    p += n; \
+                    sattr = string_view(tokenstart, p - tokenstart); \
+                    return Float(); \
+                }
+            #define infchecks() infcheck("inf", 3) infcheck("infinity", 8)
 
             case '+':
+                infchecks();
                 second('+', T_INCR);
                 cont = true;
                 second('=', T_PLUSEQ);
                 return T_PLUS;
             case '-':
+                infchecks();
                 second('-', T_DECR);
                 cont = true;
                 second('=', T_MINUSEQ);
@@ -409,6 +418,7 @@ struct Lex : LoadedFile {
                             if (sattr == TName(T_IF)) return T_IF;
                             if (sattr == TName(T_INCLUDE)) return T_INCLUDE;
                             if (sattr == TName(T_IS)) return T_IS;
+                            if (sattr == "inf" || sattr == "infinity") return Float();
                             break;
                         case 'l':
                             if (sattr == TName(T_CONST)) return T_CONST;
@@ -421,6 +431,7 @@ struct Lex : LoadedFile {
                             if (sattr == TName(T_NIL)) return T_NIL;
                             if (sattr == TName(T_NOT)) return T_NOT;
                             if (sattr == TName(T_NAMESPACE)) return T_NAMESPACE;
+                            if (sattr == "nan") return Float();
                             break;
                         case 'o':
                             if (sattr == TName(T_OR)) { cont = true; return T_OR; }
@@ -492,8 +503,7 @@ struct Lex : LoadedFile {
                         }
                         sattr = string_view(tokenstart, p - tokenstart);
                         if (isfloat) {
-                            fval = parse_float<double>(sattr, nullptr);
-                            return T_FLOAT;
+                            return Float();
                         } else {
                             ival = parse_int<int64_t>(sattr);
                             return T_INT;
@@ -512,6 +522,11 @@ struct Lex : LoadedFile {
                 return T_NONE;
             }
         }
+    }
+
+    TType Float() {
+        fval = parse_float<double>(sattr, nullptr);
+        return T_FLOAT;
     }
 
     TType StringConstant(bool character_constant, bool interp) {
