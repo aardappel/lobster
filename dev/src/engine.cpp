@@ -55,8 +55,8 @@ extern void AddIMGUI(NativeRegistry &nfr);
 namespace lobster {
 
 FileLoader EnginePreInit(NativeRegistry &nfr) {
-    RegisterBuiltin(nfr, "", "graphics",  AddGraphics);
-    RegisterBuiltin(nfr, "", "font", AddFont);
+    RegisterBuiltin(nfr, "gl", "graphics",  AddGraphics);
+    RegisterBuiltin(nfr, "gl", "font", AddFont);
     RegisterBuiltin(nfr, "", "sound", AddSound);
     RegisterBuiltin(nfr, "", "physics", AddPhysics);
     RegisterBuiltin(nfr, "", "noise", AddNoise);

@@ -6,8 +6,8 @@
 // the mesh in various orientations.
 // The example showcases the render_to_texture utility, which allows us to
 // render a 2D drawing on the surfaces of a 3D object, using a frame buffer.
-// The example also demostrates using gl_new_mesh, which allows us to orient
-// the texture on each face of the cube, since the simpler gl_new_poly is not
+// The example also demostrates using gl.new_mesh, which allows us to orient
+// the texture on each face of the cube, since the simpler gl.new_poly is not
 // quite sufficient for this purpose.
 //
 // To generate the mesh for each face, cube_face_meshes uses the three least
@@ -58,8 +58,8 @@ import gl
 import texture
 import camera
 
-fatal(gl_window("Lobster Cube", 515, 515))
-check(gl_set_font_name("data/fonts/Droid_Sans/DroidSans.ttf"), "can\'t load font")
+fatal(gl.window("Lobster Cube", 515, 515))
+check(gl.set_font_name("data/fonts/Droid_Sans/DroidSans.ttf"), "can\'t load font")
 
 // cube_face_meshes contains the meshes for the six faces of a cube,
 // facing outward.
@@ -79,7 +79,7 @@ let square = [float2_0, float2_x, float2_1, float2_y]
 let cube_face_meshes = map(cube_face_vertices) v:
     let positions = map(v) c: vec3_v(map(3) i: float(c & (1 << (2 - i)) != 0))
     let indices = [0, 1, 2, 2, 3, 0]
-    gl_new_mesh(
+    gl.new_mesh(
         "PT",
         positions, // "P"
         [], // colors,
@@ -96,14 +96,14 @@ let cube_face_meshes = map(cube_face_vertices) v:
 let detail = 256
 let cube_face_textures = map(6) i:
     render_to_texture(nil, int2_1 * detail, false, nil, 0):
-        gl_ortho(true, false)
+        gl.ortho(true, false)
         let label = "{i+1}"
-        gl_set_font_size(detail/2)
-        let size = gl_text_size(label)
-        gl_translate(float2_1 * float(detail) / 2.0 - float(size) / 2.0)
-        gl_clear(color_grey)
-        gl_color(color_white)
-        gl_text(label)
+        gl.set_font_size(detail/2)
+        let size = gl.text_size(label)
+        gl.translate(float2_1 * float(detail) / 2.0 - float(size) / 2.0)
+        gl.clear(color_grey)
+        gl.color(color_white)
+        gl.text(label)
 
 // Colors are arranged such that CMY are about the origin and RGB on the polar
 // opposites.
@@ -124,29 +124,29 @@ let camera = Camera { float3_0, -45.0, 45.0 }
 // This demo is able to use camera.FPS_view but uses a different control model
 // to move the camera about the origin at a fixed “elevation”.
 def camera_GPS_update(upkey, leftkey, downkey, rightkey, elevation:float, mousesens:float, keyspeed:float):
-    let long = (gl_button(upkey) >= 1) - (gl_button(downkey) >= 1)
-    let lat = (gl_button(rightkey) >= 1) - (gl_button(leftkey) >= 1)
-    camera.pitch -= gl_mouse_delta(0).y / mousesens + long * keyspeed
-    camera.yaw -= gl_mouse_delta(0).x / mousesens - lat * keyspeed
+    let long = (gl.button(upkey) >= 1) - (gl.button(downkey) >= 1)
+    let lat = (gl.button(rightkey) >= 1) - (gl.button(leftkey) >= 1)
+    camera.pitch -= gl.mouse_delta(0).y / mousesens + long * keyspeed
+    camera.yaw -= gl.mouse_delta(0).x / mousesens - lat * keyspeed
     camera.pitch = min(85.0, max(-85.0, camera.pitch))
     camera.position = vecfromyawpitch(camera.yaw, camera.pitch, -elevation, 0.0)
 
-while gl_frame() and not gl_button("escape"):
-    gl_clear(color_dark_grey)
-    gl_cursor(false)
-    gl_perspective(60.0, 0.1, 1000.0)
+while gl.frame() and not gl.button("escape"):
+    gl.clear(color_dark_grey)
+    gl.cursor(false)
+    gl.perspective(60.0, 0.1, 1000.0)
 
     camera_GPS_update("w", "a", "s", "d", 2.0, 4.0, 4.0)
     camera.FPS_view()
 
-    gl_light(camera.position, float2 { 128.0, 0.1 })
+    gl.light(camera.position, float2 { 128.0, 0.1 })
 
-    gl_translate(float3_1 / -2.0)
-    gl_set_shader("textured")
+    gl.translate(float3_1 / -2.0)
+    gl.set_shader("textured")
     for(6) i:
         // The texture colors are multiplied by the color in context.
         // Since the texture on our mesh is white on black, we can change the
         // white to a unique color for each face of the world.
-        gl_color(face_colors[i])
-        gl_set_primitive_texture(0, cube_face_textures[i])
-        gl_render_mesh(cube_face_meshes[i])
+        gl.color(face_colors[i])
+        gl.set_primitive_texture(0, cube_face_textures[i])
+        gl.render_mesh(cube_face_meshes[i])

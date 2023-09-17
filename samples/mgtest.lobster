@@ -10,7 +10,7 @@ import mg
 
 print "generating models... this may take some time!"
 
-fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800, gl_window_init_linear_color))
+fatal(gl.window("meshgen test (PLEASE WAIT...)", 1280, 800, gl.window_init_linear_color))
 
 let camera = Camera { float3_1 * 10.0, 135.0, 0.0 }
 
@@ -128,71 +128,71 @@ if true:
     mg_landscape(0.5, 1.0)
     landscape = mg_polygonize(density)
 
-if gun: print "vertcount: gun {gl_mesh_size(gun)}"
-if spaceship: print "vertcount: ship {gl_mesh_size(spaceship)}"
-for trees: print("vertcount: tree1 {gl_mesh_size(_)}")
-if rounded_cube: print "vertcount: rounded_cube {gl_mesh_size(rounded_cube)}"
+if gun: print "vertcount: gun {gl.mesh_size(gun)}"
+if spaceship: print "vertcount: ship {gl.mesh_size(spaceship)}"
+for trees: print("vertcount: tree1 {gl.mesh_size(_)}")
+if rounded_cube: print "vertcount: rounded_cube {gl.mesh_size(rounded_cube)}"
 
 print seconds_elapsed()
 
-while gl_frame():
-    if gl_button("escape") == 1: return
+while gl.frame():
+    if gl.button("escape") == 1: return
 
-    gl_window_title("meshgen test: {gl_delta_time()}")
+    gl.window_title("meshgen test: {gl.delta_time()}")
 
-    gl_clear(color_darkest_grey)
+    gl.clear(color_darkest_grey)
 
     let fovscale = 1.5
 
     if true:
-        gl_cursor(false)
-        gl_perspective(60.0, 0.1, 1000.0)
+        gl.cursor(false)
+        gl.perspective(60.0, 0.1, 1000.0)
 
         var speed = 10
-        if gl_button("left shift") >= 1: speed = 50
+        if gl.button("left shift") >= 1: speed = 50
         camera.FPS_update("w", "a", "s", "d", speed, 4.0, true)
         camera.FPS_view()
-        gl_light(camera.position, float2 { 128.0, 0.1 })
+        gl.light(camera.position, float2 { 128.0, 0.1 })
     else:
-        gl_ortho3d(float3_0, float3 { gl_window_size().x, gl_window_size().y, 2000 } / 100)
-        gl_rotate_x(sincos(45))
-        gl_rotate_z(sincos(45))
-        gl_light(float3(sincos(gl_time() * 10), 0) * 100 + float3_z * 300, float2 { 128.0, 0.1 })
+        gl.ortho3d(float3_0, float3 { gl.window_size().x, gl.window_size().y, 2000 } / 100)
+        gl.rotate_x(sincos(45))
+        gl.rotate_z(sincos(45))
+        gl.light(float3(sincos(gl.time() * 10), 0) * 100 + float3_z * 300, float2 { 128.0, 0.1 })
 
-    gl_blend 0:
-        gl_set_shader(aspoints and "phong_particle" or "flat")
+    gl.blend 0:
+        gl.set_shader(aspoints and "phong_particle" or "flat")
 
         if spaceship:
-            gl_translate(float2_1 * 10.0):
-                gl_point_scale(1.0 * fovscale)
-                gl_render_mesh(spaceship)
+            gl.translate(float2_1 * 10.0):
+                gl.point_scale(1.0 * fovscale)
+                gl.render_mesh(spaceship)
 
         if gun:
-            gl_translate(float2_1 * 20.0):
-                gl_scale(0.2):
-                    gl_point_scale(0.2 * fovscale)
-                    gl_render_mesh(gun)
+            gl.translate(float2_1 * 20.0):
+                gl.scale(0.2):
+                    gl.point_scale(0.2 * fovscale)
+                    gl.render_mesh(gun)
 
         if landscape:
-            gl_translate(float2_y * 30.0):
-                gl_scale(10):
-                    gl_point_scale(10.0 * fovscale)
-                    gl_render_mesh(landscape)
+            gl.translate(float2_y * 30.0):
+                gl.scale(10):
+                    gl.point_scale(10.0 * fovscale)
+                    gl.render_mesh(landscape)
 
         if rounded_cube:
-            gl_translate(float2_y * 10.0):
-                gl_scale(2):
-                    gl_point_scale(3.0 * fovscale)
-                    gl_render_mesh(rounded_cube)
+            gl.translate(float2_y * 10.0):
+                gl.scale(2):
+                    gl.point_scale(3.0 * fovscale)
+                    gl.render_mesh(rounded_cube)
 
         for(10) j:
-            gl_translate(float3_y * j * -5):
+            gl.translate(float3_y * j * -5):
                 for(trees) t, i:
-                    gl_translate(float3_x * i * 10.0):
-                        gl_scale(0.5):
-                            gl_point_scale(0.5 * fovscale)
-                            gl_render_mesh(t)
+                    gl.translate(float3_x * i * 10.0):
+                        gl.scale(0.5):
+                            gl.point_scale(0.5 * fovscale)
+                            gl.render_mesh(t)
 
-    gl_set_shader("color")
-    gl_debug_grid(int3 { 20, 20, 0 }, float3_1, 0.005)
+    gl.set_shader("color")
+    gl.debug_grid(int3 { 20, 20, 0 }, float3_1, 0.005)
 

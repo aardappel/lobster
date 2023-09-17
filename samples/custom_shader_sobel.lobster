@@ -7,7 +7,7 @@ import texture
 // In this case, a simple sobel edge detection filter example adapted from
 // https://www.shadertoy.com/view/4t3XDM
 
-fatal(gl_window("custom shader", 1024, 1024))
+fatal(gl.window("custom shader", 1024, 1024))
 
 let mats =
 """
@@ -15,7 +15,7 @@ SHADER sobel
     VERTEX
         INPUTS apos:4 atc:2
         UNIFORMS mvp
-        gl_Position = mvp * apos;
+        gl.Position = mvp * apos;
         itc = atc;
     PIXEL
         INPUTS itc:2
@@ -35,18 +35,18 @@ SHADER sobel
         frag_color.b = length(vec2(grad_x.b, grad_y.b));
 """
 
-fatal(gl_load_materials(mats, true))
+fatal(gl.load_materials(mats, true))
 
 var tex = nil
 
-while(gl_frame()):
-    if gl_button("escape") == 1: return
+while(gl.frame()):
+    if gl.button("escape") == 1: return
     // Render the body to a texture, then the post-process of it to
     // the screen.
-    tex = post_process(tex, gl_window_size(), "sobel", false,
+    tex = post_process(tex, gl.window_size(), "sobel", false,
                        texture_format_nomipmap):
         rnd_seed(0)
-        gl_clear(color_black)
+        gl.clear(color_black)
         for(256) i:
-            gl_translate rnd_float2() * (sincos(gl_time() * 10.0 + i) * 0.5 + 0.5) * float(gl_window_size()):
-                gl_circle(50.0, 7)
+            gl.translate rnd_float2() * (sincos(gl.time() * 10.0 + i) * 0.5 + 0.5) * float(gl.window_size()):
+                gl.circle(50.0, 7)

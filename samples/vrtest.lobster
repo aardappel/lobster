@@ -10,8 +10,8 @@ import mg
 
 let vrmode = vr_init()
 
-fatal(gl_window(if vrmode: "VR Test" else: "No VR device", 1280, 640,
-                if vrmode: gl_window_init_no_vsync else: 0, 16 /*samples*/))
+fatal(gl.window(if vrmode: "VR Test" else: "No VR device", 1280, 640,
+                if vrmode: gl.window_init_no_vsync else: 0, 16 /*samples*/))
 
 // Make a quick sample scene out of some trees.
 
@@ -49,29 +49,29 @@ let balls = []::[float3]
 let controller_meshes = map(10): nil
 
 def drawworld():
-    gl_clear(color_grey)
-    gl_blend(blend_none)
+    gl.clear(color_grey)
+    gl.blend(blend_none)
 
-    gl_light(camera.position, float2 { 64.0, 1.0 })
-    //gl_light(float3(sincos(gl_time() * 20), 0) * 100 + float3_z * 100)
+    gl.light(camera.position, float2 { 64.0, 1.0 })
+    //gl.light(float3(sincos(gl.time() * 20), 0) * 100 + float3_z * 100)
 
-    gl_set_shader("flat")
+    gl.set_shader("flat")
     for(10) i:
-        gl_translate sincos(i * 72.0) * 3.0:
-            gl_scale(0.3):
-                gl_render_mesh(tree)
+        gl.translate sincos(i * 72.0) * 3.0:
+            gl.scale(0.3):
+                gl.render_mesh(tree)
 
     for(balls) b:
-        gl_translate b[0]:
-            gl_scale(0.1):
-                gl_rotate_z(sincos(gl_time() * 30.0)):
-                    gl_render_mesh(sphere)
+        gl.translate b[0]:
+            gl.scale(0.1):
+                gl.rotate_z(sincos(gl.time() * 30.0)):
+                    gl.render_mesh(sphere)
 
-    gl_set_shader("color")
-    gl_debug_grid(int3 { 20, 20, 0 }, float3_1, 0.005)
+    gl.set_shader("color")
+    gl.debug_grid(int3 { 20, 20, 0 }, float3_1, 0.005)
 
-while gl_frame():
-    if gl_button("escape") == 1: return
+while gl.frame():
+    if gl.button("escape") == 1: return
 
     let znear = 0.1
     let zfar = 1000
@@ -89,12 +89,12 @@ while gl_frame():
                         // meshes are not available for some reason.
                         controller_meshes[mc] = mcmesh = vr_create_motion_controller_mesh(mc)
                     if mcmesh:
-                        gl_color(color_white)
-                        gl_push_model_view()
+                        gl.color(color_white)
+                        gl.push_model_view()
                         vr_motion_controller(mc)
-                        gl_set_shader("phong_textured")
-                        gl_render_mesh(mcmesh)
-                        gl_pop_model_view()
+                        gl.set_shader("phong_textured")
+                        gl.render_mesh(mcmesh)
+                        gl.pop_model_view()
         vr_finish()
         for(2) mc:
             if vr_motion_controller_button(mc, "trigger") == 1:
@@ -102,25 +102,25 @@ while gl_frame():
                 let dir = to_z_up(vr_motion_controller_vec(mc, 2))
                 balls.push([ pos, -dir ])
         // Render the two eye textures to the non-VR window for feedback:
-        gl_clear(color_black)
-        gl_blend(blend_none)
-        gl_set_shader("textured")
+        gl.clear(color_black)
+        gl.blend(blend_none)
+        gl.set_shader("textured")
 
         for(2) e:
             vr_set_eye_texture(0, e)
-            gl_translate(float2 { gl_window_size().x * e / 2.0, gl_window_size().y }):
-                    gl_rect(float2 { gl_window_size().x / 2.0, -gl_window_size().y })
+            gl.translate(float2 { gl.window_size().x * e / 2.0, gl.window_size().y }):
+                    gl.rect(float2 { gl.window_size().x / 2.0, -gl.window_size().y })
     else:
         // This is how we'd render normally, with no HMD connected:
-        gl_cursor(false)
+        gl.cursor(false)
         camera.FPS_update("w", "a", "s", "d", 10.0, 4.0, true)
-        gl_clear(color_dark_grey)
-        gl_blend(blend_none)
-        gl_perspective(70.0, znear, zfar)
+        gl.clear(color_dark_grey)
+        gl.blend(blend_none)
+        gl.perspective(70.0, znear, zfar)
         camera.FPS_view()
         drawworld()
 
     if balls.length > 100:
         balls.remove_range(0, balls.length - 100)
     for(balls) b:
-        b[0] += b[1] * gl_delta_time() / 10.0
+        b[0] += b[1] * gl.delta_time() / 10.0

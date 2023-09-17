@@ -892,8 +892,8 @@ def foo():
     static_frame b = 0
     print b++
 
-gl_window("foo", 100, 100)
-while gl_frame():
+gl.window("foo", 100, 100)
+while gl.frame():
     static a = 0
     a++
     if a % 4:
@@ -1167,7 +1167,7 @@ above) for more complex cases.
 
 Many other functions that look like regular functions are actually also control
 structures, like many of the graphics function that change the current rendering
-state. An example is `gl_translate`, that optionally takes a body, and will
+state. An example is `gl.translate`, that optionally takes a body, and will
 run the body and restore the previous transform afterwards.
 
 `switch` has special syntax, since it does a lot of things different:

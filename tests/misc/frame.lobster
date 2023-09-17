@@ -13,7 +13,7 @@ f()
 f()
 g()
 
-gl_window("dfs", 1000, 1000)
+gl.window("dfs", 1000, 1000)
 
 class D:
     i = 1
@@ -39,7 +39,7 @@ def aa():
     s += "s"
     r.i++
 
-while gl_frame():
+while gl.frame():
     static c = C {}
     static count = 0
     print "count: {count}"

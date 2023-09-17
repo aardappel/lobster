@@ -162,17 +162,17 @@ These must be (including correct paths):
     -   The bytecode.
 
     -   `data/shaders/default.materials` (these are the minimum shader definitions
-        needed for to render anything, and is implicitly loaded by `gl_window`).
+        needed for to render anything, and is implicitly loaded by `gl.window`).
 
     -   Any other files/directories you have specified with `pakfile`, e.g:
-        `gl_load_texture(pakfile ”mypath/myfile.png”)`. `pakfile` can prefix
+        `gl.load_texture(pakfile ”mypath/myfile.png”)`. `pakfile` can prefix
         filenames or directories (ending in `/`), in which case all files in the
         directory will (non-recursively) be added. When running with `--verbose`
         you can see what files are added/loaded from a pakfile, and which are
         loaded individually.
 
 -   Any files your code references that are not in the pakfile (e.g.
-    `gl_load_texture(”mypath/myfile.png”)` ).
+    `gl.load_texture(”mypath/myfile.png”)` ).
 
 -   On Windows, you’ll need to include `bin\openvr_api.dll` and/or `bin\steam_api.dll`
     next to `lobster.exe` ONLY if you use functions starting with `vr_` or
@@ -308,7 +308,7 @@ If for whatever reason you want to hold on to a value, have a look at functions
 that do so, like `push`.
 
 In designing your extension library, if you intend to add a lot of functions, it
-is a good idea to choose a namespace (similar to `gl_` for all the graphics
+is a good idea to choose a namespace (similar to `gl.` for all the graphics
 functionality) to all your functions. Lobster uses `_` for namespacing also in
 the language. The burden on making sure there are no name clashes is on the
 programmer integrating new libraries (you will get an assert if 2 names ever

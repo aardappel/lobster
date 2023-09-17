@@ -124,8 +124,8 @@ def reshuffle():
 
 let shuffling = true
 
-fatal(gl_window("Will It Shuffle?", 640, 480))
-check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "cannot load gl font")
+fatal(gl.window("Will It Shuffle?", 640, 480))
+check(gl.set_font_name("data/fonts/US101/US101.ttf") and gl.set_font_size(32), "cannot load gl font")
 
 class shuffle_routine:
     last_n = 0
@@ -159,25 +159,25 @@ let shuffler = shuffle_routine {}
 def viz():
     let status = "mode:{mode_name()} rounds:{M}"
 
-    let window_size = gl_window_size()
+    let window_size = gl.window_size()
     let unit = min(floor((float(window_size) / float2 { N + 1, N + 2 })))
     let size = int2 { N + 1, N + 2 } * unit
-    gl_set_font_size(unit)
+    gl.set_font_size(unit)
 
-    let status_size = gl_text_size(status)
+    let status_size = gl.text_size(status)
 
     for(N) i:
-        gl_translate(float2 { unit * (1.0 + i), 0.0 }):
-            gl_text("{i}")
-        gl_translate(float2 { 0.0, unit * (1.0 + i) }):
-            gl_text("{i}")
-    gl_scale(unit):
+        gl.translate(float2 { unit * (1.0 + i), 0.0 }):
+            gl.text("{i}")
+        gl.translate(float2 { 0.0, unit * (1.0 + i) }):
+            gl.text("{i}")
+    gl.scale(unit):
         for(N) i: for(N) j:
-            gl_translate(float2 { 1 + i, 1 + j }):
-                gl_color(fills[N*i + j]):
-                    gl_rect(float2 { 0.95, 0.95 })
-    gl_translate(float2 { (size.x - status_size.x) / 2, unit * (N + 1) }):
-        gl_text(status)
+            gl.translate(float2 { 1 + i, 1 + j }):
+                gl.color(fills[N*i + j]):
+                    gl.rect(float2 { 0.95, 0.95 })
+    gl.translate(float2 { (size.x - status_size.x) / 2, unit * (N + 1) }):
+        gl.text(status)
 
 class ui:
     def init():
@@ -198,9 +198,9 @@ class ui:
 let uier = ui {}
 uier.init()
 
-while gl_frame():
-    gl_clear(color_black)
-    gl_color(color_white)
+while gl.frame():
+    gl.clear(color_black)
+    gl.color(color_white)
     shuffler.resume()
     viz()
     uier.resume()

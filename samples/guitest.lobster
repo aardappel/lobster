@@ -1,28 +1,28 @@
 import gui
 
-fatal(gl_window("gui test", 960, 640))
-check(gl_set_font_name("data/fonts/US101/US101.ttf"), "can\'t load font!")
-//check(gl_set_font_name("C:\\Windows\\Fonts\\arialuni.ttf"), "can\'t load font!")
+fatal(gl.window("gui test", 960, 640))
+check(gl.set_font_name("data/fonts/US101/US101.ttf"), "can\'t load font!")
+//check(gl.set_font_name("C:\\Windows\\Fonts\\arialuni.ttf"), "can\'t load font!")
 
-let ghosttex = gl_load_texture("data/textures/lobster.jpg")
+let ghosttex = gl.load_texture("data/textures/lobster.jpg")
 assert ghosttex
 
 var clicked = false
 var focused = false
 
-while gl_frame():
-    if gl_button("escape") == 1:
+while gl.frame():
+    if gl.button("escape") == 1:
         return
 
-    let fontsize = gl_window_size().y / 10
-    gl_set_font_size(fontsize, fontsize / 40.0)
+    let fontsize = gl.window_size().y / 10
+    gl.set_font_size(fontsize, fontsize / 40.0)
 
-    gl_clear(color_grey)
-    gl_color(color_white)
+    gl.clear(color_grey)
+    gl.color(color_white)
 
     gui.setclickcolors(color_dark_green, color_green)
 
-    gui.start(gl_window_size(), 1, 1, true):
+    gui.start(gl.window_size(), 1, 1, true):
         gui.hblock(1, 0):
             //gui.fontscale(0.3):
                 //   gui.text(unicode_to_string(map(500): _))

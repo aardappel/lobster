@@ -149,19 +149,19 @@ def onesample():
     samples++
     let c2 = map(c) row: map(row) col: vec4(pow(clamp(col / samples, float3_0, float3_1), 1 / 2.2), 1.0)
     //print("sample {samples} took {(seconds_elapsed() - starttime)} seconds")
-    gl_window_title("smallpt: {samples} samples computed")
-    return gl_create_texture(c2)
+    gl.window_title("smallpt: {samples} samples computed")
+    return gl.create_texture(c2)
 
-fatal(gl_window("smallpt in lobster!", w, h))
+fatal(gl.window("smallpt in lobster!", w, h))
 
-while gl_frame():
-    if gl_button("escape") == 1: return
-    gl_clear(color_black)
+while gl.frame():
+    if gl.button("escape") == 1: return
+    gl.clear(color_black)
     let tex = onesample()
-    gl_set_primitive_texture(0, tex)
-    gl_blend(blend_none)
-    gl_set_shader("textured")
-    gl_rect(float2 { w, h })
+    gl.set_primitive_texture(0, tex)
+    gl.blend(blend_none)
+    gl.set_shader("textured")
+    gl.rect(float2 { w, h })
 
 
 

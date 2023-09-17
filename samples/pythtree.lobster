@@ -6,26 +6,26 @@ import gl
 
 def branch(n, max, scale, len) -> void:
     let poly = [ float2_x, -float2_x, float2 { -scale, len }, float2 { scale, len } ]
-    gl_color(color { n / max, 0.8, n / max, 1.0 })
-    gl_polygon(poly)
-    gl_color(color { 0.3, 0.1, 0.0, 0.7 })
+    gl.color(color { n / max, 0.8, n / max, 1.0 })
+    gl.polygon(poly)
+    gl.color(color { 0.3, 0.1, 0.0, 0.7 })
     for(2) i:
-        gl_line(poly[i], poly[3 - i], 0.2)
+        gl.line(poly[i], poly[3 - i], 0.2)
     guard n < max
-    gl_translate(float2 { 0.0, len })
-    gl_scale(scale)
+    gl.translate(float2 { 0.0, len })
+    gl.scale(scale)
     for(2) i:
-        gl_rotate_z(sincos((i * 2.0 - 1.0) * 30.0 + sin(gl_time() * 50.0) * n + rnd(40) - 20.0)):
+        gl.rotate_z(sincos((i * 2.0 - 1.0) * 30.0 + sin(gl.time() * 50.0) * n + rnd(40) - 20.0)):
             branch(n + 1, max, scale, len + 0.5)
 
-fatal(gl_window("Pythagoras tree in Lobster", 1024, 768))
+fatal(gl.window("Pythagoras tree in Lobster", 1024, 768))
 
-while gl_frame():
-    if gl_button("escape") == 1: return
-    gl_clear(color_grey)
+while gl.frame():
+    if gl.button("escape") == 1: return
+    gl.clear(color_grey)
     rnd_seed(0)
-    gl_translate(float(gl_window_size()) / float2 { 2.0, 1.0 })
-    gl_rotate_z(float2 { -1.0, 0.0 })
-    gl_scale(gl_window_size().y / 17.0)
+    gl.translate(float(gl.window_size()) / float2 { 2.0, 1.0 })
+    gl.rotate_z(float2 { -1.0, 0.0 })
+    gl.scale(gl.window_size().y / 17.0)
     branch(0, 11.0, 0.7, 4)
 

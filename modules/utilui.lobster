@@ -26,35 +26,35 @@ class scrollzoomview:
     def update(mino:float2, maxo:float2, viewsize:int2):
         // Update zooming:
         if viewsteps == 0: viewsteps = defaults
-        let oldscale = gl_framebuffer_size().x / pow(rate, viewsteps) * pinchfactor
+        let oldscale = gl.framebuffer_size().x / pow(rate, viewsteps) * pinchfactor
         let oldpanoffset = panoffset
-        let mousewheeldelta = gl_mousewheel_delta()
+        let mousewheeldelta = gl.mousewheel_delta()
         viewsteps -= mousewheeldelta
         viewsteps = max(min(viewsteps, maxs), mins)
         let viewscale = pow(rate, viewsteps)
-        var center = float(gl_mouse_pos(0))
-        if gl_button("mouse1") and gl_button("mouse11"):
-            let dist = magnitude(float(gl_mouse_pos(0) - gl_mouse_pos(1)))
-            center = float(gl_mouse_pos(0) + gl_mouse_pos(1)) / 2.0
+        var center = float(gl.mouse_pos(0))
+        if gl.button("mouse1") and gl.button("mouse11"):
+            let dist = magnitude(float(gl.mouse_pos(0) - gl.mouse_pos(1)))
+            center = float(gl.mouse_pos(0) + gl.mouse_pos(1)) / 2.0
             if(lastdistance):
                 pinchfactor *= dist / lastdistance
             lastdistance = dist
         else:
             lastdistance = 0.0
-        let scale = gl_framebuffer_size().x / viewscale * pinchfactor
+        let scale = gl.framebuffer_size().x / viewscale * pinchfactor
         center /= oldscale
         panoffset -= center / (scale / oldscale) - center
         // Update panning:
-        if gl_button(buttonname):
-            let delta = float(gl_mouse_delta(0)) / scale
+        if gl.button(buttonname):
+            let delta = float(gl.mouse_delta(0)) / scale
             panoffset -= delta
             // mild amount of dampening/smoothing from previous frames:
-            touchvelocity = (touchvelocity + delta / gl_delta_time()) / 2.0
+            touchvelocity = (touchvelocity + delta / gl.delta_time()) / 2.0
         else:
-            panoffset -= touchvelocity * gl_delta_time()
+            panoffset -= touchvelocity * gl.delta_time()
             var speed = touchvelocity.magnitude()
             if speed > 0.0:
-                let reduction = gl_delta_time() / scale * 1000.0
+                let reduction = gl.delta_time() / scale * 1000.0
                 if reduction < speed:
                     speed -= reduction
                     touchvelocity = touchvelocity.normalize() * speed
@@ -82,7 +82,7 @@ class scrollzoomview:
 
 // helper for rendering text at arbitrary scaled locations with maximum precision
 // normal font rendering is specified in pixels, and is only rendered at precise pixel boundaries (which looks best)
-// when gl_scale(1) and gl_translate in integer amounts
+// when gl.scale(1) and gl.translate in integer amounts
 // if you use arbitrary scaling it will look more blurry than necessary
 // using this function, it will find the appropriate font size given a size relative to the current scale (not pixels),
 // clamp to pixel boundaries,
@@ -90,24 +90,24 @@ class scrollzoomview:
 
 def ui_rendertextatpixelsize(f):
     // Translate to nearest pixel:
-    gl_translate(-fraction(gl_origin() + 0.5) + 0.5):
+    gl.translate(-fraction(gl.origin() + 0.5) + 0.5):
         f()
 
 def ui_rendertextatlocalsize(localsize:float, f):
-    let oldfontsize = gl_get_font_size()
-    let oldoutlinesize = gl_get_outline_size()
-    let sc = gl_scaling().x
+    let oldfontsize = gl.get_font_size()
+    let oldoutlinesize = gl.get_outline_size()
+    let sc = gl.scaling().x
     let localfontsizef = sc * localsize
     let localfontsize = round(localfontsizef)    // font size to nearest pixel
-    gl_set_font_size(localfontsize, oldoutlinesize * (localfontsizef / oldfontsize))
-    gl_scale float2_1 / gl_scaling():   // get back to pixel scale
+    gl.set_font_size(localfontsize, oldoutlinesize * (localfontsizef / oldfontsize))
+    gl.scale float2_1 / gl.scaling():   // get back to pixel scale
         ui_rendertextatpixelsize(f)
-    gl_set_font_size(oldfontsize, oldoutlinesize)
+    gl.set_font_size(oldfontsize, oldoutlinesize)
 
 def ui_text_pixel(t):
     ui_rendertextatpixelsize():
-        gl_text(t)
+        gl.text(t)
 
 def ui_text_local(t):
     ui_rendertextatlocalsize():
-        gl_text(t)
+        gl.text(t)

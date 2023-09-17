@@ -94,10 +94,10 @@ def index_of_point(v, size): return v.y * size + v.x
 // center_unit_square projects a unit square coordinate system over
 // the center of the window, regardless of its aspect ratio.
 def center_unit_square():
-    let size = float(gl_window_size())
+    let size = float(gl.window_size())
     let scale = float2_1 * min(size)
-    gl_translate((size - scale) / 2.0)
-    gl_scale(scale)
+    gl.translate((size - scale) / 2.0)
+    gl.scale(scale)
 
 // world captures all allocations necessary to run the langton’s lobsters
 // cellular automaton.
@@ -242,9 +242,9 @@ do():
     let last_rule_color = color_grey
 
     w.tick()
-    var start = gl_time()
+    var start = gl.time()
     def next():
-        let now = gl_time()
+        let now = gl.time()
         let tween = (now - start) * hz
         if tween < 1.0:
             return tween
@@ -252,22 +252,22 @@ do():
         w.tick()
         return 0.0
 
-    fatal(gl_window("Langosta de Langton", 512, 512, 0))
+    fatal(gl.window("Langosta de Langton", 512, 512, 0))
 
-    let tex = gl_load_texture("data/textures/lobster.jpg")
+    let tex = gl.load_texture("data/textures/lobster.jpg")
     assert tex
 
-    while gl_frame() and not gl_button("escape"):
+    while gl.frame() and not gl.button("escape"):
         let tween = next()
 
-        gl_clear(first_rule_color)
+        gl.clear(first_rule_color)
         center_unit_square()
 
         // draw background color according to langton rule number.
-        gl_set_shader("color")
+        gl.set_shader("color")
         for(w.area) i:
             let v = float(w.points[i])
-            gl_translate v / w.size:
+            gl.translate v / w.size:
                 // Interpolate the rule number colors between the first and
                 // last rule colors.
                 // Then interpolate the rule number colors between the previous
@@ -277,14 +277,14 @@ do():
                 let c1 = lerp(first_rule_color, last_rule_color, r1)
                 let c2 = lerp(first_rule_color, last_rule_color, r2)
                 let c = lerp(c1, c2, tween)
-                gl_color(c)
-                gl_scale(float2_1 / w.size)
-                gl_rect(float2_1, 0)
+                gl.color(c)
+                gl.scale(float2_1 / w.size)
+                gl.rect(float2_1, 0)
 
         // draw foreground according to presence and heading of lobsters,
         // tweened along their translation and rotation vectors.
-        gl_set_shader("textured")
-        gl_set_primitive_texture(0, tex)
+        gl.set_shader("textured")
+        gl.set_primitive_texture(0, tex)
 
         // Each lobster, including duplicate lobsters when a lobster exits off
         // an edge and returns through another.
@@ -297,10 +297,10 @@ do():
             let a2 = float(w.headings_rotated[i]) * 90.0
             let a = lerp(a1, a2, tween)
 
-            gl_translate v / w.size:
-                gl_scale(float2_1 / w.size)
-                gl_translate(float2_1 / 2.0)
-                gl_rotate_z(rotate2D(float2_x, a))
-                gl_scale(0.75)
-                gl_translate(float2_1 / -2.0)
-                gl_rect(float2_1, 0)
+            gl.translate v / w.size:
+                gl.scale(float2_1 / w.size)
+                gl.translate(float2_1 / 2.0)
+                gl.rotate_z(rotate2D(float2_x, a))
+                gl.scale(0.75)
+                gl.translate(float2_1 / -2.0)
+                gl.rect(float2_1, 0)

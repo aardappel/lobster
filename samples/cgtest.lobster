@@ -5,7 +5,7 @@ import color
 import gl
 import camera
 
-fatal(gl_window("cubegen test", 1280, 800))
+fatal(gl.window("cubegen test", 1280, 800))
 
 let dim = int3_1 * 128
 
@@ -23,26 +23,26 @@ for 10000: modify()
 
 var random_cubes = cg_create_mesh(w)
 
-while gl_frame():
-    if gl_button("escape") == 1: return
+while gl.frame():
+    if gl.button("escape") == 1: return
 
-    gl_window_title("cubegen test: {gl_delta_time()}")
+    gl.window_title("cubegen test: {gl.delta_time()}")
 
-    gl_clear(color_dark_grey)
+    gl.clear(color_dark_grey)
 
-    gl_cursor(false)
-    gl_perspective(60.0, 0.1, 1000.0)
+    gl.cursor(false)
+    gl.perspective(60.0, 0.1, 1000.0)
 
     let speed = 50.0
     camera.FPS_update("w", "a", "s", "d", speed, 4.0, true)
     camera.FPS_view()
-    gl_light(camera.position, float2 { 128.0, 0.1 })
+    gl.light(camera.position, float2 { 128.0, 0.1 })
 
-    gl_blend 0:
-        gl_set_shader("flat")
-        gl_render_mesh(random_cubes)
+    gl.blend 0:
+        gl.set_shader("flat")
+        gl.render_mesh(random_cubes)
 
-    if gl_button("space") == 1:
+    if gl.button("space") == 1:
         for 1000: modify()
         random_cubes = cg_create_mesh(w)
 

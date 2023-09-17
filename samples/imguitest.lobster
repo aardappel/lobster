@@ -6,7 +6,7 @@ import gl
 import imgui
 import gl
 
-fatal(gl_window("imgui demo", 1280, 1024))
+fatal(gl.window("imgui demo", 1280, 1024))
 
 im_init(false, im_config_docking_enable, 3.0)
 assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
@@ -27,8 +27,8 @@ var d = Thingy { map(3): Thingy { [] } }
 var demo = false
 let foo = "bar"  // Will show up in debug view.
 
-while gl_frame():
-    gl_clear(color_grey)
+while gl.frame():
+    gl.clear(color_grey)
 
     // <- Render game here.
 

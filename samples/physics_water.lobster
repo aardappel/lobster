@@ -8,7 +8,7 @@ import camera
 import physics
 import gl
 
-fatal(gl_window("Physics demo : water", 1024, 768, gl_window_init_linear_color))
+fatal(gl.window("Physics demo : water", 1024, 768, gl.window_init_linear_color))
 
 let worldsize = float2 { 60.0, 40.0 }
 
@@ -31,18 +31,18 @@ let boxes = map 5:
 
 ph_create_particle_circle(float2 { 0.0, 5.0 }, 7.0, color_red, ph_colormixingparticle)
 
-while gl_frame() and gl_button("escape") != 1:
-    gl_clear(color_black)
+while gl.frame() and gl.button("escape") != 1:
+    gl.clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
     set_2d_worldspace(worldsize, float2 { 0.5, 1.0 }, float2 { 1.0, -1.0 })
 
-    if gl_button("mouse1") >= 1:
-        ph_create_particle_circle(gl_local_mouse_pos(0), 0.5, color_blue, ph_colormixingparticle)
+    if gl.button("mouse1") >= 1:
+        ph_create_particle_circle(gl.local_mouse_pos(0), 0.5, color_blue, ph_colormixingparticle)
 
-    ph_step(gl_delta_time(), 8, 3)
+    ph_step(gl.delta_time(), 8, 3)
 
-    gl_blend(blend_add_alpha)
+    gl.blend(blend_add_alpha)
     ph_render_particles(2.5)
-    gl_blend(blend_none)
+    gl.blend(blend_none)
     ph_render()

@@ -15,13 +15,13 @@ let positions = map(num_balls): rnd_float2()
 let radiuses = map(num_balls): (rnd_float() + 0.5) * ball_size
 let dirs = map(num_balls): rnd_float2_norm()
 
-fatal(gl_window("collision", 1024, 1024))
+fatal(gl.window("collision", 1024, 1024))
 
-while gl_frame():
-    if gl_button("escape") == 1: return
-    gl_window_title("FPS: {(1.0 / gl_delta_time())}")
-    gl_clear(color_black)
-    gl_scale(float(gl_window_size().y))
+while gl.frame():
+    if gl.button("escape") == 1: return
+    gl.window_title("FPS: {(1.0 / gl.delta_time())}")
+    gl.clear(color_black)
+    gl.scale(float(gl.window_size().y))
 
     // Move balls out of their own motivation.
     for(num_balls) i:
@@ -42,5 +42,5 @@ while gl_frame():
 
     // Render them.
     for(positions) p, i:
-        gl_translate p:
-            gl_circle(radiuses[i], 20)
+        gl.translate p:
+            gl.circle(radiuses[i], 20)

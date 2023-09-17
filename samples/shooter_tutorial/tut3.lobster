@@ -3,25 +3,25 @@ import vec
 import color
 import gl
 
-fatal(gl_window("Shooter Tutorial", 640, 480))
+fatal(gl.window("Shooter Tutorial", 640, 480))
 
 let worldsize = 20.0
 var playerpos = float2_0
 let playerspeed = 10
 
-while gl_frame() and gl_button("escape") != 1:
-    gl_clear(color_black)
-    gl_color(color_white)
+while gl.frame() and gl.button("escape") != 1:
+    gl.clear(color_black)
+    gl.color(color_white)
 
-    gl_translate(float(gl_window_size()) / 2.0)
-    let scale = gl_window_size().y / worldsize
-    gl_scale(scale)
+    gl.translate(float(gl.window_size()) / 2.0)
+    let scale = gl.window_size().y / worldsize
+    gl.scale(scale)
 
-    let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
-                  (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-    let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
-    if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
+    let dir = float2 { (gl.button("d") >= 1) - (gl.button("a") >= 1),
+                  (gl.button("s") >= 1) - (gl.button("w") >= 1) }
+    let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
+    if not any(abs(newpos) > float(gl.window_size()) / scale / 2):
         playerpos = newpos
 
-    gl_translate playerpos:
-        gl_circle(1, 6)
+    gl.translate playerpos:
+        gl.circle(1, 6)

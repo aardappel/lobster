@@ -3,9 +3,9 @@ import vec
 import color
 import gl
 
-fatal(gl_window("Shooter Tutorial Co-op", 640, 480))
+fatal(gl.window("Shooter Tutorial Co-op", 640, 480))
 
-check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "can\'t load font!")
+check(gl.set_font_name("data/fonts/US101/US101.ttf") and gl.set_font_size(32), "can\'t load font!")
 
 let args = command_line_arguments()
 check(args.length >= 1, "Run with first arg as \"host\" or \"peer\"")
@@ -107,7 +107,7 @@ class bullet:
 let firerate = 0.1
 let bulletspeed = 15
 var bullets = []
-var lastbullet = gl_time()
+var lastbullet = gl.time()
 
 class enemy:
     id:int
@@ -119,7 +119,7 @@ var enemyrate = 1.0
 let enemyspeed = 3
 let enemymaxhp = 5
 var enemies = []
-var lastenemy = gl_time()
+var lastenemy = gl.time()
 
 var playing = false
 var waiting_for_players = false
@@ -133,11 +133,11 @@ def send(msg:message):
     outgoing.push(msg)
 
 def renderpointytriangle(pos, dir):
-    gl_translate pos:
-        gl_rotate_z dir:
-            gl_polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
+    gl.translate pos:
+        gl.rotate_z dir:
+            gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 
-while gl_frame() and gl_button("escape") != 1:
+while gl.frame() and gl.button("escape") != 1:
     // Update networking
     steam_update()
     let peers = steam_p2p_get_connections()
@@ -195,8 +195,8 @@ while gl_frame() and gl_button("escape") != 1:
                 bullets.push(bullet { msg.ident, msg.pos, msg.dir })
     incoming = []
 
-    gl_clear(color_black)
-    gl_color(color_white)
+    gl.clear(color_black)
+    gl.color(color_white)
 
     if playing:
         // Filter out any players that we lost connections to
@@ -206,26 +206,26 @@ while gl_frame() and gl_button("escape") != 1:
 
         let alive_players = filter(players): _.alive
         if alive_players.length:
-            gl_translate gl_window_size() / 2:
-                let scale = gl_window_size().y / worldsize
-                gl_scale(scale)
+            gl.translate gl.window_size() / 2:
+                let scale = gl.window_size().y / worldsize
+                gl.scale(scale)
 
                 if localplayer.alive:
-                    let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
-                                (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-                    let newpos = localplayer.pos + normalize(dir) * gl_delta_time() * playerspeed
-                    if not any(abs(newpos) > float(gl_window_size()) / scale / 2.0):
+                    let dir = float2 { (gl.button("d") >= 1) - (gl.button("a") >= 1),
+                                (gl.button("s") >= 1) - (gl.button("w") >= 1) }
+                    let newpos = localplayer.pos + normalize(dir) * gl.delta_time() * playerspeed
+                    if not any(abs(newpos) > float(gl.window_size()) / scale / 2.0):
                         localplayer.pos = newpos
-                    localplayer.dir = normalize(gl_local_mouse_pos(0) - localplayer.pos)
+                    localplayer.dir = normalize(gl.local_mouse_pos(0) - localplayer.pos)
 
-                    if lastbullet < gl_time():
+                    if lastbullet < gl.time():
                         send(m_new_bullet { ident, localplayer.pos, localplayer.dir })
                         lastbullet += firerate
 
                     // just send our position to peers, since it was already updated above
                     outgoing.push(m_player_pos { ident, localplayer.pos, localplayer.dir })
 
-                if is_host and lastenemy < gl_time():
+                if is_host and lastenemy < gl.time():
                     send(m_new_enemy { nextenemyid++, sincos(rnd(360)) * worldsize * 2.0 })
                     lastenemy += enemyrate
 
@@ -235,7 +235,7 @@ while gl_frame() and gl_button("escape") != 1:
                         -magnitude(p.pos - e.pos)
                     assert pi != -1
                     let playerdir = normalize(alive_players[pi].pos - e.pos)
-                    e.pos += playerdir * gl_delta_time() * enemyspeed
+                    e.pos += playerdir * gl.delta_time() * enemyspeed
                     for(bullets) b:
                         if magnitude(b.pos - e.pos) < 1.0:
                             if b.ident == ident:
@@ -243,28 +243,28 @@ while gl_frame() and gl_button("escape") != 1:
                             b.pos = float2_x * worldsize * 10.0
                     // Check whether the enemy hit us (each player checks for themselves)
                     if magnitude(localplayer.pos - e.pos) < 1.0:
-                        playerhealth -= gl_delta_time() * 50.0
+                        playerhealth -= gl.delta_time() * 50.0
                         if playerhealth <= 0.0:
                             playerhealth = 0.0
                             send(m_player_died { ident })
-                    gl_color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
+                    gl.color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
                         renderpointytriangle(e.pos, playerdir)
 
                 enemies = filter(enemies): _.hp
 
                 for(bullets) b:
-                    b.pos += b.dir * gl_delta_time() * bulletspeed
-                    gl_translate b.pos:
-                        gl_color color_yellow:
-                            gl_circle(0.2, 20)
+                    b.pos += b.dir * gl.delta_time() * bulletspeed
+                    gl.translate b.pos:
+                        gl.color color_yellow:
+                            gl.circle(0.2, 20)
 
                 bullets = filter(bullets) b:
                     magnitude(b.pos) < worldsize * 2.0
 
-                gl_translate gl_local_mouse_pos(0):
-                    gl_line_mode 1:
-                        gl_color color_grey:
-                            gl_circle(0.5, 20)
+                gl.translate gl.local_mouse_pos(0):
+                    gl.line_mode 1:
+                        gl.color color_grey:
+                            gl.circle(0.5, 20)
 
                 for(players) p:
                     guard p.alive
@@ -277,28 +277,28 @@ while gl_frame() and gl_button("escape") != 1:
         if ready:
             playerhealth = 100.0
             bullets = []
-            lastbullet = gl_time()
+            lastbullet = gl.time()
             enemyrate = 1.0
             enemies = []
-            lastenemy = gl_time()
+            lastenemy = gl.time()
             waiting_for_players = false
             playing = true
 
         let msg = "waiting for all players to be ready..."
-        gl_translate (gl_window_size() - gl_text_size(msg)) / 2:
-            gl_text(msg)
+        gl.translate (gl.window_size() - gl.text_size(msg)) / 2:
+            gl.text(msg)
     else:
         let msg = if is_host:
             "press space to play! ({peers.length + 1} players)"
         else:
             "waiting for host to start game..."
-        gl_translate (gl_window_size() - gl_text_size(msg)) / 2:
-            gl_text(msg)
-        if is_host and gl_button("space") == 1:
+        gl.translate (gl.window_size() - gl.text_size(msg)) / 2:
+            gl.text(msg)
+        if is_host and gl.button("space") == 1:
             let peers_copy = copy(peers)
             peers_copy.push(ident)
             send(m_start_game { peers_copy })
-    gl_text("health: {ceiling(playerhealth)} - score: {localplayer.score}")
+    gl.text("health: {ceiling(playerhealth)} - score: {localplayer.score}")
 
     // Send the outgoing messages
     steam_p2p_broadcast_message(lobster_value_to_binary(outgoing))
