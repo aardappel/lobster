@@ -33,7 +33,7 @@ struct mat2x2 : float4
 let mat2x2_identity = mat2x2 { 1.0, 0.0, 0.0, 1.0 }
 
 
-// Unlike a smaller matrix like the one above, the 4x4 one is intended to be used with the gl. and matrix_ functions,
+// Unlike a smaller matrix like the one above, the 4x4 one is intended to be used with the gl. and matrix. functions,
 // so stores the elements as a vector. Even though a [float] can support other matrix dimensions, all these
 // built-in functions currently work with exactly 16 elements, hence the name.
 
@@ -41,17 +41,17 @@ struct mat4x4:
     v:[float]
 
     def operator*(o:mat4x4):
-        return mat4x4 { matrix_multiply(v, o.v) }
+        return mat4x4 { matrix.multiply(v, o.v) }
 
     def set_uniform(name:string):
         return gl.set_uniform_matrix(name, v)
 
 // Convenience functions for constructing one of these.
 
-def mat4x4_rotate_x(angle:float2): return mat4x4 { matrix_rotate_x(angle) }
-def mat4x4_rotate_y(angle:float2): return mat4x4 { matrix_rotate_y(angle) }
-def mat4x4_rotate_z(angle:float2): return mat4x4 { matrix_rotate_z(angle) }
-def mat4x4_translation(offset:float3): return mat4x4 { matrix_translation(offset) }
+def mat4x4_rotate_x(angle:float2): return mat4x4 { matrix.rotate_x(angle) }
+def mat4x4_rotate_y(angle:float2): return mat4x4 { matrix.rotate_y(angle) }
+def mat4x4_rotate_z(angle:float2): return mat4x4 { matrix.rotate_z(angle) }
+def mat4x4_translation(offset:float3): return mat4x4 { matrix.translation(offset) }
 
 def mat4x4_mvp(): return mat4x4 { gl.model_view_projection() }
 def mat4x4_mv(): return mat4x4 { gl.model_view() }

@@ -1547,7 +1547,7 @@ nfr("thread_read", "type", "T", "A1?",
 
 void AddMatrix(NativeRegistry &nfr) {
 
-nfr("matrix_multiply", "a,b", "F]F]", "F]",
+nfr("multiply", "a,b", "F]F]", "F]",
     "input matrices must be 4x4 elements",
     [](StackPtr &, VM &vm, Value &a, Value &b) {
         auto av = a.vval();
@@ -1563,7 +1563,7 @@ nfr("matrix_multiply", "a,b", "F]F]", "F]",
         return Value(r);
     });
 
-nfr("matrix_rotate_x", "angle", "F}:2", "F]",
+nfr("rotate_x", "angle", "F}:2", "F]",
     "",
     [](StackPtr &sp, VM &vm) {
         auto angle = PopVec<double2>(sp);
@@ -1574,7 +1574,7 @@ nfr("matrix_rotate_x", "angle", "F}:2", "F]",
         Push(sp, r);
     });
 
-nfr("matrix_rotate_y", "angle", "F}:2", "F]",
+nfr("rotate_y", "angle", "F}:2", "F]",
     "",
     [](StackPtr &sp, VM &vm) {
         auto angle = PopVec<double2>(sp);
@@ -1585,7 +1585,7 @@ nfr("matrix_rotate_y", "angle", "F}:2", "F]",
         Push(sp, r);
     });
 
-nfr("matrix_rotate_z", "angle", "F}:2", "F]",
+nfr("rotate_z", "angle", "F}:2", "F]",
     "",
     [](StackPtr &sp, VM &vm) {
         auto angle = PopVec<double2>(sp);
@@ -1596,7 +1596,7 @@ nfr("matrix_rotate_z", "angle", "F}:2", "F]",
         Push(sp, r);
     });
 
-nfr("matrix_translation", "trans", "F}:3", "F]",
+nfr("translation", "trans", "F}:3", "F]",
     "",
     [](StackPtr &sp, VM &vm) {
         auto trans = PopVec<double3>(sp);
