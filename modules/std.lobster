@@ -246,6 +246,7 @@ def collect(hof):
 
 def fatal_exit(msg):
     print "fatal error: {msg}"
+    set_exit_code(1)
     return from program
 
 def fatal(msg):
