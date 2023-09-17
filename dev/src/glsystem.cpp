@@ -20,6 +20,11 @@
 #include "lobster/sdlincludes.h"
 #include "lobster/sdlinterface.h"
 
+#ifdef _WIN32
+    #include "renderdoc_app.h"
+    RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+#endif
+
 #ifdef PLATFORM_WINNIX
 #define GLEXT(type, name, needed) type name = nullptr;
 GLBASEEXTS GLEXTS
@@ -260,12 +265,31 @@ string OpenGLInit(int samples, bool srgb) {
             #define new DEBUG_NEW
         #endif
     #endif
+    #ifdef _WIN32
+        if (HMODULE mod = LoadLibraryA("renderdoc.dll")) {
+            pRENDERDOC_GetAPI RENDERDOC_GetAPI =
+                (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+            RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+        }
+    #endif
     return {};
 }
 
 void OpenGLCleanup() {
     if (geomcache) delete geomcache;
     geomcache = nullptr;
+}
+
+void RenderDocStartFrameCapture() {
+    // To start a frame capture, call StartFrameCapture.
+    // You can specify NULL, NULL for the device to capture on if you have only one device and
+    // either no windows at all or only one window, and it will capture from that device.
+    // See the documentation below for a longer explanation
+    if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+}
+
+void RenderDocStopFrameCapture() {
+    if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
 }
 
 void LogGLError(const char *file, int line, const char *call) {

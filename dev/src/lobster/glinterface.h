@@ -436,5 +436,7 @@ template<typename F> void Transform(const float4x4 &mat, F body) {
 extern bool VRInit();
 extern void VRShutDown();
 
+extern void RenderDocStartFrameCapture();
+extern void RenderDocStopFrameCapture();
 
 #endif  // LOBSTER_GL_INTERFACE
