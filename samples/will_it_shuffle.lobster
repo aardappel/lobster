@@ -181,19 +181,19 @@ def viz():
 
 class ui:
     def init():
-        im_init(true)
-        let im_fontsize = 32.0
-        // check(im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", im_fontsize), "cannot load imgui font")
-        check(im_add_font("data/fonts/Inconsolata/Inconsolata-Bold.ttf", im_fontsize), "cannot load imgui font")
+        im.init(true)
+        let im.fontsize = 32.0
+        // check(im.add_font("data/fonts/Droid_Sans/DroidSans.ttf", im.fontsize), "cannot load imgui font")
+        check(im.add_font("data/fonts/Inconsolata/Inconsolata-Bold.ttf", im.fontsize), "cannot load imgui font")
 
     def resume():
-        im_frame():
-            im_window("ctl", im_window_always_autoresize):
-                im_show_engine_stats()
+        im.frame():
+            im.window("ctl", im.window_always_autoresize):
+                im.show_engine_stats()
                 if not shuffling:
-                    if im_button("Reshuffle"):
+                    if im.button("Reshuffle"):
                         reshuffle()
-                im_show_vars()
+                im.show_vars()
 
 let uier = ui {}
 uier.init()

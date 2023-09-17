@@ -18,8 +18,8 @@ def curve(depth, d) -> void:
             gl.rotate_z(sincos(angle))
 
 fatal(gl.window("Von Koch\'s curve", 640, 640))
-im_init(false)
-assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
+im.init(false)
+assert im.add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
 
 class Setup:
     depth: int
@@ -38,7 +38,7 @@ while gl.frame():
         curve(setup.depth, 1.0)
         gl.rotate_z(sincos(120.0))
 
-    im_frame():
-        im_window("Parameters", im_window_always_autoresize):
-            setup = im_edit_anything(setup)
+    im.frame():
+        im.window("Parameters", im.window_always_autoresize):
+            setup = im.edit_anything(setup)
 

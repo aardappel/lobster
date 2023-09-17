@@ -51,6 +51,7 @@ extern void AddCubeGen(NativeRegistry &nfr);
 extern void AddVR(NativeRegistry &nfr);
 extern void AddSteam(NativeRegistry &nfr);
 extern void AddIMGUI(NativeRegistry &nfr);
+extern void AddIMGUIDebug(NativeRegistry &nfr);
 
 namespace lobster {
 
@@ -64,7 +65,8 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "cg", "cubegen", AddCubeGen);
     RegisterBuiltin(nfr, "vr", "vr", AddVR);
     RegisterBuiltin(nfr, "steam", "steam", AddSteam);
-    RegisterBuiltin(nfr, "", "imgui", AddIMGUI);
+    RegisterBuiltin(nfr, "im", "imgui", AddIMGUI);
+    RegisterBuiltin(nfr, "", "imguidebug", AddIMGUIDebug);
     #ifdef HAVE_PLUGINS
         RegisterBuiltin(nfr, "", "plugin", AddPlugins);
     #endif

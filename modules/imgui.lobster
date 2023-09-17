@@ -1,299 +1,301 @@
-// Constants for use with ImGui (https://github.com/ocornut/imgui) im_ functions.
+// Constants for use with ImGui (https://github.com/ocornut/imgui) im functions.
 
 // From: https://github.com/ocornut/imgui/blob/master/imgui.h
 
-// To be passed to im_init()
-enum_flags im_config:
-    im_config_none = 0
+namespace im
+
+// To be passed to im.init()
+enum_flags config:
+    config_none = 0
     // Warning: turing this on stops the game from receiving keys.
-    im_config_nav_enable_keyboard = 1
-    im_config_nav_enable_gamepad
-    im_config_nav_enable_set_mouse_pos
-    im_config_nav_no_capture_keyboard
-    im_config_no_mouse
-    im_config_no_mouse_cursor_change
-    im_config_docking_enable
-    im_config_viewport_enable = 1 << 10
-    im_config_dpi_enable_scale_viewports = 1 << 14
-    im_config_dpi_enable_scale_fonts
-    im_config_is_srgb = 1 << 20
-    im_config_is_touch_screen
+    config_nav_enable_keyboard = 1
+    config_nav_enable_gamepad
+    config_nav_enable_set_mouse_pos
+    config_nav_no_capture_keyboard
+    config_no_mouse
+    config_no_mouse_cursor_change
+    config_docking_enable
+    config_viewport_enable = 1 << 10
+    config_dpi_enable_scale_viewports = 1 << 14
+    config_dpi_enable_scale_fonts
+    config_is_srgb = 1 << 20
+    config_is_touch_screen
 
-// To be passed to im_window()
-enum_flags im_window:
-    im_window_none = 0
-    im_window_no_titlebar = 1             // Disable title-bar
-    im_window_no_resize                   // Disable user resizing with the lower-right grip
-    im_window_no_move                     // Disable user moving the window
-    im_window_no_scrollbar                // Disable scrollbars (window can still scroll with mouse or programatically)
-    im_window_no_scroll_with_mouse        // Disable user vertically scrolling with mouse wheel. On child window, mouse wheel will be forwarded to the parent unless NoScrollbar is also set.
-    im_window_no_collapse                 // Disable user collapsing window by double-clicking on it
-    im_window_always_autoresize           // Resize every window to its content every frame
-    im_window_no_background               // Disable drawing background color (WindowBg, etc.) and outside border. Similar as using SetNextWindowBgAlpha(0.0f).
-    im_window_no_saved_settings           // Never load/save settings in .ini file
-    im_window_no_mouse_inputs             // Disable catching mouse, hovering test with pass through.
-    im_window_menubar                     // Has a menu-bar
-    im_window_horizontal_scrollbar        // Allow horizontal scrollbar to appear (off by default). You may use SetNextWindowContentSize(ImVec2(width,0.0f)); prior to calling Begin() to specify width. Read code in imgui_demo in the "Horizontal Scrolling" section.
-    im_window_no_focus_on_appearing       // Disable taking focus when transitioning from hidden to visible state
-    im_window_no_bringtofront_on_focus    // Disable bringing window to front when taking focus (e.g. clicking on it or programatically giving it focus)
-    im_window_always_vertical_scrollbar   // Always show vertical scrollbar (even if ContentSize.y < Size.y)
-    im_window_always_horizontal_scrollbar // Always show horizontal scrollbar (even if ContentSize.x < Size.x)
-    im_window_always_use_window_padding   // Ensure child windows without border uses style.WindowPadding (ignored by default for non-bordered child windows, because more convenient)
-    im_window_UNUSED1
-    im_window_no_nav_inputs               // No gamepad/keyboard navigation within the window
-    im_window_no_nav_focus                // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
-    im_window_unsaved_document            // Append '*' to title without affecting the ID, as a convenience to avoid using the ### operator. When used in a tab/docking context, tab is selected on closure and closure is deferred by one frame to allow code to cancel the closure (with a confirmation popup, etc.) without flicker.
-    im_window_no_docking                  // Disable docking of this window
+// To be passed to im.window()
+enum_flags window:
+    window_none = 0
+    window_no_titlebar = 1             // Disable title-bar
+    window_no_resize                   // Disable user resizing with the lower-right grip
+    window_no_move                     // Disable user moving the window
+    window_no_scrollbar                // Disable scrollbars (window can still scroll with mouse or programatically)
+    window_no_scroll_with_mouse        // Disable user vertically scrolling with mouse wheel. On child window, mouse wheel will be forwarded to the parent unless NoScrollbar is also set.
+    window_no_collapse                 // Disable user collapsing window by double-clicking on it
+    window_always_autoresize           // Resize every window to its content every frame
+    window_no_background               // Disable drawing background color (WindowBg, etc.) and outside border. Similar as using SetNextWindowBgAlpha(0.0f).
+    window_no_saved_settings           // Never load/save settings in .ini file
+    window_no_mouse_inputs             // Disable catching mouse, hovering test with pass through.
+    window_menubar                     // Has a menu-bar
+    window_horizontal_scrollbar        // Allow horizontal scrollbar to appear (off by default). You may use SetNextWindowContentSize(ImVec2(width,0.0f)); prior to calling Begin() to specify width. Read code in imgui_demo in the "Horizontal Scrolling" section.
+    window_no_focus_on_appearing       // Disable taking focus when transitioning from hidden to visible state
+    window_no_bringtofront_on_focus    // Disable bringing window to front when taking focus (e.g. clicking on it or programatically giving it focus)
+    window_always_vertical_scrollbar   // Always show vertical scrollbar (even if ContentSize.y < Size.y)
+    window_always_horizontal_scrollbar // Always show horizontal scrollbar (even if ContentSize.x < Size.x)
+    window_always_use_window_padding   // Ensure child windows without border uses style.WindowPadding (ignored by default for non-bordered child windows, because more convenient)
+    window_UNUSED1
+    window_no_nav_inputs               // No gamepad/keyboard navigation within the window
+    window_no_nav_focus                // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
+    window_unsaved_document            // Append '*' to title without affecting the ID, as a convenience to avoid using the ### operator. When used in a tab/docking context, tab is selected on closure and closure is deferred by one frame to allow code to cancel the closure (with a confirmation popup, etc.) without flicker.
+    window_no_docking                  // Disable docking of this window
 
-enum_flags im_treenode:
-    im_treenode_none = 0
-    im_treenode_selected = 1         // Draw as selected
-    im_treenode_framed               // Draw frame with background (e.g. for CollapsingHeader)
-    im_treenode_allow_item_overlap   // Hit testing to allow subsequent widgets to overlap this one
-    im_treenode_no_tree_push_on_open // Don't do a TreePush() when open (e.g. for CollapsingHeader) = no extra indent nor pushing on ID stack
-    im_treenode_no_auto_open_on_log  // Don't automatically and temporarily open node when Logging is active (by default logging will automatically open tree nodes)
-    im_treenode_default_open         // Default node to be open
-    im_treenode_open_on_double_click // Need double-click to open node
-    im_treenode_open_on_arrow        // Only open when clicking on the arrow part. If ImGuiTreeNodeFlags_OpenOnDoubleClick is also set, single-click arrow or double-click all box to open.
-    im_treenode_leaf                 // No collapsing, no arrow (use as a convenience for leaf nodes).
-    im_treenode_bullet               // Display a bullet instead of arrow
-    im_treenode_frame_padding        // Use FramePadding (even for an unframed text node) to vertically align text baseline to regular widget height. Equivalent to calling AlignTextToFramePadding().
-    im_treenode_span_avail_width     // Extend hit box to the right-most edge, even if not framed. This is not the default in order to allow adding other items on the same line. In the future we may refactor the hit system to be front-to-back, allowing natural overlaps and then this can become the default.
-    im_treenode_span_full_width      // Extend hit box to the left-most and right-most edges (bypass the indented area).
+enum_flags treenode:
+    treenode_none = 0
+    treenode_selected = 1         // Draw as selected
+    treenode_framed               // Draw frame with background (e.g. for CollapsingHeader)
+    treenode_allow_item_overlap   // Hit testing to allow subsequent widgets to overlap this one
+    treenode_no_tree_push_on_open // Don't do a TreePush() when open (e.g. for CollapsingHeader) = no extra indent nor pushing on ID stack
+    treenode_no_auto_open_on_log  // Don't automatically and temporarily open node when Logging is active (by default logging will automatically open tree nodes)
+    treenode_default_open         // Default node to be open
+    treenode_open_on_double_click // Need double-click to open node
+    treenode_open_on_arrow        // Only open when clicking on the arrow part. If ImGuiTreeNodeFlags_OpenOnDoubleClick is also set, single-click arrow or double-click all box to open.
+    treenode_leaf                 // No collapsing, no arrow (use as a convenience for leaf nodes).
+    treenode_bullet               // Display a bullet instead of arrow
+    treenode_frame_padding        // Use FramePadding (even for an unframed text node) to vertically align text baseline to regular widget height. Equivalent to calling AlignTextToFramePadding().
+    treenode_span_avail_width     // Extend hit box to the right-most edge, even if not framed. This is not the default in order to allow adding other items on the same line. In the future we may refactor the hit system to be front-to-back, allowing natural overlaps and then this can become the default.
+    treenode_span_full_width      // Extend hit box to the left-most and right-most edges (bypass the indented area).
 
-enum_flags im_tabitem:
-    im_tabitem_none = 0
-    im_tabitem_unsaved_document = 1               // Display a dot next to the title + tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
-    im_tabitem_set_selected                       // Trigger flag to programmatically make the tab selected when calling BeginTabItem()
-    im_tabitem_no_close_with_middle_mouse_button  // Disable behavior of closing tabs (that are submitted with p_open != NULL) with middle mouse button. You can still repro this behavior on user's side with if (IsItemHovered() && IsMouseClicked(2)) *p_open = false.
-    im_tabitem_no_push_id                         // Don't call PushID(tab->ID)/PopID() on BeginTabItem()/EndTabItem()
-    im_tabitem_no_tooltip                         // Disable tooltip for the given tab
-    im_tabitem_no_reorder                         // Disable reordering this tab or having another tab cross over this tab
-    im_tabitem_leading                            // Enforce the tab position to the left of the tab bar (after the tab list popup button)
-    im_tabitem_trailing                           // Enforce the tab position to the right of the tab bar (before the scrolling buttons)
+enum_flags tabitem:
+    tabitem_none = 0
+    tabitem_unsaved_document = 1               // Display a dot next to the title + tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
+    tabitem_set_selected                       // Trigger flag to programmatically make the tab selected when calling BeginTabItem()
+    tabitem_no_close_with_middle_mouse_button  // Disable behavior of closing tabs (that are submitted with p_open != NULL) with middle mouse button. You can still repro this behavior on user's side with if (IsItemHovered() && IsMouseClicked(2)) *p_open = false.
+    tabitem_no_push_id                         // Don't call PushID(tab->ID)/PopID() on BeginTabItem()/EndTabItem()
+    tabitem_no_tooltip                         // Disable tooltip for the given tab
+    tabitem_no_reorder                         // Disable reordering this tab or having another tab cross over this tab
+    tabitem_leading                            // Enforce the tab position to the left of the tab bar (after the tab list popup button)
+    tabitem_trailing                           // Enforce the tab position to the right of the tab bar (before the scrolling buttons)
 
-enum_flags im_drag_drop:
-    im_drag_drop_none = 0,
-    im_drag_drop_source_no_preview_tooltip = 1   // Disable preview tooltip. By default, a successful call to BeginDragDropSource opens a tooltip so you can display a preview or description of the source contents. This flag disables this behavior.
-    im_drag_drop_source_no_disable_hover         // By default, when dragging we clear data so that IsItemHovered() will return false, to avoid subsequent user code submitting tooltips. This flag disables this behavior so you can still call IsItemHovered() on the source item.
-    im_drag_drop_source_no_hold_to_open_others   // Disable the behavior that allows to open tree nodes and collapsing header by holding over them while dragging a source item.
-    im_drag_drop_source_allow_null_id            // Allow items such as Text(), Image() that have no unique identifier to be used as drag source, by manufacturing a temporary identifier based on their window-relative position. This is extremely unusual within the dear imgui ecosystem and so we made it explicit.
-    im_drag_drop_source_extern                   // External source (from outside of dear imgui), won't attempt to read current item/window info. Will always return true. Only one Extern source can be active simultaneously.
-    im_drag_drop_source_auto_expire_payload      // Automatically expire the payload if the source cease to be submitted (otherwise payloads are persisting while being dragged)
-    im_drag_drop_accept_before_delivery          // AcceptDragDropPayload() will returns true even before the mouse button is released. You can then call IsDelivery() to test if the payload needs to be delivered.
-    im_drag_drop_accept_no_draw_default_rect     // Do not draw the default highlight rectangle when hovering over target.
-    im_drag_drop_accept_no_preview_tooltip       // Request hiding the BeginDragDropSource tooltip from the BeginDragDropTarget site.
+enum_flags drag_drop:
+    drag_drop_none = 0,
+    drag_drop_source_no_preview_tooltip = 1   // Disable preview tooltip. By default, a successful call to BeginDragDropSource opens a tooltip so you can display a preview or description of the source contents. This flag disables this behavior.
+    drag_drop_source_no_disable_hover         // By default, when dragging we clear data so that IsItemHovered() will return false, to avoid subsequent user code submitting tooltips. This flag disables this behavior so you can still call IsItemHovered() on the source item.
+    drag_drop_source_no_hold_to_open_others   // Disable the behavior that allows to open tree nodes and collapsing header by holding over them while dragging a source item.
+    drag_drop_source_allow_null_id            // Allow items such as Text(), Image() that have no unique identifier to be used as drag source, by manufacturing a temporary identifier based on their window-relative position. This is extremely unusual within the dear imgui ecosystem and so we made it explicit.
+    drag_drop_source_extern                   // External source (from outside of dear imgui), won't attempt to read current item/window info. Will always return true. Only one Extern source can be active simultaneously.
+    drag_drop_source_auto_expire_payload      // Automatically expire the payload if the source cease to be submitted (otherwise payloads are persisting while being dragged)
+    drag_drop_accept_before_delivery          // AcceptDragDropPayload() will returns true even before the mouse button is released. You can then call IsDelivery() to test if the payload needs to be delivered.
+    drag_drop_accept_no_draw_default_rect     // Do not draw the default highlight rectangle when hovering over target.
+    drag_drop_accept_no_preview_tooltip       // Request hiding the BeginDragDropSource tooltip from the BeginDragDropTarget site.
 
-enum im_color_idx:
-    im_col_text
-    im_col_text_disabled
-    im_col_window_bg              // Background of normal windows
-    im_col_child_bg               // Background of child windows
-    im_col_popup_bg               // Background of popups, menus, tooltips windows
-    im_col_border
-    im_col_border_shadow
-    im_col_frame_bg               // Background of checkbox, radio button, plot, slider, text input
-    im_col_frame_bg_hovered
-    im_col_frame_bg_active
-    im_col_title_bg
-    im_col_title_bg_active
-    im_col_title_bg_collapsed
-    im_col_menubar_bg
-    im_col_scrollbar_bg
-    im_col_scrollbar_grab
-    im_col_scrollbar_grab_hovered
-    im_col_scrollbar_grab_active
-    im_col_check_mark
-    im_col_slider_grab
-    im_col_slider_grab_active
-    im_col_button
-    im_col_button_hovered
-    im_col_button_active
-    im_col_header                 // Header* colors are used for CollapsingHeader, TreeNode, Selectable, MenuItem
-    im_col_header_hovered
-    im_col_header_active
-    im_col_separator
-    im_col_separator_hovered
-    im_col_separator_active
-    im_col_resize_grip            // Resize grip in lower-right and lower-left corners of windows.
-    im_col_resize_grip_hovered
-    im_col_resize_grip_active
-    im_col_tab                    // TabItem in a TabBar
-    im_col_tab_hovered
-    im_col_tab_active
-    im_col_tab_unfocused
-    im_col_tab_unfocused_active
-    im_col_docking_preview        // Preview overlay color when about to docking something
-    im_col_docking_empty_bg       // Background color for empty node (e.g. CentralNode with no window docked into it)
-    im_col_plot_lines
-    im_col_plot_lines_hovered
-    im_col_plot_histogram
-    im_col_plot_histogram_hovered
-    im_col_table_header_bg        // Table header background
-    im_col_table_border_strong    // Table outer and header borders (prefer using Alpha=1.0 here)
-    im_col_table_border_light     // Table inner borders (prefer using Alpha=1.0 here)
-    im_col_table_row_bg           // Table row background (even rows)
-    im_col_table_row_bg_alt       // Table row background (odd rows)
-    im_col_text_selected_bg
-    im_col_drag_drop_target       // Rectangle highlighting a drop target
-    im_col_nav_highlight          // Gamepad/keyboard: current highlighted item
-    im_col_nav_windowing_highlight// Highlight window when using CTRL+TAB
-    im_col_nav_windowing_dim_bg   // Darken/colorize entire screen behind the CTRL+TAB window list, when active
-    im_col_modal_window_dim_bg    // Darken/colorize entire screen behind a modal window, when one is active
-    im_col_COUNT
+enum color_idx:
+    col_text
+    col_text_disabled
+    col_window_bg              // Background of normal windows
+    col_child_bg               // Background of child windows
+    col_popup_bg               // Background of popups, menus, tooltips windows
+    col_border
+    col_border_shadow
+    col_frame_bg               // Background of checkbox, radio button, plot, slider, text input
+    col_frame_bg_hovered
+    col_frame_bg_active
+    col_title_bg
+    col_title_bg_active
+    col_title_bg_collapsed
+    col_menubar_bg
+    col_scrollbar_bg
+    col_scrollbar_grab
+    col_scrollbar_grab_hovered
+    col_scrollbar_grab_active
+    col_check_mark
+    col_slider_grab
+    col_slider_grab_active
+    col_button
+    col_button_hovered
+    col_button_active
+    col_header                 // Header* colors are used for CollapsingHeader, TreeNode, Selectable, MenuItem
+    col_header_hovered
+    col_header_active
+    col_separator
+    col_separator_hovered
+    col_separator_active
+    col_resize_grip            // Resize grip in lower-right and lower-left corners of windows.
+    col_resize_grip_hovered
+    col_resize_grip_active
+    col_tab                    // TabItem in a TabBar
+    col_tab_hovered
+    col_tab_active
+    col_tab_unfocused
+    col_tab_unfocused_active
+    col_docking_preview        // Preview overlay color when about to docking something
+    col_docking_empty_bg       // Background color for empty node (e.g. CentralNode with no window docked into it)
+    col_plot_lines
+    col_plot_lines_hovered
+    col_plot_histogram
+    col_plot_histogram_hovered
+    col_table_header_bg        // Table header background
+    col_table_border_strong    // Table outer and header borders (prefer using Alpha=1.0 here)
+    col_table_border_light     // Table inner borders (prefer using Alpha=1.0 here)
+    col_table_row_bg           // Table row background (even rows)
+    col_table_row_bg_alt       // Table row background (odd rows)
+    col_text_selected_bg
+    col_drag_drop_target       // Rectangle highlighting a drop target
+    col_nav_highlight          // Gamepad/keyboard: current highlighted item
+    col_nav_windowing_highlight// Highlight window when using CTRL+TAB
+    col_nav_windowing_dim_bg   // Darken/colorize entire screen behind the CTRL+TAB window list, when active
+    col_modal_window_dim_bg    // Darken/colorize entire screen behind a modal window, when one is active
+    col_COUNT
 
 
 // Utility functions that are more convenient than calling start/end yourself.
 
-def im_frame(body):
-    im_frame_start()
+def frame(body):
+    frame_start()
     body()
-    im_frame_end()
+    frame_end()
 
-def im_window(title, flags, body):
-    im_window_start(title, flags, false)
+def window(title, flags, body):
+    window_start(title, flags, false)
     body()
-    im_window_end()
+    window_end()
 
-def im_window_dock(title, flags, body):
-    im_window_start(title, flags, true)
+def window_dock(title, flags, body):
+    window_start(title, flags, true)
     body()
-    im_window_end()
+    window_end()
 
-def im_treenode(label, body):
-    let open = im_treenode_start(label, 0)
+def treenode(label, body):
+    let open = treenode_start(label, 0)
     if open:
         body()
-        im_treenode_end()
+        treenode_end()
     return open
 
-def im_treenode_open(label, body):
-    let open = im_treenode_start(label, im_treenode_default_open)
+def treenode_open(label, body):
+    let open = treenode_start(label, treenode_default_open)
     if open:
         body()
-        im_treenode_end()
+        treenode_end()
     return open
 
-def im_treenode_open_if(label, cond, body):
-    let open = im_treenode_start(label, if cond: im_treenode_default_open else: 0)
+def treenode_open_if(label, cond, body):
+    let open = treenode_start(label, if cond: treenode_default_open else: 0)
     if open:
         body()
-        im_treenode_end()
+        treenode_end()
     return open
 
-def im_tooltip_multi(body):
-    let open = im_tooltip_multi_start()
+def tooltip_multi(body):
+    let open = tooltip_multi_start()
     if open:
         body()
-        im_tooltip_multi_end()
+        tooltip_multi_end()
     return open
 
-def im_tab_bar(label, body):
-    let open = im_tab_bar_start(label)
+def tab_bar(label, body):
+    let open = tab_bar_start(label)
     if open:
         body()
-        im_tab_bar_end()
+        tab_bar_end()
     return open
 
-def im_tab(label, body):
-    let open = im_tab_start(label, im_tabitem_none)
+def tab(label, body):
+    let open = tab_start(label, tabitem_none)
     if open:
         body()
-        im_tab_end()
+        tab_end()
     return open
 
-def im_tab(label, flags, body):
-    let open = im_tab_start(label, flags)
+def tab(label, flags, body):
+    let open = tab_start(label, flags)
     if open:
         body()
-        im_tab_end()
+        tab_end()
     return open
 
-def im_menu_bar(main, body):
-    let open = im_menu_bar_start(main)
+def menu_bar(main, body):
+    let open = menu_bar_start(main)
     if open:
         body()
-        im_menu_bar_end(main)
+        menu_bar_end(main)
     return open
 
-def im_menu(label, disabled, body):
-    let open = im_menu_start(label, disabled)
+def menu(label, disabled, body):
+    let open = menu_start(label, disabled)
     if open:
         body()
-        im_menu_end()
+        menu_end()
     return open
 
-def im_menu(label, body):
-    let open = im_menu_start(label, false)
+def menu(label, body):
+    let open = menu_start(label, false)
     if open:
         body()
-        im_menu_end()
+        menu_end()
     return open
 
-def im_id(label, body):
-    im_id_start(label)
+def id(label, body):
+    id_start(label)
     body()
-    im_id_end()
+    id_end()
 
-// Call im_popup_open (from e.g. im_button) with same label as this, followed by im_popup() with body.
-def im_popup(label, body):
-    let open = im_popup_start(label, 0, false)
+// Call im.popup_open (from e.g. im.button) with same label as this, followed by im.popup() with body.
+def popup(label, body):
+    let open = popup_start(label, 0, false)
     if open:
         body()
-        im_popup_end()
+        popup_end()
     return open
 
 // Call this right after any item for which you want RMB to generate a popup.
-def im_popup_rmb_prev_item(label, body):
-    let open = im_popup_start(label, 0, true)
+def popup_rmb_prev_item(label, body):
+    let open = popup_start(label, 0, true)
     if open:
         body()
-        im_popup_end()
+        popup_end()
     return open
 
-def im_disabled(disabled, body):
-    im_disabled_start(disabled)
+def disabled(disabled, body):
+    disabled_start(disabled)
     body()
-    im_disabled_end()
+    disabled_end()
 
-def im_button_repeat(repeat, body):
-    im_button_repeat_start(repeat)
+def button_repeat(repeat, body):
+    button_repeat_start(repeat)
     body()
-    im_button_repeat_end()
+    button_repeat_end()
 
-def im_drag_drop_source(flags, body):
-    let open = im_drag_drop_source_start(flags)
+def drag_drop_source(flags, body):
+    let open = drag_drop_source_start(flags)
     if open:
         body()
-        im_drag_drop_source_end()
+        drag_drop_source_end()
     return open
 
-def im_drag_drop_target(body):
-    let open = im_drag_drop_target_start()
+def drag_drop_target(body):
+    let open = drag_drop_target_start()
     if open:
         body()
-        im_drag_drop_target_end()
+        drag_drop_target_end()
     return open
 
-def im_width(width, body):
-    im_width_start(width)
+def width(width, body):
+    width_start(width)
     body()
-    im_width_end()
+    width_end()
 
-def im_child(title, size, body):
-    im_child_start(title, size, 0)
+def child(title, size, body):
+    child_start(title, size, 0)
     body()
-    im_child_end()
+    child_end()
 
-def im_child(title, size, flags, body):
-    im_child_start(title, size, flags)
+def child(title, size, flags, body):
+    child_start(title, size, flags)
     body()
-    im_child_end()
+    child_end()
 
-def im_group(body):
-    im_group_start()
+def group(body):
+    group_start()
     body()
-    im_group_end()
+    group_end()
 
 private let stack_traces = []
 // Collect stack traces for the location this function is called from,
@@ -301,7 +303,7 @@ private let stack_traces = []
 // Pass positive n to collect the first n.
 // Pass negative n to colledt the last n.
 // Pass 0 to collect all (warning: may be slow if many!)
-def im_stack_trace(n):
+def stack_trace(n):
     if n > 0:
         if stack_traces.length >= n:
             return
@@ -311,9 +313,9 @@ def im_stack_trace(n):
     if st.length: stack_traces.push(st)
 
 // Show the stack traces collected last frame, and clear them afterwards.
-def im_show_stack_traces():
-    im_treenode("Stack Traces"):
+def show_stack_traces():
+    treenode("Stack Traces"):
         for(stack_traces) st, i:
-            im_treenode("{i}"):
-                im_text(st)
+            treenode("{i}"):
+                text(st)
     while stack_traces.length: stack_traces.pop()

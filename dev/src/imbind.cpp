@@ -199,10 +199,10 @@ void NPop(VM &vm, Nesting n) {
 }
 
 void IsInit(VM &vm, pair<Nesting, Nesting> require = { N_WIN, N_MENU }) {
-    if (!imgui_init) vm.BuiltinError("imgui: not running: call im_init first");
+    if (!imgui_init) vm.BuiltinError("imgui: not running: call im.init first");
     for (auto n : nstack) if (n == require.first || n == require.second) return;
     if (require.first != N_NONE || require.second != N_NONE) {
-        vm.BuiltinError("imgui: invalid nesting (not inside im_window?)");
+        vm.BuiltinError("imgui: invalid nesting (not inside im.window?)");
     }
 }
 
@@ -685,22 +685,22 @@ const char *Label(VM &vm, Value val) {
 
 void AddIMGUI(NativeRegistry &nfr) {
 
-nfr("im_init", "dark_style,flags,rounding", "B?I?F?", "",
+nfr("init", "dark_style,flags,rounding", "B?I?F?", "",
     "",
     [](StackPtr &, VM &vm, Value &darkstyle, Value &flags, Value &rounding) {
         if (!IMGUIInit(flags.ival(), darkstyle.True(), rounding.fltval()))
-            vm.BuiltinError("im_init: no window");
+            vm.BuiltinError("im.init: no window");
         return NilVal();
     });
 
-nfr("im_add_font", "font_path,size", "SF", "B",
+nfr("add_font", "font_path,size", "SF", "B",
     "",
     [](StackPtr &, VM &vm, Value &fontname, Value &size) {
         IsInit(vm, { N_NONE, N_NONE });
         return Value(LoadFont(fontname.sval()->strv(), size.fltval()));
     });
 
-nfr("im_set_style_color", "i,color", "IF}:4", "",
+nfr("set_style_color", "i,color", "IF}:4", "",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm,  { N_NONE, N_NONE });
@@ -710,8 +710,8 @@ nfr("im_set_style_color", "i,color", "IF}:4", "",
         ImGui::GetStyle().Colors[i] = ImVec4(c.x, c.y, c.z, c.w);
     });
 
-nfr("im_frame_start", "", "", "",
-    "(use im_frame instead)",
+nfr("frame_start", "", "", "",
+    "(use im.frame instead)",
     [](StackPtr &, VM &vm) {
         IsInit(vm, { N_NONE, N_NONE });
         IMGUIFrameCleanup();
@@ -722,7 +722,7 @@ nfr("im_frame_start", "", "", "",
         imgui_frame++;
     });
 
-nfr("im_frame_end", "", "", "",
+nfr("frame_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm, { N_NONE, N_NONE });
@@ -736,7 +736,7 @@ nfr("im_frame_end", "", "", "",
         }
     });
 
-nfr("im_dockspace_over_viewport", "", "", "",
+nfr("dockspace_over_viewport", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
@@ -744,7 +744,7 @@ nfr("im_dockspace_over_viewport", "", "", "",
         nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
     });
 
-nfr("im_window_demo", "", "", "B",
+nfr("window_demo", "", "", "B",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
@@ -753,8 +753,8 @@ nfr("im_window_demo", "", "", "B",
         return Value(show);
     });
 
-nfr("im_window_start", "title,flags,dock", "SII", "",
-    "(use im_window instead)",
+nfr("window_start", "title,flags,dock", "SII", "",
+    "(use im.window instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
         auto dock = Pop(sp);
@@ -773,14 +773,14 @@ nfr("im_window_start", "title,flags,dock", "SII", "",
         NPush(N_WIN);
     });
 
-nfr("im_window_end", "", "", "",
+nfr("window_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
         NPop(vm, N_WIN);
     });
 
-nfr("im_next_window_size", "size", "F}:2", "",
+nfr("next_window_size", "size", "F}:2", "",
     "size in pixels",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
@@ -788,7 +788,7 @@ nfr("im_next_window_size", "size", "F}:2", "",
         ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Appearing);
     });
 
-nfr("im_next_window_pos", "pos,pivot", "F}:2F}:2", "",
+nfr("next_window_pos", "pos,pivot", "F}:2F}:2", "",
     "pos in pixels, pivot values 0..1 relative to pos",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
@@ -797,7 +797,7 @@ nfr("im_next_window_pos", "pos,pivot", "F}:2F}:2", "",
         ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Appearing, ImVec2(pivot.x, pivot.y));
     });
 
-nfr("im_button", "label", "S", "B",
+nfr("button", "label", "S", "B",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -806,7 +806,7 @@ nfr("im_button", "label", "S", "B",
         Push(sp, press);
     });
 
-nfr("im_selectable", "label,selected", "SB?", "B",
+nfr("selectable", "label,selected", "SB?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -816,20 +816,20 @@ nfr("im_selectable", "label,selected", "SB?", "B",
         Push(sp, press);
     });
 
-nfr("im_same_line", "", "", "", "",
+nfr("same_line", "", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::SameLine();
         return NilVal();
     });
 
-nfr("im_new_line", "", "", "", "",
+nfr("new_line", "", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::NewLine();
     });
 
-nfr("im_separator", "", "", "",
+nfr("separator", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
@@ -837,7 +837,7 @@ nfr("im_separator", "", "", "",
         return NilVal();
     });
 
-nfr("im_is_item_deactivated_after_edit", "", "", "B",
+nfr("is_item_deactivated_after_edit", "", "", "B",
     "returns true if the last item was made inactive and made a value change when it was active",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -845,21 +845,21 @@ nfr("im_is_item_deactivated_after_edit", "", "", "B",
         Push(sp, result);
     });
 
-nfr("im_get_layout_pos", "", "", "F}:2", "",
+nfr("get_layout_pos", "", "", "F}:2", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto pos = ImGui::GetCursorPos();
         PushVec(sp, float2(pos.x, pos.y));
     });
 
-nfr("im_set_layout_pos", "pos", "F}:2", "", "",
+nfr("set_layout_pos", "pos", "F}:2", "", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto pos = PopVec<float2>(sp);
         ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
     });
 
-nfr("im_get_content_region_avail", "", "", "F}:2",
+nfr("get_content_region_avail", "", "", "F}:2",
     "returns the amount of space left in the current region from the cursor pos",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -867,7 +867,7 @@ nfr("im_get_content_region_avail", "", "", "F}:2",
         PushVec(sp, float2(avail.x, avail.y));
     });
 
-nfr("im_text", "label", "S", "",
+nfr("text", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
@@ -876,7 +876,7 @@ nfr("im_text", "label", "S", "",
         return NilVal();
     });
 
-nfr("im_text_styled", "label,font_idx,color", "SIF}:4", "",
+nfr("text_styled", "label,font_idx,color", "SIF}:4", "",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -890,7 +890,7 @@ nfr("im_text_styled", "label,font_idx,color", "SIF}:4", "",
         ImGui::PopFont();
     });
 
-nfr("im_text_wrapped", "label", "S", "",
+nfr("text_wrapped", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
@@ -899,7 +899,7 @@ nfr("im_text_wrapped", "label", "S", "",
         return NilVal();
     });
 
-nfr("im_tooltip", "label", "S", "",
+nfr("tooltip", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
         IsInit(vm);
@@ -908,8 +908,8 @@ nfr("im_tooltip", "label", "S", "",
         return NilVal();
     });
 
-nfr("im_tooltip_multi_start", "", "", "B",
-    "(use im_tooltip_multi instead)",
+nfr("tooltip_multi_start", "", "", "B",
+    "(use im.tooltip_multi instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
@@ -921,14 +921,14 @@ nfr("im_tooltip_multi_start", "", "", "B",
         }
     });
 
-nfr("im_tooltip_multi_end", "", "", "",
+nfr("tooltip_multi_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_TOOLTIP);
     });
 
-nfr("im_checkbox", "label,bool", "SI", "I2",
+nfr("checkbox", "label,bool", "SI", "I2",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &boolval) {
         IsInit(vm);
@@ -937,21 +937,21 @@ nfr("im_checkbox", "label,bool", "SI", "I2",
         return Value(b);
     });
 
-nfr("im_input_text", "label,str", "SSk", "S",
+nfr("input_text", "label,str", "SSk", "S",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &str) {
         IsInit(vm);
         return Value(LStringInputText(vm, Label(vm, text), str.sval()));
     });
 
-nfr("im_input_text_multi_line", "label,str,num_lines", "SSkI", "S",
+nfr("input_text_multi_line", "label,str,num_lines", "SSkI", "S",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &str, Value &num_lines) {
         IsInit(vm);
         return Value(LStringInputText(vm, Label(vm, text), str.sval(), num_lines.intval()));
     });
 
-nfr("im_input_int", "label,val,min,max", "SIII", "I",
+nfr("input_int", "label,val,min,max", "SIII", "I",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &val, Value &min, Value &max) {
         IsInit(vm);
@@ -962,14 +962,14 @@ nfr("im_input_int", "label,val,min,max", "SIII", "I",
         return val;
     });
 
-nfr("im_input_float", "label,val", "SF", "F",
+nfr("input_float", "label,val", "SF", "F",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &val) {
         IsInit(vm);
         return Value(InputFloat(Label(vm, text), val.fval()));
     });
 
-nfr("im_radio", "labels,active,horiz", "S]II", "I",
+nfr("radio", "labels,active,horiz", "S]II", "I",
     "active to select which one is activated, -2 for last frame\'s "
     "selection or 0",
     [](StackPtr &, VM &vm, Value &strs, Value &active, Value &horiz) {
@@ -984,7 +984,7 @@ nfr("im_radio", "labels,active,horiz", "S]II", "I",
         return Value(sel);
     });
 
-nfr("im_progress_bar", "fraction,size,overlay", "FF}:2S", "",
+nfr("progress_bar", "fraction,size,overlay", "FF}:2S", "",
     "display progress bar filled up to the given fraction. size.x < 0 to use all available space, "
     " size.x > 0 for a specific pixel width",
     [](StackPtr &sp, VM &vm) {
@@ -995,7 +995,7 @@ nfr("im_progress_bar", "fraction,size,overlay", "FF}:2S", "",
         ImGui::ProgressBar(fraction, ImVec2(size.x, size.y), overlay.strvnt().c_str());
     });
 
-nfr("im_combo", "label,labels,active", "SS]I", "I",
+nfr("combo", "label,labels,active", "SS]I", "I",
     "active to select which one is activated, -2 for last frame\'s "
     "selection or 0",
     [](StackPtr &, VM &vm, Value &text, Value &strs, Value &active) {
@@ -1011,7 +1011,7 @@ nfr("im_combo", "label,labels,active", "SS]I", "I",
         return Value(sel);
     });
 
-nfr("im_listbox", "label,labels,active,height", "SS]II", "I",
+nfr("listbox", "label,labels,active,height", "SS]II", "I",
     "active to select which one is activated, -1 for no initial selection, -2 for last frame\'s "
     "selection or none",
     [](StackPtr &, VM &vm, Value &text, Value &strs, Value &active, Value &height) {
@@ -1027,7 +1027,7 @@ nfr("im_listbox", "label,labels,active,height", "SS]II", "I",
         return Value(sel);
     });
 
-nfr("im_sliderint", "label,i,min,max", "SIII", "I",
+nfr("sliderint", "label,i,min,max", "SIII", "I",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &integer, Value &min, Value &max) {
         IsInit(vm);
@@ -1036,7 +1036,7 @@ nfr("im_sliderint", "label,i,min,max", "SIII", "I",
         return Value(i);
     });
 
-nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
+nfr("sliderfloat", "label,f,min,max", "SFFF", "F",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &flt, Value &min, Value &max) {
         IsInit(vm);
@@ -1046,7 +1046,7 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
     });
 
     #define VECSLIDER(Type, type, typeval, T, N)                                               \
-    nfr("im_slider" #type #N, "label,"#T #N ",min,max", "S" #T "}:" #N #T #T, #T "}:" #N, "",  \
+    nfr("slider" #type #N, "label,"#T #N ",min,max", "S" #T "}:" #N #T #T, #T "}:" #N, "",  \
         [](StackPtr &sp, VM &vm) {                                                             \
             IsInit(vm);                                                                        \
             auto max = Pop(sp).typeval();                                                      \
@@ -1064,7 +1064,7 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F",
     VECSLIDER(Float, float, fltval, F, 4);
     #undef VECSLIDER
 
-nfr("im_coloredit", "label,color", "SF}", "A2",
+nfr("coloredit", "label,color", "SF}", "A2",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -1073,7 +1073,7 @@ nfr("im_coloredit", "label,color", "SF}", "A2",
         PushVec(sp, c);
     });
 
-nfr("im_image", "tex,size", "R:textureF}:2", "",
+nfr("image", "tex,size", "R:textureF}:2", "",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -1082,7 +1082,7 @@ nfr("im_image", "tex,size", "R:textureF}:2", "",
         ImGui::Image((ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
     });
 
-nfr("im_image_button", "label,tex,size,bgcol", "SR:textureF}:2F}:4?", "B",
+nfr("image_button", "label,tex,size,bgcol", "SR:textureF}:2F}:4?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -1094,7 +1094,7 @@ nfr("im_image_button", "label,tex,size,bgcol", "SR:textureF}:2F}:4?", "B",
         Push(sp, press);
     });
 
-nfr("im_image_mouseclick", "tex,size", "R:textureF}:2", "F}:2I",
+nfr("image_mouseclick", "tex,size", "R:textureF}:2", "F}:2I",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -1118,8 +1118,8 @@ nfr("im_image_mouseclick", "tex,size", "R:textureF}:2", "F}:2I",
         }
     });
 
-nfr("im_treenode_start", "label,flags", "SI", "B",
-    "(use im_treenode instead)",
+nfr("treenode_start", "label,flags", "SI", "B",
+    "(use im.treenode instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto flags = (ImGuiTreeNodeFlags)Pop(sp).intval();
@@ -1129,15 +1129,15 @@ nfr("im_treenode_start", "label,flags", "SI", "B",
         if (open) NPush(N_TREE);
     });
 
-nfr("im_treenode_end", "", "", "",
+nfr("treenode_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_TREE);
     });
 
-nfr("im_tab_bar_start", "label", "S", "B",
-    "(use im_tab_bar instead)",
+nfr("tab_bar_start", "label", "S", "B",
+    "(use im.tab_bar instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto title = Pop(sp);
@@ -1146,15 +1146,15 @@ nfr("im_tab_bar_start", "label", "S", "B",
         if (open) NPush(N_TAB_BAR);
     });
 
-nfr("im_tab_bar_end", "", "", "",
+nfr("tab_bar_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_TAB_BAR);
     });
 
-nfr("im_tab_start", "label,flags", "SI", "B",
-    "(use im_tab instead)",
+nfr("tab_start", "label,flags", "SI", "B",
+    "(use im.tab instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto flags = Pop(sp).intval();
@@ -1164,15 +1164,15 @@ nfr("im_tab_start", "label,flags", "SI", "B",
         if (open) NPush(N_TAB);
     });
 
-nfr("im_tab_end", "", "", "",
+nfr("tab_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_TAB);
     });
 
-nfr("im_menu_bar_start", "main", "B", "B",
-    "(use im_menu_bar instead)",
+nfr("menu_bar_start", "main", "B", "B",
+    "(use im.menu_bar instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
         auto main = Pop(sp).True();
@@ -1181,7 +1181,7 @@ nfr("im_menu_bar_start", "main", "B", "B",
         if (open) NPush(main ? N_MAIN_MENU_BAR: N_MENU_BAR);
     });
 
-nfr("im_menu_bar_end", "main", "B", "",
+nfr("menu_bar_end", "main", "B", "",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
@@ -1189,8 +1189,8 @@ nfr("im_menu_bar_end", "main", "B", "",
         NPop(vm, main ? N_MAIN_MENU_BAR: N_MENU_BAR);
     });
 
-nfr("im_menu_start", "label,disabled", "SB?", "B",
-    "(use im_menu instead)",
+nfr("menu_start", "label,disabled", "SB?", "B",
+    "(use im.menu instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_MENU_BAR, N_MAIN_MENU_BAR });
         auto disabled = Pop(sp).True();
@@ -1200,14 +1200,14 @@ nfr("im_menu_start", "label,disabled", "SB?", "B",
         if (open) NPush(N_MENU);
     });
 
-nfr("im_menu_end", "", "", "",
+nfr("menu_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm, { N_MENU_BAR, N_MAIN_MENU_BAR });
         NPop(vm, N_MENU);
     });
 
-nfr("im_menu_item", "label,shortcut,disabled", "SS?B?", "B",
+nfr("menu_item", "label,shortcut,disabled", "SS?B?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_MENU, N_NONE });
@@ -1221,7 +1221,7 @@ nfr("im_menu_item", "label,shortcut,disabled", "SS?B?", "B",
         Push(sp, press);
     });
 
-nfr("im_menu_item_toggle", "label,selected,disabled", "SB?B?", "B",
+nfr("menu_item_toggle", "label,selected,disabled", "SB?B?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_MENU, N_NONE });
@@ -1232,10 +1232,10 @@ nfr("im_menu_item_toggle", "label,selected,disabled", "SB?B?", "B",
         Push(sp, selected);
     });
 
-nfr("im_id_start", "label", "Ss", "",
+nfr("id_start", "label", "Ss", "",
     "an invisble group around some widgets, useful to ensure these widgets are unique"
     " (if they have the same label as widgets in another group that has a different group"
-    " label). Use im_id instead",
+    " label). Use im.id instead",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto title = Pop(sp);
@@ -1243,15 +1243,15 @@ nfr("im_id_start", "label", "Ss", "",
         NPush(N_ID);
     });
 
-nfr("im_id_end", "", "", "",
+nfr("id_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_ID);
     });
 
-nfr("im_child_start", "title,size,flags", "SF}:2I", "",
-    "create a self-contained scrolling/clipping region with a window. use im_child instead",
+nfr("child_start", "title,size,flags", "SF}:2I", "",
+    "create a self-contained scrolling/clipping region with a window. use im.child instead",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto flags = Pop(sp);
@@ -1261,31 +1261,31 @@ nfr("im_child_start", "title,size,flags", "SF}:2I", "",
         NPush(N_CHILD);
     });
 
-nfr("im_child_end", "", "", "",
+nfr("child_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_CHILD);
     });
 
-nfr("im_group_start", "", "", "",
+nfr("group_start", "", "", "",
     "lock the horizontal starting position, and capture all contained widgets"
-    " into one item. Use im_group instead",
+    " into one item. Use im.group instead",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::BeginGroup();
         NPush(N_VGROUP);
     });
 
-nfr("im_group_end", "", "", "",
+nfr("group_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_VGROUP);
     });
 
-nfr("im_popup_start", "label,winflags,rmbprevitem", "SIB?", "B",
-    "(use im_popup instead)",
+nfr("popup_start", "label,winflags,rmbprevitem", "SIB?", "B",
+    "(use im.popup instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto rmb = Pop(sp).True();
@@ -1297,14 +1297,14 @@ nfr("im_popup_start", "label,winflags,rmbprevitem", "SIB?", "B",
         if (open) NPush(N_POPUP);
     });
 
-nfr("im_popup_end", "", "", "",
+nfr("popup_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_POPUP);
     });
 
-nfr("im_popup_open", "label", "S", "",
+nfr("popup_open", "label", "S", "",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -1312,45 +1312,45 @@ nfr("im_popup_open", "label", "S", "",
         ImGui::OpenPopup(Label(vm, title));
     });
 
-nfr("im_close_current_popup", "", "", "",
+nfr("close_current_popup", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::CloseCurrentPopup();
     });
 
-nfr("im_disabled_start", "disabled", "B", "",
-    "(use im_disabled instead)",
+nfr("disabled_start", "disabled", "B", "",
+    "(use im.disabled instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         const auto disabled = Pop(sp).True();
         ImGui::BeginDisabled(disabled);
     });
 
-nfr("im_disabled_end", "", "", "",
+nfr("disabled_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::EndDisabled();
     });
 
-nfr("im_button_repeat_start", "repeat", "B", "",
-    "(use im_button_repeat instead)",
+nfr("button_repeat_start", "repeat", "B", "",
+    "(use im.button_repeat instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         const auto repeat = Pop(sp).True();
         ImGui::PushButtonRepeat(repeat);
     });
 
-nfr("im_button_repeat_end", "", "", "",
+nfr("button_repeat_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         ImGui::PopButtonRepeat();
     });
 
-nfr("im_drag_drop_source_start", "flags", "I", "B",
-    "(use im_drag_drop_source instead)",
+nfr("drag_drop_source_start", "flags", "I", "B",
+    "(use im.drag_drop_source instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         const auto flags = Pop(sp).intval();
@@ -1359,14 +1359,14 @@ nfr("im_drag_drop_source_start", "flags", "I", "B",
         if (open) NPush(N_DRAG_DROP_SOURCE);
     });
 
-nfr("im_drag_drop_source_end", "", "", "",
+nfr("drag_drop_source_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_DRAG_DROP_SOURCE);
     });
 
-nfr("im_set_drag_drop_payload", "type,data", "SS", "",
+nfr("set_drag_drop_payload", "type,data", "SS", "",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -1375,8 +1375,8 @@ nfr("im_set_drag_drop_payload", "type,data", "SS", "",
         ImGui::SetDragDropPayload(type.c_str(), data.data(), data.size());
     });
 
-nfr("im_drag_drop_target_start", "", "", "B",
-    "(use im_drag_drop_target instead)",
+nfr("drag_drop_target_start", "", "", "B",
+    "(use im.drag_drop_target instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         bool open = ImGui::BeginDragDropTarget();
@@ -1384,14 +1384,14 @@ nfr("im_drag_drop_target_start", "", "", "B",
         if (open) NPush(N_DRAG_DROP_TARGET);
     });
 
-nfr("im_drag_drop_target_end", "", "", "",
+nfr("drag_drop_target_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_DRAG_DROP_TARGET);
     });
 
-nfr("im_accept_drag_drop_payload", "type,flags", "SI", "S?",
+nfr("accept_drag_drop_payload", "type,flags", "SI", "S?",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
@@ -1405,9 +1405,9 @@ nfr("im_accept_drag_drop_payload", "type,flags", "SI", "S?",
         }
     });
 
-nfr("im_width_start", "width", "F", "",
+nfr("width_start", "width", "F", "",
     "Sets the width of an item: 0 = default, -1 = use full width without label,"
-    " any other value is custom width. Use im_width instead",
+    " any other value is custom width. Use im.width instead",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto width = Pop(sp).fltval();
@@ -1415,13 +1415,13 @@ nfr("im_width_start", "width", "F", "",
         NPush(N_WIDTH);
     });
 
-nfr("im_width_end", "", "", "", "",
+nfr("width_end", "", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_WIDTH);
     });
 
-nfr("im_text_table", "id,num_colums,labels,", "SIS]", "", "",
+nfr("text_table", "id,num_colums,labels,", "SIS]", "", "",
     [](StackPtr &, VM &vm, Value &id, Value &num_colums, Value &labels) {
         IsInit(vm);
         auto nc = num_colums.intval();
@@ -1439,7 +1439,7 @@ nfr("im_text_table", "id,num_colums,labels,", "SIS]", "", "",
         return NilVal();
     });
 
-nfr("im_edit_anything", "value,label", "AkS?", "A1",
+nfr("edit_anything", "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version",
     [](StackPtr &, VM &vm, Value &v, Value &label) {
         IsInit(vm);
@@ -1450,7 +1450,7 @@ nfr("im_edit_anything", "value,label", "AkS?", "A1",
         return v;
     });
 
-nfr("im_graph", "label,values,ishistogram", "SF]I", "",
+nfr("graph", "label,values,ishistogram", "SF]I", "",
     "",
     [](StackPtr &, VM &vm, Value &label, Value &vals, Value &histogram) {
         IsInit(vm);
@@ -1467,7 +1467,7 @@ nfr("im_graph", "label,values,ishistogram", "SF]I", "",
         return NilVal();
     });
 
-nfr("im_show_vars", "", "", "",
+nfr("show_vars", "", "", "",
     "shows an automatic editing UI for each global variable in your program",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
@@ -1475,7 +1475,7 @@ nfr("im_show_vars", "", "", "",
         return NilVal();
     });
 
-nfr("im_show_engine_stats", "", "", "",
+nfr("show_engine_stats", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
@@ -1483,9 +1483,13 @@ nfr("im_show_engine_stats", "", "", "",
         return NilVal();
     });
 
+}  // AddIMGUI
+
+void AddIMGUIDebug(NativeRegistry & nfr) {
+
 nfr("breakpoint", "condition", "I", "",
     "stops the program in the debugger if passed true."
-    " debugger needs --runtime-verbose on, and im_init() to have run.",
+    " debugger needs --runtime-verbose on, and im.init() to have run.",
     [](StackPtr &, VM &vm, Value &c) {
         if (c.True()) {
             auto err = BreakPoint(vm, "Conditional breakpoint hit!");
@@ -1496,11 +1500,11 @@ nfr("breakpoint", "condition", "I", "",
 
 nfr("breakpoint", "", "", "",
     "stops the program in the debugger always."
-    " debugger needs --runtime-verbose on, and im_init() to have run.",
+    " debugger needs --runtime-verbose on, and im.init() to have run.",
     [](StackPtr &, VM &vm) {
         auto err = BreakPoint(vm, "Breakpoint hit!");
         if (!err.empty()) vm.Error(err);
         return NilVal();
     });
 
-}  // AddIMGUI
+}  // AddIMGUIDebug
