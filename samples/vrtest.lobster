@@ -8,7 +8,7 @@ import camera
 import gl
 import mg
 
-let vrmode = vr_init()
+let vrmode = vr.init()
 
 fatal(gl.window(if vrmode: "VR Test" else: "No VR device", 1280, 640,
                 if vrmode: gl.window_init_no_vsync else: 0, 16 /*samples*/))
@@ -76,30 +76,30 @@ while gl.frame():
     let znear = 0.1
     let zfar = 1000
     if vrmode:
-        vr_start()
+        vr.start()
         for(2) e:
-            vr_start_eye(e, znear, zfar)
+            vr.start_eye(e, znear, zfar)
             set_z_up_worldspace():
                 drawworld()
-            for(vr_num_motion_controllers()) mc:
-                if vr_motioncontrollerstracking(mc):
+            for(vr.num_motion_controllers()) mc:
+                if vr.motioncontrollerstracking(mc):
                     var mcmesh = controller_meshes[mc]
                     if not mcmesh:
                         // FIXME: sadly have to do this on the fly because at init controllers and
                         // meshes are not available for some reason.
-                        controller_meshes[mc] = mcmesh = vr_create_motion_controller_mesh(mc)
+                        controller_meshes[mc] = mcmesh = vr.create_motion_controller_mesh(mc)
                     if mcmesh:
                         gl.color(color_white)
                         gl.push_model_view()
-                        vr_motion_controller(mc)
+                        vr.motion_controller(mc)
                         gl.set_shader("phong_textured")
                         gl.render_mesh(mcmesh)
                         gl.pop_model_view()
-        vr_finish()
+        vr.finish()
         for(2) mc:
-            if vr_motion_controller_button(mc, "trigger") == 1:
-                let pos = to_z_up(vr_motion_controller_vec(mc, 3))
-                let dir = to_z_up(vr_motion_controller_vec(mc, 2))
+            if vr.motion_controller_button(mc, "trigger") == 1:
+                let pos = to_z_up(vr.motion_controller_vec(mc, 3))
+                let dir = to_z_up(vr.motion_controller_vec(mc, 2))
                 balls.push([ pos, -dir ])
         // Render the two eye textures to the non-VR window for feedback:
         gl.clear(color_black)
@@ -107,7 +107,7 @@ while gl.frame():
         gl.set_shader("textured")
 
         for(2) e:
-            vr_set_eye_texture(0, e)
+            vr.set_eye_texture(0, e)
             gl.translate(float2 { gl.window_size().x * e / 2.0, gl.window_size().y }):
                     gl.rect(float2 { gl.window_size().x / 2.0, -gl.window_size().y })
     else:

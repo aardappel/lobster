@@ -179,8 +179,8 @@ void VREye(int eye, float znear, float zfar) {
     if (!vrsys) return;
     auto retf = TF_CLAMP | TF_NOMIPMAP;
     auto mstf = retf | TF_MULTISAMPLE;
-    if (!mstex[eye].id) mstex[eye] = CreateColoredTexture("vr_mstex", rtsize, float4_0, mstf);
-    if (!retex[eye].id) retex[eye] = CreateColoredTexture("vr_retex", rtsize, float4_0, retf);
+    if (!mstex[eye].id) mstex[eye] = CreateColoredTexture("vr.mstex", rtsize, float4_0, mstf);
+    if (!retex[eye].id) retex[eye] = CreateColoredTexture("vr.retex", rtsize, float4_0, retf);
     SwitchToFrameBuffer(mstex[eye], GetScreenSize(), true, mstf, retex[eye]);
     auto proj =
         FromOpenVR(vrsys->GetProjectionMatrix((vr::EVREye)eye, znear, zfar));
@@ -241,10 +241,10 @@ Mesh *VRCreateMesh(uint32_t device) {
         }
         SDL_Delay(1);
     }
-    auto tex = CreateTexture("vr_controller_tex", modeltex->rubTextureMapData,
+    auto tex = CreateTexture("vr.controller_tex", modeltex->rubTextureMapData,
                              int3(modeltex->unWidth, modeltex->unHeight, 0), TF_CLAMP);
     auto m = new Mesh(
-        new Geometry("vr_controller_verts", gsl::make_span(model->rVertexData, model->unVertexCount),
+        new Geometry("vr.controller_verts", gsl::make_span(model->rVertexData, model->unVertexCount),
                                    "PNT"), PRIM_TRIS);
     auto nindices = model->unTriangleCount * 3;
     vector<int> indices(nindices);
@@ -253,7 +253,7 @@ Mesh *VRCreateMesh(uint32_t device) {
         indices[i + 1] = model->rIndexData[i + 2];
         indices[i + 2] = model->rIndexData[i + 1];
     }
-    auto surf = new Surface("vr_controller_idxs", gsl::make_span(indices), PRIM_TRIS);
+    auto surf = new Surface("vr.controller_idxs", gsl::make_span(indices), PRIM_TRIS);
     surf->Get(0) = tex;
     m->surfs.push_back(surf);
     vr::VRRenderModels()->FreeRenderModel(model);
@@ -286,13 +286,13 @@ vr::EVRButtonId GetButtonId(VM &vm, Value &button) {
 
 void AddVR(NativeRegistry &nfr) {
 
-nfr("vr_init", "", "", "B",
+nfr("init", "", "", "B",
     "initializes VR mode. returns true if a hmd was found and initialized",
     [](StackPtr &, VM &) {
         return Value(VRInit());
     });
 
-nfr("vr_start_eye", "isright,znear,zfar", "IFF", "",
+nfr("start_eye", "isright,znear,zfar", "IFF", "",
     "starts rendering for an eye. call for each eye, followed by drawing the world as normal."
     " replaces gl_perspective",
     [](StackPtr &, VM &, Value &isright, Value &znear, Value &zfar) {
@@ -300,22 +300,22 @@ nfr("vr_start_eye", "isright,znear,zfar", "IFF", "",
         return NilVal();
     });
 
-nfr("vr_start", "", "", "",
+nfr("start", "", "", "",
     "starts VR by updating hmd & controller poses",
     [](StackPtr &, VM &) {
         VRStart();
         return NilVal();
     });
 
-nfr("vr_finish", "", "", "",
+nfr("finish", "", "", "",
     "finishes vr rendering by compositing (and distorting) both eye renders to the screen",
     [](StackPtr &, VM &) {
         VRFinish();
         return NilVal();
     });
 
-nfr("vr_set_eye_texture", "unit,isright", "II", "",
-    "sets the texture for an eye (like gl_set_primitive_texture). call after vr_finish. can be"
+nfr("set_eye_texture", "unit,isright", "II", "",
+    "sets the texture for an eye (like gl_set_primitive_texture). call after vr.finish. can be"
     " used to render the non-VR display",
     [](StackPtr &, VM &vm, Value &unit, Value &isright) {
         extern int GetSampler(VM &vm, Value &i);
@@ -323,20 +323,20 @@ nfr("vr_set_eye_texture", "unit,isright", "II", "",
         return NilVal();
     });
 
-nfr("vr_num_motion_controllers", "", "", "I",
+nfr("num_motion_controllers", "", "", "I",
     "returns the number of motion controllers in the system",
     [](StackPtr &, VM &) {
         return Value((int)motioncontrollers.size());
     });
 
-nfr("vr_motioncontrollerstracking", "n", "I", "B",
+nfr("motioncontrollerstracking", "n", "I", "B",
     "returns if motion controller n is tracking",
     [](StackPtr &, VM &, Value &mc) {
         auto mcd = GetMC(mc);
         return Value(mcd && mcd->tracking);
     });
 
-nfr("vr_motion_controller", "n", "I", "",
+nfr("motion_controller", "n", "I", "",
     "sets up the transform ready to render controller n."
     " if there is no controller n (or it is currently not"
     " tracking) the identity transform is used",
@@ -346,7 +346,7 @@ nfr("vr_motion_controller", "n", "I", "",
         otransforms.append_object2view(mcd ? mcd->mat : float4x4_1);
     });
 
-nfr("vr_create_motion_controller_mesh", "n", "I", "R:mesh?",
+nfr("create_motion_controller_mesh", "n", "I", "R:mesh?",
     "returns the mesh for motion controller n, or nil if not available",
     [](StackPtr &, VM &vm, Value &mc) {
         auto mcd = GetMC(mc);
@@ -356,7 +356,7 @@ nfr("vr_create_motion_controller_mesh", "n", "I", "R:mesh?",
 
 // TODO: make it return an "up" value much like gl_button, since this doesn't represent
 // down+up in the same frame.
-nfr("vr_motion_controller_button", "n,button", "IS", "I",
+nfr("motion_controller_button", "n,button", "IS", "I",
     "returns the button state for motion controller n."
     " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
     " buttons are: system, menu, grip, trigger, touchpad",
@@ -373,7 +373,7 @@ nfr("vr_motion_controller_button", "n,button", "IS", "I",
         #endif
     });
 
-nfr("vr_motion_controller_vec", "n,i", "II", "F}:3",
+nfr("motion_controller_vec", "n,i", "II", "F}:3",
     "returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.",
     [](StackPtr &sp, VM &vm) {
@@ -384,7 +384,7 @@ nfr("vr_motion_controller_vec", "n,i", "II", "F}:3",
         PushVec(sp, mcd->mat[i].xyz());
     });
 
-nfr("vr_hmd_vec", "i", "I", "F}:3",
+nfr("hmd_vec", "i", "I", "F}:3",
     "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.",
     [](StackPtr &sp, VM &vm) {
