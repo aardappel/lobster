@@ -3,38 +3,40 @@
 // These are versions of built-in transform and state functions that restore
 // the state after executing body.
 
-def mg_translate(vec, body):
-    mg_push_transform()
-    mg_translate(vec)
-    body()
-    mg_pop_transform()
+namespace mg
 
-def mg_scale(f, body):
-    mg_push_transform()
-    mg_scale(f)
+def translate(vec, body):
+    push_transform()
+    translate(vec)
     body()
-    mg_pop_transform()
+    pop_transform()
 
-def mg_scale_vec(vec, body):
-    mg_push_transform()
-    mg_scale_vec(vec)
+def scale(f, body):
+    push_transform()
+    scale(f)
     body()
-    mg_pop_transform()
+    pop_transform()
 
-def mg_rotate(axis, angle, body):
-    mg_push_transform()
-    mg_rotate(axis, angle)
+def scale_vec(vec, body):
+    push_transform()
+    scale_vec(vec)
     body()
-    mg_pop_transform()
+    pop_transform()
 
-def mg_color(col, body):
-    mg_push_transform()
-    mg_color(col)
+def rotate(axis, angle, body):
+    push_transform()
+    rotate(axis, angle)
     body()
-    mg_pop_transform()
+    pop_transform()
 
-def mg_smooth(smooth, body):
-    mg_push_transform()
-    mg_smooth(smooth)
+def color(col, body):
+    push_transform()
+    color(col)
     body()
-    mg_pop_transform()
+    pop_transform()
+
+def smooth(sm, body):
+    push_transform()
+    smooth(sm)
+    body()
+    pop_transform()

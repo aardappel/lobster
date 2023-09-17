@@ -58,9 +58,9 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "gl", "graphics",  AddGraphics);
     RegisterBuiltin(nfr, "gl", "font", AddFont);
     RegisterBuiltin(nfr, "", "sound", AddSound);
-    RegisterBuiltin(nfr, "", "physics", AddPhysics);
+    RegisterBuiltin(nfr, "ph", "physics", AddPhysics);
     RegisterBuiltin(nfr, "", "noise", AddNoise);
-    RegisterBuiltin(nfr, "", "meshgen", AddMeshGen);
+    RegisterBuiltin(nfr, "mg", "meshgen", AddMeshGen);
     RegisterBuiltin(nfr, "", "cubegen", AddCubeGen);
     RegisterBuiltin(nfr, "", "vr", AddVR);
     RegisterBuiltin(nfr, "", "steam", AddSteam);

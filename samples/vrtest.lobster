@@ -17,30 +17,30 @@ fatal(gl.window(if vrmode: "VR Test" else: "No VR device", 1280, 640,
 
 def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
     if numb:
-        mg_translate(float3_z * branchl):
-            mg_tapered_cylinder(1.0, narrowf, branchl)
-            mg_translate(float3_z * branchl):
+        mg.translate(float3_z * branchl):
+            mg.tapered_cylinder(1.0, narrowf, branchl)
+            mg.translate(float3_z * branchl):
                 let axis = sincos(rnd(360))
                 let branches = rnd(3) + 1
                 for(branches) i:
-                    mg_rotate(float3_z, 360 * i / branches):
-                        mg_rotate(float3(axis, 0), 12 * branches):
-                            mg_scale(narrowf):
-                                mg_sphere(1.0)
+                    mg.rotate(float3_z, 360 * i / branches):
+                        mg.rotate(float3(axis, 0), 12 * branches):
+                            mg.scale(narrowf):
+                                mg.sphere(1.0)
                                 model_tree(numb - 1, branchl, narrowf, leafs, leafc)
     else:
-        mg_color(leafc):
-            mg_sphere(leafs)
+        mg.color(leafc):
+            mg.sphere(leafs)
 
-mg_smooth(0.5)
-mg_color(color { 0.7, 0.6, 0.5, 1.0 })
+mg.smooth(0.5)
+mg.color(color { 0.7, 0.6, 0.5, 1.0 })
 model_tree(10, 1.5, 0.75, 12, color { 0.6, 1.0, 0.6, 1.0 })
-let tree = mg_polygonize(50)
+let tree = mg.polygonize(50)
 
-mg_smooth(0.0)
-mg_color(color_red)
-mg_sphere(1.0)
-let sphere = mg_polygonize(3)
+mg.smooth(0.0)
+mg.color(color_red)
+mg.sphere(1.0)
+let sphere = mg.polygonize(3)
 
 let camera = Camera { float3 { 0.0, 0.0, 3.0 }, 135.0, 20.0 }
 

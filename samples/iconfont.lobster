@@ -12,7 +12,7 @@ gl.set_font_name("data/fonts/Game_Icons/game-icons.ttf")
 gl.set_font_size(100)
 
 // If you wanted to see what names are all in this font.
-// for(filter(map(10000): gl.get_glyph_name(_)): _.length): print _
+// for(filter(map(10000): gl.get_glyph.name(_)): _.length): print _
 
 // pick some icons we like:
 let names = [ "cactus", "ghost", "hydra", "leg-armor", "lever", "lion", "linden-leaf", "mac-10",
