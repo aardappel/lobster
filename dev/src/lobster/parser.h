@@ -64,7 +64,6 @@ struct Parser {
     }
 
     void Parse() {
-        for (auto s : natreg.namespaces) lex.namespaces.insert(s);
         auto sf = st.FunctionScopeStart();
         st.toplevel = sf;
         auto &f = st.CreateFunction("__top_level_expression");

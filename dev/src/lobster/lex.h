@@ -83,8 +83,10 @@ struct Lex : LoadedFile {
     int max_errors = 1;
     int num_errors = 0;
 
-    Lex(string_view fn, vector<pair<string, string>> &fns, string_view _ss = {}, int max_errors = 1)
+    Lex(string_view fn, vector<pair<string, string>> &fns, const vector<string_view> &extra_namespaces,
+        string_view _ss = {}, int max_errors = 1)
         : LoadedFile(fn, fns, _ss), filenames(fns), max_errors(max_errors) {
+        for (auto s : extra_namespaces) namespaces.insert(s);
         allsources.push_back(source);
         if (!fn.empty()) allfiles.insert(string(fn));
         if (p[0] == '#' && p[1] == '!') {

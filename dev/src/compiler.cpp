@@ -365,7 +365,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
              string *parsedump, string *pakfile, bool return_value, int runtime_checks,
              Query *query, int max_errors, bool full_error) {
     vector<pair<string, string>> filenames;
-    Lex lex(fn, filenames, stringsource, max_errors);
+    Lex lex(fn, filenames, nfr.namespaces, stringsource, max_errors);
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
