@@ -368,9 +368,9 @@ struct NativeFun : Named {
         return i;
     };
 
-    NativeFun(const char *ns, const char *name, BuiltinPtr f, const char *ids, const char *typeids,
+    NativeFun(const char *ns, const char *nsname, BuiltinPtr f, const char *ids, const char *typeids,
               const char *rets, const char *help)
-        : Named(*ns ? cat(ns, ".", name) : name, 0),
+        : Named(*ns ? cat(ns, ".", nsname) : nsname, 0),
           fun(f),
           args(TypeLen(typeids)),
           retvals(TypeLen(rets)),
@@ -399,7 +399,7 @@ struct NativeFun : Named {
     }
 
     bool IsGLFrame() {
-        return name == "gl_frame";
+        return name == "gl.frame";
     }
 
     bool IsAssert() {
@@ -439,9 +439,9 @@ struct NativeRegistry {
     }
 
     #define REGISTER(N) \
-    void operator()(const char *name, const char *ids, const char *typeids, \
+    void operator()(const char *nsname, const char *ids, const char *typeids, \
                     const char *rets, const char *help, builtinf##N f) { \
-        Reg(new NativeFun(cur_ns, name, BuiltinPtr(f), ids, typeids, rets, help)); \
+        Reg(new NativeFun(cur_ns, nsname, BuiltinPtr(f), ids, typeids, rets, help)); \
     }
     REGISTER(V)
     REGISTER(0)

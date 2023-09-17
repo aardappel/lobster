@@ -2162,7 +2162,7 @@
 
 - should lobster transition to a callback model per frame? that's how mobile devices like to interact with your program,
   and SDL does some pretty nasty stuff to emulate the pc way of doing things on there.. can we bypass that?
-  Hmm that doesn't require a new programming model.. we can just have gl_frame() suspend the VM so we can return from
+  Hmm that doesn't require a new programming model.. we can just have gl.frame() suspend the VM so we can return from
   our frame callback
 
 - optimisations:
