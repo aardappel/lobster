@@ -607,12 +607,16 @@ struct SymbolTable {
         for (auto su  : specudts)         delete su;
     }
     
+    bool MaybeNameSpace(string_view name) {
+        return !current_namespace.empty() && name.find(".") == name.npos;
+    }
+
     string NameSpaced(string_view name, string_view ns) {
         return cat(ns, ".", name);
     }
 
     string NameSpaced(string_view name) {
-        assert(!current_namespace.empty());
+        assert(MaybeNameSpace(name));
         return NameSpaced(name, current_namespace);
     }
 
@@ -623,14 +627,14 @@ struct SymbolTable {
         return string_view(buf, s.size());
     }
 
-    string_view MaybeNameSpace(string_view name, bool other_conditions) {
-        return other_conditions && !current_namespace.empty() && scopelevels.size() == 1
+    string_view MaybeMakeNameSpace(string_view name, bool other_conditions) {
+        return other_conditions && scopelevels.size() == 1 && MaybeNameSpace(name)
             ? StoreName(NameSpaced(name))
             : name;
     }
 
     Ident *Lookup(string_view name) {
-        if (!current_namespace.empty()) {
+        if (MaybeNameSpace(name)) {
             auto it = idents.find(NameSpaced(name));
             if (it != idents.end()) return it->second->Read();
         }
@@ -814,7 +818,7 @@ struct SymbolTable {
             return eit->second;
         }
         if (!decl) {
-            if (!current_namespace.empty()) {
+            if (MaybeNameSpace(name)) {
                 eit = enums.find(NameSpaced(name));
                 if (eit != enums.end()) return eit->second;
             }
@@ -828,7 +832,7 @@ struct SymbolTable {
 
     EnumVal *EnumValLookup(string_view name, bool decl) {
         if (!decl) {
-            if (!current_namespace.empty()) {
+            if (MaybeNameSpace(name)) {
                 auto evit = enumvals.find(NameSpaced(name));
                 if (evit != enumvals.end()) return evit->second;
             }
@@ -866,7 +870,7 @@ struct SymbolTable {
     }
 
     GUDT *LookupStruct(string_view name) {
-        if (!current_namespace.empty()) {
+        if (MaybeNameSpace(name)) {
             auto uit = gudts.find(NameSpaced(name));
             if (uit != gudts.end()) return uit->second;
         }
@@ -903,7 +907,7 @@ struct SymbolTable {
     }
 
     UDT *LookupSpecialization(string_view name) {
-        if (!current_namespace.empty()) {
+        if (MaybeNameSpace(name)) {
             auto uit = udts.find(NameSpaced(name));
             if (uit != udts.end()) return uit->second;
         }
@@ -1005,7 +1009,7 @@ struct SymbolTable {
     }
 
     Function *FindFunction(string_view name) {
-        if (!current_namespace.empty()) {
+        if (MaybeNameSpace(name)) {
             auto &v = functions[NameSpaced(name)];
             if (!v.empty()) return v.back();
         }

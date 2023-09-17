@@ -243,10 +243,10 @@ bool LoadByteCode(string &bytecode) {
     return ok;
 }
 
-void RegisterBuiltin(NativeRegistry &nfr, const char *name,
+void RegisterBuiltin(NativeRegistry &nfr, const char *ns, const char *name,
                      void (* regfun)(NativeRegistry &)) {
     LOG_DEBUG("subsystem: ", name);
-    nfr.NativeSubSystemStart(name);
+    nfr.NativeSubSystemStart(ns, name);
     regfun(nfr);
 }
 
@@ -481,11 +481,11 @@ nfr("compile_run_file", "filename,args", "SS]", "SS?",
 }
 
 void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
-    extern void AddBuiltins(NativeRegistry &nfr); RegisterBuiltin(nfr, "builtin",   AddBuiltins);
-    extern void AddCompiler(NativeRegistry &nfr); RegisterBuiltin(nfr, "compiler",  AddCompiler);
-    extern void AddFile(NativeRegistry &nfr);     RegisterBuiltin(nfr, "file",      AddFile);
-    extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "parsedata", AddReader);
-    extern void AddMatrix(NativeRegistry &nfr);   RegisterBuiltin(nfr, "matrix",    AddMatrix);
+    extern void AddBuiltins(NativeRegistry &nfr); RegisterBuiltin(nfr, "", "builtin",   AddBuiltins);
+    extern void AddCompiler(NativeRegistry &nfr); RegisterBuiltin(nfr, "", "compiler",  AddCompiler);
+    extern void AddFile(NativeRegistry &nfr);     RegisterBuiltin(nfr, "", "file",      AddFile);
+    extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "", "parsedata", AddReader);
+    extern void AddMatrix(NativeRegistry &nfr);   RegisterBuiltin(nfr, "", "matrix",    AddMatrix);
 }
 
 #if !LOBSTER_ENGINE

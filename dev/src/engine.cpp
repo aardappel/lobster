@@ -55,18 +55,18 @@ extern void AddIMGUI(NativeRegistry &nfr);
 namespace lobster {
 
 FileLoader EnginePreInit(NativeRegistry &nfr) {
-    RegisterBuiltin(nfr, "graphics",  AddGraphics);
-    RegisterBuiltin(nfr, "font",      AddFont);
-    RegisterBuiltin(nfr, "sound",     AddSound);
-    RegisterBuiltin(nfr, "physics",   AddPhysics);
-    RegisterBuiltin(nfr, "noise",     AddNoise);
-    RegisterBuiltin(nfr, "meshgen",   AddMeshGen);
-    RegisterBuiltin(nfr, "cubegen",   AddCubeGen);
-    RegisterBuiltin(nfr, "vr",        AddVR);
-    RegisterBuiltin(nfr, "steam",     AddSteam);
-    RegisterBuiltin(nfr, "imgui",     AddIMGUI);
+    RegisterBuiltin(nfr, "", "graphics",  AddGraphics);
+    RegisterBuiltin(nfr, "", "font", AddFont);
+    RegisterBuiltin(nfr, "", "sound", AddSound);
+    RegisterBuiltin(nfr, "", "physics", AddPhysics);
+    RegisterBuiltin(nfr, "", "noise", AddNoise);
+    RegisterBuiltin(nfr, "", "meshgen", AddMeshGen);
+    RegisterBuiltin(nfr, "", "cubegen", AddCubeGen);
+    RegisterBuiltin(nfr, "", "vr", AddVR);
+    RegisterBuiltin(nfr, "", "steam", AddSteam);
+    RegisterBuiltin(nfr, "", "imgui", AddIMGUI);
     #ifdef HAVE_PLUGINS
-        RegisterBuiltin(nfr, "plugin", AddPlugins);
+        RegisterBuiltin(nfr, "", "plugin", AddPlugins);
     #endif
     nfr.DoneRegistering();
     return SDLLoadFile;

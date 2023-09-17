@@ -2980,9 +2980,9 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     STACK_PROFILE;
     // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
     tc.TypeCheckList(this, LT_ANY);
-    auto nf = tc.parser.natreg.FindNative(name);
-    auto fld = tc.st.FieldUse(name);
     tc.st.current_namespace = ns;
+    auto nf = tc.parser.FindNative(name);
+    auto fld = tc.st.FieldUse(name);
     TypeRef type;
     UDT *udt = nullptr;
     if (children.size()) {

@@ -55,7 +55,16 @@ struct Parser {
         lex.Warn(cat(args...), what ? &what->line : nullptr);
     }
 
+    NativeFun *FindNative(string_view name) {
+        if (st.MaybeNameSpace(name)) {
+            auto nf = natreg.FindNative(st.NameSpaced(name));
+            if (nf) return nf;
+        }
+        return natreg.FindNative(name);
+    }
+
     void Parse() {
+        for (auto s : natreg.namespaces) lex.namespaces.insert(s);
         auto sf = st.FunctionScopeStart();
         st.toplevel = sf;
         auto &f = st.CreateFunction("__top_level_expression");
@@ -233,14 +242,14 @@ struct Parser {
                 lex.Next();
                 Line line = lex;
                 int64_t cur = incremental ? 0 : 1;
-                auto enumname = st.MaybeNameSpace(ExpectId(), true);
+                auto enumname = st.MaybeMakeNameSpace(ExpectId(), true);
                 auto def = st.EnumLookup(enumname, true);
                 def->isprivate = isprivate;
                 def->flags = !incremental;
                 Expect(T_COLON);
                 Expect(T_INDENT);
                 for (;;) {
-                    auto evname = st.MaybeNameSpace(ExpectId(), true);
+                    auto evname = st.MaybeMakeNameSpace(ExpectId(), true);
                     if (IsNext(T_ASSIGN)) {
                         auto e = ParseExp();
                         Value val = NilVal();
@@ -481,7 +490,7 @@ struct Parser {
 
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list, bool is_abstract) {
         Line line = lex;
-        auto sname = st.MaybeNameSpace(ExpectId(), true);
+        auto sname = st.MaybeMakeNameSpace(ExpectId(), true);
         if (is_struct && is_abstract) Error("structs cannot be abstract");
         if (IsNext(T_ASSIGN)) {
             // A specialization of an existing struct
@@ -665,7 +674,7 @@ struct Parser {
         } else {
             // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
             // current namespace (which is same as !self).
-            idname = st.MaybeNameSpace(ExpectId(), !self);
+            idname = st.MaybeMakeNameSpace(ExpectId(), !self);
         }
         return ParseFunction(&idname, is_constructor, isprivate, true, true, self);
     }
