@@ -481,11 +481,19 @@ nfr("compile_run_file", "filename,args", "SS]", "SS?",
 }
 
 void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
-    extern void AddBuiltins(NativeRegistry &nfr); RegisterBuiltin(nfr, "", "builtin",   AddBuiltins);
-    extern void AddCompiler(NativeRegistry &nfr); RegisterBuiltin(nfr, "", "compiler",  AddCompiler);
-    extern void AddFile(NativeRegistry &nfr);     RegisterBuiltin(nfr, "", "file",      AddFile);
-    extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "", "parsedata", AddReader);
-    extern void AddMatrix(NativeRegistry &nfr);   RegisterBuiltin(nfr, "", "matrix",    AddMatrix);
+    extern void AddBuiltins(NativeRegistry &nfr);
+    extern void AddCompiler(NativeRegistry &nfr);
+    extern void AddFile(NativeRegistry &nfr);
+    extern void AddFlatBuffers(NativeRegistry &nfr);
+    extern void AddReader(NativeRegistry &nfr);
+    extern void AddMatrix(NativeRegistry &nfr);
+
+    RegisterBuiltin(nfr, "", "builtin", AddBuiltins);
+    RegisterBuiltin(nfr, "", "compiler", AddCompiler);
+    RegisterBuiltin(nfr, "", "file", AddFile);
+    RegisterBuiltin(nfr, "flatbuffers", "flatbuffers", AddFlatBuffers);
+    RegisterBuiltin(nfr, "", "parsedata", AddReader);
+    RegisterBuiltin(nfr, "matrix", "matrix", AddMatrix);
 }
 
 #if !LOBSTER_ENGINE

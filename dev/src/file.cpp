@@ -347,29 +347,35 @@ READOP(read_uint8_le_back, uint8_t, true, read_val_desc2, "I")
 READOP(read_float64_le_back, double, true, read_val_desc2, "F")
 READOP(read_float32_le_back, float, true, read_val_desc2, "F")
 
+
+}  // AddFile
+
+
+void AddFlatBuffers(NativeRegistry &nfr) {
+
 auto read_field_desc1 =
     "reads a flatbuffers field from a string at table location tablei, field vtable offset vo,"
     " and default value def. The value must be within"
     " bounds of the string. Returns the value (or default if the field was not present)";
-auto read_field_desc2 = "(see flatbuffers_field_int64)";
+auto read_field_desc2 = "(see flatbuffers.field_int64)";
 #define READFOP(N, T, D, S) \
     nfr(#N, "string,tablei,vo,def", "SII" S, S, D, \
         [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx, Value &def) { \
             auto val = ReadField<T, S[0] == 'F', false, false>(vm, str, idx, vidx, def); \
             return Value(val); \
         });
-READFOP(flatbuffers_field_int64, int64_t, read_field_desc1, "I")
-READFOP(flatbuffers_field_int32, int32_t, read_field_desc2, "I")
-READFOP(flatbuffers_field_int16, int16_t, read_field_desc2, "I")
-READFOP(flatbuffers_field_int8, int8_t, read_field_desc2, "I")
-READFOP(flatbuffers_field_uint64, uint64_t, read_field_desc1, "I")
-READFOP(flatbuffers_field_uint32, uint32_t, read_field_desc2, "I")
-READFOP(flatbuffers_field_uint16, uint16_t, read_field_desc2, "I")
-READFOP(flatbuffers_field_uint8, uint8_t, read_field_desc2, "I")
-READFOP(flatbuffers_field_float64, double, read_field_desc2, "F")
-READFOP(flatbuffers_field_float32, float, read_field_desc2, "F")
+READFOP(field_int64, int64_t, read_field_desc1, "I")
+READFOP(field_int32, int32_t, read_field_desc2, "I")
+READFOP(field_int16, int16_t, read_field_desc2, "I")
+READFOP(field_int8, int8_t, read_field_desc2, "I")
+READFOP(field_uint64, uint64_t, read_field_desc1, "I")
+READFOP(field_uint32, uint32_t, read_field_desc2, "I")
+READFOP(field_uint16, uint16_t, read_field_desc2, "I")
+READFOP(field_uint8, uint8_t, read_field_desc2, "I")
+READFOP(field_float64, double, read_field_desc2, "F")
+READFOP(field_float32, float, read_field_desc2, "F")
 
-nfr("flatbuffers_field_string", "string,tablei,vo", "SII", "S",
+nfr("field_string", "string,tablei,vo", "SII", "S",
     "reads a flatbuffer string field, returns \"\" if not present",
     [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
@@ -378,7 +384,7 @@ nfr("flatbuffers_field_string", "string,tablei,vo", "SII", "S",
         return ret;
     });
 
-nfr("flatbuffers_field_vector_len", "string,tablei,vo", "SII", "I",
+nfr("field_vector_len", "string,tablei,vo", "SII", "I",
     "reads a flatbuffer vector field length, or 0 if not present",
     [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
@@ -387,7 +393,7 @@ nfr("flatbuffers_field_vector_len", "string,tablei,vo", "SII", "I",
         return ret;
     });
 
-nfr("flatbuffers_field_vector", "string,tablei,vo", "SII", "I",
+nfr("field_vector", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer vector field element start, or 0 if not present",
     [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
@@ -396,7 +402,7 @@ nfr("flatbuffers_field_vector", "string,tablei,vo", "SII", "I",
         return ret;
     });
 
-nfr("flatbuffers_field_table", "string,tablei,vo", "SII", "I",
+nfr("field_table", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer table field start, or 0 if not present",
     [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
         auto ret = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
@@ -404,7 +410,7 @@ nfr("flatbuffers_field_table", "string,tablei,vo", "SII", "I",
         return ret;
     });
 
-nfr("flatbuffers_field_struct", "string,tablei,vo", "SII", "I",
+nfr("field_struct", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer struct field start, or 0 if not present",
     [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
         auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(vm, str, idx, vidx,
@@ -412,20 +418,20 @@ nfr("flatbuffers_field_struct", "string,tablei,vo", "SII", "I",
         return ret;
     });
 
-nfr("flatbuffers_field_present", "string,tablei,vo", "SII", "B",
+nfr("field_present", "string,tablei,vo", "SII", "B",
     "returns if a flatbuffer field is present (unequal to default)",
     [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
         return FieldPresent(vm, str, idx, vidx);
     });
 
-nfr("flatbuffers_indirect", "string,index", "SI", "I",
+nfr("indirect", "string,index", "SI", "I",
     "returns a flatbuffer offset at index relative to itself",
     [](StackPtr &, VM &vm, Value &str, Value &idx) {
         auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
         return Value(off + idx.ival());
     });
 
-nfr("flatbuffers_string", "string,index", "SI", "S",
+nfr("string", "string,index", "SI", "S",
     "returns a flatbuffer string whose offset is at given index",
     [](StackPtr &, VM &vm, Value &str, Value &idx) {
         auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
@@ -433,7 +439,7 @@ nfr("flatbuffers_string", "string,index", "SI", "S",
         return Value(ret);
     });
 
-nfr("flatbuffers_binary_to_json", "schemas,binary,includedirs", "SSS]", "SS?",
+nfr("binary_to_json", "schemas,binary,includedirs", "SSS]", "SS?",
     "returns a JSON string generated from the given binary and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error",
@@ -448,7 +454,7 @@ nfr("flatbuffers_binary_to_json", "schemas,binary,includedirs", "SSS]", "SS?",
         return err;
     });
 
-nfr("flatbuffers_json_to_binary", "schema,json,includedirs", "SSS]", "SS?",
+nfr("json_to_binary", "schema,json,includedirs", "SSS]", "SS?",
     "returns a binary flatbuffer generated from the given json and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error",
@@ -468,6 +474,6 @@ nfr("flatbuffers_json_to_binary", "schema,json,includedirs", "SSS]", "SS?",
         return err;
     });
 
-}  // AddFile
+}  // AddFlatBuffers
 
 }
