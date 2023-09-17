@@ -329,7 +329,9 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
             } else {
                 if (!accum)
                     return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL/COMPUTE block: " + line;
-                *accum += cat(line, "  // ", line_number, "\n");
+                *accum += line;
+                if (line.back() != '\\') *accum += cat("  // ", line_number);
+                *accum += "\n";
             }
         }
         if (line.size() == start.size()) break;
