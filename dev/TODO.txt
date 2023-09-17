@@ -780,7 +780,7 @@
   - Also using nested classes might not work well with generics since we resolved in non-nested
     fashion field types at the beginning of the type checker.
 
-- kriskowal: maybe replace gl_button string with an enum.
+- kriskowal: maybe replace gl.button string with an enum.
 
 - docs: explain about unbound variables, and what causes:
   type variable does not have field: size
@@ -815,7 +815,7 @@
 
 - kriskowal: a non-allocating version of copy() with a second destination arg.
 
-- kriskowal: might be fun to have gl_cube and other simple 3d primitives, for quick prototyping?
+- kriskowal: might be fun to have gl.cube and other simple 3d primitives, for quick prototyping?
 
 - this is interesting for the variety in graphics it allows:
   http://wiki.winamp.com/wiki/MilkDrop_Preset_Authoring
@@ -955,7 +955,7 @@
         body()
         state -= dx
   Is going to produce hard to understand bugs, yet also natural to write code this way.
-  Built-ins like gl_translate also suffer from this issue.
+  Built-ins like gl.translate also suffer from this issue.
   https://github.com/aardappel/lobster/issues/93
   Solutions:
   - a "defer" statement. Simple, but requires the programmer to remember to use it, does not
@@ -1753,7 +1753,7 @@
   - inlining
     - named functions
     - how does removing single-use functions relate to function values stored in variables
-      (and in variables of function types), and as arguments to builtins like hash/gl_translate.
+      (and in variables of function types), and as arguments to builtins like hash/gl.translate.
   - remove static function arguments
     - or maybe better to generically remove vars that aren't used.
   - C++ backend: detect when not needing to return to trampoline?
@@ -1943,7 +1943,7 @@
   - also should be possible without () (see capped_storage() in cityclicker.lobster)
   - also should be possible to leave out variable name before ::
 
-- There's a possibility gl_set_mesh_texture will hold on to texture ids that get deleted.
+- There's a possibility gl.set_mesh_texture will hold on to texture ids that get deleted.
   Would be nice to avoid this, but don't want Mesh to have to hold on to an LResource, or
   have to implement a second level of refcounting.
 
@@ -2114,7 +2114,7 @@
   - trace output also to a file
 
 - BitmapFont::height is often 1 or 2 bigger than the original fontheight, which creates problems if code use the
-  fontheight for rendering instead of gl_text_size()
+  fontheight for rendering instead of gl.text_size()
   either improve the math such that they are guaranteed equal, or document that fontheight should never be used for
   rendering bounding boxes etc
 
@@ -2128,7 +2128,7 @@
     - cannot use matrix functionality for own matmuls etc -> need loadmatrix etc
     - localmousepos and hit are nonsensical when perspective is on
 
-- should all gl calls check minimized themselves for programmers that don't check gl_visible() (gl rendering when
+- should all gl calls check minimized themselves for programmers that don't check gl.visible() (gl rendering when
   minimized crashes on IOS)
 
 - for mgtest or other games with long load time, have a way to not have an uninitialized window while loading
@@ -2192,7 +2192,7 @@
   + error handling
   + can make features that rely on graphics, like a graphical console/print, graphical debugging, could kill the DOS
     console
-  + if graphics are mandatory, frame based state makes more sense.. its a bit odd if such a thing is a gl_ feature, but
+  + if graphics are mandatory, frame based state makes more sense.. its a bit odd if such a thing is a gl. feature, but
     hey why not
   - no more console-only programs possible.. reduces its usefulness as a general purpose programming language
   - don't want to have it initializing graphics before compilation... probably can just do it before VM init
@@ -2562,7 +2562,7 @@ CURRENT SOLUTION FROM TRADEOFS:
     - nodes can be inline in their parents, total much less allocations.
 
 - namespaces:
-  Syntax-wise we've been using _ for hardcoded namespaces so far for both builtins (gl_text)
+  Syntax-wise we've been using _ for hardcoded namespaces so far for both builtins (gl.text)
   and libraries (gui_text). I kinda prefer that syntax to . or ::, it makes the namespace
   obvious part of the name and feels more lightweight.
   Though . will be more familiar to people, and makes leaving it out more natural.
@@ -2581,7 +2581,7 @@ CURRENT SOLUTION FROM TRADEOFS:
   current namespace.
   Hmm.. defaulting to namespaced as declared is probably better, "as" could be optional renaming.
 
-- you can hit multiple overlapping hit boxes with gl_hit(). problem is, you render back to front, but want to hit test front to back...
+- you can hit multiple overlapping hit boxes with gl.hit(). problem is, you render back to front, but want to hit test front to back...
     - if you simply clear that a hit happened this frame when its tested, you get that order wrong
     - if you added z-layers to rendering such that you could do inverse order
       - if you did it immediate mode, blending wouldn't work correctly, so it would have to be understood that if you did did multiple layers for hit testing, you can't hit on an alpha element
@@ -2595,7 +2595,7 @@ CURRENT SOLUTION FROM TRADEOFS:
       problem is, this doesn't work on touch screens, where you lose the first touch down event this way
       -> unless you delayed all touch down events by one frame, to give one hover frame to register (this is the current solution)
     regardless of the solution above, you also need an additional way to cancel hits that happen inside a toolbar or statusbar that may not have hittests everywhere
-    -> that can already be done by a gl_hit that doesn't react to it's return value
+    -> that can already be done by a gl.hit that doesn't react to it's return value
 
 - for things like GUI callbacks, lobsters non-escaping free var function values kinda suck. options:
   - just call em in place, can only really work in a non-immediate mode gui since otherwise the callback can change the gui layout

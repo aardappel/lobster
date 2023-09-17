@@ -310,7 +310,7 @@ nfr("initialize_particles", "radius", "F", "",
     });
 
 nfr("step", "seconds,viter,piter", "FII", "",
-    "simulates the physical world for the given period (try: gl_delta_time()). You can specify"
+    "simulates the physical world for the given period (try: gl.delta_time()). You can specify"
     " the amount of velocity/position iterations per step, more means more accurate but also"
     " more expensive computationally (try 8 and 3).",
     [](StackPtr &, VM &, Value &delta, Value &viter, Value &piter) {

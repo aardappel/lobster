@@ -204,7 +204,7 @@ string OpenGLInit(int samples, bool srgb) {
     LOG_INFO((const char *)glGetString(GL_VENDOR), " - ",
              (const char *)glGetString(GL_RENDERER), " - ",
              (const char *)glGetString(GL_VERSION));
-    // If not called, flashes red framebuffer on OS X before first gl_clear() is called.
+    // If not called, flashes red framebuffer on OS X before first gl.clear() is called.
     ClearFrameBuffer(float3_0);
     #ifdef PLATFORM_WINNIX
         #define GLEXT(type, name, needed) { \

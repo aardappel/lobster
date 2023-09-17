@@ -294,7 +294,7 @@ nfr("init", "", "", "B",
 
 nfr("start_eye", "isright,znear,zfar", "IFF", "",
     "starts rendering for an eye. call for each eye, followed by drawing the world as normal."
-    " replaces gl_perspective",
+    " replaces gl.perspective",
     [](StackPtr &, VM &, Value &isright, Value &znear, Value &zfar) {
         VREye(isright.True(), znear.fltval(), zfar.fltval());
         return NilVal();
@@ -315,7 +315,7 @@ nfr("finish", "", "", "",
     });
 
 nfr("set_eye_texture", "unit,isright", "II", "",
-    "sets the texture for an eye (like gl_set_primitive_texture). call after vr.finish. can be"
+    "sets the texture for an eye (like gl.set_primitive_texture). call after vr.finish. can be"
     " used to render the non-VR display",
     [](StackPtr &, VM &vm, Value &unit, Value &isright) {
         extern int GetSampler(VM &vm, Value &i);
@@ -354,7 +354,7 @@ nfr("create_motion_controller_mesh", "n", "I", "R:mesh?",
         return mcd ? Value(vm.NewResource(&mesh_type, VRCreateMesh(mcd->device))) : NilVal();
     });
 
-// TODO: make it return an "up" value much like gl_button, since this doesn't represent
+// TODO: make it return an "up" value much like gl.button, since this doesn't represent
 // down+up in the same frame.
 nfr("motion_controller_button", "n,button", "IS", "I",
     "returns the button state for motion controller n."

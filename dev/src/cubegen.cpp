@@ -1344,7 +1344,7 @@ nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
 
 
 nfr("load_image", "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
-    "loads an image file (same formats as gl_load_texture) and turns it into blocks."
+    "loads an image file (same formats as gl.load_texture) and turns it into blocks."
     " returns blocks or [] if file failed to load",
     [](StackPtr &sp, VM &vm) {
         auto numtiles = PopVec<int2>(sp);

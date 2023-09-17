@@ -1366,7 +1366,7 @@ nfr("vm_compiled_mode", "", "", "B",
     });
 
 nfr("seconds_elapsed", "", "", "F",
-    "seconds since program start as a float, unlike gl_time() it is calculated every time it is"
+    "seconds since program start as a float, unlike gl.time() it is calculated every time it is"
     " called",
     [](StackPtr &, VM &vm) {
         return Value(vm.Time());

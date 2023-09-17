@@ -19,7 +19,7 @@
 #include "lobster/glincludes.h"
 #include "lobster/sdlinterface.h"
 
-// We use a vector here because gl_get_shader may cause there to be references to
+// We use a vector here because gl.get_shader may cause there to be references to
 // old versions of a shader with a given name that has since been reloaded.
 map<string, vector<unique_ptr<Shader>>, less<>> shadermap;
 
@@ -148,7 +148,7 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
             v.emplace_back(std::move(sh));
             shader.clear();
             // Typically, all versions below the latest will not be in used and can be
-            // deleted here, unless still referenced by gl_get_shader.
+            // deleted here, unless still referenced by gl.get_shader.
             for (size_t i = 0; i < v.size() - 1; ) {
                 if (!v[i]->refc) {
                     v.erase(v.begin() + i);

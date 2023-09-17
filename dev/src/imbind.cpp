@@ -518,7 +518,7 @@ void VarsToGUI(VM &vm) {
 
 void EngineStatsGUI() {
     auto &ft = SDLGetFrameTimeLog();
-    ImGui::PlotLines("gl_deltatime", ft.data(), (int)ft.size());
+    ImGui::PlotLines("gl.deltatime", ft.data(), (int)ft.size());
 }
 
 // See also VM::DumpStackTrace
@@ -1106,7 +1106,7 @@ nfr("image_mouseclick", "tex,size", "R:textureF}:2", "F}:2I",
         if (ImGui::IsMouseHoveringRect(cursor, cursor + size)) {
             auto pos = (ImGui::GetMousePos() - cursor) / size;
             PushVec<float, 2>(sp, float2(pos.x, pos.y));
-            // Create an all-in-one event value similar to gl_button().
+            // Create an all-in-one event value similar to gl.button().
             int event = -1;
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) event = 1;
             else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) event = 0;

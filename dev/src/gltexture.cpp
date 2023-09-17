@@ -299,6 +299,10 @@ int CreateFrameBuffer(const Texture &tex, int tf) {
             tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
         #endif
         GL_TEXTURE_2D;
+    RenderDocStopFrameCapture();
+    extern bool SDLFrame();
+    SDLFrame();
+    exit(0);
     GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, tex.id, 0));
     return fb;
 }
