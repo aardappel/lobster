@@ -456,7 +456,7 @@ struct Lex : LoadedFile {
                     }
                     // Doing this in the Lex is not the cleanest, but it avoids us having to handle
                     // namespaces everywhere the parser deals with idents.
-                    if (namespaces.find(sattr) != namespaces.end() && *p == '.') {
+                    while (namespaces.find(sattr) != namespaces.end() && *p == '.') {
                         // FIXME: we have individual uses of namespaces such as "import gl" or
                         // simply a redeclaration of an existing namespace, etc.
                         // However without this error if someone puts a space after "." they'll get an
