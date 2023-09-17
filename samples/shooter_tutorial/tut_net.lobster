@@ -20,19 +20,19 @@ let is_host =
         set_exit_code(1)
         return
 
-let steamerr = steam_init(0, true, true)
+let steamerr = steam.init(0, true, true)
 if steamerr == 0:
     print "Steam init failed"
 elif steamerr < 0:
     // Not started from Steam, exit this instance, Steam will launch again.
-    // This only happens if there wasn't a steam_appid.txt file.
+    // This only happens if there wasn't a steam.appid.txt file.
     print "Relaunching from Steam..."
     return
 else:
-    print "Welcome Steam user {steam_username()}"
+    print "Welcome Steam user {steam.username()}"
 
-let ident = steam_net_identity()
-check(steam_p2p_listen(), "Unable to open listen socket")
+let ident = steam.net_identity()
+check(steam.p2p_listen(), "Unable to open listen socket")
 
 var host_ident = ""
 if is_host:
@@ -41,7 +41,7 @@ if is_host:
 else:
     host_ident = args[1]
     check(args.length >= 2, "Peer needs remote identity argument")
-    check(steam_p2p_connect(host_ident), "Unable to open connection to host")
+    check(steam.p2p_connect(host_ident), "Unable to open connection to host")
     print "Peer: Your identity is = {ident}"
 
 abstract class message
@@ -139,12 +139,12 @@ def renderpointytriangle(pos, dir):
 
 while gl.frame() and gl.button("escape") != 1:
     // Update networking
-    steam_update()
-    let peers = steam_p2p_get_connections()
+    steam.update()
+    let peers = steam.p2p_get_connections()
     def has_peer(id):
         return id == ident or (find(peers): _ == id) != -1
 
-    let incoming_data = steam_p2p_receive_messages()
+    let incoming_data = steam.p2p_receive_messages()
     // Deserialize the incoming messages
     for(incoming_data) bin:
         let lbval, lberr = lobster_binary_to_value(typeof [message], bin)
@@ -162,7 +162,7 @@ while gl.frame() and gl.button("escape") != 1:
                     else:
                         // Only connect peer <-> peer, host is already connected to each peer.
                         if not is_host and c != host_ident:
-                            check(steam_p2p_connect(c), "Unable to connect to peer \'{c}\'")
+                            check(steam.p2p_connect(c), "Unable to connect to peer \'{c}\'")
                         player { c }
                 waiting_for_players = true
             case m_end_game:
@@ -301,5 +301,5 @@ while gl.frame() and gl.button("escape") != 1:
     gl.text("health: {ceiling(playerhealth)} - score: {localplayer.score}")
 
     // Send the outgoing messages
-    steam_p2p_broadcast_message(lobster_value_to_binary(outgoing))
+    steam.p2p_broadcast_message(lobster_value_to_binary(outgoing))
     outgoing = []

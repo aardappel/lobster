@@ -410,7 +410,7 @@ LString* GetIdentityString(VM &vm, const SteamNetworkingIdentity &identity) {
 
 void AddSteam(NativeRegistry &nfr) {
 
-nfr("steam_init", "appid,allowscreenshots,initrelay", "IBB", "I",
+nfr("init", "appid,allowscreenshots,initrelay", "IBB", "I",
     "initializes SteamWorks. returns 1 if succesful, 0 on failure. Specify a non-0 appid if you"
     " want to restart from steam if this wasn't started from steam (the return value in this"
     " case will be -1 to indicate you should terminate this instance). If you don't specify an"
@@ -422,22 +422,22 @@ nfr("steam_init", "appid,allowscreenshots,initrelay", "IBB", "I",
         return Value(SteamInit(appid.ival(), ss.True(), relay.True()));
     });
 
-nfr("steam_shutdown", "", "", "",
+nfr("shutdown", "", "", "",
     "", [](StackPtr &, VM &) { SteamShutDown(); });
 
-nfr("steam_overlay", "", "", "B",
+nfr("overlay", "", "", "B",
     "returns true if the steam overlay is currently on (you may want to auto-pause if so)",
     [](StackPtr &, VM &) {
         return Value(OverlayActive());
     });
 
-nfr("steam_username", "", "", "S",
+nfr("username", "", "", "S",
     "returns the name of the steam user, or empty string if not available.",
     [](StackPtr &, VM &vm) {
         return Value(vm.NewString(UserName()));
     });
 
-nfr("steam_unlock_achievement", "achievementname", "S", "B",
+nfr("unlock_achievement", "achievementname", "S", "B",
     "Unlocks an achievement and shows the achievement overlay if not already achieved before."
     " Will also Q-up saving achievement to Steam."
     " Returns true if succesful.",
@@ -446,7 +446,7 @@ nfr("steam_unlock_achievement", "achievementname", "S", "B",
         return Value(ok);
     });
 
-nfr("steam_write_file", "file,contents", "SS", "B",
+nfr("write_file", "file,contents", "SS", "B",
     "writes a file with the contents of a string to the steam cloud, or local storage if that"
     " fails, returns false if writing wasn't possible at all",
     [](StackPtr &, VM &, Value &file, Value &contents) {
@@ -459,7 +459,7 @@ nfr("steam_write_file", "file,contents", "SS", "B",
         return Value(ok);
     });
 
-nfr("steam_read_file", "file", "S", "S?",
+nfr("read_file", "file", "S", "S?",
     "returns the contents of a file as a string from the steam cloud if available, or otherwise"
     " from local storage, or nil if the file can't be found at all.",
     [](StackPtr &, VM &vm, Value &file) {
@@ -472,13 +472,13 @@ nfr("steam_read_file", "file", "S", "S?",
         return Value(s);
     });
 
-nfr("steam_update", "", "", "",
+nfr("update", "", "", "",
     "you must call this function in your game loop when using most steam APIs",
     [](StackPtr &, VM &) {
         SteamUpdate();
     });
 
-nfr("steam_net_identity", "", "", "S",
+nfr("net_identity", "", "", "S",
     "returns the steam identity for this"
     " user. This same ID will be used for connecting to peers, sending messages,"
     " etc.",
@@ -492,25 +492,25 @@ nfr("steam_net_identity", "", "", "S",
         #endif
     });
 
-nfr("steam_p2p_listen", "", "", "B", "open a listen socket to receive new connections",
+nfr("p2p_listen", "", "", "B", "open a listen socket to receive new connections",
     [](StackPtr &, VM &) {
         auto ok = SteamP2PListen();
         return Value(ok);
     });
 
-nfr("steam_p2p_close_listen", "", "", "B", "close the listen socket and stop accepting new connections",
+nfr("p2p_close_listen", "", "", "B", "close the listen socket and stop accepting new connections",
     [](StackPtr &, VM &) {
         auto ok = SteamCloseListen();
         return Value(ok);
     });
 
-nfr("steam_p2p_connect", "ident", "S", "B", "connect to a user with a given steam identity that has opened a listen socket",
+nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam identity that has opened a listen socket",
     [](StackPtr &, VM &, Value &ident) {
         auto ok = SteamP2PConnect(ident.sval()->strvnt());
         return Value(ok);
     });
 
-nfr("steam_p2p_get_connections", "", "", "S]", "get a list of the steam identites that are currently connected",
+nfr("p2p_get_connections", "", "", "S]", "get a list of the steam identites that are currently connected",
     [](StackPtr &, VM &vm) {
         auto *peers_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
 
@@ -526,19 +526,19 @@ nfr("steam_p2p_get_connections", "", "", "S]", "get a list of the steam identite
         return Value(peers_vec);
     });
 
-nfr("steam_p2p_send_message", "ident,data", "SS", "B", "send a reliable message to a given steam identity",
+nfr("p2p_send_message", "ident,data", "SS", "B", "send a reliable message to a given steam identity",
     [](StackPtr &, VM &, Value &ident, Value &data) {
         auto ok = SteamSendMessage(ident.sval()->strvnt(), data.sval()->strv());
         return Value(ok);
     });
 
-nfr("steam_p2p_broadcast_message", "data", "S", "B", "send a reliable message to all connected peers",
+nfr("p2p_broadcast_message", "data", "S", "B", "send a reliable message to all connected peers",
     [](StackPtr &, VM &, Value &data) {
         auto ok = SteamBroadcastMessage(data.sval()->strv());
         return Value(ok);
     });
 
-nfr("steam_p2p_receive_messages", "", "", "S]S]", "receive messages from all"
+nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
     " connected peers. The first return value is an array of messages, the second"
     " return value is an array of the steam identities that sent each message",
     [](StackPtr &sp, VM &vm) {

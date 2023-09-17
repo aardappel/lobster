@@ -174,9 +174,9 @@ These must be (including correct paths):
 -   Any files your code references that are not in the pakfile (e.g.
     `gl.load_texture(”mypath/myfile.png”)` ).
 
--   On Windows, you’ll need to include `bin\openvr.api.dll` and/or `bin\steam_api.dll`
+-   On Windows, you’ll need to include `bin\openvr.api.dll` and/or `bin\steam.api.dll`
     next to `lobster.exe` ONLY if you use functions starting with `vr.` or
-    `steam_` respectively.
+    `steam.` respectively.
 
 Where you place these files depends on the platform, on Windows / Linux it is
 next to the lobster executable, on OS X / iOS it is the application bundle under

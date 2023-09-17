@@ -63,7 +63,7 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "mg", "meshgen", AddMeshGen);
     RegisterBuiltin(nfr, "cg", "cubegen", AddCubeGen);
     RegisterBuiltin(nfr, "vr", "vr", AddVR);
-    RegisterBuiltin(nfr, "", "steam", AddSteam);
+    RegisterBuiltin(nfr, "steam", "steam", AddSteam);
     RegisterBuiltin(nfr, "", "imgui", AddIMGUI);
     #ifdef HAVE_PLUGINS
         RegisterBuiltin(nfr, "", "plugin", AddPlugins);
