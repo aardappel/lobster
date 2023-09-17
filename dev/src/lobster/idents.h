@@ -606,10 +606,14 @@ struct SymbolTable {
         for (auto tv  : typevars)         delete tv;
         for (auto su  : specudts)         delete su;
     }
+    
+    string NameSpaced(string_view name, string_view ns) {
+        return cat(ns, ".", name);
+    }
 
     string NameSpaced(string_view name) {
         assert(!current_namespace.empty());
-        return cat(current_namespace, "_", name);
+        return NameSpaced(name, current_namespace);
     }
 
     string_view StoreName(const string &s) {

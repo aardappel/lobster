@@ -77,6 +77,8 @@ struct Lex : LoadedFile {
 
     vector<pair<string, string>> &filenames;
 
+    set<string_view> namespaces;
+
     bool do_string_interpolation = true;
     int max_errors = 1;
     int num_errors = 0;
@@ -218,6 +220,9 @@ struct Lex : LoadedFile {
     static bool IsDigit(char c) { return c >= '0' && c <= '9'; }
     static bool IsXDigit(char c) { return IsDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); }
     static bool IsAlNum(char c) { return IsAlpha(c) || IsDigit(c); }
+
+    static bool IsIdentStart(char c) { return IsAlpha(c) || c == '_' || c < 0; }
+    static bool IsIdentCont(char c) { return IsAlNum(c) || c == '_' || c < 0; }
 
     TType NextToken() {
         line = tokline;
@@ -361,8 +366,9 @@ struct Lex : LoadedFile {
                 return StringConstant(c == '\'', false);
 
             default: {
-                if (IsAlpha(c) || c == '_' || c < 0) {
-                    while (IsAlNum(*p) || *p == '_' || *p < 0) p++;
+
+                if (IsIdentStart(c)) {
+                    while (IsIdentCont(*p)) p++;
                     sattr = string_view(tokenstart, p - tokenstart);
                     switch (sattr[0]) {
                         case 'a':
@@ -447,6 +453,20 @@ struct Lex : LoadedFile {
                         case 'w':
                             if (sattr == TName(T_WHILE)) return T_WHILE;
                             break;
+                    }
+                    // Doing this in the Lex is not the cleanest, but it avoids us having to handle
+                    // namespaces everywhere the parser deals with idents.
+                    if (namespaces.find(sattr) != namespaces.end() && *p == '.') {
+                        // FIXME: we have individual uses of namespaces such as "import gl" or
+                        // simply a redeclaration of an existing namespace, etc.
+                        // However without this error if someone puts a space after "." they'll get an
+                        // unknown identifier.
+                        //if (*p != '.') Error(cat("use of namespace ", Q(sattr), " must be directly followed by \".\""));
+                        p++;
+                        if (!IsIdentStart(*p)) Error("missing namespace member after \".\"");
+                        p++;
+                        while (IsIdentCont(*p)) p++;
+                        sattr = string_view(tokenstart, p - tokenstart);
                     }
                     return T_IDENT;
                 }

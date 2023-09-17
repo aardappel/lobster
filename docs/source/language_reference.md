@@ -1240,8 +1240,7 @@ once.
 You can prefix any top-level declaration by `private` to cause it not be available to
 users of the module.
 
-Lobster has a very simple namespacing mechanism that uses `_` for separating namespaces,
-effectively generating just a longer identifier:
+Lobster has a namespacing mechanism that uses `.` for separating namespaces:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 namespace foo
@@ -1253,14 +1252,13 @@ def baz(): return bar {}
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Names `bar` and `baz` can be used as-is inside this module, but must be referred
-to as `foo_bar` and `foo_baz` outside of this module. Non-top level items like `x` are not
+to as `foo.bar` and `foo.baz` outside of this module. Non-top level items like `x` are not
 affected.
 
 Most built-in functions come with a namespace, such as `gl` etc.
 
-Namespaces are indistinguishable from identifiers that already have a `_` baked into them,
-except from the fact that these have to be referred to by their full name everywhere, even
-inside the module that defines them.
+Since namespaces look the same as object dereferencing, it is recommended to use
+a name with a leading uppercase for namespaces whereever possible.
 
 
 Declaration order

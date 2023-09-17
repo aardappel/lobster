@@ -1034,9 +1034,8 @@ imported into another using the <code>import</code> keyword. You can
 compiled once.</p>
 <p>You can prefix any top-level declaration by <code>private</code> to
 cause it not be available to users of the module.</p>
-<p>Lobster has a very simple namespacing mechanism that uses
-<code>_</code> for separating namespaces, effectively generating just a
-longer identifier:</p>
+<p>Lobster has a namespacing mechanism that uses <code>.</code> for
+separating namespaces:</p>
 <pre><code>namespace foo
 
 class bar:
@@ -1044,15 +1043,14 @@ class bar:
 
 def baz(): return bar {}</code></pre>
 <p>Names <code>bar</code> and <code>baz</code> can be used as-is inside
-this module, but must be referred to as <code>foo_bar</code> and
-<code>foo_baz</code> outside of this module. Non-top level items like
+this module, but must be referred to as <code>foo.bar</code> and
+<code>foo.baz</code> outside of this module. Non-top level items like
 <code>x</code> are not affected.</p>
 <p>Most built-in functions come with a namespace, such as
 <code>gl</code> etc.</p>
-<p>Namespaces are indistinguishable from identifiers that already have a
-<code>_</code> baked into them, except from the fact that these have to
-be referred to by their full name everywhere, even inside the module
-that defines them.</p>
+<p>Since namespaces look the same as object dereferencing, it is
+recommended to use a name with a leading uppercase for namespaces
+whereever possible.</p>
 <h2 id="declaration-order">Declaration order</h2>
 <p>Lobster is a language that relies heavily on type inference and
 generic types, and generally not requiring you to specify types, the

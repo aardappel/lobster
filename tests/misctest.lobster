@@ -29,9 +29,9 @@ run_test("misc"):
     let constdef = 1
     // constdef++ // error!
 
-    assert test_namespace_f() == 1
-    assert (test_namespace_g {}).x == 1
-    assert (test_namespace_g {}).m() == 2
+    assert test_namespace.f() == 1
+    assert (test_namespace.g {}).x == 1
+    assert (test_namespace.g {}).m() == 2
 
     class testa:
         a:int

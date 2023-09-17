@@ -1,7 +1,3 @@
-- https://github.com/aardappel/lobster/issues/152
-
-- mutable structs
-
 - auto binding generated C++ headers from a Lobster decl
 
 - allow let inside if/guard as syntactic sugar

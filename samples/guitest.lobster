@@ -20,47 +20,47 @@ while gl_frame():
     gl_clear(color_grey)
     gl_color(color_white)
 
-    gui_setclickcolors(color_dark_green, color_green)
+    gui.setclickcolors(color_dark_green, color_green)
 
-    gui_start(gl_window_size(), 1, 1, true):
-        gui_hblock(1, 0):
-            //gui_fontscale(0.3):
-                //   gui_text(unicode_to_string(map(500): _))
+    gui.start(gl_window_size(), 1, 1, true):
+        gui.hblock(1, 0):
+            //gui.fontscale(0.3):
+                //   gui.text(unicode_to_string(map(500): _))
 
-            gui_text("A")
-            gui_fontscale(2):
-                gui_text("B")
-            gui_vblock(2, 0):
-                gui_text("1")
-                gui_hblock(1, 0.1):
-                    gui_text("2")
-                    gui_text("2")
-                    gui_text("2")
-                gui_divider(2)
-                gui_text("3")
-                gui_text("4")
-            gui_space(0.2)
-            gui_divider(4)
-            gui_space(0.2)
-            gui_text("C")
-            gui_button():
-                gui_border(int2_1 * 2):
-                    gui_fontscale(2):
-                        gui_text("clickme")
+            gui.text("A")
+            gui.fontscale(2):
+                gui.text("B")
+            gui.vblock(2, 0):
+                gui.text("1")
+                gui.hblock(1, 0.1):
+                    gui.text("2")
+                    gui.text("2")
+                    gui.text("2")
+                gui.divider(2)
+                gui.text("3")
+                gui.text("4")
+            gui.space(0.2)
+            gui.divider(4)
+            gui.space(0.2)
+            gui.text("C")
+            gui.button():
+                gui.border(int2_1 * 2):
+                    gui.fontscale(2):
+                        gui.text("clickme")
             fn:
                 clicked = not clicked
             fn:
                 focused = not focused
             if clicked:
-                gui_color(color_red):
-                    //gui_text(unicode_to_string([0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]))
-                    gui_text("ON")
-            gui_text(focused and "C" or "E")
-            gui_background(color_blue, false):
-                gui_margin(int2_1 * 4):
-                    gui_text("D")
+                gui.color(color_red):
+                    //gui.text(unicode_to_string([0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]))
+                    gui.text("ON")
+            gui.text(focused and "C" or "E")
+            gui.background(color_blue, false):
+                gui.margin(int2_1 * 4):
+                    gui.text("D")
                     if(clicked):
-                        gui_blend(2):
-                            gui_image(float2_1, ghosttex)
-            gui_text("E")
-            gui_text("E")
+                        gui.blend(2):
+                            gui.image(float2_1, ghosttex)
+            gui.text("E")
+            gui.text("E")

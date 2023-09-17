@@ -164,6 +164,7 @@ struct Parser {
                     Error("namespace must be used at file scope");
                 lex.Next();
                 st.current_namespace = lex.sattr;
+                lex.namespaces.insert(lex.sattr);
                 Expect(T_IDENT);
                 break;
             case T_PRIVATE:
