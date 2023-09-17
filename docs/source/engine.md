@@ -43,7 +43,7 @@ SHADER textured
     VERTEX
         INPUTS apos:4 atc:2
         UNIFORMS mvp
-        gl.Position = mvp * apos;
+        gl_Position = mvp * apos;
         itc = atc;
     PIXEL
         INPUTS itc:2
