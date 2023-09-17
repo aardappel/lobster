@@ -11,17 +11,17 @@ let dim = int3_1 * 128
 
 let camera = Camera { float(dim) / 2.0, 135.0, 0.0 }
 
-let w = cg_init(dim)
+let w = cg.init(dim)
 
 def modify():
     let pos = rnd_int3(dim)
     let size = rnd_int3(dim / 8)
     let col = rnd(2) * rnd(256)
-    cg_set(w, pos, size, col)
+    cg.set(w, pos, size, col)
 
 for 10000: modify()
 
-var random_cubes = cg_create_mesh(w)
+var random_cubes = cg.create_mesh(w)
 
 while gl.frame():
     if gl.button("escape") == 1: return
@@ -44,5 +44,5 @@ while gl.frame():
 
     if gl.button("space") == 1:
         for 1000: modify()
-        random_cubes = cg_create_mesh(w)
+        random_cubes = cg.create_mesh(w)
 
