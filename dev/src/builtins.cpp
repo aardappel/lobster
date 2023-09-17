@@ -72,7 +72,11 @@ nfr("print", "x", "Ss", "",
     [](StackPtr &, VM &vm, Value &a) {
         vm.s_reuse.clear();
         RefToString(vm, vm.s_reuse, a.refnil(), vm.programprintprefs);
-        LOG_PROGRAM(vm.s_reuse);
+        if (vm.evalret.second) {
+            LOG_ERROR(vm.s_reuse);
+        } else {
+            LOG_PROGRAM(vm.s_reuse);
+        }
         return NilVal();
     });
 
