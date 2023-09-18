@@ -420,6 +420,32 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
     return OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
 }
 
+void SDLSetFullscreen(int mode) {
+    if (mode == 1) {
+        // If you switch to fullscreen you get some random display mode that is not the
+        // native res? So we have to find the native res first.
+        const int display_in_use = 0;  // Only using first display
+        int display_mode_count = SDL_GetNumDisplayModes(display_in_use);
+        if (display_mode_count < 1) return;
+        SDL_DisplayMode bestdm;
+        int bestres = 0;
+        for (int i = 0; i < display_mode_count; ++i) {
+            SDL_DisplayMode dm;
+            if (SDL_GetDisplayMode(display_in_use, i, &dm) != 0) return;
+            int res = dm.w * dm.h;
+            if (res > bestres) {
+                bestres = res;
+                bestdm = dm;
+            }
+        }
+        // Set desired fullscreen res to highest res we found.
+        SDL_SetWindowDisplayMode(_sdl_window, &bestdm);
+    } else if (mode == 2) {
+        mode = SDL_WINDOW_FULLSCREEN_DESKTOP;
+    }
+    SDL_SetWindowFullscreen(_sdl_window, mode);
+}
+
 string SDLDebuggerWindow() {
     #ifdef PLATFORM_ES3
         return "Can\'t open debugger window on non-desktop platform";

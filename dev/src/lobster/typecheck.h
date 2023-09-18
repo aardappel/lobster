@@ -295,14 +295,14 @@ struct TypeChecker {
                 return cf & CF_EXACTTYPE ? sd == 0 : sd >= 0;
             }
             case V_STRUCT_R:
-            case V_STRUCT_S:
-                return type->t == bound->t &&
-                       (type->udt == bound->udt ||
-                       // FIXME: total hack, allow passing subclass to superclass if same amount of fields.
-                       // Need to also support multiple superclass steps.
-                       // Need to also support extra fields if CF_COERCIONS.
-                       (type->udt->ssuperclass == bound->udt &&
-                        type->udt->ssuperclass->sfields.size() == bound->udt->sfields.size()));
+            case V_STRUCT_S: {
+                if (type->t != bound->t) return false;
+                if (SuperDistance(bound->udt, type->udt) < 0) return false;
+                // If number of fields is same as bound then this trivially converts.
+                if (type->udt->sfields.size() == bound->udt->sfields.size()) return true;
+                // This can convert if we chop off extra fields.
+                return (cf & CF_COERCIONS) != 0;
+            }
             case V_TUPLE:
                 return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *bound->tup);
             case V_TYPEID:
@@ -330,13 +330,13 @@ struct TypeChecker {
         if (ConvertsTo(bt, at, ConvertFlags(coercions | CF_UNIFICATION))) return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
             auto et = Union(at->Element(), bt->Element(), aname, bname, CF_NONE, nullptr);
-            if (err && et->Equal(*type_undefined)) goto error;
-            return st.Wrap(et, V_VECTOR);
+            if (et->t == V_UNDEFINED) goto error;
+            return st.Wrap(et, V_VECTOR, err ? &err->line : nullptr);
         }
         if (at->t == V_NIL && bt->t == V_NIL) {
             auto et = Union(at->Element(), bt->Element(), aname, bname, CF_NONE, nullptr);
-            if (err && et->Equal(*type_undefined)) goto error;
-            return st.Wrap(et, V_NIL);
+            if (et->t == V_UNDEFINED) goto error;
+            return st.Wrap(et, V_NIL, err ? &err->line : nullptr);
         }
         if (at->t == V_CLASS && bt->t == V_CLASS) {
             auto sstruc = CommonSuperType(at->udt, bt->udt);
@@ -387,6 +387,13 @@ struct TypeChecker {
         tlt->exptype = n->exptype;
         tlt->lt = lt;
         n = tlt;
+    }
+
+    void MakeStructSuper(Node *&a, TypeRef structsuper) {
+        auto ss = new ToStructSuper(a->line, a);
+        ss->exptype = structsuper;
+        ss->lt = a->lt;
+        a = ss;
     }
 
     void StorageType(TypeRef type, const Node &context) {
@@ -475,7 +482,7 @@ struct TypeChecker {
             extra = ConvertFlags(CF_COVARIANT | extra);
         }
         if (ConvertsTo(a->exptype, bound, ConvertFlags(CF_UNIFICATION | extra))) {
-                return;
+            return;
         }
         // Here follow the cases that needs explicit coercion code to be made compatible.
         switch (bound->t) {
@@ -498,6 +505,16 @@ struct TypeChecker {
                     return;
                 }
                 break;
+            case V_STRUCT_R:
+            case V_STRUCT_S: {
+                if (a->exptype->t == bound->t &&
+                    SuperDistance(bound->udt, a->exptype->udt) > 0 &&
+                    a->exptype->udt->sfields.size() > bound->udt->sfields.size()) {
+                    MakeStructSuper(a, bound);
+                    return;
+                }
+                break;
+            }
             default:
                 ;
         }
@@ -896,6 +913,7 @@ struct TypeChecker {
                 sf.returntype = st.NewTypeVar();
             } else {
                 sf.returntype = st.ResolveTypeVars(sf.returngiventype, call_context.line);
+                assert(sf.returntype->t != V_NIL || sf.returntype->sub->t != V_INT);
                 auto len = sf.returntype->NumValues();
                 if (len > sf.reqret) {
                     if (sf.reqret == 1) {
@@ -944,6 +962,10 @@ struct TypeChecker {
             // function. FIXME: check in which cases this is typically true, since its expensive
             // if done without reason.
             sf.mustspecialize = true;
+        }
+        if (sf.parent->is_constructor_of &&
+            (!IsUDT(sf.returntype->t) || &sf.returntype->udt->g != sf.parent->is_constructor_of)) {
+            Error(*sf.sbody->children.back(), "constructor must return value of its own type");
         }
         st.BlockScopeCleanup();
         for (auto member : scopes.back().scoped_fields) {
@@ -1879,11 +1901,6 @@ struct TypeChecker {
     }
 
     void CheckLval(Node *n) {
-        if (auto dot = Is<Dot>(n)) {
-            auto type = dot->child->exptype;
-            if (IsStruct(type->t))
-                Error(*n, "cannot write to field of value ", Q(type->udt->name));
-        }
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
             Error(*n, "function-call cannot be an l-value");
@@ -2763,7 +2780,7 @@ Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 
 Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (giventype.Null()) {
-        exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_NIL);
+        exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_NIL, &line);
     } else {
         exptype = tc.st.ResolveTypeVars(giventype, this->line);
         if (!tc.st.IsNillable(exptype->sub)) tc.Error(*this, "illegal nil type");
@@ -2963,9 +2980,9 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     STACK_PROFILE;
     // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
     tc.TypeCheckList(this, LT_ANY);
-    auto nf = tc.parser.natreg.FindNative(name);
-    auto fld = tc.st.FieldUse(name);
     tc.st.current_namespace = ns;
+    auto nf = tc.parser.FindNative(name);
+    auto fld = tc.st.FieldUse(name);
     TypeRef type;
     UDT *udt = nullptr;
     if (children.size()) {
@@ -3184,7 +3201,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                         break;
                     }
                     default:
-                        Add(new Nil(line, { tc.st.Wrap(type, V_NIL) }));
+                        Add(new Nil(line, { tc.st.Wrap(type, V_NIL, &line) }));
                         break;
                 }
                 tc.TT(children.back(), 1, LT_ANY);
@@ -3235,7 +3252,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         }
         if (arg.flags & NF_ANYVAR) {
             if (argtype->t == V_VECTOR)
-                argtype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR);
+                argtype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR, &line);
             else if (argtype->t == V_ANY)
                 argtype = tc.st.NewTypeVar();
             else assert(0);
@@ -3290,7 +3307,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                     if (!tc.st.IsNillable(type))
                         tc.Error(*this, "argument ", sa + 1, " to ", Q(nf->name),
                                         " has to be a reference type");
-                    type = tc.st.Wrap(type, V_NIL);
+                    type = tc.st.Wrap(type, V_NIL, &line);
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
                     if (type->t == V_VECTOR) type = type->sub;
                 } else if (nftype->t == V_FUNCTION) {
@@ -3307,7 +3324,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 break;
             }
             case NF_ANYVAR:
-                type = ret.type->t == V_VECTOR ? tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR)
+                type = ret.type->t == V_VECTOR ? tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR, &line)
                                                : tc.st.NewTypeVar();
                 assert(rlt == LT_KEEP);
                 break;
@@ -3509,11 +3526,11 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                              : tc.Union(u, c->exptype, "constructor", "constructor element",
                                         CF_COERCIONS, c);
             }
-            exptype = tc.st.Wrap(u, V_VECTOR);
+            exptype = tc.st.Wrap(u, V_VECTOR, &line);
             tc.StorageType(exptype, *this);
         } else {
             // special case for empty vectors
-            exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR);
+            exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR, &line);
         }
     } else if (giventype->t == V_UUDT && giventype->spec_udt->specializers.empty()) {
         // Special case for generic type constructor with no specializers.
@@ -3574,11 +3591,16 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         if (udt) tc.st.PopSuperGenerics(udt);
     }
     if (IsUDT(exptype->t)) {
-        // We have to check this here, since the parser couldn't check this yet.
-        if (exptype->udt->sfields.size() < children.size())
-            tc.Error(*this, "too many initializers for ", Q(exptype->udt->name));
         auto udt = exptype->udt;
+        // We have to check this here, since the parser couldn't check this yet.
+        if (udt->sfields.size() < children.size())
+            tc.Error(*this, "too many initializers for ", Q(udt->name));
         exptype = &udt->thistype;
+        if (udt->g.has_constructor_function &&
+            (tc.named_scopes.empty() ||
+                tc.named_scopes.back().sf->parent->is_constructor_of != &udt->g)) {
+            tc.Error(*this, Q(udt->name), " may only be constructed thru its constructor function");
+        }
     }
     for (auto [i, c] : enumerate(children)) {
         TypeRef elemtype = IsUDT(exptype->t) ? exptype->udt->sfields[i].type

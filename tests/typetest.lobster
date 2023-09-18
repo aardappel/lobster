@@ -226,9 +226,9 @@ run_test("types"):
     do():
         // Test generics passed on to default values.
         class set1<T>:
-            dict:dictionary<T, int> = dictionary<T, int> {5}
+            dict:dictionary<T, int> = dictionary<T, int>(5)
         class set2<T>:
-            dict = dictionary<T, int> {15}
+            dict = dictionary<T, int>(15)
         let a1 = set1<string> {}
         let a2 = set2<string> {}
         a1.dict.set("a", 13)

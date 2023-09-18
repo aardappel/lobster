@@ -55,6 +55,14 @@ struct Parser {
         lex.Warn(cat(args...), what ? &what->line : nullptr);
     }
 
+    NativeFun *FindNative(string_view name) {
+        if (st.MaybeNameSpace(name)) {
+            auto nf = natreg.FindNative(st.NameSpaced(name));
+            if (nf) return nf;
+        }
+        return natreg.FindNative(name);
+    }
+
     void Parse() {
         auto sf = st.FunctionScopeStart();
         st.toplevel = sf;
@@ -87,6 +95,10 @@ struct Parser {
                         // again parseable.
                         while (!Either(T_LINEFEED, T_DEDENT, T_ENDOFFILE, T_ENDOFINCLUDE))
                             lex.Next();
+                        // In several places we assume a Block is never empty, and given that error
+                        // recovery is the exception, we fix that here by inserting a dummy statement,
+                        // rather than changing how we handle blocks.
+                        block->Add(new Nil(lex, { nullptr }));
                     }
                 } else {
                     ParseTopExp(block);
@@ -102,7 +114,7 @@ struct Parser {
             }
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
-        Expect(terminator);
+        if (terminator != T_NONE) Expect(terminator);
         auto b = block->children.back();
         if (Is<EnumRef>(b) || Is<GUDTRef>(b) || Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
             if (terminator == T_ENDOFFILE) block->Add(new IntConstant(lex, 0));
@@ -161,6 +173,12 @@ struct Parser {
                 lex.Next();
                 st.current_namespace = lex.sattr;
                 Expect(T_IDENT);
+                while (IsNext(T_DOT)) {
+                    lex.namespaces.insert(st.current_namespace);
+                    st.current_namespace = st.StoreName(st.NameSpaced(lex.sattr));
+                    Expect(T_IDENT);
+                }
+                lex.namespaces.insert(st.current_namespace);
                 break;
             case T_PRIVATE:
                 if (st.scopelevels.size() != 1 || isprivate)
@@ -215,9 +233,11 @@ struct Parser {
                     ParseTypeDecl(false, isprivate, list, true);
                 }
                 break;
+            case T_CONSTRUCTOR:
             case T_FUN: {
+                auto is_constructor = lex.token == T_CONSTRUCTOR;
                 lex.Next();
-                list->Add(ParseNamedFunctionDefinition(isprivate, nullptr));
+                list->Add(ParseNamedFunctionDefinition(is_constructor, isprivate, nullptr));
                 break;
             }
             case T_ENUM:
@@ -226,14 +246,14 @@ struct Parser {
                 lex.Next();
                 Line line = lex;
                 int64_t cur = incremental ? 0 : 1;
-                auto enumname = st.MaybeNameSpace(ExpectId(), true);
+                auto enumname = st.MaybeMakeNameSpace(ExpectId(), true);
                 auto def = st.EnumLookup(enumname, true);
                 def->isprivate = isprivate;
                 def->flags = !incremental;
                 Expect(T_COLON);
                 Expect(T_INDENT);
                 for (;;) {
-                    auto evname = st.MaybeNameSpace(ExpectId(), true);
+                    auto evname = st.MaybeMakeNameSpace(ExpectId(), true);
                     if (IsNext(T_ASSIGN)) {
                         auto e = ParseExp();
                         Value val = NilVal();
@@ -474,7 +494,8 @@ struct Parser {
 
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list, bool is_abstract) {
         Line line = lex;
-        auto sname = st.MaybeNameSpace(ExpectId(), true);
+        auto sname = st.MaybeMakeNameSpace(ExpectId(), true);
+        if (is_struct && is_abstract) Error("structs cannot be abstract");
         if (IsNext(T_ASSIGN)) {
             // A specialization of an existing struct
             auto [gsup, ssup] = ParseSup(is_struct);
@@ -588,11 +609,13 @@ struct Parser {
                         }
                     } else {
                         bool member_private = IsNext(T_PRIVATE);
-                        if (IsNext(T_FUN)) {
+                        if (IsNext(T_CONSTRUCTOR)) {
+                            Error("constructors must be declared outside the type since they don't"
+                                  " have access to the instance");
+                        } else if (IsNext(T_FUN)) {
                             fieldsdone = true;
-                            parent_list->Add(ParseNamedFunctionDefinition(member_private, gudt));
-                        }
-                        else {
+                            parent_list->Add(ParseNamedFunctionDefinition(false, member_private, gudt));
+                        } else {
                             if (fieldsdone) Error("fields must be declared before methods");
                             ParseField(gudt, member_private, false);
                         }
@@ -640,7 +663,7 @@ struct Parser {
         gudtstack.pop_back();
     }
 
-    FunRef *ParseNamedFunctionDefinition(bool isprivate, GUDT *self) {
+    FunRef *ParseNamedFunctionDefinition(bool is_constructor, bool isprivate, GUDT *self) {
         string idname;
         if (IsNext(T_OPERATOR)) {
             auto op = lex.token;
@@ -655,9 +678,9 @@ struct Parser {
         } else {
             // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
             // current namespace (which is same as !self).
-            idname = st.MaybeNameSpace(ExpectId(), !self);
+            idname = st.MaybeMakeNameSpace(ExpectId(), !self);
         }
-        return ParseFunction(&idname, isprivate, true, true, self);
+        return ParseFunction(&idname, is_constructor, isprivate, true, true, self);
     }
 
     void ImplicitReturn(Overload &ov) {
@@ -701,8 +724,9 @@ struct Parser {
         block_stack.pop_back();
     }
 
-    FunRef *ParseFunction(string *name, bool isprivate, bool parens, bool parseargs,
-                          GUDT *self = nullptr) {
+    FunRef *ParseFunction(string *name, bool is_constructor, bool isprivate, bool parens,
+                          bool parseargs, GUDT *self) {
+        bool in_class = !!self;
         auto sf = st.FunctionScopeStart();
         if (name) {
             // Parse generic params if any.
@@ -774,9 +798,11 @@ struct Parser {
         }
         // Check default args are being used consistently with the overloads & siblings.
         if (first_default_arg < 0) first_default_arg = (int)nargs;
+        auto is_constructor_of = is_constructor ? &st.StructUse(*name) : nullptr;
         if (f.overloads.empty()) {
             f.first_default_arg = first_default_arg;
             f.default_args = default_args;
+            f.is_constructor_of = is_constructor_of;
         } else {
             if (f.first_default_arg != first_default_arg)
                 Error("number of default arguments must be the same as previous overload");
@@ -785,6 +811,8 @@ struct Parser {
                     Error("default argument ", i + 1, " must be same as previous overload");
                 delete default_args[i];
             }
+            if (f.is_constructor_of != is_constructor_of)
+                Error("either all overloads of ", Q(f.name), " must be a constructor, or none");
         }
         // Create the overload.
         auto ov = new Overload{ lex, isprivate };
@@ -792,16 +820,13 @@ struct Parser {
         ov->method_of = self;
         sf->SetParent(f, *ov);
         // Check if there's any overlap in default argument ranges.
-        auto ff = st.GetFirstFunction(f.name);
-        while (ff) {
-            if (ff != &f) {
-                if (first_default_arg <= (int)ff->nargs() &&
-                    ff->first_default_arg <= (int)f.nargs())
-                    Error("function ", Q(f.name), " with ", f.nargs(),
-                          " arguments is ambiguous with the ", ff->nargs(),
-                          " version because of default arguments");
-            }
-            ff = ff->sibf;
+        for (auto ff = st.GetFirstFunction(f.name); ff; ff = ff->sibf) {
+            if (ff == &f) continue;   
+            if (first_default_arg <= (int)ff->nargs() &&
+                ff->first_default_arg <= (int)f.nargs())
+                Error("function ", Q(f.name), " with ", f.nargs(),
+                        " arguments is ambiguous with the ", ff->nargs(),
+                        " version because of default arguments");
         }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
@@ -814,6 +839,8 @@ struct Parser {
                 Error("redefinition of function type ", Q(*name));
             f.istype = true;
             sf->typechecked = true;
+            if (in_class || st.scopelevels.size() != 2)
+                Error("function type must be declared at top level");
             for (auto [i, arg] : enumerate(sf->args)) {
                 if (st.IsGeneric(sf->giventypes[i]))
                     Error("function type arguments can\'t be generic (missing ", Q(":"), " ?)");
@@ -826,6 +853,14 @@ struct Parser {
                 Error("function type cannot have generics");
             sf->reqret = sf->returntype->NumValues();
         }
+        // Check if there's mixed function types.
+        for (auto ff = st.GetFirstFunction(f.name); ff; ff = ff->sibf) {
+            if (ff == &f) continue;
+            // FIXME: we shouldn't have `istype`, instead function types should not be a `Function`
+            // but their own thing with their own lookup.
+            if (ff->istype != f.istype)
+                Error("function ", Q(f.name), " is declared both as function type and regular function");
+        }
         if (name) {
             if (f.overloads.size() > 1) {
                 // We could check here for "double declaration", but since that entails
@@ -834,6 +869,9 @@ struct Parser {
                 if (!f.nargs()) Error("double declaration of ", Q(f.name));
             }
             functionstack.push_back(&f);
+            if (is_constructor_of) {
+                is_constructor_of->has_constructor_function = true;
+            }
         } else {
             f.anonymous = true;
         }
@@ -1140,6 +1178,10 @@ struct Parser {
                 parens_parsed = true;
             } else {
                 if (!noparenscall) {
+                    if (f && f->is_constructor_of && lex.token == T_LEFTCURLY)
+                        Error(
+                            "This type has an explicit constructor defined and must be called like "
+                            "a function (use () instead of {})");
                     Expect(T_LEFTPAREN);
                     parens_parsed = true;
                 }
@@ -1167,9 +1209,15 @@ struct Parser {
             for (;;) {
                 Node *e = nullptr;
                 switch (lex.token) {
-                    case T_COLON: e = ParseFunction(nullptr, false, false, false); break;
-                    case T_IDENT: e = ParseFunction(nullptr, false, false, true); break;
-                    case T_LEFTPAREN: e = ParseFunction(nullptr, false, true, true); break;
+                    case T_COLON:
+                        e = ParseFunction(nullptr, false, false, false, false, nullptr);
+                        break;
+                    case T_IDENT:
+                        e = ParseFunction(nullptr, false, false, false, true, nullptr);
+                        break;
+                    case T_LEFTPAREN:
+                        e = ParseFunction(nullptr, false, false, true, true, nullptr);
+                        break;
                     default: return;
                 }
                 list.push_back(e);
@@ -1334,8 +1382,8 @@ struct Parser {
             }
             case T_LAMBDA: {
                 lex.Next();
-                return ParseFunction(nullptr, false, lex.token == T_LEFTPAREN,
-                    lex.token != T_COLON);
+                return ParseFunction(nullptr, false, false, lex.token == T_LEFTPAREN,
+                                     lex.token != T_COLON, nullptr);
             }
             case T_FLOATTYPE:
             case T_INTTYPE:
@@ -1384,6 +1432,10 @@ struct Parser {
             case T_IF: {
                 lex.Next();
                 return ParseIf(lex);
+            }
+            case T_GUARD: {
+                lex.Next();
+                return ParseGuard(lex);
             }
             case T_WHILE: {
                 lex.Next();
@@ -1471,6 +1523,21 @@ struct Parser {
         }
     }
 
+    Node *ParseGuard(Line line) {
+        auto cond = ParseExp(true);
+        auto block = new Block(lex);
+        if (lex.token != T_COLON) {
+            Expect(T_LINEFEED);
+            ParseStatements(block, T_NONE);
+            return new IfThen(line, cond, block);
+        } else {
+            auto exitblock = ParseBlock();
+            Expect(T_LINEFEED);
+            ParseStatements(block, T_NONE);
+            return new IfElse(line, cond, block, exitblock);
+        }
+    }
+
     void ForLoopVar(int existing, SpecIdent *sid, TypeRef type, vector<Node *> &list) {
         Node *init = nullptr;
         if (existing == 0)
@@ -1541,8 +1608,11 @@ struct Parser {
         // First see if this a type constructor.
         auto udt = st.LookupSpecialization(idname);
         auto gudt = udt ? &udt->g : st.LookupStruct(idname);
+        auto curf = functionstack.empty() ? nullptr : functionstack.back();
         TypeRef type = nullptr;
-        if (gudt && lex.token == T_LT) {
+        if (gudt &&
+            lex.token == T_LT &&
+            (!gudt->has_constructor_function || (curf && curf->is_constructor_of == gudt))) {
             lex.Undo(T_IDENT, idname);
             type = ParseType(false);
         } else if (lex.token == T_LEFTCURLY) {

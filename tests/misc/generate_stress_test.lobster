@@ -3,8 +3,9 @@ import std
 let num_funs = 10000
 
 // Some random stuff copied from the unit test.
-let body = """
-
+let body =
+"""
+do():
     let st = map(10) i: switch i:
             case 1: "no"
             case 2, 3:
@@ -62,7 +63,6 @@ let body = """
     assert abs(4.0 % 1.5 - 1.0) < 0.01
     assert max(abs(float2 { 10.1, 20.1 } % float2 { 3.0, 6.0 } - float2 { 1.1, 2.1 })) < 0.01
     assert max(abs(float2 { 10.1, 20.1 } % 3.0 - float2 { 1.1, 2.1 })) < 0.01
-
 """
 
 let prog = []

@@ -1,5 +1,5 @@
 import testing
-import matrix
+import mat2x2
 
 run_test("matrix"):
 

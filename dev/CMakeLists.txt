@@ -56,6 +56,14 @@ else()
     src/lobster/stdafx.h
     src/lobster/tonative.h
     src/lobster/tools.h
+    src/lobster/dllist.h
+    src/lobster/rng_hash.h
+    src/lobster/string_tools.h
+    src/lobster/accumulator.h
+    src/lobster/resource_manager.h
+    src/lobster/small_vector.h
+    src/lobster/packed_vector.h
+    src/lobster/varint.h
     src/lobster/ttypes.h
     src/lobster/typecheck.h
     src/lobster/unicode.h
@@ -116,6 +124,7 @@ if(LOBSTER_ENGINE)
     external/freetype/src/truetype/truetype.c
   )
   add_definitions(-DFT2_BUILD_LIBRARY=1)
+  add_definitions(-DMUSIC_WAV -DMUSIC_OGG -DOGG_USE_STB)
   list (APPEND EXTERNAL_SRCS ${EXTERNAL_ENGINE_SRCS})
 endif()
 
@@ -152,6 +161,7 @@ include_directories(include
                     external/SDL/include-config-/SDL2
                     external/SDL/include
                     external/SDLMixer
+                    external/SDLMixer/codecs
                     external/freetype/include
                     external/imgui
                     external/libtcc)

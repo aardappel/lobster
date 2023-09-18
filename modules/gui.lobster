@@ -91,7 +91,7 @@ private def max_space(v:int2):
 
 private def position(v:int2, f):
     let r = max_space(v) - v
-    gl_translate(float(if(align.top == 1): r / 2 else: r * (align.top / 2)), f)
+    gl.translate(float(if(align.top == 1): r / 2 else: r * (align.top / 2)), f)
 
 private def cursize_of(id, f):
     return cache_size(id):
@@ -106,12 +106,12 @@ private def element(size:int2, f):
         advance(size):
             position(size, f)
             if vertical.top:
-                gl_translate(float2_y * (size.y + spacing.top))
+                gl.translate(float2_y * (size.y + spacing.top))
             else:
-                gl_translate(float2_x * (size.x + spacing.top))
+                gl.translate(float2_x * (size.x + spacing.top))
 
 private def block(al, sp, vert, id, f):
-    let spi = round(sp * gl_get_font_size())
+    let spi = round(sp * gl.get_font_size())
     let size = cursize_of(id):
         spacing.push(spi)
         vertical.push(vert)
@@ -130,31 +130,31 @@ private def block(al, sp, vert, id, f):
         spacing.pop()
 
 def text(text:string):
-    element(cache_size(hash(text)): gl_text_size(text)):
-        gl_text(text)
+    element(cache_size(hash(text)): gl.text_size(text)):
+        gl.text(text)
 
 def image(factors, tex):
-    let size = round(factors * gl_get_font_size())
+    let size = round(factors * gl.get_font_size())
     element(size):
-        gl_set_shader("textured")
-        gl_set_primitive_texture(0, tex)
-        gl_rect(float(size))
-        gl_set_shader("color")
+        gl.set_shader("textured")
+        gl.set_primitive_texture(0, tex)
+        gl.rect(float(size))
+        gl.set_shader("color")
 
 def divider(thickness:int):
     align.push(0)
     element(int2_1 * thickness):
-        gl_rect(if vertical.top: float2 { parent_size.top.x, thickness }
+        gl.rect(if vertical.top: float2 { parent_size.top.x, thickness }
                 else:            float2 { thickness, parent_size.top.y })
     align.pop()
 
 def space(thickness:float):
-    element(int2_1 * round(thickness * gl_get_font_size())): nil
+    element(int2_1 * round(thickness * gl.get_font_size())): nil
 
 def start(size, alignh, alignv, interact, f:fun):   // top level only
     let id = hash(f)
-    gl_set_shader("color")
-    gl_blend(blend_alpha):
+    gl.set_shader("color")
+    gl.blend(blend_alpha):
         parent_size.push(size)
         vertical.push(false)
         interactive.push(interact)
@@ -176,7 +176,7 @@ def start(size, alignh, alignv, interact, f:fun):   // top level only
             vertical.pop()
             align.pop()
 
-        if not num_interactive_elements_hit and not gl_touchscreen():
+        if not num_interactive_elements_hit and not gl.touchscreen():
             focus_id = -1
 
         align.pop()
@@ -188,14 +188,14 @@ def hblock(al, sp, f:fun): block(al, sp, false, hash(f), f)
 def vblock(al, sp, f:fun): block(al, sp, true,  hash(f), f)
 
 def fontscale(factor, f:fun):
-    let os = gl_get_font_size()
-    let ool = gl_get_outline_size()
-    gl_set_font_size(round(os * factor), ool * factor)
+    let os = gl.get_font_size()
+    let ool = gl.get_outline_size()
+    gl.set_font_size(round(os * factor), ool * factor)
     f()
-    gl_set_font_size(os, ool)
+    gl.set_font_size(os, ool)
 
-def color(col, f:fun): nest_if(render_pass, fn: gl_color(col, _), f)
-def blend(bli, f:fun): nest_if(render_pass, fn: gl_blend(bli, _), f)
+def color(col, f:fun): nest_if(render_pass, fn: gl.color(col, _), f)
+def blend(bli, f:fun): nest_if(render_pass, fn: gl.blend(bli, _), f)
 
 private def around(m, draw, id, f):
     var size = cursize_of(id, f)
@@ -203,14 +203,14 @@ private def around(m, draw, id, f):
     advance(size):
         if draw:
             position(size): // FIXME: clean this up
-                gl_rect(float2{ size.x, m.y })
-                gl_rect(float2 { m.x, size.y })
-                gl_translate float2 { size.x - m.x, 0.0 }:
-                    gl_rect(float2 { m.x, size.y })
-                gl_translate float2 { 0.0, size.y - m.y }:
-                    gl_rect(float2 { size.x, m.y })
+                gl.rect(float2{ size.x, m.y })
+                gl.rect(float2 { m.x, size.y })
+                gl.translate float2 { size.x - m.x, 0.0 }:
+                    gl.rect(float2 { m.x, size.y })
+                gl.translate float2 { 0.0, size.y - m.y }:
+                    gl.rect(float2 { size.x, m.y })
         def forward():
-            gl_translate([ float2_x, float2_y ][vertical.top] * m[vertical.top])
+            gl.translate([ float2_x, float2_y ][vertical.top] * m[vertical.top])
         forward()
         f()
         forward()
@@ -231,12 +231,12 @@ private def overlay(stretch, id, f, g):
 def backgroundf(stretch, f:fun, background:funs):
     overlay(stretch, hash(f), f) size:
         background(size)
-        gl_hit(float(size), 0)    // stop clicks from reaching whatevers beneath this
+        gl.hit(float(size), 0)    // stop clicks from reaching whatevers beneath this
 
 def background(col, stretch, f:fun):
     backgroundf(stretch, f) size:
-        gl_color col:
-            gl_rect(float(size))
+        gl.color col:
+            gl.rect(float(size))
 
 def key(key_name, f):  // Surround a button with this to also allow keyboard activation.
     button_key.push(key_name)
@@ -246,20 +246,20 @@ def key(key_name, f):  // Surround a button with this to also allow keyboard act
 private def btn(id, render, do, dofocus:bool, focusf):
     overlay(false, id, render) size:
         if interactive.top:
-            let hit = gl_hit(float(size), 0)
-            let keydown, keyup = gl_button(button_key.top)
+            let hit = gl.hit(float(size), 0)
+            let keydown, keyup = gl.button(button_key.top)
             let active = hit or keydown or keyup == 1
-            if active or (focus_id == id and gl_touchscreen()):
+            if active or (focus_id == id and gl.touchscreen()):
                 // Use the hover color both for mouse-hover, and touch screen buttons that have focus.
-                gl_color hover_color:
-                    gl_rect(float(size))
+                gl.color hover_color:
+                    gl.rect(float(size))
                 if active:
                     num_interactive_elements_hit++
-                    let mouse1down, mouse1up = gl_button("mouse1")
+                    let mouse1down, mouse1up = gl.button("mouse1")
                     if mouse1down or keydown:
-                        gl_color(select_color):
-                            gl_rect(float(size))
-                    if dofocus and focus_id != id and (mouse1up == 1 or not gl_touchscreen()):
+                        gl.color(select_color):
+                            gl.rect(float(size))
+                    if dofocus and focus_id != id and (mouse1up == 1 or not gl.touchscreen()):
                         // If we have a focus action and this button wasn't the focus, then on a touch screen
                         // we're going to give this button focus on touch, and on desktop merely on hover.
                         focus_id = id

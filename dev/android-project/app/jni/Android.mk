@@ -18,6 +18,7 @@ IMGUI_PATH := $(LOBSTER_PATH)/external/imgui
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/$(SDL_PATH)/include \
 	$(LOCAL_PATH)/$(SDL_MIXER_PATH) \
+	$(LOCAL_PATH)/$(SDL_MIXER_PATH)/codecs \
     $(LOCAL_PATH)/$(FREETYPE_PATH)/include \
     $(LOBSTER_PATH)/dev/src \
     $(LOCAL_PATH)/$(LOBSTER_PATH)/include \
@@ -92,6 +93,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/$(FLATBUFFERS_PATH)/*.cpp) \
 	$(wildcard $(LOCAL_PATH)/$(IMGUI_PATH)/*.cpp) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_MIXER_PATH)/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_MIXER_PATH)/codecs/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/android/*.c) \
@@ -133,7 +135,7 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES :=
 LOCAL_STATIC_LIBRARIES :=
 
-LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY=1 -DGL_GLEXT_PROTOTYPES
+LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY=1 -DGL_GLEXT_PROTOTYPES -DMUSIC_WAV -DMUSIC_OGG -DOGG_USE_STB
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -lGLESv3 -lEGL -llog -ldl -landroid -lOpenSLES
 include $(BUILD_SHARED_LIBRARY)

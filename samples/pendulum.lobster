@@ -33,19 +33,19 @@ class pendulum:
             l.theta += degrees(l.dtheta * time)
 
     def render():
-        gl_blend(blend_add):
+        gl.blend(blend_add):
             for(pts) pos, i:
-                gl_color(col * i / max_steps)
-                gl_translate(pos):
-                    gl_circle(10.0, 10)
+                gl.color(col * i / max_steps)
+                gl.translate(pos):
+                    gl.circle(10.0, 10)
 
-        gl_color(color_white)
+        gl.color(color_white)
         var pos = float2_0
         for(links) l:
             let p = yx(sincos(l.theta)) * l.len
-            gl_line(float2_0, p, 2.0)
-            gl_translate(p)
-            gl_circle(4.0, 10)
+            gl.line(float2_0, p, 2.0)
+            gl.translate(p)
+            gl.circle(4.0, 10)
             pos += p
             pts.push(pos)
             if pts.length > max_steps: pts.remove(0)
@@ -56,13 +56,13 @@ let pendula = map(5) i:
         color { 0.20 - i * 0.04, 0.075, i * 0.04, 1.0 }
     }
 
-fatal(gl_window("double pendulum", 700, 700))
-while gl_frame():
-    if gl_button("escape") == 1: return
-    gl_clear(color_black)
-    let time = gl_delta_time() * 4.0
+fatal(gl.window("double pendulum", 700, 700))
+while gl.frame():
+    if gl.button("escape") == 1: return
+    gl.clear(color_black)
+    let time = gl.delta_time() * 4.0
     for(pendula) p:
-        gl_ortho()
-        gl_translate(float(gl_window_size()) / 2.0)
+        gl.ortho()
+        gl.translate(float(gl.window_size()) / 2.0)
         p.update(time)
         p.render()

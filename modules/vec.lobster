@@ -59,8 +59,8 @@ let octant_directions = [
 ]
 
 // shorten vectors, e.g. vec3 -> vec2
-// FIXME: subtyping should take care of this
-def xy(v): return vec2 { v.x, v.y }
+def xy<T>(v:vec3<T>) -> vec2<T>: return v  // Shorten by subtyping.
+def xy<T>(v:vec4<T>) -> vec2<T>: return v  // Shorten by subtyping.
 def xz(v): return vec2 { v.x, v.z }
 def yw(v): return vec2 { v.y, v.w }
 def zw(v): return vec2 { v.z, v.w }

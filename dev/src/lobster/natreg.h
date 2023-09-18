@@ -301,8 +301,10 @@ struct Narg {
                         char val = *tid++ - '0';
                         if (type->ElementIfNil()->Numeric())
                             default_val = val;
+                        else if (type->t == V_VECTOR && fixed_len < 0)
+                            fixed_len = val;
                         else
-                            fixed_len = val; 
+                            assert(false);
                     }
                     break;
                 default:
@@ -366,9 +368,12 @@ struct NativeFun : Named {
         return i;
     };
 
-    NativeFun(const char *name, BuiltinPtr f, const char *ids, const char *typeids,
+    NativeFun(const char *ns, const char *nsname, BuiltinPtr f, const char *ids, const char *typeids,
               const char *rets, const char *help)
-        : Named(name, 0), fun(f), args(TypeLen(typeids)), retvals(TypeLen(rets)),
+        : Named(*ns ? cat(ns, ".", nsname) : nsname, 0),
+          fun(f),
+          args(TypeLen(typeids)),
+          retvals(TypeLen(rets)),
           help(help) {
         assert((int)args.size() == f.fnargs || f.fnargs < 0);
         auto StructArgsVararg = [&](const Narg &arg) {
@@ -394,7 +399,7 @@ struct NativeFun : Named {
     }
 
     bool IsGLFrame() {
-        return name == "gl_frame";
+        return name == "gl.frame";
     }
 
     bool IsAssert() {
@@ -407,6 +412,8 @@ struct NativeRegistry {
     vector<NativeFun *> nfuns;
     unordered_map<string_view, NativeFun *> nfunlookup;  // Key points to value!
     vector<string> subsystems;
+    vector<string_view> namespaces;
+    const char *cur_ns;
     #if LOBSTER_FRAME_PROFILER_BUILTINS
         vector<tracy::SourceLocationData> pre_allocated_function_locations;
     #endif
@@ -415,7 +422,11 @@ struct NativeRegistry {
         for (auto f : nfuns) delete f;
     }
 
-    void NativeSubSystemStart(const char *name) { subsystems.push_back(name); }
+    void NativeSubSystemStart(const char *ns, const char *name) {
+        cur_ns = ns;
+        if (*ns) namespaces.push_back(ns);
+        subsystems.push_back(name);
+    }
 
     void DoneRegistering() {
         #if LOBSTER_FRAME_PROFILER_BUILTINS
@@ -428,9 +439,9 @@ struct NativeRegistry {
     }
 
     #define REGISTER(N) \
-    void operator()(const char *name, const char *ids, const char *typeids, \
+    void operator()(const char *nsname, const char *ids, const char *typeids, \
                     const char *rets, const char *help, builtinf##N f) { \
-        Reg(new NativeFun(name, BuiltinPtr(f), ids, typeids, rets, help)); \
+        Reg(new NativeFun(cur_ns, nsname, BuiltinPtr(f), ids, typeids, rets, help)); \
     }
     REGISTER(V)
     REGISTER(0)

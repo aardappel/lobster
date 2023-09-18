@@ -1,21 +1,23 @@
-// Useful constants and functions to use with the built-in physics functionality (ph_)
+// Useful constants and functions to use with the built-in physics functionality.
 
-enum_flags ph_particle_type:
-    ph_waterparticle = 0
-    ph_zombieparticle = 2
-    ph_wallparticle
-    ph_springparticle
-    ph_elasticparticle
-    ph_viscousparticle
-    ph_powderparticle
-    ph_tensileparticle
-    ph_colormixingparticle
-    ph_destructionlistenerparticle
-    ph_barrierparticle
-    ph_staticpressureparticle
-    ph_reactiveparticle
-    ph_repulsiveparticle
-    ph_fixturecontactlistenerparticle
-    ph_particlecontactlistenerparticle
-    ph_fixturecontactfilterparticle
-    ph_particlecontactfilterparticle
+namespace ph
+
+enum_flags particle_type:
+    waterparticle = 0
+    zombieparticle = 2
+    wallparticle
+    springparticle
+    elasticparticle
+    viscousparticle
+    powderparticle
+    tensileparticle
+    colormixingparticle
+    destructionlistenerparticle
+    barrierparticle
+    staticpressureparticle
+    reactiveparticle
+    repulsiveparticle
+    fixturecontactlistenerparticle
+    particlecontactlistenerparticle
+    fixturecontactfilterparticle
+    particlecontactfilterparticle

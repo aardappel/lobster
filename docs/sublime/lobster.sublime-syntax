@@ -15,7 +15,7 @@ contexts:
 
         #####################################################################################
         # ProgramFlow -- Conditional:
-        - match: (?i)\b(if|elif|else)\b
+        - match: (?i)\b(guard|if|elif|else)\b
           scope: keyword.control.conditional.lobster
 
         - match: (?i)\b(and|or|not)\b
@@ -29,7 +29,7 @@ contexts:
           scope: keyword.control.lobster
 
         # ProgramFlow -- UserFunction:
-        - match: (?i)\b(def|return|from)\b
+        - match: (?i)\b(constructor|def|return|from)\b
           scope: keyword.declaration.function
 
 

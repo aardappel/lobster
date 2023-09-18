@@ -60,6 +60,7 @@ extern iint LaunchSubProcess(const char **cmdl, const char *stdins, string &out)
 extern void QueueTextToSpeech(string_view text);
 extern bool TextToSpeechInit();
 extern bool TextToSpeechUpdate();
+extern void StopTextToSpeech();
 
 // Logging:
 

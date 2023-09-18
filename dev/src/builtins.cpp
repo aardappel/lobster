@@ -72,7 +72,11 @@ nfr("print", "x", "Ss", "",
     [](StackPtr &, VM &vm, Value &a) {
         vm.s_reuse.clear();
         RefToString(vm, vm.s_reuse, a.refnil(), vm.programprintprefs);
-        LOG_PROGRAM(vm.s_reuse);
+        if (vm.evalret.second) {
+            LOG_ERROR(vm.s_reuse);
+        } else {
+            LOG_PROGRAM(vm.s_reuse);
+        }
         return NilVal();
     });
 
@@ -1059,6 +1063,15 @@ nfr("lerp", "a,b,f", "F}F}1F", "F}",
         x.mix(y, f);
     });
 
+nfr("spherical_lerp", "a,b,f", "F}:4F}:4F", "F}:4",
+    "spherically interpolates between a and b quaternions with factor f [0..1]",
+    [](StackPtr &sp, VM &) {
+        auto f = Pop(sp).fltval();
+        auto y = PopVec<quat>(sp);
+        auto x = PopVec<quat>(sp);
+        PushVec(sp, spherical_lerp(x, y, f));
+    });
+
 nfr("smoothmin", "x,y,k", "FFF", "F",
     "k is the influence range",
     [](StackPtr &, VM &, Value &x, Value &y, Value &k) {
@@ -1209,7 +1222,10 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         iint cols = 0;
         for (ssize_t i = 0; i < rows; i++) {
             auto sv = tilemap.vval()->At(i).sval()->strv();
-            if (i) { if (ssize(sv) != cols) vm.BuiltinError("all columns must be equal length"); }
+            if (i) {
+                if (ssize(sv) != cols)
+                    vm.BuiltinError("all columns must be equal length");
+            }
             else cols = sv.size();
             inmap[i] = sv.data();
         }
@@ -1350,7 +1366,7 @@ nfr("vm_compiled_mode", "", "", "B",
     });
 
 nfr("seconds_elapsed", "", "", "F",
-    "seconds since program start as a float, unlike gl_time() it is calculated every time it is"
+    "seconds since program start as a float, unlike gl.time() it is calculated every time it is"
     " called",
     [](StackPtr &, VM &vm) {
         return Value(vm.Time());
@@ -1463,7 +1479,8 @@ nfr("set_console", "on", "B", "",
 nfr("set_output_level", "level", "I", "",
     "0 = debug, 1 = verbose, 2 = warn (default), 3 = error, 4 = program",
     [](StackPtr &, VM &, Value &x) {
-        min_output_level = (OutputType)x.intval();
+        // Do "min", so we can override even lower from command-line.
+        min_output_level = std::min(min_output_level, (OutputType)x.intval());
         return NilVal();
     });
 
@@ -1535,7 +1552,7 @@ nfr("thread_read", "type", "T", "A1?",
 
 void AddMatrix(NativeRegistry &nfr) {
 
-nfr("matrix_multiply", "a,b", "F]F]", "F]",
+nfr("multiply", "a,b", "F]F]", "F]",
     "input matrices must be 4x4 elements",
     [](StackPtr &, VM &vm, Value &a, Value &b) {
         auto av = a.vval();
@@ -1551,7 +1568,7 @@ nfr("matrix_multiply", "a,b", "F]F]", "F]",
         return Value(r);
     });
 
-nfr("matrix_rotate_x", "angle", "F}:2", "F]",
+nfr("rotate_x", "angle", "F}:2", "F]",
     "",
     [](StackPtr &sp, VM &vm) {
         auto angle = PopVec<double2>(sp);
@@ -1562,7 +1579,7 @@ nfr("matrix_rotate_x", "angle", "F}:2", "F]",
         Push(sp, r);
     });
 
-nfr("matrix_rotate_y", "angle", "F}:2", "F]",
+nfr("rotate_y", "angle", "F}:2", "F]",
     "",
     [](StackPtr &sp, VM &vm) {
         auto angle = PopVec<double2>(sp);
@@ -1573,7 +1590,7 @@ nfr("matrix_rotate_y", "angle", "F}:2", "F]",
         Push(sp, r);
     });
 
-nfr("matrix_rotate_z", "angle", "F}:2", "F]",
+nfr("rotate_z", "angle", "F}:2", "F]",
     "",
     [](StackPtr &sp, VM &vm) {
         auto angle = PopVec<double2>(sp);
@@ -1584,7 +1601,7 @@ nfr("matrix_rotate_z", "angle", "F}:2", "F]",
         Push(sp, r);
     });
 
-nfr("matrix_translation", "trans", "F}:3", "F]",
+nfr("translation", "trans", "F}:3", "F]",
     "",
     [](StackPtr &sp, VM &vm) {
         auto trans = PopVec<double3>(sp);

@@ -58,7 +58,7 @@ constant (e.g. <code>123</code>) or hex digits with a leading
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
 <li><p>Keywords:
-<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute     if for while super</code></p></li>
+<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute     if for while super constructor guard abstract member member_frame     static static_frame attribute operator</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an
 incomplete expression (such as <code>+</code> or <code>,</code>) and an
 actual token otherwise (used to separate lists of expressions inside a
@@ -91,8 +91,8 @@ expstat | attrdef</p>
 <code>:</code> type ] ) <code>=</code> opexp</p>
 <p>enumdef = ( <code>enum</code> | <code>enum_flags</code> ) ident
 <code>:</code> indlist( ident [ <code>=</code> integer_constant ] )</p>
-<p>functiondef = <code>def</code> ident [ generics ]
-functionargsbody</p>
+<p>functiondef = ( <code>def</code> | <code>constructor</code> ) ident [
+generics ] functionargsbody</p>
 <p>functionargsbody = <code>(</code> args <code>)</code> <code>:</code>
 body</p>
 <p>block = [ args ] <code>:</code> body | functionargsbody</p>
@@ -124,7 +124,8 @@ ident [ call ] | <code>-&gt;</code> ident | <code>++</code> |
 <code>super</code> | ctrlflow | pakfile string_constant | constructor |
 <code>fn</code> functionargsbody | ident [ call ]</p>
 <p>ctrlflow = <code>if</code> ifpart | (<code>for</code> |
-<code>while</code>) exp <code>:</code> body</p>
+<code>while</code>) exp <code>:</code> body | <code>guard</code> exp [
+<code>:</code> body ]</p>
 <p>ifpart = exp <code>:</code> body (<code>else</code> <code>:</code>
 body | <code>elif</code> <code>:</code> ifpart)</p>
 <p>constructor = <code>[</code> [ list( exp ) ] <code>]</code> [
@@ -211,11 +212,9 @@ define a user defined type. For example:</p>
 struct int3 : int2
     z:int</code></pre>
 <p>You can use either <code>class</code> or <code>struct</code> to
-define these, with the latter being more restrictive: it does not allow
-fields to be modified (assigned to) after it has been constructed, they
-are stored in-inline in their parent and copied. This makes sense for
-small objects such as the one in this example, and can be used to
-enforce a more functional style of programming.</p>
+define these, with the latter being more restrictive: they are stored
+in-inline in their parent and copied. This makes sense for small objects
+such as the one in this example.</p>
 <p>You specify a list of fields using indentation.</p>
 <p>Optionally, you specify a supertype, which has the effect of adding
 all the fields of the supertype to the current type, thus making it an
@@ -244,6 +243,8 @@ constructor call, for example:</p>
 <pre><code>vec2 { x: 1, y: 2 }</code></pre>
 <p>Besides being more readable, it allows you to specify the fields in
 any order, and to override fields that have defaults.</p>
+<p>For more complex ways of constructing types, see constructor
+functions below.</p>
 <p>To declare a type whose only purpose is to serve as a superclass for
 other types and is not to be instantiated, declare it with
 <code>abstract</code>:</p>
@@ -778,6 +779,36 @@ used, and it automatically gets created/deleted for you.</p>
 extra variable to check the frame count) but otherwise function just
 like normal variables, so you should feel free to use them wherever they
 make the code simpler/clearer.</p>
+<h3 id="constructor-functions">Constructor functions</h3>
+<p>As shown above, a user defined type always comes with a plain
+constructor that requires exactly all unitialized fields in
+<code>{}</code>. That is sufficient for most cases but sometimes you may
+want to do additional processing on the inputs where the mapping from
+inputs to fields in not 1:1.</p>
+<p>In that case you can declare a function with the keyword
+<code>constructor</code> instead of <code>def</code>:</p>
+<pre><code>constructor Foo(n:int):
+    return Foo { map(n): 0, map(n): 1 }</code></pre>
+<p>This function behaves like a normal function, except that it marks
+type <code>Foo</code> as having a constructor, and hence forth doesn’t
+allow code outside of this function to be constructed using a plain
+<code>{}</code> constructor, it must call this function instead. This is
+because a constructor may encode an invariant, such as in this case that
+the object is always initialized to two vectors of the same length with
+elements initialized to 0 and 1 respectively. You couldn’t do this with
+a plain constructor, since there would be no way to take the variable
+<code>n</code> into account.</p>
+<p>Another common case is wanting to make a variable non-nil, but there
+is no way to construct a general instance of the type that would work
+for all cases. Now you can make it depend on a caller supplied
+argument.</p>
+<p>You call these constructors with regular function calling syntax
+(e.g. <code>Foo(10)</code>) instead of with <code>{}</code>, to make it
+clear that additional code may be executed beyond plain field
+initialization (and that a function is called).</p>
+<p>You may create overloads for constructors much like regular
+functions, or even make them dynamically dispatch, as long as they all
+result in the given type.</p>
 <h2 id="typing">Typing</h2>
 <p>Lobster is statically typed, though most of the time you don’t
 notice, since most types can be inferred. You specify types:</p>
@@ -963,8 +994,39 @@ different:</p>
             &quot;yes{x}&quot;
         case 4..6, 8: &quot;maybe&quot;
         default: &quot;what?&quot;</code></pre>
-<p>The value you switch on may be int, float or string. Cases may test
-for multiple values, even ranges (which are inclusive)</p>
+<p>The value you switch on may be int, float, string or class instance.
+Cases may test for multiple values, even ranges (which are inclusive).
+When testing for class instances, the cases are types which must
+exhaustively cover all non-abstract sub-classes of the class type.</p>
+<p><code>guard</code> is a special variant of <code>if</code> for
+writing code in “early-out” style:</p>
+<pre><code>guard a &gt;= 0:
+    print &quot;error: a is negative!&quot;
+imagine_10_lines_of_code_processing_a_here()</code></pre>
+<p>Is equivalent to:</p>
+<pre><code>if a &gt;= 0:
+    imagine_10_lines_of_code_processing_a_here()
+else:
+    print &quot;error: a is negative!&quot;</code></pre>
+<p>Why would you want this over a traditional if-else? The idea that
+code becomes easier to read if it is written in a more linear style,
+dealing with all cases where the code does not apply first, before
+getting to the main body of code. This becomes more obvious if you use
+nested if-thens.</p>
+<p>A lot of code tends to use a <code>return</code> inside an
+<code>if</code> for this early-out style of programming, but that has
+the problem that it only works at the top level of a function.
+<code>guard</code> works for code anywhere, and does not require the
+extra <code>return</code> statement.</p>
+<p>If there is no code to run in the error/exceptional case, you may
+even shorten it to:</p>
+<pre><code>guard a &gt;= 0
+imagine_10_lines_of_code_processing_a_here()</code></pre>
+<p>Is equivalent to:</p>
+<pre><code>if a &gt;= 0:
+    imagine_10_lines_of_code_processing_a_here()</code></pre>
+<p>That reads like an <code>assert</code> except instead of aborting the
+program, it skips the rest of the block.</p>
 <h2 id="modules-and-name-spaces">Modules and Name Spaces</h2>
 <p>A module is simply a single <code>.lobster</code> file, that can be
 imported into another using the <code>import</code> keyword. You can
@@ -972,9 +1034,8 @@ imported into another using the <code>import</code> keyword. You can
 compiled once.</p>
 <p>You can prefix any top-level declaration by <code>private</code> to
 cause it not be available to users of the module.</p>
-<p>Lobster has a very simple namespacing mechanism that uses
-<code>_</code> for separating namespaces, effectively generating just a
-longer identifier:</p>
+<p>Lobster has a namespacing mechanism that uses <code>.</code> for
+separating namespaces:</p>
 <pre><code>namespace foo
 
 class bar:
@@ -982,15 +1043,14 @@ class bar:
 
 def baz(): return bar {}</code></pre>
 <p>Names <code>bar</code> and <code>baz</code> can be used as-is inside
-this module, but must be referred to as <code>foo_bar</code> and
-<code>foo_baz</code> outside of this module. Non-top level items like
+this module, but must be referred to as <code>foo.bar</code> and
+<code>foo.baz</code> outside of this module. Non-top level items like
 <code>x</code> are not affected.</p>
 <p>Most built-in functions come with a namespace, such as
 <code>gl</code> etc.</p>
-<p>Namespaces are indistinguishable from identifiers that already have a
-<code>_</code> baked into them, except from the fact that these have to
-be referred to by their full name everywhere, even inside the module
-that defines them.</p>
+<p>Since namespaces look the same as object dereferencing, it is
+recommended to use a name with a leading uppercase for namespaces
+whereever possible.</p>
 <h2 id="declaration-order">Declaration order</h2>
 <p>Lobster is a language that relies heavily on type inference and
 generic types, and generally not requiring you to specify types, the

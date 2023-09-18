@@ -1,20 +1,18 @@
 // Example of using Wave Function Collapse to generate gameworlds based on tiles.
 // Using ascii chars here for simplicity.
 
-// Using """ string literals so we don't have to escape \ :(
-
 let tilemap = [
-    """   /--\    """,
-    """   |  |    """,
-    """   |  |    """,
-    """/--J  L--\ """,
-    """|        | """,
-    """|        | """,
-    """L--\  /--J """,
-    """   |  |    """,
-    """   |  |    """,
-    """   L--J    """,
-    """           """,
+    "   /--\\    ",  // Not aligned because we escape \\
+    "   |  |    ",
+    "   |  |    ",
+    "/--J  L--\\ ",
+    "|        | ",
+    "|        | ",
+    "L--\\  /--J ",
+    "   |  |    ",
+    "   |  |    ",
+    "   L--J    ",
+    "           ",
 ]
 
 let benchmark = false

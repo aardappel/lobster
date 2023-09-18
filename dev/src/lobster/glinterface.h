@@ -77,6 +77,8 @@ struct Shader : lobster::Resource {
     map<string, BOEntry, less<>> ubomap;
     int binding_point_index_alloc = 0;
 
+    string shader_name;
+
     ~Shader();
 
     string Compile(string_view name, const char *vscode, const char *pscode);
@@ -241,8 +243,8 @@ extern void ClearFrameBuffer(const float3 &c);
 extern BlendMode SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);
 
-extern string LoadMaterialFile(string_view mfile);
-extern string ParseMaterialFile(string_view mfile);
+extern string LoadMaterialFile(string_view mfile, string_view prefix);
+extern string ParseMaterialFile(string_view mfile, string_view prefix);
 extern Shader *LookupShader(string_view name);
 extern void ShaderShutDown();
 
@@ -340,7 +342,7 @@ struct GeometryCache {
     Geometry *cube_geom[2] = { nullptr, nullptr };
     int cube_ibo[2] = { 0, 0 };
     map<int, Geometry *> circlevbos;
-    map<pair<int, float>, Geometry *> roundedboxvbos;
+    map<tuple<int, float, float, float>, Geometry *> roundedboxvbos;
     map<pair<int, float>, pair<Geometry *, int>> opencirclevbos;
 
     ~GeometryCache();
@@ -434,5 +436,7 @@ template<typename F> void Transform(const float4x4 &mat, F body) {
 extern bool VRInit();
 extern void VRShutDown();
 
+extern void RenderDocStartFrameCapture();
+extern void RenderDocStopFrameCapture();
 
 #endif  // LOBSTER_GL_INTERFACE

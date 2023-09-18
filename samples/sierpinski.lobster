@@ -8,17 +8,17 @@ let directions = [ float2_0, float2_x, float2_y ]
 
 def sierpinski(depth) -> void:
     if depth:
-        gl_scale 0.5:
+        gl.scale 0.5:
             for(directions) d:
-                gl_translate d:
+                gl.translate d:
                     sierpinski(depth - 1)
     else:
-        gl_polygon(directions)
+        gl.polygon(directions)
 
-fatal(gl_window("sierpinski", 512, 512))
+fatal(gl.window("sierpinski", 512, 512))
 
-while gl_frame():
-    if gl_button("escape") == 1: return
-    gl_clear(color_black)
-    gl_scale(float(gl_window_size()))
+while gl.frame():
+    if gl.button("escape") == 1: return
+    gl.clear(color_black)
+    gl.scale(float(gl.window_size()))
     sierpinski(7)

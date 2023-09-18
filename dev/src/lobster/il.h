@@ -123,9 +123,9 @@ enum MathOp {
     F(LVAL_VARF, 1, 0, 0) \
     F(LVAL_VARL, 1, 0, 0) \
     F(LVAL_FLD, 1, 1, 0) \
-    F(LVAL_IDXVI, 0, 2, 0) \
-    F(LVAL_IDXVV, 1, ILUNKNOWN, 0) \
-    F(LVAL_IDXNI, 0, 2, 0) \
+    F(LVAL_IDXVI, 1, 2, 0) \
+    F(LVAL_IDXVV, 2, ILUNKNOWN, 0) \
+    F(LVAL_IDXNI, 1, 2, 0) \
     F(LV_DUP, 0, 0, 1) \
     F(LV_DUPV, 1, 0, ILUNKNOWN) \
     F(LV_WRITE, 0, 1, 0)  F(LV_WRITEREF, 0, 1, 0)  \

@@ -141,7 +141,9 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     }
     GL_CALL(glBindTexture(textype, 0));
     GL_NAME(GL_TEXTURE, id, name);
-    return Texture(id, dim, int(elemsize), textype, internalformat);
+    auto tr = Texture(id, dim, int(elemsize), textype, internalformat);
+    LOG_DEBUG("GPU ALLOC TEXTURE: ", tr.MemoryUsage().y / 1024, " K ", name);
+    return tr;
 }
 
 Texture CreateTextureFromFile(string_view name, int tf) {

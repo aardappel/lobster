@@ -31,7 +31,7 @@ struct ValueParser : Deserializer {
     vector<pair<string, string>> filenames;
     Lex lex;
 
-    ValueParser(VM &vm, string_view _src) : Deserializer(vm), lex("string", filenames, _src) {
+    ValueParser(VM &vm, string_view _src) : Deserializer(vm), lex("string", filenames, {}, _src) {
         lex.do_string_interpolation = false;
     }
 

@@ -19,7 +19,7 @@
 #include "lobster/glincludes.h"
 #include "lobster/sdlinterface.h"
 
-// We use a vector here because gl_get_shader may cause there to be references to
+// We use a vector here because gl.get_shader may cause there to be references to
 // old versions of a shader with a given name that has since been reloaded.
 map<string, vector<unique_ptr<Shader>>, less<>> shadermap;
 
@@ -88,7 +88,7 @@ int CompileGLSLShader(GLenum type, int program, const GLchar *source, string &er
     return 0;
 }
 
-string ParseMaterialFile(string_view mbuf) {
+string ParseMaterialFile(string_view mbuf, string_view prefix) {
     auto p = mbuf;
     string err;
     string_view last;
@@ -148,7 +148,7 @@ string ParseMaterialFile(string_view mbuf) {
             v.emplace_back(std::move(sh));
             shader.clear();
             // Typically, all versions below the latest will not be in used and can be
-            // deleted here, unless still referenced by gl_get_shader.
+            // deleted here, unless still referenced by gl.get_shader.
             for (size_t i = 0; i < v.size() - 1; ) {
                 if (!v[i]->refc) {
                     v.erase(v.begin() + i);
@@ -190,7 +190,7 @@ string ParseMaterialFile(string_view mbuf) {
             } else if (last == "SHADER") {
                 if (finish()) return err;
                 word();
-                shader = last;
+                shader = cat(prefix, last);
                 vdecl.clear();
                 pdecl.clear();
                 csdecl.clear();
@@ -304,10 +304,13 @@ string ParseMaterialFile(string_view mbuf) {
             } else if (last == "LAYOUT") {
                 word();
                 auto xs = last;
+                if (xs.empty()) xs = "1";
                 word();
                 auto ys = last;
+                if (ys.empty()) ys = "1";
                 word();
                 auto zs = last;
+                if (zs.empty()) zs = "1";
                 csdecl += "layout(local_size_x = " + xs + ", local_size_y = " + ys + ", local_size_z = " + zs + ") in;\n";
             } else if (last == "DEFINE") {
                 word();
@@ -326,7 +329,9 @@ string ParseMaterialFile(string_view mbuf) {
             } else {
                 if (!accum)
                     return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL/COMPUTE block: " + line;
-                *accum += cat(line, "  // ", line_number, "\n");
+                *accum += line;
+                if (line.back() != '\\') *accum += cat("  // ", line_number);
+                *accum += "\n";
             }
         }
         if (line.size() == start.size()) break;
@@ -340,10 +345,10 @@ string ParseMaterialFile(string_view mbuf) {
     return err;
 }
 
-string LoadMaterialFile(string_view mfile) {
+string LoadMaterialFile(string_view mfile, string_view prefix) {
     string mbuf;
     if (LoadFile(mfile, &mbuf) < 0) return string_view("cannot load material file: ") + mfile;
-    auto err = ParseMaterialFile(mbuf);
+    auto err = ParseMaterialFile(mbuf, prefix);
     return err;
 }
 
@@ -389,6 +394,8 @@ string Shader::Link(string_view name) {
         auto err = GLSLError(program, true, nullptr);
         return string_view("linking failed for shader: ") + name + "\n" + err;
     }
+    assert(name.size());
+    shader_name = name;
     mvp_i              = glGetUniformLocation(program, "mvp");
     mv_i               = glGetUniformLocation(program, "mv");
     projection_i       = glGetUniformLocation(program, "projection");
@@ -423,11 +430,13 @@ Shader::~Shader() {
 
 // FIXME: unlikely to cause ABA problem, but still better to reset once per frame just in case.
 static int last_program = 0;
+static Shader *last_shader = nullptr;  // Just for debugging purposes.
 
 void Shader::Activate() {
     if (program != last_program) {
         GL_CALL(glUseProgram(program));
         last_program = program;
+        last_shader = this;
     }
 }
 

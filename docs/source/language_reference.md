@@ -38,7 +38,8 @@ Lexical definition
 -   Keywords: `nil return class struct import int float string any void
     def fn is from program private resource enum enum_flags typeof
     var let pakfile switch case default namespace not and or attribute
-    if for while super`
+    if for while super constructor guard abstract member member_frame
+    static static_frame attribute operator`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
     expression (such as `+` or `,`) and an actual token otherwise (used to
@@ -52,8 +53,8 @@ Lexical definition
 Grammar
 -------
 
-Below, `...` indicates a loop with exit point at that scope level (ex. `(ident ... ,)` -> `(ident (, ident)*)`, * meaning optionaly repeating), 
-and `||` is like `|` except indicates a precedence level difference. `[rule]` Means optional. 
+Below, `...` indicates a loop with exit point at that scope level (ex. `(ident ... ,)` -> `(ident (, ident)*)`, * meaning optionaly repeating),
+and `||` is like `|` except indicates a precedence level difference. `[rule]` Means optional.
 
 program = stats end\_of\_file
 
@@ -66,7 +67,7 @@ topexp = `namespace` ident
 
 class = ( `class` \| `struct` ) ident
         ( `=` ident specializers
-       \| [ generics ] `:` [ ident [ specializers ] ] 
+       \| [ generics ] `:` [ ident [ specializers ] ]
           indlist( ident [ `:` type ] [ `=` exp ] \| functiondef ) )
 
 specializers = `<` list( type ) `>`
@@ -77,7 +78,7 @@ vardef = ( `var` \| `let` ) list( ident [ `:` type ] ) `=` opexp
 
 enumdef = ( `enum` | `enum_flags` ) ident `:` indlist( ident [ `=` integer\_constant ] )
 
-functiondef = `def` ident [ generics ] functionargsbody
+functiondef = ( `def` | `constructor` ) ident [ generics ] functionargsbody
 
 functionargsbody = `(` args `)` `:` body
 
@@ -87,7 +88,7 @@ args = [ list( ident [ ( `:` \| `::` ) type ] [ `=` exp ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void` 
+type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` \| `void`
 \| ident [ specializers ]
 
 call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
@@ -107,9 +108,9 @@ deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 
 factor = constant \| `(` exp `)` \| `super` \| ctrlflow \| pakfile string\_constant \| constructor \| `fn` functionargsbody \| ident [ call ]
 
-ctrlflow = `if` ifpart \| (`for` \| `while`) exp `:` body
+ctrlflow = `if` ifpart \| (`for` \| `while`) exp `:` body \| `guard` exp [ `:` body ]
 
-ifpart = exp `:` body (`else` `:` body \| `elif` `:` ifpart) 
+ifpart = exp `:` body (`else` `:` body \| `elif` `:` ifpart)
 
 constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list( ident `:` exp \| exp ] `}`
 
@@ -204,10 +205,8 @@ struct int3 : int2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use either `class` or `struct` to define these, with the latter being more
-restrictive: it does not allow fields to be modified (assigned to) after it has
-been constructed, they are stored in-inline in their parent and copied.
-This makes sense for small objects such as the one in this example, and can be used
-to enforce a more functional style of programming.
+restrictive: they are stored in-inline in their parent and copied.
+This makes sense for small objects such as the one in this example.
 
 You specify a list of fields using indentation.
 
@@ -254,6 +253,8 @@ vec2 { x: 1, y: 2 }
 
 Besides being more readable, it allows you to specify the fields in any order,
 and to override fields that have defaults.
+
+For more complex ways of constructing types, see constructor functions below.
 
 To declare a type whose only purpose is to serve as a superclass for other
 types and is not to be instantiated, declare it with `abstract`:
@@ -891,8 +892,8 @@ def foo():
     static_frame b = 0
     print b++
 
-gl_window("foo", 100, 100)
-while gl_frame():
+gl.window("foo", 100, 100)
+while gl.frame():
     static a = 0
     a++
     if a % 4:
@@ -916,6 +917,41 @@ it automatically gets created/deleted for you.
 variables declared this way use more space and an extra check (an extra variable
 to check the frame count) but otherwise function just like normal variables,
 so you should feel free to use them wherever they make the code simpler/clearer.
+
+
+### Constructor functions
+
+As shown above, a user defined type always comes with a plain constructor that requires
+exactly all unitialized fields in `{}`. That is sufficient for most cases but sometimes
+you may want to do additional processing on the inputs where the mapping from inputs to
+fields in not 1:1.
+
+In that case you can declare a function with the keyword `constructor`
+instead of `def`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+constructor Foo(n:int):
+    return Foo { map(n): 0, map(n): 1 }
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This function behaves like a normal function, except that it marks type `Foo` as having
+a constructor, and hence forth doesn't allow code outside of this function to be constructed
+using a plain `{}` constructor, it must call this function instead. This is because
+a constructor may encode an invariant, such as in this case that the object is always
+initialized to two vectors of the same length with elements initialized to 0 and 1 respectively.
+You couldn't do this with a plain constructor, since there would be no way to take the
+variable `n` into account.
+
+Another common case is wanting to make a variable non-nil, but there is no way to
+construct a general instance of the type that would work for all cases. Now you can
+make it depend on a caller supplied argument.
+
+You call these constructors with regular function calling syntax (e.g. `Foo(10)`)
+instead of with `{}`, to make it clear that additional code may be executed beyond plain field
+initialization (and that a function is called).
+
+You may create overloads for constructors much like regular functions, or even make them
+dynamically dispatch, as long as they all result in the given type.
 
 Typing
 ------
@@ -1131,7 +1167,7 @@ above) for more complex cases.
 
 Many other functions that look like regular functions are actually also control
 structures, like many of the graphics function that change the current rendering
-state. An example is `gl_translate`, that optionally takes a body, and will
+state. An example is `gl.translate`, that optionally takes a body, and will
 run the body and restore the previous transform afterwards.
 
 `switch` has special syntax, since it does a lot of things different:
@@ -1146,9 +1182,54 @@ var st = switch i:
         default: "what?"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The value you switch on may be int, float or string. Cases may test for multiple
-values, even ranges (which are inclusive)
+The value you switch on may be int, float, string or class instance. Cases may test for multiple
+values, even ranges (which are inclusive). When testing for class instances, the cases are
+types which must exhaustively cover all non-abstract sub-classes of the class type.
 
+`guard` is a special variant of `if` for writing code in "early-out" style:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+guard a >= 0:
+    print "error: a is negative!"
+imagine_10_lines_of_code_processing_a_here()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Is equivalent to:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if a >= 0:
+    imagine_10_lines_of_code_processing_a_here()
+else:
+    print "error: a is negative!"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Why would you want this over a traditional if-else? The idea that code becomes
+easier to read if it is written in a more linear style, dealing with all cases
+where the code does not apply first, before getting to the main body of code.
+This becomes more obvious if you use nested if-thens.
+
+A lot of code tends to use a `return` inside an `if` for this early-out style of
+programming, but that has the problem that it only works at the top level of
+a function. `guard` works for code anywhere, and does not require the extra
+`return` statement.
+
+If there is no code to run in the error/exceptional case, you may even shorten
+it to:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+guard a >= 0
+imagine_10_lines_of_code_processing_a_here()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Is equivalent to:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if a >= 0:
+    imagine_10_lines_of_code_processing_a_here()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+That reads like an `assert` except instead of aborting the program, it skips the
+rest of the block.
 
 Modules and Name Spaces
 ----------------------
@@ -1159,8 +1240,7 @@ once.
 You can prefix any top-level declaration by `private` to cause it not be available to
 users of the module.
 
-Lobster has a very simple namespacing mechanism that uses `_` for separating namespaces,
-effectively generating just a longer identifier:
+Lobster has a namespacing mechanism that uses `.` for separating namespaces:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 namespace foo
@@ -1172,14 +1252,13 @@ def baz(): return bar {}
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Names `bar` and `baz` can be used as-is inside this module, but must be referred
-to as `foo_bar` and `foo_baz` outside of this module. Non-top level items like `x` are not
+to as `foo.bar` and `foo.baz` outside of this module. Non-top level items like `x` are not
 affected.
 
 Most built-in functions come with a namespace, such as `gl` etc.
 
-Namespaces are indistinguishable from identifiers that already have a `_` baked into them,
-except from the fact that these have to be referred to by their full name everywhere, even
-inside the module that defines them.
+Since namespaces look the same as object dereferencing, it is recommended to use
+a name with a leading uppercase for namespaces whereever possible.
 
 
 Declaration order

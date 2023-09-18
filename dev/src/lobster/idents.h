@@ -195,6 +195,7 @@ struct GUDT : Named {
     bool predeclaration = false;
     //bool is_generic = false;
     bool has_subclasses = false;
+    bool has_constructor_function = false;
     SpecUDT unspecialized;
     Type unspecialized_type;
     map<string_view, string_view> attributes;
@@ -455,6 +456,7 @@ struct Function : Named {
     bool anonymous = false;
     // its merely a function type, has no body, but does have a set return type.
     bool istype = false;
+    GUDT *is_constructor_of = nullptr;
 
     size_t scopelevel;
 
@@ -604,10 +606,18 @@ struct SymbolTable {
         for (auto tv  : typevars)         delete tv;
         for (auto su  : specudts)         delete su;
     }
+    
+    bool MaybeNameSpace(string_view name) {
+        return !current_namespace.empty() && name.find(".") == name.npos;
+    }
+
+    string NameSpaced(string_view name, string_view ns) {
+        return cat(ns, ".", name);
+    }
 
     string NameSpaced(string_view name) {
-        assert(!current_namespace.empty());
-        return cat(current_namespace, "_", name);
+        assert(MaybeNameSpace(name));
+        return NameSpaced(name, current_namespace);
     }
 
     string_view StoreName(const string &s) {
@@ -617,14 +627,14 @@ struct SymbolTable {
         return string_view(buf, s.size());
     }
 
-    string_view MaybeNameSpace(string_view name, bool other_conditions) {
-        return other_conditions && !current_namespace.empty() && scopelevels.size() == 1
+    string_view MaybeMakeNameSpace(string_view name, bool other_conditions) {
+        return other_conditions && scopelevels.size() == 1 && MaybeNameSpace(name)
             ? StoreName(NameSpaced(name))
             : name;
     }
 
     Ident *Lookup(string_view name) {
-        if (!current_namespace.empty()) {
+        if (MaybeNameSpace(name)) {
             auto it = idents.find(NameSpaced(name));
             if (it != idents.end()) return it->second->Read();
         }
@@ -808,7 +818,7 @@ struct SymbolTable {
             return eit->second;
         }
         if (!decl) {
-            if (!current_namespace.empty()) {
+            if (MaybeNameSpace(name)) {
                 eit = enums.find(NameSpaced(name));
                 if (eit != enums.end()) return eit->second;
             }
@@ -822,7 +832,7 @@ struct SymbolTable {
 
     EnumVal *EnumValLookup(string_view name, bool decl) {
         if (!decl) {
-            if (!current_namespace.empty()) {
+            if (MaybeNameSpace(name)) {
                 auto evit = enumvals.find(NameSpaced(name));
                 if (evit != enumvals.end()) return evit->second;
             }
@@ -860,7 +870,7 @@ struct SymbolTable {
     }
 
     GUDT *LookupStruct(string_view name) {
-        if (!current_namespace.empty()) {
+        if (MaybeNameSpace(name)) {
             auto uit = gudts.find(NameSpaced(name));
             if (uit != gudts.end()) return uit->second;
         }
@@ -897,7 +907,7 @@ struct SymbolTable {
     }
 
     UDT *LookupSpecialization(string_view name) {
-        if (!current_namespace.empty()) {
+        if (MaybeNameSpace(name)) {
             auto uit = udts.find(NameSpaced(name));
             if (uit != udts.end()) return uit->second;
         }
@@ -999,7 +1009,7 @@ struct SymbolTable {
     }
 
     Function *FindFunction(string_view name) {
-        if (!current_namespace.empty()) {
+        if (MaybeNameSpace(name)) {
             auto &v = functions[NameSpaced(name)];
             if (!v.empty()) return v.back();
         }
@@ -1066,9 +1076,12 @@ struct SymbolTable {
         return nt;
     }
 
-    TypeRef Wrap(TypeRef elem, ValueType with) {
+    TypeRef Wrap(TypeRef elem, ValueType with, const Line *errl = nullptr) {
+        if (with == V_NIL && elem->t != V_VAR && elem->t != V_TYPEVAR && !IsNillable(elem))
+            lex.Error("cannot construct nillable type from " + Q(TypeName(elem)), errl);
         auto wt = WrapKnown(elem, with);
-        return !wt.Null() ? wt : elem->Wrap(NewType(), with);
+        if (!wt.Null()) return wt;
+        return elem->Wrap(NewType(), with);
     }
 
     bool RegisterTypeVector(vector<TypeRef> *sv, const char **names) {
@@ -1154,7 +1167,7 @@ struct SymbolTable {
             case V_VECTOR: {
                 auto nt = ResolveTypeVars({ type->Element() }, errl);
                 if (&*nt != &*type->Element()) {
-                    return Wrap(nt, type->t);
+                    return Wrap(nt, type->t, &errl);
                 }
                 return type;
             }
@@ -1357,7 +1370,7 @@ inline string Signature(const SubFunction &sf) {
         r += "<";
         for (auto [i, gtv] : enumerate(sf.generics)) {
             if (i) r += ",";
-            r += TypeName(gtv.type);
+            r += gtv.type.Null() ? gtv.tv->name : TypeName(gtv.type);
         }
         r += ">";
     }

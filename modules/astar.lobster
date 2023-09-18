@@ -26,15 +26,15 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
         openlist.remove_obj(n)
         n.closed = true
         generatenewstates(n) delta, cost, nn:
-            if not nn.closed:
-                let G = n.G + cost
-                if (not nn.open and openlist.push(nn)) or G < nn.G:
-                    nn.open = true
-                    nn.delta = delta
-                    nn.previous = n
-                    nn.H = heuristic(nn.state)
-                    nn.G = G
-                    nn.F = G + nn.H
+            guard not nn.closed
+            let G = n.G + cost
+            if (not nn.open and openlist.push(nn)) or G < nn.G:
+                nn.open = true
+                nn.delta = delta
+                nn.previous = n
+                nn.H = heuristic(nn.state)
+                nn.G = G
+                nn.F = G + nn.H
         n = nil
         for(openlist) c:
             if not n or c.F < n.F or (c.F == n.F and c.H < n.H):
@@ -100,12 +100,12 @@ def astar_goap<T>(goapactions:[goapaction], initstate:T, heuristic, endcondition
         endcondition(_.state)
     fn n, f:
         for(goapactions) act:
-            if act.precondition(n.state):
-                let nstate = n.state.copy
-                act.effect(nstate)
-                var i = existingnodes.find(): equal(_.state, nstate)
-                if i < 0:
-                    i = existingnodes.length
-                    existingnodes.push(goap_node<T> { nstate, nil })
-                f(act, 1, existingnodes[i])
+            guard act.precondition(n.state)
+            let nstate = n.state.copy
+            act.effect(nstate)
+            var i = existingnodes.find(): equal(_.state, nstate)
+            if i < 0:
+                i = existingnodes.length
+                existingnodes.push(goap_node<T> { nstate, nil })
+            f(act, 1, existingnodes[i])
     fn: heuristic(_)

@@ -1,3 +1,7 @@
+- auto binding generated C++ headers from a Lobster decl
+
+- allow let inside if/guard as syntactic sugar
+
 - this is out of date and a bit overly negative: https://aardappel.github.io/lobster/philosophy.html
 
 - A document that explains what samples are available and what they demo.
@@ -60,6 +64,8 @@
 
 - rename vectors to lists.. "vector" is confusing for non-C++ people apparently.
 
+- "error: dynamic function value call must be on variable" can we remove this restriction?
+
 - By-value assignment operator, for things like re-initializing objects:
   this <== Foo {}
   A bit inefficient in terms of construction/reference counting compared to a dedicated
@@ -92,45 +98,6 @@
         s = "s"
         c = C {}
     print C {}
-
-- fix this:
-
-    class A
-    class B
-
-    let b:B
-
-    class A:
-        x = "a"
-
-        def ov():
-            // overwriting "b.a" is all cool.
-            b.a = A {}
-
-        def sec():
-            ov()
-            // oops, this A has been deallocated.
-            x = "b"
-
-    class B:
-        a = A {}
-
-        def inb():
-            // this creates a borrow on "this.a", but not on "b.a"
-            a.sec()
-
-    let b:B = B {}
-    b.inb()
-
-    /* 
-    essentially, every time X.Y gets borrowed against and X was defined (arg or local)
-    thru Z which is an active item in the borrow stack, Z.Y must also be added.
-
-    but adding two stack items for one access doesn't work since the lifetime value only refers to one of them.
-
-    Alternatively, CheckLvalBorrowed must check these on the fly but that is likely slower and more complicated.
-    */
-
 
 - this fails to specialize for the nil case:
 
@@ -197,6 +164,9 @@
     because too much of the VM assumes everything is 64-bit Values.
     Thus, getting such smaller fields to work generically with all vector ops likely wouldn't
     work.. yet the type system would suggest it would, so a bit messy.
+    Truely supporting smaller sizes in more places (e.g. a vector of int16) would be easier
+    if all vector ops were code-genned instead of calling into generic methods, i.e.
+    after bytecode has been factored out.
     An alternative would be a new kind of type, "bitfield", that is simply a subtype of int
     much like enums. You specify it like a struct, then that type can be used absolutely
     everywhere, and decay to an int for code that doesn't understand it.
@@ -564,6 +534,32 @@
   See: Kotlin, that made a very cool feature out of this:
   https://kotlinlang.org/docs/lambdas.html#function-types
 
+- "guard" is a feature to promote early-out programming style, but more deeply it can also
+  be seen as analogous to Icon/ProLog sequence of expressions that can fail.
+  It treats a sequence of Lobster statements/exps and says that an exp may fail (0 results)
+  thus the statements/exps after it should not be executed.
+  But what if you did the same for "success"" of more than 1 result?
+  Lobster already has the ability for a function to "generate" results as a HOF and thus
+  look like a for loop, which can use a ProLog "cut" operation across function boundaries
+  with return, so we can already do this.
+  But much like "guard" is a syntax-only feature, you can imagine a flattened version of iteration
+  that relies on a HOF or for underneath:
+  stat1
+  each a = foo(10)
+  stat2
+  Where "each" is like a "let", except it will iterate the subsequent statements 0..N based
+  the values supplied by its initializer.
+  "foo" would be a 2-arg HOF where is 2nd arg is the function value implicitly passed, so
+  it is equivalent to:
+  stat1
+  foo(10) a:
+    stat2
+  If the initializer is not a HOF it would default to the args passed to for, i.e. you could
+  write "each a = 10" or whatever.
+  "guard" is a special case of this, since you could implement guard as "each _ = boolean_exp"
+  I guess additionally "each" doesn't have an optional else block, so the distinction is still
+  useful, besides the clear naming.
+
 - natgen refactor
   - inline tocpp into codegen, removing bytecode entirely.
     - will likely make all refactorings below easier!
@@ -604,19 +600,6 @@
 - docs only show switch used as exp
 
 - should really have a way to test errors.
-
-- Detect this case:
-    class Test:
-        t:Test?
-    var a:Test? = Test { Test { Test { Test { nil } } } }
-    var c:Test? = a
-    def f(b):
-        c.t = nil
-        print b
-    if a.t and a.t.t:
-        f(a.t.t)
-  - having final/const fields may help reduce the cases where this is an issue.
-- see also: https://nim-lang.org/docs/manual_experimental.html#view-types
 
 - Do better stats on specialization code bloat, and implement a byte-code level merging pass.
   - would first need to make jumps relative encoded.
@@ -797,7 +780,7 @@
   - Also using nested classes might not work well with generics since we resolved in non-nested
     fashion field types at the beginning of the type checker.
 
-- kriskowal: maybe replace gl_button string with an enum.
+- kriskowal: maybe replace gl.button string with an enum.
 
 - docs: explain about unbound variables, and what causes:
   type variable does not have field: size
@@ -832,7 +815,7 @@
 
 - kriskowal: a non-allocating version of copy() with a second destination arg.
 
-- kriskowal: might be fun to have gl_cube and other simple 3d primitives, for quick prototyping?
+- kriskowal: might be fun to have gl.cube and other simple 3d primitives, for quick prototyping?
 
 - this is interesting for the variety in graphics it allows:
   http://wiki.winamp.com/wiki/MilkDrop_Preset_Authoring
@@ -972,7 +955,7 @@
         body()
         state -= dx
   Is going to produce hard to understand bugs, yet also natural to write code this way.
-  Built-ins like gl_translate also suffer from this issue.
+  Built-ins like gl.translate also suffer from this issue.
   https://github.com/aardappel/lobster/issues/93
   Solutions:
   - a "defer" statement. Simple, but requires the programmer to remember to use it, does not
@@ -1065,6 +1048,92 @@
 
 - remove or bound LT_ANY, it makes checks for keep/borrow fragile and can perculate.
   - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
+
+- we could try an do limited support for indexing [] in flow sensitive typing, e.g. just for
+  constants and variable indices.
+  - Any write to the vector should invalidate all indices
+  - Any write to a variable used as an index would invalidate that index
+- A more conservative mode for both flow-upgrades and borrows.
+  The current algorithm is "optimistic" in that it doesn't detect all forms of aliasing.
+  This works well in "real" code as these upgrades/borrows are typically short lived, and
+  programmers tend to not access the same data over unrelated aliases.
+  However, if we want to be fully sound even just as a check, it be interesting to see what
+  is required for it to be impossible to subvert.
+  - 1. Aliasing: it will always be possible to obtain two refs to the same data structure
+    though independent and complex code that the compiler can't know refer to the same
+    object. This means that writes to any type T must invalidate upgrades/borrows of any
+    such types, even if under different idents/paths.
+    Not unlike C++ compilers that reload array values into regs whenever a write to
+    a similar array happens.
+  - 2. Track all possible VM decrefs in the type system. We currently do assigns, but if
+    we allow array indexing in the path (such as for borrows), we must also track vector
+    functions like pop as a write that invalidates anything in that vector.
+  - 3. Function call reuse. We currently re-apply non-local returns on a reuse, but not
+    writes. Since we already track free variables, we could simply mark free variables
+    written to, and invalidate everything they touch.. that is overly conservative, maybe
+    a more exact system can be made.
+  The above will generate more issues in code when turned on:
+  - For flow upgrades, this can be solved with:
+    - You could actually introduce a new hidden variable for each upgrade for the cases
+      above where the upgrade gets invalidated due to possible aliasing. This would be
+      inefficient because it would introduce a runtime refc++, but if the aliasing is real
+      it will not delete the object.
+      This of course should not be done for regular invalidations over the same var, which
+      are intentional.
+    - Alternatively, just let the error happen and the programmer has to re-establish the upgrade.
+      This is a bit random, but should generally be super rare.
+  - For borrows:
+    - Since we want to keep borrowing automatic, it be nice if it could be downgraded to a
+      keep automatically in only the cases where alias-invalidates happen. That would
+      generally be easy and cheap, the only complication being with code that has already
+      been type-checked againt that borrow, so we'd likely need a more indirect representation.
+    - Could allow it to just be an error, since likely it rarely happens. If it does
+      happen it may be a difficult error, but the programmer likely knows they are doing
+      some tricky aliasing they may want to simplify?
+    - Could allow more explicit borrow annotations.
+  If we go this route, should first unify flow upgrades and borrows more, and e.g. allow
+  Indexing also in upgrades, and track writes to the indexed expression etc.
+  Frankly though, the above is a LOT of complexity, for something that really doesn't ever
+  happen.
+  Existing examples.
+    - fix this:
+        class A
+        class B
+        let b:B
+        class A:
+            x = "a"
+            def ov():
+                // overwriting "b.a" is all cool.
+                b.a = A {}
+            def sec():
+                ov()
+                // oops, this A has been deallocated.
+                x = "b"
+        class B:
+            a = A {}
+            def inb():
+                // this creates a borrow on "this.a", but not on "b.a"
+                a.sec()
+        let b:B = B {}
+        b.inb()
+        /* 
+        essentially, every time X.Y gets borrowed against and X was defined (arg or local)
+        thru Z which is an active item in the borrow stack, Z.Y must also be added.
+        but adding two stack items for one access doesn't work since the lifetime value only refers to one of them.
+        Alternatively, CheckLvalBorrowed must check these on the fly but that is likely slower and more complicated.
+        */
+    - Detect this case:
+        class Test:
+            t:Test?
+        var a:Test? = Test { Test { Test { Test { nil } } } }
+        var c:Test? = a
+        def f(b):
+            c.t = nil
+            print b
+        if a.t and a.t.t:
+            f(a.t.t)
+      - having final/const fields may help reduce the cases where this is an issue.
+    - see also: https://nim-lang.org/docs/manual_experimental.html#view-types
 
 - For certain use cases, having "atoms" is a nice language feature, being able to specify
   undeclared identifiers that map to a unique set of integers.
@@ -1684,7 +1753,7 @@
   - inlining
     - named functions
     - how does removing single-use functions relate to function values stored in variables
-      (and in variables of function types), and as arguments to builtins like hash/gl_translate.
+      (and in variables of function types), and as arguments to builtins like hash/gl.translate.
   - remove static function arguments
     - or maybe better to generically remove vars that aren't used.
   - C++ backend: detect when not needing to return to trampoline?
@@ -1874,7 +1943,7 @@
   - also should be possible without () (see capped_storage() in cityclicker.lobster)
   - also should be possible to leave out variable name before ::
 
-- There's a possibility gl_set_mesh_texture will hold on to texture ids that get deleted.
+- There's a possibility gl.set_mesh_texture will hold on to texture ids that get deleted.
   Would be nice to avoid this, but don't want Mesh to have to hold on to an LResource, or
   have to implement a second level of refcounting.
 
@@ -2045,7 +2114,7 @@
   - trace output also to a file
 
 - BitmapFont::height is often 1 or 2 bigger than the original fontheight, which creates problems if code use the
-  fontheight for rendering instead of gl_text_size()
+  fontheight for rendering instead of gl.text_size()
   either improve the math such that they are guaranteed equal, or document that fontheight should never be used for
   rendering bounding boxes etc
 
@@ -2059,7 +2128,7 @@
     - cannot use matrix functionality for own matmuls etc -> need loadmatrix etc
     - localmousepos and hit are nonsensical when perspective is on
 
-- should all gl calls check minimized themselves for programmers that don't check gl_visible() (gl rendering when
+- should all gl calls check minimized themselves for programmers that don't check gl.visible() (gl rendering when
   minimized crashes on IOS)
 
 - for mgtest or other games with long load time, have a way to not have an uninitialized window while loading
@@ -2093,7 +2162,7 @@
 
 - should lobster transition to a callback model per frame? that's how mobile devices like to interact with your program,
   and SDL does some pretty nasty stuff to emulate the pc way of doing things on there.. can we bypass that?
-  Hmm that doesn't require a new programming model.. we can just have gl_frame() suspend the VM so we can return from
+  Hmm that doesn't require a new programming model.. we can just have gl.frame() suspend the VM so we can return from
   our frame callback
 
 - optimisations:
@@ -2123,7 +2192,7 @@
   + error handling
   + can make features that rely on graphics, like a graphical console/print, graphical debugging, could kill the DOS
     console
-  + if graphics are mandatory, frame based state makes more sense.. its a bit odd if such a thing is a gl_ feature, but
+  + if graphics are mandatory, frame based state makes more sense.. its a bit odd if such a thing is a gl. feature, but
     hey why not
   - no more console-only programs possible.. reduces its usefulness as a general purpose programming language
   - don't want to have it initializing graphics before compilation... probably can just do it before VM init
@@ -2493,7 +2562,7 @@ CURRENT SOLUTION FROM TRADEOFS:
     - nodes can be inline in their parents, total much less allocations.
 
 - namespaces:
-  Syntax-wise we've been using _ for hardcoded namespaces so far for both builtins (gl_text)
+  Syntax-wise we've been using _ for hardcoded namespaces so far for both builtins (gl.text)
   and libraries (gui_text). I kinda prefer that syntax to . or ::, it makes the namespace
   obvious part of the name and feels more lightweight.
   Though . will be more familiar to people, and makes leaving it out more natural.
@@ -2512,7 +2581,7 @@ CURRENT SOLUTION FROM TRADEOFS:
   current namespace.
   Hmm.. defaulting to namespaced as declared is probably better, "as" could be optional renaming.
 
-- you can hit multiple overlapping hit boxes with gl_hit(). problem is, you render back to front, but want to hit test front to back...
+- you can hit multiple overlapping hit boxes with gl.hit(). problem is, you render back to front, but want to hit test front to back...
     - if you simply clear that a hit happened this frame when its tested, you get that order wrong
     - if you added z-layers to rendering such that you could do inverse order
       - if you did it immediate mode, blending wouldn't work correctly, so it would have to be understood that if you did did multiple layers for hit testing, you can't hit on an alpha element
@@ -2526,7 +2595,7 @@ CURRENT SOLUTION FROM TRADEOFS:
       problem is, this doesn't work on touch screens, where you lose the first touch down event this way
       -> unless you delayed all touch down events by one frame, to give one hover frame to register (this is the current solution)
     regardless of the solution above, you also need an additional way to cancel hits that happen inside a toolbar or statusbar that may not have hittests everywhere
-    -> that can already be done by a gl_hit that doesn't react to it's return value
+    -> that can already be done by a gl.hit that doesn't react to it's return value
 
 - for things like GUI callbacks, lobsters non-escaping free var function values kinda suck. options:
   - just call em in place, can only really work in a non-immediate mode gui since otherwise the callback can change the gui layout

@@ -36,7 +36,7 @@ extern pair<string, iint> RunTCC(NativeRegistry &nfr,
 
 extern bool LoadPakDir(const char *lpak);
 extern bool LoadByteCode(string &bytecode);
-extern void RegisterBuiltin(NativeRegistry &natreg, const char *name,
+extern void RegisterBuiltin(NativeRegistry &natreg, const char *ns, const char *name,
                             void (* regfun)(NativeRegistry &));
 extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);
 

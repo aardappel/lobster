@@ -29,9 +29,9 @@ run_test("misc"):
     let constdef = 1
     // constdef++ // error!
 
-    assert test_namespace_f() == 1
-    assert (test_namespace_g {}).x == 1
-    assert (test_namespace_g {}).m() == 2
+    assert test_namespace.f() == 1
+    assert (test_namespace.g {}).x == 1
+    assert (test_namespace.g {}).m() == 2
 
     class testa:
         a:int
@@ -259,7 +259,7 @@ run_test("misc"):
     assert (bit >>= 1) == 2
 
     // Dictionary.
-    let dict = dictionary<float, float> { 17 }
+    let dict = dictionary<float, float>(17)
     // Check get before first set()
     assert dict.get(1.0, -1.0) == -1.0
     rnd_seed(0)
@@ -272,12 +272,12 @@ run_test("misc"):
         let value = dict.get(key, -1.0)
         assert value == key
     // Test using nil as default value.
-    let dict2 = dictionary<string, string?> { 17 }
+    let dict2 = dictionary<string, string?>(17)
     dict2.set("a", "b")
     let val = dict2.get("a", nil)
     assert val and val == "b"
     // Test using structs!
-    let dict3 = dictionary<int3, int3> { 17 }
+    let dict3 = dictionary<int3, int3>(17)
     dict3.set(int3 { 1, 2, 3 }, int3 { 4, 5, 6 })
     assert dict3.get(int3 { 1, 2, 3 }, int3_0) == int3 { 4, 5, 6 }
 
@@ -404,3 +404,18 @@ run_test("misc"):
             state = 2
         call_function_value(fv)
         assert state == 2
+
+    do():
+        // Guards.
+        let gs = map(4) i:
+            guard i >= 2:
+                guard i >= 1:
+                    10
+                20
+            guard i >= 3:
+                30
+            40
+        assert equal(gs, [ 10, 20, 30, 40 ])
+        guard true
+        guard false
+        assert false

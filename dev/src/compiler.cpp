@@ -243,10 +243,10 @@ bool LoadByteCode(string &bytecode) {
     return ok;
 }
 
-void RegisterBuiltin(NativeRegistry &nfr, const char *name,
+void RegisterBuiltin(NativeRegistry &nfr, const char *ns, const char *name,
                      void (* regfun)(NativeRegistry &)) {
     LOG_DEBUG("subsystem: ", name);
-    nfr.NativeSubSystemStart(name);
+    nfr.NativeSubSystemStart(ns, name);
     regfun(nfr);
 }
 
@@ -365,7 +365,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
              string *parsedump, string *pakfile, bool return_value, int runtime_checks,
              Query *query, int max_errors, bool full_error) {
     vector<pair<string, string>> filenames;
-    Lex lex(fn, filenames, stringsource, max_errors);
+    Lex lex(fn, filenames, nfr.namespaces, stringsource, max_errors);
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
@@ -481,11 +481,19 @@ nfr("compile_run_file", "filename,args", "SS]", "SS?",
 }
 
 void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
-    extern void AddBuiltins(NativeRegistry &nfr); RegisterBuiltin(nfr, "builtin",   AddBuiltins);
-    extern void AddCompiler(NativeRegistry &nfr); RegisterBuiltin(nfr, "compiler",  AddCompiler);
-    extern void AddFile(NativeRegistry &nfr);     RegisterBuiltin(nfr, "file",      AddFile);
-    extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "parsedata", AddReader);
-    extern void AddMatrix(NativeRegistry &nfr);   RegisterBuiltin(nfr, "matrix",    AddMatrix);
+    extern void AddBuiltins(NativeRegistry &nfr);
+    extern void AddCompiler(NativeRegistry &nfr);
+    extern void AddFile(NativeRegistry &nfr);
+    extern void AddFlatBuffers(NativeRegistry &nfr);
+    extern void AddReader(NativeRegistry &nfr);
+    extern void AddMatrix(NativeRegistry &nfr);
+
+    RegisterBuiltin(nfr, "", "builtin", AddBuiltins);
+    RegisterBuiltin(nfr, "", "compiler", AddCompiler);
+    RegisterBuiltin(nfr, "", "file", AddFile);
+    RegisterBuiltin(nfr, "flatbuffers", "flatbuffers", AddFlatBuffers);
+    RegisterBuiltin(nfr, "", "parsedata", AddReader);
+    RegisterBuiltin(nfr, "matrix", "matrix", AddMatrix);
 }
 
 #if !LOBSTER_ENGINE

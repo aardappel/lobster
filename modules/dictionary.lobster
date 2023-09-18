@@ -19,13 +19,10 @@ private class chain<K,V>:
     value:V
 
 class dictionary<K,V>:
-    private buckets:[chain<K,V>?] = []
-    private size:int
+    private buckets:[chain<K,V>?]
 
     private def lookup(key:K):
-        if not buckets.length:
-            buckets = map(size): nil
-        let h = hash(key) % size
+        let h = hash(key) % buckets.length
         var c = buckets[h]
         while c:
             if c.key == key:
@@ -40,6 +37,8 @@ class dictionary<K,V>:
         else:
             buckets[h] = chain<K,V> { buckets[h], key, value }
 
+    // Useful if the value is something that supports the + operator, you can use it
+    // to increment/append.
     def add(key:K, value:V):
         let c, h = lookup(key)
         if c:
@@ -47,13 +46,18 @@ class dictionary<K,V>:
         else:
             buckets[h] = chain<K,V> { buckets[h], key, value }
 
-    def get(key:K, default_val:V) -> V:
-        let c = lookup(key)
-        return if c: c.value else: default_val
-
+    // Use this if the value type is a reference type, such that if `get`
+    // fails to find an element, it returns nil.
     def get(key:K) -> V?:
         let c = lookup(key)
         return c and c.value or nil
+
+    // Use this with non-reference type, and specify the default or sentinal value to return,
+    // e.g. for int use 0 or -1.
+    // Also useful for string to return "" as default instead of nil.
+    def get(key:K, default_val:V) -> V:
+        let c = lookup(key)
+        return if c: c.value else: default_val
 
     def get_all() -> [K], [V]:
         let keys = []
@@ -64,3 +68,6 @@ class dictionary<K,V>:
                 vals.push(c.value)
                 c = c.next
         return keys, vals
+
+constructor dictionary<K,V>(size:int):
+    return dictionary<K,V> { map(size): nil }

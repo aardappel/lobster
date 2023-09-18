@@ -27,24 +27,24 @@ def create_nav_map(start:int2, worlddim:int2, allow_diag:int, blocked_cost:int, 
         let c = pathq.pop()
         for(cardinal_directions) d:
             let dpos = c.pos - d
-            if in_range(dpos, worlddim):
-                var cost = 1
-                if not is_blocked(dpos) or (cost = blocked_cost):
-                    let n = grid[dpos]
-                    if n.psteps >= 0:
-                        if allow_diag and cost == 1 and n.cost == 1 and c.cost == 1 and
-                           n.psteps == c.psteps + 1 and
-                           n.pdir.x * n.pdir.y == 0 and n.pdir.x * d.x == 0 and n.pdir.y * d.y == 0:
-                            let diag = n.pdir + d
-                            if not is_blocked(n.pos + diag):
-                                n.pdir = diag
-                    else:
-                        n.psteps = c.psteps + cost
-                        n.pdir = d  // All these vecs are shared, so low final memory cost.
-                        n.pos = dpos
-                        n.cost = cost
-                        var i = pathq.length
-                        while i > 0 and pathq[i - 1].psteps < n.psteps: i--
-                        pathq.insert(i, n)
+            guard in_range(dpos, worlddim)
+            var cost = 1
+            guard not is_blocked(dpos) or (cost = blocked_cost)
+            let n = grid[dpos]
+            if n.psteps >= 0:
+                if allow_diag and cost == 1 and n.cost == 1 and c.cost == 1 and
+                   n.psteps == c.psteps + 1 and
+                   n.pdir.x * n.pdir.y == 0 and n.pdir.x * d.x == 0 and n.pdir.y * d.y == 0:
+                    let diag = n.pdir + d
+                    if not is_blocked(n.pos + diag):
+                        n.pdir = diag
+            else:
+                n.psteps = c.psteps + cost
+                n.pdir = d  // All these vecs are shared, so low final memory cost.
+                n.pos = dpos
+                n.cost = cost
+                var i = pathq.length
+                while i > 0 and pathq[i - 1].psteps < n.psteps: i--
+                pathq.insert(i, n)
     return nav_map { mapxy(worlddim) v: grid[v].pdir, start }
 

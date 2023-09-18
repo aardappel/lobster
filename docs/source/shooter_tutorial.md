@@ -28,20 +28,20 @@ import vec
 import color
 import gl
 
-fatal(gl_window("Shooter Tutorial", 640, 480))
+fatal(gl.window("Shooter Tutorial", 640, 480))
 
-while gl_frame() and gl_button("escape") != 1:
-    gl_clear(color_black)
+while gl.frame() and gl.button("escape") != 1:
+    gl.clear(color_black)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`gl_window` is our graphics initialization routine, and is the first thing we
+`gl.window` is our graphics initialization routine, and is the first thing we
 need to do before we can access any other graphics functionality. We specify a
 title and a size, though note that these are merely suggestions: on desktop
 platforms the user may resize/maximize our window, and on mobile platforms they
 just determine landscape vs portrait orientation, whereas the resolution is
 determined by the device itself.
 
-`gl_window` returns an error string if something goes wrong (and things can go
+`gl.window` returns an error string if something goes wrong (and things can go
 wrong, behind the scenes this call boots up an OpenGL engine including compiling
 shaders and what not), and `fatal` is a utility function defined in
 `std.lobster` that we're including that will quit the program and show the error
@@ -50,9 +50,9 @@ string if available.
 Once we're up and running, this while loop is our *frame loop*. Games work by
 rendering the current state of the game repeatedly to the screen, preferrably
 fast (30-60 times per second), giving the impression of smooth animation.
-`gl_frame` is the core of all of this: it makes sure we advance to rendering the
+`gl.frame` is the core of all of this: it makes sure we advance to rendering the
 next frame, and checks for input etc. If the user clicks the close button or
-otherwise terminates the app, `gl_frame` will return `false`, which is our
+otherwise terminates the app, `gl.frame` will return `false`, which is our
 signal to quit the game. Additionally, we want the user to be able to quit if
 they press the escape key, so we check for that too.
 
@@ -75,23 +75,23 @@ import vec
 import color
 import gl
 
-fatal(gl_window("Shooter Tutorial", 640, 480))
+fatal(gl.window("Shooter Tutorial", 640, 480))
 
 let worldsize = 20.0
 
-while gl_frame() and gl_button("escape") != 1:
-    gl_clear(color_black)
-    gl_color(color_white)
-    gl_translate(float(gl_window_size()) / 2.0)
-    gl_scale(gl_window_size().y / worldsize)
-    gl_circle(1, 6)
+while gl.frame() and gl.button("escape") != 1:
+    gl.clear(color_black)
+    gl.color(color_white)
+    gl.translate(float(gl.window_size()) / 2.0)
+    gl.scale(gl.window_size().y / worldsize)
+    gl.circle(1, 6)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before we can actually draw, we have to talk about coordinate systems. By
 default, coordinates in Lobster correspond directly to pixels, with (0,0) in the
 upper left corner (a left-handed coordinate system), and the total number of
 pixels depending on the device (or the user), which during any frame is given by
-`gl_window_size`. While working directly with pixel sizes may be useful for some
+`gl.window_size`. While working directly with pixel sizes may be useful for some
 applications, generally, we want games to be scalable, meaning they should
 roughly look the same irrespective of what device they run on.
 
@@ -110,7 +110,7 @@ covered.
 gl\_translate changes our coordinate system, and is used throughout graphics
 rendering in Lobster to render things at different portions of the screen. Here
 we move from upper-left to the middle of the screen by translating by half the
-`gl_window_size`.
+`gl.window_size`.
 
 Then we have to determine how much of the game world we want to show. We don't
 want that related to pixels either, as we don't want people with smaller screens
@@ -122,7 +122,7 @@ be able to fit at least 20 units, and we make this relative to the y resolution
 of the screen (we're assuming that'll be the smaller one of the two).
 
 Now we can finally draw! Let's put down a temporary graphic for the player.
-`gl_circle` draws circles around the current origin, with the first argument
+`gl.circle` draws circles around the current origin, with the first argument
 being the radius (see how we're using the world scale for this?), and the second
 argument is the number of sides. Setting this to something low like 6 actually
 gets us a hexagon rather than a circle.
@@ -143,28 +143,28 @@ import vec
 import color
 import gl
 
-fatal(gl_window("Shooter Tutorial", 640, 480))
+fatal(gl.window("Shooter Tutorial", 640, 480))
 
 let worldsize = 20.0
 var playerpos = float2_0
 let playerspeed = 10
 
-while gl_frame() and gl_button("escape") != 1:
-    gl_clear(color_black)
-    gl_color(color_white)
+while gl.frame() and gl.button("escape") != 1:
+    gl.clear(color_black)
+    gl.color(color_white)
 
-    gl_translate(float(gl_window_size()) / 2.0)
-    let scale = gl_window_size().y / worldsize
-    gl_scale(scale)
+    gl.translate(float(gl.window_size()) / 2.0)
+    let scale = gl.window_size().y / worldsize
+    gl.scale(scale)
 
-    let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
-                     (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-    let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
-    if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
+    let dir = float2 { (gl.button("d") >= 1) - (gl.button("a") >= 1),
+                     (gl.button("s") >= 1) - (gl.button("w") >= 1) }
+    let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
+    if not any(abs(newpos) > float(gl.window_size()) / scale / 2):
         playerpos = newpos
 
-    gl_translate(playerpos):
-        gl_circle(1, 6)
+    gl.translate(playerpos):
+        gl.circle(1, 6)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To make our player move, we added 2 new variables: `playerpos` and
@@ -189,7 +189,7 @@ take into account:
     the device, we have no idea how many frames per second we're actually
     running at. If we simply move a fixed amount each frame, we'll end up moving
     faster on faster computers! Yet another common bug that we'll avoid by
-    multiplying our vector by `gl_delta_time`, which is the number of seconds
+    multiplying our vector by `gl.delta_time`, which is the number of seconds
     (usually a fraction of a second, e.g. 0.033 at 30 FPS) that has passed since
     the last frame we rendered. The result is that we'll now move 1 unit (the
     length of the vector) per second exactly, regardless of how fast or slow our
@@ -215,9 +215,9 @@ take into account:
 
 Now we have computed a new position, we have to make sure it has an effect. We
 do this by translating our player position from the middle to where we want to
-now draw our hexagon. Note something special about this `gl_translate`: it has a
+now draw our hexagon. Note something special about this `gl.translate`: it has a
 block of code following it (notice the `:`) much like `if` or `for`.
-`gl_translate` here actually works like a control structure: it first
+`gl.translate` here actually works like a control structure: it first
 translates, then executes the body, then resets the translation. This is because
 what we want to render afterwards (enemies perhaps) should not be rendered
 relative to the player, but relative to what we had before the player (the world
@@ -238,7 +238,7 @@ import vec
 import color
 import gl
 
-fatal(gl_window("Shooter Tutorial", 640, 480))
+fatal(gl.window("Shooter Tutorial", 640, 480))
 
 let worldsize = 20.0
 
@@ -252,73 +252,73 @@ class bullet:
 let firerate = 0.1
 let bulletspeed = 15
 var bullets = []
-var lastbullet = gl_time()
+var lastbullet = gl.time()
 
-while gl_frame() and gl_button("escape") != 1:
-    gl_clear(color_black)
-    gl_color(color_white)
+while gl.frame() and gl.button("escape") != 1:
+    gl.clear(color_black)
+    gl.color(color_white)
 
-    gl_translate(float(gl_window_size()) / 2.0)
-    let scale = gl_window_size().y / worldsize
-    gl_scale(scale)
+    gl.translate(float(gl.window_size()) / 2.0)
+    let scale = gl.window_size().y / worldsize
+    gl.scale(scale)
 
-    let dir = float2 { (gl_button("d") >= 1) - (gl_button("a") >= 1),
-                     (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-    let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
-    if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
+    let dir = float2 { (gl.button("d") >= 1) - (gl.button("a") >= 1),
+                     (gl.button("s") >= 1) - (gl.button("w") >= 1) }
+    let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
+    if not any(abs(newpos) > float(gl.window_size()) / scale / 2):
         playerpos = newpos
 
-    let tomouse = normalize(gl_local_mouse_pos(0) - playerpos)
+    let tomouse = normalize(gl.local_mouse_pos(0) - playerpos)
 
-    if lastbullet < gl_time():
+    if lastbullet < gl.time():
         bullets.push(bullet { playerpos, tomouse })
         lastbullet += firerate
 
     for(bullets) b:
-        b.pos += b.dir * gl_delta_time() * bulletspeed
-        gl_translate b.pos:
-            gl_color color_yellow:
-                gl_circle(0.2, 20)
+        b.pos += b.dir * gl.delta_time() * bulletspeed
+        gl.translate b.pos:
+            gl.color color_yellow:
+                gl.circle(0.2, 20)
 
     bullets = filter(bullets) b:
         magnitude(b.pos) < worldsize * 2
 
-    gl_translate gl_local_mouse_pos(0):
-        gl_line_mode 1:
-            gl_color color_grey:
-                gl_circle(0.5, 20)
+    gl.translate gl.local_mouse_pos(0):
+        gl.line_mode 1:
+            gl.color color_grey:
+                gl.circle(0.5, 20)
 
-    gl_translate playerpos:
-        gl_rotate_z tomouse:
-            gl_polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
+    gl.translate playerpos:
+        gl.rotate_z tomouse:
+            gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To be able to shoot, first we have to worry about giving our player an
 orientation. We compute that in the vector `tomouse` which we get by
 subtracting the player position from the mouse position (what we want to shoot
 towards). Something funny is going on here though, as the name
-`gl_local_mouse_pos` may indicate: normally mouse positions are in pixels, but
+`gl.local_mouse_pos` may indicate: normally mouse positions are in pixels, but
 those we can't compare against the player position, which is in world
-coordinates! `gl_local_mouse_pos` however gives us the mouse position relative to
+coordinates! `gl.local_mouse_pos` however gives us the mouse position relative to
 the current transform, which is world coordinates (as specified by the
-`gl_translate` and `gl_scale` above). We then normalize this vector to make it
+`gl.translate` and `gl.scale` above). We then normalize this vector to make it
 easier to use, as we don't care about the original length of this vector.
 
 To make the players orientation visual, we first render the player differently:
 rather than a simple circle, we render him as a pointy triangle, to make it
-clear what direction he's looking at. That's the `gl_polygon` at the end with 3
+clear what direction he's looking at. That's the `gl.polygon` at the end with 3
 explicit coordinates (relative to the playerpos, which has now become our
-coordinate system origin thanks to `gl_translate`). Additionally, we insert a
-`gl_rotate_z` command to make the pointy part of the triangle always look
+coordinate system origin thanks to `gl.translate`). Additionally, we insert a
+`gl.rotate_z` command to make the pointy part of the triangle always look
 towards the mouse cursor. The `z` is because if we rotate around the z axis, we
 end up rotating the xy plane, which is what we look at in 2D. The argument to
-`gl_rotate_z` can either be a vector (as used here) or an angle in degrees.
+`gl.rotate_z` can either be a vector (as used here) or an angle in degrees.
 Vectors are generally awesomer.
 
 Additionally, to cater for situations where the mouse cursor isn't visible
 (which it typically isn't in games) we draw a circle (for now) at the mouse
 location to give the player feedback where he's aiming at. This starts at the
-`gl_translate` before where we draw the player (before, because if the two
+`gl.translate` before where we draw the player (before, because if the two
 overlap, the last one will be drawn on top). We translate to the mouse location
 in world space, change the linemode to 1 (which draws just the outline instead
 of a filled circle) and change the color. As you can see, all these commands are
@@ -380,9 +380,9 @@ modifications to the existing code:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def renderpointytriangle(pos, dir):
-    gl_translate pos:
-        gl_rotate_z dir:
-            gl_polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
+    gl.translate pos:
+        gl.rotate_z dir:
+            gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, let's take the code for rendering the player and put it in it's own
@@ -398,7 +398,7 @@ var enemyrate = 1.0
 let enemyspeed = 3
 let enemymaxhp = 5
 var enemies = []
-var lastenemy = gl_time()
+var lastenemy = gl.time()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can set up enemies analogous to bullets. Of course, we could share some of
@@ -406,19 +406,19 @@ this functionality between them, but let's not complicate matters for now. Add
 this to the declarations.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if lastenemy < gl_time():
+    if lastenemy < gl.time():
         enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
         lastenemy += enemyrate
         enemyrate *= 0.999
 
     for(enemies) e:
         let playerdir = normalize(playerpos - e.pos)
-        e.pos += playerdir * gl_delta_time() * enemyspeed
+        e.pos += playerdir * gl.delta_time() * enemyspeed
         for(bullets) b:
             if magnitude(b.pos - e.pos) < 1:
                 e.hp = max(e.hp - 1, 0)
                 b.pos = float2_x * worldsize * 10
-        gl_color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
+        gl.color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
             renderpointytriangle(e.pos, playerdir)
 
     enemies = filter enemies: _.hp
@@ -472,10 +472,10 @@ keep track of the player health and score (and highscore), and give him a start
 / game over screen in-between sessions.
 
 To do that, we will have to be able to render text. First step towards doing
-that is loading up a font, right after `gl_window`:
+that is loading up a font, right after `gl.window`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "can\'t load font!")
+check(gl.set_font_name("data/fonts/US101/US101.ttf") and gl.set_font_size(32), "can\'t load font!")
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `check` is another useful function much like fatal, that ensures the first
@@ -496,29 +496,29 @@ which simply says:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         var msg = "press space to play!"
-        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
-            gl_text(msg)
-        if gl_button("space") == 1:
+        gl.translate float(gl.window_size() - gl.text_size(msg)) / 2:
+            gl.text(msg)
+        if gl.button("space") == 1:
             score = 0
             playerhealth = 100.0
             playerpos = float2_0
             bullets = []
-            lastbullet = gl_time()
+            lastbullet = gl.time()
             enemyrate = 1.0
             enemies = []
-            lastenemy = gl_time()
+            lastenemy = gl.time()
             playing = true
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The `gl_translate` centers our text using the handy `gl_text_size` which tell us
-the size of a string in pixels before we've even rendered it. `gl_text` then
+The `gl.translate` centers our text using the handy `gl.text_size` which tell us
+the size of a string in pixels before we've even rendered it. `gl.text` then
 draws it. We then reset the game state when the game starts, and next frame the
 game will be playing.
 
 To show the current state to the player, we use the simple:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    gl_text("health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}")
+    gl.text("health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}")
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We call this as the very last thing in the frame, so it is visible regardless of
@@ -529,7 +529,7 @@ show `0` when the player is truely dead.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if magnitude(playervec) < 1:
-                    playerhealth -= gl_delta_time() * 50
+                    playerhealth -= gl.delta_time() * 50
                     if playerhealth <= 0:
                         playerhealth = 0
                         highscore = max(highscore, score)
