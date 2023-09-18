@@ -1479,7 +1479,8 @@ nfr("set_console", "on", "B", "",
 nfr("set_output_level", "level", "I", "",
     "0 = debug, 1 = verbose, 2 = warn (default), 3 = error, 4 = program",
     [](StackPtr &, VM &, Value &x) {
-        min_output_level = (OutputType)x.intval();
+        // Do "min", so we can override even lower from command-line.
+        min_output_level = std::min(min_output_level, (OutputType)x.intval());
         return NilVal();
     });
 
