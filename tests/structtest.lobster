@@ -91,7 +91,6 @@ run_test("struct"):
         // With indexing as parent.
         let v = [ int2_0 ]
         v[0].y = 1
-        print v[0]
         assert v[0] == int2_y
 
     // Control structures.
