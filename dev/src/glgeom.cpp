@@ -24,6 +24,7 @@ int GenBO_(string_view name, int type, size_t bytesize, const void *data, bool d
     GL_CALL(glBindBuffer(type, bo));
     GL_CALL(glBufferData(type, bytesize, data, dyn ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
     GL_NAME(GL_BUFFER, bo, name);
+    LOG_DEBUG("GPU ALLOC BUFFER: ", bytesize / 1024, " K ", name);
     return bo;
 }
 
