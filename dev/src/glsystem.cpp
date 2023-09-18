@@ -281,15 +281,19 @@ void OpenGLCleanup() {
 }
 
 void RenderDocStartFrameCapture() {
-    // To start a frame capture, call StartFrameCapture.
-    // You can specify NULL, NULL for the device to capture on if you have only one device and
-    // either no windows at all or only one window, and it will capture from that device.
-    // See the documentation below for a longer explanation
-    if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+    #ifdef _WIN32
+        // To start a frame capture, call StartFrameCapture.
+        // You can specify NULL, NULL for the device to capture on if you have only one device and
+        // either no windows at all or only one window, and it will capture from that device.
+        // See the documentation below for a longer explanation
+        if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+    #endif
 }
 
 void RenderDocStopFrameCapture() {
-    if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
+    #ifdef _WIN32
+        if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
+    #endif
 }
 
 void LogGLError(const char *file, int line, const char *call) {
