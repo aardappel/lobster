@@ -8,7 +8,7 @@ import {
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient/node';
-import { registerTasks } from './task';
+import { registerCommands } from './commands';
 import { InlineLobsterDebugAdapterFactory } from './dap';
 
 let client: LanguageClient;
@@ -50,7 +50,7 @@ export function activate(context: ExtensionContext) {
 
 	context.subscriptions.push(debug.registerDebugAdapterDescriptorFactory(
 		'lobster', 
-		new InlineLobsterDebugAdapterFactory("TODO")
+		new InlineLobsterDebugAdapterFactory()
 	));
 
 	context.subscriptions.push(debug.registerDebugConfigurationProvider('lobster', {
@@ -72,8 +72,7 @@ export function activate(context: ExtensionContext) {
 			}
 	
 			if (!config.program) {
-				return window.showInformationMessage("Cannot find a program to debug")
-				.then(_ => {
+				return window.showInformationMessage("Cannot find a program to debug").then(_ => {
 					return undefined;	// abort launch
 				});
 			}
@@ -93,9 +92,9 @@ export function activate(context: ExtensionContext) {
 				}
 			];
 		}
-	}, DebugConfigurationProviderTriggerKind.Dynamic));
+	}));
 
-	registerTasks(context);
+	registerCommands(context);
 }
 
 export function deactivate(): Thenable<void> | undefined {
