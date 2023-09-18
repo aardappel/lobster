@@ -1370,7 +1370,7 @@ inline string Signature(const SubFunction &sf) {
         r += "<";
         for (auto [i, gtv] : enumerate(sf.generics)) {
             if (i) r += ",";
-            r += TypeName(gtv.type);
+            r += gtv.type.Null() ? gtv.tv->name : TypeName(gtv.type);
         }
         r += ">";
     }
