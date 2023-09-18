@@ -7,6 +7,8 @@ import { URI } from "vscode-uri";
 
 export default function setupFeature(lsp: LSPInstance) {
     lsp.connection.onDefinition(async (params): Promise<Location[]> => {
+        if (lsp.errored()) return [];
+
         const uri = URI.parse(params.textDocument.uri);
         const document = lsp.documents.get(uri.toString()) as LobsterDocument;
         if (document.state === LobsterDocumentState.HasErrors) return [];

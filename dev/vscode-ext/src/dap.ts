@@ -7,6 +7,9 @@ import {
     DebugAdapterInlineImplementation 
 } from 'vscode';
 
+//TODO split DAP from VSCode Extension, so that other IDEs can use it.
+import { LobsterDebugSession } from './lobsterDebug';
+
 export class InlineLobsterDebugAdapterFactory implements DebugAdapterDescriptorFactory {
 
     constructor(readonly module: string) {}
@@ -15,8 +18,7 @@ export class InlineLobsterDebugAdapterFactory implements DebugAdapterDescriptorF
         session: DebugSession, 
         executable: DebugAdapterExecutable
     ): ProviderResult<DebugAdapterDescriptor> {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        return new DebugAdapterInlineImplementation(require(this.module));
+        return new DebugAdapterInlineImplementation(new LobsterDebugSession());
     }
 
 }

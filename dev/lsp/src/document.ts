@@ -83,6 +83,8 @@ export class LobsterDocument implements TextDocument {
 	}
 
 	public async writeToTmp(lsp: LSPInstance): Promise<string> {
+		if (lsp.errored()) throw "LSP has errored";
+
 		const relative = await this.getRelative(lsp);
 		const join = path.join(lsp.tempDir, relative);
 		const reldir = path.parse(relative).dir;
@@ -132,6 +134,8 @@ export class LobsterDocument implements TextDocument {
 
 	public async parse(lsp: LSPInstance): Promise<Diagnostic[]> {
 		const settings = await lsp.getDocumentSettings(this._uri);
+		if (lsp.errored()) return [];
+
 		const temp = await this.writeToTmp(lsp);
 		const result = await parseLobster(settings, temp);
 

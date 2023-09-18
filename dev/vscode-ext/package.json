@@ -2,7 +2,8 @@
 	"name": "lobster",
 	"displayName": "Lobster",
 	"description": "Lobster programming language support",
-	"version": "0.0.2",
+	"version": "0.1.0",
+	"author": "ewoudje",
 	"publisher": "wvo",
 	"engines": {
 		"vscode": "^1.75.0"
@@ -129,7 +130,8 @@
 		"icons": "shx mkdir -p icons && shx cp ../../docs/lobster.svg ./icons/lobster.svg"
 	},
 	"dependencies": {
-		"vscode-languageclient": "^8.1.0"
+		"vscode-languageclient": "^8.1.0",
+		"@vscode/debugadapter": "^1.61.0"
 	},
 	"devDependencies": {
 		"@types/node": "^16.11.7",

@@ -7,6 +7,8 @@ import { uinteger } from "vscode-languageserver";
 
 export default function setupFeature(lsp: LSPInstance) {
     lsp.connection.onHover(async (params) => {
+        if (lsp.errored()) return null;
+
         const uri = URI.parse(params.textDocument.uri);
         const document = lsp.documents.get(uri.toString())!;
         if (document.state === LobsterDocumentState.HasErrors) return null;

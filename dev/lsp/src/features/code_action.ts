@@ -4,6 +4,8 @@ import { LSPInstance } from "../lsp";
 
 export default function setupFeature(lsp: LSPInstance) {
     lsp.connection.onCodeAction((params) => {
+        if (lsp.errored()) return [];
+
         const document = lsp.documents.get(params.textDocument.uri)!;
         if (document.state === LobsterDocumentState.HasErrors) return [];
 

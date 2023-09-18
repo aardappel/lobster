@@ -12,7 +12,7 @@ module.exports = {
 	],
 	rules: {
 		'semi': [2, "always"],
-		"max-len": ["warn", { code: 100, ignoreComments: true }],
+		"max-len": ["warn", { code: 140, ignoreComments: true }],
 		'@typescript-eslint/no-unused-vars': 0,
 		'@typescript-eslint/no-explicit-any': 0,
 		'@typescript-eslint/explicit-module-boundary-types': 0,

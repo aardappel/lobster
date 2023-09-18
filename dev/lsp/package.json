@@ -1,7 +1,7 @@
 {
 	"name": "lobster-lsp-server",
 	"description": "Lobster lsp server",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"author": "ewoudje",
 	"license": "Apache-2.0",
 	"engines": {
