@@ -255,6 +255,7 @@ string OpenGLInit(int samples, bool srgb) {
             GL_CALL(glEnable(GL_FRAMEBUFFER_SRGB));
             mode_srgb = true;
         }
+        GL_CALL(glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS));
     #endif
     CullFront(true);
     if (!geomcache) geomcache = new GeometryCache();
