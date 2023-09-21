@@ -369,14 +369,15 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         if (SDL_GetDisplayDPI(display, NULL, &dpi, NULL)) dpi = default_dpi;
         LOG_INFO(cat("dpi: ", dpi));
         screensize = desired_screensize * int(dpi) / int(default_dpi);
-        _sdl_window = SDL_CreateWindow(title.c_str(),
-                                       SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                       screensize.x, screensize.y,
-                                       SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
-                                       SDL_WINDOW_ALLOW_HIGHDPI |
-                                            (flags & INIT_FULLSCREEN
-                                                ? SDL_WINDOW_FULLSCREEN_DESKTOP
-                                                : 0));
+        _sdl_window = SDL_CreateWindow(
+            title.c_str(),
+            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+            screensize.x, screensize.y,
+            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI |
+                (flags & INIT_MAXIMIZED ? SDL_WINDOW_MAXIMIZED : 0) |
+                (flags & INIT_FULLSCREEN ? (flags & INIT_NATIVE ? SDL_WINDOW_FULLSCREEN
+                                                                : SDL_WINDOW_FULLSCREEN_DESKTOP)
+                                         : 0));
     #endif
     ScreenSizeChanged();
     LOG_INFO("obtained resolution: ", screensize.x, " ", screensize.y);
@@ -420,28 +421,36 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
     return OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
 }
 
-void SDLSetFullscreen(int mode) {
-    if (mode == 1) {
-        // If you switch to fullscreen you get some random display mode that is not the
-        // native res? So we have to find the native res first.
-        const int display_in_use = 0;  // Only using first display
-        int display_mode_count = SDL_GetNumDisplayModes(display_in_use);
-        if (display_mode_count < 1) return;
-        SDL_DisplayMode bestdm;
-        int bestres = 0;
-        for (int i = 0; i < display_mode_count; ++i) {
-            SDL_DisplayMode dm;
-            if (SDL_GetDisplayMode(display_in_use, i, &dm) != 0) return;
-            int res = dm.w * dm.h;
-            if (res > bestres) {
-                bestres = res;
-                bestdm = dm;
+void SDLSetFullscreen(InitFlags flags) {
+    int mode = 0;
+    if (flags & INIT_FULLSCREEN) {
+        if (flags & INIT_NATIVE) {
+            // If you switch to fullscreen you get some random display mode that is not the
+            // native res? So we have to find the native res first.
+            const int display_in_use = 0;  // Only using first display
+            int display_mode_count = SDL_GetNumDisplayModes(display_in_use);
+            if (display_mode_count < 1) return;
+            SDL_DisplayMode bestdm;
+            int bestres = 0;
+            for (int i = 0; i < display_mode_count; ++i) {
+                SDL_DisplayMode dm;
+                if (SDL_GetDisplayMode(display_in_use, i, &dm) != 0) return;
+                int res = dm.w * dm.h;
+                if (res > bestres) {
+                    bestres = res;
+                    bestdm = dm;
+                }
             }
+            // Set desired fullscreen res to highest res we found.
+            SDL_SetWindowDisplayMode(_sdl_window, &bestdm);
+            mode = SDL_WINDOW_FULLSCREEN;
+        } else {
+            mode = SDL_WINDOW_FULLSCREEN_DESKTOP;
         }
-        // Set desired fullscreen res to highest res we found.
-        SDL_SetWindowDisplayMode(_sdl_window, &bestdm);
-    } else if (mode == 2) {
-        mode = SDL_WINDOW_FULLSCREEN_DESKTOP;
+    } else {
+        if (flags & INIT_MAXIMIZED) {
+            mode = SDL_WINDOW_MAXIMIZED;
+        }
     }
     SDL_SetWindowFullscreen(_sdl_window, mode);
 }

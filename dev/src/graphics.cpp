@@ -270,10 +270,10 @@ nfr("window_min_max", "dir", "I", "",
     });
 
 nfr("fullscreen", "mode", "I", "",
-    "0: window, 1:fullscreen, 2:borderless",
+    "use window_init enum flags from gl module",
     [](StackPtr &, VM &vm, Value &mode) {
         TestGL(vm);
-        SDLSetFullscreen(mode.intval());
+        SDLSetFullscreen((InitFlags)mode.intval());
         return NilVal();
     });
 
