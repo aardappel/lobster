@@ -1123,25 +1123,31 @@ nfr("set_image_texture", "i,tex,level,accessflags", "IR:textureII?", "",
 
 nfr("create_texture", "matrix,textureformat", "F}:4]]I?", "R:texture",
     "creates a texture from a 2d array of color vectors."
-    " see texture.lobster for texture format",
-    [](StackPtr &, VM &vm, Value &matv, Value &tf) {
+    " see texture.lobster for texture format."
+    " for a cubemap, pass an array that is 6x as big on x than y",
+    [](StackPtr &, VM &vm, Value &matv, Value &tf_) {
         TestGL(vm);
         auto mat = matv.vval();
         auto ys = mat->len;
         auto xs = mat->At(0).vval()->len;
-        auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+        auto tf = tf_.intval();
+        auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+        auto sides = tf & TF_CUBEMAP ? 6 : 1;
+        auto sidexs = xs / sides;
         auto buf = new uint8_t[xs * ys * sz];
         memset(buf, 0, xs * ys * sz);
         for (int i = 0; i < ys; i++) {
             auto row = mat->At(i).vval();
             for (int j = 0; j < min(xs, row->len); j++) {
                 float4 col = ValueToFLT<4>(row->AtSt(j), row->width);
-                auto idx = i * xs + j;
-                if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
-                else                      ((byte4  *)buf)[idx] = quantizec(col);
+                auto side = j / sidexs;
+                auto sidej = j - side * sidexs;
+                auto idx = side * sidexs * ys + i * sidexs + sidej;
+                if (tf & TF_FLOAT) ((float4 *)buf)[idx] = col;
+                else               ((byte4  *)buf)[idx] = quantizec(col);
             }
         }
-        auto tex = CreateTexture("gl.create_texture", buf, int3((int)xs, (int)ys, 0), tf.intval());
+        auto tex = CreateTexture("gl.create_texture", buf, int3((int)xs, (int)ys, 0), tf);
         delete[] buf;
         return Value(vm.NewResource(&texture_type, new OwnedTexture(tex)));
     });
