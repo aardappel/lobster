@@ -1,3 +1,13 @@
+- namespace improvements:
+  - Declaring a variable (or function) that has the same name as a namespace should be an error? (poll so far: yes)
+  - obj.foo where foo is a method in a namespace should work if obj already has that namespaced type?
+  - any more builtins to namespace?
+  - move namespace parsing to parser!
+  - Should obj.ns.fun() be disallowed (poll so far: no)
+  - Should you be able to "import" namespaces? Most languages have this, but it is kind of an anti-feature since
+    it make things harder to recognize without its namespace in front.
+    Really, don't put things in a namespace if you don't effectively want to make it part of the name.
+
 - auto binding generated C++ headers from a Lobster decl
 
 - allow let inside if/guard as syntactic sugar
