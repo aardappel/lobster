@@ -26,6 +26,8 @@ editors such as [VSCode](vscode_ide.html), [Sublime Text](sublime_ide.html),
 [Lite-XL](https://github.com/lite-xl/lite-xl/) has a syntax highlighting
 [plugin](https://github.com/lite-xl/lite-xl-plugins/blob/master/plugins/language_lobster.lua).
 
+> Right now VSCode is the only one with a lsp.
+
 Learning the language
 ---------------------
 

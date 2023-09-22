@@ -1,0 +1,148 @@
+{
+	"name": "lobster",
+	"displayName": "Lobster",
+	"description": "Lobster programming language support",
+	"version": "0.1.0",
+	"author": "ewoudje",
+	"publisher": "wvo",
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/aardappel/lobster"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+		"lobster"
+	],
+	"activationEvents": [],
+	"main": "./webpack-out/lobster_ext.js",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Lobster",
+			"properties": {
+				"lobster.executable": {
+					"scope": "resource",
+					"type": "string",
+					"default": "",
+					"description": "The lobster executable"
+				},
+				"lobster.imports": {
+					"scope": "resource",
+					"type": "array",
+					"default": [],
+					"description": "Imports for lobster"
+				},
+				"lobster.experimental": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": false,
+					"description": "Enable experimental features that can get in the way"
+				}
+			}
+		},
+		"languages": [
+			{
+				"id": "lobster",
+				"aliases": [
+					"Lobster",
+					"lobster"
+				],
+				"extensions": [
+					".lobster"
+				],
+				"configuration": "./language-configuration.json",
+				"icon": {
+					"light": "./icons/lobster.svg",
+					"dark": "./icons/lobster.svg"
+				}
+			}
+		],
+		"grammars": [
+			{
+				"language": "lobster",
+				"scopeName": "source.lobster",
+				"path": "./syntaxes/lobster.tmLanguage.json"
+			}
+		],
+		"taskDefinitions": [
+			{
+				"type": "lobster",
+				"required": [
+					"main"
+				],
+				"properties": {
+					"main": {
+						"type": "string",
+						"description": "The file to run"
+					},
+					"lobsterArgs": {
+						"type": "array",
+						"description": "The arguments to pass to lobster"
+					},
+					"programArgs": {
+						"type": "array",
+						"description": "The arguments to pass to the program"
+					}
+				}
+			}
+		],
+		"breakpoints": [
+			{
+				"language": "lobster"
+			}
+		],
+		"debuggers": [
+			{
+				"type": "lobster",
+				"languages": [
+					"lobster"
+				],
+				"label": "Lobster Debug",
+				"configurationAttributes": {
+					"launch": {
+						"required": [
+							"program"
+						],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "Path the lobster program to debug",
+								"default": "${workspaceFolder}/main.lobster"
+							}
+						}
+					}
+				}
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run webpack && shx cp ../lsp/webpack-out/* ./webpack-out/ && npm run icons",
+		"webpack": "webpack --mode production --config ./webpack.config.js && cd ../lsp && npm run webpack",
+		"webpack:dev": "webpack --mode none --config ./webpack.config.js && cd ../lsp && npm run webpack:dev",
+		"watch": "tsc -b -w",
+		"lint": "eslint ./src/* --ext .ts,.tsx",
+		"postinstall": "npm run icons && cd ../lsp && npm install",
+		"icons": "shx mkdir -p icons && shx cp ../../docs/lobster.svg ./icons/lobster.svg"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^8.1.0",
+		"@vscode/debugadapter": "^1.61.0"
+	},
+	"devDependencies": {
+		"@types/node": "^16.11.7",
+		"@typescript-eslint/eslint-plugin": "^5.54.0",
+		"@typescript-eslint/parser": "^5.54.0",
+		"@types/vscode": "^1.75.1",
+		"eslint": "^8.35.0",
+		"webpack": "^5.76.0",
+		"webpack-cli": "^4.10.0",
+		"typescript": "^5.0.2",
+		"shx": "0.3.4",
+		"ts-loader": "^9.3.1"
+	}
+}

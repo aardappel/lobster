@@ -23,6 +23,9 @@ jobs:
           cc: clang-14
     steps:
     - uses: actions/checkout@v1
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 17
     - name: apt update
       run: sudo apt-get -o Acquire::Retries=3 update
     - name: install opengl
@@ -51,6 +54,8 @@ jobs:
       run: make -j4
     - name: test cpp output
       run: bin/compiled_lobster
+    - name: test lsp
+      run: cd dev/lsp && npm install && npm run test
 
   build-windows:
     name: Build Windows
@@ -64,6 +69,8 @@ jobs:
       run: msbuild.exe lobster.sln /p:Configuration=Release /p:Platform=x64
     - name: test
       run: bin/lobster.exe tests/unittest.lobster
+    - name: test lsp
+      run: cd dev/lsp && npm install && npm test
     - name: upload build artifacts
       uses: actions/upload-artifact@v1
       with:
@@ -83,6 +90,8 @@ jobs:
       run: xcodebuild -toolchain clang -configuration Release -target lobster
     - name: test
       run: bin/lobster tests/unittest.lobster
+    - name: test lsp
+      run: cd dev/lsp && npm install && npm test
     - name: upload build artifacts
       uses: actions/upload-artifact@v1
       with:
