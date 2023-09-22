@@ -216,35 +216,52 @@ nfr("vector_to_buffer", "vec,width", "A]*I?:4", "S",
     " type couldn't be converted. Uses native endianness.",
     [](StackPtr &, VM &vm, Value &vec, Value &width) {
         auto v = vec.vval();
-        auto &ti = vm.GetTypeInfo(v->SingleType(vm));
-        if (ti.t != V_INT && ti.t != V_FLOAT)
-            vm.Error("vector_to_buffer: non-numeric data");
         auto w = width.intval();
         if (w != 1 && w != 2 && w != 4 && w != 8)
             vm.Error("vector_to_buffer: width out of range");
-        if (ti.t == V_FLOAT && (w == 1 || w == 2))
-            vm.Error("vector_to_buffer: 8/16 floats not supported yet");
-        auto nelems = v->len * v->width;
-        auto s = vm.NewString(nelems * w);
-        auto buf = (uint8_t *)s->data();
+        auto &vect = v->ti(vm);
+        auto eto = vect.subt;
+        auto &ti = vm.GetTypeInfo(eto);
+        int64_t float_mask = 0;
         if (ti.t == V_INT) {
-            for (iint i = 0; i < nelems; i++) {
-                auto x = v->AtSlot(i).ival();
-                #if FLATBUFFERS_LITTLEENDIAN
-                    memcpy(buf, &x, w);
-                #else
-                    memcpy(buf, (uint8_t *)&x + (8 - w), w);
-                #endif
-                buf += w;
+        } else if (ti.t == V_FLOAT) {
+            float_mask = 1;
+        } else if (ti.t == V_STRUCT_S) {
+            if (ti.len >= 63) vm.Error("vector_to_buffer: struct too big");
+            for (int i = 0; i < ti.len; i++) {
+                auto &seti = vm.GetTypeInfo(ti.elemtypes[i].type);
+                if (seti.t == V_INT) {
+                } else if (seti.t == V_FLOAT) {
+                    float_mask |= int64_t(1) << i;
+                } else {
+                    vm.Error("vector_to_buffer: struct field of non-numeric data");
+                }
             }
         } else {
-            for (iint i = 0; i < nelems; i++) {
-                auto x = v->AtSlot(i).fval();
-                if (w == sizeof(double)) {
-                    memcpy(buf, &x, sizeof(double));
+            vm.Error("vector_to_buffer: vector of non-numeric data");
+        }
+        if (float_mask && (w == 1 || w == 2))
+            vm.Error("vector_to_buffer: 8/16 floats not supported yet");
+        auto s = vm.NewString(v->len * v->width * w);
+        auto buf = (uint8_t *)s->data();
+        for (iint i = 0; i < v->len; i++) {
+            for (int j = 0; j < (int)v->width; j++) {
+                auto is_float = float_mask & (int64_t(1) << j);
+                if (is_float) {
+                    auto x = v->AtSub(i, j).fval();
+                    if (w == sizeof(double)) {
+                        memcpy(buf, &x, sizeof(double));
+                    } else {
+                        auto xf = (float)x;
+                        memcpy(buf, &xf, sizeof(float));
+                    }
                 } else {
-                    auto xf = (float)x;
-                    memcpy(buf, &xf, sizeof(float));
+                    auto x = v->AtSub(i, j).ival();
+                    #if FLATBUFFERS_LITTLEENDIAN
+                        memcpy(buf, &x, w);
+                    #else
+                        memcpy(buf, (uint8_t *)&x + (8 - w), w);
+                    #endif
                 }
                 buf += w;
             }
