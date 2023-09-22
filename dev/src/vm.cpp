@@ -696,6 +696,10 @@ void VM::EnsureUDTLookupPopulated() {
     }
 }
 
+string_view VM::BuildInfo() {
+    return bcf->build_info()->string_view();
+}
+
 void VM::StartWorkers(iint numthreads) {
     if (is_worker) Error("workers can\'t start more worker threads");
     if (tuple_space) Error("workers already running");

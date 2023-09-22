@@ -1079,6 +1079,8 @@ struct VM : VMArgs {
     bool EnumName(string &sd, iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);
+
+    string_view BuildInfo();
 };
 
 // This is like a smart-pointer for VM above that dynamically allocates the size of "vars".

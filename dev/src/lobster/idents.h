@@ -1300,6 +1300,15 @@ struct SymbolTable {
         for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->scopelevel == 1));
         vector<flatbuffers::Offset<bytecode::Enum>> enumoffsets;
         for (auto e : enumtable) enumoffsets.push_back(e->Serialize(fbb));
+        string build_info;
+        auto time = std::time(nullptr);
+        if (time) {
+            auto tm = std::localtime(&time);
+            if (tm) {
+                auto ts = std::asctime(tm);
+                build_info = string(ts, 24);
+            }
+        }
         auto bcf = bytecode::CreateBytecodeFile(fbb,
             LOBSTER_BYTECODE_FORMAT_VERSION,
             codevec,
@@ -1317,7 +1326,8 @@ struct SymbolTable {
             fbb.CreateVectorOfStructs(sids),
             fbb.CreateVector(enumoffsets),
             fbb.CreateVector(vtables),
-            fbb.CreateVector((vector<int> &)ser_ids));
+            fbb.CreateVector((vector<int> &)ser_ids),
+            fbb.CreateString(build_info.c_str(), build_info.size()));
         bytecode::FinishBytecodeFileBuffer(fbb, bcf);
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }

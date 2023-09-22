@@ -90,6 +90,8 @@ table BytecodeFile {
     nativemode:bool = true (deprecated);
 
     ser_ids:[int];
+
+    build_info:string;
 }
 
 root_type BytecodeFile;

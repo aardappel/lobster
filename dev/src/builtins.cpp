@@ -1425,6 +1425,13 @@ nfr("date_time_string_format", "format,utc", "SB?", "S",
         return Value(s);
     });
 
+nfr("date_time_build_info", "", "", "S",
+    "a string representing information from when this program was compiled.",
+    [](StackPtr &, VM &vm) {
+        auto s = vm.NewString(vm.BuildInfo());
+        return Value(s);
+    });
+
 nfr("assert", "condition", "A*", "Ab1",
     "halts the program with an assertion failure if passed false. returns its input."
     " runtime errors like this will contain a stack trace if --runtime-verbose is on.",
