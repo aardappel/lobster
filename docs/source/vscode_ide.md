@@ -4,15 +4,15 @@ title: VSCode as Lobster IDE
 
 VSCode extension
 -------------------
-The vscode extension includes syntax highlithing, 
-a lobster lsp and breakpoints.
+The vscode extension includes syntax highlighting, 
+a lobster LSP (Language Server Protocol).
 
-See [here](command_line_usage.html) what the lsp is capable of.
+See [here](lsp.html) for more info about the lobster LSP.
 
 ### How to install
--  Download the file `lobster.vsix` found in the github at `docs/vscode/lobster.vsix`.
+-  Get the file `lobster.vsix` found in the repo at `docs/vscode/lobster.vsix`.
 
--  Open your vscode command pallete and search for `Install from VSIX`. Then select the file you just downloaded.
+-  Open your vscode command pallete and search for `Install from VSIX`. Then select the file mentioned above.
 
 
 Running Lobster programs from within the editor without the extension
