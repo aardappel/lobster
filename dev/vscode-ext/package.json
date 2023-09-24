@@ -53,14 +53,14 @@
 			{
 				"command": "extension.lobster.debugEditorContents",
 				"title": "Debug File",
-				"category": "Mock Debug",
+				"category": "Lobster",
 				"enablement": "!inDebugMode",
 				"icon": "$(debug-alt)"
 			},
 			{
 				"command": "extension.lobster.runEditorContents",
 				"title": "Run File",
-				"category": "Mock Debug",
+				"category": "Lobster",
 				"enablement": "!inDebugMode",
 				"icon": "$(play)"
 			}
