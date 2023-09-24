@@ -18,9 +18,53 @@
 	"keywords": [
 		"lobster"
 	],
-	"activationEvents": [],
+	"activationEvents": [
+		"onDebugResolve:lobster",
+    	"onDebugDynamicConfigurations:lobster",
+    	"onCommand:extension.lobster.getProgramName"
+	],
 	"main": "./webpack-out/lobster_ext.js",
 	"contributes": {
+		"menus": {
+			"editor/title/run": [
+				{
+					"command": "extension.lobster.runEditorContents",
+					"when": "resourceLangId == lobster",
+					"group": "navigation@1"
+				},
+				{
+					"command": "extension.lobster.debugEditorContents",
+					"when": "resourceLangId == lobster",
+					"group": "navigation@2"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "extension.lobster.debugEditorContents",
+					"when": "resourceLangId == lobster"
+				},
+				{
+					"command": "extension.lobster.runEditorContents",
+					"when": "resourceLangId == lobster"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "extension.lobster.debugEditorContents",
+				"title": "Debug File",
+				"category": "Lobster",
+				"enablement": "!inDebugMode",
+				"icon": "$(debug-alt)"
+			},
+			{
+				"command": "extension.lobster.runEditorContents",
+				"title": "Run File",
+				"category": "Lobster",
+				"enablement": "!inDebugMode",
+				"icon": "$(play)"
+			}
+		],
 		"configuration": {
 			"type": "object",
 			"title": "Lobster",
@@ -69,28 +113,6 @@
 				"path": "./syntaxes/lobster.tmLanguage.json"
 			}
 		],
-		"taskDefinitions": [
-			{
-				"type": "lobster",
-				"required": [
-					"main"
-				],
-				"properties": {
-					"main": {
-						"type": "string",
-						"description": "The file to run"
-					},
-					"lobsterArgs": {
-						"type": "array",
-						"description": "The arguments to pass to lobster"
-					},
-					"programArgs": {
-						"type": "array",
-						"description": "The arguments to pass to the program"
-					}
-				}
-			}
-		],
 		"breakpoints": [
 			{
 				"language": "lobster"
@@ -111,14 +133,49 @@
 						"properties": {
 							"program": {
 								"type": "string",
-								"description": "Path the lobster program to debug",
-								"default": "${workspaceFolder}/main.lobster"
+								"description": "Absolute path to a text file.",
+								"default": "${workspaceFolder}/${command:AskForProgramName}"
+							},
+							"params": {
+								"type": "array",
+								"description": "Lobster parameters",
+								"default": "${workspaceFolder}/${command:AskForProgramName}"
+							},
+							"stopOnEntry": {
+								"type": "boolean",
+								"description": "Automatically stop after launch.",
+								"default": true
 							}
 						}
 					}
 				}
 			}
-		]
+		],
+		"initialConfigurations": [
+			{
+			  "type": "lobster",
+			  "request": "launch",
+			  "name": "Ask for file name",
+			  "program": "${workspaceFolder}/${command:AskForProgramName}",
+			  "stopOnEntry": true
+			}
+		  ],
+		  "configurationSnippets": [
+			{
+			  "label": "Lobster: Launch",
+			  "description": "A new configuration for 'debugging' a user selected markdown file.",
+			  "body": {
+				"type": "lobster",
+				"request": "launch",
+				"name": "Ask for file name",
+				"program": "^\"\\${workspaceFolder}/\\${command:AskForProgramName}\"",
+				"stopOnEntry": true
+			  }
+			}
+		  ],
+		  "variables": {
+			"AskForProgramName": "extension.lobster.getProgramName"
+		  }
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run webpack && shx cp ../lsp/webpack-out/* ./webpack-out/ && npm run icons",
