@@ -8,9 +8,3 @@ out
 contributing.md
 .travis.yml
 node_modules/**
-!node_modules/vscode-jsonrpc/**
-!node_modules/vscode-languageclient/**
-!node_modules/vscode-languageserver-protocol/**
-!node_modules/vscode-languageserver-types/**
-!node_modules/{minimatch,brace-expansion,concat-map,balanced-match}/**
-!node_modules/{semver,lru-cache,yallist}/**
