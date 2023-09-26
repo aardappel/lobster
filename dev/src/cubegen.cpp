@@ -366,7 +366,7 @@ nfr("load_palette", "act_palette_file", "S", "I", "",
         if (len < 768) vm.BuiltinError("load_palette: load failed");
         byte4 pal[256];
         for (int i = 0; i < 256; i++) {
-            memcpy(&pal[i], buf.c_str() + i * 3, 3);
+            memcpy(&pal[i].c, buf.c_str() + i * 3, 3);
             pal[i].w = i
                 ? 0x80  // NOTE: does not allow setting material flags.
                 : 0;    // 0 always transparency in MV.
