@@ -344,12 +344,34 @@ nfr("palette_to_color", "block,paletteindex", "R:voxelsI", "F}:4",
         PushVec(sp, color2vec(palettes[GetVoxels(res).palette_idx].colors[p]));
     });
 
-nfr("copy_palette", "fromworld,toworld", "R:voxelsR:voxels", "", "",
-    [](StackPtr &, VM &, Value &fromworld, Value &toworld) {
-        auto &w1 = GetVoxels(fromworld);
-        auto &w2 = GetVoxels(toworld);
-        w2.palette_idx = w1.palette_idx;
+nfr("get_palette", "world", "R:voxels", "I", "",
+    [](StackPtr &, VM &, Value &world) {
+        auto &w = GetVoxels(world);
+        return Value(w.palette_idx);
+    });
+
+nfr("set_palette", "world,palette_idx", "R:voxelsI", "", "",
+    [](StackPtr &, VM &vm, Value &world, Value &idx) {
+        auto &w = GetVoxels(world);
+        auto i = (size_t)idx.ival();
+        if (i >= palettes.size()) vm.BuiltinError("set_palette: out of range");
+        w.palette_idx = i;
         return NilVal();
+    });
+
+nfr("load_palette", "act_palette_file", "S", "I", "",
+    [](StackPtr &, VM &vm, Value &fn) {
+        string buf;
+        auto len = LoadFile(fn.sval()->strv(), &buf);
+        if (len < 768) vm.BuiltinError("load_palette: load failed");
+        byte4 pal[256];
+        for (int i = 0; i < 256; i++) {
+            memcpy(&pal[i], buf.c_str() + i * 3, 3);
+            pal[i].w = i
+                ? 0x80  // NOTE: does not allow setting material flags.
+                : 0;    // 0 always transparency in MV.
+        }
+        return Value(NewPalette(pal));
     });
 
 nfr("sample_down", "scale,world", "IR:voxels", "", "",
