@@ -243,8 +243,8 @@ LString *LStringInputText(VM &vm, const char *label, LString *str, int num_lines
         VM &vm;
         static int InputTextCallback(ImGuiInputTextCallbackData *data) {
             auto cbd = (InputTextCallbackData *)data->UserData;
-            IM_ASSERT(data->Buf == cbd->str->data());
             if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+                IM_ASSERT(data->Buf == cbd->str->data());
                 auto str = cbd->vm.NewString(string_view{ data->Buf, (size_t)data->BufTextLen });
                 cbd->str->Dec(cbd->vm);
                 cbd->str = str;
