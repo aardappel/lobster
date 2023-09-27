@@ -681,7 +681,11 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                     voxels = NewWorld(size, default_palette_idx);
                     voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
                 } else if (!strncmp(id, "RGBA", 4)) {
-                    if (!voxels) return errf(".vox file RGBA chunk in wrong order");
+                    if (!voxels) {
+                        // This may be a palette-only file, add dummy geom.
+                        voxels = NewWorld(int3_0, default_palette_idx);
+                        voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
+                    }
                     if (!palette.empty()) return errf(".vox file contains >1 palette");
                     palette.push_back(byte4_0);
                     if (p.size() < 256) return erreof();
