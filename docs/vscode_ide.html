@@ -29,8 +29,22 @@
 <header id="title-block-header">
 <h1 class="title">VSCode as Lobster IDE</h1>
 </header>
-<h2 id="running-lobster-programs-from-within-the-editor">Running Lobster
-programs from within the editor</h2>
+<h2 id="vscode-extension">VSCode extension</h2>
+<p>The vscode extension includes syntax highlighting, a lobster LSP
+(Language Server Protocol).</p>
+<p>See <a href="lsp.html">here</a> for more info about the lobster
+LSP.</p>
+<h3 id="how-to-install">How to install</h3>
+<ul>
+<li><p>Get the file <code>lobster.vsix</code> found in the repo at
+<code>docs/vscode/lobster.vsix</code>.</p></li>
+<li><p>Open your vscode command pallete and search for
+<code>Install from VSIX</code>. Then select the file mentioned
+above.</p></li>
+</ul>
+<h2
+id="running-lobster-programs-from-within-the-editor-without-the-extension">Running
+Lobster programs from within the editor without the extension</h2>
 <ul>
 <li><p>Copy <code>docs/vscode/tasks.json</code> to a
 <code>.vscode</code> workspace folder that is in the root of where you
@@ -39,10 +53,5 @@ keep your lobster code.</p></li>
 run it. If there was an error, press <code>F8</code> to go to it, and/or
 <code>ctrl+`</code> (shell) to show program output.</p></li>
 </ul>
-<h2 id="syntax-highlighting">Syntax Highlighting</h2>
-<p>Copy the folder <code>docs/vscode/lobster</code> to
-<code>.vscode/extensions</code> <em>within your user folder</em>, not
-your workspace folder. This will enable syntax highlighting next time
-VSCode is run.</p>
 </body>
 </html>

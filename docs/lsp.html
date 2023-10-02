@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Lobster LSP (Language Server Protocol)</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="github.css" />
+  <link rel="icon" type="image/svg" href="lobster.svg" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Lobster LSP (Language Server Protocol)</h1>
+</header>
+<h2 id="implementation">Implementation</h2>
+<p>The lobster LSP is written in typescript, and runs with node. It
+calls internally the lobster compiler for the features. &gt; LSP simply
+uses <a href="command_line_usage.html">command line arguments</a> from
+the lobster runtime.</p>
+<h2 id="i-want-to-use-this-for-x-editoride">I want to use this for x
+editor/IDE</h2>
+<p>Usually you have to package this LSP in a addon for your preffered
+IDE. See your IDE/editors documentation on how to integrate this. PRs
+are always welcome.</p>
+<p>You compile the LSP to a final js file to be execute by node with
+<code>npm webpack</code>.</p>
+</body>
+</html>
