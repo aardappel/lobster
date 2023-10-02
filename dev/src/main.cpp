@@ -91,10 +91,12 @@ int main(int argc, char* argv[]) {
             "--debug                Output compiler internal logging.\n"
             "--silent               Only output errors.\n"
             "--full-error           Output full compile time stack traces.\n"
-            "--runtime-shipping     Compile with asserts off.\n"
+            "--runtime-no-asserts   Compile with asserts off.\n"
             "--runtime-asserts      Compile with asserts on (default).\n"
-            "--runtime-verbose      Asserts on + code locations + stack traces.\n"
-            "--runtime-debug        Like verbose + minimize inlining + breakpoint on error.\n"
+            "--runtime-stack-traces Asserts on + code locations + stack traces.\n"
+            "--runtime-debug        Also minimize inlining.\n"
+            "--runtime-debug-dump   Also create debug dumps.\n"
+            "--runtime-debugger     Also break into debugger on error.\n"
             "--noconsole            Close console window (Windows).\n"
             "--gen-builtins-html    Write builtin commands help file.\n"
             "--gen-builtins-names   Write builtin commands - just names.\n"
@@ -119,10 +121,12 @@ int main(int argc, char* argv[]) {
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
                 else if (a == "--debug") { min_output_level = OUTPUT_DEBUG; }
                 else if (a == "--silent") { min_output_level = OUTPUT_ERROR; }
-                else if (a == "--runtime-shipping") { runtime_checks = RUNTIME_NO_ASSERT; }
+                else if (a == "--runtime-no-asserts") { runtime_checks = RUNTIME_NO_ASSERT; }
                 else if (a == "--runtime-asserts") { runtime_checks = RUNTIME_ASSERT; }
-                else if (a == "--runtime-verbose") { runtime_checks = RUNTIME_ASSERT_PLUS; }
+                else if (a == "--runtime-stack-traces") { runtime_checks = RUNTIME_STACK_TRACE; }
                 else if (a == "--runtime-debug") { runtime_checks = RUNTIME_DEBUG; }
+                else if (a == "--runtime-debug-dump") { runtime_checks = RUNTIME_DEBUG_DUMP; }
+                else if (a == "--runtime-debugger") { runtime_checks = RUNTIME_DEBUGGER; }
                 else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }

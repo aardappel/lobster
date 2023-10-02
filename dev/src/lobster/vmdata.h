@@ -888,7 +888,14 @@ struct TupleSpace {
 };
 
 enum class TraceMode { OFF, ON, TAIL };
-enum { RUNTIME_NO_ASSERT, RUNTIME_ASSERT, RUNTIME_ASSERT_PLUS, RUNTIME_DEBUG };
+enum {
+    RUNTIME_NO_ASSERT,     // --runtime-no-asserts: Asserts generate no code, this may produce crashes if the code would instead have run into an assert
+    RUNTIME_ASSERT,        // --runtime-asserts: Default.
+    RUNTIME_STACK_TRACE,   // --runtime-stack-traces: Also is able to show correct line numbers and functions on runtime errors, mild slowdown.
+    RUNTIME_DEBUG,         // --runtime-debug: Also reduces inlining for better stacktraces, a little more slowdown.
+    RUNTIME_DEBUG_DUMP,    // --runtime-debug-dump: In Addition will dump memory dump files.
+    RUNTIME_DEBUGGER       // --runtime-debugger: Instead of a memory dump, will invoke debugger on errors.
+};
 
 struct VMArgs {
     NativeRegistry &nfr;

@@ -348,7 +348,7 @@ struct CodeGen  {
     }
 
     void GenStatDebug(const Node *c) {
-        if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
+        if (runtime_checks >= RUNTIME_STACK_TRACE) {
             EmitOp(IL_STATEMENT);
             Emit(c->line.line);
             Emit(c->line.fileidx);

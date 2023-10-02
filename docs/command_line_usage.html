@@ -62,16 +62,20 @@ from which <code>import</code> (and <code>pakfile</code>) statements can
 be resolved, or any loading the running program does. Does the same as
 adding <code>import from "RELDIR"</code> to the top of your
 program.</p></li>
-<li><p><code>--runtime-shipping</code> : Compile with asserts
-off.</p></li>
+<li><p><code>--runtime-no-asserts</code> : Compile with asserts off,
+don’t use unless you know what you’re doing.</p></li>
 <li><p><code>--runtime-asserts</code> : Compile with asserts on
 (default).</p></li>
-<li><p><code>--runtime-verbose</code> : Compile with asserts on + line
-info + function tracking for better runtime errors (stack traces) and
-profiling. Small effect on speed. <code>--runtime-debug</code> : Same as
-verbose, but now tones inlining way down to get better stack traces.
-Larger effect on speed. Automatically breaks into the graphical debugger
-on assertion failures.</p></li>
+<li><p><code>--runtime-stack-traces</code> : Compile with asserts on +
+line info + function tracking for better runtime errors (stack traces)
+and profiling. Small effect on speed.</p></li>
+<li><p><code>--runtime-debug</code> : Same as verbose, but now tones
+inlining way down to get better stack traces. Larger effect on
+speed.</p></li>
+<li><p><code>--runtime-debug-dump</code>: In addition, creates a memory
+dump file on error.</p></li>
+<li><p><code>--runtime-debugger</code>: Automatically breaks into the
+graphical debugger on errors.</p></li>
 <li><p><code>--main MAIN</code> : after compiling FILE, if present,
 compile this file and run it. This is useful when running Lobster from
 an editor, where you may be editing a module that is not the main file,

@@ -129,7 +129,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
               "\n";
     }
 
-    if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
+    if (runtime_checks >= RUNTIME_STACK_TRACE) {
         append(sd, "extern const int funinfo_table[];\n\n");
     }
 
@@ -256,7 +256,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                             append(sd, "    NilVal(&locals[", var_to_local[varidx], "]);\n");
                     }
                 }
-                if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
+                if (runtime_checks >= RUNTIME_STACK_TRACE) {
                     // FIXME: can make this just and index and instead store funinfo_table ref in VM.
                     // Calling this here because now locals have been fully initialized.
                     append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
@@ -511,7 +511,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
             }
             assert(funstart);
-            if (*(funstart - 2) == IL_FUNSTART && runtime_checks >= RUNTIME_ASSERT_PLUS) {
+            if (*(funstart - 2) == IL_FUNSTART && runtime_checks >= RUNTIME_STACK_TRACE) {
                 append(sd, "    PopFunId(vm);\n");
             }
             sd += "}\n";
@@ -530,7 +530,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     }
     sd += "    0\n};\n";  // Make sure table is never empty.
 
-    if (runtime_checks >= RUNTIME_ASSERT_PLUS) {
+    if (runtime_checks >= RUNTIME_STACK_TRACE) {
         append(sd, "const int funinfo_table[] = {\n    ");
         for (auto [i, d] : enumerate(funstarttables)) {
             if (i && (i & 15) == 0) append(sd, "\n    ");
