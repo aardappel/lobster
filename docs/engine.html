@@ -39,18 +39,18 @@ href="shooter_tutorial.html">shooter tutorial</a> for some basic
 explanation of how to render stuff. Most examples in the
 <code>samples</code> dir are graphical and provide further examples.</p>
 <p>While it easy to render stuff with simple functions like
-<code>gl_rect</code>, <code>gl_line</code> and stuff, for anything more
+<code>gl.rect</code>, <code>gl.line</code> and stuff, for anything more
 advanced some understanding of OpenGL style rendering is required.</p>
 <h2 id="default-rendering-environment">Default rendering
 environment</h2>
-<p>After you call <code>gl_window</code> you are left with a default
+<p>After you call <code>gl.window</code> you are left with a default
 black background, a white drawing color, and the <code>color</code>
 shader set.</p>
 <h2 id="shaders">Shaders</h2>
 <p>All basic shaders, including <code>color</code>, can be found in
 <code>data/shaders/default.materials</code>.</p>
 <p>You can use one of the many useful shaders from there with
-<code>gl_set_shader</code>, but more fun is to use a custom shader. You
+<code>gl.set_shader</code>, but more fun is to use a custom shader. You
 can define these in-line in your Lobster program as well, an example of
 that can be found in
 <code>samples/custom_shader_metaballs.lobster</code>.</p>
@@ -87,20 +87,20 @@ pixel shader inputs, here <code>itc</code> (interpolated texture
 coordinate).</p>
 <p>Using <code>UNIFORMS</code> you declare variables automatically
 provided by the engine: * <code>mvp</code>: the Model View Projection
-matrix composed of the various <code>gl_scale</code>,
-<code>gl_translate</code> and <code>gl_rotate</code> transforms (the
-<code>mv</code> part) and the <code>gl_ortho</code> or
-<code>gl_perspective</code> transforms (the <code>p</code> part). *
-<code>col</code>: set by <code>gl_color</code>. * <code>camera</code>:
+matrix composed of the various <code>gl.scale</code>,
+<code>gl.translate</code> and <code>gl.rotate</code> transforms (the
+<code>mv</code> part) and the <code>gl.ortho</code> or
+<code>gl.perspective</code> transforms (the <code>p</code> part). *
+<code>col</code>: set by <code>gl.color</code>. * <code>camera</code>:
 position of the camera relative to the primitive being rendered. *
 <code>light1</code> and <code>lightparams1</code>: set by
-<code>gl_light</code>. * <code>framebuffer_size</code>: size in pixels.
+<code>gl.light</code>. * <code>framebuffer_size</code>: size in pixels.
 * <code>bones</code>: see character animation shaders. *
 <code>pointscale</code>: used with point rendering.</p>
 <p>In addition you can add any custom uniforms with a
 <code>UNIFORM</code> declaration, for example by adding
 <code>UNIFORM float time</code> to the shader and
-<code>gl_set_uniform("time", gl_time())</code> you can animate your
+<code>gl.set_uniform("time", gl.time())</code> you can animate your
 shader to the current time.</p>
 <p>Following these is the raw glsl implementing the shader. This is the
 body of the shader, if you want to add additional helper functions,

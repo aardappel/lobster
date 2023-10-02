@@ -168,10 +168,10 @@ it includes:</p>
 <li><p>The bytecode.</p></li>
 <li><p><code>data/shaders/default.materials</code> (these are the
 minimum shader definitions needed for to render anything, and is
-implicitly loaded by <code>gl_window</code>).</p></li>
+implicitly loaded by <code>gl.window</code>).</p></li>
 <li><p>Any other files/directories you have specified with
 <code>pakfile</code>, e.g:
-<code>gl_load_texture(pakfile ”mypath/myfile.png”)</code>.
+<code>gl.load_texture(pakfile ”mypath/myfile.png”)</code>.
 <code>pakfile</code> can prefix filenames or directories (ending in
 <code>/</code>), in which case all files in the directory will
 (non-recursively) be added. When running with <code>--verbose</code> you
@@ -179,11 +179,11 @@ can see what files are added/loaded from a pakfile, and which are loaded
 individually.</p></li>
 </ul></li>
 <li><p>Any files your code references that are not in the pakfile (e.g.
-<code>gl_load_texture(”mypath/myfile.png”)</code> ).</p></li>
+<code>gl.load_texture(”mypath/myfile.png”)</code> ).</p></li>
 <li><p>On Windows, you’ll need to include
 <code>bin\openvr_api.dll</code> and/or <code>bin\steam_api.dll</code>
 next to <code>lobster.exe</code> ONLY if you use functions starting with
-<code>vr_</code> or <code>steam_</code> respectively.</p></li>
+<code>vr.</code> or <code>steam.</code> respectively.</p></li>
 </ul>
 <p>Where you place these files depends on the platform, on Windows /
 Linux it is next to the lobster executable, on OS X / iOS it is the
@@ -304,7 +304,7 @@ want to hold on to a value, have a look at functions that do so, like
 <code>push</code>.</p>
 <p>In designing your extension library, if you intend to add a lot of
 functions, it is a good idea to choose a namespace (similar to
-<code>gl_</code> for all the graphics functionality) to all your
+<code>gl.</code> for all the graphics functionality) to all your
 functions. Lobster uses <code>_</code> for namespacing also in the
 language. The burden on making sure there are no name clashes is on the
 programmer integrating new libraries (you will get an assert if 2 names

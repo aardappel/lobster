@@ -754,8 +754,8 @@ same other than where the variable is stored):</p>
     static_frame b = 0
     print b++
 
-gl_window(&quot;foo&quot;, 100, 100)
-while gl_frame():
+gl.window(&quot;foo&quot;, 100, 100)
+while gl.frame():
     static a = 0
     a++
     if a % 4:
@@ -982,7 +982,7 @@ use <code>return</code> or <code>return from</code> (see above) for more
 complex cases.</p>
 <p>Many other functions that look like regular functions are actually
 also control structures, like many of the graphics function that change
-the current rendering state. An example is <code>gl_translate</code>,
+the current rendering state. An example is <code>gl.translate</code>,
 that optionally takes a body, and will run the body and restore the
 previous transform afterwards.</p>
 <p><code>switch</code> has special syntax, since it does a lot of things
