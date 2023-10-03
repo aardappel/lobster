@@ -157,17 +157,24 @@ struct ValueParser : Deserializer {
                 break;
             }
             case T_IDENT: {
-                if (vt == V_INT && ti->enumidx >= 0) {
-                    auto opt = vm.LookupEnum(lex.sattr, ti->enumidx);
-                    if (!opt) lex.Error("unknown enum value " + lex.sattr);
+                auto sname = string(lex.sattr);
+                lex.Next();
+                while (lex.token == T_DOT) {
+                    // We're going to have to assume this is a namespaced name, since we don't know what namespaces there are.
                     lex.Next();
+                    if (lex.token != T_IDENT) lex.Error("identifier expected after .");
+                    sname += ".";
+                    sname += lex.sattr;
+                    lex.Next();
+                }
+                if (vt == V_INT && ti->enumidx >= 0) {
+                    auto opt = vm.LookupEnum(sname, ti->enumidx);
+                    if (!opt) lex.Error("unknown enum value " + sname);
                     if (push) PushV(*opt);
                     break;
                 }
                 if (!IsUDT(vt) && vt != V_ANY)
                     lex.Error("class/struct type required, " + BaseTypeName(vt) + " given");
-                auto sname = lex.sattr;
-                lex.Next();
                 Expect(T_LEFTCURLY);
                 auto name = vm.StructName(*ti);
                 if (name != sname) {

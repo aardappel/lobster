@@ -95,6 +95,8 @@ run_test("misc"):
     let lbval, lberr = lobster_binary_to_value(typeof direct, lb)
     assert not lberr
     assert equal(lbval, groundv)
+    // Just to see if it can parse a namespaced id.
+    assert parse_data(typeof test_namespace.g, "test_namespace.g {{}}")
 
     assert switch rnd(2):
         default: true
