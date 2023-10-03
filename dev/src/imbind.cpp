@@ -1489,7 +1489,7 @@ void AddIMGUIDebug(NativeRegistry & nfr) {
 
 nfr("breakpoint", "condition", "I", "",
     "stops the program in the debugger if passed true."
-    " debugger needs --runtime-verbose on, and im.init() to have run.",
+    " debugger needs --runtime-stack-trace on, and im.init() to have run.",
     [](StackPtr &, VM &vm, Value &c) {
         if (c.True()) {
             auto err = BreakPoint(vm, "Conditional breakpoint hit!");
@@ -1500,7 +1500,7 @@ nfr("breakpoint", "condition", "I", "",
 
 nfr("breakpoint", "", "", "",
     "stops the program in the debugger always."
-    " debugger needs --runtime-verbose on, and im.init() to have run.",
+    " debugger needs --runtime-stack-trace on, and im.init() to have run.",
     [](StackPtr &, VM &vm) {
         auto err = BreakPoint(vm, "Breakpoint hit!");
         if (!err.empty()) vm.Error(err);

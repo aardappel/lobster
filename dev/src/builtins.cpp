@@ -1434,14 +1434,14 @@ nfr("date_time_build_info", "", "", "S",
 
 nfr("assert", "condition", "A*", "Ab1",
     "halts the program with an assertion failure if passed false. returns its input."
-    " runtime errors like this will contain a stack trace if --runtime-verbose is on.",
+    " runtime errors like this will contain a stack trace if --runtime-stack-trace is on.",
     [](StackPtr &, VM &, Value &c) {
         assert(false);  // This builtin implemented as IL_ASSERT.
         return c;
     });
 
 nfr("get_stack_trace", "", "", "S",
-    "gets a stack trace of the current location of the program (needs --runtime-verbose)"
+    "gets a stack trace of the current location of the program (needs --runtime-stack-trace)"
     " without actually stopping the program.",
     [](StackPtr &, VM &vm) {
         string sd;
