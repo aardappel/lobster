@@ -521,7 +521,7 @@ void EngineStatsGUI() {
     ImGui::PlotLines("gl.deltatime", ft.data(), (int)ft.size());
 }
 
-// See also VM::DumpStackTrace
+// See also VM::DumpStackTrace and VM::DumpStackTraceMemory()
 void DumpStackTrace(VM &vm) {
     if (vm.fun_id_stack.empty()) return;
 

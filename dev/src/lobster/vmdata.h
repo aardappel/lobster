@@ -375,6 +375,7 @@ struct ToFlexBufferContext {
     VM &vm;
     flexbuffers::Builder builder;
 
+    bool ignore_unsupported_types = false;
     bool cycle_detect = false;
     set<LObject *> seen_objects;
 
@@ -382,7 +383,9 @@ struct ToFlexBufferContext {
     iint cur_depth = 0;
 
     string max_depth_hit;
+    flexbuffers::Builder::Value max_depth_hit_value;
     string cycle_hit;
+    flexbuffers::Builder::Value cycle_hit_value;
 
     ToFlexBufferContext(VM &vm) : vm(vm) {}
 };
@@ -1009,6 +1012,7 @@ struct VM : VMArgs {
     string DumpFileLine(int fileidx, int line);
     pair<string, const int *> DumpStackFrameStart(FunStack &funstackelem);
     void DumpStackTrace(string &sd);
+    void DumpStackTraceMemory(const string &);
 
     void DumpVal(RefObj *ro, const char *prefix);
     void DumpLeaks();

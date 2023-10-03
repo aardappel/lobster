@@ -289,17 +289,20 @@ void Value::ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const 
 void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const {
     if (IsRefNil(t)) {
         if (!ref_) {
+            if (key.empty()) fbc.builder.Null();
             return;
         }
-        if (!key.empty()) fbc.builder.Key(key.data());
         switch (t) {
             case V_STRING:
+                if (!key.empty()) fbc.builder.Key(key.data());
                 fbc.builder.String(sval()->strv().data(), sval()->strv().size());
                 return;
             case V_VECTOR:
+                if (!key.empty()) fbc.builder.Key(key.data());
                 vval()->ToFlexBuffer(fbc);
                 return;
             case V_CLASS:
+                if (!key.empty()) fbc.builder.Key(key.data());
                 oval()->ToFlexBuffer(fbc);
                 return;
             default:
@@ -328,7 +331,12 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
     }
     string sd;
     ToStringBase(fbc.vm, sd, t, fbc.vm.debugpp);
-    fbc.vm.Error("cannot convert to FlexBuffer: " + sd);
+    if (fbc.ignore_unsupported_types) {
+        if (!key.empty()) fbc.builder.Key(key.data());
+        fbc.builder.String(sd);
+    } else {
+        fbc.vm.Error("cannot convert to FlexBuffer: " + sd);
+    }
 }
 
 void Value::ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const {
@@ -619,13 +627,23 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
             fbc.seen_objects.insert(this);
         } else {
             fbc.cycle_hit = TypeName(fbc.vm);
-            fbc.builder.Null();
+            if (!fbc.cycle_hit_value.type_ == flexbuffers::FBT_NULL) {
+                fbc.builder.String("(dup_ref)");
+                fbc.cycle_hit_value = fbc.builder.LastValue();
+            } else {
+                fbc.builder.ReuseValue(fbc.cycle_hit_value);
+            }
             return;
         }
     }
     if (fbc.cur_depth >= fbc.max_depth) {
         fbc.max_depth_hit = TypeName(fbc.vm);
-        fbc.builder.Null();
+        if (!fbc.max_depth_hit_value.type_ == flexbuffers::FBT_NULL) {
+            fbc.builder.String("(max_depth)");
+            fbc.max_depth_hit_value = fbc.builder.LastValue();
+        } else {
+            fbc.builder.ReuseValue(fbc.max_depth_hit_value);
+        }
         return;
     }
     auto start = fbc.builder.StartMap();

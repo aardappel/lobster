@@ -412,7 +412,7 @@ pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
     return { fname, fip };
 }
 
-// See also imbind.cpp:DumpStackTrace
+// See also imbind.cpp:DumpStackTrace and VM::DumpStackTraceMemory()
 void VM::DumpStackTrace(string &sd) {
     if (fun_id_stack.empty()) {
         // We don't have a stack trace, but maybe this minimum information will be better
@@ -471,11 +471,86 @@ void VM::DumpStackTrace(string &sd) {
     #endif
 }
 
+// See also imbind.cpp:DumpStackTrace and VM::DumpStackTrace()
+void VM::DumpStackTraceMemory(const string &err) {
+    if (fun_id_stack.empty()) {
+        // We don't have a stack trace.
+        return;
+    }
+    // We're going to be dumping as much as possible of the memory of the program along with
+    // the stack trace. To this end we're using the FlexBuffers dumper which already can deal with
+    // cycles etc, so it will output max 1 copy of each data structure.
+    ToFlexBufferContext fbc(*this);
+    fbc.cycle_detect = true;
+    fbc.max_depth = 16;
+    fbc.ignore_unsupported_types = true;
+
+    #ifdef USE_EXCEPTION_HANDLING
+    try {
+    #endif
+
+    DumperFun dumper = [&fbc](VM &vm, string_view_nt name, const TypeInfo &ti, Value *x) {
+        #if RTT_ENABLED
+            auto debug_type = x->type;
+        #else
+            auto debug_type = ti.t;
+        #endif
+        if (debug_type == V_NIL && ti.t != V_NIL) {
+            // Just skip, only useful in debug.
+        } else if (ti.t != debug_type && !IsStruct(ti.t)) {
+            // Just skip, only useful in debug.
+        } else {
+            fbc.builder.Key(name.data(), name.size());
+            if (IsStruct(ti.t)) {
+                vm.StructToFlexBuffer(fbc, ti, x, false);
+            } else {
+                x->ToFlexBuffer(fbc, ti.t, {}, -1);
+            }
+        }
+    };
+
+    auto vstart = fbc.builder.StartVector();
+    fbc.builder.String(err);
+    for (auto &funstackelem : reverse(fun_id_stack)) {
+        auto vstart2 = fbc.builder.StartVector();
+        auto [name, fip] = DumpStackFrameStart(funstackelem);
+        fbc.builder.String(name);
+        auto mstart = fbc.builder.StartMap();
+        DumpStackFrame(fip, funstackelem.locals, dumper);
+        fbc.builder.EndMap(mstart);
+        fbc.builder.EndVector(vstart2, false, false);
+    }
+    fbc.builder.EndVector(vstart, false, false);
+    fbc.builder.Finish();
+    auto fn = cat("crash_stack_trace_memory_dump_", GetDateTime(), ".flex");
+    auto contents =
+        string_view((char *)fbc.builder.GetBuffer().data(), fbc.builder.GetBuffer().size());
+    if (WriteFile(fn, true, contents, false)) {
+        LOG_PROGRAM(fn + " written succesfully");
+    } else {
+        LOG_ERROR(fn + " failed to write!")
+    }
+
+    #ifdef USE_EXCEPTION_HANDLING
+    } catch (string &) {
+        // Error happened while we were building this stack trace.
+        // That may happen if the reason we're dumping the stack trace is because something got in an
+        // inconsistent state in the first place.
+        
+        // It would be cool to make a heroic effort to still output the information already in the
+        // FlexBuffer for debugging, but we can't really tell how to repair the information there-in.
+        return;
+    }
+    #endif
+}
+
 Value VM::Error(string err) {
     ErrorBase(err);
     #if LOBSTER_ENGINE
-        if (runtime_checks >= RUNTIME_DEBUG) {
+        if (runtime_checks >= RUNTIME_DEBUGGER) {
             BreakPoint(*this, errmsg);
+        } else if (runtime_checks >= RUNTIME_DEBUG_DUMP) {
+            DumpStackTraceMemory(err);
         }
     #endif
     DumpStackTrace(errmsg);
