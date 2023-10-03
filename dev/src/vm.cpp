@@ -482,7 +482,7 @@ void VM::DumpStackTraceMemory(const string &err) {
     // cycles etc, so it will output max 1 copy of each data structure.
     ToFlexBufferContext fbc(*this);
     fbc.cycle_detect = true;
-    fbc.max_depth = 16;
+    fbc.max_depth = 64;
     fbc.ignore_unsupported_types = true;
 
     #ifdef USE_EXCEPTION_HANDLING

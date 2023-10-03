@@ -521,6 +521,41 @@ void EngineStatsGUI() {
     ImGui::PlotLines("gl.deltatime", ft.data(), (int)ft.size());
 }
 
+void FlexBufferGUI(flexbuffers::Reference r, const char *label) {
+    switch (r.GetType()) {
+        case flexbuffers::FBT_MAP: {
+            if (ImGui::TreeNodeEx(label, 0)) {
+                auto m = r.AsMap();
+                auto keys = m.Keys();
+                auto vals = m.Values();
+                for (size_t i = 0; i < keys.size(); i++) {
+                    string key;
+                    keys[i].ToString(true, false, key);
+                    FlexBufferGUI(vals[i], key.c_str());
+                }
+                ImGui::TreePop();
+            }
+            break;
+        }
+        case flexbuffers::FBT_VECTOR: {
+            if (ImGui::TreeNodeEx(label, 0)) {
+                auto vals = r.AsVector();
+                for (size_t i = 0; i < vals.size(); i++) {
+                    auto labeli = cat(i);
+                    FlexBufferGUI(vals[i], labeli.c_str());
+                }
+                ImGui::TreePop();
+            }
+            break;
+        }
+        default: {
+            auto s = r.ToString();
+            ImGui::LabelText(label, "%s", s.c_str());
+            break;
+        }
+    }
+}
+
 // See also VM::DumpStackTrace and VM::DumpStackTraceMemory()
 void DumpStackTrace(VM &vm) {
     if (vm.fun_id_stack.empty()) return;
@@ -1464,6 +1499,16 @@ nfr("graph", "label,values,ishistogram", "SF]I", "",
             ImGui::PlotLines(Label(vm, label), getter, vals.vval()->Elems(),
                 (int)vals.vval()->len);
         }
+        return NilVal();
+    });
+
+nfr("show_flexbuffer", "value", "S", "",
+    "",
+    [](StackPtr &, VM &vm, Value &v) {
+        IsInit(vm);
+        auto sv = v.sval()->strv();
+        auto root = flexbuffers::GetRoot((const uint8_t *)sv.data(), sv.size());
+        FlexBufferGUI(root, "Stack trace");
         return NilVal();
     });
 
