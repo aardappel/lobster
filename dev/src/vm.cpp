@@ -480,7 +480,7 @@ void VM::DumpStackTraceMemory(const string &err) {
     // We're going to be dumping as much as possible of the memory of the program along with
     // the stack trace. To this end we're using the FlexBuffers dumper which already can deal with
     // cycles etc, so it will output max 1 copy of each data structure.
-    ToFlexBufferContext fbc(*this);
+    ToFlexBufferContext fbc(*this, 1024 * 1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS_AND_STRINGS);
     fbc.cycle_detect = true;
     fbc.max_depth = 64;
     fbc.ignore_unsupported_types = true;

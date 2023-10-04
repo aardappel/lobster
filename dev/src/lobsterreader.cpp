@@ -395,7 +395,7 @@ nfr("flexbuffers_value_to_binary", "val,max_nesting,cycle_detection", "AI?B?", "
     "turns any reference value into a flexbuffer. max_nesting defaults to 100. "
     "cycle_detection is by default off (expensive)",
     [](StackPtr &, VM &vm, Value &val, Value &maxnest, Value &cycle_detect) {
-        ToFlexBufferContext fbc(vm);
+        ToFlexBufferContext fbc(vm, 1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS);
         auto mn = maxnest.ival();
         if (mn > 0) fbc.max_depth = mn;
         fbc.cycle_detect = cycle_detect.True();

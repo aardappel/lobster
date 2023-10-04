@@ -387,7 +387,8 @@ struct ToFlexBufferContext {
     string cycle_hit;
     flexbuffers::Builder::Value cycle_hit_value;
 
-    ToFlexBufferContext(VM &vm) : vm(vm) {}
+    ToFlexBufferContext(VM &vm, size_t initial_size, flexbuffers::BuilderFlag flags)
+        : vm(vm), builder(initial_size, flags) {}
 };
 
 struct Value {
