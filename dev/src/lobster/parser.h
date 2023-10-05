@@ -1478,6 +1478,14 @@ struct Parser {
                             if (lex.token == T_IDENT) {
                                 auto udt = st.LookupSpecialization(lex.sattr);
                                 if (udt) {
+                                    if (pattern->Arity()) {
+                                        // We can lift this restriction in theory, by finding the common
+                                        // supertype for these multiple types in Case::TypeCheck, but
+                                        // then then exhaustiveness checking would get complicated if that
+                                        // doesn't cover all subtype cases.. so then the user would be better
+                                        // of using that supertype directly.
+                                        Error("can currently match only one type per case");
+                                    }
                                     lex.Next();
                                     f = new UDTRef(lex, udt);
                                 }
