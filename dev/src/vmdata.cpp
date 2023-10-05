@@ -627,7 +627,7 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
             fbc.seen_objects.insert(this);
         } else {
             fbc.cycle_hit = TypeName(fbc.vm);
-            if (!fbc.cycle_hit_value.type_ == flexbuffers::FBT_NULL) {
+            if (fbc.cycle_hit_value.type_ == flexbuffers::FBT_NULL) {
                 fbc.builder.String("(dup_ref)");
                 fbc.cycle_hit_value = fbc.builder.LastValue();
             } else {
@@ -638,7 +638,7 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
     }
     if (fbc.cur_depth >= fbc.max_depth) {
         fbc.max_depth_hit = TypeName(fbc.vm);
-        if (!fbc.max_depth_hit_value.type_ == flexbuffers::FBT_NULL) {
+        if (fbc.max_depth_hit_value.type_ == flexbuffers::FBT_NULL) {
             fbc.builder.String("(max_depth)");
             fbc.max_depth_hit_value = fbc.builder.LastValue();
         } else {
