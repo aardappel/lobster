@@ -333,8 +333,10 @@ struct TypeChecker {
             if (et->t == V_UNDEFINED) goto error;
             return st.Wrap(et, V_VECTOR, err ? &err->line : nullptr);
         }
-        if (at->t == V_NIL && bt->t == V_NIL) {
-            auto et = Union(at->Element(), bt->Element(), aname, bname, CF_NONE, nullptr);
+        if (at->t == V_NIL || bt->t == V_NIL) {
+            at = at->ElementIfNil();
+            bt = bt->ElementIfNil();
+            auto et = Union(at, bt, aname, bname, CF_NONE, nullptr);
             if (et->t == V_UNDEFINED) goto error;
             return st.Wrap(et, V_NIL, err ? &err->line : nullptr);
         }
@@ -3763,6 +3765,7 @@ bool Switch::Terminal(TypeChecker &tc) const {
         if (cas->pattern->children.empty()) have_default = true;
         if (!cas->cbody->Terminal(tc)) return false;
     }
+    // FIXME: this should return true if the switch is proven exhaustive for types, sadly cannot guarantee that with enums.
     return have_default;
 }
 

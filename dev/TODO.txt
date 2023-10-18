@@ -153,6 +153,7 @@
   - A debugging mode where a breakpoint can be set when the programming is already running?
     Would be expensive to have a breakpoint check between every statement..
     But this would enable traditional step by step debugging.
+  - tracepoint: like breakpoint, but automatic continue and the UI stays live.. for debugging values changing over time.
 
 - Inline structs, further improvements:
   - These were immutable in the past, because values were shared by pointer, but now there
