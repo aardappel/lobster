@@ -503,9 +503,13 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
 }
 #endif
 
-extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uint8_t *bytecodefb,
+extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const uint8_t *bytecodefb,
                                    size_t static_size, const lobster::fun_base_t *vtables,
                                    void *custom_pre_init) {
+    #ifdef _MSC_VER
+        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+        InitUnhandledExceptionFilter(argc, (char **)argv);
+    #endif
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
