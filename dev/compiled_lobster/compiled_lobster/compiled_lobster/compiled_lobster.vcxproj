@@ -171,6 +171,7 @@
       <DisableSpecificWarnings>4127;4512;4201;4146;4456</DisableSpecificWarnings>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
