@@ -54,6 +54,13 @@ enter equals up down right left insert home end page up page down
 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
 numlock caps lock scroll lock right shift left shift right ctrl left ctrl right alt left alt
 right meta left meta left super right super alt gr compose help print screen sys req break
+
+For controllers (all starting with controller_):
+
+a b x y back guide start leftstick rightstick leftshoulder rightshoulder
+dpup dpdown dpleft dpright misc1 paddle1 paddle2 paddle3 paddle4 touchpad
+
+joy0 and up give raw joystick values with no mapping.
 */
 
 
@@ -130,6 +137,7 @@ bool noninteractivetestmode = false;
 
 const int MAXAXES = 16;
 float joyaxes[MAXAXES] = { 0 };
+float controller_axes[SDL_CONTROLLER_AXIS_MAX] = { 0 };
 
 struct Finger {
     SDL_FingerID id;
@@ -192,6 +200,10 @@ const int2 &GetFinger(int i, bool delta) {
 
 float GetJoyAxis(int i) {
     return joyaxes[max(min(i, MAXAXES - 1), 0)];
+}
+
+float GetControllerAxis(int i) {
+    return controller_axes[max(min(i, SDL_CONTROLLER_AXIS_MAX - 1), 0)];
 }
 
 int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et) {
@@ -278,6 +290,16 @@ void ScreenSizeChanged() {
     SDL_GL_GetDrawableSize(_sdl_window, &screensize.x, &screensize.y);
     inputscale = screensize / inputsize;
 }
+
+SDL_GameController *find_controller() {
+    for (int i = 0; i < SDL_NumJoysticks(); i++) {
+        if (SDL_IsGameController(i)) {
+            return SDL_GameControllerOpen(i);
+        }
+    }
+    return nullptr;
+}
+SDL_GameController *controller = nullptr;
 
 #ifdef PLATFORM_ES3
 int gl_major = 3, gl_minor = 0;
@@ -411,6 +433,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
                                     SDL_JoystickNumHats(joy), " hats)");
             };
         };
+        controller = find_controller();
     }
 
     timestart = SDL_GetPerformanceCounter();
@@ -662,7 +685,6 @@ bool SDLFrame() {
             case SDL_JOYAXISMOTION: {
                 const int deadzone = 8192;
                 if (event.jaxis.axis < MAXAXES) {
-                    //LOG_INFO("SDL_JOYAXISMOTION: ", event.jaxis.value);
                     joyaxes[event.jaxis.axis] = abs(event.jaxis.value) > deadzone ? event.jaxis.value / (float)0x8000 : 0;
                 };
                 break;
@@ -676,6 +698,35 @@ bool SDLFrame() {
                 string name = "joy";
                 name += '0' + (char)event.jbutton.button;
                 updatebutton(name, event.jbutton.state == SDL_PRESSED, 0, false);
+                break;
+            }
+
+            case SDL_CONTROLLERDEVICEADDED:
+                if (!controller) {
+                    controller = SDL_GameControllerOpen(event.cdevice.which);
+                }
+                break;
+            case SDL_CONTROLLERDEVICEREMOVED:
+                if (controller && event.cdevice.which ==
+                                    SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller))) {
+                    SDL_GameControllerClose(controller);
+                    controller = find_controller();
+                }
+                break;
+            case SDL_CONTROLLERBUTTONDOWN:
+            case SDL_CONTROLLERBUTTONUP:
+                if (controller && event.cdevice.which ==
+                                      SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller))) {
+                    string name = "controller_";
+                    auto sdl_name = SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button);
+                    name += sdl_name ? sdl_name : cat(event.cbutton.button); 
+                    updatebutton(name, event.cbutton.state == SDL_PRESSED, 0, false);
+                }
+                break;
+            case SDL_CONTROLLERAXISMOTION: {
+                const int deadzone = 8192;
+                controller_axes[event.caxis.axis] =
+                        abs(event.caxis.value) > deadzone ? event.caxis.value / (float)0x8000 : 0;
                 break;
             }
 
@@ -896,4 +947,8 @@ void SDLTextInputSet(string_view t) {
 
 void SDLEndTextInput() {
     SDL_StopTextInput();
+}
+
+const char *SDLControllerDataBase(const string& buf) {
+    return SDL_GameControllerAddMapping(buf.c_str()) >= 0 ? nullptr : SDL_GetError();
 }

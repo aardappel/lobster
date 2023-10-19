@@ -34,6 +34,7 @@ extern bool KeyRepeat(string_view name);
 extern double GetKeyTime(string_view name, int on);
 extern int2 GetKeyPos(string_view name, int on);
 extern float GetJoyAxis(int i);
+extern float GetControllerAxis(int i);
 extern string &GetDroppedFile();
 
 extern double SDLTime();
@@ -65,6 +66,8 @@ extern bool ScreenShot(string_view_nt filename);
 extern void SDLTestMode();
 
 extern int SDLScreenDPI(int screen);
+
+extern const char *SDLControllerDataBase(const string &buf);
 
 struct TextInput {
     string text;

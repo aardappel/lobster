@@ -426,9 +426,19 @@ nfr("mousewheel_delta", "", "", "I",
     });
 
 nfr("joy_axis", "i", "I", "F",
-    "the current joystick orientation for axis i, as -1 to 1 value",
+    "the current joystick orientation for axis i, as -1 to 1 value."
+    " this gives you raw joystick values, prefer to use controller_axis()",
     [](StackPtr &, VM &, Value &i) {
         return Value(GetJoyAxis(i.intval()));
+    });
+
+nfr("controller_axis", "i", "I", "F",
+    "the current controller orientation for axis i, as -1 to 1 value."
+    " the axes are (from 0): leftx, lefty, rightx, righty, triggerleft, triggerright."
+    " down/right have positive values."
+    " make sure to call gl.init_controller_database()",
+    [](StackPtr &, VM &, Value &i) {
+        return Value(GetControllerAxis(i.intval()));
     });
 
 nfr("delta_time", "", "", "F",
@@ -1357,6 +1367,22 @@ nfr("stop_time_query", "tq", "R:timequery?", "F",
         TestGL(vm);
         GetTimeQuery(tq).Stop();
         return Value(GetTimeQuery(tq).timing_average_result);
+    });
+
+nfr("init_controller_database", "filename", "S", "S?",
+    "loads the controller database if you want your game to support controllers."
+    " typically the argument should be: pakfile \"data/controllers/gamecontrollerdb.txt\"."
+    " returns error if something went wrong",
+    [](StackPtr &, VM &vm, Value &fn) {
+        TestGL(vm);
+        string dest;
+        auto fnsv = fn.sval()->strv();
+        if (LoadFile(fnsv, &dest) <= 0)
+            return Value(vm.NewString("could not load file: " + fnsv));
+        auto err = SDLControllerDataBase(dest);
+        if (err)
+            return Value(vm.NewString(err));
+        return NilVal();
     });
 
 }  // AddGraphics
