@@ -1554,6 +1554,12 @@ nfr("thread_read", "type", "T", "A1?",
         return vm.WorkerRead((type_elem_t)t.ival());
     });
 
+nfr("crash_test_cpp_nullptr_exception", "", "", "",
+    "only for testing crash dump functionality, don\'t use! :)",
+    [](StackPtr &, VM &) {
+        *(char *)nullptr = 0;
+    });
+
 }  // AddBuiltins
 
 
