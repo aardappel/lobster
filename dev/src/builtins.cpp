@@ -1557,7 +1557,8 @@ nfr("thread_read", "type", "T", "A1?",
 nfr("crash_test_cpp_nullptr_exception", "", "", "",
     "only for testing crash dump functionality, don\'t use! :)",
     [](StackPtr &, VM &) {
-        *(char *)nullptr = 0;
+        char *volatile crash = nullptr;
+        *crash = 0;
     });
 
 }  // AddBuiltins
