@@ -448,13 +448,16 @@ nfr("flexbuffers_binary_to_json", "flex,field_quotes,indent_string", "SBS", "S?S
         }
     });
 
-nfr("flexbuffers_json_to_binary", "json", "S", "SS?",
+nfr("flexbuffers_json_to_binary", "json,filename_for_errors", "SS?", "SS?",
     "turns a JSON string into a flexbuffer, second value is error, if any",
-    [](StackPtr &sp, VM &vm, Value &json) {
+    [](StackPtr &sp, VM &vm, Value &json, Value &filename) {
         flexbuffers::Builder builder;
         flatbuffers::Parser parser;
         auto err = NilVal();
-        if (!parser.ParseFlexBuffer(json.sval()->strv().data(), "(flexbuffers_json_to_binary)",
+        auto fn = filename.True()
+            ? filename.sval()->strvnt()
+            : string_view_nt("{flexbuffers_json_to_binary}");
+        if (!parser.ParseFlexBuffer(json.sval()->strv().data(), fn.c_str(),
                                     &builder)) {
             err = vm.NewString(parser.error_);
             Push(sp, vm.NewString(""));
