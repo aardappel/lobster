@@ -694,12 +694,21 @@ nfr("float", "v", "I}", "F}",
 nfr("sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)",
     [](StackPtr &, VM &, Value &a) { return Value(sin(a.fval() * RAD)); });
+nfr("sin", "angle", "F}", "F}",
+    "the y coordinates of the normalized vector indicated by the angles (in degrees)",
+    [](StackPtr &sp, VM &) { VECTOROP(sin(f.fval() * RAD)); });
 nfr("cos", "angle", "F", "F",
     "the x coordinate of the normalized vector indicated by angle (in degrees)",
     [](StackPtr &, VM &, Value &a) { return Value(cos(a.fval() * RAD)); });
+nfr("cos", "angle", "F}", "F}",
+    "the x coordinates of the normalized vector indicated by the angles (in degrees)",
+    [](StackPtr &sp, VM &) { VECTOROP(cos(f.fval() * RAD)); });
 nfr("tan", "angle", "F", "F",
     "the tangent of an angle (in degrees)",
     [](StackPtr &, VM &, Value &a) { return Value(tan(a.fval() * RAD)); });
+nfr("tan", "angle", "F}", "F}",
+    "the tangents of the angles (in degrees)",
+    [](StackPtr &sp, VM &) { VECTOROP(tan(f.fval() * RAD)); });
 
 nfr("sincos", "angle", "F", "F}:2",
     "the normalized vector indicated by angle (in degrees), same as xy { cos(angle), sin(angle) }",
