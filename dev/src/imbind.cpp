@@ -745,6 +745,14 @@ nfr("set_style_color", "i,color", "IF}:4", "",
         ImGui::GetStyle().Colors[i] = ImVec4(c.x, c.y, c.z, c.w);
     });
 
+nfr("set_style_spacing", "spacing", "F}:2", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm,  { N_NONE, N_NONE });
+        auto s = PopVec<float2>(sp);
+        ImGui::GetStyle().ItemSpacing = ImVec2(s.x, s.y);
+    });
+
 nfr("frame_start", "", "", "",
     "(use im.frame instead)",
     [](StackPtr &, VM &vm) {
