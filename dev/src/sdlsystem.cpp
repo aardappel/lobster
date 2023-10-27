@@ -855,22 +855,21 @@ int SDLWheelDelta() { return mousewheeldelta; }
 bool SDLIsMinimized() { return minimized; }
 
 bool SDLCursor(bool on) {
-    if (on != cursor) {
-        cursor = !cursor;
-        if (cursor) {
-            if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_FALSE);
-            SDL_ShowCursor(1);
-            SDL_SetRelativeMouseMode(SDL_FALSE);
-            SDL_WarpMouseInWindow(_sdl_window, cursorx, cursory);
-        } else {
-            SDL_GetMouseState(&cursorx, &cursory);
-            if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_TRUE);
-            SDL_ShowCursor(0);
-            SDL_SetRelativeMouseMode(SDL_TRUE);
-            clearfingers(false);
-        }
+    if (on == cursor) return cursor;
+    cursor = !cursor;
+    if (cursor) {
+        if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_FALSE);
+        SDL_ShowCursor(1);
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+        SDL_WarpMouseInWindow(_sdl_window, cursorx, cursory);
+    } else {
+        SDL_GetMouseState(&cursorx, &cursory);
+        if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_TRUE);
+        SDL_ShowCursor(0);
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+        clearfingers(false);
     }
-    return cursor;
+    return !cursor;
 }
 
 bool SDLGrab(bool on) {

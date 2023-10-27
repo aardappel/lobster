@@ -286,10 +286,10 @@ nfr("visible", "", "", "B",
 
 nfr("cursor", "on", "B", "B",
     "default the cursor is visible, turn off for implementing FPS like control schemes. return"
-    " whether it's on.",
+    " whether it was on before this call.",
     [](StackPtr &, VM &vm, Value &on) {
         TestGL(vm);
-        return Value(SDLCursor(on.ival() != 0));
+        return Value(SDLCursor(on.True()));
     });
 
 nfr("grab", "on", "B", "B",
