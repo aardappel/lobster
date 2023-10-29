@@ -20,7 +20,7 @@
 #include "lobster/sdlincludes.h"
 #include "lobster/sdlinterface.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) && LOBSTER_RENDERDOC
     #include "renderdoc_app.h"
     RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 #endif
@@ -266,7 +266,7 @@ string OpenGLInit(int samples, bool srgb) {
             #define new DEBUG_NEW
         #endif
     #endif
-    #ifdef _WIN32
+    #if defined(_WIN32) && LOBSTER_RENDERDOC
         if (HMODULE mod = LoadLibraryA("renderdoc.dll")) {
             pRENDERDOC_GetAPI RENDERDOC_GetAPI =
                 (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
@@ -282,7 +282,7 @@ void OpenGLCleanup() {
 }
 
 void RenderDocStartFrameCapture() {
-    #ifdef _WIN32
+    #if defined(_WIN32) && LOBSTER_RENDERDOC
         // To start a frame capture, call StartFrameCapture.
         // You can specify NULL, NULL for the device to capture on if you have only one device and
         // either no windows at all or only one window, and it will capture from that device.
@@ -292,7 +292,7 @@ void RenderDocStartFrameCapture() {
 }
 
 void RenderDocStopFrameCapture() {
-    #ifdef _WIN32
+    #if defined(_WIN32) && LOBSTER_RENDERDOC
         if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
     #endif
 }

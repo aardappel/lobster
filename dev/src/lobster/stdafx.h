@@ -142,3 +142,5 @@ using namespace geom;
     #define LOBSTER_FRAME_PROFILE_THIS_SCOPE
     #define LOBSTER_FRAME_PROFILE_GPU
 #endif
+
+#define LOBSTER_RENDERDOC 0

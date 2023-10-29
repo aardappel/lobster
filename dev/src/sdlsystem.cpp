@@ -391,6 +391,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         if (SDL_GetDisplayDPI(display, NULL, &dpi, NULL)) dpi = default_dpi;
         LOG_INFO(cat("dpi: ", dpi));
         screensize = desired_screensize * int(dpi) / int(default_dpi);
+        // STARTUP-TIME-COST: 0.16 sec.
         _sdl_window = SDL_CreateWindow(
             title.c_str(),
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -420,7 +421,9 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         if (SDL_GL_SetSwapInterval(flags & INIT_NO_VSYNC ? 0 : -1) < 0) SDL_GL_SetSwapInterval(1);
     #endif
 
-    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) >= 0 && SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) >= 0) {
+    // STARTUP-TIME-COST: 0.08 sec.
+    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) >= 0 &&
+        SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) >= 0) {
         SDL_JoystickEventState(SDL_ENABLE);
         SDL_JoystickUpdate();
         for(int i = 0; i < SDL_NumJoysticks(); i++) {
