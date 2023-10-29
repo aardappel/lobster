@@ -205,7 +205,7 @@ string OpenGLInit(int samples, bool srgb) {
              (const char *)glGetString(GL_RENDERER), " - ",
              (const char *)glGetString(GL_VERSION));
     // If not called, flashes red framebuffer on OS X before first gl.clear() is called.
-    ClearFrameBuffer(float3_0);
+    ClearFrameBuffer(float3(0.25f));
     #ifdef PLATFORM_WINNIX
         #define GLEXT(type, name, needed) { \
                 union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \

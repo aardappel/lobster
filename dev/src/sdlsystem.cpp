@@ -421,7 +421,9 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         if (SDL_GL_SetSwapInterval(flags & INIT_NO_VSYNC ? 0 : -1) < 0) SDL_GL_SetSwapInterval(1);
     #endif
 
-    // STARTUP-TIME-COST: 0.08 sec.
+    auto gl_err = OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
+
+    // STARTUP-TIME-COST: 0.08 sec. (due to controller, not joystick)
     if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) >= 0 &&
         SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) >= 0) {
         SDL_JoystickEventState(SDL_ENABLE);
@@ -444,7 +446,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
 
     lasttime = -0.02f;    // ensure first frame doesn't get a crazy delta
 
-    return OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
+    return gl_err;
 }
 
 void SDLSetFullscreen(InitFlags flags) {
