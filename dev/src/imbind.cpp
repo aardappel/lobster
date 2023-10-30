@@ -1116,13 +1116,15 @@ nfr("coloredit", "label,color", "SF}", "A2",
         PushVec(sp, c);
     });
 
-nfr("image", "tex,size", "R:textureF}:2", "",
+nfr("image", "tex,size,flip", "R:textureF}:2B?", "",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
+        auto flip = Pop(sp).True();
         auto sz = PopVec<float2>(sp);
         auto t = GetTexture(Pop(sp));
-        ImGui::Image((ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+        ImGui::Image((ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, flip ? 0.0f : 1.0f),
+                                                                    ImVec2(1.0f, flip ? 1.0f : 0.0f));
     });
 
 nfr("image_button", "label,tex,size,bgcol", "SR:textureF}:2F}:4?", "B",
