@@ -77,7 +77,7 @@ void IMGUICleanup() {
     IMGUIFrameCleanup();
 }
 
-bool IMGUIInit(iint flags, bool dark, float rounding) {
+bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
     if (imgui_init) return true;
     if (!_sdl_window || !_sdl_context) return false;
     IMGUI_CHECKVERSION();
@@ -90,14 +90,16 @@ bool IMGUIInit(iint flags, bool dark, float rounding) {
     auto r = rounding;
     // For some reason active tabs are by default almost the same color as inactive ones, fix that.
     // TODO: instead, expose color/style API thru bindings.
-    ImGui::GetStyle().Colors[ImGuiCol_Tab].w = 0.37f;  // More transparent.
-    ImGui::GetStyle().FrameRounding = r;
-    ImGui::GetStyle().WindowRounding = r;
-    ImGui::GetStyle().GrabRounding = r;
-    ImGui::GetStyle().ChildRounding = r;
-    ImGui::GetStyle().PopupRounding = r;
-    ImGui::GetStyle().ScrollbarRounding = r;
-    ImGui::GetStyle().TabRounding = r;
+    auto &style = ImGui::GetStyle();
+    style.WindowBorderSize = style.ChildBorderSize = style.PopupBorderSize = border;
+    style.Colors[ImGuiCol_Tab].w = 0.37f;  // More transparent.
+    style.FrameRounding = r;
+    style.WindowRounding = r;
+    style.GrabRounding = r;
+    style.ChildRounding = r;
+    style.PopupRounding = r;
+    style.ScrollbarRounding = r;
+    style.TabRounding = r;
     if (IsSRGBMode()) {
         // Colors are specified as SRGB, so pre-convert them if we're using linear.
         auto cols = ImGui::GetStyle().Colors;
@@ -600,7 +602,7 @@ void DumpStackTrace(VM &vm) {
 string BreakPoint(VM &vm, string_view reason) {
     // Init just in case it wasn't already.
     // NOTE: this inits on main window first.
-    if (!IMGUIInit(0, false, 3.0f)) {
+    if (!IMGUIInit(0, false, 3.0f, 1.0f)) {
         // FIXME: we could make this work without a main window, but I guess if we're running
         // in console its good to stay there?
         return "breakpoint: no main window for imgui";
@@ -720,10 +722,10 @@ const char *Label(VM &vm, Value val) {
 
 void AddIMGUI(NativeRegistry &nfr) {
 
-nfr("init", "dark_style,flags,rounding", "B?I?F?", "",
+nfr("init", "dark_style,flags,rounding,border", "B?I?F?F?", "",
     "",
-    [](StackPtr &, VM &vm, Value &darkstyle, Value &flags, Value &rounding) {
-        if (!IMGUIInit(flags.ival(), darkstyle.True(), rounding.fltval()))
+    [](StackPtr &, VM &vm, Value &darkstyle, Value &flags, Value &rounding, Value &border) {
+        if (!IMGUIInit(flags.ival(), darkstyle.True(), rounding.fltval(), border.fltval()))
             vm.BuiltinError("im.init: no window");
         return NilVal();
     });
@@ -751,6 +753,30 @@ nfr("set_style_spacing", "spacing", "F}:2", "",
         IsInit(vm,  { N_NONE, N_NONE });
         auto s = PopVec<float2>(sp);
         ImGui::GetStyle().ItemSpacing = ImVec2(s.x, s.y);
+    });
+
+nfr("set_style_inner_spacing", "spacing", "F}:2", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm,  { N_NONE, N_NONE });
+        auto s = PopVec<float2>(sp);
+        ImGui::GetStyle().ItemInnerSpacing = ImVec2(s.x, s.y);
+    });
+
+nfr("set_style_window_padding", "spacing", "F}:2", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm,  { N_NONE, N_NONE });
+        auto s = PopVec<float2>(sp);
+        ImGui::GetStyle().WindowPadding = ImVec2(s.x, s.y);
+    });
+
+nfr("set_style_frame_padding", "spacing", "F}:2", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm,  { N_NONE, N_NONE });
+        auto s = PopVec<float2>(sp);
+        ImGui::GetStyle().FramePadding = ImVec2(s.x, s.y);
     });
 
 nfr("frame_start", "", "", "",
