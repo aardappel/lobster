@@ -397,8 +397,7 @@ string VM::DumpFileLine(int fileidx, int line) {
     return loc;
 }
 
-pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
-    auto fip = funstackelem.funstartinfo;
+pair<string, const int *> VM::DumpStackFrameStart(const int *fip, int fileidx, int line) {
     auto deffun = *fip++;
     string fname;
     auto nargs = fip[1];
@@ -408,7 +407,7 @@ pair<string, const int *> VM::DumpStackFrameStart(FunStack &funstackelem) {
         append(fname, ".");
     }
     append(fname, bcf->functions()->Get(deffun)->name()->string_view(),
-           DumpFileLine(funstackelem.fileidx, funstackelem.line));
+           DumpFileLine(fileidx, line));
     return { fname, fip };
 }
 
@@ -455,10 +454,14 @@ void VM::DumpStackTrace(string &sd) {
     };
 
     if (!sd.empty()) append(sd, "\n");
+    auto cur_fileidx = last_fileidx;
+    auto cur_line = last_line;
     for (auto &funstackelem : reverse(fun_id_stack)) {
-        auto [name, fip] = DumpStackFrameStart(funstackelem);
+        auto [name, fip] = DumpStackFrameStart(funstackelem.funstartinfo, cur_fileidx, cur_line);
         append(sd, "in function ", name, "\n");
         DumpStackFrame(fip, funstackelem.locals, dumper);
+        cur_fileidx = funstackelem.fileidx;
+        cur_line = funstackelem.line;
     }
 
     #ifdef USE_EXCEPTION_HANDLING
@@ -511,14 +514,18 @@ void VM::DumpStackTraceMemory(const string &err) {
 
     auto vstart = fbc.builder.StartVector();
     fbc.builder.String(err);
+    auto cur_fileidx = last_fileidx;
+    auto cur_line = last_line;
     for (auto &funstackelem : reverse(fun_id_stack)) {
         auto vstart2 = fbc.builder.StartVector();
-        auto [name, fip] = DumpStackFrameStart(funstackelem);
+        auto [name, fip] = DumpStackFrameStart(funstackelem.funstartinfo, cur_fileidx, cur_line);
         fbc.builder.String(name);
         auto mstart = fbc.builder.StartMap();
         DumpStackFrame(fip, funstackelem.locals, dumper);
         fbc.builder.EndMap(mstart);
         fbc.builder.EndVector(vstart2, false, false);
+        cur_fileidx = funstackelem.fileidx;
+        cur_line = funstackelem.line;
     }
     fbc.builder.EndVector(vstart, false, false);
     fbc.builder.Finish();

@@ -1011,7 +1011,7 @@ struct VM : VMArgs {
     void DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump);
     void DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump);
     string DumpFileLine(int fileidx, int line);
-    pair<string, const int *> DumpStackFrameStart(FunStack &funstackelem);
+    pair<string, const int *> DumpStackFrameStart(const int *fip, int fileidx, int line);
     void DumpStackTrace(string &sd);
     void DumpStackTraceMemory(const string &);
 
