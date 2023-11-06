@@ -211,6 +211,17 @@ def tab(label, flags, body):
         tab_end()
     return open
 
+def tab(label, font_idx, flags, body):
+    font_start(font_idx)
+    let open = tab_start(label, flags)
+    if open:
+        font_start(0)
+        body()
+        font_end()
+        tab_end()
+    font_end()
+    return open
+
 def menu_bar(main, body):
     let open = menu_bar_start(main)
     if open:
