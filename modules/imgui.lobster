@@ -282,6 +282,16 @@ def width(width, body):
     body()
     width_end()
 
+def font(font_idx, body):
+    font_start(font_idx)
+    body()
+    font_end()
+
+def color(col, body):
+    color_start(col)
+    body()
+    color_end()
+
 def child(title, size, body):
     child_start(title, size, 0)
     body()
@@ -319,3 +329,9 @@ def show_stack_traces():
             treenode("{i}"):
                 text(st)
     while stack_traces.length: stack_traces.pop()
+
+// Convenience.
+
+def text_font(font_idx, msg):
+    font(font_idx):
+        text(msg)

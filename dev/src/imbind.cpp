@@ -54,6 +54,8 @@ enum Nesting {
     N_CHILD,
     N_VGROUP,
     N_TOOLTIP,
+    N_FONT,
+    N_COLOR,
     N_DRAG_DROP_SOURCE,
     N_DRAG_DROP_TARGET,
 };
@@ -187,6 +189,12 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_TOOLTIP:
                 ImGui::EndTooltip();
+                break;
+            case N_FONT:
+                ImGui::PopFont();
+                break;
+            case N_COLOR:
+                ImGui::PopStyleColor();
                 break;
             case N_DRAG_DROP_SOURCE:
                 ImGui::EndDragDropSource();
@@ -945,20 +953,6 @@ nfr("text", "label", "S", "",
         return NilVal();
     });
 
-nfr("text_styled", "label,font_idx,color", "SIF}:4", "",
-    "",
-    [](StackPtr &sp, VM &vm) {
-        IsInit(vm);
-        auto c = PopVec<float4>(sp);
-        int i = std::max(0, std::min(ImGui::GetIO().Fonts->Fonts.size() - 1, Pop(sp).intval()));
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[i]);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(c.x, c.y, c.z, c.w));
-        auto &s = *Pop(sp).sval();
-        Text(s.strv());
-        ImGui::PopStyleColor();
-        ImGui::PopFont();
-    });
-
 nfr("text_wrapped", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
@@ -966,6 +960,38 @@ nfr("text_wrapped", "label", "S", "",
         auto &s = *text.sval();
         ImGui::TextWrapped("%s", s.strvnt().c_str());
         return NilVal();
+    });
+
+nfr("font_start", "font_idx", "I", "",
+    "(use im.font instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        int i = std::max(0, std::min(ImGui::GetIO().Fonts->Fonts.size() - 1, Pop(sp).intval()));
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[i]);
+        NPush(N_FONT);
+    });
+
+nfr("font_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_FONT);
+    });
+
+nfr("color_start", "color", "F}:4", "",
+    "(use im.tooltip_multi instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto c = PopVec<float4>(sp);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(c.x, c.y, c.z, c.w));
+        NPush(N_COLOR);
+    });
+
+nfr("color_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_COLOR);
     });
 
 nfr("tooltip", "label", "S", "",
