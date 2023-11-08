@@ -570,8 +570,6 @@ bool SDLFrame() {
         #endif
     }
 
-    TextToSpeechUpdate();
-
     frametime = GetSeconds() - lasttime;
     lasttime += frametime;
     // Let's not run slower than this, very long pauses can cause animation & gameplay glitches.
@@ -809,6 +807,8 @@ bool SDLFrame() {
         int A = 1;
     }
     */
+
+    TextToSpeechUpdate();
 
     return closebutton || (noninteractivetestmode && frames == 2 /* has rendered one full frame */);
 }
