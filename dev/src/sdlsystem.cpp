@@ -240,6 +240,7 @@ string SDLError(const char *msg) {
 }
 
 int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
+    // NOTE: This function only called on mobile devices it appears.
     switch (event->type) {
         case SDL_APP_TERMINATING:
             /* Terminate the app.
@@ -252,12 +253,14 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
              */
             return 0;
         case SDL_APP_WILLENTERBACKGROUND:
+            LOG_DEBUG("SDL_APP_WILLENTERBACKGROUND");
             minimized = true;
             /* Prepare your app to go into the background.  Stop loops, etc.
              This gets called when the user hits the home button, or gets a call.
              */
             return 0;
         case SDL_APP_DIDENTERBACKGROUND:
+            LOG_DEBUG("SDL_APP_DIDENTERBACKGROUND");
             /* This will get called if the user accepted whatever sent your app to the background.
              If the user got a phone call and canceled it,
              you'll instead get an SDL_APP_DIDENTERFOREGROUND event and restart your loops.
@@ -266,11 +269,13 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
              */
             return 0;
         case SDL_APP_WILLENTERFOREGROUND:
+            LOG_DEBUG("SDL_APP_WILLENTERFOREGROUND");
             /* This call happens when your app is coming back to the foreground.
              Restore all your state here.
              */
             return 0;
         case SDL_APP_DIDENTERFOREGROUND:
+            LOG_DEBUG("SDL_APP_DIDENTERFOREGROUND");
             /* Restart your loops here.
              Your app is interactive and getting CPU again.
              */
@@ -734,6 +739,7 @@ bool SDLFrame() {
             }
 
             case SDL_WINDOWEVENT:
+                LOG_DEBUG("SDL_WINDOWEVENT ", event.window.event);
                 switch (event.window.event) {
                     case SDL_WINDOWEVENT_RESIZED: {
                         ScreenSizeChanged();
@@ -747,8 +753,10 @@ bool SDLFrame() {
                     case SDL_WINDOWEVENT_MAXIMIZED:
                     case SDL_WINDOWEVENT_RESTORED:
                     case SDL_WINDOWEVENT_SHOWN:
-                    case SDL_WINDOWEVENT_EXPOSED:
                         minimized = false;
+                        break;
+                    case SDL_WINDOWEVENT_EXPOSED:
+                        // This event seems buggy, it fires right after SDL_WINDOWEVENT_MINIMIZED when the user minimizes?
                         break;
                     case SDL_WINDOWEVENT_LEAVE:
                         // never gets hit?
@@ -761,20 +769,6 @@ bool SDLFrame() {
                         closebutton = true;
                         break;
                 }
-                break;
-
-            case SDL_WINDOWEVENT_MINIMIZED:
-                //minimized = true;
-                break;
-
-            case SDL_WINDOWEVENT_MAXIMIZED:
-            case SDL_WINDOWEVENT_RESTORED:
-                /*
-                #ifdef __IOS__
-                    SDL_Delay(10);  // IOS crashes in SDL_GL_SwapWindow if we start rendering straight away
-                #endif
-                minimized = false;
-                */
                 break;
 
             case SDL_DROPFILE:
