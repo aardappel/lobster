@@ -478,6 +478,12 @@ nfr("delta_time", "", "", "F",
         return Value(SDLDeltaTime());
     });
 
+nfr("delta_time_rolling", "n", "I", "F",
+    "seconds since the last frame, updated only once per frame, as a rolling average over the last N frames (max 64)",
+    [](StackPtr &, VM &, Value &n) {
+        return Value(SDLGetRollingAverage((size_t)n.ival()));
+    });
+
 nfr("time", "", "", "F",
     "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
     " seconds_elapsed() for continuous timing)",

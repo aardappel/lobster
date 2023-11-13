@@ -40,6 +40,7 @@ extern string &GetDroppedFile();
 extern double SDLTime();
 extern double SDLDeltaTime();
 extern vector<float> &SDLGetFrameTimeLog();
+extern float SDLGetRollingAverage(size_t n);
 
 extern int SDLWheelDelta();
 

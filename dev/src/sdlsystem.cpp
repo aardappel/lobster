@@ -563,6 +563,15 @@ void SDLShutdown() {
 
 vector<float> &SDLGetFrameTimeLog() { return frametimelog; }
 
+float SDLGetRollingAverage(size_t n) {
+    n = std::max((size_t)1, std::min(frametimelog.size(), n));
+    float sum = 0.0f;
+    for (size_t i = 0; i < n; i++) {
+        sum += frametimelog[frametimelog.size() - n + i];
+    }
+    return sum / frametimelog.size();
+}
+
 bool SDLFrame() {
     if (minimized) {
         SDL_Delay(100);  // save CPU/battery

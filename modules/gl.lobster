@@ -62,12 +62,6 @@ def scissor(topleft, size, body):
     body()
     scissor(oldtl, oldsz)
 
-private let delta_time_log = map(60): 1.0 / 30.0
-def deltatime_over_time():
-    delta_time_log.push(delta_time())
-    delta_time_log.remove(0)
-    return (delta_time_log.fold(0.0): _a + _e) / delta_time_log.length
-
 // For backwards compatibility, don't use.
 def update_bind_buffer_object(name, buf, ssbo, res = nil):
     res = update_buffer_object(buf, ssbo, -1, nil, false)
