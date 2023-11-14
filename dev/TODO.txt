@@ -17,6 +17,8 @@
 
 - allow let inside if/guard as syntactic sugar
 
+- --errors is fundamentally flawed, do it differently? https://github.com/aardappel/lobster/issues/276
+
 - this is out of date and a bit overly negative: https://aardappel.github.io/lobster/philosophy.html
 
 - A document that explains what samples are available and what they demo.

@@ -122,6 +122,8 @@
       <DisableSpecificWarnings>4127;4512;4201;4146;4456</DisableSpecificWarnings>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <ConformanceMode>true</ConformanceMode>
+      <EnableModules>true</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -172,6 +174,8 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ConformanceMode>true</ConformanceMode>
+      <EnableModules>true</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

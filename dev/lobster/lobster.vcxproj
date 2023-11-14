@@ -99,7 +99,7 @@
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
       <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <ConformanceMode>false</ConformanceMode>
+      <ConformanceMode>true</ConformanceMode>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -137,7 +137,7 @@
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
       <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <ConformanceMode>false</ConformanceMode>
+      <ConformanceMode>true</ConformanceMode>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
