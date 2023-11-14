@@ -391,7 +391,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, stri
                           const char *object_name, vector<string> &&program_args, TraceMode trace,
                           bool compile_only, string &error, int runtime_checks, bool dump_leaks) {
     string sd;
-    error = ToCPP(nfr, sd, bytecode_buffer, false, runtime_checks, "nullptr");
+    error = ToCPP(nfr, sd, bytecode_buffer, false, runtime_checks, "nullptr", "");
     if (!error.empty()) return { "", 0 };
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
@@ -505,7 +505,7 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
 
 extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const uint8_t *bytecodefb,
                                    size_t static_size, const lobster::fun_base_t *vtables,
-                                   void *custom_pre_init) {
+                                   void *custom_pre_init, const char *aux_src_path) {
     #ifdef _MSC_VER
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
         InitUnhandledExceptionFilter(argc, (char **)argv);
@@ -519,7 +519,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const uint
         if (custom_pre_init) ((void (*)(NativeRegistry &))(custom_pre_init))(nfr);
         auto loader = EnginePreInit(nfr);
         min_output_level = OUTPUT_WARN;
-        InitPlatform("./", "src/main.lobster", false, loader);  // FIXME: path.
+        InitPlatform(GetMainDirFromExePath(argv[0]), aux_src_path, false, loader);
         auto vmargs = VMArgs {
             nfr, StripDirPart(string_view_nt(argv[0])), bytecodefb, static_size, {},
             vtables, nullptr, TraceMode::OFF, false, RUNTIME_ASSERT
