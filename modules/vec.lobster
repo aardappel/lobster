@@ -68,10 +68,12 @@ def zw(v): return vec2 { v.z, v.w }
 def xyz(v): return vec3 { v.x, v.y, v.z }
 
 // lengthen vectors
-def int3  (v:int2,   z:int):   return int3   { v.x, v.y, z }
-def float3(v:float2, z:float): return float3 { v.x, v.y, z }
-def vec3<T>(v:vec2<T>, z:T): return vec3<T> { v.x, v.y, z }
-def vec4<T>(v:vec3<T>, w:T): return vec4<T> { v.x, v.y, v.z, w }
+def int3  (v:int2,   z:int):   return int3    { v.x, v.y, z }
+def float3(v:float2, z:float): return float3  { v.x, v.y, z }
+def vec3<T>(v:vec2<T>, z:T):   return vec3<T> { v.x, v.y, z }
+def int4  (v:int3,   w:int):   return int4    { v.x, v.y, v.z, w }
+def float4(v:float3, w:float): return float4  { v.x, v.y, v.z, w }
+def vec4<T>(v:vec3<T>, w:T):   return vec4<T> { v.x, v.y, v.z, w }
 
 // create from vector types
 def vec2_v<T>(v:[T]): return vec2<T> { v[0], v[1] }
