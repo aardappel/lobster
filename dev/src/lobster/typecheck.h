@@ -1197,7 +1197,12 @@ struct TypeChecker {
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
         auto ArgLifetime = [&](const Node *c, const Arg &arg) {
-            return !force_keep && arg.sid->id->single_assignment ? c->lt : LT_KEEP;
+            // We force single_assignment to LT_KEEP, since any overwriting of the arg would be problematic
+            // with incoming borrowed values at refc==1, and more generally if the pattern of overwriting is
+            // complicated due to loops etc, this is the only way we can track the refc correctly.
+            // Similarly, a V_STRUCT_R is an exception in that is essentially multiple ref arguments, subject
+            // to the same pitfalls, so must get the same treatment.
+            return !force_keep && arg.sid->id->single_assignment && c->exptype->t != V_STRUCT_R ? c->lt : LT_KEEP;
         };
         // Check if any existing specializations match.
         for (sf = ov.sf; sf; sf = sf->next) {
