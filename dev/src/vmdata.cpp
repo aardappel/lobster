@@ -97,7 +97,7 @@ void LVector::Append(VM &vm, LVector *from, iint start, iint amount) {
 void LVector::RemovePush(StackPtr &sp, iint i) {
     assert(len >= 1 && i >= 0 && i < len);
     tsnz_memcpy(TopPtr(sp), v + i * width, width);
-    PushN(sp, (int)width);
+    PushN(sp, width);
     t_memmove(v + i * width, v + (i + 1) * width, (len - i - 1) * width);
     len--;
 }
@@ -112,7 +112,7 @@ void LVector::Remove(VM &vm, iint i, iint n) {
 void LVector::AtVW(StackPtr &sp, iint i) const {
     auto src = AtSt(i);
     tsnz_memcpy(TopPtr(sp), src, width);
-    PushN(sp, (int)width);
+    PushN(sp, width);
 }
 
 void LVector::AtVWInc(StackPtr &sp, iint i, int bitmask) const {

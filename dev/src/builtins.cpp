@@ -216,7 +216,7 @@ nfr("pop", "xs", "A]*", "A1",
         auto l = Pop(sp).vval();
         if (!l->len) vm.BuiltinError("pop: empty vector");
         l->PopVW(TopPtr(sp));
-        PushN(sp, (int)l->width);
+        PushN(sp, l->width);
     });
 
 nfr("top", "xs", "A]*", "Ab1",
@@ -225,7 +225,7 @@ nfr("top", "xs", "A]*", "Ab1",
         auto l = Pop(sp).vval();
         if (!l->len) vm.BuiltinError("top: empty vector");
         l->TopVW(TopPtr(sp));
-        PushN(sp, (int)l->width);
+        PushN(sp, l->width);
     });
 
 nfr("insert", "xs,i,x", "A]*IAkw1", "Ab]1",
