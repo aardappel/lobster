@@ -1202,6 +1202,9 @@ struct TypeChecker {
             // complicated due to loops etc, this is the only way we can track the refc correctly.
             // Similarly, a V_STRUCT_R is an exception in that is essentially multiple ref arguments, subject
             // to the same pitfalls, so must get the same treatment.
+            // FIXME: this is conservative, since V_STRUCT_R args that never get assigned to should not get this
+            // treatment. But where we track assignment in the parser we have no idea of types, and here we don't
+            // know if it is assigned to, so that would require some new kind of tracking this info.
             return !force_keep && arg.sid->id->single_assignment && c->exptype->t != V_STRUCT_R ? c->lt : LT_KEEP;
         };
         // Check if any existing specializations match.
