@@ -1021,7 +1021,8 @@ nfr("get_buf", "block", "R:voxels", "S",
         return Value(buf);
     });
 
-nfr("average_surface_color", "world", "R:voxels", "F}:3II", "",
+// Should probably be renamed because it collects a bunch of stats beyond color.
+nfr("average_surface_color", "world", "R:voxels", "F}:3III}:3I}:3", "",
 	[](StackPtr &sp, VM &) {
 		auto &v = GetVoxels(Pop(sp));
         auto &palette = palettes[v.palette_idx].colors;
@@ -1034,6 +1035,8 @@ nfr("average_surface_color", "world", "R:voxels", "F}:3II", "",
 		};
         float3 srgb_cache[256];
         bool cache_set[256] = { false };
+        int3 bmin = v.grid.dim;
+        int3 bmax = int3_0;
 		for (int x = 0; x < v.grid.dim.x; x++) {
 			for (int y = 0; y < v.grid.dim.y; y++) {
 				for (int z = 0; z < v.grid.dim.z; z++) {
@@ -1041,6 +1044,8 @@ nfr("average_surface_color", "world", "R:voxels", "F}:3II", "",
 					uint8_t c = v.grid.Get(pos);
 					if (c != transparant) {
 						nvol++;
+                        bmin = min(bmin, pos);
+                        bmax = max(bmax, pos);
 						// Only count voxels that lay on the surface for color average.
 						for (int i = 0; i < 6; i++) {
 							auto p = pos + neighbors[i];
@@ -1062,6 +1067,8 @@ nfr("average_surface_color", "world", "R:voxels", "F}:3II", "",
 		PushVec(sp, col);
         Push(sp, nsurf);
         Push(sp, nvol);
+		PushVec(sp, bmin);
+		PushVec(sp, bmax + 1);
 	});
 
 nfr("average_face_colors", "world", "R:voxels", "F]",
@@ -1202,6 +1209,9 @@ nfr("simplex", "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,zsc
         });
     });
 
+// This function should probably be renamed, as it does something more complex than a plain
+// bounding box by trying to ignore outlier voxels according to minsolids.
+// For a regular bounding box, see average_surface_color
 nfr("bounding_box", "world,minsolids", "R:voxelsF", "I}:3I}:3",
     "",
 	[](StackPtr &sp, VM &) {
