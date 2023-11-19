@@ -531,28 +531,45 @@ void EngineStatsGUI() {
     ImGui::PlotLines("gl.deltatime", ft.data(), (int)ft.size());
 }
 
-void FlexBufferGUI(flexbuffers::Reference r, const char *label) {
+void FlexBufferGUI(flexbuffers::Reference r, const char *label, bool in_table) {
+    if (in_table) {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        Text(label);
+        ImGui::TableSetColumnIndex(1);
+        // This seems to be the only way to make the second column stretch to the available space
+        // without it collapsing to nothing in some cases:
+        // https://github.com/ocornut/imgui/issues/5478
+        ImGui::SetNextItemWidth(std::max(200.0f, ImGui::GetContentRegionAvail().x));
+        ImGui::PushID(label);  // Name may occur multiple times.
+    }
     switch (r.GetType()) {
         case flexbuffers::FBT_MAP: {
-            if (ImGui::TreeNodeEx(label, 0)) {
-                auto m = r.AsMap();
-                auto keys = m.Keys();
-                auto vals = m.Values();
-                for (size_t i = 0; i < keys.size(); i++) {
-                    string key;
-                    keys[i].ToString(true, false, key);
-                    FlexBufferGUI(vals[i], key.c_str());
+            if (ImGui::TreeNodeEx("{..}", 0)) {
+                if (BeginTable(label)) {
+                    auto m = r.AsMap();
+                    auto keys = m.Keys();
+                    auto vals = m.Values();
+                    for (size_t i = 0; i < keys.size(); i++) {
+                        string key;
+                        keys[i].ToString(true, false, key);
+                        FlexBufferGUI(vals[i], key.c_str(), true);
+                    }
+                    EndTable();
                 }
                 ImGui::TreePop();
             }
             break;
         }
         case flexbuffers::FBT_VECTOR: {
-            if (ImGui::TreeNodeEx(label, 0)) {
-                auto vals = r.AsVector();
-                for (size_t i = 0; i < vals.size(); i++) {
-                    auto labeli = cat(i);
-                    FlexBufferGUI(vals[i], labeli.c_str());
+            if (ImGui::TreeNodeEx("[..]", 0)) {
+                if (BeginTable(label)) {
+                    auto vals = r.AsVector();
+                    for (size_t i = 0; i < vals.size(); i++) {
+                        auto labeli = cat(i);
+                        FlexBufferGUI(vals[i], labeli.c_str(), true);
+                    }
+                    EndTable();
                 }
                 ImGui::TreePop();
             }
@@ -563,6 +580,9 @@ void FlexBufferGUI(flexbuffers::Reference r, const char *label) {
             ImGui::LabelText(label, "%s", s.c_str());
             break;
         }
+    }
+    if (in_table) {
+        ImGui::PopID();
     }
 }
 
@@ -1574,7 +1594,7 @@ nfr("show_flexbuffer", "value", "S", "",
         IsInit(vm);
         auto sv = v.sval()->strv();
         auto root = flexbuffers::GetRoot((const uint8_t *)sv.data(), sv.size());
-        FlexBufferGUI(root, "Stack trace");
+        FlexBufferGUI(root, "Stack trace", false);
         return NilVal();
     });
 
