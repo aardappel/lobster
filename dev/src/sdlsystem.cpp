@@ -712,8 +712,7 @@ bool SDLFrame() {
 
             case SDL_JOYBUTTONDOWN:
             case SDL_JOYBUTTONUP: {
-                string name = "joy";
-                name += '0' + (char)event.jbutton.button;
+                string name = "joy" + to_string(event.jbutton.button);
                 updatebutton(name, event.jbutton.state == SDL_PRESSED, 0, false);
                 break;
             }
