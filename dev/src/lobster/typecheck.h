@@ -966,7 +966,9 @@ struct TypeChecker {
             sf.mustspecialize = true;
         }
         if (sf.parent->is_constructor_of &&
-            (!IsUDT(sf.returntype->t) || &sf.returntype->udt->g != sf.parent->is_constructor_of)) {
+            (!IsUDT(sf.returntype->t) || &sf.returntype->udt->g != sf.parent->is_constructor_of) &&
+            (sf.returntype->t != V_VOID || !sf.returngiventype.Null())  //  Return value discarded.
+            ) {
             Error(*sf.sbody->children.back(), "constructor must return value of its own type");
         }
         st.BlockScopeCleanup();
