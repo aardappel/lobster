@@ -2529,16 +2529,16 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     if (!ptype->Numeric() && ptype->t != V_STRING && ptype->t != V_CLASS)
         tc.Error(*this, "switch value must be int / float / string / class");
     exptype = nullptr;
-    bool have_default = false;
+    ssize_t default_loc = -1;
     vector<bool> enum_cases;
     if (ptype->IsEnum()) enum_cases.resize(ptype->e->vals.size());
     cases->exptype = type_void;
     cases->lt = LT_ANY;
-    for (auto &n : cases->children) {
+    for (auto [i, n] : enumerate(cases->children)) {
         tc.switch_case_context = this;
         tc.TT(n, reqret, LT_KEEP);
         auto cas = AssertIs<Case>(n);
-        if (!cas->pattern->Arity()) have_default = true;
+        if (!cas->pattern->Arity()) default_loc = i;
         cas->pattern->exptype = type_void;
         cas->pattern->lt = LT_ANY;
         for (auto c : cas->pattern->children) {
@@ -2564,6 +2564,12 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
                                      : tc.Union(exptype, cas->cbody->exptype, "switch type", "case type",
                                                 CF_COERCIONS, cas);
         }
+    }
+    if (default_loc >= 0) {
+        // Stick the default at the end, simplifies codegen.
+        auto d = cases->children[default_loc];
+        cases->children.erase(cases->children.begin() + default_loc);
+        cases->children.push_back(d);
     }
     for (auto n : cases->children) {
         auto cas = AssertIs<Case>(n);
@@ -2622,7 +2628,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         de->is_dispatch_root = true;
         de->subudts_size = dispatch_udt.subudts.size();
     } else {
-        if (!have_default) {
+        if (default_loc < 0) {
             if (reqret) tc.Error(*this, "switch that returns a value must have a default case");
             if (ptype->IsEnum()) {
                 for (auto [i, ev] : enumerate(ptype->e->vals)) {
