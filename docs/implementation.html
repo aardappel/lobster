@@ -174,9 +174,11 @@ implicitly loaded by <code>gl.window</code>).</p></li>
 <code>gl.load_texture(pakfile ”mypath/myfile.png”)</code>.
 <code>pakfile</code> can prefix filenames or directories (ending in
 <code>/</code>), in which case all files in the directory will
-(non-recursively) be added. When running with <code>--verbose</code> you
-can see what files are added/loaded from a pakfile, and which are loaded
-individually.</p></li>
+(non-recursively) be added. You can specify a filter with
+<code>#foo</code> at the end of a pakfile string which causes only
+filenames that contain <code>foo</code> to be added. When running with
+<code>--verbose</code> you can see what files are added/loaded from a
+pakfile, and which are loaded individually.</p></li>
 </ul></li>
 <li><p>Any files your code references that are not in the pakfile (e.g.
 <code>gl.load_texture(”mypath/myfile.png”)</code> ).</p></li>

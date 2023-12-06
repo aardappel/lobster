@@ -156,10 +156,18 @@ string BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
         if (l >= 0) {
             add_file(buf, filename);
         } else {
+            auto base = filename;
+            auto pat = string{};
+            auto pos = filename.find("#");
+            if (pos != filename.npos) {
+                pat = filename.substr(pos + 1);
+                base = filename.substr(0, pos);
+            }
             vector<pair<string, int64_t>> dir;
-            if (!ScanDir(filename, dir)) return "cannot load file/dir for pakfile: " + filename;
+            if (!ScanDir(base, dir)) return "cannot load file/dir for pakfile: " + filename;
             for (auto &[name, size] : dir) {
-                auto fn = filename;
+                if (!pat.empty() && name.find(pat) == name.npos) continue;
+                auto fn = base;
                 if (fn.back() != '/') fn += "/";
                 fn += name;
                 auto err = addrec(fn);

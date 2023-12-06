@@ -167,7 +167,9 @@ These must be (including correct paths):
     -   Any other files/directories you have specified with `pakfile`, e.g:
         `gl.load_texture(pakfile ”mypath/myfile.png”)`. `pakfile` can prefix
         filenames or directories (ending in `/`), in which case all files in the
-        directory will (non-recursively) be added. When running with `--verbose`
+        directory will (non-recursively) be added. You can specify a filter with
+        `#foo` at the end of a pakfile string which causes only filenames that
+        contain `foo` to be added. When running with `--verbose`
         you can see what files are added/loaded from a pakfile, and which are
         loaded individually.
 
