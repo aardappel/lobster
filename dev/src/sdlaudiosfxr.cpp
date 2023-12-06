@@ -27,6 +27,7 @@ bool sound_init = false;
 struct Sound {
     unique_ptr<Mix_Chunk, decltype(&Mix_FreeChunk)> chunk;
     Sound() : chunk(nullptr, Mix_FreeChunk) {}
+    explicit Sound(Mix_Chunk *chunk) : chunk(chunk, Mix_FreeChunk) {}
 };
 
 const int channel_num = 16; // number of mixer channels
@@ -367,19 +368,12 @@ Mix_Chunk *RenderSFXR(string_view buf) {
     return AllocChunk(synth.data(), synth.size());
 }
 
-Sound *LoadSound(string_view filename, SoundType st) {
-    auto it = sound_files.find(filename);
-    if (it != sound_files.end()) {
-        return &it->second;
-    }
-    string buf;
-    if (LoadFile(filename, &buf) < 0)
-        return nullptr;
+static Mix_Chunk *LoadSoundFromBuffer(string_view buf, SoundType st) {
     Mix_Chunk *chunk = nullptr;
     switch (st) {
         case SOUND_WAV:
         case SOUND_OGG: {
-            auto rwops = SDL_RWFromMem((void *)buf.c_str(), (int)buf.length());
+            auto rwops = SDL_RWFromMem((void *)buf.data(), (int)buf.length());
             if (!rwops) return nullptr;
             chunk = Mix_LoadWAV_RW(rwops, 1);
             break;
@@ -391,9 +385,20 @@ Sound *LoadSound(string_view filename, SoundType st) {
     }
     if (!chunk) return nullptr;
     //Mix_VolumeChunk(chunk, MIX_MAX_VOLUME / 2);
-    Sound snd;
-    snd.chunk.reset(chunk);
-    return &(sound_files.insert({ string(filename), std::move(snd) }).first->second);
+    return chunk;
+}
+
+Mix_Chunk *LoadSound(string_view filename, SoundType st) {
+    auto it = sound_files.find(filename);
+    if (it != sound_files.end()) {
+        return it->second.chunk.get();
+    }
+    string buf;
+    if (LoadFile(filename, &buf) < 0) return {};
+    auto *chunk = LoadSoundFromBuffer(buf, st);
+    if (!chunk) return nullptr;
+    sound_files.insert({ string(filename), Sound(chunk) });
+    return chunk;
 }
 
 bool SDLSoundInit() {
@@ -445,13 +450,15 @@ void SDLSoundClose() {
 
 int SDLLoadSound(string_view filename, SoundType st) {
     if (!SDLSoundInit()) return 0;
-    return LoadSound(filename, st) != 0;
+    return LoadSound(filename, st) != nullptr;
 }
 
-int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int pri) {
+int SDLLoadSoundFromBuffer(string_view buffer, SoundType st) {
     if (!SDLSoundInit()) return 0;
-    auto snd = LoadSound(filename, st);
-    if (!snd) return 0;
+    return LoadSoundFromBuffer(buffer, st) != nullptr;
+}
+
+static int PlaySound(Mix_Chunk *chunk, float vol, int loops, int pri) {
     int ch = Mix_GroupAvailable(-1); // is there any free channel?
     if (ch == -1) {
         // no free channel -- find the lowest priority/oldest sound of all currently playing that are <= prio
@@ -471,12 +478,26 @@ int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int p
         if (ch >= 0) Mix_HaltChannel(ch); // halt that channel
     }
     if (ch >= 0) {
-        Mix_PlayChannel(ch, snd->chunk.get(), loops);
+        Mix_PlayChannel(ch, chunk, loops);
         Mix_Volume(ch, (int)(MIX_MAX_VOLUME * vol)); // set channel to default volume (max)
         sound_pri[ch] = pri; // add priority to our array
         sound_age[ch] = sounds_played++;
     }
     return ++ch; // we return channel numbers 1..8 rather than 0..7
+}
+
+int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int pri) {
+    if (!SDLSoundInit()) return 0;
+    auto *chunk = LoadSound(filename, st);
+    if (!chunk) return 0;
+    return PlaySound(chunk, vol, loops, pri);
+}
+
+int SDLPlaySoundFromBuffer(string_view buffer, SoundType st, float vol, int loops, int pri) {
+    if (!SDLSoundInit()) return 0;
+    auto *chunk = LoadSoundFromBuffer(buffer, st);
+    if (!chunk) return 0;
+    return PlaySound(chunk, vol, loops, pri);
 }
 
 void SDLHaltSound(int ch) {
