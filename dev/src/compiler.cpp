@@ -112,7 +112,7 @@ bool IsCompressed(string_view filename) {
     auto dot = filename.find_last_of('.');
     if (dot == string_view::npos) return false;
     auto ext = filename.substr(dot);
-    return ext == ".lbc" || ext == ".lobster" || ext == ".materials";
+    return ext == ".lbc" || ext == ".lobster" || ext == ".materials" || ext == ".glsl";
 }
 
 static const uint8_t *magic = (uint8_t *)"LPAK";
