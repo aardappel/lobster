@@ -1,3 +1,53 @@
+- Options for speeding up JIT mode.
+  Recent benchmarking has shown that while the C++ mode can be pretty fast (within 5x of native C++),
+  the JIT is surprisingly slow (sometimes up to 10x slower than C++ mode for pure number crunching).
+  This is due to it being a relatively simple compiler that does no inlining, so it likely spends most of
+  its time on function calling every bytecode.
+  One way to solve that would be to improve the C/C++ codegen to output what the bytecode does directly rather
+  than the bytecode, but the problem there is that C++ VM code used from there needs to be ported to C first,
+  and shared with it.
+  Then, once we do that, the speedup might still not be great.
+  The problem is that there aren't really any alternative JIT C/C++ compiler solutions, you'd really need to
+  link all of Clang into Lobster to both get C++ support (so it is easier to share VM code) and a speedup
+  (get inlining and optimisation).
+  That would make Lobster builds very slow and complicated.
+  Instead, what if we used an external Clang to build a DLL?
+  More specifically, to not have to deal with the complexity of Clang installs on multiple platforms,
+  what if we used Zig? https://zig.news/kristoff/compile-a-c-c-project-with-zig-368j
+  This could create a 3rd mode, where, if zig is present, it used that instead of libtcc to run
+  during development.
+  It would compile the generated code + a few isolated headers, and hopefully such a build could be
+  fast enough (within a second?) for development? Run with -O1 or whatever if needed?
+  One problem with this path is compatibility with VM code in the main executable.
+  VS and Clang compiler at the very least STL containers differently.
+  Thus, you'd need to pin building both the main exes for various platforms to always be built with
+  a particular version of Clang and the one in the zig exes to the same to have any hope of this
+  just working.
+  Or rather, only main exes with matching Clang versions would make this path available, you could
+  still do VS builds for the better debugging it gives, but they wouldn't have the zig path option.
+  If we do get this working, it be a nice option:
+  - Do development of programs that require more CPU speed, if builds don't take too long.
+  - Could replace the current C++ mode entirely, in that people can just ship main exe + dll,
+    with the advantage that they don't have to deal with doing whole project C++ builds.
+  - Sets us up on the path of eventually ditching libtcc entirely, thus not having to deal with C.
+    This would really simplify future C++ codegen improvements.
+  There is a risk however zig will drop support for C++ compilation: https://github.com/ziglang/zig/issues/16270
+  If that happens, this path would have to switch to using a system clang install.
+  Frankly, if we implement this path, might as well allow people to choose between zig and a system clang
+  install, assuming versions match.
+  Other Clang JIT options:
+  - https://github.com/hfinkel/llvm-project-cxxjit
+    Still requires a whole specialized clang to be linked into the main exe, and would not work with
+    dynamically generated code.
+  - https://github.com/Kray-G/clang-jit
+    Seems like a nice wrapper around clang::CompilerInstance etc, and can do compile+run entirely
+    in memory, so could be an option to pre-build this into a .dll separately from Lobster to not
+    bloat builds.
+    If this is going to build C++, where is it going to get its STL headers etc from?
+    Can we make the core of what the generated code relies on effectively header-less?
+    Would also improve build speeds.
+    Downside is not having the ability to save a dll or whatever for offline use.
+
 - namespace improvements:
   - Declaring a variable (or function) that has the same name as a namespace should be an error? (poll so far: yes)
   - obj.foo where foo is a method in a namespace should work if obj already has that namespaced type?
