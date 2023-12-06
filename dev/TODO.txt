@@ -8,6 +8,12 @@
     it make things harder to recognize without its namespace in front.
     Really, don't put things in a namespace if you don't effectively want to make it part of the name.
 
+- member x = y
+  Where y is another member variable gives the error "'this' is not in scope", because y is evaluated
+  when the class is being constructed, which is rather confusing.
+  This similarly can happen with normal member variables, but there it was somewhat understandable
+  because the object hasn't been fully constructed, here inside a method it makes even less sense.
+
 - Debug dump improvements:
   - automatically zip these files, can be 5x smaller.
   - Turn C++ crashes into Lobster errors so they can be saved with a lot of context.
