@@ -23,7 +23,7 @@ CXXFLAGS= $(OPTLEVEL)
 # Also, asyncify relies on there not being any call_indirects in the path to the yield,
 # which exception handling currently inserts.
 override CXXFLAGS+= -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING \
-                    -s USE_SDL=2 -s USE_SDL_MIXER=2 -s USE_FREETYPE=1 -s NO_EXIT_RUNTIME=1 \
+                    -s USE_SDL=2 -s USE_SDL_MIXER=0 -s USE_FREETYPE=1 -s NO_EXIT_RUNTIME=1 \
                     -std=c++17 -Wall -pedantic -Wno-switch \
                     -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 
@@ -78,7 +78,8 @@ CPPSRCS= \
     $(wildcard ../include/Box2D/Particle/*.cpp) \
     $(wildcard ../include/Box2D/Rope/*.cpp) \
     $(wildcard ../external/flatbuffers/src/*.cpp) \
-    $(wildcard ../external/imgui/*.cpp)
+    $(wildcard ../external/imgui/*.cpp) \
+    $(wildcard ../external/SDLMixer/*.c")
 
 CPPOBJS := $(patsubst %.cpp,%.o,$(CPPSRCS))
 
