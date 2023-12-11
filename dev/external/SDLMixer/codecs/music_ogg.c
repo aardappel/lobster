@@ -179,6 +179,12 @@ static long sdl_tell_func(void *datasource)
     return (long)SDL_RWtell((SDL_RWops*)datasource);
 }
 
+static int sdl_close_func(void *datasource)
+{
+    (void)datasource;
+    return 0;
+}
+
 static int OGG_Seek(void *context, double time);
 static void OGG_Delete(void *context);
 
@@ -241,9 +247,9 @@ static void *OGG_CreateFromRW(SDL_RWops *src, int freesrc)
     music->volume = MIX_MAX_VOLUME;
     music->section = -1;
 
-    SDL_zero(callbacks);
     callbacks.read_func = sdl_read_func;
     callbacks.seek_func = sdl_seek_func;
+    callbacks.close_func = sdl_close_func;
     callbacks.tell_func = sdl_tell_func;
 
     if (vorbis.ov_open_callbacks(src, &music->vf, NULL, 0, callbacks) < 0) {
@@ -529,7 +535,9 @@ Mix_MusicInterface Mix_MusicInterface_OGG =
     OGG_Load,
     NULL,   /* Open */
     OGG_CreateFromRW,
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     NULL,   /* CreateFromFile */
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     OGG_SetVolume,
     OGG_GetVolume,
     OGG_Play,
@@ -539,10 +547,20 @@ Mix_MusicInterface Mix_MusicInterface_OGG =
     OGG_Seek,
     OGG_Tell,
     OGG_Duration,
+    NULL,   /* SetTempo [MIXER-X] */
+    NULL,   /* GetTempo [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    NULL,   /* GetTracksCount [MIXER-X] */
+    NULL,   /* SetTrackMute [MIXER-X] */
     OGG_LoopStart,
     OGG_LoopEnd,
     OGG_LoopLength,
     OGG_GetMetaTag,   /* GetMetaTag */
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     OGG_Stop,
@@ -553,4 +571,3 @@ Mix_MusicInterface Mix_MusicInterface_OGG =
 
 #endif /* MUSIC_OGG */
 
-/* vi: set ts=4 sw=4 expandtab: */

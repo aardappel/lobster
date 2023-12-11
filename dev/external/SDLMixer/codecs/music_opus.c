@@ -501,7 +501,9 @@ Mix_MusicInterface Mix_MusicInterface_Opus =
     OPUS_Load,
     NULL,   /* Open */
     OPUS_CreateFromRW,
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     NULL,   /* CreateFromFile */
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     OPUS_SetVolume,
     OPUS_GetVolume,
     OPUS_Play,
@@ -511,10 +513,20 @@ Mix_MusicInterface Mix_MusicInterface_Opus =
     OPUS_Seek,
     OPUS_Tell,
     OPUS_Duration,
+    NULL,   /* SetTempo [MIXER-X] */
+    NULL,   /* GetTempo [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    NULL,   /* GetTracksCount [MIXER-X] */
+    NULL,   /* SetTrackMute [MIXER-X] */
     OPUS_LoopStart,
     OPUS_LoopEnd,
     OPUS_LoopLength,
     OPUS_GetMetaTag,
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     OPUS_Stop,

@@ -24,5 +24,8 @@
 #include "music.h"
 
 extern Mix_MusicInterface Mix_MusicInterface_NATIVEMIDI;
+#ifdef MUSIC_MID_NATIVE_ALT
+extern Mix_MusicInterface Mix_MusicInterface_NATIVEXMI;
+#endif
 
 /* vi: set ts=4 sw=4 expandtab: */

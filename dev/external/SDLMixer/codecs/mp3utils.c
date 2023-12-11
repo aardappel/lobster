@@ -381,7 +381,9 @@ static size_t id3v22_parse_frame(Mix_MusicMetaTags *out_tags, struct mp3file_t *
     read_size = MP3_RWread(src, buffer, 1, ID3v2_2_FRAME_HEADER_SIZE);
 
     if (read_size < ID3v2_2_FRAME_HEADER_SIZE) {
-        SDL_Log("id3v2_parse_frame: Buffer size that left is too small %u < 6", (unsigned int)read_size);
+        SDL_Log("id3v22_parse_frame (1): Unexpected end of the file while frame header reading (had to read %u bytes, %u bytes wanted)",
+                (unsigned int)read_size,
+                (unsigned int)ID3v2_2_FRAME_HEADER_SIZE);
         MP3_RWseek(src, frame_begin, RW_SEEK_SET);
         return 0; /* Buffer size that left is too small */
     }
@@ -397,8 +399,22 @@ static size_t id3v22_parse_frame(Mix_MusicMetaTags *out_tags, struct mp3file_t *
 
     if (size < ID3v2_BUFFER_SIZE) {
         read_size = MP3_RWread(src, buffer, 1, size);
+        if (read_size < size) {
+            SDL_Log("id3v22_parse_frame (2): Unexpected end of the file while frame data reading (had to read %u bytes, %u bytes wanted)",
+                    (unsigned int)read_size,
+                    (unsigned int)size);
+            MP3_RWseek(src, frame_begin, RW_SEEK_SET);
+            return 0; /* Can't read frame data, possibly, a file size was reached */
+        }
     } else {
         read_size = MP3_RWread(src, buffer, 1, ID3v2_BUFFER_SIZE);
+        if (read_size < ID3v2_BUFFER_SIZE) {
+            SDL_Log("id3v22_parse_frame (3): Unexpected end of the file while frame data reading (had to read %u bytes, %u bytes wanted)",
+                    (unsigned int)read_size,
+                    (unsigned int)ID3v2_BUFFER_SIZE);
+            MP3_RWseek(src, frame_begin, RW_SEEK_SET);
+            return 0; /* Can't read frame data, possibly, a file size was reached */
+        }
         MP3_RWseek(src, frame_begin + (Sint64)size, RW_SEEK_SET);
     }
 
@@ -419,7 +435,9 @@ static size_t id3v2x_parse_frame(Mix_MusicMetaTags *out_tags, struct mp3file_t *
     read_size = MP3_RWread(src, buffer, 1, ID3v2_3_FRAME_HEADER_SIZE);
 
     if (read_size < ID3v2_3_FRAME_HEADER_SIZE) {
-        SDL_Log("id3v2_parse_frame: Buffer size that left is too small %u < 10", (unsigned int)read_size);
+        SDL_Log("id3v2x_parse_frame (1): Unexpected end of the file while frame header reading (had to read %u bytes, %u bytes wanted)",
+                (unsigned int)read_size,
+                (unsigned int)ID3v2_3_FRAME_HEADER_SIZE);
         MP3_RWseek(src, frame_begin, RW_SEEK_SET);
         return 0; /* Can't read frame header, possibly, a file size was reached */
     }
@@ -441,8 +459,22 @@ static size_t id3v2x_parse_frame(Mix_MusicMetaTags *out_tags, struct mp3file_t *
 
     if (size < ID3v2_BUFFER_SIZE) {
         read_size = MP3_RWread(src, buffer, 1, size);
+        if (read_size < size) {
+            SDL_Log("id3v2x_parse_frame (2): Unexpected end of the file while frame data reading (had to read %u bytes, %u bytes wanted)",
+                    (unsigned int)read_size,
+                    (unsigned int)size);
+            MP3_RWseek(src, frame_begin, RW_SEEK_SET);
+            return 0; /* Can't read frame data, possibly, a file size was reached */
+        }
     } else {
         read_size = MP3_RWread(src, buffer, 1, ID3v2_BUFFER_SIZE);
+        if (read_size < ID3v2_BUFFER_SIZE) {
+            SDL_Log("id3v2x_parse_frame (3): Unexpected end of the file while frame data reading (had to read %u bytes, %u bytes wanted)",
+                    (unsigned int)read_size,
+                    (unsigned int)ID3v2_BUFFER_SIZE);
+            MP3_RWseek(src, frame_begin, RW_SEEK_SET);
+            return 0; /* Can't read frame data, possibly, a file size was reached */
+        }
         MP3_RWseek(src, frame_begin + (Sint64)size, RW_SEEK_SET);
     }
 
@@ -491,8 +523,8 @@ static SDL_bool parse_id3v2(Mix_MusicMetaTags *out_tags, struct mp3file_t *src)
     }
 
     if (tag_extended_len) {
-        total_length += tag_extended_len + 4;
-        MP3_RWseek(src, tag_extended_len + 4, RW_SEEK_CUR); /* Skip extended header and it's size value */
+        tag_len -= tag_extended_len; /* Subtract the size of extended header */
+        MP3_RWseek(src, tag_extended_len, RW_SEEK_CUR); /* Skip extended header and it's size value */
     }
 
     total_length += tag_len;
@@ -1123,6 +1155,7 @@ int read_id3v2_from_mem(Mix_MusicMetaTags *out_tags, Uint8 *data, size_t length)
         fil.src = src;
         fil.start = 0;
         fil.length = (Sint64)length;
+        fil.pos = 0;
 
         if (!is_id3v2(data, length)) {
             SDL_RWclose(src);
@@ -1140,5 +1173,30 @@ int read_id3v2_from_mem(Mix_MusicMetaTags *out_tags, Uint8 *data, size_t length)
         return is_valid ? 0 : -1;
     }
     return -1;
+}
+
+long get_id3v2_length(SDL_RWops *src)
+{
+    Uint8 buf[TAGS_INPUT_BUFFER_SIZE];
+    size_t readsize;
+    Sint64 start;
+
+    if(!src) {
+        return 0;
+    }
+
+    start = SDL_RWtell(src);
+    readsize = SDL_RWread(src, buf, 1, TAGS_INPUT_BUFFER_SIZE);
+    SDL_RWseek(src, start, RW_SEEK_SET);
+
+    if (!readsize) {
+        return 0;
+    }
+
+    if (!is_id3v2(buf, readsize)) {
+        return 0;
+    }
+
+    return get_id3v2_len(buf, (long)readsize);
 }
 #endif /* ENABLE_ID3V2_TAG */

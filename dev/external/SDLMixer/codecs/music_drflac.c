@@ -281,7 +281,7 @@ static int DRFLAC_GetSome(void *context, void *data, int bytes, SDL_bool *done)
     if (amount > 0) {
         if (music->loop && (music->play_count != 1) &&
             ((Sint64)music->dec->currentPCMFrame >= music->loop_end)) {
-            amount -= (music->dec->currentPCMFrame - music->loop_end) * sizeof(drflac_int16) * music->channels;
+            amount -= (music->dec->currentPCMFrame - music->loop_end);
             music->loop_flag = SDL_TRUE;
         }
         if (SDL_AudioStreamPut(music->stream, music->buffer, (int)amount * sizeof(drflac_int16) * music->channels) < 0) {
@@ -395,7 +395,9 @@ Mix_MusicInterface Mix_MusicInterface_DRFLAC =
     NULL,   /* Load */
     NULL,   /* Open */
     DRFLAC_CreateFromRW,
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     NULL,   /* CreateFromFile */
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     DRFLAC_SetVolume,
     DRFLAC_GetVolume,
     DRFLAC_Play,
@@ -405,10 +407,20 @@ Mix_MusicInterface Mix_MusicInterface_DRFLAC =
     DRFLAC_Seek,
     DRFLAC_Tell,
     DRFLAC_Duration,
+    NULL,   /* SetTempo [MIXER-X] */
+    NULL,   /* GetTempo [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    NULL,   /* GetTracksCount [MIXER-X] */
+    NULL,   /* SetTrackMute [MIXER-X] */
     DRFLAC_LoopStart,
     DRFLAC_LoopEnd,
     DRFLAC_LoopLength,
     DRFLAC_GetMetaTag,
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     DRFLAC_Stop,

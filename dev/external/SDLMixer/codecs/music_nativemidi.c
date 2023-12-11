@@ -94,7 +94,9 @@ Mix_MusicInterface Mix_MusicInterface_NATIVEMIDI =
     NULL,   /* Load */
     NULL,   /* Open */
     NATIVEMIDI_CreateFromRW,
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     NULL,   /* CreateFromFile */
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     NATIVEMIDI_SetVolume,
     NULL,   /* GetVolume */
     NATIVEMIDI_Play,
@@ -104,10 +106,20 @@ Mix_MusicInterface Mix_MusicInterface_NATIVEMIDI =
     NULL,   /* Seek */
     NULL,   /* Tell */
     NULL,   /* Duration */
+    NULL,   /* SetTempo [MIXER-X] */
+    NULL,   /* GetTempo [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    NULL,   /* GetTracksCount [MIXER-X] */
+    NULL,   /* SetTrackMute [MIXER-X] */
     NULL,   /* LoopStart */
     NULL,   /* LoopEnd */
     NULL,   /* LoopLength */
     NULL,   /* GetMetaTag */
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NATIVEMIDI_Pause,
     NATIVEMIDI_Resume,
     NATIVEMIDI_Stop,

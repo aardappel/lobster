@@ -51,7 +51,9 @@ typedef struct {
 
     xmp_context (*xmp_create_context)(void);
     int (*xmp_load_module_from_memory)(xmp_context, LIBXMP_CONST void *, long);
+#ifndef MUSIC_XMP_MEMORY_ONLY
     int (*xmp_load_module_from_callbacks)(xmp_context, void *, struct xmp_callbacks);
+#endif
     int (*xmp_start_player)(xmp_context, int, int);
     void (*xmp_end_player)(xmp_context);
     void (*xmp_get_module_info)(xmp_context, struct xmp_module_info *);
@@ -62,6 +64,8 @@ typedef struct {
     void (*xmp_stop_module)(xmp_context);
     void (*xmp_release_module)(xmp_context);
     void (*xmp_free_context)(xmp_context);
+    int (*xmp_set_tempo_factor)(xmp_context, double);
+    int (*xmp_channel_mute)(xmp_context, int, int);
 } xmp_loader;
 
 static xmp_loader libxmp;
@@ -70,10 +74,14 @@ static xmp_loader libxmp;
 #define FUNCTION_LOADER(FUNC, SIG) \
     libxmp.FUNC = (SIG) SDL_LoadFunction(libxmp.handle, #FUNC); \
     if (libxmp.FUNC == NULL) { SDL_UnloadObject(libxmp.handle); return -1; }
+#define FUNCTION_LOADER_OPTIONAL(FUNC, SIG) \
+    libxmp.FUNC = (SIG) SDL_LoadFunction(libxmp.handle, #FUNC);
 #else
 #define FUNCTION_LOADER(FUNC, SIG) \
     libxmp.FUNC = FUNC; \
     if (libxmp.FUNC == NULL) { Mix_SetError("Missing xmp.framework"); return -1; }
+#define FUNCTION_LOADER_OPTIONAL(FUNC, SIG) \
+    libxmp.FUNC = FUNC;
 #endif
 
 static int XMP_Load(void)
@@ -97,13 +105,18 @@ static int XMP_Load(void)
         FUNCTION_LOADER(xmp_stop_module, void(*)(xmp_context))
         FUNCTION_LOADER(xmp_release_module, void(*)(xmp_context))
         FUNCTION_LOADER(xmp_free_context, void(*)(xmp_context))
-#if defined(XMP_DYNAMIC)
-        libxmp.xmp_load_module_from_callbacks = (int (*)(xmp_context,void*,struct xmp_callbacks)) SDL_LoadFunction(libxmp.handle, "xmp_load_module_from_callbacks");
-#elif (XMP_VERCODE >= 0x040500)
-        libxmp.xmp_load_module_from_callbacks = xmp_load_module_from_callbacks;
+#if (XMP_VERCODE >= 0x040500) || defined(XMP_DYNAMIC)
+#   ifndef MUSIC_XMP_MEMORY_ONLY
+        FUNCTION_LOADER_OPTIONAL(xmp_load_module_from_callbacks, int (*)(xmp_context,void*,struct xmp_callbacks));
+#   endif
+        FUNCTION_LOADER_OPTIONAL(xmp_set_tempo_factor, int(*)(xmp_context, double))
 #else
+#   ifndef MUSIC_XMP_MEMORY_ONLY
         libxmp.xmp_load_module_from_callbacks = NULL;
+#   endif
+        libxmp.xmp_set_tempo_factor = NULL;
 #endif
+        FUNCTION_LOADER(xmp_channel_mute, int(*)(xmp_context, int, int))
     }
     ++libxmp.loaded;
 
@@ -127,6 +140,8 @@ static void XMP_Unload(void)
 typedef struct
 {
     int volume;
+    double tempo;
+    int num_channels;
     int play_count;
     struct xmp_module_info mi;
     struct xmp_frame_info fi;
@@ -173,6 +188,7 @@ static void libxmp_set_error(int e)
     Mix_SetError("XMP: %s", msg);
 }
 
+#ifndef MUSIC_XMP_MEMORY_ONLY
 static unsigned long xmp_fread(void *dst, unsigned long len, unsigned long nmemb, void *src) {
     return SDL_RWread((SDL_RWops*)src, dst, len, nmemb);
 }
@@ -182,14 +198,17 @@ static int xmp_fseek(void *src, long offset, int whence) {
 static long xmp_ftell(void *src) {
     return SDL_RWtell((SDL_RWops*)src);
 }
+#endif
 
 /* Load a libxmp stream from an SDL_RWops object */
 void *XMP_CreateFromRW(SDL_RWops *src, int freesrc)
 {
     XMP_Music *music;
+#ifndef MUSIC_XMP_MEMORY_ONLY
     struct xmp_callbacks file_callbacks = {
            xmp_fread, xmp_fseek, xmp_ftell, NULL
     };
+#endif
     int err = 0;
 
     music = (XMP_Music *)SDL_calloc(1, sizeof(*music));
@@ -211,9 +230,13 @@ void *XMP_CreateFromRW(SDL_RWops *src, int freesrc)
         goto e1;
     }
 
+#ifndef MUSIC_XMP_MEMORY_ONLY
     if (libxmp.xmp_load_module_from_callbacks) {
         err = libxmp.xmp_load_module_from_callbacks(music->ctx, src, file_callbacks);
     } else {
+#else
+    {
+#endif
         size_t size;
         void *mem = SDL_LoadFile_RW(src, &size, SDL_FALSE);
         if (!mem) {
@@ -236,6 +259,8 @@ void *XMP_CreateFromRW(SDL_RWops *src, int freesrc)
     }
 
     music->volume = MIX_MAX_VOLUME;
+    music->tempo = 1.0;
+
     music->stream = SDL_NewAudioStream(AUDIO_S16SYS, 2, music_spec.freq,
                                        music_spec.format, music_spec.channels, music_spec.freq);
     if (!music->stream) {
@@ -243,6 +268,7 @@ void *XMP_CreateFromRW(SDL_RWops *src, int freesrc)
     }
 
     meta_tags_init(&music->tags);
+
     libxmp.xmp_get_module_info(music->ctx, &music->mi);
     if (music->mi.mod->name[0]) {
         meta_tags_set(&music->tags, MIX_META_TITLE, music->mi.mod->name);
@@ -250,6 +276,7 @@ void *XMP_CreateFromRW(SDL_RWops *src, int freesrc)
     if (music->mi.comment) {
         meta_tags_set(&music->tags, MIX_META_COPYRIGHT, music->mi.comment);
     }
+    music->num_channels = music->mi.mod->chn;
 
     if (freesrc) {
         SDL_RWclose(src);
@@ -375,6 +402,45 @@ static double XMP_Duration(void *context)
     return music->fi.total_time / 1000.0;
 }
 
+static int XMP_SetTempo(void *context, double tempo)
+{
+    XMP_Music *music = (XMP_Music *)context;
+    if (libxmp.xmp_set_tempo_factor && music && (tempo > 0.0)) {
+        libxmp.xmp_set_tempo_factor(music->ctx, (1.0 / tempo));
+        music->tempo = tempo;
+        return 0;
+    }
+    return -1;
+}
+
+static double XMP_GetTempo(void *context)
+{
+    XMP_Music *music = (XMP_Music *)context;
+    if (libxmp.xmp_set_tempo_factor && music) {
+        return music->tempo;
+    }
+    return -1.0;
+}
+
+static int XMP_GetTracksCount(void *context)
+{
+    XMP_Music *music = (XMP_Music *)context;
+    if (music) {
+        return music->num_channels;
+    }
+    return -1;
+}
+
+static int XMP_SetTrackMute(void *context, int track, int mute)
+{
+    XMP_Music *music = (XMP_Music *)context;
+    int ret = -1;
+    if (music) {
+        ret = libxmp.xmp_channel_mute(music->ctx, track, mute);
+    }
+    return ret;
+}
+
 static const char* XMP_GetMetaTag(void *context, Mix_MusicMetaTag tag_type)
 {
     XMP_Music *music = (XMP_Music *)context;
@@ -412,7 +478,9 @@ Mix_MusicInterface Mix_MusicInterface_XMP =
     XMP_Load,
     NULL,   /* Open */
     XMP_CreateFromRW,
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     NULL,   /* CreateFromFile */
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     XMP_SetVolume,
     XMP_GetVolume,
     XMP_Play,
@@ -422,10 +490,20 @@ Mix_MusicInterface Mix_MusicInterface_XMP =
     XMP_Seek,
     XMP_Tell,
     XMP_Duration,
+    XMP_SetTempo,   /* [MIXER-X] */
+    XMP_GetTempo,   /* [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    XMP_GetTracksCount,   /* GetTracksCount [MIXER-X] */
+    XMP_SetTrackMute,   /* SetTrackMute [MIXER-X] */
     NULL,   /* LoopStart */
     NULL,   /* LoopEnd */
     NULL,   /* LoopLength */
     XMP_GetMetaTag,
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     XMP_Stop,

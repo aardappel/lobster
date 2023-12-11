@@ -40,6 +40,13 @@ typedef enum
     MIX_MUSIC_FLAC,
     MIX_MUSIC_OPUS,
     MIX_MUSIC_LIBXMP,
+    MIX_MUSIC_WAVPACK,
+    MIX_MUSIC_GME,
+    MIX_MUSIC_ADLMIDI,/*MIXER-X*/
+    MIX_MUSIC_OPNMIDI,/*MIXER-X*/
+    MIX_MUSIC_EDMIDI,/*MIXER-X*/
+    MIX_MUSIC_FFMPEG,/*MIXER-X*/
+    MIX_MUSIC_PXTONE,/*MIXER-X*/
     MIX_MUSIC_LAST
 } Mix_MusicAPI;
 
@@ -90,8 +97,21 @@ typedef struct
      */
     void *(*CreateFromRW)(SDL_RWops *src, int freesrc);
 
+    /* MIXER-X
+     * Create a music object from an SDL_RWops stream
+     * If the function returns NULL, 'src' will be freed if needed by the caller.
+     * 'extra_settings' will contain a string with extra setup supported by the codec.
+     */
+    void *(*CreateFromRWex)(SDL_RWops *src, int freesrc, const char *extra_settings);
+
     /* Create a music object from a file, if SDL_RWops are not supported */
     void *(*CreateFromFile)(const char *file);
+
+    /* MIXER-X
+     * Create a music object from a file, if SDL_RWops are not supported.
+     * With support of extra settings
+     */
+    void *(*CreateFromFileEx)(const char *file, const char *extra_settings);
 
     /* Set the volume */
     void (*SetVolume)(void *music, int volume);
@@ -120,6 +140,30 @@ typedef struct
     /* Get Music duration (in seconds) */
     double (*Duration)(void *music);
 
+    /* MIXER-X: Set a tempo multiplier */
+    int (*SetTempo)(void *music, double tempo);
+
+    /* MIXER-X: Get a current tempo multiplier */
+    double (*GetTempo)(void *music);
+
+    /* MIXER-X: Set a playback speed multiplier */
+    int (*SetSpeed)(void *music, double tempo);
+
+    /* MIXER-X: Get a current playback speed multiplier */
+    double (*GetSpeed)(void *music);
+
+    /* MIXER-X: Set a pitch multiplier */
+    int (*SetPitch)(void *music, double tempo);
+
+    /* MIXER-X: Get a current pitch multiplier */
+    double (*GetPitch)(void *music);
+
+    /* MIXER-X: Get a count of concurrent tracks (MIDI / Tracker / etc.) */
+    int (*GetTracksCount)(void *music);
+
+    /* MIXER-X: Set the track mute state */
+    int (*SetTrackMute)(void *music, int track, int mute);
+
     /* Tell a loop start position (in seconds) */
     double (*LoopStart)(void *music);
 
@@ -131,6 +175,12 @@ typedef struct
 
     /* Get a meta-tag string if available */
     const char* (*GetMetaTag)(void *music, Mix_MusicMetaTag tag_type);
+
+    /* Get number of tracks. Returns -1 if not applicable */
+    int (*GetNumTracks)(void *music);
+
+    /* Start a specific track */
+    int (*StartTrack)(void *music, int track);
 
     /* Pause playing music */
     void (*Pause)(void *music);
@@ -158,16 +208,20 @@ extern Mix_MusicInterface *get_music_interface(int index);
 extern Mix_MusicType detect_music_type(SDL_RWops *src);
 extern SDL_bool load_music_type(Mix_MusicType type);
 extern SDL_bool open_music_type(Mix_MusicType type);
+extern SDL_bool open_music_type_ex(Mix_MusicType type, int midi_player);
 extern SDL_bool has_music(Mix_MusicType type);
 extern void open_music(const SDL_AudioSpec *spec);
 extern int music_pcm_getaudio(void *context, void *data, int bytes, int volume,
                               int (*GetSome)(void *context, void *data, int bytes, SDL_bool *done));
+extern void SDLCALL multi_music_mixer(void *udata, Uint8 *stream, int len);
 extern void SDLCALL music_mixer(void *udata, Uint8 *stream, int len);
+extern void pause_async_music(int pause_on);
 extern void close_music(void);
 extern void unload_music(void);
 
 extern char *music_cmd;
 extern SDL_AudioSpec music_spec;
+extern int midiplayer_current;
 
 #endif /* MUSIC_H_ */
 

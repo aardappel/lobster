@@ -49,6 +49,17 @@ typedef struct {
                         FLAC__StreamDecoderMetadataCallback metadata_callback,
                         FLAC__StreamDecoderErrorCallback error_callback,
                         void *client_data);
+    FLAC__StreamDecoderInitStatus (*FLAC__stream_decoder_init_ogg_stream)(
+                            FLAC__StreamDecoder *decoder,
+                            FLAC__StreamDecoderReadCallback read_callback,
+                            FLAC__StreamDecoderSeekCallback seek_callback,
+                            FLAC__StreamDecoderTellCallback tell_callback,
+                            FLAC__StreamDecoderLengthCallback length_callback,
+                            FLAC__StreamDecoderEofCallback eof_callback,
+                            FLAC__StreamDecoderWriteCallback write_callback,
+                            FLAC__StreamDecoderMetadataCallback metadata_callback,
+                            FLAC__StreamDecoderErrorCallback error_callback,
+                            void *client_data);
     FLAC__bool (*FLAC__stream_decoder_finish)(FLAC__StreamDecoder *decoder);
     FLAC__bool (*FLAC__stream_decoder_flush)(FLAC__StreamDecoder *decoder);
     FLAC__bool (*FLAC__stream_decoder_process_single)(
@@ -94,6 +105,17 @@ static int FLAC_Load(void)
         FUNCTION_LOADER(FLAC__stream_decoder_new, FLAC__StreamDecoder *(*)(void))
         FUNCTION_LOADER(FLAC__stream_decoder_delete, void (*)(FLAC__StreamDecoder *))
         FUNCTION_LOADER(FLAC__stream_decoder_init_stream, FLAC__StreamDecoderInitStatus (*)(
+                        FLAC__StreamDecoder *,
+                        FLAC__StreamDecoderReadCallback,
+                        FLAC__StreamDecoderSeekCallback,
+                        FLAC__StreamDecoderTellCallback,
+                        FLAC__StreamDecoderLengthCallback,
+                        FLAC__StreamDecoderEofCallback,
+                        FLAC__StreamDecoderWriteCallback,
+                        FLAC__StreamDecoderMetadataCallback,
+                        FLAC__StreamDecoderErrorCallback,
+                        void *))
+        FUNCTION_LOADER(FLAC__stream_decoder_init_ogg_stream, FLAC__StreamDecoderInitStatus (*)(
                         FLAC__StreamDecoder *,
                         FLAC__StreamDecoderReadCallback,
                         FLAC__StreamDecoderSeekCallback,
@@ -483,6 +505,14 @@ static void *FLAC_CreateFromRW(SDL_RWops *src, int freesrc)
     int init_stage = 0;
     int was_error = 1;
     FLAC__int64 full_length;
+    int is_ogg_flac;
+    Uint8 magic[4];
+    if (SDL_RWread(src, magic, 1, 4) != 4) {
+        SDL_SetError("Couldn't read first 4 bytes of audio data");
+        return NULL;
+    }
+    SDL_RWseek(src, -4, RW_SEEK_CUR);
+    is_ogg_flac = (SDL_memcmp(magic, "OggS", 4) == 0);
 
     music = (FLAC_Music *)SDL_calloc(1, sizeof(*music));
     if (!music) {
@@ -494,17 +524,30 @@ static void *FLAC_CreateFromRW(SDL_RWops *src, int freesrc)
 
     music->flac_decoder = flac.FLAC__stream_decoder_new();
     if (music->flac_decoder) {
+        FLAC__StreamDecoderInitStatus ret;
         init_stage++; /* stage 1! */
         flac.FLAC__stream_decoder_set_metadata_respond(music->flac_decoder,
                     FLAC__METADATA_TYPE_VORBIS_COMMENT);
 
-        if (flac.FLAC__stream_decoder_init_stream(
-                    music->flac_decoder,
-                    flac_read_music_cb, flac_seek_music_cb,
-                    flac_tell_music_cb, flac_length_music_cb,
-                    flac_eof_music_cb, flac_write_music_cb,
-                    flac_metadata_music_cb, flac_error_music_cb,
-                    music) == FLAC__STREAM_DECODER_INIT_STATUS_OK) {
+        if (is_ogg_flac) {
+            ret = flac.FLAC__stream_decoder_init_ogg_stream(
+                music->flac_decoder,
+                flac_read_music_cb, flac_seek_music_cb,
+                flac_tell_music_cb, flac_length_music_cb,
+                flac_eof_music_cb, flac_write_music_cb,
+                flac_metadata_music_cb, flac_error_music_cb,
+                music);
+        } else {
+            ret = flac.FLAC__stream_decoder_init_stream(
+                music->flac_decoder,
+                flac_read_music_cb, flac_seek_music_cb,
+                flac_tell_music_cb, flac_length_music_cb,
+                flac_eof_music_cb, flac_write_music_cb,
+                flac_metadata_music_cb, flac_error_music_cb,
+                music);
+        }
+
+        if (ret == FLAC__STREAM_DECODER_INIT_STATUS_OK) {
             init_stage++; /* stage 2! */
 
             if (flac.FLAC__stream_decoder_process_until_end_of_metadata(music->flac_decoder)) {
@@ -735,7 +778,9 @@ Mix_MusicInterface Mix_MusicInterface_FLAC =
     FLAC_Load,
     NULL,   /* Open */
     FLAC_CreateFromRW,
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     NULL,   /* CreateFromFile */
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     FLAC_SetVolume,
     FLAC_GetVolume,
     FLAC_Play,
@@ -745,10 +790,20 @@ Mix_MusicInterface Mix_MusicInterface_FLAC =
     FLAC_Seek,
     FLAC_Tell,
     FLAC_Duration,
+    NULL,   /* SetTempo [MIXER-X] */
+    NULL,   /* GetTempo [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    NULL,   /* GetTracksCount [MIXER-X] */
+    NULL,   /* SetTrackMute [MIXER-X] */
     FLAC_LoopStart,
     FLAC_LoopEnd,
     FLAC_LoopLength,
     FLAC_GetMetaTag,/* GetMetaTag */
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     FLAC_Stop,   /* Stop */
@@ -757,6 +812,6 @@ Mix_MusicInterface Mix_MusicInterface_FLAC =
     FLAC_Unload
 };
 
-#endif /* MUSIC_FLAC_LIBFLAC */
+#endif /* MUSIC_FLAC */
 
 /* vi: set ts=4 sw=4 expandtab: */

@@ -103,7 +103,8 @@ static void *mix_postmix_data = NULL;
 static void (SDLCALL *channel_done_callback)(int channel) = NULL;
 
 /* Support for user defined music functions */
-static void (SDLCALL *mix_music)(void *udata, Uint8 *stream, int len) = music_mixer;
+static Mix_CommonMixer_t mix_music = music_mixer;
+static Mix_CommonMixer_t mix_multi_music = multi_music_mixer;
 static void *music_data = NULL;
 
 /* rcg06042009 report available decoders at runtime. */
@@ -112,12 +113,12 @@ static int num_decoders = 0;
 
 static SDL_atomic_t master_volume = { MIX_MAX_VOLUME };
 
-int Mix_GetNumChunkDecoders(void)
+int MIXCALLCC Mix_GetNumChunkDecoders(void)
 {
     return(num_decoders);
 }
 
-const char *Mix_GetChunkDecoder(int index)
+const char * MIXCALLCC Mix_GetChunkDecoder(int index)
 {
     if ((index < 0) || (index >= num_decoders)) {
         return NULL;
@@ -125,7 +126,7 @@ const char *Mix_GetChunkDecoder(int index)
     return(chunk_decoders[index]);
 }
 
-SDL_bool Mix_HasChunkDecoder(const char *name)
+SDL_bool MIXCALLCC Mix_HasChunkDecoder(const char *name)
 {
     int index;
     for (index = 0; index < num_decoders; ++index) {
@@ -157,7 +158,7 @@ void add_chunk_decoder(const char *decoder)
 }
 
 /* rcg06192001 get linked library's version. */
-const SDL_version *Mix_Linked_Version(void)
+const SDL_version * MIXCALLCC Mix_Linked_Version(void)
 {
     static SDL_version linked_version;
     SDL_MIXER_VERSION(&linked_version);
@@ -209,7 +210,7 @@ static int get_loaded_mix_init_flags(void)
     return loaded_init_flags;
 }
 
-int Mix_Init(int flags)
+int MIXCALLCC Mix_Init(int flags)
 {
     int result = 0;
     int already_loaded = get_loaded_mix_init_flags();
@@ -256,7 +257,7 @@ int Mix_Init(int flags)
     }
     if (flags & MIX_INIT_MID) {
         if (load_music_type(MUS_MID)) {
-            open_music_type(MUS_MID);
+            open_music_type_ex(MUS_MID, midiplayer_current);
             result |= MIX_INIT_MID;
         } else {
             Mix_SetError("MIDI support not available");
@@ -336,6 +337,9 @@ mix_channels(void *udata, Uint8 *stream, int len)
 
     /* Mix the music (must be done before the channels are added) */
     mix_music(music_data, stream, len);
+    if (mix_multi_music) {
+        mix_multi_music(music_data, stream, len);
+    }
 
     master_vol = SDL_AtomicGet(&master_volume);
 
@@ -392,6 +396,8 @@ mix_channels(void *udata, Uint8 *stream, int len)
 
                     /* rcg06072001 Alert app if channel is done playing. */
                     if (!mix_channel[i].playing && !mix_channel[i].looping) {
+                        mix_channel[i].fading = MIX_NO_FADING;
+                        mix_channel[i].expire = 0;
                         _Mix_channel_done_playing(i);
 
                         /* Update the volume after the application callback */
@@ -449,45 +455,50 @@ static void PrintFormat(char *title, SDL_AudioSpec *fmt)
 }
 #endif
 
-/* Open the mixer with a certain desired audio format */
-int Mix_OpenAudioDevice(int frequency, Uint16 format, int nchannels, int chunksize,
-                        const char* device, int allowed_changes)
+/* Cleanup the existing  */
+static SDL_bool SDLCALL
+is_already_initialized(const SDL_AudioSpec *spec)
+{
+    /* assume false until proven otherwise */
+    SDL_bool initialized_state = SDL_FALSE;
+
+    /* If the mixer is already initialized ... */
+    if (audio_opened) {
+        /* ... with our desired spec, then we're initialized */
+        if (spec->format == mixer.format && spec->channels == mixer.channels) {
+            ++audio_opened;
+            initialized_state = SDL_TRUE;
+        }
+        /* ... otherwise free the existing mixer */
+        while (audio_opened) {
+            Mix_FreeMixer();
+        }
+    }
+    return(initialized_state);
+}
+
+/*
+   Initialize the Mixer internals (channels, chunk and music decoders)
+   with an existing AudioSpec, without taking over the callback.
+
+   Allows the calling to use their spec and audio callback.
+   The caller must manage AudioOpen and CloseAudio externally.
+*/
+int MIXCALLCC Mix_InitMixer(const SDL_AudioSpec *spec, SDL_bool skip_init_check)
 {
     int i;
-    SDL_AudioSpec desired;
 
-    /* This used to call SDL_OpenAudio(), which initializes the audio
-       subsystem if necessary. Since SDL_OpenAudioDevice() doesn't,
-       we have to handle this case here. */
-    if (!SDL_WasInit(SDL_INIT_AUDIO)) {
-        if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-            return -1;
-        }
-    }
-
-    /* If the mixer is already opened, increment open count */
-    if (audio_opened) {
-        if (format == mixer.format && nchannels == mixer.channels) {
-            ++audio_opened;
-            return(0);
-        }
-        while (audio_opened) {
-            Mix_CloseAudio();
-        }
-    }
-
-    /* Set the desired format and frequency */
-    desired.freq = frequency;
-    desired.format = format;
-    desired.channels = nchannels;
-    desired.samples = chunksize;
-    desired.callback = mix_channels;
-    desired.userdata = NULL;
-
-    /* Accept nearly any audio format */
-    if ((audio_device = SDL_OpenAudioDevice(device, 0, &desired, &mixer, allowed_changes)) == 0) {
+    if (!spec) {
         return(-1);
     }
+
+    /* Check if we can skip initalization */
+    if (!skip_init_check && is_already_initialized(spec)) {
+        return(0);
+    }
+
+    SDL_memcpy(&mixer, spec, sizeof(SDL_AudioSpec));
+
 #if 0
     PrintFormat("Audio device", &mixer);
 #endif
@@ -509,7 +520,7 @@ int Mix_OpenAudioDevice(int frequency, Uint16 format, int nchannels, int chunksi
         mix_channel[i].effects = NULL;
         mix_channel[i].paused = 0;
     }
-    Mix_VolumeMusic(SDL_MIX_MAXVOLUME);
+    Mix_VolumeMusicStream(NULL, SDL_MIX_MAXVOLUME);
 
     _Mix_InitEffects();
 
@@ -521,23 +532,69 @@ int Mix_OpenAudioDevice(int frequency, Uint16 format, int nchannels, int chunksi
     open_music(&mixer);
 
     audio_opened = 1;
+    return(0);
+}
+
+/* Open the mixer with a certain desired audio format and initialize internals */
+int MIXCALLCC Mix_OpenAudioDevice(int frequency, Uint16 format, int nchannels, int chunksize,
+                        const char* device, int allowed_changes)
+{
+    SDL_AudioSpec desired;
+
+    /* This used to call SDL_OpenAudio(), which initializes the audio
+       subsystem if necessary. Since SDL_OpenAudioDevice() doesn't,
+       we have to handle this case here. */
+    if (!SDL_WasInit(SDL_INIT_AUDIO)) {
+        if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+            return -1;
+        }
+    }
+
+    /* Set the desired format and channel */
+    desired.format   = format;
+    desired.freq     = frequency;
+    desired.samples  = chunksize;
+    desired.channels = nchannels;
+    desired.callback = mix_channels;
+    desired.userdata = NULL;
+
+    /* Check if we can skip initalization */
+    if (is_already_initialized(&desired)) {
+        return(0);
+    }
+
+    /* Accept nearly any audio format */
+    if ((audio_device = SDL_OpenAudioDevice(device, 0, &desired, &mixer, allowed_changes)) == 0) {
+        return(-1);
+    }
+
+    Mix_InitMixer(&mixer, SDL_TRUE);
     SDL_PauseAudioDevice(audio_device, 0);
     return(0);
 }
 
 /* Open the mixer with a certain desired audio format */
-int Mix_OpenAudio(int frequency, Uint16 format, int nchannels, int chunksize)
+int MIXCALLCC Mix_OpenAudio(int frequency, Uint16 format, int nchannels, int chunksize)
 {
     return Mix_OpenAudioDevice(frequency, format, nchannels, chunksize, NULL,
                                 SDL_AUDIO_ALLOW_FREQUENCY_CHANGE |
                                 SDL_AUDIO_ALLOW_CHANNELS_CHANGE);
 }
 
+/* Pause or resume the audio streaming */
+void MIXCALLCC Mix_PauseAudio(int pause_on)
+{
+    SDL_PauseAudioDevice(audio_device, pause_on);
+    Mix_LockAudio();
+    pause_async_music(pause_on);
+    Mix_UnlockAudio();
+}
+
 /* Dynamically change the number of channels managed by the mixer.
    If decreasing the number of channels, the upper channels are
    stopped.
  */
-int Mix_AllocateChannels(int numchans)
+int MIXCALLCC Mix_AllocateChannels(int numchans)
 {
     if (numchans<0 || numchans==num_channels)
         return(num_channels);
@@ -575,7 +632,7 @@ int Mix_AllocateChannels(int numchans)
 }
 
 /* Return the actual mixer parameters */
-int Mix_QuerySpec(int *frequency, Uint16 *format, int *channels)
+int MIXCALLCC Mix_QuerySpec(int *frequency, Uint16 *format, int *channels)
 {
     if (audio_opened) {
         if (frequency) {
@@ -586,6 +643,16 @@ int Mix_QuerySpec(int *frequency, Uint16 *format, int *channels)
         }
         if (channels) {
             *channels = mixer.channels;
+        }
+    }
+    return(audio_opened);
+}
+
+int MIXCALLCC Mix_QuerySpecEx(SDL_AudioSpec *out_spec)
+{
+    if (audio_opened) {
+        if (out_spec) {
+            *out_spec = mixer;
         }
     }
     return(audio_opened);
@@ -611,7 +678,7 @@ static SDL_AudioSpec *Mix_LoadMusic_RW(SDL_RWops *src, int freesrc, SDL_AudioSpe
     int fragment_size;
 
     music_type = detect_music_type(src);
-    if (!load_music_type(music_type) || !open_music_type(music_type)) {
+    if (!load_music_type(music_type) || !open_music_type_ex(music_type, midiplayer_current)) {
         return NULL;
     }
 
@@ -741,7 +808,7 @@ static SDL_AudioSpec *Mix_LoadMusic_RW(SDL_RWops *src, int freesrc, SDL_AudioSpe
 }
 
 /* Load a wave file */
-Mix_Chunk *Mix_LoadWAV_RW(SDL_RWops *src, int freesrc)
+Mix_Chunk * MIXCALLCC Mix_LoadWAV_RW(SDL_RWops *src, int freesrc)
 {
     Uint8 magic[4];
     Mix_Chunk *chunk;
@@ -836,7 +903,18 @@ Mix_Chunk *Mix_LoadWAV_RW(SDL_RWops *src, int freesrc)
             return(NULL);
         }
 
-        chunk->abuf = wavecvt.buf;
+        /* Shrink buffer if appropriate, otherwise reuse directly */
+        if (wavecvt.len_cvt != wavecvt.len) {
+            chunk->abuf = (Uint8 *)SDL_realloc(wavecvt.buf, wavecvt.len_cvt);
+
+            /* Reuse buffer directly on realloc failure */
+            if(!chunk->abuf) {
+                chunk->abuf = wavecvt.buf;
+            }
+        } else {
+            chunk->abuf = wavecvt.buf;
+        }
+
         chunk->alen = wavecvt.len_cvt;
     }
 
@@ -846,14 +924,13 @@ Mix_Chunk *Mix_LoadWAV_RW(SDL_RWops *src, int freesrc)
     return(chunk);
 }
 
-Mix_Chunk *Mix_LoadWAV(const char *file)
+Mix_Chunk * MIXCALLCC Mix_LoadWAV(const char *file)
 {
     return Mix_LoadWAV_RW(SDL_RWFromFile(file, "rb"), 1);
 }
 
-
 /* Load a wave file of the mixer format from a memory buffer */
-Mix_Chunk *Mix_QuickLoad_WAV(Uint8 *mem)
+Mix_Chunk * MIXCALLCC Mix_QuickLoad_WAV(Uint8 *mem)
 {
     Mix_Chunk *chunk;
     Uint8 magic[4];
@@ -888,7 +965,7 @@ Mix_Chunk *Mix_QuickLoad_WAV(Uint8 *mem)
 }
 
 /* Load raw audio data of the mixer format from a memory buffer */
-Mix_Chunk *Mix_QuickLoad_RAW(Uint8 *mem, Uint32 len)
+Mix_Chunk * MIXCALLCC Mix_QuickLoad_RAW(Uint8 *mem, Uint32 len)
 {
     Mix_Chunk *chunk;
 
@@ -918,9 +995,9 @@ Mix_Chunk *Mix_QuickLoad_RAW(Uint8 *mem, Uint32 len)
 static void  Mix_HaltChannel_locked(int which)
 {
     if (Mix_Playing(which)) {
-        _Mix_channel_done_playing(which);
         mix_channel[which].playing = 0;
         mix_channel[which].looping = 0;
+        _Mix_channel_done_playing(which);
     }
     mix_channel[which].expire = 0;
     if (mix_channel[which].fading != MIX_NO_FADING) /* Restore volume */
@@ -929,7 +1006,7 @@ static void  Mix_HaltChannel_locked(int which)
 }
 
 /* Free an audio chunk previously loaded */
-void Mix_FreeChunk(Mix_Chunk *chunk)
+void MIXCALLCC Mix_FreeChunk(Mix_Chunk *chunk)
 {
     int i;
 
@@ -957,7 +1034,7 @@ void Mix_FreeChunk(Mix_Chunk *chunk)
    This can be used to provide real-time visual display of the audio stream
    or add a custom mixer filter for the stream data.
 */
-void Mix_SetPostMix(void (SDLCALL *mix_func)
+void MIXCALLCC Mix_SetPostMix(void (SDLCALL *mix_func)
                     (void *udata, Uint8 *stream, int len), void *arg)
 {
     Mix_LockAudio();
@@ -966,29 +1043,50 @@ void Mix_SetPostMix(void (SDLCALL *mix_func)
     Mix_UnlockAudio();
 }
 
+
+/* returns a pointer to the single-music mixer that can be used as a callback */
+Mix_CommonMixer_t MIXCALLCC Mix_GetMusicMixer(void)
+{
+    return mix_music;
+}
+
+/* returns a pointer to the multi-music mixer that can be used as a callback */
+Mix_CommonMixer_t MIXCALLCC Mix_GetMultiMusicMixer(void)
+{
+    return mix_multi_music;
+}
+
+/* returns a pointer to the general mixer of music and channels that can be used as a callback */
+Mix_CommonMixer_t MIXCALLCC Mix_GetGeneralMixer(void)
+{
+    return mix_channels;
+}
+
 /* Add your own music player or mixer function.
    If 'mix_func' is NULL, the default music player is re-enabled.
  */
-void Mix_HookMusic(void (SDLCALL *mix_func)(void *udata, Uint8 *stream, int len),
+void MIXCALLCC Mix_HookMusic(void (SDLCALL *mix_func)(void *udata, Uint8 *stream, int len),
                                                                 void *arg)
 {
     Mix_LockAudio();
     if (mix_func != NULL) {
         music_data = arg;
         mix_music = mix_func;
+        mix_multi_music = NULL;
     } else {
         music_data = NULL;
         mix_music = music_mixer;
+        mix_multi_music = multi_music_mixer;
     }
     Mix_UnlockAudio();
 }
 
-void *Mix_GetMusicHookData(void)
+void * MIXCALLCC Mix_GetMusicHookData(void)
 {
     return(music_data);
 }
 
-void Mix_ChannelFinished(void (SDLCALL *channel_finished)(int channel))
+void MIXCALLCC Mix_ChannelFinished(void (SDLCALL *channel_finished)(int channel))
 {
     Mix_LockAudio();
     channel_done_callback = channel_finished;
@@ -1000,7 +1098,7 @@ void Mix_ChannelFinished(void (SDLCALL *channel_finished)(int channel))
    them dynamically to the next sample if requested with a -1 value below.
    Returns the number of reserved channels.
  */
-int Mix_ReserveChannels(int num)
+int MIXCALLCC Mix_ReserveChannels(int num)
 {
     if (num > num_channels)
         num = num_channels;
@@ -1022,9 +1120,10 @@ static int checkchunkintegral(Mix_Chunk *chunk)
    If the specified channel is -1, play on the first free channel.
    'ticks' is the number of milliseconds at most to play the sample, or -1
    if there is no limit.
+   'volume' is the initial volume on play begining. -1 means the volume will not be changed.
    Returns which channel was used to play the sound.
 */
-int Mix_PlayChannelTimed(int which, Mix_Chunk *chunk, int loops, int ticks)
+int MIXCALLCC Mix_PlayChannelTimedVolume(int which, Mix_Chunk *chunk, int loops, int ticks, int volume)
 {
     int i;
 
@@ -1069,6 +1168,9 @@ int Mix_PlayChannelTimed(int which, Mix_Chunk *chunk, int loops, int ticks)
             mix_channel[which].fading = MIX_NO_FADING;
             mix_channel[which].start_time = sdl_ticks;
             mix_channel[which].expire = (ticks > 0) ? (sdl_ticks + (Uint32)ticks) : 0;
+            if (volume >= 0) {
+                mix_channel[which].volume = (volume > MIX_MAX_VOLUME) ? MIX_MAX_VOLUME : volume;
+            }
         }
     }
     Mix_UnlockAudio();
@@ -1077,13 +1179,18 @@ int Mix_PlayChannelTimed(int which, Mix_Chunk *chunk, int loops, int ticks)
     return(which);
 }
 
-int Mix_PlayChannel(int channel, Mix_Chunk *chunk, int loops)
+int MIXCALLCC Mix_PlayChannel(int channel, Mix_Chunk *chunk, int loops)
 {
-    return Mix_PlayChannelTimed(channel, chunk, loops, -1);
+    return Mix_PlayChannelTimedVolume(channel, chunk, loops, -1, -1);
+}
+
+int MIXCALLCC Mix_PlayChannelTimed(int which, Mix_Chunk *chunk, int loops, int ticks)
+{
+    return Mix_PlayChannelTimedVolume(which, chunk, loops, ticks, -1);
 }
 
 /* Change the expiration delay for a channel */
-int Mix_ExpireChannel(int which, int ticks)
+int MIXCALLCC Mix_ExpireChannel(int which, int ticks)
 {
     int status = 0;
 
@@ -1102,7 +1209,7 @@ int Mix_ExpireChannel(int which, int ticks)
 }
 
 /* Fade in a sound on a channel, over ms milliseconds */
-int Mix_FadeInChannelTimed(int which, Mix_Chunk *chunk, int loops, int ms, int ticks)
+int MIXCALLCC Mix_FadeInChannelTimedVolume(int which, Mix_Chunk *chunk, int loops, int ms, int ticks, int volume)
 {
     int i;
 
@@ -1142,6 +1249,9 @@ int Mix_FadeInChannelTimed(int which, Mix_Chunk *chunk, int loops, int ms, int t
             mix_channel[which].looping = loops;
             mix_channel[which].chunk = chunk;
             mix_channel[which].paused = 0;
+            if (volume >= 0) {
+                mix_channel[which].volume = (volume > MIX_MAX_VOLUME) ? MIX_MAX_VOLUME : volume;
+            }
             if (mix_channel[which].fading == MIX_NO_FADING) {
                 mix_channel[which].fade_volume_reset = mix_channel[which].volume;
             }
@@ -1159,14 +1269,24 @@ int Mix_FadeInChannelTimed(int which, Mix_Chunk *chunk, int loops, int ms, int t
     return(which);
 }
 
-int Mix_FadeInChannel(int channel, Mix_Chunk *chunk, int loops, int ms)
+/* Fade in a sound on a channel, over ms milliseconds */
+int MIXCALLCC Mix_FadeInChannelTimed(int which, Mix_Chunk *chunk, int loops, int ms, int ticks)
 {
-    return Mix_FadeInChannelTimed(channel, chunk, loops, ms, -1);
+    return Mix_FadeInChannelTimedVolume(which, chunk, loops, ms, ticks, -1);
 }
 
+int MIXCALLCC Mix_FadeInChannelVolume(int which, Mix_Chunk *chunk, int loops, int ms, int volume)
+{
+    return Mix_FadeInChannelTimedVolume(which, chunk, loops, ms, -1, volume);
+}
+
+int MIXCALLCC Mix_FadeInChannel(int channel, Mix_Chunk *chunk, int loops, int ms)
+{
+    return Mix_FadeInChannelTimedVolume(channel, chunk, loops, ms, -1, -1);
+}
 
 /* Set volume of a particular channel */
-int Mix_Volume(int which, int volume)
+int MIXCALLCC Mix_Volume(int which, int volume)
 {
     int i;
     int prev_volume = 0;
@@ -1188,7 +1308,7 @@ int Mix_Volume(int which, int volume)
     return(prev_volume);
 }
 /* Set volume of a particular chunk */
-int Mix_VolumeChunk(Mix_Chunk *chunk, int volume)
+int MIXCALLCC Mix_VolumeChunk(Mix_Chunk *chunk, int volume)
 {
     int prev_volume;
 
@@ -1206,7 +1326,7 @@ int Mix_VolumeChunk(Mix_Chunk *chunk, int volume)
 }
 
 /* Halt playing of a particular channel */
-int Mix_HaltChannel(int which)
+int MIXCALLCC Mix_HaltChannel(int which)
 {
     int i;
 
@@ -1223,7 +1343,7 @@ int Mix_HaltChannel(int which)
 }
 
 /* Halt playing of a particular group of channels */
-int Mix_HaltGroup(int tag)
+int MIXCALLCC Mix_HaltGroup(int tag)
 {
     int i;
 
@@ -1236,7 +1356,7 @@ int Mix_HaltGroup(int tag)
 }
 
 /* Fade out a channel and then stop it automatically */
-int Mix_FadeOutChannel(int which, int ms)
+int MIXCALLCC Mix_FadeOutChannel(int which, int ms)
 {
     int status;
 
@@ -1273,7 +1393,7 @@ int Mix_FadeOutChannel(int which, int ms)
 }
 
 /* Halt playing of a particular group of channels */
-int Mix_FadeOutGroup(int tag, int ms)
+int MIXCALLCC Mix_FadeOutGroup(int tag, int ms)
 {
     int i;
     int status = 0;
@@ -1285,7 +1405,7 @@ int Mix_FadeOutGroup(int tag, int ms)
     return(status);
 }
 
-Mix_Fading Mix_FadingChannel(int which)
+Mix_Fading MIXCALLCC Mix_FadingChannel(int which)
 {
     if (which < 0 || which >= num_channels) {
         return MIX_NO_FADING;
@@ -1296,7 +1416,7 @@ Mix_Fading Mix_FadingChannel(int which)
 /* Check the status of a specific channel.
    If the specified mix_channel is -1, check all mix channels.
 */
-int Mix_Playing(int which)
+int MIXCALLCC Mix_Playing(int which)
 {
     int status;
 
@@ -1322,7 +1442,7 @@ int Mix_Playing(int which)
 }
 
 /* rcg06072001 Get the chunk associated with a channel. */
-Mix_Chunk *Mix_GetChunk(int channel)
+Mix_Chunk * MIXCALLCC Mix_GetChunk(int channel)
 {
     Mix_Chunk *retval = NULL;
 
@@ -1333,8 +1453,12 @@ Mix_Chunk *Mix_GetChunk(int channel)
     return(retval);
 }
 
-/* Close the mixer, halting all playing audio */
-void Mix_CloseAudio(void)
+/*
+   Stops streams and music and frees all channels and decoders.
+   Doesn't call SDL_CloseAudioDevice, which is the responsbility
+   of the external application.
+*/
+void MIXCALLCC Mix_FreeMixer(void)
 {
     int i;
 
@@ -1348,8 +1472,6 @@ void Mix_CloseAudio(void)
             Mix_SetMusicCMD(NULL);
             Mix_HaltChannel(-1);
             _Mix_DeinitEffects();
-            SDL_CloseAudioDevice(audio_device);
-            audio_device = 0;
             SDL_free(mix_channel);
             mix_channel = NULL;
 
@@ -1362,8 +1484,18 @@ void Mix_CloseAudio(void)
     }
 }
 
+/* Close the audio device, stop, and free all our mixer elements */
+void MIXCALLCC Mix_CloseAudio(void)
+{
+    if (audio_device) {
+        SDL_CloseAudioDevice(audio_device);
+        audio_device = 0;
+    }
+    Mix_FreeMixer();
+}
+
 /* Pause a particular channel (or all) */
-void Mix_Pause(int which)
+void MIXCALLCC Mix_Pause(int which)
 {
     Uint32 sdl_ticks = SDL_GetTicks();
     if (which == -1) {
@@ -1382,7 +1514,7 @@ void Mix_Pause(int which)
 }
 
 /* Resume a paused channel */
-void Mix_Resume(int which)
+void MIXCALLCC Mix_Resume(int which)
 {
     Uint32 sdl_ticks = SDL_GetTicks();
 
@@ -1407,7 +1539,7 @@ void Mix_Resume(int which)
     Mix_UnlockAudio();
 }
 
-int Mix_Paused(int which)
+int MIXCALLCC Mix_Paused(int which)
 {
     if (which < 0) {
         int status = 0;
@@ -1426,7 +1558,7 @@ int Mix_Paused(int which)
 }
 
 /* Change the group of a channel */
-int Mix_GroupChannel(int which, int tag)
+int MIXCALLCC Mix_GroupChannel(int which, int tag)
 {
     if (which < 0 || which > num_channels)
         return(0);
@@ -1438,7 +1570,7 @@ int Mix_GroupChannel(int which, int tag)
 }
 
 /* Assign several consecutive channels to a group */
-int Mix_GroupChannels(int from, int to, int tag)
+int MIXCALLCC Mix_GroupChannels(int from, int to, int tag)
 {
     int status = 0;
     for(; from <= to; ++ from) {
@@ -1448,7 +1580,7 @@ int Mix_GroupChannels(int from, int to, int tag)
 }
 
 /* Finds the first available channel in a group of channels */
-int Mix_GroupAvailable(int tag)
+int MIXCALLCC Mix_GroupAvailable(int tag)
 {
     int i;
     for(i=0; i < num_channels; i ++) {
@@ -1459,7 +1591,7 @@ int Mix_GroupAvailable(int tag)
     return(-1);
 }
 
-int Mix_GroupCount(int tag)
+int MIXCALLCC Mix_GroupCount(int tag)
 {
     int count = 0;
     int i;
@@ -1469,14 +1601,14 @@ int Mix_GroupCount(int tag)
     }
 
     for(i=0; i < num_channels; i ++) {
-        if (mix_channel[i].tag == tag)
+        if (mix_channel[i].tag==tag || tag==-1)
             ++ count;
     }
     return(count);
 }
 
 /* Finds the "oldest" sample playing in a group of channels */
-int Mix_GroupOldest(int tag)
+int MIXCALLCC Mix_GroupOldest(int tag)
 {
     int chan = -1;
     Uint32 mintime = SDL_GetTicks();
@@ -1492,7 +1624,7 @@ int Mix_GroupOldest(int tag)
 }
 
 /* Finds the "most recent" (i.e. last) sample playing in a group of channels */
-int Mix_GroupNewer(int tag)
+int MIXCALLCC Mix_GroupNewer(int tag)
 {
     int chan = -1;
     Uint32 maxtime = 0;
@@ -1533,7 +1665,7 @@ static int _Mix_register_effect(effect_info **e, Mix_EffectFunc_t f,
 
     new_e = SDL_malloc(sizeof (effect_info));
     if (new_e == NULL) {
-        Mix_OutOfMemory();
+        Mix_SetError("Out of memory");
         return(0);
     }
 
@@ -1638,7 +1770,7 @@ int _Mix_RegisterEffect_locked(int channel, Mix_EffectFunc_t f,
     return _Mix_register_effect(e, f, d, arg);
 }
 
-int Mix_RegisterEffect(int channel, Mix_EffectFunc_t f,
+int MIXCALLCC Mix_RegisterEffect(int channel, Mix_EffectFunc_t f,
             Mix_EffectDone_t d, void *arg)
 {
     int retval;
@@ -1667,7 +1799,7 @@ int _Mix_UnregisterEffect_locked(int channel, Mix_EffectFunc_t f)
     return _Mix_remove_effect(channel, e, f);
 }
 
-int Mix_UnregisterEffect(int channel, Mix_EffectFunc_t f)
+int MIXCALLCC Mix_UnregisterEffect(int channel, Mix_EffectFunc_t f)
 {
     int retval;
     Mix_LockAudio();
@@ -1694,7 +1826,7 @@ int _Mix_UnregisterAllEffects_locked(int channel)
     return _Mix_remove_all_effects(channel, e);
 }
 
-int Mix_UnregisterAllEffects(int channel)
+int MIXCALLCC Mix_UnregisterAllEffects(int channel)
 {
     int retval;
     Mix_LockAudio();
@@ -1713,7 +1845,7 @@ void Mix_UnlockAudio(void)
     SDL_UnlockAudioDevice(audio_device);
 }
 
-int Mix_MasterVolume(int volume)
+int MIXCALLCC Mix_MasterVolume(int volume)
 {
     int prev_volume = SDL_AtomicGet(&master_volume);
     if (volume < 0) {

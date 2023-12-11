@@ -42,6 +42,11 @@ int _Mix_RegisterEffect_locked(int channel, Mix_EffectFunc_t f,
 int _Mix_UnregisterEffect_locked(int channel, Mix_EffectFunc_t f);
 int _Mix_UnregisterAllEffects_locked(int channel);
 
+int _Mix_RegisterMusicEffect_locked(Mix_Music *mus, Mix_MusicEffectFunc_t f,
+                               Mix_MusicEffectDone_t d, void *arg);
+int _Mix_UnregisterMusicEffect_locked(Mix_Music *mus, Mix_MusicEffectFunc_t f);
+int _Mix_UnregisterMusicAllEffects_locked(Mix_Music *mus);
+
 #endif /* _INCLUDE_EFFECTS_INTERNAL_H_ */
 
 /* vi: set ts=4 sw=4 expandtab: */

@@ -279,7 +279,9 @@ Mix_MusicInterface Mix_MusicInterface_CMD =
     NULL,   /* Load */
     NULL,   /* Open */
     NULL,   /* CreateFromRW */
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     MusicCMD_CreateFromFile,
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     NULL,   /* SetVolume */
     NULL,   /* GetVolume */
     MusicCMD_Play,
@@ -289,10 +291,20 @@ Mix_MusicInterface Mix_MusicInterface_CMD =
     NULL,   /* Seek */
     NULL,   /* Tell */
     NULL,   /* Duration */
+    NULL,   /* SetTempo [MIXER-X] */
+    NULL,   /* GetTempo [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    NULL,   /* GetTracksCount [MIXER-X] */
+    NULL,   /* SetTrackMute [MIXER-X] */
     NULL,   /* LoopStart */
     NULL,   /* LoopEnd */
     NULL,   /* LoopLength */
     NULL,   /* GetMetaTag */
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     MusicCMD_Pause,
     MusicCMD_Resume,
     MusicCMD_Stop,

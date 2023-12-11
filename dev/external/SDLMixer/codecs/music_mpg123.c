@@ -520,7 +520,9 @@ Mix_MusicInterface Mix_MusicInterface_MPG123 =
     MPG123_Load,
     MPG123_Open,
     MPG123_CreateFromRW,
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     NULL,   /* CreateFromFile */
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     MPG123_SetVolume,
     MPG123_GetVolume,
     MPG123_Play,
@@ -530,10 +532,20 @@ Mix_MusicInterface Mix_MusicInterface_MPG123 =
     MPG123_Seek,
     MPG123_Tell,
     MPG123_Duration,
+    NULL,   /* SetTempo [MIXER-X] */
+    NULL,   /* GetTempo [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    NULL,   /* GetTracksCount [MIXER-X] */
+    NULL,   /* SetTrackMute [MIXER-X] */
     NULL,   /* LoopStart */
     NULL,   /* LoopEnd */
     NULL,   /* LoopLength */
     MPG123_GetMetaTag,
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     MPG123_Stop,

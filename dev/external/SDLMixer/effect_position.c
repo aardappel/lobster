@@ -37,7 +37,7 @@
     #include <unistd.h>
     struct timeval tv1;
     struct timeval tv2;
-    
+
     gettimeofday(&tv1, NULL);
 
         ... do your thing here ...
@@ -76,6 +76,9 @@ static position_args **pos_args_array = NULL;
 static position_args *pos_args_global = NULL;
 static int position_channels = 0;
 
+extern void _Mix_SetMusicPositionArgs(Mix_Music *mus, position_args *args);
+extern position_args *_Mix_GetMusicPositionArgs(Mix_Music *mus);
+
 void _Eff_PositionDeinit(void)
 {
     int i;
@@ -109,6 +112,19 @@ static void SDLCALL _Eff_PositionDone(int channel, void *udata)
     }
 }
 
+/* This just frees up the callback-specific data. */
+static void SDLCALL _Eff_MusicPositionDone(Mix_Music *mus, void *udata)
+{
+    position_args *args = _Mix_GetMusicPositionArgs(mus);
+    (void)udata;
+
+    if (args != NULL) {
+        SDL_free(args);
+        _Mix_SetMusicPositionArgs(mus, NULL);
+    }
+}
+
+
 static void SDLCALL _Eff_position_u8(int chan, void *stream, int len, void *udata)
 {
     Uint8 *ptr = (Uint8 *) stream;
@@ -130,24 +146,27 @@ static void SDLCALL _Eff_position_u8(int chan, void *stream, int len, void *udat
         len--;
     }
 
-    if (((position_args *)udata)->room_angle == 180)
-    for (i = 0; i < len; i += sizeof (Uint8) * 2) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * right_f) * dist_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * left_f) * dist_f) + 128);
-        ptr++;
+    if (((position_args *)udata)->room_angle == 180) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 2) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * right_f) * dist_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * left_f) * dist_f) + 128);
+            ptr++;
+        }
     }
-    else for (i = 0; i < len; i += sizeof (Uint8) * 2) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * left_f) * dist_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * right_f) * dist_f) + 128);
-        ptr++;
+    else {
+        for (i = 0; i < len; i += sizeof (Uint8) * 2) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * left_f) * dist_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * right_f) * dist_f) + 128);
+            ptr++;
+        }
     }
 }
 
@@ -170,69 +189,73 @@ static void SDLCALL _Eff_position_u8_c4(int chan, void *stream, int len, void *u
         len--;
     }
 
-    if (args->room_angle == 0)
-    for (i = 0; i < len; i += sizeof (Uint8) * 4) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f) + 128);
-        ptr++;
+    if (args->room_angle == 0) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 4) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f) + 128);
+            ptr++;
+        }
     }
-    else if (args->room_angle == 90)
-    for (i = 0; i < len; i += sizeof (Uint8) * 4) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f) + 128);
-        ptr++;
+    else if (args->room_angle == 90) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 4) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f) + 128);
+            ptr++;
+        }
     }
-    else if (args->room_angle == 180)
-    for (i = 0; i < len; i += sizeof (Uint8) * 4) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f) + 128);
-        ptr++;
+    else if (args->room_angle == 180) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 4) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f) + 128);
+            ptr++;
+        }
     }
-    else if (args->room_angle == 270)
-    for (i = 0; i < len; i += sizeof (Uint8) * 4) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f) + 128);
-        ptr++;
+    else if (args->room_angle == 270) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 4) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f) + 128);
+            ptr++;
+        }
     }
 }
 
@@ -256,99 +279,103 @@ static void SDLCALL _Eff_position_u8_c6(int chan, void *stream, int len, void *u
         len--;
     }
 
-    if (args->room_angle == 0)
-    for (i = 0; i < len; i += sizeof (Uint8) * 6) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->center_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->lfe_f) * args->distance_f) + 128);
-        ptr++;
+    if (args->room_angle == 0) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 6) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->center_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->lfe_f) * args->distance_f) + 128);
+            ptr++;
+        }
     }
-    else if (args->room_angle == 90)
-    for (i = 0; i < len; i += sizeof (Uint8) * 6) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f/2) + 128)
-            + (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f/2) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->lfe_f) * args->distance_f) + 128);
-        ptr++;
+    else if (args->room_angle == 90) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 6) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f/2) + 128)
+                + (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f/2) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->lfe_f) * args->distance_f) + 128);
+            ptr++;
+        }
     }
-    else if (args->room_angle == 180)
-    for (i = 0; i < len; i += sizeof (Uint8) * 6) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f/2) + 128)
-            + (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f/2) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->lfe_f) * args->distance_f) + 128);
-        ptr++;
+    else if (args->room_angle == 180) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 6) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f/2) + 128)
+                + (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f/2) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->lfe_f) * args->distance_f) + 128);
+            ptr++;
+        }
     }
-    else if (args->room_angle == 270)
-    for (i = 0; i < len; i += sizeof (Uint8) * 6) {
-        /* must adjust the sample so that 0 is the center */
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_rear_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->right_f) * args->distance_f) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_f) * args->distance_f/2) + 128)
-            + (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->left_rear_f) * args->distance_f/2) + 128);
-        ptr++;
-        *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
-            * args->lfe_f) * args->distance_f) + 128);
-        ptr++;
+    else if (args->room_angle == 270) {
+        for (i = 0; i < len; i += sizeof (Uint8) * 6) {
+            /* must adjust the sample so that 0 is the center */
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_rear_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->right_f) * args->distance_f) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_f) * args->distance_f/2) + 128)
+                + (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->left_rear_f) * args->distance_f/2) + 128);
+            ptr++;
+            *ptr = (Uint8) ((Sint8) ((((float) (Sint8) (*ptr - 128))
+                * args->lfe_f) * args->distance_f) + 128);
+            ptr++;
+        }
     }
 }
 
@@ -433,19 +460,21 @@ static void SDLCALL _Eff_position_s8(int chan, void *stream, int len, void *udat
         len--;
     }
 
-    if (((position_args *)udata)->room_angle == 180)
-    for (i = 0; i < len; i += sizeof (Sint8) * 2) {
-        *ptr = (Sint8)((((float) *ptr) * right_f) * dist_f);
-        ptr++;
-        *ptr = (Sint8)((((float) *ptr) * left_f) * dist_f);
-        ptr++;
+    if (((position_args *)udata)->room_angle == 180) {
+        for (i = 0; i < len; i += sizeof (Sint8) * 2) {
+            *ptr = (Sint8)((((float) *ptr) * right_f) * dist_f);
+            ptr++;
+            *ptr = (Sint8)((((float) *ptr) * left_f) * dist_f);
+            ptr++;
+        }
     }
-    else
-    for (i = 0; i < len; i += sizeof (Sint8) * 2) {
-        *ptr = (Sint8)((((float) *ptr) * left_f) * dist_f);
-        ptr++;
-        *ptr = (Sint8)((((float) *ptr) * right_f) * dist_f);
-        ptr++;
+    else {
+        for (i = 0; i < len; i += sizeof (Sint8) * 2) {
+            *ptr = (Sint8)((((float) *ptr) * left_f) * dist_f);
+            ptr++;
+            *ptr = (Sint8)((((float) *ptr) * right_f) * dist_f);
+            ptr++;
+        }
     }
 }
 static void SDLCALL _Eff_position_s8_c4(int chan, void *stream, int len, void *udata)
@@ -1623,6 +1652,25 @@ static position_args *get_position_arg(int channel)
     return(pos_args_array[channel]);
 }
 
+
+static position_args *get_music_position_arg(Mix_Music *mus)
+{
+    position_args *args = _Mix_GetMusicPositionArgs(mus);
+
+    if (args == NULL) {
+        args = SDL_malloc(sizeof (position_args));
+        if (args == NULL) {
+            Mix_OutOfMemory();
+            return(NULL);
+        }
+        init_position_args(args);
+        _Mix_SetMusicPositionArgs(mus, args);
+    }
+
+    return(args);
+}
+
+
 static Mix_EffectFunc_t get_position_effect_func(Uint16 format, int channels)
 {
     Mix_EffectFunc_t f = NULL;
@@ -1800,9 +1848,224 @@ static Mix_EffectFunc_t get_position_effect_func(Uint16 format, int channels)
     return(f);
 }
 
-static Uint8 speaker_amplitude[6];
+#define MUS_FUNCTION(x) \
+static void SDLCALL x##_mus(Mix_Music *mus, void *stream, int len, void *udata) \
+{ \
+    (void)mus;\
+    x(0, stream, len, udata); \
+}
 
-static void set_amplitudes(int channels, int angle, int room_angle)
+MUS_FUNCTION(_Eff_position_table_u8)
+MUS_FUNCTION(_Eff_position_u8)
+MUS_FUNCTION(_Eff_position_u8_c4)
+MUS_FUNCTION(_Eff_position_u8_c6)
+MUS_FUNCTION(_Eff_position_table_s8)
+MUS_FUNCTION(_Eff_position_s8)
+MUS_FUNCTION(_Eff_position_s8_c4)
+MUS_FUNCTION(_Eff_position_s8_c6)
+MUS_FUNCTION(_Eff_position_u16lsb)
+MUS_FUNCTION(_Eff_position_u16lsb_c4)
+MUS_FUNCTION(_Eff_position_u16lsb_c6)
+MUS_FUNCTION(_Eff_position_s16lsb)
+MUS_FUNCTION(_Eff_position_s16lsb_c4)
+MUS_FUNCTION(_Eff_position_s16lsb_c6)
+MUS_FUNCTION(_Eff_position_u16msb)
+MUS_FUNCTION(_Eff_position_u16msb_c4)
+MUS_FUNCTION(_Eff_position_u16msb_c6)
+MUS_FUNCTION(_Eff_position_s16msb)
+MUS_FUNCTION(_Eff_position_s16msb_c4)
+MUS_FUNCTION(_Eff_position_s16msb_c6)
+MUS_FUNCTION(_Eff_position_s32msb)
+MUS_FUNCTION(_Eff_position_s32msb_c4)
+MUS_FUNCTION(_Eff_position_s32msb_c6)
+MUS_FUNCTION(_Eff_position_s32lsb)
+MUS_FUNCTION(_Eff_position_s32lsb_c4)
+MUS_FUNCTION(_Eff_position_s32lsb_c6)
+MUS_FUNCTION(_Eff_position_f32sys)
+MUS_FUNCTION(_Eff_position_f32sys_c4)
+MUS_FUNCTION(_Eff_position_f32sys_c6)
+
+#undef MUS_FUNCTION
+
+
+static Mix_MusicEffectFunc_t get_music_position_effect_func(Uint16 format, int channels)
+{
+    Mix_MusicEffectFunc_t f = NULL;
+
+    switch (format) {
+        case AUDIO_U8:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = (_Eff_build_volume_table_u8()) ? _Eff_position_table_u8_mus :
+                                                     _Eff_position_u8_mus;
+                break;
+            case 4:
+                f = _Eff_position_u8_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_u8_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        case AUDIO_S8:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = (_Eff_build_volume_table_s8()) ? _Eff_position_table_s8_mus :
+                                                     _Eff_position_s8_mus;
+                break;
+            case 4:
+                f = _Eff_position_s8_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_s8_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        case AUDIO_U16LSB:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = _Eff_position_u16lsb_mus;
+                break;
+            case 4:
+                f = _Eff_position_u16lsb_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_u16lsb_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        case AUDIO_S16LSB:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = _Eff_position_s16lsb_mus;
+                break;
+            case 4:
+                f = _Eff_position_s16lsb_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_s16lsb_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        case AUDIO_U16MSB:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = _Eff_position_u16msb_mus;
+                break;
+            case 4:
+                f = _Eff_position_u16msb_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_u16msb_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        case AUDIO_S16MSB:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = _Eff_position_s16msb_mus;
+                break;
+            case 4:
+                f = _Eff_position_s16msb_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_s16msb_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        case AUDIO_S32MSB:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = _Eff_position_s32msb_mus;
+                break;
+            case 4:
+                f = _Eff_position_s32msb_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_s32msb_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        case AUDIO_S32LSB:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = _Eff_position_s32lsb_mus;
+                break;
+            case 4:
+                f = _Eff_position_s32lsb_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_s32lsb_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        case AUDIO_F32SYS:
+            switch (channels) {
+            case 1:
+            case 2:
+                f = _Eff_position_f32sys_mus;
+                break;
+            case 4:
+                f = _Eff_position_f32sys_c4_mus;
+                break;
+            case 6:
+                f = _Eff_position_f32sys_c6_mus;
+                break;
+            default:
+                Mix_SetError("Unsupported audio channels");
+                break;
+            }
+            break;
+
+        default:
+            Mix_SetError("Unsupported audio format");
+            break;
+    }
+
+    return(f);
+}
+
+static void set_amplitudes(Uint8 *speaker_amplitude, int channels, int angle, int room_angle)
 {
     int left = 255, right = 255;
     int left_rear = 255, right_rear = 255, center = 255;
@@ -1936,9 +2199,9 @@ static void set_amplitudes(int channels, int angle, int room_angle)
     speaker_amplitude[5] = 255;
 }
 
-int Mix_SetPosition(int channel, Sint16 angle, Uint8 distance);
+DECLSPEC int MIXCALL Mix_SetPosition(int channel, Sint16 angle, Uint8 distance);
 
-int Mix_SetPanning(int channel, Uint8 left, Uint8 right)
+int MIXCALLCC Mix_SetPanning(int channel, Uint8 left, Uint8 right)
 {
     Mix_EffectFunc_t f = NULL;
     int channels;
@@ -2003,7 +2266,7 @@ int Mix_SetPanning(int channel, Uint8 left, Uint8 right)
 }
 
 
-int Mix_SetDistance(int channel, Uint8 distance)
+int MIXCALLCC Mix_SetDistance(int channel, Uint8 distance)
 {
     Mix_EffectFunc_t f = NULL;
     Uint16 format;
@@ -2049,8 +2312,9 @@ int Mix_SetDistance(int channel, Uint8 distance)
 }
 
 
-int Mix_SetPosition(int channel, Sint16 angle, Uint8 distance)
+int MIXCALLCC Mix_SetPosition(int channel, Sint16 angle, Uint8 distance)
 {
+    Uint8 speaker_amplitude[6];
     Mix_EffectFunc_t f = NULL;
     Uint16 format;
     int channels;
@@ -2086,15 +2350,17 @@ int Mix_SetPosition(int channel, Sint16 angle, Uint8 distance)
         }
     }
 
-    if (channels == 2)
-    {
+    if (channels == 2) {
+#if 0 /* Buggy code, makes position play at right speaker only. Gets been fixed when room_angle is always 0 */
         if (angle > 180)
             room_angle = 180; /* exchange left and right channels */
         else room_angle = 0;
+#endif
+        /*FIXME: Verify this for correctness */
+        room_angle = 0;
     }
 
-    if (channels == 4 || channels == 6)
-    {
+    if (channels == 4 || channels == 6) {
         if (angle > 315) room_angle = 0;
         else if (angle > 225) room_angle = 270;
         else if (angle > 135) room_angle = 180;
@@ -2104,7 +2370,7 @@ int Mix_SetPosition(int channel, Sint16 angle, Uint8 distance)
 
     distance = 255 - distance;  /* flip it to scale Mix_SetDistance() uses. */
 
-    set_amplitudes(channels, angle, room_angle);
+    set_amplitudes(speaker_amplitude, channels, angle, room_angle);
 
     args->left_u8 = speaker_amplitude[0];
     args->left_f = ((float) speaker_amplitude[0]) / 255.0f;
@@ -2124,6 +2390,204 @@ int Mix_SetPosition(int channel, Sint16 angle, Uint8 distance)
     if (!args->in_use) {
         args->in_use = 1;
         retval = _Mix_RegisterEffect_locked(channel, f, _Eff_PositionDone, (void *) args);
+    }
+
+    Mix_UnlockAudio();
+    return(retval);
+}
+
+
+
+DECLSPEC int MIXCALL Mix_SetMusicEffectPosition(Mix_Music *mus, Sint16 angle, Uint8 distance);
+
+int MIXCALLCC Mix_SetMusicEffectPanning(Mix_Music *mus, Uint8 left, Uint8 right)
+{
+    Mix_MusicEffectFunc_t f = NULL;
+    int channels;
+    Uint16 format;
+    position_args *args = NULL;
+    int retval = 1;
+
+    Mix_QuerySpec(NULL, &format, &channels);
+
+    if (channels != 2 && channels != 4 && channels != 6)    /* it's a no-op; we call that successful. */
+        return(1);
+
+    if (channels > 2) {
+        /* left = right = 255 => angle = 0, to unregister effect as when channels = 2 */
+        /* left = 255 =>  angle = -90;  left = 0 => angle = +89 */
+        int angle = 0;
+        if ((left != 255) || (right != 255)) {
+            angle = (int)left;
+            angle = 127 - angle;
+            angle = -angle;
+            angle = angle * 90 / 128; /* Make it larger for more effect? */
+        }
+        return Mix_SetMusicEffectPosition(mus, angle, 0);
+    }
+
+    f = get_music_position_effect_func(format, channels);
+    if (f == NULL)
+        return(0);
+
+    Mix_LockAudio();
+    args = get_music_position_arg(mus);
+    if (!args) {
+        Mix_UnlockAudio();
+        return(0);
+    }
+
+        /* it's a no-op; unregister the effect, if it's registered. */
+    if ((args->distance_u8 == 255) && (left == 255) && (right == 255)) {
+        if (args->in_use) {
+            retval = _Mix_UnregisterMusicEffect_locked(mus, f);
+            Mix_UnlockAudio();
+            return(retval);
+        } else {
+            Mix_UnlockAudio();
+            return(1);
+        }
+    }
+
+    args->left_u8 = left;
+    args->left_f = ((float) left) / 255.0f;
+    args->right_u8 = right;
+    args->right_f = ((float) right) / 255.0f;
+    args->room_angle = 0;
+
+    if (!args->in_use) {
+        args->in_use = 1;
+        retval=_Mix_RegisterMusicEffect_locked(mus, f, _Eff_MusicPositionDone, (void*)args);
+    }
+
+    Mix_UnlockAudio();
+    return(retval);
+}
+
+int MIXCALLCC Mix_SetMusicEffectDistance(Mix_Music *mus, Uint8 distance)
+{
+    Mix_MusicEffectFunc_t f = NULL;
+    Uint16 format;
+    position_args *args = NULL;
+    int channels;
+    int retval = 1;
+
+    Mix_QuerySpec(NULL, &format, &channels);
+    f = get_music_position_effect_func(format, channels);
+    if (f == NULL)
+        return(0);
+
+    Mix_LockAudio();
+    args = get_music_position_arg(mus);
+    if (!args) {
+        Mix_UnlockAudio();
+        return(0);
+    }
+
+    distance = 255 - distance;  /* flip it to our scale. */
+
+    /* it's a no-op; unregister the effect, if it's registered. */
+    if ((distance == 255) && (args->left_u8 == 255) && (args->right_u8 == 255)) {
+        if (args->in_use) {
+            retval = _Mix_UnregisterMusicEffect_locked(mus, f);
+            Mix_UnlockAudio();
+            return(retval);
+        } else {
+            Mix_UnlockAudio();
+            return(1);
+        }
+    }
+
+    args->distance_u8 = distance;
+    args->distance_f = ((float) distance) / 255.0f;
+    if (!args->in_use) {
+        args->in_use = 1;
+        retval = _Mix_RegisterMusicEffect_locked(mus, f, _Eff_MusicPositionDone, (void *) args);
+    }
+
+    Mix_UnlockAudio();
+    return(retval);
+}
+
+int MIXCALLCC Mix_SetMusicEffectPosition(Mix_Music *mus, Sint16 angle, Uint8 distance)
+{
+    Mix_MusicEffectFunc_t f = NULL;
+    Uint16 format;
+    int channels;
+    position_args *args = NULL;
+    Sint16 room_angle = 0;
+    int retval = 1;
+    Uint8 speaker_amplitude[6];
+
+    Mix_QuerySpec(NULL, &format, &channels);
+    f = get_music_position_effect_func(format, channels);
+    if (f == NULL) {
+        return(0);
+    }
+
+    /* make angle between 0 and 359. */
+    angle %= 360;
+    if (angle < 0) angle += 360;
+
+    Mix_LockAudio();
+    args = get_music_position_arg(mus);
+    if (!args) {
+        Mix_UnlockAudio();
+        return(0);
+    }
+
+    /* it's a no-op; unregister the effect, if it's registered. */
+    if ((!distance) && (!angle)) {
+        if (args->in_use) {
+            retval = _Mix_UnregisterMusicEffect_locked(mus, f);
+            Mix_UnlockAudio();
+            return(retval);
+        } else {
+            Mix_UnlockAudio();
+            return(1);
+        }
+    }
+
+    if (channels == 2) {
+#if 0 /* Buggy code, makes position play at right speaker only. Gets been fixed when room_angle is always 0 */
+        if (angle > 180)
+            room_angle = 180; /* exchange left and right channels */
+        else room_angle = 0;
+#endif
+        /*FIXME: Verify this for correctness */
+        room_angle = 0;
+    }
+
+    if (channels == 4 || channels == 6) {
+        if (angle > 315) room_angle = 0;
+        else if (angle > 225) room_angle = 270;
+        else if (angle > 135) room_angle = 180;
+        else if (angle > 45) room_angle = 90;
+        else room_angle = 0;
+    }
+
+    distance = 255 - distance;  /* flip it to scale Mix_SetDistance() uses. */
+
+    set_amplitudes(speaker_amplitude, channels, angle, room_angle);
+
+    args->left_u8 = speaker_amplitude[0];
+    args->left_f = ((float) speaker_amplitude[0]) / 255.0f;
+    args->right_u8 = speaker_amplitude[1];
+    args->right_f = ((float) speaker_amplitude[1]) / 255.0f;
+    args->left_rear_u8 = speaker_amplitude[2];
+    args->left_rear_f = ((float) speaker_amplitude[2]) / 255.0f;
+    args->right_rear_u8 = speaker_amplitude[3];
+    args->right_rear_f = ((float) speaker_amplitude[3]) / 255.0f;
+    args->center_u8 = speaker_amplitude[4];
+    args->center_f = ((float) speaker_amplitude[4]) / 255.0f;
+    args->lfe_u8 = speaker_amplitude[5];
+    args->lfe_f = ((float) speaker_amplitude[5]) / 255.0f;
+    args->distance_u8 = distance;
+    args->distance_f = ((float) distance) / 255.0f;
+    args->room_angle = room_angle;
+    if (!args->in_use) {
+        args->in_use = 1;
+        retval = _Mix_RegisterMusicEffect_locked(mus, f, _Eff_MusicPositionDone, (void *) args);
     }
 
     Mix_UnlockAudio();

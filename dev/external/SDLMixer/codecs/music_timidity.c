@@ -25,7 +25,7 @@
 
 #include "music_timidity.h"
 
-#include "timidity/timidity.h"
+#include <timidity.h>
 
 
 typedef struct
@@ -55,12 +55,19 @@ static void TIMIDITY_Delete(void *context);
 # define TIMIDITY_CFG_FREEPATS  "/etc/timidity/freepats.cfg"
 #endif
 
+static int timidity_loaded = 0;
+
 static int TIMIDITY_Open(const SDL_AudioSpec *spec)
 {
     const char *cfg;
     int rc = -1;
 
     (void) spec;
+
+    if (timidity_loaded > 0) {
+        timidity_loaded++;
+        return 0;
+    }
 
     cfg = SDL_getenv("TIMIDITY_CFG");
     if(!cfg) cfg = Mix_GetTimidityCfg();
@@ -78,12 +85,19 @@ static int TIMIDITY_Open(const SDL_AudioSpec *spec)
 #endif
     if (rc < 0) rc = Timidity_Init(NULL); /* library's default cfg. */
 
+    timidity_loaded = 1;
+
     return rc;
 }
 
 static void TIMIDITY_Close(void)
 {
-    Timidity_Exit();
+    if (timidity_loaded >= 1) {
+        timidity_loaded--;
+        if (timidity_loaded == 0) {
+            Timidity_Exit();
+        }
+    }
 }
 
 void *TIMIDITY_CreateFromRW(SDL_RWops *src, int freesrc)
@@ -91,6 +105,11 @@ void *TIMIDITY_CreateFromRW(SDL_RWops *src, int freesrc)
     TIMIDITY_Music *music;
     SDL_AudioSpec spec;
     SDL_bool need_stream = SDL_FALSE;
+
+    if (TIMIDITY_Open(NULL) < 0) {
+        Mix_SetError("Timidity: Can't initialize library");
+        return NULL;
+    }
 
     music = (TIMIDITY_Music *)SDL_calloc(1, sizeof(*music));
     if (!music) {
@@ -251,6 +270,7 @@ static void TIMIDITY_Delete(void *context)
         SDL_free(music->buffer);
     }
     SDL_free(music);
+    TIMIDITY_Close();
 }
 
 static void TIMIDITY_Stop(void *context)
@@ -268,9 +288,11 @@ Mix_MusicInterface Mix_MusicInterface_TIMIDITY =
     SDL_FALSE,
 
     NULL,   /* Load */
-    TIMIDITY_Open,
+    NULL,   /* Open */
     TIMIDITY_CreateFromRW,
+    NULL,   /* CreateFromRWex [MIXER-X]*/
     NULL,   /* CreateFromFile */
+    NULL,   /* CreateFromFileEx [MIXER-X]*/
     TIMIDITY_SetVolume,
     TIMIDITY_GetVolume,
     TIMIDITY_Play,
@@ -280,15 +302,25 @@ Mix_MusicInterface Mix_MusicInterface_TIMIDITY =
     TIMIDITY_Seek,
     TIMIDITY_Tell,
     TIMIDITY_Duration,
+    NULL,   /* SetTempo [MIXER-X] */
+    NULL,   /* GetTempo [MIXER-X] */
+    NULL,   /* SetSpeed [MIXER-X] */
+    NULL,   /* GetSpeed [MIXER-X] */
+    NULL,   /* SetPitch [MIXER-X] */
+    NULL,   /* GetPitch [MIXER-X] */
+    NULL,   /* GetTracksCount [MIXER-X] */
+    NULL,   /* SetTrackMute [MIXER-X] */
     NULL,   /* LoopStart */
     NULL,   /* LoopEnd */
     NULL,   /* LoopLength */
     NULL,   /* GetMetaTag */
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     TIMIDITY_Stop,
     TIMIDITY_Delete,
-    TIMIDITY_Close,
+    NULL,   /* Close */
     NULL    /* Unload */
 };
 
