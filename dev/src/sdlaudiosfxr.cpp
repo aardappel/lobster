@@ -22,6 +22,8 @@
 #include "SDL_mixer.h"
 #include "SDL_stdinc.h"
 
+static constexpr int INVALID_MUSIC = 0;
+
 bool sound_init = false;
 
 struct Sound {
@@ -30,12 +32,20 @@ struct Sound {
     explicit Sound(Mix_Chunk *chunk) : chunk(chunk, Mix_FreeChunk) {}
 };
 
+struct Music {
+    unique_ptr<Mix_Music, decltype(&Mix_FreeMusic)> music;
+    Music() : music(nullptr, Mix_FreeMusic) {}
+    explicit Music(Mix_Music *music) : music(music, Mix_FreeMusic) {}
+};
+
 const int channel_num = 16; // number of mixer channels
 int sound_pri[channel_num] = {};
 uint64_t sound_age[channel_num] = {};
 uint64_t sounds_played = 0;
 
 map<string, Sound, less<>> sound_files;
+
+vector<Music> playing_music;
 
 Mix_Chunk *AllocChunk(short *buf, size_t num_samples) {
     Uint16 format;
@@ -529,6 +539,174 @@ void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, float at
     vecfromlistener = normalize(vecfromlistener);
     float angle = atan2(listenerfwd.y, listenerfwd.x) - atan2(vecfromlistener.y, vecfromlistener.x);
     Mix_SetPosition(ch - 1, int16_t(angle / RAD), uint8_t(1.0f + min(dist, 254.0f)));
+}
+
+// SDL Mixer Music 
+
+static void MusicFinished(Mix_Music *, void *user_data) {
+    int mus_idx = (int)(intptr_t)user_data;
+    playing_music[mus_idx].music.reset();
+}
+
+// Normally you can use SDL_RWFromFP, but we don't want to build SDL with STDIO
+// support. So reimplement just the part we need here.
+static Sint64 RWOpsFileSize(struct SDL_RWops * context) {
+    FILE *fp = (FILE*)context->hidden.unknown.data1;
+    if (!fp) return -1;
+    auto orig_pos = ftell(fp);
+    fseek(fp, 0, SEEK_END);
+    auto endpos = ftell(fp);
+    fseek(fp, orig_pos, SEEK_SET);
+    return endpos;
+}
+
+static Sint64 RWOpsFileSeek(struct SDL_RWops * context, Sint64 offset, int whence) {
+    FILE *fp = (FILE*)context->hidden.unknown.data1;
+    if (!fp) return -1;
+    switch (whence) {
+        case RW_SEEK_SET:
+            fseek(fp, (long)offset, SEEK_SET);
+            break;
+        case RW_SEEK_CUR:
+            fseek(fp, (long)offset, SEEK_CUR);
+            break;
+        case RW_SEEK_END:
+            fseek(fp, (long)offset, SEEK_END);
+            break;
+    }
+    return ftell(fp);
+}
+
+static size_t RWOpsFileRead (struct SDL_RWops * context, void *ptr, size_t size, size_t maxnum) {
+    FILE *fp = (FILE*)context->hidden.unknown.data1;
+    if (!fp) return 0;
+    return fread(ptr, size, maxnum, fp);
+}
+
+static size_t RWOpsFileWrite (struct SDL_RWops *, const void *, size_t, size_t) {
+    // Always fail.
+    return 0;
+}
+
+static int RWOpsFileClose (struct SDL_RWops * context) {
+    FILE *fp = (FILE*)context->hidden.unknown.data1;
+    if (!fp) return -1;
+    fclose(fp);
+    context->hidden.unknown.data1 = nullptr;
+    return 0;
+}
+
+static SDL_RWops *CreateFileRWops(string_view filename) {
+    FILE *file = OpenForReading(filename, true, true);
+    if (!file) return nullptr;
+    auto *rwops = SDL_AllocRW();
+    rwops->hidden.unknown.data1 = file;
+    rwops->size = RWOpsFileSize;
+    rwops->seek = RWOpsFileSeek;
+    rwops->read = RWOpsFileRead;
+    rwops->write = RWOpsFileWrite;
+    rwops->close = RWOpsFileClose;
+    return rwops;
+}
+
+static int LoadMusic(string_view filename) {
+    auto *rwops = CreateFileRWops(filename);
+    if (!rwops) return INVALID_MUSIC;
+    Mix_Music *mus = Mix_LoadMUS_RW(rwops, 1);
+    if (!mus) return INVALID_MUSIC;
+    // Look for any unused spots in the playing_music vector.
+    int mus_idx = -1;
+    for (int i = 0; i < (int)playing_music.size(); ++i) {
+        if (!playing_music[i].music) {
+            mus_idx = i;
+            playing_music[i] = Music(mus);
+            break;
+        }
+    }
+    if (mus_idx == -1) {
+        // No empty slots found, append to the end.
+        mus_idx = (int)playing_music.size();
+        playing_music.push_back(Music(mus));
+    }
+    Mix_HookMusicStreamFinished(mus, MusicFinished, (void*)(intptr_t)mus_idx);
+    return mus_idx + 1;  // We return music index where 0 is invalid.
+}
+
+static Mix_Music *GetMixMusic(int mus_id) {
+    if (mus_id <= 0 || mus_id - 1 >= (int)playing_music.size()) {
+        return nullptr;
+    }
+    return playing_music[mus_id - 1].music.get();
+}
+
+int SDLPlayMusic(string_view filename, int loops) {
+    if (!SDLSoundInit()) return INVALID_MUSIC;
+    int mus_id = LoadMusic(filename);
+    if (mus_id == INVALID_MUSIC) return INVALID_MUSIC;
+    int res = Mix_PlayMusicStream(GetMixMusic(mus_id), loops);
+    if (res != 0) {
+        LOG_ERROR("Mix_PlayMusicStream: ", Mix_GetError());
+    }
+    return mus_id;
+}
+
+int SDLFadeInMusic(string_view filename, int loops, int ms) {
+    if (!SDLSoundInit()) return INVALID_MUSIC;
+    int mus_id = LoadMusic(filename);
+    if (mus_id == INVALID_MUSIC) return INVALID_MUSIC;
+    int res = Mix_FadeInMusicStream(GetMixMusic(mus_id), loops, ms);
+    if (res != 0) {
+        LOG_ERROR("Mix_FadeInMusicStream: ", Mix_GetError());
+    }
+    return mus_id;
+}
+
+int SDLCrossFadeMusic(int old_mus_id, string_view new_filename, int loops, int ms) {
+    if (!SDLSoundInit()) return INVALID_MUSIC;
+    Mix_Music *old_mus = GetMixMusic(old_mus_id);
+    if (old_mus == nullptr) return INVALID_MUSIC;
+
+    int new_mus_id = LoadMusic(new_filename);
+    if (new_mus_id == INVALID_MUSIC) return INVALID_MUSIC;
+    int res = Mix_CrossFadeMusicStream(old_mus, GetMixMusic(new_mus_id), loops, ms, 0);
+    if (res != 0) {
+        LOG_ERROR("Mix_CrossFadeMusicStream: ", Mix_GetError());
+    }
+    return new_mus_id;
+}
+
+void SDLFadeOutMusic(int mus_id, int ms) {
+    Mix_Music *mus = GetMixMusic(mus_id);
+    if (mus == nullptr) return;
+    Mix_FadeOutMusicStream(mus, ms);
+}
+
+void SDLHaltMusic(int mus_id) {
+    Mix_Music *mus = GetMixMusic(mus_id);
+    if (mus == nullptr) return;
+    Mix_HaltMusicStream(mus);
+}
+
+void SDLPauseMusic(int mus_id) {
+    Mix_Music *mus = GetMixMusic(mus_id);
+    if (mus == nullptr) return;
+    Mix_PauseMusicStream(mus);
+}
+
+void SDLResumeMusic(int mus_id) {
+    Mix_Music *mus = GetMixMusic(mus_id);
+    if (mus == nullptr) return;
+    Mix_ResumeMusicStream(mus);
+}
+
+void SDLSetMusicVolume(int mus_id, float vol) {
+    Mix_Music *mus = GetMixMusic(mus_id);
+    if (mus == nullptr) return;
+    Mix_VolumeMusicStream(mus, (int)(MIX_MAX_VOLUME * vol));
+}
+
+void SDLSetGeneralMusicVolume(float vol) {
+    Mix_VolumeMusicGeneral((int)(MIX_MAX_VOLUME * vol));
 }
 
 #ifdef _MSC_VER

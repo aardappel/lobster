@@ -61,6 +61,16 @@ extern void SDLSetVolume(int ch, float vol);
 extern void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, float attnscale);
 extern int SDLSoundStatus(int ch);
 extern void SDLSoundClose();
+// Music functions
+extern int SDLPlayMusic(string_view filename, int loops);
+extern int SDLFadeInMusic(string_view filename, int loops, int ms);
+extern int SDLCrossFadeMusic(int old_mus_id, string_view new_filename, int loops, int ms);
+extern void SDLFadeOutMusic(int mus_id, int ms);
+extern void SDLHaltMusic(int mus_id);
+extern void SDLPauseMusic(int mus_id);
+extern void SDLResumeMusic(int mus_id);
+extern void SDLSetMusicVolume(int mus_id, float vol);
+extern void SDLSetGeneralMusicVolume(float vol);
 
 extern int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len);
 
