@@ -31,7 +31,8 @@ INCLUDES=   -I. \
 			-I../include \
 			-I../src \
 			-I../external/freetype/include \
-			-I../external/imgui
+			-I../external/imgui \
+			-I../external/SDLMixer
 LIBS=
 
 HEADERS= $(wildcard ../src/lobster/*.h)
