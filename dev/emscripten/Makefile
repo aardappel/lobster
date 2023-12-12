@@ -17,21 +17,26 @@ OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0
 # Release/Shipping/benchmark mode with LTO
 #OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS)
 
+CFLAGS= $(OPTLEVEL)
 CXXFLAGS= $(OPTLEVEL)
+SHAREDFLAGS= -s USE_SDL=2 -s USE_SDL_MIXER=0 -s USE_FREETYPE=1 -s NO_EXIT_RUNTIME=1 \
+         -Wall -pedantic -Wno-switch \
+         -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
+override CFLAGS+= $(SHAREDFLAGS)
 # We always build without exceptions, which is ok, because we don't rely on exception handling
 # to exit the evaluation loop anymore, and we don't support the interpreter mode in Wasm.
 # Also, asyncify relies on there not being any call_indirects in the path to the yield,
 # which exception handling currently inserts.
-override CXXFLAGS+= -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING \
-                    -s USE_SDL=2 -s USE_SDL_MIXER=2 -s USE_FREETYPE=1 -s NO_EXIT_RUNTIME=1 \
-                    -std=c++17 -Wall -pedantic -Wno-switch \
-                    -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
+override CXXFLAGS+= $(SHAREDFLAGS) -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING \
+                    -std=c++17
 
 INCLUDES=   -I. \
 			-I../include \
 			-I../src \
 			-I../external/freetype/include \
-			-I../external/imgui
+			-I../external/imgui \
+			-I../external/SDLMixer \
+			-I../external/SDLMixer/codecs
 LIBS=
 
 HEADERS= $(wildcard ../src/lobster/*.h)
@@ -78,11 +83,17 @@ CPPSRCS= \
     $(wildcard ../include/Box2D/Particle/*.cpp) \
     $(wildcard ../include/Box2D/Rope/*.cpp) \
     $(wildcard ../external/flatbuffers/src/*.cpp) \
-    $(wildcard ../external/imgui/*.cpp)
+    $(wildcard ../external/imgui/*.cpp) \
+
+CSRCS= \
+    $(wildcard ../external/SDLMixer/*.c) \
+    $(wildcard ../external/SDLMixer/codecs/*.c)
 
 CPPOBJS := $(patsubst %.cpp,%.o,$(CPPSRCS))
+COBJS := $(patsubst %.c,%.o,$(CSRCS))
 
 $(CPPOBJS): CXXFLAGS += $(INCLUDES)
+$(COBJS): CFLAGS += $(INCLUDES)
 
 #$(CPPOBJS): $(CPPSRCS) $(HEADERS)
 
@@ -100,14 +111,15 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 # We only support compiling with the C++ backend, no JIT mode.
 
 cpp: CXXFLAGS += -DVM_COMPILED_CODE_MODE -DIMGUI_IMPL_OPENGL_ES3
-cpp: $(CPPOBJS)
-	emcc $(CXXFLAGS) $(CPPOBJS) $(EFLAGS)
+cpp: $(CPPOBJS) $(COBJS)
+	emcc $(CFLAGS) $(COBJS) $(CXXFLAGS) $(CPPOBJS) $(EFLAGS)
 
 clean:
-	-$(RM) $(CPPOBJS)
+	-$(RM) $(CPPOBJS) $(COBJS)
 
 cleanw:
 	del $(addprefix ",$(addsuffix ",$(CPPOBJS)))
+	del $(addprefix ",$(addsuffix ",$(COBJS)))
 
 all: cpp
 
