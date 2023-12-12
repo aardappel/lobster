@@ -32,7 +32,8 @@ INCLUDES=   -I. \
 			-I../src \
 			-I../external/freetype/include \
 			-I../external/imgui \
-			-I../external/SDLMixer
+			-I../external/SDLMixer \
+			-I../external/SDLMixer/codecs
 LIBS=
 
 HEADERS= $(wildcard ../src/lobster/*.h)
@@ -80,7 +81,8 @@ CPPSRCS= \
     $(wildcard ../include/Box2D/Rope/*.cpp) \
     $(wildcard ../external/flatbuffers/src/*.cpp) \
     $(wildcard ../external/imgui/*.cpp) \
-    $(wildcard ../external/SDLMixer/*.c")
+    $(wildcard ../external/SDLMixer/*.c) \
+    $(wildcard ../external/SDLMixer/codecs/*.c)
 
 CPPOBJS := $(patsubst %.cpp,%.o,$(CPPSRCS))
 
