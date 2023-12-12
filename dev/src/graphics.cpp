@@ -1411,4 +1411,12 @@ nfr("init_controller_database", "filename", "S", "S?",
         return NilVal();
     });
 
+nfr("open_url", "url", "S", "B",
+    "Opens a URL in the system browser, returns true if successful",
+    [](StackPtr &, VM &, Value &url) {
+        bool ok = SDLOpenURL(url.sval()->strv());
+        return Value(ok);
+    });
+
+
 }  // AddGraphics

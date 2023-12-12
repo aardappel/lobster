@@ -888,6 +888,10 @@ void SDLMessageBox(string_view_nt title, string_view_nt msg) {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), msg.c_str(), _sdl_window);
 }
 
+bool SDLOpenURL(string_view url) {
+    return SDL_OpenURL(url.data()) == 0;
+}
+
 int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len) {
     LOG_DEBUG("SDLLoadFile: ", absfilename);
     auto f = SDL_RWFromFile(absfilename.c_str(), "rb");
