@@ -1203,15 +1203,20 @@ nfr("image", "tex,size,flip", "R:textureF}:2B?", "",
                                                                     ImVec2(1.0f, flip ? 1.0f : 0.0f));
     });
 
-nfr("image_button", "label,tex,size,bgcol", "SR:textureF}:2F}:4?", "B",
+nfr("image_button", "label,tex,size,bgcol,flip", "SR:textureF}:2F}:4?B?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
+        auto flip = Pop(sp).True();
         auto bgcol = PopVec<float4>(sp);
         auto sz = PopVec<float2>(sp);
         auto t = GetTexture(Pop(sp));
         auto label = Pop(sp);
-        auto press = ImGui::ImageButton(Label(vm, label), (ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f), ImVec4(bgcol.x, bgcol.y, bgcol.z, bgcol.w));
+        auto press =
+            ImGui::ImageButton(Label(vm, label), (ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y),
+                               ImVec2(0.0f, flip ? 0.0f : 1.0f),
+                               ImVec2(1.0f, flip ? 1.0f : 0.0f),
+                               ImVec4(bgcol.x, bgcol.y, bgcol.z, bgcol.w));
         Push(sp, press);
     });
 
