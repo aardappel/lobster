@@ -222,7 +222,7 @@ struct TypeChecker {
         Error(call_args, err);
     }
 
-    void UnifyVar(TypeRef type, TypeRef hasvar) {
+    void UnifyVar(TypeRef type, TypeRef hasvar, ValueType var_parent) {
         // Typically Type is const, but this is the one place we overwrite them.
         // Type objects that are V_VAR are seperate heap instances, so overwriting them has no
         // side-effects on non-V_VAR Type instances.
@@ -241,6 +241,7 @@ struct TypeChecker {
             auto v = hasvar;
             do { // Loop thru all vars in unification cycle.
                 auto next = v->sub;
+                assert(var_parent != V_NIL || !type->Numeric());
                 *(Type *)&*v = *type;  // Overwrite Type struct!
                 v = next;
             } while (&*v != &*hasvar);  // Force TypeRef pointer comparison.
@@ -250,17 +251,18 @@ struct TypeChecker {
         }
     }
 
-    bool ConvertsTo(TypeRef type, TypeRef bound, ConvertFlags cf) {
+    bool ConvertsTo(TypeRef type, TypeRef bound, ConvertFlags cf,
+                    ValueType type_parent = V_UNDEFINED, ValueType bound_parent = V_UNDEFINED) {
         if (bound->Equal(*type)) return true;
         if (type->t == V_VAR) {
-            if (cf & CF_UNIFICATION) UnifyVar(bound, type);
+            if (cf & CF_UNIFICATION) UnifyVar(bound, type, type_parent);
             return true;
         }
         switch (bound->t) {
             case V_VOID:
                 return cf & CF_COERCIONS;
             case V_VAR:
-                if (cf & CF_UNIFICATION) UnifyVar(type, bound);
+                if (cf & CF_UNIFICATION) UnifyVar(type, bound, bound_parent);
                 return cf & CF_UNIFICATION;
             case V_FLOAT:
                 return type->t == V_INT && (cf & CF_COERCIONS);
@@ -275,11 +277,11 @@ struct TypeChecker {
                        type->sf->args.empty();
             case V_NIL: {
                 auto scf = ConvertFlags(cf & CF_UNIFICATION);
-                return (type->t == V_NIL && ConvertsTo(type->Element(), bound->Element(), scf)) ||
+                return (type->t == V_NIL && ConvertsTo(type->Element(), bound->Element(), scf, V_NIL, V_NIL)) ||
                        (!type->Numeric() && type->t != V_VOID && !IsStruct(type->t) &&
-                        ConvertsTo(type, bound->Element(), scf)) ||
+                        ConvertsTo(type, bound->Element(), scf, type_parent, V_NIL)) ||
                        ((cf & CF_NUMERIC_NIL) && type->Numeric() &&  // For builtins.
-                        ConvertsTo(type, bound->Element(), scf));
+                        ConvertsTo(type, bound->Element(), scf, type_parent, V_NIL));
             }
             case V_VECTOR: {
                 // We don't generally allow covariance here unless const (to avoid supertype
@@ -287,7 +289,7 @@ struct TypeChecker {
                 auto cov = cf & CF_COVARIANT ? CF_NONE : CF_EXACTTYPE;
                 return type->t == V_VECTOR &&
                        ConvertsTo(type->Element(), bound->Element(),
-                                  ConvertFlags((cf & (CF_UNIFICATION | CF_NUMERIC_NIL)) | cov));
+                                  ConvertFlags((cf & (CF_UNIFICATION | CF_NUMERIC_NIL)) | cov), V_VECTOR, V_VECTOR);
             }
             case V_CLASS: {
                 if (type->t != V_CLASS) return false;
@@ -319,24 +321,30 @@ struct TypeChecker {
     bool ConvertsToTuple(const vector<Type::TupleElem> &ttup, const vector<Type::TupleElem> &stup) {
         if (ttup.size() != stup.size()) return false;
         for (auto [i, te] : enumerate(ttup))
-            if (!ConvertsTo(te.type, stup[i].type, CF_UNIFICATION))
+            if (!ConvertsTo(te.type, stup[i].type, CF_UNIFICATION, V_TUPLE, V_TUPLE))
                 return false;
         return true;
     }
 
     TypeRef Union(TypeRef at, TypeRef bt, string_view aname, string_view bname,
-                  ConvertFlags coercions, const Node *err) {
-        if (ConvertsTo(at, bt, ConvertFlags(coercions | CF_UNIFICATION))) return bt;
-        if (ConvertsTo(bt, at, ConvertFlags(coercions | CF_UNIFICATION))) return at;
+                  ConvertFlags coercions, const Node *err,
+                  ValueType a_parent = V_UNDEFINED, ValueType b_parent = V_UNDEFINED) {
+        if (ConvertsTo(at, bt, ConvertFlags(coercions | CF_UNIFICATION), a_parent, b_parent))
+            return bt;
+        if (ConvertsTo(bt, at, ConvertFlags(coercions | CF_UNIFICATION), a_parent, b_parent))
+            return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
-            auto et = Union(at->Element(), bt->Element(), aname, bname, CF_NONE, nullptr);
+            auto et = Union(at->Element(), bt->Element(), aname, bname, CF_NONE, nullptr, V_VECTOR, V_VECTOR);
             if (et->t == V_UNDEFINED) goto error;
             return st.Wrap(et, V_VECTOR, err ? &err->line : nullptr);
         }
         if (at->t == V_NIL || bt->t == V_NIL) {
-            at = at->ElementIfNil();
-            bt = bt->ElementIfNil();
-            auto et = Union(at, bt, aname, bname, CF_NONE, nullptr);
+            auto ate = at->ElementIfNil();
+            auto bte = bt->ElementIfNil();
+            if (IsUnBoxedOrStruct(ate->t) || IsUnBoxedOrStruct(bte->t)) goto error;
+            auto et = Union(ate, bte, aname, bname, CF_NONE, nullptr,
+                        at->t == V_NIL ? V_NIL : a_parent,
+                        bt->t == V_NIL ? V_NIL : b_parent);
             if (et->t == V_UNDEFINED) goto error;
             return st.Wrap(et, V_NIL, err ? &err->line : nullptr);
         }
@@ -3450,7 +3458,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (never_returns && make_void && sf->num_returns) {
         // A return with other returns inside of it that always bypass this return,
         // so should not contribute to return types.
-        if (child->exptype->t == V_VAR) tc.UnifyVar(type_void, child->exptype);
+        if (child->exptype->t == V_VAR) tc.UnifyVar(type_void, child->exptype, V_UNDEFINED);
         assert(child->exptype->t == V_VOID);
         // Call this for correct counting of number of returns, with existing type, should
         // have no effect on the type.
