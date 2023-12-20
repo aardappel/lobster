@@ -242,6 +242,7 @@ struct TypeChecker {
             do { // Loop thru all vars in unification cycle.
                 auto next = v->sub;
                 assert(var_parent != V_NIL || !type->Numeric());
+                (void)var_parent;
                 *(Type *)&*v = *type;  // Overwrite Type struct!
                 v = next;
             } while (&*v != &*hasvar);  // Force TypeRef pointer comparison.
