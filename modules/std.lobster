@@ -77,11 +77,27 @@ def reduce_reverse(xs, fun):
     for(xs.length - 1) i: acc = fun(xs[xs.length - i - 2], acc)
     return acc
 
+// Returns index of element or -1 if not found.
 def find(xs, fun):
     for(xs) x, i:
         if fun(x):
             return i
     return -1
+
+// Returns element and index or defval and -1 if not found.
+def find_or(xs, defval, fun):
+    for(xs) x, i:
+        if fun(x):
+            return x, i
+    return defval, -1
+
+// Returns element and index, and pushes newval if not found.
+def find_or_push(xs, newval, fun):
+    for(xs) x, i:
+        if fun(x):
+            return x, i
+    xs.push(newval)
+    return newval, xs.length - 1
 
 // return element index for which fun returns biggest value of type R (float or int).
 def find_best<R>(xs, fun):
