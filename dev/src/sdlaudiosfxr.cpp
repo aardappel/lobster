@@ -14,6 +14,8 @@
 
 #include "lobster/stdafx.h"
 
+#include <atomic>
+
 #include "lobster/natreg.h"
 
 #include "lobster/sdlincludes.h"
@@ -34,8 +36,9 @@ struct Sound {
 
 struct Music {
     unique_ptr<Mix_Music, decltype(&Mix_FreeMusic)> music;
+    unique_ptr<atomic<bool>> finished;  // Needs to be wrapped in unique_ptr so Music can be moved.
     Music() : music(nullptr, Mix_FreeMusic) {}
-    explicit Music(Mix_Music *music) : music(music, Mix_FreeMusic) {}
+    explicit Music(Mix_Music *music) : music(music, Mix_FreeMusic), finished(make_unique<atomic<bool>>(false)) {}
 };
 
 const int channel_num = 16; // number of mixer channels
@@ -451,6 +454,12 @@ bool SDLSoundInit() {
 
 void SDLSoundClose() {
     sound_files.clear();
+    for (auto &music: playing_music) {
+        if (!*music.finished && music.music.get()) {
+            Mix_HaltMusicStream(music.music.get());
+        }
+    }
+    playing_music.clear();
 
     Mix_CloseAudio();
     while (Mix_Init(0)) Mix_Quit();
@@ -545,7 +554,7 @@ void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, float at
 
 static void MusicFinished(Mix_Music *, void *user_data) {
     int mus_idx = (int)(intptr_t)user_data;
-    playing_music[mus_idx].music.reset();
+    *playing_music[mus_idx].finished = true;
 }
 
 // Normally you can use SDL_RWFromFP, but we don't want to build SDL with STDIO
@@ -617,7 +626,7 @@ static int LoadMusic(string_view filename) {
     // Look for any unused spots in the playing_music vector.
     int mus_idx = -1;
     for (int i = 0; i < (int)playing_music.size(); ++i) {
-        if (!playing_music[i].music) {
+        if (*playing_music[i].finished) {
             mus_idx = i;
             playing_music[i] = Music(mus);
             break;
