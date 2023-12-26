@@ -438,6 +438,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>music_pause</b>(mus_id<font color="#666666">:int</font>)</tt></td><td class="a">pause music with the given id.</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>music_resume</b>(mus_id<font color="#666666">:int</font>)</tt></td><td class="a">resume music with the given id.</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>music_volume</b>(mus_id<font color="#666666">:int</font>, vol<font color="#666666">:float</font>)</tt></td><td class="a">set the music volume in the range 0..1.</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>music_is_playing</b>(mus_id<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether the music with the given id has not yet finished. Paused music is still considered to be playing</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>music_set_general_volume</b>(vol<font color="#666666">:float</font>)</tt></td><td class="a">set the general music volume in the range 0..1.</td></tr>
 </table>
 <h3>physics</h3>
@@ -621,7 +622,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.sliderfloat4</b>(label<font color="#666666">:string</font>, F4<font color="#666666">:float4</font>, min<font color="#666666">:float</font>, max<font color="#666666">:float</font>) -> <font color="#666666">float4</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.coloredit</b>(label<font color="#666666">:string</font>, color<font color="#666666">:vec_f</font>) -> <font color="#666666">any</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.image</b>(tex<font color="#666666">:resource&lt;texture&gt;</font>, size<font color="#666666">:float2</font>, flip<font color="#666666">:bool</font> = false)</tt></td><td class="a"></td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.image_button</b>(label<font color="#666666">:string</font>, tex<font color="#666666">:resource&lt;texture&gt;</font>, size<font color="#666666">:float2</font>, bgcol<font color="#666666">:float4</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a"></td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.image_button</b>(label<font color="#666666">:string</font>, tex<font color="#666666">:resource&lt;texture&gt;</font>, size<font color="#666666">:float2</font>, bgcol<font color="#666666">:float4</font> = nil, flip<font color="#666666">:bool</font> = false) -> <font color="#666666">int</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.image_mouseclick</b>(tex<font color="#666666">:resource&lt;texture&gt;</font>, size<font color="#666666">:float2</font>) -> <font color="#666666">float2</font>, <font color="#666666">int</font></tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.treenode_start</b>(label<font color="#666666">:string</font>, flags<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im.treenode instead)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.treenode_end</b>()</tt></td><td class="a"></td></tr>

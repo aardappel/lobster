@@ -72,6 +72,7 @@ extern void SDLHaltMusic(int mus_id);
 extern void SDLPauseMusic(int mus_id);
 extern void SDLResumeMusic(int mus_id);
 extern void SDLSetMusicVolume(int mus_id, float vol);
+extern bool SDLMusicIsPlaying(int mus_id);
 extern void SDLSetGeneralMusicVolume(float vol);
 
 extern int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len);

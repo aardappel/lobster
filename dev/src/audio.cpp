@@ -213,6 +213,13 @@ nfr("music_volume", "mus_id,vol", "IF", "",
         return NilVal();
     });
 
+nfr("music_is_playing", "mus_id", "I", "B",
+    "returns whether the music with the given id has not yet finished. Paused music is still considered to be playing",
+    [](StackPtr &, VM &, Value &mus_id) {
+        auto is_playing = SDLMusicIsPlaying(mus_id.intval());
+        return Value(is_playing);
+    });
+
 nfr("music_set_general_volume", "vol", "F", "",
     "set the general music volume in the range 0..1.",
     [](StackPtr &, VM &, Value &vol) {

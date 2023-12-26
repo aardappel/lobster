@@ -714,6 +714,13 @@ void SDLSetMusicVolume(int mus_id, float vol) {
     Mix_VolumeMusicStream(mus, (int)(MIX_MAX_VOLUME * vol));
 }
 
+bool SDLMusicIsPlaying(int mus_id) {
+    if (mus_id <= 0 || mus_id - 1 >= (int)playing_music.size()) {
+        return false;
+    }
+    return !*playing_music[mus_id - 1].finished;
+}
+
 void SDLSetGeneralMusicVolume(float vol) {
     Mix_VolumeMusicGeneral((int)(MIX_MAX_VOLUME * vol));
 }
