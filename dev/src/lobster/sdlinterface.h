@@ -51,6 +51,10 @@ extern void SDLMessageBox(string_view_nt title, string_view_nt msg);
 
 extern bool SDLOpenURL(string_view url);
 
+// TODO: this relies on SDLCALL being standard C calling convention
+typedef void (*SDLEffectFunc)(int ch, void *stream, int len, void *userdata);
+typedef void (*SDLEffectDone)(int ch, void *userdata);
+
 enum SoundType { SOUND_WAV, SOUND_SFXR, SOUND_OGG };
 extern int SDLLoadSound(string_view filename, SoundType st);
 extern int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int pri);
@@ -62,6 +66,7 @@ extern void SDLResumeSound(int ch);
 extern void SDLSetVolume(int ch, float vol);
 extern void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, float attnscale);
 extern int SDLSoundStatus(int ch);
+extern int SDLRegisterEffect(int ch, SDLEffectFunc func, SDLEffectDone done, void *userdata);
 extern void SDLSoundClose();
 // Music functions
 extern int SDLPlayMusic(string_view filename, int loops);

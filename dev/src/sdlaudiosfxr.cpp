@@ -535,6 +535,12 @@ int SDLSoundStatus(int ch) { // returns -1 for illegal channel index, 0 for avai
     else return -1;
 }
 
+int SDLRegisterEffect(int ch, SDLEffectFunc func, SDLEffectDone done, void *userdata) {
+    int num_chn = Mix_AllocateChannels(-1); // called with -1 this returns the current number of channels
+    if (ch <= 0 || ch >= num_chn) return -1;
+    return Mix_RegisterEffect(ch - 1, func, done, userdata);
+}
+
 void SDLResumeSound(int ch) {
     if (Mix_Paused(ch - 1) > 0) Mix_Resume(ch - 1); // this already tests for SDLSoundInit() etc.
 }
