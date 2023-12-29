@@ -51,6 +51,8 @@
 - namespace improvements:
   - Declaring a variable (or function) that has the same name as a namespace should be an error? (poll so far: yes)
   - obj.foo where foo is a method in a namespace should work if obj already has that namespaced type?
+    That requires moving at least some of the namespacing into the type checker.
+    See: https://github.com/aardappel/lobster/issues/284
   - any more builtins to namespace?
   - move namespace parsing to parser!
   - Should obj.ns.fun() be disallowed (poll so far: no)
