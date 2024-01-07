@@ -109,7 +109,9 @@ double SecondsSinceStart() {
     return double(end.QuadPart - time_start.QuadPart) / double(time_frequency.QuadPart);
 }
 
-int hwthreads = 2, hwcores = 1;
+int hwthreads = 2;
+int hwcores = 1;
+bool hwpopcount = true;
 void InitCPU() {
     // This can fail and return 0, so default to 2 threads:
     hwthreads = max(2, (int)thread::hardware_concurrency());
@@ -133,6 +135,9 @@ void InitCPU() {
                 if (cores) hwcores = cores;
             }
         }
+        int ci[4];
+        __cpuid(ci, 1);
+        if (!((ci[2] >> 23) & 1)) hwpopcount = false;
     #endif
 }
 

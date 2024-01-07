@@ -194,6 +194,15 @@ inline int PopCount(uint32_t val) {
 
 inline int PopCount(uint64_t val) {
     #ifdef _MSC_VER
+        extern bool hwpopcount;
+        if (!hwpopcount) {
+            int c = 0;
+            for (int i = 0; i < 64; i++) {
+                if (val & 1) c++;
+                val >>= 1;
+            }
+            return c;
+        }
         #ifdef _WIN64
             return (int)__popcnt64(val);
         #else
