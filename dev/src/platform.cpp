@@ -135,9 +135,13 @@ void InitCPU() {
                 if (cores) hwcores = cores;
             }
         }
-        int ci[4];
-        __cpuid(ci, 1);
-        if (!((ci[2] >> 23) & 1)) hwpopcount = false;
+        #ifdef _M_ARM64
+            hwpopcount = false;
+        #else
+            int ci[4];
+            __cpuid(ci, 1);
+            if (!((ci[2] >> 23) & 1)) hwpopcount = false;
+        #endif
     #endif
 }
 

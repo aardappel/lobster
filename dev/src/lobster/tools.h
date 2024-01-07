@@ -197,16 +197,18 @@ inline int PopCount(uint64_t val) {
         extern bool hwpopcount;
         if (!hwpopcount) {
             int c = 0;
-            for (int i = 0; i < 64; i++) {
-                if (val & 1) c++;
-                val >>= 1;
-            }
+            for (; val; c++) val &= val - (uint64_t)1;
             return c;
         }
-        #ifdef _WIN64
-            return (int)__popcnt64(val);
+        #ifndef _M_ARM64
+            #ifdef _WIN64
+                return (int)__popcnt64(val);
+            #else
+                return (int)(__popcnt((uint32_t)val) + __popcnt((uint32_t)(val >> 32)));
+            #endif
         #else
-            return (int)(__popcnt((uint32_t)val) + __popcnt((uint32_t)(val >> 32)));
+            assert(!hwpopcount);
+            return 0;
         #endif
     #else
         return __builtin_popcountll(val);
