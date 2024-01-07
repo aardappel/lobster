@@ -217,7 +217,16 @@ inline int PopCount(uint64_t val) {
 
 inline int HighZeroBits(uint64_t val) {
     #ifdef _MSC_VER
-        return (int)__lzcnt64(val);
+        #ifndef _M_ARM64
+            return (int)__lzcnt64(val);
+        #else
+            unsigned long index;
+            int d = (int)sizeof(uint64_t) * 8;
+            if (_BitScanReverse64(&index, val)) {
+                d = d - 1 - index;
+            }
+            return d;
+        #endif
     #else
         return __builtin_clzll(val);
     #endif
