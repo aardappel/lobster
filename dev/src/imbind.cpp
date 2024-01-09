@@ -216,6 +216,11 @@ void IsInit(VM &vm, pair<Nesting, Nesting> require = { N_WIN, N_MENU }) {
     }
 }
 
+void RequireMenuNesting(VM &vm) {
+    for (auto n : nstack) if (n == N_MENU_BAR || n == N_MAIN_MENU_BAR || n == N_POPUP) return;
+    vm.BuiltinError("imgui: invalid menu nesting");
+}
+
 pair<bool, bool> IMGUIEvent(SDL_Event *event) {
     if (!imgui_init) return { false, false };
     switch (event->type) {
@@ -1318,7 +1323,8 @@ nfr("menu_bar_end", "main", "B", "",
 nfr("menu_start", "label,disabled", "SB?", "B",
     "(use im.menu instead)",
     [](StackPtr &sp, VM &vm) {
-        IsInit(vm, { N_MENU_BAR, N_MAIN_MENU_BAR });
+        IsInit(vm, {});
+        RequireMenuNesting(vm);
         auto disabled = Pop(sp).True();
         auto title = Pop(sp);
         bool open = ImGui::BeginMenu(Label(vm, title), !disabled);
@@ -1329,14 +1335,15 @@ nfr("menu_start", "label,disabled", "SB?", "B",
 nfr("menu_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
-        IsInit(vm, { N_MENU_BAR, N_MAIN_MENU_BAR });
+        IsInit(vm, {});
+        RequireMenuNesting(vm);
         NPop(vm, N_MENU);
     });
 
 nfr("menu_item", "label,shortcut,disabled", "SS?B?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
-        IsInit(vm, { N_MENU, N_NONE });
+        IsInit(vm, { N_MENU, N_POPUP });
         auto disabled = Pop(sp).True();
         auto shortcut = Pop(sp);
         auto title = Pop(sp);
@@ -1350,7 +1357,7 @@ nfr("menu_item", "label,shortcut,disabled", "SS?B?", "B",
 nfr("menu_item_toggle", "label,selected,disabled", "SB?B?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
-        IsInit(vm, { N_MENU, N_NONE });
+        IsInit(vm, { N_MENU, N_POPUP });
         auto disabled = Pop(sp).True();
         auto selected = Pop(sp).True();
         auto title = Pop(sp);
