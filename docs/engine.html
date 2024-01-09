@@ -76,27 +76,36 @@ We have a <code>VERTEX</code> and <code>PIXEL</code> part
 (alternatively, you could have only a <code>COMPUTE</code> part).</p>
 <p>The inputs to the vertex shader must match your vertex attributes,
 specify the number of components you care about after <code>:</code>,
-and come from a fixed set of: * <code>apos</code> (position, 2 or 3
-components in the vertex buffer, but usually 4 in the shader to work
-with matrix transforms). * <code>anormal</code> (3 components). *
-<code>atc</code> (texture coordinate, 2 components). *
-<code>acolor</code> (4 components) * <code>aweights</code> and
-<code>aindices</code> (used with character animation).</p>
+and come from a fixed set of:</p>
+<ul>
+<li><code>apos</code> (position, 2 or 3 components in the vertex buffer,
+but usually 4 in the shader to work with matrix transforms).</li>
+<li><code>anormal</code> (3 components).</li>
+<li><code>atc</code> (texture coordinate, 2 components).</li>
+<li><code>acolor</code> (4 components)</li>
+<li><code>aweights</code> and <code>aindices</code> (used with character
+animation).</li>
+</ul>
 <p>The outputs of the vertex shader are automatically the same as the
 pixel shader inputs, here <code>itc</code> (interpolated texture
 coordinate).</p>
 <p>Using <code>UNIFORMS</code> you declare variables automatically
-provided by the engine: * <code>mvp</code>: the Model View Projection
-matrix composed of the various <code>gl.scale</code>,
-<code>gl.translate</code> and <code>gl.rotate</code> transforms (the
-<code>mv</code> part) and the <code>gl.ortho</code> or
-<code>gl.perspective</code> transforms (the <code>p</code> part). *
-<code>col</code>: set by <code>gl.color</code>. * <code>camera</code>:
-position of the camera relative to the primitive being rendered. *
-<code>light1</code> and <code>lightparams1</code>: set by
-<code>gl.light</code>. * <code>framebuffer_size</code>: size in pixels.
-* <code>bones</code>: see character animation shaders. *
-<code>pointscale</code>: used with point rendering.</p>
+provided by the engine:</p>
+<ul>
+<li><code>mvp</code>: the Model View Projection matrix composed of the
+various <code>gl.scale</code>, <code>gl.translate</code> and
+<code>gl.rotate</code> transforms (the <code>mv</code> part) and the
+<code>gl.ortho</code> or <code>gl.perspective</code> transforms (the
+<code>p</code> part).</li>
+<li><code>col</code>: set by <code>gl.color</code>.</li>
+<li><code>camera</code>: position of the camera relative to the
+primitive being rendered.</li>
+<li><code>light1</code> and <code>lightparams1</code>: set by
+<code>gl.light</code>.</li>
+<li><code>framebuffer_size</code>: size in pixels.</li>
+<li><code>bones</code>: see character animation shaders.</li>
+<li><code>pointscale</code>: used with point rendering.</li>
+</ul>
 <p>In addition you can add any custom uniforms with a
 <code>UNIFORM</code> declaration, for example by adding
 <code>UNIFORM float time</code> to the shader and
