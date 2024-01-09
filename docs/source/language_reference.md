@@ -798,7 +798,7 @@ You may currently overload: `+` `-` `*` `/` `%` `++` `--` `==` `!=` `<` `>`
 
 Overloaded operators are parsed with the same operator precedence as for the
 built-in operators, but when it comes to typechecking, they are handled as
-regular function calls, with all that endtails. The above expression is thus
+regular function calls, with all that entails. The above expression is thus
 handled internally as `operator+(operator-(A { 2 }), A { 3 })` where `operator+`
 is just an ordinary function name.
 
