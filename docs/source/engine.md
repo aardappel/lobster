@@ -57,6 +57,7 @@ a `COMPUTE` part).
 
 The inputs to the vertex shader must match your vertex attributes, specify the
 number of components you care about after `:`, and come from a fixed set of:
+
 * `apos` (position, 2 or 3 components in the vertex buffer, but usually 4 in
   the shader to work with matrix transforms).
 * `anormal` (3 components).
@@ -68,6 +69,7 @@ The outputs of the vertex shader are automatically the same as the pixel
 shader inputs, here `itc` (interpolated texture coordinate).
 
 Using `UNIFORMS` you declare variables automatically provided by the engine:
+
 * `mvp`: the Model View Projection matrix composed of the various `gl.scale`,
   `gl.translate` and `gl.rotate` transforms (the `mv` part) and the `gl.ortho`
   or `gl.perspective` transforms (the `p` part).
