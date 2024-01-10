@@ -974,6 +974,15 @@ nfr("get_content_region_avail", "", "", "F}:2",
         PushVec(sp, float2(avail.x, avail.y));
     });
 
+nfr("calc_text_size", "text", "S", "F}:2",
+    "returns the amount of space used by the given text in the current font",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto &text = *Pop(sp).sval();
+        auto size = ImGui::CalcTextSize(text.strvnt().c_str());
+        PushVec(sp, float2(size.x, size.y));
+    });
+
 nfr("text", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
