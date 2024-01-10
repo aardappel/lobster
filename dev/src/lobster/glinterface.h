@@ -279,6 +279,7 @@ extern Texture CreateColoredTexture(string_view name, const int3 &size, const fl
                                   int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
 extern void SetTexture(int textureunit, const Texture &tex);
+extern void UnbindAllTextures();
 extern void GenerateTextureMipMap(const Texture &tex);
 extern uint8_t *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();

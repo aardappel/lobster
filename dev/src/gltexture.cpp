@@ -245,9 +245,29 @@ void DeleteTexture(Texture &tex) {
     tex.id = 0;
 }
 
+enum { MAX_TEXTURE_UNITS_BOUND = 64 };
+array<unsigned, MAX_TEXTURE_UNITS_BOUND> currently_bound{};
+int max_texture_unit = -1;
+
 void SetTexture(int textureunit, const Texture &tex) {
     GL_CALL(glActiveTexture(GL_TEXTURE0 + textureunit));
     glBindTexture(tex.type, tex.id);
+    if (textureunit < MAX_TEXTURE_UNITS_BOUND) {
+        currently_bound[textureunit] = tex.type;
+        max_texture_unit = std::max(max_texture_unit, textureunit);
+    }
+}
+
+void UnbindAllTextures() {
+    for (int i = 0; i <= max_texture_unit; i++) {
+        auto &type = currently_bound[i];
+        if (type) {
+            GL_CALL(glActiveTexture(GL_TEXTURE0 + i));
+            glBindTexture(type, 0);
+            type = 0;
+        }
+    }
+    max_texture_unit = -1;
 }
 
 void GenerateTextureMipMap(const Texture &tex) {

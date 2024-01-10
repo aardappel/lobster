@@ -1168,6 +1168,14 @@ nfr("set_image_texture", "i,tex,level,accessflags", "IR:textureII?", "",
         return NilVal();
     });
 
+nfr("unbind_all_textures", "", "", "",
+    "unbinds all textures set thru any set texture calls. typically not needed to call this manually, "
+    "but may sometimes be needed when reusing textures across draw/compute calls",
+    [](StackPtr &, VM &vm) {
+        TestGL(vm);
+        UnbindAllTextures();
+    });
+
 nfr("create_texture", "matrix,textureformat", "F}:4]]I?", "R:texture",
     "creates a texture from a 2d array of color vectors."
     " see texture.lobster for texture format."
