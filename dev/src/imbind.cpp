@@ -903,12 +903,13 @@ nfr("next_window_pos", "pos,pivot", "F}:2F}:2", "",
         ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Appearing, ImVec2(pivot.x, pivot.y));
     });
 
-nfr("button", "label", "S", "B",
+nfr("button", "label,size", "SF}:2?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
+        auto size = PopVec<float2>(sp);
         auto title = Pop(sp);
-        auto press = ImGui::Button(Label(vm, title));
+        auto press = ImGui::Button(Label(vm, title), ImVec2(size.x, size.y));
         Push(sp, press);
     });
 
