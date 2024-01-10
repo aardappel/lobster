@@ -846,6 +846,7 @@ void VM::WorkerWrite(RefObj *ref) {
 }
 
 Value VM::WorkerRead(type_elem_t tti) {
+    if (!tuple_space) return NilVal();
     auto &ti = GetTypeInfo(tti);
     if (ti.t != V_CLASS) Error("thread read: must be a class type");
     vector<uint8_t> buf;
@@ -857,6 +858,23 @@ Value VM::WorkerRead(type_elem_t tti) {
             buf = std::move(tt.tuples.front());
             tt.tuples.pop_front();
         }
+    }
+    if (buf.empty()) return NilVal();
+    LobsterBinaryParser parser(*this);
+    return parser.Parse(tti, buf.data(), buf.data() + buf.size());
+}
+
+Value VM::WorkerCheck(type_elem_t tti) {
+    if (!tuple_space) return NilVal();
+    auto &ti = GetTypeInfo(tti);
+    if (ti.t != V_CLASS) Error("thread check: must be a class type");
+    vector<uint8_t> buf;
+    auto &tt = tuple_space->tupletypes[ti.structidx];
+    {
+        unique_lock<mutex> lock(tt.mtx);
+        if (tt.tuples.empty()) return NilVal();
+        buf = std::move(tt.tuples.front());
+        tt.tuples.pop_front();
     }
     if (buf.empty()) return NilVal();
     LobsterBinaryParser parser(*this);

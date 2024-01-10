@@ -1558,9 +1558,16 @@ nfr("thread_write", "struct", "A", "",
 
 nfr("thread_read", "type", "T", "A1?",
     "get a struct from the thread queue. pass the typeof struct. blocks if no such"
-            "structs available. returns struct, or nil if stop_worker_threads() was called",
+    "structs available. returns struct, or nil if stop_worker_threads() was called",
     [](StackPtr &, VM &vm, Value &t) {
         return vm.WorkerRead((type_elem_t)t.ival());
+    });
+
+nfr("thread_check", "type", "T", "A1?",
+    "tests if a struct is available on the thread queue. pass the typeof struct. "
+    "returns struct, or nil if none available, or if stop_worker_threads() was called",
+    [](StackPtr &, VM &vm, Value &t) {
+        return vm.WorkerCheck((type_elem_t)t.ival());
     });
 
 nfr("crash_test_cpp_nullptr_exception", "", "", "",
