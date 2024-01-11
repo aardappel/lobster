@@ -8,6 +8,8 @@ enum_flags window_init:
     window_init_linear_color     // If not set, SRGB.
     window_init_native           // If not set, borderless (if fullscreen).
     window_init_maximized        // If not set, normal window (if windowed).
+    window_init_no_resizable     // If not set, window is resizable (if windowed).
+    window_init_borderless       // If not set, window is bordered (if windowed).
 
 // These are versions of built-in transform and state functions that restore
 // the state after executing body.

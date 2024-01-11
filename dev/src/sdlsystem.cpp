@@ -401,7 +401,9 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
             title.c_str(),
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             screensize.x, screensize.y,
-            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI |
+            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI |
+                (flags & INIT_NO_RESIZABLE ? 0 : SDL_WINDOW_RESIZABLE) |
+                (flags & INIT_BORDERLESS ? SDL_WINDOW_BORDERLESS : 0) |
                 (flags & INIT_MAXIMIZED ? SDL_WINDOW_MAXIMIZED : 0) |
                 (flags & INIT_FULLSCREEN ? (flags & INIT_NATIVE ? SDL_WINDOW_FULLSCREEN
                                                                 : SDL_WINDOW_FULLSCREEN_DESKTOP)
