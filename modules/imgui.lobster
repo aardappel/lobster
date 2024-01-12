@@ -86,6 +86,12 @@ enum_flags drag_drop:
     drag_drop_accept_no_draw_default_rect     // Do not draw the default highlight rectangle when hovering over target.
     drag_drop_accept_no_preview_tooltip       // Request hiding the BeginDragDropSource tooltip from the BeginDragDropTarget site.
 
+enum cond:
+    cond_always          = 1   // No condition (always set the variable), same as _None
+    cond_once            = 2   // Set the variable once per runtime session (only the first call will succeed)
+    cond_first_use_ever  = 4   // Set the variable if the object/window has no persistently saved data (no entry in .ini file)
+    cond_appearing       = 8   // Set the variable if the object/window is appearing after being hidden/inactive (or the first time)
+
 enum color_idx:
     col_text
     col_text_disabled

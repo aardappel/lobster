@@ -894,6 +894,16 @@ nfr("next_window_size", "size", "F}:2", "",
         ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Appearing);
     });
 
+nfr("next_window_size", "size,cond", "F}:2I", "",
+    "size in pixels",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_FRAME, N_NONE });
+        auto cond = Pop(sp).ival();
+        auto size = PopVec<float2>(sp);
+        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), (ImGuiCond)cond);
+    });
+
+
 nfr("next_window_pos", "pos,pivot", "F}:2F}:2", "",
     "pos in pixels, pivot values 0..1 relative to pos",
     [](StackPtr &sp, VM &vm) {
@@ -901,6 +911,16 @@ nfr("next_window_pos", "pos,pivot", "F}:2F}:2", "",
         auto pivot = PopVec<float2>(sp);
         auto pos = PopVec<float2>(sp);
         ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Appearing, ImVec2(pivot.x, pivot.y));
+    });
+
+nfr("next_window_pos", "pos,pivot,cond", "F}:2F}:2I", "",
+    "pos in pixels, pivot values 0..1 relative to pos",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_FRAME, N_NONE });
+        auto cond = Pop(sp).ival();
+        auto pivot = PopVec<float2>(sp);
+        auto pos = PopVec<float2>(sp);
+        ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), (ImGuiCond)cond, ImVec2(pivot.x, pivot.y));
     });
 
 nfr("button", "label,size", "SF}:2?", "B",
