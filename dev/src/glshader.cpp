@@ -432,6 +432,10 @@ Shader::~Shader() {
 static int last_program = 0;
 static Shader *last_shader = nullptr;  // Just for debugging purposes.
 
+void ResetProgram() {
+    last_program = 0;
+}
+
 void Shader::Activate() {
     if (program != last_program) {
         GL_CALL(glUseProgram(program));

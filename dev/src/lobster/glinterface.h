@@ -247,6 +247,7 @@ extern string LoadMaterialFile(string_view mfile, string_view prefix);
 extern string ParseMaterialFile(string_view mfile, string_view prefix);
 extern Shader *LookupShader(string_view name);
 extern void ShaderShutDown();
+extern void ResetProgram();
 
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(int textureunit, const Texture &tex, int level, int tf);
