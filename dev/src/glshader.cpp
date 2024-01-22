@@ -95,6 +95,7 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
     string defines;
     string vfunctions, pfunctions, cfunctions, vertex, pixel, compute, vdecl, pdecl, csdecl, shader;
     string *accum = nullptr;
+    set<string> shader_names;
     auto word = [&]() {
         p.remove_prefix(min(p.find_first_not_of(" \t\r"), p.size()));
         size_t len = min(p.find_first_of(" \t\r"), p.size());
@@ -103,6 +104,12 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
     };
     auto finish = [&]() -> bool {
         if (!shader.empty()) {
+            if (shader_names.count(shader) == 1) {
+                err = cat("SHADER `", shader, "` is defined repeatedly!");
+                return true;
+            }
+            shader_names.insert(shader);
+
             auto sh = make_unique<Shader>();
             if (compute.length()) {
                 #ifdef PLATFORM_WINNIX
