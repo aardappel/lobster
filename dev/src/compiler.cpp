@@ -528,9 +528,23 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const uint
         auto loader = EnginePreInit(nfr);
         min_output_level = OUTPUT_WARN;
         InitPlatform(GetMainDirFromExePath(argv[0]), aux_src_path, false, loader);
+        auto from_lpak = true;
+        if (!LoadPakDir("default.lpak")) {
+            // FIXME: this is optional, we don't know if the compiled code wants to load this
+            // file, so we don't error or even warn if this file can't be found.
+            from_lpak = false;
+        }
         auto vmargs = VMArgs {
-            nfr, StripDirPart(string_view_nt(argv[0])), bytecodefb, static_size, {},
-            vtables, nullptr, TraceMode::OFF, false, RUNTIME_ASSERT
+            nfr,
+            from_lpak ? string{} : StripDirPart(string_view_nt(argv[0])),
+            bytecodefb,
+            static_size,
+            {},
+            vtables,
+            nullptr,
+            TraceMode::OFF,
+            false,
+            RUNTIME_ASSERT
         };
         for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
         lobster::VMAllocator vma(std::move(vmargs));

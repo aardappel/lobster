@@ -95,7 +95,7 @@ let cube_face_meshes = map(cube_face_vertices) v:
 // render the mesh.
 let detail = 256
 let cube_face_textures = map(6) i:
-    render_to_texture(nil, int2_1 * detail, false, nil, 0):
+    render_to_texture(nil, int2_1 * detail, false, nil, texture_format_nomipmap):
         gl.ortho(true, false)
         let label = "{i+1}"
         gl.set_font_size(detail/2)
@@ -138,8 +138,6 @@ while gl.frame() and not gl.button("escape"):
 
     camera_GPS_update("w", "a", "s", "d", 2.0, 4.0, 4.0)
     camera.FPS_view()
-
-    gl.light(camera.position, float2 { 128.0, 0.1 })
 
     gl.translate(float3_1 / -2.0)
     gl.set_shader("textured")
