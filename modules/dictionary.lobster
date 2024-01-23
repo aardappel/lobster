@@ -37,6 +37,20 @@ class dictionary<K,V>:
         else:
             buckets[h] = chain<K,V> { buckets[h], key, value }
 
+    def del(key:K):
+        def delete(c) -> chain<K,V>?:
+            if not c: return c
+            if c.key == key:
+                return c.next
+            c.next = delete(c.next)
+            return c
+        let h = hash(key) % buckets.length
+        buckets[h] = delete(buckets[h])
+
+    def clear():
+        for (buckets.length) i:
+            buckets[i] = nil
+
     // Useful if the value is something that supports the + operator, you can use it
     // to increment/append.
     def add(key:K, value:V):
@@ -59,15 +73,27 @@ class dictionary<K,V>:
         let c = lookup(key)
         return if c: c.value else: default_val
 
-    def get_all() -> [K], [V]:
+    def get_keys() -> [K]:
         let keys = []
-        let vals = []
         for(buckets) c:
             while c:
                 keys.push(c.key)
+                c = c.next
+        return keys
+
+    def get_values() -> [V]:
+        let vals = []
+        for(buckets) c:
+            while c:
                 vals.push(c.value)
                 c = c.next
-        return keys, vals
+        return vals
+
+    def forkv(fun):
+        for(buckets) c:
+            while c:
+                fun(c.key, c.value)
+                c = c.next
 
 constructor dictionary<K,V>(size:int):
     return dictionary<K,V> { map(size): nil }
