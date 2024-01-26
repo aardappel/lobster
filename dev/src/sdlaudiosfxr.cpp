@@ -535,6 +535,15 @@ int SDLSoundStatus(int ch) { // returns -1 for illegal channel index, 0 for avai
     else return -1;
 }
 
+float SDLGetTimeLength(int ch) {
+    int num_chn = Mix_AllocateChannels(-1); // called with -1 this returns the current number of channels
+    if (ch <= num_chn) {
+        Mix_Chunk *chunk = Mix_GetChunk(ch - 1);
+        return chunk->alen / (44100.f * 2 * 2);
+    }
+    else return 0.0f;
+}
+
 int SDLRegisterEffect(int ch, SDLEffectFunc func, SDLEffectDone done, void *userdata) {
     int num_chn = Mix_AllocateChannels(-1); // called with -1 this returns the current number of channels
     if (ch <= 0 || ch >= num_chn) return -1;
