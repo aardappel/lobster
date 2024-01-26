@@ -1003,6 +1003,14 @@ nfr("calc_text_size", "text", "S", "F}:2",
         PushVec(sp, float2(size.x, size.y));
     });
 
+nfr("mouse_clicked", "button", "I", "B",
+    "returns whether the given mouse button was clicked anywhere",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto button = Pop(sp).ival();
+        Push(sp, Value(ImGui::IsMouseClicked((ImGuiMouseButton)button)));
+    });
+
 nfr("text", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value &text) {
