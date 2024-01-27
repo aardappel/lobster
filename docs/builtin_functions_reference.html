@@ -430,6 +430,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>sound_resume</b>(channel<font color="#666666">:int</font>)</tt></td><td class="a">resumes a sound that was paused.</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>sound_volume</b>(channel<font color="#666666">:int</font>, volume<font color="#666666">:float</font>)</tt></td><td class="a">sets the channel volume in the range 0..1.</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>sound_position</b>(channel<font color="#666666">:int</font>, vecfromlistener<font color="#666666">:float3</font>, listenerfwd<font color="#666666">:float3</font>, attnscale<font color="#666666">:float</font>)</tt></td><td class="a">sets the channel volume and panning according to sound in a game world relative to the listener.</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>sound_time_length</b>(channel<font color="#666666">:int</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns the length in seconds of the sound playing on this channel</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>text_to_speech</b>(text<font color="#666666">:string</font>)</tt></td><td class="a">Queues up text for async text to speech output. Currently on: win32</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>text_to_speech_stop</b>()</tt></td><td class="a">Stops current text to speech output and clears queue</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>play_music</b>(filename<font color="#666666">:string</font>, loops<font color="#666666">:int</font> = 0) -> <font color="#666666">int</font></tt></td><td class="a">plays music in many common formats (WAV, MP3, OGG, etc.). the default volume is the max volume (1.0) loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats). returns the music id or 0 on error</td></tr>
@@ -599,6 +600,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.set_layout_pos</b>(pos<font color="#666666">:float2</font>)</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.get_content_region_avail</b>() -> <font color="#666666">float2</font></tt></td><td class="a">returns the amount of space left in the current region from the cursor pos</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.calc_text_size</b>(text<font color="#666666">:string</font>) -> <font color="#666666">float2</font></tt></td><td class="a">returns the amount of space used by the given text in the current font</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.mouse_clicked</b>(button<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">is the mouse button clicked anywhere</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.text</b>(label<font color="#666666">:string</font>)</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.text_wrapped</b>(label<font color="#666666">:string</font>)</tt></td><td class="a"></td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.font_start</b>(font_idx<font color="#666666">:int</font>)</tt></td><td class="a">(use im.font instead)</td></tr>
