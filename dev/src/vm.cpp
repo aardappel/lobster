@@ -23,6 +23,12 @@
 
 namespace lobster {
 
+#if LOBSTER_FRAME_PROFILER_GLOBAL
+// This is a global, so doesn't work well with multithreading :)
+// It's only here to debug difficult crashes on platforms without a stack trace.
+vector<___tracy_source_location_data> g_function_locations;
+vector<tracy::SourceLocationData> g_builtin_locations;
+#endif
 
 VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
     : VMArgs(std::move(vmargs)), bcf(bcf) {

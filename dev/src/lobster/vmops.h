@@ -259,18 +259,31 @@ VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
     #define BPROF(NFI)
 #endif
 
+#if LOBSTER_FRAME_PROFILER_GLOBAL
+    #define GPROF_START(NFI) g_builtin_locations.push_back(vm.nfr.pre_allocated_function_locations[NFI]);
+    #define GPROF_END() g_builtin_locations.pop_back();
+#else
+    #define GPROF_START(NFI) 
+    #define GPROF_END() 
+#endif
+
+
 VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
     auto nf = vm.nfr.nfuns[nfi];
     BPROF(nfi);
+    GPROF_START(nfi);
     nf->fun.fV(sp, vm);
+    GPROF_END();
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
 VM_INLINE void U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
     auto nf = vm.nfr.nfuns[nfi]; \
     BPROF(nfi); \
+    GPROF_START(nfi); \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
+    GPROF_END(); \
     if (has_ret) { Push(sp, v); vm.BCallRetCheck(sp, nf); } \
 }
 
