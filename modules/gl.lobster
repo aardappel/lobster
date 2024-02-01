@@ -11,6 +11,11 @@ enum_flags window_init:
     window_init_no_resizable     // If not set, window is resizable (if windowed).
     window_init_borderless       // If not set, window is bordered (if windowed).
 
+// Used for built-in gl.save_mesh()
+enum model_format:
+    mf_ply
+    mf_iqm
+
 // These are versions of built-in transform and state functions that restore
 // the state after executing body.
 

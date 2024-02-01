@@ -165,9 +165,9 @@ struct SpriteVert {   // "pT"
 
 class Geometry  {
     const size_t vertsize1, vertsize2;
-    string fmt;
 
     public:
+    string fmt;
     int vbo1 = 0, vbo2 = 0, vao = 0;
     const size_t nverts;
 
@@ -195,6 +195,9 @@ class Geometry  {
     }
 };
 
+// These must correspond to the constants in gl.lobster
+enum ModelFormat { MF_PLY, MF_IQM };
+
 struct Mesh : lobster::Resource {
     Geometry *geom;
     vector<Surface *> surfs;
@@ -209,7 +212,7 @@ struct Mesh : lobster::Resource {
     ~Mesh();
 
     void Render(Shader *sh);
-    bool SaveAsPLY(string_view filename);
+    string Save(string_view filename, ModelFormat format);
 
     size_t2 MemoryUsage() {
         auto usage = size_t2(sizeof(Mesh) + numframes * numbones * sizeof(float3x4), 0);
@@ -365,6 +368,7 @@ struct GeometryCache {
 extern size_t AttribsSize(string_view fmt);
 
 extern Mesh *LoadIQM(string_view filename);
+extern string SaveAsIQM(const Mesh *mesh, string_view filename);
 
 extern float4x4 view2clip;
 
