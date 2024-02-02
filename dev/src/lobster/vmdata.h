@@ -1160,16 +1160,27 @@ VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {
     return id;
 }
 
+#if LOBSTER_FRAME_PROFILER_GLOBAL
+    extern vector<___tracy_source_location_data> g_function_locations;
+    extern vector<tracy::SourceLocationData> g_builtin_locations;
+#endif
+
 VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {
-    vm.fun_id_stack.push_back({ funstart, locals, vm.last_line, vm.last_fileidx,
+    vm.fun_id_stack.push_back({ funstart, locals, vm.last_line, vm.last_fileidx
     #if LOBSTER_FRAME_PROFILER_FUNCTIONS
         , ___tracy_emit_zone_begin(&vm.pre_allocated_function_locations[*funstart], true)
     #endif
     });
+    #if LOBSTER_FRAME_PROFILER_GLOBAL
+        g_function_locations.push_back(vm.pre_allocated_function_locations[*funstart]);
+    #endif
 }
 VM_INLINE void PopFunId(VM &vm) {
     #if LOBSTER_FRAME_PROFILER_FUNCTIONS
         ___tracy_emit_zone_end(vm.fun_id_stack.back().ctx);
+    #endif
+    #if LOBSTER_FRAME_PROFILER_GLOBAL
+        g_function_locations.pop_back();
     #endif
     vm.fun_id_stack.pop_back();
 }

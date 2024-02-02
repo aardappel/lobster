@@ -128,6 +128,7 @@ using namespace geom;
     // These are too expensive to always have on, but can give maximum info automatically.
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0   // Only works with --runtime-stack-trace on.
+    #define LOBSTER_FRAME_PROFILER_GLOBAL 0      // Save additional copy to debug hard crashes.
     #define LOBSTER_FRAME_PROFILE_THIS_SCOPE ZoneScoped
     #define LOBSTER_FRAME_PROFILE_GPU TracyGpuZone(__FUNCTION__)
     #undef new
@@ -139,6 +140,7 @@ using namespace geom;
 #else
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0
+    #define LOBSTER_FRAME_PROFILER_GLOBAL 0
     #define LOBSTER_FRAME_PROFILE_THIS_SCOPE
     #define LOBSTER_FRAME_PROFILE_GPU
 #endif
