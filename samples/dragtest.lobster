@@ -20,10 +20,10 @@ while gl.frame():
     let start = float(gl.last_pos("mouse1", true))
     let cur = float(gl.mouse_pos(0))
     if magnitude(start - cur) > 1.0:  // a click is not a drag
-        let mouse1 = gl.button("mouse1")
-        if mouse1 >= 1:      // show feedback
+        let down, up = gl.button("mouse1")
+        if down >= 1:      // show feedback
             gl.line(start, cur, 1.0)
-        if mouse1 == 0:      // store line
+        if up == 1:      // store line
             lines.push([start, float(gl.last_pos("mouse1", false))])
             // note how we use the mouse up position, which may be != cur
 
