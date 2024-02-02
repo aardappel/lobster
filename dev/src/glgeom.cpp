@@ -214,13 +214,31 @@ void Surface::WritePLY(string &s) {
     #endif
 }
 
-bool Mesh::SaveAsPLY(string_view filename) {
-    size_t nindices = 0;
-    for (auto &surf : surfs) nindices += surf->numidx;
-    string s;
-    if (!geom->WritePLY(s, nindices)) return false;
-    for (auto &surf : surfs) surf->WritePLY(s);
-    return WriteFile(filename, true, s, false);
+string Mesh::Save(string_view filename, ModelFormat format) {
+    string err;
+    switch (format) {
+        case MF_PLY: {
+            size_t nindices = 0;
+            for (auto &surf : surfs) nindices += surf->numidx;
+            string s;
+            if (!geom->WritePLY(s, nindices)) {
+                err = "encode geometry failed";
+                break;
+            }
+            for (auto &surf : surfs) surf->WritePLY(s);
+            if (!WriteFile(filename, true, s, false)) {
+                err = "unable to write file to filesystem";
+            }
+            break;
+        }
+        case MF_IQM:
+            err = SaveAsIQM(this, filename);
+            break;
+        default:
+            err = "unsupported model format";
+            break;
+    }
+    return err;
 }
 
 void SetPointSprite(float scale) {

@@ -251,7 +251,7 @@ nfr("load_materials", "materialdefs,inline,prefix", "SI?S?", "S?",
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv(), pf)
                                    : LoadMaterialFile(fn.sval()->strv(), pf);
         ResetShader();
-        return err[0] ? Value(vm.NewString(err)) : NilVal();
+        return err.empty() ? NilVal() : Value(vm.NewString(err));
     });
 
 nfr("scissor", "top_left,size", "I}:2I}:2", "I}:2I}:2",
@@ -945,13 +945,16 @@ nfr("render_mesh", "m", "R:mesh", "",
         return NilVal();
     });
 
-nfr("save_mesh", "m,name", "R:meshS", "B",
-    "saves the specified mesh to a file in the PLY format. useful if the mesh was generated"
-    " procedurally. returns false if the file could not be written",
-    [](StackPtr &, VM &vm, Value &i, Value &name) {
+nfr("save_mesh", "m,name,format", "R:meshSI?", "S?",
+    "saves the mesh to a file in the specified format (ply by default). for other "
+    "supported formats, see modules/gl.lobster. "
+    "warning: when using iqm format, make sure vertex format is 'PNC', which is being "
+    "used by meshgen and cubegen. "
+    "returns error string if any problems, nil otherwise.",
+    [](StackPtr &, VM &vm, Value &i, Value &name, Value &format) {
         TestGL(vm);
-        bool ok = GetMesh(i).SaveAsPLY(name.sval()->strv());
-        return Value(ok);
+        auto err = GetMesh(i).Save(name.sval()->strv(), (ModelFormat)format.intval());
+        return err.empty() ? NilVal() : Value(vm.NewString(err));
     });
 
 nfr("mesh_pointsize", "m,pointsize", "R:meshF", "",

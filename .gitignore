@@ -66,6 +66,10 @@ dev/lobster/Release
 /dev/external/SDL/sdl2-config
 /dev/external/SDL/sdl2.pc
 /dev/external/SDL/*.cmake
+/dev/external/SDL/include/SDL2/
+/dev/external/SDL/SDL_config.h.intermediate
+/dev/external/SDL/include-config-release/
+
 
 /bin/lobster_linux
 /bin/lobster
@@ -109,3 +113,6 @@ dev/android-project/app/src/main/assets/default.lpak
 dev/CTestTestfile.cmake
 dev/lobster/lobster.aps
 dev/xcode-cmake
+
+*.swp
+tags
