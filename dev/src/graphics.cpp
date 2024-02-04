@@ -930,6 +930,28 @@ nfr("mesh_size", "m", "R:mesh", "I",
         return Value((int)m.geom->nverts);
     });
 
+nfr("mesh_animations", "m", "R:mesh", "S]",
+    "return names of animations",
+    [](StackPtr &, VM &vm, Value &i, Value &f) {
+        auto &m = GetMesh(i);
+        auto v = (LVector *)vm.NewVec(0, (int)m.animations.size(), TYPE_ELEM_VECTOR_OF_STRING);
+        for (const auto &it : m.animations) v->Push(vm, Value(vm.NewString(it.first)));
+        return Value(v);
+    });
+
+nfr("mesh_animation_frames", "m,name", "R:meshS", "I]?",
+    "given name, return animation's frames range [first_frame, num_frames], or nil if name is invalid",
+    [](StackPtr &, VM &vm, Value &i, Value &n, Value &f) {
+        auto &m = GetMesh(i);
+        if (auto it = m.animations.find(string(n.sval()->strv())); it != m.animations.cend()) {
+            auto v = (LVector *)vm.NewVec(0, 2, TYPE_ELEM_VECTOR_OF_INT);
+            v->Push(vm, Value(it->second.first_frame));
+            v->Push(vm, Value(it->second.num_frames));
+            return Value(v);
+        }
+        return NilVal();
+    });
+
 nfr("animate_mesh", "m,frame", "R:meshF", "",
     "set the frame for animated mesh m",
     [](StackPtr &, VM &, Value &i, Value &f) {
