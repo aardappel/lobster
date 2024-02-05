@@ -155,6 +155,7 @@ static const char **textures = nullptr;
 static iqmjoint *joints = nullptr;
 static iqmpose *poses = nullptr;
 static iqmanim *anims = nullptr;
+static const char **anim_names = nullptr;
 static iqmbounds *bounds = nullptr;
 static float3x4 *baseframe = nullptr, *inversebaseframe = nullptr, *frames = nullptr;
 
@@ -163,6 +164,7 @@ void cleanupiqm() {
     delete[] baseframe;        baseframe = nullptr;
     delete[] inversebaseframe; inversebaseframe = nullptr;
     delete[] frames;           frames = nullptr;
+    delete[] anim_names;       anim_names = nullptr;
     string().swap(filebuffer);
     inposition = nullptr;
     innormal = nullptr;
@@ -303,6 +305,12 @@ bool loadiqmanims(const iqmheader &hdr, const char *buf) {
             frames[i*hdr.num_poses + j] = m;
         }
     }
+    const char *str = hdr.ofs_text ? &buf[hdr.ofs_text] : "";
+    anim_names = new const char *[numanims];
+    memset(anim_names, 0, numanims * sizeof(const char *));
+    for (int i = 0; i < numanims; i++) {
+        anim_names[i] = &str[anims[i].name];
+    }
     return true;
 }
 
@@ -354,6 +362,11 @@ Mesh *LoadIQM(string_view filename) {
         auto mats = new float3x4[numjoints * numframes];
         t_memcpy(mats, frames, numjoints * numframes);
         mesh->mats = mats;
+    }
+    for (int i = 0; i < numanims; i++) {
+        auto anim =
+            Mesh::Animation{(int)anims[i].first_frame, (int)anims[i].num_frames, anims[i].framerate};
+        mesh->animations[anim_names[i]] = anim;
     }
     cleanupiqm();
     return mesh;

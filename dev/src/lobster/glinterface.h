@@ -207,6 +207,12 @@ struct Mesh : lobster::Resource {
     float3x4 *mats = nullptr;
     float curanim = 0;
 
+    struct Animation {
+        int first_frame, num_frames;
+        float framerate;
+    };
+    map<string, Animation> animations;
+
     Mesh(Geometry *_g, Primitive _prim = PRIM_FAN)
         : geom(_g), prim(_prim) {}
     ~Mesh();
