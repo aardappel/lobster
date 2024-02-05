@@ -292,6 +292,7 @@ extern void SetTexture(int textureunit, const Texture &tex);
 extern void UnbindAllTextures();
 extern void GenerateTextureMipMap(const Texture &tex);
 extern uint8_t *ReadTexture(const Texture &tex);
+extern bool SaveTexture(const Texture &tex, string_view_nt filename, bool flip);
 extern int MaxTextureSize();
 extern void SetTextureFlags(const Texture &tex, int tf);
 extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,

@@ -1171,6 +1171,14 @@ nfr("load_texture", "name,textureformat", "SI?", "R:texture?",
         return tex.id ? vm.NewResource(&texture_type, new OwnedTexture(tex)) : NilVal();
     });
 
+nfr("save_texture", "tex,filename,flip", "R:textureSB?", "B",
+    "saves the texture in .png format, returns true if succesful",
+    [](StackPtr &, VM &vm, Value &t, Value &fn, Value &flip) {
+        TestGL(vm);
+        auto ok = SaveTexture(GetTexture(t), fn.sval()->strvnt(), flip.True());
+        return Value(ok);
+    });
+
 nfr("set_primitive_texture", "i,tex", "IR:texture", "",
     "sets texture unit i to texture (for use with rect/circle/polygon/line)",
     [](StackPtr &, VM &vm, Value &i, Value &id) {
