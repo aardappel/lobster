@@ -208,7 +208,8 @@ struct Mesh : lobster::Resource {
     float curanim = 0;
 
     struct Animation {
-        uint32_t first_frame, num_frames;
+        int first_frame, num_frames;
+        float framerate;
     };
     map<string, Animation> animations;
 

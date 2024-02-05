@@ -307,7 +307,7 @@ bool loadiqmanims(const iqmheader &hdr, const char *buf) {
     }
     const char *str = hdr.ofs_text ? &buf[hdr.ofs_text] : "";
     anim_names = new const char *[numanims];
-    memset(anim_names, 0, numanims*sizeof(const char *));
+    memset(anim_names, 0, numanims * sizeof(const char *));
     for (int i = 0; i < numanims; i++) {
         anim_names[i] = &str[anims[i].name];
     }
@@ -364,7 +364,8 @@ Mesh *LoadIQM(string_view filename) {
         mesh->mats = mats;
     }
     for (int i = 0; i < numanims; i++) {
-        auto anim = Mesh::Animation{anims[i].first_frame, anims[i].num_frames};
+        auto anim =
+            Mesh::Animation{(int)anims[i].first_frame, (int)anims[i].num_frames, anims[i].framerate};
         mesh->animations[anim_names[i]] = anim;
     }
     cleanupiqm();

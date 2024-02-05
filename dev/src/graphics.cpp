@@ -932,24 +932,29 @@ nfr("mesh_size", "m", "R:mesh", "I",
 
 nfr("mesh_animations", "m", "R:mesh", "S]",
     "return names of animations",
-    [](StackPtr &, VM &vm, Value &i, Value &f) {
+    [](StackPtr &, VM &vm, Value &i) {
         auto &m = GetMesh(i);
         auto v = (LVector *)vm.NewVec(0, (int)m.animations.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (const auto &it : m.animations) v->Push(vm, Value(vm.NewString(it.first)));
         return Value(v);
     });
 
-nfr("mesh_animation_frames", "m,name", "R:meshS", "I]?",
-    "given name, return animation's frames range [first_frame, num_frames], or nil if name is invalid",
-    [](StackPtr &, VM &vm, Value &i, Value &n, Value &f) {
+nfr("mesh_animation_frames", "m,name", "R:meshS", "IIF",
+    "given name, return animation's first frame, number of frames and framerate, "
+    "or '-1, -1, 0.0' if name is invalid",
+    [](StackPtr &sp, VM &vm, Value &i, Value &n) {
         auto &m = GetMesh(i);
+        int first_frame = -1;
+        int num_frames = -1;
+        float framerate = 0.0;
         if (auto it = m.animations.find(string(n.sval()->strv())); it != m.animations.cend()) {
-            auto v = (LVector *)vm.NewVec(0, 2, TYPE_ELEM_VECTOR_OF_INT);
-            v->Push(vm, Value(it->second.first_frame));
-            v->Push(vm, Value(it->second.num_frames));
-            return Value(v);
+            first_frame = it->second.first_frame;
+            num_frames = it->second.num_frames;
+            framerate = it->second.framerate;
         }
-        return NilVal();
+        Push(sp, first_frame);
+        Push(sp, num_frames);
+        return Value(framerate);
     });
 
 nfr("animate_mesh", "m,frame", "R:meshF", "",
