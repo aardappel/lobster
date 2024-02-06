@@ -24,6 +24,7 @@
     #pragma warning(disable: 4244)
 #endif
 #include "stb/stb_image.h"
+#include "stb/stb_image_write.h"
 #ifdef _MSC_VER
     #pragma warning(pop)
 #endif
@@ -284,6 +285,20 @@ uint8_t *ReadTexture(const Texture &tex) {
         return pixels;
     #else
         return nullptr;
+    #endif
+}
+
+bool SaveTexture(const Texture &tex, string_view_nt filename, bool flip) {
+    #ifndef PLATFORM_ES3
+        auto pixels = new uint8_t[tex.size.x * tex.size.y * 4];
+        GL_CALL(glBindTexture(tex.type, tex.id));
+        GL_CALL(glGetTexImage(tex.type, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
+        stbi_flip_vertically_on_write(flip);
+        auto ok = stbi_write_png(filename.c_str(), tex.size.x, tex.size.y, 4, pixels, tex.size.x * 4);
+        delete[] pixels;
+        return ok != 0;
+    #else
+        return false;
     #endif
 }
 

@@ -927,6 +927,7 @@ int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int
 
 bool ScreenShot(string_view_nt filename) {
     auto pixels = ReadPixels(int2(0), screensize);
+    stbi_flip_vertically_on_write(0);
     auto ok = stbi_write_png(filename.c_str(), screensize.x, screensize.y, 3, pixels,
                              screensize.x * 3);
     delete[] pixels;
