@@ -960,7 +960,19 @@ nfr("mesh_animation_frames", "m,name", "R:meshS", "IIF",
 nfr("animate_mesh", "m,frame", "R:meshF", "",
     "set the frame for animated mesh m",
     [](StackPtr &, VM &, Value &i, Value &f) {
-        GetMesh(i).curanim = f.fltval();
+        auto &m = GetMesh(i);
+        m.anim_frame1 = f.fltval();
+        m.anim_frame2 = -1.0;
+        return NilVal();
+    });
+
+nfr("animate_mesh_blend", "m,frame1,frame2,blending", "R:meshFFF", "",
+    "set the blending frames for animated mesh m",
+    [](StackPtr &, VM &, Value &i, Value &f1, Value &f2, Value &b) {
+        auto &m = GetMesh(i);
+        m.anim_frame1 = f1.fltval();
+        m.anim_frame2 = f2.fltval();
+        m.anim_blending = b.fltval();
         return NilVal();
     });
 

@@ -205,7 +205,9 @@ struct Mesh : lobster::Resource {
     float pointsize = 1;  // if prim == PRIM_POINT
     int numframes = 0, numbones = 0;
     float3x4 *mats = nullptr;
-    float curanim = 0;
+    float anim_frame1 = 0.0;
+    float anim_frame2 = -1.0;
+    float anim_blending = 0.0;
 
     struct Animation {
         int first_frame, num_frames;
