@@ -134,14 +134,25 @@ void BindAsSSBO(Shader *sh, string_view_nt name, int id) {
 void Mesh::Render(Shader *sh) {
     if (prim == PRIM_POINT) SetPointSprite(pointsize);
     sh->Set();
-    if (numbones && numframes) {
-        int frame1 = ffloor(curanim);
-        int frame2 = frame1 + 1;
-        float frameoffset = curanim - frame1;
-        float3x4 *mat1 = &mats[(frame1 % numframes) * numbones],
-                 *mat2 = &mats[(frame2 % numframes) * numbones];
-        auto outframe = new float3x4[numbones];
-        for(int i = 0; i < numbones; i++) outframe[i] = mix(mat1[i], mat2[i], frameoffset);
+    if (sh->bones_i >= 0 && numbones && numframes) {
+        auto blend_frame = [this](float fr, float3x4 *out) {
+            int frame1 = ffloor(fr);
+            int frame2 = frame1 + 1;
+            float frameoffset = fr - frame1;
+            float3x4 *mat1 = &mats[(frame1 % numframes) * numbones],
+                     *mat2 = &mats[(frame2 % numframes) * numbones];
+            for(int i = 0; i < numbones; i++) out[i] = mix(mat1[i], mat2[i], frameoffset);
+        };
+
+        auto outframe = new float3x4[numbones*2];
+        blend_frame(anim_frame1, outframe);
+        if (anim_frame2 >= 0.0) {
+            // Blend two animations
+            blend_frame(anim_frame2, outframe + numbones);
+            for(int i = 0; i < numbones; i++) {
+                outframe[i] = mix(outframe[i], outframe[i + numbones], anim_blending);
+            }
+        }
         sh->SetAnim(outframe, numbones);
         delete[] outframe;
     }
