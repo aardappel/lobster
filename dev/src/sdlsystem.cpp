@@ -15,17 +15,14 @@
 #include "lobster/stdafx.h"
 
 #include "lobster/vmdata.h"
-
 #include "lobster/sdlincludes.h"
 #include "lobster/sdlinterface.h"
-
 #include "lobster/glinterface.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #ifdef _MSC_VER
   #pragma warning(push)
   #pragma warning(disable: 4244)

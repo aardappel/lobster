@@ -144,7 +144,7 @@ void Mesh::Render(Shader *sh) {
             for(int i = 0; i < numbones; i++) out[i] = mix(mat1[i], mat2[i], frameoffset);
         };
 
-        auto outframe = new float3x4[numbones*2];
+        auto outframe = new float3x4[numbones * 2];
         blend_frame(anim_frame1, outframe);
         if (anim_frame2 >= 0.0) {
             // Blend two animations
