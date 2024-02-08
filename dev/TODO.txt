@@ -70,6 +70,12 @@
   This similarly can happen with normal member variables, but there it was somewhat understandable
   because the object hasn't been fully constructed, here inside a method it makes even less sense.
 
+- let a = 0
+  foo(bar(1)  // Missing )
+  a = 2
+  Starts blindly parsing "a" as the beginning of a trailing function value, then complains
+  "a" is shadowing because it would be a definition. Highly confusing.
+
 - Debug dump improvements:
   - automatically zip these files, can be 5x smaller.
   - Turn C++ crashes into Lobster errors so they can be saved with a lot of context.
