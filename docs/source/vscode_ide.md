@@ -12,7 +12,7 @@ See [here](lsp.html) for more info about the lobster LSP.
 ### How to install
 -  Get the file `lobster.vsix` found in the repo at `docs/vscode/lobster.vsix`.
 
--  Open your vscode command pallete and search for `Install from VSIX`. Then select the file mentioned above.
+-  Open your vscode command palette and search for `Install from VSIX`. Then select the file mentioned above.
 
 
 Running Lobster programs from within the editor without the extension

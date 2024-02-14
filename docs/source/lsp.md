@@ -10,7 +10,7 @@ It calls internally the lobster compiler for the features.
 
 I want to use this for x editor/IDE
 --------------------------------------
-Usually you have to package this LSP in a addon for your preffered IDE.
+Usually you have to package this LSP in a addon for your preferred IDE.
 See your IDE/editors documentation on how to integrate this. 
 PRs are always welcome.
 

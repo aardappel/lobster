@@ -40,7 +40,7 @@ Design of the binary writer
 ---------------------------
 Most languages, like Lobster, come with a runtime in C or C++ that you wouldn't
 want to translate to wasm by hand (or worse, emit instruction by instruction
-from a backend), so it is imporant that generated wasm code can be linked
+from a backend), so it is important that generated wasm code can be linked
 correctly against a runtime compiled to object files by the C/C++ compiler.
 In this case we're piggy-backing on Clang, LLD and Binaryen as used in the
 Emscripten toolchain.

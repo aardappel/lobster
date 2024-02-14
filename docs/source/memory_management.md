@@ -15,7 +15,7 @@ have, it affects efficiency in both time and space, it affects the cognitive mod
 the programmer in what data structures can be represented, it affects latency, interoperability,
 and much more.
 
-Yet, it is often ignored and almost invisble at the same time. Many consider it to be
+Yet, it is often ignored and almost invisible at the same time. Many consider it to be
 a "solved" problem with probably 95% of programming languages out there using some
 form of garbage collection: allocate, then worry about reclaiming unreachable objects
 later.
@@ -40,7 +40,7 @@ cycles, is largely sufficient.
 I mentioned linearity (every object can only have one pointer to it) and regions
 (every object is assigned a memory pool that outlives them all), and I have implemented
 languages in the past that implemented both of those strategies. While viable, I felt
-at the time they required too much programmer assistence to be mainstream.
+at the time they required too much programmer assistance to be mainstream.
 
 Ownership models
 ---------------
@@ -57,7 +57,7 @@ There have been many ownership models in the past, but only recently they are
 becoming more mainstream:
 
 * Rust is the poster child, which tries to solve all of the above questions at
-  compile time, at the cost of much programmer assistence.
+  compile time, at the cost of much programmer assistance.
 * Modern C++ with `std::unique_ptr` is essentially an ownership model, except one
   that answers questions like "How do we detect that a borrower outlives an
   owner" with "We don't". But even with such caveats, it largely works well,

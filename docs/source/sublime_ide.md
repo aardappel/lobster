@@ -14,7 +14,7 @@ title: SublimeText as Lobster IDE
 -   Open up `lobster.sublime-build` and make sure the path to your
     lobster executable is correct. Also note that it refers to a custom
     version of `exec.py` called `lobster_exec.py`. The only difference
-    is that the default script surpresses windows from popping up, which
+    is that the default script suppresses windows from popping up, which
     disables any graphical output from Lobster.
 
 -   Load some lobster code. pressing `ctrl+b` should run it.

@@ -11,7 +11,7 @@ Building Lobster
 ----------------
 
 Lobster uses recent C++17 features, so will need
-Visual Studio 2022 (the free community edition will do), lastest Xcode, or a very
+Visual Studio 2022 (the free community edition will do), latest Xcode, or a very
 recent GCC / Clang to be compiled.
 
 Lobster uses OpenGL, SDL 2.x and FreeType, these are included in the repo, so should compile
@@ -125,7 +125,7 @@ instructions may be out of date):
 
 ### WebAssembly / Emscripten
 
-You need the [emscripten
+You need the [Emscripten
 toolchain](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html)
 installed, as well as GNU make (on windows that means installing
 [this](http://gnuwin32.sourceforge.net/packages/make.htm)).
@@ -182,7 +182,7 @@ These must be (including correct paths):
 
 Where you place these files depends on the platform, on Windows / Linux it is
 next to the lobster executable, on OS X / iOS it is the application bundle under
-Contents, on Android it’s under assets in the .apk, and with emscripten there’s
+Contents, on Android it’s under assets in the .apk, and with Emscripten there’s
 an assets directory also.
 
 Compiling Lobster code to C++
@@ -290,7 +290,7 @@ void MyNativeOps(NativeRegistry &nfr) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You'll need to become somewhat familiar with the Lobster internals to write
-these functions succesfully, in particular with the `Value` type (see
+these functions successfully, in particular with the `Value` type (see
 `vmdata.h`), which is a union of all possible lobster types. If you specify
 specific types (such as `I` for `int`, `F` for `float`, `S` for `string`, `V`
 for `vector` etc (more details in `natreg.h`),
@@ -343,6 +343,6 @@ Similarly, in the visual studio project, there is the `language` project,
 which is what you'd want to include in your own projects, and the `engine`
 project which you are replacing. Finally there's again `main.cpp` to adapt.
 
-Some of Lobster relies on it's own math library (`geom.h`), but it should be
+Some of Lobster relies on its own math library (`geom.h`), but it should be
 very easy to make convenient functions to convert Lobster vectors into your own
 math types (you could wrap around the `ToValue` and `ValueTo` functions).

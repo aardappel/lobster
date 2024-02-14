@@ -48,7 +48,7 @@ shaders and what not), and `fatal` is a utility function defined in
 string if available.
 
 Once we're up and running, this while loop is our *frame loop*. Games work by
-rendering the current state of the game repeatedly to the screen, preferrably
+rendering the current state of the game repeatedly to the screen, preferably
 fast (30-60 times per second), giving the impression of smooth animation.
 `gl.frame` is the core of all of this: it makes sure we advance to rendering the
 next frame, and checks for input etc. If the user clicks the close button or
@@ -211,7 +211,7 @@ take into account:
     write game code without repeating your code for x and y all over the place.
     We compute the size of a quadrant, and compare. `<` here gives us a vector
     of booleans, to check if any coordinates (x or y) were out of bounds, we use
-    `any`. If this succeeds, we only then actually move the player. pfew!
+    `any`. If this succeeds, we only then actually move the player. Pfew!
 
 Now we have computed a new position, we have to make sure it has an effect. We
 do this by translating our player position from the middle to where we want to
@@ -340,7 +340,7 @@ to the list of bullets, making it start at the current player position,
 travelling in the direction of the mouse. We also increase the `lastbullet`
 variable to cause the next one to be fired in 0.1 seconds.
 
-A sidenote on how we're implementing bullets here: there's a couple of things
+A side note on how we're implementing bullets here: there's a couple of things
 not ideal about this, which we do all to keep the example simple and to really
 build a game from the ground up. First, the way the checking for time is
 implemented here is a bit fragile, as big time fluctuations may cause bullets to
@@ -385,7 +385,7 @@ def renderpointytriangle(pos, dir):
             gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-First, let's take the code for rendering the player and put it in it's own
+First, let's take the code for rendering the player and put it in its own
 function, since we'll be needing it for enemies too. Call instead of the
 original code with `renderpointytriangle(playerpos, tomouse)`
 
@@ -537,7 +537,7 @@ show `0` when the player is truely dead.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Then finally, inside our `for(enemies) e:` loop, we add this bit of code which
-checks if this particular enemy is "touching" the player. If so, we substract
+checks if this particular enemy is "touching" the player. If so, we subtract
 health for how long he is touching. If the player runs out of health, we update
 the high score, and revert back into non-playing mode.
 
@@ -571,7 +571,7 @@ here should be fun and easy. Some ideas of things you could add:
     upgrades the player can buy, etc.
 
 Also, at this point, our game has no sound at all. If you'd like to see how to
-add some anbient or enemy sounds, have a look at the use of the `play_` and
+add some ambient or enemy sounds, have a look at the use of the `play_` and
 `sound_` functions in `tut_sound.lobster`. This example also shows how to to
 dynamically adjust the volume and pause or resume individual sounds.
 
