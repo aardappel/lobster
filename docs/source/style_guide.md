@@ -70,7 +70,7 @@ indentation blocks above it.
 
 ### Identifiers
 
-Lobster uses lowercase for almost all indentifiers. If an identifier consists of
+Lobster uses lowercase for almost all identifiers. If an identifier consists of
 multiple words, they are preferably just written consecutively, though for cases
 where that becomes unreadable using an `_` to separate them is ok. Do not uses
 `_` to start or end regular identifiers (see the reference manual about

@@ -69,7 +69,7 @@ OpenGL engine including compiling shaders and what not), and
 and show the error string if available.</p>
 <p>Once we’re up and running, this while loop is our <em>frame
 loop</em>. Games work by rendering the current state of the game
-repeatedly to the screen, preferrably fast (30-60 times per second),
+repeatedly to the screen, preferably fast (30-60 times per second),
 giving the impression of smooth animation. <code>gl.frame</code> is the
 core of all of this: it makes sure we advance to rendering the next
 frame, and checks for input etc. If the user clicks the close button or
@@ -220,7 +220,7 @@ repeating your code for x and y all over the place. We compute the size
 of a quadrant, and compare. <code>&lt;</code> here gives us a vector of
 booleans, to check if any coordinates (x or y) were out of bounds, we
 use <code>any</code>. If this succeeds, we only then actually move the
-player. pfew!</p></li>
+player. Pfew!</p></li>
 </ul>
 <p>Now we have computed a new position, we have to make sure it has an
 effect. We do this by translating our player position from the middle to
@@ -346,7 +346,7 @@ and if so, we add a new bullet to the list of bullets, making it start
 at the current player position, travelling in the direction of the
 mouse. We also increase the <code>lastbullet</code> variable to cause
 the next one to be fired in 0.1 seconds.</p>
-<p>A sidenote on how we’re implementing bullets here: there’s a couple
+<p>A side note on how we’re implementing bullets here: there’s a couple
 of things not ideal about this, which we do all to keep the example
 simple and to really build a game from the ground up. First, the way the
 checking for time is implemented here is a bit fragile, as big time
@@ -381,9 +381,9 @@ terms of modifications to the existing code:</p>
     gl.translate pos:
         gl.rotate_z dir:
             gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])</code></pre>
-<p>First, let’s take the code for rendering the player and put it in
-it’s own function, since we’ll be needing it for enemies too. Call
-instead of the original code with
+<p>First, let’s take the code for rendering the player and put it in its
+own function, since we’ll be needing it for enemies too. Call instead of
+the original code with
 <code>renderpointytriangle(playerpos, tomouse)</code></p>
 <pre><code>class enemy:
     pos:float2
@@ -502,7 +502,7 @@ only want to show <code>0</code> when the player is truely dead.</p>
                         playing = false</code></pre>
 <p>Then finally, inside our <code>for(enemies) e:</code> loop, we add
 this bit of code which checks if this particular enemy is “touching” the
-player. If so, we substract health for how long he is touching. If the
+player. If so, we subtract health for how long he is touching. If the
 player runs out of health, we update the high score, and revert back
 into non-playing mode.</p>
 <p>Game Over, and Tutorial Over!</p>
@@ -529,7 +529,7 @@ give better feedback to the player.</p></li>
 permanent upgrades the player can buy, etc.</p></li>
 </ul>
 <p>Also, at this point, our game has no sound at all. If you’d like to
-see how to add some anbient or enemy sounds, have a look at the use of
+see how to add some ambient or enemy sounds, have a look at the use of
 the <code>play_</code> and <code>sound_</code> functions in
 <code>tut_sound.lobster</code>. This example also shows how to to
 dynamically adjust the volume and pause or resume individual sounds.</p>

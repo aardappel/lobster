@@ -32,7 +32,7 @@ suitable for my style of programming (heavily refactoring-based).
 
 -   A popular / mainstream language. For that, I've made far too many peculiar
     choices already, in particular in relation to its syntax (very terse, not C
-    based) and it's semantics (more functional than OO).
+    based) and its semantics (more functional than OO).
 
 -   A beginner friendly system.
 
@@ -41,7 +41,7 @@ suitable for my style of programming (heavily refactoring-based).
 
     -   Its engine, while friendly for simple drawing, generally gives you a lot
         of control (immediate mode rendering), and requires you to understand
-        the rendering pipeline moreso than simple retained mode object systems
+        the rendering pipeline more so than simple retained mode object systems
         (e.g. Flash). If you create more complex games with it, be prepared to
         program your own "scenegraph" on top of Lobster's low level drawing
         primitives.
@@ -86,7 +86,7 @@ suitable for my style of programming (heavily refactoring-based).
     and optionally immutable objects.
     Lobster actually has very powerful object oriented features (its overloading
     and dynamic dispatch being more expressive than in most OO
-    languages), but it doesn't push it's OO angle to the forefront, and unlike
+    languages), but it doesn't push its OO angle to the forefront, and unlike
     OO languages doesn't have an object heavy API. While OO brought us many
     important ideas in programming, it is also single-handedly responsible for
     the crippling over-engineering culture so prevalent nowadays, and Lobster is
@@ -109,7 +109,7 @@ suitable for my style of programming (heavily refactoring-based).
     result in reasonable time. Importantly, past systems/engines have not
     realized this potential because they make C++ the dominant language that is
     responsible for all the glue code, thus reducing the utility of the
-    scripting language and complicating the overal project. Lobster instead
+    scripting language and complicating the overall project. Lobster instead
     wants Lobster code to be the main program, and relegate C++ to implement
     small libraries of speed sensitive code.
 
@@ -128,11 +128,11 @@ Lobster development started in October of 2010.
 
 Unlike code, normally a programming language design is so intricate, you benefit
 from designing almost all of it up-front, before you write the first line of
-code. Lobster wasn't designed like that, it's design was constantly refactored
-much like it's implementation. In fact, normally the first thing I write before
-I start writing a parser is the grammar, but Lobster's grammer was instead
+code. Lobster wasn't designed like that, its design was constantly refactored
+much like its implementation. In fact, normally the first thing I write before
+I start writing a parser is the grammar, but Lobster's grammar was instead
 derived from the parser code. Because initially it was simply a platform for fun
-and experimenation of language features, it started out very different, both in
+and experimentation of language features, it started out very different, both in
 syntax and semantics.
 
 Lobster started out fully dynamically scoped. I like the idea of dynamic
@@ -156,7 +156,7 @@ concept of something being false just meant no values were generated, i.e. the
 across function definitions.
 
 If that sounds complicated, it is certainly hard to get right, though it was
-helped by the fanastic paper *The Implementation of Generators and
+helped by the fantastic paper *The Implementation of Generators and
 Goal-Directed-Evaluation in Icon* by Janalee O'Bagy whose implementation
 technique I followed closely.
 

@@ -43,7 +43,7 @@ suffers.</p>
 worlds, with a type system that retains as much as possible of the
 dynamic style of writing (little to no type annotations needed, while
 able to type check a much broader range of code than other languages).
-It achieves this by using 3 techniques that build on eachother:</p>
+It achieves this by using 3 techniques that build on each other:</p>
 <ol type="1">
 <li><p><strong>Type Inference</strong>. A well known technique by now,
 as many language employ it one way or another, and it is an obvious way
@@ -224,7 +224,7 @@ system.</p>
 <h2 id="compile-time-if-thens.">Compile-time if-then’s.</h2>
 <p>The flow-based type-checking above gives branches more specific
 types. But we can do even better: if the condition is statically known,
-we can avoid type-checking alltogether:</p>
+we can avoid type-checking altogether:</p>
 <pre><code>def compile_time_if(x):
     if x is int or x is float:
         1 / x

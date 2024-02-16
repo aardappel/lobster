@@ -35,8 +35,8 @@ C++.</p>
 <p>Lobster has been released under the Apache 2 open source license.</p>
 <h2 id="building-lobster">Building Lobster</h2>
 <p>Lobster uses recent C++17 features, so will need Visual Studio 2022
-(the free community edition will do), lastest Xcode, or a very recent
-GCC / Clang to be compiled.</p>
+(the free community edition will do), latest Xcode, or a very recent GCC
+/ Clang to be compiled.</p>
 <p>Lobster uses OpenGL, SDL 2.x and FreeType, these are included in the
 repo, so should compile out of the box with no further external
 dependencies.</p>
@@ -133,7 +133,7 @@ create a new class and inherit from <code>SDLActivity</code>.</p></li>
 </ul>
 <h3 id="webassembly-emscripten">WebAssembly / Emscripten</h3>
 <p>You need the <a
-href="https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html">emscripten
+href="https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html">Emscripten
 toolchain</a> installed, as well as GNU make (on windows that means
 installing <a
 href="http://gnuwin32.sourceforge.net/packages/make.htm">this</a>).</p>
@@ -190,7 +190,7 @@ next to <code>lobster.exe</code> ONLY if you use functions starting with
 <p>Where you place these files depends on the platform, on Windows /
 Linux it is next to the lobster executable, on OS X / iOS it is the
 application bundle under Contents, on Android it’s under assets in the
-.apk, and with emscripten there’s an assets directory also.</p>
+.apk, and with Emscripten there’s an assets directory also.</p>
 <h2 id="compiling-lobster-code-to-c">Compiling Lobster code to C++</h2>
 <p>Rather than directly executing with a JIT, Lobster can also be
 translated to C++, for a further speed boost. This is useful when
@@ -285,7 +285,7 @@ void MyNativeOps(NativeRegistry &amp;nfr) {
     // more such declarations here
 }</code></pre>
 <p>You’ll need to become somewhat familiar with the Lobster internals to
-write these functions succesfully, in particular with the
+write these functions successfully, in particular with the
 <code>Value</code> type (see <code>vmdata.h</code>), which is a union of
 all possible lobster types. If you specify specific types (such as
 <code>I</code> for <code>int</code>, <code>F</code> for
@@ -336,10 +336,9 @@ Lobster from your own code.</p>
 <code>language</code> project, which is what you’d want to include in
 your own projects, and the <code>engine</code> project which you are
 replacing. Finally there’s again <code>main.cpp</code> to adapt.</p>
-<p>Some of Lobster relies on it’s own math library
-(<code>geom.h</code>), but it should be very easy to make convenient
-functions to convert Lobster vectors into your own math types (you could
-wrap around the <code>ToValue</code> and <code>ValueTo</code>
-functions).</p>
+<p>Some of Lobster relies on its own math library (<code>geom.h</code>),
+but it should be very easy to make convenient functions to convert
+Lobster vectors into your own math types (you could wrap around the
+<code>ToValue</code> and <code>ValueTo</code> functions).</p>
 </body>
 </html>

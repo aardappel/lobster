@@ -41,7 +41,7 @@ system and the kinds of types you can have, it affects efficiency in
 both time and space, it affects the cognitive model of the programmer in
 what data structures can be represented, it affects latency,
 interoperability, and much more.</p>
-<p>Yet, it is often ignored and almost invisble at the same time. Many
+<p>Yet, it is often ignored and almost invisible at the same time. Many
 consider it to be a “solved” problem with probably 95% of programming
 languages out there using some form of garbage collection: allocate,
 then worry about reclaiming unreachable objects later.</p>
@@ -66,7 +66,7 @@ sufficient.</p>
 and regions (every object is assigned a memory pool that outlives them
 all), and I have implemented languages in the past that implemented both
 of those strategies. While viable, I felt at the time they required too
-much programmer assistence to be mainstream.</p>
+much programmer assistance to be mainstream.</p>
 <h2 id="ownership-models">Ownership models</h2>
 <p>There is a memory management design space which I’ll collectively
 call “Ownership” which is a generalization of the linearity models: one
@@ -81,7 +81,7 @@ they are becoming more mainstream:</p>
 <ul>
 <li>Rust is the poster child, which tries to solve all of the above
 questions at compile time, at the cost of much programmer
-assistence.</li>
+assistance.</li>
 <li>Modern C++ with <code>std::unique_ptr</code> is essentially an
 ownership model, except one that answers questions like “How do we
 detect that a borrower outlives an owner” with “We don’t”. But even with

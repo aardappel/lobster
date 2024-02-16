@@ -55,7 +55,7 @@ my style of programming (heavily refactoring-based).</p>
 <ul>
 <li><p>A popular / mainstream language. For that, I’ve made far too many
 peculiar choices already, in particular in relation to its syntax (very
-terse, not C based) and it’s semantics (more functional than
+terse, not C based) and its semantics (more functional than
 OO).</p></li>
 <li><p>A beginner friendly system.</p>
 <ul>
@@ -63,7 +63,7 @@ OO).</p></li>
 very familiar with higher order functions for example.</p></li>
 <li><p>Its engine, while friendly for simple drawing, generally gives
 you a lot of control (immediate mode rendering), and requires you to
-understand the rendering pipeline moreso than simple retained mode
+understand the rendering pipeline more so than simple retained mode
 object systems (e.g. Flash). If you create more complex games with it,
 be prepared to program your own “scenegraph” on top of Lobster’s low
 level drawing primitives.</p></li>
@@ -109,7 +109,7 @@ strong tools to make this possible, with a very terse and uniform higher
 order function call syntax, and optionally immutable objects. Lobster
 actually has very powerful object oriented features (its overloading and
 dynamic dispatch being more expressive than in most OO languages), but
-it doesn’t push it’s OO angle to the forefront, and unlike OO languages
+it doesn’t push its OO angle to the forefront, and unlike OO languages
 doesn’t have an object heavy API. While OO brought us many important
 ideas in programming, it is also single-handedly responsible for the
 crippling over-engineering culture so prevalent nowadays, and Lobster is
@@ -132,7 +132,7 @@ options for creating a fast, high quality result in reasonable time.
 Importantly, past systems/engines have not realized this potential
 because they make C++ the dominant language that is responsible for all
 the glue code, thus reducing the utility of the scripting language and
-complicating the overal project. Lobster instead wants Lobster code to
+complicating the overall project. Lobster instead wants Lobster code to
 be the main program, and relegate C++ to implement small libraries of
 speed sensitive code.</p></li>
 <li><p>An engine that adheres to <em>make simple things simple, and
@@ -149,12 +149,12 @@ robustness.</p></li>
 <p>Lobster development started in October of 2010.</p>
 <p>Unlike code, normally a programming language design is so intricate,
 you benefit from designing almost all of it up-front, before you write
-the first line of code. Lobster wasn’t designed like that, it’s design
-was constantly refactored much like it’s implementation. In fact,
+the first line of code. Lobster wasn’t designed like that, its design
+was constantly refactored much like its implementation. In fact,
 normally the first thing I write before I start writing a parser is the
-grammar, but Lobster’s grammer was instead derived from the parser code.
-Because initially it was simply a platform for fun and experimenation of
-language features, it started out very different, both in syntax and
+grammar, but Lobster’s grammar was instead derived from the parser code.
+Because initially it was simply a platform for fun and experimentation
+of language features, it started out very different, both in syntax and
 semantics.</p>
 <p>Lobster started out fully dynamically scoped. I like the idea of
 dynamic scoping, and wanted to experiment with it, to see if all the
@@ -174,9 +174,9 @@ generated, i.e. the <code>&lt;</code> operator returns 0 or 1 results
 (the lhs). This backtracking would even work across function
 definitions.</p>
 <p>If that sounds complicated, it is certainly hard to get right, though
-it was helped by the fanastic paper <em>The Implementation of Generators
-and Goal-Directed-Evaluation in Icon</em> by Janalee O’Bagy whose
-implementation technique I followed closely.</p>
+it was helped by the fantastic paper <em>The Implementation of
+Generators and Goal-Directed-Evaluation in Icon</em> by Janalee O’Bagy
+whose implementation technique I followed closely.</p>
 <p>Sadly, though examples like the above look super terse and very
 powerful, more general examples turned out less readable, less general,
 and not much shorter than the equivalent code using higher order

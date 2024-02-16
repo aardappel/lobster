@@ -17,7 +17,7 @@ The type system in Lobster attempts to achieve the best of both worlds, with a
 type system that retains as much as possible of the dynamic style of writing
 (little to no type annotations needed, while able to type check a much broader
 range of code than other languages). It achieves this by using 3 techniques that
-build on eachother:
+build on each other:
 
 1.  **Type Inference**. A well known technique by now, as many language employ
     it one way or another, and it is an obvious way to reduce type annotations.
@@ -219,7 +219,7 @@ Compile-time if-then's.
 
 The flow-based type-checking above gives branches more specific types. But we
 can do even better: if the condition is statically known, we can avoid
-type-checking alltogether:
+type-checking altogether:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def compile_time_if(x):

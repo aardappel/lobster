@@ -773,7 +773,7 @@ clear which variant is being called.
 The version with 3 arguments has 2 overloads. Overloads must have exactly the
 same default arguments, if any.
 
-Default arguments are simple substition, writing `da(1, 2)` is exactly the same
+Default arguments are simple substitution, writing `da(1, 2)` is exactly the same
 as writing `da(1, 2, x + 1)`. That's why you can even use variables in these
 default arguments, as long as they're in scope when called.
 
@@ -922,7 +922,7 @@ so you should feel free to use them wherever they make the code simpler/clearer.
 ### Constructor functions
 
 As shown above, a user defined type always comes with a plain constructor that requires
-exactly all unitialized fields in `{}`. That is sufficient for most cases but sometimes
+exactly all initialized fields in `{}`. That is sufficient for most cases but sometimes
 you may want to do additional processing on the inputs where the mapping from inputs to
 fields in not 1:1.
 
@@ -1033,7 +1033,7 @@ An identifier like `std` is the same as specifying `"std.lobster"`, similarly `a
 is short for `"a/b.lobster"`.
 
 Modules will typically be loaded relative to 2 locations: the current
-main `.lobster` file being compiled, and whereever the lobster compiler is installed.
+main `.lobster` file being compiled, and wherever the lobster compiler is installed.
 In both those locations, files may be optionally be found under an `modules`
 sub-directory.
 You can use `import from "path/to/"` to provide additional such starting directories
@@ -1080,7 +1080,7 @@ generally possible for a programming language to ensure this never happens.
 
 Leaks like these are not common, as they only occur with graph-like structures
 or "parent reference" common in more complicated data structures. An example in
-a game might be if two game units refer to eachother as their "enemy", and then
+a game might be if two game units refer to each other as their "enemy", and then
 both die at the same time with the programmer forgetting to reset the enemy
 field before they die.
 
@@ -1258,7 +1258,7 @@ affected.
 Most built-in functions come with a namespace, such as `gl` etc.
 
 Since namespaces look the same as object dereferencing, it is recommended to use
-a name with a leading uppercase for namespaces whereever possible.
+a name with a leading uppercase for namespaces wherever possible.
 
 
 Declaration order
@@ -1284,7 +1284,7 @@ class Monster
 
 (note the lack of `:` introducing the definition) pre-declares this type, so it can
 be referred to by types defined before `Monster` is finally defined. This allows for
-circular dependancies.
+circular dependencies.
 
 Similarly, you may declare variables before you define them:
 
@@ -1354,7 +1354,7 @@ Communication/synchronisation between the threads is explicit through the use of
 than shared. While copying is potentially slower than sharing, it allows each
 Lobster VM to run as-if it was single-threaded, with no synchronisation primitives
 to slow it down (for example, memory allocators in Lobster are single-threaded),
-no GIL (global interpreter lock) or other multi-threading overhead, so overal
+no GIL (global interpreter lock) or other multi-threading overhead, so overall
 performance can easily be higher than shared memory concurrency systems.
 
 The use of tuple spaces and 1 VM per thread suits "worker" style concurrency, for
