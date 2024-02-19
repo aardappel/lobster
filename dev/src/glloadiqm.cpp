@@ -124,19 +124,19 @@ template<> inline short endianswap<short>(short n) { return endianswap16(n); }
 template<> inline uint32_t endianswap<uint32_t>(uint32_t n) { return endianswap32(n); }
 template<> inline int endianswap<int>(int n) { return endianswap32(n); }
 
-template<class T> inline void endianswap(T *buf, int len) {
+template<class T> inline void endianswap(T *buf, size_t len) {
     for(T *end = &buf[len]; buf < end; buf++) *buf = endianswap(*buf);
 }
 template<class T> inline T lilswap(T n) {
     return islittleendian() ? n : endianswap(n);
 }
-template<class T> inline void lilswap(T *buf, int len) {
+template<class T> inline void lilswap(T *buf, size_t len) {
     if(!islittleendian()) endianswap(buf, len);
 }
 template<class T> inline T bigswap(T n) {
     return islittleendian() ? endianswap(n) : n;
 }
-template<class T> inline void bigswap(T *buf, int len) {
+template<class T> inline void bigswap(T *buf, size_t len) {
     if(islittleendian()) endianswap(buf, len);
 }
 
@@ -415,8 +415,8 @@ string SaveAsIQM(const Mesh *mesh, string_view filename) {
 
     // Prepare triangle data
     memset(&mesh2, 0, sizeof(mesh2));
-    mesh2.num_vertexes = geom->nverts;
-    mesh2.num_triangles = surf->numidx / 3;
+    mesh2.num_vertexes = (uint32_t)geom->nverts;
+    mesh2.num_triangles = (uint32_t)surf->numidx / 3;
     triangles.resize(mesh2.num_triangles);
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, surf->ibo));
     GL_CALL(glGetBufferSubData(GL_ARRAY_BUFFER, 0, mesh2.num_triangles*sizeof(iqmtriangle), triangles.data()));
@@ -435,11 +435,11 @@ string SaveAsIQM(const Mesh *mesh, string_view filename) {
     hdr.filesize += sizeof(varray);
     uint32_t valign = (8 - (hdr.filesize%8))%8;
     voffset += valign;
-    hdr.filesize += valign + vattribs.size()*sizeof(vert);
-    hdr.num_vertexes = vattribs.size();
-    hdr.num_triangles = triangles.size();
+    hdr.filesize += uint32_t(valign + vattribs.size() * sizeof(vert));
+    hdr.num_vertexes = (uint32_t)vattribs.size();
+    hdr.num_triangles = (uint32_t)triangles.size();
     hdr.ofs_triangles = hdr.filesize;
-    hdr.filesize += triangles.size() * sizeof(iqmtriangle);
+    hdr.filesize += uint32_t(triangles.size() * sizeof(iqmtriangle));
 
     // Init vertexarray(s)
     memset(varray, 0, sizeof(varray));
@@ -450,20 +450,20 @@ string SaveAsIQM(const Mesh *mesh, string_view filename) {
     varray[1].type = IQM_NORMAL;
     varray[1].format = IQM_FLOAT;
     varray[1].size = 3;
-    varray[1].offset = voffset + vpositions.size()*sizeof(float3);
+    varray[1].offset = uint32_t(voffset + vpositions.size() * sizeof(float3));
     varray[2].type = IQM_COLOR;
     varray[2].format = IQM_UBYTE;
     varray[2].size = 4;
-    varray[2].offset = voffset + (vpositions.size()+vnormals.size())*sizeof(float3);
+    varray[2].offset = uint32_t(voffset + (vpositions.size() + vnormals.size()) * sizeof(float3));
 
     // Change to little-endian
     if (!islittleendian()) {
         endianswap(&hdr.version, (sizeof(hdr) - sizeof(hdr.magic))/sizeof(uint32_t));
         endianswap((uint32_t*)&mesh2, sizeof(mesh2)/sizeof(uint32_t));
         endianswap((uint32_t*)&varray[0], sizeof(varray)/(sizeof(uint32_t)));
-        endianswap((float*)vpositions.data(), vpositions.size()*3);
-        endianswap((float*)vnormals.data(), vnormals.size()*3);
-        endianswap((uint32_t*)triangles.data(), triangles.size()*3);
+        endianswap((float*)vpositions.data(), vpositions.size() * 3);
+        endianswap((float*)vnormals.data(), vnormals.size() * 3);
+        endianswap((uint32_t*)triangles.data(), triangles.size() * 3);
     }
 
     // Accumulate data to be written

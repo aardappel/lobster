@@ -942,7 +942,7 @@ nfr("mesh_animations", "m", "R:mesh", "S]",
 nfr("mesh_animation_frames", "m,name", "R:meshS", "IIF",
     "given name, return animation's first frame, number of frames and framerate, "
     "or '-1, -1, 0.0' if name is invalid",
-    [](StackPtr &sp, VM &vm, Value &i, Value &n) {
+    [](StackPtr &sp, VM &, Value &i, Value &n) {
         auto &m = GetMesh(i);
         int first_frame = -1;
         int num_frames = -1;
