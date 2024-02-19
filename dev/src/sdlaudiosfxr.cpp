@@ -417,11 +417,6 @@ Mix_Chunk *LoadSound(string_view filename, SoundType st) {
 bool SDLSoundInit() {
     if (sound_init) return true;
 
-    #ifdef __EMSCRIPTEN__
-    // Distorted in firefox and no audio at all in chrome, disable for now.
-        return false;
-    #endif
-
     for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
         LOG_INFO("Audio driver available ", SDL_GetAudioDriver(i));
     }
