@@ -859,7 +859,7 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                                 float emissive = emit * powf(10, flux);
                                 // Since this is a wide range, we use powers of 2, which is a bit
                                 // more resolution than just powers of 10.
-                                float po2 = std::min(15.0f, logf(emissive) / logf(2.0f));
+                                float po2 = std::max(0.0f, std::min(15.0f, logf(emissive) / logf(2.0f)));
                                 // Use lower 4 bits.
                                 palette[id].w |= (int)po2;
                                 break;
