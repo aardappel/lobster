@@ -789,12 +789,22 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                 } else if (!strncmp(id, "MATL", 4)) {
                     enum { M_DIFFUSE, M_METAL, M_GLASS, M_EMIT };
                     auto type = M_DIFFUSE;
+                    float emit = 0.0f;
+                    float flux = 0.0f;    // 0..4
+                    /*
                     float weight = 0.0f;  // 0..1
-                    float rough = 0.0f;
+                    float rough = 0.0f;  // default seems 0.1
                     float spec = 0.0f;
-                    float ior = 0.0f;
+                    float ior = 0.0f;  // default seems 0.3
                     float att = 0.0f;
-                    float flux = 0.0f;  // 0..4
+                    float ri = 0.0f;  // 1.3 ?
+                    float d = 0.0f;  // 0.05 ?
+                    float ldr = 0.0f;
+                    float alpha = 0.0f;
+                    float trans = 0.0f;
+                    float metal = 0.0f;
+                    float media = 0.0f;
+                    */
                     int32_t id;
                     if (!ReadSpanInc(p, id)) return erreof();
                     if (!ReadDict([&](const string &key, const string &value) {
@@ -803,7 +813,13 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                                 else if (value == "_metal") type = M_METAL;
                                 else if (value == "_glass") type = M_GLASS;
                                 else if (value == "_emit") type = M_EMIT;
-                            } else if (key == "_weight") {
+                            } else if (key == "_flux") {
+                                flux = strtof(value.c_str(), nullptr);
+                            } else if (key == "_emit") {
+                                emit = strtof(value.c_str(), nullptr);
+                            }
+                            // Unused atm.
+                            /* else if (key == "_weight") {
                                 weight = strtof(value.c_str(), nullptr);
                             } else if (key == "_rough") {
                                 rough = strtof(value.c_str(), nullptr);
@@ -813,9 +829,23 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                                 ior = strtof(value.c_str(), nullptr);
                             } else if (key == "_att") {
                                 att = strtof(value.c_str(), nullptr);
-                            } else if (key == "_flux") {
-                                flux = strtof(value.c_str(), nullptr);
-                            }
+                            } else if (key == "_ldr") {
+                                ldr = strtof(value.c_str(), nullptr);
+                            } else if (key == "_ri") {
+                                ri = strtof(value.c_str(), nullptr);
+                            } else if (key == "_d") {
+                                d = strtof(value.c_str(), nullptr);
+                            } else if (key == "_alpha") {
+                                alpha = strtof(value.c_str(), nullptr);
+                            } else if (key == "_trans") {
+                                trans = strtof(value.c_str(), nullptr);
+                            } else if (key == "_metal") {
+                                metal = strtof(value.c_str(), nullptr);
+                            } else if (key == "_media") {
+                                media = strtof(value.c_str(), nullptr);
+                            } else {
+                                LOG_DEBUG("unknown key: ", key, " = ", value);
+                            } */
                         })) return erreof();
                     // Now to pack the parts we're interested in into bits in the palette.
                     if (material_palette.True()) {
@@ -825,7 +855,8 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                                 // combine the two values into 1, since both can contribute a lot.
                                 // https://twitter.com/ephtracy/status/846084473347342336
                                 // https://magicavoxel.fandom.com/wiki/Emission_(interface)
-                                float emissive = ior * powf(10, flux);
+                                // TODO: factor in ldr?
+                                float emissive = emit * powf(10, flux);
                                 // Since this is a wide range, we use powers of 2, which is a bit
                                 // more resolution than just powers of 10.
                                 float po2 = std::min(15.0f, logf(emissive) / logf(2.0f));
