@@ -789,12 +789,12 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                 } else if (!strncmp(id, "MATL", 4)) {
                     enum { M_DIFFUSE, M_METAL, M_GLASS, M_EMIT };
                     auto type = M_DIFFUSE;
-                    float weight = 0.0f;
+                    float weight = 0.0f;  // 0..1
                     float rough = 0.0f;
                     float spec = 0.0f;
                     float ior = 0.0f;
                     float att = 0.0f;
-                    float flux = 0.0f;
+                    float flux = 0.0f;  // 0..4
                     int32_t id;
                     if (!ReadSpanInc(p, id)) return erreof();
                     if (!ReadDict([&](const string &key, const string &value) {
@@ -820,11 +820,19 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                     // Now to pack the parts we're interested in into bits in the palette.
                     if (material_palette.True()) {
                         switch (type) {
-                            case M_EMIT:
-                                // flux ranges from 1 to 5 if emissive, so uses bottom 3 bits.
+                            case M_EMIT: {
                                 clone_if_default();
-                                palette[id].w |= (int)flux + 1;
+                                // combine the two values into 1, since both can contribute a lot.
+                                // https://twitter.com/ephtracy/status/846084473347342336
+                                // https://magicavoxel.fandom.com/wiki/Emission_(interface)
+                                float emissive = ior * powf(10, flux);
+                                // Since this is a wide range, we use powers of 2, which is a bit
+                                // more resolution than just powers of 10.
+                                float po2 = std::min(15.0f, logf(emissive) / logf(2.0f));
+                                // Use lower 4 bits.
+                                palette[id].w |= (int)po2;
                                 break;
+                            }
                             default:
                                 break;
                         }
