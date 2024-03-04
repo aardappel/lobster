@@ -225,6 +225,33 @@
     But this would enable traditional step by step debugging.
   - tracepoint: like breakpoint, but automatic continue and the UI stays live.. for debugging values changing over time.
 
+- A possible interesting way to optimize our AST storage:
+  https://www.youtube.com/watch?v=ZI198eFghJk
+  A summary of most of the talk is: do it like the FlexBuffers serializer, build a stack
+  of uniform nodes that are then added to a node array contiguously.
+  A node can be as small as 64-bit: 32-bit index to children, 24-bit index to per node type infos,
+  8-bit type.
+  It doesn't seem like the current compiler is bottlenecked by our inefficient ASTs, but we do do
+  a lot of cloning and a closed world compile, so it could eventually matter for larger codebases.
+  If you assume that these node structs can be overwritten (as part of type checking/optimization),
+  but the per-type arrays do not, then cloning becomes even cheaper, only having to copy the
+  nodes, if we can guarantee the parser delivers contiguous defs for each function, its a single
+  memcpy.
+  per-type infos would never be deleted, but nodes could be deleted and reused if desired.
+  Biggest huge downside would be the loss of typing of nodes, and having to move from methods
+  to a switch.
+  You could retain some of the typing by having a Node<E> where E is the enum type such that you
+  can statically have Node<T_ADD> even though T_ADD is also stored in the struct?
+  Still, will require a lot of casting since there is no automatic upgrade from a generic Node to
+  such a type when doing a switch on a Node type.
+  Furthermore, for strong typing, you'd want the index to per node type infos to also be strongly
+  typed like this, by only allowing indexing with an Index<T_INT> into the array where all integer
+  constants are stored, etc.
+  It can be done, but is likely a bit of a nightmare to retrofit.
+  Better wait for a benchmark of the first huge program that is slow to compile.
+  Voxlands of Feb 2024: TIME 0.382 seconds (lobster compile + tcc + program start)
+  It is clearly an idea that appeals to my inner optimizer more than there's a need.
+
 - Inline structs, further improvements:
   - These were immutable in the past, because values were shared by pointer, but now there
     really is no reason to anymore, as they're always copied, so modifying a field of
