@@ -11,11 +11,8 @@
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-    /* The extra [class] is a hack that increases specificity enough to
-       override a similar rule in reveal.js */
-    ul.task-list[class]{list-style: none;}
+    ul.task-list{list-style: none;}
     ul.task-list li input[type="checkbox"] {
-      font-size: inherit;
       width: 0.8em;
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
@@ -24,6 +21,9 @@
   </style>
   <link rel="stylesheet" href="github.css" />
   <link rel="icon" type="image/svg" href="lobster.svg" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
 </head>
 <body>
 <header id="title-block-header">
@@ -32,7 +32,7 @@
 <p>Let’s walk through all the steps required to make a simple game in
 Lobster by making a shooter in the same vein as “Geometry Wars”: enemies
 come at you from all directions, and you have to keep shooting them
-until you invariably.. die. Sound like fun?</p>
+until you invariably… die. Sound like fun?</p>
 <p>You can follow along just looking at the code and screenshots below,
 or by loading up <code>samples/shooter_tutorial/tut*.lobster</code> and
 trying them out yourself.</p>
@@ -45,7 +45,7 @@ help.</p>
 <p>Let’s start by creating a blank canvas for us to draw on. Something
 like this:</p>
 <p><img src="screenshots/shooter/tut1.jpg" /></p>
-<p>Impressively.. empty.</p>
+<p>Impressively… empty.</p>
 <pre><code>import vec
 import color
 import gl
