@@ -4,7 +4,7 @@ title: "Learn Lobster: Let's create a 2D shooter!"
 
 Let's walk through all the steps required to make a simple game in Lobster by
 making a shooter in the same vein as "Geometry Wars": enemies come at you from
-all directions, and you have to keep shooting them until you invariably.. die.
+all directions, and you have to keep shooting them until you invariably... die.
 Sound like fun?
 
 You can follow along just looking at the code and screenshots below, or by
