@@ -464,8 +464,11 @@ nfr("binary_to_json", "schemas,binary,includedirs", "SSS]", "SS?",
         flatbuffers::Parser parser;
         auto err = ParseSchemas(vm, parser, schema, includes);
         string json;
-        if (err.False() && !GenerateText(parser, binary.sval()->data(), &json)) {
-            err = vm.NewString("unable to generate text for FlatBuffer binary");
+        if (err.False()) {
+            auto e = GenText(parser, binary.sval()->data(), &json);
+            if (e) {
+                err = vm.NewString("unable to generate text for FlatBuffer binary: " + string(e));
+            }
         }
         Push(sp, vm.NewString(json));
         return err;
