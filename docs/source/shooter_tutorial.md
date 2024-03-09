@@ -21,7 +21,7 @@ Let's start by creating a blank canvas for us to draw on. Something like this:
 
 ![](<screenshots/shooter/tut1.jpg>)
 
-Impressively.. empty.
+Impressively... empty.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import vec
