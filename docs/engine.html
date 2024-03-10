@@ -29,7 +29,7 @@
 <header id="title-block-header">
 <h1 class="title">Lobster built-in engine functionality</h1>
 </header>
-<p>Lobster comes with “batteries included”: a small (games/graphics)
+<p>Lobster comes with "batteries included": a small (games/graphics)
 engine that allows you to start drawing straight away. This doc collects
 some notes on the the built-in functionality.</p>
 <h2 id="basics">Basics</h2>
@@ -55,7 +55,7 @@ can define these in-line in your Lobster program as well, an example of
 that can be found in
 <code>samples/custom_shader_metaballs.lobster</code>.</p>
 <p>Lobster uses glsl shaders compatible with OpenGL 3+ and OpenGL ES 3+,
-and you’ll have to look elsewhere to learn the details of this
+and you'll have to look elsewhere to learn the details of this
 language.</p>
 <p>Lobster wraps these shaders in a custom declaration language, to cut
 down on some of the boilerplate of putting a vertex and pixel shader
@@ -118,7 +118,7 @@ block before the shader. The functions declared here will be available
 to all shaders following it.</p>
 <p>Additionally <code>DEFINE name val</code> defines macros to be used
 in the shaders below.</p>
-<p>For compute shaders, e.g. <code>COMPUTE 8 8</code> at the end of the
+<p>For compute shaders, e.g. <code>COMPUTE 8 8</code> at the end of the
 uniforms declares the dispatch size.</p>
 <p>Any more details, see <code>glshader.cpp</code> ;)</p>
 </body>

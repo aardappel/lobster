@@ -36,24 +36,24 @@ since I wrote this.</p>
 <h3 id="primary-motivation">Primary Motivation</h3>
 <p>The most important over-arching reason behind everything in Lobster
 was to make it a pleasant language to use for one single person: me, the
-author. I’ve designed a fair number of languages in the past that had a
+author. I've designed a fair number of languages in the past that had a
 particular goal or should appeal to a particular target group, or were
 even commercial. Lobster is not such a language.</p>
-<p>Unlike past work, its goal from the start wasn’t to try to appeal to
+<p>Unlike past work, its goal from the start wasn't to try to appeal to
 anyone in particular. If you happen to like Lobster, then
 congratulations, your taste in programming is probably similar to
 mine.</p>
 <p>Besides being useful to me, creating Lobster in itself was merely
 meant to be a fun project. I love creating programming languages, but
-there’s really no money in it, and generally to most people new
+there's really no money in it, and generally to most people new
 programming languages are not desirable things, which is what had
-stopped me for a while creating any more of them. Lobster was the “screw
-it, I am making one because it’s fun” project. That, and I had some new
+stopped me for a while creating any more of them. Lobster was the "screw
+it, I am making one because it's fun" project. That, and I had some new
 ideas about some subtle features that would make a language suitable for
 my style of programming (heavily refactoring-based).</p>
 <h3 id="what-lobster-is-not">What Lobster is not:</h3>
 <ul>
-<li><p>A popular / mainstream language. For that, I’ve made far too many
+<li><p>A popular / mainstream language. For that, I've made far too many
 peculiar choices already, in particular in relation to its syntax (very
 terse, not C based) and its semantics (more functional than
 OO).</p></li>
@@ -64,21 +64,21 @@ very familiar with higher order functions for example.</p></li>
 <li><p>Its engine, while friendly for simple drawing, generally gives
 you a lot of control (immediate mode rendering), and requires you to
 understand the rendering pipeline more so than simple retained mode
-object systems (e.g. Flash). If you create more complex games with it,
-be prepared to program your own “scenegraph” on top of Lobster’s low
+object systems (e.g. Flash). If you create more complex games with it,
+be prepared to program your own "scenegraph" on top of Lobster's low
 level drawing primitives.</p></li>
 <li><p>It contains no game editor or friendly IDE. Everything is
 code.</p></li>
 </ul></li>
 <li><p>A language for large scale / team programming. Its type system
-favors expressive power over building interfaces. It’s best used for
-small to medium sized projects by programmers that know what they’re
+favors expressive power over building interfaces. It's best used for
+small to medium sized projects by programmers that know what they're
 doing.</p></li>
 <li><p>A language that is all things to all people. While I would claim
 that Lobster is a <em>general purpose programming language</em>, it is
 strongly biased toward game programming and related fields. With a
 different set of built-in functions I am sure it would make a kick-ass
-server language, but I don’t feel it is important to serve every
+server language, but I don't feel it is important to serve every
 niche.</p></li>
 </ul>
 <h3 id="what-lobster-is">What Lobster is:</h3>
@@ -86,7 +86,7 @@ niche.</p></li>
 <li><p>A language design motivated by <em>refactoring</em> and
 <em>compositionality</em>. It should be easier than in most languages to
 rip arbitrary pieces of code out and reorganize them and make them
-reusable, to keep the program <em>non-redundant</em>. Lobster’s free
+reusable, to keep the program <em>non-redundant</em>. Lobster's free
 variables ensure that your code keeps doing what it did before it was
 moved without needing to create tons of function arguments. They allow
 your new functionality to be as local as possible, and look just as
@@ -102,15 +102,15 @@ oriented programming. Lobster is of course an imperative language first:
 games are full of global state, and I believe that the most natural way
 to express that is directly, rather than indirectly by emulating state
 (such as with monads). That said, any program benefits from trying to
-write as much code as possible in a purely functional style, i.e. if it
+write as much code as possible in a purely functional style, i.e. if it
 is easy to express something in terms of re-generating data instead of
 modifying it in place, you almost always should. Lobster has some very
 strong tools to make this possible, with a very terse and uniform higher
 order function call syntax, and optionally immutable objects. Lobster
 actually has very powerful object oriented features (its overloading and
 dynamic dispatch being more expressive than in most OO languages), but
-it doesn’t push its OO angle to the forefront, and unlike OO languages
-doesn’t have an object heavy API. While OO brought us many important
+it doesn't push its OO angle to the forefront, and unlike OO languages
+doesn't have an object heavy API. While OO brought us many important
 ideas in programming, it is also single-handedly responsible for the
 crippling over-engineering culture so prevalent nowadays, and Lobster is
 trying to go the opposite direction.</p></li>
@@ -120,7 +120,7 @@ efficiency.</p></li>
 <li><p>A language that tries to be very efficient with memory, thanks to
 compile time reference counting, inline structs, and a very fast
 allocator.</p></li>
-<li><p>The belief that the ideal programming language is… TWO
+<li><p>The belief that the ideal programming language is... TWO
 programming languages. Any larger project consists of a lot of high
 level and glue code that is infrequently executed and benefits from the
 simple and terse notation of a language like Lobster. However, any non
@@ -137,7 +137,7 @@ be the main program, and relegate C++ to implement small libraries of
 speed sensitive code.</p></li>
 <li><p>An engine that adheres to <em>make simple things simple, and
 complex things possible</em>. It requires very little code to start
-drawing, yet the system doesn’t make any assumptions about what kind of
+drawing, yet the system doesn't make any assumptions about what kind of
 thing you might want to program, and how you want to structure
 it.</p></li>
 <li><p>A portable, cross platform system, targeting desktop and mobile
@@ -149,10 +149,10 @@ robustness.</p></li>
 <p>Lobster development started in October of 2010.</p>
 <p>Unlike code, normally a programming language design is so intricate,
 you benefit from designing almost all of it up-front, before you write
-the first line of code. Lobster wasn’t designed like that, its design
+the first line of code. Lobster wasn't designed like that, its design
 was constantly refactored much like its implementation. In fact,
 normally the first thing I write before I start writing a parser is the
-grammar, but Lobster’s grammar was instead derived from the parser code.
+grammar, but Lobster's grammar was instead derived from the parser code.
 Because initially it was simply a platform for fun and experimentation
 of language features, it started out very different, both in syntax and
 semantics.</p>
@@ -170,12 +170,12 @@ EarlyLobster it would 0..N results. <code>#</code> was an iteration
 operator that would generate values much like <code>for</code> does
 nowadays, and <code>|</code> would simply concatenate streams of values.
 The concept of something being false just meant no values were
-generated, i.e. the <code>&lt;</code> operator returns 0 or 1 results
+generated, i.e. the <code>&lt;</code> operator returns 0 or 1 results
 (the lhs). This backtracking would even work across function
 definitions.</p>
 <p>If that sounds complicated, it is certainly hard to get right, though
 it was helped by the fantastic paper <em>The Implementation of
-Generators and Goal-Directed-Evaluation in Icon</em> by Janalee O’Bagy
+Generators and Goal-Directed-Evaluation in Icon</em> by Janalee O'Bagy
 whose implementation technique I followed closely.</p>
 <p>Sadly, though examples like the above look super terse and very
 powerful, more general examples turned out less readable, less general,
@@ -183,10 +183,10 @@ and not much shorter than the equivalent code using higher order
 functions, which is when I got inspired to instead focus on making
 higher order functions terser and more similar to built-iteration, and
 make sure they have the same shortcutting power as backtracking (using
-Lobster’s cross-function <code>return</code>). I ripped out all
+Lobster's cross-function <code>return</code>). I ripped out all
 backtracking code at this point. I still have a copy of the last version
 that has this functionality in, which at some point I can release if
-there’s interest.</p>
+there's interest.</p>
 <p>Syntax wise, EarlyLobster had a more haskell-y / smalltalk-y
 bracketed syntax. See for example:</p>
 <pre><code>factorial: [ n =&gt; 1 &gt; n | (factorial n - 1) * n ]
@@ -199,7 +199,7 @@ follow the function call instead of being inside of it. Then I noticed I
 could denote function blocks entirely without brackets and just with
 indentation, and those were removed too.</p>
 <p>The implementation still had the C-stack based function calling
-implied by the abovementioned paper, which now wasn’t necessary anymore,
+implied by the abovementioned paper, which now wasn't necessary anymore,
 and Lobster switched to a more traditional VM stack.</p>
 <p>Later, multi-methods, and more recently, coroutines, got added.</p>
 <p>Most recently, Lobster transitioned from being a dynamically typed
@@ -209,7 +209,7 @@ combination with type inference and flow-sensitive typing to get very
 far in being able to type-check all existing Lobster code without having
 to litter it with types. That challenge took it much further than I
 anticipated. The end result is impressively powerful, even though I made
-it a bit more strict than I planned (i.e. making <code>nil</code> its
+it a bit more strict than I planned (i.e. making <code>nil</code> its
 own type). More here: <a href="type_checker.html">type system</a>.</p>
 <p>Another big change is moving to compile-time reference counts
 (lifetime analysis) and in-line structs, about which you can read more
@@ -220,7 +220,7 @@ multi-methods got replaced by a very flexible overloading / dispatching
 system. See the <a href="language_reference.html">language
 reference</a>.</p>
 <p>In July 2020, co-routines were removed, along with the lesser known
-“frame log” feature. A full explanation of why is <a
+"frame log" feature. A full explanation of why is <a
 href="https://github.com/aardappel/lobster/issues/100">here</a> The
 summary: it is a feature that seems very attractive for game
 programming, but in practice never got used (and in most cases works
@@ -236,7 +236,7 @@ Similarly, the last version that has frame log functionality is
 href="https://github.com/aardappel/lobster/commit/274f76ca1f36742469090befbdb7d7eaa108af8f">here</a></p>
 <h3 id="what-lobster-will-be-future-plans">What Lobster will be (Future
 Plans)</h3>
-<p>I’ve collected many random scribbles about what I think Lobster still
+<p>I've collected many random scribbles about what I think Lobster still
 needs in <code>dev/TODO.txt</code>.</p>
 </body>
 </html>

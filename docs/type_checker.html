@@ -34,7 +34,7 @@ system..</p>
 <h2 id="the-nature-of-the-type-system">The nature of the type
 system</h2>
 <p>Lobster was originally dynamically typed. Not only is this easier to
-implement, it bring tremendous expressive power “for free”, particularly
+implement, it bring tremendous expressive power "for free", particularly
 in the way it allows you to write generic code which often requires
 arcane typing annotations in static languages. The downsides are obvious
 too: type errors come late or stay hidden, and execution speed
@@ -60,7 +60,7 @@ minimal. Specialized code can be optimized and inlined more
 aggressively, resulting in significant speed advantages besides the
 expressivity gains.</p></li>
 <li><p><strong>Flow Based</strong>: Type checking happens in order of
-function calls, i.e. it is much like evaluating the code, but with types
+function calls, i.e. it is much like evaluating the code, but with types
 instead of values. This means that when type checking a particular
 function, it not just knows the exact types of parameters (thanks to
 specialization), but also the types of free variables, and it knows its
@@ -89,8 +89,8 @@ generic parameter by.. not specifying a type!</p>
 languages with type inference, since you cannot have the arguments be
 generic unless the <code>+</code> operation is defined on them,
 requiring them to have a way to specify the set of types that have this
-operation specified (see e.g. type classes in Haskell), or simply not
-allowing it at all (see e.g. generics in Java).</p>
+operation specified (see e.g. type classes in Haskell), or simply not
+allowing it at all (see e.g. generics in Java).</p>
 <p>Lobster does not have this problem, since it simply type checks a
 copy of <code>add</code> for each combination of types it is called
 with. This then deals correctly with allowing to write
@@ -100,7 +100,7 @@ result, without making simpler cases like <code>add(1, 2)</code> slower
 because of type inspection. In fact, the opportunities for statically
 optimizing these operations are now greatly increased. This is very
 similar to C++ templates, but without the clunky syntax.</p>
-<p>It is typically “good style” in Lobster to use untyped arguments when
+<p>It is typically "good style" in Lobster to use untyped arguments when
 a) multiple types are possible/useful, and b) there is no relation
 between the types of the arguments. Sometimes it is useful to use
 explicit generic annotations, for example:</p>
@@ -117,7 +117,7 @@ coercion to <code>float</code> (required by <code>+</code>) would now
 happen inside the function.</p>
 <p>You can even specify the generic type explicitly, for example
 <code>add&lt;float&gt;(1, 1)</code> would actually coerce both arguments
-ahead of time. If the function has multiple generic arguments, you don’t
+ahead of time. If the function has multiple generic arguments, you don't
 need to specify all of them, if the remaining ones can be inferred.
 Caveat: this currently only works where the <code>&lt;</code> directly
 follows a known function name (to distinguish it from uses of the
@@ -127,7 +127,7 @@ since they internally get converted to explicit generics by simply
 adding generic types <code>A, B, C,..</code> to them for their untypes
 arguments.</p>
 <p>You can use generic types from surrounding functions, and from any
-class this function is a “method” of (either declared inside that class,
+class this function is a "method" of (either declared inside that class,
 or with the class type as first argument).</p>
 <h2 id="the-trouble-with-nil">The trouble with nil</h2>
 <p>So far, the type system tries to preserve as much freedom of dynamic
@@ -143,8 +143,8 @@ guarantee this, or are lazy to do so. Result: random errors popping up
 in random places. Not good.</p>
 <p>Lobster takes the obvious approach: <code>nil</code> is a separate
 type that is <em>not a valid value</em> of a reference type. You may
-still create “nilable” types, but these cannot be accessed
-(e.g. dereferenced) unless they are first converted to their underlying
+still create "nilable" types, but these cannot be accessed (e.g.
+dereferenced) unless they are first converted to their underlying
 type:</p>
 <pre><code>var a = nil      // a is a nilable of unknown type
 if ..:
@@ -165,30 +165,30 @@ avoided:</p>
 be initialized to a valid value right where they are defined. This is
 often possible.</p></li>
 <li><p>If the variable cannot be initialized where it must be defined,
-see if there’s a “empty” version of the reference type that the variable
+see if there's a "empty" version of the reference type that the variable
 can be initialized with, such as an empty vector or string, or a class
 filled with zeroes, that has a benign effect when used.</p></li>
 <li><p>If you must start with <code>nil</code>, try to have the if-check
 for it as early on as possible, so all code deeper down the call chain
-can benefit from a non-nil type that doesn’t need to be
+can benefit from a non-nil type that doesn't need to be
 checked.</p></li>
 </ul>
 <p>The flow based analysis generally understand logical expressions, so
-if you write <code>if not a:</code> instead, you’ll be able to access
+if you write <code>if not a:</code> instead, you'll be able to access
 <code>a</code> in the <code>else</code> block, but not in the
 <code>then</code> block. Similarly, if you write
 <code>if a and f(a):</code> then <code>a</code> is available as non-nil
 both as argument to <code>f</code> <em>and</em> in the following
 block.</p>
-<p><code>?</code> is generally the way to indicate a nilable type,
-e.g. <code>string?</code> is a nilable string.</p>
+<p><code>?</code> is generally the way to indicate a nilable type, e.g.
+<code>string?</code> is a nilable string.</p>
 <p>One more thing to notice about <code>nil</code> is that it only knows
-what exact nilable type it represents once it comes “in contact with”
+what exact nilable type it represents once it comes "in contact with"
 its reference type. That means that if you tried to access
 <code>a</code> right after it was defined, it would have still have type
 <code>nil</code> rather than <code>string?</code>. Similarly, if you
 tried to assign a vector to <code>a</code> after the first assignment,
-it would complain that only a <code>string?</code> is valid, i.e. a
+it would complain that only a <code>string?</code> is valid, i.e. a
 <code>string</code> or <code>nil</code> value.</p>
 <p>To bypass that process and force <code>nil</code> to represent a
 particular nilable type, you can attach a type, like
@@ -214,14 +214,14 @@ a.x        // error
 a = float3_0  // a is guaranteed non-nil below
 a.x        // ok</code></pre>
 <p>Note how there are two different cases here: with an assignment
-inside a conditional, the type checker has to be conservative, and can’t
+inside a conditional, the type checker has to be conservative, and can't
 guarantee the value is non-nil. But with an un-conditional assignment,
 we can change the type of <code>a</code> for the rest of the block.</p>
 <p>An additional way is to use <code>assert</code>. Use this when you
 know for sure a value must be non-nil or have a particular type, but you
-can’t structure your code such that this is already obvious to the type
+can't structure your code such that this is already obvious to the type
 system.</p>
-<h2 id="compile-time-if-thens.">Compile-time if-then’s.</h2>
+<h2 id="compile-time-if-thens.">Compile-time if-then's.</h2>
 <p>The flow-based type-checking above gives branches more specific
 types. But we can do even better: if the condition is statically known,
 we can avoid type-checking altogether:</p>
@@ -235,13 +235,13 @@ assert(compile_time_if(&quot;&quot;) is string)</code></pre>
 <p>The division would be a type error if x is a string, but it compiles
 anyway since this if is compile-time constant, and the type checker
 ignores this branch.</p>
-<p>If you’re used to dynamic languages, you might think: what’s the
+<p>If you're used to dynamic languages, you might think: what's the
 fuss? This would be a compile error in almost all statically typed
-languages, since they don’t cull code before the optimizer. For example
-with C++ templates can’t handle this situation, and that’s already more
+languages, since they don't cull code before the optimizer. For example
+with C++ templates can't handle this situation, and that's already more
 powerful than most forms of generics.</p>
 <p>Also note the return type is just the else branch in the string case,
-it doesn’t need to make a type union between the branches anymore.</p>
+it doesn't need to make a type union between the branches anymore.</p>
 <p>This is powerful, because it allows you to write generic functions
 that do subtly different things depending on the input, with no overhead
 from the conditional, and the ability to operate differently on each
@@ -279,15 +279,15 @@ types)</h2>
 <p>Structs whose fields are either all int or all float have a special
 status in the type system, as they are accepted as arguments to vector
 versions of the built-in operators (<code>+ - * /</code> etc) as well as
-many vector operations part of the built-in functions
-(e.g. <code>normalize</code>).</p>
+many vector operations part of the built-in functions (e.g.
+<code>normalize</code>).</p>
 <p>You can see the default types for these (<code>vec2</code>,
 <code>vec3</code>, and <code>vec4</code>) defined in
 <code>modules/stdtype.lobster</code>. Other types also work with these
-operations, though (e.g. <code>color</code>).</p>
+operations, though (e.g. <code>color</code>).</p>
 <p>Confusingly, in math, such N dimensional things are commonly referred
-to as “vectors”, whereas Lobster calls its resizable arrays “vectors”.
-So in Lobster these things are “numeric structs”, but on occasion may
-still also be called “vectors”, sorry for the confusion.</p>
+to as "vectors", whereas Lobster calls its resizable arrays "vectors".
+So in Lobster these things are "numeric structs", but on occasion may
+still also be called "vectors", sorry for the confusion.</p>
 </body>
 </html>

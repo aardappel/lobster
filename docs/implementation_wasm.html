@@ -34,7 +34,7 @@
     }
     @media print {
     pre > code.sourceCode { white-space: pre-wrap; }
-    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
     }
     pre.numberSource code
       { counter-reset: source-line 0; }
@@ -99,7 +99,7 @@ backend, please read the sections on WebAssembly <a
 href="implementation.html">here</a>.</p>
 <p>This document is also meant to be useful for implementors of other
 languages that may wish to do something similar (and could re-use
-Lobster’s <a
+Lobster's <a
 href="https://github.com/aardappel/lobster/blob/master/dev/src/lobster/wasm_binary_writer.h">WASM
 binary writer</a> ).</p>
 <h2 id="structure-of-the-backend">Structure of the backend</h2>
@@ -130,20 +130,20 @@ complete example than the small example below.</li>
 </ul>
 <h2 id="design-of-the-binary-writer">Design of the binary writer</h2>
 <p>Most languages, like Lobster, come with a runtime in C or C++ that
-you wouldn’t want to translate to wasm by hand (or worse, emit
+you wouldn't want to translate to wasm by hand (or worse, emit
 instruction by instruction from a backend), so it is important that
 generated wasm code can be linked correctly against a runtime compiled
-to object files by the C/C++ compiler. In this case we’re piggy-backing
+to object files by the C/C++ compiler. In this case we're piggy-backing
 on Clang, LLD and Binaryen as used in the Emscripten toolchain.</p>
 <p>This means generating a wasm module with linking information, and
 supplying the right relocations. Many instructions in wasm refer to
 functions and other things by index, but the linker has to merge many
 such index spaces into the final module, which means renumbering all of
 these indices. Luckily, the binary writer takes care of all this
-automatically, and allows us the generate code as-if we’re the only
+automatically, and allows us the generate code as-if we're the only
 object file.</p>
 <h3 id="streaming-interface.">Streaming interface.</h3>
-<p>The binary writer is a “streaming” API (as opposed to an object API),
+<p>The binary writer is a "streaming" API (as opposed to an object API),
 meaning that it immediately writes out the wasm module data with no or
 few intermediary data structures. This has the advantage that it is low
 in memory usage and is very fast, with the downside being that most
@@ -168,10 +168,10 @@ section, which appears at the end of all of the above. Its contents is
 generated automatically by the binary writer as a consequence of all the
 things emitted in the above section (primarily the Code section).</p>
 <h3 id="simple-example.">Simple example.</h3>
-<p>A minimal usage of the API, where we generate code for “hello world”,
+<p>A minimal usage of the API, where we generate code for "hello world",
 assuming the printing function is in the runtime.</p>
 <p>Note that this assumes a minimum familiarity with wasm in general. I
-am not going to explain the “why” of this design, if you end up using
+am not going to explain the "why" of this design, if you end up using
 this API then reading up on the wasm module format would be useful.</p>
 <div class="sourceCode" id="cb2"><pre
 class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;</span> bytes<span class="op">;</span></span>
@@ -268,7 +268,7 @@ needs to be explicitly generated.</p>
 <p>It generates Lobster code not on a per function basis, but per basic
 block. This is because Lobster has more complicated control flow
 features (such as non-local returns and co-routines) which (at the time
-of writing) wasm can’t support natively. So it uses a “trampoline”
+of writing) wasm can't support natively. So it uses a "trampoline"
 system where each basic block returns the function address of the next
 basic block it wants to go to. Some of these transitions can be
 optimized (and the generator does use tail calls in many cases), but in
@@ -278,14 +278,14 @@ emitting a call per VM instruction, with the exception of control flow
 operations which have more special purpose implementation.</p>
 <p>You would expect it to directly emit wasm instructions like
 <code>i32.add</code> for simple Lobster bytecode instructions like
-<code>IL_IADD</code>, but it doesn’t, for various reasons. First, we
+<code>IL_IADD</code>, but it doesn't, for various reasons. First, we
 rely on Binaryen to do whole program optimisation (similar to LTO) after
-linking (since the we’re calling the implementation of bytecode
+linking (since the we're calling the implementation of bytecode
 instruction that sits in a different object file). This means that if
 the implementation of a bytecode instruction is trivial, it will get
 inlined, saving us the trouble of doing so. The second reason is more
 complicated: Lobster currently has all of its variables on its own stack
-(where it can do custom management of it, required for e.g. its memory
+(where it can do custom management of it, required for e.g. its memory
 management, non local return features). Instructions like
 <code>i32.add</code> instead expects values on the wasm stack. So
 maximum benefit of emitting such instructions directly would only be
