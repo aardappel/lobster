@@ -99,7 +99,7 @@ jobs:
         path: bin/lobster
 
   build-mac-silicon:
-    name: Build Mac Silicon
+    name: Build Mac (Apple Silicon)
     runs-on: macos-14
     steps:
     - uses: actions/checkout@v1
@@ -116,7 +116,7 @@ jobs:
     - name: upload build artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: Mac Lobster binary
+        name: Mac (Apple Silicon) Lobster binary
         path: bin/lobster
         
   build-android:
