@@ -63,6 +63,7 @@ jobs:
         files: |
           lobster_linux_release.zip
   build-mac:
+    name: Release Mac
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
