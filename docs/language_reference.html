@@ -45,15 +45,15 @@ starting with <code>//</code></p></li>
 <code>( ) [ ] { } : , &amp; | + ++ += - -- -= * *= / /= % %= ==     != &lt; &gt; &lt;= &gt;= &lt;- = ? . -&gt; ^ &lt;&lt; &gt;&gt;</code></p></li>
 <li><p>Strings delimited by <code>"</code> and character constants with
 <code>'</code> using escape codes <code>\n \t \r \" \' \ \x</code>
-(followed by 2 hex digits, e.g. <code>\xFF</code> is the character with
+(followed by 2 hex digits, e.g. <code>\xFF</code> is the character with
 value 255). Alternatively, strings can be enclosed in triple-quotes
 (<code>"""</code>) and may then contain any characters verbatim,
 including new-lines, quotes, and escape codes (which are all left
 untouched).</p></li>
 <li><p>Numbers consisting of a series of digits to indicate an integer
-constant (e.g. <code>123</code>) or hex digits with a leading
-<code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single
-<code>.</code> (e.g. <code>.1</code> or <code>1.</code> or
+constant (e.g. <code>123</code>) or hex digits with a leading
+<code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single
+<code>.</code> (e.g. <code>.1</code> or <code>1.</code> or
 <code>1.1</code>) to indicate a floating point constant.</p></li>
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
@@ -78,8 +78,8 @@ level difference. <code>[rule]</code> Means optional.</p>
 <p>program = stats end_of_file</p>
 <p>stats = topexp … linefeed</p>
 <p>topexp = <code>namespace</code> ident |<code>import</code> [
-<code>from</code> ] ( string_constant | ( ident … <code>.</code> ) ) | [
-<code>private</code> ] ( functiondef | class | vardef | enumdef ) |
+<code>from</code> ] ( string_constant | ( ident ... <code>.</code> ) ) |
+[ <code>private</code> ] ( functiondef | class | vardef | enumdef ) |
 expstat | attrdef</p>
 <p>class = ( <code>class</code> | <code>struct</code> ) ident (
 <code>=</code> ident specializers | [ generics ] <code>:</code> [ ident
@@ -136,7 +136,7 @@ body | <code>elif</code> <code>:</code> ifpart)</p>
 <p>attrdef = <code>attribute</code> ident [ <code>=</code> (
 string_constant | numeric_constant | ident ) ]</p>
 <p>indlist(e) = indent list(e) [ linefeed ] dedent linefeed</p>
-<p>list(e) = e … <code>,</code></p>
+<p>list(e) = e ... <code>,</code></p>
 <h2 id="types">Types</h2>
 <p>Lobster is statically typed, and any variable, argument or vector
 element can be a value of one of the following types:</p>
@@ -167,7 +167,7 @@ Immutable: can be indexed into for reading but not writing.</p></li>
 <li><p>vector : a dynamically sized array of any Lobster values,
 constructed with square brackets surrounding 0 or more comma separated
 values, e.g. <code>[ 1, 2, 3 ]</code>. May be dereferenced for
-reading/writing using indices (e.g. <code>a[0]</code>). Vectors may be
+reading/writing using indices (e.g. <code>a[0]</code>). Vectors may be
 typed by being suffixed by <code>::type</code>, which will require all
 elements to be of that type (also useful to force a type on an empty
 list).</p></li>
@@ -175,15 +175,15 @@ list).</p></li>
 structure, see below.</p></li>
 <li><p><code>nil</code> : a special value of any reference type above,
 that indicates the absence of a legal value. <code>nil</code> is only
-allowed if the type is “nilable”, for more on that see the document on
+allowed if the type is "nilable", for more on that see the document on
 type checking, <a href="type_checker.html">here</a>. Since just
-<code>nil</code> doesn’t make it obvious what type you are referring to,
-you can use e.g. <code>nil::string</code> to specify a value of type
+<code>nil</code> doesn't make it obvious what type you are referring to,
+you can use e.g. <code>nil::string</code> to specify a value of type
 <code>string?</code> (a type that denotes the value can be a string or
 nil), though in most cases type inference makes writing just
 <code>nil</code> sufficient.</p></li>
 <li><p><code>resource&lt;T&gt;</code> : an opaque object managed by the
-engine / C++ code. <code>T</code> is the type, e.g. <code>texture</code>
+engine / C++ code. <code>T</code> is the type, e.g. <code>texture</code>
 or <code>mesh</code>, the availability of these depends on what engine
 functionality is linked in to Lobster, see
 <code>builtin_functions_reference.html</code> for what functions create
@@ -236,9 +236,9 @@ different specialization).</p>
     x = 0.0
     y = 0.0</code></pre>
 <p>Additionally, you may specify default values, if these are given,
-then these values are not arguments to the constructor,
-e.g. <code>vec2 {}</code>.</p>
-<p>For more complex structs, you can use field names as “tags” in a
+then these values are not arguments to the constructor, e.g.
+<code>vec2 {}</code>.</p>
+<p>For more complex structs, you can use field names as "tags" in a
 constructor call, for example:</p>
 <pre><code>vec2 { x: 1, y: 2 }</code></pre>
 <p>Besides being more readable, it allows you to specify the fields in
@@ -294,11 +294,11 @@ type.</p>
 <pre><code>int2 { 1, 2 } * int2 { 4, 5 }  // results in int2 { 4, 10 }</code></pre>
 <p>All 5 also have have a combined assignment operator version,
 <code>+= -= *= /= %=</code>, which are implemented to have exactly the
-same effect as their expanded form, e.g. <code>a += 1</code> is always
+same effect as their expanded form, e.g. <code>a += 1</code> is always
 exactly the same as <code>a = a + 1</code>.</p>
 <p>In addition, the <code>+</code> operator also works as string
 concatenation if either side is of string type (the other side will be
-converted to a string representation if it wasn’t already), though in
+converted to a string representation if it wasn't already), though in
 most cases you should prefer to use string interpolation (see
 below).</p>
 <p>Unary minus (<code>-</code>) acts on the same types in the same way
@@ -329,9 +329,9 @@ next lower level of precedence, and both short-circuit:
 <code>b</code> otherwise. The unary operator <code>not</code> turns
 false values into <code>1</code> and others into <code>0</code>.</p>
 <p>The <code>is</code> operator returns true if the left hand side value
-is of the type specified on the right, e.g. <code>x is float</code>.</p>
+is of the type specified on the right, e.g. <code>x is float</code>.</p>
 <h2 id="function-definitions">Function Definitions</h2>
-<p>Lobster’s entire design centers around functions and how they can be
+<p>Lobster's entire design centers around functions and how they can be
 composed. It has both <em>named functions</em> and <em>function
 values</em>.</p>
 <h3 id="named-functions">Named Functions</h3>
@@ -350,18 +350,18 @@ to de-dedent less than the parent level. For example:</p>
     exp2</code></pre>
 <p>The return value of a function is determined by its
 <code>return</code> statements (see below) or <code>void</code> (no
-return value) otherwise, except for anonymous functions, which don’t
+return value) otherwise, except for anonymous functions, which don't
 need an explicit <code>return</code> (it is automatically the last
 expression evaluated).</p>
 <p>Arguments can be just an argument name (which will be available as a
-lexically scoped local variable inside body), or a typed name
-(e.g. <code>s:string</code>). If you don’t specify types, the function
-is generic, meaning it will receive types from the caller. If called
-with multiple combinations of incompatible arguments, you automatically
-get multiple “specializations” of the same function, meaning working
-with different types is very easy. Alternatively, you can specify
-generic types explicitly as well (more in <a
-href="type_checker.html">type system</a>).</p>
+lexically scoped local variable inside body), or a typed name (e.g.
+<code>s:string</code>). If you don't specify types, the function is
+generic, meaning it will receive types from the caller. If called with
+multiple combinations of incompatible arguments, you automatically get
+multiple "specializations" of the same function, meaning working with
+different types is very easy. Alternatively, you can specify generic
+types explicitly as well (more in <a href="type_checker.html">type
+system</a>).</p>
 <p>You can use :: instead of : for typed class/struct arguments, which
 allows you to access all fields / functions of that object directly,
 without having to prefix them with the argument name, e.g.:</p>
@@ -376,20 +376,20 @@ Both types of definition are equivalent.</p>
 a more general type.</p>
 <h3 id="function-calls">Function calls</h3>
 <p>Functions can be called as part of an expression with a similar
-syntax to its definition, e.g. <code>name(1, 2)</code>. Alternatively,
+syntax to its definition, e.g. <code>name(1, 2)</code>. Alternatively,
 you may use the <code>.</code> notation to place the first argument
 ahead of the call, for example <code>1.name(2)</code>. If you are using
 the <code>.</code> notation with a function that has just one argument,
 the <code>()</code> may be omitted, <code>v.length</code> being a common
 example. You are encouraged to only do this for simple functions that
-return a property of the argument, and don’t modify the argument.</p>
+return a property of the argument, and don't modify the argument.</p>
 <p>Optionally, you may also call functions without any parentheses at
 all, e.g. <code>print "hi!"</code>. This is only allowed for known
 functions (that are not ambiguous with variables) that have 1 expression
-argument (followed by any number of function value arguments that don’t
+argument (followed by any number of function value arguments that don't
 take arguments themselves, see below). It is up to the programmer to use
 good judgement on when to use this, the recommended use case is for
-calls used as statements (no nesting) that don’t cause additional
+calls used as statements (no nesting) that don't cause additional
 parentheses to be needed elsewhere. In case of doubt, use the standard
 call syntax.</p>
 <h3 id="function-values">Function Values</h3>
@@ -398,9 +398,9 @@ most general case, this has the syntax:</p>
 <pre><code>let f = fn(a:type, n:type): body</code></pre>
 <p>Or, if you are not specifying any types:</p>
 <pre><code>let f = fn a, b: body</code></pre>
-<p>You call these just like any other function,
-e.g. <code>f(1, 2)</code>. You currently must call them using a variable
-(not any expression, not even a field).</p>
+<p>You call these just like any other function, e.g.
+<code>f(1, 2)</code>. You currently must call them using a variable (not
+any expression, not even a field).</p>
 <p>The full <code>fn</code> syntax is infrequently used however, because
 most function values are created to be passed to other functions, and
 Lobster has a special syntax for this situation that is meant to mimic
@@ -417,27 +417,27 @@ simplification of the syntax:</p>
 g 10: print _</code></pre>
 <p>You may use anonymous arguments, which are variable names starting
 with an <code>_</code> that will automatically be declared as arguments
-for you. If you use multiple such arguments (e.g. <code>_a</code> and
+for you. If you use multiple such arguments (e.g. <code>_a</code> and
 <code>_b</code>), they will become arguments in the order they appear in
 the body. Using anonymous variables is only recommended for very simple
 function bodies.</p>
 <p>As mentioned above, you may drop the parentheses entirely if the body
-doesn’t have any argument declarations.</p>
+doesn't have any argument declarations.</p>
 <p>This style of syntax is intended to make each function that takes a
 function as argument (a <em>higher order function</em>) have the
-convenient syntax of a control structure, since that’s what those
-functions usually are meant to be anyway. Lobster’s built-in control
+convenient syntax of a control structure, since that's what those
+functions usually are meant to be anyway. Lobster's built-in control
 structures <code>if</code> <code>for</code> and <code>while</code> have
 syntax that is closely compatible with this function call syntax (and in
 the case of <code>for</code> allow the same argument
 simplifications).</p>
 <p>The return value of these functions is the last expression in
-<code>body</code>. You don’t use explicit <code>return</code>
+<code>body</code>. You don't use explicit <code>return</code>
 statements, as those are used with the enclosing named function instead,
-see “Explicit Returns” below.</p>
+see "Explicit Returns" below.</p>
 <p>Though not recommend (as readability suffers), it is even possible to
 pass multiple function values to a function, but then every function
-value except the first can’t omit the <code>fn</code> keyword:</p>
+value except the first can't omit the <code>fn</code> keyword:</p>
 <pre><code>g(10) i:
     print i
 fn:
@@ -469,15 +469,15 @@ equivalents.</p>
 at no cost, so besides guaranteed inlining, the other way they differ
 from other languages is that they are always <em>non-escaping</em>. What
 that means is, that while function values may use free variables (refer
-to variables from enclosing scopes), they are not “closures”, i.e. they
+to variables from enclosing scopes), they are not "closures", i.e. they
 do not close over (capture) these variables, they merely refer to them.
 This means these function values cannot be called from an environment
 where those free variables are not available anymore (this will
 typically result in a compile-time error). This makes a function value
 in Lobster a single code pointer without any variable information
-attached, and thus extremely cheap. The downside is that they can’t be
+attached, and thus extremely cheap. The downside is that they can't be
 used for things like certain kinds of callbacks, though you probably
-shouldn’t be using those in game-like contexts anyway ;)</p>
+shouldn't be using those in game-like contexts anyway ;)</p>
 <h3 id="explicit-returns">Explicit Returns</h3>
 <p>Using <code>return</code> you return from the closest lexically
 enclosing named function, e.g.:</p>
@@ -486,7 +486,7 @@ enclosing named function, e.g.:</p>
         if x == _:
             return true
     return false</code></pre>
-<p><code>find</code>’s return value is <code>false</code> unless the
+<p><code>find</code>'s return value is <code>false</code> unless the
 nested <code>return</code> gets evaluated, and then it becomes
 <code>true</code>. Importantly, <code>return true</code> is an
 expression that sits inside a function value being passed to
@@ -495,9 +495,9 @@ expression that sits inside a function value being passed to
 languages with function values). This is essential for functions to be
 able to work as proper control structures.</p>
 <p>If this feels like it is similar to exception handling in other
-programming languages, that’s because it is. Lobster even allows you to
-specify the name of the function to return from
-(e.g. <code>return "expression expected" from parse</code>), which is
+programming languages, that's because it is. Lobster even allows you to
+specify the name of the function to return from (e.g.
+<code>return "expression expected" from parse</code>), which is
 extremely handy when you want to be able to return errors from a bunch
 of helper functions without having to pass it back through all
 intermediate functions, such as when writing a parser. This is a simple
@@ -532,14 +532,14 @@ of it.</p>
 <p>Since functions and function values can be defined at any scope
 level, this means they can access variables from enclosing scopes,
 called <em>free variables</em>. Free variables are essential to make
-Lobster’s higher order functions convenient. References to free
+Lobster's higher order functions convenient. References to free
 variables are only valid within the scope they are defined, which
 luckily is almost always the case, but can be broken by storing a
 function value and then calling it at a later time outside of the
 context where its free variables were valid, which will result in a
 runtime error. Other languages use <em>closures</em> to ensure
 availability in all cases, which are very costly (parent stackframe(s)
-may have to be dynamically allocated) as opposed to Lobster’s approach
+may have to be dynamically allocated) as opposed to Lobster's approach
 which makes function values and free variables have no overhead compared
 to regular functions and variables.</p>
 <h3 id="overloading-and-dynamic-dispatch">Overloading and dynamic
@@ -567,14 +567,14 @@ there is statically only one option.</p>
 <p>Only if you call with an <code>A</code> argument however, you get
 dynamic dispatch, since the argument may point to a <code>B</code>
 value, and <code>B</code> has a different function implementation. A
-dynamic dispatch goes thru a “virtual table”, and while slower than
+dynamic dispatch goes thru a "virtual table", and while slower than
 static dispatch, is still very fast. As you can see, wether something is
-“virtual” gets decided per call, and with knowledge of the whole program
+"virtual" gets decided per call, and with knowledge of the whole program
 (all types and functions that can possibly exist), so typically less
 calls result in dynamic dispatch than in other languages.</p>
 <p>Types like <code>int</code> never participate in dynamic dispatch,
-since they don’t have a sub-class relation to any other type.</p>
-<p>Defining these functions can also be done “in line” in a class
+since they don't have a sub-class relation to any other type.</p>
+<p>Defining these functions can also be done "in line" in a class
 declaration, like so:</p>
 <pre><code>class A:
     def f(): return 1</code></pre>
@@ -584,7 +584,7 @@ now <code>this</code> instead of <code>a</code> above.</p>
 <p>Only the first argument to a function is used to resolve dynamic
 dispatch, but for static overloading, all arguments will be taken into
 consideration. Lobster used to have the ability to dispatch on all
-arguments, called “multi-methods”, which at least academically seem very
+arguments, called "multi-methods", which at least academically seem very
 elegant. In practice however, these are slow (require complicated
 look-up tables) and ambiguous (hard to tell which function will get
 called, sometimes accidentally combine unrelated functions into a
@@ -612,16 +612,16 @@ keyword:</p>
 <pre><code>class B : A
     def f(): return 1 + super f()</code></pre>
 <p>That <code>f()</code> is statically dispatched to call
-<code>A</code>’s version of <code>f</code> (or its superclass, if it
-doesn’t have one).</p>
-<p>You can also “dynamic dispatch” with <code>switch</code> ! You can
+<code>A</code>'s version of <code>f</code> (or its superclass, if it
+doesn't have one).</p>
+<p>You can also "dynamic dispatch" with <code>switch</code> ! You can
 use class names as switch cases:</p>
 <pre><code>switch x:
     case A: print x.field_in_a
     case B: print x.field_in_b</code></pre>
-<p>As you can see, the type of variable switched on will be “upgraded”
+<p>As you can see, the type of variable switched on will be "upgraded"
 to the type matched, so you can access its fields.</p>
-<p>switches on types are “exhaustive”, meaning if you don’t use a
+<p>switches on types are "exhaustive", meaning if you don't use a
 <code>default</code> case (and its a good habit to not use those) you
 will get a compile-time error if a type is not covered by a switch (all
 possible subclasses of the type of the switched on value).</p>
@@ -640,7 +640,7 @@ arguments. These are essentially treated as independent functions, in
 the sense that which is being called is always determined completely
 statically.</p>
 <p>Functions can even have default arguments, as long as the default
-arguments don’t cause ambiguity with other functions of the same
+arguments don't cause ambiguity with other functions of the same
 name:</p>
 <pre><code>def da(a:X, b, c = x + 1): return c
 def da(a:Y, b, c = x + 1): return c
@@ -653,8 +653,8 @@ arguments, it is always clear which variant is being called.</p>
 exactly the same default arguments, if any.</p>
 <p>Default arguments are simple substitution, writing
 <code>da(1, 2)</code> is exactly the same as writing
-<code>da(1, 2, x + 1)</code>. That’s why you can even use variables in
-these default arguments, as long as they’re in scope when called.</p>
+<code>da(1, 2, x + 1)</code>. That's why you can even use variables in
+these default arguments, as long as they're in scope when called.</p>
 <h3 id="operator-overloading.">Operator overloading.</h3>
 <p>You can overload what operators do on <code>class</code> and
 <code>struct</code> types, by writing a function that defines what the
@@ -710,13 +710,13 @@ really is almost the same as writing:</p>
 <p>The difference is that <code>b</code> is not available outside of
 <code>bar</code>, trying to access it will result in an error.</p>
 <p>But why would you want to do this, if it so similar? A small example
-doesn’t do this justice, but in games it is very common to need a lot of
+doesn't do this justice, but in games it is very common to need a lot of
 variables that track state of things that happen across frames, which
 are often used in just a single method, and end up cluttering the class
 they are in. By using <code>member</code>, you put the declaration
 closer to where it is used, which makes it easier to view all
 occurrences in larger classes. It also makes it easy to see that the
-variable is used only in a single method. This reduces “cognitive load”
+variable is used only in a single method. This reduces "cognitive load"
 in understanding the code, compared to seeing a long list of member
 variables at the top of a class and not knowing what their relationship
 is. Seeing that the variable is local to, say, <code>render()</code>
@@ -738,7 +738,7 @@ def bar():
     b += a
     return b</code></pre>
 <p>With again the main difference being that in the former,
-<code>b</code>’s scope is restricted to <code>bar</code>. This is not as
+<code>b</code>'s scope is restricted to <code>bar</code>. This is not as
 useful as <code>member</code> because there is only ever one instance
 possible, but still nice to use when you can to simplify the complexity
 of global scope elements.</p>
@@ -747,7 +747,7 @@ of global scope elements.</p>
 behave like their counterparts above, with one subtle difference: they
 will be reset to their initializer whenever a frame does NOT use the
 variable. Or rather, their state is persisted as long as frames keep
-using the state. It’s like “immediate mode”, but for state. For example
+using the state. It's like "immediate mode", but for state. For example
 using <code>static_frame</code> (<code>member_frame</code> works the
 same other than where the variable is stored):</p>
 <pre><code>def foo():
@@ -764,16 +764,16 @@ while gl.frame():
         print &quot;/&quot;</code></pre>
 <p>This will print an endless sequence of
 <code>0 1 2 / 0 1 2 / 0 1 2 / ..</code> until you close the window. Why
-is this special? Notice that <code>foo</code> didn’t need to be told
+is this special? Notice that <code>foo</code> didn't need to be told
 when to reset its sequence, that was automatic. In a game, you often
 have a lot of systems and states those systems can be in, and when
 something changes (the user goes into a menu or a particular gameplay or
-animation state), all these systems need to be “updated” to be aware of
+animation state), all these systems need to be "updated" to be aware of
 the new situation. Here, much like with an immediate mode gui where you
-don’t need to worry about creating and deleting widgets, simple control
-flow can dictate what systems are “active”, and their associated state
-automatically gets reset when the situation changes. It’s as if the
-variable <code>b</code> doesn’t exist when <code>foo</code> is not being
+don't need to worry about creating and deleting widgets, simple control
+flow can dictate what systems are "active", and their associated state
+automatically gets reset when the situation changes. It's as if the
+variable <code>b</code> doesn't exist when <code>foo</code> is not being
 used, and it automatically gets created/deleted for you.</p>
 <p>variables declared this way use more space and an extra check (an
 extra variable to check the frame count) but otherwise function just
@@ -790,12 +790,12 @@ inputs to fields in not 1:1.</p>
 <pre><code>constructor Foo(n:int):
     return Foo { map(n): 0, map(n): 1 }</code></pre>
 <p>This function behaves like a normal function, except that it marks
-type <code>Foo</code> as having a constructor, and hence forth doesn’t
+type <code>Foo</code> as having a constructor, and hence forth doesn't
 allow code outside of this function to be constructed using a plain
 <code>{}</code> constructor, it must call this function instead. This is
 because a constructor may encode an invariant, such as in this case that
 the object is always initialized to two vectors of the same length with
-elements initialized to 0 and 1 respectively. You couldn’t do this with
+elements initialized to 0 and 1 respectively. You couldn't do this with
 a plain constructor, since there would be no way to take the variable
 <code>n</code> into account.</p>
 <p>Another common case is wanting to make a variable non-nil, but there
@@ -803,7 +803,7 @@ is no way to construct a general instance of the type that would work
 for all cases. Now you can make it depend on a caller supplied
 argument.</p>
 <p>You call these constructors with regular function calling syntax
-(e.g. <code>Foo(10)</code>) instead of with <code>{}</code>, to make it
+(e.g. <code>Foo(10)</code>) instead of with <code>{}</code>, to make it
 clear that additional code may be executed beyond plain field
 initialization (and that a function is called).</p>
 <p>You may create overloads for constructors much like regular
@@ -820,7 +820,7 @@ anything -&gt; <code>string</code>)</p></li>
 <li><p>As documentation.</p></li>
 <li><p>To get simpler/earlier type errors.</p></li>
 </ul>
-<p>As we’ve seen, you can type function arguments and UDT fields.</p>
+<p>As we've seen, you can type function arguments and UDT fields.</p>
 <p>For more detail, see the <a href="type_checker.html">type
 system</a>.</p>
 <h2 id="enums">Enums</h2>
@@ -828,10 +828,10 @@ system</a>.</p>
     foo = 1
     bar
     baz</code></pre>
-<p>An <code>enum</code> defines a “strongly typed alias” for the
+<p>An <code>enum</code> defines a "strongly typed alias" for the
 <code>int</code> type. What this means is that these values are fully
 compatible with <code>int</code> in any use, but a regular
-<code>int</code> can’t be passed to a context where an enum type is
+<code>int</code> can't be passed to a context where an enum type is
 explicitly requested.</p>
 <p>You can convert integers explicitly to an enum with a coercion
 function, e.g. <code>example(1)</code> will create a value equivalent in
@@ -855,8 +855,8 @@ test all values of an enum (if there is no default case).</p>
     true</code></pre>
 <p>Because they are enums, they have the same typing rules: a
 <code>bool</code> can be used anywhere an <code>int</code> is expected,
-but not the other way around. Similarly, you can use
-e.g. <code>bool(1)</code> to convert ints.</p>
+but not the other way around. Similarly, you can use e.g.
+<code>bool(1)</code> to convert ints.</p>
 <h2 id="programs-structure">Programs Structure</h2>
 <p>A lobster program is like the body of a function: a list of
 expressions on separate lines, defined by a single file, the main file
@@ -881,7 +881,7 @@ being compiled) that any following import statements (recursively) can
 use.</p>
 <p>You may use the keyword <code>private</code> at the top level in a
 file to prefix structs, variables, functions, enums, fields and methods
-that you don’t want to be visible outside that file.</p>
+that you don't want to be visible outside that file.</p>
 <h2 id="memory-management">Memory Management</h2>
 <p>Lobster uses (compile time) reference counting as its form of
 management for many reasons. Besides simplicity and space efficiency,
@@ -890,10 +890,10 @@ spent for a given amount of code, since memory management cost is spread
 equally through all code, instead of causing possibly long pauses like
 with garbage collection. Lobster has a custom allocator that is very
 fast.</p>
-<p>Most reference counting happens at compile time using a “lifetime
-analysis” algorithm, details <a
+<p>Most reference counting happens at compile time using a "lifetime
+analysis" algorithm, details <a
 href="memory_management.html">here</a>.</p>
-<p>Reference counting has one problem, which is that it can’t deallocate
+<p>Reference counting has one problem, which is that it can't deallocate
 cycles. For example, this code:</p>
 <pre><code>class rec:
     r:rec?
@@ -905,26 +905,26 @@ x = nil</code></pre>
 <p>will cause a memory leak, since initially the object that
 <code>x</code> points at has a reference count of 1, then that count
 increases to 2 because it now points to itself, and then when the count
-is reduced to 1 because of <code>x</code>’s reference going away, we now
+is reduced to 1 because of <code>x</code>'s reference going away, we now
 have an object with no outside references that still thinks its being
 referenced, thus not deallocated. That is a leak. Now this is a simple
 example, but in the general case with complex data structures, it is not
 generally possible for a programming language to ensure this never
 happens.</p>
 <p>Leaks like these are not common, as they only occur with graph-like
-structures or “parent reference” common in more complicated data
+structures or "parent reference" common in more complicated data
 structures. An example in a game might be if two game units refer to
-each other as their “enemy”, and then both die at the same time with the
+each other as their "enemy", and then both die at the same time with the
 programmer forgetting to reset the enemy field before they die.</p>
 <p>Lobster deals with this by detecting that such objects are left over
 at the end of the program, and alerting the programmer that there are
-leaks. It then outputs a “leak report” with all leaks in somewhat
+leaks. It then outputs a "leak report" with all leaks in somewhat
 readable form (with types and values), making it easier for the
 programmer to figure out what caused the leak. The programmer can then
 easily fix the leak by setting the reference causing the cycle to
 <code>nil</code>, like clearing the enemy field when a unit dies, or by
 writing <code>x.r = nil</code> in the above simplified example.</p>
-<p>More details on Lobster’s <a href="memory_management.html">memory
+<p>More details on Lobster's <a href="memory_management.html">memory
 management</a>.</p>
 <h2 id="control-structures">Control Structures</h2>
 <p>As noted, all of these follow closely the function call syntax
@@ -942,7 +942,7 @@ else:
     print &quot;way too big!&quot;</code></pre>
 <p><code>elif</code> is simply short for writing <code>else: if</code>.
 You can also write these on a single line, which is only recommended
-when very short, e.g. <code>if a &lt; 0: 0 else: a</code></p>
+when very short, e.g. <code>if a &lt; 0: 0 else: a</code></p>
 <p><code>for</code> is the only built-in construct taking 0 to 2
 arguments to the block: the element being iterated over, and iteration
 index.</p>
@@ -971,7 +971,7 @@ converts an expression into a function value. When you think about it,
 even in languages like C the condition of a while is the only part of
 the language that can be executed more than once yet does not use /
 cannot use the block <code>{}</code> syntax. This exception is carried
-over in Lobster. This is not great for readability so isn’t generally
+over in Lobster. This is not great for readability so isn't generally
 used elsewhere.</p>
 <p><code>while</code> returns void. A similar function int module
 <code>std</code> called <code>collectwhile</code> returns a vector of
@@ -999,7 +999,7 @@ Cases may test for multiple values, even ranges (which are inclusive).
 When testing for class instances, the cases are types which must
 exhaustively cover all non-abstract sub-classes of the class type.</p>
 <p><code>guard</code> is a special variant of <code>if</code> for
-writing code in “early-out” style:</p>
+writing code in "early-out" style:</p>
 <pre><code>guard a &gt;= 0:
     print &quot;error: a is negative!&quot;
 imagine_10_lines_of_code_processing_a_here()</code></pre>
@@ -1112,7 +1112,7 @@ essentially runs one Lobster VM per hardware thread / core, each running
 an independent and isolated copy of your Lobster program. This prevents
 entire classes of potential concurrency bugs, like race conditions.</p>
 <p>Communication/synchronisation between the threads is explicit through
-the use of a “tuple space” (a bag of Lobster objects used as messages)
+the use of a "tuple space" (a bag of Lobster objects used as messages)
 which are copied rather than shared. While copying is potentially slower
 than sharing, it allows each Lobster VM to run as-if it was
 single-threaded, with no synchronisation primitives to slow it down (for
@@ -1120,7 +1120,7 @@ example, memory allocators in Lobster are single-threaded), no GIL
 (global interpreter lock) or other multi-threading overhead, so overall
 performance can easily be higher than shared memory concurrency
 systems.</p>
-<p>The use of tuple spaces and 1 VM per thread suits “worker” style
+<p>The use of tuple spaces and 1 VM per thread suits "worker" style
 concurrency, for example if you have 100 parallel tasks to perform, you
 throw each of those in the tuple space, and the individual VMs grab and
 complete them, given automatic load balancing for however many cores are

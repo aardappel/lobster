@@ -42,12 +42,12 @@ both time and space, it affects the cognitive model of the programmer in
 what data structures can be represented, it affects latency,
 interoperability, and much more.</p>
 <p>Yet, it is often ignored and almost invisible at the same time. Many
-consider it to be a “solved” problem with probably 95% of programming
+consider it to be a "solved" problem with probably 95% of programming
 languages out there using some form of garbage collection: allocate,
 then worry about reclaiming unreachable objects later.</p>
-<p>I think it is far from solved. If I’d have to make a top-10 of “least
-elegant algorithms in computer science”, the #1 would be an easy pick.
-The idea that just because “who is pointing to this object” is a hard
+<p>I think it is far from solved. If I'd have to make a top-10 of "least
+elegant algorithms in computer science", the #1 would be an easy pick.
+The idea that just because "who is pointing to this object" is a hard
 question we are not going to even try to track it, and instead
 repeatedly scan large parts of the heap to recover that information
 later, really makes me cringe.</p>
@@ -56,10 +56,10 @@ not been great. Low level languages would use manual memory management
 (efficient but error prone), and some have used reference counting. Then
 there were languages based on linear types or regions, but those never
 entered the mainstream.</p>
-<p>I’ve personally always thought of reference counting as the “least
-bad” solution, which is why it was initially used for Lobster. Many
-people dismiss it out-right because it can’t collect cycles, but I’ve
-found that, in practical use, getting a “cycle report” at program exit
+<p>I've personally always thought of reference counting as the "least
+bad" solution, which is why it was initially used for Lobster. Many
+people dismiss it out-right because it can't collect cycles, but I've
+found that, in practical use, getting a "cycle report" at program exit
 that helps the programmer know where to break those cycles, is largely
 sufficient.</p>
 <p>I mentioned linearity (every object can only have one pointer to it)
@@ -68,10 +68,10 @@ all), and I have implemented languages in the past that implemented both
 of those strategies. While viable, I felt at the time they required too
 much programmer assistance to be mainstream.</p>
 <h2 id="ownership-models">Ownership models</h2>
-<p>There is a memory management design space which I’ll collectively
-call “Ownership” which is a generalization of the linearity models: one
+<p>There is a memory management design space which I'll collectively
+call "Ownership" which is a generalization of the linearity models: one
 pointer always owns an object (and is responsible for its deallocation),
-and others merely “borrow” it.</p>
+and others merely "borrow" it.</p>
 <p>This now poses new questions: How do we determine who is the owner?
 When is borrowing allowed? How do we detect a borrower that outlives an
 owner? What about an owner being modified while there are borrowers? Do
@@ -83,8 +83,8 @@ they are becoming more mainstream:</p>
 questions at compile time, at the cost of much programmer
 assistance.</li>
 <li>Modern C++ with <code>std::unique_ptr</code> is essentially an
-ownership model, except one that answers questions like “How do we
-detect that a borrower outlives an owner” with “We don’t”. But even with
+ownership model, except one that answers questions like "How do we
+detect that a borrower outlives an owner" with "We don't". But even with
 such caveats, it largely works well, and is a huge improvement over the
 manual memory management of C and even the manual RAII of earlier
 C++.</li>
@@ -115,27 +115,27 @@ href="https://github.com/doctorn/micro-mitten">Mitten</a>.</li>
 management. It just needs to be made more friendly than Rust for most
 programmers to want to come on board. Lobster offers a possible
 direction.</p>
-<h2 id="lobsters-memory-management-strategy">Lobster’s Memory Management
+<h2 id="lobsters-memory-management-strategy">Lobster's Memory Management
 Strategy</h2>
 <p>This has two parts, its by-value model and ownership analysis.</p>
 <h3 id="in-line-by-value-structs">In-line, by-value structs</h3>
 <p>The best memory management is.. not to have to manage it at all! You
 can make an incredibly fast memory manager, but it will never beat
 simply having less objects to manage. This is the thinking behind
-Lobster’s by-value structs, which offer similar “zero abstraction cost”
+Lobster's by-value structs, which offer similar "zero abstraction cost"
 objects to ones available in C/C++, Rust, and even C#, but surprisingly
 not in most other languages. It is the most effective and cheapest way
 towards more efficient memory use that frankly every language should
 have.</p>
 <p>Essentially, you declare an object with the <code>struct</code>
 keyword instead of the usual <code>class</code>, which causes Lobster to
-always allocate this object inline in the parent, where “parent” can be
+always allocate this object inline in the parent, where "parent" can be
 another struct or class, a vector, or simply the stack (as a local
 variable). On an implementation level, it is as if you added all the
 fields of the struct as fields/variables to the parent, so writing
 <code>s.x</code> (where <code>s</code> is a struct) is just as cheap as
 writing <code>x</code>. The struct disappears.</p>
-<p>This of course has limitations, in that you’re completely dependent
+<p>This of course has limitations, in that you're completely dependent
 on the lifetime of the parent, and that you assign these kinds of struct
 by copy, rather than by pointer. That means it is not great for large
 objects, but usually up to 4 fields or so this is still more efficient
@@ -147,7 +147,7 @@ also allow mutation.</p>
 could use a short-lived reference instead, like is common in C++. This
 is however not actually faster in many cases, and more importantly, a
 reference would be subject to the ownership analysis below. By making
-them copies, we essentially “reduce pressure” on that algorithm, meaning
+them copies, we essentially "reduce pressure" on that algorithm, meaning
 it is more likely to produce optimal ownership assignments and less
 errors.</p>
 <p>Having these by-value structs is especially important in a language
@@ -156,25 +156,25 @@ graphics, which make intensive use of 2D/3D vectors. Having such types
 be as cheap as possible is important.</p>
 <h3 id="ownership-analysis">Ownership Analysis</h3>
 <p>Lobster combines its original (runtime) reference counting with a
-ownership analysis algorithm, to get “compile time reference
-counting”.</p>
+ownership analysis algorithm, to get "compile time reference
+counting".</p>
 <p>This is a fully automatic algorithm that mostly does not require
 programmer intervention. In my personal testing, working with several
 dozens of Lobster programs (many of which medium sized game prototypes)
 I needed to make minor changes in only 2 locations when transitioning
-from runtime to compile-time reference counting, the rest “just worked”.
+from runtime to compile-time reference counting, the rest "just worked".
 Or rather, I was able to make the algorithm jump through hoops such that
-code changes weren’t necessary.</p>
+code changes weren't necessary.</p>
 <p>Essentially, the algorithm picks a single owner for each new heap
 allocation, which is usually the first variable, field, or vector
 element it gets assigned to, and then tries as best as possible to make
-all uses from there on “borrows”. The initial ownership and all borrows
+all uses from there on "borrows". The initial ownership and all borrows
 do not require any runtime reference counting. If somewhere else in the
 code something wants to own that same value, it will insert a reference
 count increase only for this particular use (in Rust, this would cause
 an error instead). Using this analysis was able to remove around 95% of
 runtime reference count operations.</p>
-<p>This is the default behavior, since it is “good enough” of an
+<p>This is the default behavior, since it is "good enough" of an
 optimisation for most code, and very convenient for the programmer. For
 those cases where the programmer wants maximum control however, they can
 opt-in to a more Rust-like model on a per variable basis, which will
@@ -206,11 +206,11 @@ eliminated entirely in the future.</p>
 <pre><code>variable x still has 1 borrowers
 
 x used in &lt;feature&gt; without being borrowed</code></pre>
-<p>These two I’ve never even seen happen, they largely exist because I
-am not smart enough to write a formal proof that they can’t happen, and
+<p>These two I've never even seen happen, they largely exist because I
+am not smart enough to write a formal proof that they can't happen, and
 then ensure that my code matches the proof :)</p>
 <h2 id="the-algorithm-in-detail">The algorithm in detail</h2>
-<p>The “ground truth” for how the algorithm is to be found in
+<p>The "ground truth" for how the algorithm is to be found in
 <code>typecheck.h</code>, this section is merely a description of it. If
 you were hoping for pages of equations like the typical PL paper, I am
 going to have to disappoint.</p>
@@ -218,7 +218,7 @@ going to have to disappoint.</p>
 <p>Wait, what, the type checker? Yes, as much as I would have preferred
 to make the ownership analysis a standalone algorithm, it is interwoven
 with type checking. The reason for this is that a lot of the power of
-Lobster centers around its “Flow Sensitive Type Specialization”, meaning
+Lobster centers around its "Flow Sensitive Type Specialization", meaning
 it type checks functions in call-graph order, and specializes them based
 on types. As it turns out, to most optimally remove reference count
 operations, <em>we want to specialize on ownership as well</em>. Making
@@ -228,7 +228,7 @@ decided to interleave them.</p>
 <p>The ownership analysis works differently from most other languages in
 that rather than working just on variables and other storage locations,
 it works on all values in the language.</p>
-<p>To be more precise, every AST node has a ownership “kind” it expects
+<p>To be more precise, every AST node has a ownership "kind" it expects
 of its children, and an ownership kind it passes to its parent. The core
 of the algorithm is thus the matching that takes place between child and
 parent:</p>
@@ -259,7 +259,7 @@ default to borrowing these values, since the L-value already owns it. We
 have a stack of currently active L-values, and the ownership kind
 returned by the expression refers to these stack elements. These stack
 values are also reference counted, as multiple borrows may be active at
-once. This reference count decreases as borrowed values get “consumed”.
+once. This reference count decreases as borrowed values get "consumed".
 Mutating a borrowed L-value with a reference count &gt; 0 produces the
 above error. The reference count not being 0 at the end is a bug in the
 ownership analysis :)</p>
@@ -271,8 +271,8 @@ generally made ownership analysis more difficult. This could be
 revisited in the future once the consequences of the algorithm are
 better understood, or maybe when more accurate dataflow information is
 present.</p>
-<p>The end of a variable’s lifetime is typically the end of the scope,
-though making it its “last use” is being worked on, see
+<p>The end of a variable's lifetime is typically the end of the scope,
+though making it its "last use" is being worked on, see
 <code>return</code> below.</p>
 <h3 id="function-specialization-by-ownership.">Function specialization
 by ownership.</h3>
@@ -291,8 +291,8 @@ f(a)</code></pre>
 the second call would have been less efficient, or even an error. Now
 they both get to be maximally efficient because of specialization. Now
 in this simple example it is easy to see that <code>x</code> should
-really borrow, but it isn’t always that trivial, and would need a more
-complex ownership analysis that employs “logical variables” much like
+really borrow, but it isn't always that trivial, and would need a more
+complex ownership analysis that employs "logical variables" much like
 type inference currently does (assuming you want to do this without help
 of the programmer).</p>
 <p>There are currently some exceptions to this:</p>
@@ -306,13 +306,13 @@ future.</p>
 types</h3>
 <p>These are currently how the different AST types interact lifetime
 wise with their children (wants) and parent (results).</p>
-<p>Note that most of code also uses a ownership kind of “any”, which
-means either that the ownership doesn’t matter (for e.g. scalars) or
+<p>Note that most of code also uses a ownership kind of "any", which
+means either that the ownership doesn't matter (for e.g. scalars) or
 that the recipient is cool with any kind of ownership.</p>
 <ul>
 <li>Assignment wants to own, and results in borrow.</li>
 <li><code>if</code> results in the union of the ownership kinds of both
-branches. The union is simple if both are equal or either side doesn’t
+branches. The union is simple if both are equal or either side doesn't
 care. If they differ, it defaults to own. It has specialized code to
 detect if one of the branches never returns (has a return statement in
 it that escapes the <code>if</code>) in which the ownership kind is that
@@ -329,9 +329,9 @@ is guaranteed ignored (<code>a and b or c</code> never results in
 incompatible (<code>"a" or "b"</code> results in a string that wants to
 be owned, but <code>[ 1 ] or "hello"</code> results in a
 <code>bool</code> with the values immediately deleted).</li>
-<li><code>while</code> borrows its condition and doesn’t care about the
+<li><code>while</code> borrows its condition and doesn't care about the
 body.</li>
-<li><code>for</code> borrows what it iterates over and doesn’t care
+<li><code>for</code> borrows what it iterates over and doesn't care
 about its body. It produces an element variable that wants to be owned.
 Note: this may change in the future to also allow borrowing.</li>
 <li>String constants conceptually result in an owned value (they are a
@@ -341,12 +341,12 @@ to borrow (like <code>+</code> or many builtin functions) and thus
 produce a lot of reference count churn. To avoid this, the VM allocates
 strings on first use, but never lets the reference count drop to 0,
 meaning they can safely be borrowed, and reduce total reference
-counting. Or more simply: it’s as if there exists an anonymous global
-variable for each string constant that’s actually used, and which you
+counting. Or more simply: it's as if there exists an anonymous global
+variable for each string constant that's actually used, and which you
 borrow from.</li>
 <li><code>+</code> on strings wants to borrow, and returns owned. This
-is the same in principle for all binary operators, but thanks to “inline
-structs” this doesn’t matter for most of them anymore.</li>
+is the same in principle for all binary operators, but thanks to "inline
+structs" this doesn't matter for most of them anymore.</li>
 <li>Built-in functions by default want to borrow all their args, and
 return an owned value. There are exceptions to this rule, which can be
 marked when declaring a built-in, mainly for functions that directly

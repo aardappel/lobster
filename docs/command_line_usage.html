@@ -43,10 +43,10 @@ run.</p></li>
 available from <code>command_line_arguments()</code>. Must be last on
 the command-line.</p></li>
 <li><p><code>--pak</code> : generates a pakfile (currently always called
-“<code>default.lpak</code>”) in the same folder as the
-<code>.lobster</code> file it reads, and doesn’t run the program
+"<code>default.lpak</code>") in the same folder as the
+<code>.lobster</code> file it reads, and doesn't run the program
 afterwards. If you run lobster with no arguments at all, it will try to
-load “<code>default.lpak</code>” from the same folder it resides in.
+load "<code>default.lpak</code>" from the same folder it resides in.
 Thus distributing programs created in lobster is as simple as packaging
 up the lobster executable with a pakfile. The pakfile contains the
 bytecode, and any data files you have specified with the
@@ -63,7 +63,7 @@ be resolved, or any loading the running program does. Does the same as
 adding <code>import from "RELDIR"</code> to the top of your
 program.</p></li>
 <li><p><code>--runtime-no-asserts</code> : Compile with asserts off,
-don’t use unless you know what you’re doing.</p></li>
+don't use unless you know what you're doing.</p></li>
 <li><p><code>--runtime-asserts</code> : Compile with asserts on
 (default).</p></li>
 <li><p><code>--runtime-stack-traces</code> : Compile with asserts on +
@@ -80,8 +80,8 @@ graphical debugger on errors.</p></li>
 compile this file and run it. This is useful when running Lobster from
 an editor, where you may be editing a module that is not the main file,
 would like to see that it compiles by itself, but to run it need to be
-launching the main Lobster program it belongs to
-(e.g. <code>main.lobster</code> in the same folder).</p></li>
+launching the main Lobster program it belongs to (e.g.
+<code>main.lobster</code> in the same folder).</p></li>
 <li><p><code>--wait</code> : makes the compiler wait for commandline
 input before it exits. Useful in Windows batch files.</p></li>
 <li><p><code>--noconsole</code> : Close console window
@@ -112,7 +112,7 @@ compiler does not try to do a full compilation, but simply tries to
 answer the query, including ignoring errors or aborting half-way if it
 has to. This option is for use by an IDE or LSP server implementation.
 All further args are passed to the query. The first arg is the kind of
-query (e.g. <code>definition</code> or <code>complete</code>). The
+query (e.g. <code>definition</code> or <code>complete</code>). The
 second arg is the file this query should take place in (as a relative
 path, i.e <code>foo/bar.lobster</code>). The 3rd arg is the line where
 the query should happen. The 4th arg is the identifier the query is
@@ -124,7 +124,7 @@ fields/methods.</p></li>
 <p>Lobster source code may start with a shebang <code>#!</code> so you
 can embed the command-line in a Lobster script.</p>
 <h2 id="default-directories">Default directories</h2>
-<p>It’s useful to understand the directories lobster uses, both for
+<p>It's useful to understand the directories lobster uses, both for
 reading source code files and any data files the program may use:</p>
 <ul>
 <li><p>the root repo directory: This is the main folder that has the
@@ -136,7 +136,7 @@ of it.</p></li>
 platforms, but often a special directory on mobile platforms.</p></li>
 <li><p>On Linux additionally it can load files from
 <code>/usr/share/lobster/</code> (or whatever path was configured for
-install by CMake, see <code>DATADIR</code>) if the above paths don’t
+install by CMake, see <code>DATADIR</code>) if the above paths don't
 work. This is to allow package managers to install Lobster in the system
 directories.</p></li>
 </ul>
