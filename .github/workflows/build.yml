@@ -98,6 +98,27 @@ jobs:
         name: Mac Lobster binary
         path: bin/lobster
 
+  build-mac-silicon:
+    name: Build Mac Silicon
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v1
+    - name: cmake
+      working-directory: dev
+      run: sh build_osx.sh
+    - name: build
+      working-directory: dev/xcode-cmake
+      run: xcodebuild -toolchain clang -configuration Release -target lobster
+    - name: test
+      run: bin/lobster tests/unittest.lobster
+    - name: test lsp
+      run: cd dev/lsp && npm install && npm test
+    - name: upload build artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: Mac Lobster binary
+        path: bin/lobster
+        
   build-android:
     name: Build Android (on Linux)
     runs-on: ubuntu-latest
