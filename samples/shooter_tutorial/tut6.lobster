@@ -53,13 +53,13 @@ while gl.frame() and gl.button("escape") != 1:
             let dir = float2 { (gl.button("d") >= 1) - (gl.button("a") >= 1),
                           (gl.button("s") >= 1) - (gl.button("w") >= 1) }
             let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
-            if not any(abs(newpos) > float(gl.window_size()) / scale / 2):
+            if not any(abs(newpos) > float(gl.window_size()) / scale / 2.0):
                 playerpos = newpos
 
             let tomouse = normalize(gl.local_mouse_pos(0) - playerpos)
 
             if lastenemy < gl.time():
-                enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
+                enemies.push(enemy { sincos(rnd(360)) * worldsize * 2.0, enemymaxhp })
                 lastenemy += enemyrate
                 enemyrate *= 0.999
 
@@ -72,16 +72,16 @@ while gl.frame() and gl.button("escape") != 1:
                 let playerdir = normalize(playervec)
                 e.pos += playerdir * gl.delta_time() * enemyspeed
                 for(bullets) b:
-                    if magnitude(b.pos - e.pos) < 1:
+                    if magnitude(b.pos - e.pos) < 1.0:
                         e.hp--
                         if(e.hp <= 0):
                             e.hp = 0
                             score++
-                        b.pos = float2_x * worldsize * 10
-                if magnitude(playervec) < 1:
-                    playerhealth -= gl.delta_time() * 50
-                    if playerhealth <= 0:
-                        playerhealth = 0
+                        b.pos = float2_x * worldsize * 10.0
+                if magnitude(playervec) < 1.0:
+                    playerhealth -= gl.delta_time() * 50.0
+                    if playerhealth <= 0.0:
+                        playerhealth = 0.0
                         highscore = max(highscore, score)
                         playing = false
                 gl.color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
@@ -96,7 +96,7 @@ while gl.frame() and gl.button("escape") != 1:
                         gl.circle(0.2, 20)
 
             bullets = filter(bullets) b:
-                magnitude(b.pos) < worldsize * 2
+                magnitude(b.pos) < worldsize * 2.0
 
             gl.translate gl.local_mouse_pos(0):
                 gl.line_mode 1:

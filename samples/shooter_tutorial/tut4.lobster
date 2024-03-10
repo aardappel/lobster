@@ -28,9 +28,9 @@ while gl.frame() and gl.button("escape") != 1:
     gl.scale(scale)
 
     let dir = float2 { (gl.button("d") >= 1) - (gl.button("a") >= 1),
-                  (gl.button("s") >= 1) - (gl.button("w") >= 1) }
+                     (gl.button("s") >= 1) - (gl.button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
-    if not any(abs(newpos) > float(gl.window_size()) / scale / 2):
+    if not any(abs(newpos) > float(gl.window_size()) / scale / 2.0):
         playerpos = newpos
 
     let tomouse = normalize(gl.local_mouse_pos(0) - playerpos)
@@ -46,7 +46,7 @@ while gl.frame() and gl.button("escape") != 1:
                 gl.circle(0.2, 20)
 
     bullets = filter(bullets) b:
-        magnitude(b.pos) < worldsize * 2
+        magnitude(b.pos) < worldsize * 2.0
 
     gl.translate gl.local_mouse_pos(0):
         gl.line_mode 1:

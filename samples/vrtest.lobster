@@ -24,7 +24,7 @@ def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
                 let branches = rnd(3) + 1
                 for(branches) i:
                     mg.rotate(float3_z, 360 * i / branches):
-                        mg.rotate(float3(axis, 0), 12 * branches):
+                        mg.rotate(float3(axis, 0.0), 12 * branches):
                             mg.scale(narrowf):
                                 mg.sphere(1.0)
                                 model_tree(numb - 1, branchl, narrowf, leafs, leafc)
