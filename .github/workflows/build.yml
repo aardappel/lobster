@@ -78,7 +78,7 @@ jobs:
         path: bin/lobster.exe
 
   build-mac:
-    name: Build on ${{ matrix.os }}
+    name: Build Mac
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
