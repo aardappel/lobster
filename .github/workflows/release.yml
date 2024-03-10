@@ -68,12 +68,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            artifact_name: lobster_osx_release.zip
-            asset_name: Release ${{ github.ref_name }} for macOS (Intel)
+          - os: macos-12
+            artifact_name: lobster_osx_x64_release.zip
+            asset_name: Release ${{ github.ref_name }} for macOS (X64 Intel)
           - os: macos-14
             artifact_name: lobster_osx_arm_release.zip
-            asset_name: Release ${{ github.ref_name }} for macOS (Apple Silicon)
+            asset_name: Release ${{ github.ref_name }} for macOS (Apple ARM Silicon)
     steps:
       - uses: actions/checkout@v1
       - name: cmake

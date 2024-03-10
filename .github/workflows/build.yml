@@ -83,10 +83,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            artifact_name: Mac Lobster binary
+          - os: macos-12
+            artifact_name: Mac (Apple x64 Intel) Lobster binary
           - os: macos-14
-            artifact_name: Mac (Apple Silicon) Lobster binary
+            artifact_name: Mac (Apple ARM Silicon) Lobster binary
     steps:
     - uses: actions/checkout@v1
     - name: cmake
