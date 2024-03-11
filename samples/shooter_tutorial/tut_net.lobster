@@ -2,23 +2,16 @@ import std
 import vec
 import color
 import gl
+import imgui
+
+let MAX_PLAYERS = 4
 
 fatal(gl.window("Shooter Tutorial Co-op", 640, 480))
 
-check(gl.set_font_name("data/fonts/US101/US101.ttf") and gl.set_font_size(32), "can\'t load font!")
+check(gl.set_font_name("data/fonts/US101/US101.ttf"), "can\'t load font!")
 
-let args = command_line_arguments()
-check(args.length >= 1, "Run with first arg as \"host\" or \"peer\"")
-
-let is_host =
-    if args[0] == "host":
-        true
-    elif args[0] == "peer":
-        false
-    else:
-        print "Run with first arg as \"host\" or \"peer\""
-        set_exit_code(1)
-        return
+im.init(false, im.config_docking_enable, 3.0)
+check(im.add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0), "can\'t load font!")
 
 let steamerr = steam.init(0, true, true)
 if steamerr == 0:
@@ -35,14 +28,19 @@ let ident = steam.net_identity()
 check(steam.p2p_listen(), "Unable to open listen socket")
 
 var host_ident = ""
-if is_host:
-    host_ident = ident
-    print "Host: Your identity is = {ident}"
-else:
-    host_ident = args[1]
-    check(args.length >= 2, "Peer needs remote identity argument")
-    check(steam.p2p_connect(host_ident), "Unable to open connection to host")
-    print "Peer: Your identity is = {ident}"
+var is_host = false
+
+enum GameState:
+    GS_INIT
+    GS_CREATING_LOBBY
+    GS_JOINING_LOBBY
+    GS_IN_LOBBY
+    GS_HOST_WAITING_FOR_PEERS
+    GS_PEER_WAITING_FOR_HOST
+    GS_PEER_WAITING_FOR_PEERS
+    GS_START_GAME
+    GS_PLAYING
+    GS_RESET
 
 abstract class message
 
@@ -121,8 +119,7 @@ let enemymaxhp = 5
 var enemies = []
 var lastenemy = gl.time()
 
-var playing = false
-var waiting_for_players = false
+var game_state = GS_INIT
 
 // Networking
 var incoming = []::message
@@ -137,7 +134,7 @@ def renderpointytriangle(pos, dir):
         gl.rotate_z dir:
             gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
 
-while gl.frame() and gl.button("escape") != 1:
+while gl.frame():
     // Update networking
     steam.update()
     let peers = steam.p2p_get_connections()
@@ -164,9 +161,9 @@ while gl.frame() and gl.button("escape") != 1:
                         if not is_host and c != host_ident:
                             check(steam.p2p_connect(c), "Unable to connect to peer \'{c}\'")
                         player { c }
-                waiting_for_players = true
+                game_state = GS_PEER_WAITING_FOR_PEERS
             case m_end_game:
-                playing = false
+                game_state = GS_RESET
             case m_player_pos:
                 let pi = find(players): _.ident == msg.ident
                 guard pi != -1
@@ -198,11 +195,12 @@ while gl.frame() and gl.button("escape") != 1:
     gl.clear(color_black)
     gl.color(color_white)
 
-    if playing:
+    if game_state == GS_PLAYING:
         // Filter out any players that we lost connections to
         players = filter(players): has_peer(_.ident)
         // Quit if we lose connection to the host
-        check(is_host or has_peer(host_ident), "Lost connection to the host")
+        guard (is_host or has_peer(host_ident)) and gl.button("escape") != 1:
+            game_state = GS_RESET
 
         let alive_players = filter(players): _.alive
         if alive_players.length:
@@ -271,34 +269,96 @@ while gl.frame() and gl.button("escape") != 1:
                     renderpointytriangle(p.pos, p.dir)
         elif is_host:
             send(m_end_game {})
-    elif waiting_for_players:
-        // We're ready if we have a connection to each of the other players
-        let ready = all(map(players): has_peer(_.ident))
-        if ready:
-            playerhealth = 100.0
-            bullets = []
-            lastbullet = gl.time()
-            enemyrate = 1.0
-            enemies = []
-            lastenemy = gl.time()
-            waiting_for_players = false
-            playing = true
-
-        let msg = "waiting for all players to be ready..."
-        gl.translate (gl.window_size() - gl.text_size(msg)) / 2:
-            gl.text(msg)
+        gl.set_font_size(32)
+        gl.text("health: {ceiling(playerhealth)} - score: {localplayer.score}")
     else:
-        let msg = if is_host:
-            "press space to play! ({peers.length + 1} players)"
-        else:
-            "waiting for host to start game..."
-        gl.translate (gl.window_size() - gl.text_size(msg)) / 2:
-            gl.text(msg)
-        if is_host and gl.button("space") == 1:
-            let peers_copy = copy(peers)
-            peers_copy.push(ident)
-            send(m_start_game { peers_copy })
-    gl.text("health: {ceiling(playerhealth)} - score: {localplayer.score}")
+        im.frame():
+            im.window("Shooter Tutorial Co-op", im.window_always_autoresize):
+                let joined_lobby_ids = steam.lobby_get_joined()
+                let joined_lobby_id = if joined_lobby_ids.length:
+                    joined_lobby_ids[0]
+                else:
+                    0
+                switch game_state:
+                    case GS_INIT:
+                        if im.button("Create Lobby"):
+                            steam.lobby_create(MAX_PLAYERS)
+                            game_state = GS_CREATING_LOBBY
+                        if im.button("Find Lobby"):
+                            steam.lobby_request_add_string_filter("game", "tut_net", 0)
+                            steam.lobby_request_list()
+                        if im.button("Quit"):
+                            return
+                        let matched = steam.lobby_request_get_lobbies()
+                        let matched_idx = im.listbox("Matched Lobbies", map(matched): number_to_string(_, 16, 0), -2, 5)
+                        if matched_idx >= 0 and im.button("Join Lobby"):
+                            steam.lobby_join(matched[matched_idx])
+                            steam.lobby_request_list_reset()
+                            game_state = GS_JOINING_LOBBY
+                    case GS_CREATING_LOBBY:
+                        if joined_lobby_id != 0:
+                            steam.lobby_set_data(joined_lobby_id, "game", "tut_net")
+                            game_state = GS_IN_LOBBY
+                            is_host = true
+                    case GS_JOINING_LOBBY:
+                        if joined_lobby_id != 0:
+                            game_state = GS_IN_LOBBY
+                            is_host = false
+                    case GS_IN_LOBBY:
+                        guard joined_lobby_id != 0:
+                            game_state = GS_RESET
+                        if im.button("Leave Lobby"):
+                            steam.lobby_leave(joined_lobby_id)
+                            game_state = GS_RESET
+                        let members = steam.lobby_get_members(joined_lobby_id)
+                        im.listbox("Members ({members.length})", map(members): number_to_string(_, 16, 0), -2, MAX_PLAYERS)
+                        if is_host:
+                            if im.button("Start Game"):
+                                steam.lobby_set_joinable(joined_lobby_id, false)
+                                steam.lobby_set_game_server(joined_lobby_id, steam.get_steam_id())
+                                game_state = GS_HOST_WAITING_FOR_PEERS
+                                host_ident = steam.net_identity()
+                                players = map(members): player { steam.net_identity_from_steam_id(_) }
+                        else:
+                            let game_server_id = steam.lobby_get_game_server(joined_lobby_id)
+                            if game_server_id != 0:
+                                let net_ident = steam.net_identity_from_steam_id(game_server_id)
+                                check(steam.p2p_connect(net_ident), "Unable to open connection to host")
+                                host_ident = net_ident
+                                game_state = GS_PEER_WAITING_FOR_HOST
+                    case GS_HOST_WAITING_FOR_PEERS:
+                        im.text("Waiting for peers...")
+                        let ready = all(map(players): has_peer(_.ident))
+                        guard ready
+                        // Let all peers know that the game is starting
+                        let peers_copy = copy(peers)
+                        peers_copy.push(ident)
+                        send(m_start_game { peers_copy })
+                        game_state = GS_START_GAME
+                    case GS_PEER_WAITING_FOR_HOST:
+                        im.text("Waiting for host...")
+                    case GS_PEER_WAITING_FOR_PEERS:
+                        im.text("Waiting for peers...")
+                        let ready = all(map(players): has_peer(_.ident))
+                        guard ready
+                        game_state = GS_START_GAME
+                    case GS_START_GAME:
+                        steam.lobby_leave(joined_lobby_id)
+                        playerhealth = 100.0
+                        bullets = []
+                        lastbullet = gl.time()
+                        enemyrate = 1.0
+                        enemies = []
+                        lastenemy = gl.time()
+                        game_state = GS_PLAYING
+                    case GS_PLAYING:
+                        assert false
+                    case GS_RESET:
+                        for(peers) peer:
+                            steam.p2p_close_connection(peer, false)
+                        is_host = false
+                        host_ident = ""
+                        game_state = GS_INIT
 
     // Send the outgoing messages
     steam.p2p_broadcast_message(lobster_value_to_binary(outgoing))
