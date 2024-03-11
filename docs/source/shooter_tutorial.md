@@ -522,7 +522,7 @@ To show the current state to the player, we use the simple:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We call this as the very last thing in the frame, so it is visible regardless of
-wether the player is in-game or not, for simplicity. `ceiling` is useful since
+whether the player is in-game or not, for simplicity. `ceiling` is useful since
 we'll be calculating the player's health in float, but want to show only the
 whole numbers. `ceiling` here is better than `truncate`, since we only want to
 show `0` when the player is truely dead.
@@ -576,6 +576,6 @@ add some ambient or enemy sounds, have a look at the use of the `play_` and
 dynamically adjust the volume and pause or resume individual sounds.
 
 This tutorial has all game state in top level variables, for simplicity of
-explanation. If you want to have a look what the code would be like if you
+explanation. If you want to have a look at what the code would be like if you
 instead stored all of it in classes, have a look at `tut_obj.lobster`.
 
