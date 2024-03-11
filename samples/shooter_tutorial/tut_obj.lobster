@@ -31,8 +31,8 @@ class Player : Entity
 
     def damage(amount):
         health -= amount
-        if health <= 0:
-            health = 0
+        if health <= 0.0:
+            health = 0.0
 
 class Bullet : Entity
     dir:float2
@@ -56,11 +56,11 @@ class Enemy : Entity
         let playerdir = normalize(playervec)
         pos += playerdir * gl.delta_time() * enemyspeed
         for(bullets) b:
-            if magnitude(b.pos - pos) < 1:
+            if magnitude(b.pos - pos) < 1.0:
                 hp = max(0, --hp)
                 b.alive = false
-        if magnitude(playervec) < 1:
-            player.damage(gl.delta_time() * 50)
+        if magnitude(playervec) < 1.0:
+            player.damage(gl.delta_time() * 50.0)
         gl.color lerp(color_red, color_blue, div(hp, maxhp)):
             renderpointytriangle(playerdir)
 
@@ -82,11 +82,11 @@ class World:
             let scale = gl.window_size().y / worldsize
             gl.scale(scale)
 
-            let tomouse = player.update(float(gl.window_size()) / scale / 2)
+            let tomouse = player.update(float(gl.window_size()) / scale / 2.0)
 
             member lastenemy = gl.time()
             if lastenemy < gl.time():
-                enemies.push(Enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
+                enemies.push(Enemy { sincos(rnd(360)) * worldsize * 2.0, enemymaxhp })
                 member enemyrate = 1.0
                 lastenemy += enemyrate
                 enemyrate *= 0.999
@@ -101,7 +101,7 @@ class World:
                 e.hp
 
             bullets = filter(bullets) b:
-                b.update(worldsize * 2)
+                b.update(worldsize * 2.0)
                 b.alive
 
             gl.translate gl.local_mouse_pos(0):

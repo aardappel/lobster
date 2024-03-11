@@ -84,7 +84,7 @@ while gl.frame() and gl.button("escape") != 1:
     gl.color(color_white)
     gl.translate(float(gl.window_size()) / 2.0)
     gl.scale(gl.window_size().y / worldsize)
-    gl.circle(1, 6)
+    gl.circle(1.0, 6)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before we can actually draw, we have to talk about coordinate systems. By
@@ -160,11 +160,11 @@ while gl.frame() and gl.button("escape") != 1:
     let dir = float2 { (gl.button("d") >= 1) - (gl.button("a") >= 1),
                      (gl.button("s") >= 1) - (gl.button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
-    if not any(abs(newpos) > float(gl.window_size()) / scale / 2):
+    if not any(abs(newpos) > float(gl.window_size()) / scale / 2.0):
         playerpos = newpos
 
-    gl.translate(playerpos):
-        gl.circle(1, 6)
+    gl.translate playerpos:
+        gl.circle(1.0, 6)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To make our player move, we added 2 new variables: `playerpos` and
@@ -265,7 +265,7 @@ while gl.frame() and gl.button("escape") != 1:
     let dir = float2 { (gl.button("d") >= 1) - (gl.button("a") >= 1),
                      (gl.button("s") >= 1) - (gl.button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
-    if not any(abs(newpos) > float(gl.window_size()) / scale / 2):
+    if not any(abs(newpos) > float(gl.window_size()) / scale / 2.0):
         playerpos = newpos
 
     let tomouse = normalize(gl.local_mouse_pos(0) - playerpos)
@@ -281,7 +281,7 @@ while gl.frame() and gl.button("escape") != 1:
                 gl.circle(0.2, 20)
 
     bullets = filter(bullets) b:
-        magnitude(b.pos) < worldsize * 2
+        magnitude(b.pos) < worldsize * 2.0
 
     gl.translate gl.local_mouse_pos(0):
         gl.line_mode 1:
@@ -407,7 +407,7 @@ this to the declarations.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if lastenemy < gl.time():
-        enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
+        enemies.push(enemy { sincos(rnd(360)) * worldsize * 2.0, enemymaxhp })
         lastenemy += enemyrate
         enemyrate *= 0.999
 
@@ -415,9 +415,9 @@ this to the declarations.
         let playerdir = normalize(playerpos - e.pos)
         e.pos += playerdir * gl.delta_time() * enemyspeed
         for(bullets) b:
-            if magnitude(b.pos - e.pos) < 1:
+            if magnitude(b.pos - e.pos) < 1.0:
                 e.hp = max(e.hp - 1, 0)
-                b.pos = float2_x * worldsize * 10
+                b.pos = float2_x * worldsize * 10.0
         gl.color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
             renderpointytriangle(e.pos, playerdir)
 
@@ -495,8 +495,8 @@ game code we were running before, and if false, display the in-between screen,
 which simply says:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        var msg = "press space to play!"
-        gl.translate float(gl.window_size() - gl.text_size(msg)) / 2:
+        let msg = "press space to play!"
+        gl.translate (gl.window_size() - gl.text_size(msg)) / 2:
             gl.text(msg)
         if gl.button("space") == 1:
             score = 0
@@ -528,10 +528,10 @@ whole numbers. `ceiling` here is better than `truncate`, since we only want to
 show `0` when the player is truely dead.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                if magnitude(playervec) < 1:
-                    playerhealth -= gl.delta_time() * 50
-                    if playerhealth <= 0:
-                        playerhealth = 0
+                if magnitude(playervec) < 1.0:
+                    playerhealth -= gl.delta_time() * 50.0
+                    if playerhealth <= 0.0:
+                        playerhealth = 0.0
                         highscore = max(highscore, score)
                         playing = false
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

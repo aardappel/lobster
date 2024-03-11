@@ -90,7 +90,7 @@ def model_tree(numb, branchl, narrowf, leafs, leafc) -> void:
         mg.translate(float3_z * branchl):
             mg.tapered_cylinder(1.0, narrowf, branchl)
             mg.translate(float3_z * branchl):
-                let axis = float3(sincos(rnd(360)), 0)
+                let axis = float3(sincos(rnd(360)), 0.0)
                 let branches = rnd(3) + 1
                 for(branches) i:
                     mg.rotate(float3_z, 360 * i / branches):

@@ -105,7 +105,7 @@ while(gl.frame() and gl.button("escape") != 1):
     gl.color color_lightest_grey:
         gl.rect(float2 { treesize, gl.window_size().y })
     gl.translate float2 { column_margin, 0.0 }:
-        treesize = render_tree(root) + column_margin * 2
+        treesize = render_tree(root) + column_margin * 2.0
     gl.translate float2 { treesize, 0.0 }:
         sizesize = render_sizes(sizesize) + column_margin
     gl.translate float2 { treesize + sizesize, 0.0 }:
