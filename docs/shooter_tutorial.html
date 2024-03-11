@@ -489,7 +489,7 @@ will be playing.</p>
 <p>To show the current state to the player, we use the simple:</p>
 <pre><code>    gl.text(&quot;health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}&quot;)</code></pre>
 <p>We call this as the very last thing in the frame, so it is visible
-regardless of wether the player is in-game or not, for simplicity.
+regardless of whether the player is in-game or not, for simplicity.
 <code>ceiling</code> is useful since we'll be calculating the player's
 health in float, but want to show only the whole numbers.
 <code>ceiling</code> here is better than <code>truncate</code>, since we
@@ -534,7 +534,7 @@ the <code>play_</code> and <code>sound_</code> functions in
 <code>tut_sound.lobster</code>. This example also shows how to to
 dynamically adjust the volume and pause or resume individual sounds.</p>
 <p>This tutorial has all game state in top level variables, for
-simplicity of explanation. If you want to have a look what the code
+simplicity of explanation. If you want to have a look at what the code
 would be like if you instead stored all of it in classes, have a look at
 <code>tut_obj.lobster</code>.</p>
 </body>
