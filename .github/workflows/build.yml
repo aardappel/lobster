@@ -79,7 +79,14 @@ jobs:
 
   build-mac:
     name: Build Mac
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-12
+            artifact_name: Mac (Apple x64 Intel) Lobster binary
+          - os: macos-14
+            artifact_name: Mac (Apple ARM Silicon) Lobster binary
     steps:
     - uses: actions/checkout@v1
     - name: cmake
@@ -91,13 +98,16 @@ jobs:
     - name: test
       run: bin/lobster tests/unittest.lobster
     - name: test lsp
-      run: cd dev/lsp && npm install && npm test
+      run: |
+        cd dev/lsp
+        npm install
+        npm test
     - name: upload build artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: Mac Lobster binary
+        name: ${{ matrix.artifact_name }}
         path: bin/lobster
-
+        
   build-android:
     name: Build Android (on Linux)
     runs-on: ubuntu-latest

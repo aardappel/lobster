@@ -63,26 +63,34 @@ jobs:
         files: |
           lobster_linux_release.zip
   build-mac:
-    name: Build Mac
-    runs-on: macos-latest
+    name: Release Mac
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-12
+            artifact_name: lobster_osx_x64_release.zip
+            asset_name: Release ${{ github.ref_name }} for macOS (X64 Intel)
+          - os: macos-14
+            artifact_name: lobster_osx_arm_release.zip
+            asset_name: Release ${{ github.ref_name }} for macOS (Apple ARM Silicon)
     steps:
-    - uses: actions/checkout@v1
-    - name: cmake
-      working-directory: dev
-      run: sh build_osx.sh
-    - name: build
-      working-directory: dev/xcode-cmake
-      run: xcodebuild -toolchain clang -configuration Release -target lobster
-    - name: test
-      run: bin/lobster tests/unittest.lobster
-    - name: Zip
-      run: |
-          rm -f bin/*.exe bin/*.dll
-          zip -r lobster_osx_release.zip bin data docs modules samples tests README.md
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        name: Release ${{ github.ref_name }}
-        files: |
-          lobster_osx_release.zip
+      - uses: actions/checkout@v1
+      - name: cmake
+        working-directory: dev
+        run: sh build_osx.sh
+      - name: build
+        working-directory: dev/xcode-cmake
+        run: xcodebuild -toolchain clang -configuration Release -target lobster
+      - name: test
+        run: bin/lobster tests/unittest.lobster
+      - name: Zip
+        run: |
+            rm -f bin/*.exe bin/*.dll
+            zip -r ${{ matrix.artifact_name }} bin data docs modules samples tests README.md
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ matrix.asset_name }}
+          files: ${{ matrix.artifact_name }}
