@@ -35,6 +35,9 @@ struct SteamState {
     HSteamNetPollGroup poll_group = k_HSteamNetPollGroup_Invalid;
     vector<SteamPeer> peers;
     bool steamoverlayactive = false;
+    // Lobby Data
+    vector<CSteamID> joined_lobbies;
+    int matched_lobbies = -1;  // -1: not requested, or in progress. >= 0: number of matches
 
     ~SteamState() {
         for (auto &peer: peers) {
@@ -69,6 +72,7 @@ struct SteamState {
     STEAM_CALLBACK(SteamState, OnScreenshotRequested, ScreenshotRequested_t);
 	STEAM_CALLBACK(SteamState, OnNetConnectionStatusChanged, SteamNetConnectionStatusChangedCallback_t);
 
+    // P2P Functions
     auto FindPeer(const CSteamID &id) {
         return find_if(peers.begin(), peers.end(), [&](const auto& peer) {
             return peer.identity.GetSteamID() == id;
@@ -98,6 +102,20 @@ struct SteamState {
         auto connection = SteamNetworkingSockets()->ConnectP2P(identity, 1, 0, nullptr);
         LOG_INFO("opened connection");
         return connection != k_HSteamNetConnection_Invalid;
+    }
+
+    bool P2PCloseConnection(string_view_nt str_identity, bool linger) {
+        SteamNetworkingIdentity identity{};
+        identity.ParseString(str_identity.c_str());
+        auto peer = FindPeer(identity.GetSteamID());
+        if (peer == peers.end()) return false;
+        if (!peer->is_connected) return false;
+        auto ok = SteamNetworkingSockets()->CloseConnection(peer->connection, k_ESteamNetConnectionEnd_App_Generic, "", linger);
+        if (ok) {
+            peers.erase(peer);
+        }
+        LOG_INFO("closed connection");
+        return ok;
     }
 
     bool CloseListen() {
@@ -158,6 +176,121 @@ struct SteamState {
             }
         }
         return messages;
+    }
+
+    // Lobby Functions
+    STEAM_CALLBACK(SteamState, OnLobbyDataUpdate, LobbyDataUpdate_t);
+
+    bool CreateLobby(int max_members) {
+        if (OnLobbyCreatedCallback.IsActive()) {
+            return false;
+        }
+        auto result = SteamMatchmaking()->CreateLobby(k_ELobbyTypePublic, max_members);
+        OnLobbyCreatedCallback.Set(result, this, &SteamState::OnLobbyCreated);
+        return true;
+    }
+	CCallResult<SteamState, LobbyCreated_t> OnLobbyCreatedCallback;
+    void OnLobbyCreated(LobbyCreated_t *pCallback, bool bIOFailure);
+
+    bool JoinLobby(CSteamID steam_id) {
+        auto result = SteamMatchmaking()->JoinLobby(steam_id);
+        OnLobbyEnteredCallback.Set(result, this, &SteamState::OnLobbyEntered);
+        return true;
+    }
+	CCallResult<SteamState, LobbyEnter_t> OnLobbyEnteredCallback;
+    void OnLobbyEntered(LobbyEnter_t *pCallback, bool bIOFailure);
+
+    bool LeaveLobby(CSteamID steam_id) {
+        SteamMatchmaking()->LeaveLobby(steam_id);
+        auto iter = find(joined_lobbies.begin(), joined_lobbies.end(), steam_id);
+        if (iter != joined_lobbies.end()) {
+            joined_lobbies.erase(iter);
+        }
+        return true;
+    }
+
+    bool SetLobbyJoinable(CSteamID steam_id, bool joinable) {
+        return SteamMatchmaking()->SetLobbyJoinable(steam_id, joinable);
+    }
+
+    const char* GetLobbyData(CSteamID steam_id, const char* key) {
+        auto result = SteamMatchmaking()->GetLobbyData(steam_id, key);
+        return result;
+    }
+
+    int GetLobbyDataCount(CSteamID steam_id) {
+        auto count = SteamMatchmaking()->GetLobbyDataCount(steam_id);
+        return count;
+    }
+
+    int GetLobbyDataByIndex(CSteamID steam_id, int index, char *key, int key_size, char *value, int value_size) {
+        auto count = SteamMatchmaking()->GetLobbyDataByIndex(steam_id, index, key, key_size, value, value_size);
+        return count;
+    }
+
+    bool SetLobbyData(CSteamID steam_id, const char* key, const char* value) {
+        auto ok = SteamMatchmaking()->SetLobbyData(steam_id, key, value);
+        return ok;
+    }
+
+    bool DeleteLobbyData(CSteamID steam_id, const char* key) {
+        auto ok = SteamMatchmaking()->DeleteLobbyData(steam_id, key);
+        return ok;
+    }
+
+    int GetNumLobbyMembers(CSteamID steam_id) {
+        return SteamMatchmaking()->GetNumLobbyMembers(steam_id);
+    }
+
+    CSteamID GetLobbyMemberByIndex(CSteamID steam_id, int index) {
+        return SteamMatchmaking()->GetLobbyMemberByIndex(steam_id, index);
+    }
+
+    bool AddRequestLobbyListNumericalFilter(const char *key, int value, ELobbyComparison cmp) {
+        SteamMatchmaking()->AddRequestLobbyListNumericalFilter(key, value, cmp);
+        return true;
+    }
+
+    bool AddRequestLobbyListStringFilter(const char *key, const char *value, ELobbyComparison cmp) {
+        SteamMatchmaking()->AddRequestLobbyListStringFilter(key, value, cmp);
+        return true;
+    }
+
+    bool AddRequestLobbyListResultCountFilter(int count) {
+        SteamMatchmaking()->AddRequestLobbyListResultCountFilter(count);
+        return true;
+    }
+
+    bool RequestLobbyData(CSteamID steam_id) {
+        auto ok = SteamMatchmaking()->RequestLobbyData(steam_id);
+        return ok;
+    }
+
+    bool RequestLobbyList() {
+        if (OnLobbyMatchListCallback.IsActive()) {
+            return false;
+        }
+        auto result = SteamMatchmaking()->RequestLobbyList();
+        OnLobbyMatchListCallback.Set(result, this, &SteamState::OnLobbyMatchList);
+        matched_lobbies = -1;
+        return true;
+    }
+    CCallResult<SteamState, LobbyMatchList_t> OnLobbyMatchListCallback;
+    void OnLobbyMatchList(LobbyMatchList_t *pLobbyMatchList, bool bIOFailure);
+
+    CSteamID GetLobbyByIndex(int index) {
+        return SteamMatchmaking()->GetLobbyByIndex(index);
+    }
+
+    CSteamID GetLobbyGameServer(CSteamID lobby_id) {
+        CSteamID server_id;
+        SteamMatchmaking()->GetLobbyGameServer(lobby_id, nullptr, nullptr, &server_id);
+        return server_id;
+    }
+
+    bool SetLobbyGameServer(CSteamID lobby_id, CSteamID server_id) {
+        SteamMatchmaking()->SetLobbyGameServer(lobby_id, 0, 0, server_id);
+        return true;
     }
 };
 
@@ -253,6 +386,40 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
             LOG_INFO("Peer \"", ident, "\" disconnecting, but not in list?  msg=\"", info.m_szEndDebug, "\"");
         }
 	}
+}
+
+// Lobby callbacks
+void SteamState::OnLobbyCreated(LobbyCreated_t *callback, bool /*io_failure*/) {
+    LOG_INFO("Lobby Created: result=", callback->m_eResult, " lobby=", callback->m_ulSteamIDLobby);
+    CSteamID lobby_id(callback->m_ulSteamIDLobby);
+    auto iter = find(joined_lobbies.begin(), joined_lobbies.end(), lobby_id);
+    if (iter == joined_lobbies.end()) {
+        joined_lobbies.push_back(lobby_id);
+    } else {
+        LOG_INFO("Already joined lobby=", callback->m_ulSteamIDLobby, "?");
+    }
+}
+
+void SteamState::OnLobbyEntered(LobbyEnter_t *callback, bool /*io_failure*/) {
+    LOG_INFO("Lobby Entered: lobby=", callback->m_ulSteamIDLobby,
+             " permissions=", callback->m_rgfChatPermissions, " locked=", callback->m_bLocked, " response=", callback->m_EChatRoomEnterResponse);
+    CSteamID lobby_id(callback->m_ulSteamIDLobby);
+    auto iter = find(joined_lobbies.begin(), joined_lobbies.end(), lobby_id);
+    if (iter == joined_lobbies.end()) {
+        joined_lobbies.push_back(lobby_id);
+    } else {
+        LOG_INFO("Already joined lobby=", callback->m_ulSteamIDLobby, "?");
+    }
+}
+
+void SteamState::OnLobbyMatchList(LobbyMatchList_t *lobby_match_list, bool /*io_failure*/) {
+    matched_lobbies = lobby_match_list->m_nLobbiesMatching;
+    LOG_INFO("Matched ", matched_lobbies, " lobbies.");
+}
+
+void SteamState::OnLobbyDataUpdate(LobbyDataUpdate_t* callback) {
+    LOG_INFO("Lobby Data Update: lobby=", callback->m_ulSteamIDLobby,
+             " member=", callback->m_ulSteamIDMember, " success=", callback->m_bSuccess);
 }
 
 extern "C" void __cdecl SteamAPIDebugTextHook(int severity, const char *debugtext) {
@@ -379,6 +546,15 @@ bool SteamP2PConnect(string_view_nt identity) {
     return false;
 }
 
+bool SteamP2PCloseConnection(string_view_nt identity, bool linger) {
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            return steam->P2PCloseConnection(identity, linger);
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return false;
+}
+
 bool SteamSendMessage(string_view_nt dest_identity, string_view buf) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
@@ -405,6 +581,14 @@ LString* GetIdentityString(VM &vm, const SteamNetworkingIdentity &identity) {
     char ident[SteamNetworkingIdentity::k_cchMaxString];
     identity.ToString(ident, sizeof(ident));
     return vm.NewString(ident);
+}
+
+CSteamID SteamIDFromValue(Value &steam_id) {
+    return CSteamID((uint64)steam_id.ival());
+}
+
+iint IIntFromSteamID(const CSteamID &steam_id) {
+    return (iint)steam_id.ConvertToUint64();
 }
 #endif
 
@@ -478,6 +662,14 @@ nfr("update", "", "", "",
         SteamUpdate();
     });
 
+nfr("get_steam_id", "", "", "I", "TODO", [](StackPtr &sp, VM &) {
+        #ifdef PLATFORM_STEAMWORKS
+            Push(sp, IIntFromSteamID(SteamUser()->GetSteamID()));
+        #else
+            Push(sp, 0);
+        #endif
+    });
+
 nfr("net_identity", "", "", "S",
     "returns the steam identity for this"
     " user. This same ID will be used for connecting to peers, sending messages,"
@@ -489,6 +681,17 @@ nfr("net_identity", "", "", "S",
             Push(sp, GetIdentityString(vm, identity));
         #else
             Push(sp, vm.NewString("none"));
+        #endif
+    });
+
+nfr("net_identity_from_steam_id", "steam_id", "I", "S", "TODO",
+    [](StackPtr &, VM &vm, Value &steam_id) {
+        #ifdef PLATFORM_STEAMWORKS
+            SteamNetworkingIdentity identity{};
+            identity.SetSteamID((uint64)steam_id.ival());
+            return Value(GetIdentityString(vm, identity));
+        #else
+            return Value(vm.NewString("none"));
         #endif
     });
 
@@ -507,6 +710,12 @@ nfr("p2p_close_listen", "", "", "B", "close the listen socket and stop accepting
 nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam identity that has opened a listen socket",
     [](StackPtr &, VM &, Value &ident) {
         auto ok = SteamP2PConnect(ident.sval()->strvnt());
+        return Value(ok);
+    });
+
+nfr("p2p_close_connection", "ident,linger", "SB", "B", "TODO",
+    [](StackPtr &, VM &, Value &ident, Value &linger) {
+        auto ok = SteamP2PCloseConnection(ident.sval()->strvnt(), linger.intval());
         return Value(ok);
     });
 
@@ -560,5 +769,251 @@ nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
         Push(sp, data_vec);
         Push(sp, client_vec);
     });
+
+nfr("lobby_create", "max_members", "I", "B", "TODO", [](StackPtr &, VM &, Value &max_members) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->CreateLobby(max_members.intval());
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_join", "steam_id", "I", "B", "TODO", [](StackPtr &, VM &, Value &steam_id) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->JoinLobby(SteamIDFromValue(steam_id));
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_leave", "steam_id", "I", "B", "TODO", [](StackPtr &, VM &, Value &steam_id) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->LeaveLobby(SteamIDFromValue(steam_id));
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_set_joinable", "steam_id,joinable", "IB", "B", "TODO", [](StackPtr &, VM &, Value &steam_id, Value &joinable) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->SetLobbyJoinable(SteamIDFromValue(steam_id), joinable.intval());
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_get_joined", "", "", "I]", "TODO", [](StackPtr &, VM &vm) {
+    auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            for (const auto &lobby_id : steam->joined_lobbies) {
+                lobbies_vec->Push(vm, (iint)lobby_id.ConvertToUint64());
+            }
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(lobbies_vec);
+});
+
+nfr("lobby_request_data", "steam_id", "I", "B", "TODO", [](StackPtr &, VM &, Value &steam_id) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->RequestLobbyData(SteamIDFromValue(steam_id));
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_get_data", "steam_id,key", "IS", "S", "TODO", [](StackPtr &, VM &vm, Value &steam_id, Value &key) {
+    auto result = "";
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            result = steam->GetLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str());
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(vm.NewString(result));
+});
+
+nfr("lobby_get_all_data", "steam_id", "I", "S]S]", "TODO", [](StackPtr &sp, VM &vm) {
+    auto vsteam_id = Pop(sp);
+    auto *key_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+    auto *value_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            CSteamID steam_id = SteamIDFromValue(vsteam_id);
+            auto count = steam->GetLobbyDataCount(steam_id);
+            for (int i = 0; i < count; ++i) {
+                char key[k_nMaxLobbyKeyLength];
+                char value[k_cubChatMetadataMax];
+                auto ok = steam->GetLobbyDataByIndex(steam_id, i, key, sizeof(key), value, sizeof(value));
+                if (ok) {
+                    key_vec->Push(vm, vm.NewString(key));
+                    value_vec->Push(vm, vm.NewString(value));
+                }
+            }
+        }
+    #endif  // PLATFORM_STEAMWORKS
+
+    Push(sp, key_vec);
+    Push(sp, value_vec);
+});
+
+nfr("lobby_set_data", "steam_id,key,value", "ISS", "B", "TODO", [](StackPtr &, VM &, Value &steam_id, Value &key, Value &value) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->SetLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str(), value.sval()->strvnt().c_str());
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_delete_data", "steam_id,key", "IS", "B", "TODO", [](StackPtr &, VM &, Value &steam_id, Value &key) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->DeleteLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str());
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_get_num_members", "steam_id", "I", "I", "TODO", [](StackPtr &, VM &, Value &steam_id) {
+    auto num_members = 0;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            num_members = steam->GetNumLobbyMembers(SteamIDFromValue(steam_id));
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(num_members);
+});
+
+nfr("lobby_get_members", "steam_id", "I", "I]", "TODO", [](StackPtr &, VM &vm, Value &vsteam_id) {
+    auto *members_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
+
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            CSteamID steam_id = SteamIDFromValue(vsteam_id);
+            int num_members = steam->GetNumLobbyMembers(steam_id);
+            for (int i = 0; i < num_members; ++i) {
+                auto id = steam->GetLobbyMemberByIndex(steam_id, i);
+                if (id.IsValid()) {
+                    // NOTE: Can't use id.Render() because it seems to be unimplemented?
+                    members_vec->Push(vm, (iint)id.ConvertToUint64());
+                }
+            }
+        }
+    #endif  // PLATFORM_STEAMWORKS
+
+    return Value(members_vec);
+});
+
+nfr("lobby_request_add_numerical_filter", "key,value,cmp", "SII", "B", "TODO", [](StackPtr &, VM &, Value &key, Value &value, Value &cmp) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->AddRequestLobbyListNumericalFilter(key.sval()->strvnt().c_str(), value.intval(), (ELobbyComparison)cmp.intval());
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_request_add_string_filter", "key,value,cmp", "SSI", "B", "TODO", [](StackPtr &, VM &, Value &key, Value &value, Value &cmp) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->AddRequestLobbyListStringFilter(key.sval()->strvnt().c_str(), value.sval()->strvnt().c_str(), (ELobbyComparison)cmp.intval());
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_request_add_result_count_filter", "count", "I", "B", "TODO", [](StackPtr &, VM &, Value &count) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->AddRequestLobbyListResultCountFilter(count.intval());
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_request_list", "", "", "B", "TODO", [](StackPtr &, VM &) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->RequestLobbyList();
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_request_list_reset", "", "", "", "TODO", [](StackPtr &, VM &) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            steam->matched_lobbies = -1;
+            ok = true;
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
+
+nfr("lobby_request_is_ready", "", "", "B", "TODO", [](StackPtr &, VM &) {
+    auto is_ready = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            is_ready = steam->matched_lobbies >= 0;
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(is_ready);
+});
+
+nfr("lobby_request_get_lobbies", "", "", "I]", "TODO", [](StackPtr &, VM &vm) {
+        auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
+
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam && steam->matched_lobbies >= 0) {
+                for (int i = 0; i < steam->matched_lobbies; ++i) {
+                    auto id = steam->GetLobbyByIndex(i);
+                    if (id.IsValid()) {
+                        // NOTE: Can't use id.Render() because it seems to be unimplemented?
+                        lobbies_vec->Push(vm, (iint)id.ConvertToUint64());
+                    }
+                }
+            }
+        #endif  // PLATFORM_STEAMWORKS
+
+        return Value(lobbies_vec);
+});
+
+nfr("lobby_get_game_server", "lobby_id", "I", "I", "TODO", [](StackPtr &, VM &, Value &lobby_id) {
+    iint server_id = 0;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            server_id = IIntFromSteamID(steam->GetLobbyGameServer(SteamIDFromValue(lobby_id)));
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(server_id);
+});
+
+nfr("lobby_set_game_server", "lobby_id,server_id", "II", "B", "TODO", [](StackPtr &, VM &, Value &lobby_id, Value &server_id) {
+    auto ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->SetLobbyGameServer(SteamIDFromValue(lobby_id), SteamIDFromValue(server_id));
+        }
+    #endif  // PLATFORM_STEAMWORKS
+    return Value(ok);
+});
 
 }  // AddSteam
