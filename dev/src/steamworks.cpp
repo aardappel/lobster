@@ -266,6 +266,15 @@ struct SteamState {
         return ok;
     }
 
+    bool LobbyListIsReady() {
+        return matched_lobbies >= 0;
+    }
+
+    bool LobbyListReset() {
+        matched_lobbies = -1;
+        return true;
+    }
+
     bool RequestLobbyList() {
         if (OnLobbyMatchListCallback.IsActive()) {
             return false;
@@ -592,6 +601,18 @@ iint IIntFromSteamID(const CSteamID &steam_id) {
 }
 #endif
 
+#ifdef PLATFORM_STEAMWORKS
+#define STEAM_BOOL_VALUE(...)  Value(__VA_ARGS__)
+#define STEAM_INT_VALUE(...)  Value(__VA_ARGS__)
+#define STEAM_IINT_VALUE(...)  Value(__VA_ARGS__)
+#define STEAM_STRING_VALUE(vm, ...)  Value(vm.NewString(__VA_ARGS__))
+#else
+#define STEAM_BOOL_VALUE(...) Value(false)
+#define STEAM_INT_VALUE(...)  Value(0)
+#define STEAM_IINT_VALUE(...)  Value((iint)0)
+#define STEAM_STRING_VALUE(vm, ...)  Value(vm.NewString(""));
+#endif
+
 void AddSteam(NativeRegistry &nfr) {
 
 nfr("init", "appid,allowscreenshots,initrelay", "IBB", "I",
@@ -770,215 +791,174 @@ nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
         Push(sp, client_vec);
     });
 
-nfr("lobby_create", "max_members", "I", "B", "TODO", [](StackPtr &, VM &, Value &max_members) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->CreateLobby(max_members.intval());
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_create", "max_members", "I", "B",
+    "create a new lobby that allows at most a given number of members; this lobby will be "
+    "automatically joined",
+    [](StackPtr &, VM &, Value &max_members) {
+        return STEAM_BOOL_VALUE(steam->CreateLobby(max_members.intval()));
+    });
 
-nfr("lobby_join", "steam_id", "I", "B", "TODO", [](StackPtr &, VM &, Value &steam_id) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->JoinLobby(SteamIDFromValue(steam_id));
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_join", "steam_id", "I", "B", "join a lobby with the given steam id",
+    [](StackPtr &, VM &, Value &steam_id) {
+        return STEAM_BOOL_VALUE(steam->JoinLobby(SteamIDFromValue(steam_id)));
+    });
 
-nfr("lobby_leave", "steam_id", "I", "B", "TODO", [](StackPtr &, VM &, Value &steam_id) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->LeaveLobby(SteamIDFromValue(steam_id));
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_leave", "steam_id", "I", "B", "leave a lobby with the given steam id",
+    [](StackPtr &, VM &, Value &steam_id) {
+        return STEAM_BOOL_VALUE(steam->LeaveLobby(SteamIDFromValue(steam_id)));
+    });
 
-nfr("lobby_set_joinable", "steam_id,joinable", "IB", "B", "TODO", [](StackPtr &, VM &, Value &steam_id, Value &joinable) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->SetLobbyJoinable(SteamIDFromValue(steam_id), joinable.intval());
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_set_joinable", "steam_id,joinable", "IB", "B",
+    "mark a lobby as joinable; only works if you are the owner",
+    [](StackPtr &, VM &, Value &steam_id, Value &joinable) {
+        return STEAM_BOOL_VALUE(
+            steam->SetLobbyJoinable(SteamIDFromValue(steam_id), joinable.intval()));
+    });
 
-nfr("lobby_get_joined", "", "", "I]", "TODO", [](StackPtr &, VM &vm) {
-    auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            for (const auto &lobby_id : steam->joined_lobbies) {
-                lobbies_vec->Push(vm, (iint)lobby_id.ConvertToUint64());
-            }
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(lobbies_vec);
-});
+nfr("lobby_get_joined", "", "", "I]",
+    "get a list of all of the lobbies that have been joined with lobby_create() or lobby_join()",
+    [](StackPtr &, VM &vm) {
+        auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
-nfr("lobby_request_data", "steam_id", "I", "B", "TODO", [](StackPtr &, VM &, Value &steam_id) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->RequestLobbyData(SteamIDFromValue(steam_id));
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
-
-nfr("lobby_get_data", "steam_id,key", "IS", "S", "TODO", [](StackPtr &, VM &vm, Value &steam_id, Value &key) {
-    auto result = "";
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            result = steam->GetLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str());
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(vm.NewString(result));
-});
-
-nfr("lobby_get_all_data", "steam_id", "I", "S]S]", "TODO", [](StackPtr &sp, VM &vm) {
-    auto vsteam_id = Pop(sp);
-    auto *key_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
-    auto *value_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
-
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            CSteamID steam_id = SteamIDFromValue(vsteam_id);
-            auto count = steam->GetLobbyDataCount(steam_id);
-            for (int i = 0; i < count; ++i) {
-                char key[k_nMaxLobbyKeyLength];
-                char value[k_cubChatMetadataMax];
-                auto ok = steam->GetLobbyDataByIndex(steam_id, i, key, sizeof(key), value, sizeof(value));
-                if (ok) {
-                    key_vec->Push(vm, vm.NewString(key));
-                    value_vec->Push(vm, vm.NewString(value));
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) {
+                for (const auto &lobby_id : steam->joined_lobbies) {
+                    lobbies_vec->Push(vm, (iint)lobby_id.ConvertToUint64());
                 }
             }
-        }
-    #endif  // PLATFORM_STEAMWORKS
+        #endif  // PLATFORM_STEAMWORKS
 
-    Push(sp, key_vec);
-    Push(sp, value_vec);
-});
+        return Value(lobbies_vec);
+    });
 
-nfr("lobby_set_data", "steam_id,key,value", "ISS", "B", "TODO", [](StackPtr &, VM &, Value &steam_id, Value &key, Value &value) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->SetLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str(), value.sval()->strvnt().c_str());
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_request_data", "steam_id", "I", "B",
+    "refresh data for a given lobby; it is not necessary to call this for any lobby that you have "
+    "joined",
+    [](StackPtr &, VM &, Value &steam_id) {
+        return STEAM_BOOL_VALUE(steam->RequestLobbyData(SteamIDFromValue(steam_id)));
+    });
 
-nfr("lobby_delete_data", "steam_id,key", "IS", "B", "TODO", [](StackPtr &, VM &, Value &steam_id, Value &key) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->DeleteLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str());
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_get_data", "steam_id,key", "IS", "S",
+    "get the matching value for a given key stored on this lobby; if the key has not been set then "
+    "the result is an empty string",
+    [](StackPtr &, VM &vm, Value &steam_id, Value &key) {
+        return STEAM_STRING_VALUE(
+            vm, steam->GetLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str()));
+    });
 
-nfr("lobby_get_num_members", "steam_id", "I", "I", "TODO", [](StackPtr &, VM &, Value &steam_id) {
-    auto num_members = 0;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            num_members = steam->GetNumLobbyMembers(SteamIDFromValue(steam_id));
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(num_members);
-});
+nfr("lobby_get_all_data", "steam_id", "I", "S]S]", "get all key-value pairs stored on this lobby",
+    [](StackPtr &sp, VM &vm) {
+        auto vsteam_id = Pop(sp);
+        (void)vsteam_id;
+        auto *key_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+        auto *value_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
 
-nfr("lobby_get_members", "steam_id", "I", "I]", "TODO", [](StackPtr &, VM &vm, Value &vsteam_id) {
-    auto *members_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
-
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            CSteamID steam_id = SteamIDFromValue(vsteam_id);
-            int num_members = steam->GetNumLobbyMembers(steam_id);
-            for (int i = 0; i < num_members; ++i) {
-                auto id = steam->GetLobbyMemberByIndex(steam_id, i);
-                if (id.IsValid()) {
-                    // NOTE: Can't use id.Render() because it seems to be unimplemented?
-                    members_vec->Push(vm, (iint)id.ConvertToUint64());
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) {
+                CSteamID steam_id = SteamIDFromValue(vsteam_id);
+                auto count = steam->GetLobbyDataCount(steam_id);
+                for (int i = 0; i < count; ++i) {
+                    char key[k_nMaxLobbyKeyLength];
+                    char value[k_cubChatMetadataMax];
+                    auto ok =
+                        steam->GetLobbyDataByIndex(steam_id, i, key, sizeof(key), value, sizeof(value));
+                    if (ok) {
+                        key_vec->Push(vm, vm.NewString(key));
+                        value_vec->Push(vm, vm.NewString(value));
+                    }
                 }
             }
-        }
-    #endif  // PLATFORM_STEAMWORKS
+        #endif  // PLATFORM_STEAMWORKS
 
-    return Value(members_vec);
-});
+        Push(sp, key_vec);
+        Push(sp, value_vec);
+    });
 
-nfr("lobby_request_add_numerical_filter", "key,value,cmp", "SII", "B", "TODO", [](StackPtr &, VM &, Value &key, Value &value, Value &cmp) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->AddRequestLobbyListNumericalFilter(key.sval()->strvnt().c_str(), value.intval(), (ELobbyComparison)cmp.intval());
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_set_data", "steam_id,key,value", "ISS", "B",
+    "set a key-value pair for this lobby; only works if you are the owner",
+    [](StackPtr &, VM &, Value &steam_id, Value &key, Value &value) {
+        return STEAM_BOOL_VALUE(steam->SetLobbyData(SteamIDFromValue(steam_id),
+                                                    key.sval()->strvnt().c_str(),
+                                                    value.sval()->strvnt().c_str()));
+    });
 
-nfr("lobby_request_add_string_filter", "key,value,cmp", "SSI", "B", "TODO", [](StackPtr &, VM &, Value &key, Value &value, Value &cmp) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->AddRequestLobbyListStringFilter(key.sval()->strvnt().c_str(), value.sval()->strvnt().c_str(), (ELobbyComparison)cmp.intval());
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_delete_data", "steam_id,key", "IS", "B",
+    "delete a key-value pair for this lobby; only works if you are the owner",
+    [](StackPtr &, VM &, Value &steam_id, Value &key) {
+        return STEAM_BOOL_VALUE(
+            steam->DeleteLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str()));
+    });
 
-nfr("lobby_request_add_result_count_filter", "count", "I", "B", "TODO", [](StackPtr &, VM &, Value &count) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->AddRequestLobbyListResultCountFilter(count.intval());
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_get_num_members", "steam_id", "I", "I", "get the number of members in this lobby",
+    [](StackPtr &, VM &, Value &steam_id) {
+        return STEAM_INT_VALUE(steam->GetNumLobbyMembers(SteamIDFromValue(steam_id)));
+    });
 
-nfr("lobby_request_list", "", "", "B", "TODO", [](StackPtr &, VM &) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->RequestLobbyList();
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_get_members", "steam_id", "I", "I]",
+    "get the steam ids of all members in this lobby; only works if you have joined the lobby",
+    [](StackPtr &, VM &vm, Value &vsteam_id) {
+        auto *members_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
-nfr("lobby_request_list_reset", "", "", "", "TODO", [](StackPtr &, VM &) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            steam->matched_lobbies = -1;
-            ok = true;
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) {
+                CSteamID steam_id = SteamIDFromValue(vsteam_id);
+                int num_members = steam->GetNumLobbyMembers(steam_id);
+                for (int i = 0; i < num_members; ++i) {
+                    auto id = steam->GetLobbyMemberByIndex(steam_id, i);
+                    if (id.IsValid()) {
+                        // NOTE: Can't use id.Render() because it seems to be unimplemented?
+                        members_vec->Push(vm, (iint)id.ConvertToUint64());
+                    }
+                }
+            }
+        #endif  // PLATFORM_STEAMWORKS
 
-nfr("lobby_request_is_ready", "", "", "B", "TODO", [](StackPtr &, VM &) {
-    auto is_ready = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            is_ready = steam->matched_lobbies >= 0;
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(is_ready);
-});
+        return Value(members_vec);
+    });
 
-nfr("lobby_request_get_lobbies", "", "", "I]", "TODO", [](StackPtr &, VM &vm) {
+nfr("lobby_request_add_numerical_filter", "key,value,cmp", "SII", "B",
+    "add a numerical filter for the next lobby request",
+    [](StackPtr &, VM &, Value &key, Value &value, Value &cmp) {
+        return STEAM_BOOL_VALUE(steam->AddRequestLobbyListNumericalFilter(
+            key.sval()->strvnt().c_str(), value.intval(), (ELobbyComparison)cmp.intval()));
+    });
+
+nfr("lobby_request_add_string_filter", "key,value,cmp", "SSI", "B",
+    "add a string filter for the next lobby request",
+    [](StackPtr &, VM &, Value &key, Value &value, Value &cmp) {
+        return STEAM_BOOL_VALUE(steam->AddRequestLobbyListStringFilter(
+            key.sval()->strvnt().c_str(), value.sval()->strvnt().c_str(),
+            (ELobbyComparison)cmp.intval()));
+    });
+
+nfr("lobby_request_add_result_count_filter", "count", "I", "B",
+    "add a result count limit for the next lobby request", [](StackPtr &, VM &, Value &count) {
+        return STEAM_BOOL_VALUE(steam->AddRequestLobbyListResultCountFilter(count.intval()));
+    });
+
+nfr("lobby_request_list", "", "", "B",
+    "request a list of lobbies that match the current set of filters; this function completes "
+    "asynchronously, call lobby_request_is_ready() to determine when it is ready and "
+    "lobby_request_get_lobbies() to get the results",
+    [](StackPtr &, VM &) {
+        return STEAM_BOOL_VALUE(steam->RequestLobbyList());
+    });
+
+nfr("lobby_request_list_reset", "", "", "",
+    "clear the list of matched lobbies, so lobby_request_is_ready() returns false",
+    [](StackPtr &, VM &) {
+        return STEAM_BOOL_VALUE(steam->LobbyListReset());
+    });
+
+nfr("lobby_request_is_ready", "", "", "B",
+    "returns true when a call to lobby_request_list() has finished",
+    [](StackPtr &, VM &) {
+        return STEAM_BOOL_VALUE(steam->LobbyListIsReady());
+    });
+
+nfr("lobby_request_get_lobbies", "", "", "I]",
+    "returns the list of matched lobbies when lobby_request_list() has finished",
+    [](StackPtr &, VM &vm) {
         auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
         #ifdef PLATFORM_STEAMWORKS
@@ -994,26 +974,19 @@ nfr("lobby_request_get_lobbies", "", "", "I]", "TODO", [](StackPtr &, VM &vm) {
         #endif  // PLATFORM_STEAMWORKS
 
         return Value(lobbies_vec);
-});
+    });
 
-nfr("lobby_get_game_server", "lobby_id", "I", "I", "TODO", [](StackPtr &, VM &, Value &lobby_id) {
-    iint server_id = 0;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            server_id = IIntFromSteamID(steam->GetLobbyGameServer(SteamIDFromValue(lobby_id)));
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(server_id);
-});
+nfr("lobby_get_game_server", "lobby_id", "I", "I", "get the game server associated with this lobby",
+    [](StackPtr &, VM &, Value &lobby_id) {
+        return STEAM_IINT_VALUE(
+            IIntFromSteamID(steam->GetLobbyGameServer(SteamIDFromValue(lobby_id))));
+    });
 
-nfr("lobby_set_game_server", "lobby_id,server_id", "II", "B", "TODO", [](StackPtr &, VM &, Value &lobby_id, Value &server_id) {
-    auto ok = false;
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            ok = steam->SetLobbyGameServer(SteamIDFromValue(lobby_id), SteamIDFromValue(server_id));
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return Value(ok);
-});
+nfr("lobby_set_game_server", "lobby_id,server_id", "II", "B",
+    "set the game server associated with this lobby; only works if you are the owner",
+    [](StackPtr &, VM &, Value &lobby_id, Value &server_id) {
+        return STEAM_BOOL_VALUE(
+            steam->SetLobbyGameServer(SteamIDFromValue(lobby_id), SteamIDFromValue(server_id)));
+    });
 
 }  // AddSteam
