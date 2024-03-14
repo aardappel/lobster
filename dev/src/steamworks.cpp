@@ -36,8 +36,10 @@ struct SteamState {
     vector<SteamPeer> peers;
     bool steamoverlayactive = false;
     // Lobby Data
-    vector<CSteamID> joined_lobbies;
-    int matched_lobbies = -1;  // -1: not requested, or in progress. >= 0: number of matches
+    CSteamID created_lobby;           // The most recently created lobby.
+    CSteamID joined_lobby;            // The most recently joined lobby.
+    vector<CSteamID> joined_lobbies;  // A list of all joined lobbies.
+    int matched_lobbies = -1;         // -1: not requested, or in progress. >= 0: number of matches
 
     ~SteamState() {
         for (auto &peer: peers) {
@@ -185,6 +187,8 @@ struct SteamState {
         if (OnLobbyCreatedCallback.IsActive()) {
             return false;
         }
+        created_lobby.Clear();
+        joined_lobby.Clear();
         auto result = SteamMatchmaking()->CreateLobby(k_ELobbyTypePublic, max_members);
         OnLobbyCreatedCallback.Set(result, this, &SteamState::OnLobbyCreated);
         return true;
@@ -193,6 +197,10 @@ struct SteamState {
     void OnLobbyCreated(LobbyCreated_t *pCallback, bool bIOFailure);
 
     bool JoinLobby(CSteamID steam_id) {
+        if (OnLobbyEnteredCallback.IsActive()) {
+            return false;
+        }
+        joined_lobby.Clear();
         auto result = SteamMatchmaking()->JoinLobby(steam_id);
         OnLobbyEnteredCallback.Set(result, this, &SteamState::OnLobbyEntered);
         return true;
@@ -301,6 +309,10 @@ struct SteamState {
         SteamMatchmaking()->SetLobbyGameServer(lobby_id, 0, 0, server_id);
         return true;
     }
+
+    const char *GetFriendPersonaName(CSteamID steam_id) {
+        return SteamFriends()->GetFriendPersonaName(steam_id);
+    }
 };
 
 void SteamState::OnGameOverlayActivated(GameOverlayActivated_t *callback) {
@@ -400,24 +412,31 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
 // Lobby callbacks
 void SteamState::OnLobbyCreated(LobbyCreated_t *callback, bool /*io_failure*/) {
     LOG_INFO("Lobby Created: result=", callback->m_eResult, " lobby=", callback->m_ulSteamIDLobby);
-    CSteamID lobby_id(callback->m_ulSteamIDLobby);
-    auto iter = find(joined_lobbies.begin(), joined_lobbies.end(), lobby_id);
-    if (iter == joined_lobbies.end()) {
-        joined_lobbies.push_back(lobby_id);
-    } else {
-        LOG_INFO("Already joined lobby=", callback->m_ulSteamIDLobby, "?");
+    if (callback->m_eResult == k_EResultOK) {
+        CSteamID lobby_id(callback->m_ulSteamIDLobby);
+        created_lobby = lobby_id;
+        joined_lobby = lobby_id;
+        auto iter = find(joined_lobbies.begin(), joined_lobbies.end(), lobby_id);
+        if (iter == joined_lobbies.end()) {
+            joined_lobbies.push_back(lobby_id);
+        } else {
+            LOG_INFO("Already joined lobby=", callback->m_ulSteamIDLobby, "?");
+        }
     }
 }
 
 void SteamState::OnLobbyEntered(LobbyEnter_t *callback, bool /*io_failure*/) {
     LOG_INFO("Lobby Entered: lobby=", callback->m_ulSteamIDLobby,
              " permissions=", callback->m_rgfChatPermissions, " locked=", callback->m_bLocked, " response=", callback->m_EChatRoomEnterResponse);
-    CSteamID lobby_id(callback->m_ulSteamIDLobby);
-    auto iter = find(joined_lobbies.begin(), joined_lobbies.end(), lobby_id);
-    if (iter == joined_lobbies.end()) {
-        joined_lobbies.push_back(lobby_id);
-    } else {
-        LOG_INFO("Already joined lobby=", callback->m_ulSteamIDLobby, "?");
+    if (callback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess) {
+        CSteamID lobby_id(callback->m_ulSteamIDLobby);
+        joined_lobby = lobby_id;
+        auto iter = find(joined_lobbies.begin(), joined_lobbies.end(), lobby_id);
+        if (iter == joined_lobbies.end()) {
+            joined_lobbies.push_back(lobby_id);
+        } else {
+            LOG_INFO("Already joined lobby=", callback->m_ulSteamIDLobby, "?");
+        }
     }
 }
 
@@ -602,10 +621,10 @@ iint IIntFromSteamID(const CSteamID &steam_id) {
 #endif
 
 #ifdef PLATFORM_STEAMWORKS
-#define STEAM_BOOL_VALUE(...)  Value(__VA_ARGS__)
-#define STEAM_INT_VALUE(...)  Value(__VA_ARGS__)
-#define STEAM_IINT_VALUE(...)  Value(__VA_ARGS__)
-#define STEAM_STRING_VALUE(vm, ...)  Value(vm.NewString(__VA_ARGS__))
+#define STEAM_BOOL_VALUE(...)  Value(steam ? (__VA_ARGS__) : false)
+#define STEAM_INT_VALUE(...)  Value(steam ? (__VA_ARGS__) : 0)
+#define STEAM_IINT_VALUE(...)  Value(steam ? (__VA_ARGS__) : (iint)0)
+#define STEAM_STRING_VALUE(vm, ...)  Value(vm.NewString(steam ? (__VA_ARGS__) : ""))
 #else
 #define STEAM_BOOL_VALUE(...) Value(false)
 #define STEAM_INT_VALUE(...)  Value(0)
@@ -683,12 +702,16 @@ nfr("update", "", "", "",
         SteamUpdate();
     });
 
-nfr("get_steam_id", "", "", "I", "TODO", [](StackPtr &sp, VM &) {
-        #ifdef PLATFORM_STEAMWORKS
-            Push(sp, IIntFromSteamID(SteamUser()->GetSteamID()));
-        #else
-            Push(sp, 0);
-        #endif
+nfr("get_steam_id", "", "", "I", "get the steam id of the current user",
+    [](StackPtr &, VM &) {
+        return STEAM_IINT_VALUE(IIntFromSteamID(SteamUser()->GetSteamID()));
+    });
+
+nfr("friend_get_username", "steam_id", "I", "S",
+    "returns the name for the given steam id; this only works for friends, or users in the same "
+    "lobby, chat room, game server, etc.",
+    [](StackPtr &, VM &vm, Value &steam_id) {
+        return STEAM_STRING_VALUE(vm, steam->GetFriendPersonaName(SteamIDFromValue(steam_id)));
     });
 
 nfr("net_identity", "", "", "S",
@@ -705,7 +728,8 @@ nfr("net_identity", "", "", "S",
         #endif
     });
 
-nfr("net_identity_from_steam_id", "steam_id", "I", "S", "TODO",
+nfr("net_identity_from_steam_id", "steam_id", "I", "S",
+    "returns a network identity for the given steam id",
     [](StackPtr &, VM &vm, Value &steam_id) {
         #ifdef PLATFORM_STEAMWORKS
             SteamNetworkingIdentity identity{};
@@ -734,7 +758,9 @@ nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam iden
         return Value(ok);
     });
 
-nfr("p2p_close_connection", "ident,linger", "SB", "B", "TODO",
+nfr("p2p_close_connection", "ident,linger", "SB", "B",
+    "close a connection opened with p2p_connect(); if linger is true then the connection will "
+    "remain open for a short time to finish pending messages",
     [](StackPtr &, VM &, Value &ident, Value &linger) {
         auto ok = SteamP2PCloseConnection(ident.sval()->strvnt(), linger.intval());
         return Value(ok);
@@ -793,9 +819,15 @@ nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
 
 nfr("lobby_create", "max_members", "I", "B",
     "create a new lobby that allows at most a given number of members; this lobby will be "
-    "automatically joined",
+    "automatically joined. use lobby_get_created() to get the newly created lobby's steam id",
     [](StackPtr &, VM &, Value &max_members) {
         return STEAM_BOOL_VALUE(steam->CreateLobby(max_members.intval()));
+    });
+
+nfr("lobby_get_created", "", "", "I",
+    "get the steam id of the most recently created lobby",
+    [](StackPtr &, VM &) {
+        return STEAM_IINT_VALUE(IIntFromSteamID(steam->created_lobby));
     });
 
 nfr("lobby_join", "steam_id", "I", "B", "join a lobby with the given steam id",
@@ -815,7 +847,13 @@ nfr("lobby_set_joinable", "steam_id,joinable", "IB", "B",
             steam->SetLobbyJoinable(SteamIDFromValue(steam_id), joinable.intval()));
     });
 
-nfr("lobby_get_joined", "", "", "I]",
+nfr("lobby_get_joined", "", "", "I",
+    "get a list of the most recent lobby joined with lobby_create() or lobby_join()",
+    [](StackPtr &, VM &) {
+        return STEAM_IINT_VALUE(IIntFromSteamID(steam->joined_lobby));
+    });
+
+nfr("lobby_get_all_joined", "", "", "I]",
     "get a list of all of the lobbies that have been joined with lobby_create() or lobby_join()",
     [](StackPtr &, VM &vm) {
         auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);

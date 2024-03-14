@@ -57,7 +57,7 @@ def lobby_tree(label, lobby_ids, in_lobby):
                     let members = steam.lobby_get_members(id)
                     im.treenode("Members (#{members.length}):"):
                         for(members) m, i:
-                            im.text("#{i}: {m}")
+                            im.text("#{i}: {steam.friend_get_username(m)} ({m})")
 
 enum FilterType:
     FT_Numerical
@@ -91,7 +91,7 @@ while gl.frame():
             // Create Lobby
             if im.button("Create Lobby"):
                 steam.lobby_create(LOBBY_MAX_MEMBERS)
-            let joined = steam.lobby_get_joined()
+            let joined = steam.lobby_get_all_joined()
             lobby_tree("Joined:", joined, true)
             // Filters
             if im.button("Add Filter"):

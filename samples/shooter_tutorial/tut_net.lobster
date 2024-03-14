@@ -274,7 +274,7 @@ while gl.frame():
     else:
         im.frame():
             im.window("Shooter Tutorial Co-op", im.window_always_autoresize):
-                let joined_lobby_ids = steam.lobby_get_joined()
+                let joined_lobby_ids = steam.lobby_get_all_joined()
                 let joined_lobby_id = if joined_lobby_ids.length:
                     joined_lobby_ids[0]
                 else:
