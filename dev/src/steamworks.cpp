@@ -87,6 +87,10 @@ struct SteamState {
         });
     }
 
+    bool SetGlobalConfigValue(ESteamNetworkingConfigValue eValue, int val) {
+        return SteamNetworkingUtils()->SetGlobalConfigValueInt32(eValue, val);
+    }
+
     bool P2PListen() {
         if (listen_socket != k_HSteamListenSocket_Invalid) {
             LOG_INFO("listen socket is already open");
@@ -131,7 +135,7 @@ struct SteamState {
         return result;
     }
 
-    bool SendMessage(string_view_nt str_identity, string_view buf) {
+    bool SendMessage(string_view_nt str_identity, string_view buf, bool reliable) {
         SteamNetworkingIdentity identity{};
         identity.ParseString(str_identity.c_str());
         auto peer = FindPeer(identity.GetSteamID());
@@ -140,15 +144,18 @@ struct SteamState {
 
         const char *data = buf.data();
         uint32_t size = (uint32_t)buf.size();
-        int flags = k_nSteamNetworkingSend_Reliable;
+        int flags = reliable ? k_nSteamNetworkingSend_Reliable : k_nSteamNetworkingSend_Unreliable;
         auto result = SteamNetworkingSockets()->SendMessageToConnection(peer->connection, data, size, flags, nullptr);
+        if (result != k_EResultOK) {
+            LOG_INFO("WARNING: SendMessage to \"", str_identity, "\" of size ", buf.size() ," got result ",  result, ".");
+        }
         return result != k_EResultOK;
     }
 
-    bool BroadcastMessage(string_view buf) {
+    bool BroadcastMessage(string_view buf, bool reliable) {
         const char *data = buf.data();
         uint32_t size = (uint32_t)buf.size();
-        int flags = k_nSteamNetworkingSend_Reliable;
+        int flags = reliable ? k_nSteamNetworkingSend_Reliable : k_nSteamNetworkingSend_Unreliable;
         bool ok = true;
         // TODO: We should be able to use SendMessages here so we don't need to
         // make multiple copies of the buffer. The message struct itself is
@@ -159,6 +166,11 @@ struct SteamState {
             if (!peer.is_connected) continue;
             auto result = SteamNetworkingSockets()->SendMessageToConnection(peer.connection, data, size, flags, nullptr);
             ok &= result == k_EResultOK;
+            if (result != k_EResultOK) {
+                char ident[SteamNetworkingIdentity::k_cchMaxString]{};
+                peer.identity.ToString(ident, sizeof(ident));
+                LOG_INFO("WARNING: BroadcastMessage to \"", ident, "\" of size ", buf.size() ," got result ",  result, ".");
+            }
         }
         return ok;
     }
@@ -583,19 +595,19 @@ bool SteamP2PCloseConnection(string_view_nt identity, bool linger) {
     return false;
 }
 
-bool SteamSendMessage(string_view_nt dest_identity, string_view buf) {
+bool SteamSendMessage(string_view_nt dest_identity, string_view buf, bool reliable) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            return steam->SendMessage(dest_identity, buf);
+            return steam->SendMessage(dest_identity, buf, reliable);
         }
     #endif  // PLATFORM_STEAMWORKS
     return false;
 }
 
-bool SteamBroadcastMessage(string_view buf) {
+bool SteamBroadcastMessage(string_view buf, bool reliable) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            return steam->BroadcastMessage(buf);
+            return steam->BroadcastMessage(buf, reliable);
         }
     #endif  // PLATFORM_STEAMWORKS
     return false;
@@ -740,6 +752,20 @@ nfr("net_identity_from_steam_id", "steam_id", "I", "S",
         #endif
     });
 
+nfr("p2p_set_send_buffer_size", "size", "I", "B", "set the upper limit of pending bytes to be sent",
+    [](StackPtr &, VM &, Value &size) {
+        auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_SendBufferSize, size.intval()));
+        return Value(ok);
+    });
+
+nfr("p2p_set_recv_buffer_size", "size", "I", "",
+    "upper limit on total size in bytes of received messages that will be buffered waiting "
+    "to be processed by the application",
+    [](StackPtr &, VM &, Value &size) {
+        auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_RecvBufferSize, size.intval()));
+        return Value(ok);
+    });
+
 nfr("p2p_listen", "", "", "B", "open a listen socket to receive new connections",
     [](StackPtr &, VM &) {
         auto ok = SteamP2PListen();
@@ -782,15 +808,15 @@ nfr("p2p_get_connections", "", "", "S]", "get a list of the steam identites that
         return Value(peers_vec);
     });
 
-nfr("p2p_send_message", "ident,data", "SS", "B", "send a reliable message to a given steam identity",
-    [](StackPtr &, VM &, Value &ident, Value &data) {
-        auto ok = SteamSendMessage(ident.sval()->strvnt(), data.sval()->strv());
+nfr("p2p_send_message", "ident,data,reliable", "SSB", "B", "send a reliable message to a given steam identity",
+    [](StackPtr &, VM &, Value &ident, Value &data, Value &reliable) {
+        auto ok = SteamSendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval());
         return Value(ok);
     });
 
-nfr("p2p_broadcast_message", "data", "S", "B", "send a reliable message to all connected peers",
-    [](StackPtr &, VM &, Value &data) {
-        auto ok = SteamBroadcastMessage(data.sval()->strv());
+nfr("p2p_broadcast_message", "data,reliable", "SB", "B", "send a reliable message to all connected peers",
+    [](StackPtr &, VM &, Value &data, Value &reliable) {
+        auto ok = SteamBroadcastMessage(data.sval()->strv(), reliable.intval());
         return Value(ok);
     });
 

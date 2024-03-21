@@ -361,5 +361,5 @@ while gl.frame():
                         game_state = GS_INIT
 
     // Send the outgoing messages
-    steam.p2p_broadcast_message(lobster_value_to_binary(outgoing))
+    steam.p2p_broadcast_message(lobster_value_to_binary(outgoing), true)
     outgoing = []
