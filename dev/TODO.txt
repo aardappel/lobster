@@ -64,6 +64,9 @@
     it make things harder to recognize without its namespace in front.
     Really, don't put things in a namespace if you don't effectively want to make it part of the name.
 
+- defining variables (or functions, or anything else) should fail if it is already a namepace.
+  But frankly there's a ton of these possible interactions, should maybe move to a single symboltable.
+
 - member x = y
   Where y is another member variable gives the error "'this' is not in scope", because y is evaluated
   when the class is being constructed, which is rather confusing.
@@ -493,7 +496,7 @@
   demotion system for consistency.
 
 - Since we compile on the fly, we can actually add a library like
-  https://github.com/Celtoys/Remotery 2K*thing 
+  https://github.com/Celtoys/Remotery 2K*thing
   https://github.com/wolfpld/tracy 4K*
   https://github.com/zeux/microprofile 400*
   https://optick.dev/ (free for commercial use, no opengl profiling) 2K*
@@ -1229,7 +1232,7 @@
                 a.sec()
         let b:B = B {}
         b.inb()
-        /* 
+        /*
         essentially, every time X.Y gets borrowed against and X was defined (arg or local)
         thru Z which is an active item in the borrow stack, Z.Y must also be added.
         but adding two stack items for one access doesn't work since the lifetime value only refers to one of them.
@@ -1296,6 +1299,8 @@
   And then same for vectors?
 
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
+  - This is actually rather similar to what we currently do:
+    https://smallcultfollowing.com/babysteps/blog/2024/03/04/borrow-checking-without-lifetimes/
   - AssignList with instance variables probably doesn't work.
   - on calls like qsort([..]) the xs arg will be KEEP, but the recursive call will be borrow,
     so now you end up with 2 specializations.

@@ -166,11 +166,12 @@ the built-in functions string_to_unicode and unicode_to_string.
 Immutable: can be indexed into for reading but not writing.</p></li>
 <li><p>vector : a dynamically sized array of any Lobster values,
 constructed with square brackets surrounding 0 or more comma separated
-values, e.g. <code>[ 1, 2, 3 ]</code>. May be dereferenced for
-reading/writing using indices (e.g. <code>a[0]</code>). Vectors may be
-typed by being suffixed by <code>::type</code>, which will require all
-elements to be of that type (also useful to force a type on an empty
-list).</p></li>
+values, e.g. <code>[ 1, 2, 3 ]</code> for which the element type is also
+surrounded in square brackets, e.g. <code>[int]</code>. May be
+dereferenced for reading/writing using indices (e.g. <code>a[0]</code>).
+Vectors may be typed by being suffixed by <code>::type</code>, which
+will require all elements to be of that type (also useful to force a
+type on an empty list).</p></li>
 <li><p><code>class</code> / <code>struct</code> : a user defined data
 structure, see below.</p></li>
 <li><p><code>nil</code> : a special value of any reference type above,

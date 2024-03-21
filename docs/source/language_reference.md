@@ -156,7 +156,8 @@ a value of one of the following types:
 
     -   vector : a dynamically sized array of any Lobster values, constructed
         with square brackets surrounding 0 or more comma separated values, e.g.
-        `[ 1, 2, 3 ]`. May be dereferenced for reading/writing using indices
+        `[ 1, 2, 3 ]` for which the element type is also surrounded in square
+        brackets, e.g. `[int]`. May be dereferenced for reading/writing using indices
         (e.g. `a[0]`). Vectors may be typed by being suffixed by `::type`, which
         will require all elements to be of that type (also useful to force a type
         on an empty list).
