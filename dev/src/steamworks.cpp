@@ -149,7 +149,7 @@ struct SteamState {
         if (result != k_EResultOK) {
             LOG_INFO("WARNING: SendMessage to \"", str_identity, "\" of size ", buf.size() ," got result ",  result, ".");
         }
-        return result != k_EResultOK;
+        return result == k_EResultOK;
     }
 
     bool BroadcastMessage(string_view buf, bool reliable) {
@@ -190,6 +190,16 @@ struct SteamState {
             }
         }
         return messages;
+    }
+
+    bool GetConnectionRealTimeStatus(string_view_nt str_identity, SteamNetConnectionRealTimeStatus_t* status) {
+        SteamNetworkingIdentity identity{};
+        identity.ParseString(str_identity.c_str());
+        auto peer = FindPeer(identity.GetSteamID());
+        if (peer == peers.end()) return false;
+        if (!peer->is_connected) return false;
+        auto result = SteamNetworkingSockets()->GetConnectionRealTimeStatus(peer->connection, status, 0, nullptr);
+        return result == k_EResultOK;
     }
 
     // Lobby Functions
@@ -764,6 +774,46 @@ nfr("p2p_set_recv_buffer_size", "size", "I", "",
     [](StackPtr &, VM &, Value &size) {
         auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_RecvBufferSize, size.intval()));
         return Value(ok);
+    });
+
+nfr("p2p_get_connection_status", "ident", "S", "IFFFFFFIIIII",
+    "receive realtime connection status info. Returned values are: ping, local quality, "
+    "remote quality, out packets/sec, out bytes/sec, in packets/sec, in bytes/sec, send rate bytes/sec, "
+    "pending unreliable packets, pending reliable packets, sent unACKed reliable packets, and queue time in usec. "
+    "See ISteamNetworkingSockets::GetConnectionRealTimeStatus() for more info.",
+    [](StackPtr &sp, VM &) {
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) {
+                auto ident = Pop(sp).sval()->strvnt();
+                SteamNetConnectionRealTimeStatus_t status;
+                steam->GetConnectionRealTimeStatus(ident, &status);
+                Push(sp, Value(status.m_nPing));
+                Push(sp, Value(status.m_flConnectionQualityLocal));
+                Push(sp, Value(status.m_flConnectionQualityRemote));
+                Push(sp, Value(status.m_flOutPacketsPerSec));
+                Push(sp, Value(status.m_flOutBytesPerSec));
+                Push(sp, Value(status.m_flInPacketsPerSec));
+                Push(sp, Value(status.m_flInBytesPerSec));
+                Push(sp, Value(status.m_nSendRateBytesPerSecond));
+                Push(sp, Value(status.m_cbPendingUnreliable));
+                Push(sp, Value(status.m_cbPendingReliable));
+                Push(sp, Value(status.m_cbSentUnackedReliable));
+                Push(sp, Value(status.m_usecQueueTime));
+                return;
+            }
+        #endif
+        Push(sp, Value(0));
+        Push(sp, Value(0.0f));
+        Push(sp, Value(0.0f));
+        Push(sp, Value(0.0f));
+        Push(sp, Value(0.0f));
+        Push(sp, Value(0.0f));
+        Push(sp, Value(0.0f));
+        Push(sp, Value(0));
+        Push(sp, Value(0));
+        Push(sp, Value(0));
+        Push(sp, Value(0));
+        Push(sp, Value(0));
     });
 
 nfr("p2p_listen", "", "", "B", "open a listen socket to receive new connections",
