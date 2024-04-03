@@ -740,26 +740,27 @@ nfr("net_identity", "", "", "S",
     "returns the steam identity for this"
     " user. This same ID will be used for connecting to peers, sending messages,"
     " etc.",
-    [](StackPtr &sp, VM &vm) {
+    [](StackPtr &, VM &vm) {
         #ifdef PLATFORM_STEAMWORKS
-            SteamNetworkingIdentity identity{};
-            SteamNetworkingSockets()->GetIdentity(&identity);
-            Push(sp, GetIdentityString(vm, identity));
-        #else
-            Push(sp, vm.NewString("none"));
+            if (steam) {
+                SteamNetworkingIdentity identity{};
+                SteamNetworkingSockets()->GetIdentity(&identity);
+                return Value(GetIdentityString(vm, identity));
+            }
         #endif
+        return Value(vm.NewString("none"));
     });
 
 nfr("net_identity_from_steam_id", "steam_id", "I", "S",
-    "returns a network identity for the given steam id",
-    [](StackPtr &, VM &vm, Value &steam_id) {
+    "returns a network identity for the given steam id", [](StackPtr &, VM &vm, Value &steam_id) {
         #ifdef PLATFORM_STEAMWORKS
-            SteamNetworkingIdentity identity{};
-            identity.SetSteamID((uint64)steam_id.ival());
-            return Value(GetIdentityString(vm, identity));
-        #else
-            return Value(vm.NewString("none"));
+            if (steam) {
+                SteamNetworkingIdentity identity{};
+                identity.SetSteamID((uint64)steam_id.ival());
+                return Value(GetIdentityString(vm, identity));
+            }
         #endif
+        return Value(vm.NewString("none"));
     });
 
 nfr("p2p_set_send_buffer_size", "size", "I", "B", "set the upper limit of pending bytes to be sent",
