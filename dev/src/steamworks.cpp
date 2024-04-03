@@ -569,61 +569,6 @@ bool OverlayActive() {
     return false;
 }
 
-bool SteamP2PListen() {
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            return steam->P2PListen();
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return false;
-}
-
-bool SteamCloseListen() {
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            return steam->CloseListen();
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return false;
-}
-
-bool SteamP2PConnect(string_view_nt identity) {
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            return steam->P2PConnect(identity);
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return false;
-}
-
-bool SteamP2PCloseConnection(string_view_nt identity, bool linger) {
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            return steam->P2PCloseConnection(identity, linger);
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return false;
-}
-
-bool SteamSendMessage(string_view_nt dest_identity, string_view buf, bool reliable) {
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            return steam->SendMessage(dest_identity, buf, reliable);
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return false;
-}
-
-bool SteamBroadcastMessage(string_view buf, bool reliable) {
-    #ifdef PLATFORM_STEAMWORKS
-        if (steam) {
-            return steam->BroadcastMessage(buf, reliable);
-        }
-    #endif  // PLATFORM_STEAMWORKS
-    return false;
-}
-
-
 using namespace lobster;
 
 #ifdef PLATFORM_STEAMWORKS
@@ -819,28 +764,24 @@ nfr("p2p_get_connection_status", "ident", "S", "IFFFFFFIIIII",
 
 nfr("p2p_listen", "", "", "B", "open a listen socket to receive new connections",
     [](StackPtr &, VM &) {
-        auto ok = SteamP2PListen();
-        return Value(ok);
+        return STEAM_BOOL_VALUE(steam->P2PListen());
     });
 
 nfr("p2p_close_listen", "", "", "B", "close the listen socket and stop accepting new connections",
     [](StackPtr &, VM &) {
-        auto ok = SteamCloseListen();
-        return Value(ok);
+        return STEAM_BOOL_VALUE(steam->CloseListen());
     });
 
 nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam identity that has opened a listen socket",
     [](StackPtr &, VM &, Value &ident) {
-        auto ok = SteamP2PConnect(ident.sval()->strvnt());
-        return Value(ok);
+        return STEAM_BOOL_VALUE(steam->P2PConnect(ident.sval()->strvnt()));
     });
 
 nfr("p2p_close_connection", "ident,linger", "SB", "B",
     "close a connection opened with p2p_connect(); if linger is true then the connection will "
     "remain open for a short time to finish pending messages",
     [](StackPtr &, VM &, Value &ident, Value &linger) {
-        auto ok = SteamP2PCloseConnection(ident.sval()->strvnt(), linger.intval());
-        return Value(ok);
+        return STEAM_BOOL_VALUE(steam->P2PCloseConnection(ident.sval()->strvnt(), linger.intval()));
     });
 
 nfr("p2p_get_connections", "", "", "S]", "get a list of the steam identites that are currently connected",
@@ -861,14 +802,12 @@ nfr("p2p_get_connections", "", "", "S]", "get a list of the steam identites that
 
 nfr("p2p_send_message", "ident,data,reliable", "SSB", "B", "send a reliable message to a given steam identity",
     [](StackPtr &, VM &, Value &ident, Value &data, Value &reliable) {
-        auto ok = SteamSendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval());
-        return Value(ok);
+        return STEAM_BOOL_VALUE(steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval()));
     });
 
 nfr("p2p_broadcast_message", "data,reliable", "SB", "B", "send a reliable message to all connected peers",
     [](StackPtr &, VM &, Value &data, Value &reliable) {
-        auto ok = SteamBroadcastMessage(data.sval()->strv(), reliable.intval());
-        return Value(ok);
+        return STEAM_BOOL_VALUE(steam->BroadcastMessage(data.sval()->strv(), reliable.intval()));
     });
 
 nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
