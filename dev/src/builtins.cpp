@@ -41,6 +41,12 @@ static int ObjectCompare(const Value &a, const Value &b) {
     return a.any() < b.any() ? -1 : a.any() > b.any();
 }
 
+static int FirstStringCompare(const Value &key, const Value &elem) {
+    auto _a = key.sval()->strv();
+    auto _b = elem.oval()->AtS(0).sval()->strv();
+    return (_a > _b) - (_b > _a);
+}
+
 template<typename T> Value BinarySearch(StackPtr &sp, Value &l, Value &key, T comparefun) {
     iint size = l.vval()->len;
     iint i = 0;
@@ -307,6 +313,18 @@ nfr("binary_search_object", "xs,key", "A]*A1", "II",
     "object version. compares by reference rather than contents.",
     [](StackPtr &sp, VM &, Value &l, Value &key) {
         auto r = BinarySearch(sp, l, key, ObjectCompare);
+        return r;
+    });
+
+// TODO: add int/float versions of this?
+nfr("binary_search_first_field_string", "xs,key", "A]S", "II",
+    "object version where key is the first field (must be string, runtime error if it is not)",
+    [](StackPtr &sp, VM &vm, Value &l, Value &key) {
+        auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
+        if (et.t != V_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != V_STRING)
+            vm.BuiltinError(
+                "binary_search_first_field_string: elements not objects with first string field");
+        auto r = BinarySearch(sp, l, key, FirstStringCompare);
         return r;
     });
 
