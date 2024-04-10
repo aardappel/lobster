@@ -1203,7 +1203,7 @@ nfr("set_mesh_texture", "mesh,part,i,texture", "R:meshIIR:texture", "",
     "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)",
     [](StackPtr &, VM &vm, Value &mid, Value &part, Value &i, Value &id) {
         auto &m = GetMesh(mid);
-        if (part.ival() < 0 || part.ival() >= (int)m.surfs.size())
+        if (part.ival() < 0 || part.ival() >= (iint)m.surfs.size())
             vm.BuiltinError("setmeshtexture: illegal part index");
         m.surfs[part.ival()]->Get(GetSampler(vm, i)) = GetTexture(id);
         return NilVal();

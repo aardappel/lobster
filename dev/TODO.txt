@@ -1,6 +1,23 @@
+- We really need to stop deciding which N-ary function is being called in the parser and leave that to
+  the type checker where the 1st arg can be taken into account, e.g.
+    class A:
+      def foo():
+        pass()
+    class B:
+      def foo(x=0):
+        pass()
+  Here if A and B are unrelated, getting
+  "function foo with 2 arguments is ambiguous with the 1 version because of default arguments"
+  is super confusing.
+
 - Compute a checksum of all code parsed by a particular build, and stick that both in the .pak file
   header, and in the FlatBuffers metadata. That way, when doing a C++ build, these two numbers can
   be checked against eachother to ensure they are from the same build.
+  What is also fragile is the Lobster binary that compiled the bytecode compared to the one compiled into
+  tocpp compiled lobster code: if one has a different set of builtin functions, it ends up calling the
+  wrong function (since the bytecode contains just indices). So should also checksum some aspect of
+  the runtime.. a commit id would be great but hard to add to the built process. Failing that, a checksum
+  of all runtime function names or whatever would be a start.
 
 - Options for speeding up JIT mode.
   Recent benchmarking has shown that while the C++ mode can be pretty fast (within 5x of native C++),
@@ -180,6 +197,9 @@
 - Migrate to SDL 3:
   https://www.libsdl.org/gdc2023/
   https://github.com/libsdl-org/SDL/blob/main/docs/README-migration.md
+
+- a tool to save the .pak file inside the compiler exe for 1 file distibution could be
+  a fun feature: https://github.com/aardappel/lobster/discussions/311
 
 - recursive class causes typechecker assert even before it runs out of stack:
     class C:
