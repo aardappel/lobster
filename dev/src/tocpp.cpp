@@ -562,7 +562,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
     if (cpp) {
         append(sd, "    if (vm.nfr.HashAll() != ", natreg.HashAll(),
-               ") vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
+               "ULL) vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
     } else {
         sd += "    Entry(sizeof(Value));\n";
     }
