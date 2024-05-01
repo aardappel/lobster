@@ -579,7 +579,8 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_ENUMS = 32,
     VT_VTABLES = 34,
     VT_SER_IDS = 38,
-    VT_BUILD_INFO = 40
+    VT_BUILD_INFO = 40,
+    VT_SRC_HASH = 42
   };
   int32_t bytecode_version() const {
     return GetField<int32_t>(VT_BYTECODE_VERSION, 0);
@@ -623,6 +624,9 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::String *build_info() const {
     return GetPointer<const ::flatbuffers::String *>(VT_BUILD_INFO);
   }
+  uint64_t src_hash() const {
+    return GetField<uint64_t>(VT_SRC_HASH, 0);
+  }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_BYTECODE_VERSION, 4) &&
@@ -658,6 +662,7 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            verifier.VerifyVector(ser_ids()) &&
            VerifyOffset(verifier, VT_BUILD_INFO) &&
            verifier.VerifyString(build_info()) &&
+           VerifyField<uint64_t>(verifier, VT_SRC_HASH, 8) &&
            verifier.EndTable();
   }
 };
@@ -708,6 +713,9 @@ struct BytecodeFileBuilder {
   void add_build_info(::flatbuffers::Offset<::flatbuffers::String> build_info) {
     fbb_.AddOffset(BytecodeFile::VT_BUILD_INFO, build_info);
   }
+  void add_src_hash(uint64_t src_hash) {
+    fbb_.AddElement<uint64_t>(BytecodeFile::VT_SRC_HASH, src_hash, 0);
+  }
   explicit BytecodeFileBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -734,8 +742,10 @@ inline ::flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<bytecode::Enum>>> enums = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> vtables = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> ser_ids = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> build_info = 0) {
+    ::flatbuffers::Offset<::flatbuffers::String> build_info = 0,
+    uint64_t src_hash = 0) {
   BytecodeFileBuilder builder_(_fbb);
+  builder_.add_src_hash(src_hash);
   builder_.add_build_info(build_info);
   builder_.add_ser_ids(ser_ids);
   builder_.add_vtables(vtables);
@@ -768,7 +778,8 @@ inline ::flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
     const std::vector<::flatbuffers::Offset<bytecode::Enum>> *enums = nullptr,
     const std::vector<int32_t> *vtables = nullptr,
     const std::vector<int32_t> *ser_ids = nullptr,
-    const char *build_info = nullptr) {
+    const char *build_info = nullptr,
+    uint64_t src_hash = 0) {
   auto bytecode__ = bytecode ? _fbb.CreateVector<int32_t>(*bytecode) : 0;
   auto typetable__ = typetable ? _fbb.CreateVector<int32_t>(*typetable) : 0;
   auto stringtable__ = stringtable ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*stringtable) : 0;
@@ -797,7 +808,8 @@ inline ::flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
       enums__,
       vtables__,
       ser_ids__,
-      build_info__);
+      build_info__,
+      src_hash);
 }
 
 inline const bytecode::BytecodeFile *GetBytecodeFile(const void *buf) {

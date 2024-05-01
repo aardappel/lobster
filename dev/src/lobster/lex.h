@@ -96,6 +96,14 @@ struct Lex : LoadedFile {
         FirstToken();
     }
 
+    uint64_t HashAll() {
+        uint64_t h = 0xABADCAFEDEADBEEF;
+        for (auto &src : allsources) {
+            h ^= FNV1A64(*src.get());
+        }
+        return h;
+    }
+
     void FirstToken() {
         Next();
         if (token == T_LINEFEED) Next();

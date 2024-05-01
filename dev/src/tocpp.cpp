@@ -560,7 +560,12 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     }
     if (cpp) sd += "extern \"C\" ";
     sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
-    if (!cpp) sd += "    Entry(sizeof(Value));\n";
+    if (cpp) {
+        append(sd, "    if (vm.nfr.HashAll() != ", natreg.HashAll(),
+               ") vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
+    } else {
+        sd += "    Entry(sizeof(Value));\n";
+    }
     append(sd, "    fun_", starting_point, "(vm, sp);\n}\n\n");
     if (cpp) {
         sd += "int main(int argc, char *argv[]) {\n";

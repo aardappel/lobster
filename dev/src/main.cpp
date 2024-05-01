@@ -205,8 +205,10 @@ int main(int argc, char* argv[]) {
 
         string bytecode_buffer;
         if (fn.empty()) {
-            if (!LoadPakDir(default_lpak))
-                THROW_OR_ABORT("Lobster programming language compiler/runtime (version "
+            uint64_t src_hash = 0;  // Don't care, from same file as bytecode.
+            if (!LoadPakDir(default_lpak, src_hash))
+                THROW_OR_ABORT(
+                    "Lobster programming language compiler/runtime (version "
                                GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load "
                                + (default_lpak + helptext));
             // This will now come from the pakfile.

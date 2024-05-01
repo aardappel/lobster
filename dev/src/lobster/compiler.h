@@ -34,7 +34,7 @@ extern pair<string, iint> RunTCC(NativeRegistry &nfr,
                           int runtime_checks,
                           bool dump_leaks);
 
-extern bool LoadPakDir(const char *lpak);
+extern bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest);
 extern bool LoadByteCode(string &bytecode);
 extern void RegisterBuiltin(NativeRegistry &natreg, const char *ns, const char *name,
                             void (* regfun)(NativeRegistry &));

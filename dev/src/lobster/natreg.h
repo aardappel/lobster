@@ -479,6 +479,17 @@ struct NativeRegistry {
         auto it = nfunlookup.find(name);
         return it != nfunlookup.end() ? it->second : nullptr;
     }
+
+    uint64_t HashAll() {
+        uint64_t h = 0xABADCAFEDEADBEEF;
+        for (auto nf : nfuns) {
+            h ^= FNV1A64(nf->name);
+            for (auto &a : nf->args) {
+                h ^= FNV1A64(a.name);
+            }
+        }
+        return h;
+    }
 };
 
 struct Line {

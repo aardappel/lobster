@@ -92,6 +92,7 @@ table BytecodeFile {
     ser_ids:[int];
 
     build_info:string;
+    src_hash:ulong;
 }
 
 root_type BytecodeFile;

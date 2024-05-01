@@ -117,12 +117,13 @@ bool IsCompressed(string_view filename) {
 
 static const uint8_t *magic = (uint8_t *)"LPAK";
 static const size_t magic_size = 4;
-static const size_t header_size = magic_size + sizeof(int64_t) * 3;
+static const size_t header_size = magic_size + sizeof(int64_t) * 4;
 static const char *bcname = "bytecode.lbc";
+static const int64_t current_version = 2;
 
 template <typename T> int64_t LE(T x) { return flatbuffers::EndianScalar((int64_t)x); };
 
-string BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
+string BuildPakFile(string &pakfile, string &bytecode, set<string> &files, uint64_t src_hash) {
     // All offsets in 64bit, just in-case we ever want pakfiles > 4GB :)
     // Since we're building this in memory, they can only be created by a 64bit build.
     vector<int64_t> filestarts;
@@ -196,7 +197,9 @@ string BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
     auto num = LE(filestarts.size());
     // Finally the "header" (or do we call this a "tailer" ? ;)
     auto header_start = pakfile.size();
-    auto version = LE(1);
+    auto version = LE(current_version);
+    auto src_hash_le = LE(src_hash);
+    pakfile.insert(pakfile.end(), (uint8_t *)&src_hash_le, (uint8_t *)(&src_hash_le + 1));
     pakfile.insert(pakfile.end(), (uint8_t *)&num, (uint8_t *)(&num + 1));
     pakfile.insert(pakfile.end(), (uint8_t *)&dirstart, (uint8_t *)(&dirstart + 1));
     pakfile.insert(pakfile.end(), (uint8_t *)&version, (uint8_t *)(&version + 1));
@@ -208,7 +211,7 @@ string BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
 
 // This just loads the directory part of a pakfile such that subsequent LoadFile calls know how
 // to load from it.
-bool LoadPakDir(const char *lpak) {
+bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest) {
     // This supports reading from a pakfile > 4GB even on a 32bit system! (as long as individual
     // files in it are <= 4GB).
     auto plen = LoadFile(lpak, nullptr, 0, 0);
@@ -221,10 +224,11 @@ bool LoadPakDir(const char *lpak) {
         memcpy(&r, p, sizeof(int64_t));
         return LE(r);
     };
-    auto num = read_unaligned64(header.c_str());
-    auto dirstart = read_unaligned64((int64_t *)header.c_str() + 1);
-    auto version = read_unaligned64((int64_t *)header.c_str() + 2);
-    if (version > 1) return false;
+    auto src_hash = (uint64_t)read_unaligned64((int64_t *)header.c_str());
+    auto num = read_unaligned64((int64_t *)header.c_str() + 1);
+    auto dirstart = read_unaligned64((int64_t *)header.c_str() + 2);
+    auto version = read_unaligned64((int64_t *)header.c_str() + 3);
+    if (version != current_version) return false;
     if (dirstart > plen) return false;
     string dir;
     if (LoadFile(lpak, &dir, dirstart, plen - dirstart - (int64_t)header_size) < 0)
@@ -240,6 +244,7 @@ bool LoadPakDir(const char *lpak) {
         LOG_INFO("pakfile dir: ", name, " : ", len);
         AddPakFileEntry(lpak, name, off, len, read_unaligned64(uncompressed + i));
     }
+    src_hash_dest = src_hash;
     return true;
 }
 
@@ -387,10 +392,11 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     Optimizer opt(parser, st, tc, runtime_checks);
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value, runtime_checks);
+    auto src_hash = lex.HashAll();
     st.Serialize(cg.code, cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables,
-                 filenames, cg.ser_ids);
+                 filenames, cg.ser_ids, src_hash);
     if (pakfile) {
-        auto err = BuildPakFile(*pakfile, bytecode, parser.pakfiles);
+        auto err = BuildPakFile(*pakfile, bytecode, parser.pakfiles, src_hash);
         if (!err.empty()) THROW_OR_ABORT(err);
     }
 }
@@ -529,7 +535,8 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const uint
         min_output_level = OUTPUT_WARN;
         InitPlatform(GetMainDirFromExePath(argv[0]), aux_src_path, false, loader);
         auto from_lpak = true;
-        if (!LoadPakDir("default.lpak")) {
+        uint64_t src_hash = 0;
+        if (!LoadPakDir("default.lpak", src_hash)) {
             // FIXME: this is optional, we don't know if the compiled code wants to load this
             // file, so we don't error or even warn if this file can't be found.
             from_lpak = false;
@@ -548,6 +555,9 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const uint
         };
         for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
         lobster::VMAllocator vma(std::move(vmargs));
+        if (from_lpak && src_hash != vma.vm->bcf->src_hash()) {
+            THROW_OR_ABORT("lpak file from different version of the source code than the compiled code");
+        }
         vma.vm->EvalProgram();
     }
     #ifdef USE_EXCEPTION_HANDLING

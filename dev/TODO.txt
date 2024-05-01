@@ -10,15 +10,6 @@
   "function foo with 2 arguments is ambiguous with the 1 version because of default arguments"
   is super confusing.
 
-- Compute a checksum of all code parsed by a particular build, and stick that both in the .pak file
-  header, and in the FlatBuffers metadata. That way, when doing a C++ build, these two numbers can
-  be checked against eachother to ensure they are from the same build.
-  What is also fragile is the Lobster binary that compiled the bytecode compared to the one compiled into
-  tocpp compiled lobster code: if one has a different set of builtin functions, it ends up calling the
-  wrong function (since the bytecode contains just indices). So should also checksum some aspect of
-  the runtime.. a commit id would be great but hard to add to the built process. Failing that, a checksum
-  of all runtime function names or whatever would be a start.
-
 - Options for speeding up JIT mode.
   Recent benchmarking has shown that while the C++ mode can be pretty fast (within 5x of native C++),
   the JIT is surprisingly slow (sometimes up to 10x slower than C++ mode for pure number crunching).
