@@ -10,6 +10,20 @@
   "function foo with 2 arguments is ambiguous with the 1 version because of default arguments"
   is super confusing.
 
+- Default ignoring return values is a really bad default, wonder if it is too late to change?
+  Ideally it would error on ignored return values unless the function explicitly marks a return
+  value as ignorable.
+  What would be a syntax for this?
+  Could be a single keyword like "ignore" that is both used to mark return values or types as
+  ignorable in the definition, and to ignore them in the call if they were not ignorable.
+  Only one of these 3 would be necessary:
+    def foo() -> ignore int
+        print "foo"
+        return ignore 1
+    ignore foo()
+  For builtin functions, maybe better to have the opposite default since ignoreing them is so
+  prevalent, and optionally mark them as non-ignorable.
+
 - Options for speeding up JIT mode.
   Recent benchmarking has shown that while the C++ mode can be pretty fast (within 5x of native C++),
   the JIT is surprisingly slow (sometimes up to 10x slower than C++ mode for pure number crunching).
