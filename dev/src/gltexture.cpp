@@ -59,6 +59,7 @@ void SetFilterClampWrap(int tf, GLenum textype) {
 
 Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     LOBSTER_FRAME_PROFILE_THIS_SCOPE;
+    if (!buf) tf &= ~TF_BUFFER_HAS_MIPS;
     int id;
     GL_CALL(glGenTextures(1, (GLuint *)&id));
     assert(id);
