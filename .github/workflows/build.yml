@@ -48,7 +48,8 @@ jobs:
     - name: cmake cpp output
       working-directory: dev
       # In addition to C++ out, build this one in Debug and without the engine for extra coverage.
-      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Debug -DLOBSTER_WERROR=ON -DLOBSTER_TOCPP=ON -DLOBSTER_ENGINE=OFF .
+      # Removed -DLOBSTER_ENGINE=OFF for now as it interferes with builtin function checksumming.
+      run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Debug -DLOBSTER_WERROR=ON -DLOBSTER_TOCPP=ON .
     - name: build cpp output
       working-directory: dev
       run: make -j4
@@ -107,7 +108,7 @@ jobs:
       with:
         name: ${{ matrix.artifact_name }}
         path: bin/lobster
-        
+
   build-android:
     name: Build Android (on Linux)
     runs-on: ubuntu-latest
