@@ -76,8 +76,8 @@ class scrollzoomview:
         panoffset = startoffset
         touchvelocity = float2_0
         viewsteps = 0
-        pinchfactor = 1
-        lastdistance = 0
+        pinchfactor = 1.0
+        lastdistance = 0.0
 
 
 // helper for rendering text at arbitrary scaled locations with maximum precision
