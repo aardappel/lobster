@@ -554,7 +554,7 @@ struct Parser {
                 // Create it early since the superclass specializers below may refer to it.
                 if (was_predeclaration) {
                     udt = gudt->first;
-                    assert(udt && !gudt->first->next);
+                    assert(udt && !udt->next);
                 } else { 
                     udt = st.MakeSpecialization(*gudt, sname, false, false);
                 }
@@ -639,9 +639,15 @@ struct Parser {
             } else {
                 gudt->predeclaration = true;
             }
-            // Also make a specialization, since it will typically be referred to in fields of
-            // other types (that get resolved) before this is fully declared.
-            udt = st.MakeSpecialization(*gudt, sname, false, false);
+            if (was_predeclaration && gudt->predeclaration) {
+                // Multiple pre-declarations, don't add another specialization.
+                udt = gudt->first;
+                assert(udt && !udt->next);
+            } else {
+                // Also make a specialization, since it will typically be referred to in fields of
+                // other types (that get resolved) before this is fully declared.
+                udt = st.MakeSpecialization(*gudt, sname, false, false);
+            }
         }
         gudt->unspecialized.specializers.clear();
         for (auto &g : gudt->generics) {
