@@ -47,6 +47,12 @@ static int FirstStringCompare(const Value &key, const Value &elem) {
     return (_a > _b) - (_b > _a);
 }
 
+static int FirstObjectCompare(const Value &key, const Value &elem) {
+    auto _a = key.any();
+    auto _b = elem.oval()->AtS(0).any();
+    return _a < _b ? -1 : _a > _b;
+}
+
 template<typename T> Value BinarySearch(StackPtr &sp, Value &l, Value &key, T comparefun) {
     iint size = l.vval()->len;
     iint i = 0;
@@ -317,7 +323,7 @@ nfr("binary_search_object", "xs,key", "A]*A1", "II",
     });
 
 // TODO: add int/float versions of this?
-nfr("binary_search_first_field_string", "xs,key", "A]S", "II",
+nfr("binary_search_first_field_string", "xs,key", "A]*S", "II",
     "object version where key is the first field (must be string, runtime error if it is not)",
     [](StackPtr &sp, VM &vm, Value &l, Value &key) {
         auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
@@ -325,6 +331,17 @@ nfr("binary_search_first_field_string", "xs,key", "A]S", "II",
             vm.BuiltinError(
                 "binary_search_first_field_string: elements not objects with first string field");
         auto r = BinarySearch(sp, l, key, FirstStringCompare);
+        return r;
+    });
+
+nfr("binary_search_first_field_object", "xs,key", "A]*A", "II",
+    "object version where key is the first field (must be object, runtime error if it is not)",
+    [](StackPtr &sp, VM &vm, Value &l, Value &key) {
+        auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
+        if (et.t != V_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != V_CLASS)
+            vm.BuiltinError(
+                "binary_search_first_field_object: elements not objects with first object field");
+        auto r = BinarySearch(sp, l, key, FirstObjectCompare);
         return r;
     });
 
