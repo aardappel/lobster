@@ -59,7 +59,6 @@ void SetFilterClampWrap(int tf, GLenum textype) {
 
 Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     LOBSTER_FRAME_PROFILE_THIS_SCOPE;
-    if (!buf) tf &= ~TF_BUFFER_HAS_MIPS;
     int id;
     GL_CALL(glGenTextures(1, (GLuint *)&id));
     assert(id);
@@ -111,9 +110,15 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
         #endif
     } else if(tf & TF_3D) {
 		#ifndef __EMSCRIPTEN__
+            #ifdef PLATFORM_WINNIX
+                if (!buf && glTexStorage3D) {
+                    int levels = tf & TF_NOMIPMAP ? 1 : 1 + (int)log2(max(dim.x, max(dim.y, dim.z)));
+                    GL_CALL(glTexStorage3D(GL_TEXTURE_3D, levels, internalformat, dim.x, dim.y, dim.z));
+                    goto fully_allocated;
+                }
+            #endif
 			int mipl = 0;
-            // TODO: Ideally use glTexStorage3D if no initialization buffer provided
-			for (auto d = dim; tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+			for (auto d = dim; buf && tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
 				GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x, d.y, d.z, 0,
 									 bufferformat, buffercomponent, buf));
 				mipl++;
@@ -123,9 +128,15 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
 			assert(false);
 		#endif
     } else {
+        #ifdef PLATFORM_WINNIX
+            if (!buf && glTexStorage2D) {
+                int levels = tf & TF_NOMIPMAP ? 1 : 1 + (int)log2(max(dim.x, dim.y));
+                GL_CALL(glTexStorage2D(GL_TEXTURE_2D, levels, internalformat, dim.x, dim.y));
+                goto fully_allocated;
+            }
+        #endif
         int mipl = 0;
-        // TODO: Ideally use glTexStorage2D if no initialization buffer provided
-        for (auto d = dim.xy(); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+        for (auto d = dim.xy(); buf && tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
             for (int i = 0; i < texnumfaces; i++) {
                 GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x, d.y, 0,
                                      bufferformat, buffercomponent, buf));
@@ -140,6 +151,7 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
         #endif
             GL_CALL(glGenerateMipmap(textype));
     }
+    fully_allocated:
     GL_CALL(glBindTexture(textype, 0));
     GL_NAME(GL_TEXTURE, id, name);
     auto tr = Texture(id, dim, int(elemsize), textype, internalformat);

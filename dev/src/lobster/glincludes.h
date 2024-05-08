@@ -150,7 +150,9 @@
         GLEXT(PFNGLOBJECTLABELPROC                   , glObjectLabel                   , 0) \
         GLEXT(PFNGLDEBUGMESSAGECALLBACKPROC          , glDebugMessageCallback          , 0) \
         GLEXT(PFNGLDEBUGMESSAGECONTROLPROC           , glDebugMessageControl           , 0) \
-        GLEXT(PFNGLDEBUGMESSAGEINSERTPROC            , glDebugMessageInsert            , 0)
+        GLEXT(PFNGLDEBUGMESSAGEINSERTPROC            , glDebugMessageInsert            , 0) \
+        GLEXT(PFNGLTEXSTORAGE2DPROC                  , glTexStorage2D                  , 0) \
+        GLEXT(PFNGLTEXSTORAGE3DPROC                  , glTexStorage3D                  , 0)
     #define GLEXT(type, name, needed) extern type name;
         GLBASEEXTS
         GLEXTS
