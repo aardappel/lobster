@@ -798,7 +798,8 @@ struct CodeGen  {
             EmitOp(GENOP(IL_FADD + opc));
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
             EmitOp(GENOP(IL_SADD + opc));
-        } else if (rtype->t == V_FUNCTION && ltype->t == V_FUNCTION) {
+        } else if ((rtype->t == V_FUNCTION && ltype->t == V_FUNCTION) ||
+                   (rtype->t == V_TYPEID && ltype->t == V_TYPEID)) {
             assert(opc == MOP_EQ || opc == MOP_NE);
             EmitOp(GENOP(IL_LEQ + (opc - MOP_EQ)));
         } else {

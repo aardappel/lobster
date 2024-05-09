@@ -714,7 +714,7 @@ struct TypeChecker {
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
                 // Comparison with one result, but still by value for structs.
                 if (u->t != V_VECTOR && !IsUDT(u->t) && u->t != V_NIL &&
-                    u->t != V_FUNCTION && u->t != V_RESOURCE)
+                    u->t != V_FUNCTION && u->t != V_RESOURCE && u->t != V_TYPEID)
                     RequiresError(TypeName(n.left->exptype), n.right->exptype, n,
                                   "right-hand side");
                 if (u->t == V_STRUCT_S && !u->udt->sametype->Numeric())
