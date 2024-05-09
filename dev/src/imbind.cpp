@@ -1124,6 +1124,15 @@ nfr("input_int", "label,val,min,max", "SIII", "I",
         return val;
     });
 
+nfr("input_int", "label,val", "SI", "I",
+    "",
+    [](StackPtr &, VM &vm, Value &text, Value &val) {
+        IsInit(vm);
+        ImGui::InputScalar(Label(vm, text), ImGuiDataType_S64, (void *)&val,
+                           nullptr, nullptr, "%d", 0);
+        return val;
+    });
+
 nfr("input_float", "label,val", "SF", "F",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &val) {
