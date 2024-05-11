@@ -74,6 +74,65 @@ enum_flags tabitem:
     tabitem_leading                            // Enforce the tab position to the left of the tab bar (after the tab list popup button)
     tabitem_trailing                           // Enforce the tab position to the right of the tab bar (before the scrolling buttons)
 
+enum_flags table:
+    table_none = 0
+    table_resizable = 2                   // Enable resizing columns.
+    table_reorderable                     // Enable reordering columns in header row (need calling TableSetupColumn() + TableHeadersRow() to display headers)
+    table_hideable                        // Enable hiding/disabling columns in context menu.
+    table_sortable                        // Enable sorting. Call TableGetSortSpecs() to obtain sort specs. Also see ImGuiTableFlags_SortMulti and ImGuiTableFlags_SortTristate.
+    table_no_saved_settings               // Disable persisting columns order, width and sort settings in the .ini file.
+    table_context_menu_in_body            // Right-click on columns body/contents will display table context menu. By default it is available in TableHeadersRow().
+    table_row_bg                          // Set each RowBg color with ImGuiCol_TableRowBg or ImGuiCol_TableRowBgAlt (equivalent of calling TableSetBgColor with ImGuiTableBgFlags_RowBg0 on each row manually)
+    table_borders_inner_h                 // Draw horizontal borders between rows.
+    table_borders_outer_h                 // Draw horizontal borders at the top and bottom.
+    table_borders_inner_v                 // Draw vertical borders between columns.
+    table_borders_outer_v                 // Draw vertical borders on the left and right sides.
+    table_no_borders_in_body              // [ALPHA] Disable vertical borders in columns Body (borders will always appear in Headers). -> May move to style
+    table_no_borders_in_body_until_resize // [ALPHA] Disable vertical borders in columns Body until hovered for resize (borders will always appear in Headers). -> May move to style
+    table_sizing_fixed_fit                // Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching contents width.
+    table_sizing_fixed_same               // Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching the maximum contents width of all columns. Implicitly enable ImGuiTableFlags_NoKeepColumnsVisible.
+    table_sizing_stretch_same             // Columns default to _WidthStretch with default weights all equal, unless overridden by TableSetupColumn().
+    table_no_host_extend_x                // Make outer width auto-fit to columns, overriding outer_size.x value. Only available when ScrollX/ScrollY are disabled and Stretch columns are not used.
+    table_no_host_extend_y                // Make outer height stop exactly at outer_size.y (prevent auto-extending table past the limit). Only available when ScrollX/ScrollY are disabled. Data below the limit will be clipped and not visible.
+    table_no_keep_columns_visible         // Disable keeping column always minimally visible when ScrollX is off and table gets too small. Not recommended if columns are resizable.
+    table_precise_widths                  // Disable distributing remainder width to stretched columns (width allocation on a 100-wide table with 3 columns: Without this flag: 33,33,34. With this flag: 33,33,33). With larger number of columns, resizing will appear to be less smooth.
+    table_no_clip                         // Disable clipping rectangle for every individual columns (reduce draw command count, items will be able to overflow into other columns). Generally incompatible with TableSetupScrollFreeze().
+    table_pad_outer_x                     // Default if BordersOuterV is on. Enable outermost padding. Generally desirable if you have headers.
+    table_no_pad_outer_x                  // Default if BordersOuterV is off. Disable outermost padding.
+    table_no_pad_inner_x                  // Disable inner padding between columns (double inner padding if BordersOuterV is on, single inner padding if BordersOuterV is off).
+    table_scroll_x                        // Enable horizontal scrolling. Require 'outer_size' parameter of BeginTable() to specify the container size. Changes default sizing policy. Because this creates a child window, ScrollY is currently generally recommended when using ScrollX.
+    table_scroll_y                        // Enable vertical scrolling. Require 'outer_size' parameter of BeginTable() to specify the container size.
+    table_sort_multi                      // Hold shift when clicking headers to sort on multiple column. TableGetSortSpecs() may return specs where (SpecsCount > 1).
+    table_sort_tristate                   // Allow no sorting, disable default sorting. TableGetSortSpecs() may return specs where (SpecsCount == 0).
+
+let table_sizing_stretch_prop = table_sizing_fixed_fit | table_sizing_fixed_same // Columns default to _WidthStretch with default weights proportional to each columns contents widths.
+let table_borders_h           = table_borders_inner_h  | table_borders_outer_h   // Draw horizontal borders.
+let table_borders_v           = table_borders_inner_v  | table_borders_outer_v   // Draw vertical borders.
+let table_borders_inner       = table_borders_inner_v  | table_borders_inner_h   // Draw inner borders.
+let table_borders_outer       = table_borders_outer_v  | table_borders_outer_h   // Draw outer borders.
+let table_borders             = table_borders_inner    | table_borders_outer     // Draw all borders.
+
+enum_flags table_column:
+    table_column_none = 0,
+    table_column_disabled = 1           // Overriding/master disable flag: hide column, won't show in context menu (unlike calling TableSetColumnEnabled() which manipulates the user accessible state)
+    table_column_default_hide           // Default as a hidden/disabled column.
+    table_column_default_sort           // Default as a sorting column.
+    table_column_width_stretch          // Column will stretch. Preferable with horizontal scrolling disabled (default if table sizing policy is _SizingStretchSame or _SizingStretchProp).
+    table_column_width_fixed            // Column will not stretch. Preferable with horizontal scrolling enabled (default if table sizing policy is _SizingFixedFit and table is resizable).
+    table_column_no_resize              // Disable manual resizing.
+    table_column_no_reorder             // Disable manual reordering this column, this will also prevent other columns from crossing over this column.
+    table_column_no_hide                // Disable ability to hide/disable this column.
+    table_column_no_clip                // Disable clipping for this column (all NoClip columns will render in a same draw command).
+    table_column_no_sort                // Disable ability to sort on this field (even if ImGuiTableFlags_Sortable is set on the table).
+    table_column_no_sort_ascending      // Disable ability to sort in the ascending direction.
+    table_column_no_sort_descending     // Disable ability to sort in the descending direction.
+    table_column_no_header_label        // TableHeadersRow() will not submit label for this column. Convenient for some small columns. Name will still appear in context menu.
+    table_column_no_header_width        // Disable header text width contribution to automatic column width.
+    table_column_prefer_sort_ascending  // Make the initial sort direction Ascending when first sorting on this column (default).
+    table_column_prefer_sort_descending // Make the initial sort direction Descending when first sorting on this column.
+    table_column_indent_enable          // Use current Indent value when entering cell (default for column 0).
+    table_column_indent_disable         // Ignore current Indent value when entering cell (default for columns > 0). Indentation changes _within_ the cell will still be honored.
+
 enum_flags drag_drop:
     drag_drop_none = 0,
     drag_drop_source_no_preview_tooltip = 1   // Disable preview tooltip. By default, a successful call to BeginDragDropSource opens a tooltip so you can display a preview or description of the source contents. This flag disables this behavior.
@@ -253,6 +312,13 @@ def id(label, body):
     id_start(label)
     body()
     id_end()
+
+def table(id, num_columsn, flags, body):
+    let visible = table_start(id, num_columsn, flags)
+    if visible:
+        body()
+        table_end()
+    return visible
 
 // Call im.popup_open (from e.g. im.button) with same label as this, followed by im.popup() with body.
 def popup(label, body):

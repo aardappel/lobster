@@ -58,6 +58,7 @@ enum Nesting {
     N_COLOR,
     N_DRAG_DROP_SOURCE,
     N_DRAG_DROP_TARGET,
+    N_TABLE,
 };
 
 vector<Nesting> nstack;
@@ -125,6 +126,10 @@ bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
 
 void NPush(Nesting n) {
     nstack.push_back(n);
+}
+
+Nesting NTop() {
+    return nstack.empty() ? N_NONE : nstack.back();
 }
 
 void NPop(VM &vm, Nesting n) {
@@ -201,6 +206,9 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_DRAG_DROP_TARGET:
                 ImGui::EndDragDropTarget();
+                break;
+            case N_TABLE:
+                ImGui::EndTable();
                 break;
         }
         // If this was indeed the item we're looking for, we can stop popping.
@@ -1423,6 +1431,24 @@ nfr("id_start", "label", "Ss", "",
         NPush(N_ID);
     });
 
+nfr("id_start", "label", "I", "",
+    "(integer version)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto i = Pop(sp);
+        ImGui::PushID(i.intval());
+        NPush(N_ID);
+    });
+
+nfr("id_start", "label", "A", "",
+    "(reference version)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto r = Pop(sp);
+        ImGui::PushID((const void *)r.ref());
+        NPush(N_ID);
+    });
+
 nfr("id_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
@@ -1601,7 +1627,7 @@ nfr("width_end", "", "", "", "",
         NPop(vm, N_WIDTH);
     });
 
-nfr("text_table", "id,num_colums,labels,", "SIS]", "", "",
+nfr("text_table", "id,num_colums,labels", "SIS]", "", "",
     [](StackPtr &, VM &vm, Value &id, Value &num_colums, Value &labels) {
         IsInit(vm);
         auto nc = num_colums.intval();
@@ -1617,6 +1643,53 @@ nfr("text_table", "id,num_colums,labels,", "SIS]", "", "",
         }
         ImGui::EndTable();
         return NilVal();
+    });
+
+nfr("table_start", "id,num_colums,flags", "SII", "B",
+    "(use im.table instead)",
+    [](StackPtr &, VM &vm, Value &id, Value &num_colums, Value &flags) {
+        IsInit(vm);
+        auto nc = num_colums.intval();
+        auto visible = ImGui::BeginTable(id.sval()->strvnt().c_str(), nc, flags.intval());
+        if (visible) NPush(N_TABLE);
+        return Value(visible);
+    });
+
+nfr("table_setup_column", "label,flags,init_width_or_weight", "SIF", "",
+    "(use im.table instead)",
+    [](StackPtr &, VM &vm, Value &label, Value &flags, Value &init) {
+        IsInit(vm);
+        if (NTop() == N_TABLE)
+            ImGui::TableSetupColumn(label.sval()->strvnt().c_str(), flags.intval(), init.fltval());
+        return NilVal();
+    });
+
+nfr("table_headers_row", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        if (NTop() == N_TABLE) ImGui::TableHeadersRow();
+    });
+
+nfr("table_next_row", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        /*if (NTop() == N_TABLE)*/ ImGui::TableNextRow();
+    });
+
+nfr("table_next_column", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        /*if (NTop() == N_TABLE)*/ ImGui::TableNextColumn();
+    });
+
+nfr("table_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_TABLE);
     });
 
 nfr("edit_anything", "value,label", "AkS?", "A1",
