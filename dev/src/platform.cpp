@@ -416,7 +416,7 @@ bool RenameFile(string_view oldfilename, string_view newfilename) {
 }
 
 bool FileExists(string_view filename, bool allow_absolute) {
-    auto f = OpenForReading(filename, true, allow_absolute);
+    auto f = OpenFor(filename, "rb", allow_absolute);
     if (f) fclose(f);
     return f;
 }
