@@ -1512,6 +1512,10 @@ struct TypeChecker {
         return dispatch_udt.dispatch_table[vtable_idx].returntype;
     };
 
+    // Reuse these, otherwise cause a LOT of allocations.
+    vector<Overload *> pickfrom;
+    vector<Overload *> matches;
+
     TypeRef TypeCheckCall(SubFunction *&csf, List &call_args, size_t reqret, int &vtable_idx,
                           vector<TypeRef> *specializers, bool super) {
         STACK_PROFILE;
@@ -1552,38 +1556,45 @@ struct TypeChecker {
         // FIXME: the use of args[].type here and further downstream only works because
         // we pre-resolve these in the TypeChecker constructor, instead we should use giventypes
         // properly here, and resolve them.
-        vector<Overload *> from = f.overloads;
+        assert(pickfrom.empty());
+        assert(matches.empty());
+        pickfrom = f.overloads;
         for (int argidx = 0; ; argidx++) {
-            if (from.size() == 1) {
+            if (pickfrom.size() == 1) {
                 // We're done, found unique match.
-                LOG_DEBUG("static dispatch: ", Signature(*from[0]->sf));
-                return TypeCheckCallStatic(csf, call_args, reqret, specializers, *from[0], true,
+                auto pick = pickfrom[0];
+                LOG_DEBUG("static dispatch: ", Signature(*pick->sf));
+                pickfrom.clear();
+                matches.clear();
+                return TypeCheckCallStatic(csf, call_args, reqret, specializers, *pick, true,
                                            false, false);
             }
             if ((int)f.nargs() == argidx) {
                 // Gotten to the end and we still have multiple matches!
                 if (specializers) {
                     // Last ditch effort: remove overloads that don't match the generic params.
-                    from.erase(remove_if(from.begin(), from.end(), [&](Overload *ov) {
+                    pickfrom.erase(remove_if(pickfrom.begin(), pickfrom.end(),
+                                         [&](Overload *ov) {
                         return specializers->size() != ov->sf->generics.size();
-                    }), from.end());
-                    if (from.size() == 1) {
+                                             }),
+                                   pickfrom.end());
+                    if (pickfrom.size() == 1) {
                         argidx--;
                         continue;
                     }
                 }
-                AmbiguousOverloadError(call_args, f, type0, from);
+                AmbiguousOverloadError(call_args, f, type0, pickfrom);
             }
             // Now filter existing matches into a new set of matches based on current arg.
-            vector<Overload *> matches;
+            matches.clear();
             auto type = argidx ? call_args.children[argidx]->exptype : type0;
             // First see if there is an exact match.
-            for (auto ov : from) {
+            for (auto ov : pickfrom) {
                 if (type->Equal(*ov->sf->args[argidx].type)) matches.push_back(ov);
             }
             // Then see if there's a match if we'd instantiate a generic UDT arg.
             if (matches.empty() && IsUDT(type->t)) {
-                for (auto ov : from) {
+                for (auto ov : pickfrom) {
                     auto arg = ov->sf->giventypes[argidx];  // Want unresolved type.
                     if (arg->t == V_UUDT && arg->spec_udt->gudt == &type->udt->g) {
                         matches.push_back(ov);
@@ -1592,7 +1603,7 @@ struct TypeChecker {
             }
             // Then see if there's a match by subtyping.
             if (matches.empty()) {
-                for (auto ov : from) {
+                for (auto ov : pickfrom) {
                     auto arg = ov->sf->args[argidx].type;
                     if (arg->t == V_UUDT && type->t == V_CLASS) {
                         auto dist = DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt);
@@ -1640,7 +1651,7 @@ struct TypeChecker {
             }
             // Then see if there's a match if we'd instantiate a fully generic arg.
             if (matches.empty()) {
-                for (auto ov : from) {
+                for (auto ov : pickfrom) {
                     auto arg = ov->sf->giventypes[argidx];  // Want unresolved type.
                     if (arg->t == V_TYPEVAR) { matches.push_back(ov); }
                 }
@@ -1654,7 +1665,7 @@ struct TypeChecker {
                 for (auto [i, gtv] : enumerate(generics)) {
                     gtv.type = specializers->at(i);
                 }
-                for (auto ov : from) {
+                for (auto ov : pickfrom) {
                     if (generics.size() != ov->sf->generics.size()) continue;
                     for (auto [i, gtv] : enumerate(generics)) {
                         gtv.tv = ov->sf->generics[i].tv;
@@ -1671,7 +1682,7 @@ struct TypeChecker {
             }
             // Then finally try with coercion.
             if (matches.empty()) {
-                for (auto ov : from) {
+                for (auto ov : pickfrom) {
                     if (ConvertsTo(type, ov->sf->args[argidx].type, CF_COERCIONS)) {
                         matches.push_back(ov);
                     }
@@ -1683,7 +1694,7 @@ struct TypeChecker {
                       " argument type ", Q(TypeName(type)));
             }
             // We still have multiple matches that apply, so let the next arg(s) decide.
-            from = matches;
+            pickfrom = matches;
         }
     }
 
