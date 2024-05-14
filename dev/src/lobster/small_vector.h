@@ -31,8 +31,7 @@ template<typename T, int N> class small_vector {
         T *buf;
     };
 
-    void grow() {
-        uint32_t nc = len * 2;
+    void grow(uint32_t nc) {
         auto b = new T[nc];
         t_memcpy(b, data(), len);
         if (cap > N) delete[] buf;
@@ -43,15 +42,66 @@ template<typename T, int N> class small_vector {
     public:
     small_vector() {}
 
+    small_vector(const small_vector<T, N> &o) {
+        len = o.len;
+        cap = o.cap;
+        if (o.cap == N) {
+            for (uint32_t i = 0; i < len; i++) {
+                elems[i] = o.elems[i];
+            }
+        } else {
+            buf = new T[len];
+            t_memcpy(buf, o.buf, len);
+        }
+    }
+
+    small_vector(small_vector<T, N> &&o) {
+        len = o.len;
+        cap = o.cap;
+        buf = o.buf;
+        o.buf = nullptr;
+        o.len = 0;
+        o.cap = N;
+    }
+
+    small_vector(const vector<T> &o) {
+        if (o.len > cap) grow(o.len);
+        for (auto e : o) {
+            push_back(e);
+        }
+    }
+
     ~small_vector() {
         if (cap > N) delete[] buf;
     }
 
-    size_t size() {
+    small_vector &operator=(const small_vector<T, N> &o) {
+        len = 0;
+        if (o.len > cap) grow(o.len);
+        for (auto e : o) {
+            push_back(e);
+        }
+        return *this;
+    }
+
+    small_vector &operator=(const vector<T> &o) {
+        len = 0;
+        if (o.len > cap) grow(o.len);
+        for (auto e : o) {
+            push_back(e);
+        }
+        return *this;
+    }
+
+    size_t size() const {
         return len;
     }
 
     T *data() {
+        return cap == N ? elems : buf;
+    }
+
+    const T *data() const {
         return cap == N ? elems : buf;
     }
 
@@ -77,13 +127,13 @@ template<typename T, int N> class small_vector {
     }
 
     void push_back(const T &e) {
-        if (len == cap) grow();
+        if (len == cap) grow(len * 2);
         data()[len++] = e;
     }
 
     void insert(size_t at, const T &e) {
         assert(at <= len);
-        if (len == cap) grow();
+        if (len == cap) grow(len * 2);
         if (at != len) t_memmove(data() + at + 1, data() + at, size() - at);
         data()[at] = e;
         len++;
@@ -94,4 +144,20 @@ template<typename T, int N> class small_vector {
         if (at != len - 1) t_memmove(data() + at, data() + at + 1, size() - at - 1);
         len--;
     }
+
+    // For use with map.
+    bool operator<(const small_vector<T, N> &o) const {
+        const auto a = data();
+        const auto b = o.data();
+        for (uint32_t i = 0; i < len; i++) {
+            if (i >= o.len) return false;
+            if (a[i] < b[i]) return true;
+            if (a[i] > b[i]) return false;
+        }
+        return len < o.len;
+    }
 };
+
+template<typename T, int N> ssize_t ssize(const small_vector<T, N> &v) {
+    return (ssize_t)v.size();
+}

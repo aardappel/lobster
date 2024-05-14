@@ -17,7 +17,7 @@
 // packed_vector stores multiple variable sized items in contiguous memory
 // while still allowing O(1) indexing, by keeping offsets to all items.
 // 
-// This is intended to allow it to be used in similar cases as std::vector<std::string>
+// This is intended to allow it to be used in similar cases as std::vector<std::string>>
 // with reduced memory usage and reduced allocations, with slower inserts/deletes
 // as the main downside.
 // 

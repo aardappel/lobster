@@ -27,7 +27,7 @@ struct CodeGen  {
     SymbolTable &st;
     vector<type_elem_t> type_table;
     vector<type_elem_t> ser_ids;
-    map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
+    map<small_vector<type_elem_t, 2>, type_elem_t> type_lookup;  // Wasteful, but simple.
     vector<TypeLT> rettypes, temptypestack;
     vector<const Node *> loops;
     vector<int> breaks;
@@ -123,7 +123,8 @@ struct CodeGen  {
     const int ti_num_udt_fields = 6;
     const int ti_num_udt_per_field = 3;
 
-    void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
+    void PushFields(UDT *udt, small_vector<type_elem_t, 2> &tt,
+                    type_elem_t parent = (type_elem_t)-1) {
         for (auto [i, sfield] : enumerate(udt->sfields)) {
             auto ti = GetTypeTableOffset(sfield.type);
             if (IsStruct(sfield.type->t)) {
@@ -151,7 +152,7 @@ struct CodeGen  {
 
     // Make a table for use as VM runtime type.
     type_elem_t GetTypeTableOffset(TypeRef type) {
-        vector<type_elem_t> tt;
+        small_vector<type_elem_t, 2> tt;
         tt.push_back((type_elem_t)type->t);
         switch (type->t) {
             case V_INT:
