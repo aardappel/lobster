@@ -1557,7 +1557,7 @@ struct Parser {
         }
     }
 
-    void ForLoopVar(int existing, SpecIdent *sid, TypeRef type, vector<Node *> &list) {
+    void ForLoopVar(int existing, SpecIdent *sid, TypeRef type, node_small_vector &list) {
         Node *init = nullptr;
         if (existing == 0)
             init = new ForLoopElem(lex);
@@ -1567,7 +1567,7 @@ struct Parser {
             Error("for loop takes at most an element and index variable");
         auto def = new Define(lex, init);
         def->sids.push_back({ sid , type });
-        list.insert(list.begin() + existing, def);
+        list.insert(existing, def);
     }
 
     Block *ParseBlock(int for_args = -1, bool parse_args = false) {

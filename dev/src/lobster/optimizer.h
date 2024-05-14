@@ -179,8 +179,7 @@ Node *Call::Optimize(Optimizer &opt) {
     // TODO: triple-check this similar in semantics to what happens in CloneFunction() in the
     // typechecker.
     if (sf->numcallers == 1) {
-        list->children.insert(list->children.end(), sf->sbody->children.begin(),
-                              sf->sbody->children.end());
+        list->children.append(sf->sbody->children.data(), sf->sbody->children.size());
         sf->sbody->children.clear();
         delete sf->sbody;
         sf->sbody = nullptr;

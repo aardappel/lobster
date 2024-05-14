@@ -194,9 +194,11 @@ struct NAME : Node { \
 #define TERNARY_NODE(NAME, STR, SE, A, B, C, METHODS) \
     TERNARY_NODE_T(NAME, STR, SE, Node, A, Node, B, Node, C, METHODS)
 
+typedef small_vector<Node *, 4> node_small_vector;
+
 #define NARY_NODE(NAME, STR, SE, METHODS) \
 struct NAME : Node { \
-    vector<Node *> children; \
+    node_small_vector children; \
     NAME(const Line &ln) : Node(ln) {}; \
     ~NAME() { for (auto n : children) delete n; } \
     size_t Arity() const { return children.size(); } \

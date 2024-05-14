@@ -86,7 +86,7 @@ template<typename T, int N> class small_vector {
 
     small_vector &operator=(const vector<T> &o) {
         len = 0;
-        if (o.len > cap) grow(o.len);
+        if ((uint32_t)o.size() > cap) grow((uint32_t)o.size());
         for (auto e : o) {
             push_back(e);
         }
@@ -109,7 +109,15 @@ template<typename T, int N> class small_vector {
         return len == 0;
     }
 
+    void clear() {
+        len = 0;
+    }
+
     T &operator[](size_t i) {
+        assert(i < len);
+        return data()[i];
+    }
+    const T &operator[](size_t i) const {
         assert(i < len);
         return data()[i];
     }
@@ -121,9 +129,32 @@ template<typename T, int N> class small_vector {
         return data() + len;
     }
 
+    const T *begin() const {
+        return data();
+    }
+    const T *end() const {
+        return data() + len;
+    }
+
+    const T *cbegin() const {
+        return data();
+    }
+    const T *cend() const {
+        return data() + len;
+    }
+
     T &back() {
         assert(len);
         return data()[len - 1];
+    }
+    const T &back() const {
+        assert(len);
+        return data()[len - 1];
+    }
+
+    void pop_back() {
+        assert(len);
+        len--;
     }
 
     void push_back(const T &e) {
@@ -137,6 +168,12 @@ template<typename T, int N> class small_vector {
         if (at != len) t_memmove(data() + at + 1, data() + at, size() - at);
         data()[at] = e;
         len++;
+    }
+
+    void append(const T *from, size_t n) {
+        if (len + n > cap) grow(len + (uint32_t)n);
+        t_memcpy(data() + len, from, n);
+        len += (uint32_t)n;
     }
 
     void erase(size_t at) {

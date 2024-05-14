@@ -650,7 +650,7 @@ struct TypeChecker {
                 Error(n, "multiple overloads apply based on 2nd arg to " + opname);
         }
         auto c = new Call(n.line, candidates[0]->sf);
-        c->children.insert(c->children.end(), n.Children(), n.Children() + n.Arity());
+        c->children.append(n.Children(), n.Arity());
         n.ClearChildren();
         c->exptype = TypeCheckCallStatic(c->sf, *c, 1, nullptr, *candidates[0],
                                          true, false, false);
@@ -1750,7 +1750,7 @@ struct TypeChecker {
             return dc;
         } else {
             auto c = new Call(dc->line, sf);
-            c->children.insert(c->children.end(), dc->children.begin(), dc->children.end());
+            c->children.append(dc->children.data(), dc->children.size());
             dc->children.clear();
             c->exptype =
                 TypeCheckCallStatic(sf, *c, reqret, nullptr, *sf->parent->overloads[0], true, false, false);
@@ -2107,7 +2107,7 @@ struct TypeChecker {
         }
     }
 
-    void AdjustLifetime(Node *&n, Lifetime recip, const vector<Node *> *idents = nullptr) {
+    void AdjustLifetime(Node *&n, Lifetime recip, const node_small_vector *idents = nullptr) {
         assert(n->lt != LT_UNDEF && recip != LT_UNDEF);
         uint64_t incref = 0, decref = 0;
         auto rt = n->exptype;
@@ -2157,7 +2157,7 @@ struct TypeChecker {
 
     // This is the central function thru which all typechecking flows, so we can conveniently
     // match up what the node produces and what the recipient expects.
-    void TT(Node *&n, size_t reqret, Lifetime recip, const vector<Node *> *idents = nullptr) {
+    void TT(Node *&n, size_t reqret, Lifetime recip, node_small_vector *idents = nullptr) {
         STACK_PROFILE;
         // Central point from which each node is typechecked.
         n = n->TypeCheck(*this, reqret);
@@ -2588,7 +2588,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     if (default_loc >= 0) {
         // Stick the default at the end, simplifies codegen.
         auto d = cases->children[default_loc];
-        cases->children.erase(cases->children.begin() + default_loc);
+        cases->children.erase(default_loc);
         cases->children.push_back(d);
     }
     for (auto n : cases->children) {
@@ -3123,7 +3123,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                         }
                         if (best_superdist < INT_MAX) {
                             auto self = new IdentRef(line, wse.id->cursid);
-                            children.insert(children.begin(), self);
+                            children.insert(0, self);
                             tc.TT(children[0], 1, LT_ANY);
                             nargs++;
                             ff = f;
