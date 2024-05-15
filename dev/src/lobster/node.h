@@ -88,6 +88,10 @@ struct TypeLT {
     TypeRef type;
     Lifetime lt;
 
+    TypeLT() {
+        lt = LT_UNDEF;
+    }
+
     TypeLT(TypeRef type, Lifetime lt)
         : type(type), lt(lt) {}
 

@@ -1871,8 +1871,8 @@ void EnumCoercion::Generate(CodeGen &cg, size_t retval) const {
 
 void Return::Generate(CodeGen &cg, size_t retval) const {
     assert(!cg.rettypes.size());
-    auto typestackbackup = cg.temptypestack;
-    auto tstackbackup = cg.tstack;
+    small_vector<TypeLT, 8> typestackbackup = cg.temptypestack;
+    small_vector<ILOP, 8> tstackbackup = cg.tstack;
     if (cg.temptypestack.size()) {
         // We have temps on the stack, these can be from:
         // * an enclosing for.
@@ -1914,8 +1914,8 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
         cg.Emit(sf->parent->idx);
     }
 
-    cg.temptypestack = typestackbackup;
-    cg.tstack = tstackbackup;
+    reset_from_small_vector(cg.temptypestack, typestackbackup);
+    reset_from_small_vector(cg.tstack, tstackbackup);
     // We can promise to be providing whatever retvals the caller wants.
     for (size_t i = 0; i < retval; i++) {
         cg.rettypes.push_back({ type_undefined, LT_ANY });

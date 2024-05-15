@@ -65,7 +65,7 @@ template<typename T, int N> class small_vector {
     }
 
     small_vector(const vector<T> &o) {
-        if (o.len > cap) grow(o.len);
+        if ((uint32_t)o.size() > cap) grow((uint32_t)o.size());
         for (auto e : o) {
             push_back(e);
         }
@@ -195,6 +195,13 @@ template<typename T, int N> class small_vector {
     }
 };
 
-template<typename T, int N> ssize_t ssize(const small_vector<T, N> &v) {
+template<typename T, int N>
+ssize_t ssize(const small_vector<T, N> &v) {
     return (ssize_t)v.size();
+}
+
+template<typename T, int N>
+void reset_from_small_vector(vector<T> &d, const small_vector<T, N> &v) {
+    d.clear();
+    for (auto e : v) d.push_back(e);
 }
