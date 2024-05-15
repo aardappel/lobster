@@ -77,6 +77,8 @@ struct Node {
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
     virtual Node *Optimize(Optimizer &opt);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
+    // Node allocation and cloning is the bulk of allocation, so use custom fast allocator:
+    USE_CURRENT_SLABALLOCATOR
   protected:
     Node(const Line &ln) : line(ln) {}
     Node() = default;

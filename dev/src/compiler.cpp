@@ -32,6 +32,8 @@
 #include "lobster/codegen.h"
 #include "lobster/tonative.h"
 
+SlabAlloc *g_current_slaballoc = nullptr;
+
 namespace lobster {
 
 const Type g_type_int(V_INT);
@@ -377,6 +379,16 @@ void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
              string *parsedump, string *pakfile, bool return_value, int runtime_checks,
              Query *query, int max_errors, bool full_error) {
+    #ifdef NDEBUG
+        SlabAlloc slaballoc;
+        if (g_current_slaballoc) THROW_OR_ABORT("nested slab allocator use");
+        g_current_slaballoc = &slaballoc;
+        struct SlabReset {
+            ~SlabReset() {
+                g_current_slaballoc = nullptr;
+            }
+        } slabreset;
+    #endif
     vector<pair<string, string>> filenames;
     Lex lex(fn, filenames, nfr.namespaces, stringsource, max_errors);
     SymbolTable st(lex);

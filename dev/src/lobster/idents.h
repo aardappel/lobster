@@ -35,6 +35,22 @@ struct SpecIdent;
 
 struct UDT;
 
+#ifdef NDEBUG
+SlabAlloc *g_current_slaballoc;
+#endif
+
+#ifdef NDEBUG
+    #define USE_CURRENT_SLABALLOCATOR \
+        static void *operator new(size_t size) noexcept { \
+            return g_current_slaballoc->alloc_small(size); \
+        } \
+        static void operator delete(void *ptr, size_t) noexcept { \
+            return g_current_slaballoc->dealloc_small(ptr); \
+        }
+#else
+    #define USE_CURRENT_SLABALLOCATOR 
+#endif
+
 struct Ident : Named {
     size_t scopelevel;
     Line line;
