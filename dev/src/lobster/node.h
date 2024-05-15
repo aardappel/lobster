@@ -17,8 +17,6 @@
 
 namespace lobster {
 
-typedef const function<void (Node *)> &IterateFun;
-
 struct TypeChecker;
 struct Optimizer;
 struct CodeGen;
@@ -39,7 +37,7 @@ struct Node {
     virtual TypeRef CFType() { return nullptr; }
     virtual string_view Name() const = 0;
     virtual void Dump(string &sd) const { sd += Name(); }
-    void Iterate(IterateFun f) {
+    template<typename F> void Iterate(F f) {
         f(this);
         auto ch = Children();
         if (ch) for (size_t i = 0; i < Arity(); i++) ch[i]->Iterate(f);
