@@ -995,6 +995,114 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
         return NilVal();
     });
 
+nfr("load_vox_names", "name", "S", "S]S?",
+    "loads a MagicaVoxel .vox file, and returns its contained sub model names.",
+    [](StackPtr &sp, VM &vm, Value &name) {
+        auto namep = name.sval()->strv();
+        string buf;
+        auto namevec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+        auto errf = [&](string_view err) {
+            // TODO: could clear namevec elements if any?
+            Push(sp, Value(namevec));
+            return Value(vm.NewString(cat(namep, ": ", err)));
+        };
+        auto erreof = [&]() {
+            return errf("unexpected end of .vox file.");
+        };
+        auto l = LoadFile(namep, &buf);
+        if (l < 0) return errf("could not load");
+        auto bufs = gsl::span<const uint8_t>((const uint8_t *)buf.c_str(), buf.size());
+        if ((bufs.size() >= 8) && (strncmp((const char *)bufs.data(), "VOX ", 4) == 0)) {
+            // This looks like a MagicaVoxel file.
+            int3 size = int3_0;
+            bufs = bufs.subspan(8);
+            map<int32_t, int32_t> node_graph;
+            map<int32_t, int32_t> node_to_model;
+            map<int32_t, string> node_names;
+            while (bufs.size() >= 8) {
+                auto id = (const char *)bufs.data();
+                bufs = bufs.subspan(4);
+                int contentlen;
+                if (!ReadSpanInc(bufs, contentlen)) return erreof();
+                bufs = bufs.subspan(4);
+                if ((ptrdiff_t)bufs.size() < (ptrdiff_t)contentlen) return erreof();
+                auto p = bufs.subspan(0, contentlen);
+                bufs = bufs.subspan(contentlen);
+                auto ReadDict = [&](auto f) -> bool {
+                    int32_t dict_len;
+                    if (!ReadSpanInc(p, dict_len)) return false;
+                    for (int i = 0; i < dict_len; ++i) {
+                        string key, value;
+                        if (!ReadSpanVec<string, int32_t>(p, key)) return false;
+                        if (!ReadSpanVec<string, int32_t>(p, value)) return false;
+                        f(key, value);
+                    }
+                    return true;
+                };
+                auto ParseNames = [&](map<int32_t, string> &names, int &id) -> bool {
+                    if (!ReadSpanInc<int32_t>(p, id)) return false;
+                    if (!ReadDict([&](const string &key, const string &value) {
+                            if (key == "_name") {
+                                names.insert_or_assign(id, value);
+                            }
+                        })) return false;
+                    return true;
+                };
+                if (!strncmp(id, "nTRN", 4)) {
+                    // parse node and layer metadata and apply the name bit to the model
+                    // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
+                    int node_id;
+                    if (!ParseNames(node_names, node_id)) return erreof();
+                    int32_t child_node_id;
+                    if (!ReadSpanInc<int32_t>(p, child_node_id)) return erreof();
+                    node_graph.insert_or_assign(child_node_id, node_id);
+                } else if (!strncmp(id, "nGRP", 4)) {
+                    int32_t node_id;
+                    if (!ParseNames(node_names, node_id)) return erreof();
+                    int32_t child_num;
+                    if (!ReadSpanInc(p, child_num)) return erreof();
+                    for (int i = 0; i < child_num; ++i) {
+                        int32_t child_node_id;
+                        if (!ReadSpanInc(p, child_node_id)) return erreof();
+                        node_graph.insert_or_assign(child_node_id, node_id);
+                    }
+                } else if (!strncmp(id, "nSHP", 4)) {
+                    int32_t node_id;
+                    if (!ParseNames(node_names, node_id)) return erreof();
+                    int32_t models_num;
+                    if (!ReadSpanInc(p, models_num)) return erreof();
+                    if (models_num != 1)
+                        return errf(cat(".vox file uses an object with multiple models, which is not supported: ",
+                                        models_num));
+                    for (int i = 0; i < models_num; ++i) {
+                        int32_t model_id;
+                        if (ReadSpanInc(p, model_id))
+                            node_to_model.insert_or_assign(node_id, model_id);
+                        if (!ReadDict([&](const string &, const string &) {}))
+                            return erreof();
+                    }
+                }
+            }
+            for (auto &i : node_to_model) {
+                auto node_id = i.first;
+                for (;;) {
+                    if (node_names.find(node_id) != node_names.end()) {
+                        namevec->Push(vm, Value(vm.NewString(node_names[node_id])));
+                        break;
+                    }
+                    if (node_graph.find(node_id) == node_graph.end())
+                        break;
+                    node_id = node_graph[node_id];
+                }
+            }
+        } else {
+            return errf("Expected MagicaVoxel .vox file");
+        }
+
+        Push(sp, Value(namevec));
+        return NilVal();
+    });
+
 nfr("save_vox", "block,name", "R:voxelsS", "B",
     "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
     " this format can only save blocks < 256^3, will fail if bigger",
