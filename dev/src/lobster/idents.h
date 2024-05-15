@@ -432,12 +432,13 @@ struct SubFunction {
         ov.sf->overload = &ov;
     }
 
-    bool Add(vector<Arg> &v, const Arg &in) {
-        for (auto &arg : v)
-            if (arg.sid->id == in.sid->id)
-                return false;
-        v.push_back(in);
-        return true;
+    void AddFreeVar(SpecIdent &sid) {
+        auto lower = std::lower_bound(freevars.begin(), freevars.end(), sid.id,
+                                      [&](const Arg &e, Ident *id) {
+                return e.sid->id < id;
+            });
+        if (lower != freevars.end() && lower->sid->id == sid.id) return;
+        freevars.insert(lower, Arg(&sid, sid.type));
     }
 
     ~SubFunction();

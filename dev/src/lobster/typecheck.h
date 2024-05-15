@@ -2019,10 +2019,7 @@ struct TypeChecker {
                 break;
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
-            if (sf->Add(sf->freevars, Arg(&sid, sid.type))) {
-                //LOG_DEBUG("freevar added: ", id.name, " (", TypeName(id.type),
-                //                     ") in ", sf->parent->name);
-            }
+            sf->AddFreeVar(sid);
         }
     }
 
