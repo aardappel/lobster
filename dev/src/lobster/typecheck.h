@@ -1033,6 +1033,7 @@ struct TypeChecker {
         sf->attributes = esf->attributes;
         sf->lexical_parent = esf->lexical_parent;
         sf->overload = esf->overload;
+        sf->node_count = esf->node_count;
         return sf;
     }
 
@@ -1206,7 +1207,7 @@ struct TypeChecker {
             // Having a lifetime per arg is mostly useful on smaller functions to not get
             // unnecessary refc overhead on the border, especially if they later get inlined.
             // But for really big functions it just risks unnecessary specializations for no gain.
-            if (ov.gbody->Count() > 25) force_keep = true;
+            if (ov.sf->node_count > 25) force_keep = true;
         }
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
@@ -2327,7 +2328,7 @@ struct TypeChecker {
         size_t orignodes = 0, clonenodes = 0;
         map<Overload *, size_t> funstats;
         for (auto sf : st.subfunctiontable) {
-            auto count = sf->sbody ? sf->sbody->Count() : 0;
+            auto count = sf->node_count;
             if (!sf->next)        {
                 origsf++;
                 orignodes += count;

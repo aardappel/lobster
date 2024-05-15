@@ -60,6 +60,7 @@ struct Optimizer {
         }
         sfstack.push_back(&sf);
         auto nb = sf.sbody->Optimize(*this);
+        sf.node_count = sf.sbody->Count();
         assert(nb == sf.sbody);
         (void)nb;
         sfstack.pop_back();
@@ -137,10 +138,10 @@ Node *Call::Optimize(Optimizer &opt) {
     // Check if we should inline this call.
     if (!is_inlinable ||
         // Inline small functions even if called multiple times.
-        (sf->numcallers > 1 && sf->sbody->Count() >= opt.always_inline) ||
+        (sf->numcallers > 1 && sf->node_count >= opt.always_inline) ||
         // Don't inline really gigantic functions, this helps with not flattening the call-graph too
         // much for stack traces, profiling and such, and may also make them easier to reg-alloc etc.
-        (sf->numcallers <= 1 && sf->sbody->Count() >= opt.never_inline) ||
+        (sf->numcallers <= 1 && sf->node_count >= opt.never_inline) ||
         // Don't inline functions that are being profiled.
         (LOBSTER_FRAME_PROFILER && sf->attributes.find("profile") != sf->attributes.end())) {
         return this;

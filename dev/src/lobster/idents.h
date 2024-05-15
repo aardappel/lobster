@@ -422,6 +422,7 @@ struct SubFunction {
     map<string_view, string_view> attributes;
     Overload *lexical_parent = nullptr;
     Overload *overload = nullptr;
+    size_t node_count = 0;
 
     SubFunction(int _idx) : idx(_idx) {}
 
@@ -755,7 +756,9 @@ struct SymbolTable {
         return sf;
     }
 
-    void FunctionScopeCleanup() {
+    void FunctionScopeCleanup(size_t count) {
+        auto sf = defsubfunctionstack.back();
+        sf->node_count = count;
         defsubfunctionstack.pop_back();
         BlockScopeCleanup();
     }

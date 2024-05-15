@@ -75,7 +75,7 @@ struct Parser {
         ov.gbody = new Block(lex);
         ParseStatements(ov.gbody, T_ENDOFFILE);
         ImplicitReturn(ov);
-        st.FunctionScopeCleanup();
+        st.FunctionScopeCleanup(ov.gbody->Count());
         root = new Call(lex, sf);
     }
 
@@ -897,7 +897,7 @@ struct Parser {
         if (name) functionstack.pop_back();
         if (non_inline_method) st.bound_typevars_stack.pop_back();
         st.bound_typevars_stack.pop_back();
-        st.FunctionScopeCleanup();
+        st.FunctionScopeCleanup(ov->gbody ? ov->gbody->Count() : 0);
         return new FunRef(line, sf);
     }
 
