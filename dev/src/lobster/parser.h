@@ -768,7 +768,7 @@ struct Parser {
         }
         bool non_inline_method = false;
         int first_default_arg = -1;
-        vector<Node *> default_args;
+        node_small_vector default_args;
         if (lex.token != T_RIGHTPAREN && parseargs) {
             for (;;) {
                 ExpectId();
@@ -1180,7 +1180,7 @@ struct Parser {
 
     List *ParseFunctionCall(Line line, Function *f, NativeFun *nf, string_view idname, Node *dotarg,
                             bool noparenscall, vector<TypeRef> *specializers) {
-        vector<Node *> list;
+        node_small_vector list;
         bool parens_parsed = false;
         [&]() {
             if (dotarg) {
@@ -1660,7 +1660,7 @@ struct Parser {
             Line line = lex;
             if (gudt->is_abstract)
                 Error("cannot instantiate abstract class/struct ", Q(gudt->name));
-            vector<Node *> exps(gudt->fields.size(), nullptr);
+            node_small_vector exps(gudt->fields.size(), nullptr);
             ParseVector([&] () {
                 auto id = lex.sattr;
                 if (IsNext(T_IDENT)) {

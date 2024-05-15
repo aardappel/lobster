@@ -419,7 +419,7 @@ struct SubFunction {
     size_t reqret = 0;  // Do the caller(s) want values to be returned?
     const Lifetime ltret = LT_KEEP;
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
-    vector<Node *> reuse_assign_events;
+    small_vector<Node *, 4> reuse_assign_events;
     bool isrecursivelycalled = false;
     Block *sbody = nullptr;
     SubFunction *next = nullptr;
@@ -480,7 +480,7 @@ struct Function : Named {
 
     size_t scopelevel;
 
-    vector<Node *> default_args;
+    small_vector<Node *, 4> default_args;
     int first_default_arg = -1;
 
     Function(string_view _name, int _idx, size_t _sl)

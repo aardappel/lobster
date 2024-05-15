@@ -42,6 +42,15 @@ template<typename T, int N> class small_vector {
     public:
     small_vector() {}
 
+    small_vector(size_t nelems, T init) {
+        if ((uint32_t)nelems > cap) grow((uint32_t)nelems);
+        len = (uint32_t)nelems;
+        auto d = data();
+        for (uint32_t i = 0; i < len; i++) {
+            d[i] = init;
+        }
+    }
+
     small_vector(const small_vector<T, N> &o) {
         len = o.len;
         cap = o.cap;

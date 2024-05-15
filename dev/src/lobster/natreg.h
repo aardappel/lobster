@@ -418,6 +418,10 @@ struct NativeRegistry {
         vector<tracy::SourceLocationData> pre_allocated_function_locations;
     #endif
 
+    NativeRegistry() {
+        nfuns.reserve(1024);
+    }
+
     ~NativeRegistry() {
         for (auto f : nfuns) delete f;
     }

@@ -749,7 +749,7 @@ struct CodeGen  {
     void GenConcatOp(const BinOp *n, size_t retval) {
         // Exception to the code below, since we want to generate an efficient concatenation
         // of any number of strings.
-        vector<Node *> strs;
+        node_small_vector strs;
         strs.push_back(n->left);
         strs.push_back(n->right);
         for (;;) {
@@ -760,9 +760,9 @@ struct CodeGen  {
             }
             auto p = Is<Plus>(c);
             if (p && p->left->exptype->t == V_STRING && p->right->exptype->t == V_STRING) {
-                strs.erase(strs.begin());
-                strs.insert(strs.begin(), p->right);
-                strs.insert(strs.begin(), p->left);
+                strs.erase(0);
+                strs.insert(0, p->right);
+                strs.insert(0, p->left);
             } else {
                 break;
             }
