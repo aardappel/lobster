@@ -17,12 +17,12 @@ namespace lobster {
 struct LValContext {
     // For now, only: ident ( . field )*.
     const SpecIdent *sid;
-    vector<SharedField *> derefs;
+    small_vector<SharedField *, 3> derefs;
     LValContext(SpecIdent *sid) : sid(sid) {}
     LValContext(const Node &n) {
         auto t = &n;
         while (auto dot = Is<Dot>(t)) {
-            derefs.insert(derefs.begin(), dot->fld);
+            derefs.insert(0, dot->fld);
             t = dot->child;
         }
         auto idr = Is<IdentRef>(t);
