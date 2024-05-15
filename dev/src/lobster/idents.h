@@ -103,6 +103,8 @@ struct SpecIdent {
     SpecIdent *&Current() {
         return id->cursid;
     }
+
+    USE_CURRENT_SLABALLOCATOR
 };
 
 struct Enum;
