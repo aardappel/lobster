@@ -625,8 +625,11 @@ struct TypeChecker {
         }
         vector<Overload *> candidates;
         for (auto [i, ov] : enumerate(f->overloads)) {
-            // FIXME: this does not support inheriting an overload.
-            if (ov->sf->args[0].type->Equal(*child1->exptype)) {
+            // FIXME: we are replicating some of the general overload selection that happens in
+            // TypeCheckCall here.
+            auto atype = ov->sf->args[0].type;
+            if ((atype->t == V_UUDT && atype->spec_udt->gudt == &child1->exptype->udt->g) ||
+                ConvertsTo(child1->exptype, atype, CF_NONE)) {
                 if (n.SideEffect() && IsStruct(child1->exptype->t))
                     Error(n, "struct types can\'t model side effecting overloaded operators");
                 candidates.push_back(ov);
