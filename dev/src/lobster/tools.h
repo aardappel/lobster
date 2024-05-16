@@ -55,11 +55,11 @@ inline iint positive_bits(uint64_t i) { return (i << 1) >> 1; }
 
 // Typed versions of memcpy.
 template<typename T, typename S> void t_memcpy(T *dest, const T *src, S n) {
-    memcpy(dest, src, (size_t)n * sizeof(T));
+    memcpy((void *)dest, (void *)src, (size_t)n * sizeof(T));
 }
 
 template<typename T, typename S> void t_memmove(T *dest, const T *src, S n) {
-    memmove(dest, src, (size_t)n * sizeof(T));
+    memmove((void *)dest, (void *)src, (size_t)n * sizeof(T));
 }
 
 // memcpy's that are intended to be faster if `n` is typically very small,

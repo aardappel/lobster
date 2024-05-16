@@ -1014,7 +1014,6 @@ nfr("load_vox_names", "name", "S", "S]S?",
         auto bufs = gsl::span<const uint8_t>((const uint8_t *)buf.c_str(), buf.size());
         if ((bufs.size() >= 8) && (strncmp((const char *)bufs.data(), "VOX ", 4) == 0)) {
             // This looks like a MagicaVoxel file.
-            int3 size = int3_0;
             bufs = bufs.subspan(8);
             map<int32_t, int32_t> node_graph;
             map<int32_t, int32_t> node_to_model;
