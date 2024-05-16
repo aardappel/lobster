@@ -1223,9 +1223,23 @@ struct Parser {
                     case T_COLON:
                         e = ParseFunction(nullptr, false, false, false, false, nullptr);
                         break;
-                    case T_IDENT:
-                        e = ParseFunction(nullptr, false, false, false, true, nullptr);
+                    case T_IDENT: {
+                        // An identifier after a function call tends to happen a lot accidentally,
+                        // which then produces very confusing errors about shadowing.
+                        // So, check the next token is a possible start of a function value first.
+                        auto idn = ExpectId();
+                        auto tok = lex.token;
+                        lex.PushCur();
+                        lex.Push(T_IDENT, idn);
+                        lex.Next();
+                        if (tok == T_COMMA || tok == T_COLON) {
+                            // Plausable start of function value.
+                            e = ParseFunction(nullptr, false, false, false, true, nullptr);
+                        } else {
+                            return;
+                        }
                         break;
+                    }
                     case T_LEFTPAREN:
                         e = ParseFunction(nullptr, false, false, true, true, nullptr);
                         break;
