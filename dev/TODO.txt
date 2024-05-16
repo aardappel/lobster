@@ -80,6 +80,18 @@
   - global constants like float3_0 etc cause free variable use all up the chain of callers.
     - To properly fix this would require true immutable constants! or at least for structs.
 
+- constness.
+  While we have "let" to indicate variables can't be modified, we so far have nothing to indicate constness of
+  reference contents.
+  This would be a non-trivial feature to add as it bifurcates the type system in const and mut (since you want
+  this property to perculate with types of values and call to call), and thus likely has widespread consequences.
+  The other big change is that for non-this arguments, the right default would be const, which means this would
+  be a breaking change and a ton of old code would need mut annotations on args.
+  For locals, mut is the right default, so that at least would be easy.
+  For globals, let + const could help adding constant propagation.
+  This could reduce the crazy amount of free variables globals currently cause, but to do that the constant
+  prop would need to be done during type checking, or free variable tracking needs a revamp.
+
 - namespace improvements:
   - Declaring a variable (or function) that has the same name as a namespace should be an error? (poll so far: yes)
   - obj.foo where foo is a method in a namespace should work if obj already has that namespaced type?
