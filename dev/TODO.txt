@@ -74,6 +74,12 @@
     Would also improve build speeds.
     Downside is not having the ability to save a dll or whatever for offline use.
 
+- Free Variables
+  - This is one of the very inefficient parts of the type checker.
+  - Inlining is supposed to remove the free variable status, but I don't think it does..
+  - global constants like float3_0 etc cause free variable use all up the chain of callers.
+    - To properly fix this would require true immutable constants! or at least for structs.
+
 - namespace improvements:
   - Declaring a variable (or function) that has the same name as a namespace should be an error? (poll so far: yes)
   - obj.foo where foo is a method in a namespace should work if obj already has that namespaced type?

@@ -86,6 +86,7 @@ struct TypeChecker {
     Query *query;
     bool full_error;
     Switch *switch_case_context = nullptr;
+    set<pair<SubFunction *, SubFunction *>> freevar_check_preempt;
 
     TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq, Query *query, bool full_error)
         : parser(_p), st(_st), query(query), full_error(full_error) {
@@ -1249,7 +1250,7 @@ struct TypeChecker {
                     // added to its parents also to the current parents, just in case
                     // they're different.
                     LOG_DEBUG("re-using: ", Signature(*sf));
-                    for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
+                    CheckFreeVariablesFromFunction(sf);
                     ReplayReturns(sf, call_args);
                     auto rtype = TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic);
                     if (!sf->isrecursivelycalled) ReplayAssigns(sf);
@@ -1329,7 +1330,7 @@ struct TypeChecker {
                     if (sf->typechecked) {
                         // If sf is not typechecked here, it means a function before this in
                         // the list has a recursive call.
-                        for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
+                        CheckFreeVariablesFromFunction(sf);
                         ReplayReturns(sf, call_args);
                         ReplayAssigns(sf);
                     }
@@ -2021,6 +2022,17 @@ struct TypeChecker {
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
             sf->AddFreeVar(sid);
+        }
+    }
+
+    void CheckFreeVariablesFromFunction(SubFunction *sf) {
+        if (sf->freevars.empty()) return;
+        auto par = scopes.back().sf;
+        // Checking these freevars is very expensive, so we check for multiple calls in the
+        // same parent, which removes about 30%.
+        if (freevar_check_preempt.find({ sf, par }) == freevar_check_preempt.end()) {
+            for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
+            freevar_check_preempt.insert({ sf, par });
         }
     }
 
