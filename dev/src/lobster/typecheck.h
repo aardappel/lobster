@@ -2021,7 +2021,10 @@ struct TypeChecker {
                 break;
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
-            sf->AddFreeVar(sid);
+            if (sf->AddFreeVar(sid))
+                // If the freevar was already there, a previous call must have added it all the way
+                // to the definition point, so we can stop here too.
+                break;
         }
     }
 
