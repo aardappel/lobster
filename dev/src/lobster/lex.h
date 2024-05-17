@@ -255,14 +255,30 @@ struct Lex : LoadedFile {
                     return parentfiles.empty() ? T_ENDOFFILE : T_ENDOFINCLUDE;
                 }
 
-            case '\n': tokline++; islf = bracketstack.empty(); linestart = p; break;
-            case ' ': case '\t': case '\r': case '\f': whitespacebefore++; break;
+            case '\n':
+                tokline++;
+                islf = bracketstack.empty();
+                linestart = p;
+                break;
+            case ' ': case '\t': case '\r': case '\f':
+                whitespacebefore++;
+                break;
 
-            case '(': bracketstack.push_back({ T_LEFTPAREN, T_RIGHTPAREN }); return T_LEFTPAREN;
-            case '[': bracketstack.push_back({ T_LEFTBRACKET, T_RIGHTBRACKET }); return T_LEFTBRACKET;
-            case '{': bracketstack.push_back({ T_LEFTCURLY, T_RIGHTCURLY }); return T_LEFTCURLY;
-            case ')': PopBracket(T_RIGHTPAREN); return T_RIGHTPAREN;
-            case ']': PopBracket(T_RIGHTBRACKET); return T_RIGHTBRACKET;
+            case '(':
+                bracketstack.push_back({ T_LEFTPAREN, T_RIGHTPAREN });
+                return T_LEFTPAREN;
+            case '[':
+                bracketstack.push_back({ T_LEFTBRACKET, T_RIGHTBRACKET });
+                return T_LEFTBRACKET;
+            case '{':
+                bracketstack.push_back({ T_LEFTCURLY, T_RIGHTCURLY });
+                return T_LEFTCURLY;
+            case ')':
+                PopBracket(T_RIGHTPAREN);
+                return T_RIGHTPAREN;
+            case ']':
+                PopBracket(T_RIGHTBRACKET);
+                return T_RIGHTBRACKET;
             case '}':
                 if (!bracketstack.empty() && bracketstack.back().first == T_STR_INT_START &&
                     do_string_interpolation) {
