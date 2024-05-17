@@ -1330,6 +1330,16 @@ nfr("call_function_value", "x", "L", "",
         return NilVal();
     });
 
+nfr("type_id", "ref", "A", "I",
+    "int uniquely representing the type of the given reference (object/vector/string/resource)."
+    " this is the same as typeof, except dynamic (accounts for subtypes of the static type)."
+    " useful to compare the types of objects quickly."
+    " specializations of a generic type will result in different ids.",
+    [](StackPtr &sp, VM &) {
+        auto a = Pop(sp);
+        Push(sp, a.ref()->tti);
+    });
+
 nfr("type_string", "ref", "A", "S",
     "string representing the type of the given reference (object/vector/string/resource)",
     [](StackPtr &sp, VM &vm) {
