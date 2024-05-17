@@ -532,6 +532,15 @@
   For single block scopes like for/while it doesn't matter, but probably should use the same delayed
   demotion system for consistency.
 
+- A multiline lambda/block currently does not work inside of a function call, since () causes all
+  lf's to be consumed, so this currently causes errors as if the lines were merged.
+  Making this into a clearer error is hard because we can't detect this case exactly because the
+  parser doesn't even see multiple lines.
+  Making it supported is hard because there are no clear delimiters, meaning the parser has to hint
+  at the lexer that we're inside a function body, so we can make it not ignore lfs if we're at
+  the top level of the body. But this in turn makes existing bodies that are on a next line not
+  parse anymore due to new indents/lfs inserted / missing dedents.
+
 - Since we compile on the fly, we can actually add a library like
   https://github.com/Celtoys/Remotery 2K*thing
   https://github.com/wolfpld/tracy 4K*
