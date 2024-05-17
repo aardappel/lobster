@@ -1403,6 +1403,8 @@
     That, or always use own for functions instead of specializing, which would make the whole
     system more robust (and reduce the amount of specializations), but would probably increase
     the amount of runtime refc a lot.. something to be measured.
+    -> we now solve this problem for when the argument to im_treenode is a single var with
+    !single_assignment (see ArgLifetime), so maybe the above case could be done similarly.
 
 - add to imgui functionality:
   - logging

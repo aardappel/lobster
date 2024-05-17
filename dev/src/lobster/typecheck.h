@@ -1070,31 +1070,42 @@ struct TypeChecker {
     }
 
     TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
-                                  bool first_dynamic) {
+                                  bool first_dynamic, bool may_have_lambda_args) {
         STACK_PROFILE;
         // Here we have a SubFunction witch matching specialized types.
         sf->numcallers++;
         Function &f = *sf->parent;
+        if (may_have_lambda_args && (static_dispatch || first_dynamic)) {
+            for (auto [i, c] : enumerate(call_args.children)) {
+                auto &arg = sf->args[i];
+                // We prefer doing this after the SubType call below (for better errors?)
+                // But if we upgraded the args to LT_KEEP this can drop a borrow that could
+                // cause lambdas typechecked inside TypeCheckFunctionDef to give unnecessary
+                // borrow errors.
+                if (arg.sid->lt == LT_KEEP && IsBorrow(c->lt)) {
+                    AdjustLifetime(c, arg.sid->lt);
+                }
+            }
+        }
         if (!f.istype) TypeCheckFunctionDef(*sf, call_args);
         // Finally check all args. We do this after checking the function
         // definition, since SubType below can cause specializations of the current function
         // to be typechecked with strongly typed function value arguments.
-        for (auto [i, c] : enumerate(call_args.children)) {
-            auto &arg = sf->args[i];
-            if (static_dispatch || first_dynamic) {
+        if (static_dispatch || first_dynamic) {
+            for (auto [i, c] : enumerate(call_args.children)) {
+                auto &arg = sf->args[i];
                 // Check a dynamic dispatch only for the first case, and then skip
                 // checking the first arg.
-                if (static_dispatch || i)
-                    SubType(c, arg.type, ArgName(i), f.name);
-                AdjustLifetime(c, arg.sid->lt);
+                if (static_dispatch || i) SubType(c, arg.type, ArgName(i), f.name);
+                AdjustLifetime(c, arg.sid->lt);  // Remaining cases.
                 // We really don't want to specialize functions on variables, so we simply
                 // disallow them. This should happen only infrequently.
                 if (arg.type->HasValueType(V_VAR))
                     Error(call_args, "can\'t infer ", Q(ArgName(i)), " argument of call to ",
-                                        Q(f.name));
+                          Q(f.name));
+                // This has to happen even to dead args:
+                DecBorrowers(c->lt, call_args);
             }
-            // This has to happen even to dead args:
-            if (static_dispatch || first_dynamic) DecBorrowers(c->lt, call_args);
         }
         for (auto &freevar : sf->freevars) {
             // New freevars may have been added during the function def typecheck above.
@@ -1197,8 +1208,10 @@ struct TypeChecker {
             for (auto [i, type] : enumerate(*specializers))
                 generics[i].type = st.ResolveTypeVars(type, call_args.line);
         }
+        bool has_lambda_args = false;
         for (auto [i, c] : enumerate(call_args.children)) {
             BindTypeVar(sf->giventypes[i], c->exptype, generics);
+            if (c->exptype->t == V_FUNCTION) has_lambda_args = true;
         }
         for (auto &gtv : generics)
             if (gtv.type.Null())
@@ -1213,15 +1226,28 @@ struct TypeChecker {
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
         auto ArgLifetime = [&](const Node *c, const Arg &arg) {
-            // We force single_assignment to LT_KEEP, since any overwriting of the arg would be problematic
+            if (force_keep)
+                return LT_KEEP;
+            // We force !single_assignment to LT_KEEP, since any overwriting of the arg would be problematic
             // with incoming borrowed values at refc==1, and more generally if the pattern of overwriting is
             // complicated due to loops etc, this is the only way we can track the refc correctly.
+            if (!arg.sid->id->single_assignment)
+                return LT_KEEP; 
             // Similarly, a V_STRUCT_R is an exception in that is essentially multiple ref arguments, subject
             // to the same pitfalls, so must get the same treatment.
             // FIXME: this is conservative, since V_STRUCT_R args that never get assigned to should not get this
             // treatment. But where we track assignment in the parser we have no idea of types, and here we don't
             // know if it is assigned to, so that would require some new kind of tracking this info.
-            return !force_keep && arg.sid->id->single_assignment && c->exptype->t != V_STRUCT_R ? c->lt : LT_KEEP;
+            if (c->exptype->t == V_STRUCT_R)
+                return LT_KEEP;
+            // This is a very special case that tends to happen if we pass a variable to a HOF, and then inside
+            // the lambda to that HOF we assign to the same var. To avoid that, check !single_assignment for the
+            // variable passed in, AND see if any function values are being passed in.
+            // TODO: how does this apply to borrows that are not IdentRef, like Dot?
+            if (has_lambda_args && Is<IdentRef>(c) && !Is<IdentRef>(c)->sid->id->single_assignment)
+                return LT_KEEP;
+            // No exceptions hold, it can be whatever lifetime it wants, including borrows.
+            return c->lt;
         };
         // Check if any existing specializations match.
         for (sf = ov.sf; sf; sf = sf->next) {
@@ -1252,7 +1278,8 @@ struct TypeChecker {
                     LOG_DEBUG("re-using: ", Signature(*sf));
                     CheckFreeVariablesFromFunction(sf);
                     ReplayReturns(sf, call_args);
-                    auto rtype = TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic);
+                    auto rtype = TypeCheckMatchingCall(sf, call_args, static_dispatch,
+                                                       first_dynamic, has_lambda_args);
                     if (!sf->isrecursivelycalled) ReplayAssigns(sf);
                     return rtype;
                 }
@@ -1283,7 +1310,8 @@ struct TypeChecker {
         assert(!f.anonymous || sf->freevarchecked);
         assert(!sf->freevars.size());
         LOG_DEBUG("specialization: ", Signature(*sf));
-        auto rtype = TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic);
+        auto rtype =
+            TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic, has_lambda_args);
         if (udt) {
             st.PopSuperGenerics(udt);
         }
@@ -1336,7 +1364,7 @@ struct TypeChecker {
                     }
                 }
                 // Type check this as if it is a static dispatch to just the root function.
-                TypeCheckMatchingCall(csf = disp.sf, call_args, true, false);
+                TypeCheckMatchingCall(csf = disp.sf, call_args, true, false, true);
                 vtable_idx = (int)i;
                 return dispatch_udt.dispatch_table[i].returntype;
             }
@@ -1749,7 +1777,7 @@ struct TypeChecker {
         if (sf->parent->istype) {
             // Function types are always fully typed.
             // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
-            dc->exptype = TypeCheckMatchingCall(sf, *dc, true, false);
+            dc->exptype = TypeCheckMatchingCall(sf, *dc, true, false, true);
             dc->lt = sf->ltret;
             dc->sf = sf;
             return dc;
