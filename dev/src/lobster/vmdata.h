@@ -690,14 +690,6 @@ struct LObject : RefObj {
         return true;
     }
 
-    uint64_t Hash(VM &vm) {
-        auto hash = SplitMix64Hash((uint64_t)Len(vm));
-        for (iint i = 0; i < Len(vm); i++) {
-            hash = hash * 31 + AtS(i).Hash(vm, ElemTypeS(vm, i).t);
-        }
-        return hash;
-    }
-
     void CopyElemsShallow(Value *from, iint len) {
         t_memcpy(Elems(), from, len);
     }
@@ -837,8 +829,6 @@ struct LVector : RefObj {
         }
         return true;
     }
-
-    uint64_t Hash(VM &vm);
 
     void CopyElemsShallow(Value *from) {
         t_memcpy(v, from, len * width);
