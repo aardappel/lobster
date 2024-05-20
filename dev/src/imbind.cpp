@@ -1675,14 +1675,14 @@ nfr("table_next_row", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
-        /*if (NTop() == N_TABLE)*/ ImGui::TableNextRow();
+        if (ImGui::TableGetColumnCount()) ImGui::TableNextRow();
     });
 
 nfr("table_next_column", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
-        /*if (NTop() == N_TABLE)*/ ImGui::TableNextColumn();
+        if (ImGui::TableGetColumnCount()) ImGui::TableNextColumn();
     });
 
 nfr("table_end", "", "", "",
