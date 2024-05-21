@@ -165,8 +165,7 @@ Value UpdateBufferObjectResource(VM &vm, Value buf, const void *data, size_t len
                                  ptrdiff_t offset, bool ssbo, bool dyn) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
     bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn);
-    if (!bo) vm.BuiltinError("bufferobject creation failed");
-    return buf.True() ? buf : Value(vm.NewResource(&buffer_object_type, bo));
+    return buf.True() ? buf : (bo ? Value(vm.NewResource(&buffer_object_type, bo)) : NilVal());
 }
 
 void BindBufferObjectResource(VM &vm, Value buf, string_view_nt name) {
@@ -1100,10 +1099,10 @@ nfr("set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         return Value(ok);
     });
 
-nfr("update_buffer_object", "value,ssbo,offset,existing,dyn", "SIIRk:bufferobject?B", "R:bufferobject",
+nfr("update_buffer_object", "value,ssbo,offset,existing,dyn", "SIIRk:bufferobject?B", "R:bufferobject?",
     "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
-    " returns buffer id or 0 on error.",
+    " returns buffer resource or nil on error.",
     [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &offset, Value &buf, Value &dyn) {
         TestGL(vm);
         return UpdateBufferObjectResource(vm, buf, vec.sval()->strv().data(),

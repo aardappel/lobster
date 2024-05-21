@@ -71,6 +71,6 @@ def scissor(topleft, size, body):
 
 // For backwards compatibility, don't use.
 def update_bind_buffer_object(name, buf, ssbo, res = nil):
-    res = update_buffer_object(buf, ssbo, -1, nil, false)
+    res = assert update_buffer_object(buf, ssbo, -1, nil, false)
     assert bind_buffer_object(name, res)
     return res
