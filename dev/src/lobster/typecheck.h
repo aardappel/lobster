@@ -624,40 +624,30 @@ struct TypeChecker {
             f = f->sibf;
             if (!f) return no_overload();
         }
-        vector<Overload *> candidates;
+        // Here all we care about is to see that child1->exptype has some kind of operator
+        // overload specified for it, so that TypeCheckCall can do the actual work of finding
+        // the correct overload (and we don't have to duplicate that here).
         for (auto [i, ov] : enumerate(f->overloads)) {
-            // FIXME: we are replicating some of the general overload selection that happens in
-            // TypeCheckCall here.
             auto atype = ov->sf->args[0].type;
-            if ((atype->t == V_UUDT && atype->spec_udt->gudt == &child1->exptype->udt->g) ||
-                ConvertsTo(child1->exptype, atype, CF_NONE)) {
-                if (n.SideEffect() && IsStruct(child1->exptype->t))
-                    Error(n, "struct types can\'t model side effecting overloaded operators");
-                candidates.push_back(ov);
+            if ((atype->t == V_UUDT &&
+                 (DistanceToSpecializedSuper(atype->spec_udt->gudt, child1->exptype->udt) >= 0 ||
+                  DistanceFromSpecializedSub(child1->exptype->udt, atype->spec_udt->gudt) >= 0)) ||
+                ConvertsTo(child1->exptype, atype, CF_NONE) ||
+                ConvertsTo(atype, child1->exptype, CF_NONE) /* child is abstract type? */) {
+                goto have_candidates;
             }
         }
-        if (candidates.empty()) return no_overload();
+        return no_overload();
+        have_candidates:
+        if (n.SideEffect() && IsStruct(child1->exptype->t))
+            Error(n, "struct types can\'t model side effecting overloaded operators");
         if (n.Arity() > 1) TT(n.Children()[1], 1, LT_ANY);
-        if (candidates.size() > 1) {
-            // FIXME: odd we support overloading on 2nd arg here, and not elsewhere..
-            // generalize this!
-            if (n.Arity() == 1)
-                Error(n, "identical overloads for " + opname);
-            auto child2 = n.Children()[1];
-            candidates.erase(remove_if(candidates.begin(), candidates.end(), [&](Overload *ov) {
-                    return !ConvertsTo(child2->exptype, ov->sf->args[1].type, CF_NONE);
-                }),
-                candidates.end());
-            if (candidates.empty())
-                Error(n, "no overloads apply based on 2nd arg to " + opname);
-            if (candidates.size() > 1)
-                Error(n, "multiple overloads apply based on 2nd arg to " + opname);
-        }
-        auto c = new Call(n.line, candidates[0]->sf);
+        auto c = new Call(n.line, f->overloads[0]->sf);
         c->children.append(n.Children(), n.Arity());
         n.ClearChildren();
-        c->exptype = TypeCheckCallStatic(c->sf, *c, 1, nullptr, *candidates[0],
-                                         true, false, false);
+        int vtable_idx = -1;
+        vector<TypeRef> specializers;
+        c->exptype = TypeCheckCall(c->sf, *c, 1, vtable_idx, &specializers, false);
         c->lt = c->sf->ltret;
         delete &n;
         return c;
