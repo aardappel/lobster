@@ -675,23 +675,23 @@ struct Parser {
     }
 
     FunRef *ParseNamedFunctionDefinition(bool is_constructor, bool isprivate, GUDT *self) {
-        string idname;
         if (IsNext(T_OPERATOR)) {
             auto op = lex.token;
             if ((op < T_PLUS || op > T_ASREQ) && op != T_LEFTBRACKET)
                 Error(cat("illegal token for operator overloading: ", TName(op)));
-            idname = cat(TName(T_OPERATOR), TName(op));
+            auto idname = cat(TName(T_OPERATOR), TName(op));
             lex.Next();
             if (op == T_LEFTBRACKET) {
                 Expect(T_RIGHTBRACKET);
                 idname += ']';
             }
+            return ParseFunction(&idname, is_constructor, isprivate, true, true, self, 2);
         } else {
             // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
             // current namespace (which is same as !self).
-            idname = st.MaybeMakeNameSpace(ExpectId(), !self);
+            auto idname = string(st.MaybeMakeNameSpace(ExpectId(), !self));
+            return ParseFunction(&idname, is_constructor, isprivate, true, true, self);
         }
-        return ParseFunction(&idname, is_constructor, isprivate, true, true, self);
     }
 
     void ImplicitReturn(Overload &ov) {
@@ -736,7 +736,7 @@ struct Parser {
     }
 
     FunRef *ParseFunction(string *name, bool is_constructor, bool isprivate, bool parens,
-                          bool parseargs, GUDT *self) {
+                          bool parseargs, GUDT *self, size_t maxargs = 1024) {
         bool in_class = !!self;
         auto sf = st.FunctionScopeStart();
         if (name) {
@@ -798,6 +798,7 @@ struct Parser {
                     if (first_default_arg >= 0) Error("missing default argument");
                 }
                 if (!IsNext(T_COMMA)) break;
+                if (sf->args.size() == maxargs) Error("too many arguments for ", Q(*name));
             }
         }
         if (parens) Expect(T_RIGHTPAREN);

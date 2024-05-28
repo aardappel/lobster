@@ -1383,7 +1383,7 @@ struct TypeChecker {
                         if (sdist >= 0 && (!best || bestdist >= sdist)) {
                             if (bestdist == sdist)
                                 Error(call_args, "more than implementation of ", Q(f.name),
-                                                 " applies to ", Q(sub->name));
+                                      " applies to ", Q(sub->name), " in dynamic dispatch");
                             best = ov;
                             bestdist = sdist;
                         }
