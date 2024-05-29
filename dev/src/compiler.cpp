@@ -656,6 +656,11 @@ bool SpecUDT::IsGeneric() const {
 }  // namespace lobster
 
 
+stack_vector_storage g_svs1;
+stack_vector_storage g_svs2;
+stack_vector_storage g_svs4;
+stack_vector_storage g_svs8;
+
 #if STACK_PROFILING_ON
     vector<StackProfile> stack_profiles;
 #endif

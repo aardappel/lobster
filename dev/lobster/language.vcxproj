@@ -318,6 +318,7 @@
     <ClInclude Include="..\src\lobster\rng_hash.h" />
     <ClInclude Include="..\src\lobster\slaballoc.h" />
     <ClInclude Include="..\src\lobster\small_vector.h" />
+    <ClInclude Include="..\src\lobster\stack_vector.h" />
     <ClInclude Include="..\src\lobster\stdafx.h" />
     <ClInclude Include="..\src\lobster\string_tools.h" />
     <ClInclude Include="..\src\lobster\tonative.h" />
