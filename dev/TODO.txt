@@ -1405,6 +1405,20 @@
     the amount of runtime refc a lot.. something to be measured.
     -> we now solve this problem for when the argument to im_treenode is a single var with
     !single_assignment (see ArgLifetime), so maybe the above case could be done similarly.
+  - It is too conservative on borrows in if-then branches:
+      def delete(key:K):
+        def del(c) -> chain<K,V>?:
+            return if not c:
+                nil
+            elif c.key == key:
+                c.next
+            else:
+                c.next = del(c.next)
+                c
+        let h = hash(key) % buckets.length
+        buckets[h] = del(buckets[h])
+    dictionary.lobster(79): error: cannot modify `c.next` while borrowed in `del`
+    (this refers to the first c.next)
 
 - add to imgui functionality:
   - logging
