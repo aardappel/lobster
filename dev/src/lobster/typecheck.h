@@ -615,7 +615,8 @@ struct TypeChecker {
             return nullptr;
         };
         auto child1 = n.Children()[0];
-        if (!IsUDT(child1->exptype->t)) return no_overload();
+        auto ctype = child1->exptype;
+        if (!IsUDT(ctype->t)) return no_overload();
         auto opname = TName(T_OPERATOR) + (n.Name() == "indexing operation" ? "[]" : n.Name());
         auto it = st.operators.find(opname);
         if (it == st.operators.end()) return no_overload();
@@ -624,22 +625,22 @@ struct TypeChecker {
             f = f->sibf;
             if (!f) return no_overload();
         }
-        // Here all we care about is to see that child1->exptype has some kind of operator
+        // Here all we care about is to see that ctype has some kind of operator
         // overload specified for it, so that TypeCheckCall can do the actual work of finding
         // the correct overload (and we don't have to duplicate that here).
         for (auto [i, ov] : enumerate(f->overloads)) {
             auto atype = ov->sf->args[0].type;
             if ((atype->t == V_UUDT &&
-                 (DistanceToSpecializedSuper(atype->spec_udt->gudt, child1->exptype->udt) >= 0 ||
-                  DistanceFromSpecializedSub(child1->exptype->udt, atype->spec_udt->gudt) >= 0)) ||
-                ConvertsTo(child1->exptype, atype, CF_NONE) ||
-                ConvertsTo(atype, child1->exptype, CF_NONE) /* child is abstract type? */) {
+                 (DistanceToSpecializedSuper(atype->spec_udt->gudt, ctype->udt) >= 0 ||
+                  (ctype->udt->g.is_abstract && DistanceFromSpecializedSub(ctype->udt, atype->spec_udt->gudt) >= 0))) ||
+                ConvertsTo(ctype, atype, CF_NONE) ||
+                (ctype->udt->g.is_abstract && ConvertsTo(atype, ctype, CF_NONE))) {
                 goto have_candidates;
             }
         }
         return no_overload();
         have_candidates:
-        if (n.SideEffect() && IsStruct(child1->exptype->t))
+        if (n.SideEffect() && IsStruct(ctype->t))
             Error(n, "struct types can\'t model side effecting overloaded operators");
         if (n.Arity() > 1) TT(n.Children()[1], 1, LT_ANY);
         auto c = new Call(n.line, f->overloads[0]->sf);
