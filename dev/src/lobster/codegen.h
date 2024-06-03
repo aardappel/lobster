@@ -1044,7 +1044,7 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
     if (frame) {
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.EmitOp(IL_JUMPIFMEMBERLF);
-        auto &f = *field();
+        //auto &f = *field();
         auto &sfield = this_sid->type->udt->sfields[field_idx];
         cg.Emit(sfield.slot + ValWidth(sfield.type));  // It's the var after this one.
         cg.Emit(0);
@@ -1054,7 +1054,7 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.TakeTemp(1, true);
         cg.EmitOp(IL_LVAL_FLD);
         cg.Emit(sfield.slot);
-        cg.GenOpWithStructInfo(cg.AssignBaseOp({ *f.defaultval, 0 }), sfield.type);
+        cg.GenOpWithStructInfo(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
         cg.SetLabel(loc);
     }
     if (!retval) return;
