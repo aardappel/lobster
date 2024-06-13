@@ -102,6 +102,9 @@ Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zof
 
 extern const unsigned int default_palette[256];
 
+Voxels *NewWorld(const int3 &size, size_t palette_idx);
+LResource *NewVoxelResource(VM &vm, Voxels &v);
+
 }
 
 #endif  // LOBSTER_CUBEGEN_H

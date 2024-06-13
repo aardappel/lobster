@@ -37,6 +37,10 @@ Voxels &GetVoxels(const Value &res) {
     return GetResourceDec<Voxels>(res, &voxel_type);
 }
 
+LResource *NewVoxelResource(VM &vm, Voxels &v) {
+    return vm.NewResource(&voxel_type, &v);
+}
+
 const unsigned int default_palette[256] = {
     0x00000000, 0xffffffff, 0xffccffff, 0xff99ffff, 0xff66ffff, 0xff33ffff, 0xff00ffff, 0xffffccff,
     0xffccccff, 0xff99ccff, 0xff66ccff, 0xff33ccff, 0xff00ccff, 0xffff99ff, 0xffcc99ff, 0xff9999ff,
@@ -243,7 +247,7 @@ Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zof
             }
         }
     }
-    return vm.NewResource(&voxel_type, &v);
+    return NewVoxelResource(vm, v);
 }
 
 }
@@ -260,7 +264,7 @@ nfr("init", "size", "I}:3", "R:voxels",
     " returns the block",
     [](StackPtr &sp, VM &vm) {
         auto v = NewWorld(PopVec<int3>(sp), default_palette_idx);
-        Push(sp, vm.NewResource(&voxel_type, v));
+        Push(sp, NewVoxelResource(vm, *v));
     });
 
 nfr("size", "block", "R:voxels", "I}:3",
@@ -324,7 +328,7 @@ nfr("clone", "block,pos,size", "R:voxelsI}:3I}:3", "R:voxels",
         auto &v = GetVoxels(res);
         auto nw = NewWorld(sz, v.palette_idx);
         v.Clone(p, sz, nw);
-        Push(sp, vm.NewResource(&voxel_type, nw));
+        Push(sp, NewVoxelResource(vm, *nw));
     });
 
 nfr("color_to_palette", "block,color", "R:voxelsF}:4", "I",
@@ -427,7 +431,7 @@ nfr("scale_up", "scale,world", "IR:voxels", "R:voxels", "",
                 }
             }
         }
-        return Value(vm.NewResource(&voxel_type, &d));
+        return Value(NewVoxelResource(vm, d));
     });
 
 nfr("stretch", "newsize,world", "I}:3R:voxels", "R:voxels", "",
@@ -453,7 +457,7 @@ nfr("stretch", "newsize,world", "I}:3R:voxels", "R:voxels", "",
                 }
             }
         }
-        Push(sp, Value(vm.NewResource(&voxel_type, &d)));
+        Push(sp, Value(NewVoxelResource(vm, d)));
     });
 
 nfr("create_mesh", "block", "R:voxels", "R:mesh",
@@ -679,12 +683,12 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                 if (!strncmp(id, "SIZE", 4)) {
                     if (!ReadSpanInc(p, size)) return erreof();
                     voxels = NewWorld(size, default_palette_idx);
-                    voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
+                    voxvec->Push(vm, Value(NewVoxelResource(vm, *voxels)));
                 } else if (!strncmp(id, "RGBA", 4)) {
                     if (!voxels) {
                         // This may be a palette-only file, add dummy geom.
                         voxels = NewWorld(int3_0, default_palette_idx);
-                        voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
+                        voxvec->Push(vm, Value(NewVoxelResource(vm, *voxels)));
                     }
                     if (!palette.empty()) return errf(".vox file contains >1 palette");
                     palette.push_back(byte4_0);
@@ -909,7 +913,7 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                         auto *voxels = &GetVoxels(value);
                         auto *newvoxels = new Voxels(voxels->grid.dim, voxels->palette_idx);
                         voxels->Clone(int3_0, voxels->grid.dim, newvoxels);
-                        value = Value(vm.NewResource(&voxel_type, newvoxels));
+                        value = Value(NewVoxelResource(vm, *newvoxels));
                     } else {
                         value.LTINCRT();
                     }
@@ -969,7 +973,7 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
                 return errf("voxlap XYZ size does not match file size");
             // Now should be save to read.
             auto voxels = NewWorld(size, default_palette_idx);
-            voxvec->Push(vm, Value(vm.NewResource(&voxel_type, voxels)));
+            voxvec->Push(vm, Value(NewVoxelResource(vm, *voxels)));
             for (int i = 0; i < vol; i++) {
                 auto c = *p++;
                 c = c == 255 ? 0 : c + 1;  // 255 is transparent;
@@ -1104,10 +1108,10 @@ nfr("load_vox_names", "name", "S", "S]S?",
 
 nfr("save_vox", "block,name", "R:voxelsS", "B",
     "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
-    " this format can only save blocks < 256^3, will fail if bigger",
+    " this format can only save blocks <= 256^3, will fail if bigger",
     [](StackPtr &, VM &, Value &wid, Value &name) {
         auto &v = GetVoxels(wid);
-        if (!(v.grid.dim < 256)) { return Value(false); }
+        if (!(v.grid.dim <= 256)) { return Value(false); }
         vector<byte4> voxels;
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
@@ -1330,7 +1334,7 @@ nfr("rotate", "block,n", "R:voxelsI", "R:voxels",
                 }
             }
         }
-        return Value(vm.NewResource(&voxel_type, &d));
+        return Value(NewVoxelResource(vm, d));
     });
 
 nfr("simplex", "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,zscale,zbias", "R:voxelsI}:3I}:3F}:3F}:3IFFIFF", "",
@@ -1451,7 +1455,7 @@ nfr("erode", "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "",
                 }
             }
         }
-        return Value(vm.NewResource(&voxel_type, &d));
+        return Value(NewVoxelResource(vm, d));
     });
 
 nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
@@ -1521,7 +1525,7 @@ nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
                 }
             }
         }
-        Push(sp, vm.NewResource(&voxel_type, nw));
+        Push(sp, NewVoxelResource(vm, *nw));
     });
 
 
@@ -1569,7 +1573,7 @@ nfr("load_image", "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
                             }
                         }
                     }
-                    vec->Push(vm, vm.NewResource(&voxel_type, voxels));
+                    vec->Push(vm, NewVoxelResource(vm, *voxels));
                 }
             }
             FreeImageFromFile(buf);
