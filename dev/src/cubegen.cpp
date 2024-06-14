@@ -197,6 +197,15 @@ uint8_t FindClosestNormalCached(float3 normal) {
 
 const size_t palette_size = 256 * sizeof(byte4);
 
+size_t NewPaletteInit(const byte4 *p) {
+    auto hash = FNV1A64(string_view((const char *)p, palette_size));
+    palettes.emplace_back(Palette{});
+    auto &palette = palettes.back();
+    palette.hash = hash;
+    palette.colors.insert(palette.colors.end(), p, p + 256);
+    return palettes.size() - 1;
+}
+
 size_t NewPalette(const byte4 *p) {
     auto hash = FNV1A64(string_view((const char *)p, palette_size));
     // See if there's an existing matching palette.
@@ -207,24 +216,28 @@ size_t NewPalette(const byte4 *p) {
         }
     }
     // Need to create a new one.
-    palettes.emplace_back(Palette{});
-    auto &palette = palettes.back();
-    palette.hash = hash;
-    palette.colors.insert(palette.colors.end(), p, p + 256);
-    return palettes.size() - 1;
+    return NewPaletteInit(p);
+}
+
+void MaterialPalette(vector<byte4> &pal) {
+    for (auto &c : pal) {
+        if (c.w) c.w = 0x80;  // High bit is alpha, low bits are material properties.
+    }
 }
 
 Voxels *NewWorld(const int3 &size, size_t palette_idx) {
     auto v = new Voxels(size, palette_idx);
     if (palettes.empty()) {
         // Guarantees init of default_palette_idx (0) and normal_palette_idx (1).
-        NewPalette((byte4 *)default_palette);
+        NewPaletteInit((byte4 *)default_palette);
         vector<byte4> normal_palette;
         normal_palette.resize(256, quantizec(float3(0.5), 0));
         for (uint8_t i = 0; i < normal_table_size; i++) {
             normal_palette[i] = quantizec((default_normals[i] + 1) / 2, 0);
         }
-        NewPalette(normal_palette.data());
+        NewPaletteInit(normal_palette.data());
+        NewPaletteInit((byte4 *)default_palette);
+        MaterialPalette(palettes[2].colors);
     }
     return v;
 }
@@ -631,9 +644,7 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
             vector<byte4> palette;
             auto palette_init_materials = [&]() {
                 if (material_palette.True()) {
-                    for (auto &c : palette) {
-                        if (c.w) c.w = 0x80;  // High bit is alpha, low bits are material properties.
-                    }
+                    MaterialPalette(palette);
                 }
             };
             auto clone_if_default = [&]() {

@@ -24,6 +24,7 @@ struct Palette {
 
 const size_t default_palette_idx = 0;
 const size_t normal_palette_idx = 1;
+const size_t default_material_palette_idx = 2;
 
 extern vector<Palette> palettes;
 
