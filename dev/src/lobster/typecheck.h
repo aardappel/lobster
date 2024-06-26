@@ -774,13 +774,12 @@ struct TypeChecker {
             if (!f.gdefaultval) {
                 continue;
             }
-            auto dv = f.gdefaultval->Clone(true);
-            sfield.defaultval = dv;
+            sfield.defaultval = f.gdefaultval->Clone(true);
             if (sfield.type->t != V_ANY) {
-                dv->exptype = sfield.type;
+                sfield.defaultval->exptype = sfield.type;
                 continue;
             }
-            auto cf_type = dv->CFType();
+            auto cf_type = sfield.defaultval->CFType();
             if (cf_type.Null()) {
                 // FIXME: would be good to not call TT here generically but instead rely
                 // on CFType entirely, just in case TT has a side effect on type
@@ -788,15 +787,15 @@ struct TypeChecker {
                 // Sadly that is not easy given the amount of type-checking code this
                 // already relies on.
                 st.PushSuperGenerics(&udt);
-                TT(dv, 1, LT_ANY);
+                TT(sfield.defaultval, 1, LT_ANY);
                 st.PopSuperGenerics(&udt);
-                DecBorrowers(dv->lt, errn);
+                DecBorrowers(sfield.defaultval->lt, errn);
             } else {
                 // TODO: expand the cases where CFType is sufficient.
-                dv->exptype = cf_type;
+                sfield.defaultval->exptype = cf_type;
             }
-            dv->lt = LT_UNDEF;
-            sfield.type = dv->exptype;
+            sfield.defaultval->lt = LT_UNDEF;
+            sfield.type = sfield.defaultval->exptype;
             //  Here we force a check against types of this field in superclasses.
             //  This is necessary because each of these defaultvals have been typechecked
             //  independently, possibly containing V_VAR instances (for e.g. []) that if
@@ -808,10 +807,10 @@ struct TypeChecker {
             // a defaultval per specialization?
             for (auto sudt = udt.ssuperclass; sudt; sudt = sudt->ssuperclass) {
                 if (i >= sudt->sfields.size()) break;
-                if (!ConvertsTo(dv->exptype, sudt->sfields[i].type,
+                if (!ConvertsTo(sfield.defaultval->exptype, sudt->sfields[i].type,
                                 ConvertFlags(CF_EXACTTYPE | CF_UNIFICATION)))
                     Error(errn, "Field ", Q(f.id->name), " has type ",
-                            Q(TypeName(dv->exptype)),
+                            Q(TypeName(sfield.defaultval->exptype)),
                             " which is incompatible with the superclass type of ",
                             Q(TypeName(sudt->sfields[i].type)));
             }
