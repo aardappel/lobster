@@ -108,6 +108,8 @@ struct TypeLT {
 
 template<typename T> T *DoClone(T *dest, T *src) {
     *dest = *src;  // Copy contructor copies all values & non-owned.
+    dest->exptype = TypeRef{};
+    dest->lt = LT_UNDEF;
     for (size_t i = 0; i < src->Arity(); i++) dest->Children()[i] = src->Children()[i]->Clone();
     return dest;
 }
