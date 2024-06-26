@@ -774,7 +774,7 @@ struct TypeChecker {
             if (!f.gdefaultval) {
                 continue;
             }
-            auto dv = f.gdefaultval->Clone();
+            auto dv = f.gdefaultval->Clone(true);
             sfield.defaultval = dv;
             if (sfield.type->t != V_ANY) {
                 dv->exptype = sfield.type;
@@ -1012,7 +1012,7 @@ struct TypeChecker {
     SubFunction *CloneFunction(Overload &ov) {
         auto esf = ov.sf;
         LOG_DEBUG("cloning: ", esf->parent->name);
-        auto sbody = AssertIs<Block>(ov.gbody->Clone());
+        auto sbody = AssertIs<Block>(ov.gbody->Clone(true));
         if (!esf->sbody) {
             esf->sbody = sbody;
             return esf;
@@ -3177,7 +3177,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                 // If we have still have less args, try insert default args.
                 if (nargs < f->nargs() && (int)nargs >= f->first_default_arg) {
                     for (size_t i = nargs; i < f->nargs(); i++) {
-                        children.push_back(f->default_args[i - f->first_default_arg]->Clone());
+                        children.push_back(f->default_args[i - f->first_default_arg]->Clone(true));
                         tc.TT(children.back(), 1, LT_ANY);
                         nargs++;
                     }
@@ -3661,7 +3661,7 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             // this is a T {} constructor.
             for (size_t i = children.size(); i < udt->sfields.size(); i++) {
                 if (udt->sfields[i].defaultval)
-                    Add(udt->sfields[i].defaultval->Clone());
+                    Add(udt->sfields[i].defaultval->Clone(true));
                 else
                     tc.Error(*this, "field ", Q(udt->g.fields[i].id->name), " not initialized");
             }

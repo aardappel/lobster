@@ -370,7 +370,7 @@ struct Parser {
                     // Add to toplevel scope too.
                     st.toplevel->parent->overloads[0]->gbody->Add(cdef);
                 }
-                auto statik = new Static(lex, init->Clone());
+                auto statik = new Static(lex, init->Clone(true));
                 statik->sid = id->cursid;
                 statik->giventype = type;
                 statik->frame = frame;
@@ -393,7 +393,7 @@ struct Parser {
                 auto field_idx = gudt->fields.size();
                 ParseField(gudt, true, true);
                 st.bound_typevars_stack.pop_back();
-                auto initc = gudt->fields.back().gdefaultval->Clone();
+                auto initc = gudt->fields.back().gdefaultval->Clone(true);
                 SpecIdent *this_sid = nullptr;
                 if (frame) {
                     // Create int field to store frame count.
@@ -1707,7 +1707,7 @@ struct Parser {
             for (size_t i = 0; i < exps.size(); i++) {
                 if (!exps[i]) {
                     if (gudt->fields[i].gdefaultval)
-                        exps[i] = gudt->fields[i].gdefaultval->Clone();
+                        exps[i] = gudt->fields[i].gdefaultval->Clone(true);
                     else
                         Error("field ", Q(gudt->fields[i].id->name), " not initialized");
                 }

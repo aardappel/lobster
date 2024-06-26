@@ -617,7 +617,7 @@ Field::~Field() { delete gdefaultval; }
 Field::Field(const Field &o)
     : id(o.id),
       giventype(o.giventype),
-      gdefaultval(o.gdefaultval ? o.gdefaultval->Clone() : nullptr),
+      gdefaultval(o.gdefaultval ? o.gdefaultval->Clone(true) : nullptr),
       isprivate(o.isprivate),
       in_scope(o.in_scope),
       defined_in(o.defined_in) {}
