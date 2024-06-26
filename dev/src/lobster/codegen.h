@@ -133,7 +133,7 @@ struct CodeGen  {
                 tt.push_back(ti);
                 tt.push_back(parent);
                 Value val;
-                auto dv = udt->g.fields[i].defaultval;
+                auto dv = udt->sfields[i].defaultval;
                 switch (dv ? dv->ConstVal(nullptr, val) : V_VOID) {
                     case V_INT:
                         tt.push_back((type_elem_t)(val.intval() == val.ival() ? val.intval() : 0));

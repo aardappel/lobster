@@ -770,46 +770,50 @@ struct TypeChecker {
     void TypeCheckUDT(UDT &udt, const Node &errn) {
         // Give a type for fields that don't have one specified.
         for (auto [i, sfield] : enumerate(udt.sfields)) {
-            auto &gudt = udt.g;
-            auto &f = gudt.fields[i];
-            if (f.defaultval) {
-                if (sfield.type->t != V_ANY) {
-                    f.defaultval->exptype = sfield.type;
-                } else {
-                    auto cf_type = f.defaultval->CFType();
-                    if (cf_type.Null()) {
-                        // FIXME: would be good to not call TT here generically but instead rely
-                        // on CFType entirely, just in case TT has a side effect on type
-                        // checking, especially function calls, whose "return from" may fail here.
-                        // Sadly that is not easy given the amount of type-checking code this
-                        // already relies on.
-                        st.PushSuperGenerics(&udt);
-                        TT(f.defaultval, 1, LT_ANY);
-                        st.PopSuperGenerics(&udt);
-                        DecBorrowers(f.defaultval->lt, errn);
-                    } else {
-                        // TODO: expand the cases where CFType is sufficient.
-                        f.defaultval->exptype = cf_type;
-                    }
-                    f.defaultval->lt = LT_UNDEF;
-                    sfield.type = f.defaultval->exptype;
-                    //  Here we force a check against types of this field in superclasses.
-                    //  This is necessary because each of these defaultvals have been typechecked
-                    //  independently, possibly containing V_VAR instances (for e.g. []) that if
-                    //  we don't unify them they could get bound to different types by code,
-                    //  causing incompatible fields.
-                    //  We skip generic supers because they can legitimately allow different types
-                    //  for fields.
-                    for (auto sudt = udt.ssuperclass; sudt; sudt = sudt->ssuperclass) {
-                        if (i >= sudt->sfields.size()) break;
-                        if (!ConvertsTo(f.defaultval->exptype, sudt->sfields[i].type,
-                                        ConvertFlags(CF_EXACTTYPE | CF_UNIFICATION)))
-                            Error(errn, "Field ", Q(f.id->name), " has type ",
-                                  Q(TypeName(f.defaultval->exptype)),
-                                  " which is incompatible with the superclass type of ",
-                                  Q(TypeName(sudt->sfields[i].type)));
-                    }
-                }
+            auto &f = udt.g.fields[i];
+            if (!f.gdefaultval) {
+                continue;
+            }
+            auto dv = f.gdefaultval->Clone();
+            sfield.defaultval = dv;
+            if (sfield.type->t != V_ANY) {
+                dv->exptype = sfield.type;
+                continue;
+            }
+            auto cf_type = dv->CFType();
+            if (cf_type.Null()) {
+                // FIXME: would be good to not call TT here generically but instead rely
+                // on CFType entirely, just in case TT has a side effect on type
+                // checking, especially function calls, whose "return from" may fail here.
+                // Sadly that is not easy given the amount of type-checking code this
+                // already relies on.
+                st.PushSuperGenerics(&udt);
+                TT(dv, 1, LT_ANY);
+                st.PopSuperGenerics(&udt);
+                DecBorrowers(dv->lt, errn);
+            } else {
+                // TODO: expand the cases where CFType is sufficient.
+                dv->exptype = cf_type;
+            }
+            dv->lt = LT_UNDEF;
+            sfield.type = dv->exptype;
+            //  Here we force a check against types of this field in superclasses.
+            //  This is necessary because each of these defaultvals have been typechecked
+            //  independently, possibly containing V_VAR instances (for e.g. []) that if
+            //  we don't unify them they could get bound to different types by code,
+            //  causing incompatible fields.
+            //  We skip generic supers because they can legitimately allow different types
+            //  for fields.
+            // TODO: it is possible this is not necessary anymore because we now typecheck
+            // a defaultval per specialization?
+            for (auto sudt = udt.ssuperclass; sudt; sudt = sudt->ssuperclass) {
+                if (i >= sudt->sfields.size()) break;
+                if (!ConvertsTo(dv->exptype, sudt->sfields[i].type,
+                                ConvertFlags(CF_EXACTTYPE | CF_UNIFICATION)))
+                    Error(errn, "Field ", Q(f.id->name), " has type ",
+                            Q(TypeName(dv->exptype)),
+                            " which is incompatible with the superclass type of ",
+                            Q(TypeName(sudt->sfields[i].type)));
             }
         }
         for (auto u = &udt; u; u = u->ssuperclass) {
@@ -3655,9 +3659,9 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             tc.st.PushSuperGenerics(udt);
             // Fill in default args.. already done in the parser normally, but can happen if
             // this is a T {} constructor.
-            for (size_t i = children.size(); i < udt->g.fields.size(); i++) {
-                if (udt->g.fields[i].defaultval)
-                    Add(udt->g.fields[i].defaultval->Clone());
+            for (size_t i = children.size(); i < udt->sfields.size(); i++) {
+                if (udt->sfields[i].defaultval)
+                    Add(udt->sfields[i].defaultval->Clone());
                 else
                     tc.Error(*this, "field ", Q(udt->g.fields[i].id->name), " not initialized");
             }

@@ -612,15 +612,21 @@ bool Type::Equal(const Type &o, bool allow_unresolved) const {
 
 SubFunction::~SubFunction() { if (sbody) delete sbody; }
 
-Field::~Field() { delete defaultval; }
+Field::~Field() { delete gdefaultval; }
 
 Field::Field(const Field &o)
     : id(o.id),
       giventype(o.giventype),
-      defaultval(o.defaultval ? o.defaultval->Clone() : nullptr),
+      gdefaultval(o.gdefaultval ? o.gdefaultval->Clone() : nullptr),
       isprivate(o.isprivate),
       in_scope(o.in_scope),
       defined_in(o.defined_in) {}
+
+UDT::~UDT() {
+    for (auto &sfield : sfields) {
+        delete sfield.defaultval;
+    }
+}
 
 Function::~Function() {
     for (auto ov : overloads) delete ov;

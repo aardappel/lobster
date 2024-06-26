@@ -393,7 +393,7 @@ struct Parser {
                 auto field_idx = gudt->fields.size();
                 ParseField(gudt, true, true);
                 st.bound_typevars_stack.pop_back();
-                auto initc = gudt->fields.back().defaultval->Clone();
+                auto initc = gudt->fields.back().gdefaultval->Clone();
                 SpecIdent *this_sid = nullptr;
                 if (frame) {
                     // Create int field to store frame count.
@@ -1693,7 +1693,7 @@ struct Parser {
                 // An initializer without a tag. Find first field without a default thats not
                 // set yet.
                 for (size_t i = 0; i < exps.size(); i++) {
-                    if (!exps[i] && !gudt->fields[i].defaultval) {
+                    if (!exps[i] && !gudt->fields[i].gdefaultval) {
                         exps[i] = ParseExp();
                         return;
                     }
@@ -1706,8 +1706,8 @@ struct Parser {
             auto constructor = new Constructor(line, type);
             for (size_t i = 0; i < exps.size(); i++) {
                 if (!exps[i]) {
-                    if (gudt->fields[i].defaultval)
-                        exps[i] = gudt->fields[i].defaultval->Clone();
+                    if (gudt->fields[i].gdefaultval)
+                        exps[i] = gudt->fields[i].gdefaultval->Clone();
                     else
                         Error("field ", Q(gudt->fields[i].id->name), " not initialized");
                 }

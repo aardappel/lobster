@@ -151,16 +151,16 @@ struct SharedField : Named {
 struct Field {
     SharedField *id;
     TypeRef giventype;
-    Node *defaultval;
+    Node *gdefaultval;
     bool isprivate;
     bool in_scope;  // For tracking scopes of ones declared by `member`.
     Line defined_in;
 
-    Field(SharedField *_id, TypeRef _type, Node *_defaultval, bool isprivate,
+    Field(SharedField *_id, TypeRef _type, Node *_gdefaultval, bool isprivate,
           bool in_scope, const Line &defined_in)
         : id(_id),
           giventype(_type),
-          defaultval(_defaultval),
+          gdefaultval(_gdefaultval),
           isprivate(isprivate),
           in_scope(in_scope),
           defined_in(defined_in) {}
@@ -170,6 +170,7 @@ struct Field {
 
 struct SField {
     TypeRef type;
+    Node *defaultval = nullptr;
     int slot = -1;
 };
 
@@ -265,6 +266,8 @@ struct UDT : Named {
     UDT(string_view _name, int _idx, GUDT &g) : Named(_name, _idx), g(g) {
         thistype = g.is_struct ? Type { V_STRUCT_R, this } : Type { V_CLASS, this };
     }
+
+    ~UDT();
 
     vector<GenericTypeVariable> GetBoundGenerics() {
         auto generics = g.generics;
