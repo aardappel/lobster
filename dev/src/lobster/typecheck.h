@@ -178,7 +178,7 @@ struct TypeChecker {
                     scope_count++;
                     if (scope_count == 5 && scopes.size() > 7) {
                         err += cat("\n  (", scopes.size() - scope_count,
-                                   " more functions omitted, --full- error to see more) ");
+                                   " more functions omitted, --full-error to see more) ");
                         break;
                     }
                 }
