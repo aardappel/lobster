@@ -831,6 +831,9 @@ struct Parser {
         f.overloads.emplace_back(ov);
         ov->method_of = self;
         sf->SetParent(f, *ov);
+        for (auto &arg : sf->args) {
+            ov->givenargs.push_back(arg.type);
+        }
         // Check if there's any overlap in default argument ranges.
         for (auto ff = st.GetFirstFunction(f.name); ff; ff = ff->sibf) {
             if (ff == &f) continue;   

@@ -1621,7 +1621,7 @@ struct TypeChecker {
             auto type = argidx ? call_args.children[argidx]->exptype : type0;
             // First see if there is an exact match.
             for (auto ov : pickfrom) {
-                if (type->Equal(*ov->sf->args[argidx].type)) matches.push_back(ov);
+                if (type->Equal(*ov->givenargs[argidx])) matches.push_back(ov);
             }
             // Then see if there's a match if we'd instantiate a generic UDT arg.
             if (matches.empty() && IsUDT(type->t)) {
@@ -1635,12 +1635,12 @@ struct TypeChecker {
             // Then see if there's a match by subtyping.
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
-                    auto arg = ov->sf->args[argidx].type;
+                    auto arg = ov->givenargs[argidx];
                     if (arg->t == V_UUDT && type->t == V_CLASS) {
                         auto dist = DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt);
                         if (dist >= 0) {
                             if (matches.size() == 1) {
-                                auto oarg = matches[0]->sf->args[argidx].type;
+                                auto oarg = matches[0]->givenargs[argidx];
                                 assert(oarg->t == V_UUDT);
                                 auto odist =
                                     DistanceToSpecializedSuper(oarg->spec_udt->gudt, type->udt);
@@ -1662,7 +1662,7 @@ struct TypeChecker {
                         }
                     } else if (ConvertsTo(type, arg, CF_NONE)) {
                         if (matches.size() == 1 && type->t == V_CLASS) {
-                            auto oarg = matches[0]->sf->args[argidx].type;
+                            auto oarg = matches[0]->givenargs[argidx];
                             // Prefer "closest" supertype.
                             auto dist = SuperDistance(arg->udt, type->udt);
                             auto odist = SuperDistance(oarg->udt, type->udt);
@@ -1714,7 +1714,7 @@ struct TypeChecker {
             // Then finally try with coercion.
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
-                    if (ConvertsTo(type, ov->sf->args[argidx].type, CF_COERCIONS)) {
+                    if (ConvertsTo(type, ov->givenargs[argidx], CF_COERCIONS)) {
                         matches.push_back(ov);
                     }
                 }

@@ -397,6 +397,7 @@ struct SubFunction;
 
 struct Overload {
     SubFunction *sf = nullptr;
+    vector<TypeRef> givenargs;
     Block *gbody = nullptr;
     Line declared_at;
     bool isprivate;
