@@ -3651,6 +3651,8 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     } else {
         exptype = tc.st.ResolveTypeVars(giventype, this->line);
         auto udt = IsUDT(exptype->t) ? exptype->udt : nullptr;
+        if (!udt && exptype->t != V_VECTOR)
+            tc.Error(*this, "type does not resolve to constructor: ", Q(TypeName(exptype)));
         if (udt) {
             // Sadly, this causes more problems than it solves, since these UDTs may depend
             // on global vars not typechecked, etc.
