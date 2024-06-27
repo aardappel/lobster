@@ -1636,36 +1636,16 @@ struct TypeChecker {
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
                     auto arg = ov->givenargs[argidx];
-                    if (arg->t == V_UUDT && type->t == V_CLASS) {
-                        auto dist = DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt);
-                        if (dist >= 0) {
-                            if (matches.size() == 1) {
-                                auto oarg = matches[0]->givenargs[argidx];
-                                assert(oarg->t == V_UUDT);
-                                auto odist =
-                                    DistanceToSpecializedSuper(oarg->spec_udt->gudt, type->udt);
-                                if (dist < odist) {
-                                    matches[0] = ov;  // Overwrite with better pick.
-                                } else if (odist < dist) {
-                                    // Keep old one.
-                                } else {
-                                    // Keep both, and hope the next arg disambiguates.
-                                    matches.push_back(ov);
-                                }                                
-                            } else {
-                                matches.push_back(ov);
-                            }
-                            if (matches.size() > 1) {
-                                // FIXME: would it be ok to to defer to next arg like below?
-                                Error(call_args, "multiple generic arguments apply");
-                            }
-                        }
-                    } else if (ConvertsTo(type, arg, CF_NONE)) {
-                        if (matches.size() == 1 && type->t == V_CLASS) {
+                    if (arg->t != V_UUDT || type->t != V_CLASS) {
+                        continue;
+                    }
+                    auto dist = DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt);
+                    if (dist >= 0) {
+                        if (matches.size() == 1) {
                             auto oarg = matches[0]->givenargs[argidx];
-                            // Prefer "closest" supertype.
-                            auto dist = SuperDistance(arg->udt, type->udt);
-                            auto odist = SuperDistance(oarg->udt, type->udt);
+                            assert(oarg->t == V_UUDT);
+                            auto odist =
+                                DistanceToSpecializedSuper(oarg->spec_udt->gudt, type->udt);
                             if (dist < odist) {
                                 matches[0] = ov;  // Overwrite with better pick.
                             } else if (odist < dist) {
@@ -1673,10 +1653,34 @@ struct TypeChecker {
                             } else {
                                 // Keep both, and hope the next arg disambiguates.
                                 matches.push_back(ov);
-                            }
+                            }                                
                         } else {
                             matches.push_back(ov);
                         }
+                    }
+                }
+            }
+            if (matches.empty()) {
+                for (auto ov : pickfrom) {
+                    auto arg = ov->givenargs[argidx];
+                    if (!ConvertsTo(type, arg, CF_NONE)) {
+                        continue;
+                    }
+                    if (matches.size() == 1 && type->t == V_CLASS) {
+                        auto oarg = matches[0]->givenargs[argidx];
+                        // Prefer "closest" supertype.
+                        auto dist = SuperDistance(arg->udt, type->udt);
+                        auto odist = SuperDistance(oarg->udt, type->udt);
+                        if (dist < odist) {
+                            matches[0] = ov;  // Overwrite with better pick.
+                        } else if (odist < dist) {
+                            // Keep old one.
+                        } else {
+                            // Keep both, and hope the next arg disambiguates.
+                            matches.push_back(ov);
+                        }
+                    } else {
+                        matches.push_back(ov);
                     }
                 }
             }
