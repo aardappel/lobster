@@ -1,7 +1,7 @@
 @rem @echo off
 @cls
 @for /R ..\.. %%F in (*.lobster) do @(
-    Echo.%%F | findstr /C:"matvoxels">nul && (
+    Echo.%%F | findstr "matvoxels testFixture">nul && (
 	rem skipping %%F
     ) || (
         @start /B ..\..\bin\lobster.exe --compile-only --silent %%F
