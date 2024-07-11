@@ -616,13 +616,13 @@ nfr("create_3d_texture", "block,textureformat,monochrome", "R:voxelsII?", "R:tex
 // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
 // https://github.com/VoxelChain/voxelchain-formats/blob/main/src/vox.ts
 // https://github.com/ephtracy/voxel-model/issues/19
-nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
+nfr("load_vox", "name,material_palette,file_contents", "SB?S?", "R:voxels]S?",
     "loads a .vox file (supports both MagicaVoxel or VoxLap formats). "
     "if material_palette is true the alpha channel will contain material flags. "
+    "if file_contents is non-nil, it contains the file already loaded. "
     "returns vector of blocks or empty if file failed to load, and error string if any",
-    [](StackPtr &sp, VM &vm, Value &name, Value &material_palette) {
+    [](StackPtr &sp, VM &vm, Value &name, Value &material_palette, Value &file_contents) {
         auto namep = name.sval()->strv();
-        string buf;
         auto voxvec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_RESOURCE);
         auto errf = [&](string_view err) {
             // TODO: could clear voxvec elements if any?
@@ -632,9 +632,19 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
         auto erreof = [&]() {
             return errf("unexpected end of .vox file.");
         };
-        auto l = LoadFile(namep, &buf);
-        if (l < 0) return errf("could not load");
-        auto bufs = gsl::span<const uint8_t>((const uint8_t *)buf.c_str(), buf.size());
+        const char *buf_c_str = nullptr;
+        size_t buf_size = 0;
+        string buf;
+        if (file_contents.True()) {
+            buf_c_str = file_contents.sval()->data();
+            buf_size = (size_t)file_contents.sval()->len;
+        } else {
+            auto l = LoadFile(namep, &buf);
+            if (l < 0) return errf("could not load");
+            buf_c_str = buf.c_str();
+            buf_size = buf.size();
+        }
+        auto bufs = gsl::span<const uint8_t>((const uint8_t *)buf_c_str, buf_size);
         if ((bufs.size() >= 8) && (strncmp((const char *)bufs.data(), "VOX ", 4) == 0)) {
             // This looks like a MagicaVoxel file.
             int3 size = int3_0;
@@ -973,14 +983,14 @@ nfr("load_vox", "name,material_palette", "SI?", "R:voxels]S?",
             // It may be a voxlap file which uses the same extension, exported e.g. from Qubicle.
             // Sadly these don't have a header, so rely on verifying the size.
             const int voxlap_palette_size = 256 * 3;
-            if (buf.size() < sizeof(int3) + voxlap_palette_size + 1)
+            if (buf_size < sizeof(int3) + voxlap_palette_size + 1)
                 return errf(".vox file too small");
-            auto p = (const uint8_t *)buf.c_str();
+            auto p = (const uint8_t *)buf_c_str;
             int3 size = int3((int *)p);
             p += sizeof(int3);
             if (!(size > 0) || !(size <= 1024)) return errf("voxlap XYZ size out of range");
             auto vol = size.volume();
-            if (vol + voxlap_palette_size + sizeof(int3) != buf.size())
+            if (vol + voxlap_palette_size + sizeof(int3) != buf_size)
                 return errf("voxlap XYZ size does not match file size");
             // Now should be save to read.
             auto voxels = NewWorld(size, default_palette_idx);
