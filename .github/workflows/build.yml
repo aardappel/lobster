@@ -23,9 +23,9 @@ jobs:
           cc: clang-14
     steps:
     - uses: actions/checkout@v1
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
       with:
-        node-version: 17
+        node-version: 18
     - name: apt update
       run: sudo apt-get -o Acquire::Retries=3 update
     - name: install opengl
@@ -39,7 +39,7 @@ jobs:
     - name: test
       run: bin/lobster tests/unittest.lobster
     - name: upload build artifacts
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: Linux Lobster binary ${{ matrix.cxx }}
         path: bin/lobster
@@ -64,7 +64,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.3
+      uses: microsoft/setup-msbuild@v2
     - name: build
       working-directory: dev/lobster
       run: msbuild.exe lobster.sln /p:Configuration=Release /p:Platform=x64
@@ -73,7 +73,7 @@ jobs:
     - name: test lsp
       run: cd dev/lsp && npm install && npm test
     - name: upload build artifacts
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: Windows Lobster binary
         path: bin/lobster.exe
@@ -104,7 +104,7 @@ jobs:
         npm install
         npm test
     - name: upload build artifacts
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
         path: bin/lobster
@@ -115,9 +115,10 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: set up JDK 1.8
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v2
       with:
-        java-version: 1.8
+        java-version: '11'
+        distribution: 'zulu'
     # Now we're first going to build the native Linux exe, so we can generate C++ code.
     # Without engine should speed this up.
     - name: cmake
@@ -137,7 +138,7 @@ jobs:
     name: Build Wasm (on Linux)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
     - uses: actions/checkout@v1
