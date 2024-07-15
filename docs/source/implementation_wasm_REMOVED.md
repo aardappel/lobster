@@ -2,9 +2,12 @@
 title: The Lobster WASM code generator implementation
 ---
 
-NOTE: this document contains detail on how code generation for the
+**NOTE: THIS FUNCTIONALITY HAS BEEN REMOVED (Wasm now builds thru C++), this doc is here for
+historical reference but should otherwise be ignored.**
+
+**NOTE: this document contains detail on how code generation for the
 WebAssembly backend works internally, if you just want to USE this backend,
-please read the sections on WebAssembly [here](implementation.html).
+please read the sections on WebAssembly [here](implementation.html).**
 
 This document is also meant to be useful for implementors of other languages
 that may wish to do something similar (and could re-use Lobster's
