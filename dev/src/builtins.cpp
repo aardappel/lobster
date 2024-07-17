@@ -1092,6 +1092,12 @@ nfr("max", "v", "F]", "F",
         VECSCALAROP(double, FLT_MIN, v = std::max(v, f.fval()), vval, len, At(i))
     });
 
+nfr("popcount", "x", "I", "I",
+    "number of bits set in an integer",
+    [](StackPtr &, VM &, Value &a) {
+        return Value(PopCount((uint64_t)a.ival()));
+    });
+
 nfr("lerp", "x,y,f", "FFF", "F",
     "linearly interpolates between x and y with factor f [0..1]",
     [](StackPtr &, VM &, Value &x, Value &y, Value &f) {
