@@ -3127,16 +3127,17 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             sup_err();
             r = nc->TypeCheck(tc, reqret);
         } else if (f) {
-            // Now that we're sure it's going to be a call, pick the right function, fill in default/self args.
+            // Now that we're sure it's going to be a call, pick the right function
+            // First filter to only those that have more args.
+            small_vector<Function *, 4> candidates;
+            for (f = ff; f; f = f->sibf) {
+                if (f->nargs() >= nargs) candidates.push_back(f);
+            }
+            // fill in default/self args.
             // sibf is ordered by most args first, which is the right order for us to check them in,
             // since if we possibly can insert a self-arg with matching type that should take priority.
-            // And the parser already guaranteed there is no overlap between functions w.r.t. default
-            // args so no risk we match a higher args version unnecessarily.
-            for (f = ff; f; f = f->sibf) {
-                if (nargs > f->nargs()) {
-                    f = nullptr;
-                    break;
-                }
+            for (auto [fi, fc] : enumerate(candidates)) {
+                f = fc;
                 // If we have less args, try insert self arg.
                 if (nargs < f->nargs() && !fromdot && (int)nargs + 1 >= f->first_default_arg) {
                     // We go down the withstack but skip items that don't correspond to lexical order
@@ -3177,8 +3178,32 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                         }
                     }
                 }
+                auto first_arg_can_match = true;
+                if (fi + 1 < candidates.size() && nargs > 0 && f->nargs() > 0 && udt) {
+                    // We have further candidates coming, only consider this candidate for inserting
+                    // default args if the type of first arg is compatible.
+                    // This avoids functions on unrelated types with default args causing the wrong function to be called.
+                    // FIXME: bit of a hack, since really we need to ensure the next candidates can't also match.
+                    // FIXME: only checks in the udt case, which we already partially checked above.
+                    // Really this whole function needs rewriting from scratch.
+                    int best_superdist = INT_MAX;
+                    for (auto ov : f->overloads) {
+                        auto &arg0 = ov->sf->args[0];
+                        // If we're in the context of a withtype, calling a function that starts
+                        // with an arg of the same type we pass it in automatically. This is
+                        // maybe a bit very liberal, should maybe restrict it?
+                        auto gudt0 = GetGUDTAny(arg0.type);
+                        if (gudt0 && arg0.sid->withtype) {
+                            auto superdist = DistanceToSpecializedSuper(gudt0, udt);
+                            if (superdist >= 0 && superdist < best_superdist) {
+                                best_superdist = superdist;
+                            }
+                        }
+                    }
+                    if (best_superdist == INT_MAX) first_arg_can_match = false;
+                }
                 // If we have still have less args, try insert default args.
-                if (nargs < f->nargs() && (int)nargs >= f->first_default_arg) {
+                if (nargs < f->nargs() && first_arg_can_match && (int)nargs >= f->first_default_arg) {
                     for (size_t i = nargs; i < f->nargs(); i++) {
                         children.push_back(f->default_args[i - f->first_default_arg]->Clone(true));
                         tc.TT(children.back(), 1, LT_ANY);
@@ -3205,9 +3230,6 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             tc.Error(*this, "unknown field/function reference ", Q(name));
         }
     }
-
-
-
     children.clear();
     delete this;
     return r;

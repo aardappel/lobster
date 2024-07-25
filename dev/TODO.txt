@@ -1,15 +1,3 @@
-- We really need to stop deciding which N-ary function is being called in the parser and leave that to
-  the type checker where the 1st arg can be taken into account, e.g.
-    class A:
-      def foo():
-        pass()
-    class B:
-      def foo(x=0):
-        pass()
-  Here if A and B are unrelated, getting
-  "function foo with 2 arguments is ambiguous with the 1 version because of default arguments"
-  is super confusing.
-
 - Default ignoring return values is a really bad default, wonder if it is too late to change?
   Ideally it would error on ignored return values unless the function explicitly marks a return
   value as ignorable.
@@ -421,6 +409,7 @@
 
 - move function checking into typechecker.
   This is now mostly done.
+  - GenericCall::TypeCheck is a shaky stack of hacks, needs to be rewritten in a more principled manner.
   - Fix non-lexical ordering issues in GenericCall::TypeCheck
   - Make decision-making in GenericCall::TypeCheck more robust.
   - Further reduce whatever is happening in ParseFunctionCall

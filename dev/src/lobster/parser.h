@@ -834,15 +834,6 @@ struct Parser {
         for (auto &arg : sf->args) {
             ov->givenargs.push_back(arg.type);
         }
-        // Check if there's any overlap in default argument ranges.
-        for (auto ff = st.GetFirstFunction(f.name); ff; ff = ff->sibf) {
-            if (ff == &f) continue;   
-            if (first_default_arg <= (int)ff->nargs() &&
-                ff->first_default_arg <= (int)f.nargs())
-                Error("function ", Q(f.name), " with ", f.nargs(),
-                        " arguments is ambiguous with the ", ff->nargs(),
-                        " version because of default arguments");
-        }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
             sf->returntype = sf->returngiventype;
