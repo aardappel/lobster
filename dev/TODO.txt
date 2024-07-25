@@ -12,6 +12,13 @@
   For builtin functions, maybe better to have the opposite default since ignoreing them is so
   prevalent, and optionally mark them as non-ignorable.
 
+- For builtin functions, a type like "F}:2" is still internally represented as a V_VECTOR,
+  which shows up when printing e.g. a wrong number of args error thru e.g.
+  Signature(const NativeFun &nf)
+  We could fix this like we do elsewhere by upgrading these types on the fly, but really
+  these types need a better representation at its core.. which is hard because nativefuns
+  get initialized before these types are parsed.
+
 - Options for speeding up JIT mode.
   Recent benchmarking has shown that while the C++ mode can be pretty fast (within 5x of native C++),
   the JIT is surprisingly slow (sometimes up to 10x slower than C++ mode for pure number crunching).
