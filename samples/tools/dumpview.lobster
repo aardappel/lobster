@@ -35,8 +35,8 @@ assert im.add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
 while gl.frame():
     gl.clear(color_grey)
     im.frame():
-        im.next_window_pos(float2_0, float2_0)
-        im.next_window_size(float(gl.window_size()))
+        im.next_window_pos(float2_0, float2_0, im.cond_always)
+        im.next_window_size(float(gl.window_size()), im.cond_always)
         im.window_dock("Crash dump viewer", im.window_no_collapse | im.window_no_titlebar |
                       im.window_no_resize | im.window_no_move):
             im.show_flexbuffer(fb)
