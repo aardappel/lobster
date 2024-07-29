@@ -22,6 +22,14 @@ export interface LobsterFunctionSignature {
 	parameters: LobsterSignatureParameter[]
 }
 
+export interface LobsterBuiltinsDoc {
+  args: LobsterSignatureParameter[];
+  doc: string;
+  funcname: string;
+  returns: string[];
+  subsystem: string;
+}
+
 export type LobsterSignature = LobsterVariableSignature | LobsterFunctionSignature;
 
 export interface QueryDefinitionResult {
@@ -103,6 +111,19 @@ export async function parseLobster(
 		file,
 		...args
 	));
+}
+
+export async function getBuiltinsDoc(
+  settings: LobsterSettings,
+): Promise<LobsterBuiltinsDoc[]> {
+  function parseOutput(input: string): LobsterBuiltinsDoc[] {
+    const parsedData: LobsterBuiltinsDoc[] = JSON.parse(input);
+    return parsedData;
+  }
+
+  return new Promise<LobsterBuiltinsDoc[]>((back) =>
+    callLobster(settings, (i) => back(parseOutput(i)), "--gen-builtins-json"),
+  );
 }
 
 export async function queryDefinition(
