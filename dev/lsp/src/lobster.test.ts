@@ -1,6 +1,6 @@
 import { assert } from 'console';
 import {
-	LobsterFunctionSignarture,
+	LobsterFunctionSignature,
 	parseLobster,
 	queryDefinition
 } from './lobster';
@@ -43,7 +43,7 @@ queryDefinition(settings, 'testFixture/valid.lobster', 5, 'b')
 		assert(result.signature,
 			"No signature?", result);
 
-		const signature = result.signature as LobsterFunctionSignarture;
+		const signature = result.signature as LobsterFunctionSignature;
 		assert(signature.name == 'b',
 			"Incorrect name for signature?", signature);
 		assert(signature.parameters.length == 0,
@@ -58,7 +58,7 @@ queryDefinition(settings, 'testFixture/valid.lobster', 12, 'print')
 		assert(result.signature,
 			"No signature?", result);
 
-		const signature = result.signature as LobsterFunctionSignarture;
+		const signature = result.signature as LobsterFunctionSignature;
 		assert(signature.name == 'print',
 			"Incorrect name for signature?", result);
 		assert(signature.parameters.length == 1,

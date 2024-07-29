@@ -7,7 +7,7 @@ export interface LobsterLocation {
 	line: integer
 }
 
-export interface LobsterSignartureParameter {
+export interface LobsterSignatureParameter {
 	name: string,
 	type: string
 }
@@ -17,12 +17,12 @@ export interface LobsterVariableSignature {
 	type: string
 }
 
-export interface LobsterFunctionSignarture {
+export interface LobsterFunctionSignature {
 	name: string,
-	parameters: LobsterSignartureParameter[]
+	parameters: LobsterSignatureParameter[]
 }
 
-export type LobsterSignature = LobsterVariableSignature | LobsterFunctionSignarture;
+export type LobsterSignature = LobsterVariableSignature | LobsterFunctionSignature;
 
 export interface QueryDefinitionResult {
 	declartionLocation?: LobsterLocation,
@@ -182,7 +182,7 @@ export async function queryDefinition(
 		...args));
 }
 
-function readParameters(input: string): LobsterSignartureParameter[] {
+function readParameters(input: string): LobsterSignatureParameter[] {
 	const parameters = input == '' ? [] : input.split(',')
 		.map(i => i.trim().match(/^(.+):(.+)$/) || [])
 		.map(i => ({ name: i[1], type: i[2] }));
