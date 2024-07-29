@@ -47,6 +47,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uin
 
 extern void DumpBuiltinNames(NativeRegistry &nfr);
 extern void DumpBuiltinDoc(NativeRegistry &nfr);
+extern void DumpBuiltinDocJson(NativeRegistry &nfr);
 
 }  // namespace lobster
 

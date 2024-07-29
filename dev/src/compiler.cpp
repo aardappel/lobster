@@ -275,6 +275,18 @@ void DumpBuiltinNames(NativeRegistry &nfr) {
     WriteFile("builtin_functions_names.txt", false, s, false);
 }
 
+string JSONEscape(string_view in) {
+    string s;
+    for (auto c : in) {
+        switch (c) {
+            case '"': s += "\\\""; break;
+            case '\\': s += "\\\\"; break;
+            default: s += c; break;
+        }
+    }
+    return s;
+}
+
 string HTMLEscape(string_view in) {
     string s;
     for (auto c : in) {
@@ -288,6 +300,69 @@ string HTMLEscape(string_view in) {
     return s;
 }
 
+void DumpBuiltinDocJson(NativeRegistry &nfr) {
+    string s = "[";
+    bool need_comma = false;
+    for (auto nf : nfr.nfuns) {
+        if (nfr.subsystems[nf->subsystemid] == "plugin") continue;
+        if (need_comma) s += ", ";
+        s += cat("{\"funcname\": \"", nf->name, "\", ");
+        s += cat("\"subsystem\": \"", nfr.subsystems[nf->subsystemid], "\", ");
+        int last_non_nil = -1;
+        s += "\"args\": [";
+        for (auto [i, a] : enumerate(nf->args)) {
+            if (a.type->t != V_NIL) last_non_nil = (int)i;
+        }
+        for (auto [i, a] : enumerate(nf->args)) {
+            auto argname = nf->args[i].name;
+            if (i) s +=  ", ";
+            s += cat("{\"name\": \"", argname, "\"");
+            if (a.type->t != V_ANY) {
+                s += ", \"type\": \"";
+                s += a.flags & NF_BOOL
+                    ? "bool"
+                    : TypeName(a.type->ElementIfNil(), a.fixed_len);
+                s += "\"";
+            } else {
+                s += ", \"type\": null";
+            }
+            if (a.type->t == V_NIL && (int)i > last_non_nil) {
+                s += ", \"default\": ";
+                switch (a.type->sub->t) {
+                    case V_INT:
+                        if (a.flags & NF_BOOL)
+                            append(s, a.default_val ? "true" : "false");
+                        else
+                            append(s,  a.default_val);
+                        break;
+                    case V_FLOAT:
+                        append(s, (float)a.default_val);
+                        break;
+                    default:
+                        s += "null";
+                }
+            }
+            s += "}";
+        }
+        s += "]";
+        s += ", \"returns\": [";
+        if (nf->retvals.size()) {
+            for (auto [i, a] : enumerate(nf->retvals)) {
+                s += cat("\"", TypeName(a.type, a.fixed_len), "\"");
+                if (i < nf->retvals.size() - 1) s += ", ";
+            }
+        }
+        s += "]";
+        if (((string_view) nf->help).length() > 0) {
+            s += cat(", \"doc\": \"", JSONEscape(nf->help), "\"}");
+        } else {
+            s += cat(", \"doc\": null}");
+        }
+        need_comma = true;
+    }
+    s += "]";
+    cout << s;
+}
 void DumpBuiltinDoc(NativeRegistry &nfr) {
     string s =
         "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
