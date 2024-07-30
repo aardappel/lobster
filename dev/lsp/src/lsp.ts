@@ -124,8 +124,9 @@ export class LSPInstance {
     }
 
     getFunctionSignature(funcname: string): LobsterFunctionSignature | undefined {
-        const doc: LobsterBuiltinsDoc = this.builtinsDoc
-            .find((d) => d.funcname == funcname)!;
+        const doc: LobsterBuiltinsDoc | undefined = this.builtinsDoc
+            .find((d) => d.funcname == funcname);
+        if (!doc) return undefined;
         const res: LobsterFunctionSignature = {
             name: doc.funcname,
             parameters: doc.args,
