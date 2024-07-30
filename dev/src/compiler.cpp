@@ -275,18 +275,6 @@ void DumpBuiltinNames(NativeRegistry &nfr) {
     WriteFile("builtin_functions_names.txt", false, s, false);
 }
 
-string JSONEscape(string_view in) {
-    string s;
-    for (auto c : in) {
-        switch (c) {
-            case '"': s += "\\\""; break;
-            case '\\': s += "\\\\"; break;
-            default: s += c; break;
-        }
-    }
-    return s;
-}
-
 string HTMLEscape(string_view in) {
     string s;
     for (auto c : in) {
@@ -303,6 +291,7 @@ string HTMLEscape(string_view in) {
 void DumpBuiltinDocJson(NativeRegistry &nfr) {
     string s = "[";
     bool need_comma = false;
+    std::string escaped_doc;
     for (auto nf : nfr.nfuns) {
         if (nfr.subsystems[nf->subsystemid] == "plugin") continue;
         if (need_comma) s += ", ";
@@ -353,8 +342,11 @@ void DumpBuiltinDocJson(NativeRegistry &nfr) {
             }
         }
         s += "]";
-        if (((string_view) nf->help).length() > 0) {
-            s += cat(", \"doc\": \"", JSONEscape(nf->help), "\"}");
+        int doc_len = ((string_view) nf->help).length();
+        if (doc_len > 0) {
+            flatbuffers::EscapeString(nf->help, doc_len, &escaped_doc, false, false);
+            s += cat(", \"doc\": ", escaped_doc, "}");
+            escaped_doc.clear();
         } else {
             s += cat(", \"doc\": null}");
         }
@@ -745,4 +737,3 @@ stack_vector_storage g_svs8;
 #if STACK_PROFILING_ON
     vector<StackProfile> stack_profiles;
 #endif
-
