@@ -3,7 +3,6 @@ import { LSPInstance } from "../lsp";
 import { LobsterDocumentState } from "../document";
 import { getWordOnCursor, markupSignature } from "../utils";
 import { LobsterSignature, queryDefinition } from "../lobster";
-import { getFunctionSignature } from "../features/completion";
 import { uinteger } from "vscode-languageserver";
 
 export default function setupFeature(lsp: LSPInstance) {
@@ -26,7 +25,7 @@ export default function setupFeature(lsp: LSPInstance) {
         let signature: LobsterSignature | undefined;
 
         if (document.state === LobsterDocumentState.HasErrors) {
-          signature = getFunctionSignature(word);
+          signature = lsp.getFunctionSignature(word);
         } else {
           const settings = await lsp.getDocumentSettings(uri);
 
