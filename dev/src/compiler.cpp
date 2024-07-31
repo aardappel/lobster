@@ -312,7 +312,7 @@ enum Tags {
     RetTypeWrap = 15,
 };
 
-string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&docTags)[][2], string (*escape)(string_view)) {
+string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&docTags)[16][2], string (*escape)(string_view)) {
     string s = docTags[Tags::Doc][0];
     int cursubsystem = -1;
     bool is_first_row = true;
