@@ -130,6 +130,7 @@ export class LSPInstance {
         const res: LobsterFunctionSignature = {
             name: doc.funcname,
             parameters: doc.args,
+            returns: doc.returns
         };
         return res;
     }

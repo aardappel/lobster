@@ -20,13 +20,14 @@ export interface LobsterVariableSignature {
 export interface LobsterFunctionSignature {
 	name: string,
 	parameters: LobsterSignatureParameter[]
+	returns?: string[]
 }
 
 export interface LobsterBuiltinsDoc {
   args: LobsterSignatureParameter[];
   doc: string;
   funcname: string;
-  returns: string[];
+  returns?: string[];
   subsystem: string;
 }
 
@@ -159,7 +160,8 @@ export async function queryDefinition(
 					const parameters = readParameters(defmatch[2]);
 					signature = {
 						name: defmatch[1],
-						parameters
+						parameters,
+						returns: undefined
 					};
 				} else {
 					signature = {
@@ -181,7 +183,8 @@ export async function queryDefinition(
 
 			signature = {
 				name: match[1].trim(),
-				parameters: readParameters(match[2].trim())
+				parameters: readParameters(match[2].trim()),
+				returns: undefined
 			};
 		}
 
