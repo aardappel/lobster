@@ -275,6 +275,11 @@ void DumpBuiltinNames(NativeRegistry &nfr) {
     WriteFile("builtin_functions_names.txt", false, s, false);
 }
 
+string JSONEscape(string_view in) {
+    string s;
+    flatbuffers::EscapeString(in.data(), in.size(), &s, false, false);
+    return s.substr(1, s.size()-2);
+}
 string HTMLEscape(string_view in) {
     string s;
     for (auto c : in) {
@@ -288,154 +293,165 @@ string HTMLEscape(string_view in) {
     return s;
 }
 
-void DumpBuiltinDocJson(NativeRegistry &nfr) {
-    string s = "[";
-    bool need_comma = false;
-    std::string escaped_doc;
+enum Tags {
+    Doc = 0,
+    Table = 1,
+    Row = 2,
+    FirstRow = 3,
+    Td = 4,
+    Subsystem = 5,
+    Name = 6,
+    Params = 7,
+    Help = 8,
+    Font = 9,
+    Returns = 10,
+    ParamType = 11,
+    ParamName = 12,
+    ParamDefault = 13,
+    Param = 14,
+    RetTypeWrap = 15,
+};
+
+string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&docTags)[][2], string (*escape)(string_view)) {
+    string s = docTags[Tags::Doc][0];
+    int cursubsystem = -1;
+    bool is_first_row = true;
+    bool tablestarted = !group_subsystem;
+    if(tablestarted) s += docTags[Tags::Table][0];
     for (auto nf : nfr.nfuns) {
         if (nfr.subsystems[nf->subsystemid] == "plugin") continue;
-        if (need_comma) s += ", ";
-        s += cat("{\"funcname\": \"", nf->name, "\", ");
-        s += cat("\"subsystem\": \"", nfr.subsystems[nf->subsystemid], "\", ");
+        if (group_subsystem) {
+            if (nf->subsystemid != cursubsystem) {
+                if (tablestarted) s += docTags[Tags::Table][1];
+                tablestarted = false;
+                if (group_subsystem) s += is_first_row ? docTags[Tags::FirstRow][0] : docTags[Tags::Row][0];
+                s += cat(docTags[Tags::Subsystem][0], nfr.subsystems[nf->subsystemid], docTags[Tags::Subsystem][1]);
+                if (group_subsystem) s += docTags[Tags::Row][1];
+                cursubsystem = nf->subsystemid;
+            }
+            if (!tablestarted) {
+                s += docTags[Tags::Table][0];
+                tablestarted = true;
+            }
+        }
+        s += is_first_row ? docTags[Tags::FirstRow][0] : docTags[Tags::Row][0];
+        if (!group_subsystem) {
+            s += cat(docTags[Tags::Subsystem][0], 
+                    nfr.subsystems[nf->subsystemid], 
+                    docTags[Tags::Subsystem][1]);
+        }
+        s += cat(docTags[Tags::Name][0], nf->name, docTags[Tags::Name][1]);
+        s += docTags[Tags::Params][0];
         int last_non_nil = -1;
-        s += "\"args\": [";
         for (auto [i, a] : enumerate(nf->args)) {
             if (a.type->t != V_NIL) last_non_nil = (int)i;
         }
         for (auto [i, a] : enumerate(nf->args)) {
             auto argname = nf->args[i].name;
             if (i) s +=  ", ";
-            s += cat("{\"name\": \"", argname, "\"");
+            s += docTags[Tags::Param][0];
+            s += cat(docTags[Tags::ParamName][0], argname, docTags[Tags::ParamName][1]);
+            s += docTags[Tags::Font][0];
+            s += docTags[Tags::ParamType][0];
             if (a.type->t != V_ANY) {
-                s += ", \"type\": \"";
                 s += a.flags & NF_BOOL
                     ? "bool"
-                    : TypeName(a.type->ElementIfNil(), a.fixed_len);
-                s += "\"";
+                    : escape(TypeName(a.type->ElementIfNil(), a.fixed_len));
             } else {
-                s += ", \"type\": null";
+                s += "any";
             }
+            s += docTags[Tags::ParamType][1];
+            s += docTags[Tags::Font][1];
             if (a.type->t == V_NIL && (int)i > last_non_nil) {
-                s += ", \"default\": ";
+                s += docTags[Tags::ParamDefault][0];
                 switch (a.type->sub->t) {
                     case V_INT:
                         if (a.flags & NF_BOOL)
                             append(s, a.default_val ? "true" : "false");
                         else
-                            append(s,  a.default_val);
+                            append(s, a.default_val);
                         break;
                     case V_FLOAT:
                         append(s, (float)a.default_val);
                         break;
                     default:
-                        s += "null";
+                        s += "nil";
                 }
+                s += docTags[Tags::ParamDefault][1];
             }
-            s += "}";
+            s += docTags[Tags::Param][1];
         }
-        s += "]";
-        s += ", \"returns\": [";
+        s += docTags[Tags::Params][1];
         if (nf->retvals.size()) {
+            s += docTags[Tags::Returns][0];
             for (auto [i, a] : enumerate(nf->retvals)) {
-                s += cat("\"", TypeName(a.type, a.fixed_len), "\"");
+                s += docTags[Tags::RetTypeWrap][0];
+                s += docTags[Tags::Font][0];
+                s += escape(TypeName(a.type, a.fixed_len));
+                s += docTags[Tags::Font][1];
+                s += docTags[Tags::RetTypeWrap][1];
                 if (i < nf->retvals.size() - 1) s += ", ";
             }
+            s += docTags[Tags::Returns][1];
         }
-        s += "]";
-        int doc_len = ((string_view) nf->help).length();
-        if (doc_len > 0) {
-            flatbuffers::EscapeString(nf->help, doc_len, &escaped_doc, false, false);
-            s += cat(", \"doc\": ", escaped_doc, "}");
-            escaped_doc.clear();
-        } else {
-            s += cat(", \"doc\": null}");
-        }
-        need_comma = true;
+        s += cat(docTags[Tags::Help][0], escape(nf->help), docTags[Tags::Help][1], "\n");
+        s += docTags[Tags::Row][1];
+        is_first_row = false;
     }
-    s += "]";
-    cout << s;
+    s += docTags[Tags::Table][1];
+    s += docTags[Tags::Doc][1];
+    return s;
 }
 
-
 void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
-    string s =
-        "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
-        "<html>\n<head>\n<title>lobster builtin function reference</title>\n"
-        "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
-        "<style type=\"text/css\">"
-        "table.a, tr.a, td.a {font-size: 10pt;border: 1pt solid #DDDDDD;"
-        " border-Collapse: collapse; max-width:1200px}</style>\n"
-        "</head>\n<body><center><table border=0><tr><td>\n<p>"
-        "lobster builtin functions:"
-        "(file auto generated by compiler, do not modify)</p>\n\n";
-    int cursubsystem = -1;
-    bool tablestarted = !group_subsystem;
-    if(tablestarted) s += "<table class=\"a\" border=1 cellspacing=0 cellpadding=4>\n";
-    for (auto nf : nfr.nfuns) {
-        if (nfr.subsystems[nf->subsystemid] == "plugin") continue;
-        if (group_subsystem) {
-            if (nf->subsystemid != cursubsystem) {
-                if (tablestarted) s += "</table>\n";
-                tablestarted = false;
-                s += cat("<h3>", nfr.subsystems[nf->subsystemid], "</h3>\n");
-                cursubsystem = nf->subsystemid;
-            }
-            if (!tablestarted) {
-                s += "<table class=\"a\" border=1 cellspacing=0 cellpadding=4>\n";
-                tablestarted = true;
-            }
-        }
-        s += "<tr class=\"a\" valign=top>";
-        if (!group_subsystem) {
-            s += cat("<td><h3>", nfr.subsystems[nf->subsystemid], "</h3></td>");
-        }
-        s += cat("<td class=\"a\"><tt><b>", nf->name, "</b>(");
-        int last_non_nil = -1;
-        for (auto [i, a] : enumerate(nf->args)) {
-            if (a.type->t != V_NIL) last_non_nil = (int)i;
-        }
-        for (auto [i, a] : enumerate(nf->args)) {
-            auto argname = nf->args[i].name;
-            if (i) s +=  ", ";
-            s += argname;
-            s += "<font color=\"#666666\">";
-            if (a.type->t != V_ANY) {
-                s += ":";
-                s += a.flags & NF_BOOL
-                    ? "bool"
-                    : HTMLEscape(TypeName(a.type->ElementIfNil(), a.fixed_len));
-            }
-            s += "</font>";
-            if (a.type->t == V_NIL && (int)i > last_non_nil) {
-                switch (a.type->sub->t) {
-                    case V_INT:
-                        if (a.flags & NF_BOOL)
-                            append(s, " = ", a.default_val ? "true" : "false");
-                        else
-                            append(s, " = ", a.default_val);
-                        break;
-                    case V_FLOAT:
-                        append(s, " = ", (float)a.default_val);
-                        break;
-                    default:
-                        s += " = nil";
-                }
-            }
-        }
-        s += ")";
-        if (nf->retvals.size()) {
-            s += " -> ";
-            for (auto [i, a] : enumerate(nf->retvals)) {
-                s += "<font color=\"#666666\">";
-                s += HTMLEscape(TypeName(a.type, a.fixed_len));
-                s += "</font>";
-                if (i < nf->retvals.size() - 1) s += ", ";
-            }
-        }
-        s += cat("</tt></td><td class=\"a\">", HTMLEscape(nf->help), "</td></tr>\n");
-    }
-    s += "</table>\n</td></tr></table></center></body>\n</html>\n";
+    string htmlTags[16][2] = {
+    /* Doc          */  {"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"                                                        
+    /*              */   "<html>\n<head>\n<title>lobster builtin function reference</title>\n"
+    /*              */   "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
+    /*              */   "<style type=\"text/css\">"
+    /*              */   "table.a, tr.a, td.a {font-size: 10pt;border: 1pt solid #DDDDDD;"
+    /*              */   " border-Collapse: collapse; max-width: 88em}</style>\n"
+    /*              */   "</head>\n<body><center><table border=0><tr><td>\n<p>"
+    /*              */   "lobster builtin functions:"
+    /*              */   "(file auto generated by compiler, do not modify)</p></td></tr>", "\n</table></center></body>\n</html>\n"},
+    /* Table        */  {"<tr><td><table class=\"a\" border=1 cellspacing=0 cellpadding=4>", "</table></td></tr>\n"},
+    /* Row          */  {"<tr class=\"a\" valign=top>", "</tr>\n"},
+    /* FirstRow     */  {"<tr class=\"a\" valign=top>", "</tr>\n"},
+    /* Td           */  {"<td>", "</td>"},
+    /* Subsystem    */  {"<td><h3>", "</h3></td>"},
+    /* Name         */  {"<td class=\"a\"><tt><b>", "</b>"},
+    /* Params       */  {"(", ")"},
+    /* Help         */  {"</tt></td><td class=\"a\">", "</td>\n"},
+    /* Font         */  {"<font color=\"#666666\">", "</font>"},
+    /* Returns      */  {" -> ", ""},
+    /* ParamType    */  {": ", ""},
+    /* ParamName    */  {"", ""},
+    /* ParamDefault */  {" = ", ""},
+    /* Param        */  {"", ""},
+    /* RetTypeWrap  */  {"", ""}};
+    string s = GetBuiltinDoc(nfr, group_subsystem, htmlTags, HTMLEscape);
     WriteFile("builtin_functions_reference.html", false, s, false);
+}
+
+void DumpBuiltinDocJson(NativeRegistry &nfr) {
+    string jsonTags[16][2] = { 
+    /* Doc          */ {"", ""},
+    /* Table        */ {"[", "]"},
+    /* Row          */ {",\n{", "}"},
+    /* FirstRow     */ {"{", "}"},
+    /* Td           */ {"{", "}"},
+    /* Subsystem    */ {"\"subsystem\": \"", "\", "},
+    /* Name         */ {"\"funcname\": \"", "\", "},
+    /* Params       */ {"\"args\":[", "]"},
+    /* Help         */ {", \"doc\": \"", "\""},
+    /* Font         */ {"",""},
+    /* Returns      */ {", \"returns\": [", "]"},
+    /* ParamType    */ {", \"type\": \"", "\""},
+    /* ParamName    */ {"\"name\": \"", "\""},
+    /* ParamDefault */ {", \"default\": \"", "\""},
+    /* Param        */ {"{", "}"},
+    /* RetTypeWrap  */ {"\"", "\""}};
+    cout << GetBuiltinDoc(nfr, false, jsonTags, JSONEscape);
 }
 
 void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
