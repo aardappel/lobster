@@ -17,12 +17,13 @@ export function markupSignature(signature: LobsterSignature): MarkupContent {
 		kind: MarkupKind.PlainText,
 		value:
 			signature.name +
-			'(' + signature.parameters.map(p => `${p.name}: ${p.type}`).join(', ') + ')'
+			'(' + signature.parameters.map(p => `${p.name}: ${p.type}`).join(', ') + ')' +
+			(signature.returns ? " -> " + signature.returns.join(", ") : "")
 	};
 
 	if ('type' in signature) return {
 		kind: MarkupKind.PlainText,
-		value: 'let ' + signature.name + ': ' + signature.type
+		value: signature.name + ': ' + signature.type
 	};
 
 	throw new Error("Unknown signature type");
