@@ -90,7 +90,7 @@
           "end": "=",
           "endCaptures": {
             "0": {
-              "name": "punctuation.defintition.lobster"
+              "name": "punctuation.definition.lobster"
             }
           },
           "patterns": [
