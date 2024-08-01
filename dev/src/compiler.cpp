@@ -312,36 +312,36 @@ enum Tags {
     RetTypeWrap = 15,
 };
 
-string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&docTags)[16][2], string (*escape)(string_view)) {
-    string s = docTags[Tags::Doc][0];
+string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tags)[16][2], string (*escape)(string_view)) {
+    string s = doc_tags[Tags::Doc][0];
     int cursubsystem = -1;
     bool is_first_row = true;
     bool tablestarted = !group_subsystem;
-    if(tablestarted) s += docTags[Tags::Table][0];
+    if(tablestarted) s += doc_tags[Tags::Table][0];
     for (auto nf : nfr.nfuns) {
         if (nfr.subsystems[nf->subsystemid] == "plugin") continue;
         if (group_subsystem) {
             if (nf->subsystemid != cursubsystem) {
-                if (tablestarted) s += docTags[Tags::Table][1];
+                if (tablestarted) s += doc_tags[Tags::Table][1];
                 tablestarted = false;
-                if (group_subsystem) s += is_first_row ? docTags[Tags::FirstRow][0] : docTags[Tags::Row][0];
-                s += cat(docTags[Tags::Subsystem][0], nfr.subsystems[nf->subsystemid], docTags[Tags::Subsystem][1]);
-                if (group_subsystem) s += docTags[Tags::Row][1];
+                if (group_subsystem) s += is_first_row ? doc_tags[Tags::FirstRow][0] : doc_tags[Tags::Row][0];
+                s += cat(doc_tags[Tags::Subsystem][0], nfr.subsystems[nf->subsystemid], doc_tags[Tags::Subsystem][1]);
+                if (group_subsystem) s += doc_tags[Tags::Row][1];
                 cursubsystem = nf->subsystemid;
             }
             if (!tablestarted) {
-                s += docTags[Tags::Table][0];
+                s += doc_tags[Tags::Table][0];
                 tablestarted = true;
             }
         }
-        s += is_first_row ? docTags[Tags::FirstRow][0] : docTags[Tags::Row][0];
+        s += is_first_row ? doc_tags[Tags::FirstRow][0] : doc_tags[Tags::Row][0];
         if (!group_subsystem) {
-            s += cat(docTags[Tags::Subsystem][0], 
+            s += cat(doc_tags[Tags::Subsystem][0], 
                     nfr.subsystems[nf->subsystemid], 
-                    docTags[Tags::Subsystem][1]);
+                    doc_tags[Tags::Subsystem][1]);
         }
-        s += cat(docTags[Tags::Name][0], nf->name, docTags[Tags::Name][1]);
-        s += docTags[Tags::Params][0];
+        s += cat(doc_tags[Tags::Name][0], nf->name, doc_tags[Tags::Name][1]);
+        s += doc_tags[Tags::Params][0];
         int last_non_nil = -1;
         for (auto [i, a] : enumerate(nf->args)) {
             if (a.type->t != V_NIL) last_non_nil = (int)i;
@@ -349,10 +349,10 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&docTags
         for (auto [i, a] : enumerate(nf->args)) {
             auto argname = nf->args[i].name;
             if (i) s +=  ", ";
-            s += docTags[Tags::Param][0];
-            s += cat(docTags[Tags::ParamName][0], argname, docTags[Tags::ParamName][1]);
-            s += docTags[Tags::Font][0];
-            s += docTags[Tags::ParamType][0];
+            s += doc_tags[Tags::Param][0];
+            s += cat(doc_tags[Tags::ParamName][0], argname, doc_tags[Tags::ParamName][1]);
+            s += doc_tags[Tags::Font][0];
+            s += doc_tags[Tags::ParamType][0];
             if (a.type->t != V_ANY) {
                 s += a.flags & NF_BOOL
                     ? "bool"
@@ -360,10 +360,10 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&docTags
             } else {
                 s += "any";
             }
-            s += docTags[Tags::ParamType][1];
-            s += docTags[Tags::Font][1];
+            s += doc_tags[Tags::ParamType][1];
+            s += doc_tags[Tags::Font][1];
             if (a.type->t == V_NIL && (int)i > last_non_nil) {
-                s += docTags[Tags::ParamDefault][0];
+                s += doc_tags[Tags::ParamDefault][0];
                 switch (a.type->sub->t) {
                     case V_INT:
                         if (a.flags & NF_BOOL)
@@ -377,34 +377,34 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&docTags
                     default:
                         s += "nil";
                 }
-                s += docTags[Tags::ParamDefault][1];
+                s += doc_tags[Tags::ParamDefault][1];
             }
-            s += docTags[Tags::Param][1];
+            s += doc_tags[Tags::Param][1];
         }
-        s += docTags[Tags::Params][1];
+        s += doc_tags[Tags::Params][1];
         if (nf->retvals.size()) {
-            s += docTags[Tags::Returns][0];
+            s += doc_tags[Tags::Returns][0];
             for (auto [i, a] : enumerate(nf->retvals)) {
-                s += docTags[Tags::RetTypeWrap][0];
-                s += docTags[Tags::Font][0];
+                s += doc_tags[Tags::RetTypeWrap][0];
+                s += doc_tags[Tags::Font][0];
                 s += escape(TypeName(a.type, a.fixed_len));
-                s += docTags[Tags::Font][1];
-                s += docTags[Tags::RetTypeWrap][1];
+                s += doc_tags[Tags::Font][1];
+                s += doc_tags[Tags::RetTypeWrap][1];
                 if (i < nf->retvals.size() - 1) s += ", ";
             }
-            s += docTags[Tags::Returns][1];
+            s += doc_tags[Tags::Returns][1];
         }
-        s += cat(docTags[Tags::Help][0], escape(nf->help), docTags[Tags::Help][1], "\n");
-        s += docTags[Tags::Row][1];
+        s += cat(doc_tags[Tags::Help][0], escape(nf->help), doc_tags[Tags::Help][1], "\n");
+        s += doc_tags[Tags::Row][1];
         is_first_row = false;
     }
-    s += docTags[Tags::Table][1];
-    s += docTags[Tags::Doc][1];
+    s += doc_tags[Tags::Table][1];
+    s += doc_tags[Tags::Doc][1];
     return s;
 }
 
 void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
-    string htmlTags[16][2] = {
+    string html_tags[16][2] = {
     /* Doc          */  {"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"                                                        
     /*              */   "<html>\n<head>\n<title>lobster builtin function reference</title>\n"
     /*              */   "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
@@ -429,12 +429,12 @@ void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
     /* ParamDefault */  {" = ", ""},
     /* Param        */  {"", ""},
     /* RetTypeWrap  */  {"", ""}};
-    string s = GetBuiltinDoc(nfr, group_subsystem, htmlTags, HTMLEscape);
+    string s = GetBuiltinDoc(nfr, group_subsystem, html_tags, HTMLEscape);
     WriteFile("builtin_functions_reference.html", false, s, false);
 }
 
 void DumpBuiltinDocJson(NativeRegistry &nfr) {
-    string jsonTags[16][2] = { 
+    string json_tags[16][2] = { 
     /* Doc          */ {"", ""},
     /* Table        */ {"[", "]"},
     /* Row          */ {",\n{", "}"},
@@ -451,7 +451,7 @@ void DumpBuiltinDocJson(NativeRegistry &nfr) {
     /* ParamDefault */ {", \"default\": \"", "\""},
     /* Param        */ {"{", "}"},
     /* RetTypeWrap  */ {"\"", "\""}};
-    cout << GetBuiltinDoc(nfr, false, jsonTags, JSONEscape);
+    cout << GetBuiltinDoc(nfr, false, json_tags, JSONEscape);
 }
 
 void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
