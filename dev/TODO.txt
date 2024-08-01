@@ -1,3 +1,6 @@
+- Now says: error: cannot implicitly bind type variable `A` in call to `rnd_offset` (argument doesn't match?)
+  upon missing arg?
+
 - Default ignoring return values is a really bad default, wonder if it is too late to change?
   Ideally it would error on ignored return values unless the function explicitly marks a return
   value as ignorable.
@@ -101,6 +104,7 @@
 
 - defining variables (or functions, or anything else) should fail if it is already a namepace.
   But frankly there's a ton of these possible interactions, should maybe move to a single symboltable.
+  Another example is trying to use a variable with the same name as an enum.
 
 - member x = y
   Where y is another member variable gives the error "'this' is not in scope", because y is evaluated
@@ -230,6 +234,15 @@
         f()
     else:
         f()
+
+- error: could not resolve type variable `A`
+  This should really work by taking the type of notify_format into account?
+
+    def notify_format(msg:int)-> void
+    class Subscriber:
+        notify_func: notify_format = fn msg: pass()
+    let sub1 = Subscriber{}
+    let sub2 = Subscriber{}
 
 - For a Foo { .. }, the parser does resolution of initialized/named fields, but for T { .. } whatever args
   are given are applied in-order, which is probably not expected. Either:
@@ -527,6 +540,20 @@
   than only invalidating past promotions.
   For single block scopes like for/while it doesn't matter, but probably should use the same delayed
   demotion system for consistency.
+
+- We now have official `constructor` functions (to turn args into an object), we should maybe also have
+  official `destructor`, to make official the pattern of having a `destruct` function that clears cycle
+  vars. The only difference would be to call these functions automatically.
+  Implementation wise this is not super easy since they'd need to be called in the middle of possibly
+  recursive VM destruction code.
+  Also, ideally that would mean these functions don't need to call `destruct` on children explicitly,
+  but they do, because the whole point is that you may have to clear cycles before you come across
+  a refc > 0, and the VM destruction code bails out.
+  So it would only help automatically call it on roots? That doesn't sound overly useful.
+  In essence, it is not a per-object feature, but scoped to particular root objects: I am going
+  to throw away this big object called WorldState which means the programmer knows it is not going
+  to need these cycle refs in objects deep down within it.. but the language doesn't know these
+  objects aren't referenced from elsewhere.
 
 - A multiline lambda/block currently does not work inside of a function call, since () causes all
   lf's to be consumed, so this currently causes errors as if the lines were merged.
