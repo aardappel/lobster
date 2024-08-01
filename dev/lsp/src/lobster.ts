@@ -7,7 +7,7 @@ export interface LobsterLocation {
 	line: integer
 }
 
-export interface LobsterSignartureParameter {
+export interface LobsterSignatureParameter {
 	name: string,
 	type: string
 }
@@ -17,12 +17,21 @@ export interface LobsterVariableSignature {
 	type: string
 }
 
-export interface LobsterFunctionSignarture {
+export interface LobsterFunctionSignature {
 	name: string,
-	parameters: LobsterSignartureParameter[]
+	parameters: LobsterSignatureParameter[]
+	returns?: string[]
 }
 
-export type LobsterSignature = LobsterVariableSignature | LobsterFunctionSignarture;
+export interface LobsterBuiltinsDoc {
+  args: LobsterSignatureParameter[];
+  doc: string;
+  funcname: string;
+  returns?: string[];
+  subsystem: string;
+}
+
+export type LobsterSignature = LobsterVariableSignature | LobsterFunctionSignature;
 
 export interface QueryDefinitionResult {
 	declartionLocation?: LobsterLocation,
@@ -105,6 +114,19 @@ export async function parseLobster(
 	));
 }
 
+export async function getBuiltinsDoc(
+  settings: LobsterSettings,
+): Promise<LobsterBuiltinsDoc[]> {
+  function parseOutput(input: string): LobsterBuiltinsDoc[] {
+    const parsedData: LobsterBuiltinsDoc[] = JSON.parse(input);
+    return parsedData;
+  }
+
+  return new Promise<LobsterBuiltinsDoc[]>((back) =>
+    callLobster(settings, (i) => back(parseOutput(i)), "--gen-builtins-json"),
+  );
+}
+
 export async function queryDefinition(
 	settings: LobsterSettings,
 	file: string,
@@ -138,7 +160,8 @@ export async function queryDefinition(
 					const parameters = readParameters(defmatch[2]);
 					signature = {
 						name: defmatch[1],
-						parameters
+						parameters,
+						returns: undefined
 					};
 				} else {
 					signature = {
@@ -160,7 +183,8 @@ export async function queryDefinition(
 
 			signature = {
 				name: match[1].trim(),
-				parameters: readParameters(match[2].trim())
+				parameters: readParameters(match[2].trim()),
+				returns: undefined
 			};
 		}
 
@@ -182,7 +206,7 @@ export async function queryDefinition(
 		...args));
 }
 
-function readParameters(input: string): LobsterSignartureParameter[] {
+function readParameters(input: string): LobsterSignatureParameter[] {
 	const parameters = input == '' ? [] : input.split(',')
 		.map(i => i.trim().match(/^(.+):(.+)$/) || [])
 		.map(i => ({ name: i[1], type: i[2] }));

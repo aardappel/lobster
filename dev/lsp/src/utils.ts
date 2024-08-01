@@ -2,8 +2,8 @@ import { MarkupContent, MarkupKind } from 'vscode-languageserver';
 import { LobsterSignature } from './lobster';
 
 export function getWordOnCursor(text: string, character: number): [string | null, number] {
-	const part1 = text.substring(0, character).match(/[a-zA-Z0-9-_]+$/);
-	const part2 = text.substring(character).match(/^[a-zA-Z0-9-_]+/);
+	const part1 = text.substring(0, character).match(/[a-zA-Z0-9-_\\.]+$/);
+	const part2 = text.substring(character).match(/^[a-zA-Z0-9-_\\.]+/);
 
 	if (!part1 && !part2) return [null, 0];
 	return [
@@ -17,12 +17,13 @@ export function markupSignature(signature: LobsterSignature): MarkupContent {
 		kind: MarkupKind.PlainText,
 		value:
 			signature.name +
-			'(' + signature.parameters.map(p => `${p.name}: ${p.type}`).join(', ') + ')'
+			'(' + signature.parameters.map(p => `${p.name}: ${p.type}`).join(', ') + ')' +
+			(signature.returns ? " -> " + signature.returns.join(", ") : "")
 	};
 
 	if ('type' in signature) return {
 		kind: MarkupKind.PlainText,
-		value: 'let ' + signature.name + ': ' + signature.type
+		value: signature.name + ': ' + signature.type
 	};
 
 	throw new Error("Unknown signature type");

@@ -2,6 +2,7 @@ import { Connection, TextDocuments, WorkspaceFolder } from "vscode-languageserve
 import { exec } from 'child_process';
 import { URI } from "vscode-uri";
 import { LobsterDocument, LobsterDocumentState } from "./document";
+import { LobsterBuiltinsDoc, LobsterFunctionSignature, getBuiltinsDoc } from "./lobster";
 
 export interface LobsterSettings {
     executable: string,
@@ -21,6 +22,7 @@ export class LSPInstance {
     tempDir: string;
     globalSettings: LobsterSettings = defaultSettings;
     errorState: ErroredState = ErroredState.None;
+    builtinsDoc: LobsterBuiltinsDoc[] = [];
 
     readonly documents: TextDocuments<LobsterDocument> = new TextDocuments(LobsterDocument);
     // Cached per document settings
@@ -56,9 +58,11 @@ export class LSPInstance {
                 this.errorState = ErroredState.InvalidExecutable;
                 return config;
             };
-            
+
             if (c.executable.length == 0)
                 return throwError("Lobster executable path is not set.");
+
+            getBuiltinsDoc(c).then((d) => this.builtinsDoc = d);
 
             exec(c.executable, (error, stdout, stderr) => {
                 if (stderr) {
@@ -117,6 +121,18 @@ export class LSPInstance {
         const folders = await this.getWorkspaceFolders();
         if (!folders) return [];
         return folders.map(f => URI.parse(f.uri).fsPath);
+    }
+
+    getFunctionSignature(funcname: string): LobsterFunctionSignature | undefined {
+        const doc: LobsterBuiltinsDoc | undefined = this.builtinsDoc
+            .find((d) => d.funcname == funcname);
+        if (!doc) return undefined;
+        const res: LobsterFunctionSignature = {
+            name: doc.funcname,
+            parameters: doc.args,
+            returns: doc.returns
+        };
+        return res;
     }
 
     errored(): boolean {
