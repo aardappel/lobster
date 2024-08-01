@@ -441,8 +441,11 @@ nfr("find_string_reverse", "s,substr,offset", "SSI?", "I",
     " optionally start at a position other than the end of the string",
     [](StackPtr &, VM &, Value &s, Value &sub, Value &offset) {
         auto sv = s.sval()->strv();
-        return Value((ssize_t)sv.rfind(sub.sval()->strv(),
-                                      offset.ival() ? (size_t)offset.ival() : sv.size()));
+        auto lim = offset.ival() ? (size_t)offset.ival() : sv.size();
+        // Cut sv, because the "pos" arg to rfind has the weird behavior that it
+        // will go over that limit by the size of the search string (wtf?)
+        sv = sv.substr(0, lim);
+        return Value((ssize_t)sv.rfind(sub.sval()->strv()));
     });
 
 nfr("replace_string", "s,a,b,count", "SSSI?", "S",
