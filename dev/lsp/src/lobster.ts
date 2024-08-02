@@ -154,14 +154,14 @@ export async function queryDefinition(
 			};
 
 			if (match[3]) {
-				const def = match[3].trim();
-				const defmatch = def.match(/^(.+)\((.*)\)$/);
+				const [def, ret] = match[3].split("->");
+				const defmatch = def.match(/^(.+)\((.*)\)$/)
 				if (defmatch) {
 					const parameters = readParameters(defmatch[2]);
 					signature = {
 						name: defmatch[1],
 						parameters,
-						returns: undefined
+						returns: ret ? ret.replace(" ", "").replace(/[()]/g, "").split(",") : undefined
 					};
 				} else {
 					signature = {
@@ -176,15 +176,14 @@ export async function queryDefinition(
 		if (querySignatureB != -1) {
 			const querySignatureE = input.substring(querySignatureB).indexOf('\n');
 			const sub = input.substring(querySignatureB, querySignatureE);
-			const match = sub.match(/^query_signature: (.+)\((.*)\)/);
+			const match = sub.match(/^query_signature: ([^)]+)\(([^)]*)\)(?:->\(([^)]+)\))?/);
 
 			if (!match) throw new Error("Invalid output from lobster: " + sub);
-
 
 			signature = {
 				name: match[1].trim(),
 				parameters: readParameters(match[2].trim()),
-				returns: undefined
+				returns: match[3] ? match[3].replace(" ", "").replace(/[()]/g, "").split(",") : undefined
 			};
 		}
 
