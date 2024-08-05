@@ -12,4 +12,4 @@ def run_test(name:string, t:testf):
 
 // An example of what a test looks like.
 run_test("example"):
-    assert 1 + 2 == 3
+    assert "a" + "b" == "ab"

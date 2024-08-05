@@ -136,4 +136,5 @@ run_test("smallpt"):
             c[h-y-1][x] += r
     samples++
     let r = map(c) row: map(row) col: vec4(pow(clamp(col / samples, float3_0, float3_1), 1.0 / 2.2), 1.0)
-    assert r
+    assert r.length == h
+    
