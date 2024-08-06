@@ -3462,7 +3462,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         tc.CheckFlowTypeChanges(true, children[0]);
         Value val;
         if (IsRef(argtypes[0]->t) || (children[0]->ConstVal(&tc, val) != V_VOID && val.True())) {
-            tc.Warn(*this, "assert will always succeed");
+            string sd;
+            children[0]->Dump(sd);
+            tc.Warn(*this, "assert will always succeed: ", sd);
         }
         // Also make result non-nil, if it was.
         if (exptype->t == V_NIL) exptype = exptype->Element();
