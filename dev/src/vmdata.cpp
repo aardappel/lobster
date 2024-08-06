@@ -286,6 +286,20 @@ void Value::ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const 
     }
 }
 
+void Value::ToStringNoVM(string &sd, ValueType t) const {
+    switch (t) {
+        case V_INT:
+            append(sd, ival());
+            break;
+        case V_FLOAT:
+            sd += to_string_float(fval());
+            break;
+        default:
+            append(sd, "(", BaseTypeName(t), ")");
+            break;
+    }
+}
+
 void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const {
     if (IsRefNil(t)) {
         if (!ref_) {

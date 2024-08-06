@@ -504,6 +504,7 @@ struct Value {
 
     void ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const;
     void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
+    void ToStringNoVM(string &sd, ValueType t) const;
 
     void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const;
     void ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const;
