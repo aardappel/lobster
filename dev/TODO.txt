@@ -1,3 +1,7 @@
+- parser needs to tell the lexer we're currently parsing template args
+    scratch.lobster(92): error: `,` expected, found `>>`
+    in:     b: B<A<T>>
+
 - Now says: error: cannot implicitly bind type variable `A` in call to `rnd_offset` (argument doesn't match?)
   upon missing arg?
 

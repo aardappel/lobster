@@ -547,7 +547,7 @@ template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
     }
 }
 
-inline string TypeName(TypeRef type, int flen = 0);
+inline string TypeName(TypeRef type, int flen = 0, bool tuple_brackets = true);
 
 struct SymbolTable {
     Lex &lex;
@@ -1362,8 +1362,6 @@ struct SymbolTable {
     }
 };
 
-inline string TypeName(TypeRef type, int flen);
-
 inline void FormatArg(string &r, string_view name, size_t i, TypeRef type) {
     if (i) r += ", ";
     r += name;
@@ -1419,13 +1417,13 @@ inline string Signature(const SubFunction &sf) {
     }
     r += ")";
     if (sf.returntype->t != V_VOID && sf.returntype->t != V_UNDEFINED && sf.returntype->t != V_VAR) {
-        r += "->";
-        r += TypeName(sf.returntype);
+        r += " -> ";
+        r += TypeName(sf.returntype, 0, false);
     }
     return r;
 }
 
-inline string TypeName(TypeRef type, int flen) {
+inline string TypeName(TypeRef type, int flen, bool tuple_brackets) {
     switch (type->t) {
         case V_STRUCT_R:
         case V_STRUCT_S:
@@ -1459,7 +1457,7 @@ inline string TypeName(TypeRef type, int flen) {
                 auto nvt = SymbolTable::GetVectorName(type->Element(), flen);
                 if (nvt) return nvt;
                 // FIXME: better names?
-                return type->Element()->t == V_INT ? "vec_i" : "vec_f";
+                return type->Element()->t == V_INT ? "intN" : "floatN";
             } else {
                 return type->Element()->t == V_VAR
                            ? "[]"
@@ -1475,12 +1473,13 @@ inline string TypeName(TypeRef type, int flen) {
                 ? "nil"
                 : TypeName(type->Element(), flen) + "?";
         case V_TUPLE: {
-            string s = "(";
+            string s;
+            if (tuple_brackets) s += "(";
             for (auto [i, te] : enumerate(*type->tup)) {
                 if (i) s += ", ";
                 s += TypeName(te.type);
             }
-            s += ")";
+            if (tuple_brackets) s += ")";
             return s;
         }
         case V_INT:
