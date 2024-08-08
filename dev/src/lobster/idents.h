@@ -1379,12 +1379,11 @@ inline string Signature(const NativeFun &nf) {
     }
     r += ")";
     if (nf.retvals.size() > 0) {
-        r += "->(";
+        r += " -> ";
         for (auto [i, retval] : enumerate(nf.retvals)) {
             if (i) r += ", ";
             r += TypeName(retval.type);
         }
-        r += ")";
     }
     return r;
 }
