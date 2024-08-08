@@ -421,3 +421,7 @@ run_test("misc"):
         guard true
         guard false
         assert false
+
+    do():
+        // Parse >> correctly.
+        assert (dictionary<string, dictionary<string, int>>(17)).get("foo") == nil

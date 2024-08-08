@@ -506,12 +506,14 @@ struct Parser {
             auto [gsup, ssup] = ParseSup(is_struct);
             auto udt = st.MakeSpecialization(*gsup, sname, true, true);
             Expect(T_LT);
+            lex.allow_shift_right = false;
             size_t j = 0;
             for (;;) {
                 if (j == gsup->generics.size()) Error("too many type specializers");
                 udt->bound_generics.push_back(ParseType(false, nullptr, false));
                 j++;
                 if (lex.token == T_GT) {
+                    lex.allow_shift_right = true;
                     lex.OverrideCont(false);  // T_GT here should not continue the line.
                     lex.Next();
                     break;
@@ -572,6 +574,7 @@ struct Parser {
                 } else {
                     gudt->gsuperclass = { st.NewSpecUDT(gsup) };
                     if (IsNext(T_LT)) {
+                        lex.allow_shift_right = false;
                         size_t j = 0;
                         for (;;) {
                             if (j == gsup->generics.size()) Error("too many type specializers");
@@ -579,6 +582,7 @@ struct Parser {
                                 &*ParseType(false));
                             j++;
                             if (lex.token == T_GT) {
+                                lex.allow_shift_right = true;
                                 lex.OverrideCont(false);  // T_GT here should not continue the line.
                                 lex.Next();
                                 break;
@@ -980,11 +984,13 @@ struct Parser {
                             Error("no ad-hoc specialization allowed in concrete type (use a "
                                     "named specialization)");
                         }
+                        lex.allow_shift_right = false;
                         dest = st.NewSpecUDT(gudt);
                         for (;;) {
                             auto s = ParseType(false, nullptr, allow_unresolved);
                             dest->spec_udt->specializers.push_back(&*s);
                             if (lex.token == T_GT) {
+                                lex.allow_shift_right = true;
                                 // This may be the end of the line, so make sure Lex doesn't see
                                 // it as a GT op.
                                 lex.OverrideCont(false);
@@ -1623,9 +1629,13 @@ struct Parser {
         // Check for function call with generic params.
         // This is not a great way to distinguish from < operator exps, but best we can do?
         if (likely_named_function && lex.whitespacebefore == 0 && IsNext(T_LT)) {
+            lex.allow_shift_right = false;
             for (;;) {
                 specializers.push_back(ParseType(false));
-                if (IsNext(T_GT)) break;
+                if (IsNext(T_GT)) {
+                    lex.allow_shift_right = true;
+                    break;
+                }
                 Expect(T_COMMA);
             }
         }
