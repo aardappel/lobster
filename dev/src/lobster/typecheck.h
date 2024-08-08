@@ -187,6 +187,11 @@ struct TypeChecker {
         parser.ErrorAt(&n, err);
     }
 
+    template<typename... Ts> void Warn(const Node &n, const Ts &...args) {
+        auto err = cat(args...);
+        parser.lex.Warn(err, &n.line);
+    }
+
     void RequiresError(string_view required, TypeRef got, const Node &n, string_view argname = "",
                        string_view context = "") {
         Error(n, Q(context.size() ? context : NiceName(n)), " ",
@@ -3455,6 +3460,17 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (nf->IsAssert()) {
         // Special case, add to flow:
         tc.CheckFlowTypeChanges(true, children[0]);
+        if (IsRef(argtypes[0]->t)) {
+            tc.Warn(*this, "assert will always succeed with non-nil reference type ",
+                    Q(TypeName(argtypes[0])));
+        }
+        Value val;
+        auto t = children[0]->ConstVal(&tc, val);
+        if (t != V_VOID && val.True()) {
+            string sd;
+            val.ToStringNoVM(sd, t);
+            tc.Warn(*this, "assert will always succeed with constant value: ", sd);
+        }
         // Also make result non-nil, if it was.
         if (exptype->t == V_NIL) exptype = exptype->Element();
     }

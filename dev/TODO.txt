@@ -1,3 +1,7 @@
+- parser needs to tell the lexer we're currently parsing template args
+    scratch.lobster(92): error: `,` expected, found `>>`
+    in:     b: B<A<T>>
+
 - Now says: error: cannot implicitly bind type variable `A` in call to `rnd_offset` (argument doesn't match?)
   upon missing arg?
 
@@ -429,6 +433,19 @@
 
 - move function checking into typechecker.
   This is now mostly done.
+  - There is still the requirement of default args starting at the same arg, and having the same values.
+    Lifting this restriction can only be done if two overloads are not used in a virtual dispatch,
+    which we only know after we've inserted default args.. so this would need the default args to
+    be updated later if they're different, or error later if they're not the same?
+    Actually you could argue you don't need to error: defaults are taken from the root of the dispatch.
+    Its almost a feature that different roots could provide different defaults, though may also be
+    surprising, so maybe better still detected as error when the dispatch gets constructed.
+    class A:
+        def myfunc(x):
+            pass()
+    class C:
+        def myfunc(x:int=1):
+            pass()
   - GenericCall::TypeCheck is a shaky stack of hacks, needs to be rewritten in a more principled manner.
   - Fix non-lexical ordering issues in GenericCall::TypeCheck
   - Make decision-making in GenericCall::TypeCheck more robust.

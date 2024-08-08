@@ -16,8 +16,7 @@ def match_with(it, f):
     return result
 
 def match_elem(f):     // match single element
-    let iv = assert iterv  // if this fails, you're calling match() outside of a match_with() block
-    return i < iv.length and f(iv[i]) and ++i
+    return i < iterv.length and f(iterv[i]) and ++i
 
 def match_end(): return i == iterv.length
 
