@@ -3219,6 +3219,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                     ff = f;
                     break;
                 }
+                f = nullptr;
             }
             if (!f) {
                 tc.Error(*this, "no version of function ", Q(name), " takes ", nargs, " arguments");
