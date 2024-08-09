@@ -48,7 +48,7 @@ SlabAlloc *g_current_slaballoc;
             return g_current_slaballoc->dealloc_small(ptr); \
         }
 #else
-    #define USE_CURRENT_SLABALLOCATOR 
+    #define USE_CURRENT_SLABALLOCATOR
 #endif
 
 struct Ident : Named {
@@ -631,7 +631,7 @@ struct SymbolTable {
         for (auto tv  : typevars)         delete tv;
         for (auto su  : specudts)         delete su;
     }
-    
+
     bool MaybeNameSpace(string_view name) {
         return !current_namespace.empty() && name.find(".") == name.npos;
     }
@@ -1378,6 +1378,13 @@ inline string Signature(const NativeFun &nf) {
         FormatArg(r, arg.name, i, arg.type);
     }
     r += ")";
+    if (nf.retvals.size() > 0) {
+        r += " -> ";
+        for (auto [i, retval] : enumerate(nf.retvals)) {
+            if (i) r += ", ";
+            r += TypeName(retval.type);
+        }
+    }
     return r;
 }
 
