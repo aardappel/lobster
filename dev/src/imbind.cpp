@@ -1728,6 +1728,16 @@ nfr("show_engine_stats", "", "", "",
         return NilVal();
     });
 
+nfr("show_debug_metrics_window", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm, { N_FRAME, N_NONE });
+        // There is also ShowDebugLogWindow() and others, but all of these can be
+        // opened from this window, so really only one needed:
+        ImGui::ShowMetricsWindow();
+        return NilVal();
+    });
+
 }  // AddIMGUI
 
 void AddIMGUIDebug(NativeRegistry & nfr) {
