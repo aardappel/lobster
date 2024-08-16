@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
-import { Diagnostic, DiagnosticSeverity, integer, uinteger } from 'vscode-languageserver';
+import { Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, integer, uinteger } from 'vscode-languageserver';
 import { LobsterSettings } from './lsp';
+import { Location } from 'vscode';
 
 export interface LobsterLocation {
     file: string,
@@ -72,17 +73,46 @@ export async function parseLobster(
             return []; // TODO make "can't open file" a normal error instead of an unformatted error
         }
 
-        const regex = /^(.*)\((\d+)\): (warning|error): (.*)/g;
-        let match;
+        const regex = /^(.*?)\((\d+)\): (warning|error): (.*)((\s+ .*)*)/gm;
+        const regexInner = /^\s*?in (.*)\((\d+)\):.*/gm;
+        let match, innerMatch;
         const output: Diagnostic[] = [];
 
-        while ((match = regex.exec(input))) {
-            const at = match[1];
-            if (!file.endsWith(at)) return [];
+        function scanLine(at: string, thisLine: integer, relInfo: DiagnosticRelatedInformation[]): integer | undefined {
+            var result: integer | undefined = undefined;
+            if (file.endsWith(at)) {
+                result = thisLine;
+            } else {
+                //Push link to related source from another file
+                relInfo.push({
+                    message: "source",
+                    location: {
+                        uri: settings.imports[0] + "/" + at,
+                        range: {
+                            start: { line: thisLine, character: 0 },
+                            end: { line: thisLine, character: uinteger.MAX_VALUE }
+                        }
+                    }
+                });
+            }
+            return result;
+        }
 
-            const line = parseInt(match[2]) - 1; // Its zero based
+
+        while ((match = regex.exec(input))) {
+            const relInfo: DiagnosticRelatedInformation[] = [];
+            var line = scanLine(match[1], parseInt(match[2]) - 1, relInfo);
+            let innerMsg = match[5];
+            if (innerMsg && !line) {
+                while ((innerMatch = regexInner.exec(innerMsg))) {
+                    line ||= scanLine(innerMatch[1], parseInt(innerMatch[2]) - 1, relInfo);
+                }
+            }
+
+            line = line || uinteger.MAX_VALUE;
+
             const messageType = match[3].trim();
-            const message = match[4].trim();
+            const message = match[4].trim() + (innerMsg ? innerMsg.replace(regexInner, "") : "");
 
             const severity = messageType == "warning" ?
                 DiagnosticSeverity.Warning :
@@ -93,6 +123,7 @@ export async function parseLobster(
                     start: { line, character: 0 },
                     end: { line, character: uinteger.MAX_VALUE }
                 },
+                relatedInformation: relInfo.length ? relInfo : undefined,
                 message,
                 severity
             });
