@@ -106,7 +106,7 @@
         },
         {
           "name": "support.function.definition.lobster",
-          "begin": "\\b(def)\\s+([A-Za-z_][A-Za-z0-9_]*)(\\()",
+          "begin": "\\b(def|constructor)\\s+([A-Za-z_][A-Za-z0-9_]*)(\\()",
           "beginCaptures": {
             "1": {
               "name": "keyword.control.lobster"
@@ -118,7 +118,7 @@
               "name": "punctuation.definition.parameters.begin.lobster"
             }
           },
-          "end": "\\)(?:\\s*->\\s*)?([A-Za-z_][A-Za-z0-9_]*)?:",
+          "end": "\\)(?:\\s*->\\s*)?([A-Za-z_][A-Za-z0-9_, ]*[A-Za-z_])?:",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.parameters.end.lobster"
