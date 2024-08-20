@@ -252,8 +252,8 @@ export async function queryDefinition(
 
 function readParameters(input: string): LobsterSignatureParameter[] {
     const parameters = input == '' ? [] : input.split(',')
-        .map(i => i.trim().match(/^(.+):(.+)$/) || [])
-        .map(i => ({ name: i[1], type: i[2] }));
+        .map(i => i.trim().match(/^([^:]+)(?::(.+))?$/) || [])
+        .map(i => ({ name: i[1], type: i[2] || "any" }));
 
     if (parameters.some(i => i.name == undefined || i.type == undefined))
         throw new Error("Invalid output from lobster: " + input);
