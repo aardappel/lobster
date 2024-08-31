@@ -14,4 +14,4 @@ Usually you have to package this LSP in a addon for your preferred IDE.
 See your IDE/editors documentation on how to integrate this. 
 PRs are always welcome.
 
-You compile the LSP to a final js file to be execute by node with `npm webpack`.
+You compile the LSP to a final js file to be execute by node with `npm run webpack`.
