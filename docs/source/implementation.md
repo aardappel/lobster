@@ -257,7 +257,7 @@ fashion, in the Visual Studio project you can see all things added to Lobster in
     different rendering system. You can turn Lobster into a console-only
     language in one step by simply removing the engine folder from the project.
 
-You can always run Lobster with the `-r` option to get an overview of all
+You can always run Lobster with the `--gen-builtins-html` option to get an overview of all
 functions currently added to the system (the current list is
 [here](builtin_functions_reference.html)). To add/remove functionality is
 generally as easy as adding/removing the corresponding `.cpp` file.
