@@ -129,7 +129,7 @@ Additionally, if any of these folders contains a `modules` directory, it will
 load source code from there as well.
 
 Any of the Lobster builtin commands that load data files specify paths relative
-to either the main or auxiliary directories (and either / or  may be used as
+to either the main or auxiliary directories (and either / or \\ may be used as
 path separators). If you package up a Lobster program for distribution, all
 these files can be packed into a pakfile, see `--pak`.
 
