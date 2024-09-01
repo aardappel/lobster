@@ -263,7 +263,7 @@ struct CodeGen  {
         ser_ids.resize(max_ser_ids, (type_elem_t)-1);
         for (auto udt : parser.st.udttable) {
             if (!udt->g.is_abstract) {
-                // We generate a type table for every UDT regardless of wether it is referred to
+                // We generate a type table for every UDT regardless of whether it is referred to
                 // anywhere, for example (sub)classes may be constructed by deserializing them and
                 // not in code.
                 udt->ComputeSizes();

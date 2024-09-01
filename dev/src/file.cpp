@@ -187,7 +187,7 @@ nfr("delete_file", "file", "S", "B", "deletes a file, returns false if it wasn't
         return Value(ok);
     });
 
-nfr("exists_file", "file", "S", "B", "checks wether a file exists.",
+nfr("exists_file", "file", "S", "B", "checks whether a file exists.",
     [](StackPtr &, VM &, Value &file) {
         auto ok = FileExists(file.sval()->strv(), false);
         return Value(ok);
