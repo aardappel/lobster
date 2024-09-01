@@ -210,7 +210,7 @@ On Linux, building in `dev` like above, then instead
 substitute the compiled lobster main program. Build with `make -j8` or similar.
 
 For Emscripten, there's a `cpp` make target (which is the default) that works
-similar to the WebAssembly mode described below.
+similar to the WebAssembly mode described above.
 
 Extending Lobster
 -----------------
