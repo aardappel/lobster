@@ -494,7 +494,8 @@ regardless of whether the player is in-game or not, for simplicity.
 health in float, but want to show only the whole numbers.
 <code>ceiling</code> here is better than <code>truncate</code>, since we
 only want to show <code>0</code> when the player is truely dead.</p>
-<pre><code>                if magnitude(playervec) &lt; 1.0:
+<pre><code>                let playervec = playerpos - e.pos
+                if magnitude(playervec) &lt; 1.0:
                     playerhealth -= gl.delta_time() * 50.0
                     if playerhealth &lt;= 0.0:
                         playerhealth = 0.0

@@ -528,6 +528,7 @@ whole numbers. `ceiling` here is better than `truncate`, since we only want to
 show `0` when the player is truely dead.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                let playervec = playerpos - e.pos
                 if magnitude(playervec) < 1.0:
                     playerhealth -= gl.delta_time() * 50.0
                     if playerhealth <= 0.0:

@@ -645,10 +645,10 @@ have no overhead compared to regular functions and variables.
 ### Overloading and dynamic dispatch
 
 Overloading and dynamic dispatch are part of the same system, the only difference
-being wether choosing the right function is done at compile time or runtime.
+being whether choosing the right function is done at compile time or runtime.
 
 You can define these overloads anywhere, either as part of a class, or outside
-of them, regardless of wether you wrote the original class. For example:
+of them, regardless of whether you wrote the original class. For example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def f(a::A): return 1
@@ -670,7 +670,7 @@ there is statically only one option.
 Only if you call with an `A` argument however, you get dynamic dispatch,
 since the argument may point to a `B` value, and `B` has a different function
 implementation. A dynamic dispatch goes thru a "virtual table", and while slower than
-static dispatch, is still very fast. As you can see, wether something is "virtual" gets
+static dispatch, is still very fast. As you can see, whether something is "virtual" gets
 decided per call, and with knowledge of the whole program (all types and functions that
 can possibly exist), so typically less calls result in dynamic dispatch than in other
 languages.

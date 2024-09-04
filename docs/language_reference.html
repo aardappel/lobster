@@ -546,10 +546,10 @@ to regular functions and variables.</p>
 <h3 id="overloading-and-dynamic-dispatch">Overloading and dynamic
 dispatch</h3>
 <p>Overloading and dynamic dispatch are part of the same system, the
-only difference being wether choosing the right function is done at
+only difference being whether choosing the right function is done at
 compile time or runtime.</p>
 <p>You can define these overloads anywhere, either as part of a class,
-or outside of them, regardless of wether you wrote the original class.
+or outside of them, regardless of whether you wrote the original class.
 For example:</p>
 <pre><code>def f(a::A): return 1
 def f(b::B): return 2
@@ -569,10 +569,10 @@ there is statically only one option.</p>
 dynamic dispatch, since the argument may point to a <code>B</code>
 value, and <code>B</code> has a different function implementation. A
 dynamic dispatch goes thru a "virtual table", and while slower than
-static dispatch, is still very fast. As you can see, wether something is
-"virtual" gets decided per call, and with knowledge of the whole program
-(all types and functions that can possibly exist), so typically less
-calls result in dynamic dispatch than in other languages.</p>
+static dispatch, is still very fast. As you can see, whether something
+is "virtual" gets decided per call, and with knowledge of the whole
+program (all types and functions that can possibly exist), so typically
+less calls result in dynamic dispatch than in other languages.</p>
 <p>Types like <code>int</code> never participate in dynamic dispatch,
 since they don't have a sub-class relation to any other type.</p>
 <p>Defining these functions can also be done "in line" in a class

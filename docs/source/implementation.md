@@ -209,8 +209,7 @@ On Linux, building in `dev` like above, then instead
 `cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release .` will automatically
 substitute the compiled lobster main program. Build with `make -j8` or similar.
 
-For Emscripten, there's a `cpp` make target (which is the default) that works
-similar to the WebAssembly mode described below.
+For Emscripten, there's a `cpp` make target (which is the default).
 
 Extending Lobster
 -----------------

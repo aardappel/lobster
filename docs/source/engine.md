@@ -3,7 +3,7 @@ title: Lobster built-in engine functionality
 ---
 
 Lobster comes with "batteries included": a small (games/graphics) engine that allows you to start
-drawing straight away. This doc collects some notes on the the built-in functionality.
+drawing straight away. This doc collects some notes on the built-in functionality.
 
 Basics
 ------
