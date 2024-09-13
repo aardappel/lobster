@@ -23,6 +23,8 @@
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "lobster/bytecode_generated.h"
 
+#include "lobster/lobsterreader.h"
+
 #include "lobster/sdlincludes.h"
 #include "lobster/sdlinterface.h"
 #include "lobster/glinterface.h"
@@ -329,8 +331,43 @@ void Text(string_view s) {
     ImGui::TextUnformatted(s.data(), s.data() + s.size());
 }
 
-void Nil() {
+void Nil(VM &vm, Value *v, const TypeInfo *ti) {
     Text("nil");
+    ImGui::SameLine();
+    if (v && ImGui::Button("+")) {
+        switch (ti->t) {
+            case V_STRING:
+                *v = vm.NewString(0);
+                break;
+            case V_VECTOR:
+                *v = vm.NewVec(0, 0, vm.TypeInfoToIdx(ti));
+                break;
+            case V_CLASS: {
+                Deserializer des(vm);
+                if (des.PushDefault(vm.TypeInfoToIdx(ti), 0)) {
+                    *v = des.PopV();
+                }
+                break;
+            }
+        }
+    }
+}
+
+void VectorOps(VM &vm, LVector *vec, const TypeInfo *ti) {
+    ImGui::SameLine();
+    if (ImGui::Button("+")) {
+        Deserializer des(vm);
+        if (des.PushDefault(ti->subt, 0)) {
+            vec->Push(vm, des.PopV());
+        }
+    }
+    if (vec->len) {
+        ImGui::SameLine();
+        if (ImGui::Button("-")) {
+            auto e = vec->Pop();
+            e.LTDECTYPE(vm, vm.GetTypeInfo(ti->subt).t);
+        }
+    }
 }
 
 void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool expanded, bool in_table = true) {
@@ -381,14 +418,16 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
         }
         case V_VECTOR:
             if (v->False()) {
-                Nil();
+                Nil(vm, v, ti);
                 break;
             }
             if (!v->vval()->len) {
                 Text("[]");
+                VectorOps(vm, v->vval(), ti);
                 break;
             }
             if (ImGui::TreeNodeEx(*l ? l : "[..]", flags)) {
+                VectorOps(vm, v->vval(), ti);
                 if (BeginTable("[]")) {
                     auto &sti = vm.GetTypeInfo(ti->subt);
                     auto vec = v->vval();
@@ -402,7 +441,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             break;
         case V_CLASS:
             if (v->False()) {
-                Nil();
+                Nil(vm, v, ti);
                 break;
             }
             // Upgrade to dynamic type if maybe subclass.
@@ -462,7 +501,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
         }
         case V_STRING: {
             if (v->False()) {
-                Nil();
+                Nil(vm, v, ti);
                 break;
             }
             *v = LStringInputText(vm, l, v->sval());
@@ -473,7 +512,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             break;
         case V_RESOURCE: {
             if (v->False()) {
-                Nil();
+                Nil(vm, nullptr, ti);
                 break;
             }
             auto r = v->xval();

@@ -994,6 +994,9 @@ struct VM : VMArgs {
     const TypeInfo &GetTypeInfo(type_elem_t offset) {
         return *(TypeInfo *)(typetable + offset);
     }
+    type_elem_t TypeInfoToIdx(const TypeInfo *ti) {
+        return (type_elem_t)(ptrdiff_t)(((type_elem_t *)ti) - typetable);
+    }
     const TypeInfo &GetVarTypeInfo(int varidx);
     type_elem_t GetSubClassFromSerID(type_elem_t super, uint32_t ser_id);
 
