@@ -1001,6 +1001,14 @@ nfr("is_item_deactivated_after_edit", "", "", "B",
         Push(sp, result);
     });
 
+nfr("want_capture_mouse", "", "", "B",
+    "returns true if imgui wants to capture the mouse",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_NONE, N_NONE });
+        auto result = ImGui::GetIO().WantCaptureMouse;
+        Push(sp, result);
+    });
+
 nfr("get_layout_pos", "", "", "F}:2", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
