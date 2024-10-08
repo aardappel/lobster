@@ -3613,6 +3613,8 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     resolvedtype = tc.st.ResolveTypeVars(giventype, this->line);
     exptype = &tc.st.default_bool_type->thistype;
     lt = LT_ANY;
+    if (resolvedtype->t == V_CLASS && resolvedtype->udt->g.has_subclasses)
+        tc.Warn(*this, "testing for super class ", Q(resolvedtype->udt->name), " will not work for sub class");
     // Check for constness early, to be able to lift out side effects, which
     // makes downstream if-then optimisations easier.
     Value cval = NilVal();
