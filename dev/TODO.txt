@@ -1330,6 +1330,29 @@
       - having final/const fields may help reduce the cases where this is an issue.
     - see also: https://nim-lang.org/docs/manual_experimental.html#view-types
 
+- Imports are really a mess.
+  * In a large project, you get this tree-like importing across many files, and it is
+    - completely not clear what the dependency structure is
+    - not clear wether any file should import something, or wether an import should be moved to a better
+      location.
+  * It would seem like a nice idea to have a warning for a redundant import, because at least this
+    tree becomes "canonical", but you can't really do this because then it would warn on 2 sub-projects
+    that legit have the same dependency. Removing the import in the 2nd one would now make it brittle to
+    the first one moving things around.
+  * And we can't see the opposite either, where a 2nd sub-project SHOULD have an import, but it was
+    forgotten, because it compiled fine thanks to an earlier import.
+    - You could try to attach the originating file to all definitions, then warn if the current nesting
+      doesn't import that definition, but it gets very complex with overloaded functions etc.
+    - The alternative is having a way to a project build in "separate compilation mode" to check for such
+      issues, but that doesn't help if this isn't used, and doesn't give errors the moment they are
+      introduced.
+  * Even if you somehow fixed the above, it be really hard to get a picture of dependencies.
+    - You could add a --dump-imports to get that list/tree, but really you just want to see this in code
+      somehow.
+    - Frankly, in a large monolithic project, you'd be better off having the main file doing all the
+      importing, and the rest of the project files having no imports. This at least would give you an
+      easy to overview dependency list.
+  
 - For certain use cases, having "atoms" is a nice language feature, being able to specify
   undeclared identifiers that map to a unique set of integers.
   - Could be with a special prefix, such $foo or #foo
