@@ -739,8 +739,11 @@ struct Lex : LoadedFile {
         THROW_OR_ABORT(err);
     }
 
+    std::set<string> all_warnings;
     void Warn(string_view msg, const Line *ln = nullptr) {
-        LOG_WARN(Location(ln ? *ln : *this) + ": warning: " + msg);
+        auto warning = Location(ln ? *ln : *this) + ": warning: " + msg;
+        auto [_it, was_inserted] = all_warnings.insert(warning);
+        if (was_inserted) LOG_WARN(warning);
     }
 };
 
