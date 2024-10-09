@@ -719,7 +719,7 @@ string BreakPoint(VM &vm, string_view reason) {
         ClearFrameBuffer(float3(0.5f));
 
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame(_sdl_debugger_window);
+        ImGui_ImplSDL2_NewFrame();
 
         ImGui::NewFrame();
 
@@ -869,7 +869,7 @@ nfr("frame_start", "", "", "",
         IsInit(vm, { N_NONE, N_NONE });
         IMGUIFrameCleanup();
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame(_sdl_window);
+        ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         NPush(N_FRAME);
         imgui_frame++;
@@ -894,7 +894,7 @@ nfr("dockspace_over_viewport", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
     ImGui::DockSpaceOverViewport(
-        nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+        0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
     });
 
 nfr("window_demo", "", "", "B",
