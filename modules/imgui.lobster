@@ -186,11 +186,13 @@ enum color_idx:
     col_resize_grip            // Resize grip in lower-right and lower-left corners of windows.
     col_resize_grip_hovered
     col_resize_grip_active
-    col_tab                    // TabItem in a TabBar
-    col_tab_hovered
-    col_tab_active
-    col_tab_unfocused
-    col_tab_unfocused_active
+    col_tab_hovered            // Tab background, when hovered
+    col_tab                    // Tab background, when tab-bar is focused & tab is unselected
+    col_tab_selected           // Tab background, when tab-bar is focused & tab is selected
+    col_tab_selected_overline  // Tab horizontal overline, when tab-bar is focused & tab is selected
+    col_tab_dimmed             // Tab background, when tab-bar is unfocused & tab is unselected
+    col_tab_dimmed_selected    // Tab background, when tab-bar is unfocused & tab is selected
+    col_tab_dimmed_selected_overline//..horizontal overline, when tab-bar is unfocused & tab is selected
     col_docking_preview        // Preview overlay color when about to docking something
     col_docking_empty_bg       // Background color for empty node (e.g. CentralNode with no window docked into it)
     col_plot_lines
@@ -202,6 +204,7 @@ enum color_idx:
     col_table_border_light     // Table inner borders (prefer using Alpha=1.0 here)
     col_table_row_bg           // Table row background (even rows)
     col_table_row_bg_alt       // Table row background (odd rows)
+    col_text_link
     col_text_selected_bg
     col_drag_drop_target       // Rectangle highlighting a drop target
     col_nav_highlight          // Gamepad/keyboard: current highlighted item
