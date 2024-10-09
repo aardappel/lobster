@@ -87,7 +87,13 @@ bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
     if (!_sdl_window || !_sdl_context) return false;
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags)flags;
+    auto &io = ImGui::GetIO();
+    io.ConfigFlags |= (ImGuiConfigFlags)flags;
+    io.ConfigDebugHighlightIdConflicts = true;
+    io.ConfigErrorRecovery = true;
+    io.ConfigErrorRecoveryEnableAssert = false;
+    io.ConfigErrorRecoveryEnableTooltip = true;
+    io.ConfigErrorRecoveryEnableDebugLog = true;
     if (dark)
         ImGui::StyleColorsDark();
     else
