@@ -14,6 +14,7 @@ enum_flags config:
     config_nav_no_capture_keyboard
     config_no_mouse
     config_no_mouse_cursor_change
+    config_no_keyboard
     config_docking_enable
     config_viewport_enable = 1 << 10
     config_dpi_enable_scale_viewports = 1 << 14
