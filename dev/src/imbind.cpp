@@ -61,6 +61,7 @@ enum Nesting {
     N_DRAG_DROP_SOURCE,
     N_DRAG_DROP_TARGET,
     N_TABLE,
+    N_DISABLED,
 };
 
 vector<Nesting> nstack;
@@ -217,6 +218,9 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_TABLE:
                 ImGui::EndTable();
+                break;
+            case N_DISABLED:
+                ImGui::EndDisabled();
                 break;
         }
         // If this was indeed the item we're looking for, we can stop popping.
@@ -1566,13 +1570,14 @@ nfr("disabled_start", "disabled", "B", "",
         IsInit(vm);
         const auto disabled = Pop(sp).True();
         ImGui::BeginDisabled(disabled);
+        NPush(N_DISABLED);
     });
 
 nfr("disabled_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
-        ImGui::EndDisabled();
+        NPop(vm, N_DISABLED);
     });
 
 nfr("button_repeat_start", "repeat", "B", "",
