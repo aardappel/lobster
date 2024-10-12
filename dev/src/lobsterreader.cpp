@@ -438,7 +438,7 @@ nfr("flexbuffers_binary_to_json", "flex,field_quotes,indent_string", "SBS", "S?S
         if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
             auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
             string json;
-            root.ToString(true, quoted, json, indent_string.size() != 0, 0, indent_string.c_str());
+            root.ToString(true, quoted, json, indent_string.size() != 0, 0, indent_string.c_str(), true);
             auto s = vm.NewString(json);
             Push(sp, s);
             Push(sp, NilVal());
