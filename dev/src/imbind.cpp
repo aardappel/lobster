@@ -258,7 +258,7 @@ pair<bool, bool> IMGUIEvent(SDL_Event *event) {
     return { ImGui::GetIO().WantCaptureMouse, ImGui::GetIO().WantCaptureKeyboard };
 }
 
-bool LoadFont(string_view name, float size) {
+bool LoadFont(string_view name, float size, string_view lang_name) {
     string buf;
     auto l = LoadFile(name, &buf);
     if (l < 0) return false;
@@ -267,8 +267,27 @@ bool LoadFont(string_view name, float size) {
     std::memcpy(mb, buf.data(), buf.size());
     ImFontConfig imfc;
     imfc.FontDataOwnedByAtlas = true;
-    auto font =
-        ImGui::GetIO().Fonts->AddFontFromMemoryTTF(mb, (int)buf.size(), size, &imfc);
+    auto atlas = ImGui::GetIO().Fonts;
+    const ImWchar *glyph_ranges = atlas->GetGlyphRangesDefault();
+    if (lang_name == "SimplifiedChinese") {
+        glyph_ranges = atlas->GetGlyphRangesChineseSimplifiedCommon();
+    } else if (lang_name == "Korean") {
+        glyph_ranges = atlas->GetGlyphRangesKorean();
+    } else if (lang_name == "Japanese") {
+        glyph_ranges = atlas->GetGlyphRangesJapanese();
+    } else if (lang_name == "Cyrillic") {
+        glyph_ranges = atlas->GetGlyphRangesCyrillic();
+    } else if (lang_name == "Greek") {
+        glyph_ranges = atlas->GetGlyphRangesGreek();
+    } else if (lang_name == "Thai") {
+        glyph_ranges = atlas->GetGlyphRangesThai();
+    } else if (lang_name == "Vietnamese") {
+        glyph_ranges = atlas->GetGlyphRangesVietnamese();
+    } else if (lang_name == "Polish") {
+        static const ImWchar ranges[] = { 0x0020, 0x00FF, 0x0100, 0x017F, 0 };
+        glyph_ranges = ranges;
+    }
+    auto font = atlas->AddFontFromMemoryTTF(mb, (int)buf.size(), size, &imfc, glyph_ranges);
     return font != nullptr;
 }
 
@@ -717,7 +736,7 @@ string BreakPoint(VM &vm, string_view reason) {
     ImGui_ImplOpenGL3_Init("#version 150");
 
     // Set our own font.. would be better to inherit the one from the game.
-    LoadFont("data/fonts/Droid_Sans/DroidSans.ttf", 16.0);
+    LoadFont("data/fonts/Droid_Sans/DroidSans.ttf", 16.0, "Default");
 
     bool quit = false;
     int cont = 0;
@@ -824,11 +843,13 @@ nfr("init", "dark_style,flags,rounding,border", "B?I?F?F?", "",
         return NilVal();
     });
 
-nfr("add_font", "font_path,size", "SF", "B",
-    "",
-    [](StackPtr &, VM &vm, Value &fontname, Value &size) {
+nfr("add_font", "font_path,size,glyph_ranges", "SFS?", "B",
+    "glyph_ranges will activate additional unicode ranges to be rasterized, and can be"
+    " Default (most European languages), SimplifiedChinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..",
+    [](StackPtr &, VM &vm, Value &fontname, Value &size, Value &glyph_ranges) {
         IsInit(vm, { N_NONE, N_NONE });
-        return Value(LoadFont(fontname.sval()->strv(), size.fltval()));
+        return Value(LoadFont(fontname.sval()->strv(), size.fltval(),
+                              glyph_ranges.True() ? glyph_ranges.sval()->strv() : "Default"));
     });
 
 nfr("set_style_color", "i,color", "IF}:4", "",
