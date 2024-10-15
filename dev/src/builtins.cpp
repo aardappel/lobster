@@ -364,9 +364,9 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
     [](StackPtr &, VM &vm, Value &l, Value &s, Value &e) {
         auto size = e.ival();
         auto start = s.ival();
-        if (size < 0) size = std::max((iint)0, l.vval()->len - start);
         if (start < 0)
             vm.BuiltinError(cat("slice: start cannot be negative: ", start));
+        if (size < 0) size = std::max((iint)0, l.vval()->len - start);
         if (start + size > l.vval()->len)
             vm.BuiltinError(cat("slice: range extends beyond the end: ", start + size, " > ", l.vval()->len));
         auto nv = (LVector *)vm.NewVec(0, size, l.vval()->tti);
@@ -423,10 +423,10 @@ nfr("substring", "s,start,size", "SII", "S",
     [](StackPtr &, VM &vm, Value &l, Value &s, Value &e) {
         iint size = e.ival();
         iint start = s.ival();
-        if (size < 0) size = l.sval()->len - start;
-        if (start < 0 || size < 0 || start + size > l.sval()->len)
-            vm.BuiltinError("substring: values out of range");
-
+        if (start < 0) vm.BuiltinError(cat("substring: start cannot be negative: ", start));
+        if (size < 0) size = std::max((iint)0, l.sval()->len - start);
+        if (start + size > l.sval()->len)
+            vm.BuiltinError(cat("substring: range extends beyond the end: ", start + size, " > ", l.sval()->len));
         auto ns = vm.NewString(string_view(l.sval()->data() + start, (size_t)size));
         return Value(ns);
     });
