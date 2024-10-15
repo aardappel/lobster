@@ -364,9 +364,11 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
     [](StackPtr &, VM &vm, Value &l, Value &s, Value &e) {
         auto size = e.ival();
         auto start = s.ival();
-        if (size < 0) size = l.vval()->len - start;
-        if (start < 0 || start + size > l.vval()->len)
-            vm.BuiltinError("slice: values out of range");
+        if (size < 0) size = std::max((iint)0, l.vval()->len - start);
+        if (start < 0)
+            vm.BuiltinError(cat("slice: start cannot be negative: ", start));
+        if (start + size > l.vval()->len)
+            vm.BuiltinError(cat("slice: range extends beyond the end: ", start + size, " > ", l.vval()->len));
         auto nv = (LVector *)vm.NewVec(0, size, l.vval()->tti);
         nv->Append(vm, l.vval(), start, size);
         return Value(nv);
