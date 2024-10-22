@@ -82,33 +82,38 @@ nfr("set_font_name", "filename", "S", "B",
         }
     });
 
-nfr("set_font_size", "size,outlinesize", "IF?", "B",
+nfr("set_font_size", "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
     "sets the font for rendering into this fontsize (in pixels). caches into a texture first"
     " time this size is used, flushes from cache if this size is not used an entire frame. font"
     " rendering will look best if using 1:1 pixels (careful with gl.scale/gl.translate)."
-    " an optional outlinesize will give the font a black outline."
+    " an optional outlinesize will give the font an outline."
     " make sure to call this every frame."
     " returns true if success",
-    [](StackPtr &, VM &vm, Value &fontsize, Value &outlinesize) {
+    [](StackPtr &sp, VM &vm) {
+        auto outlinecol = PopVec<float4>(sp);
+        auto outlinesize = Pop(sp).fltval();
+        auto fontsize = Pop(sp).intval();
         if (!curface) vm.BuiltinError("gl.set_font_size: no current font set with gl.set_font_name");
-        float osize = min(16.0f, max(0.0f, outlinesize.fltval()));
-        int size = max(1, fontsize.intval());
+        float osize = min(16.0f, max(0.0f, outlinesize));
+        int size = max(1, fontsize);
         int csize = min(size, maxfontsize);
         if (osize > 0 && csize != size) osize = osize * csize / size;
         string fontname = curfacename;
         fontname += to_string(csize);
         fontname += "_";
         fontname += to_string_float(osize);
+        fontname += "_";
+        fontname += outlinecol.to_string();
         curfontsize = size;
         curoutlinesize = osize;
         auto fontelem = fontcache.find(fontname);
         if (fontelem != fontcache.end()) {
             curfont = fontelem->second;
-            return Value(true);
+        } else {
+            curfont = new BitmapFont(curface, csize, osize, quantizec(outlinecol));
+            fontcache.insert({ fontname, curfont });
         }
-        curfont = new BitmapFont(curface, csize, osize);
-        fontcache.insert({ fontname, curfont });
-        return Value(true);
+        Push(sp, Value(true));
     });
 
 nfr("set_max_font_size", "size", "I", "",
