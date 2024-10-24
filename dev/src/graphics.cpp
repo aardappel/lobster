@@ -1162,7 +1162,7 @@ nfr("dump_shader", "filename,stripnonascii", "SB", "B",
     });
 
 nfr("blend", "on", "I", "I",
-    "changes the blending mode (use blending constants from color.lobster), returns old mode",
+    "changes the blending mode (use blending constants from texture.lobster), returns old mode",
     [](StackPtr &sp, VM &vm) {
         auto mode = Pop(sp);
         TestGL(vm);
