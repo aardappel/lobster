@@ -331,6 +331,20 @@ nfr("copy", "block,pos,size,dest,flip", "R:voxelsI}:3I}:3I}:3I}:3", "",
         GetVoxels(res).Copy(p, sz, d, fl);
     });
 
+nfr("blit", "dst,src,dst_pos,src_pos,size,flip", "R:voxelsR:voxelsI}:3I}:3I}:3I}:3", "",
+    "copy a range of solid cubes from src to dst starting at src_pos and dst_pos, respectively."
+    " flip can be 1 (regular copy), or -1 (mirror)for each component, indicating the step from dest."
+    " Coordinates automatically clipped to the size of the grids",
+    [](StackPtr &sp, VM &) {
+        auto fl = PopVec<int3>(sp);
+        auto size = PopVec<int3>(sp);
+        auto src_pos = PopVec<int3>(sp);
+        auto dst_pos = PopVec<int3>(sp);
+        auto &src = GetVoxels(Pop(sp));
+        auto &dst = GetVoxels(Pop(sp));
+        dst.Blit(src, dst_pos, src_pos, size, fl);
+    });
+
 nfr("clone", "block,pos,size", "R:voxelsI}:3I}:3", "R:voxels",
     "clone a range of cubes from pos to a new block."
     " Coordinates automatically clipped to the size of the grid",
@@ -389,6 +403,34 @@ nfr("load_palette", "act_palette_file", "S", "I", "",
                 : 0;    // 0 always transparency in MV.
         }
         return Value(NewPalette(pal));
+    });
+
+nfr("new_palette", "palette", "F}:4]", "I",
+    "Create a new palette from 256 float4 color values.",
+    [](StackPtr &, VM &vm, Value &palette) {
+        byte4 pal[256];
+        if (palette.vval()->len != 256) vm.BuiltinError("new_palette: Expected 256 colors");
+        for (int i = 0; i < palette.vval()->len; i++) {
+            pal[i] = quantizec(ValueToFLT<4>(palette.vval()->AtSt(i), palette.vval()->width));
+            pal[i].w = pal[i].w > 0 ? 0x80 : 0;  // NOTE: does not allow setting material flags.
+        }
+        return Value(NewPalette(pal));
+    });
+
+nfr("get_palette_color", "palette_idx,entry", "II", "F}:4", "",
+    [](StackPtr &sp, VM &vm) {
+        auto entry = (uint8_t)Pop(sp).intval();
+        auto palette_idx = (size_t)Pop(sp).ival();
+        if (palette_idx >= palettes.size()) vm.BuiltinError("get_palette_color: out of range");
+        PushVec(sp, color2vec(palettes[palette_idx].colors[entry]));
+    });
+
+nfr("remove_all_palettes", "", "", "",
+     "Remove all cached palettes to free up memory. WARNING: existing models"
+     " will no longer render correctly. You generally only want to do this if you"
+     " know that none of the existing models are needed.",
+    [](StackPtr &, VM &) {
+        palettes.clear();
     });
 
 nfr("sample_down", "scale,world", "IR:voxels", "", "",

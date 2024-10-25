@@ -60,6 +60,15 @@ struct Voxels : lobster::Resource {
         });
     }
 
+    void Blit(const Voxels &src, const int3 &dst_p, const int3 &src_p, const int3 &sz, const int3 &flip) {
+        const_cast<Voxels &>(src).Do(src_p, sz, [&](const int3 &pos, uint8_t &vox) {
+            auto d = (pos - src_p) * flip + dst_p;
+            if (vox == transparant) return;
+            if (d < int3_0 || d >= grid.dim) return;
+            grid.Get(d) = vox;
+        });
+    }
+
     void Clone(const int3 &p, const int3 &sz, Voxels *dest) {
         assert(dest->grid.dim == sz);
         Do(p, sz, [&](const int3 &pos, uint8_t &vox) {
