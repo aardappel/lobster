@@ -658,12 +658,13 @@ nfr("create_3d_texture", "block,textureformat,monochrome", "R:voxelsII?", "R:tex
 // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
 // https://github.com/VoxelChain/voxelchain-formats/blob/main/src/vox.ts
 // https://github.com/ephtracy/voxel-model/issues/19
-nfr("load_vox", "name,material_palette,file_contents", "SB?S?", "R:voxels]S?",
+nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?", "R:voxels]S?",
     "loads a .vox file (supports both MagicaVoxel or VoxLap formats). "
     "if material_palette is true the alpha channel will contain material flags. "
     "if file_contents is non-nil, it contains the file already loaded. "
+    "if remap_palettes is true, then the palette will be remapped to match the MagicaVoxel UI if necessary. "
     "returns vector of blocks or empty if file failed to load, and error string if any",
-    [](StackPtr &sp, VM &vm, Value &name, Value &material_palette, Value &file_contents) {
+    [](StackPtr &sp, VM &vm, Value &name, Value &material_palette, Value &file_contents, Value &remap_palettes) {
         auto namep = name.sval()->strv();
         auto voxvec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_RESOURCE);
         auto errf = [&](string_view err) {
@@ -714,6 +715,8 @@ nfr("load_vox", "name,material_palette,file_contents", "SB?S?", "R:voxels]S?",
             map<int32_t, int3> node_offset;
             typedef matrix<int, 3, 3> int3x3;
             map<int32_t, int3x3> node_rots;
+            uint8_t palette_index_remap[256];
+            bool has_palette_index_remap = false;
             while (bufs.size() >= 8) {
                 auto id = (const char *)bufs.data();
                 bufs = bufs.subspan(4);
@@ -936,21 +939,29 @@ nfr("load_vox", "name,material_palette,file_contents", "SB?S?", "R:voxels]S?",
                         }
                     }
                 } else if (!strncmp(id, "IMAP", 4)) {
-                    // Palette needs to be remapped.. why is this needed??
-                    // FIXME: how does this affect material ids???
-                    vector<byte4> remapped_palette = palette;
+                    // If we have an IMAP chunk, it means that the RGBA entries
+                    // don't match the entries as seen in the MagicaVoxel UI.
+                    // Confusingly, this doesn't actually matter in most cases
+                    // since the entries in the XYZI chunk always are mapped the
+                    // RGBA entries.
+                    // So the only reason you need to remap the palettes is if
+                    // you want to make sure your palette entries match the UI;
+                    // If you don't, it's better to just leave it as-is since
+                    // it's faster to load without remapping.
+                    // See https://github.com/ephtracy/voxel-model/issues/19 for more discussion.
                     auto imap = p.data();
-                    for (int i = 0; i < 255; i++) {
-                        remapped_palette[imap[i]] = palette[i + 1];
+                    if (remap_palettes.True()) {
+                        // FIXME: how does this affect material ids???
+                        vector<byte4> remapped_palette = palette;
+                        for (int i = 0; i < 255; i++) {
+                            palette_index_remap[imap[i]] = (uint8_t)(i + 1);
+                            remapped_palette[i + 1] = palette[imap[i]];
+                        }
+                        // Index 0 is never remapped.
+                        palette_index_remap[0] = 0;
+                        palette = remapped_palette;
+                        has_palette_index_remap = true;
                     }
-                    // FIXME: for the files that have one of these chunks in,
-                    // the palette entries only correspond correctly to the voxels if
-                    // you DON'T apply this remapping.
-                    // So what is it for?
-                    // The only more extensive description is here and it doesn't seem
-                    // to be correct:
-                    // https://github.com/ephtracy/voxel-model/issues/19
-                    //palette = remapped_palette;
                 } else {
                     chunks_skipped = true;
                 }
@@ -960,7 +971,18 @@ nfr("load_vox", "name,material_palette,file_contents", "SB?S?", "R:voxels]S?",
             if (!palette.empty()) {
                 auto pi = NewPalette(palette.data());
                 for (iint i = 0; i < voxvec->len; i++) {
-                    GetVoxels(voxvec->At(i)).palette_idx = pi;
+                    auto *voxels = &GetVoxels(voxvec->At(i));
+                    voxels->palette_idx = pi;
+                    if (has_palette_index_remap) {
+                        for (int z = 0; z < voxels->grid.dim.z; ++z) {
+                            for (int y = 0; y < voxels->grid.dim.y; ++y) {
+                                for (int x = 0; x < voxels->grid.dim.x; ++x) {
+                                    uint8_t& vox = voxels->grid.Get(int3(x, y, z));
+                                    vox = palette_index_remap[vox];
+                                }
+                            }
+                        }
+                    }
                 }
             }
             if (voxvec->SLen() < (ssize_t)node_to_model.size()) {
