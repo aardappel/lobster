@@ -1173,7 +1173,7 @@
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>gl.set_font_name</b>(filename<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns true if success.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.set_font_size</b>(size<font color="#666666">: int</font>, outlinesize<font color="#666666">: float</font> = 0.000000) -> <font color="#666666">int</font></tt></td><td class="a">sets the font for rendering into this fontsize (in pixels). caches into a texture first time this size is used, flushes from cache if this size is not used an entire frame. font rendering will look best if using 1:1 pixels (careful with gl.scale/gl.translate). an optional outlinesize will give the font a black outline. make sure to call this every frame. returns true if success</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_font_size</b>(size<font color="#666666">: int</font>, outlinesize<font color="#666666">: float</font> = 0.000000, outlinecolor<font color="#666666">: float4</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">sets the font for rendering into this fontsize (in pixels). caches into a texture first time this size is used, flushes from cache if this size is not used an entire frame. font rendering will look best if using 1:1 pixels (careful with gl.scale/gl.translate). an optional outlinesize will give the font an outline. make sure to call this every frame. returns true if success</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.set_max_font_size</b>(size<font color="#666666">: int</font>)</tt></td><td class="a">sets the max font size to render to bitmaps. any sizes specified over that by setfontsize will still work but cause scaled rendering. default 256</td>
@@ -1441,6 +1441,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>cg.copy</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>, pos<font color="#666666">: int3</font>, size<font color="#666666">: int3</font>, dest<font color="#666666">: int3</font>, flip<font color="#666666">: int3</font>)</tt></td><td class="a">copy a range of cubes from pos to dest. flip can be 1 (regular copy), or -1 (mirror)for each component, indicating the step from dest. Coordinates automatically clipped to the size of the grid</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>cg.blit</b>(dst<font color="#666666">: resource&lt;voxels&gt;</font>, src<font color="#666666">: resource&lt;voxels&gt;</font>, dst_pos<font color="#666666">: int3</font>, src_pos<font color="#666666">: int3</font>, size<font color="#666666">: int3</font>, flip<font color="#666666">: int3</font>)</tt></td><td class="a">copy a range of solid cubes from src to dst starting at src_pos and dst_pos, respectively. flip can be 1 (regular copy), or -1 (mirror)for each component, indicating the step from dest. Coordinates automatically clipped to the size of the grids</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>cg.clone</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>, pos<font color="#666666">: int3</font>, size<font color="#666666">: int3</font>) -> <font color="#666666">resource&lt;voxels&gt;</font></tt></td><td class="a">clone a range of cubes from pos to a new block. Coordinates automatically clipped to the size of the grid</td>
 
 </tr>
@@ -1459,6 +1462,15 @@
 <tr class="a" valign=top><td class="a"><tt><b>cg.load_palette</b>(act_palette_file<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>cg.new_palette</b>(palette<font color="#666666">: [float4]</font>) -> <font color="#666666">int</font></tt></td><td class="a">Create a new palette from 256 float4 color values.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>cg.get_palette_color</b>(palette_idx<font color="#666666">: int</font>, entry<font color="#666666">: int</font>) -> <font color="#666666">float4</font></tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>cg.remove_all_palettes</b>()</tt></td><td class="a">Remove all cached palettes to free up memory. WARNING: existing models will no longer render correctly. You generally only want to do this if you know that none of the existing models are needed.</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>cg.sample_down</b>(scale<font color="#666666">: int</font>, world<font color="#666666">: resource&lt;voxels&gt;</font>)</tt></td><td class="a"></td>
 
 </tr>
@@ -1474,7 +1486,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>cg.create_3d_texture</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>, textureformat<font color="#666666">: int</font>, monochrome<font color="#666666">: int</font> = 0) -> <font color="#666666">resource&lt;texture&gt;</font></tt></td><td class="a">returns the new texture, for format, pass flags you want in addition to 3d|single_channel|has_mips</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>cg.load_vox</b>(name<font color="#666666">: string</font>, material_palette<font color="#666666">: bool</font> = false, file_contents<font color="#666666">: string</font> = nil) -> <font color="#666666">[resource&lt;voxels&gt;]</font>, <font color="#666666">string?</font></tt></td><td class="a">loads a .vox file (supports both MagicaVoxel or VoxLap formats). if material_palette is true the alpha channel will contain material flags. if file_contents is non-nil, it contains the file already loaded. returns vector of blocks or empty if file failed to load, and error string if any</td>
+<tr class="a" valign=top><td class="a"><tt><b>cg.load_vox</b>(name<font color="#666666">: string</font>, material_palette<font color="#666666">: bool</font> = false, file_contents<font color="#666666">: string</font> = nil, remap_palettes<font color="#666666">: bool</font> = false) -> <font color="#666666">[resource&lt;voxels&gt;]</font>, <font color="#666666">string?</font></tt></td><td class="a">loads a .vox file (supports both MagicaVoxel or VoxLap formats). if material_palette is true the alpha channel will contain material flags. if file_contents is non-nil, it contains the file already loaded. if remap_palettes is true, then the palette will be remapped to match the MagicaVoxel UI if necessary. returns vector of blocks or empty if file failed to load, and error string if any</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>cg.load_vox_names</b>(name<font color="#666666">: string</font>) -> <font color="#666666">[string]</font>, <font color="#666666">string?</font></tt></td><td class="a">loads a MagicaVoxel .vox file, and returns its contained sub model names.</td>
@@ -1711,7 +1723,7 @@
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>im.init</b>(dark_style<font color="#666666">: bool</font> = false, flags<font color="#666666">: int</font> = 0, rounding<font color="#666666">: float</font> = 0.000000, border<font color="#666666">: float</font> = 0.000000)</tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.add_font</b>(font_path<font color="#666666">: string</font>, size<font color="#666666">: float</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td>
+<tr class="a" valign=top><td class="a"><tt><b>im.add_font</b>(font_path<font color="#666666">: string</font>, size<font color="#666666">: float</font>, glyph_ranges<font color="#666666">: string</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">glyph_ranges will activate additional unicode ranges to be rasterized, and can be Default (most European languages), SimplifiedChinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.set_style_color</b>(i<font color="#666666">: int</font>, color<font color="#666666">: float4</font>)</tt></td><td class="a"></td>
