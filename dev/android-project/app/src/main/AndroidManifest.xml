@@ -8,8 +8,8 @@
     android:versionName="1.0"
     android:installLocation="auto">
 
-    <!-- OpenGL ES 2.0 -->
-    <uses-feature android:glEsVersion="0x00020000" />
+    <!-- OpenGL ES 3.0 -->
+    <uses-feature android:glEsVersion="0x00030000" />
 
     <!-- Touchscreen support -->
     <uses-feature
@@ -36,7 +36,7 @@
 
     <!-- Create a Java class extending SDLActivity and place it in a
          directory under app/src/main/java matching the package, e.g. app/src/main/java/com/gamemaker/game/MyGame.java
- 
+
          then replace "SDLActivity" with the name of your class (e.g. "MyGame")
          in the XML below.
 
@@ -51,7 +51,7 @@
         <!-- Example of setting SDL hints from AndroidManifest.xml:
         <meta-data android:name="SDL_ENV.SDL_ACCELEROMETER_AS_JOYSTICK" android:value="0"/>
          -->
-     
+
         <activity android:name="SDLActivity"
             android:label="@string/app_name"
             android:alwaysRetainTaskState="true"
