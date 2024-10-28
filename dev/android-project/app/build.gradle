@@ -8,7 +8,6 @@ else {
 }
 
 android {
-    namespace "org.libsdl.app"
     compileSdkVersion 26
     defaultConfig {
         if (buildAsApplication) {
