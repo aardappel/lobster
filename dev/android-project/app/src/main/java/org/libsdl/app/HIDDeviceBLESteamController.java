@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothGattService;
+import android.hardware.usb.UsbDevice;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -428,7 +429,7 @@ class HIDDeviceBLESteamController extends BluetoothGattCallback implements HIDDe
                     }
                 });
             }
-        } 
+        }
         else if (newState == 0) {
             mIsConnected = false;
         }
