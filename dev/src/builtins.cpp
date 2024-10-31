@@ -751,7 +751,7 @@ nfr("tan", "angle", "F}", "F}",
     [](StackPtr &sp, VM &) { VECTOROP(tan(f.fval() * RAD)); });
 
 nfr("sincos", "angle", "F", "F}:2",
-    "the normalized vector indicated by angle (in degrees), same as xy { cos(angle), sin(angle) }",
+    "the normalized vector indicated by angle (in degrees), same as float2 { cos(angle), sin(angle) }",
     [](StackPtr &sp, VM &) {
         auto a = Pop(sp).fval();
         PushVec(sp, double2(cos(a * RAD), sin(a * RAD)));

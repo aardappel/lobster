@@ -378,7 +378,7 @@ struct ToFlexBufferContext {
 
     bool ignore_unsupported_types = false;
     bool cycle_detect = false;
-    set<LObject *> seen_objects;
+    map<LObject *, flexbuffers::Builder::Value> seen_objects;
 
     iint max_depth = 100;
     iint cur_depth = 0;
@@ -386,7 +386,8 @@ struct ToFlexBufferContext {
     string max_depth_hit;
     flexbuffers::Builder::Value max_depth_hit_value;
     string cycle_hit;
-    flexbuffers::Builder::Value cycle_hit_value;
+
+    PrintPrefs pp = PrintPrefs(2, 50, true, -1);
 
     ToFlexBufferContext(VM &vm, size_t initial_size, flexbuffers::BuilderFlag flags)
         : vm(vm), builder(initial_size, flags) {}

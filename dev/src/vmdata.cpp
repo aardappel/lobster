@@ -614,16 +614,28 @@ void ElemToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti,
 }
 
 void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
+    // Terrible C++: we need 2 variables to track this, because we can't init inserted_it
+    // with end() because it may get invalidated by the insert, and trying to test
+    // against the default constructed iterator is UB.
+    bool inserted = false;
+    map<LObject *, flexbuffers::Builder::Value>::iterator inserted_it;
     if (fbc.cycle_detect) {
-        if (fbc.seen_objects.find(this) == fbc.seen_objects.end()) {
-            fbc.seen_objects.insert(this);
+        auto it = fbc.seen_objects.find(this);
+        if (it == fbc.seen_objects.end()) {
+            inserted = true;
+            inserted_it = fbc.seen_objects.insert({ this, flexbuffers::Builder::Value{} }).first;
         } else {
-            fbc.cycle_hit = TypeName(fbc.vm);
-            if (fbc.cycle_hit_value.type_ == flexbuffers::FBT_NULL) {
-                fbc.builder.String("(dup_ref)");
-                fbc.cycle_hit_value = fbc.builder.LastValue();
+            if (it->second.type_ == flexbuffers::FBT_NULL) {
+                // A true cycle, object referred to while not finished.
+                fbc.cycle_hit = TypeName(fbc.vm);
+                string sd;
+                append(sd, "(cycle_ref: ", (size_t)this, ": ");
+                ToString(fbc.vm, sd, fbc.pp);
+                append(sd, ")");
+                fbc.builder.String(sd);
             } else {
-                fbc.builder.ReuseValue(fbc.cycle_hit_value);
+                // Just a DAG ref, we just make the FlexBuffer a DAG as well!
+                fbc.builder.ReuseValue(it->second);
             }
             return;
         }
@@ -655,6 +667,9 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
         ElemToFlexBuffer(fbc, eti, i, 1, Elems(), fname, stti.elemtypes[i].defval);
     }
     fbc.builder.EndMap(start);
+    if (inserted) {
+        inserted_it->second = fbc.builder.LastValue();
+    }
 }
 
 void LVector::ToFlexBuffer(ToFlexBufferContext &fbc) {
