@@ -23,11 +23,18 @@ class C:
         member_frame a = 1
         member_frame b = float2_1
         member_frame s = "s"
-        member_frame r = D {}
+        def nested():
+            member_frame rf = D {}
+            return rf
+        let r = nested()
         print "c: {a++} {b} {s} {r}"
         b += 1.0
         s += "s"
         r.i++
+
+def freestanding(c::C):
+    member_frame a2 = 1
+    print "a2: {a2++}"
 
 def aa():
     static_frame a = 1
@@ -46,5 +53,6 @@ while gl.frame():
     if count % 4:
         aa()
         c.f()
+        c.freestanding()
     if count++ == 10:
         return

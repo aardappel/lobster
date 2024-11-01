@@ -1275,7 +1275,8 @@ struct SymbolTable {
             udt.ssuperclass = supertype->udt;
         }
         PushSuperGenerics(udt.ssuperclass);
-        for (auto &field : udt.g.fields) {
+        for (size_t i = udt.sfields.size(); i < udt.g.fields.size(); i++) {
+            auto &field = udt.g.fields[i];
             udt.sfields.push_back({ ResolveTypeVars(field.giventype, errl) });
         }
         PopSuperGenerics(udt.ssuperclass);

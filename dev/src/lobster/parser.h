@@ -389,6 +389,11 @@ struct Parser {
                 // This is an arbitrary restriction that we could lift, just doesn't seem
                 // great to have invisble extra members in structs.
                 if (gudt->is_struct) Error("member declaration only allowed in classes");
+                // TODO: This is not great: when "member" is used in an inline method decl, this should
+                // never happen, and it can later still be subclassed, but when it is used outside
+                // in a free-standing method we can't allow new fields to be added when a subclass
+                // has already copied them. We can maybe lift this restriction.
+                if (gudt->has_subclasses) Error("member cannot be added in freestanding method to class that has been subclassed");
                 st.bound_typevars_stack.push_back(gudt->generics);
                 auto field_idx = gudt->fields.size();
                 ParseField(gudt, true, true);
@@ -411,6 +416,10 @@ struct Parser {
                 member->field_idx = field_idx;
                 member->frame = frame;
                 member->this_sid = this_sid;
+                for (UDT *udt = gudt->first; udt; udt = udt->next) {
+                    // New fields have been added possibly non-inline, run this again to be sure.
+                    st.ResolveFields(*udt, lex);
+                }
                 list->Add(member);
                 break;
             }
@@ -531,7 +540,6 @@ struct Parser {
         GUDT *gudt = st.LookupStruct(sname);
         bool was_predeclaration = gudt && gudt->predeclaration;
         gudt = &st.StructDecl(sname, is_struct, lex);
-        gudtstack.push_back(gudt);
         UDT *udt = nullptr;
         if (Either(T_COLON, T_LT)) {
             // A regular struct declaration
@@ -675,7 +683,6 @@ struct Parser {
             parent_list->Add(new UDTRef(line, udt));
         }
         parent_list->Add(new GUDTRef(line, gudt, gudt->predeclaration));
-        gudtstack.pop_back();
     }
 
     FunRef *ParseNamedFunctionDefinition(bool is_constructor, bool isprivate, GUDT *self) {
@@ -761,8 +768,10 @@ struct Parser {
         st.bound_typevars_stack.push_back(sf->generics);
         if (parens) Expect(T_LEFTPAREN);
         size_t nargs = 0;
+        bool self_withtype = false;
         if (self) {
             nargs++;
+            self_withtype = true;
             auto id = st.LookupDef("this", false, true);
             auto &arg = sf->args.back();
             arg.type = &self->unspecialized_type;
@@ -787,6 +796,7 @@ struct Parser {
                     if (nargs == 1 && (arg.type->t == V_UUDT || IsUDT(arg.type->t))) {
                         non_inline_method = true;
                         self = GetGUDTAny(arg.type);
+                        self_withtype = withtype;
                         st.bound_typevars_stack.push_back(self->generics);
                     }
                     sf->giventypes.push_back({ arg.type });
@@ -885,6 +895,7 @@ struct Parser {
         } else {
             f.anonymous = true;
         }
+        if (self_withtype) gudtstack.push_back(self);
         // Parse the body.
         Line line = lex;
         if (!f.istype) {
@@ -893,6 +904,7 @@ struct Parser {
             ParseBody(block, -1);
             ImplicitReturn(*ov);
         }
+        if (self_withtype) gudtstack.pop_back();
         if (name) functionstack.pop_back();
         if (non_inline_method) st.bound_typevars_stack.pop_back();
         st.bound_typevars_stack.pop_back();
