@@ -345,6 +345,13 @@ def disabled(disabled, body):
     body()
     disabled_end()
 
+def disabled_because(disabled, reason, body):
+    disabled_start(disabled)
+    body()
+    disabled_end()
+    if disabled:
+        tooltip(reason)
+
 def button_repeat(repeat, body):
     button_repeat_start(repeat)
     body()

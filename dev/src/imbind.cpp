@@ -1114,7 +1114,7 @@ nfr("font_end", "", "", "",
     });
 
 nfr("color_start", "color", "F}:4", "",
-    "(use im.tooltip_multi instead)",
+    "(use im.color instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto c = PopVec<float4>(sp);
