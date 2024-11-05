@@ -23,11 +23,18 @@
 
 #include "steam/steam_api.h"
 
+struct QueuedMessage {
+    SteamNetworkingIdentity identity{};
+    string message;
+};
+
 struct SteamPeer {
     string ident;
+    SteamNetworkingIdentity net_identity;
     HSteamNetConnection connection = k_HSteamNetConnection_Invalid;
     bool is_listen_connection = false;
     bool is_connected = false;
+    vector<QueuedMessage> queued_messages;
 };
 
 struct SteamState {
@@ -73,11 +80,26 @@ struct SteamState {
 	STEAM_CALLBACK(SteamState, OnNetConnectionStatusChanged, SteamNetConnectionStatusChangedCallback_t);
 
     // P2P Functions
-    auto FindPeer(const SteamNetworkingIdentity &ident) {
+    string GetIpAddressIdentity() {
+        if (!listen_socket) {
+            LOG_INFO("listen socket is not open");
+            return "";
+        }
+        SteamNetworkingIPAddr ip_address;
+        if (!SteamNetworkingSockets()->GetListenSocketAddress(listen_socket, &ip_address)) {
+            return "GetListenSocketAddress failed";
+        }
+        SteamNetworkingIdentity id;
+        id.m_eType = k_ESteamNetworkingIdentityType_IPAddress;
+        id.SetIPAddr(ip_address);
+        char ident[SteamNetworkingIdentity::k_cchMaxString];
+        id.ToString(ident, sizeof(ident));
+        return ident;
+    }
+
+    auto FindPeer(const SteamNetworkingIdentity &net_identity) {
         return find_if(peers.begin(), peers.end(), [&](const auto &peer) {
-            SteamNetConnectionInfo_t info;
-            if (!SteamNetworkingSockets()->GetConnectionInfo(peer.connection, &info)) return false;
-            return info.m_identityRemote == ident;
+            return peer.net_identity == net_identity;
         });
     }
 
@@ -91,6 +113,17 @@ struct SteamState {
         return find_if(peers.begin(), peers.end(), [&](const auto& peer) {
             return peer.connection == conn;
         });
+    }
+
+    auto FindOrCreatePeer(HSteamNetConnection conn) {
+        bool found = true;
+        auto peer = FindPeer(conn);
+        if (peer == peers.end()) {
+            peers.emplace_back();
+            peer = peers.end() - 1;
+            found = false;
+        }
+        return make_pair(peer, found);
     }
 
     auto RenamePeer(string_view_nt str_identity, string_view_nt str_new_identity) {
@@ -118,12 +151,47 @@ struct SteamState {
         return socket != k_HSteamListenSocket_Invalid;
     }
 
+    bool P2PListenIP(string_view_nt ip_addr) {
+        if (listen_socket != k_HSteamListenSocket_Invalid) {
+            LOG_INFO("listen socket is already open");
+            return false;
+        }
+        SteamNetworkingIPAddr ip;
+        ip.ParseString(ip_addr.c_str());
+        char real_ip[SteamNetworkingIdentity::k_cchMaxString]{};
+        ip.ToString(real_ip, sizeof(real_ip), true);
+        auto socket = SteamNetworkingSockets()->CreateListenSocketIP(ip, 0, nullptr);
+        listen_socket = socket;
+        LOG_INFO("created listen socket for IP Address at ", real_ip);
+        SteamNetworkingIPAddr address;
+        if (SteamNetworkingSockets()->GetListenSocketAddress(listen_socket, &address)) {
+            char ipaddr[SteamNetworkingIPAddr::k_cchMaxString]{};
+            address.ToString(ipaddr, sizeof(ipaddr), true);
+            LOG_INFO("ListenSocket IP Address is ", ipaddr);
+        }
+        return socket != k_HSteamListenSocket_Invalid;
+    }
+
     bool P2PConnect(string_view_nt str_identity) {
         SteamNetworkingIdentity identity{};
         identity.ParseString(str_identity.c_str());
+        LOG_INFO("opening connection to ", str_identity);
         auto connection = SteamNetworkingSockets()->ConnectP2P(identity, 1, 0, nullptr);
-        LOG_INFO("opened connection");
-        return connection != k_HSteamNetConnection_Invalid;
+        if (connection == k_HSteamNetConnection_Invalid) return false;
+        peers.push_back(SteamPeer { string(str_identity.sv), {}, connection, false, false, {} });
+        return true;
+    }
+
+    bool P2PConnectIP(string_view_nt ip_addr) {
+        SteamNetworkingIPAddr ip;
+        ip.ParseString(ip_addr.c_str());
+        char real_ip[SteamNetworkingIdentity::k_cchMaxString]{};
+        ip.ToString(real_ip, sizeof(real_ip), true);
+        LOG_INFO("opened connection for IP address to ", real_ip);
+        auto connection = SteamNetworkingSockets()->ConnectByIPAddress(ip, 0, nullptr);
+        if (connection == k_HSteamNetConnection_Invalid) return false;
+        peers.push_back(SteamPeer { string(ip_addr.sv), {}, connection, false, false, {} });
+        return true;
     }
 
     bool P2PCloseConnection(string_view_nt str_identity, bool linger) {
@@ -152,7 +220,13 @@ struct SteamState {
     bool SendMessage(string_view_nt str_identity, string_view buf, bool reliable) {
         auto peer = FindPeer(str_identity.sv);
         if (peer == peers.end()) return false;
-        if (!peer->is_connected) return false;
+        if (!peer->is_connected) {
+            if (reliable) {
+                LOG_INFO("SendMessage queueing message to \"", str_identity, "\"");
+                peer->queued_messages.push_back(QueuedMessage { peer->net_identity, string(buf) });
+            }
+            return false;
+        }
 
         const char *data = buf.data();
         uint32_t size = (uint32_t)buf.size();
@@ -175,7 +249,15 @@ struct SteamState {
         // it can't be shared. We'd need to have the data itself be ref-counted
         // too.
         for (auto &peer: peers) {
-            if (!peer.is_connected) continue;
+            if (!peer.is_connected) {
+                if (reliable) {
+                    char ident[SteamNetworkingIdentity::k_cchMaxString]{};
+                    peer.net_identity.ToString(ident, sizeof(ident));
+                    LOG_INFO("BroadcastMessage queueing message to \"", ident, "\"");
+                    peer.queued_messages.push_back(QueuedMessage { peer.net_identity, string(buf) });
+                }
+                continue;
+            }
             auto result = SteamNetworkingSockets()->SendMessageToConnection(peer.connection, data, size, flags, nullptr);
             ok &= result == k_EResultOK;
             if (result != k_EResultOK) {
@@ -200,6 +282,25 @@ struct SteamState {
             }
         }
         return messages;
+    }
+
+    void UpdateP2P() {
+        for (auto &peer : peers) {
+            if (!peer.is_connected) continue;
+            // Send the queued messages to the peer, now that they're connected.
+            char ident[SteamNetworkingIdentity::k_cchMaxString]{};
+            peer.net_identity.ToString(ident, sizeof(ident));
+            for (auto &message : peer.queued_messages) {
+                const char *data = message.message.data();
+                uint32_t size = (uint32_t)message.message.size();
+                int flags = k_nSteamNetworkingSend_Reliable;
+                auto result = SteamNetworkingSockets()->SendMessageToConnection(peer.connection, data, size, flags, nullptr);
+                if (result != k_EResultOK) {
+                    LOG_INFO("WARNING: SendMessage to \"", ident, "\" of size ", size ," got result ",  result, ".");
+                }
+            }
+            peer.queued_messages.clear();
+        }
     }
 
     bool GetConnectionRealTimeStatus(string_view_nt str_identity, SteamNetConnectionRealTimeStatus_t* status) {
@@ -364,8 +465,25 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
 	ESteamNetworkingConnectionState old_state = callback->m_eOldState;
 	ESteamNetworkingConnectionState new_state = info.m_eState;
 
+    SteamNetworkingIdentity remote_identity = info.m_identityRemote;
     char ident[SteamNetworkingIdentity::k_cchMaxString]{};
-    info.m_identityRemote.ToString(ident, sizeof(ident));
+    remote_identity.ToString(ident, sizeof(ident));
+    char ipaddr[SteamNetworkingIPAddr::k_cchMaxString]{};
+    info.m_addrRemote.ToString(ipaddr, sizeof(ipaddr), true);
+
+    // If the local identity and the remote identity are the same and they're
+    // both using Steam ID, then we're trying to connect two clients on the same
+    // machine. So just use the IP address as the identity instead.
+    SteamNetworkingIdentity local_identity{};
+    SteamNetworkingSockets()->GetIdentity(&local_identity);
+    if (local_identity == remote_identity && local_identity.m_eType == k_ESteamNetworkingIdentityType_SteamID) {
+        SteamNetworkingIdentity ip_identity;
+        ip_identity.m_eType = k_ESteamNetworkingIdentityType_IPAddress;
+        ip_identity.SetIPAddr(info.m_addrRemote);
+        ip_identity.ToString(ident, sizeof(ident));
+        remote_identity = ip_identity;
+    }
+
     auto get_state_name = [](auto state) -> string {
         if (state >= 0 && state <= 5) {
             static const char* state_names[] = {
@@ -376,53 +494,50 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
         }
         return to_string(state);
     };
-    LOG_INFO("steam net connection status changed: ident=", ident, " old state='",
+    LOG_INFO("steam net connection status changed: ident=", ident, " ipaddr=", ipaddr, " old state='",
              get_state_name(old_state), "' new state='", get_state_name(new_state), "'");
 
 	if (info.m_hListenSocket != k_HSteamListenSocket_Invalid &&
 		old_state == k_ESteamNetworkingConnectionState_None &&
 		new_state == k_ESteamNetworkingConnectionState_Connecting) {
-		// Connection from a peer on the listen socket, make sure they're not in there already
-        auto peer = FindPeer(info.m_identityRemote);
-        if (peer != peers.end()) {
-            // For now at least, only allow one connection to a peer with a given steam ID.
-            LOG_INFO("Peer \"", ident, "\" connecting, but already in list?");
+        // For now at least, only allow one connection to a peer with a given steam ID.
+        auto peer_by_ident = FindPeer(remote_identity);
+        if (peer_by_ident != peers.end()) {
+            LOG_INFO("Peer \"", ident, "\" connecting, but already connected?");
             SteamNetworkingSockets()->CloseConnection(conn, k_ESteamNetConnectionEnd_AppException_Generic, "Already connected", false );
-        } else {
-            peers.emplace_back();
-            peer = peers.end() - 1;
-            EResult res = SteamNetworkingSockets()->AcceptConnection(conn);
-            if (res != k_EResultOK) {
-                LOG_INFO("AcceptConnection failed with error=", res);
-                peers.pop_back();
-                SteamNetworkingSockets()->CloseConnection(conn, k_ESteamNetConnectionEnd_AppException_Generic, "Failed to accept connection", false );
-                return;
-            }
-            peer->connection = conn;
-            peer->ident = ident;
-            peer->is_connected = false;
-            peer->is_listen_connection = true;
-            LOG_INFO("Connecting peer \"", ident, "\"");
-            // TODO: start authentication here, if needed
+            peers.erase(peer_by_ident);
+            return;
         }
+        // Find or create the peer with this connection. It may have already
+        // been created if we connected with P2PConnect*.
+        auto [ peer, found_peer ] = FindOrCreatePeer(conn);
+        EResult res = SteamNetworkingSockets()->AcceptConnection(conn);
+        if (res != k_EResultOK) {
+            LOG_INFO("AcceptConnection failed with error=", res);
+            SteamNetworkingSockets()->CloseConnection(conn, k_ESteamNetConnectionEnd_AppException_Generic, "Failed to accept connection", false );
+            peers.erase(peer);
+            return;
+        }
+        peer->connection = conn;
+        peer->ident = ident;
+        peer->net_identity = remote_identity;
+        peer->is_connected = false;
+        peer->is_listen_connection = peer->is_listen_connection || !found_peer;
+        LOG_INFO("OnNetConnectionStatusChanged(): Connecting peer \"", ident, "\"");
+        // TODO: start authentication here, if needed
     } else if (new_state == k_ESteamNetworkingConnectionState_Connected) {
-        auto peer = FindPeer(conn);
-        if (peer == peers.end() || !peer->is_connected) {
-            if (peer == peers.end()) {
-                peers.emplace_back();
-                peer = peers.end() - 1;
-            }
-            peer->connection = conn;
-            peer->ident = ident;
-            peer->is_connected = true;
-            peer->is_listen_connection = info.m_hListenSocket != k_HSteamListenSocket_Invalid;
-            if (poll_group == k_HSteamNetPollGroup_Invalid) {
-                LOG_INFO("Creating poll group");
-                poll_group = SteamNetworkingSockets()->CreatePollGroup();
-            }
-            SteamNetworkingSockets()->SetConnectionPollGroup(conn, poll_group);
-            LOG_INFO("Connected peer \"", ident, "\"");
+        auto [ peer, found_peer ] = FindOrCreatePeer(conn);
+        peer->connection = conn;
+        peer->ident = ident;
+        peer->net_identity = remote_identity;
+        peer->is_connected = true;
+        peer->is_listen_connection = peer->is_listen_connection || !found_peer;
+        if (poll_group == k_HSteamNetPollGroup_Invalid) {
+            LOG_INFO("Creating poll group");
+            poll_group = SteamNetworkingSockets()->CreatePollGroup();
         }
+        SteamNetworkingSockets()->SetConnectionPollGroup(conn, poll_group);
+        LOG_INFO("Connected peer \"", ident, "\"");
 	} else if (new_state == k_ESteamNetworkingConnectionState_ClosedByPeer ||
                new_state == k_ESteamNetworkingConnectionState_ProblemDetectedLocally) {
 		// Handle disconnecting a peer
@@ -524,7 +639,10 @@ int SteamInit(iint appid, bool screenshots, bool initrelay) {
 
 void SteamUpdate() {
     #ifdef PLATFORM_STEAMWORKS
-        if (steam) SteamAPI_RunCallbacks();
+        if (steam) {
+            SteamAPI_RunCallbacks();
+            steam->UpdateP2P();
+        }
     #endif  // PLATFORM_STEAMWORKS
 }
 
@@ -715,6 +833,15 @@ nfr("net_identity_from_steam_id", "steam_id", "I", "S",
         return Value(vm.NewString("none"));
     });
 
+nfr("net_identity_ipaddr", "", "", "S",
+    "returns the steam identity for this user, but as an IP address instead of a"
+    " Steam ID. This can be useful when connecting two clients that are using the"
+    " same Steam ID (e.g. on the same computer). NOTE: this will only work if "
+    " p2p_listen_ipaddr is called first.",
+    [](StackPtr &, VM &vm) {
+        return STEAM_STRING_VALUE(vm, steam->GetIpAddressIdentity());
+    });
+
 nfr("p2p_set_send_buffer_size", "size", "I", "B", "set the upper limit of pending bytes to be sent",
     [](StackPtr &, VM &, Value &size) {
         auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_SendBufferSize, size.intval()));
@@ -774,6 +901,11 @@ nfr("p2p_listen", "", "", "B", "open a listen socket to receive new connections"
         return STEAM_BOOL_VALUE(steam->P2PListen());
     });
 
+nfr("p2p_listen_ipaddr", "ipaddr", "S", "B", "open a listen socket for receive new IP address connections",
+    [](StackPtr &, VM &, Value &ipaddr) {
+        return STEAM_BOOL_VALUE(steam->P2PListenIP(ipaddr.sval()->strvnt()));
+    });
+
 nfr("p2p_close_listen", "", "", "B", "close the listen socket and stop accepting new connections",
     [](StackPtr &, VM &) {
         return STEAM_BOOL_VALUE(steam->CloseListen());
@@ -782,6 +914,11 @@ nfr("p2p_close_listen", "", "", "B", "close the listen socket and stop accepting
 nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam identity that has opened a listen socket",
     [](StackPtr &, VM &, Value &ident) {
         return STEAM_BOOL_VALUE(steam->P2PConnect(ident.sval()->strvnt()));
+    });
+
+nfr("p2p_connect_ipaddr", "ipaddr", "S", "B", "connect to a user with a given IP address that has opened a listen socket",
+    [](StackPtr &, VM &, Value &ipaddr) {
+        return STEAM_BOOL_VALUE(steam->P2PConnectIP(ipaddr.sval()->strvnt()));
     });
 
 nfr("p2p_close_connection", "ident,linger", "SB", "B",
@@ -797,6 +934,8 @@ nfr("p2p_get_connections", "", "", "S]", "get a list of the steam identites that
 
         #ifdef PLATFORM_STEAMWORKS
             if (steam) {
+                SteamNetworkingIdentity local_identity{};
+                SteamNetworkingSockets()->GetIdentity(&local_identity);
                 for (auto &peer: steam->peers) {
                     if (!peer.is_connected) continue;
                     peers_vec->Push(vm, vm.NewString(peer.ident));
