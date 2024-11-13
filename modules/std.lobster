@@ -176,6 +176,8 @@ def rnd_pick(xs):
     return xs[rnd(xs.length)]
 def rnd_pick2(xs):
     return rnd_pick(rnd_pick(xs))
+def rnd_consume(xs):
+    return xs.remove(rnd(xs.length))
 
 def qsort<T>(xs:[T], lt) -> [T]:
     guard xs.length > 1:
