@@ -24,7 +24,7 @@
 #include "steam/steam_api.h"
 
 struct SteamPeer {
-    SteamNetworkingIdentity identity{};
+    string ident;
     HSteamNetConnection connection = k_HSteamNetConnection_Invalid;
     bool is_listen_connection = false;
     bool is_connected = false;
@@ -46,9 +46,7 @@ struct SteamState {
             // Don't close connections that were connected via the listen
             // socket, that seems to crash Steam.
             if (peer.connection != k_HSteamNetConnection_Invalid && !peer.is_listen_connection) {
-                char ident[SteamNetworkingIdentity::k_cchMaxString]{};
-                peer.identity.ToString(ident, sizeof(ident));
-                LOG_INFO("closing connection to \"", ident, "\" on SteamState destroy");
+                LOG_INFO("closing connection to \"", peer.ident, "\" on SteamState destroy");
                 auto ok = SteamNetworkingSockets()->CloseConnection(
                     peer.connection, k_ESteamNetConnectionEnd_App_Generic, nullptr, false);
                 if (!ok) {
@@ -75,9 +73,17 @@ struct SteamState {
 	STEAM_CALLBACK(SteamState, OnNetConnectionStatusChanged, SteamNetConnectionStatusChangedCallback_t);
 
     // P2P Functions
-    auto FindPeer(const CSteamID &id) {
+    auto FindPeer(const SteamNetworkingIdentity &ident) {
+        return find_if(peers.begin(), peers.end(), [&](const auto &peer) {
+            SteamNetConnectionInfo_t info;
+            if (!SteamNetworkingSockets()->GetConnectionInfo(peer.connection, &info)) return false;
+            return info.m_identityRemote == ident;
+        });
+    }
+
+    auto FindPeer(const string_view ident) {
         return find_if(peers.begin(), peers.end(), [&](const auto& peer) {
-            return peer.identity.GetSteamID() == id;
+            return peer.ident == ident;
         });
     }
 
@@ -85,6 +91,16 @@ struct SteamState {
         return find_if(peers.begin(), peers.end(), [&](const auto& peer) {
             return peer.connection == conn;
         });
+    }
+
+    auto RenamePeer(string_view_nt str_identity, string_view_nt str_new_identity) {
+        auto peer = FindPeer(str_identity.sv);
+        if (peer == peers.end()) return false;
+        auto new_peer = FindPeer(str_new_identity.sv);
+        // Don't allow renaming to a name that already exists.
+        if (new_peer != peers.end()) return false;
+        peer->ident = str_new_identity.sv;
+        return true;
     }
 
     bool SetGlobalConfigValue(ESteamNetworkingConfigValue eValue, int val) {
@@ -111,9 +127,7 @@ struct SteamState {
     }
 
     bool P2PCloseConnection(string_view_nt str_identity, bool linger) {
-        SteamNetworkingIdentity identity{};
-        identity.ParseString(str_identity.c_str());
-        auto peer = FindPeer(identity.GetSteamID());
+        auto peer = FindPeer(str_identity.sv);
         if (peer == peers.end()) return false;
         if (!peer->is_connected) return false;
         auto ok = SteamNetworkingSockets()->CloseConnection(peer->connection, k_ESteamNetConnectionEnd_App_Generic, "", linger);
@@ -136,9 +150,7 @@ struct SteamState {
     }
 
     bool SendMessage(string_view_nt str_identity, string_view buf, bool reliable) {
-        SteamNetworkingIdentity identity{};
-        identity.ParseString(str_identity.c_str());
-        auto peer = FindPeer(identity.GetSteamID());
+        auto peer = FindPeer(str_identity.sv);
         if (peer == peers.end()) return false;
         if (!peer->is_connected) return false;
 
@@ -167,9 +179,7 @@ struct SteamState {
             auto result = SteamNetworkingSockets()->SendMessageToConnection(peer.connection, data, size, flags, nullptr);
             ok &= result == k_EResultOK;
             if (result != k_EResultOK) {
-                char ident[SteamNetworkingIdentity::k_cchMaxString]{};
-                peer.identity.ToString(ident, sizeof(ident));
-                LOG_INFO("WARNING: BroadcastMessage to \"", ident, "\" of size ", buf.size() ," got result ",  result, ".");
+                LOG_INFO("WARNING: BroadcastMessage to \"", peer.ident, "\" of size ", buf.size() ," got result ",  result, ".");
             }
         }
         return ok;
@@ -193,9 +203,7 @@ struct SteamState {
     }
 
     bool GetConnectionRealTimeStatus(string_view_nt str_identity, SteamNetConnectionRealTimeStatus_t* status) {
-        SteamNetworkingIdentity identity{};
-        identity.ParseString(str_identity.c_str());
-        auto peer = FindPeer(identity.GetSteamID());
+        auto peer = FindPeer(str_identity.sv);
         if (peer == peers.end()) return false;
         if (!peer->is_connected) return false;
         auto result = SteamNetworkingSockets()->GetConnectionRealTimeStatus(peer->connection, status, 0, nullptr);
@@ -375,7 +383,7 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
 		old_state == k_ESteamNetworkingConnectionState_None &&
 		new_state == k_ESteamNetworkingConnectionState_Connecting) {
 		// Connection from a peer on the listen socket, make sure they're not in there already
-        auto peer = FindPeer(info.m_identityRemote.GetSteamID());
+        auto peer = FindPeer(info.m_identityRemote);
         if (peer != peers.end()) {
             // For now at least, only allow one connection to a peer with a given steam ID.
             LOG_INFO("Peer \"", ident, "\" connecting, but already in list?");
@@ -390,9 +398,8 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
                 SteamNetworkingSockets()->CloseConnection(conn, k_ESteamNetConnectionEnd_AppException_Generic, "Failed to accept connection", false );
                 return;
             }
-
             peer->connection = conn;
-            peer->identity = info.m_identityRemote;
+            peer->ident = ident;
             peer->is_connected = false;
             peer->is_listen_connection = true;
             LOG_INFO("Connecting peer \"", ident, "\"");
@@ -406,7 +413,7 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
                 peer = peers.end() - 1;
             }
             peer->connection = conn;
-            peer->identity = info.m_identityRemote;
+            peer->ident = ident;
             peer->is_connected = true;
             peer->is_listen_connection = info.m_hListenSocket != k_HSteamListenSocket_Invalid;
             if (poll_group == k_HSteamNetPollGroup_Invalid) {
@@ -792,12 +799,20 @@ nfr("p2p_get_connections", "", "", "S]", "get a list of the steam identites that
             if (steam) {
                 for (auto &peer: steam->peers) {
                     if (!peer.is_connected) continue;
-                    peers_vec->Push(vm, GetIdentityString(vm, peer.identity));
+                    peers_vec->Push(vm, vm.NewString(peer.ident));
                 }
             }
         #endif  // PLATFORM_STEAMWORKS
 
         return Value(peers_vec);
+    });
+
+nfr("p2p_rename_peer", "ident,new_ident", "SS", "B", "use a different identifier"
+    " for this peer. This can be useful when connecting multiple users using"
+    " peer-to-peer, so you can have all peers in the network use the listen socket IP"
+    " address and port as the identifier.",
+    [](StackPtr &, VM &, Value &ident, Value &new_ident) {
+        return STEAM_BOOL_VALUE(steam->RenamePeer(ident.sval()->strvnt(), new_ident.sval()->strvnt()));
     });
 
 nfr("p2p_send_message", "ident,data,reliable", "SSB", "B", "send a reliable message to a given steam identity",
@@ -822,8 +837,11 @@ nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
                 auto messages = steam->ReceiveMessages();
                 for (auto *message: messages) {
                     auto *data = vm.NewString(string_view((char*)message->m_pData, message->m_cbSize));
-                    client_vec->Push(vm, GetIdentityString(vm, message->m_identityPeer));
-                    data_vec->Push(vm, data);
+                    auto peer = steam->FindPeer(message->m_conn);  // TODO: optimize?
+                    if (peer != steam->peers.end()) {
+                        client_vec->Push(vm, vm.NewString(peer->ident));
+                        data_vec->Push(vm, data);
+                    }
                     message->Release();
                 }
             }
