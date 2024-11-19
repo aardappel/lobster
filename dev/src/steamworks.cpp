@@ -53,25 +53,25 @@ struct SteamState {
             // Don't close connections that were connected via the listen
             // socket, that seems to crash Steam.
             if (peer.connection != k_HSteamNetConnection_Invalid && !peer.is_listen_connection) {
-                LOG_INFO("closing connection to \"", peer.ident, "\" on SteamState destroy");
+                LOG_INFO("~SteamState(): closing connection to \"", peer.ident, "\"");
                 auto ok = SteamNetworkingSockets()->CloseConnection(
                     peer.connection, k_ESteamNetConnectionEnd_App_Generic, nullptr, false);
                 if (!ok) {
-                    LOG_INFO("  closing the connection failed");
+                    LOG_ERROR("~SteamState(): closing the connection failed");
                 }
             }
         }
         // Make sure to close connections before closing the listen socket, that
         // seems to crash Steam.
         if (listen_socket != k_HSteamListenSocket_Invalid) {
-            LOG_INFO("closing listen socket on SteamState destroy");
+            LOG_INFO("~SteamState(): closing listen socket");
             auto ok = SteamNetworkingSockets()->CloseListenSocket(listen_socket);
-            if (!ok) LOG_INFO("  closing listen socket failed");
+            if (!ok) LOG_ERROR("~SteamState(): closing listen socket failed");
         }
         if (poll_group != k_HSteamNetPollGroup_Invalid) {
-            LOG_INFO("destroying poll group on SteamState destroy");
+            LOG_INFO("~SteamState(): destroying poll group");
             auto ok = SteamNetworkingSockets()->DestroyPollGroup(poll_group);
-            if (!ok) LOG_INFO("  destroying poll group failed");
+            if (!ok) LOG_ERROR("~SteamState(): destroying poll group failed");
         }
     }
 
@@ -82,12 +82,13 @@ struct SteamState {
     // P2P Functions
     string GetIpAddressIdentity() {
         if (!listen_socket) {
-            LOG_INFO("listen socket is not open");
+            LOG_ERROR("GetIpAddressIdentity(): listen socket is not open");
             return "";
         }
         SteamNetworkingIPAddr ip_address;
         if (!SteamNetworkingSockets()->GetListenSocketAddress(listen_socket, &ip_address)) {
-            return "GetListenSocketAddress failed";
+            LOG_ERROR("GetIpAddressIdentity(): GetListenSocketAddress failed");
+            return "";
         }
         SteamNetworkingIdentity id;
         id.m_eType = k_ESteamNetworkingIdentityType_IPAddress;
@@ -128,10 +129,16 @@ struct SteamState {
 
     auto RenamePeer(string_view_nt str_identity, string_view_nt str_new_identity) {
         auto peer = FindPeer(str_identity.sv);
-        if (peer == peers.end()) return false;
+        if (peer == peers.end()) {
+            LOG_ERROR("RenamePeer(): no peer named ", str_identity);
+            return false;
+        }
         auto new_peer = FindPeer(str_new_identity.sv);
         // Don't allow renaming to a name that already exists.
-        if (new_peer != peers.end()) return false;
+        if (new_peer != peers.end()) {
+            LOG_ERROR("RenamePeer(): peer named ", str_new_identity, " already exists.");
+            return false;
+        }
         peer->ident = str_new_identity.sv;
         return true;
     }
@@ -142,18 +149,18 @@ struct SteamState {
 
     bool P2PListen() {
         if (listen_socket != k_HSteamListenSocket_Invalid) {
-            LOG_INFO("listen socket is already open");
+            LOG_ERROR("P2PListen(): listen socket is already open");
             return false;
         }
         auto socket = SteamNetworkingSockets()->CreateListenSocketP2P(1, 0, nullptr);
         listen_socket = socket;
-        LOG_INFO("created ListenSocket");
+        LOG_INFO("P2PListen(): created listen socket");
         return socket != k_HSteamListenSocket_Invalid;
     }
 
     bool P2PListenIP(string_view_nt ip_addr) {
         if (listen_socket != k_HSteamListenSocket_Invalid) {
-            LOG_INFO("listen socket is already open");
+            LOG_ERROR("P2PListenIP(): listen socket is already open");
             return false;
         }
         SteamNetworkingIPAddr ip;
@@ -162,22 +169,27 @@ struct SteamState {
         ip.ToString(real_ip, sizeof(real_ip), true);
         auto socket = SteamNetworkingSockets()->CreateListenSocketIP(ip, 0, nullptr);
         listen_socket = socket;
-        LOG_INFO("created listen socket for IP Address at ", real_ip);
+        LOG_INFO("P2PListen(): created listen socket for IP Address at ", real_ip);
         SteamNetworkingIPAddr address;
-        if (SteamNetworkingSockets()->GetListenSocketAddress(listen_socket, &address)) {
-            char ipaddr[SteamNetworkingIPAddr::k_cchMaxString]{};
-            address.ToString(ipaddr, sizeof(ipaddr), true);
-            LOG_INFO("ListenSocket IP Address is ", ipaddr);
+        if (!SteamNetworkingSockets()->GetListenSocketAddress(listen_socket, &address)) {
+            LOG_ERROR("P2PListen(): GetListenSocketAddress failed");
+            return false;
         }
+        char ipaddr[SteamNetworkingIPAddr::k_cchMaxString]{};
+        address.ToString(ipaddr, sizeof(ipaddr), true);
+        LOG_INFO("P2PListen(): listen socket IP Address is ", ipaddr);
         return socket != k_HSteamListenSocket_Invalid;
     }
 
     bool P2PConnect(string_view_nt str_identity) {
         SteamNetworkingIdentity identity{};
         identity.ParseString(str_identity.c_str());
-        LOG_INFO("opening connection to ", str_identity);
+        LOG_INFO("P2PConnect(): opening connection to ", str_identity);
         auto connection = SteamNetworkingSockets()->ConnectP2P(identity, 1, 0, nullptr);
-        if (connection == k_HSteamNetConnection_Invalid) return false;
+        if (connection == k_HSteamNetConnection_Invalid) {
+            LOG_ERROR("P2PConnect(): failed to open connection to ", str_identity);
+            return false;
+        }
         peers.push_back(SteamPeer { string(str_identity.sv), {}, connection, false, false, {} });
         return true;
     }
@@ -187,44 +199,58 @@ struct SteamState {
         ip.ParseString(ip_addr.c_str());
         char real_ip[SteamNetworkingIdentity::k_cchMaxString]{};
         ip.ToString(real_ip, sizeof(real_ip), true);
-        LOG_INFO("opened connection for IP address to ", real_ip);
+        LOG_INFO("P2PConnectIP(): opened connection for IP address to ", ip_addr, " (parsed as ", real_ip, ")");
         auto connection = SteamNetworkingSockets()->ConnectByIPAddress(ip, 0, nullptr);
-        if (connection == k_HSteamNetConnection_Invalid) return false;
+        if (connection == k_HSteamNetConnection_Invalid) {
+            LOG_ERROR("P2PConnectIP(): failed to open connection to ", ip_addr);
+            return false;
+        }
         peers.push_back(SteamPeer { string(ip_addr.sv), {}, connection, false, false, {} });
         return true;
     }
 
     bool P2PCloseConnection(string_view_nt str_identity, bool linger) {
         auto peer = FindPeer(str_identity.sv);
-        if (peer == peers.end()) return false;
-        if (!peer->is_connected) return false;
+        if (peer == peers.end()) {
+            LOG_ERROR("P2PCloseConnection(): no peer named ", str_identity);
+            return false;
+        }
+        if (!peer->is_connected) {
+            LOG_ERROR("P2PCloseConnection(): peer named ", str_identity, " is not connected");
+            return false;
+        }
         auto ok = SteamNetworkingSockets()->CloseConnection(peer->connection, k_ESteamNetConnectionEnd_App_Generic, "", linger);
         if (ok) {
             peers.erase(peer);
         }
-        LOG_INFO("closed connection");
+        LOG_INFO("P2PCloseConnection(): connection closed");
         return ok;
     }
 
     bool CloseListen() {
         if (listen_socket == k_HSteamListenSocket_Invalid) {
-            LOG_INFO("listen socket is already closed");
+            LOG_INFO("CloseListen(): listen socket is already closed");
             return true;
         }
         auto result = SteamNetworkingSockets()->CloseListenSocket(listen_socket);
-        LOG_INFO("closed ListenSocket");
+        LOG_INFO("CloseListen(): closed listen socket");
         listen_socket = k_HSteamListenSocket_Invalid;
         return result;
     }
 
     bool SendMessage(string_view_nt str_identity, string_view buf, bool reliable) {
         auto peer = FindPeer(str_identity.sv);
-        if (peer == peers.end()) return false;
+        if (peer == peers.end()) {
+            LOG_ERROR("SendMessage(): no peer named ", str_identity);
+            return false;
+        }
         if (!peer->is_connected) {
             if (reliable) {
-                LOG_INFO("SendMessage queueing message to \"", str_identity, "\"");
+                LOG_INFO("SendMessage(): queueing message to \"", str_identity, "\"");
                 peer->queued_messages.push_back(QueuedMessage { peer->net_identity, string(buf) });
+                return true;
             }
+            LOG_ERROR("SendMessage(): peer named ", str_identity, " is not connected, dropping unreliable message");
             return false;
         }
 
@@ -233,7 +259,7 @@ struct SteamState {
         int flags = reliable ? k_nSteamNetworkingSend_Reliable : k_nSteamNetworkingSend_Unreliable;
         auto result = SteamNetworkingSockets()->SendMessageToConnection(peer->connection, data, size, flags, nullptr);
         if (result != k_EResultOK) {
-            LOG_INFO("WARNING: SendMessage to \"", str_identity, "\" of size ", buf.size() ," got result ",  result, ".");
+            LOG_ERROR("SendMessage(): trying to send message to \"", str_identity, "\" of size ", buf.size() ," got result ",  result);
         }
         return result == k_EResultOK;
     }
@@ -250,18 +276,20 @@ struct SteamState {
         // too.
         for (auto &peer: peers) {
             if (!peer.is_connected) {
+                char ident[SteamNetworkingIdentity::k_cchMaxString]{};
+                peer.net_identity.ToString(ident, sizeof(ident));
                 if (reliable) {
-                    char ident[SteamNetworkingIdentity::k_cchMaxString]{};
-                    peer.net_identity.ToString(ident, sizeof(ident));
-                    LOG_INFO("BroadcastMessage queueing message to \"", ident, "\"");
+                    LOG_INFO("BroadcastMessage(): queueing message to \"", ident, "\"");
                     peer.queued_messages.push_back(QueuedMessage { peer.net_identity, string(buf) });
+                    continue;
                 }
+                LOG_ERROR("BroadcastMessage(): peer named ", ident, " is not connected, dropping unreliable message");
                 continue;
             }
             auto result = SteamNetworkingSockets()->SendMessageToConnection(peer.connection, data, size, flags, nullptr);
             ok &= result == k_EResultOK;
             if (result != k_EResultOK) {
-                LOG_INFO("WARNING: BroadcastMessage to \"", peer.ident, "\" of size ", buf.size() ," got result ",  result, ".");
+                LOG_ERROR("BroadcastMessage(): trying to send message to \"", peer.ident, "\" of size ", buf.size() ," got result ",  result);
             }
         }
         return ok;
@@ -296,7 +324,7 @@ struct SteamState {
                 int flags = k_nSteamNetworkingSend_Reliable;
                 auto result = SteamNetworkingSockets()->SendMessageToConnection(peer.connection, data, size, flags, nullptr);
                 if (result != k_EResultOK) {
-                    LOG_INFO("WARNING: SendMessage to \"", ident, "\" of size ", size ," got result ",  result, ".");
+                    LOG_ERROR("UpdateP2P(): trying to send message to \"", ident, "\" of size ", size ," got result ",  result);
                 }
             }
             peer.queued_messages.clear();
@@ -305,10 +333,20 @@ struct SteamState {
 
     bool GetConnectionRealTimeStatus(string_view_nt str_identity, SteamNetConnectionRealTimeStatus_t* status) {
         auto peer = FindPeer(str_identity.sv);
-        if (peer == peers.end()) return false;
-        if (!peer->is_connected) return false;
+        if (peer == peers.end()) {
+            LOG_ERROR("GetConnectionRealTimeStatus(): no peer named ", str_identity);
+            return false;
+        }
+        if (!peer->is_connected) {
+            LOG_ERROR("GetConnectionRealTimeStatus(): peer named ", str_identity, " is not connected");
+            return false;
+        }
         auto result = SteamNetworkingSockets()->GetConnectionRealTimeStatus(peer->connection, status, 0, nullptr);
-        return result == k_EResultOK;
+        if (result != k_EResultOK) {
+            LOG_ERROR("GetConnectionRealTimeStatus(): failed to get realtime status of ", str_identity, " result=", result);
+            return false;
+        }
+        return true;
     }
 
     // Lobby Functions
@@ -494,7 +532,7 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
         }
         return to_string(state);
     };
-    LOG_INFO("steam net connection status changed: ident=", ident, " ipaddr=", ipaddr, " old state='",
+    LOG_INFO("OnNetConnectionStatusChanged(): steam net connection status changed: ident=", ident, " ipaddr=", ipaddr, " old state='",
              get_state_name(old_state), "' new state='", get_state_name(new_state), "'");
 
 	if (info.m_hListenSocket != k_HSteamListenSocket_Invalid &&
@@ -503,7 +541,7 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
         // For now at least, only allow one connection to a peer with a given steam ID.
         auto peer_by_ident = FindPeer(remote_identity);
         if (peer_by_ident != peers.end()) {
-            LOG_INFO("Peer \"", ident, "\" connecting, but already connected?");
+            LOG_ERROR("OnNetConnectionStatusChanged(): Peer \"", ident, "\" connecting, but already connected?");
             SteamNetworkingSockets()->CloseConnection(conn, k_ESteamNetConnectionEnd_AppException_Generic, "Already connected", false );
             peers.erase(peer_by_ident);
             return;
@@ -513,7 +551,7 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
         auto [ peer, found_peer ] = FindOrCreatePeer(conn);
         EResult res = SteamNetworkingSockets()->AcceptConnection(conn);
         if (res != k_EResultOK) {
-            LOG_INFO("AcceptConnection failed with error=", res);
+            LOG_ERROR("OnNetConnectionStatusChanged(): AcceptConnection failed with error=", res);
             SteamNetworkingSockets()->CloseConnection(conn, k_ESteamNetConnectionEnd_AppException_Generic, "Failed to accept connection", false );
             peers.erase(peer);
             return;
@@ -523,7 +561,7 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
         peer->net_identity = remote_identity;
         peer->is_connected = false;
         peer->is_listen_connection = peer->is_listen_connection || !found_peer;
-        LOG_INFO("OnNetConnectionStatusChanged(): Connecting peer \"", ident, "\"");
+        LOG_INFO("OnNetConnectionStatusChanged(): OnNetConnectionStatusChanged(): Connecting peer \"", ident, "\"");
         // TODO: start authentication here, if needed
     } else if (new_state == k_ESteamNetworkingConnectionState_Connected) {
         auto [ peer, found_peer ] = FindOrCreatePeer(conn);
@@ -533,11 +571,11 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
         peer->is_connected = true;
         peer->is_listen_connection = peer->is_listen_connection || !found_peer;
         if (poll_group == k_HSteamNetPollGroup_Invalid) {
-            LOG_INFO("Creating poll group");
+            LOG_INFO("OnNetConnectionStatusChanged(): Creating poll group");
             poll_group = SteamNetworkingSockets()->CreatePollGroup();
         }
         SteamNetworkingSockets()->SetConnectionPollGroup(conn, poll_group);
-        LOG_INFO("Connected peer \"", ident, "\"");
+        LOG_INFO("OnNetConnectionStatusChanged(): Connected peer \"", ident, "\"");
 	} else if (new_state == k_ESteamNetworkingConnectionState_ClosedByPeer ||
                new_state == k_ESteamNetworkingConnectionState_ProblemDetectedLocally) {
 		// Handle disconnecting a peer
@@ -546,16 +584,16 @@ void SteamState::OnNetConnectionStatusChanged(SteamNetConnectionStatusChangedCal
             auto ok = SteamNetworkingSockets()->CloseConnection(
                 peer->connection, k_ESteamNetConnectionEnd_App_Generic, nullptr, false);
             peers.erase(peer);
-            LOG_INFO("Disconnected from peer \"", ident, "\" msg=\"", info.m_szEndDebug, "\" close connection ok?=", ok);
+            LOG_INFO("OnNetConnectionStatusChanged(): Disconnected from peer \"", ident, "\" msg=\"", info.m_szEndDebug, "\" close connection ok?=", ok);
         } else {
-            LOG_INFO("Peer \"", ident, "\" disconnecting, but not in list?  msg=\"", info.m_szEndDebug, "\"");
+            LOG_INFO("OnNetConnectionStatusChanged(): Peer \"", ident, "\" disconnecting, but not in list?  msg=\"", info.m_szEndDebug, "\"");
         }
 	}
 }
 
 // Lobby callbacks
 void SteamState::OnLobbyCreated(LobbyCreated_t *callback, bool /*io_failure*/) {
-    LOG_INFO("Lobby Created: result=", callback->m_eResult, " lobby=", callback->m_ulSteamIDLobby);
+    LOG_INFO("OnLobbyCreated(): result=", callback->m_eResult, " lobby=", callback->m_ulSteamIDLobby);
     if (callback->m_eResult == k_EResultOK) {
         CSteamID lobby_id(callback->m_ulSteamIDLobby);
         created_lobby = lobby_id;
@@ -564,13 +602,13 @@ void SteamState::OnLobbyCreated(LobbyCreated_t *callback, bool /*io_failure*/) {
         if (iter == joined_lobbies.end()) {
             joined_lobbies.push_back(lobby_id);
         } else {
-            LOG_INFO("Already joined lobby=", callback->m_ulSteamIDLobby, "?");
+            LOG_INFO("OnLobbyCreated(): Already joined lobby=", callback->m_ulSteamIDLobby, "?");
         }
     }
 }
 
 void SteamState::OnLobbyEntered(LobbyEnter_t *callback, bool /*io_failure*/) {
-    LOG_INFO("Lobby Entered: lobby=", callback->m_ulSteamIDLobby,
+    LOG_INFO("OnLobbyEntered(): lobby=", callback->m_ulSteamIDLobby,
              " permissions=", callback->m_rgfChatPermissions, " locked=", callback->m_bLocked, " response=", callback->m_EChatRoomEnterResponse);
     if (callback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess) {
         CSteamID lobby_id(callback->m_ulSteamIDLobby);
@@ -579,18 +617,18 @@ void SteamState::OnLobbyEntered(LobbyEnter_t *callback, bool /*io_failure*/) {
         if (iter == joined_lobbies.end()) {
             joined_lobbies.push_back(lobby_id);
         } else {
-            LOG_INFO("Already joined lobby=", callback->m_ulSteamIDLobby, "?");
+            LOG_INFO("OnLobbyEntered(): Already joined lobby=", callback->m_ulSteamIDLobby, "?");
         }
     }
 }
 
 void SteamState::OnLobbyMatchList(LobbyMatchList_t *lobby_match_list, bool /*io_failure*/) {
     matched_lobbies = lobby_match_list->m_nLobbiesMatching;
-    LOG_INFO("Matched ", matched_lobbies, " lobbies.");
+    LOG_INFO("OnLobbyMatchList(): Matched ", matched_lobbies, " lobbies.");
 }
 
 void SteamState::OnLobbyDataUpdate(LobbyDataUpdate_t* callback) {
-    LOG_INFO("Lobby Data Update: lobby=", callback->m_ulSteamIDLobby,
+    LOG_INFO("OnLobbyDataUpdate(): lobby=", callback->m_ulSteamIDLobby,
              " member=", callback->m_ulSteamIDMember, " success=", callback->m_bSuccess);
 }
 
