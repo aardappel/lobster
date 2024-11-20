@@ -229,7 +229,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>tan</b>(angle<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">the tangents of the angles (in degrees)</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>sincos</b>(angle<font color="#666666">: float</font>) -> <font color="#666666">float2</font></tt></td><td class="a">the normalized vector indicated by angle (in degrees), same as xy { cos(angle), sin(angle) }</td>
+<tr class="a" valign=top><td class="a"><tt><b>sincos</b>(angle<font color="#666666">: float</font>) -> <font color="#666666">float2</font></tt></td><td class="a">the normalized vector indicated by angle (in degrees), same as float2 { cos(angle), sin(angle) }</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>asin</b>(y<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">the angle (in degrees) indicated by the y coordinate projected to the unit circle</td>
@@ -1087,7 +1087,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.dump_shader</b>(filename<font color="#666666">: string</font>, stripnonascii<font color="#666666">: bool</font>) -> <font color="#666666">int</font></tt></td><td class="a">Dumps the compiled (binary) version of the current shader to a file. Contents are driver dependent. On Nvidia hardware it contains the assembly version of the shader as text, pass true for stripnonascii if you're only interested in that part.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.blend</b>(on<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">changes the blending mode (use blending constants from color.lobster), returns old mode</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.blend</b>(on<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">changes the blending mode (use blending constants from texture.lobster), returns old mode</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.load_texture</b>(name<font color="#666666">: string</font>, textureformat<font color="#666666">: int</font> = 0) -> <font color="#666666">resource&lt;texture&gt;?</font></tt></td><td class="a">returns texture if succesfully loaded from file name, otherwise nil. see texture.lobster for texture format. If textureformat includes cubemap, will load 6 images with "_ft" etc inserted before the "." in the filename. Uses stb_image internally (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR, PIC.</td>
@@ -1616,6 +1616,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>steam.net_identity_from_steam_id</b>(steam_id<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">returns a network identity for the given steam id</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.net_identity_ipaddr</b>() -> <font color="#666666">string</font></tt></td><td class="a">returns the steam identity for this user, but as an IP address instead of a Steam ID. This can be useful when connecting two clients that are using the same Steam ID (e.g. on the same computer). NOTE: this will only work if  p2p_listen_ipaddr is called first.</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_set_send_buffer_size</b>(size<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">set the upper limit of pending bytes to be sent</td>
 
 </tr>
@@ -1628,16 +1631,25 @@
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_listen</b>() -> <font color="#666666">int</font></tt></td><td class="a">open a listen socket to receive new connections</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_listen_ipaddr</b>(ipaddr<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">open a listen socket for receive new IP address connections</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_close_listen</b>() -> <font color="#666666">int</font></tt></td><td class="a">close the listen socket and stop accepting new connections</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_connect</b>(ident<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">connect to a user with a given steam identity that has opened a listen socket</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_connect_ipaddr</b>(ipaddr<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">connect to a user with a given IP address that has opened a listen socket</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_close_connection</b>(ident<font color="#666666">: string</font>, linger<font color="#666666">: bool</font>) -> <font color="#666666">int</font></tt></td><td class="a">close a connection opened with p2p_connect(); if linger is true then the connection will remain open for a short time to finish pending messages</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_get_connections</b>() -> <font color="#666666">[string]</font></tt></td><td class="a">get a list of the steam identites that are currently connected</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_rename_peer</b>(ident<font color="#666666">: string</font>, new_ident<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">use a different identifier for this peer. This can be useful when connecting multiple users using peer-to-peer, so you can have all peers in the network use the listen socket IP address and port as the identifier.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_send_message</b>(ident<font color="#666666">: string</font>, data<font color="#666666">: string</font>, reliable<font color="#666666">: bool</font>) -> <font color="#666666">int</font></tt></td><td class="a">send a reliable message to a given steam identity</td>
@@ -1813,7 +1825,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.font_end</b>()</tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.color_start</b>(color<font color="#666666">: float4</font>)</tt></td><td class="a">(use im.tooltip_multi instead)</td>
+<tr class="a" valign=top><td class="a"><tt><b>im.color_start</b>(color<font color="#666666">: float4</font>)</tt></td><td class="a">(use im.color instead)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.color_end</b>()</tt></td><td class="a"></td>
