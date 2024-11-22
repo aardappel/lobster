@@ -188,13 +188,7 @@ while gl.frame():
                             guard local_ident < c:
                                 print "Skipping connection to \"{c}\""
                             print "Connecting to \"{c}\""
-                            if c.find_string("ip:") == 0:
-                                let ipaddr = c.substring(3, -1)
-                                check(steam.p2p_connect_ipaddr(ipaddr), "Unable to connect to peer \'{c}\'")
-                            elif c.find_string("steamid:") == 0:
-                                check(steam.p2p_connect(c), "Unable to connect to peer \'{c}\'")
-                            else:
-                                ok = false
+                            check(steam.p2p_connect(c), "Unable to connect to peer \'{c}\'")
                             // Notify peers of our correct identity.
                             send(m_peer_joined { local_ident })
                         player { c }

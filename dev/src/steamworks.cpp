@@ -169,23 +169,36 @@ struct SteamState {
         ip.ToString(real_ip, sizeof(real_ip), true);
         auto socket = SteamNetworkingSockets()->CreateListenSocketIP(ip, 0, nullptr);
         listen_socket = socket;
-        LOG_INFO("P2PListen(): created listen socket for IP Address at ", real_ip);
+        LOG_INFO("P2PListenIP(): created listen socket for IP Address at ", real_ip);
         SteamNetworkingIPAddr address;
         if (!SteamNetworkingSockets()->GetListenSocketAddress(listen_socket, &address)) {
-            LOG_ERROR("P2PListen(): GetListenSocketAddress failed");
+            LOG_ERROR("P2PListenIP(): GetListenSocketAddress failed");
             return false;
         }
         char ipaddr[SteamNetworkingIPAddr::k_cchMaxString]{};
         address.ToString(ipaddr, sizeof(ipaddr), true);
-        LOG_INFO("P2PListen(): listen socket IP Address is ", ipaddr);
+        LOG_INFO("P2PListenIP(): listen socket IP Address is ", ipaddr);
         return socket != k_HSteamListenSocket_Invalid;
     }
 
     bool P2PConnect(string_view_nt str_identity) {
         SteamNetworkingIdentity identity{};
         identity.ParseString(str_identity.c_str());
-        LOG_INFO("P2PConnect(): opening connection to ", str_identity);
-        auto connection = SteamNetworkingSockets()->ConnectP2P(identity, 1, 0, nullptr);
+        HSteamNetConnection connection = k_HSteamNetConnection_Invalid;
+        if (identity.m_eType == k_ESteamNetworkingIdentityType_IPAddress) {
+            const SteamNetworkingIPAddr *ip = identity.GetIPAddr();
+            if (ip == NULL) {
+                LOG_ERROR("P2PConnect(): identity ", str_identity, " has type IP but GetIPAddr() failed?");
+                return false;
+            }
+            char ip_addr[SteamNetworkingIdentity::k_cchMaxString]{};
+            ip->ToString(ip_addr, sizeof(ip_addr), true);
+            LOG_INFO("P2PConnect(): opened connection for IP address to ", ip_addr);
+            connection = SteamNetworkingSockets()->ConnectByIPAddress(*ip, 0, nullptr);
+        } else {
+            LOG_INFO("P2PConnect(): opening connection to ", str_identity);
+            connection = SteamNetworkingSockets()->ConnectP2P(identity, 1, 0, nullptr);
+        }
         if (connection == k_HSteamNetConnection_Invalid) {
             LOG_ERROR("P2PConnect(): failed to open connection to ", str_identity);
             return false;
@@ -205,7 +218,13 @@ struct SteamState {
             LOG_ERROR("P2PConnectIP(): failed to open connection to ", ip_addr);
             return false;
         }
-        peers.push_back(SteamPeer { string(ip_addr.sv), {}, connection, false, false, {} });
+        // Use the SteamNetworkingIdentity format for the peer's identity (e.g. "ip:<ip_addr>")
+        SteamNetworkingIdentity id;
+        id.m_eType = k_ESteamNetworkingIdentityType_IPAddress;
+        id.SetIPAddr(ip);
+        char str_id[SteamNetworkingIdentity::k_cchMaxString];
+        id.ToString(str_id, sizeof(str_id));
+        peers.push_back(SteamPeer { str_id, {}, connection, false, false, {} });
         return true;
     }
 
@@ -949,7 +968,9 @@ nfr("p2p_close_listen", "", "", "B", "close the listen socket and stop accepting
         return STEAM_BOOL_VALUE(steam->CloseListen());
     });
 
-nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam identity that has opened a listen socket",
+nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam "
+    "identity (e.g. \"steam:XXXX\") or ip address (e.g. \"ip:127.0.0.1:5105\") that "
+    "has opened a listen socket",
     [](StackPtr &, VM &, Value &ident) {
         return STEAM_BOOL_VALUE(steam->P2PConnect(ident.sval()->strvnt()));
     });
