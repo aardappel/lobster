@@ -269,7 +269,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
      */
     protected String[] getLibraries() {
         return new String[] {
-            "SDL2",
+            //"SDL2",
             // "SDL2_image",
             // "SDL2_mixer",
             // "SDL2_net",
