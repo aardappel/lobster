@@ -3875,7 +3875,7 @@ bool Return::Terminal(TypeChecker &) const {
 }
 
 bool Block::Terminal(TypeChecker &tc) const {
-    return children.back()->Terminal(tc);
+    return children.empty() || children.back()->Terminal(tc);
 }
 
 bool IfElse::Terminal(TypeChecker &tc) const {
