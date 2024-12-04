@@ -1696,8 +1696,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         cg.SetLabels(thiscase);
         cg.GenPop(valtlt);
         cg.TakeTemp(1, false);
-        cg.Gen(cas->cbody, retval);
-        if (retval) cg.TakeTemp(1, true);
+        cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back() || !have_default) {
             cg.EmitOp(IL_JUMP);
@@ -1784,8 +1783,7 @@ void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int m
         }
         if (cas->pattern->children.empty()) default_pos = cg.Pos();
         cg.EmitOp(IL_JUMP_TABLE_CASE_START);
-        cg.Gen(cas->cbody, retval);
-        if (retval) cg.TakeTemp(1, true);
+        cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back()) {
             cg.EmitOp(IL_JUMP);
@@ -1817,8 +1815,17 @@ void Switch::GenerateTypeDispatch(CodeGen &cg, size_t retval) const {
     GenerateJumpTableMain(cg, retval, range, 0);
 }
 
-void Case::Generate(CodeGen &/*cg*/, size_t /*retval*/) const {
-    assert(false);
+void Case::Generate(CodeGen &cg, size_t retval) const {
+    if (cbody->Arity()) {
+        cg.Gen(cbody, retval);
+        if (retval) cg.TakeTemp(1, true);
+    } else {
+        // An empty default case signals runtime error for enums.
+        assert(pattern->children.empty());
+        // FIXME: would be great to ensure the offending value is still on the stack for
+        // this instruction to have access to.
+        cg.EmitOp(IL_ENUM_RANGE_ERR);
+    }
 }
 
 void Range::Generate(CodeGen &/*cg*/, size_t /*retval*/) const {

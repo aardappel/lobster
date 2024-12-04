@@ -2698,15 +2698,26 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         de->is_switch_dispatch = true;
         de->is_dispatch_root = true;
         de->subudts_size = dispatch_udt.subudts.size();
-    } else {
-        if (default_loc < 0) {
-            if (reqret) tc.Error(*this, "switch that returns a value must have a default case");
-            if (ptype->IsEnum()) {
-                for (auto [i, ev] : enumerate(ptype->e->vals)) {
-                    if (!enum_cases[i])
-                        tc.Error(*value, "enum value ", Q(ev->name), " not tested in switch");
-                }
+    } else if (default_loc < 0) {
+        if (ptype->IsEnum()) {
+            for (auto [i, ev] : enumerate(ptype->e->vals)) {
+                if (!enum_cases[i])
+                    tc.Error(*value, "enum value ", Q(ev->name), " not tested in switch");
             }
+            // Add a runtime error for when the value is out of range.
+            auto pat = new List(cases->line);
+            pat->exptype = type_void;
+            pat->lt = LT_ANY;
+            // Blocks always have minimum of 1 statement in them, so an empty one signals runtime error here.
+            auto blk = new Block(cases->line);
+            blk->exptype = type_void;
+            blk->lt = LT_ANY;
+            auto cas = new Case(cases->line, pat, blk);
+            cas->exptype = type_void;
+            cas->lt = LT_ANY;
+            cases->Add(cas);
+        } else {
+            if (reqret) tc.Error(*this, "non-exhaustive switch that returns a value must have a default case");
         }
     }
     lt = LT_KEEP;
@@ -3890,7 +3901,10 @@ bool Switch::Terminal(TypeChecker &tc) const {
         if (cas->pattern->children.empty()) have_default = true;
         if (!cas->cbody->Terminal(tc)) return false;
     }
-    // FIXME: this should return true if the switch is proven exhaustive for types, sadly cannot guarantee that with enums.
+    if (!value->exptype.Null() &&  // Should already been typechecked but just in case.
+        (value->exptype->t == V_CLASS || value->exptype->IsEnum()))  // Guaranteed exhaustive or runtime error.
+        return true;
+    // Other types, cannot guarantee it is terminal without a default.
     return have_default;
 }
 

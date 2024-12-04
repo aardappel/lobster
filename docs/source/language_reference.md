@@ -1183,9 +1183,12 @@ var st = switch i:
         default: "what?"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The value you switch on may be int, float, string or class instance. Cases may test for multiple
+The value you switch on may be int, enum, float, string or class instance. Cases may test for multiple
 values, even ranges (which are inclusive). When testing for class instances, the cases are
 types which must exhaustively cover all non-abstract sub-classes of the class type.
+Enums are also required to be tested exhaustively. An enum value that doesn't correspond
+to a value in the current enum definition (such as one read from a file) will produce a runtime
+error if the switch does not have a default case.
 
 `guard` is a special variant of `if` for writing code in "early-out" style:
 

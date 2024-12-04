@@ -31,7 +31,6 @@ def mode_name(): return switch mode:
     case shuffle_naive_swap: "naive swap"
     case shuffle_push_remove: "push remove"
     case shuffle_fisher_yates: "fisher yates"
-    default: ""
 
 def naive_swap(xs):
     // ala https://blog.codinghorror.com/the-danger-of-naivete/
