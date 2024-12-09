@@ -62,7 +62,9 @@ export class LSPInstance {
             if (c.executable.length == 0)
                 return throwError("Lobster executable path is not set.");
 
-            getBuiltinsDoc(c).then((d) => this.builtinsDoc = d);
+            if (this.builtinsDoc.length == 0) {
+                getBuiltinsDoc(c).then((d) => this.builtinsDoc = d);
+            }
 
             exec(c.executable, (error, stdout, stderr) => {
                 if (stderr) {
