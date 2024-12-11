@@ -1186,7 +1186,7 @@ nfr("input_int", "label,val,min,max", "SIII", "I",
     [](StackPtr &, VM &vm, Value &text, Value &val, Value &min, Value &max) {
         IsInit(vm);
         ImGui::InputScalar(Label(vm, text), ImGuiDataType_S64, (void *)&val,
-                           nullptr, nullptr, "%d", 0);
+                           nullptr, nullptr, "%" PRId64, 0);
         if (val.ival() < min.ival()) val = min;
         if (val.ival() > max.ival()) val = max;
         return val;
@@ -1197,7 +1197,7 @@ nfr("input_int", "label,val", "SI", "I",
     [](StackPtr &, VM &vm, Value &text, Value &val) {
         IsInit(vm);
         ImGui::InputScalar(Label(vm, text), ImGuiDataType_S64, (void *)&val,
-                           nullptr, nullptr, "%d", 0);
+                           nullptr, nullptr, "%" PRId64, 0);
         return val;
     });
 
