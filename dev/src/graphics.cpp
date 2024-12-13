@@ -307,6 +307,14 @@ nfr("fullscreen", "mode", "I", "",
         return NilVal();
     });
 
+nfr("window_size", "size", "I}:2", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        auto size = PopVec<int2>(sp);
+        TestGL(vm);
+        SDLSetWindowSize(size);
+    });
+
 nfr("visible", "", "", "B",
     "checks if the window is currently visible (not minimized, or on mobile devices, in the"
     " foreground). If false, you should not render anything, nor run the frame's code.",
