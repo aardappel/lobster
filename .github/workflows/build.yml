@@ -84,7 +84,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-12
+          - os: macos-14
             artifact_name: Mac (Apple x64 Intel) Lobster binary
           - os: macos-14
             artifact_name: Mac (Apple ARM Silicon) Lobster binary

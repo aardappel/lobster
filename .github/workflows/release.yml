@@ -68,7 +68,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-12
+          - os: macos-14
             artifact_name: lobster_osx_x64_release.zip
             asset_name: Release ${{ github.ref_name }} for macOS (X64 Intel)
           - os: macos-14
