@@ -1054,6 +1054,20 @@ nfr("set_layout_pos", "pos", "F}:2", "", "",
         ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
     });
 
+nfr("get_layout_screen_pos", "", "", "F}:2", "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto pos = ImGui::GetCursorScreenPos();
+        PushVec(sp, float2(pos.x, pos.y));
+    });
+
+nfr("set_layout_screen_pos", "pos", "F}:2", "", "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto pos = PopVec<float2>(sp);
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y));
+    });
+
 nfr("get_content_region_avail", "", "", "F}:2",
     "returns the amount of space left in the current region from the cursor pos",
     [](StackPtr &sp, VM &vm) {
@@ -1362,6 +1376,44 @@ nfr("image_mouseclick", "tex,size", "R:textureF}:2", "F}:2I",
             PushVec<float, 2>(sp, -float2_1);
             Push(sp, -1);
         }
+    });
+
+nfr("rect", "min,max,color,rounding,thickness", "F}:2F}:2F}:4FF", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto thickness = Pop(sp).fltval();
+        auto rounding = Pop(sp).fltval();
+        auto color = PopVec<float4>(sp);
+        auto p_max = PopVec<float2>(sp);
+        auto p_min = PopVec<float2>(sp);
+        ImDrawFlags flags = rounding >= 0.0 ? ImDrawFlags_RoundCornersAll : ImDrawFlags_None;
+        ImGui::GetWindowDrawList()->AddRect(
+            ImVec2(p_min.x, p_min.y),
+            ImVec2(p_max.x, p_max.y),
+            ImGui::GetColorU32(ImVec4(color.x, color.y, color.z, color.w)),
+            rounding,
+            flags,
+            thickness
+        );
+    });
+
+nfr("rect_filled", "min,max,color,rounding", "F}:2F}:2F}:4F", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto rounding = Pop(sp).fltval();
+        auto color = PopVec<float4>(sp);
+        auto p_max = PopVec<float2>(sp);
+        auto p_min = PopVec<float2>(sp);
+        ImDrawFlags flags = rounding >= 0.0 ? ImDrawFlags_RoundCornersAll : ImDrawFlags_None;
+        ImGui::GetWindowDrawList()->AddRectFilled(
+            ImVec2(p_min.x, p_min.y),
+            ImVec2(p_max.x, p_max.y),
+            ImGui::GetColorU32(ImVec4(color.x, color.y, color.z, color.w)),
+            rounding,
+            flags
+        );
     });
 
 nfr("treenode_start", "label,flags", "SI", "B",
