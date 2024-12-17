@@ -838,6 +838,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.fullscreen</b>(mode<font color="#666666">: int</font>)</tt></td><td class="a">use window_init enum flags from gl module</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.window_size</b>(size<font color="#666666">: int2</font>)</tt></td><td class="a"></td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.visible</b>() -> <font color="#666666">int</font></tt></td><td class="a">checks if the window is currently visible (not minimized, or on mobile devices, in the foreground). If false, you should not render anything, nor run the frame's code.</td>
 
 </tr>
@@ -1804,6 +1807,12 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.set_layout_pos</b>(pos<font color="#666666">: float2</font>)</tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.get_layout_screen_pos</b>() -> <font color="#666666">float2</font></tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.set_layout_screen_pos</b>(pos<font color="#666666">: float2</font>)</tt></td><td class="a"></td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.get_content_region_avail</b>() -> <font color="#666666">float2</font></tt></td><td class="a">returns the amount of space left in the current region from the cursor pos</td>
 
 </tr>
@@ -1904,6 +1913,12 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.image_mouseclick</b>(tex<font color="#666666">: resource&lt;texture&gt;</font>, size<font color="#666666">: float2</font>) -> <font color="#666666">float2</font>, <font color="#666666">int</font></tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.rect</b>(min<font color="#666666">: float2</font>, max<font color="#666666">: float2</font>, color<font color="#666666">: float4</font>, rounding<font color="#666666">: float</font>, thickness<font color="#666666">: float</font>)</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.rect_filled</b>(min<font color="#666666">: float2</font>, max<font color="#666666">: float2</font>, color<font color="#666666">: float4</font>, rounding<font color="#666666">: float</font>)</tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.treenode_start</b>(label<font color="#666666">: string</font>, flags<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im.treenode instead)</td>
