@@ -61,6 +61,7 @@ struct SteamState {
                 }
             }
         }
+        SteamAPI_RunCallbacks();
         // Make sure to close connections before closing the listen socket, that
         // seems to crash Steam.
         if (listen_socket != k_HSteamListenSocket_Invalid) {
@@ -68,11 +69,13 @@ struct SteamState {
             auto ok = SteamNetworkingSockets()->CloseListenSocket(listen_socket);
             if (!ok) LOG_ERROR("~SteamState(): closing listen socket failed");
         }
+        SteamAPI_RunCallbacks();
         if (poll_group != k_HSteamNetPollGroup_Invalid) {
             LOG_INFO("~SteamState(): destroying poll group");
             auto ok = SteamNetworkingSockets()->DestroyPollGroup(poll_group);
             if (!ok) LOG_ERROR("~SteamState(): destroying poll group failed");
         }
+        SteamAPI_RunCallbacks();
     }
 
     STEAM_CALLBACK(SteamState, OnGameOverlayActivated, GameOverlayActivated_t);
