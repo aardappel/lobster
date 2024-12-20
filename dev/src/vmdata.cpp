@@ -109,6 +109,12 @@ void LVector::Remove(VM &vm, iint i, iint n) {
     len -= n;
 }
 
+void LVector::Truncate(VM &vm, iint n) {
+    assert(n >= 0 && n <= len);
+    DestructElementRange(vm, n, len);
+    len = n;
+}
+
 void LVector::AtVW(StackPtr &sp, iint i) const {
     auto src = AtSt(i);
     tsnz_memcpy(TopPtr(sp), src, width);

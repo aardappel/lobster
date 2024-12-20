@@ -239,6 +239,9 @@ run_test("misc"):
         7.factorial
         testvector.fold(0): _x + _y
 
+    testvector.truncate(1)
+    assert equal(testvector, [ 3 ])
+
     assert in_range(0, 1)
     assert in_range(0, 1, 0)  // Pass int to nillable int type just for builtins.
 

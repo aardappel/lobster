@@ -291,6 +291,15 @@ nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
         return o;
     });
 
+nfr("truncate", "xs,i", "A]*I", "",
+    "removes all elements starting from index i, does nothing if i >= len",
+    [](StackPtr &sp, VM &vm) {
+        auto i = Pop(sp).ival();
+        auto l = Pop(sp).vval();
+        if (i < 0 || i >= l->len) return;
+        l->Truncate(vm, i);
+    });
+
 nfr("binary_search", "xs,key", "I]I", "II",
     "does a binary search for key in a sorted vector, returns as first return value how many"
     " matches were found, and as second the index in the array where the matches start (so you"

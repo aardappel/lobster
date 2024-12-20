@@ -786,6 +786,7 @@ struct LVector : RefObj {
 
     void RemovePush(StackPtr &sp, iint i);
     void Remove(VM &vm, iint i, iint n);
+    void Truncate(VM &vm, iint n);
 
     Value *Elems() { return v; }
     const Value *Elems() const { return v; }
