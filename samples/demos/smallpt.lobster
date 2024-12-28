@@ -121,8 +121,8 @@ def radiance(r:Ray, depth) -> float3:
             radiance(reflRay,depth)*Re+radiance(Ray { x, tdir },depth)*Tr
     return obj.e + f*temp
 
-let w = 64
-let h = 48
+let w = 800
+let h = 600
 
 let cam = Ray { float3 { 50.0,50.0,290.0 }, normalize(float3 { 0.0,-0.042612,-1.0 }) } // cam pos, dir
 let cx = float3_x * (w*.5135/h)

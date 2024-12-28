@@ -67,7 +67,7 @@ const float lrad = 100.0;
 
 const uint num_spheres = 9;
 const Sphere spheres[num_spheres] = Sphere[](
-    Sphere(50.0, vec3(50.0, lrad + 81.6 - 1.0, 81.6), vec3(12.0), vec3(0), DIFF), // Lite
+    Sphere(lrad, vec3(50.0, lrad + 81.6 - 1.0, 81.6), vec3(12.0), vec3(0), DIFF), // Lite
     Sphere(16.5, vec3(73.0, 16.5, 78.0), vec3(0.0), vec3(0.999), REFR),            // Glas
     Sphere(16.5, vec3(27.0, 16.5, 47.0), vec3(0.0), vec3(0.999), SPEC),            // Mirr
     Sphere(bigrad, vec3(50.0, -bigrad + 81.6, 81.6), vec3(0.0), vec3(0.75), DIFF), // Top
@@ -79,17 +79,100 @@ const Sphere spheres[num_spheres] = Sphere[](
 );
 
 
-vec3 radiance(Ray r, uint depth) {
-    float t = 1000000000000.0; // distance to intersection
-    int id = -1; // id of intersected object
-    for (int i = 0; i < num_spheres; ++i) {
-        float d = intersect(spheres[i], r);
-        if (d > 0.0 && d < t) {
-            t = d;
-            id = i;
+vec3 radiance(Ray initial_ray, uint initial_depth, inout uint seed) {
+    vec3 result = vec3(0.0); // Final accumulated color
+    vec3 attenuation = vec3(1.0); // Tracks the accumulated reflectance along the path
+    uint depth = initial_depth;
+
+    Ray ray = initial_ray;
+
+    while (true) {
+        float t = 1000000000000.0; // Distance to intersection
+        int id = -1; // ID of the intersected object
+
+        // Find the closest sphere intersection
+        for (int i = 0; i < num_spheres; ++i) {
+            float d = intersect(spheres[i], ray);
+            if (d > 0.0 && d < t) {
+                t = d;
+                id = i;
+            }
         }
+
+        // If no intersection, terminate and return the accumulated color
+        if (id == -1) {
+            result += attenuation * vec3(0.0); // Add black if no hit
+            break;
+        }
+
+        // Intersection found
+        Sphere s = spheres[id];
+        vec3 x = ray.o + ray.d * t;  // Hit position
+        vec3 n = normalize(x - s.p);  // Surface normal
+        vec3 nl = dot(n, ray.d) < 0.0 ? n : -n;  // Properly oriented normal
+        vec3 f = s.c; // Object color
+        result += attenuation * s.e; // Add emitted light
+
+        // Russian Roulette for termination
+        float p = max(max(f.x, f.y), f.z); // Maximum reflectance
+        if (++depth > 5) {
+            if (random_float(seed) >= p) {
+                break; // Terminate if not reflected
+            }
+            f *= 1.0 / p; // Scale reflectance
+        }
+
+        // Update attenuation
+        attenuation *= f;
+
+        // Determine next ray direction based on material type
+        if (s.refl == DIFF) { // Diffuse reflection
+            float r1 = 360.0* random_float(seed);
+            float r2 = random_float(seed);
+            float r2s = sqrt(r2);
+            vec3 w = nl;
+            vec3 u = normalize(abs(w.x) > 0.1 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0));
+            vec3 v = cross(w, u);
+            vec3 d = normalize(u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1.0 - r2));
+            ray = Ray(x, d); // Update the ray
+        } else if (s.refl == SPEC) { // Specular reflection
+            ray = Ray(x, ray.d - n * 2.0 * dot(n, ray.d)); // Reflect ray
+        } else { // Dielectric refraction
+            Ray reflRay = Ray(x, ray.d - n * 2.0 * dot(n, ray.d));
+            bool into = dot(n, nl) > 0.0; // Ray entering?
+            float nc = 1.0;
+            float nt = 1.5;
+            float nnt = into ? nc / nt : nt / nc;
+            float ddn = dot(ray.d, nl);
+            float cos2t = 1.0 - nnt * nnt * (1.0 - ddn * ddn);
+
+            if (cos2t < 0.0) { // Total internal reflection
+                ray = reflRay; // Reflect ray
+                continue;
+            }
+
+            vec3 tdir = normalize(ray.d * nnt - n * ((into ? 1.0 : -1.0) * (ddn * nnt + sqrt(cos2t))));
+            float a = nt - nc;
+            float b = nt + nc;
+            float R0 = a * a / (b * b);
+            float c = 1.0 - (into ? -ddn : dot(tdir, n));
+            float Re = R0 + (1.0 - R0) * c * c * c * c * c;
+            float Tr = 1.0 - Re;
+            float P = 0.25 + 0.5 * Re;
+            float RP = Re / P;
+            float TP = Tr / (1.0 - P);
+
+            if (random_float(seed) < P) {
+                attenuation *= RP;
+                ray = reflRay;
+            } else {
+                attenuation *= TP;
+                ray = Ray(x, tdir);
+            }
+        }
+
+        ray.o += ray.d * 0.001; // Offset the origin to avoid self-intersection
     }
-    if (id == -1) return vec3(0.0); // if miss, return black
-    return spheres[id].c; // the hit object
-    // return vec3(1.0); // the hit object
+
+    return result;
 }

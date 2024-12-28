@@ -14,7 +14,7 @@ struct Ray:
     d:float3
 
 
-let rgba32f = texture_format_float | texture_format_clamp | texture_format_nomipmap
+let rgba32f = texture_format_float | texture_format_clamp | texture_format_nomipmap | texture_format_compute | texture_format_readwrite
 
 let albedo_tex_format = rgba32f
 var last_window_size = int2{800, 600}
@@ -43,6 +43,7 @@ SHADER screen
 
 fatal(gl.load_materials(mats, true))
 var albedo_tex = gl.create_blank_texture(int3(last_window_size, 0), albedo_tex_format)
+var albedo_text_db = gl.create_blank_texture(int3(last_window_size, 0), albedo_tex_format)
 var window_size_changed_last_frame = false
 var frame_count = 0
 var frame_accum = 0 // for averaging
@@ -63,6 +64,7 @@ while(gl.frame()):
     ++frame_accum
     if window_size_changed_last_frame:
         albedo_tex = gl.create_blank_texture(int3(last_window_size, 0), albedo_tex_format)
+        albedo_text_db = gl.create_blank_texture(int3(last_window_size, 0), albedo_tex_format)
         frame_accum = 0
         cx = float3_x * (last_window_size.x * .5135 / last_window_size.y)
         cy = normalize(cx.cross(cam.d)) * .5135
@@ -73,7 +75,8 @@ while(gl.frame()):
     gl.set_uniform_matrix("m_ray", cam_vector, true)
     gl.set_uniform_matrix("lens", lens_matrix, true)
     gl.set_uniform("window_size", last_window_size)
-    gl.set_image_texture(0, albedo_tex, 0, texture_format_writeonly)
+    gl.set_image_texture(0, if frame_count % 2 == 0: albedo_tex else: albedo_text_db, 0)
+    gl.set_image_texture(1, if frame_count % 2 == 0: albedo_text_db else: albedo_tex, 0)
     let groups = (last_window_size + 7) / 8
     gl.dispatch_compute(int3(groups, 1))
     gl.blend(blend_none)
