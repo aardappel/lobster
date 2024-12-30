@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <filesystem>
+
 // Platform independent file access:
 typedef int64_t (* FileLoader)(string_view_nt absfilename, string *dest, int64_t start, int64_t len);
 
@@ -55,6 +57,7 @@ extern void AddPakFileEntry(string_view pakfilename, string_view relfilename, in
 struct DirInfo {
     string name;
     int64_t size = 0;
+    filesystem::file_time_type last_write_time;
 };
 
 extern bool ScanDir(string_view reldir, vector<DirInfo> &dest);
