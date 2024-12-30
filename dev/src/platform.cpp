@@ -432,7 +432,7 @@ bool FileDelete(string_view relfilename) {
 // TODO: can now replace all this platform specific stuff with std::filesystem code.
 // https://github.com/tvaneerd/cpp17_in_TTs/blob/master/ALL_IN_ONE.md
 // http://en.cppreference.com/w/cpp/experimental/fs
-bool ScanDirAbs(string_view absdir, vector<pair<string, int64_t>> &dest) {
+bool ScanDirAbs(string_view absdir, vector<DirInfo> &dest) {
     string folder = SanitizePath(absdir);
     #ifdef _WIN32
         WIN32_FIND_DATA fdata;
@@ -474,7 +474,7 @@ bool ScanDirAbs(string_view absdir, vector<pair<string, int64_t>> &dest) {
     return false;
 }
 
-bool ScanDir(string_view reldir, vector<pair<string, int64_t>> &dest) {
+bool ScanDir(string_view reldir, vector<DirInfo> &dest) {
     // First check the pakfile.
     for (auto [prfn, tup] : pakfile_registry) {
         if (prfn.find(reldir) == 0) {
