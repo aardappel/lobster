@@ -440,9 +440,9 @@ bool ScanDirAbs(string_view absdir, vector<DirInfo> &dest) {
         for (; iter != directory_iterator(); ++iter) {
             auto &entry = *iter;
             if (entry.is_directory()) {
-                dest.push_back({ entry.path().filename().string(), -1 });
+                dest.push_back({ entry.path().filename().string(), -1, entry.last_write_time() });
             } else {
-                dest.push_back({ entry.path().filename().string(), (int64_t)entry.file_size() });
+                dest.push_back({ entry.path().filename().string(), (int64_t)entry.file_size(), entry.last_write_time() });
             }
         }
         return true;

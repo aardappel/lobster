@@ -168,11 +168,11 @@ string BuildPakFile(string &pakfile, string &bytecode, set<string> &files, uint6
             }
             vector<DirInfo> dir;
             if (!ScanDir(base, dir)) return "cannot load file/dir for pakfile: " + filename;
-            for (auto &[name, size] : dir) {
-                if (!pat.empty() && name.find(pat) == name.npos) continue;
+            for (auto &entry : dir) {
+                if (!pat.empty() && entry.name.find(pat) == entry.name.npos) continue;
                 auto fn = base;
                 if (fn.back() != '/') fn += "/";
-                fn += name;
+                fn += entry.name;
                 auto err = addrec(fn);
                 if (!err.empty()) return err;
             }
