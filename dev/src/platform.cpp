@@ -437,12 +437,13 @@ bool ScanDirAbs(string_view absdir, vector<DirInfo> &dest) {
         error_code ec;
         directory_iterator iter{p, ec};
         if (ec) return false;
-        for (; iter != directory_iterator(); ++iter) {
+        for (; iter != directory_iterator(); iter.increment(ec)) {
+            if (ec) continue;
             auto &entry = *iter;
             if (entry.is_directory()) {
-                dest.push_back({ entry.path().filename().string(), -1, entry.last_write_time() });
+                dest.push_back({ entry.path().filename().string(), -1, entry.last_write_time(ec) });
             } else {
-                dest.push_back({ entry.path().filename().string(), (int64_t)entry.file_size(), entry.last_write_time() });
+                dest.push_back({ entry.path().filename().string(), (int64_t)entry.file_size(ec), entry.last_write_time(ec) });
             }
         }
         return true;
