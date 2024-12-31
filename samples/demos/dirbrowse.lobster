@@ -98,7 +98,7 @@ def render_times(old_width):
     var width = 0.0
     for(entries) e:
         gl.color color_dark_green:
-            let text = format_time("%c", e.last_write_time)
+            let text = format_time("%c", e.last_write_time, true)
             let size = gl.text_size(text)
             width = max(width, size.x)
             gl.translate float2 { old_width - size.x - column_margin, 0.0 }:
