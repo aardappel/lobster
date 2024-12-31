@@ -73,6 +73,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>remove_obj</b>(xs<font color="#666666">: [any]</font>, obj<font color="#666666">: any</font>) -> <font color="#666666">any</font></tt></td><td class="a">remove all elements equal to obj (==), returns obj.</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>truncate</b>(xs<font color="#666666">: [any]</font>, i<font color="#666666">: int</font>)</tt></td><td class="a">removes all elements starting from index i, does nothing if i &gt;= len</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>binary_search</b>(xs<font color="#666666">: [int]</font>, key<font color="#666666">: int</font>) -> <font color="#666666">int</font>, <font color="#666666">int</font></tt></td><td class="a">does a binary search for key in a sorted vector, returns as first return value how many matches were found, and as second the index in the array where the matches start (so you can read them, overwrite them, or remove them), or if none found, where the key could be inserted such that the vector stays sorted. This overload is for int vectors and keys.</td>
 
 </tr>
@@ -575,7 +578,10 @@
 </tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>file</h3></td></tr>
-<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>scan_folder</b>(folder<font color="#666666">: string</font>, rel<font color="#666666">: bool</font> = false) -> <font color="#666666">[string]?</font>, <font color="#666666">[int]?</font></tt></td><td class="a">returns two vectors representing all elements in a folder, the first vector containing all names, the second vector containing sizes in bytes (or -1 if a directory). set rel use a relative path, default is absolute. Returns nil if folder couldn't be scanned.</td>
+<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>format_time</b>(format<font color="#666666">: string</font>, time<font color="#666666">: int</font>, localtime<font color="#666666">: bool</font>) -> <font color="#666666">string</font></tt></td><td class="a">convert a time in seconds since 00:00:00 UTC, Thursday, 1 January 1970 into a string, using the same format string syntax as POSIX strftime. If localtime is true, then the time will be displayed using the local timezone, otherwise it will use UTC. Returns an empty string on error.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>scan_folder</b>(folder<font color="#666666">: string</font>, rel<font color="#666666">: bool</font> = false) -> <font color="#666666">[string]?</font>, <font color="#666666">[int]?</font>, <font color="#666666">[int]?</font></tt></td><td class="a">returns three vectors representing all elements in a folder, the first vector containing all names, the second vector containing sizes in bytes (or -1 if a directory), and the third as the number of seconds since 00:00:00 UTC, Thursday, 1 January 1970, not including leap seconds. set rel use a relative path, default is absolute. Returns nil if folder couldn't be scanned.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>read_file</b>(file<font color="#666666">: string</font>, textmode<font color="#666666">: int</font> = 0) -> <font color="#666666">string?</font></tt></td><td class="a">returns the contents of a file as a string, or nil if the file can't be found. you may use either \ or / as path separators</td>
