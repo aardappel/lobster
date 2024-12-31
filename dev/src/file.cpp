@@ -202,7 +202,11 @@ nfr("scan_folder", "folder,rel", "SB?", "S]?I]?I]?",
             #else  // libc++ or other
                 const chrono::duration file_to_system_clock_epoch_offset = 0h;
             #endif
-            auto system_time = chrono::system_clock::time_point{entry.last_write_time.time_since_epoch() - file_to_system_clock_epoch_offset};
+            auto system_time = chrono::system_clock::time_point{
+                chrono::duration_cast<chrono::system_clock::duration>(
+                    entry.last_write_time.time_since_epoch() -
+                    file_to_system_clock_epoch_offset)
+            };
             tlist->Push(vm, Value((int64_t)system_time.time_since_epoch().count()));
         }
         Push(sp, Value(nlist));
