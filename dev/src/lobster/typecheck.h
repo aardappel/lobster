@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "idents.h"
 namespace lobster {
 
 struct LValContext {
@@ -2329,9 +2330,8 @@ struct TypeChecker {
             }
         }
     }
-    std::optional<TypeRef> FindVarType(string_view ident, auto sf) {
-        auto desf = *sf;
-        for (auto &vars : {desf->args, desf->locals, desf->freevars}) {
+    std::optional<TypeRef> FindVarType(string_view ident, SubFunction *sf) {
+        for (auto &vars : {sf->args, sf->locals, sf->freevars}) {
             for (auto &var : vars) {
                 if (var.sid->id->name == ident) {
                     return var.sid->type;
@@ -2341,14 +2341,14 @@ struct TypeChecker {
         return std::nullopt;
     }
 
-    bool ProcessDefinition(GUDT *parent, string full_iden, auto sf) {
+    bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction **sf) {
         int pos = full_iden.find(".");
         bool got_pos = pos != std::string::npos;
         string ident = full_iden;
         if (got_pos) {
             ident = full_iden.substr(0, pos);
             //Possible a class or a struct name
-            auto ident_type = FindVarType(ident, sf);
+            auto ident_type = FindVarType(ident, *sf);
             if (ident_type.has_value()) {
                 ident = TypeName(ident_type.value());
             }
