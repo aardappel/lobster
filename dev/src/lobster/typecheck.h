@@ -724,7 +724,7 @@ struct TypeChecker {
                 // actual strings by ref.
                 if (u->t == V_NIL && u->sub->t == V_STRING &&
                     !Is<Nil>(n.left) &&
-                    !Is<Nil>(n.right))  
+                    !Is<Nil>(n.right))
                     RequiresError("string", u, n);
             } else {
                 // Comparison vector op: vector inputs, vector out.
@@ -873,7 +873,7 @@ struct TypeChecker {
             // A simple test case is in return_from unit test, and recursive_exception is also
             // affected.
             // Check if return event already exists, which may happen for multiple similar return
-            // statement of when called from ReplayReturns in a similar call context. 
+            // statement of when called from ReplayReturns in a similar call context.
             for (auto &rre : isc.sf->reuse_return_events) {
                 if (rre.first == sf && rre.second->Equal(*type)) goto found;
             }
@@ -1235,7 +1235,7 @@ struct TypeChecker {
             // with incoming borrowed values at refc==1, and more generally if the pattern of overwriting is
             // complicated due to loops etc, this is the only way we can track the refc correctly.
             if (!arg.sid->id->single_assignment)
-                return LT_KEEP; 
+                return LT_KEEP;
             // Similarly, a V_STRUCT_R is an exception in that is essentially multiple ref arguments, subject
             // to the same pitfalls, so must get the same treatment.
             // FIXME: this is conservative, since V_STRUCT_R args that never get assigned to should not get this
@@ -1432,7 +1432,7 @@ struct TypeChecker {
             // assignment, and lifetimes must be the same for all, so either we have to
             // guarantee that arg lifetimes never change, or for now,
             // standardize on a lifetime convention of always using LT_KEEP, by passing
-            // force_keep = true below.          
+            // force_keep = true below.
             // FIXME: if any of the overloads below contain recursive calls, it may run into
             // issues finding an existing dispatch above? would be good to guarantee..
             // The fact that in subudts the superclass comes first will help avoid problems
@@ -1658,7 +1658,7 @@ struct TypeChecker {
                             } else {
                                 // Keep both, and hope the next arg disambiguates.
                                 matches.push_back(ov);
-                            }                                
+                            }
                         } else {
                             matches.push_back(ov);
                         }
@@ -2260,7 +2260,8 @@ struct TypeChecker {
         // Check if we need to do any lifetime adjustments.
         AdjustLifetime(n, recip, idents);
         // Check for queries.
-        if (query && query->qloc == n->line) ProcessQuery();
+        //TODO: instead of n->line.line>query->qloc.line check if this is the last node on the line query->qloc.line
+        if (query && n->line.line>query->qloc.line && n->line.fileidx==query->qloc.fileidx) ProcessQuery();
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
@@ -2328,8 +2329,86 @@ struct TypeChecker {
             }
         }
     }
+    std::optional<TypeRef> FindVarType(string_view ident, auto sf) {
+        auto desf = *sf;
+        for (auto &vars : {desf->args, desf->locals, desf->freevars}) {
+            for (auto &var : vars) {
+                if (var.sid->id->name == ident) {
+                    return var.sid->type;
+                }
+            }
+        }
+        return std::nullopt;
+    }
 
-    void ProcessQuery() {
+    bool ProcessDefinition(GUDT *parent, string full_iden, auto sf) {
+        int pos = full_iden.find(".");
+        bool got_pos = pos != std::string::npos;
+        string ident = full_iden;
+        if (got_pos) {
+            ident = full_iden.substr(0, pos);
+            //Possible a class or a struct name
+            auto ident_type = FindVarType(ident, sf);
+            if (ident_type.has_value()) {
+                ident = TypeName(ident_type.value());
+            }
+        }
+        auto new_parent_struct = st.LookupStruct(ident);
+
+        if (new_parent_struct && !got_pos){ //Just class instance
+            LocationQuery(new_parent_struct->line, Signature(*new_parent_struct));
+        }
+
+        // FIXME: may not work when namespaces are involved.
+        auto f = st.FindFunction(ident);
+        if (f) {
+            auto ov = f->overloads[0];
+            if(parent) { //Try to find method of parent class with same name
+                for (auto &candidate_ov : f->overloads) {
+                    if (TypeName(candidate_ov->givenargs[0]) == parent->name) {
+                        ov = candidate_ov;
+                        break;
+                    }
+                }
+            }
+            if (ov->gbody) {  // FIXME: ignores function types. Now fixed (or not?)
+                LocationQuery(ov->gbody->line, ov->sf ? Signature(*ov->sf) : "");
+            }
+        }
+        auto fld = st.FieldUse(ident);
+        if (fld && parent) {
+            // To know what this belongs to, would need to find the object it belongs to.
+            // For now, simply see if we can find any class that has this field.
+            int fi = parent->Has(fld);
+            if (fi >= 0) {
+                auto struct_type = st.LookupStruct(TypeName(parent->fields[fi].giventype));
+                if (got_pos) { //Go further with detected struct as a parent
+                    ProcessDefinition(struct_type, full_iden.substr(pos+1), sf);
+                }
+                LocationQuery(parent->line, TypeName(parent->fields[fi].giventype));
+            }
+        }
+        auto nf = parser.natreg.FindNative(ident);
+        if (nf) {
+            // This doesn't have a source code location, so output a signature the IDE can display.
+            THROW_OR_ABORT("query_signature: " + Signature(*nf));
+        }
+        if (fld) { //Failed to find field in parent or no parent
+            for (auto gudt : st.gudttable) {
+                int fi = gudt->Has(fld);
+                if (fi >= 0) {
+                    // FIXME: this is really basic, lets at least find the field line.
+                    LocationQuery(gudt->line, TypeName(gudt->fields[fi].giventype));
+                }
+            }
+        }
+        if (got_pos) { //Go further
+            ProcessDefinition(new_parent_struct, full_iden.substr(pos+1), sf);
+        }
+        return false;
+    }
+
+    bool ProcessQuery() {
         if (query->kind == "definition") {
             // The top scope includes a list of free vars so should be able to resolve any var
             // at the given location.. if no scopes, use top fun.
@@ -2337,38 +2416,10 @@ struct TypeChecker {
             FindVar(sf->args);
             FindVar(sf->locals);
             FindVar(sf->freevars);
-            auto gudt = st.LookupStruct(query->iden);
-            if (gudt) {
-                LocationQuery(gudt->line, Signature(*gudt));
-            }
-            // FIXME: may not work when namespaces are involved.
-            auto f = st.FindFunction(query->iden);
-            if (f) {
-                auto ov = f->overloads[0];
-                if (ov->gbody) {  // FIXME: ignores function types.
-                    LocationQuery(ov->gbody->line, ov->sf ? Signature(*ov->sf) : "");  
-                }
-            }
-            auto nf = parser.natreg.FindNative(query->iden);
-            if (nf) {
-                // This doesn't have a source code location, so output a signature the IDE can display.
-                THROW_OR_ABORT("query_signature: " + Signature(*nf));
-            }
-            auto fld = st.FieldUse(query->iden);
-            if (fld) {
-                // To know what this belongs to, would need to find the object it belongs to.
-                // For now, simply see if we can find any class that has this field.
-                for (auto gudt : st.gudttable) {
-                    int fi = gudt->Has(fld);
-                    if (fi >= 0) {
-                        // FIXME: this is really basic, lets at least find the field line.
-                        LocationQuery(gudt->line, TypeName(gudt->fields[fi].giventype));
-                    }
-                }
-            }
-            THROW_OR_ABORT("query_unknown_ident: " + query->iden);
+            return ProcessDefinition(nullptr, query->iden, &sf);
         } else {
             THROW_OR_ABORT("query_unknown_kind: " + query->kind);
+            return false;
         }
     }
 
@@ -2815,7 +2866,7 @@ Node *Member::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.scopes.back().scoped_fields.push_back(this);
     if (this_sid) tc.UpdateCurrentSid(this_sid);
     exptype = type_void;
-    lt = LT_ANY; 
+    lt = LT_ANY;
     return this;
 }
 

@@ -131,7 +131,7 @@ struct Parser {
             } else if (auto sr = Is<GUDTRef>(def)) {
                 if (sr->gudt->predeclaration)
                     Error("pre-declared struct ", Q(sr->gudt->name), " never defined");
-                Unregister(sr->gudt, st.gudts);
+                //Unregister(sr->gudt, st.gudts); //Breaks detecting struct and fields
             } else if (auto sr = Is<UDTRef>(def)) {
                 Unregister(sr->udt, st.udts);
             } else if (auto fr = Is<FunRef>(def)) {
@@ -565,7 +565,7 @@ struct Parser {
                 if (was_predeclaration) {
                     udt = gudt->first;
                     assert(udt && !udt->next);
-                } else { 
+                } else {
                     udt = st.MakeSpecialization(*gudt, sname, false, false);
                 }
             }

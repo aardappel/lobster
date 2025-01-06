@@ -336,8 +336,8 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
         }
         s += is_first_row ? doc_tags[Tags::FirstRow][0] : doc_tags[Tags::Row][0];
         if (!group_subsystem) {
-            s += cat(doc_tags[Tags::Subsystem][0], 
-                    nfr.subsystems[nf->subsystemid], 
+            s += cat(doc_tags[Tags::Subsystem][0],
+                    nfr.subsystems[nf->subsystemid],
                     doc_tags[Tags::Subsystem][1]);
         }
         s += cat(doc_tags[Tags::Name][0], nf->name, doc_tags[Tags::Name][1]);
@@ -405,7 +405,7 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
 
 void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
     string html_tags[16][2] = {
-    /* Doc          */  {"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"                                                        
+    /* Doc          */  {"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
     /*              */   "<html>\n<head>\n<title>lobster builtin function reference</title>\n"
     /*              */   "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
     /*              */   "<style type=\"text/css\">"
@@ -434,7 +434,7 @@ void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
 }
 
 void DumpBuiltinDocJson(NativeRegistry &nfr) {
-    string json_tags[16][2] = { 
+    string json_tags[16][2] = {
     /* Doc          */ {"", ""},
     /* Table        */ {"[", "]"},
     /* Row          */ {",\n{", "}"},
@@ -488,7 +488,9 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     parser.Parse();
     if (query) PrepQuery(*query, filenames);
     TypeChecker tc(parser, st, return_value, query, full_error);
-    if (query) tc.ProcessQuery();  // Failed to find location during type checking.
+    if (query) { // Failed to find location during type checking.
+        if(!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + query->iden);
+    }
     if (lex.num_errors) THROW_OR_ABORT("errors encountered, aborting");
     tc.Stats(filenames);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
