@@ -2345,7 +2345,7 @@ struct TypeChecker {
     }
 
     bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction **sf) {
-        int pos = full_iden.find('.');
+        size_t pos = full_iden.find('.');
         bool got_pos = pos != std::string::npos;
         string ident = full_iden;
         if (got_pos) {
