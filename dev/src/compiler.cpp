@@ -488,7 +488,9 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     parser.Parse();
     if (query) PrepQuery(*query, filenames);
     TypeChecker tc(parser, st, return_value, query, full_error);
-    if (query) tc.ProcessQuery();  // Failed to find location during type checking.
+    if (query) { // Failed to find location during type checking.
+        if(!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + query->iden);
+    }
     if (lex.num_errors) THROW_OR_ABORT("errors encountered, aborting");
     tc.Stats(filenames);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
