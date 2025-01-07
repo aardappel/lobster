@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "lobster/idents.h"
+#include "lobster/lex.h"
+#include "lobster/natreg.h"
 namespace lobster {
 
 struct Parser {
@@ -131,7 +134,7 @@ struct Parser {
             } else if (auto sr = Is<GUDTRef>(def)) {
                 if (sr->gudt->predeclaration)
                     Error("pre-declared struct ", Q(sr->gudt->name), " never defined");
-                //Unregister(sr->gudt, st.gudts); //Breaks detecting struct and fields
+                Unregister(sr->gudt, st.gudts); //Breaks detecting struct and fields
             } else if (auto sr = Is<UDTRef>(def)) {
                 Unregister(sr->udt, st.udts);
             } else if (auto fr = Is<FunRef>(def)) {

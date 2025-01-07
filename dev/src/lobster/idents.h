@@ -804,7 +804,7 @@ struct SymbolTable {
         defsubfunctionstack.push_back(sf);
     }
 
-    void    ister(const Enum *e, unordered_map<string_view, Enum *> &dict) {
+    void Unregister(const Enum *e, unordered_map<string_view, Enum *> &dict) {
         auto it = dict.find(e->name);
         if (it != dict.end()) {
             for (auto &ev : e->vals) {
@@ -903,6 +903,11 @@ struct SymbolTable {
         }
         auto uit = gudts.find(name);
         if (uit != gudts.end()) return uit->second;
+        for (auto gudt = gudttable.rbegin(); gudt != gudttable.rend(); ++gudt) {
+            if((*gudt)->name == name) {
+                return *gudt;
+            }
+        }
         return nullptr;
     }
 

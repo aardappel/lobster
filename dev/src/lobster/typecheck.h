@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "idents.h"
+#include "lobster/node.h"
+#include "lobster/stdafx.h"
 namespace lobster {
 
 struct LValContext {
@@ -2262,7 +2264,9 @@ struct TypeChecker {
         AdjustLifetime(n, recip, idents);
         // Check for queries.
         //TODO: instead of n->line.line>query->qloc.line check if this is the last node on the line query->qloc.line
-        if (query && n->line.line>query->qloc.line && n->line.fileidx==query->qloc.fileidx) ProcessQuery();
+        if (query && n->line.line>query->qloc.line && n->line.fileidx==query->qloc.fileidx) {
+            ProcessQuery();
+        }
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
@@ -2342,7 +2346,7 @@ struct TypeChecker {
     }
 
     bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction **sf) {
-        int pos = full_iden.find(".");
+        int pos = full_iden.find('.');
         bool got_pos = pos != std::string::npos;
         string ident = full_iden;
         if (got_pos) {
