@@ -1334,9 +1334,7 @@ nfr("average_face_colors", "world", "R:voxels", "F]",
                         pos[dim[1]] = y;
                         pos[dim[2]] = positive_dir ? z : dimz - 1 - z;
                         uint8_t c = v.grid.Get(pos);
-                        if (c == transparant) {
-                            ntransparent++;
-                        } else {
+                        if (c != transparant) {
                             if (!cache_set[c]) {
                                 srgb_cache[c] = from_srgb(float3(palette[c].xyz()) / 255.0f);
                                 cache_set[c] = true;
@@ -1349,8 +1347,6 @@ nfr("average_face_colors", "world", "R:voxels", "F]",
 				}
 			}
             if (nsurf) col /= float(nsurf);
-            //auto vol = v.grid.dim.volume();
-            //auto alpha = float(vol - ntransparent) / float(vol);
             auto surf_alpha = float(nsurf) / float(v.grid.dim[dim[0]] * v.grid.dim[dim[1]]);
             vec->Push(vm, col.x);
             vec->Push(vm, col.y);
@@ -1593,7 +1589,6 @@ nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
                         visible:;
                     }
                     // For surface voxels we compute a normal.
-                    num_surface_voxels++;
                     auto cn = ComputeNormal(pos, radius);
                     if (manhattan(cn) <= 1) {
                         // Most normals cancelled eachother out, let's try once more
