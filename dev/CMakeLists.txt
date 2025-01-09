@@ -222,6 +222,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   set_source_files_properties(src/gltexture.cpp PROPERTIES COMPILE_FLAGS "-Wno-maybe-uninitialized -Wno-array-bounds -Wno-stringop-overflow")
   # This appears to be broken giving false positives inside the STL on GCC 13+
   set_source_files_properties(src/lobsterreader.cpp PROPERTIES COMPILE_FLAGS "-Wno-array-bounds -Wno-stringop-overflow")
+  set_source_files_properties(src/imbind.cpp PROPERTIES COMPILE_FLAGS "-Wno-array-bounds -Wno-stringop-overflow")
 endif()
 
 function(removecpp CPPNAME)
