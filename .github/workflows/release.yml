@@ -33,10 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cxx: [clang++-14]
+        cxx: [clang++-18]
         include:
-        - cxx: clang++-14
-          cc: clang-14
+        - cxx: clang++-18
+          cc: clang-18
     steps:
     - uses: actions/checkout@v1
     - name: apt update

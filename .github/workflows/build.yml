@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cxx: [g++-12, clang++-14]
+        cxx: [g++-14, clang++-18]
         include:
-        - cxx: g++-12
-          cc: gcc-12
-        - cxx: clang++-14
-          cc: clang-14
+        - cxx: g++-14
+          cc: gcc-14
+        - cxx: clang++-18
+          cc: clang-18
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-node@v4
