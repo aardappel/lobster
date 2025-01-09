@@ -279,13 +279,11 @@ nfr("remove_range", "xs,i,n", "A]*II", "",
 nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
     "remove all elements equal to obj (==), returns obj.",
     [](StackPtr &, VM &vm, Value &l, Value &o) {
-        iint removed = 0;
         auto vt = vm.GetTypeInfo(l.vval()->ti(vm).subt).t;
         for (iint i = 0; i < l.vval()->len; i++) {
             auto e = l.vval()->At(i);
             if (e.Equal(vm, vt, o, vt, false)) {
                 l.vval()->Remove(vm, i--, 1);
-                removed++;
             }
         }
         return o;

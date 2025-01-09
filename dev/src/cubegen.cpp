@@ -1323,7 +1323,6 @@ nfr("average_face_colors", "world", "R:voxels", "F]",
             auto dim = dims[f % 3];
             auto positive_dir = f < 3;
             float3 col(0.0f);
-            int ntransparent = 0;
             int nsurf = 0;
             // XY iterate the face, Z goes into the face.
             for (int x = 0; x < v.grid.dim[dim[0]]; x++) {
@@ -1572,7 +1571,6 @@ nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
             int3(0, 0, 1),  int3(0, 0, -1), int3(0, 1, 0),
             int3(0, -1, 0), int3(1, 0, 0),  int3(-1, 0, 0),
         };
-        int num_surface_voxels = 0;
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
                 for (int z = 0; z < v.grid.dim.z; z++) {
