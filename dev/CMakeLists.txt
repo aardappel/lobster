@@ -140,8 +140,9 @@ elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libstdc++ ${COMMON_GCC_STYLE}")
 elseif(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE}")
+    # These warnings seem pretty broken in GCC, with lots of false positives.
+    set(CMAKE_CXX_FLAGS
+    "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE} -Wno-array-bounds -Wno-stringop-overflow -Wno-maybe-uninitialized")
 endif()
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FS")
@@ -216,14 +217,6 @@ endif()
 
 # Turn off warnings for files we don't control.
 set_source_files_properties(${EXTERNAL_SRCS} PROPERTIES COMPILE_FLAGS -w)
-if(CMAKE_COMPILER_IS_GNUCXX)
-  # surpress warnings from included stb files..
-  set_source_files_properties(src/sdlaudiosfxr.cpp PROPERTIES COMPILE_FLAGS "-Wno-maybe-uninitialized -Wno-array-bounds -Wno-stringop-overflow")
-  set_source_files_properties(src/gltexture.cpp PROPERTIES COMPILE_FLAGS "-Wno-maybe-uninitialized -Wno-array-bounds -Wno-stringop-overflow")
-  # This appears to be broken giving false positives inside the STL on GCC 13+
-  set_source_files_properties(src/lobsterreader.cpp PROPERTIES COMPILE_FLAGS "-Wno-array-bounds -Wno-stringop-overflow")
-  set_source_files_properties(src/imbind.cpp PROPERTIES COMPILE_FLAGS "-Wno-array-bounds -Wno-stringop-overflow")
-endif()
 
 function(removecpp CPPNAME)
   list(REMOVE_ITEM LOBSTER_SRCS "src/${CPPNAME}.cpp")
