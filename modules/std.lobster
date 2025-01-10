@@ -119,10 +119,10 @@ def weighted_pick<R, T>(list:[T], wf):
     assert(weights)
     var acc:R = init
     let pick = if acc is float: rnd_float() * weights else: rnd(weights)  // compile-time if!
-    for(list) x:
+    for(list) x, i:
         acc += wf(x)
-        if pick < acc: return x
-    return list.top()  // just in case float precision causes pick == weights.
+        if pick < acc: return x, i
+    return list.top(), list.length - 1  // just in case float precision causes pick == weights.
 
 // These work on int or float vectors.
 def sum<T>(xs:[T]):
