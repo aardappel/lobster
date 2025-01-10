@@ -77,7 +77,7 @@ enum_flags tabitem:
 
 enum_flags table:
     table_none = 0
-    table_resizable = 2                   // Enable resizing columns.
+    table_resizable = 1                   // Enable resizing columns.
     table_reorderable                     // Enable reordering columns in header row (need calling TableSetupColumn() + TableHeadersRow() to display headers)
     table_hideable                        // Enable hiding/disabling columns in context menu.
     table_sortable                        // Enable sorting. Call TableGetSortSpecs() to obtain sort specs. Also see ImGuiTableFlags_SortMulti and ImGuiTableFlags_SortTristate.
@@ -90,10 +90,11 @@ enum_flags table:
     table_borders_outer_v                 // Draw vertical borders on the left and right sides.
     table_no_borders_in_body              // [ALPHA] Disable vertical borders in columns Body (borders will always appear in Headers). -> May move to style
     table_no_borders_in_body_until_resize // [ALPHA] Disable vertical borders in columns Body until hovered for resize (borders will always appear in Headers). -> May move to style
-    table_sizing_fixed_fit                // Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching contents width.
-    table_sizing_fixed_same               // Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching the maximum contents width of all columns. Implicitly enable ImGuiTableFlags_NoKeepColumnsVisible.
-    table_sizing_stretch_same             // Columns default to _WidthStretch with default weights all equal, unless overridden by TableSetupColumn().
-    table_no_host_extend_x                // Make outer width auto-fit to columns, overriding outer_size.x value. Only available when ScrollX/ScrollY are disabled and Stretch columns are not used.
+    table_sizing_fixed_fit    = 1 << 13   // Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching contents width.
+    table_sizing_fixed_same   = 2 << 13   // Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching the maximum contents width of all columns. Implicitly enable ImGuiTableFlags_NoKeepColumnsVisible.
+    table_sizing_stretch_prop = 3 << 13   // Columns default to _WidthStretch with default weights all equal, unless overridden by TableSetupColumn().
+    table_sizing_stretch_same = 4 << 13   // Columns default to _WidthStretch with default weights all equal, unless overridden by TableSetupColumn().
+    table_no_host_extend_x    = 1 << 16   // Make outer width auto-fit to columns, overriding outer_size.x value. Only available when ScrollX/ScrollY are disabled and Stretch columns are not used.
     table_no_host_extend_y                // Make outer height stop exactly at outer_size.y (prevent auto-extending table past the limit). Only available when ScrollX/ScrollY are disabled. Data below the limit will be clipped and not visible.
     table_no_keep_columns_visible         // Disable keeping column always minimally visible when ScrollX is off and table gets too small. Not recommended if columns are resizable.
     table_precise_widths                  // Disable distributing remainder width to stretched columns (width allocation on a 100-wide table with 3 columns: Without this flag: 33,33,34. With this flag: 33,33,33). With larger number of columns, resizing will appear to be less smooth.

@@ -698,8 +698,10 @@ void DumpStackTrace(VM &vm) {
 
     auto cur_fileidx = vm.last_fileidx;
     auto cur_line = vm.last_line;
+    int i = 0;
     for (auto &funstackelem : reverse(vm.fun_id_stack)) {
         auto [name, fip] = vm.DumpStackFrameStart(funstackelem.funstartinfo, cur_fileidx, cur_line);
+        ImGui::PushID(i++);
         if (ImGui::TreeNode(name.c_str())) {
             if (BeginTable(name.c_str())) {
                 vm.DumpStackFrame(fip, funstackelem.locals, dumper);
@@ -707,6 +709,7 @@ void DumpStackTrace(VM &vm) {
             }
             ImGui::TreePop();
         }
+        ImGui::PopID();
         cur_fileidx = funstackelem.fileidx;
         cur_line = funstackelem.line;
     }

@@ -2,8 +2,8 @@ import { MarkupContent, MarkupKind } from 'vscode-languageserver';
 import { LobsterSignature } from './lobster';
 
 export function getWordOnCursor(text: string, character: number): [string | null, number] {
-	const part1 = text.substring(0, character).match(/[a-zA-Z0-9-_\\.]+$/);
-	const part2 = text.substring(character).match(/^[a-zA-Z0-9-_\\.]+/);
+	const part1 = text.substring(0, character).match(/[a-zA-Z0-9_\\.]+$/);
+	const part2 = text.substring(character).match(/^[a-zA-Z0-9_]+/);
 
 	if (!part1 && !part2) return [null, 0];
 	return [
