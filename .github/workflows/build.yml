@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cxx: [g++-12, clang++-14]
+        cxx: [g++-14, clang++-18]
         include:
-        - cxx: g++-12
-          cc: gcc-12
-        - cxx: clang++-14
-          cc: clang-14
+        - cxx: g++-14
+          cc: gcc-14
+        - cxx: clang++-18
+          cc: clang-18
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-node@v4
@@ -29,7 +29,7 @@ jobs:
     - name: apt update
       run: sudo apt-get -o Acquire::Retries=3 update
     - name: install opengl
-      run: sudo apt-get -o Acquire::Retries=3 install mesa-common-dev libgl1-mesa-dev libgl1-mesa-glx
+      run: sudo apt-get -o Acquire::Retries=3 install mesa-common-dev libgl1-mesa-dev libgl1 libglx-mesa0 libxext-dev
     - name: cmake
       working-directory: dev
       run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON .
@@ -123,7 +123,7 @@ jobs:
     # Without engine should speed this up.
     - name: cmake
       working-directory: dev
-      run: CXX=clang++-14 CC=clang-14 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
+      run: CXX=clang++-18 CC=clang-18 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
     - name: build
       working-directory: dev
       run: make -j4
@@ -158,7 +158,7 @@ jobs:
     # Without engine should speed this up.
     - name: cmake
       working-directory: dev
-      run: CXX=clang++-14 CC=clang-14 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
+      run: CXX=clang++-18 CC=clang-18 cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON -DLOBSTER_ENGINE=OFF .
     - name: build
       working-directory: dev
       run: make -j4

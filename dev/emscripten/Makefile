@@ -19,7 +19,7 @@ OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0
 
 CFLAGS= $(OPTLEVEL)
 CXXFLAGS= $(OPTLEVEL)
-SHAREDFLAGS= -s USE_SDL=2 -s USE_SDL_MIXER=0 -s USE_FREETYPE=1 -s NO_EXIT_RUNTIME=1 \
+SHAREDFLAGS= -s USE_SDL=2 -s USE_SDL_MIXER=0 -s USE_FREETYPE=1 -s \
          -Wall -pedantic -Wno-switch \
          -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 override CFLAGS+= $(SHAREDFLAGS)

@@ -10,10 +10,11 @@ let fontsize = 20
 class node:
     name:string
     size:int
+    last_write_time:int
     parent:node?
     children:[node] = []
 
-let root = node { "", -1, nil }
+let root = node { "", -1, 0, nil }
 var selected = root
 var entries = []
 
@@ -22,10 +23,10 @@ def fullpath(n::node) -> string:
 
 def scan(n:node):
     entries = []
-    let names, sizes = scan_folder(n.fullpath)
-    if names and sizes:
+    let names, sizes, times = scan_folder(n.fullpath)
+    if names and sizes and times:
         for(names) name, i:
-            entries.push(node { name, sizes[i], nil })
+            entries.push(node { name, sizes[i], times[i], nil })
     insertion_sort(entries) a, b:
         if (a.size < 0) == (b.size < 0): a.name < b.name else: a.size < b.size
 
@@ -73,7 +74,7 @@ def render_entries():
                     if dups.length:
                         newsel = dups[0]
                     else:
-                        newsel = node { e.name, e.size, selected }
+                        newsel = node { e.name, e.size, e.last_write_time, selected }
                         selected.children.push(newsel)
                 gl.color color_light_grey:
                     gl.rect(size)
@@ -93,12 +94,25 @@ def render_sizes(old_width):
             gl.translate float2 { 0.0, fontsize }
     return width + column_margin
 
+def render_times(old_width):
+    var width = 0.0
+    for(entries) e:
+        gl.color color_dark_green:
+            let text = format_time("%c", e.last_write_time, true)
+            let size = gl.text_size(text)
+            width = max(width, size.x)
+            gl.translate float2 { old_width - size.x - column_margin, 0.0 }:
+                gl.text(text)
+            gl.translate float2 { 0.0, fontsize }
+    return width + column_margin
+
 fatal(gl.window("dirbrowsing", 1024, 768))
 check(gl.set_font_name("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and
       gl.set_font_size(fontsize), "can\'t load font!")
 
 var treesize = 400.0
 var sizesize = 100.0
+var timesize = 100.0
 while(gl.frame() and gl.button("escape") != 1):
     gl.clear(color_white)
     gl.color(color_black)
@@ -109,6 +123,8 @@ while(gl.frame() and gl.button("escape") != 1):
     gl.translate float2 { treesize, 0.0 }:
         sizesize = render_sizes(sizesize) + column_margin
     gl.translate float2 { treesize + sizesize, 0.0 }:
+        timesize = render_times(timesize) + column_margin
+    gl.translate float2 { treesize + sizesize + timesize, 0.0 }:
         render_entries()
 
 // the parent links cause cycles that our refcount VM can't handle. could GC it instead,
