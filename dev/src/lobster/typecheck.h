@@ -2356,7 +2356,7 @@ struct TypeChecker {
                 ident = TypeName(ident_type.value());
             }
         }
-        auto new_parent_struct = st.LookupStruct(ident);
+        auto new_parent_struct = st.LookupStructQuery(ident);
 
         if (new_parent_struct && !got_pos){ //Just class instance
             LocationQuery(new_parent_struct->line, Signature(*new_parent_struct));
