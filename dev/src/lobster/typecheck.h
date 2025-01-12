@@ -2333,15 +2333,15 @@ struct TypeChecker {
             }
         }
     }
-    std::optional<TypeRef> FindVarType(string_view ident, SubFunction *sf) {
+    TypeRef FindVarType(string_view ident, SubFunction *sf) {
         for (auto &vars : {sf->args, sf->locals, sf->freevars}) {
             for (auto &var : vars) {
-                if (var.sid->id->name == ident) {
+                if (var.sid->id->name == ident && !var.sid->type.Null()) {
                     return var.sid->type;
                 }
             }
         }
-        return std::nullopt;
+        return TypeRef(nullptr);
     }
 
     bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction **sf) {
@@ -2352,8 +2352,8 @@ struct TypeChecker {
             ident = full_iden.substr(0, pos);
             //Possible a class or a struct name
             auto ident_type = FindVarType(ident, *sf);
-            if (ident_type.has_value()) {
-                ident = TypeName(ident_type.value());
+            if (!ident_type.Null()) {
+                ident = TypeName(ident_type);
             }
         }
         auto new_parent_struct = st.LookupStructQuery(ident);
