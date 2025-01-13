@@ -20,7 +20,5 @@ Lobster is licensed under the Apache v2 license.
 Wouter van Oortmerssen
 
 ![CI](https://github.com/aardappel/lobster/workflows/CI/badge.svg)
-[![Build Status](https://travis-ci.com/aardappel/lobster.svg?branch=master)](https://travis-ci.com/aardappel/lobster)
-[![Gitter](https://badges.gitter.im/lobster_programming_language/community.svg)](https://gitter.im/lobster_programming_language/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-[![Discord Chat](https://img.shields.io/discord/656280102451281940.svg)](https://discord.gg/szJPYdX)
+[![Discord Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/szJPYdX)
 [![Twitter Follow](https://img.shields.io/twitter/follow/wvo.svg?style=social)](https://twitter.com/wvo)
