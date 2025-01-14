@@ -31,6 +31,7 @@ map<string, OutlineFont *, less<>> loadedfaces;
 OutlineFont *curface = nullptr;
 string curfacename;
 
+extern Shader *currentshader;
 Shader *texturedshader = nullptr;
 
 void CullFonts() {
@@ -56,6 +57,10 @@ void FontCleanup() {
     FTClosedown();
 }
 
+void SetDefaultFontShader() {
+    texturedshader = LookupShader("textured");
+}
+
 void AddFont(NativeRegistry &nfr) {
 
 nfr("set_font_name", "filename", "S", "B",
@@ -70,8 +75,7 @@ nfr("set_font_name", "filename", "S", "B",
             curfacename = piname;
             return Value(true);
         }
-        texturedshader = LookupShader("textured");
-        assert(texturedshader);
+        SetDefaultFontShader();
         curface = LoadFont(piname);
         if (curface)  {
             curfacename = piname;
@@ -143,7 +147,8 @@ nfr("text", "text", "S", "Sb",
             otransforms.append_object2view(scaling(curfontsize / float(maxfontsize)));
         }
         SetTexture(0, f->tex);
-        texturedshader->Set();
+        if (texturedshader) texturedshader->Set();
+        else currentshader->Set();
         f->RenderText(s.sval()->strv());
         if (curfontsize > maxfontsize) {
             otransforms.pop();
@@ -174,6 +179,19 @@ nfr("get_char_code", "name", "S", "I",
     " (or if the font doesn\'t have names)",
     [](StackPtr &, VM &, Value &n) {
         return Value(curface ? curface->GetCharCode(n.sval()->strvnt()) : 0);
+    });
+
+nfr("use_default_font_shader", "on", "B", "",
+    "by default set_font_name sets the use of the \"textured\" shader."
+    " With this function you can turn that on/off to use a current shader instead.",
+    [](StackPtr &, VM &vm, Value &on) {
+        extern void TestGL(VM &vm); TestGL(vm);
+        if (on.True())  {
+            SetDefaultFontShader();
+        } else {
+            texturedshader = nullptr;
+        }
+        return NilVal();
     });
 
 }  // AddFont
