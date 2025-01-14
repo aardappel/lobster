@@ -2384,7 +2384,7 @@ struct TypeChecker {
             // For now, simply see if we can find any class that has this field.
             int fi = parent->Has(fld);
             if (fi >= 0) {
-                auto struct_type = st.LookupStruct(TypeName(parent->fields[fi].giventype));
+                auto struct_type = st.LookupStructQuery(TypeName(parent->fields[fi].giventype));
                 if (got_pos) { //Go further with detected struct as a parent
                     ProcessDefinition(struct_type, full_iden.substr(pos+1), sf);
                 }
