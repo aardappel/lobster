@@ -374,13 +374,16 @@ struct SteamState {
     // Lobby Functions
     STEAM_CALLBACK(SteamState, OnLobbyDataUpdate, LobbyDataUpdate_t);
 
-    bool CreateLobby(int max_members) {
+    bool CreateLobby(int lobby_type, int max_members) {
+        if (lobby_type < 0 || lobby_type > k_ELobbyTypeInvisible) {
+            return false;
+        }
         if (OnLobbyCreatedCallback.IsActive()) {
             return false;
         }
         created_lobby.Clear();
         joined_lobby.Clear();
-        auto result = SteamMatchmaking()->CreateLobby(k_ELobbyTypePublic, max_members);
+        auto result = SteamMatchmaking()->CreateLobby((ELobbyType)lobby_type, max_members);
         OnLobbyCreatedCallback.Set(result, this, &SteamState::OnLobbyCreated);
         return true;
     }
@@ -1056,7 +1059,15 @@ nfr("lobby_create", "max_members", "I", "B",
     "create a new lobby that allows at most a given number of members; this lobby will be "
     "automatically joined. use lobby_get_created() to get the newly created lobby's steam id",
     [](StackPtr &, VM &, Value &max_members) {
-        return STEAM_BOOL_VALUE(steam->CreateLobby(max_members.intval()));
+        return STEAM_BOOL_VALUE(steam->CreateLobby(k_ELobbyTypePublic, max_members.intval()));
+    });
+
+nfr("lobby_create", "lobby_type,max_members", "II", "B",
+    "create a new lobby of a given lobby type that allows at most a given number "
+    "of members; this lobby will be automatically joined. use lobby_get_created() "
+    "to get the newly created lobby's steam id",
+    [](StackPtr &, VM &, Value &lobby_type, Value &max_members) {
+        return STEAM_BOOL_VALUE(steam->CreateLobby(lobby_type.intval(), max_members.intval()));
     });
 
 nfr("lobby_get_created", "", "", "I",
