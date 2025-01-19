@@ -327,13 +327,13 @@ struct CodeGen  {
         // Now fill in the vtables.
         for (auto udt : st.udttable) {
             for (auto [i, de] : enumerate(udt->dispatch_table)) {
-                if (de.sf) {
+                if (de->sf) {
                     vtables[udt->vtable_start + i] =
-                        de.sf->subbytecodestart ? de.sf->subbytecodestart : dummyfun;
-                    assert(!de.is_switch_dispatch);
-                } else if (de.case_index >= 0) {
-                    vtables[udt->vtable_start + i] = -de.case_index - 2;
-                    assert(de.is_switch_dispatch);
+                        de->sf->subbytecodestart ? de->sf->subbytecodestart : dummyfun;
+                    assert(!de->is_switch_dispatch);
+                } else if (de->case_index >= 0) {
+                    vtables[udt->vtable_start + i] = -de->case_index - 2;
+                    assert(de->is_switch_dispatch);
                 }
             }
         }
@@ -510,11 +510,11 @@ struct CodeGen  {
             // doesn't necessarily point to the dispatch root (which may not even have an sf).
             auto dispatch_type = call.children[0]->exptype;
             assert(IsUDT(dispatch_type->t));
-            auto &de = dispatch_type->udt->dispatch_table[call.vtable_idx];
-            assert(de.is_dispatch_root && !de.returntype.Null() && de.subudts_size);
-            if (de.returned_thru_to_max >= 0) {
+            auto de = dispatch_type->udt->dispatch_table[call.vtable_idx].get();
+            assert(de->dispatch_root && !de->returntype.Null() && de->subudts_size);
+             if (de->returned_thru_to_max >= 0) {
                 // This works because all overloads of a DD sit under a single Function.
-                GenUnwind(sf, de.returned_thru_to_max, outw);
+                GenUnwind(sf, de->returned_thru_to_max, outw);
             }
         }
         auto nretvals = sf.returntype->NumValues();
@@ -1803,10 +1803,10 @@ void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int m
 
 void Switch::GenerateTypeDispatch(CodeGen &cg, size_t retval) const {
     auto dispatch_udt = value->exptype->udt;
-    auto &dt = dispatch_udt->dispatch_table[vtable_idx];
-    assert(dt.is_dispatch_root && dt.is_switch_dispatch &&
-           dt.subudts_size == dispatch_udt->subudts.size());
-    (void)dt;
+    auto de = dispatch_udt->dispatch_table[vtable_idx].get();
+    assert(de->dispatch_root && de->is_switch_dispatch &&
+           de->subudts_size == dispatch_udt->subudts.size());
+    (void)de;
     cg.EmitOp(IL_JUMP_TABLE_DISPATCH);
     cg.Emit(vtable_idx);
     cg.Emit(0);
@@ -1915,7 +1915,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
         cg.Emit(nretslots);
     } else {
         // This is for both if the return itself is non-local, or if the destination has
-        // an unwind check, could potentially split those up further.
+        // an unwind check.
         cg.EmitOp(IL_RETURNNONLOCAL, nretslots);
         cg.Emit(nretslots);
         cg.Emit(sf->parent->idx);
