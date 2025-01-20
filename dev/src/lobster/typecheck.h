@@ -1465,7 +1465,6 @@ struct TypeChecker {
             // Typecheck all the individual functions.
             SubFunction *last_sf = nullptr;
             bool any_recursive = false;
-            int any_returned_thru_max = -1;
             for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
                 auto sf = udt->dispatch_table[vtable_idx]->sf;
                 // Missing implementation for unused UDT.
@@ -1499,7 +1498,6 @@ struct TypeChecker {
                 sf = csf;
                 udt->dispatch_table[vtable_idx]->sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
-                any_returned_thru_max = std::max(any_returned_thru_max, sf->returned_thru_to_max);
                 auto u = sf->returntype;
                 if (de->returntype->IsBoundVar()) {
                     // FIXME: can this still happen now that recursive cases use explicit return
@@ -1556,13 +1554,7 @@ struct TypeChecker {
                     }
                 }
                 last_sf = sf;
-                // Even if this sf is not returned thru, there may be an unwind check due to other
-                // sfs in the dispatch.
-                sf->returned_thru_to_max = std::max(sf->returned_thru_to_max, any_returned_thru_max);
             }
-            dispatch_udt.dispatch_table[vtable_idx]->returned_thru_to_max =
-                std::max(dispatch_udt.dispatch_table[vtable_idx]->returned_thru_to_max,
-                         any_returned_thru_max);
             call_args.children[0]->exptype = &dispatch_udt.thistype;
         }
         return dispatch_udt.dispatch_table[vtable_idx]->returntype;
