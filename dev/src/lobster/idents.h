@@ -444,6 +444,7 @@ struct SubFunction {
     bool optimized = false;
     bool explicit_generics = false;
     int returned_thru_to_max = -1;  // >=0: there exist return statements that may skip the caller.
+    vector<int> returned_thru_function_ids;
     UDT *method_of = nullptr;
     int numcallers = 0;
     Type thistype { V_FUNCTION, this };  // convenient place to store the type corresponding to this

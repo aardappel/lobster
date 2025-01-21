@@ -512,7 +512,7 @@ struct CodeGen  {
             assert(IsUDT(dispatch_type->t));
             auto de = dispatch_type->udt->dispatch_table[call.vtable_idx].get();
             assert(de->dispatch_root && !de->returntype.Null() && de->subudts_size);
-             if (de->returned_thru_to_max >= 0) {
+            if (de->returned_thru_to_max >= 0) {
                 // This works because all overloads of a DD sit under a single Function.
                 GenUnwind(sf, de->returned_thru_to_max, outw);
             }
