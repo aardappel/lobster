@@ -1063,23 +1063,14 @@ struct TypeChecker {
                                   DispatchEntry *de) {
         STACK_PROFILE;
         // Here we have a SubFunction witch matching specialized types.
-        // See if this call is recursive:
-        auto this_call_is_recursive = false;
-        for (auto &sc : scopes) {
-            if (sc.sf == sf) {
-                this_call_is_recursive = true;
-                break;
-            }
-        }
         sf->numcallers++;
         auto parent_sf = scopes.empty() ? nullptr : scopes.back().sf;
         for (auto &caller : sf->callers) {
-            if (caller.caller == parent_sf && caller.de == de &&
-                caller.is_recursive == this_call_is_recursive) {
+            if (caller.caller == parent_sf && caller.de == de) {
                 goto existing_caller;
             }
         }
-        sf->callers.push_back(Caller{ parent_sf, de, this_call_is_recursive });
+        sf->callers.push_back(Caller{ parent_sf, de });
         existing_caller:
         Function &f = *sf->parent;
         if (may_have_lambda_args && (static_dispatch || first_dynamic)) {
@@ -1120,11 +1111,16 @@ struct TypeChecker {
             // we want to override them.
             freevar.type = freevar.sid->Current()->type;
         }
-        if (this_call_is_recursive) {
-            sf->isrecursivelycalled = true;
-            if (sf->returngiventype.Null())
-                Error(call_args, "recursive function ", Q(sf->parent->name),
-                      " must have explicit return type");
+        // See if this call is recursive:
+        for (auto &sc : scopes) {
+            if (sc.sf == sf) {
+                sf->isrecursivelycalled = true;
+                if (sf->returngiventype.Null())
+                    Error(call_args, "recursive function ", Q(sf->parent->name),
+                          " must have explicit return type");
+
+                break;
+            }
         }
         return sf->returntype;
     };
@@ -1190,7 +1186,8 @@ struct TypeChecker {
         if (sf->returned_thru_to_max >= nretslots) {
             // We already have something returning thru here that is at least as big, check if
             // its the same function because then we're done.
-            // This is purely an early-out optimization.
+            // This is not only a huge early-out optimization, it also prevents recursive calls
+            // from stack overflowing this function :)
             for (auto idx : sf->returned_thru_function_ids) {
                 if (idx == dest_sf->parent->idx) {
                     return true;
@@ -1199,12 +1196,6 @@ struct TypeChecker {
         }
         sf->returned_thru_to_max = std::max(sf->returned_thru_to_max, nretslots);
         sf->returned_thru_function_ids.push_back(dest_sf->parent->idx);
-        for (auto rsf : rec_dest_sf) if (rsf == sf) {
-            // We were following a chain from a recursive call, and have arrived at the recursion
-            // entry point. We can't continue with callers here, which includes the call that set
-            // rec_dest_sf. We rely on the non-recursive paths to trace beyond this entry point.
-            return true;
-        }
         // Now we step into the callers. This will typically only have 1 element in it in the
         // non-recursive case, and 2 for a normal active recursive call.
         for (auto &caller : sf->callers) {
@@ -1222,11 +1213,8 @@ struct TypeChecker {
                     dsf->returned_thru_to_max = std::max(dsf->returned_thru_to_max, nretslots);
                 }
             }
-            if (caller.is_recursive) rec_dest_sf.push_back(sf);
-            auto reached =
-                RecursiveCheckReturns(caller.caller, nretslots, dest_sf, rec_dest_sf, context);
-            if (caller.is_recursive) rec_dest_sf.pop_back();
-            if (!reached) return false;
+            if (!RecursiveCheckReturns(caller.caller, nretslots, dest_sf, rec_dest_sf, context))
+                return false;
         }
         return true;
     }

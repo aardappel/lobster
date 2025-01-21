@@ -399,7 +399,6 @@ struct SubFunction;
 struct Caller {
     SubFunction *caller = nullptr;  // Null if this is the call to __top_level_expression
     DispatchEntry *de = nullptr;    // Null if static call.
-    bool is_recursive = false;
 };
 
 struct Overload {
