@@ -420,6 +420,11 @@ struct SteamState {
         return result;
     }
 
+    CSteamID GetLobbyOwner(CSteamID steam_id) {
+        auto result = SteamMatchmaking()->GetLobbyOwner(steam_id);
+        return result;
+    }
+
     int GetLobbyDataCount(CSteamID steam_id) {
         auto count = SteamMatchmaking()->GetLobbyDataCount(steam_id);
         return count;
@@ -506,6 +511,10 @@ struct SteamState {
 
     const char *GetFriendPersonaName(CSteamID steam_id) {
         return SteamFriends()->GetFriendPersonaName(steam_id);
+    }
+
+    bool HasFriend(CSteamID steam_id, int friend_flags) {
+        return SteamFriends()->HasFriend(steam_id, friend_flags);
     }
 };
 
@@ -869,6 +878,12 @@ nfr("friend_get_username", "steam_id", "I", "S",
         return STEAM_STRING_VALUE(vm, steam->GetFriendPersonaName(SteamIDFromValue(steam_id)));
     });
 
+nfr("has_friend", "steam_id,flags", "II", "B",
+    "returns true if the given steam_id is a friend with the matching flags",
+    [](StackPtr &, VM &vm, Value &steam_id, Value &friend_flags) {
+        return STEAM_BOOL_VALUE(vm, steam->HasFriend(SteamIDFromValue(steam_id), friend_flags.intval()));
+    });
+
 nfr("net_identity", "", "", "S",
     "returns the steam identity for this"
     " user. This same ID will be used for connecting to peers, sending messages,"
@@ -1113,6 +1128,12 @@ nfr("lobby_get_all_joined", "", "", "I]",
         #endif  // PLATFORM_STEAMWORKS
 
         return Value(lobbies_vec);
+    });
+
+nfr("lobby_get_owner", "steam_id", "I", "I",
+    "get the steam id of the owner of the given lobby",
+    [](StackPtr &, VM &, Value &steam_id) {
+        return STEAM_IINT_VALUE(IIntFromSteamID(steam->GetLobbyOwner(SteamIDFromValue(steam_id))));
     });
 
 nfr("lobby_request_data", "steam_id", "I", "B",

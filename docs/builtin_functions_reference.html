@@ -1206,6 +1206,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.get_char_code</b>(name<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">the char code of a glyph by specifying its name, or 0 if it can not be found (or if the font doesn't have names)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.use_default_font_shader</b>(on<font color="#666666">: bool</font>)</tt></td><td class="a">by default set_font_name sets the use of the "textured" shader. With this function you can turn that on/off to use a current shader instead.</td>
+
+</tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>sound</h3></td></tr>
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>play_wav</b>(filename<font color="#666666">: string</font>, loops<font color="#666666">: int</font> = 0, prio<font color="#666666">: int</font> = 0) -> <font color="#666666">int</font></tt></td><td class="a">plays a sound defined by a wav file (RAW or MS-ADPCM, any bitrate other than 22050hz 16bit will automatically be converted on first load). the default volume is the max volume (1.0) loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats). prio is the priority of the sound which determines whether it can be deleted or not in case of too many play function calls (defaults to 0) returns the assigned channel number (1..8) or 0 on error</td>
@@ -1619,6 +1622,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>steam.friend_get_username</b>(steam_id<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">returns the name for the given steam id; this only works for friends, or users in the same lobby, chat room, game server, etc.</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.has_friend</b>(steam_id<font color="#666666">: int</font>, flags<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns true if the given steam_id is a friend with the matching flags</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.net_identity</b>() -> <font color="#666666">string</font></tt></td><td class="a">returns the steam identity for this user. This same ID will be used for connecting to peers, sending messages, etc.</td>
 
 </tr>
@@ -1673,7 +1679,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>steam.lobby_create</b>(max_members<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">create a new lobby that allows at most a given number of members; this lobby will be automatically joined. use lobby_get_created() to get the newly created lobby's steam id</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>steam.lobby_create</b>(lobby_type<font color="#666666">: int</font>, max_members<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">create a new lobby that allows at most a given number of members; this lobby will be automatically joined. use lobby_get_created() to get the newly created lobby's steam id</td>
+<tr class="a" valign=top><td class="a"><tt><b>steam.lobby_create</b>(lobby_type<font color="#666666">: int</font>, max_members<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">create a new lobby of a given lobby type that allows at most a given number of members; this lobby will be automatically joined. use lobby_get_created() to get the newly created lobby's steam id</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.lobby_get_created</b>() -> <font color="#666666">int</font></tt></td><td class="a">get the steam id of the most recently created lobby</td>
@@ -1692,6 +1698,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.lobby_get_all_joined</b>() -> <font color="#666666">[int]</font></tt></td><td class="a">get a list of all of the lobbies that have been joined with lobby_create() or lobby_join()</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.lobby_get_owner</b>(steam_id<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">get the steam id of the owner of the given lobby</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.lobby_request_data</b>(steam_id<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">refresh data for a given lobby; it is not necessary to call this for any lobby that you have joined</td>
