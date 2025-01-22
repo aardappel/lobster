@@ -1,5 +1,9 @@
 - mipmaps are darker than the orginal in both srgb and linear modes? see e.g. puzzlewindow.lobster
 
+- Passing function values with free variables to declared function types is currently not safe, see
+  commented out code related to function types in SubType()
+  https://github.com/aardappel/lobster/issues/351
+
 - Default ignoring return values is a really bad default, wonder if it is too late to change?
   Ideally it would error on ignored return values unless the function explicitly marks a return
   value as ignorable.

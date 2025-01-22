@@ -486,6 +486,21 @@ struct TypeChecker {
                 if (!sf->sbody) sf = CloneFunction(*sf->parent->overloads[0]);
                 TypeCheckFunctionDef(*sf, *sf->sbody);
             }
+            /*
+            if (bound->sf && bound->sf->parent->istype) {
+                // FIXME: this doesn't work, as we have plenty of use cases where a function type is
+                // used in a non-escaping way which works fine with free variables.
+                // We'd need to detect the common case of function types attached to chained function args
+                // whose only use is a dyncall way down the line.
+                for (auto &fv : sf->freevars) {
+                    // Allow globals.
+                    if (fv.sid->id->scopelevel == 1) continue;
+                    Error(*a, cat("cannot pass function value with free variable ",
+                                  Q(fv.sid->id->name), " to declared function type ",
+                                  Q(bound->sf->parent->name)));
+                }
+            }
+            */
             // Covariant again.
             if (sf->returntype->NumValues() != returntype->NumValues() ||
                 !ConvertsTo(sf->returntype, returntype, CF_UNIFICATION))
