@@ -958,6 +958,8 @@ struct TypeChecker {
                                         sf.returntype->tup->begin() + sf.reqret);
                         sf.returntype = nt;
                     }
+                } else if (len < sf.reqret) {
+                    Error(call_context, cat("returning ", len, " values, caller requires ", sf.reqret));
                 }
             }
         } else {
