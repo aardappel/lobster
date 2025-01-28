@@ -2363,7 +2363,7 @@ struct TypeChecker {
         }
 
         // FIXME: may not work when namespaces are involved.
-        auto f = st.FindFunction(ident);
+        auto f = st.FindFunction(full_iden);
         if (f) {
             auto ov = f->overloads[0];
             if(parent) { //Try to find method of parent class with same name
@@ -2378,7 +2378,7 @@ struct TypeChecker {
                 LocationQuery(ov->gbody->line, ov->sf ? Signature(*ov->sf) : "");
             }
         }
-        auto fld = st.FieldUse(ident);
+        auto fld = st.FieldUse(full_iden);
         if (fld && parent) {
             // To know what this belongs to, would need to find the object it belongs to.
             // For now, simply see if we can find any class that has this field.
@@ -2391,7 +2391,7 @@ struct TypeChecker {
                 LocationQuery(parent->fields[fi].defined_in, TypeName(parent->fields[fi].giventype));
             }
         }
-        auto nf = parser.natreg.FindNative(ident);
+        auto nf = parser.natreg.FindNative(full_iden);
         if (nf) {
             // This doesn't have a source code location, so output a signature the IDE can display.
             THROW_OR_ABORT("query_signature: " + Signature(*nf));
