@@ -341,6 +341,14 @@ def popup_rmb_prev_item(label, body):
         popup_end()
     return open
 
+// Call im.popup_modal_open (from e.g. im.button) with same label as this, followed by im.popup_modal() with body.
+def popup_modal(label, body):
+    let open = popup_modal_start(label, 0)
+    if open:
+        body()
+        popup_end()
+    return open
+
 def disabled(disabled, body):
     disabled_start(disabled)
     body()
