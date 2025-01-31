@@ -1067,6 +1067,7 @@ struct VM : VMArgs {
     string_view ReverseLookupType(int v);
     string_view LookupField(int stidx, iint fieldn) const;
     string_view LookupFieldByOffset(int stidx, int offset) const;
+    int LookupFieldByName(int stidx, string_view fname) const;
 
     void Trace(TraceMode m) { trace = m; }
 

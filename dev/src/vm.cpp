@@ -735,6 +735,19 @@ string_view VM::LookupFieldByOffset(int stidx, int offset) const {
     return fields->Get(fieldn)->name()->string_view();
 }
 
+int VM::LookupFieldByName(int stidx, string_view fname) const {
+    auto st = bcf->udts()->Get((flatbuffers::uoffset_t)stidx);
+    auto fields = st->fields();
+    for (flatbuffers::uoffset_t i = 0; i < fields->size(); i++) {
+        auto f = fields->Get(i);
+        auto name = f->name()->string_view();
+        if (name == fname) {
+            return f->offset();
+        }
+    }
+    return -1;
+}
+
 bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
     auto enum_def = bcf->enums()->Get(enumidx);
     auto &vals = *enum_def->vals();
