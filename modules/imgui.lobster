@@ -239,6 +239,13 @@ def treenode(label, body):
         treenode_end()
     return open
 
+def treenode(label, flags, body):
+    let open = treenode_start(label, flags)
+    if open:
+        body()
+        treenode_end()
+    return open
+
 def treenode_open(label, body):
     let open = treenode_start(label, treenode_default_open)
     if open:
