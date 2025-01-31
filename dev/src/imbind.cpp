@@ -1042,6 +1042,14 @@ nfr("is_item_deactivated_after_edit", "", "", "B",
         Push(sp, result);
     });
 
+nfr("is_item_focused", "", "", "B",
+    "returns true if the last item is focused",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto result = ImGui::IsItemFocused();
+        Push(sp, result);
+    });
+
 nfr("want_capture_mouse", "", "", "B",
     "returns true if imgui wants to capture the mouse",
     [](StackPtr &sp, VM &vm) {
@@ -1424,6 +1432,14 @@ nfr("rect_filled", "min,max,color,rounding", "F}:2F}:2F}:4F", "",
             rounding,
             flags
         );
+    });
+
+nfr("set_next_item_open", "is_open,cond", "BI", "", "Set the open state of the next treenode",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto cond = Pop(sp).ival();
+        auto is_open = Pop(sp).True();
+        ImGui::SetNextItemOpen(is_open, (ImGuiCond)cond);
     });
 
 nfr("treenode_start", "label,flags", "SI", "B",

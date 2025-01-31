@@ -1816,6 +1816,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.is_item_deactivated_after_edit</b>() -> <font color="#666666">int</font></tt></td><td class="a">returns true if the last item was made inactive and made a value change when it was active</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.is_item_focused</b>() -> <font color="#666666">int</font></tt></td><td class="a">returns true if the last item is focused</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.want_capture_mouse</b>() -> <font color="#666666">int</font></tt></td><td class="a">returns true if imgui wants to capture the mouse</td>
 
 </tr>
@@ -1937,6 +1940,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.rect_filled</b>(min<font color="#666666">: float2</font>, max<font color="#666666">: float2</font>, color<font color="#666666">: float4</font>, rounding<font color="#666666">: float</font>)</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.set_next_item_open</b>(is_open<font color="#666666">: bool</font>, cond<font color="#666666">: int</font>)</tt></td><td class="a">Set the open state of the next treenode</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.treenode_start</b>(label<font color="#666666">: string</font>, flags<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im.treenode instead)</td>
