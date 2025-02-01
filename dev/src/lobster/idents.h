@@ -913,6 +913,17 @@ struct SymbolTable {
         if (uit != gudts.end()) return uit->second;
         return nullptr;
     }
+    GUDT *LookupStructQuery(string_view name) {
+        GUDT* res = LookupStruct(name);
+        if(res) return res;
+        //Try to search out of scope when doing query
+        for (auto gudt = gudttable.rbegin(); gudt != gudttable.rend(); ++gudt) {
+            if((*gudt)->name == name) {
+                return *gudt;
+            }
+        }
+        return nullptr;
+    }
 
     GUDT &StructUse(string_view name) {
         auto gudt = LookupStruct(name);

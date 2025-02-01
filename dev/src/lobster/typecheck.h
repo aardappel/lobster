@@ -2340,7 +2340,12 @@ struct TypeChecker {
         // Check if we need to do any lifetime adjustments.
         AdjustLifetime(n, recip, idents);
         // Check for queries.
-        if (query && query->qloc == n->line) ProcessQuery();
+        if (query) {
+            if ((reqret==0 && n->line == query->qloc) //reqret usually in the end of line
+             || (n->line.line > query->qloc.line && n->line.fileidx==query->qloc.fileidx)) { //If above missed
+                ProcessQuery();
+            }
+        }
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
@@ -2408,8 +2413,85 @@ struct TypeChecker {
             }
         }
     }
+    TypeRef FindVarType(string_view ident, SubFunction *sf) {
+        for (auto &vars : {sf->args, sf->locals, sf->freevars}) {
+            for (auto &var : vars) {
+                if (var.sid->id->name == ident && !var.sid->type.Null()) {
+                    return var.sid->type;
+                }
+            }
+        }
+        return TypeRef(nullptr);
+    }
 
-    void ProcessQuery() {
+    bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction **sf) {
+        size_t pos = full_iden.find('.');
+        bool got_pos = pos != std::string::npos;
+        string ident = full_iden;
+        if (got_pos) {
+            ident = full_iden.substr(0, pos);
+            //Possible a class or a struct name
+            auto ident_type = FindVarType(ident, *sf);
+            if (!ident_type.Null()) {
+                ident = TypeName(ident_type);
+            }
+        }
+        auto new_parent_struct = st.LookupStructQuery(ident);
+
+        if (new_parent_struct && !got_pos){ //Just class instance
+            LocationQuery(new_parent_struct->line, Signature(*new_parent_struct));
+        }
+
+        // FIXME: may not work when namespaces are involved.
+        auto f = st.FindFunction(full_iden);
+        if (f) {
+            auto ov = f->overloads[0];
+            if(parent) { //Try to find method of parent class with same name
+                for (auto &candidate_ov : f->overloads) {
+                    if (TypeName(candidate_ov->givenargs[0]) == parent->name) {
+                        ov = candidate_ov;
+                        break;
+                    }
+                }
+            }
+            if (ov->gbody) {  // FIXME: ignores function types. Now fixed (or not?)
+                LocationQuery(ov->gbody->line, ov->sf ? Signature(*ov->sf) : "");
+            }
+        }
+        auto fld = st.FieldUse(full_iden);
+        if (fld && parent) {
+            // To know what this belongs to, would need to find the object it belongs to.
+            // For now, simply see if we can find any class that has this field.
+            int fi = parent->Has(fld);
+            if (fi >= 0) {
+                auto struct_type = st.LookupStructQuery(TypeName(parent->fields[fi].giventype));
+                if (got_pos) { //Go further with detected struct as a parent
+                    ProcessDefinition(struct_type, full_iden.substr(pos+1), sf);
+                }
+                LocationQuery(parent->fields[fi].defined_in, TypeName(parent->fields[fi].giventype));
+            }
+        }
+        auto nf = parser.natreg.FindNative(full_iden);
+        if (nf) {
+            // This doesn't have a source code location, so output a signature the IDE can display.
+            THROW_OR_ABORT("query_signature: " + Signature(*nf));
+        }
+        if (fld) { //Failed to find field in parent or no parent
+            for (auto gudt : st.gudttable) {
+                int fi = gudt->Has(fld);
+                if (fi >= 0) {
+                    // FIXME: this is really basic, lets at least find the field line.
+                    LocationQuery(gudt->line, TypeName(gudt->fields[fi].giventype));
+                }
+            }
+        }
+        if (got_pos) { //Go further
+            ProcessDefinition(new_parent_struct, full_iden.substr(pos+1), sf);
+        }
+        return false;
+    }
+
+    bool ProcessQuery() {
         if (query->kind == "definition") {
             // The top scope includes a list of free vars so should be able to resolve any var
             // at the given location.. if no scopes, use top fun.
@@ -2417,38 +2499,10 @@ struct TypeChecker {
             FindVar(sf->args);
             FindVar(sf->locals);
             FindVar(sf->freevars);
-            auto gudt = st.LookupStruct(query->iden);
-            if (gudt) {
-                LocationQuery(gudt->line, Signature(*gudt));
-            }
-            // FIXME: may not work when namespaces are involved.
-            auto f = st.FindFunction(query->iden);
-            if (f) {
-                auto ov = f->overloads[0];
-                if (ov->gbody) {  // FIXME: ignores function types.
-                    LocationQuery(ov->gbody->line, ov->sf ? Signature(*ov->sf) : "");  
-                }
-            }
-            auto nf = parser.natreg.FindNative(query->iden);
-            if (nf) {
-                // This doesn't have a source code location, so output a signature the IDE can display.
-                THROW_OR_ABORT("query_signature: " + Signature(*nf));
-            }
-            auto fld = st.FieldUse(query->iden);
-            if (fld) {
-                // To know what this belongs to, would need to find the object it belongs to.
-                // For now, simply see if we can find any class that has this field.
-                for (auto gudt : st.gudttable) {
-                    int fi = gudt->Has(fld);
-                    if (fi >= 0) {
-                        // FIXME: this is really basic, lets at least find the field line.
-                        LocationQuery(gudt->line, TypeName(gudt->fields[fi].giventype));
-                    }
-                }
-            }
-            THROW_OR_ABORT("query_unknown_ident: " + query->iden);
+            return ProcessDefinition(nullptr, query->iden, &sf);
         } else {
             THROW_OR_ABORT("query_unknown_kind: " + query->kind);
+            return false;
         }
     }
 
