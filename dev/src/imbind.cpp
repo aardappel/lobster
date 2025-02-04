@@ -1050,6 +1050,28 @@ nfr("is_item_focused", "", "", "B",
         Push(sp, result);
     });
 
+nfr("set_item_default_focus", "", "", "", "sets the last item created to have focus",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::SetItemDefaultFocus();
+    });
+
+nfr("set_scroll_here_x", "center_x_ratio", "F", "",
+    "scroll the pane in the X dimension so the imgui cursor is visible. Use 0.5 to center the pane on the item",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto center_x_ratio = Pop(sp).fltval();
+        ImGui::SetScrollHereX(center_x_ratio);
+    });
+
+nfr("set_scroll_here_y", "center_y_ratio", "F", "",
+    "scroll the pane in the Y dimension so the imgui cursor is visible. Use 0.5 to center the pane on the item",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto center_y_ratio = Pop(sp).fltval();
+        ImGui::SetScrollHereY(center_y_ratio);
+    });
+
 nfr("want_capture_mouse", "", "", "B",
     "returns true if imgui wants to capture the mouse",
     [](StackPtr &sp, VM &vm) {
