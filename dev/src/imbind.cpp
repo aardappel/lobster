@@ -1727,6 +1727,14 @@ nfr("button_repeat_end", "", "", "",
         ImGui::PopButtonRepeat();
     });
 
+nfr("dummy", "size", "F}:2", "add a dummy item of a given size",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto size = PopVec<float2>(sp);
+        ImGui::Dummy(ImVec2(size.x, size.y));
+    });
+
 nfr("drag_drop_source_start", "flags", "I", "B",
     "(use im.drag_drop_source instead)",
     [](StackPtr &sp, VM &vm) {
