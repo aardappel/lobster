@@ -1183,10 +1183,10 @@ VM_INLINE void PopFunId(VM &vm) {
 }
 
 #if LOBSTER_FRAME_PROFILER
-VM_INLINE TracyCZoneCtx StartProfile(___tracy_source_location_data *tsld) {
+VM_INLINE ___tracy_c_zone_context StartProfile(___tracy_source_location_data *tsld) {
     return ___tracy_emit_zone_begin(tsld, true);
 }
-VM_INLINE void EndProfile(TracyCZoneCtx ctx) {
+VM_INLINE void EndProfile(___tracy_c_zone_context ctx) {
     ___tracy_emit_zone_end(ctx);
 }
 #endif

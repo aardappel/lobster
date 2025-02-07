@@ -1,3 +1,5 @@
+- calling `equal` on a vector of struct currently just asserts, should error at least.
+
 - mipmaps are darker than the orginal in both srgb and linear modes? see e.g. puzzlewindow.lobster
 
 - Passing function values with free variables to declared function types is currently not safe, see

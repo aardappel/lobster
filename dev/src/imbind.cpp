@@ -1936,6 +1936,37 @@ nfr("show_debug_metrics_window", "", "", "",
         return NilVal();
     });
 
+nfr("show_profiling_stats", "num,reset", "IB", "",
+    "",
+    [](StackPtr &, VM &vm, Value &num, Value &reset) {
+        IsInit(vm);
+        if (reset.True()) prof_stats.clear();
+        vector<pair<const struct ___tracy_source_location_data *, ProfStat>> display;
+        for (auto &it : prof_stats) {
+            display.push_back(it);
+        }
+        sort(display.begin(), display.end(),
+             [](pair<const struct ___tracy_source_location_data *, ProfStat> &a,
+                pair<const struct ___tracy_source_location_data *, ProfStat> &b) -> bool {
+                 return a.second.time >= b.second.time;
+            });
+        if (!ImGui::BeginTable("show_profiling_stats", 2,
+                               ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX |
+                                   ImGuiTableFlags_Borders))
+            return NilVal();
+        auto i = num.ival();
+        for (auto &it : display) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            Text(it.first->function);
+            ImGui::TableSetColumnIndex(1);
+            Text(to_string_float(it.second.time, 3));
+            if (!--i) break;
+        }
+        ImGui::EndTable();
+        return NilVal();
+    });
+
 }  // AddIMGUI
 
 void AddIMGUIDebug(NativeRegistry & nfr) {

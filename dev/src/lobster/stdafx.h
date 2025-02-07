@@ -119,24 +119,49 @@ using namespace geom;
 // https://github.com/wolfpld/tracy/issues/419
 // Overhead should be low enough that eventually we want this on in all builds.
 #ifndef LOBSTER_FRAME_PROFILER
-    #define LOBSTER_FRAME_PROFILER 0
+    // 1 == use builtin Tracy compatible emulation.
+    // 2 == use full Tracy version.
+    #define LOBSTER_FRAME_PROFILER 1
 #endif
 
 #if LOBSTER_FRAME_PROFILER && LOBSTER_ENGINE && defined(_WIN32)
-    #define TRACY_ENABLE 1
-    #define TRACY_ON_DEMAND 1
-    #define TRACY_ONLY_LOCALHOST 1
     // These are too expensive to always have on, but can give maximum info automatically.
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0   // Only works with --runtime-stack-trace on.
     #define LOBSTER_FRAME_PROFILER_GLOBAL 0      // Save additional copy to debug hard crashes.
-    #define LOBSTER_FRAME_PROFILE_THIS_SCOPE ZoneScoped
-    #define LOBSTER_FRAME_PROFILE_GPU TracyGpuZone(__FUNCTION__)
-    #undef new
-    #include "Tracy.hpp"
-    #include "TracyC.h"
-    #if defined(_MSC_VER) && !defined(NDEBUG)
-        #define new DEBUG_NEW
+    #if LOBSTER_FRAME_PROFILER == 2
+        #define LOBSTER_FRAME_PROFILE_THIS_SCOPE ZoneScoped
+        #define LOBSTER_FRAME_PROFILE_GPU TracyGpuZone(__FUNCTION__)
+        #define TRACY_ENABLE 1
+        #define TRACY_ON_DEMAND 1
+        #define TRACY_ONLY_LOCALHOST 1
+        #undef new
+        #include "Tracy.hpp"
+        #include "TracyC.h"
+        #if defined(_MSC_VER) && !defined(NDEBUG)
+            #define new DEBUG_NEW
+        #endif
+    #else
+        #define LOBSTER_FRAME_PROFILE_THIS_SCOPE
+        #define LOBSTER_FRAME_PROFILE_GPU
+        // Emulate Tracy with our own minimal API.
+        struct ___tracy_source_location_data {
+            const char *name;
+            const char *function;
+            const char *file;
+            uint32_t line;
+            uint32_t color;
+        };
+        struct ___tracy_c_zone_context {
+            double start_time;
+        };
+        ___tracy_c_zone_context ___tracy_emit_zone_begin(
+            const struct ___tracy_source_location_data *srcloc, int active);
+        void ___tracy_emit_zone_end(___tracy_c_zone_context ctx);
+        struct ProfStat {
+            double time;
+        };
+        extern unordered_map<const struct ___tracy_source_location_data *, ProfStat> prof_stats;
     #endif
 #else
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
