@@ -1940,6 +1940,7 @@ nfr("show_profiling_stats", "num,reset", "IB", "",
     "",
     [](StackPtr &, VM &vm, Value &num, Value &reset) {
         IsInit(vm);
+        #if LOBSTER_FRAME_PROFILER == 1
         if (reset.True()) prof_stats.clear();
         vector<pair<const struct ___tracy_source_location_data *, ProfStat>> display;
         for (auto &it : prof_stats) {
@@ -1964,6 +1965,10 @@ nfr("show_profiling_stats", "num,reset", "IB", "",
             if (!--i) break;
         }
         ImGui::EndTable();
+        #else
+        (void)num;
+        (void)reset;
+        #endif
         return NilVal();
     });
 
