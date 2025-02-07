@@ -114,22 +114,24 @@ using namespace geom;
     #define LOBSTER_ENGINE 1
 #endif
 
-// Disabled by default because of several out-standing bugs with Tracy.
-// https://github.com/wolfpld/tracy/issues/422
-// https://github.com/wolfpld/tracy/issues/419
-// Overhead should be low enough that eventually we want this on in all builds.
-#if !defined(LOBSTER_FRAME_PROFILER) && LOBSTER_ENGINE && defined(_WIN32)
-    // 1 == use builtin Tracy compatible emulation.
-    // 2 == use full Tracy version.
-    #define LOBSTER_FRAME_PROFILER 1
+#ifndef LOBSTER_FRAME_PROFILER
+    #if LOBSTER_ENGINE && defined(_WIN32)
+        // 1 == use builtin Tracy compatible emulation.
+        // 2 == use full Tracy version.
+        #define LOBSTER_FRAME_PROFILER 1
+    #else
+        #define LOBSTER_FRAME_PROFILER 0
+    #endif
 #endif
-
 #if LOBSTER_FRAME_PROFILER
     // These are too expensive to always have on, but can give maximum info automatically.
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0
     #define LOBSTER_FRAME_PROFILER_FUNCTIONS 0   // Only works with --runtime-stack-trace on.
     #define LOBSTER_FRAME_PROFILER_GLOBAL 0      // Save additional copy to debug hard crashes.
     #if LOBSTER_FRAME_PROFILER == 2
+        // Not used by default because of several out-standing bugs with Tracy.
+        // https://github.com/wolfpld/tracy/issues/422
+        // https://github.com/wolfpld/tracy/issues/419
         #define LOBSTER_FRAME_PROFILE_THIS_SCOPE ZoneScoped
         #define LOBSTER_FRAME_PROFILE_GPU TracyGpuZone(__FUNCTION__)
         #define TRACY_ENABLE 1
