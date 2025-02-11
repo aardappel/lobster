@@ -463,7 +463,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 string name;
                 EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), name);
                 append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
-                       ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = StartProfile(&tsld);");
+                       ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ", cpp ? "lobster::" : "" , "StartProfile(&tsld);");
                 has_profile = true;
                 break;
             }
@@ -504,7 +504,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         if (ip == code + len || *ip == IL_FUNSTART || ip == starting_ip) {
             if (opc != IL_EXIT && opc != IL_ABORT) sd += "    epilogue:;\n";
             if (has_profile) {
-                append(sd, "    EndProfile(ctx);\n");
+                append(sd, "    ", cpp ? "lobster::" : "", "EndProfile(ctx);\n");
             }
             if (!sdt.empty()) append(sd, sdt);
             for (int i = 0; i < nkeepvars; i++) {
