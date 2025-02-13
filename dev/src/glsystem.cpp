@@ -188,10 +188,10 @@ void DebugCallBack(GLenum source, GLenum type, GLuint id, GLenum severity, GLsiz
     (void)source;
     (void)type;
     (void)id;
-    auto ll = OUTPUT_INFO;
-    if (severity == GL_DEBUG_SEVERITY_HIGH) ll = OUTPUT_ERROR;
-    else if (severity == GL_DEBUG_SEVERITY_MEDIUM) ll = OUTPUT_WARN;
-    else if (severity == GL_DEBUG_SEVERITY_LOW) ll = OUTPUT_INFO;
+    auto ll = OUTPUT_DEBUG;
+    if (severity == GL_DEBUG_SEVERITY_HIGH) ll = OUTPUT_WARN;
+    else if (severity == GL_DEBUG_SEVERITY_MEDIUM) ll = OUTPUT_INFO;
+    else if (severity == GL_DEBUG_SEVERITY_LOW) ll = OUTPUT_DEBUG;
     // Suppress notifications in general
     if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
     if (ll < min_output_level) return;
