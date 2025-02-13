@@ -199,7 +199,7 @@ string GetMainDirFromExePath(string_view argv_0) {
 }
 
 int64_t DefaultLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len) {
-    LOG_INFO("DefaultLoadFile: ", absfilename);
+    LOG_DEBUG("DefaultLoadFile: ", absfilename);
     auto f = fopen(absfilename.c_str(), "rb");
     if (!f) return -1;
     if (fseek(f, 0, SEEK_END)) {
@@ -261,8 +261,8 @@ bool InitPlatform(string _maindir, string_view auxfilepath, bool from_bundle,
         SDL_Init(0); // FIXME: Is this needed? bad dependency.
         auto internalstoragepath = SDL_AndroidGetInternalStoragePath();
         auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
-        LOG_INFO(internalstoragepath);
-        LOG_INFO(externalstoragepath);
+        LOG_DEBUG(internalstoragepath);
+        LOG_DEBUG(externalstoragepath);
         if (internalstoragepath) data_dirs.push_back(internalstoragepath + string_view("/"));
         // For some reason, the above SDL functionality doesn't actually work,
         // we have to use the relative path only to access APK files:
@@ -367,7 +367,7 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
             }
         }
     }
-    if (len > 0) LOG_INFO("load: ", relfilename);
+    if (len > 0) LOG_DEBUG("load: ", relfilename);
     auto size = LoadFileFromAny(SanitizePath(relfilename), dest, start, len);
     TextModeConvert(*dest, binary);
     return size;
@@ -390,13 +390,13 @@ FILE *OpenFor(string_view filename, const char *mode, bool allow_absolute) {
 
 FILE *OpenForWriting(string_view filename, bool binary, bool allow_absolute) {
     auto f = OpenFor(filename, binary ? "wb" : "w", allow_absolute);
-    LOG_INFO("write: ", filename);
+    LOG_DEBUG("write: ", filename);
     return f;
 }
 
 FILE *OpenForReading(string_view filename, bool binary, bool allow_absolute) {
     auto f = OpenFor(filename, binary ? "rb" : "r", allow_absolute);
-    LOG_INFO("read: ", filename);
+    LOG_DEBUG("read: ", filename);
     return f;
 }
 
