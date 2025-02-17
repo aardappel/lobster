@@ -265,6 +265,11 @@ pair<bool, bool> IMGUIEvent(SDL_Event *event) {
     return { ImGui::GetIO().WantCaptureMouse, ImGui::GetIO().WantCaptureKeyboard };
 }
 
+void ClearFonts() {
+    auto atlas = ImGui::GetIO().Fonts;
+    atlas->Clear();
+}
+
 bool LoadFont(string_view name, float size, string_view lang_name) {
     string buf;
     auto l = LoadFile(name, &buf);
@@ -860,6 +865,14 @@ nfr("add_font", "font_path,size,glyph_ranges", "SFS?", "B",
         IsInit(vm, { N_NONE, N_NONE });
         return Value(LoadFont(fontname.sval()->strv(), size.fltval(),
                               glyph_ranges.True() ? glyph_ranges.sval()->strv() : "Default"));
+    });
+
+nfr("clear_fonts", "", "", "",
+    "allows you to restart your add_font calls",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm,  { N_NONE, N_NONE });
+        ClearFonts();
+        ImGui_ImplOpenGL3_DestroyFontsTexture();
     });
 
 nfr("set_style_color", "i,color", "IF}:4", "",
