@@ -33,6 +33,7 @@ export class LSPInstance {
     constructor(connection: Connection, tempDir: string) {
         this.tempDir = tempDir;
         this.connection = connection;
+        this.documents.listen(this.connection);
 
         this.documents.onDidClose(e => {
             this.documentSettings.delete(URI.parse(e.document.uri));
@@ -42,7 +43,6 @@ export class LSPInstance {
             this.validateDocument(change.document);
         });
 
-        this.documents.listen(this.connection);
     }
 
     readConfiguration(uri: URI): Promise<LobsterSettings> {
@@ -102,6 +102,7 @@ export class LSPInstance {
     async validateDocument(document: LobsterDocument) {
         const noErrBefore = document.state === LobsterDocumentState.NoErrors;
         const diagnostics = await document.parse(this);
+        if (!diagnostics) return;
         if (!noErrBefore || diagnostics.length > 0) {
             this.connection.sendDiagnostics({
                 uri: document.uri,
