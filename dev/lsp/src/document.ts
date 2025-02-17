@@ -132,9 +132,9 @@ export class LobsterDocument implements TextDocument {
 		return join;
 	}
 
-	public async parse(lsp: LSPInstance|undefined): Promise<Diagnostic[]> {
+	public async parse(lsp: LSPInstance|undefined): Promise<Diagnostic[] | null> {
         if(lsp == undefined) { //Not ready
-            return []
+            return null
         }
 		const settings = await lsp.getDocumentSettings(this._uri);
 		if (lsp.errored()) return [];
