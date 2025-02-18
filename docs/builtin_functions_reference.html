@@ -1756,7 +1756,10 @@
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>im.init</b>(dark_style<font color="#666666">: bool</font> = false, flags<font color="#666666">: int</font> = 0, rounding<font color="#666666">: float</font> = 0.000000, border<font color="#666666">: float</font> = 0.000000)</tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.add_font</b>(font_path<font color="#666666">: string</font>, size<font color="#666666">: float</font>, glyph_ranges<font color="#666666">: string</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">glyph_ranges will activate additional unicode ranges to be rasterized, and can be Default (most European languages), SimplifiedChinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..</td>
+<tr class="a" valign=top><td class="a"><tt><b>im.add_font</b>(font_path<font color="#666666">: string</font>, size<font color="#666666">: float</font>, glyph_ranges<font color="#666666">: string</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">glyph_ranges will activate additional unicode ranges to be rasterized, and can be Default (most European languages), SimplifiedChinese, Chinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.clear_fonts</b>()</tt></td><td class="a">allows you to restart your add_font calls</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.set_style_color</b>(i<font color="#666666">: int</font>, color<font color="#666666">: float4</font>)</tt></td><td class="a"></td>
@@ -2105,6 +2108,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.show_debug_metrics_window</b>()</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.show_profiling_stats</b>(num<font color="#666666">: int</font>, reset<font color="#666666">: bool</font>)</tt></td><td class="a"></td>
 
 </tr>
 </table></td></tr>

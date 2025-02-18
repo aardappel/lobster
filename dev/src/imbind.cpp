@@ -283,6 +283,8 @@ bool LoadFont(string_view name, float size, string_view lang_name) {
     const ImWchar *glyph_ranges = atlas->GetGlyphRangesDefault();
     if (lang_name == "SimplifiedChinese") {
         glyph_ranges = atlas->GetGlyphRangesChineseSimplifiedCommon();
+    } else if (lang_name == "Chinese") {
+        glyph_ranges = atlas->GetGlyphRangesChineseFull();
     } else if (lang_name == "Korean") {
         glyph_ranges = atlas->GetGlyphRangesKorean();
     } else if (lang_name == "Japanese") {
@@ -860,7 +862,7 @@ nfr("init", "dark_style,flags,rounding,border", "B?I?F?F?", "",
 
 nfr("add_font", "font_path,size,glyph_ranges", "SFS?", "B",
     "glyph_ranges will activate additional unicode ranges to be rasterized, and can be"
-    " Default (most European languages), SimplifiedChinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..",
+    " Default (most European languages), SimplifiedChinese, Chinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..",
     [](StackPtr &, VM &vm, Value &fontname, Value &size, Value &glyph_ranges) {
         IsInit(vm, { N_NONE, N_NONE });
         return Value(LoadFont(fontname.sval()->strv(), size.fltval(),
