@@ -1111,6 +1111,15 @@ nfr("button", "label,size", "SF}:2?", "B",
         Push(sp, press);
     });
 
+nfr("button_small", "label", "S", "B",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto title = Pop(sp);
+        auto press = ImGui::SmallButton(Label(vm, title));
+        Push(sp, press);
+    });
+
 nfr("selectable", "label,selected", "SB?", "B",
     "",
     [](StackPtr &sp, VM &vm) {
