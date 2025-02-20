@@ -64,6 +64,8 @@ enum_flags treenode:
     treenode_span_avail_width     // Extend hit box to the right-most edge, even if not framed. This is not the default in order to allow adding other items on the same line. In the future we may refactor the hit system to be front-to-back, allowing natural overlaps and then this can become the default.
     treenode_span_full_width      // Extend hit box to the left-most and right-most edges (bypass the indented area).
 
+    treenode_half_indent = 1 << 30  // NOTE: this is NOT a Dear ImGUI flag, but a Lobster specific one!
+
 enum_flags tabitem:
     tabitem_none = 0
     tabitem_unsaved_document = 1               // Display a dot next to the title + tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
@@ -236,28 +238,28 @@ def treenode(label, body):
     let open = treenode_start(label, 0)
     if open:
         body()
-        treenode_end()
+        treenode_end(0)
     return open
 
 def treenode(label, flags, body):
     let open = treenode_start(label, flags)
     if open:
         body()
-        treenode_end()
+        treenode_end(flags)
     return open
 
 def treenode_open(label, body):
     let open = treenode_start(label, treenode_default_open)
     if open:
         body()
-        treenode_end()
+        treenode_end(0)
     return open
 
 def treenode_open_if(label, cond, body):
     let open = treenode_start(label, if cond: treenode_default_open else: 0)
     if open:
         body()
-        treenode_end()
+        treenode_end(0)
     return open
 
 def tooltip_multi(body):

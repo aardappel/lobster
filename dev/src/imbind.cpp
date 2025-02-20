@@ -70,6 +70,11 @@ struct ListSelect { int sel = -1; int64_t last_use = -1; };
 map<ImGuiID, ListSelect> list_state;
 int64_t imgui_frame = 0;
 
+// Flags we use in our implementation, in addition to DearImGui.
+enum {
+    ImGuiTreeNodeFlags_IndentHalf = 1 << 30
+};
+
 void IMGUIFrameCleanup() {
     nstack.clear();
 }
@@ -1575,13 +1580,24 @@ nfr("treenode_start", "label,flags", "SI", "B",
         auto title = Pop(sp);
         bool open = ImGui::TreeNodeEx(Label(vm, title), flags);
         Push(sp, open);
-        if (open) NPush(N_TREE);
+        if (open) {
+            NPush(N_TREE);
+            if (!(flags & ImGuiTreeNodeFlags_IndentHalf)) {
+                // By default, ImGui does not line up the contents of a treenode with its label,
+                // this fixes that.
+                ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing() / 2.0f);
+            }
+        }
     });
 
-nfr("treenode_end", "", "", "",
+nfr("treenode_end", "flags", "I", "",
     "",
-    [](StackPtr &, VM &vm) {
+    [](StackPtr &sp, VM &vm) {
         IsInit(vm);
+        auto flags = (ImGuiTreeNodeFlags)Pop(sp).intval();
+        if (!(flags & ImGuiTreeNodeFlags_IndentHalf)) {
+            ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing() / 2.0f);
+        }
         NPop(vm, N_TREE);
     });
 
