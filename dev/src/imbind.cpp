@@ -1268,6 +1268,15 @@ nfr("text_wrapped", "label", "S", "",
         return NilVal();
     });
 
+nfr("text_bullet", "label", "S", "",
+    "",
+    [](StackPtr &, VM &vm, Value &text) {
+        IsInit(vm);
+        auto &s = *text.sval();
+        ImGui::BulletText("%s", s.data());
+        return NilVal();
+    });
+
 nfr("font_start", "font_idx", "I", "",
     "(use im.font instead)",
     [](StackPtr &sp, VM &vm) {
