@@ -149,6 +149,24 @@ enum_flags drag_drop:
     drag_drop_accept_no_draw_default_rect     // Do not draw the default highlight rectangle when hovering over target.
     drag_drop_accept_no_preview_tooltip       // Request hiding the BeginDragDropSource tooltip from the BeginDragDropTarget site.
 
+enum_flags input_text:
+    input_text_none = 0
+    input_text_chars_decimal = 1               // Allow 0123456789.+-*/
+    input_text_chars_hexadecimal               // Allow 0123456789ABCDEFabcdef
+    input_text_chars_scientific                // Allow 0123456789.+-*/eE (Scientific notation input)
+    input_text_chars_uppercase                 // Turn a..z into A..Z
+    input_text_chars_no_blank                  // Filter out spaces, tabs
+    input_text_allow_tab_input                 // Pressing TAB input a '\t' character into the text field
+    input_text_enter_returns_true              // Return 'true' when Enter is pressed (as opposed to every time the value was modified). Consider looking at the IsItemDeactivatedAfterEdit() function.
+    input_text_escape_clears_all               // Escape key clears content if not empty, and deactivate otherwise (contrast to default behavior of Escape to revert)
+    input_text_ctrl_enter_for_new_line         // In multi-line mode, validate with Enter, add new line with Ctrl+Enter (default is opposite: validate with Ctrl+Enter, add line with Enter).
+    input_text_read_only                       // Read-only mode
+    input_text_password                        // Password mode, display all characters as '*', disable copy
+    input_text_always_overwrite                // Overwrite mode
+    input_text_auto_select_all                 // Select entire text when first taking mouse focus
+    input_text_no_horizontal_scroll = 1 << 15  // Disable following the cursor horizontally
+    input_text_no_undo_redo                    // Disable undo/redo. Note that input text owns the text data while active, if you want to provide your own undo/redo stack you need e.g. to call ClearActiveID().
+
 enum cond:
     cond_always          = 1   // No condition (always set the variable), same as _None
     cond_once            = 2   // Set the variable once per runtime session (only the first call will succeed)

@@ -398,7 +398,7 @@ bool LoadFont(string_view name, float size, string_view lang_name) {
     return font != nullptr;
 }
 
-LString *LStringInputText(VM &vm, const char *label, LString *str, int num_lines = 1) {
+pair<LString *, bool> LStringInputText(VM &vm, const char *label, LString *str, int num_lines = 1, int extra_flags = 0) {
     struct InputTextCallbackData {
         LString *str;
         VM &vm;
@@ -432,17 +432,19 @@ LString *LStringInputText(VM &vm, const char *label, LString *str, int num_lines
     };
     ImGuiInputTextFlags flags = ImGuiInputTextFlags_CallbackResize |
                                 ImGuiInputTextFlags_CallbackEdit |
-                                ImGuiInputTextFlags_CallbackAlways;
+                                ImGuiInputTextFlags_CallbackAlways |
+                                extra_flags;
     InputTextCallbackData cbd { str, vm };
+    bool retval = false;
     if (num_lines > 1) {
-        ImGui::InputTextMultiline(label, (char *)str->data(), str->len + 1,
+        retval = ImGui::InputTextMultiline(label, (char *)str->data(), str->len + 1,
             ImVec2(ImGui::CalcItemWidth(), ImGui::GetTextLineHeight() * num_lines), flags,
             InputTextCallbackData::InputTextCallback, &cbd);
     } else {
-        ImGui::InputText(label, (char *)str->data(), str->len + 1, flags,
+        retval = ImGui::InputText(label, (char *)str->data(), str->len + 1, flags,
             InputTextCallbackData::InputTextCallback, &cbd);
     }
-    return cbd.str;
+    return { cbd.str, retval };
 }
 
 double InputFloat(const char *label, double value, double step = 0, double step_fast = 0, ImGuiInputTextFlags flags = 0) {
@@ -640,7 +642,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                 Nil(vm, v, ti);
                 break;
             }
-            *v = LStringInputText(vm, l, v->sval());
+            *v = LStringInputText(vm, l, v->sval()).first;
             break;
         }
         case V_NIL:
@@ -1173,6 +1175,25 @@ nfr("set_item_default_focus", "", "", "", "sets the last item created to have fo
         ImGui::SetItemDefaultFocus();
     });
 
+nfr("set_keyboard_focus_here", "", "", "", "sets the last item to have keyboard focus",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        // TODO: allow offset parameter?
+        ImGui::SetKeyboardFocusHere(-1);
+    });
+
+nfr("get_scroll_y", "", "", "F", "get the y scroll amount in the range [0, get_scroll_max_y()]",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        Push(sp, ImGui::GetScrollY());
+    });
+
+nfr("get_scroll_max_y", "", "", "F", "get the maximum y scroll amount",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        Push(sp, ImGui::GetScrollMaxY());
+    });
+
 nfr("set_scroll_here_x", "center_x_ratio", "F", "",
     "scroll the pane in the X dimension so the imgui cursor is visible. Use 0.5 to center the pane on the item",
     [](StackPtr &sp, VM &vm) {
@@ -1351,14 +1372,35 @@ nfr("input_text", "label,str", "SSk", "S",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &str) {
         IsInit(vm);
-        return Value(LStringInputText(vm, Label(vm, text), str.sval()));
+        return Value(LStringInputText(vm, Label(vm, text), str.sval()).first);
+    });
+
+nfr("input_text", "label,str,flags", "SSkI", "SB",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto extra_flags = Pop(sp).ival();
+        auto str = Pop(sp).sval();
+        auto text = Pop(sp);
+        // Don't allow setting any of the callback flags.
+        extra_flags &= ~(
+            ImGuiInputTextFlags_CallbackCompletion |
+            ImGuiInputTextFlags_CallbackHistory |
+            ImGuiInputTextFlags_CallbackAlways |
+            ImGuiInputTextFlags_CallbackCharFilter |
+            ImGuiInputTextFlags_CallbackResize |
+            ImGuiInputTextFlags_CallbackEdit
+        );
+        auto [newstr, enter] = LStringInputText(vm, Label(vm, text), str, 1, (int)extra_flags);
+        Push(sp, Value(newstr));
+        Push(sp, enter);
     });
 
 nfr("input_text_multi_line", "label,str,num_lines", "SSkI", "S",
     "",
     [](StackPtr &, VM &vm, Value &text, Value &str, Value &num_lines) {
         IsInit(vm);
-        return Value(LStringInputText(vm, Label(vm, text), str.sval(), num_lines.intval()));
+        return Value(LStringInputText(vm, Label(vm, text), str.sval(), num_lines.intval()).first);
     });
 
 nfr("input_int", "label,val,min,max", "SIII", "I",

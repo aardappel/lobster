@@ -1804,6 +1804,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.button</b>(label<font color="#666666">: string</font>, size<font color="#666666">: float2</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.button_small</b>(label<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.selectable</b>(label<font color="#666666">: string</font>, selected<font color="#666666">: bool</font> = false) -> <font color="#666666">int</font></tt></td><td class="a"></td>
 
 </tr>
@@ -1823,6 +1826,15 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.set_item_default_focus</b>()</tt></td><td class="a">sets the last item created to have focus</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.set_keyboard_focus_here</b>()</tt></td><td class="a">sets the last item to have keyboard focus</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.get_scroll_y</b>() -> <font color="#666666">float</font></tt></td><td class="a">get the y scroll amount in the range [0, get_scroll_max_y()]</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.get_scroll_max_y</b>() -> <font color="#666666">float</font></tt></td><td class="a">get the maximum y scroll amount</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.set_scroll_here_x</b>(center_x_ratio<font color="#666666">: float</font>)</tt></td><td class="a">scroll the pane in the X dimension so the imgui cursor is visible. Use 0.5 to center the pane on the item</td>
@@ -1861,6 +1873,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.text_wrapped</b>(label<font color="#666666">: string</font>)</tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.text_bullet</b>(label<font color="#666666">: string</font>)</tt></td><td class="a"></td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.font_start</b>(font_idx<font color="#666666">: int</font>)</tt></td><td class="a">(use im.font instead)</td>
 
 </tr>
@@ -1886,6 +1901,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.input_text</b>(label<font color="#666666">: string</font>, str<font color="#666666">: string</font>) -> <font color="#666666">string</font></tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.input_text</b>(label<font color="#666666">: string</font>, str<font color="#666666">: string</font>, flags<font color="#666666">: int</font>) -> <font color="#666666">string</font>, <font color="#666666">int</font></tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.input_text_multi_line</b>(label<font color="#666666">: string</font>, str<font color="#666666">: string</font>, num_lines<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a"></td>
@@ -1960,7 +1978,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.treenode_start</b>(label<font color="#666666">: string</font>, flags<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im.treenode instead)</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.treenode_end</b>()</tt></td><td class="a"></td>
+<tr class="a" valign=top><td class="a"><tt><b>im.treenode_end</b>(flags<font color="#666666">: int</font>)</tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.tab_bar_start</b>(label<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im.tab_bar instead)</td>
