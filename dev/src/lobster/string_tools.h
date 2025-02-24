@@ -177,6 +177,11 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
     // FIXME: make this work for other compilers.
     // Looks like gcc/clang/xcode are behind on msvc on this one for once. May need to upgrade to
     // bleeding edge versions on CI somehow.
+    // 
+    // TODO: replace all of this with a variant of:
+    // https://github.com/luau-lang/luau/blob/master/VM/src/lnumprint.cpp
+    // "schubfach" is naturally suited towards the non-scientific printing we do, and would allow us
+    // to get the same custom formatting as below for much cheaper.
     #if _MSC_VER >= 1923
         string s;
         for (;;) {
