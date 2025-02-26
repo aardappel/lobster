@@ -977,3 +977,14 @@ void SDLEndTextInput() {
 const char *SDLControllerDataBase(const string& buf) {
     return SDL_GameControllerAddMapping(buf.c_str()) >= 0 ? nullptr : SDL_GetError();
 }
+
+string SDLGetClipBoard() {
+    auto s = SDL_GetClipboardText();
+    string contents(s);
+    SDL_free(s);
+    return contents;
+}
+
+void SDLSetClipBoard(const char *contents) {
+    SDL_SetClipboardText(contents);
+}

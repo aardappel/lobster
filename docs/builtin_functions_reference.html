@@ -1177,6 +1177,12 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.open_url</b>(url<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">Opens a URL in the system browser, returns true if successful</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_clipboard</b>(contents<font color="#666666">: string</font>)</tt></td><td class="a">Set the contents of the system clipboard</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.get_clipboard</b>() -> <font color="#666666">string</font></tt></td><td class="a">Get the contents of the system clipboard</td>
+
+</tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>font</h3></td></tr>
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>gl.set_font_name</b>(filename<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns true if success.</td>
@@ -1483,7 +1489,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>cg.remove_all_palettes</b>()</tt></td><td class="a">Remove all cached palettes to free up memory. WARNING: existing models will no longer render correctly. You generally only want to do this if you know that none of the existing models are needed.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>cg.sample_down</b>(scale<font color="#666666">: int</font>, world<font color="#666666">: resource&lt;voxels&gt;</font>)</tt></td><td class="a"></td>
+<tr class="a" valign=top><td class="a"><tt><b>cg.sample_down</b>(scale<font color="#666666">: int</font>, world<font color="#666666">: resource&lt;voxels&gt;</font>, alpha_threshold<font color="#666666">: float</font>) -> <font color="#666666">resource&lt;voxels&gt;</font></tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>cg.scale_up</b>(scale<font color="#666666">: int</font>, world<font color="#666666">: resource&lt;voxels&gt;</font>) -> <font color="#666666">resource&lt;voxels&gt;</font></tt></td><td class="a"></td>

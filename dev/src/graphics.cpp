@@ -1498,5 +1498,18 @@ nfr("open_url", "url", "S", "B",
         return Value(ok);
     });
 
+nfr("set_clipboard", "contents", "S", "",
+    "Set the contents of the system clipboard",
+    [](StackPtr &, VM &, Value &contents) {
+        SDLSetClipBoard(contents.sval()->data());
+        return NilVal();
+    });
+
+nfr("get_clipboard", "", "", "S",
+    "Get the contents of the system clipboard",
+    [](StackPtr &, VM &vm) {
+        auto contents = SDLGetClipBoard();
+        return Value(vm.NewString(contents));
+    });
 
 }  // AddGraphics

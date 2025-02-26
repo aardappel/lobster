@@ -118,3 +118,6 @@ extern void GraphicsShutDown();
 extern string SDLDebuggerWindow();
 extern bool SDLDebuggerFrame();
 extern void SDLDebuggerOff();
+
+extern string SDLGetClipBoard();
+extern void SDLSetClipBoard(const char *contents);
