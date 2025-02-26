@@ -433,34 +433,40 @@ nfr("remove_all_palettes", "", "", "",
         palettes.clear();
     });
 
-nfr("sample_down", "scale,world", "IR:voxels", "", "",
+nfr("sample_down", "scale,world", "IR:voxels", "R:voxels", "",
     [](StackPtr &, VM &vm, Value &scale, Value &world) {
         auto sc = scale.intval();
         if (sc < 2 || sc > 128)
             vm.Error("cg.sample_down: scale out of range");
         auto &v = GetVoxels(world);
         auto &palette = palettes[v.palette_idx].colors;
+        auto nw = NewWorld(v.grid.dim / sc, v.palette_idx);
         for (int x = 0; x < v.grid.dim.x / sc; x++) {
             for (int y = 0; y < v.grid.dim.y / sc; y++) {
                 for (int z = 0; z < v.grid.dim.z / sc; z++) {
                     auto pos = int3(x, y, z);
-                    int4 acc(0);
+                    float3 acc(0.0f);
+                    float acca = 0.0f;
                     for (int xd = 0; xd < sc; xd++) {
                         for (int yd = 0; yd < sc; yd++) {
                             for (int zd = 0; zd < sc; zd++) {
                                 auto d = int3(xd, yd, zd);
                                 auto c = v.grid.Get(pos * sc + d);
-                                acc += int4(palette[c]);  // FIXME: not SRGB aware.
+                                auto col = int4(palette[c]);
+                                auto alpha = col.w & 0x80 ? 1.0f : 0.0f;
+                                auto linear = from_srgb(float3(col.xyz()) / 255.0f);
+                                acc += linear;
+                                acca += alpha;
                             }
                         }
                     }
-                    auto np = v.Color2Palette(float4(acc) / float(sc * sc * sc * 255));
-                    v.grid.Get(pos) = np;
+                    auto volume = float(sc * sc * sc);
+                    auto np = v.Color2Palette(float4(to_srgb(acc / volume), acca / volume));
+                    nw->grid.Get(pos) = np;
                 }
             }
         }
-        v.grid.Shrink(v.grid.dim / sc);
-        return NilVal();
+        return Value(NewVoxelResource(vm, *nw));
     });
 
 nfr("scale_up", "scale,world", "IR:voxels", "R:voxels", "",

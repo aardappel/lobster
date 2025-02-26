@@ -475,6 +475,7 @@ typedef vec<iint, 2> iint2;
 typedef vec<iint, 3> iint3;
 typedef vec<iint, 4> iint4;
 
+typedef vec<uint8_t, 3> byte3;
 typedef vec<uint8_t, 4> byte4;
 typedef vec<uint32_t, 2> uint2;
 typedef vec<size_t, 2> size_t2;

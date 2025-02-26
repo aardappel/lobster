@@ -79,7 +79,7 @@ struct Voxels : lobster::Resource {
     uint8_t Color2Palette(const float4 &color) const {
         if (color.w < 0.5f) return transparant;
         if (palette_idx == default_palette_idx) {  // Fast path.
-            auto ic = byte4((int4(quantizec(color)) + (0x33 / 2)) / 0x33);
+            auto ic = byte3((int3(quantizec(color).xyz()) + (0x33 / 2)) / 0x33);
             // For some reason the palette has red where black should be??
             if (!ic.x && !ic.y && !ic.z) return 255;
             return (5 - ic.x) * 36 +
@@ -90,7 +90,7 @@ struct Voxels : lobster::Resource {
         uint8_t pi = transparant;
         auto &palette = palettes[palette_idx].colors;
         for (size_t i = 1; i < palette.size(); i++) {
-            auto err = squaredlength(color2vec(palette[i]) - color);
+            auto err = squaredlength(color2vec(palette[i]).xyz() - color.xyz());
             if (err < error) { error = err; pi = (uint8_t)i; }
         }
         return pi;
