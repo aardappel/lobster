@@ -76,8 +76,8 @@ struct Voxels : lobster::Resource {
         });
     }
 
-    uint8_t Color2Palette(const float4 &color) const {
-        if (color.w < 0.5f) return transparant;
+    uint8_t Color2Palette(const float4 &color, float alpha_threshold = 0.5f) const {
+        if (color.w < alpha_threshold) return transparant;
         if (palette_idx == default_palette_idx) {  // Fast path.
             auto ic = byte3((int3(quantizec(color).xyz()) + (0x33 / 2)) / 0x33);
             // For some reason the palette has red where black should be??

@@ -433,8 +433,8 @@ nfr("remove_all_palettes", "", "", "",
         palettes.clear();
     });
 
-nfr("sample_down", "scale,world", "IR:voxels", "R:voxels", "",
-    [](StackPtr &, VM &vm, Value &scale, Value &world) {
+nfr("sample_down", "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", "",
+    [](StackPtr &, VM &vm, Value &scale, Value &world, Value &alpha_threshold) {
         auto sc = scale.intval();
         if (sc < 2 || sc > 128)
             vm.Error("cg.sample_down: scale out of range");
@@ -461,7 +461,8 @@ nfr("sample_down", "scale,world", "IR:voxels", "R:voxels", "",
                         }
                     }
                     auto volume = float(sc * sc * sc);
-                    auto np = v.Color2Palette(float4(to_srgb(acc / volume), acca / volume));
+                    auto np = v.Color2Palette(float4(to_srgb(acc / volume), acca / volume),
+                                              alpha_threshold.fltval());
                     nw->grid.Get(pos) = np;
                 }
             }
