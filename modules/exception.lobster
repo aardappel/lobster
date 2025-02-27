@@ -16,6 +16,9 @@ def exception_handler(body):
 def throw(v):
     return v, get_stack_trace() from exception_handler
 
+def rethrow(v, existing_stack_trace):
+    return v, existing_stack_trace from exception_handler
+
 // This can conveniently wrap error-returning functions.
 def throw_if(v):
     if v:
