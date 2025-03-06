@@ -46,7 +46,8 @@ mouse1 mouse2 mouse3...
 backspace tab clear return pause escape space delete
 ! " # $ & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ [ \ ] ^ _ `
 a b c d e f g h i j k l m n o p q r s t u v w x y z
-[0] [1] [2] [3] [4] [5] [6] [7] [8] [9] [.] [/] [*] [-] [+]
+keypad 0 keypad 1 keypad 2 keypad 3 keypad 4 keypad 5 keypad 6 keypad 7 keypad 8 keypad 9
+keypad . keypad / keypad * keypad - keypad +
 enter equals up down right left insert home end page up page down
 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
 numlock caps lock scroll lock right shift left shift right ctrl left ctrl right alt left alt
