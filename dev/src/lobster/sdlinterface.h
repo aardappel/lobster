@@ -23,6 +23,7 @@ enum InitFlags {
     INIT_MAXIMIZED = 16,
     INIT_NO_RESIZABLE = 32,
     INIT_BORDERLESS = 64,
+    INIT_FIXED_VSYNC = 128, 
 };
 
 extern string SDLInit(string_view_nt title, const int2 &screensize, InitFlags flags, int samples);

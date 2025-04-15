@@ -427,7 +427,17 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
     LOG_INFO("SDL OpenGL context created...");
 
     #ifndef __IOS__
-        if (SDL_GL_SetSwapInterval(flags & INIT_NO_VSYNC ? 0 : -1) < 0) SDL_GL_SetSwapInterval(1);
+        if (flags & INIT_NO_VSYNC) {
+            SDL_GL_SetSwapInterval(0);
+        } else if (flags & INIT_FIXED_VSYNC) {
+            SDL_GL_SetSwapInterval(1);
+        } else {
+            // By default, attempt adaptive vsync, which may fail.
+            if (SDL_GL_SetSwapInterval(-1) < 0) {
+                // Fall back on regular vsync.
+                SDL_GL_SetSwapInterval(1);
+            }
+        }
     #endif
 
     auto gl_err = OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
