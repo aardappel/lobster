@@ -225,7 +225,7 @@ struct Named {
     Named() = default;
     Named(string_view _name, int _idx = 0) : name(_name), idx(_idx) {}
 
-    void Error(const string &msg) {
+    [[noreturn]] void Error(const string &msg) {
         THROW_OR_ABORT(cat("INTERNAL ERROR: ", name, ": ", msg));
     }
 };
@@ -422,7 +422,7 @@ struct NativeRegistry {
     unordered_map<string_view, NativeFun *> nfunlookup;  // Key points to value!
     vector<string> subsystems;
     vector<string_view> namespaces;
-    const char *cur_ns;
+    const char *cur_ns = nullptr;
     #if LOBSTER_FRAME_PROFILER_BUILTINS
         vector<tracy::SourceLocationData> pre_allocated_function_locations;
     #endif

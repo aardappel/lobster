@@ -117,7 +117,7 @@ class SlabAlloc {
         }
     }
 
-    void oom() {
+    [[noreturn]] void oom() {
         exit(0xBADA110C);
     }
 

@@ -293,7 +293,7 @@ template<typename T, typename K = uint64_t> bool ReadSpanVec(gsl::span<const uin
     #define USE_EXCEPTION_HANDLING
 #endif
 
-inline void THROW_OR_ABORT(const string &s) {
+[[noreturn]] inline void THROW_OR_ABORT(const string &s) {
     #ifdef USE_EXCEPTION_HANDLING
         throw s;
     #else
