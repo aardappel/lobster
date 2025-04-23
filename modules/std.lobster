@@ -15,6 +15,17 @@ def filter(xs, fun):
             r.push(x)
     return r
 
+// Maps, then filters out elements that are false/nil/0/0.0
+// Not only does this skip constructing one vector, the return-type
+// will be non-nillable.
+def filter_map(xs, fun):
+    let r = []
+    for(xs) x, i:
+        let y = fun(x, i)
+        if y:
+            r.push(y)
+    return r
+
 def filter_indices(xs, fun):
     let r = []
     for(xs) x, i:
