@@ -195,6 +195,10 @@ void DebugCallBack(GLenum source, GLenum type, GLuint id, GLenum severity, GLsiz
     // Suppress notifications in general
     if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
     if (ll < min_output_level) return;
+    // NOTE: in Release mode, GL_DEBUG_OUTPUT_SYNCHRONOUS is OFF, which means this function
+    // may be called from any thread, which means we can't do anything here that is thread unsafe.
+    // This logging function will do a string concat but that all uses the threadsafe system allocator
+    // so that should be fine.
     LogOutput(ll, "GLDEBUG: ", string_view(message, length));
     if (id == GL_OUT_OF_MEMORY) {
         // For severe errors like this we'd like to know what call is failing,
