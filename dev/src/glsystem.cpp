@@ -148,7 +148,7 @@ void CullFront(bool on) {
 }
 
 bool Is2DMode() { return mode2d; }
-bool IsSRGBMode() { return mode_srgb; }
+bool IsSRGBAwareMode() { return mode_srgb; }
 
 uint8_t *ReadPixels(const int2 &pos, const int2 &size) {
     auto pixels = new uint8_t[size.x * size.y * 3];

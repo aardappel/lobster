@@ -75,9 +75,14 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     GL_CALL(glBindTexture(textype, id));
     SetFilterClampWrap(tf, textype);
     //if (mipmap) glTexParameteri(textype, GL_GENERATE_MIPMAP, GL_TRUE);
+    auto use_srgb = IsSRGBAwareMode() && !(tf & TF_COMPUTE);
     auto internalformat = tf & TF_SINGLE_CHANNEL
-            ? GL_R8
-            : (IsSRGBMode() && !(tf & TF_COMPUTE) ? GL_SRGB8_ALPHA8 : GL_RGBA8);
+            ? (tf & TF_16
+                ? (tf & TF_NOT_NORMALIZED ? GL_R16UI : GL_R16)
+                : (tf & TF_NOT_NORMALIZED ? GL_R8UI : GL_R8))
+            :  (tf & TF_16
+                ? (tf & TF_NOT_NORMALIZED ? GL_RGBA16UI : GL_RGBA16)
+                : (tf & TF_NOT_NORMALIZED ? GL_RGBA8UI : (use_srgb ? GL_SRGB8_ALPHA8: GL_RGBA8)));
     auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
     auto elemsize = tf & TF_SINGLE_CHANNEL ? sizeof(uint8_t) : sizeof(byte4);
     auto buffercomponent = GL_UNSIGNED_BYTE;
@@ -86,11 +91,11 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     }
     if (tf & TF_FLOAT) {
         #ifdef PLATFORM_WINNIX
-            if (tf & TF_HALF) internalformat = tf & TF_SINGLE_CHANNEL ? GL_R16F : GL_RGBA16F;
+            if (tf & TF_16) internalformat = tf & TF_SINGLE_CHANNEL ? GL_R16F : GL_RGBA16F;
             else internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
             bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
-            elemsize = (tf & TF_SINGLE_CHANNEL ? sizeof(float) : sizeof(float4)) / (tf & TF_HALF ? 2 : 1);
-            buffercomponent = tf & TF_HALF ? GL_HALF_FLOAT : GL_FLOAT;
+            elemsize = (tf & TF_SINGLE_CHANNEL ? sizeof(float) : sizeof(float4)) / (tf & TF_16 ? 2 : 1);
+            buffercomponent = tf & TF_16 ? GL_HALF_FLOAT : GL_FLOAT;
         #else
             assert(false);  // buf points to float data, which we don't support.
         #endif
@@ -223,13 +228,13 @@ Texture CreateColoredTexture(string_view name, const int3 &size, const float4 &c
     if (tf & TF_MULTISAMPLE) {
         return CreateTexture(name, nullptr, size, tf);  // No buffer required.
     } else {
-        auto sz = (tf & TF_FLOAT ? (sizeof(float4) / (tf & TF_HALF ? 2 : 1)) : sizeof(byte4));
+        auto sz = (tf & TF_FLOAT ? (sizeof(float4) / (tf & TF_16 ? 2 : 1)) : sizeof(byte4));
         if (tf & TF_CUBEMAP) sz *= 6;
         auto len = size.x * size.y * ((tf & TF_3D) ? size.z : 1);
         // Initialize and fill texture buffer
         auto buf = new uint8_t[len * sz];
         if (tf & TF_FLOAT) {
-            if (tf & TF_HALF) {
+            if (tf & TF_16) {
                 auto hfcolor = hfloat4{
                     FloatToHalfFloat(color[0]),
                     FloatToHalfFloat(color[1]),
@@ -241,6 +246,7 @@ Texture CreateColoredTexture(string_view name, const int3 &size, const float4 &c
                 for (int i = 0; i < len; i++) ((float4 *)buf)[i] = color;
             }
         } else {
+            if (tf & TF_16) THROW_OR_ABORT("16-bit color initialized texture unsupported");
             for (int i = 0; i < len; i++) ((byte4 *)buf)[i] = quantizec(color);
         }
         auto tex = CreateTexture(name, buf, size, tf);

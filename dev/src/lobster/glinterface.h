@@ -247,7 +247,7 @@ extern void Set2DMode(const int2 &ssize, bool lh, bool depthtest = false);
 extern void Set3DMode(float fovy, int2 fbo, int2 fbs, float znear, float zfar, bool nodepth);
 extern void Set3DOrtho(const int2 &ssize, const float3 &center, const float3 &extends);
 extern bool Is2DMode();
-extern bool IsSRGBMode();
+extern bool IsSRGBAwareMode();
 extern void CullFace(bool on);
 extern void CullFront(bool on);
 extern void ClearFrameBuffer(const float3 &c);
@@ -281,7 +281,8 @@ enum TextureFlag {
     TF_BUFFER_HAS_MIPS = 1 << 12,
     TF_DEPTH           = 1 << 13,
     TF_COMPUTE         = 1 << 14, // For use with compute: do not use SRGB.
-    TF_HALF            = 1 << 15, // Use 16-bit representation if possible (only float atm.)
+    TF_16              = 1 << 15, // Use 16-bit representation if possible.
+    TF_NOT_NORMALIZED  = 1 << 16,
 };
 
 extern Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf = TF_NONE);

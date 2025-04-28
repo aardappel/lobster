@@ -117,7 +117,7 @@ bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
     style.PopupRounding = r;
     style.ScrollbarRounding = r;
     style.TabRounding = r;
-    if (IsSRGBMode()) {
+    if (IsSRGBAwareMode()) {
         // Colors are specified as SRGB, so pre-convert them if we're using linear.
         auto cols = ImGui::GetStyle().Colors;
         for (int i = 0; i < ImGuiCol_COUNT; i++) {
