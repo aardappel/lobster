@@ -493,6 +493,13 @@ nfr("delta_time_rolling", "n", "I", "F",
         return Value(SDLGetRollingAverage((size_t)n.ival()));
     });
 
+nfr("set_target_delta_time", "delta_time", "F", "",
+    "attempt to run at no more than the given delta_time (framerate cap). By default uncapped (only capped by vsync)",
+    [](StackPtr &, VM &, Value &ft) {
+        SetTargetFrameTime(ft.fval());
+        return NilVal();
+    });
+
 nfr("time", "", "", "F",
     "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
     " seconds_elapsed() for continuous timing)",

@@ -122,6 +122,8 @@ double frametime = 1.0f / 60.0f, lasttime = 0;
 uint64_t timefreq = 0, timestart = 0;
 int frames = 0;
 vector<float> frametimelog;
+double target_frametime = 1.0 / 30.0;
+double last_sleep = 0.0;
 
 int2 screensize = int2_0;
 int2 inputscale = int2_1;
@@ -593,6 +595,8 @@ float SDLGetRollingAverage(size_t n) {
     return sum / frametimelog.size();
 }
 
+void SetTargetFrameTime(double ft) { target_frametime = ft; }
+
 bool SDLFrame() {
     if (minimized) {
         SDL_Delay(100);  // save CPU/battery
@@ -613,6 +617,17 @@ bool SDLFrame() {
     frames++;
     frametimelog.push_back((float)frametime);
     if (frametimelog.size() > 64) frametimelog.erase(frametimelog.begin());
+
+    auto sleep_time = target_frametime - (frametime - last_sleep);
+    if (sleep_time > 0.0) {
+        // SDL_Delay is super inaccurate so can't be used.
+        // SDL3 has SDL_DelayNS which we should use.
+        // For now, do it with CPU polling :(
+        // Better to overheat a single CPU thread than an entire GPU?
+        auto start = GetSeconds();
+        while (sleep_time > GetSeconds() - start) {}
+        last_sleep = sleep_time;
+    }
 
     for (auto &it : keymap) it.second.FrameAdvance();
 
