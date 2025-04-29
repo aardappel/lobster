@@ -75,6 +75,23 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     GL_CALL(glBindTexture(textype, id));
     SetFilterClampWrap(tf, textype);
     //if (mipmap) glTexParameteri(textype, GL_GENERATE_MIPMAP, GL_TRUE);
+    #ifdef PLATFORM_ES3
+        // Android and Emscripten at least don't support 16-bit normalized integer textures, but do have
+        // the un-normalized ones?
+        // This substitution is not correct obv, but makes the code below simpler.
+        #ifndef GL_R16
+            #define GL_R16 GL_R16UI
+        #endif
+        #ifndef GL_RG16
+            #define GL_RG16 GL_RG16UI
+        #endif
+        #ifndef GL_RGBA16
+            #define GL_RGBA16 GL_RGBA16UI
+        #endif
+        if ((tf & TF_16) && !(tf & TF_FLOAT) && !(tf & TF_NOT_NORMALIZED)) {
+            THROW_OR_ABORT("CreateTexture: Platform doesn\'t support normalized 16-bit integer textures");
+        }
+    #endif
     auto use_srgb = IsSRGBAwareMode() && !(tf & TF_COMPUTE);
     auto internalformat = tf & TF_SINGLE_CHANNEL
             ? (tf & TF_16
