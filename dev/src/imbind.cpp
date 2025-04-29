@@ -1057,7 +1057,7 @@ nfr("window_demo", "", "", "B",
         return Value(show);
     });
 
-nfr("window_start", "title,flags,dock", "SII", "",
+nfr("window_start", "title,flags,dock", "SII", "B",
     "(use im.window instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm, { N_FRAME, N_NONE });
@@ -1067,13 +1067,15 @@ nfr("window_start", "title,flags,dock", "SII", "",
         if (dock.True() && ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable) {
             ImGui::SetNextWindowDockID(last_dock_id, ImGuiCond_FirstUseEver);
         }
-        ImGui::Begin(Label(vm, title), nullptr, (ImGuiWindowFlags)flags.ival());
+        bool open = ImGui::Begin(Label(vm, title), nullptr, (ImGuiWindowFlags)flags.ival());
         last_dock_id = ImGui::GetWindowDockID();
         /*
         if (dock.False() && ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable) {
             ImGui::DockSpace(last_dock_id);
         }
         */
+        Push(sp, open);
+        // Unlike other begin/end pairs, we must always call end unconditionally, so we always push this.
         NPush(N_WIN);
     });
 
@@ -1344,7 +1346,7 @@ nfr("tooltip_multi_start", "", "", "B",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-            ImGui::BeginTooltip();
+            ImGui::BeginTooltip();  // The bool it returns is currently always true?
             Push(sp, true);
             NPush(N_TOOLTIP);
         } else {
@@ -1795,14 +1797,16 @@ nfr("id_end", "", "", "",
         NPop(vm, N_ID);
     });
 
-nfr("child_start", "title,size,flags", "SF}:2I", "",
+nfr("child_start", "title,size,flags", "SF}:2I", "B",
     "create a self-contained scrolling/clipping region with a window. use im.child instead",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto flags = Pop(sp);
         auto sz = PopVec<float2>(sp);
         auto title = Pop(sp);
-        ImGui::BeginChild(Label(vm, title), ImVec2(sz.x, sz.y), false, (ImGuiWindowFlags)flags.ival());
+        bool open = ImGui::BeginChild(Label(vm, title), ImVec2(sz.x, sz.y), false, (ImGuiWindowFlags)flags.ival());
+        Push(sp, open);
+        // Unlike other begin/end pairs, we must always call end unconditionally, so we always push this.
         NPush(N_CHILD);
     });
 

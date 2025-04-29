@@ -243,14 +243,18 @@ def frame(body):
     frame_end()
 
 def window(title, flags, body):
-    window_start(title, flags, false)
-    body()
-    window_end()
+    let open = window_start(title, flags, false)
+    if open:
+        body()
+    window_end()  // Must always be called
+    return open
 
 def window_dock(title, flags, body):
-    window_start(title, flags, true)
-    body()
-    window_end()
+    let open = window_start(title, flags, true)
+    if open:
+        body()
+    window_end()  // Must always be called
+    return open
 
 def treenode(label, body):
     let open = treenode_start(label, 0)
@@ -423,14 +427,18 @@ def color(col, body):
     color_end()
 
 def child(title, size, body):
-    child_start(title, size, 0)
-    body()
-    child_end()
+    let open = child_start(title, size, 0)
+    if open:
+        body()
+    child_end()  // Must always be called
+    return open
 
 def child(title, size, flags, body):
-    child_start(title, size, flags)
-    body()
-    child_end()
+    let open = child_start(title, size, flags)
+    if open:
+        body()
+    child_end()  // Must always be called
+    return open
 
 def group(body):
     group_start()
