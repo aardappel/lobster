@@ -21,6 +21,7 @@ enum_flags texture_format:
     texture_format_compute
     texture_format_16bit
     texture_format_not_normalized
+    texture_format_two_channel
 
 // blending constants
 

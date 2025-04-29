@@ -283,6 +283,7 @@ enum TextureFlag {
     TF_COMPUTE         = 1 << 14, // For use with compute: do not use SRGB.
     TF_16              = 1 << 15, // Use 16-bit representation if possible.
     TF_NOT_NORMALIZED  = 1 << 16,
+    TF_TWO_CHANNEL     = 1 << 17,
 };
 
 extern Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf = TF_NONE);
