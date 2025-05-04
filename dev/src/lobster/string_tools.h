@@ -26,7 +26,7 @@ struct string_view_nt {
         check_null_terminated();
     }
 
-    void check_null_terminated() {
+    static void check_null_terminated() {
         assert(!sv.data()[sv.size()]);
     }
 
