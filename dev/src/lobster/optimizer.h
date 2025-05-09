@@ -96,7 +96,11 @@ Node *Node::Optimize(Optimizer &opt) {
     return r->Optimize(opt);
 }
 
-Node *Constructor::Optimize(Optimizer &opt) {
+Node *VectorConstructor::Optimize(Optimizer &opt) {
+    return Node::Optimize(opt);
+}
+
+Node *ObjectConstructor::Optimize(Optimizer &opt) {
     return Node::Optimize(opt);
 }
 

@@ -427,9 +427,9 @@ struct GenericCall : List {
     SHARED_SIGNATURE(GenericCall, "generic call", true)
 };
 
-struct Constructor : List {
+struct VectorConstructor : List {
     TypeRef giventype;
-    Constructor(const Line &ln, TypeRef _type) : List(ln), giventype(_type) {};
+    VectorConstructor(const Line &ln) : List(ln), giventype(nullptr) {};
     bool IsConstInit() const {
         for (auto n : children) {
             if (!n->IsConstInit()) return false;
@@ -437,9 +437,25 @@ struct Constructor : List {
         return true;
     }
     bool EqAttr(const Node *o) const {
-        return giventype->Equal(*((Constructor *)o)->giventype);
+        return giventype->Equal(*((VectorConstructor *)o)->giventype);
     }
-    SHARED_SIGNATURE(Constructor, "constructor", false)
+    SHARED_SIGNATURE(VectorConstructor, "vector_constructor", false)
+    OPTMETHOD
+};
+
+struct ObjectConstructor : List {
+    TypeRef giventype;
+    ObjectConstructor(const Line &ln, TypeRef _type) : List(ln), giventype(_type) {};
+    bool IsConstInit() const {
+        for (auto n : children) {
+            if (!n->IsConstInit()) return false;
+        }
+        return true;
+    }
+    bool EqAttr(const Node *o) const {
+        return giventype->Equal(*((ObjectConstructor *)o)->giventype);
+    }
+    SHARED_SIGNATURE(ObjectConstructor, "object_constructor", false)
     OPTMETHOD
 };
 

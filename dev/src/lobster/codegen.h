@@ -1832,7 +1832,7 @@ void Range::Generate(CodeGen &/*cg*/, size_t /*retval*/) const {
     assert(false);
 }
 
-void Constructor::Generate(CodeGen &cg, size_t retval) const {
+void VectorConstructor::Generate(CodeGen &cg, size_t retval) const {
     // FIXME: a malicious script can exploit this for a stack overflow.
     int arg_width = 0;
     for (auto c : children) {
@@ -1842,19 +1842,28 @@ void Constructor::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
     cg.TakeTemp(Arity(), true);
     auto offset = cg.GetTypeTableOffset(exptype);
-    if (IsUDT(exptype->t)) {
-        assert(exptype->udt->sfields.size() == Arity());
-        if (IsStruct(exptype->t)) {
-            // This is now a no-op! Struct elements sit inline on the stack.
-        } else {
-            cg.EmitOp(IL_NEWOBJECT, arg_width);
-            cg.Emit(offset);
-        }
+    assert(exptype->t == V_VECTOR);
+    cg.EmitOp(IL_NEWVEC, arg_width);
+    cg.Emit(offset);
+    cg.Emit((int)Arity());
+}
+
+void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
+    int arg_width = 0;
+    for (auto c : children) {
+        cg.Gen(c, retval);
+        arg_width += ValWidth(c->exptype);
+    }
+    if (!retval) return;
+    cg.TakeTemp(Arity(), true);
+    auto offset = cg.GetTypeTableOffset(exptype);
+    assert(IsUDT(exptype->t));
+    assert(exptype->udt->sfields.size() == Arity());
+    if (IsStruct(exptype->t)) {
+        // This is now a no-op! Struct elements sit inline on the stack.
     } else {
-        assert(exptype->t == V_VECTOR);
-        cg.EmitOp(IL_NEWVEC, arg_width);
+        cg.EmitOp(IL_NEWOBJECT, arg_width);
         cg.Emit(offset);
-        cg.Emit((int)Arity());
     }
 }
 

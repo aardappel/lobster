@@ -510,7 +510,7 @@ struct TypeChecker {
             return;
         }
         // TODO: generalize this into check if `a` is un-aliased.
-        if (Is<Constructor>(a)) {
+        if (Is<ObjectConstructor>(a) || Is<VectorConstructor>(a)) {
             extra = ConvertFlags(CF_COVARIANT | extra);
         }
         if (ConvertsTo(a->exptype, bound, ConvertFlags(CF_UNIFICATION | extra))) {
@@ -3445,7 +3445,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                         Add(new FloatConstant(line, arg.default_val));
                         break;
                     case V_STRUCT_S: {
-                        auto cons = new Constructor(line, { type });
+                        auto cons = new ObjectConstructor(line, { type });
                         for (auto &f : type->udt->sfields) {
                             if (f.type->t == V_FLOAT) {
                                 cons->Add(new FloatConstant(line, 0.0));
@@ -3794,7 +3794,7 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (giventype.Null()) {
         if (Arity()) {
             tc.TypeCheckList(this, LT_KEEP);
@@ -3802,7 +3802,7 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             TypeRef u(nullptr);
             for (auto c : children) {
                 u = u.Null() ? c->exptype
-                             : tc.Union(u, c->exptype, "constructor", "constructor element",
+                             : tc.Union(u, c->exptype, "vector", "vector element",
                                         CF_COERCIONS, c);
             }
             exptype = tc.st.Wrap(u, V_VECTOR, &line);
@@ -3811,7 +3811,25 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             // special case for empty vectors
             exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR, &line);
         }
-    } else if (giventype->t == V_UUDT && giventype->spec_udt->specializers.empty()) {
+    } else {
+        exptype = tc.st.ResolveTypeVars(giventype, this->line);
+        if (exptype->t != V_VECTOR)
+            tc.Error(*this, "type does not resolve to vector: ", Q(TypeName(exptype)));
+        // These may include field initializers copied from the definition, which may include
+        // type variables that are now bound.
+        tc.TypeCheckList(this, LT_KEEP);
+    }
+    for (auto [i, c] : enumerate(children)) {
+        TypeRef elemtype = exptype->Element();
+        tc.SubType(c, elemtype, tc.ArgName(i), *this);
+    }
+    lt = LT_KEEP;
+    return this;
+}
+
+Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    UDT *udt = nullptr;
+    if (giventype->t == V_UUDT && giventype->spec_udt->specializers.empty()) {
         // Special case for generic type constructor with no specializers.
         // Versions WITH specializers are instead resolved below.
         tc.TypeCheckList(this, LT_KEEP);
@@ -3821,7 +3839,6 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             tc.Error(*this, "incorrect argument count for generic constructor");
         // Now find a match:
         int bestmatch = 0;
-        UDT *udt = nullptr;
         for (auto udti = gudt->first; udti; udti = udti->next) {
             if (udti->unnamed_specialization) continue;
             int nmatches = 0;
@@ -3849,43 +3866,38 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         exptype = &udt->thistype;
     } else {
         exptype = tc.st.ResolveTypeVars(giventype, this->line);
-        auto udt = IsUDT(exptype->t) ? exptype->udt : nullptr;
-        if (!udt && exptype->t != V_VECTOR)
-            tc.Error(*this, "type does not resolve to constructor: ", Q(TypeName(exptype)));
-        if (udt) {
-            // Sadly, this causes more problems than it solves, since these UDTs may depend
-            // on global vars not typechecked, etc.
-            //tc.TypeCheckUDT(*udt, *this, true);
-            tc.st.PushSuperGenerics(udt);
-            // Fill in default args.. already done in the parser normally, but can happen if
-            // this is a T {} constructor.
-            for (size_t i = children.size(); i < udt->sfields.size(); i++) {
-                if (udt->sfields[i].defaultval)
-                    Add(udt->sfields[i].defaultval->Clone(true));
-                else
-                    tc.Error(*this, "field ", Q(udt->g.fields[i].id->name), " not initialized");
-            }
+        if (!IsUDT(exptype->t))
+            tc.Error(*this, "type does not resolve to an object constructor: ", Q(TypeName(exptype)));
+        udt = exptype->udt;
+        // Sadly, this causes more problems than it solves, since these UDTs may depend
+        // on global vars not typechecked, etc.
+        //tc.TypeCheckUDT(*udt, *this, true);
+        tc.st.PushSuperGenerics(udt);
+        // Fill in default args.. already done in the parser normally, but can happen if
+        // this is a T {} constructor.
+        for (size_t i = children.size(); i < udt->sfields.size(); i++) {
+            if (udt->sfields[i].defaultval)
+                Add(udt->sfields[i].defaultval->Clone(true));
+            else
+                tc.Error(*this, "field ", Q(udt->g.fields[i].id->name), " not initialized");
         }
         // These may include field initializers copied from the definition, which may include
         // type variables that are now bound.
         tc.TypeCheckList(this, LT_KEEP);
-        if (udt) tc.st.PopSuperGenerics(udt);
+        tc.st.PopSuperGenerics(udt);
     }
-    if (IsUDT(exptype->t)) {
-        auto udt = exptype->udt;
-        // We have to check this here, since the parser couldn't check this yet.
-        if (udt->sfields.size() < children.size())
-            tc.Error(*this, "too many initializers for ", Q(udt->name));
-        exptype = &udt->thistype;
-        if (udt->g.has_constructor_function &&
-            (tc.named_scopes.empty() ||
-                tc.named_scopes.back().sf->parent->is_constructor_of != &udt->g)) {
-            tc.Error(*this, Q(udt->name), " may only be constructed thru its constructor function");
-        }
+    assert(udt);
+    // We have to check this here, since the parser couldn't check this yet.
+    if (udt->sfields.size() < children.size())
+        tc.Error(*this, "too many initializers for ", Q(udt->name));
+    exptype = &udt->thistype;
+    if (udt->g.has_constructor_function &&
+        (tc.named_scopes.empty() ||
+            tc.named_scopes.back().sf->parent->is_constructor_of != &udt->g)) {
+        tc.Error(*this, Q(udt->name), " may only be constructed thru its constructor function");
     }
     for (auto [i, c] : enumerate(children)) {
-        TypeRef elemtype = IsUDT(exptype->t) ? exptype->udt->sfields[i].type
-                                             : exptype->Element();
+        TypeRef elemtype = exptype->udt->sfields[i].type;
         tc.SubType(c, elemtype, tc.ArgName(i), *this);
     }
     lt = LT_KEEP;

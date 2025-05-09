@@ -1408,7 +1408,7 @@ struct Parser {
             }
             case T_LEFTBRACKET: {
                 lex.Next();
-                auto constructor = new Constructor(lex, { nullptr });
+                auto constructor = new VectorConstructor(lex);
                 ParseVector([this, &constructor] () {
                     constructor->Add(this->ParseExp());
                 }, T_RIGHTBRACKET);
@@ -1719,7 +1719,7 @@ struct Parser {
                 exps.push_back(ParseExp());
             }, T_RIGHTCURLY);
             // Now fill in defaults, check for missing fields, and construct list.
-            auto constructor = new Constructor(line, type);
+            auto constructor = new ObjectConstructor(line, type);
             for (size_t i = 0; i < exps.size(); i++) {
                 if (!exps[i]) {
                     if (gudt->fields[i].gdefaultval)
@@ -1734,7 +1734,7 @@ struct Parser {
         if (!type.Null()) {
             Expect(T_LEFTCURLY);
             if (type->t == V_TYPEVAR) {
-                auto constructor = new Constructor(lex, type);
+                auto constructor = new ObjectConstructor(lex, type);
                 // We don't know what args this type has, so parse any number of them, without tags.
                 while (lex.token != T_RIGHTCURLY) {
                     constructor->Add(ParseExp());

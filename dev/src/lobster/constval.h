@@ -385,7 +385,11 @@ ValueType GenericCall::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }
 
-ValueType Constructor::ConstVal(TypeChecker *, Value &) const {
+ValueType VectorConstructor::ConstVal(TypeChecker *, Value &) const {
+    return V_VOID;
+}
+
+ValueType ObjectConstructor::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }
 
