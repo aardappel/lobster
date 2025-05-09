@@ -906,6 +906,7 @@ struct VMArgs {
     TraceMode trace = TraceMode::OFF;
     bool dump_leaks = true;
     int runtime_checks = RUNTIME_ASSERT;
+    bool stack_trace_python_ordering = false;
 };
 
 struct VM : VMArgs {
@@ -1009,7 +1010,7 @@ struct VM : VMArgs {
     void DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump);
     string DumpFileLine(int fileidx, int line);
     pair<string, const int *> DumpStackFrameStart(const int *fip, int fileidx, int line);
-    void DumpStackTrace(string &sd);
+    void DumpStackTrace(string &sd, bool python_ordering);
     void DumpStackTraceMemory(const string &);
 
     void DumpVal(RefObj *ro, const char *prefix);

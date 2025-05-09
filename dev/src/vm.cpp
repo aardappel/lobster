@@ -418,7 +418,7 @@ pair<string, const int *> VM::DumpStackFrameStart(const int *fip, int fileidx, i
 }
 
 // See also imbind.cpp:DumpStackTrace and VM::DumpStackTraceMemory()
-void VM::DumpStackTrace(string &sd) {
+void VM::DumpStackTrace(string &sd, bool python_ordering) {
     if (fun_id_stack.empty()) {
         // We don't have a stack trace, but maybe this minimum information will be better
         // than nothing:
@@ -460,14 +460,26 @@ void VM::DumpStackTrace(string &sd) {
     };
 
     if (!sd.empty()) append(sd, "\n");
-    auto cur_fileidx = last_fileidx;
-    auto cur_line = last_line;
-    for (auto &funstackelem : reverse(fun_id_stack)) {
-        auto [name, fip] = DumpStackFrameStart(funstackelem.funstartinfo, cur_fileidx, cur_line);
-        append(sd, "in function ", name, "\n");
-        DumpStackFrame(fip, funstackelem.locals, dumper);
-        cur_fileidx = funstackelem.fileidx;
-        cur_line = funstackelem.line;
+    if (!python_ordering) {
+        auto cur_fileidx = last_fileidx;
+        auto cur_line = last_line;
+        for (auto &funstackelem : reverse(fun_id_stack)) {
+            auto [name, fip] =
+                DumpStackFrameStart(funstackelem.funstartinfo, cur_fileidx, cur_line);
+            append(sd, "in function ", name, "\n");
+            DumpStackFrame(fip, funstackelem.locals, dumper);
+            cur_fileidx = funstackelem.fileidx;
+            cur_line = funstackelem.line;
+        }
+    } else {
+        append(sd, "Traceback (most recent call last):\n");  // Python in-joke?
+        for (auto [i, funstackelem] : enumerate(fun_id_stack)) {
+            auto fileidx = i < fun_id_stack.size() - 1 ? fun_id_stack[i + 1].fileidx : last_fileidx;
+            auto line = i < fun_id_stack.size() - 1 ? fun_id_stack[i + 1].line : last_line;
+            auto [name, fip] = DumpStackFrameStart(funstackelem.funstartinfo, fileidx, line);
+            append(sd, "in function ", name, "\n");
+            DumpStackFrame(fip, funstackelem.locals, dumper);
+        }
     }
 
     #ifdef USE_EXCEPTION_HANDLING
@@ -558,7 +570,13 @@ void VM::DumpStackTraceMemory(const string &err) {
 }
 
 Value VM::Error(string err) {
-    ErrorBase(err);
+    if (stack_trace_python_ordering) {
+        DumpStackTrace(errmsg, true);
+        ErrorBase(err);
+    } else {
+        ErrorBase(err);
+        DumpStackTrace(errmsg, false);
+    }
     #if LOBSTER_ENGINE
         if (runtime_checks >= RUNTIME_DEBUGGER) {
             BreakPoint(*this, errmsg);
@@ -566,7 +584,6 @@ Value VM::Error(string err) {
             DumpStackTraceMemory(err);
         }
     #endif
-    DumpStackTrace(errmsg);
     UnwindOnError();
     return NilVal();
 }

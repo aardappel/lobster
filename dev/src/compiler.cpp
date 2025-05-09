@@ -509,7 +509,8 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
 
 pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
                           const char *object_name, vector<string> &&program_args, TraceMode trace,
-                          bool compile_only, string &error, int runtime_checks, bool dump_leaks) {
+                          bool compile_only, string &error, int runtime_checks, bool dump_leaks,
+                          bool stack_trace_python_ordering) {
     string sd;
     error = ToCPP(nfr, sd, bytecode_buffer, false, runtime_checks, "nullptr", "");
     if (!error.empty()) return { "", 0 };
@@ -525,7 +526,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, stri
                     nfr, string(fn), (uint8_t *)bytecode_buffer.data(),
                     bytecode_buffer.size(), std::move(program_args),
                     (fun_base_t *)exports[1], (fun_base_t)exports[0], trace, dump_leaks,
-                    runtime_checks
+                    runtime_checks, stack_trace_python_ordering
                 };
                 lobster::VMAllocator vma(std::move(vmargs));
                 vma.vm->EvalProgram();
@@ -567,7 +568,7 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringi
                 bytecode_buffer, nullptr, nullptr, true, runtime_checks, nullptr, 1, false);
         string error;
         auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, nullptr, std::move(args),
-                          TraceMode::OFF, false, error, runtime_checks, true);
+                          TraceMode::OFF, false, error, runtime_checks, true, false);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret.first)));
         return NilVal();

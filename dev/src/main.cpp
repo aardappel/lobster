@@ -71,6 +71,7 @@ int main(int argc, char* argv[]) {
         bool non_interactive_test = false;
         bool full_error = false;
         int runtime_checks = RUNTIME_ASSERT;
+        bool stack_trace_python_ordering = false;
         int max_errors = 1;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
@@ -100,6 +101,7 @@ int main(int argc, char* argv[]) {
             "--runtime-debug        Also minimize inlining.\n"
             "--runtime-debug-dump   Also create debug dumps.\n"
             "--runtime-debugger     Also break into debugger on error.\n"
+            "--invert-stacktraces   Shows stacktraces most recent call last.\n"
             "--noconsole            Close console window (Windows).\n"
             "--gen-builtins-html    Write builtin commands help file.\n"
             "--gen-builtins-names   Write builtin commands - just names.\n"
@@ -130,6 +132,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--runtime-debug") { runtime_checks = RUNTIME_DEBUG; }
                 else if (a == "--runtime-debug-dump") { runtime_checks = RUNTIME_DEBUG_DUMP; }
                 else if (a == "--runtime-debugger") { runtime_checks = RUNTIME_DEBUGGER; }
+                else if (a == "--invert-stacktraces") { stack_trace_python_ordering = true; }
                 else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-json") { dump_builtins_json = true; }
                 else if (a == "--gen-builtins-html-ng") { dump_builtins_ng = true; }
@@ -270,7 +273,8 @@ int main(int argc, char* argv[]) {
                               compile_only,
                               error,
                               runtime_checks,
-                              !non_interactive_test);
+                              !non_interactive_test,
+                              stack_trace_python_ordering);
             if (!error.empty())
                 THROW_OR_ABORT(error);
             return (int)ret.second;

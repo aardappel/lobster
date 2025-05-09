@@ -1517,7 +1517,7 @@ nfr("get_stack_trace", "", "", "S",
     " without actually stopping the program.",
     [](StackPtr &, VM &vm) {
         string sd;
-        vm.DumpStackTrace(sd);
+        vm.DumpStackTrace(sd, false);
         return Value(vm.NewString(sd));
     });
 

@@ -32,7 +32,8 @@ extern pair<string, iint> RunTCC(NativeRegistry &nfr,
                           bool compile_only,
                           string &error,
                           int runtime_checks,
-                          bool dump_leaks);
+                          bool dump_leaks,
+                          bool stack_trace_python_ordering);
 
 extern bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest);
 extern bool LoadByteCode(string &bytecode);
