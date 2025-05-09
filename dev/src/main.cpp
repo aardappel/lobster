@@ -82,9 +82,10 @@ int main(int argc, char* argv[]) {
         auto trace = TraceMode::OFF;
         auto jit_mode = true;
         Query query;
-        string helptext = "\nUsage:\n"
+        string helptext = "Usage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
+            "--help                 This help.\n"
             "--pak                  Compile to pakfile, don't run.\n"
             "--cpp                  Compile to C++ code, don't run (see implementation.md!).\n"
             "--import RELDIR        Additional dir (relative to FILE) to load imports from\n"
@@ -174,12 +175,18 @@ int main(int argc, char* argv[]) {
                         query.args.push_back(argv[arg]);
                     }
                     break;
+                } else if (a == "--help") {
+                    LOG_PROGRAM(helptext);
+                    return 0;
+                } else if (a.substr(0, 5) == "-psn_") {
+                    // process identifier supplied by OS X
+                    from_bundle = true;
+                } else {
+                    THROW_OR_ABORT("unknown command line argument: " +
+                                   (argv[arg] + ("\n" + helptext)));
                 }
-                // process identifier supplied by OS X
-                else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
-                else THROW_OR_ABORT("unknown command line argument: " + (argv[arg] + helptext));
             } else {
-                if (!fn.empty()) THROW_OR_ABORT("more than one file specified" + helptext);
+                if (!fn.empty()) THROW_OR_ABORT("more than one file specified\n" + helptext);
                 fn = SanitizePath(argv[arg]);
             }
         }
