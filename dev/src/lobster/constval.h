@@ -117,6 +117,13 @@ ValueType IsType::ConstVal(TypeChecker *tc, Value &val) const {
     return V_VOID;
 }
 
+ValueType Assert::ConstVal(TypeChecker *tc, Value &val) const {
+    auto t = child->ConstVal(tc, val);
+    if (t == V_VOID) return t;
+    return val.True() ? t : V_VOID;
+}
+
+
 ValueType ToFloat::ConstVal(TypeChecker *tc, Value &val) const {
     auto t = child->ConstVal(tc, val);
     if (t == V_VOID) return t;

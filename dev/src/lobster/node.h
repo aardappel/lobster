@@ -300,6 +300,7 @@ BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, \
 BINARY_NODE_T(Case, "case", false, List, pattern, Node, cbody, )
 BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD)
+UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD)
 
 struct Nil : Node {
     TypeRef giventype;

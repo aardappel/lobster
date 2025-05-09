@@ -3387,6 +3387,34 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     return r;
 }
 
+Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret) {
+    // If the assert value is passed on, we want any lifetime, so we can minimize inc/dec.
+    // If it is not used we just want to borrow it, so it is not up to us to dec it.
+    tc.TT(child, 1, reqret ? LT_ANY : LT_BORROW);
+    exptype = child->exptype;
+    lt = child->lt;
+
+    tc.NoStruct(*child, "assert");
+
+    // Special case, add to flow:
+    tc.CheckFlowTypeChanges(true, child);
+    if (IsRef(exptype->t)) {
+        tc.Warn(*this, "assert will always succeed with non-nil reference type ",
+                Q(TypeName(exptype)));
+    }
+    Value val;
+    auto t = child->ConstVal(&tc, val);
+    if (t != V_VOID && val.True()) {
+        string sd;
+        val.ToStringNoVM(sd, t);
+        tc.Warn(*this, "assert will always succeed with constant value: ", sd);
+    }
+    // Also make result non-nil, if it was.
+    if (exptype->t == V_NIL) exptype = exptype->Element();
+
+    return this;
+}
+
 Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (!children.empty() && children[0]->exptype->t == V_UNDEFINED) {
         // Not from GenericCall.
@@ -3602,24 +3630,6 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             exptype = type;
             lt = rlt;
         }
-    }
-
-    if (nf->IsAssert()) {
-        // Special case, add to flow:
-        tc.CheckFlowTypeChanges(true, children[0]);
-        if (IsRef(argtypes[0]->t)) {
-            tc.Warn(*this, "assert will always succeed with non-nil reference type ",
-                    Q(TypeName(argtypes[0])));
-        }
-        Value val;
-        auto t = children[0]->ConstVal(&tc, val);
-        if (t != V_VOID && val.True()) {
-            string sd;
-            val.ToStringNoVM(sd, t);
-            tc.Warn(*this, "assert will always succeed with constant value: ", sd);
-        }
-        // Also make result non-nil, if it was.
-        if (exptype->t == V_NIL) exptype = exptype->Element();
     }
 
     nattype = exptype;
@@ -4064,13 +4074,14 @@ bool Switch::Terminal(TypeChecker &tc) const {
 }
 
 bool NativeCall::Terminal(TypeChecker &) const {
+    return false;
+}
+
+bool Assert::Terminal(TypeChecker &) const {
     // A function may end in "assert false" and have only its previous return statements
     // taken into account.
-    if (nf->IsAssert()) {
-        auto i = Is<IntConstant>(children[0]);
-        return i && !i->integer;
-    }
-    return false;
+    auto i = Is<IntConstant>(child);
+    return i && !i->integer;
 }
 
 bool Call::Terminal(TypeChecker &tc) const {

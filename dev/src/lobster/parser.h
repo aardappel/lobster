@@ -1467,6 +1467,12 @@ struct Parser {
                 pakfiles.insert(s);
                 return new StringConstant(lex, std::move(s));
             }
+            case T_ASSERT: {
+                lex.Next();
+                Line line = lex;
+                auto cond = ParseExp(true);
+                return new Assert(line, cond);
+            }
             case T_IF: {
                 lex.Next();
                 return ParseIf(lex);

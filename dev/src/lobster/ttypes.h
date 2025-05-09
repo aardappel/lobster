@@ -122,7 +122,8 @@ namespace lobster {
     TOK(T_STATIC_FRAME, "static_frame") \
     TOK(T_ABSTRACT, "abstract") \
     TOK(T_GUARD, "guard") \
-    TOK(T_CONSTRUCTOR, "constructor")
+    TOK(T_CONSTRUCTOR, "constructor") \
+    TOK(T_ASSERT, "assert")
 
 enum TType {
     #define TOK(ENUM, STR) ENUM,

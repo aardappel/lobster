@@ -410,11 +410,6 @@ struct NativeFun : Named {
     bool IsGLFrame() {
         return name == "gl.frame";
     }
-
-    bool IsAssert() {
-        // FIXME: make into a language feature.
-        return name == "assert";
-    }
 };
 
 struct NativeRegistry {

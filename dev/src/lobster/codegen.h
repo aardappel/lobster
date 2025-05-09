@@ -1324,26 +1324,24 @@ void UDTRef::Generate(CodeGen &cg, size_t retval) const {
     cg.Dummy(retval);
 }
 
-void NativeCall::Generate(CodeGen &cg, size_t retval) const {
-    if (nf->IsAssert()) {
-        // FIXME: lift this into a language feature.
-        auto c = children[0];
-        if (retval || cg.runtime_checks >= RUNTIME_ASSERT) {
-            cg.Gen(c, 1);
-            cg.TakeTemp(1, false);
-            if (cg.runtime_checks >= RUNTIME_ASSERT) {
-                cg.EmitOp(GENOP(IL_ASSERT + (!!retval)));
-                cg.Emit(c->line.line);
-                cg.Emit(c->line.fileidx);
-                cg.Emit((int)cg.stringtable.size());
-                // FIXME: would be better to use the original source code here.
-                cg.stringtable.push_back(cg.st.StoreName(DumpNode(*c, 0, true)));
-            }
-        } else {
-            cg.Gen(c, 0);
+void Assert::Generate(CodeGen &cg, size_t retval) const {
+    if (retval || cg.runtime_checks >= RUNTIME_ASSERT) {
+        cg.Gen(child, 1);
+        cg.TakeTemp(1, false);
+        if (cg.runtime_checks >= RUNTIME_ASSERT) {
+            cg.EmitOp(GENOP(IL_ASSERT + (!!retval)));
+            cg.Emit(child->line.line);
+            cg.Emit(child->line.fileidx);
+            cg.Emit((int)cg.stringtable.size());
+            // FIXME: would be better to use the original source code here.
+            cg.stringtable.push_back(cg.st.StoreName(DumpNode(*child, 0, true)));
         }
-        return;
+    } else {
+        cg.Gen(child, 0);
     }
+}
+
+void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     if (nf->name == "string") {
         // A frequently used function that doesn't actually do anything by itself, so ensure it
         // doesn't get emitted.
