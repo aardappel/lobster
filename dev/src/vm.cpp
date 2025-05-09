@@ -570,20 +570,20 @@ void VM::DumpStackTraceMemory(const string &err) {
 }
 
 Value VM::Error(string err) {
-    if (stack_trace_python_ordering) {
+    if (stack_trace_python_ordering && runtime_checks <= RUNTIME_DEBUG) {
         DumpStackTrace(errmsg, true);
         ErrorBase(err);
     } else {
         ErrorBase(err);
+        #if LOBSTER_ENGINE
+            if (runtime_checks >= RUNTIME_DEBUGGER) {
+                BreakPoint(*this, errmsg);
+            } else if (runtime_checks >= RUNTIME_DEBUG_DUMP) {
+                DumpStackTraceMemory(err);
+            }
+        #endif
         DumpStackTrace(errmsg, false);
     }
-    #if LOBSTER_ENGINE
-        if (runtime_checks >= RUNTIME_DEBUGGER) {
-            BreakPoint(*this, errmsg);
-        } else if (runtime_checks >= RUNTIME_DEBUG_DUMP) {
-            DumpStackTraceMemory(err);
-        }
-    #endif
     UnwindOnError();
     return NilVal();
 }
