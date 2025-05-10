@@ -550,6 +550,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, stri
         (void)trace;
         (void)compile_only;
         (void)dump_leaks;
+        (void)stack_trace_python_ordering;
         error = "cannot JIT code: libtcc not enabled";
         return { "", 0 };
     #endif
