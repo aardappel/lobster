@@ -220,16 +220,26 @@ inline int PopCount(uint64_t val) {
 
 inline int HighZeroBits(uint64_t val) {
     #ifdef _MSC_VER
-        #ifndef _M_ARM64
-            return (int)__lzcnt64(val);
-        #else
+        // Can't use __lzcnt64 since produces garbage pre-Haswell!
+        // If we want to enable this path, must check __cpuid dynamically :(
+        // https://learn.microsoft.com/en-us/cpp/intrinsics/lzcnt16-lzcnt-lzcnt64?view=msvc-170
+        
+        //#ifndef _M_ARM64
+        //    return (int)__lzcnt64(val);
+        //#else
+
+            // Generic all-CPU fallback.
+            // TODO: is this slower than __lzcnt64 ?
             unsigned long index;
             int d = (int)sizeof(uint64_t) * 8;
-            if (_BitScanReverse64(&index, val)) {
+            // Must check val to be not 0, because otherwise this function leaves garbage in index.
+            // https://stackoverflow.com/questions/41351564/vs-unexpected-optimization-behavior-with-bitscanreverse64-intrinsic
+            if (val && _BitScanReverse64(&index, val)) {
                 d = d - 1 - index;
             }
             return d;
-        #endif
+
+        //#endif
     #else
         return __builtin_clzll(val);
     #endif
