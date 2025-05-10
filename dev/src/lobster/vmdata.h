@@ -83,6 +83,7 @@ inline bool IsRefNilVar(ValueType t) { return t <= V_NIL || t == V_VAR; }
 inline bool IsRefNilStruct(ValueType t) { return t <= V_NIL || t == V_STRUCT_S; }
 inline bool IsRefNilNoStruct(ValueType t) { return t <= V_NIL && t != V_STRUCT_R; }
 inline bool IsRuntime(ValueType t) { return t < V_VAR; }
+inline bool IsRuntimeConcrete(ValueType t) { return t < V_VAR && t >= V_STRUCT_R; }
 inline bool IsStruct(ValueType t) { return t == V_STRUCT_R || t == V_STRUCT_S; }
 inline bool IsUnBoxedOrStruct(ValueType t) { return IsUnBoxed(t) || IsStruct(t); }
 inline bool IsUDT(ValueType t) { return t == V_CLASS || IsStruct(t); }

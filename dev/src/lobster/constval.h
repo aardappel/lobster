@@ -400,6 +400,10 @@ ValueType ObjectConstructor::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }
 
+ValueType AutoConstructor::ConstVal(TypeChecker *, Value &) const {
+    return V_VOID;
+}
+
 ValueType Call::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }

@@ -65,7 +65,7 @@
     <TargetName>$(ProjectName)DBG64</TargetName>
     <CodeAnalysisRuleSet>NativeMinimumRules.ruleset</CodeAnalysisRuleSet>
     <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
-    <ClangTidyChecks>clang-analyzer-*</ClangTidyChecks>
+    <ClangTidyChecks>clang-analyzer-*,-clang-diagnostic-error</ClangTidyChecks>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -75,7 +75,7 @@
     <OutDir>..\..\build\$(SolutionName)\$(ProjectName)\</OutDir>
     <IntDir>..\..\build\$(SolutionName)\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
     <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
-    <ClangTidyChecks>clang-analyzer-*</ClangTidyChecks>
+    <ClangTidyChecks>clang-analyzer-*,-clang-diagnostic-error</ClangTidyChecks>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseASAN|x64'">

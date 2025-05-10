@@ -460,6 +460,24 @@ struct ObjectConstructor : List {
     OPTMETHOD
 };
 
+struct AutoConstructor : List {
+    small_vector<SharedField *, 4> tags;
+    AutoConstructor(const Line &ln) : List(ln) {};
+    bool IsConstInit() const {
+        for (auto n : children) {
+            if (!n->IsConstInit()) return false;
+        }
+        return true;
+    }
+    bool EqAttr(const Node *o) const {
+        for (auto [i, tag] : enumerate(tags)) {
+            if (tag != ((AutoConstructor *)o)->tags[i]) return false;
+        }
+        return true;
+    }
+    SHARED_SIGNATURE(AutoConstructor, "auto_constructor", false)
+};
+
 struct Call : List {
     int vtable_idx = -1;
     SubFunction *sf;

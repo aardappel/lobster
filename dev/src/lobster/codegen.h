@@ -1865,6 +1865,10 @@ void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
+void AutoConstructor::Generate(CodeGen &, size_t) const {
+    assert(false);
+}
+
 void IsType::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     // If the value was a scalar, then it always results in a compile time type check,

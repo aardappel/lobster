@@ -1,6 +1,7 @@
 import testing
 import std
 import dictionary
+import vec
 
 // Misc tests related to type checking.
 
@@ -267,3 +268,23 @@ run_test("types"):
             attribute serializable = 1
             a = 2
         A {}
+
+    do():
+        // Auto constructors! Look ma, no types.
+        class A:
+            a:A?
+            b = 1
+            c = int2_0
+        // Other constructors and variable context.
+        let as:[A] = [
+            { nil },
+            { { nil } },
+            { { nil, b: 2, c: { 3, 4 } } }
+        ]
+        assert (assert as[2].a).c.y == 4
+        // function call context
+        def foo(a:A):
+            assert a.b == 1
+        foo({ nil })
+        foo({ { nil } })
+        foo({ { nil, b: 2 } })

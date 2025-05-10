@@ -2154,9 +2154,9 @@ struct TypeChecker {
         }
     }
 
-    void TypeCheckList(List *n, Lifetime lt) {
+    void TypeCheckList(List *n, Lifetime lt, TypeRef parent_bound = {}) {
         for (auto &c : n->children) {
-            TT(c, 1, lt);
+            TT(c, 1, lt, parent_bound);
         }
     }
 
@@ -2907,7 +2907,8 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     //   was really what was intended (since the lval being assigned from may go away).
     // - old := cur cases, where old is meant to hang on to the previous value as cur gets updated,
     //   which then runs into borrowing errors.
-    tc.TT(child, Is<DefaultVal>(child) ? 0 : sids.size(), LT_KEEP);
+    auto parent_bound = sids.size() == 1 && !sids[0].second.Null() ? sids[0].second : TypeRef{};
+    tc.TT(child, Is<DefaultVal>(child) ? 0 : sids.size(), LT_KEEP, parent_bound);
     for (auto [i, p] : enumerate(sids)) {
         auto var = TypeLT(*child, i);
         if (!p.second.Null()) {
@@ -3215,10 +3216,34 @@ Node *DefaultVal::TypeCheck(TypeChecker &, size_t, TypeRef /*parent_bound*/) {
 Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     STACK_PROFILE;
     // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
-    tc.TypeCheckList(this, LT_ANY);
     tc.st.current_namespace = ns;
     auto nf = tc.parser.FindNative(name);
     auto fld = tc.st.FieldUse(name);
+    // FIXME: this doesn't always find lexically enclosing functions, since if the typechecker
+    // goes funlevel1a -> funlevel2b -> funlevel1c, it will still find functions from level2!
+    // Not the same as the parser, and not sure how to best fix that.
+    auto ff = tc.st.FindFunction(name);
+    // We first typecheck the children, because we want to at least look at arg 1 to decide
+    // what to call. But this doesn't allow an accurate parent_bound, so we only specify
+    // one if it looks unambiguous.
+    for (auto [i, c] : enumerate(children)) {
+        TypeRef parent_bound;
+        // Only if the name seems to refer to 1 thing.
+        if (nf && !ff && !fld) {
+            if (i < nf->args.size() && !nf->overloads) {
+                // FIXME: this often doesn't work because ActualBuiltinType hasn't run yet.
+                parent_bound = nf->args[i].type;
+            }
+        } else if (ff && !nf && !fld) {
+            // For now only functions that have a single definition.
+            if (!ff->sibf && ff->overloads.size() == 1 && i < ff->overloads[0]->sf->args.size()) {
+                // This function is not typechecked, so this could be a generic type, but that
+                // is ok for the current use of parent_bound.
+                parent_bound = ff->overloads[0]->sf->args[i].type;
+            }
+        }
+        tc.TT(c, 1, LT_ANY, parent_bound);
+    }
     TypeRef type;
     UDT *udt = nullptr;
     if (children.size()) {
@@ -3239,10 +3264,6 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         bool prefer_ff = false;
         // Pick better match if any..
         auto nargs = children.size();
-        // FIXME: this doesn't always find lexically enclosing functions, since if the typechecker
-        // goes funlevel1a -> funlevel2b -> funlevel1c, it will still find functions from level2!
-        // Not the same as the parser, and not sure how to best fix that.
-        auto ff = tc.st.FindFunction(name);
         auto f = ff;
         // Get best one sofar.
         for (; f; f = f->sibf) {
@@ -3805,22 +3826,27 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     return this;
 }
 
-Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
+Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef parent_bound) {
     if (giventype.Null()) {
-        if (Arity()) {
-            tc.TypeCheckList(this, LT_KEEP);
-            // No type was specified.. first find union of all elements.
-            TypeRef u(nullptr);
-            for (auto c : children) {
-                u = u.Null() ? c->exptype
-                             : tc.Union(u, c->exptype, "vector", "vector element",
-                                        CF_COERCIONS, c);
-            }
-            exptype = tc.st.Wrap(u, V_VECTOR, &line);
-            tc.StorageType(exptype, *this);
+        if (parent_bound->t == V_VECTOR && IsRuntimeConcrete(parent_bound->sub->t)) {
+            exptype = parent_bound;
+            tc.TypeCheckList(this, LT_KEEP, exptype->sub);
         } else {
-            // special case for empty vectors
-            exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR, &line);
+            if (Arity()) {
+                tc.TypeCheckList(this, LT_KEEP);
+                // No type was specified.. first find union of all elements.
+                TypeRef u(nullptr);
+                for (auto c : children) {
+                    u = u.Null()
+                            ? c->exptype
+                            : tc.Union(u, c->exptype, "vector", "vector element", CF_COERCIONS, c);
+                }
+                exptype = tc.st.Wrap(u, V_VECTOR, &line);
+                tc.StorageType(exptype, *this);
+            } else {
+                // special case for empty vectors
+                exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR, &line);
+            }
         }
     } else {
         exptype = tc.st.ResolveTypeVars(giventype, this->line);
@@ -3828,7 +3854,7 @@ Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
             tc.Error(*this, "type does not resolve to vector: ", Q(TypeName(exptype)));
         // These may include field initializers copied from the definition, which may include
         // type variables that are now bound.
-        tc.TypeCheckList(this, LT_KEEP);
+        tc.TypeCheckList(this, LT_KEEP, exptype->sub);
     }
     for (auto [i, c] : enumerate(children)) {
         TypeRef elemtype = exptype->Element();
@@ -3836,6 +3862,50 @@ Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
     }
     lt = LT_KEEP;
     return this;
+}
+
+Node *AutoConstructor::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound) {
+    parent_bound = parent_bound->ElementIfNil();
+    if (!IsUDT(parent_bound->t))
+        tc.Error(*this, "class/struct type for auto constructor unknown in this context");
+    auto udt = parent_bound->udt;
+    // The logic for the code below is very similar to parsing typed constructors in IdentFactor.
+    node_small_vector exps(udt->sfields.size(), nullptr);
+    for (auto [i, c] : enumerate(children)) {
+        auto tag = tags[i];
+        if (tag) {
+            auto field = udt->g.Has(tag);
+            if (field < 0) tc.Error(*this, "unknown field ", Q(tag->name));
+            if (exps[field]) tc.Error(*this, "field ", Q(tag->name), " initialized twice");
+            exps[field] = c;
+        } else {
+            // An initializer without a tag. Find first field without a default thats not
+            // set yet.
+            for (size_t i = 0; i < exps.size(); i++) {
+                if (!exps[i] && !udt->g.fields[i].gdefaultval) {
+                    exps[i] = c;
+                    goto done;
+                }
+            }
+            tc.Error(*this, "too many initializers for ", Q(udt->name));
+            done:;
+        }
+    }
+    // Now fill in defaults, check for missing fields, and construct list.
+    auto constructor = new ObjectConstructor(line, &udt->thistype);
+    for (size_t i = 0; i < exps.size(); i++) {
+        if (!exps[i]) {
+            if (udt->g.fields[i].gdefaultval)
+                exps[i] = udt->g.fields[i].gdefaultval->Clone(true);
+            else
+                tc.Error(*this, "field ", Q(udt->g.fields[i].id->name), " not initialized");
+        }
+        constructor->Add(exps[i]);
+    }
+    children.clear();
+    constructor->TypeCheck(tc, reqret, parent_bound);
+    delete this;
+    return constructor;
 }
 
 Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
@@ -3894,7 +3964,9 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
         }
         // These may include field initializers copied from the definition, which may include
         // type variables that are now bound.
-        tc.TypeCheckList(this, LT_KEEP);
+        for (auto [i, c] : enumerate(children)) {
+            tc.TT(c, 1, LT_KEEP, udt->sfields[i].type);
+        }
         tc.st.PopSuperGenerics(udt);
     }
     assert(udt);

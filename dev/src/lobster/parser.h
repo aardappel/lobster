@@ -1418,6 +1418,10 @@ struct Parser {
                 }
                 return constructor;
             }
+            case T_LEFTCURLY: {
+                lex.Next();
+                return ParseAutoConstructor();
+            }
             case T_LAMBDA: {
                 lex.Next();
                 return ParseFunction(nullptr, false, false, lex.token == T_LEFTPAREN,
@@ -1660,6 +1664,28 @@ struct Parser {
         return specializers;
     }
 
+    Node *ParseAutoConstructor() {
+        Line line = lex;
+        auto constructor = new AutoConstructor(line);
+        ParseVector(
+            [&]() {
+                SharedField *fld = nullptr;
+                auto tag = lex.sattr;
+                if (IsNext(T_IDENT)) {
+                    if (IsNext(T_COLON)) {
+                        fld = st.FieldUse(tag);
+                        if (!fld) Error("unknown field ", Q(tag));
+                    } else {
+                        lex.Undo(T_IDENT, tag);
+                    }
+                }
+                constructor->tags.push_back(fld);
+                constructor->Add(ParseExp());
+            },
+            T_RIGHTCURLY);
+        return constructor;
+    }
+
     Node *IdentFactor(string_view idname) {
         // First see if this a type constructor.
         auto udt = st.LookupSpecialization(idname);
@@ -1697,6 +1723,7 @@ struct Parser {
             Line line = lex;
             if (gudt->is_abstract)
                 Error("cannot instantiate abstract class/struct ", Q(gudt->name));
+            // The logic for the code below is very similar to AutoConstructor::TypeCheck
             node_small_vector exps(gudt->fields.size(), nullptr);
             ParseVector([&] () {
                 auto id = lex.sattr;
@@ -1742,6 +1769,7 @@ struct Parser {
             if (type->t == V_TYPEVAR) {
                 auto constructor = new ObjectConstructor(lex, type);
                 // We don't know what args this type has, so parse any number of them, without tags.
+                // FIXME: now that we have AutoConstructor, we could use that and parse the tags?
                 while (lex.token != T_RIGHTCURLY) {
                     constructor->Add(ParseExp());
                     if (lex.token != T_RIGHTCURLY) Expect(T_COMMA);

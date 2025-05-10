@@ -243,17 +243,22 @@ struct float2:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Additionally, you may specify default values, if these are given, then these
-values are not arguments to the constructor, e.g. `vec2 {}`.
+values are not arguments to the constructor, e.g. `float2 {}`.
 
 For more complex structs, you can use field names as "tags" in a constructor
 call, for example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-vec2 { x: 1, y: 2 }
+float2 { x: 1.0, y: 2.0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Besides being more readable, it allows you to specify the fields in any order,
 and to override fields that have defaults.
+
+The constructor type may also be omitted, in contexts where that type is clearly
+known, such as inside other constructors, explicitly typed function calls and variables.
+For example, if `foo` is known to take a `float2` argument, you may write
+`foo({ 1.0, 2.0 })` instead of `foo(float2 { 1.0, 2.0 })`.
 
 For more complex ways of constructing types, see constructor functions below.
 
@@ -414,11 +419,11 @@ access all fields / functions of that object directly, without having to prefix
 them with the argument name, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def magnitude(v::vec2): return sqrt(x * x + y * y)
+def magnitude(v::float2): return sqrt(x * x + y * y)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can also leave out the `v::vec2` entirely if you define this function as part
-of a `class` / `struct` definition of type `vec2` (see above). Both types of
+You can also leave out the `v::float2` entirely if you define this function as part
+of a `class` / `struct` definition of type `float2` (see above). Both types of
 definition are equivalent.
 
 You can specify an explicit return type, like so:

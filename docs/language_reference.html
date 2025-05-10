@@ -238,12 +238,18 @@ different specialization).</p>
     y = 0.0</code></pre>
 <p>Additionally, you may specify default values, if these are given,
 then these values are not arguments to the constructor, e.g.
-<code>vec2 {}</code>.</p>
+<code>float2 {}</code>.</p>
 <p>For more complex structs, you can use field names as "tags" in a
 constructor call, for example:</p>
-<pre><code>vec2 { x: 1, y: 2 }</code></pre>
+<pre><code>float2 { x: 1.0, y: 2.0 }</code></pre>
 <p>Besides being more readable, it allows you to specify the fields in
 any order, and to override fields that have defaults.</p>
+<p>The constructor type may also be omitted, in contexts where that type
+is clearly known, such as inside other constructors, explicitly typed
+function calls and variables. For example, if <code>foo</code> is known
+to take a <code>float2</code> argument, you may write
+<code>foo({ 1.0, 2.0 })</code> instead of
+<code>foo(float2 { 1.0, 2.0 })</code>.</p>
 <p>For more complex ways of constructing types, see constructor
 functions below.</p>
 <p>To declare a type whose only purpose is to serve as a superclass for
@@ -366,10 +372,10 @@ system</a>).</p>
 <p>You can use :: instead of : for typed class/struct arguments, which
 allows you to access all fields / functions of that object directly,
 without having to prefix them with the argument name, e.g.:</p>
-<pre><code>def magnitude(v::vec2): return sqrt(x * x + y * y)</code></pre>
-<p>You can also leave out the <code>v::vec2</code> entirely if you
+<pre><code>def magnitude(v::float2): return sqrt(x * x + y * y)</code></pre>
+<p>You can also leave out the <code>v::float2</code> entirely if you
 define this function as part of a <code>class</code> /
-<code>struct</code> definition of type <code>vec2</code> (see above).
+<code>struct</code> definition of type <code>float2</code> (see above).
 Both types of definition are equivalent.</p>
 <p>You can specify an explicit return type, like so:</p>
 <pre><code>def f(a:int, b:int) -&gt; float: return a + b</code></pre>
