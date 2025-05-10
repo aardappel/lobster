@@ -133,6 +133,10 @@ struct Type {
         return t == vt || (Wrapped() && Element()->HasValueType(vt));
     }
 
+    bool IsConcrete() const {
+        return IsRuntimeConcrete(t) || (Wrapped() && Element()->IsConcrete());
+    }
+
     size_t NumValues() const {
         if (t == V_VOID) return 0;
         if (t == V_TUPLE) return tup->size();

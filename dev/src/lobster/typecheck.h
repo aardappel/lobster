@@ -3232,14 +3232,18 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         if (nf && !ff && !fld) {
             if (i < nf->args.size() && !nf->overloads) {
                 // FIXME: this often doesn't work because ActualBuiltinType hasn't run yet.
-                parent_bound = nf->args[i].type;
+                // Have to disable this for now, too many cases with bogus types.
+                //parent_bound = nf->args[i].type;
             }
         } else if (ff && !nf && !fld) {
             // For now only functions that have a single definition.
-            if (!ff->sibf && ff->overloads.size() == 1 && i < ff->overloads[0]->sf->args.size()) {
-                // This function is not typechecked, so this could be a generic type, but that
-                // is ok for the current use of parent_bound.
-                parent_bound = ff->overloads[0]->sf->args[i].type;
+            if (!ff->sibf && ff->overloads.size() == 1) {
+                auto sf = ff->overloads[0]->sf;
+                if (i < sf->giventypes.size() && sf->giventypes[i]->IsConcrete()) {
+                    // This function is not typechecked, so this could be a generic type, but that
+                    // is ok for the current use of parent_bound.
+                    parent_bound = sf->giventypes[i];
+                }
             }
         }
         tc.TT(c, 1, LT_ANY, parent_bound);
@@ -3828,7 +3832,7 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
 
 Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef parent_bound) {
     if (giventype.Null()) {
-        if (parent_bound->t == V_VECTOR && IsRuntimeConcrete(parent_bound->sub->t)) {
+        if (parent_bound->t == V_VECTOR && parent_bound->sub->IsConcrete()) {
             exptype = parent_bound;
             tc.TypeCheckList(this, LT_KEEP, exptype->sub);
         } else {
