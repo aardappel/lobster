@@ -967,7 +967,7 @@ struct TypeChecker {
         }
         auto start_borrowed_vars = borrowstack.size();
         auto start_promoted_vars = flowstack.size();
-        sf.sbody->TypeCheck(*this, 0);
+        sf.sbody->TypeCheck(*this, 0, {});
         CleanUpFlow(start_promoted_vars);
         if (!sf.num_returns) {
             if (!sf.returngiventype.Null() && sf.returngiventype->t != V_VOID)
@@ -1883,7 +1883,7 @@ struct TypeChecker {
 
     TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *block, size_t reqret) {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
-        block->TypeCheck(*this, reqret);
+        block->TypeCheck(*this, reqret, {});
         CleanUpFlow(flowstart);
         return block->exptype;
     }
@@ -2288,10 +2288,11 @@ struct TypeChecker {
 
     // This is the central function thru which all typechecking flows, so we can conveniently
     // match up what the node produces and what the recipient expects.
-    void TT(Node *&n, size_t reqret, Lifetime recip, node_small_vector *idents = nullptr) {
+    void TT(Node *&n, size_t reqret, Lifetime recip, TypeRef parent_bound = {},
+            node_small_vector *idents = nullptr) {
         STACK_PROFILE;
         // Central point from which each node is typechecked.
-        n = n->TypeCheck(*this, reqret);
+        n = n->TypeCheck(*this, reqret, parent_bound);
         // Check if we need to do any type adjustmenst.
         auto &rt = n->exptype;
         n->exptype = rt;
@@ -2543,7 +2544,7 @@ struct TypeChecker {
     }
 };
 
-Node *Block::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *Block::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     // Bring functions into scope.
     for (auto def : children) {
         if (auto fr = Is<FunRef>(def)) {
@@ -2567,34 +2568,34 @@ Node *Block::TypeCheck(TypeChecker &tc, size_t reqret) {
     return this;
 }
 
-Node *List::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *List::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     assert(false);  // Parents call TypeCheckList
     return this;
 }
 
-Node *Unary::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *Unary::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     assert(false);
     return this;
 }
 
-Node *BinOp::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *BinOp::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     assert(false);
     return this;
 }
 
-Node *Or::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *Or::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     TypeRef dummy;
     tc.TypeCheckAndOr(*this, false, reqret, dummy);
     return this;
 }
 
-Node *And::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *And::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     TypeRef dummy;
     tc.TypeCheckAndOr(*this, false, reqret, dummy);
     return this;
 }
 
-Node *IfThen::TypeCheck(TypeChecker &tc, size_t) {
+Node *IfThen::TypeCheck(TypeChecker &tc, size_t, TypeRef /*parent_bound*/) {
     auto constant = tc.TypeCheckCondition(condition, this, "if");
     if (!constant || constant->True()) {
         tc.TypeCheckBranch(true, condition, truepart, 0);
@@ -2624,7 +2625,7 @@ Node *IfThen::TypeCheck(TypeChecker &tc, size_t) {
     return this;
 }
 
-Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     auto constant = tc.TypeCheckCondition(condition, this, "if");
     if (!constant) {
         auto tleft = tc.TypeCheckBranch(true, condition, truepart, reqret);
@@ -2662,7 +2663,7 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret) {
     }
 }
 
-Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TypeCheckCondition(condition, this, "while");
     tc.scopes.back().loop_count++;
     tc.TypeCheckBranch(true, condition, wbody, 0);
@@ -2672,7 +2673,7 @@ Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     // FIXME: would be good to detect when iter is not written to, so ForLoopElem can be LT_BORROW.
     // Alternatively we could IncBorrowers on iter, but that would be very restrictive.
     tc.TT(iter, 1, LT_BORROW);
@@ -2695,7 +2696,7 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         }
     }
     tc.scopes.back().loop_count++;
-    fbody->TypeCheck(tc, 0);
+    fbody->TypeCheck(tc, 0, {});
     tc.scopes.back().loop_count--;
     tc.st.BlockScopeCleanup();
     tc.DecBorrowers(iter->lt, *this);
@@ -2705,19 +2706,19 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *ForLoopElem::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *ForLoopElem::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     // Already been assigned a type in For.
     lt = LT_KEEP;
     return this;
 }
 
-Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     exptype = type_int;
     lt = LT_ANY;
     return this;
 }
 
-Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (!tc.scopes.back().loop_count)
         tc.Error(*this, Q("break"), " must occur inside a ", Q("while"), " or ", Q("for"));
     exptype = type_void;
@@ -2725,7 +2726,7 @@ Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     // TODO: much like If, should only typecheck one case if the value is constant, and do
     // the corresponding work in the optimizer.
     tc.TT(value, 1, LT_BORROW);
@@ -2859,7 +2860,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     return this;
 }
 
-Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *Case::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     // FIXME: Since string constants are the real use case, LT_KEEP would be more
     // natural here, as this will introduce a lot of keeprefs. Alternatively make sure
     // string consts don't introduce keeprefs.
@@ -2869,7 +2870,7 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
     if (pattern->Arity()) {
         if (auto udtref = Is<UDTRef>(pattern->children[0])) {
             tc.CheckFlowTypeIdOrDot(*sw->value, &udtref->udt->thistype);
-            udtref->TypeCheck(tc, 0);
+            udtref->TypeCheck(tc, 0, {});
         } else {
             tc.TypeCheckList(pattern, LT_BORROW);
         }
@@ -2881,7 +2882,7 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
     return this;
 }
 
-Node *Range::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Range::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TT(start, 1, LT_KEEP);
     tc.TT(end, 1, LT_KEEP);
     exptype = start->exptype;
@@ -2891,7 +2892,7 @@ Node *Range::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     for (auto &p : sids) {
         tc.UpdateCurrentSid(p.first);
         // We have to set these here just in case the init exp is a function call that
@@ -2943,7 +2944,7 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Member::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Member::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TT(child, 1, LT_KEEP);
     auto &f = *field();
     f.in_scope = true;
@@ -2954,7 +2955,7 @@ Node *Member::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Static::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Static::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TT(child, 1, sid->lt);
     tc.SubType(child, sid->type, "static initializer", *this);
     // FIXME: not doing any of the flow stuff Assign / Define do, needed?
@@ -2963,7 +2964,7 @@ Node *Static::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     for (auto &c : children) {
         if (c != children.back()) {
             tc.TT(c, 1, LT_BORROW);
@@ -2972,7 +2973,7 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 tc.Error(*this, "assignment list elements must be variables or class members");
             }
         } else {
-            tc.TT(c, children.size() - 1, LT_MULTIPLE /*unused*/, &children);
+            tc.TT(c, children.size() - 1, LT_MULTIPLE /*unused*/, {}, & children);
         }
     }
     for (size_t i = 0; i < children.size() - 1; i++) {
@@ -2991,19 +2992,19 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *IntConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *IntConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     exptype = from ? &from->e->thistype : type_int;
     lt = LT_ANY;
     return this;
 }
 
-Node *FloatConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *FloatConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     exptype = type_float;
     lt = LT_ANY;
     return this;
 }
 
-Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     exptype = type_string;
     // The VM keeps all the constant strings for the length of the program,
     // so these can be borrow, avoiding a ton of keepvars when used in + and
@@ -3013,7 +3014,7 @@ Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     return this;
 }
 
-Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (giventype.Null()) {
         exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_NIL, &line);
     } else {
@@ -3024,91 +3025,91 @@ Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Plus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Plus::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *Minus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Minus::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *Multiply::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Multiply::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *Divide::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Divide::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *Mod::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Mod::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *PlusEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *PlusEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *MultiplyEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *MultiplyEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *MinusEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *MinusEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *DivideEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *DivideEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *ModEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *ModEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *AndEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *AndEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEqBit(*this);
 }
 
-Node *OrEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *OrEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEqBit(*this);
 }
 
-Node *XorEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *XorEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEqBit(*this);
 }
 
-Node *ShiftLeftEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *ShiftLeftEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEqBit(*this);
 }
 
-Node *ShiftRightEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *ShiftRightEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckMathOpEqBit(*this);
 }
 
-Node *NotEqual::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *NotEqual::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *Equal::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Equal::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *GreaterThanEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *GreaterThanEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *LessThanEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *LessThanEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *GreaterThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *GreaterThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *LessThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *LessThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.DecBorrowers(child->lt, *this);
     tc.NoStruct(*child, "not");
@@ -3117,27 +3118,27 @@ Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *BitAnd::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *BitAnd::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *BitOr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *BitOr::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *Xor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Xor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *ShiftLeft::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *ShiftLeft::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *ShiftRight::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *ShiftRight::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.SubType(child, type_int, "negated value", *this);
     tc.DecBorrowers(child->lt, *this);
@@ -3146,23 +3147,23 @@ Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *PostDecr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *PostDecr::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckPlusPlus(*this);
 }
 
-Node *PostIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *PostIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckPlusPlus(*this);
 }
 
-Node *PreDecr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *PreDecr::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckPlusPlus(*this);
 }
 
-Node *PreIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *PreIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return tc.TypeCheckPlusPlus(*this);
 }
 
-Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
     exptype = child->exptype;
     if (!exptype->Numeric() &&
@@ -3173,7 +3174,7 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.UpdateCurrentSid(sid);
     for (auto &sc : reverse(tc.scopes)) if (sc.sf == sid->sf_def) goto in_scope;
     tc.Error(*this, "free variable ", Q(sid->id->name), " not in scope");
@@ -3188,7 +3189,7 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.DecBorrowers(left->lt, *this);
     tc.TT(right, 1, tc.LvalueLifetime(*left, false));
@@ -3205,13 +3206,13 @@ Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *DefaultVal::TypeCheck(TypeChecker &, size_t) {
+Node *DefaultVal::TypeCheck(TypeChecker &, size_t, TypeRef /*parent_bound*/) {
     exptype = type_void;
     lt = LT_ANY;
     return this;
 }
 
-Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     STACK_PROFILE;
     // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
     tc.TypeCheckList(this, LT_ANY);
@@ -3233,7 +3234,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     if (fld && fromdot && noparens && udt && udt->g.Has(fld) >= 0) {
         auto dot = new Dot(fld, *this);
         sup_err();
-        r = dot->TypeCheck(tc, reqret);
+        r = dot->TypeCheck(tc, reqret, {});
     } else {
         bool prefer_ff = false;
         // Pick better match if any..
@@ -3276,7 +3277,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             auto nc = new NativeCall(nf, line);
             nc->children = children;
             sup_err();
-            r = nc->TypeCheck(tc, reqret);
+            r = nc->TypeCheck(tc, reqret, {});
         } else if (f) {
             // Now that we're sure it's going to be a call, pick the right function
             // First filter to only those that have more args.
@@ -3374,7 +3375,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
                 sup_err();
             auto fc = new Call(*this, usf && usf->parent == ff ? usf : ff->overloads[0]->sf);
             fc->children = children;
-            r = fc->TypeCheck(tc, reqret);
+            r = fc->TypeCheck(tc, reqret, {});
         } else {
             if (fld && fromdot && noparens) {
                 tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
@@ -3387,7 +3388,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     return r;
 }
 
-Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     // If the assert value is passed on, we want any lifetime, so we can minimize inc/dec.
     // If it is not used we just want to borrow it, so it is not up to us to dec it.
     tc.TT(child, 1, reqret ? LT_ANY : LT_BORROW);
@@ -3415,7 +3416,7 @@ Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret) {
     return this;
 }
 
-Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (!children.empty() && children[0]->exptype->t == V_UNDEFINED) {
         // Not from GenericCall.
         tc.TypeCheckList(this, LT_ANY);
@@ -3637,7 +3638,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Call::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *Call::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     STACK_PROFILE;
     if (!children.empty() && children[0]->exptype->t == V_UNDEFINED) {
         // Not from GenericCall.
@@ -3649,7 +3650,7 @@ Node *Call::TypeCheck(TypeChecker &tc, size_t reqret) {
     return this;
 }
 
-Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     sf = tc.PreSpecializeFunction(sf);
     if (sf->parent->istype) {
         for (auto [i, arg] : enumerate(sf->args)) {
@@ -3662,11 +3663,11 @@ Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     return tc.TypeCheckDynCall(this, reqret);
 }
 
-Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     exptype = type_void;
     lt = LT_ANY;
     // Ensure what we're returning from is going to be on the stack at runtime.
@@ -3765,13 +3766,13 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *TypeAnnotation::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *TypeAnnotation::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     exptype = tc.st.ResolveTypeVars(giventype, this->line);
     lt = LT_ANY;
     return this;
 }
 
-Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.DecBorrowers(child->lt, *this);
     resolvedtype = tc.st.ResolveTypeVars(giventype, this->line);
@@ -3784,7 +3785,7 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     Value cval = NilVal();
     auto t = ConstVal(&tc, cval);
     if (t == V_INT) {
-        auto intc = (new IntConstant(line, cval.ival()))->TypeCheck(tc, 1);
+        auto intc = (new IntConstant(line, cval.ival()))->TypeCheck(tc, 1, {});
         if (child->SideEffectRec()) {
             // must retain side effects.
             auto seq = new Seq(child->line, child, intc);
@@ -3804,7 +3805,7 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (giventype.Null()) {
         if (Arity()) {
             tc.TypeCheckList(this, LT_KEEP);
@@ -3837,7 +3838,7 @@ Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     UDT *udt = nullptr;
     if (giventype->t == V_UUDT && giventype->spec_udt->specializers.empty()) {
         // Special case for generic type constructor with no specializers.
@@ -3914,7 +3915,7 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (child->exptype->t == V_UNDEFINED) {
         // Not from GenericCall.
         tc.TT(child, 1, LT_ANY);
@@ -3940,7 +3941,7 @@ Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.TT(index, 1, LT_BORROW);
     tc.DecBorrowers(index->lt, *this);
@@ -3976,7 +3977,7 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *Seq::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *Seq::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     tc.TT(head, 0, LT_ANY);
     tc.TT(tail, reqret, LT_ANY);
     exptype = tail->exptype;
@@ -3984,7 +3985,7 @@ Node *Seq::TypeCheck(TypeChecker &tc, size_t reqret) {
     return this;
 }
 
-Node *TypeOf::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *TypeOf::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.DecBorrowers(child->lt, *this);
     auto ti = tc.st.NewType();
@@ -3993,7 +3994,7 @@ Node *TypeOf::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *EnumCoercion::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *EnumCoercion::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.SubType(child, type_int, "coerced value", *this);
     tc.DecBorrowers(child->lt, *this);
@@ -4002,7 +4003,7 @@ Node *EnumCoercion::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TypeCheckList(this, LT_ANY);
     exptype = tc.st.NewTuple(children.size());
     for (auto [i, mrc] : enumerate(children))
@@ -4011,25 +4012,25 @@ Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *EnumRef::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
+Node *EnumRef::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     return this;
 }
 
-Node *GUDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+Node *GUDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TypeCheckGUDT(*gudt, *this, predeclaration);
     exptype = type_void;
     lt = LT_ANY;
     return this;
 }
 
-Node *UDTRef::TypeCheck(TypeChecker &, size_t /*reqret*/) {
+Node *UDTRef::TypeCheck(TypeChecker &, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     // For now, being type-checked from TypeCheckGUDT.
     exptype = type_void;
     lt = LT_ANY;
     return this;
 }
 
-Node *Coercion::TypeCheck(TypeChecker &tc, size_t reqret) {
+Node *Coercion::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     assert(false);  // Should not be called, since only inserted by TT.
     tc.TT(child, reqret, LT_ANY);
     return this;

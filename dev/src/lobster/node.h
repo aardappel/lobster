@@ -76,7 +76,7 @@ struct Node {
     // If it returns true, sets val to a value that gives the correct True().
     // Also sets correct scalar values.
     virtual ValueType ConstVal(TypeChecker *, Value &) const = 0;
-    virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
+    virtual Node *TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound = {}) = 0;
     virtual Node *Optimize(Optimizer &opt);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
     // Node allocation and cloning is the bulk of allocation, so use custom fast allocator:
@@ -128,7 +128,7 @@ template<typename T> T *DoClone(T *dest, T *src, bool notype) {
     Node *Clone(bool notype) { return DoClone<NAME>(new NAME(), this, notype); } \
     ValueType ConstVal(TypeChecker *tc, Value &val) const;
 #define SHARED_SIGNATURE(NAME, STR, SE) \
-    Node *TypeCheck(TypeChecker &tc, size_t reqret); \
+    Node *TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound); \
     SHARED_SIGNATURE_NO_TT(NAME, STR, SE)
 
 #define ZERO_NODE(NAME, STR, SE, METHODS) \
