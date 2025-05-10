@@ -116,7 +116,7 @@ def find_best<R>(xs, fun):
     var best:R = init
     var i = -1
     for(xs) x, j:
-        let v = fun(x)
+        let v = fun(x, j)
         if i < 0 or v > best:
             i = j
             best = v
