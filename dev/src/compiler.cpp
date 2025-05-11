@@ -412,9 +412,9 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
         }
         s += cat(doc_tags[Tags::Name][0], nf->name, doc_tags[Tags::Name][1]);
         s += doc_tags[Tags::Params][0];
-        int last_non_nil = -1;
+        int last_not_optional = -1;
         for (auto [i, a] : enumerate(nf->args)) {
-            if (a.type->t != V_NIL) last_non_nil = (int)i;
+            if (!a.optional) last_not_optional = (int)i;
         }
         for (auto [i, a] : enumerate(nf->args)) {
             auto argname = nf->args[i].name;
@@ -432,9 +432,9 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
             }
             s += doc_tags[Tags::ParamType][1];
             s += doc_tags[Tags::Font][1];
-            if (a.type->t == V_NIL && (int)i > last_non_nil) {
+            if (a.optional && (int)i > last_not_optional) {
                 s += doc_tags[Tags::ParamDefault][0];
-                switch (a.type->sub->t) {
+                switch (a.type->t) {
                     case V_INT:
                         if (a.flags & NF_BOOL)
                             append(s, a.default_val ? "true" : "false");
