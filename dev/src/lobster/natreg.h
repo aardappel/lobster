@@ -284,7 +284,7 @@ struct Narg {
             default: nf->Error("illegal type code");
         }
         while (*tid && !isupper(*tid)) {
-            switch (auto c = *tid++) {
+            switch (*tid++) {
                 case 0: break;
                 case '1': flags = flags | NF_SUBARG1; break;
                 case '2': flags = flags | NF_SUBARG2; break;
