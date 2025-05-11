@@ -1,10 +1,4 @@
-- replace our to_string_float with schubfach.
-
 - mipmaps are darker than the orginal in both srgb and linear modes? see e.g. puzzlewindow.lobster
-
-- Passing function values with free variables to declared function types is currently not safe, see
-  commented out code related to function types in SubType()
-  https://github.com/aardappel/lobster/issues/351
 
 - Default ignoring return values is a really bad default, wonder if it is too late to change?
   Ideally it would error on ignored return values unless the function explicitly marks a return
@@ -170,17 +164,6 @@
   - LSP: list members etc.
   - VSCode double click on errors doesn't work, why is that?
 
-- consider using something else instead of _ for namespaces
-    .	JS/TS, Ada, C#, CoffeeScript, E, F#, Go, Haskell, Java, Modula-3, OCaml, Pascal, Python, Ruby, SML, Squeak
-    :	XML
-    ::	Rust, C++, merd, Perl, Ruby, Squeak, Tcl, YCP
-    : ::(69)	Common Lisp
-    :-	Maple
-    '	Perl
-    `	Mathematica
-    __	Mercury
-    /	Matlab
-
 - rename vectors to lists.. "vector" is confusing for non-C++ people apparently.
 
 - "error: dynamic function value call must be on variable" can we remove this restriction?
@@ -249,6 +232,12 @@
      there. Even so, it be nice to allow tags:, which would just require the same as a).
 
 - a switch where all cases assign a non-nil value to nil variable doesn't make the var non-nil like if-then does.
+
+- replace our to_string_float with schubfach.
+
+- Passing function values with free variables to declared function types is currently not safe, see
+  commented out code related to function types in SubType()
+  https://github.com/aardappel/lobster/issues/351
 
 - very easy optimisation: the bulk of binary ops have the second arg as constant.
   Making specialized ops for these not only generated way more efficient code,
