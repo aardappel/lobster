@@ -42,7 +42,7 @@ conventions where possible, but has a lot of unique syntax too.</p>
 delimited by <code>/*</code> and <code>*/</code> or single line comments
 starting with <code>//</code></p></li>
 <li><p>Operator tokens are
-<code>( ) [ ] { } : , &amp; | + ++ += - -- -= * *= / /= % %= ==     != &lt; &gt; &lt;= &gt;= &lt;- = ? . -&gt; ^ &lt;&lt; &gt;&gt;</code></p></li>
+<code>( ) [ ] { } : , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = ? . -&gt; ^ &lt;&lt; &gt;&gt;</code></p></li>
 <li><p>Strings delimited by <code>"</code> and character constants with
 <code>'</code> using escape codes <code>\n \t \r \" \' \ \x</code>
 (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with
@@ -58,7 +58,7 @@ constant (e.g. <code>123</code>) or hex digits with a leading
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
 <li><p>Keywords:
-<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute     if for while super constructor guard abstract member member_frame     static static_frame attribute operator</code></p></li>
+<code>nil return class struct import int float string any void def fn is from program private resource enum enum_flags typeof var let pakfile switch case default namespace not and or attribute if for while super constructor guard abstract member member_frame static static_frame attribute operator</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an
 incomplete expression (such as <code>+</code> or <code>,</code>) and an
 actual token otherwise (used to separate lists of expressions inside a

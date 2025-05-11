@@ -910,6 +910,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.delta_time_rolling</b>(n<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">seconds since the last frame, updated only once per frame, as a rolling average over the last N frames (max 64)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_target_delta_time</b>(delta_time<font color="#666666">: float</font>)</tt></td><td class="a">attempt to run at no more than the given delta_time (framerate cap). By default uncapped (only capped by vsync)</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.time</b>() -> <font color="#666666">float</font></tt></td><td class="a">seconds since the start of the OpenGL subsystem, updated only once per frame (use seconds_elapsed() for continuous timing)</td>
 
 </tr>
@@ -1792,7 +1795,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.window_demo</b>() -> <font color="#666666">int</font></tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.window_start</b>(title<font color="#666666">: string</font>, flags<font color="#666666">: int</font>, dock<font color="#666666">: int</font>)</tt></td><td class="a">(use im.window instead)</td>
+<tr class="a" valign=top><td class="a"><tt><b>im.window_start</b>(title<font color="#666666">: string</font>, flags<font color="#666666">: int</font>, dock<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im.window instead)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.window_end</b>()</tt></td><td class="a"></td>
@@ -2026,7 +2029,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.id_end</b>()</tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.child_start</b>(title<font color="#666666">: string</font>, size<font color="#666666">: float2</font>, flags<font color="#666666">: int</font>)</tt></td><td class="a">create a self-contained scrolling/clipping region with a window. use im.child instead</td>
+<tr class="a" valign=top><td class="a"><tt><b>im.child_start</b>(title<font color="#666666">: string</font>, size<font color="#666666">: float2</font>, flags<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">create a self-contained scrolling/clipping region with a window. use im.child instead</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.child_end</b>()</tt></td><td class="a"></td>
