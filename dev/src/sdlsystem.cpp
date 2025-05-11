@@ -122,7 +122,7 @@ double frametime = 1.0f / 60.0f, lasttime = 0;
 uint64_t timefreq = 0, timestart = 0;
 int frames = 0;
 vector<float> frametimelog;
-double target_frametime = 1.0 / 30.0;
+double target_frametime = 0.001;
 double last_sleep = 0.0;
 
 int2 screensize = int2_0;
