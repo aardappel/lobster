@@ -3230,9 +3230,9 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         // Only if the name seems to refer to 1 thing.
         if (nf && !ff && !fld) {
             if (i < nf->args.size() && !nf->overloads) {
-                // FIXME: this often doesn't work because ActualBuiltinType hasn't run yet.
-                // Have to disable this for now, too many cases with bogus types.
-                //parent_bound = nf->args[i].type;
+                auto &arg = nf->args[i];
+                parent_bound = tc.ActualBuiltinType(arg.type, arg.flags, type_undefined, nf, true,
+                                                    i + 1, *this);
             }
         } else if (ff && !nf && !fld) {
             // For now only functions that have a single definition.
