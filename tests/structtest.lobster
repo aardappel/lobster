@@ -267,3 +267,7 @@ run_test("struct"):
 
         assert int3 { 2, 5, 6 } >= 5 == int3 { 0, 1, 1 }
         assert 5 >= int3 { 2, 5, 6 } == int3 { 1, 1, 0 }
+
+    // Misc.
+    do():
+        assert equal([ int2 { 1, 2 } ], [ int2 { 1, 2 } ])

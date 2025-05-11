@@ -174,6 +174,27 @@ void LVector::IncElementRange(VM &vm, iint from, iint to) {
     }
 }
 
+bool LVector::Equal(VM &vm, const LVector &o) const {
+    // RefObj::Equal has already guaranteed the typeoff's are the same.
+    if (len != o.len) return false;
+    auto &eti = ElemType(vm);
+    if (IsStruct(eti.t)) {
+        for (int j = 0; j < width; j++) {
+            auto t = vm.GetTypeInfo(eti.elemtypes[j].type).t;
+            for (iint i = 0; i < len; i++) {
+                auto l = i * width + j;
+                if (!AtSlot(l).Equal(vm, t, o.AtSlot(l), t, true)) return false;
+            }
+        }
+    } else {
+        for (iint i = 0; i < len; i++) {
+            if (!At(i).Equal(vm, eti.t, o.At(i), eti.t, true)) return false;
+        }
+
+    }
+    return true;
+}
+
 void LVector::DeleteSelf(VM &vm) {
     DestructElementRange(vm, 0, len);
     DeallocBuf(vm);

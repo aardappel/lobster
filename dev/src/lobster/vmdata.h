@@ -828,17 +828,7 @@ struct LVector : RefObj {
     void ToFlexBuffer(ToFlexBufferContext &fbc);
     void ToLobsterBinary(VM &vm, vector<uint8_t> &buf);
 
-    bool Equal(VM &vm, const LVector &o) {
-        // RefObj::Equal has already guaranteed the typeoff's are the same.
-        assert(width == 1);
-        if (len != o.len) return false;
-        auto et = ElemType(vm).t;
-        for (iint i = 0; i < len; i++) {
-            if (!At(i).Equal(vm, et, o.At(i), et, true))
-                return false;
-        }
-        return true;
-    }
+    bool Equal(VM &vm, const LVector &o) const;
 
     void CopyElemsShallow(Value *from) {
         t_memcpy(v, from, len * width);
