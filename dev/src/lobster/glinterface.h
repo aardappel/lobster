@@ -411,7 +411,9 @@ class objecttransforms {
     // so we can use transpose instead?
     const float4x4 &view2object() {
         if (!v2o_valid) {
-            v2o = invert(o2v);
+            // We ignore if matrix was valid, since there's not much we can do here.
+            // likely a scale of 0.0.
+            v2o = invert(o2v).first;
             v2o_valid = true;
         }
         return v2o;

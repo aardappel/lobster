@@ -774,8 +774,9 @@ typedef matrix<float,4,3> float4x3;
 
 typedef matrix<double, 4, 4> double4x4;
 
-const float4x4 float4x4_1 = float4x4(1);
-const float3x3 float3x3_1 = float3x3(1);
+const float4x4 float4x4_0 = float4x4(0.0f);
+const float4x4 float4x4_1 = float4x4(1.0f);
+const float3x3 float3x3_1 = float3x3(1.0f);
 
 inline float3x4 operator*(const float3x4 &m, const float3x4 &o) {  // FIXME: clean this up
     return float3x4(
@@ -898,7 +899,8 @@ inline float3x4 invertortho(const float3x4 &o) {
                     float4(inv[2], -dot(inv[2], inv[3])));
 }
 
-inline float4x4 invert(const float4x4 &mat) {
+// Bool indicates if valid inverse, all-zero matrix if not.
+inline pair<float4x4, bool> invert(const float4x4 &mat) {
     auto m = mat.data();
     float4x4 dest;
     auto inv = dest.data_mut();
@@ -1017,13 +1019,18 @@ inline float4x4 invert(const float4x4 &mat) {
 
     float det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
     if (det == 0) {
-        assert(false);
-        return float4x4_1;
+        // We can't invert the matrix, it's singular.
+        // Sadly this happens quite easily when using matrices for graphics, for
+        // example when we use a scale of 0.0 on an object as part of the transform stack.
+        // We don't want to error/assert in this case, since this could happen with user
+        // data. Returning all zeroes likely has the desired effect of simply rendering
+        // nothing, if the bool is ignored.
+        return { float4x4_0, false };
     }
     det = 1.0f / det;
     for (int i = 0; i < 16; i++)
         inv[i] = inv[i] * det;
-    return dest;
+    return { dest, true };
 }
 
 // Handedness: 1.f for RH, -1.f for LH.
