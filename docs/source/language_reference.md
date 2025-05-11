@@ -1240,6 +1240,18 @@ if a >= 0:
 That reads like an `assert` except instead of aborting the program, it skips the
 rest of the block.
 
+`assert` simply passes thru any expression, excepts halts the program with an error
+if the value is `nil` (or `0` / `0.0` / `false`):
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let a = assert b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`a` will always be assigned a non-nil value, or execution will never get there.
+`assert` also changes the type of value `b` from nillable to non-nillable for the
+current scope, so you can use it in contexts that require a non-nil value.
+
+
 Modules and Name Spaces
 ----------------------
 A module is simply a single `.lobster` file, that can be imported into another using the

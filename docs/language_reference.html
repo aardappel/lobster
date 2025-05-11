@@ -1038,6 +1038,14 @@ imagine_10_lines_of_code_processing_a_here()</code></pre>
     imagine_10_lines_of_code_processing_a_here()</code></pre>
 <p>That reads like an <code>assert</code> except instead of aborting the
 program, it skips the rest of the block.</p>
+<p><code>assert</code> simply passes thru any expression, excepts halts
+the program with an error if the value is <code>nil</code> (or
+<code>0</code> / <code>0.0</code> / <code>false</code>):</p>
+<pre><code>let a = assert b</code></pre>
+<p><code>a</code> will always be assigned a non-nil value, or execution
+will never get there. <code>assert</code> also changes the type of value
+<code>b</code> from nillable to non-nillable for the current scope, so
+you can use it in contexts that require a non-nil value.</p>
 <h2 id="modules-and-name-spaces">Modules and Name Spaces</h2>
 <p>A module is simply a single <code>.lobster</code> file, that can be
 imported into another using the <code>import</code> keyword. You can
