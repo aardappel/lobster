@@ -68,6 +68,51 @@ const Type g_type_vector_vector_int(V_VECTOR, &g_type_vector_int);
 const Type g_type_vector_vector_float(V_VECTOR, &g_type_vector_float);
 const Type g_type_vector_vector_vector_float(V_VECTOR, &g_type_vector_vector_float);
 
+NumStruct g_ns_int_unknown{ V_INT, -1 };
+NumStruct g_ns_float_unknown{ V_FLOAT, -1 };
+
+NumStruct g_ns_int[] = { { V_INT, 1 }, { V_INT, 2 }, { V_INT, 3 }, { V_INT, 4 } };
+NumStruct g_ns_float[] = { { V_FLOAT, 1 }, { V_FLOAT, 2 }, { V_FLOAT, 3 }, { V_FLOAT, 4 } };
+
+const Type g_type_ns_int_unknown(&g_ns_int_unknown);
+const Type g_type_ns_float_unknown(&g_ns_float_unknown);
+
+const Type g_type_ns_int[] = { &g_ns_int[0], &g_ns_int[1], &g_ns_int[2], &g_ns_int[3] };
+const Type g_type_ns_float[] = { &g_ns_float[0], &g_ns_float[1], &g_ns_float[2], &g_ns_float[3] };
+
+const Type g_type_vector_ns_int[] = {
+    { V_VECTOR, &g_type_ns_int_unknown },
+    { V_VECTOR, &g_type_ns_int_unknown },
+    { V_VECTOR, &g_type_ns_int[0] },
+    { V_VECTOR, &g_type_ns_int[1] },
+    { V_VECTOR, &g_type_ns_int[2] },
+    { V_VECTOR, &g_type_ns_int[3] }
+};
+const Type g_type_vector_ns_float[] = {
+    { V_VECTOR, &g_type_ns_float_unknown },
+    { V_VECTOR, &g_type_ns_float_unknown },
+    { V_VECTOR, &g_type_ns_float[0] },
+    { V_VECTOR, &g_type_ns_float[1] },
+    { V_VECTOR, &g_type_ns_float[2] },
+    { V_VECTOR, &g_type_ns_float[3] }
+};
+const Type g_type_vector_vector_ns_int[] = {
+    { V_VECTOR, &g_type_vector_ns_int[0] },
+    { V_VECTOR, &g_type_vector_ns_int[1] },
+    { V_VECTOR, &g_type_vector_ns_int[2] },
+    { V_VECTOR, &g_type_vector_ns_int[3] },
+    { V_VECTOR, &g_type_vector_ns_int[4] },
+    { V_VECTOR, &g_type_vector_ns_int[5] }
+};
+const Type g_type_vector_vector_ns_float[] = {
+    { V_VECTOR, &g_type_vector_ns_float[0] },
+    { V_VECTOR, &g_type_vector_ns_float[1] },
+    { V_VECTOR, &g_type_vector_ns_float[2] },
+    { V_VECTOR, &g_type_vector_ns_float[3] },
+    { V_VECTOR, &g_type_vector_ns_float[4] },
+    { V_VECTOR, &g_type_vector_ns_float[5] }
+};
+
 ResourceType *g_resource_type_list = nullptr;
 
 TypeRef WrapKnown(TypeRef elem, ValueType with) {
@@ -83,11 +128,25 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
                 case V_FLOAT:  return &g_type_vector_vector_float;
                 case V_VECTOR: switch (elem->sub->sub->t) {
                     case V_FLOAT: return &g_type_vector_vector_vector_float;
-                    default: return nullptr;
+                    default:      return nullptr;
                 }
-                default: return nullptr;
+                case V_STRUCT_NUM: {
+                    auto ns = elem->sub->ns;
+                    assert((ns->flen >= 1 && ns->flen <= 4) || ns->flen == -1);
+                    return &(ns->t == V_INT ? g_type_vector_vector_ns_int
+                                            : g_type_vector_vector_ns_float)[ns->flen + 1];
+                }
+                default:
+                    return nullptr;
             }
-            default: return nullptr;
+            case V_STRUCT_NUM: {
+                auto ns = elem->ns;
+                assert((ns->flen >= 1 && ns->flen <= 4) || ns->flen == -1);
+                return &(ns->t == V_INT ? g_type_vector_ns_int
+                                        : g_type_vector_ns_float)[ns->flen + 1];
+            }
+            default:
+                return nullptr;
         }
     } else if (with == V_NIL) {
         switch (elem->t) {
@@ -105,9 +164,20 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
             }
             default: return nullptr;
         }
+    } else if (with == V_STRUCT_NUM) {
+        switch (elem->t) {
+            case V_INT:      return &g_type_ns_int_unknown;
+            case V_FLOAT:    return &g_type_ns_float_unknown;
+            default: return nullptr;
+        }
     } else {
         return nullptr;
     }
+}
+
+TypeRef FixedNumStruct(ValueType num, int flen) {
+    assert(flen >= 2 && flen <= 4);
+    return &(num == V_INT ? g_type_ns_int : g_type_ns_float)[flen - 1];
 }
 
 bool IsCompressed(string_view filename) {
@@ -356,7 +426,7 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
             if (a.type->t != V_ANY) {
                 s += a.flags & NF_BOOL
                     ? "bool"
-                    : escape(TypeName(a.type->ElementIfNil(), a.fixed_len));
+                    : escape(TypeName(a.type->ElementIfNil()));
             } else {
                 s += "any";
             }
@@ -387,7 +457,7 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
             for (auto [i, a] : enumerate(nf->retvals)) {
                 s += doc_tags[Tags::RetTypeWrap][0];
                 s += doc_tags[Tags::Font][0];
-                s += escape(TypeName(a.type, a.fixed_len));
+                s += escape(TypeName(a.type));
                 s += doc_tags[Tags::Font][1];
                 s += doc_tags[Tags::RetTypeWrap][1];
                 if (i < nf->retvals.size() - 1) s += ", ";

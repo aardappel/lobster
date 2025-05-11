@@ -66,6 +66,11 @@ struct SpecUDT {
     bool Equal(const SpecUDT &o) const;
 };
 
+struct NumStruct {
+    ValueType t = V_INT;        // Must be V_INT or V_FLOAT.
+    int flen = -1;              // Fixed len, or -1 for unknown.
+};
+
 struct Type {
     const ValueType t = V_UNDEFINED;
 
@@ -76,21 +81,23 @@ struct Type {
         SubFunction *sf;         // V_FUNCTION
         SpecUDT *spec_udt;       // V_UUDT
         UDT *udt;                // V_CLASS | V_STRUCT_*
+        NumStruct *ns;           // V_STRUCT_NUM
         Enum *e;                 // V_INT
         vector<TupleElem> *tup;  // V_TUPLE
         TypeVariable *tv;        // V_TYPEVAR
         ResourceType *rt;        // V_RESOURCE
     };
 
-    Type()                               :               sub(nullptr) {}
-    explicit Type(ValueType _t)          : t(_t),        sub(nullptr) {}
-    Type(ValueType _t, const Type *_s)   : t(_t),        sub(_s)      {}
-    Type(ValueType _t, SubFunction *_sf) : t(_t),        sf(_sf)      {}
-    Type(SpecUDT *_su)                   : t(V_UUDT),    spec_udt(_su){}
-    Type(ValueType _t, UDT *_udt)        : t(_t),        udt(_udt)    {}
-    Type(Enum *_e)                       : t(V_INT),     e(_e)        {}
-    Type(TypeVariable *_tv)              : t(V_TYPEVAR), tv(_tv)      {}
-    Type(ResourceType *_rt)              : t(V_RESOURCE),rt(_rt)      {}
+    Type()                               :                  sub(nullptr) {}
+    explicit Type(ValueType _t)          : t(_t),           sub(nullptr) {}
+    Type(ValueType _t, const Type *_s)   : t(_t),           sub(_s)      {}
+    Type(ValueType _t, SubFunction *_sf) : t(_t),           sf(_sf)      {}
+    Type(SpecUDT *_su)                   : t(V_UUDT),       spec_udt(_su){}
+    Type(NumStruct *_ns)                 : t(V_STRUCT_NUM), ns(_ns)      {}
+    Type(ValueType _t, UDT *_udt)        : t(_t),           udt(_udt)    {}
+    Type(Enum *_e)                       : t(V_INT),        e(_e)        {}
+    Type(TypeVariable *_tv)              : t(V_TYPEVAR),    tv(_tv)      {}
+    Type(ResourceType *_rt)              : t(V_RESOURCE),   rt(_rt)      {}
 
     bool Equal(const Type &o, bool allow_unresolved = false) const;
 
@@ -198,6 +205,7 @@ extern TypeRef type_void;
 extern TypeRef type_undefined;
 
 TypeRef WrapKnown(TypeRef elem, ValueType with);
+TypeRef FixedNumStruct(ValueType num, int flen);
 
 // There must be a single of these per type, since they are compared by pointer.
 struct ResourceType {
@@ -256,9 +264,9 @@ struct Narg {
     TypeRef type = type_undefined;
     NArgFlags flags = NF_NONE;
     string_view name;
-    char fixed_len = 0;
     char default_val = 0;
     Lifetime lt = LT_UNDEF;
+    bool optional = false;
 
     void Set(const char *&tid, Lifetime def, Named *nf) {
         char t = *tid++;
@@ -288,15 +296,23 @@ struct Narg {
                 case 'w': flags = flags | NF_PUSHVALUEWIDTH; break;
                 case 'k': lt = LT_KEEP; break;
                 case 'b': lt = LT_BORROW; break;
-                case ']':
+                case ']': {
+                    auto wrapped = WrapKnown(type, V_VECTOR);
+                    if (wrapped.Null()) nf->Error("unknown vector type");
+                    type = wrapped;
+                    break;
+                }
                 case '}':
-                    type = WrapKnown(type, V_VECTOR);
-                    if (type.Null()) nf->Error("unknown vector type");
-                    if (c == '}') fixed_len = -1;
+                    type = WrapKnown(type, V_STRUCT_NUM);
+                    if (type.Null()) nf->Error("unknown numeric struct type");
                     break;
                 case '?':
-                    type = WrapKnown(type, V_NIL);
-                    if (type.Null()) nf->Error("unknown nillable type");
+                    optional = true;
+                    if (IsRef(type->t)) {
+                        auto wrapped = WrapKnown(type, V_NIL);
+                        if (wrapped.Null()) nf->Error("unknown nillable type");
+                        type = wrapped;
+                    }
                     break;
                 case ':':
                     if (type->t == V_RESOURCE) {
@@ -311,8 +327,8 @@ struct Narg {
                         char val = *tid++ - '0';
                         if (type->ElementIfNil()->Numeric())
                             default_val = val;
-                        else if (type->t == V_VECTOR && fixed_len < 0)
-                            fixed_len = val;
+                        else if (type->t == V_STRUCT_NUM)
+                            type = FixedNumStruct(type->ns->t, val);
                         else
                             nf->Error(cat("illegal type: ", type->t));
                     }
@@ -389,7 +405,7 @@ struct NativeFun : Named {
           help(help) {
         if ((int)args.size() != f.fnargs && f.fnargs >= 0) Error("mismatching argument count");
         auto StructArgsVararg = [&](const Narg &arg) {
-            if (arg.fixed_len && !IsRef(arg.type->sub->t) && f.fnargs >= 0)
+            if (arg.type->t == V_STRUCT_NUM && f.fnargs >= 0)
                 Error("struct types can only be used by vararg builtins");
             (void)arg;
         };

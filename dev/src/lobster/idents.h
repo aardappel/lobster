@@ -555,7 +555,7 @@ template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
     }
 }
 
-inline string TypeName(TypeRef type, int flen = 0, bool tuple_brackets = true);
+inline string TypeName(TypeRef type, bool tuple_brackets = true);
 
 struct SymbolTable {
     Lex &lex;
@@ -1123,8 +1123,11 @@ struct SymbolTable {
     }
 
     TypeRef Wrap(TypeRef elem, ValueType with, const Line *errl = nullptr) {
-        if (with == V_NIL && elem->t != V_VAR && elem->t != V_TYPEVAR && !IsNillable(elem))
-            lex.Error("cannot construct nillable type from " + Q(TypeName(elem)), errl);
+        if (with == V_NIL) {
+            if (elem->t == V_NIL) return elem;
+            if (elem->t != V_VAR && elem->t != V_TYPEVAR && !IsNillable(elem))
+                lex.Error("cannot construct nillable type from " + Q(TypeName(elem)), errl);
+        }
         auto wt = WrapKnown(elem, with);
         if (!wt.Null()) return wt;
         return elem->Wrap(NewType(), with);
@@ -1162,10 +1165,10 @@ struct SymbolTable {
         return names;
     }
 
-    static const char *GetVectorName(TypeRef type, int flen) {
+    static const char *GetVectorName(ValueType t, int flen) {
         if (flen < 2 || flen > 4) return nullptr;
-        if (type->t == V_INT) return DefaultIntVectorTypeNames()[flen - 2];
-        if (type->t == V_FLOAT) return DefaultFloatVectorTypeNames()[flen - 2];
+        if (t == V_INT) return DefaultIntVectorTypeNames()[flen - 2];
+        if (t == V_FLOAT) return DefaultFloatVectorTypeNames()[flen - 2];
         return nullptr;
     }
 
@@ -1445,13 +1448,19 @@ inline string Signature(const SubFunction &sf) {
     r += ")";
     if (sf.returntype->t != V_VOID && sf.returntype->t != V_UNDEFINED && sf.returntype->t != V_VAR) {
         r += " -> ";
-        r += TypeName(sf.returntype, 0, false);
+        r += TypeName(sf.returntype, false);
     }
     return r;
 }
 
-inline string TypeName(TypeRef type, int flen, bool tuple_brackets) {
+inline string TypeName(TypeRef type, bool tuple_brackets) {
     switch (type->t) {
+        case V_STRUCT_NUM: {
+            auto nvt = SymbolTable::GetVectorName(type->ns->t, type->ns->flen);
+            if (nvt) return nvt;
+            // FIXME: better names?
+            return type->ns->t == V_INT ? "intN" : "floatN";
+        }
         case V_STRUCT_R:
         case V_STRUCT_S:
         case V_CLASS: {
@@ -1480,16 +1489,9 @@ inline string TypeName(TypeRef type, int flen, bool tuple_brackets) {
             return s;
         }
         case V_VECTOR:
-            if (flen && type->Element()->Numeric()) {
-                auto nvt = SymbolTable::GetVectorName(type->Element(), flen);
-                if (nvt) return nvt;
-                // FIXME: better names?
-                return type->Element()->t == V_INT ? "intN" : "floatN";
-            } else {
-                return type->Element()->t == V_VAR
-                           ? "[]"
-                           : "[" + TypeName(type->Element(), flen) + "]";
-            }
+            return type->Element()->t == V_VAR
+                        ? "[]"
+                        : "[" + TypeName(type->Element()) + "]";
         case V_FUNCTION:
             return type->sf
                 ? Signature(*type->sf)
@@ -1498,7 +1500,7 @@ inline string TypeName(TypeRef type, int flen, bool tuple_brackets) {
         case V_NIL:
             return type->Element()->t == V_VAR
                 ? "nil"
-                : TypeName(type->Element(), flen) + "?";
+                : TypeName(type->Element()) + "?";
         case V_TUPLE: {
             string s;
             if (tuple_brackets) s += "(";

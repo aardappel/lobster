@@ -65,6 +65,7 @@ enum ValueType : int {
     V_FLOAT,
     V_FUNCTION,
     V_STRUCT_S,
+    V_STRUCT_NUM,       // [typechecker only] like V_STRUCT_S but an unknown set of ints or floats, used by builtins.
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEVAR,          // [typechecker only] refers to an explicit type variable in code, e.g. "T".
     V_TYPEID,           // [typechecker only] a typetable offset.
@@ -82,8 +83,8 @@ inline bool IsRefNil(ValueType t) { return t <= V_NIL; }
 inline bool IsRefNilVar(ValueType t) { return t <= V_NIL || t == V_VAR; }
 inline bool IsRefNilStruct(ValueType t) { return t <= V_NIL || t == V_STRUCT_S; }
 inline bool IsRefNilNoStruct(ValueType t) { return t <= V_NIL && t != V_STRUCT_R; }
-inline bool IsRuntime(ValueType t) { return t < V_VAR; }
-inline bool IsRuntimeConcrete(ValueType t) { return t < V_VAR && t >= V_STRUCT_R; }
+inline bool IsRuntime(ValueType t) { return t < V_STRUCT_NUM; }
+inline bool IsRuntimeConcrete(ValueType t) { return t < V_STRUCT_NUM && t >= V_STRUCT_R; }
 inline bool IsStruct(ValueType t) { return t == V_STRUCT_R || t == V_STRUCT_S; }
 inline bool IsUnBoxedOrStruct(ValueType t) { return IsUnBoxed(t) || IsStruct(t); }
 inline bool IsUDT(ValueType t) { return t == V_CLASS || IsStruct(t); }
@@ -93,7 +94,12 @@ inline string_view BaseTypeName(ValueType t) {
         "any", "<value_buffer>",
         "struct_ref",
         "resource", "string", "class", "vector",
-        "nil", "int", "float", "function", "struct_scalar",
+        "nil",
+        "int",
+        "float",
+        "function",
+        "struct_scalar",
+        "numeric_struct",
         "unknown", "type_variable", "typeid", "void",
         "tuple", "unresolved_udt", "undefined",
     };

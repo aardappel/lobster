@@ -2350,43 +2350,42 @@ struct TypeChecker {
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
-    TypeRef ActualBuiltinType(int flen, TypeRef type, NArgFlags flags, TypeRef etype,
+    TypeRef ActualBuiltinType(TypeRef type, NArgFlags flags, TypeRef etype,
                               const NativeFun *nf, bool test_overloads, size_t argn,
                               const Node &errorn) {
         if (flags & NF_BOOL) {
-            type = type->ElementIfNil();
             assert(type->t == V_INT);
             return &st.default_bool_type->thistype;
         }
         // See if we can promote the type to one of the standard vector types
         // (xy/xyz/xyzw).
-        if (!flen) return type;
-        type = type->ElementIfNil();
+        // First unwrap if its inside any vectors:
+        size_t num_wrappings = 0;
         auto e = etype;
-        size_t i = 0;
-        for (auto vt = type; vt->t == V_VECTOR && i < SymbolTable::NUM_VECTOR_TYPE_WRAPPINGS;
-            vt = vt->sub) {
-            if (vt->sub->Numeric()) {
-                // Check if we allow any vector length.
-                if (!e.Null() && flen == -1 && e->t == V_STRUCT_S) {
-                    flen = (int)e->udt->sfields.size();
-                }
-                if (flen >= 1) {
-                    if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->sfields.size() == flen &&
-                        e->udt->sametype->Equal(*vt->sub)) {
-                        // Allow any similar vector type, like "color".
-                        return etype;
-                    } else {
-                        // Require xy/xyz/xyzw
-                        auto nvt = st.GetVectorType(vt, i, flen);
-                        if (nvt.Null())
-                            break;
-                        return nvt;
-                    }
-                }
-            }
+        auto vt = type;
+        for (; vt->t == V_VECTOR; vt = vt->sub) {
             e = !e.Null() && e->t == V_VECTOR ? e->sub : nullptr;
-            i++;
+            num_wrappings++;
+        }
+        if (vt->t != V_STRUCT_NUM) return type;
+        if (num_wrappings >= SymbolTable::NUM_VECTOR_TYPE_WRAPPINGS)
+            Error(errorn, "INTERNAL: vector type too deeply nested for builtin");
+        auto flen = vt->ns->flen;
+        // Check if we allow any vector length.
+        if (!e.Null() && flen == -1 && e->t == V_STRUCT_S) {
+            flen = (int)e->udt->sfields.size();
+        }
+        if (flen >= 1) {
+            if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->sfields.size() == flen &&
+                e->udt->sametype->t == vt->ns->t) {
+                // Allow any similar vector type, like "color".
+                return etype;
+            } else {
+                // Require xy/xyz/xyzw
+                auto nvt = st.GetVectorType(vt, num_wrappings, flen);
+                if (!nvt.Null())
+                    return nvt;
+            }
         }
         // We arrive here typically if flen == -1 but we weren't able to derive a length.
         // Sadly, we can't allow to return a vector type instead of a struct, so we error out,
@@ -3454,7 +3453,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
             for (auto [i, arg] : enumerate(cnf->args)) {
                 if (i >= children.size()) {
                     // Default args always good for overload match.
-                    if (arg.type->t == V_NIL) continue;
+                    if (arg.optional) continue;
                     goto nomatch;
                 }
                 // Special purpose treatment of V_ANY to allow generic vectors in overloaded
@@ -3467,7 +3466,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                      etype->t != V_VECTOR ||
                      arg.type->sub->t != V_ANY) &&
                     !tc.ConvertsTo(etype,
-                                   tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags,
+                                   tc.ActualBuiltinType(arg.type, arg.flags,
                                                         etype, nf, true, i + 1, *this),
                                    cf)) goto nomatch;
             }
@@ -3480,9 +3479,8 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     }
     for (auto [i, arg] : enumerate(nf->args)) {
         if (i >= Arity()) {
-            if (arg.type->t == V_NIL) {
-                assert(arg.fixed_len >= 0);
-                auto type = tc.ActualBuiltinType(arg.fixed_len, arg.type->sub, arg.flags,
+            if (arg.optional) {
+                auto type = tc.ActualBuiltinType(arg.type, arg.flags,
                                                  type_undefined,
                                                  nf, true, i + 1, *this);
                 switch (type->t) {
@@ -3528,14 +3526,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     vector<TypeRef> argtypes(children.size());
     for (auto [i, c] : enumerate(children)) {
         auto &arg = nf->args[i];
-        auto argtype = tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags, children[i]->exptype, nf, false, i + 1, *this);
+        auto argtype = tc.ActualBuiltinType(arg.type, arg.flags, children[i]->exptype, nf, false, i + 1, *this);
         // Filter out functions that are not struct aware.
         bool typed = false;
-        if (argtype->t == V_NIL && argtype->sub->Numeric()) {
-            // This is somewhat of a hack, because we conflate V_NIL with being optional
-            // for native functions, but we don't want numeric types to be nilable.
-            argtype = argtype->sub;
-        }
         if (arg.flags & NF_CONVERTANYTOSTRING && c->exptype->t != V_STRING) {
             tc.AdjustLifetime(c, LT_BORROW);  // MakeString wants to borrow.
             tc.MakeString(c, arg.lt);
@@ -3585,10 +3578,11 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                 tc.Error(*this, "function does not support this struct type");
             }
         }
-        if (nf->fun.fnargs >= 0 && !arg.fixed_len && !(arg.flags & NF_PUSHVALUEWIDTH))
+        if (nf->fun.fnargs >= 0 && arg.type->t != V_STRUCT_NUM && !(arg.flags & NF_PUSHVALUEWIDTH))
             tc.NoStruct(*c, nf->name);
-        if (!typed)
+        if (!typed) {
             tc.SubType(c, argtype, tc.ArgName(i), nf->name, cf_const);
+        }
         argtypes[i] = c->exptype;
         tc.StorageType(c->exptype, *this);
         tc.AdjustLifetime(c, arg.lt);
@@ -3615,7 +3609,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                     type = tin->child->exptype;
                 }
 
-                if (ret.type->t == V_NIL) {
+                if (ret.optional) {
                     if (!tc.st.IsNillable(type))
                         tc.Error(*this, "argument ", sa + 1, " to ", Q(nf->name),
                                         " has to be a reference type");
@@ -3645,7 +3639,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
         }
         // This allows the 0th retval to inherit the type of the 0th arg, and is
         // a bit special purpose..
-        type = tc.ActualBuiltinType(ret.fixed_len, type, ret.flags,
+        type = tc.ActualBuiltinType(type, ret.flags,
                                     !i && Arity() ? children[0]->exptype : nullptr, nf, false,
                                     0, *this);
         if (!IsRefNilVar(type->t)) rlt = LT_ANY;
