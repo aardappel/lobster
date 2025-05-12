@@ -34,10 +34,8 @@ while gl.frame():
     rnd_seed(0)
 
     camera.position = float3_1 * (gridsize * 1.3)
-    //gl.cursor(false)
     gl.perspective(65.0, 1.0, 100.0)
-    camera.FPS_update("w", "a", "s", "d", 100, 4, true)
-    //camera.direction(float3 { -gridsize * 0.5, 0.0, -gridsize * 0.5 }  - camera.position)
+    camera.direction(float3 { -gridsize * 0.5, 0.0, -gridsize * 0.5 }  - camera.position)
     camera.FPS_view()
 
     gl.light(camera.position + float3 { 0.0, 5.0, 10.0 }, float2 { 64.0, 0.25 })
