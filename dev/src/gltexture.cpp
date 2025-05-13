@@ -93,10 +93,15 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
         }
     #endif
     auto use_srgb = IsSRGBAwareMode() && !(tf & TF_COMPUTE);
-    auto internalformat = tf & TF_SINGLE_CHANNEL
-            ? (tf & TF_16
-                ? (tf & TF_NOT_NORMALIZED ? GL_R16UI : GL_R16)
-                : (tf & TF_NOT_NORMALIZED ? GL_R8UI : GL_R8))
+        auto internalformat =
+            tf & TF_SINGLE_CHANNEL
+                ? (tf & TF_16
+                    ? (tf & TF_NOT_NORMALIZED ? GL_R16UI : GL_R16)
+                        : (tf & TF_8 ?
+                            (tf & TF_NOT_NORMALIZED ? GL_R8UI : GL_R8)
+                                // FIXME: error handling for unsoported normalized 32-bit
+                                // integer texture option
+                                : (tf & TF_NOT_NORMALIZED ? GL_R32UI : GL_R32I)))
             :  (tf & TF_TWO_CHANNEL
                 ? (tf & TF_16
                     ? (tf & TF_NOT_NORMALIZED ? GL_RG16UI : GL_RG16)
@@ -115,7 +120,8 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     }
     if (tf & TF_FLOAT) {
         #ifdef PLATFORM_WINNIX
-            if (tf & TF_16) internalformat = tf & TF_SINGLE_CHANNEL ? GL_R16F : (tf & TF_TWO_CHANNEL ? GL_RG16F : GL_RGBA16F);
+            if (tf & TF_8) internalformat = tf & TF_SINGLE_CHANNEL ? GL_R8 : (tf & TF_TWO_CHANNEL ? GL_RG8 : GL_RGBA8);
+            else if (tf & TF_16) internalformat = tf & TF_SINGLE_CHANNEL ? GL_R16F : (tf & TF_TWO_CHANNEL ? GL_RG16F : GL_RGBA16F);
             else internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : (tf & TF_TWO_CHANNEL ? GL_RG32F : GL_RGBA32F);
             bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : (tf & TF_TWO_CHANNEL ? GL_RG : GL_RGBA);
             elemsize = (tf & TF_SINGLE_CHANNEL ? sizeof(float) : (tf & TF_TWO_CHANNEL ? sizeof(float2) : sizeof(float4))) / (tf & TF_16 ? 2 : 1);

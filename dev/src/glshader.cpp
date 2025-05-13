@@ -225,6 +225,8 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
                         auto tp = last;
                         tp.remove_prefix(3);
                         bool cubemap = false;
+                        bool uinteger = false;
+                        bool integer = false;
                         bool floatingp = false;
                         bool halffloatingp = false;
                         bool singlechannel = false;
@@ -247,6 +249,14 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
                             tp.remove_prefix(2);
                             halffloatingp = true;
                         }
+                        if (starts_with(tp, "ui")) {
+                            tp.remove_prefix(2);
+                            uinteger = true;
+                        }
+                        if (starts_with(tp, "i")) {
+                            tp.remove_prefix(1);
+                            integer = true;
+                        }
                         if (starts_with(tp, "sc")) {
                             tp.remove_prefix(2);
                             singlechannel = true;
@@ -263,10 +273,12 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
                         if (uav) {
                             decl += cat("layout(binding = ", unit);
                             auto format = (
-                                floatingp ? (singlechannel ? "r32f" : "rgba32f") :
-                                halffloatingp ? (singlechannel ? "r16f" : "rgba16f") :
-                                (singlechannel ? "r8" : "rgba8")
-                            );
+                                floatingp   ? (singlechannel ? "r32f" : "rgba32f")
+                                           : halffloatingp ? (singlechannel ? "r16f" : "rgba16f")
+                                           : uinteger      ? (singlechannel ? "r8ui" : "rgba8ui")
+                                           : integer       ? (singlechannel ? "r8i" : "rgba8i")
+                                                           : (singlechannel ? "r8" : "rgba8")
+                             );
                             if (!write) decl += cat(", ", format);
                             decl += ") ";
                         }
@@ -274,9 +286,21 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
                         if (uav) {
                             // FIXME: make more general.
                             decl += write ? "writeonly " : "readonly ";
-                            decl += cubemap ? "imageCube" : (d3 ? "image3D" : "image2D");
+                            if (integer) {
+                                decl += cubemap ? "iimageCube" : (d3 ? "iimage3D" : "iimage2D");
+                            } else if (uinteger) {
+                                decl += cubemap ? "uimageCube" : (d3 ? "uimage3D" : "uimage2D");
+                            } else {
+                                decl += cubemap ? "imageCube" : (d3 ? "image3D" : "image2D");
+                            }
                         } else {
-                            decl += cubemap ? "samplerCube" : (d3 ? "sampler3D" : "sampler2D");
+                            if (integer) {
+                                decl += cubemap ? "isamplerCube" : (d3 ? "isampler3D" : "isampler2D");
+                            } else if (uinteger) {
+                                decl += cubemap ? "usamplerCube" : (d3 ? "usampler3D" : "usampler2D");
+                            } else {
+                                decl += cubemap ? "samplerCube" : (d3 ? "sampler3D" : "sampler2D");
+                            }
                         }
                         decl += " " + last + ";\n";
                     } else return "unknown uniform: " + last;
