@@ -473,3 +473,8 @@ def show_stack_traces():
 def text_font(font_idx, msg):
     font(font_idx):
         text(msg)
+
+def spaced_separator():
+    im.spacing()
+    im.separator()
+    im.spacing()

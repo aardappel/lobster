@@ -1155,6 +1155,14 @@ nfr("separator", "", "", "",
         return NilVal();
     });
 
+nfr("spacing", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        ImGui::Spacing();
+        return NilVal();
+    });
+
 nfr("is_item_deactivated_after_edit", "", "", "B",
     "returns true if the last item was made inactive and made a value change when it was active",
     [](StackPtr &sp, VM &vm) {
