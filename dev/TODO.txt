@@ -1,3 +1,25 @@
+- in this configuration:
+  def f_not_inlined():
+     ..
+     foo(x, f_inlined())
+     ..
+  A callstack that goes deep into foo show for the call at foo not
+  that it happening inside f_not_inlined, but in f_inlined!
+  a) the calling location of foo is taken from code of its last
+     arg, which if that were to be fixed, fixes this whole situation
+     since f_inlined has already finished executing and is not part
+     of this call stack.
+  b) Alternatively, when a function is inlined, it should maybe have
+     its line info changed to the parent? In the situation where
+     f_not_inlined -> f_inlined -> foo, it currently shows
+     Class.f_not_inlined[file_that_has_f_inlined.lobster:line]
+     Would that be better as file_that_has_f_not_inlined ?
+     The existing way would be better if f_inlined is non-trivial
+     and you want to see the call context.
+     Making it look as the f_not_inlined calling location is better if
+     f_inlined is a trivial wrapper, but now you're on your own knowing
+     that f_inlined code is effectively on the call stack.
+
 - mipmaps are darker than the orginal in both srgb and linear modes? see e.g. puzzlewindow.lobster
 
 - Default ignoring return values is a really bad default, wonder if it is too late to change?
@@ -1342,7 +1364,7 @@
     - Frankly, in a large monolithic project, you'd be better off having the main file doing all the
       importing, and the rest of the project files having no imports. This at least would give you an
       easy to overview dependency list.
-  
+
 - For certain use cases, having "atoms" is a nice language feature, being able to specify
   undeclared identifiers that map to a unique set of integers.
   - Could be with a special prefix, such $foo or #foo
