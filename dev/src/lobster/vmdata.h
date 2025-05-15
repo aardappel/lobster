@@ -430,19 +430,23 @@ struct Value {
     #endif
 
     // These asserts help track down any invalid code generation issues.
-    VM_INLINEM iint        ival  () const { TYPE_ASSERT(type == V_INT);        return ival_;        }
-    VM_INLINEM double      fval  () const { TYPE_ASSERT(type == V_FLOAT);      return fval_;        }
-    VM_INLINEM int         intval() const { TYPE_ASSERT(type == V_INT);        return (int)ival_;   }
-    VM_INLINEM float       fltval() const { TYPE_ASSERT(type == V_FLOAT);      return (float)fval_; }
-    VM_INLINEM LString    *sval  () const { TYPE_ASSERT(type == V_STRING);     return sval_;        }
-    VM_INLINEM LVector    *vval  () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;        }
-    VM_INLINEM LObject    *oval  () const { TYPE_ASSERT(type == V_CLASS);      return oval_;        }
-    VM_INLINEM LResource  *xval  () const { TYPE_ASSERT(type == V_RESOURCE);   return xval_;        }
-    VM_INLINEM RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
-    VM_INLINEM RefObj     *refnil() const { TYPE_ASSERT(IsRefNil(type));       return ref_;         }
-    VM_INLINEM FunPtr      ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
-    VM_INLINEM void       *any   () const {                                    return ref_;         }
-    VM_INLINEM TypeInfo   *tival () const { TYPE_ASSERT(type == V_STRUCT_S);   return ti_;          }
+    VM_INLINEM iint        ival   () const { TYPE_ASSERT(type == V_INT);                       return ival_;        }
+    VM_INLINEM double      fval   () const { TYPE_ASSERT(type == V_FLOAT);                     return fval_;        }
+    VM_INLINEM int         intval () const { TYPE_ASSERT(type == V_INT);                       return (int)ival_;   }
+    VM_INLINEM float       fltval () const { TYPE_ASSERT(type == V_FLOAT);                     return (float)fval_; }
+    VM_INLINEM LString    *sval   () const { TYPE_ASSERT(type == V_STRING);                    return sval_;        }
+    VM_INLINEM LString    *svalnil() const { TYPE_ASSERT(type == V_STRING || type == V_NIL);   return sval_;        }
+    VM_INLINEM LVector    *vval   () const { TYPE_ASSERT(type == V_VECTOR);                    return vval_;        }
+    VM_INLINEM LVector    *vvalnil() const { TYPE_ASSERT(type == V_VECTOR || type == V_NIL);   return vval_;        }
+    VM_INLINEM LObject    *oval   () const { TYPE_ASSERT(type == V_CLASS);                     return oval_;        }
+    VM_INLINEM LObject    *ovalnil() const { TYPE_ASSERT(type == V_CLASS || type == V_NIL);    return oval_;        }
+    VM_INLINEM LResource  *xval   () const { TYPE_ASSERT(type == V_RESOURCE);                  return xval_;        }
+    VM_INLINEM LResource  *xvalnil() const { TYPE_ASSERT(type == V_RESOURCE || type == V_NIL); return xval_;        }
+    VM_INLINEM RefObj     *ref    () const { TYPE_ASSERT(IsRef(type));                         return ref_;         }
+    VM_INLINEM RefObj     *refnil () const { TYPE_ASSERT(IsRefNil(type));                      return ref_;         }
+    VM_INLINEM FunPtr      ip     () const { TYPE_ASSERT(type >= V_FUNCTION);                  return ip_;          }
+    VM_INLINEM void       *any    () const {                                                   return ref_;         }
+    VM_INLINEM TypeInfo   *tival  () const { TYPE_ASSERT(type == V_STRUCT_S);                  return ti_;          }
 
     template<typename T> T ifval() const {
         if constexpr (is_floating_point<T>()) { TYPE_ASSERT(type == V_FLOAT); return (T)fval_; }

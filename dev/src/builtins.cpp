@@ -83,7 +83,7 @@ nfr("print", "x", "Ss", "",
     "output any value to the console (with linefeed).",
     [](StackPtr &, VM &vm, Value &a) {
         vm.s_reuse.clear();
-        RefToString(vm, vm.s_reuse, a.refnil(), vm.programprintprefs);
+        RefToString(vm, vm.s_reuse, a.svalnil(), vm.programprintprefs);
         if (vm.evalret.second) {
             LOG_ERROR(vm.s_reuse);
         } else {
