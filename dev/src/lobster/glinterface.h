@@ -335,7 +335,7 @@ struct BufferObject : lobster::Resource {
 };
 
 extern BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len,
-                                        ptrdiff_t offset, bool ssbo, bool dyn);
+                                        ptrdiff_t offset, bool ssbo, bool dyn, string_view name);
 extern bool BindBufferObject(Shader *sh, BufferObject *buf, string_view_nt uniformblockname);
 extern bool CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t srcoffset,
                                         ptrdiff_t dstoffset, size_t len);

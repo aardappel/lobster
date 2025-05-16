@@ -162,9 +162,9 @@ Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
 }
 
 Value UpdateBufferObjectResource(VM &vm, Value buf, const void *data, size_t len,
-                                 ptrdiff_t offset, bool ssbo, bool dyn) {
+                                 ptrdiff_t offset, bool ssbo, bool dyn, string_view name) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
-    bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn);
+    bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn, name);
     return buf.True() ? buf : (bo ? Value(vm.NewResource(&buffer_object_type, bo)) : NilVal());
 }
 
@@ -1142,8 +1142,8 @@ nfr("update_buffer_object", "value,ssbo,offset,existing,dyn", "SIIRk:bufferobjec
     [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &offset, Value &buf, Value &dyn) {
         TestGL(vm);
         return UpdateBufferObjectResource(vm, buf, vec.sval()->strv().data(),
-                                          vec.sval()->strv().size(), offset.intval(),
-                                          ssbo.True(), dyn.True());
+                                          vec.sval()->strv().size(), offset.intval(), ssbo.True(),
+                                          dyn.True(), "update_buffer_object");
     });
 
 nfr("bind_buffer_object", "name,bo", "SR:bufferobject", "I",

@@ -572,7 +572,7 @@ void DispatchCompute(const int3 &groups) {
 // If offset < 0 then its a buffer replacement/creation.
 // If buf == nullptr then it is always creation. 
 BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len, ptrdiff_t offset,
-                                 bool ssbo, bool dyn) {
+                                 bool ssbo, bool dyn, string_view name) {
     #ifndef PLATFORM_WINNIX
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
         return nullptr;
@@ -585,7 +585,7 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
         auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
         if (!buf) {
             assert(offset < 0);
-            auto bo = GenBO_("UpdateBufferObject", type, len, data, dyn);
+            auto bo = GenBO_(name, type, len, data, dyn);
             return new BufferObject(bo, type, len, dyn);
 		} else {
             GL_CALL(glBindBuffer(type, buf->bo));
