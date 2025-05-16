@@ -549,6 +549,17 @@ nfr("rounded_rectangle", "size,segments,corner_ratio", "F}:2IF", "",
         geomcache->RenderRoundedRectangle(currentshader, polymode, max(segments, 12), size, corner_ratio);
     });
 
+nfr("rounded_rectangle_border", "size,segments,corner_ratio,border_thickness", "F}:2IFF", "",
+    "renders a rounded rectangle border, try segments 50, corner_ratio 0.2", [](StackPtr &sp, VM &vm) {
+        TestGL(vm);
+        auto border_thickness = Pop(sp).fltval();
+        auto corner_ratio = Pop(sp).fltval();
+        auto segments = Pop(sp).intval();
+        auto size = PopVec<float2>(sp);
+        geomcache->RenderRoundedRectangleBorder(currentshader, max(segments, 12), size,
+                                                corner_ratio, border_thickness);
+    });
+
 nfr("circle", "radius,segments", "FI", "",
     "renders a circle",
     [](StackPtr &, VM &vm, Value &radius, Value &segments) {

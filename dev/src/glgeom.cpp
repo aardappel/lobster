@@ -370,13 +370,13 @@ void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segme
     if (!geom) {
         vector<float3> vbuf(segments);
         float step = PI * 2 / segments;
-        auto ratio2 = size.x > size.y ? float2(corner_ratio * size.y / size.x, corner_ratio)
+        auto aratio = size.x > size.y ? float2(corner_ratio * size.y / size.x, corner_ratio)
                                       : float2(corner_ratio, corner_ratio * size.x / size.y);
         for (int i = 0; i < segments; i++) {
             // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
-            auto xy = float2(sinf(i * step + 1), cosf(i * step + 1)) * ratio2;
-            xy += (1.0f - ratio2) * sign(xy);
-            xy /= 2.0f;
+            auto xy = float2(sinf(i * step + 1), cosf(i * step + 1)) * aratio;
+            xy += (1.0f - aratio) * sign(xy);
+            xy *= 0.5f;
             xy += 0.5f;
             xy *= size;
             vbuf[i] = float3(xy, 0);
@@ -385,6 +385,54 @@ void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segme
     }
     sh->Set();
     RenderArray(prim, geom);
+}
+
+void GeometryCache::RenderRoundedRectangleBorder(Shader *sh, int segments, float2 size, float corner_ratio, float border_thickness_pix) {
+    assert(segments >= 3);
+    // Use plain floats, as the float2::operator< does not work well with std::map
+    auto vibo = roundedboxbordervbos[{ segments, size.x, size.y, corner_ratio, border_thickness_pix }];
+    auto nverts = segments * 2;
+    auto nindices = segments * 6;
+    if (!vibo.first) {
+        vector<float3> vbuf(nverts);
+        vector<int> ibuf(nindices);
+        float step = PI * 2 / segments;
+        float border_thickness = border_thickness_pix / min(size.x, size.y);
+        float corner_ratio_inner = corner_ratio - border_thickness;
+        auto aratio = size.x > size.y
+            ? float2(corner_ratio * size.y / size.x, corner_ratio)
+            : float2(corner_ratio, corner_ratio * size.x / size.y);
+        auto aratio_inner = size.x > size.y
+            ? float2(corner_ratio_inner * size.y / size.x, corner_ratio_inner)
+            : float2(corner_ratio_inner, corner_ratio_inner * size.x / size.y);
+        for (int i = 0; i < segments; i++) {
+            // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
+            auto circ = float2(sinf(i * step + 1), cosf(i * step + 1));
+            auto xy = circ * aratio;
+            xy += (1.0f - aratio) * sign(xy);
+            xy *= 0.5f;
+            xy += 0.5f;
+            xy *= size;
+            auto xy_inner = circ * aratio_inner;
+            xy_inner += (1.0f - aratio_inner) * sign(xy_inner);
+            xy_inner *= 0.5f;
+            xy_inner *= size - border_thickness * min(size.x, size.y) * 2;
+            xy_inner += size * 0.5f;
+            vbuf[i * 2 + 0] = float3(xy, 0);
+            vbuf[i * 2 + 1] = float3(xy_inner, 0);
+            ibuf[i * 6 + 0] = i * 2 + 0;
+            ibuf[i * 6 + 1] = ((i + 1) * 2 + 0) % nverts;
+            ibuf[i * 6 + 2] = i * 2 + 1;
+            ibuf[i * 6 + 3] = i * 2 + 1;
+            ibuf[i * 6 + 4] = ((i + 1) * 2 + 1) % nverts;
+            ibuf[i * 6 + 5] = ((i + 1) * 2 + 0) % nverts;
+        }
+        vibo.first = new Geometry("RenderRoundedRectangleBorder_verts", gsl::make_span(vbuf), "P");
+        vibo.second = GenBO("RenderRoundedRectangleBorder_idxs", GL_ELEMENT_ARRAY_BUFFER,
+                            gsl::make_span(ibuf), false);
+    }
+    sh->Set();
+    RenderArray(PRIM_TRIS, vibo.first, vibo.second, nindices);
 }
 
 void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float radius) {
@@ -447,4 +495,5 @@ GeometryCache::~GeometryCache() {
     for (auto &p : circlevbos) delete p.second;
     for (auto &p : opencirclevbos) delete p.second.first;
     for (auto &p : roundedboxvbos) delete p.second;
+    for (auto &p : roundedboxbordervbos) delete p.second.first;
 }

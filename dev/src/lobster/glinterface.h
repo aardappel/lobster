@@ -360,6 +360,7 @@ struct GeometryCache {
     int cube_ibo[2] = { 0, 0 };
     map<int, Geometry *> circlevbos;
     map<tuple<int, float, float, float>, Geometry *> roundedboxvbos;
+    map<tuple<int, float, float, float, float>, pair<Geometry *, int>> roundedboxbordervbos;
     map<pair<int, float>, pair<Geometry *, int>> opencirclevbos;
 
     ~GeometryCache();
@@ -373,6 +374,8 @@ struct GeometryCache {
     void RenderUnitCube(Shader *sh, int inside);
     void RenderRoundedRectangle(Shader *sh, Primitive prim, int segments, float2 size,
                                 float corner_ratio);
+    void RenderRoundedRectangleBorder(Shader *sh, int segments, float2 size,
+                                      float corner_ratio, float border_thickness);
     void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);
     void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness);
 };
