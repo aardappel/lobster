@@ -10,6 +10,9 @@ fatal(gl.window("My Lobster OpenGL window!", 1280, 1024))
 
 let iqmtest = check(gl.new_mesh_iqm("models/mrfixit.iqm"), "can\'t load model!")
 
+let vmin, vmax = gl.mesh_bounds(iqmtest)
+print "bounds: {vmin}, {vmax}"
+
 let textures = map(gl.mesh_parts(iqmtest)) name, i:
     check(gl.load_texture("models/{name}.png"), "problem loading {name}")
 

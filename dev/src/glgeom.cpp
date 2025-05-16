@@ -80,6 +80,7 @@ void Geometry::Init(string_view name, const void *verts1, const void *verts2) {
     size_t offset = 0;
     size_t vs = vertsize1;
     size_t tc = 0;
+    const void *verts = verts1;
     for (auto attr : fmt) {
         switch (attr) {
             #define SETATTRIB(idx, comps, type, norm, size) \
@@ -87,13 +88,32 @@ void Geometry::Init(string_view name, const void *verts1, const void *verts2) {
                 GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vs, (void *)offset)); \
                 offset += size; \
                 break;
-            case 'P': SETATTRIB(VATRR_POS, 3, GL_FLOAT, false, 12)
-            case 'p': SETATTRIB(VATRR_POS, 2, GL_FLOAT, false, 8)
-            case 'N': SETATTRIB(VATRR_NOR, 3, GL_FLOAT, false, 12)
-            case 'n': SETATTRIB(VATRR_NOR, 2, GL_FLOAT, false, 8)
-            case 'C': SETATTRIB(VATRR_COL, 4, GL_UNSIGNED_BYTE, true, 4)
-            case 'W': SETATTRIB(VATRR_WEI, 4, GL_UNSIGNED_BYTE, true, 4)
-            case 'I': SETATTRIB(VATRR_IDX, 4, GL_UNSIGNED_BYTE, false, 4)
+            case 'P': {
+                for (size_t i = 0; i < nverts; i++) {
+                    auto p = (float3 *)(vs * i + offset + (char *)verts);
+                    vmin = std::min(vmin, *p);
+                    vmax = std::max(vmax, *p);
+                }
+                SETATTRIB(VATRR_POS, 3, GL_FLOAT, false, 12)
+            }
+            case 'p': {
+                for (size_t i = 0; i < nverts; i++) {
+                    auto p = (float2 *)(vs * i + offset + (char *)verts);
+                    vmin = std::min(vmin, float3(*p, 0.0f));
+                    vmax = std::max(vmax, float3(*p, 0.0f));
+                }
+                SETATTRIB(VATRR_POS, 2, GL_FLOAT, false, 8)
+            }
+            case 'N':
+                SETATTRIB(VATRR_NOR, 3, GL_FLOAT, false, 12)
+            case 'n':
+                SETATTRIB(VATRR_NOR, 2, GL_FLOAT, false, 8)
+            case 'C':
+                SETATTRIB(VATRR_COL, 4, GL_UNSIGNED_BYTE, true, 4)
+            case 'W':
+                SETATTRIB(VATRR_WEI, 4, GL_UNSIGNED_BYTE, true, 4)
+            case 'I':
+                SETATTRIB(VATRR_IDX, 4, GL_UNSIGNED_BYTE, false, 4)
             case 'T': {
                 auto attr = tc++ ? VATRR_TC2 : VATRR_TC1;
                 SETATTRIB(attr, 2, GL_FLOAT, false, 8)
@@ -106,6 +126,7 @@ void Geometry::Init(string_view name, const void *verts1, const void *verts2) {
             GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo2));
             vs = vertsize2;
             offset = 0;
+            verts = verts2;
         }
     }
     GL_CALL(glBindVertexArray(0));

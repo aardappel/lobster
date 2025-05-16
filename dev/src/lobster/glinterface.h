@@ -170,13 +170,15 @@ class Geometry  {
     string fmt;
     int vbo1 = 0, vbo2 = 0, vao = 0;
     const size_t nverts;
+    float3 vmin, vmax;
 
     template<typename T, typename U = float>
     Geometry(string_view name, gsl::span<T> verts1, string_view _fmt,
              gsl::span<U> verts2 = gsl::span<float>(),
              size_t elem_multiple = 1)
         : vertsize1(sizeof(T) * elem_multiple), vertsize2(sizeof(U) * elem_multiple), fmt(_fmt),
-          nverts(verts1.size() / elem_multiple) {
+          nverts(verts1.size() / elem_multiple),
+          vmin(float3_1 * 1000000), vmax(float3_1 * -1000000) {
         assert(verts2.empty() || verts2.size() == verts1.size());
         Init(name, verts1.data(), verts2.data());
     }

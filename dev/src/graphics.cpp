@@ -957,6 +957,15 @@ nfr("mesh_size", "m", "R:mesh", "I",
         return Value((int)m.geom->nverts);
     });
 
+nfr("mesh_bounds", "m", "R:mesh", "F}:3F}:3",
+    "returns the min and max vert dimensions of this mesh",
+    [](StackPtr &sp, VM &) {
+        auto res = Pop(sp);
+        auto &m = GetMesh(res);
+        PushVec(sp, m.geom->vmin);
+        PushVec(sp, m.geom->vmax);
+    });
+
 nfr("mesh_animations", "m", "R:mesh", "S]",
     "return names of animations",
     [](StackPtr &, VM &vm, Value &i) {
