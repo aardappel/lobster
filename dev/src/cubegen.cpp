@@ -738,8 +738,8 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                     if (!ReadSpanInc(p, dict_len)) return false;
                     for (int i = 0; i < dict_len; ++i) {
                         string key, value;
-                        if (!ReadSpanVec<string, int32_t>(p, key)) return false;
-                        if (!ReadSpanVec<string, int32_t>(p, value)) return false;
+                        if (!ReadSpanVec<string, int32_t>(p, key, 0)) return false;
+                        if (!ReadSpanVec<string, int32_t>(p, value, 0)) return false;
                         f(key, value);
                     }
                     return true;
@@ -1128,8 +1128,8 @@ nfr("load_vox_names", "name", "S", "S]S?",
                     if (!ReadSpanInc(p, dict_len)) return false;
                     for (int i = 0; i < dict_len; ++i) {
                         string key, value;
-                        if (!ReadSpanVec<string, int32_t>(p, key)) return false;
-                        if (!ReadSpanVec<string, int32_t>(p, value)) return false;
+                        if (!ReadSpanVec<string, int32_t>(p, key, 0)) return false;
+                        if (!ReadSpanVec<string, int32_t>(p, value, 0)) return false;
                         f(key, value);
                     }
                     return true;

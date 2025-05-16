@@ -276,14 +276,15 @@ template<typename T> bool ReadSpanInc(gsl::span<const uint8_t> &p, T &v) {
     return true;
 }
 
-template<typename T, typename K = uint64_t> bool ReadSpanVec(gsl::span<const uint8_t> &p, T &v) {
+template<typename T, typename K = uint64_t>
+bool ReadSpanVec(gsl::span<const uint8_t> &p, T &v, typename T::value_type def) {
     K len;
     if (!ReadSpanInc<K>(p, len))
         return false;
     auto blen = len * sizeof(typename T::value_type);
     if (p.size_bytes() < blen)
         return false;
-    v.resize((size_t)len);
+    v.resize((size_t)len, def);
     memcpy(v.data(), p.data(), blen);
     p = p.subspan(blen);
     return true;
