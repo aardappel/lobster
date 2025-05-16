@@ -71,26 +71,23 @@ Surface::~Surface() {
     GL_CALL(glDeleteBuffers(1, (GLuint *)&ibo));
 }
 
-void Geometry::Init(string_view name, const void *verts1, const void *verts2) {
-    vbo1 = GenBO_(name, GL_ARRAY_BUFFER, vertsize1 * nverts, verts1, false);
-    if (verts2) vbo2 = GenBO_(name, GL_ARRAY_BUFFER, vertsize2 * nverts, verts2, false);
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
+void Geometry::Init(string_view name, const void *verts) {
+    vbo = GenBO_(name, GL_ARRAY_BUFFER, vertsize * nverts, verts, false);
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
     GL_CALL(glGenVertexArrays(1, (GLuint *)&vao));
     GL_CALL(glBindVertexArray(vao));
     size_t offset = 0;
-    size_t vs = vertsize1;
     size_t tc = 0;
-    const void *verts = verts1;
     for (auto attr : fmt) {
         switch (attr) {
             #define SETATTRIB(idx, comps, type, norm, size) \
                 GL_CALL(glEnableVertexAttribArray(idx)); \
-                GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vs, (void *)offset)); \
+                GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vertsize, (void *)offset)); \
                 offset += size; \
                 break;
             case 'P': {
                 for (size_t i = 0; i < nverts; i++) {
-                    auto p = (float3 *)(vs * i + offset + (char *)verts);
+                    auto p = (float3 *)(vertsize * i + offset + (char *)verts);
                     vmin = std::min(vmin, *p);
                     vmax = std::max(vmax, *p);
                 }
@@ -98,7 +95,7 @@ void Geometry::Init(string_view name, const void *verts1, const void *verts2) {
             }
             case 'p': {
                 for (size_t i = 0; i < nverts; i++) {
-                    auto p = (float2 *)(vs * i + offset + (char *)verts);
+                    auto p = (float2 *)(vertsize * i + offset + (char *)verts);
                     vmin = std::min(vmin, float3(*p, 0.0f));
                     vmax = std::max(vmax, float3(*p, 0.0f));
                 }
@@ -122,12 +119,6 @@ void Geometry::Init(string_view name, const void *verts1, const void *verts2) {
                 LOG_ERROR("unknown attribute type: ", string() + attr);
                 assert(false);
         }
-        if (vbo2) {
-            GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo2));
-            vs = vertsize2;
-            offset = 0;
-            verts = verts2;
-        }
     }
     GL_CALL(glBindVertexArray(0));
 }
@@ -137,8 +128,7 @@ void Geometry::RenderSetup() {
 }
 
 Geometry::~Geometry() {
-    GL_CALL(glDeleteBuffers(1, (GLuint *)&vbo1));
-    if (vbo2) GL_CALL(glDeleteBuffers(1, (GLuint *)&vbo2));
+    GL_CALL(glDeleteBuffers(1, (GLuint *)&vbo));
     GL_CALL(glDeleteVertexArrays(1, (GLuint *)&vao));
 }
 
@@ -215,8 +205,8 @@ bool Geometry::WritePLY(string &s, size_t nindices) {
     s += cat("element face ", nindices / 3, "\n"
              "property list int int vertex_index\n"
              "end_header\n");
-    vector<uint8_t> vdata(nverts * vertsize1);
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
+    vector<uint8_t> vdata(nverts * vertsize);
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
     GL_CALL(glGetBufferSubData(GL_ARRAY_BUFFER, 0, vdata.size(), vdata.data()));
     s.insert(s.end(), vdata.begin(), vdata.end());
     return true;

@@ -925,8 +925,7 @@ nfr("new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices",
             // if no normals were specified, generate them.
             normalize_mesh(gsl::make_span(idxs), verts, nverts, vsize, normal_offset);
         }
-        auto m = new Mesh(new Geometry("gl.new_mesh_verts", gsl::make_span(verts, nverts * vsize), fmt,
-                                       gsl::span<uint8_t>(), vsize),
+        auto m = new Mesh(new Geometry("gl.new_mesh_verts", gsl::make_span(verts, nverts * vsize), fmt, vsize),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface("gl.new_mesh_idxs", gsl::make_span(idxs)));
         delete[] verts;
@@ -1173,7 +1172,7 @@ nfr("bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
     " unbind.",
     [](StackPtr &, VM &vm, Value &mesh, Value &name) {
         TestGL(vm);
-        BindAsSSBO(currentshader, name.sval()->strvnt(), mesh.True() ? GetMesh(mesh).geom->vbo1 : 0);
+        BindAsSSBO(currentshader, name.sval()->strvnt(), mesh.True() ? GetMesh(mesh).geom->vbo : 0);
         return NilVal();
     });
 

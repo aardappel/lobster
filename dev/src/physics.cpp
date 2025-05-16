@@ -410,9 +410,9 @@ nfr("render", "", "", "",
                     case b2Shape::e_polygon: {
                         r.Set();
                         auto polyshape = (b2PolygonShape *)fixture->GetShape();
-                        RenderArraySlow("ph.render",
-                            PRIM_FAN, gsl::make_span(polyshape->m_vertices, polyshape->m_count), "pn", gsl::span<int>(),
-                                        gsl::make_span(polyshape->m_normals, polyshape->m_count));
+                        // We also have polyshape->m_normals (2D normals, supported by fmt "n") but the current "color"
+                        // shader doesn't use them. If we wanted them, we'd have to interleave the vertex data here.
+                        RenderArraySlow("ph.render", PRIM_FAN, gsl::make_span(polyshape->m_vertices, polyshape->m_count), "p");
                         break;
                     }
                     case b2Shape::e_circle: {
@@ -439,14 +439,22 @@ nfr("render_particles", "scale", "F", "",
     [](StackPtr &, VM &, Value &particlescale) {
         CheckPhysics();
         if (!particlesystem) return NilVal();
-        // LOG_DEBUG("rendering particles: ", particlesystem->GetParticleCount());
+        auto num = particlesystem->GetParticleCount();
+        // LOG_DEBUG("rendering particles: ", num);
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
         auto scale = length(otransforms.object2view()[0].xy());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fltval());
         particlematerial->Set();
-        RenderArraySlow("ph.render_particles", PRIM_POINT, gsl::make_span(verts, particlesystem->GetParticleCount()),
-                        "pC", gsl::span<int>(), gsl::make_span(colors, particlesystem->GetParticleCount()));
+        struct Vert { float2 p; byte4 c; };
+        vector<Vert> interleaved;
+        interleaved.resize(num);
+        for (int i = 0; i < num; i++) {
+            interleaved[i].p = verts[i];
+            interleaved[i].c = colors[i];
+        }
+        RenderArraySlow("ph.render_particles", PRIM_POINT, gsl::make_span(interleaved),
+                        "pC");
         return NilVal();
     });
 

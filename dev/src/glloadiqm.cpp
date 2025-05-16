@@ -405,7 +405,7 @@ string SaveAsIQM(const Mesh *mesh, string_view filename) {
     vpositions.reserve(geom->nverts);
     vnormals.reserve(geom->nverts);
     vcolors.reserve(geom->nverts);
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, geom->vbo1));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, geom->vbo));
     GL_CALL(glGetBufferSubData(GL_ARRAY_BUFFER, 0, geom->nverts*sizeof(vert), vattribs.data()));
     for (const auto &v : vattribs) {
         vpositions.push_back(float3(v.pos[0], v.pos[1], v.pos[2]));

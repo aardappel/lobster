@@ -164,35 +164,32 @@ struct SpriteVert {   // "pT"
 };
 
 class Geometry  {
-    const size_t vertsize1, vertsize2;
+    const size_t vertsize;
 
     public:
     string fmt;
-    int vbo1 = 0, vbo2 = 0, vao = 0;
+    int vbo = 0, vao = 0;
     const size_t nverts;
     float3 vmin, vmax;
 
-    template<typename T, typename U = float>
+    template<typename T>
     Geometry(string_view name, gsl::span<T> verts1, string_view _fmt,
-             gsl::span<U> verts2 = gsl::span<float>(),
              size_t elem_multiple = 1)
-        : vertsize1(sizeof(T) * elem_multiple), vertsize2(sizeof(U) * elem_multiple), fmt(_fmt),
+        : vertsize(sizeof(T) * elem_multiple), fmt(_fmt),
           nverts(verts1.size() / elem_multiple),
           vmin(float3_1 * 1000000), vmax(float3_1 * -1000000) {
-        assert(verts2.empty() || verts2.size() == verts1.size());
-        Init(name, verts1.data(), verts2.data());
+        Init(name, verts1.data());
     }
 
     ~Geometry();
 
-    void Init(string_view name, const void *verts1, const void *verts2);
+    void Init(string_view name, const void *verts1);
 
     void RenderSetup();
     bool WritePLY(string &s, size_t nindices);
 
     size_t2 MemoryUsage() {
-        auto gpu = vertsize1 * nverts;
-        if (vbo2) gpu += vertsize2 * nverts;
+        auto gpu = vertsize * nverts;
         return { sizeof(Geometry), gpu };
     }
 };
@@ -345,9 +342,8 @@ extern bool CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t sr
 
 template<typename T, typename U = float>
 void RenderArraySlow(string_view name, Primitive prim, gsl::span<T> vbuf1, string_view fmt,
-                     gsl::span<int> ibuf = gsl::span<int>(),
-                     gsl::span<U> vbuf2 = gsl::span<float>()) {
-    Geometry geom(name, vbuf1, fmt, vbuf2);
+                     gsl::span<int> ibuf = gsl::span<int>()) {
+    Geometry geom(name, vbuf1, fmt);
     if (ibuf.empty()) {
         RenderArray(prim, &geom);
     } else {
