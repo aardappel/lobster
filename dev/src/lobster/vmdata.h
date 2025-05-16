@@ -456,12 +456,11 @@ struct Value {
     VM_INLINEM void setival(iint i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
     VM_INLINEM void setfval(double f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
 
-    // Important for efficiency that these can be uninitialized.
-    #if RTT_ENABLED
-        VM_INLINEM Value() : ival_(0xABADCAFEDEADBEEF), type(V_UNDEFINED) {}
-    #else
-        VM_INLINEM Value() { /* UNINITIALIZED! */ }
-    #endif
+    // We have NO default constructor! This is because a) doing so is typically an error,
+    // you should always construct these values with an actual contained value, and b)
+    // supplying a default constructor that initializes to 0/V_UNDEFINED would lead to
+    // cases where silently these are used, causing inefficiency (and errors).
+    // Instead, in the few places you actually need a default value, use NoVal() or NilVal().
 
     // We underlying types here, because types like int64_t etc can be defined as different types
     // on different platforms, causing ambiguities between multiple types that are long or long long
@@ -1119,6 +1118,10 @@ VM_INLINE void SwapVars(VM &vm, int i, StackPtr psp, int off) {
 
 VM_INLINE Value NilVal() {
     return Value(0, V_NIL);
+}
+
+VM_INLINE Value NoVal() {
+    return Value(0, V_UNDEFINED);
 }
 
 VM_INLINE void BackupVar(VM &vm, int i) {

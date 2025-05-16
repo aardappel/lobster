@@ -39,8 +39,10 @@ struct Deserializer {
     }
 
     void PopVN(size_t len) {
-        stack.resize(stack.size() - len);
-        is_ref.resize(is_ref.size() - len);
+        for (size_t i = 0; i < len; i++) {
+            stack.pop_back();
+            is_ref.pop_back();
+        }
     }
 
     Deserializer(VM &vm) : vm(vm) {

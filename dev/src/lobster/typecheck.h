@@ -3427,7 +3427,7 @@ Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
         tc.Warn(*this, "assert will always succeed with non-nil reference type ",
                 Q(TypeName(exptype)));
     }
-    Value val;
+    Value val = NoVal();
     auto t = child->ConstVal(&tc, val);
     if (t != V_VOID && val.True()) {
         string sd;

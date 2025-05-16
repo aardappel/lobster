@@ -132,7 +132,7 @@ struct CodeGen  {
             } else {
                 tt.push_back(ti);
                 tt.push_back(parent);
-                Value val;
+                Value val = NoVal();
                 auto dv = udt->sfields[i].defaultval;
                 switch (dv ? dv->ConstVal(nullptr, val) : V_VOID) {
                     case V_INT:

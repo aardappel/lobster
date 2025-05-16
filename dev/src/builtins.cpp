@@ -1415,14 +1415,12 @@ nfr("type_field_value", "obj,idx", "AI", "S",
         auto i = Pop(sp).ival();
         auto a = Pop(sp);
         auto &ti = a.ref()->ti(vm);
-        Value r;
         if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
             auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
-            r = vm.ToString(a.oval()->AtS(i), sti);
+            Push(sp, vm.ToString(a.oval()->AtS(i), sti));
         } else {
-            r = vm.NewString(0);
+            Push(sp, vm.NewString(0));
         }
-        Push(sp, r);
     });
 
 nfr("program_name", "", "", "S",
