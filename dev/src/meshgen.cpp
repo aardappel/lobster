@@ -119,7 +119,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
 };
 
 struct IFSphere : ImplicitFunctionImpl<IFSphere> {
-    float rad;
+    float rad = 0.0f;
 
     inline float Eval(const float3 &pos) const {
         return length(pos) - rad;
@@ -129,7 +129,7 @@ struct IFSphere : ImplicitFunctionImpl<IFSphere> {
 };
 
 struct IFCube : ImplicitFunctionImpl<IFCube> {
-    float3 extents;
+    float3 extents = float3_0;
 
     inline float Eval(const float3 &pos) const {
         auto d = abs(pos) - extents;
@@ -141,7 +141,8 @@ struct IFCube : ImplicitFunctionImpl<IFCube> {
 };
 
 struct IFCylinder : ImplicitFunctionImpl<IFCylinder> {
-    float radius, height;
+    float radius = 0.0f;
+    float height = 0.0f;
 
     inline float Eval(const float3 &pos) const {
         return max(length(pos.xy()) - radius, abs(pos.z) - height);
@@ -151,7 +152,9 @@ struct IFCylinder : ImplicitFunctionImpl<IFCylinder> {
 };
 
 struct IFTaperedCylinder : ImplicitFunctionImpl<IFTaperedCylinder> {
-    float bot, top, height;
+    float bot = 0.0f;
+    float top = 0.0f;
+    float height = 0.0f;
 
     inline float Eval(const float3 &pos) const {
         auto xy = pos.xy();
@@ -168,8 +171,8 @@ struct IFTaperedCylinder : ImplicitFunctionImpl<IFTaperedCylinder> {
 
 // TODO: pow is rather slow...
 struct IFSuperQuadric : ImplicitFunctionImpl<IFSuperQuadric> {
-    float3 exp;
-    float3 scale;
+    float3 exp = float3_0;
+    float3 scale = float3_0;
 
     inline float Eval(const float3 &pos) const {
         return dot(pow(abs(pos) / scale, exp), float3_1) - 1;
@@ -179,8 +182,8 @@ struct IFSuperQuadric : ImplicitFunctionImpl<IFSuperQuadric> {
 };
 
 struct IFSuperQuadricNonUniform : ImplicitFunctionImpl<IFSuperQuadricNonUniform> {
-    float3 exppos, expneg;
-    float3 scalepos, scaleneg;
+    float3 exppos = float3_0, expneg = float3_0;
+    float3 scalepos = float3_0, scaleneg = float3_0;
 
     inline float Eval(const float3 &pos) const {
         auto d = pos.iflt(0, scaleneg, scalepos);
@@ -194,8 +197,8 @@ struct IFSuperQuadricNonUniform : ImplicitFunctionImpl<IFSuperQuadricNonUniform>
 };
 
 struct IFSuperToroid : ImplicitFunctionImpl<IFSuperToroid> {
-    float r;
-    float3 exp;
+    float r = 0.0f;
+    float3 exp = float3_0;
 
     inline float Eval(const float3 &pos) const {
         auto p = pow(abs(pos), exp);
@@ -207,7 +210,7 @@ struct IFSuperToroid : ImplicitFunctionImpl<IFSuperToroid> {
 };
 
 struct IFLandscape : ImplicitFunctionImpl<IFLandscape> {
-    float zscale, xyscale;
+    float zscale = 0.0f, xyscale = 0.0f;
 
     inline float Eval(const float3 &pos) const {
         if (!(abs(pos) <= 1)) return false;
@@ -291,8 +294,8 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
     auto verts2edge = [&](const int3 &p1, const int3 &p2, DistVert &dv1, DistVert &dv2) {
         auto wp1 = grid_to_world(p1);
         auto wp2 = grid_to_world(p2);
-        float3 mid;
-        int3 iclosest;
+        auto mid = float3_0;
+        auto iclosest = int3_0;
         if (snap_to_mid) {
             // FIXME: this create null-area triangles that should be removed.
             mid = (wp1 + wp2) / 2;
@@ -313,7 +316,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         return edge(iclosest, mid, dv1.dist < dv2.dist ? dv1.color : dv2.color);
     };
     if (marching_cubes) {
-        int3 gridpos[8];
+        int3 gridpos[8] = { int3_0, int3_0, int3_0, int3_0, int3_0, int3_0, int3_0, int3_0 };
         DistVert dv[8];
         int vertlist[12];
         const int3 corners[8] = {
@@ -374,7 +377,11 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         mesh_displacent = false;
         flat_triangles_opt = false;
         polyreductionpasses = 0;
-        int3 gridpos[3][4];
+        int3 gridpos[3][4] = {
+             { int3_0, int3_0, int3_0, int3_0 },
+             { int3_0, int3_0, int3_0, int3_0 },
+             { int3_0, int3_0, int3_0, int3_0 },
+        };
         DistVert dv[3][4];
         edge edgev[4];
         int3 corners[4] = {
@@ -483,10 +490,11 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
             iverts.push_back(e.iclosest);
         }
         for (size_t t = 0; t < mctriangles.size(); t += 3) {
-            int3 i[3];
-            i[0] = iverts[mctriangles[t + 0]];
-            i[1] = iverts[mctriangles[t + 1]];
-            i[2] = iverts[mctriangles[t + 2]];
+            int3 i[3] = {
+                iverts[mctriangles[t + 0]],
+                iverts[mctriangles[t + 1]],
+                iverts[mctriangles[t + 2]],
+            };
             if (i[0] != i[1] && i[0] != i[2] && i[1] != i[2]) {
                 for (int j = 0; j < 3; j++) {
                     dcell &c = cells[dcellindices->Get(i[j])];

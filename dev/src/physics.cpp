@@ -448,10 +448,9 @@ nfr("render_particles", "scale", "F", "",
         particlematerial->Set();
         struct Vert { float2 p; byte4 c; };
         vector<Vert> interleaved;
-        interleaved.resize(num);
+        interleaved.reserve(num);
         for (int i = 0; i < num; i++) {
-            interleaved[i].p = verts[i];
-            interleaved[i].c = colors[i];
+            interleaved.push_back({ verts[i], colors[i] });
         }
         RenderArraySlow("ph.render_particles", PRIM_POINT, gsl::make_span(interleaved),
                         "pC");

@@ -1218,7 +1218,7 @@ template<typename T> ValueVec<T> ResultVec(StackPtr &sp) {
 }
 
 template<typename T> T PopVec(StackPtr &sp, typename T::CTYPE def = 0) {
-    T v;
+    T v(def);
     auto l = Pop(sp).intval();
     if (l > T::NUM_ELEMENTS) PopN(sp, l - T::NUM_ELEMENTS);
     for (int i = T::NUM_ELEMENTS - 1; i >= 0; i--) {
@@ -1270,23 +1270,23 @@ template<typename T, bool back> T ReadValLE(const LString *s, iint i) {
 
 // FIXME: turn check for len into an assert and make caller guarantee lengths match.
 template<int N> inline vec<double, N> ValueToF(const Value *v, iint width, double def = 0) {
-    vec<double, N> t;
-    for (int i = 0; i < N; i++) t[i] = width > i ? (v + i)->fval() : def;
+    vec<double, N> t(def);
+    for (int i = 0; i < N; i++) if (width > i) t[i] = (v + i)->fval();
     return t;
 }
 template<int N> inline vec<iint, N> ValueToI(const Value *v, iint width, iint def = 0) {
-    vec<iint, N> t;
-    for (int i = 0; i < N; i++) t[i] = width > i ? (v + i)->ival() : def;
+    vec<iint, N> t(def);
+    for (int i = 0; i < N; i++) if (width > i) t[i] = (v + i)->ival();
     return t;
 }
 template<int N> inline vec<float, N> ValueToFLT(const Value *v, iint width, float def = 0) {
-    vec<float, N> t;
-    for (int i = 0; i < N; i++) t[i] = width > i ? (v + i)->fltval() : def;
+    vec<float, N> t(def);
+    for (int i = 0; i < N; i++) if (width > i) t[i] = (v + i)->fltval();
     return t;
 }
 template<int N> inline vec<int, N> ValueToINT(const Value *v, iint width, int def = 0) {
-    vec<int, N> t;
-    for (int i = 0; i < N; i++) t[i] = width > i ? (v + i)->intval() : def;
+    vec<int, N> t(def);
+    for (int i = 0; i < N; i++) if (width > i) t[i] = (v + i)->intval();
     return t;
 }
 

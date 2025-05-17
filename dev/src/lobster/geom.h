@@ -40,8 +40,8 @@ namespace geom {
         }                              \
     }
 
-#define DOVECR(F) { vec<T, N> _t; DOVEC(_t.c[i] = F); return _t; }
-#define DOVECRI(F) { vec<int, N> _t; DOVEC(_t.c[i] = F); return _t; }
+#define DOVECR(F) { T _t[N]; DOVEC(_t[i] = F); return vec<T,N>(_t); }
+#define DOVECRI(F) { int _t[N]; DOVEC(_t[i] = F); return vec<int,N>(_t); }
 #define DOVECF(I, F) { T _ = I; DOVEC(_ = F); return _; }
 #define DOVECB(I, F) { bool _ = I; DOVEC(_ = F); return _; }
 
@@ -84,6 +84,9 @@ template<typename T> struct basevec<T, 1> {
         T c[1];
         struct { T x; };
     };
+    basevec() {
+        default_debug_value(x);
+    }
 };
 
 template<typename T> struct basevec<T, 2> {
@@ -91,6 +94,10 @@ template<typename T> struct basevec<T, 2> {
         T c[2];
         struct { T x; T y; };
     };
+    basevec() {
+        default_debug_value(x);
+        default_debug_value(y);
+    }
 };
 
 template<typename T> struct basevec<T, 3> {
@@ -98,6 +105,11 @@ template<typename T> struct basevec<T, 3> {
         T c[3];
         struct { T x; T y; T z; };
     };
+    basevec() {
+        default_debug_value(x);
+        default_debug_value(y);
+        default_debug_value(z);
+    }
 };
 
 template<typename T> struct basevec<T, 4> {
@@ -105,6 +117,12 @@ template<typename T> struct basevec<T, 4> {
         T c[4];
         struct { T x; T y; T z; T w; };
     };
+    basevec() {
+        default_debug_value(x);
+        default_debug_value(y);
+        default_debug_value(z);
+        default_debug_value(w);
+    }
 };
 
 template<typename T, int N> struct vec : basevec<T, N> {
@@ -113,11 +131,10 @@ template<typename T, int N> struct vec : basevec<T, N> {
 
     using basevec<T, N>::c;
 
-    vec() {
-        #ifndef NDEBUG
-            DOVEC(default_debug_value(c[i]));
-        #endif
-    }
+    // No default constructor: this avoids both inefficiency of unwanted default values, and error-prone-ness
+    // of unexpected defaults.
+    // Use any of the explicit constants like float3_0 to get a default value only when needed.
+    vec() = delete;
 
     explicit vec(T e) {
         DOVEC(c[i] = e);
@@ -582,16 +599,13 @@ inline float3 rotateY(const float3 &v, float a) { return rotateY(v, rotvec(a)); 
 inline float3 rotateZ(const float3 &v, float a) { return rotateZ(v, rotvec(a)); }
 
 struct quat : float4 {
-    quat() {}
     quat(float x, float y, float z, float w) : float4(x, y, z, w) {}
     quat(const float3 &v, float w)           : float4(v, w) {}
     quat(const float4 &v)                    : float4(v) {}
-    quat(float angle, const float3 &axis) {
-        float s = sinf(0.5f*angle);
-        *this = quat(s * axis, cosf(0.5f * angle));
-    }
-    explicit quat(const float3 &v) : float4(v, -sqrtf(std::max(1.0f - squaredlength(v), 0.0f))) {}
-    explicit quat(const float *v) : float4(v[0], v[1], v[2], v[3]) {}
+    quat(float angle, const float3 &axis)    : float4(sinf(0.5f * angle) * axis, cosf(0.5f * angle)) {}
+    explicit quat(const float3 &v)           : float4(v, -sqrtf(std::max(1.0f - squaredlength(v), 0.0f))) {}
+    explicit quat(const float *v)            : float4(v[0], v[1], v[2], v[3]) {}
+    explicit quat(float x)                   : float4(x) {}
 
     quat operator*(const quat &o) const {
         return quat(w * o.x + x * o.w + y * o.z - z * o.y,
@@ -627,25 +641,25 @@ inline quat spherical_lerp(const quat &from, quat to, float f)
 {
     auto cosom = dot(from, to);
     if (cosom < 0.0f) { cosom = -cosom; to.flip(); }
-    quat result;
     if ((1.0f - cosom) > 1.0e-6f) {
         const auto omega = acosf(cosom);
         const auto sinom = sinf(omega);
-        result = from * (sinf((1.0f - f) * omega) / sinom);
-        f = sinf(f * omega) / sinom;
+        return from * (sinf((1.0f - f) * omega) / sinom) + to * (sinf(f * omega) / sinom);
     }
     else {
-        result = from * (1.0f - f);
+        return from * (1.0f - f) + to * f;
     }
-    result = result + to * f;
-    return result;
 }
 
 template<typename T, int C, int R> class matrix {
-    typedef vec<T,R> V;
+    typedef basevec<T,R> V;
+
     V m[C];
 
     public:
+
+    // Sadly, unlike vec above it's really hard to make these work without a default constructor.
+    // So by default these are properly uninitialized.. with NaNs in debug mode.
     matrix() {}
 
     explicit matrix(T e) {
@@ -654,7 +668,7 @@ template<typename T, int C, int R> class matrix {
                 m[x].c[y] = e * (T)(x == y);
     }
 
-    explicit matrix(const V &v) {
+    explicit matrix(const vec<T, R> &v) {
         for (int x = 0; x < C; x++)
             for (int y = 0; y < R; y++)
                 m[x].c[y] = x == y ? v[x] : 0;
@@ -701,10 +715,14 @@ template<typename T, int C, int R> class matrix {
     const T *begin() const { return m[0].c; }
     const T *end()   const { return m[C].c; }
 
-    const V &operator[](size_t i) const { return m[i]; }
+    const vec<T, R> operator[](size_t i) const {
+        return vec<T, R>(m[i].c);
+    }
 
     // not an operator on purpose, don't use outside this header
-    void set(int i, const V &v) { m[i] = v; }
+    void set(int i, const V &v) {
+        m[i] = v;
+    }
 
     vec<T, C> row(size_t i) const {
         if constexpr (C == 2) return vec<T,C>(m[0].c[i], m[1].c[i]);
@@ -718,14 +736,16 @@ template<typename T, int C, int R> class matrix {
         return res;
     }
 
-    V operator*(const vec<T,C> &v) const {
-        V res((T()));
+    vec<T, R> operator*(const vec<T, C> &v) const {
+        vec<T, R> res((T()));
         for (int i = 0; i < C; i++)
-            res += m[i] * v.c[i];
+            res += operator[](i) * v.c[i];
         return res;
     }
 
-    matrix &operator*=(const matrix &o) { return *this = *this * o; }
+    matrix &operator*=(const matrix &o) {
+        return *this = *this * o;
+    }
 
     matrix operator*(const matrix<T,R,C> &o) const {
         matrix<T,R,C> t = transpose();
@@ -739,14 +759,14 @@ template<typename T, int C, int R> class matrix {
     matrix operator*(T f) const {
         matrix res;
         for (int x = 0; x < C; x++)
-            res.m[x] = m[x] * f;
+            res.m[x] = operator[](x) * f;
         return res;
     }
 
     matrix operator+(const matrix &o) const {
         matrix res;
         for (int x = 0; x < C; x++)
-            res.m[x] = m[x] + o.m[x];
+            res.m[x] = operator[](x) + o[x];
         return res;
     }
 
@@ -762,9 +782,9 @@ template<typename T, int C, int R> class matrix {
 
 template<typename T, int C, int R> inline vec<T,R> operator*(const vec<T,R> &v,
                                                              const matrix<T,C,R> &m) {
-    vec<T,R> t;
+    T t[R];
     for (int i = 0; i < R; i++) t[i] = dot(v, m[i]);
-    return t;
+    return vec<T,R>(t);
 }
 
 typedef matrix<float,4,4> float4x4;
@@ -848,7 +868,7 @@ inline float4x4 rotationZ(float a) { return rotationZ(float2(cosf(a), sinf(a)));
 inline quat quatfromtwovectors(const float3 &u, const float3 &v) {
     float norm_u_norm_v = sqrt(dot(u, u) * dot(v, v));
     float real_part = norm_u_norm_v + dot(u, v);
-    float3 w;
+    float3 w = float3_0;
     if (real_part < 1.e-6f * norm_u_norm_v) {
         // If u and v are exactly opposite, rotate 180 degrees
         // around an arbitrary orthogonal axis. Axis normalisation

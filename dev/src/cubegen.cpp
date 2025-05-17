@@ -395,26 +395,31 @@ nfr("load_palette", "act_palette_file", "S", "I", "",
         string buf;
         auto len = LoadFile(fn.sval()->strv(), &buf);
         if (len < 768) vm.BuiltinError("load_palette: load failed");
-        byte4 pal[256];
+        vector<byte4> pal;
+        pal.reserve(256);
         for (int i = 0; i < 256; i++) {
-            memcpy(&pal[i].c, buf.c_str() + i * 3, 3);
-            pal[i].w = i
+            byte4 p((uint8_t)0);
+            memcpy(&p.c, buf.c_str() + i * 3, 3);
+            p.w = i
                 ? 0x80  // NOTE: does not allow setting material flags.
                 : 0;    // 0 always transparency in MV.
+            pal.push_back(p);
         }
-        return Value(NewPalette(pal));
+        return Value(NewPalette(pal.data()));
     });
 
 nfr("new_palette", "palette", "F}:4]", "I",
     "Create a new palette from 256 float4 color values.",
     [](StackPtr &, VM &vm, Value &palette) {
-        byte4 pal[256];
+        vector<byte4> pal;
+        pal.reserve(256);
         if (palette.vval()->len != 256) vm.BuiltinError("new_palette: Expected 256 colors");
         for (int i = 0; i < palette.vval()->len; i++) {
-            pal[i] = quantizec(ValueToFLT<4>(palette.vval()->AtSt(i), palette.vval()->width));
-            pal[i].w = pal[i].w > 0 ? 0x80 : 0;  // NOTE: does not allow setting material flags.
+            auto p = quantizec(ValueToFLT<4>(palette.vval()->AtSt(i), palette.vval()->width));
+            p.w = p.w > 0 ? 0x80 : 0;  // NOTE: does not allow setting material flags.
+            pal.push_back(p);
         }
-        return Value(NewPalette(pal));
+        return Value(NewPalette(pal.data()));
     });
 
 nfr("get_palette_color", "palette_idx,entry", "II", "F}:4", "",
@@ -533,7 +538,7 @@ nfr("create_mesh", "block", "R:voxels", "R:mesh",
             int3(0, 0, 1), int3( 0,  0, -1),
         };
         // FIXME: normal can be byte4, pos can short4
-        struct cvert { float3 pos; float3 normal; byte4 color; };
+        struct cvert { float3 pos = float3_0; float3 normal = float3_0; byte4 color = byte4_0; };
         vector<cvert> verts;
         vector<int> triangles;
         static const char *faces[6] = { "4576", "0231", "2673", "0154", "1375", "0462" };
@@ -568,7 +573,7 @@ nfr("create_mesh", "block", "R:voxels", "R:mesh",
                                 auto face = faces[n];
                                 int vindices[4];
                                 for (int vn = 0; vn < 4; vn++) {
-                                    int3 vpos;
+                                    auto vpos = int3_0;
                                     for (int d = 0; d < 3; d++) {
                                         vpos[d] = (face[vn] & (1 << (2 - d))) != 0;
                                     }
@@ -1030,8 +1035,9 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                         // Adjust pivot point due to rotation.
                         v.offset -= sign(int3_1 * rot).eq(-1) * (v.grid.dim & 1);
                     }
-                    if (node_offset.find(node_id) != node_offset.end()) {
-                        v.offset += node_offset[node_id];
+                    auto it = node_offset.find(node_id);
+                    if (it != node_offset.end()) {
+                        v.offset += it->second;
                     }
                     if (node_graph.find(node_id) == node_graph.end())
                         break;
@@ -1275,7 +1281,7 @@ nfr("average_surface_color", "world", "R:voxels", "F}:3III}:3I}:3", "",
 			int3(0, 0, 1),  int3(0, 1, 0),  int3(1, 0, 0),
 			int3(0, 0, -1), int3(0, -1, 0), int3(-1, 0, 0),
 		};
-        float3 srgb_cache[256];
+        basevec<float, 3> srgb_cache[256];
         bool cache_set[256] = { false };
         int3 bmin = v.grid.dim;
         int3 bmax = int3_0;
@@ -1296,7 +1302,7 @@ nfr("average_surface_color", "world", "R:voxels", "F}:3III}:3I}:3", "",
                                     srgb_cache[c] = from_srgb(float3(palette[c].xyz()) / 255.0f);
                                     cache_set[c] = true;
                                 }
-                                col += srgb_cache[c];
+                                col += float3(srgb_cache[c].c);
 								nsurf++;
 								break;
 							}
@@ -1321,7 +1327,7 @@ nfr("average_face_colors", "world", "R:voxels", "F]",
         auto vec = vm.NewVec(0, 8 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto &palette = palettes[v.palette_idx].colors;
         int3 dims[] = { int3(0, 1, 2), int3(0, 2, 1), int3(1, 2, 0) };
-        float3 srgb_cache[256];
+        basevec<float, 3> srgb_cache[256];
         bool cache_set[256] = { false };
         float4 total_avg_color = float4_0;
         float total_min_alpha = 0.0;
@@ -1346,7 +1352,7 @@ nfr("average_face_colors", "world", "R:voxels", "F]",
                                 srgb_cache[c] = from_srgb(float3(palette[c].xyz()) / 255.0f);
                                 cache_set[c] = true;
                             }
-                            col += srgb_cache[c];
+                            col += float3(srgb_cache[c].c);
                             nsurf++;
                             break;  // Hit surface, we can stop this Z traversal.
                         }

@@ -29,13 +29,13 @@ template<typename T> class Chunk3DGrid : NonCopyable {
         grid.resize(dim.x, nullptr);
         for (int i = 0; i < dim.x; i++) {
             auto len = dim.y * dim.z;
-            grid[i] = new T[len];
+            grid[i] = (T *)malloc(sizeof(T) * len);
             std::fill_n(grid[i], len, default_val);
         }
     }
 
     ~Chunk3DGrid() {
-        for (auto p : grid) delete[] p;
+        for (auto p : grid) free(p);
     }
 
     T &Get(const int3 &pos) const {

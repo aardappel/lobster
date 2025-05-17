@@ -1210,7 +1210,12 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
             ncelld = iint2((iint)sqrtf(float(positions2->len + 1) * 4));
         if (radiuses1->len != positions1->len || radiuses2->len != positions2->len)
             vm.BuiltinError("circles_within_range: input vectors size mismatch");
-        struct Node { double2 pos; double rad; iint idx; Node *next; };
+        struct Node {
+            double2 pos = double2_0;
+            double rad = 0.0;
+            iint idx = 0;
+            Node *next = nullptr;
+        };
         vector<Node> nodes(positions2->SLen(), Node());
         double maxrad = 0;
         double2 minpos = double2(FLT_MAX), maxpos(FLT_MIN);

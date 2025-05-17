@@ -290,7 +290,7 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
 const int2 &GetScreenSize() { return screensize; }
 
 void ScreenSizeChanged() {
-    int2 inputsize;
+    int2 inputsize = int2_0;
     SDL_GetWindowSize(_sdl_window, &inputsize.x, &inputsize.y);
     SDL_GL_GetDrawableSize(_sdl_window, &screensize.x, &screensize.y);
     inputscale = screensize / inputsize;

@@ -133,15 +133,22 @@ Mesh *CreatePolygon(VM &vm, Value &vl) {
     TestGL(vm);
     auto len = vl.vval()->len;
     if (len < 3) vm.BuiltinError("polygon: must have at least 3 verts");
-    vector<BasicVert> vbuf(len);
-    for (int i = 0; i < len; i++) vbuf[i].pos = ValueToFLT<3>(vl.vval()->AtSt(i), vl.vval()->width);
+    vector<BasicVert> vbuf;
+    vbuf.reserve(len);
+    for (int i = 0; i < len; i++) {
+        auto pos = ValueToFLT<3>(vl.vval()->AtSt(i), vl.vval()->width);
+        vbuf.push_back(BasicVert{
+            pos,
+            float3_0,
+            pos.xy(),
+            byte4_255,
+        });
+    }
     auto v1 = vbuf[1].pos - vbuf[0].pos;
     auto v2 = vbuf[2].pos - vbuf[0].pos;
     auto norm = normalize(cross(v2, v1));
     for (int i = 0; i < len; i++) {
         vbuf[i].norm = norm;
-        vbuf[i].tc = vbuf[i].pos.xy();
-        vbuf[i].col = byte4_255;
     }
     auto m = new Mesh(new Geometry("CreatePolygon", gsl::make_span(vbuf), "PNTC"), polymode);
     return m;
@@ -262,8 +269,7 @@ nfr("scissor", "top_left,size", "I}:2I}:2", "I}:2I}:2",
         auto size = PopVec<int2>(sp);
         auto topleft = PopVec<int2>(sp);
         TestGL(vm);
-        pair<int2, int2> prev;
-
+        auto prev = pair{ int2_0, int2_0 };
         SetScissorRect(topleft, size, prev);
         PushVec(sp, prev.first);
         PushVec(sp, prev.second);
@@ -884,7 +890,7 @@ nfr("new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices",
         for (iint i = 0; i < nverts; i++) {
             auto start = &verts[i * vsize];
             auto p = start;
-            float3 pos;
+            float3 pos = float3_0;
             int texcoordn = 0;
             for (auto c : fmt) {
                 switch (c) {
@@ -1112,9 +1118,10 @@ nfr("set_uniform_array", "name,value", "SF}:4]", "B",
     " returns false on error.",
     [](StackPtr &, VM &vm, Value &name, Value &vec) {
         TestGL(vm);
-        vector<float4> vals(vec.vval()->len);
+        vector<float4> vals;
+        vals.reserve(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++)
-            vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
+            vals.push_back(ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width));
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->strvnt(), vals.data()->data(), 4,
                                             (int)vals.size());
@@ -1374,10 +1381,9 @@ nfr("light", "pos,params", "F}:3F}:2", "",
     " params contains specular exponent in x (try 32/64/128 for different material looks) and"
     " the specular scale in y (try 1 for full intensity)",
     [](StackPtr &sp, VM &) {
-        Light l;
-        l.params = PopVec<float2>(sp);
-        l.pos = otransforms.object2view() * float4(PopVec<float3>(sp), 1);
-        lights.push_back(l);
+        auto params = PopVec<float2>(sp);
+        auto pos = otransforms.object2view() * float4(PopVec<float3>(sp), 1);
+        lights.push_back(Light{ pos, params });
     });
 
 nfr("render_tiles", "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2]I}:2F]F]", "",
@@ -1396,7 +1402,7 @@ nfr("render_tiles", "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2]I
         auto len = pos->len;
         if (len != tile->len)
             vm.BuiltinError("rendertiles: vectors of different size");
-        vector<SpriteVert> vbuf(len * 6);
+        vector<SpriteVert> vbuf(len * 6, { float2_0, float2_0 });
         for (iint i = 0; i < len; i++) {
             auto p = ValueToFLT<2>(pos->AtSt(i), pos->width);
             auto t = float2(ValueToI<2>(tile->AtSt(i), tile->width)) / msize;

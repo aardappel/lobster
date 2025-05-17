@@ -204,7 +204,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
                         break;
                     }
                 }
-                if (temp.empty()) temp.push_back({});
+                if (temp.empty()) temp.push_back({ int2_0, 0 });
                 open.splice(dit, temp, ncell.it = temp.begin());
                 *ncell.it = { p, totalnnumopts };
                 ncell.state = State::OPEN;

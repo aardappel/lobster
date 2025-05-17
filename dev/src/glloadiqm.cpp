@@ -335,15 +335,17 @@ Mesh *LoadIQM(string_view filename) {
         return nullptr;
     }
     // FIXME: Can save 8 bytes on non-animated verts by using BasicVert.
-    vector<AnimVert> verts(numverts);
+    vector<AnimVert> verts;
+    verts.reserve(numverts);
     for (int i = 0; i < numverts; i++) {
-        auto &v = verts[i];
-        v.pos     = inposition    ? *(float3 *)&inposition   [i * 3] : float3_0;
-        v.norm    = innormal      ? *(float3 *)&innormal     [i * 3] : float3_0;
-        v.tc      = intexcoord    ? *(float2 *)&intexcoord   [i * 2] : float2_0;
-        v.col     = incolor       ? *(byte4  *)&incolor      [i * 4] : byte4_255;
-        v.weights = inblendweight ? *(byte4  *)&inblendweight[i * 4] : byte4_0;
-        v.indices = inblendindex  ? *(byte4  *)&inblendindex [i * 4] : byte4_0;
+        verts.push_back(AnimVert{
+            inposition    ? *(float3 *)&inposition   [i * 3] : float3_0,
+            innormal      ? *(float3 *)&innormal     [i * 3] : float3_0,
+            intexcoord    ? *(float2 *)&intexcoord   [i * 2] : float2_0,
+            incolor       ? *(byte4  *)&incolor      [i * 4] : byte4_255,
+            inblendweight ? *(byte4  *)&inblendweight[i * 4] : byte4_0,
+            inblendindex  ? *(byte4  *)&inblendindex [i * 4] : byte4_0,
+        });
     }
     if (!innormal)
         normalize_mesh(gsl::make_span((int *)tris, numtris * 3), verts.data(), numverts, sizeof(AnimVert),

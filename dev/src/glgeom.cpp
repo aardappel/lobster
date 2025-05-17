@@ -47,7 +47,7 @@ size_t AttribsSize(string_view fmt) {
 
 GLenum GetPrimitive(Primitive prim) {
     switch (prim) {
-        default: assert(0);
+        default: assert(0); [[fallthrough]];
         case PRIM_TRIS:  return GL_TRIANGLES;
         case PRIM_FAN:   return GL_TRIANGLE_FAN;
         case PRIM_LOOP:  return GL_LINE_LOOP;
@@ -341,7 +341,7 @@ void GeometryCache::RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2,
 }
 
 void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
-    struct cvert { float3 pos; float3 normal; float2 tc; };
+    struct cvert { float3 pos = float3_0; float3 normal = float3_0; float2 tc = float2_0; };
     if (!cube_geom[inside]) {
         static float3 normals[] = {
             float3(1, 0, 0), float3(-1,  0,  0),
@@ -353,11 +353,11 @@ void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
         static int indices[2][6] = { { 0, 1, 3, 1, 2, 3 }, { 0, 3, 1, 1, 3, 2 } };
         vector<cvert> verts;
         vector<int> triangles;
+        cvert vert;
         for (int n = 0; n < 6; n++) {
             auto face = faces[n];
             for (int i = 0; i < 6; i++) triangles.push_back(indices[inside][i] + (int)verts.size());
             for (int vn = 0; vn < 4; vn++) {
-                cvert vert;
                 for (int d = 0; d < 3; d++) {
                     vert.pos[d] = float((face[vn] & (1 << (2 - d))) != 0);
                 }
@@ -379,7 +379,8 @@ void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segme
     // Use plain floats, as the float2::operator< does not work well with std::map
     auto &geom = roundedboxvbos[{ segments, size.x, size.y, corner_ratio }];
     if (!geom) {
-        vector<float3> vbuf(segments);
+        vector<float3> vbuf;
+        vbuf.reserve(segments);
         float step = PI * 2 / segments;
         auto aratio = size.x > size.y ? float2(corner_ratio * size.y / size.x, corner_ratio)
                                       : float2(corner_ratio, corner_ratio * size.x / size.y);
@@ -390,7 +391,7 @@ void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segme
             xy *= 0.5f;
             xy += 0.5f;
             xy *= size;
-            vbuf[i] = float3(xy, 0);
+            vbuf.push_back(float3(xy, 0));
         }
         geom = new Geometry("RenderRoundedRectangle", gsl::make_span(vbuf), "P");
     }
@@ -405,8 +406,10 @@ void GeometryCache::RenderRoundedRectangleBorder(Shader *sh, int segments, float
     auto nverts = segments * 2;
     auto nindices = segments * 6;
     if (!vibo.first) {
-        vector<float3> vbuf(nverts);
-        vector<int> ibuf(nindices);
+        vector<float3> vbuf;
+        vbuf.reserve(nverts);
+        vector<int> ibuf;
+        ibuf.reserve(nindices);
         float step = PI * 2 / segments;
         float border_thickness = border_thickness_pix / min(size.x, size.y);
         float corner_ratio_inner = corner_ratio - border_thickness;
@@ -429,14 +432,14 @@ void GeometryCache::RenderRoundedRectangleBorder(Shader *sh, int segments, float
             xy_inner *= 0.5f;
             xy_inner *= size - border_thickness * min(size.x, size.y) * 2;
             xy_inner += size * 0.5f;
-            vbuf[i * 2 + 0] = float3(xy, 0);
-            vbuf[i * 2 + 1] = float3(xy_inner, 0);
-            ibuf[i * 6 + 0] = i * 2 + 0;
-            ibuf[i * 6 + 1] = ((i + 1) * 2 + 0) % nverts;
-            ibuf[i * 6 + 2] = i * 2 + 1;
-            ibuf[i * 6 + 3] = i * 2 + 1;
-            ibuf[i * 6 + 4] = ((i + 1) * 2 + 1) % nverts;
-            ibuf[i * 6 + 5] = ((i + 1) * 2 + 0) % nverts;
+            vbuf.push_back(float3(xy, 0));
+            vbuf.push_back(float3(xy_inner, 0));
+            ibuf.push_back(i * 2 + 0);
+            ibuf.push_back(((i + 1) * 2 + 0) % nverts);
+            ibuf.push_back(i * 2 + 1);
+            ibuf.push_back(i * 2 + 1);
+            ibuf.push_back(((i + 1) * 2 + 1) % nverts);
+            ibuf.push_back(((i + 1) * 2 + 0) % nverts);
         }
         vibo.first = new Geometry("RenderRoundedRectangleBorder_verts", gsl::make_span(vbuf), "P");
         vibo.second = GenBO("RenderRoundedRectangleBorder_idxs", GL_ELEMENT_ARRAY_BUFFER,
@@ -450,12 +453,13 @@ void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float
     assert(segments >= 3);
     auto &geom = circlevbos[segments];
     if (!geom) {
-        vector<float3> vbuf(segments);
+        vector<float3> vbuf;
+        vbuf.reserve(segments);
         float step = PI * 2 / segments;
         for (int i = 0; i < segments; i++) {
             // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
-            vbuf[i] = float3(sinf(i * step + 1),
-                             cosf(i * step + 1), 0);
+            vbuf.push_back(float3(sinf(i * step + 1),
+                                  cosf(i * step + 1), 0));
         }
         geom = new Geometry("RenderCircle", gsl::make_span(vbuf), "P");
     }
@@ -471,22 +475,24 @@ void GeometryCache::RenderOpenCircle(Shader *sh, int segments, float radius, flo
     auto nverts = segments * 2;
     auto nindices = segments * 6;
     if (!vibo.first) {
-        vector<float3> vbuf(nverts);
-        vector<int> ibuf(nindices);
+        vector<float3> vbuf;
+        vbuf.reserve(nverts);
+        vector<int> ibuf;
+        ibuf.reserve(nindices);
         float step = PI * 2 / segments;
         float inner = 1 - thickness;
         for (int i = 0; i < segments; i++) {
             // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
             float x = sinf(i * step + 1);
             float y = cosf(i * step + 1);
-            vbuf[i * 2 + 0] = float3(x, y, 0);
-            vbuf[i * 2 + 1] = float3(x * inner, y * inner, 0);
-            ibuf[i * 6 + 0] = i * 2 + 0;
-            ibuf[i * 6 + 1] = ((i + 1) * 2 + 0) % nverts;
-            ibuf[i * 6 + 2] = i * 2 + 1;
-            ibuf[i * 6 + 3] = i * 2 + 1;
-            ibuf[i * 6 + 4] = ((i + 1) * 2 + 1) % nverts;
-            ibuf[i * 6 + 5] = ((i + 1) * 2 + 0) % nverts;
+            vbuf.push_back(float3(x, y, 0));
+            vbuf.push_back(float3(x * inner, y * inner, 0));
+            ibuf.push_back(i * 2 + 0);
+            ibuf.push_back(((i + 1) * 2 + 0) % nverts);
+            ibuf.push_back(i * 2 + 1);
+            ibuf.push_back(i * 2 + 1);
+            ibuf.push_back(((i + 1) * 2 + 1) % nverts);
+            ibuf.push_back(((i + 1) * 2 + 0) % nverts);
         }
         vibo.first = new Geometry("RenderOpenCircle_verts", gsl::make_span(vbuf), "P");
         vibo.second = GenBO("RenderOpenCircle_idxs", GL_ELEMENT_ARRAY_BUFFER, gsl::make_span(ibuf), false);
