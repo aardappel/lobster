@@ -493,18 +493,16 @@ struct Value {
     VM_INLINEM bool True() const { return ival_ != 0; }
     VM_INLINEM bool False() const { return ival_ == 0; }
 
-    inline Value &LTINCRT() {
+    inline void LTINCRT() {
         TYPE_ASSERT(IsRef(type) && ref_);
         ref_->Inc();
-        return *this;
     }
-    inline Value &LTINCRTNIL() {
+    inline void LTINCRTNIL() {
         // Can't assert IsRefNil here, since scalar 0 are valid NIL values due to e.g. and/or.
         if (ref_) LTINCRT();
-        return *this;
     }
-    inline Value &LTINCTYPE(ValueType t) {
-        return IsRefNil(t) ? LTINCRTNIL() : *this;
+    inline void LTINCTYPE(ValueType t) {
+        if(IsRefNil(t)) LTINCRTNIL();
     }
 
     inline void LTDECRT(VM &vm) const {  // we already know its a ref type
