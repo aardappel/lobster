@@ -112,6 +112,7 @@ inline string_view BaseTypeName(ValueType t) {
 
 enum type_elem_t : int {  // Strongly typed element of typetable.
     // These must correspond to typetable init in Codegen constructor.
+    TYPE_ELEM_UNDEFINED = -1,
     TYPE_ELEM_INT = 0,  // This has -1 for its enumidx.
     TYPE_ELEM_FLOAT = 2,
     TYPE_ELEM_STRING = 3,
