@@ -1057,11 +1057,6 @@ struct VM : VMArgs {
 
     void CallFunctionValue(Value f);
 
-    void LvalueIdxVector(int lvalop, iint i);
-    void LvalueIdxStruct(int lvalop, iint i);
-    void LvalueField(int lvalop, iint i);
-    void LvalueOp(int op, Value &a);
-
     string ProperTypeName(const TypeInfo &ti);
 
     void DivErr(iint divisor) { Error(divisor ? "integer overflow" : "division by zero"); }
