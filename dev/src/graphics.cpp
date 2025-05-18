@@ -676,7 +676,7 @@ nfr("model_view", "", "", "F]",
     " (16 elements)",
     [](StackPtr &, VM &vm) {
         auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
-        auto mv = otransforms.object2view();
+        auto &mv = otransforms.object2view();
         for (int i = 0; i < 16; i++) v->AtSR(i) = mv.data()[i];
         return Value(v);
     });
