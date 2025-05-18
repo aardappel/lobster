@@ -122,7 +122,7 @@ Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, Value schema,
     vector<string> dirs_storage;
     for (iint i = 0; i < includes.vval()->len; i++) {
         auto dir = flatbuffers::ConCatPathFileName(string(ProjectDir()),
-                                                   string(includes.vval()->At(i).sval()->strv()));
+                                                   string(includes.vval()->AtS(i).sval()->strv()));
         dirs_storage.push_back(dir);
     }
     vector<const char *> dirs;
@@ -265,7 +265,7 @@ nfr("launch_subprocess", "commandline,stdin", "S]S?", "IS",
         auto commandline = Pop(sp).vval();
         vector<const char *> cmdl;
         for (iint i = 0; i < commandline->len; i++) {
-            cmdl.push_back(commandline->At(i).sval()->data());
+            cmdl.push_back(commandline->AtS(i).sval()->data());
         }
         cmdl.push_back(nullptr);
         string out;

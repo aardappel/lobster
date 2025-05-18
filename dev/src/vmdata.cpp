@@ -188,7 +188,7 @@ bool LVector::Equal(VM &vm, const LVector &o) const {
         }
     } else {
         for (iint i = 0; i < len; i++) {
-            if (!At(i).Equal(vm, eti.t, o.At(i), eti.t, true)) return false;
+            if (!AtS(i).Equal(vm, eti.t, o.AtS(i), eti.t, true)) return false;
         }
 
     }

@@ -983,7 +983,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
             if (!palette.empty()) {
                 auto pi = NewPalette(palette.data());
                 for (iint i = 0; i < voxvec->len; i++) {
-                    auto *voxels = &GetVoxels(voxvec->At(i));
+                    auto *voxels = &GetVoxels(voxvec->AtS(i));
                     voxels->palette_idx = pi;
                     if (has_palette_index_remap) {
                         for (int z = 0; z < voxels->grid.dim.z; ++z) {
@@ -1005,7 +1005,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                     copies_needed[model_id]++;
                 }
                 for(auto& [_, model_id]: node_to_model) {
-                    auto value = voxvec->At(model_id);
+                    auto value = voxvec->AtS(model_id);
                     if (--copies_needed[model_id] > 0) {
                         auto *voxels = &GetVoxels(value);
                         auto *newvoxels = new Voxels(voxels->grid.dim, voxels->palette_idx);
@@ -1028,7 +1028,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                 auto node_id = i.first;
                 auto model_id = i.second;
                 for (;;) {
-                    Voxels& v = GetVoxels(voxvec->At(model_id));
+                    Voxels& v = GetVoxels(voxvec->AtS(model_id));
                     if (node_rots.find(node_id) != node_rots.end()) {
                         auto& rot = node_rots[node_id];
                         v.grid.Rotate(rot);
@@ -1046,7 +1046,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                 node_id = i.first;
                 for (;;) {
                     if (node_names.find(node_id) != node_names.end()) {
-                        GetVoxels(voxvec->At(model_id)).name = node_names[node_id];
+                        GetVoxels(voxvec->AtS(model_id)).name = node_names[node_id];
                         break;
                     }
                     if (node_graph.find(node_id) == node_graph.end())

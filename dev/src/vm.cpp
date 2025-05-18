@@ -710,7 +710,7 @@ iint VM::GrabIndex(StackPtr &sp, int len) {
         auto sidx = Pop(sp).ival();
         if (!len) return sidx;
         RANGECHECK((*this), sidx, v.vval()->len, v.vval());
-        v = v.vval()->At(sidx);
+        v = v.vval()->AtS(sidx);
     }
 }
 

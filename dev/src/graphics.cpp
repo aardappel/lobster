@@ -184,7 +184,7 @@ void BindBufferObjectResource(VM &vm, Value buf, string_view_nt name) {
 
 OwnedTexture *CreateTextureFromValues(LVector *mat, int tf) {
     auto ys = mat->len;
-    auto xs = mat->At(0).vval()->len;
+    auto xs = mat->AtS(0).vval()->len;
     if (tf & TF_TWO_CHANNEL)
         THROW_OR_ABORT("CreateTextureFromValues: two channel not supported yet");
     auto sz = tf & TF_SINGLE_CHANNEL
@@ -195,7 +195,7 @@ OwnedTexture *CreateTextureFromValues(LVector *mat, int tf) {
     auto buf = new uint8_t[xs * ys * sz];
     memset(buf, 0, xs * ys * sz);
     for (int i = 0; i < ys; i++) {
-        auto row = mat->At(i).vval();
+        auto row = mat->AtS(i).vval();
         for (int j = 0; j < min(xs, row->len); j++) {
             float4 col = ValueToFLT<4>(row->AtSt(j), row->width);
             auto side = j / sidexs;
@@ -667,7 +667,7 @@ nfr("model_view_projection", "", "", "F]",
     [](StackPtr &, VM &vm) {
         auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto mvp = view2clip * otransforms.object2view();
-        for (int i = 0; i < 16; i++) v->At(i) = mvp.data()[i];
+        for (int i = 0; i < 16; i++) v->AtSR(i) = mvp.data()[i];
         return Value(v);
     });
 
@@ -677,7 +677,7 @@ nfr("model_view", "", "", "F]",
     [](StackPtr &, VM &vm) {
         auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto mv = otransforms.object2view();
-        for (int i = 0; i < 16; i++) v->At(i) = mv.data()[i];
+        for (int i = 0; i < 16; i++) v->AtSR(i) = mv.data()[i];
         return Value(v);
     });
 
@@ -687,7 +687,7 @@ nfr("projection", "", "", "F]",
     [](StackPtr &, VM &vm) {
         auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto p = view2clip;
-        for (int i = 0; i < 16; i++) v->At(i) = p.data()[i];
+        for (int i = 0; i < 16; i++) v->AtSR(i) = p.data()[i];
         return Value(v);
     });
 
@@ -878,7 +878,7 @@ nfr("new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices",
         vector<int> idxs;
         if (indices.True()) {
             for (int i = 0; i < indices.vval()->len; i++) {
-                auto &e = indices.vval()->At(i);
+                auto e = indices.vval()->AtS(i);
                 if (e.ival() < 0 || e.ival() >= nverts)
                     vm.BuiltinError("newmesh: index out of range of vertex list");
                 idxs.push_back(e.intval());
@@ -1135,7 +1135,7 @@ nfr("set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
     [](StackPtr &, VM &vm, Value name, Value vec, Value morerows) {
         TestGL(vm);
         vector<float> vals(vec.vval()->len);
-        for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->AtS(i).fltval();
         currentshader->Activate();
         auto ok = currentshader->SetUniformMatrix(name.sval()->strvnt(), vals.data(),
                                                   (int)vals.size(), 1, morerows.True());
@@ -1405,13 +1405,13 @@ nfr("render_tiles", "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2]I
         for (iint i = 0; i < len; i++) {
             auto p = ValueToFLT<2>(pos->AtSt(i), pos->width);
             auto t = float2(ValueToI<2>(tile->AtSt(i), tile->width)) / msize;
-            auto size = i < sizes->len ? sizes->At(i).fltval() : 0.5f;
+            auto size = i < sizes->len ? sizes->AtS(i).fltval() : 0.5f;
             auto c1 = float2(-size);
             auto c2 = float2(-size, size);
             auto c3 = float2(size);
             auto c4 = float2(size, -size);
             if (i < rotations->len) {
-                auto rot = rotations->At(i).fltval();
+                auto rot = rotations->AtS(i).fltval();
                 c1 = rotate2(c1, rot * RAD);
                 c2 = float2(c1.y, -c1.x);
                 c3 = float2(c2.y, -c2.x);

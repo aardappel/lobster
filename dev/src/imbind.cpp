@@ -1447,10 +1447,10 @@ nfr("radio", "labels,active,horiz", "S]II", "I",
         IsInit(vm);
         auto v = strs.vval();
         auto act = active.intval();
-        int &sel = ListState(act, v->len ? Label(vm, v->At(0)) : "empty?", v->len, 0);
+        int &sel = ListState(act, v->len ? Label(vm, v->AtS(0)) : "empty?", v->len, 0);
         for (iint i = 0; i < v->len; i++) {
             if (i && horiz.True()) ImGui::SameLine();
-            ImGui::RadioButton(Label(vm, v->At(i)), &sel, (int)i);
+            ImGui::RadioButton(Label(vm, v->AtS(i)), &sel, (int)i);
         }
         return Value(sel);
     });
@@ -1476,7 +1476,7 @@ nfr("combo", "label,labels,active", "SS]I", "I",
         int &sel = ListState(act, Label(vm, text), v->len, 0);
         vector<const char *> items(v->len);
         for (iint i = 0; i < v->len; i++) {
-            items[i] = Label(vm, v->At(i));
+            items[i] = Label(vm, v->AtS(i));
         }
         ImGui::Combo(Label(vm, text), &sel, items.data(), (int)items.size());
         return Value(sel);
@@ -1492,7 +1492,7 @@ nfr("listbox", "label,labels,active,height", "SS]II", "I",
         int &sel = ListState(act, Label(vm, text), v->len, -1);
         vector<const char *> items(v->len);
         for (iint i = 0; i < v->len; i++) {
-            items[i] = v->At(i).sval()->data();
+            items[i] = v->AtS(i).sval()->data();
         }
         ImGui::ListBox(Label(vm, text), &sel, items.data(), (int)items.size(), height.intval());
         return Value(sel);
@@ -2010,7 +2010,7 @@ nfr("text_table", "id,num_colums,labels", "SIS]", "", "",
         for (iint i = 0; i < labels.vval()->len; i++) {
             if (!(i % nc)) ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(i % nc);
-            Text(labels.vval()->At(i).sval()->strv());
+            Text(labels.vval()->AtS(i).sval()->strv());
         }
         ImGui::EndTable();
         return NilVal();

@@ -37,7 +37,7 @@ VM_INLINE void PushDerefIdxVector1(VM &vm, StackPtr &sp, iint i) {
     VMASSERT(vm, r.ref());
     auto v = r.vval();
     RANGECHECK(vm, i, v->len, v);
-    Push(sp, v->At(i));
+    Push(sp, v->AtS(i));
 }
 
 VM_INLINE void PushDerefIdxVector2V(VM &vm, StackPtr &sp, iint i) {
@@ -235,13 +235,13 @@ VM_INLINE void U_SFORELEM(VM &, StackPtr sp) {
     FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i]));
 }
 VM_INLINE void U_VFORELEM(VM &, StackPtr sp) {
-    FORELEM(iter.vval()->len); Push(sp, iter.vval()->At(i));
+    FORELEM(iter.vval()->len); Push(sp, iter.vval()->AtS(i));
 }
 VM_INLINE void U_VFORELEM2S(VM &, StackPtr sp) {
     FORELEM(iter.vval()->len); iter.vval()->AtVW(sp, i);
 }
 VM_INLINE void U_VFORELEMREF(VM &, StackPtr sp) {
-    FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); Push(sp, el);
+    FORELEM(iter.vval()->len); auto el = iter.vval()->AtS(i); el.LTINCRTNIL(); Push(sp, el);
 }
 VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp, int bitmask) {
     FORELEM(iter.vval()->len); iter.vval()->AtVWInc(sp, i, bitmask);

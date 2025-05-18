@@ -59,15 +59,15 @@ template<typename T> Value BinarySearch(StackPtr &sp, Value l, Value key, T comp
     for (;;) {
         if (!size) break;
         iint mid = size / 2;
-        iint comp = comparefun(key, l.vval()->At(i + mid));
+        iint comp = comparefun(key, l.vval()->AtS(i + mid));
         if (comp) {
             if (comp < 0) size = mid;
             else { mid++; i += mid; size -= mid; }
         } else {
             i += mid;
             size = 1;
-            while (i && !comparefun(key, l.vval()->At(i - 1))) { i--; size++; }
-            while (i + size < l.vval()->len && !comparefun(key, l.vval()->At(i + size))) {
+            while (i && !comparefun(key, l.vval()->AtS(i - 1))) { i--; size++; }
+            while (i + size < l.vval()->len && !comparefun(key, l.vval()->AtS(i + size))) {
                 size++;
             }
             break;
@@ -281,7 +281,7 @@ nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
     [](StackPtr &, VM &vm, Value l, Value o) {
         auto vt = vm.GetTypeInfo(l.vval()->ti(vm).subt).t;
         for (iint i = 0; i < l.vval()->len; i++) {
-            auto e = l.vval()->At(i);
+            auto e = l.vval()->AtS(i);
             if (e.Equal(vm, vt, o, vt, false)) {
                 l.vval()->Remove(vm, i--, 1);
             }
@@ -387,7 +387,7 @@ nfr("any", "xs", "A]*", "B",
         Value r(false);
         iint l = v.vval()->len;
         for (auto i = 0; i < l; i++) {
-            if (v.vval()->At(i).True()) { r = Value(true); break; }
+            if (v.vval()->AtS(i).True()) { r = Value(true); break; }
         }
         return r;
     });
@@ -408,7 +408,7 @@ nfr("all", "xs", "A]*", "B",
     [](StackPtr &, VM &, Value v) {
         Value r(true);
         for (iint i = 0; i < v.vval()->len; i++) {
-            if (v.vval()->At(i).False()) { r = Value(false); break; }
+            if (v.vval()->AtS(i).False()) { r = Value(false); break; }
         }
         return r;
     });
@@ -546,7 +546,7 @@ nfr("unicode_to_string", "us", "I]", "S",
         char buf[7];
         string s;
         for (iint i = 0; i < v.vval()->len; i++) {
-            auto &c = v.vval()->At(i);
+            auto c = v.vval()->AtS(i);
             ToUTF8((int)c.ival(), buf);
             s += buf;
         }
@@ -636,7 +636,7 @@ nfr("concat_string", "v,sep", "S]S", "S",
         auto sepsv = sep.sval()->strv();
         for (iint i = 0; i < v.vval()->len; i++) {
             if (i) s.append(sepsv);
-            auto esv = v.vval()->At(i).sval()->strv();
+            auto esv = v.vval()->AtS(i).sval()->strv();
             s.append(esv);
         }
         return Value(vm.NewString(s));
@@ -1051,12 +1051,12 @@ nfr("min", "v", "F}", "F",
 nfr("min", "v", "I]", "I",
     "smallest component of a int vector, or INT_MAX if length 0.",
     [](StackPtr &, VM &, Value x) {
-        VECSCALAROP(iint, INT_MAX, v = std::min(v, f.ival()), vval, len, At(i))
+        VECSCALAROP(iint, INT_MAX, v = std::min(v, f.ival()), vval, len, AtS(i))
     });
 nfr("min", "v", "F]", "F",
     "smallest component of a float vector, or FLT_MAX if length 0.",
     [](StackPtr &, VM &, Value x) {
-        VECSCALAROP(double, FLT_MAX, v = std::min(v, f.fval()), vval, len, At(i))
+        VECSCALAROP(double, FLT_MAX, v = std::min(v, f.fval()), vval, len, AtS(i))
     });
 
 nfr("max", "x,y", "II", "I",
@@ -1096,12 +1096,12 @@ nfr("max", "v", "F}", "F",
 nfr("max", "v", "I]", "I",
     "largest component of a int vector, or INT_MIN if length 0.",
     [](StackPtr &, VM &, Value x) {
-        VECSCALAROP(iint, INT_MIN, v = std::max(v, f.ival()), vval, len, At(i))
+        VECSCALAROP(iint, INT_MIN, v = std::max(v, f.ival()), vval, len, AtS(i))
     });
 nfr("max", "v", "F]", "F",
     "largest component of a float vector, or FLT_MIN if length 0.",
     [](StackPtr &, VM &, Value x) {
-        VECSCALAROP(double, FLT_MIN, v = std::max(v, f.fval()), vval, len, At(i))
+        VECSCALAROP(double, FLT_MIN, v = std::max(v, f.fval()), vval, len, AtS(i))
     });
 
 nfr("popcount", "x", "I", "I",
@@ -1225,7 +1225,7 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
             minpos = min(minpos, p);
             maxpos = max(maxpos, p);
             n.pos = p;
-            auto r = radiuses2->At(i).fval();
+            auto r = radiuses2->AtS(i).fval();
             maxrad = std::max(maxrad, r);
             n.rad = r;
             n.idx = i;
@@ -1248,7 +1248,7 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
         vector<LVector *> results(positions1->SLen(), nullptr);
         for (ssize_t i = 0; i < positions1->SLen(); i++) {
             auto pos = ValueToF<2>(positions1->AtSt(i), positions1->width);
-            auto rad = radiuses1->At(i).fval();
+            auto rad = radiuses1->AtS(i).fval();
             auto scanrad = rad + maxrad + qdist;
             auto minc = max(iint2_0, min(ncelld - 1, tocellspace(pos - scanrad)));
             auto maxc = max(iint2_0, min(ncelld - 1, tocellspace(pos + scanrad)));
@@ -1288,7 +1288,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         vector<const char *> inmap(rows);
         iint cols = 0;
         for (ssize_t i = 0; i < rows; i++) {
-            auto sv = tilemap.vval()->At(i).sval()->strv();
+            auto sv = tilemap.vval()->AtS(i).sval()->strv();
             if (i) {
                 if (ssize(sv) != cols)
                     vm.BuiltinError("all columns must be equal length");
@@ -1298,7 +1298,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         }
         auto outstrings = ToValueOfVectorOfStringsEmpty(vm, sz, 0);
         vector<char *> outmap(sz.y, nullptr);
-        for (int i = 0; i < sz.y; i++) outmap[i] = (char *)outstrings.vval()->At(i).sval()->data();
+        for (int i = 0; i < sz.y; i++) outmap[i] = (char *)outstrings.vval()->AtS(i).sval()->data();
         int num_contradictions = 0;
         auto ok = WaveFunctionCollapse(int2(iint2(cols, ssize(inmap))), inmap.data(), sz, outmap.data(),
                                        rndx, num_contradictions);
@@ -1454,19 +1454,19 @@ nfr("date_time", "utc", "B?", "I]",
         auto time = std::time(nullptr);
         const iint num_elems = 9;
         auto v = vm.NewVec(num_elems, num_elems, TYPE_ELEM_VECTOR_OF_INT);
-        for (iint i = 0; i < num_elems; i++) v->At(i) = -1;
+        for (iint i = 0; i < num_elems; i++) v->AtSR(i) = -1;
         if (!time) return Value(v);
-        v->At(0) = (iint)time; // unix epoch in seconds
+        v->AtSR(0) = (iint)time; // unix epoch in seconds
         auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
         if (!tm) return Value(v);
-        v->At(1) = tm->tm_year;
-        v->At(2) = tm->tm_mon;
-        v->At(3) = tm->tm_mday;
-        v->At(4) = tm->tm_yday;
-        v->At(5) = tm->tm_wday;
-        v->At(6) = tm->tm_hour;
-        v->At(7) = tm->tm_min;
-        v->At(8) = tm->tm_sec;
+        v->AtSR(1) = tm->tm_year;
+        v->AtSR(2) = tm->tm_mon;
+        v->AtSR(3) = tm->tm_mday;
+        v->AtSR(4) = tm->tm_yday;
+        v->AtSR(5) = tm->tm_wday;
+        v->AtSR(6) = tm->tm_hour;
+        v->AtSR(7) = tm->tm_min;
+        v->AtSR(8) = tm->tm_sec;
         return Value(v);
     });
 

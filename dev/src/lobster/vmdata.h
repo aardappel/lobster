@@ -810,7 +810,11 @@ struct LVector : RefObj {
     Value *Elems() { return v; }
     const Value *Elems() const { return v; }
 
-    Value &At(iint i) const {
+    Value &AtSR(iint i) {
+        assert(i < len && width == 1);
+        return v[i];
+    }
+    Value AtS(iint i) const {
         assert(i < len && width == 1);
         return v[i];
     }
@@ -1316,7 +1320,7 @@ template<typename T> inline T &GetResourceDec(Value val, const ResourceType *typ
 
 inline vector<string> ValueToVectorOfStrings(Value v) {
     vector<string> r;
-    for (int i = 0; i < v.vval()->len; i++) r.push_back(string(v.vval()->At(i).sval()->strv()));
+    for (int i = 0; i < v.vval()->len; i++) r.push_back(string(v.vval()->AtS(i).sval()->strv()));
     return r;
 }
 
