@@ -137,7 +137,7 @@ bool BitmapFont::CacheChars(string_view text) {
     int texh = 1;
     while (texh <= (int)image.size() / texw)
         texh *= 2;
-    while (image.size() < texh * texw) {
+    while (image.size() < (size_t)texh * (size_t)texw) {
         image.push_back(byte4_0);
     }
     tex = CreateTexture("font_atlas", &image[0].x, int3(texw, texh, 0), TF_CLAMP | TF_NOMIPMAP);
