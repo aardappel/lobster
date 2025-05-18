@@ -88,8 +88,8 @@ void Geometry::Init(string_view name, const void *verts) {
             case 'P': {
                 for (size_t i = 0; i < nverts; i++) {
                     auto p = (float3 *)(vertsize * i + offset + (char *)verts);
-                    vmin = std::min(vmin, *p);
-                    vmax = std::max(vmax, *p);
+                    vmin = geom::min(vmin, *p);
+                    vmax = geom::max(vmax, *p);
                 }
                 SETATTRIB(VATRR_POS, 3, GL_FLOAT, false, 12)
             }
