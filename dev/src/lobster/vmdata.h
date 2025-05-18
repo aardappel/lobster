@@ -786,11 +786,6 @@ struct LVector : RefObj {
         tsnz_memcpy(dest, v + len * width, width);
     }
 
-    Value &Top() const {
-        assert(width == 1);
-        return v[len - 1];
-    }
-
     void TopVW(Value *dest) const {
         tsnz_memcpy(dest, v + (len - 1) * width, width);
     }
@@ -819,7 +814,7 @@ struct LVector : RefObj {
         return v[i];
     }
 
-    Value &AtSub(iint i, int off) const {
+    Value AtSub(iint i, int off) const {
         assert(i < len);
         return v[i * width + off];
     }
@@ -829,7 +824,11 @@ struct LVector : RefObj {
         return v + i * width;
     }
 
-    Value &AtSlot(iint i) const {
+    Value &AtSlotR(iint i) {
+        assert(i < len * width);
+        return v[i];
+    }
+    Value AtSlot(iint i) const {
         assert(i < len * width);
         return v[i];
     }
@@ -861,7 +860,8 @@ struct LVector : RefObj {
             if (eti.t != V_STRUCT_R || (1 << j) & eti.vtable_start_or_bitmask) {
                 for (iint i = 0; i < len; i++) {
                     auto l = i * width + j;
-                    AtSlot(l) = AtSlot(l).CopyRef(vm, depth);
+                    auto &slot = AtSlotR(l);
+                    slot = slot.CopyRef(vm, depth);
                 }
             }
         }
@@ -1112,8 +1112,9 @@ struct VMAllocator {
 
 VM_INLINE void Push(StackPtr &sp, Value v) { *sp++ = v; }
 VM_INLINE Value Pop(StackPtr &sp) { return *--sp; }
-VM_INLINE Value &Top(StackPtr sp) { return *(sp - 1); }
-VM_INLINE Value &TopM(StackPtr sp, iint n) { return *(sp - (n + 1)); }
+VM_INLINE Value Top(StackPtr sp) { return *(sp - 1); }
+VM_INLINE Value TopM(StackPtr sp, iint n) { return *(sp - (n + 1)); }
+VM_INLINE Value &TopMR(StackPtr sp, iint n) { return *(sp - (n + 1)); }
 VM_INLINE Value *TopPtr(StackPtr sp) { return sp; }
 VM_INLINE void PushN(StackPtr &sp, iint n) { sp += n; }
 VM_INLINE void PopN(StackPtr &sp, iint n) { sp -= n; }

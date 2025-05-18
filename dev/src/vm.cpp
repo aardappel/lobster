@@ -705,7 +705,7 @@ void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {
 }
 
 iint VM::GrabIndex(StackPtr &sp, int len) {
-    auto &v = TopM(sp, len);
+    auto &v = TopMR(sp, len);
     for (len--; ; len--) {
         auto sidx = Pop(sp).ival();
         if (!len) return sidx;

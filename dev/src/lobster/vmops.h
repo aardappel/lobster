@@ -209,7 +209,7 @@ VM_INLINE void U_EXIT(VM &vm, StackPtr sp, int tidx) {
 }
 
 VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
-    auto &i = TopM(sp, 1);
+    auto &i = TopMR(sp, 1);
     TYPE_ASSERT(i.type == V_INT);
     i.setival(i.ival() + 1);
     if (i.ival() >= len) {
@@ -220,7 +220,7 @@ VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
 }
 
 #define FORELEM(L) \
-    auto &iter = Top(sp); \
+    auto iter = Top(sp); \
     auto i = TopM(sp, 1).ival(); \
     assert(i < L);
 
@@ -248,7 +248,7 @@ VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp, int bitmask) {
 }
 
 VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
-    auto &i = TopM(sp, 1);  // This relies on for being inlined, otherwise it would be 2.
+    auto i = TopM(sp, 1);  // This relies on for being inlined, otherwise it would be 2.
     TYPE_ASSERT(i.type == V_INT);
     Push(sp, i);
 }
