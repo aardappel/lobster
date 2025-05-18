@@ -26,7 +26,7 @@ class MersenneTwister {
     uint32_t mixBits(uint32_t u, uint32_t v) { return hiBit(u) | loBits(v); }
 
     uint32_t state[N + 1];
-    uint32_t *next;
+    uint32_t *next = nullptr;
     int left = -1;
 
     public:

@@ -74,8 +74,8 @@ struct TypeChecker {
     Parser &parser;
     SymbolTable &st;
     struct Scope {
-        SubFunction *sf;
-        const Node *call_context;
+        SubFunction *sf = nullptr;
+        const Node *call_context = nullptr;
         int loop_count = 0;
         vector<Member *> scoped_fields;
     };

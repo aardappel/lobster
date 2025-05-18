@@ -139,7 +139,7 @@ struct NAME : Node { \
 };
 
 struct Unary : Node {
-    Node *child;
+    Node *child = nullptr;
     Unary(const Line &ln, Node *_a) : Node(ln), child(_a) {}
     ~Unary() { delete child; }
     size_t Arity() const { return 1; }
@@ -191,7 +191,9 @@ struct NAME : BinOp { \
 
 #define TERNARY_NODE_T(NAME, STR, SE, AT, A, BT, B, CT, C, METHODS) \
 struct NAME : Node { \
-    AT *A; BT *B; CT *C; \
+    AT *A = nullptr; \
+    BT *B = nullptr; \
+    CT *C = nullptr; \
     NAME(const Line &ln, AT *_a, BT *_b, CT *_c) : Node(ln), A(_a), B(_b), C(_c) {} \
     ~NAME() { delete A; delete B; delete C; } \
     size_t Arity() const { return 3; } \

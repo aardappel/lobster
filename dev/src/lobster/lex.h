@@ -41,7 +41,10 @@ struct LoadedFile : Line {
     vector<pair<int, bool>> indentstack;
     const char *prevline = nullptr, *prevlinetok = nullptr;
 
-    struct Tok { TType t; string_view a; };
+    struct Tok {
+        TType t = T_NONE;
+        string_view a;
+    };
 
     vector<Tok> gentokens;
 
@@ -239,7 +242,7 @@ struct Lex : LoadedFile {
         line = tokline;
         islf = false;
         whitespacebefore = 0;
-        char c;
+        char c = 0;
         for (;;) switch (tokenstart = p, c = *p++) {
             case '\0':
                 p--;
@@ -291,7 +294,9 @@ struct Lex : LoadedFile {
             case ';':
                 Error("\';\' isn\'t used as a statement terminator");
 
-            case ',': cont = true; return T_COMMA;
+            case ',':
+                cont = true;
+                return T_COMMA;
 
             #define secondb(s, t, b) if (*p == s) { p++; b; return t; }
             #define second(s, t) secondb(s, t, {})
