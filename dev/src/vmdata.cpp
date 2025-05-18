@@ -204,7 +204,7 @@ void LVector::DeleteSelf(VM &vm) {
 void LObject::DeleteSelf(VM &vm) {
     auto len = Len(vm);
     for (iint i = 0; i < len; i++) {
-        AtS(i).LTDECTYPE(vm, ElemTypeS(vm, i).t);
+        At(i).LTDECTYPE(vm, ElemTypeS(vm, i).t);
     }
     vm.pool.dealloc(this, ssizeof<LObject>() + ssizeof<Value>() * len);
 }

@@ -43,13 +43,13 @@ static int ObjectCompare(Value a, Value b) {
 
 static int FirstStringCompare(Value key, Value elem) {
     auto _a = key.sval()->strv();
-    auto _b = elem.oval()->AtS(0).sval()->strv();
+    auto _b = elem.oval()->At(0).sval()->strv();
     return (_a > _b) - (_b > _a);
 }
 
 static int FirstObjectCompare(Value key, Value elem) {
     auto _a = key.any();
-    auto _b = elem.oval()->AtS(0).any();
+    auto _b = elem.oval()->At(0).any();
     return _a < _b ? -1 : _a > _b;
 }
 
@@ -1422,7 +1422,7 @@ nfr("type_field_value", "obj,idx", "AI", "S",
         auto &ti = a.ref()->ti(vm);
         if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
             auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
-            Push(sp, vm.ToString(a.oval()->AtS(i), sti));
+            Push(sp, vm.ToString(a.oval()->At(i), sti));
         } else {
             Push(sp, vm.NewString(0));
         }

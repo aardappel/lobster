@@ -680,7 +680,10 @@ struct LObject : RefObj {
     Value *Elems() const { return (Value *)(this + 1); }
 
     // This may only be called from a context where i < len has already been ensured/asserted.
-    Value &AtS(iint i) const {
+    Value At(iint i) const {
+        return Elems()[i];
+    }
+    Value &AtR(iint i) {
         return Elems()[i];
     }
 
@@ -700,7 +703,7 @@ struct LObject : RefObj {
         assert(len == o.Len(vm));
         for (iint i = 0; i < len; i++) {
             auto et = ElemTypeS(vm, i).t;
-            if (!AtS(i).Equal(vm, et, o.AtS(i), et, true))
+            if (!At(i).Equal(vm, et, o.At(i), et, true))
                 return false;
         }
         return true;
@@ -712,13 +715,13 @@ struct LObject : RefObj {
 
     void IncRefElems(VM &vm, iint len) {
         for (iint i = 0; i < len; i++) {
-            AtS(i).LTINCTYPE(ElemTypeS(vm, i).t);
+            At(i).LTINCTYPE(ElemTypeS(vm, i).t);
         }
     }
 
     void CopyRefElemsDeep(VM &vm, iint len, iint depth) {
         for (iint i = 0; i < len; i++) {
-            if (IsRefNil(ElemTypeS(vm, i).t)) AtS(i) = AtS(i).CopyRef(vm, depth);
+            if (IsRefNil(ElemTypeS(vm, i).t)) AtR(i) = At(i).CopyRef(vm, depth);
         }
     }
 
@@ -1311,7 +1314,7 @@ template<typename T> inline T &GetResourceDec(Value val, const ResourceType *typ
     return *(T *)x->res;
 }
 
-inline vector<string> ValueToVectorOfStrings(Value &v) {
+inline vector<string> ValueToVectorOfStrings(Value v) {
     vector<string> r;
     for (int i = 0; i < v.vval()->len; i++) r.push_back(string(v.vval()->At(i).sval()->strv()));
     return r;

@@ -85,13 +85,13 @@ VM_INLINE Value &GetFieldLVal(VM &vm, StackPtr &sp, iint i) {
     #else
         (void)vm;
     #endif
-    return vec.oval()->AtS(i);
+    return vec.oval()->AtR(i);
 }
 
 VM_INLINE Value &GetFieldILVal(VM &vm, StackPtr &sp, iint i) {
     Value vec = Pop(sp);
     RANGECHECK(vm, i, vec.oval()->Len(vm), vec.oval());
-    return vec.oval()->AtS(i);
+    return vec.oval()->AtR(i);
 }
 
 VM_INLINE Value &GetVecLVal(VM &vm, StackPtr &sp, iint i) {
@@ -652,7 +652,7 @@ VM_INLINE void U_PUSHFLD(VM &vm, StackPtr sp, int i) {
     Value r = Pop(sp);
     VMASSERT(vm, r.ref());
     assert(i < r.oval()->Len(vm));
-    Push(sp, r.oval()->AtS(i));
+    Push(sp, r.oval()->At(i));
 }
 VM_INLINE void U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
     Value r = Pop(sp);
@@ -661,14 +661,14 @@ VM_INLINE void U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
     } else {
         assert(i < r.oval()->Len(vm));
         (void)vm;
-        Push(sp, r.oval()->AtS(i));
+        Push(sp, r.oval()->At(i));
     }
 }
 VM_INLINE void U_PUSHFLD2V(VM &vm, StackPtr sp, int i, int l) {
     Value r = Pop(sp);
     VMASSERT(vm, r.ref());
     assert(i + l <= r.oval()->Len(vm));
-    tsnz_memcpy(TopPtr(sp), &r.oval()->AtS(i), l);
+    tsnz_memcpy(TopPtr(sp), &r.oval()->AtR(i), l);
     PushN(sp, l);
 }
 VM_INLINE void U_PUSHFLDV(VM &, StackPtr sp, int i, int l) {
@@ -771,7 +771,7 @@ VM_INLINE bool U_JUMPIFSTATICLF(VM &vm, StackPtr, int vidx) {
 
 VM_INLINE bool U_JUMPIFMEMBERLF(VM &vm, StackPtr sp, int slot) {
     auto self = Pop(sp).oval();
-    auto &v = self->AtS(slot);
+    auto &v = self->AtR(slot);
     auto jump = v.ival() < vm.frame_count;
     v = vm.frame_count + 1;
     return jump;
