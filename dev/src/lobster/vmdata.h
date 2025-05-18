@@ -461,6 +461,11 @@ struct Value {
     // supplying a default constructor that initializes to 0/V_UNDEFINED would lead to
     // cases where silently these are used, causing inefficiency (and errors).
     // Instead, in the few places you actually need a default value, use NoVal() or NilVal().
+    #if VM_JIT_MODE==0
+    // FIXME: Sadly, we rely on uninitialized Value's for a certain level of optimization in
+    // the C++ AOT builds.
+    Value() {}
+    #endif
 
     // We underlying types here, because types like int64_t etc can be defined as different types
     // on different platforms, causing ambiguities between multiple types that are long or long long
