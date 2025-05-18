@@ -28,7 +28,7 @@ struct LValContext {
         auto idr = Is<IdentRef>(t);
         sid = idr ? idr->sid : nullptr;
     }
-    bool IsValid() { return sid; }
+    bool IsValid() const { return sid; }
     bool DerefsEqual(const LValContext &o) {
         if (derefs.size() != o.derefs.size()) return false;
         for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
@@ -160,7 +160,7 @@ struct TypeChecker {
         set<Ident *> already_seen;
         if (!scopes.empty()) {
             size_t scope_count = 0;
-            for (auto scope : reverse(scopes)) {
+            for (auto &scope : reverse(scopes)) {
                 if (scope.sf == st.toplevel) continue;
                 err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
                 if (full_error) {
@@ -876,7 +876,7 @@ struct TypeChecker {
     }
 
     void RetVal(TypeRef type, SubFunction *sf, const Node &err) {
-        for (auto isc : reverse(scopes)) {
+        for (auto &isc : reverse(scopes)) {
             if (isc.sf->parent == sf->parent) break;
             // isc.sf is a function in the call chain between the return statement and the
             // function it is returning from. Since we're affecting the return type of the
@@ -1061,7 +1061,7 @@ struct TypeChecker {
     // See if returns produced by an existing specialization are compatible with our current
     // context of functions.
     bool CompatibleReturns(const SubFunction &ssf) {
-        for (auto re : ssf.reuse_return_events) {
+        for (auto &re : ssf.reuse_return_events) {
             auto sf = re.first;
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) {
@@ -1152,7 +1152,7 @@ struct TypeChecker {
         // Apply effects of return statements for functions being reused, see
         // RetVal above.
         for (auto [isf, type] : sf->reuse_return_events) {
-            for (auto isc : reverse(scopes)) {
+            for (auto &isc : reverse(scopes)) {
                 if (isc.sf->parent == isf->parent) {
                     // NOTE: will have to re-apply lifetimes as well if we change
                     // from default of LT_KEEP.
@@ -1711,7 +1711,7 @@ struct TypeChecker {
             // Then see if there's a match if we'd instantiate a generic UDT arg.
             if (matches.empty() && IsUDT(type->t)) {
                 for (auto ov : pickfrom) {
-                    auto arg = ov->sf->giventypes[argidx];  // Want unresolved type.
+                    auto &arg = ov->sf->giventypes[argidx];  // Want unresolved type.
                     if (arg->t == V_UUDT && arg->spec_udt->gudt == &type->udt->g) {
                         matches.push_back(ov);
                     }
@@ -1984,7 +1984,7 @@ struct TypeChecker {
 
     TypeRef UseFlow(const FlowItem &left) {
         if (left.now->Numeric()) return left.now;  // Early out, same as above.
-        for (auto flow : reverse(flowstack)) {
+        for (auto &flow : reverse(flowstack)) {
             if (flow.sid == left.sid &&	flow.DerefsEqual(left)) {
                 return flow.now;
             }
@@ -3320,7 +3320,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
                     // for cases where withcontext1 -> withcontext2 -> lambdaincontext1
                     // or to simply not use withstack items of unrelated callers.
                     Overload *lex_ov = tc.scopes.back().sf->overload;
-                    for (auto wse : reverse(tc.st.withstack)) {
+                    for (auto &wse : reverse(tc.st.withstack)) {
                         bool in_lex_scope = false;
                         for (auto lov = lex_ov; lov; lov = lov->sf->lexical_parent) {
                             if (lov == wse.sf->overload) {

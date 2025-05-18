@@ -552,7 +552,7 @@ struct Define : Unary {
     vector<pair<SpecIdent *, TypeRef>> sids;
     Define(const Line &ln, Node *_a) : Unary(ln, _a) {}
     void Dump(string &sd) const {
-        for (auto p : sids) append(sd, p.first->id->name, " ");
+        for (auto &p : sids) append(sd, p.first->id->name, " ");
         sd += Name();
     }
     bool EqAttr(const Node *) const {
