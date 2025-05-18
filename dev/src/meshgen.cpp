@@ -682,7 +682,7 @@ void AddMeshGen(NativeRegistry &nfr) {
 
 nfr("sphere", "radius", "F", "",
     "a sphere",
-    [](StackPtr &, VM &, Value &rad) {
+    [](StackPtr &, VM &, Value rad) {
         auto s = new IFSphere();
         s->rad = rad.fltval();
         return AddShape(s);
@@ -698,7 +698,7 @@ nfr("cube", "extents", "F}:3", "",
 
 nfr("cylinder", "radius,height", "FF", "",
     "a unit cylinder (height is from center)",
-    [](StackPtr &, VM &, Value &radius, Value &height) {
+    [](StackPtr &, VM &, Value radius, Value height) {
         auto c = new IFCylinder();
         c->radius = radius.fltval();
         c->height = height.fltval();
@@ -707,7 +707,7 @@ nfr("cylinder", "radius,height", "FF", "",
 
 nfr("tapered_cylinder", "bot,top,height", "FFF", "",
     "a cyclinder where you specify the top and bottom radius (height is from center)",
-    [](StackPtr &, VM &, Value &bot, Value &top, Value &height) {
+    [](StackPtr &, VM &, Value bot, Value top, Value height) {
         auto tc = new IFTaperedCylinder();
         tc->bot = bot.fltval();
         tc->top = top.fltval();
@@ -748,7 +748,7 @@ nfr("supertoroid", "R,exponents", "FF}:3", "",
 
 nfr("landscape", "zscale,xyscale", "FF", "",
     "a simplex landscape of unit size",
-    [](StackPtr &, VM &, Value &zscale, Value &xyscale) {
+    [](StackPtr &, VM &, Value zscale, Value xyscale) {
         auto ls = new IFLandscape();
         ls->zscale = zscale.fltval();
         ls->xyscale = xyscale.fltval();
@@ -761,8 +761,8 @@ nfr("set_polygon_reduction", "polyreductionpasses,epsilon,maxtricornerdot", "IFF
     " determines how flat adjacent triangles must be to be reduced, use 0.98 as a good"
     " tradeoff, lower to get more compression. maxtricornerdot avoid very thin triangles, use"
     " 0.95 as a good tradeoff, up to 0.99 to get more compression",
-    [](StackPtr &, VM &, Value &_polyreductionpasses, Value &_epsilon,
-                                        Value &_maxtricornerdot) {
+    [](StackPtr &, VM &, Value _polyreductionpasses, Value _epsilon,
+                                        Value _maxtricornerdot) {
         polyreductionpasses = _polyreductionpasses.intval();
         epsilon = _epsilon.fltval();
         maxtricornerdot = _maxtricornerdot.fltval();
@@ -772,7 +772,7 @@ nfr("set_polygon_reduction", "polyreductionpasses,epsilon,maxtricornerdot", "IFF
 nfr("set_color_noise", "noiseintensity,noisestretch", "FF", "",
     "applies simplex noise to the colors of the model. try 0.3 for intensity."
     " stretch scales the pattern over the model",
-    [](StackPtr &, VM &, Value &_noiseintensity, Value &_noisestretch) {
+    [](StackPtr &, VM &, Value _noiseintensity, Value _noisestretch) {
         noisestretch = _noisestretch.fltval();
         noiseintensity = _noiseintensity.fltval();
         return NilVal();
@@ -782,14 +782,14 @@ nfr("set_vertex_randomize", "factor", "F", "",
     "randomizes all verts produced to give a more organic look and to hide the inherent messy"
     " polygons produced by the algorithm. try 0.15. note that any setting other than 0 will"
     " likely counteract the polygon reduction algorithm",
-    [](StackPtr &, VM &, Value &factor) {
+    [](StackPtr &, VM &, Value factor) {
         randomizeverts = factor.fltval();
         return NilVal();
     });
 
 nfr("set_point_mode", "on", "B", "",
     "generates a point mesh instead of polygons",
-    [](StackPtr &, VM &, Value &aspoints) {
+    [](StackPtr &, VM &, Value aspoints) {
         pointmode = aspoints.True();
         return NilVal();
     });
@@ -799,7 +799,7 @@ nfr("polygonize", "subdiv", "I", "R:mesh",
     " subdiv determines detail and number of polygons (relative to the largest dimension of the"
     " model), try 30.. 300 depending on the subject."
     " values much higher than that will likely make you run out of memory (or take very long).",
-    [](StackPtr &, VM &vm, Value &subdiv) {
+    [](StackPtr &, VM &vm, Value subdiv) {
         return eval_and_polygonize(vm, subdiv.intval(), 0, true);
     });
 
@@ -807,7 +807,7 @@ nfr("convert_to_cubes", "subdiv,zoffset", "II", "R:voxels",
     "returns a cubegen block (see cg_ functions) from past mg commands."
     " subdiv determines detail and number of cubes (relative to the largest dimension of the"
     " model).",
-    [](StackPtr &, VM &vm, Value &subdiv, Value &zoffset) {
+    [](StackPtr &, VM &vm, Value subdiv, Value zoffset) {
         return eval_and_polygonize(vm, subdiv.intval(), zoffset.intval(), false);
     });
 

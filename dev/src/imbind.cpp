@@ -178,7 +178,7 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_TAB:
                 ImGui::EndTabItem();
-                break;            
+                break;
             case N_ID:
                 ImGui::PopID();
                 break;
@@ -949,7 +949,7 @@ void AddIMGUI(NativeRegistry &nfr) {
 
 nfr("init", "dark_style,flags,rounding,border", "B?I?F?F?", "",
     "",
-    [](StackPtr &, VM &vm, Value &darkstyle, Value &flags, Value &rounding, Value &border) {
+    [](StackPtr &, VM &vm, Value darkstyle, Value flags, Value rounding, Value border) {
         if (!IMGUIInit(flags.ival(), darkstyle.True(), rounding.fltval(), border.fltval()))
             vm.BuiltinError("im.init: no window");
         return NilVal();
@@ -958,7 +958,7 @@ nfr("init", "dark_style,flags,rounding,border", "B?I?F?F?", "",
 nfr("add_font", "font_path,size,glyph_ranges", "SFS?", "B",
     "glyph_ranges will activate additional unicode ranges to be rasterized, and can be"
     " Default (most European languages), SimplifiedChinese, Chinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..",
-    [](StackPtr &, VM &vm, Value &fontname, Value &size, Value &glyph_ranges) {
+    [](StackPtr &, VM &vm, Value fontname, Value size, Value glyph_ranges) {
         IsInit(vm, { N_NONE, N_NONE });
         return Value(LoadFont(fontname.sval()->strv(), size.fltval(),
                               glyph_ranges.True() ? glyph_ranges.sval()->strv() : "Default"));
@@ -1283,7 +1283,7 @@ nfr("mouse_clicked", "button", "I", "B",
 
 nfr("text", "label", "S", "",
     "",
-    [](StackPtr &, VM &vm, Value &text) {
+    [](StackPtr &, VM &vm, Value text) {
         IsInit(vm);
         auto &s = *text.sval();
         Text(s.strv());
@@ -1292,7 +1292,7 @@ nfr("text", "label", "S", "",
 
 nfr("text_wrapped", "label", "S", "",
     "",
-    [](StackPtr &, VM &vm, Value &text) {
+    [](StackPtr &, VM &vm, Value text) {
         IsInit(vm);
         auto &s = *text.sval();
         ImGui::TextWrapped("%s", s.strvnt().c_str());
@@ -1301,7 +1301,7 @@ nfr("text_wrapped", "label", "S", "",
 
 nfr("text_bullet", "label", "S", "",
     "",
-    [](StackPtr &, VM &vm, Value &text) {
+    [](StackPtr &, VM &vm, Value text) {
         IsInit(vm);
         auto &s = *text.sval();
         ImGui::BulletText("%s", s.data());
@@ -1342,7 +1342,7 @@ nfr("color_end", "", "", "",
 
 nfr("tooltip", "label", "S", "",
     "",
-    [](StackPtr &, VM &vm, Value &text) {
+    [](StackPtr &, VM &vm, Value text) {
         IsInit(vm);
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
             ImGui::SetTooltip("%s", Label(vm, text));
@@ -1371,7 +1371,7 @@ nfr("tooltip_multi_end", "", "", "",
 
 nfr("checkbox", "label,bool", "SI", "I2",
     "",
-    [](StackPtr &, VM &vm, Value &text, Value &boolval) {
+    [](StackPtr &, VM &vm, Value text, Value boolval) {
         IsInit(vm);
         bool b = boolval.True();
         ImGui::Checkbox(Label(vm, text), &b);
@@ -1380,7 +1380,7 @@ nfr("checkbox", "label,bool", "SI", "I2",
 
 nfr("input_text", "label,str", "SSk", "S",
     "",
-    [](StackPtr &, VM &vm, Value &text, Value &str) {
+    [](StackPtr &, VM &vm, Value text, Value str) {
         IsInit(vm);
         return Value(LStringInputText(vm, Label(vm, text), str.sval()).first);
     });
@@ -1408,14 +1408,14 @@ nfr("input_text", "label,str,flags", "SSkI", "SB",
 
 nfr("input_text_multi_line", "label,str,num_lines", "SSkI", "S",
     "",
-    [](StackPtr &, VM &vm, Value &text, Value &str, Value &num_lines) {
+    [](StackPtr &, VM &vm, Value text, Value str, Value num_lines) {
         IsInit(vm);
         return Value(LStringInputText(vm, Label(vm, text), str.sval(), num_lines.intval()).first);
     });
 
 nfr("input_int", "label,val,min,max", "SIII", "I",
     "",
-    [](StackPtr &, VM &vm, Value &text, Value &val, Value &min, Value &max) {
+    [](StackPtr &, VM &vm, Value text, Value val, Value min, Value max) {
         IsInit(vm);
         ImGui::InputScalar(Label(vm, text), ImGuiDataType_S64, (void *)&val,
                            nullptr, nullptr, "%" PRId64, 0);
@@ -1426,7 +1426,7 @@ nfr("input_int", "label,val,min,max", "SIII", "I",
 
 nfr("input_int", "label,val", "SI", "I",
     "",
-    [](StackPtr &, VM &vm, Value &text, Value &val) {
+    [](StackPtr &, VM &vm, Value text, Value val) {
         IsInit(vm);
         ImGui::InputScalar(Label(vm, text), ImGuiDataType_S64, (void *)&val,
                            nullptr, nullptr, "%" PRId64, 0);
@@ -1435,7 +1435,7 @@ nfr("input_int", "label,val", "SI", "I",
 
 nfr("input_float", "label,val", "SF", "F",
     "",
-    [](StackPtr &, VM &vm, Value &text, Value &val) {
+    [](StackPtr &, VM &vm, Value text, Value val) {
         IsInit(vm);
         return Value(InputFloat(Label(vm, text), val.fval()));
     });
@@ -1443,7 +1443,7 @@ nfr("input_float", "label,val", "SF", "F",
 nfr("radio", "labels,active,horiz", "S]II", "I",
     "active to select which one is activated, -2 for last frame\'s "
     "selection or 0",
-    [](StackPtr &, VM &vm, Value &strs, Value &active, Value &horiz) {
+    [](StackPtr &, VM &vm, Value strs, Value active, Value horiz) {
         IsInit(vm);
         auto v = strs.vval();
         auto act = active.intval();
@@ -1469,7 +1469,7 @@ nfr("progress_bar", "fraction,size,overlay", "FF}:2S", "",
 nfr("combo", "label,labels,active", "SS]I", "I",
     "active to select which one is activated, -2 for last frame\'s "
     "selection or 0",
-    [](StackPtr &, VM &vm, Value &text, Value &strs, Value &active) {
+    [](StackPtr &, VM &vm, Value text, Value strs, Value active) {
         IsInit(vm);
         auto v = strs.vval();
         auto act = active.intval();
@@ -1485,7 +1485,7 @@ nfr("combo", "label,labels,active", "SS]I", "I",
 nfr("listbox", "label,labels,active,height", "SS]II", "I",
     "active to select which one is activated, -1 for no initial selection, -2 for last frame\'s "
     "selection or none",
-    [](StackPtr &, VM &vm, Value &text, Value &strs, Value &active, Value &height) {
+    [](StackPtr &, VM &vm, Value text, Value strs, Value active, Value height) {
         IsInit(vm);
         auto v = strs.vval();
         auto act = active.intval();
@@ -1500,7 +1500,7 @@ nfr("listbox", "label,labels,active,height", "SS]II", "I",
 
 nfr("sliderint", "label,i,min,max", "SIII", "I",
     "",
-    [](StackPtr &, VM &vm, Value &text, Value &integer, Value &min, Value &max) {
+    [](StackPtr &, VM &vm, Value text, Value integer, Value min, Value max) {
         IsInit(vm);
         int i = integer.intval();
         ImGui::SliderInt(Label(vm, text), &i, min.intval(), max.intval());
@@ -1509,7 +1509,7 @@ nfr("sliderint", "label,i,min,max", "SIII", "I",
 
 nfr("sliderfloat", "label,f,min,max", "SFFF", "F",
     "",
-    [](StackPtr &, VM &vm, Value &text, Value &flt, Value &min, Value &max) {
+    [](StackPtr &, VM &vm, Value text, Value flt, Value min, Value max) {
         IsInit(vm);
         float f = flt.fltval();
         ImGui::SliderFloat(Label(vm, text), &f, min.fltval(), max.fltval());
@@ -1999,7 +1999,7 @@ nfr("width_end", "", "", "", "",
     });
 
 nfr("text_table", "id,num_colums,labels", "SIS]", "", "",
-    [](StackPtr &, VM &vm, Value &id, Value &num_colums, Value &labels) {
+    [](StackPtr &, VM &vm, Value id, Value num_colums, Value labels) {
         IsInit(vm);
         auto nc = num_colums.intval();
         if (!ImGui::BeginTable(id.sval()->strvnt().c_str(), nc,
@@ -2018,7 +2018,7 @@ nfr("text_table", "id,num_colums,labels", "SIS]", "", "",
 
 nfr("table_start", "id,num_colums,flags", "SII", "B",
     "(use im.table instead)",
-    [](StackPtr &, VM &vm, Value &id, Value &num_colums, Value &flags) {
+    [](StackPtr &, VM &vm, Value id, Value num_colums, Value flags) {
         IsInit(vm);
         auto nc = num_colums.intval();
         auto visible = ImGui::BeginTable(id.sval()->strvnt().c_str(), nc, flags.intval());
@@ -2028,7 +2028,7 @@ nfr("table_start", "id,num_colums,flags", "SII", "B",
 
 nfr("table_setup_column", "label,flags,init_width_or_weight", "SIF", "",
     "(use im.table instead)",
-    [](StackPtr &, VM &vm, Value &label, Value &flags, Value &init) {
+    [](StackPtr &, VM &vm, Value label, Value flags, Value init) {
         IsInit(vm);
         if (NTop() == N_TABLE)
             ImGui::TableSetupColumn(label.sval()->strvnt().c_str(), flags.intval(), init.fltval());
@@ -2065,7 +2065,7 @@ nfr("table_end", "", "", "",
 
 nfr("edit_anything", "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version",
-    [](StackPtr &, VM &vm, Value &v, Value &label) {
+    [](StackPtr &, VM &vm, Value v, Value label) {
         IsInit(vm);
         // FIXME: would be good to support structs, but that requires typeinfo, not just len.
         auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
@@ -2076,7 +2076,7 @@ nfr("edit_anything", "value,label", "AkS?", "A1",
 
 nfr("graph", "label,values,ishistogram", "SF]I", "",
     "",
-    [](StackPtr &, VM &vm, Value &label, Value &vals, Value &histogram) {
+    [](StackPtr &, VM &vm, Value label, Value vals, Value histogram) {
         IsInit(vm);
         auto getter = [](void *data, int i) -> float {
             return ((Value *)data)[i].fltval();
@@ -2093,7 +2093,7 @@ nfr("graph", "label,values,ishistogram", "SF]I", "",
 
 nfr("show_flexbuffer", "value", "S", "",
     "",
-    [](StackPtr &, VM &vm, Value &v) {
+    [](StackPtr &, VM &vm, Value v) {
         IsInit(vm);
         auto sv = v.sval()->strv();
         auto root = flexbuffers::GetRoot((const uint8_t *)sv.data(), sv.size());
@@ -2129,7 +2129,7 @@ nfr("show_debug_metrics_window", "", "", "",
 
 nfr("show_profiling_stats", "num,reset", "IB", "",
     "",
-    [](StackPtr &, VM &vm, Value &num, Value &reset) {
+    [](StackPtr &, VM &vm, Value num, Value reset) {
         IsInit(vm);
         #if LOBSTER_FRAME_PROFILER == 1
         if (reset.True()) prof_stats.clear();
@@ -2170,7 +2170,7 @@ void AddIMGUIDebug(NativeRegistry & nfr) {
 nfr("breakpoint", "condition", "I", "",
     "stops the program in the debugger if passed true."
     " debugger needs --runtime-stack-trace on, and im.init() to have run.",
-    [](StackPtr &, VM &vm, Value &c) {
+    [](StackPtr &, VM &vm, Value c) {
         if (c.True()) {
             auto err = BreakPoint(vm, "Conditional breakpoint hit!");
             if (!err.empty()) vm.Error(err);

@@ -561,7 +561,7 @@ void VM::DumpStackTraceMemory(const string &err) {
         // Error happened while we were building this stack trace.
         // That may happen if the reason we're dumping the stack trace is because something got in an
         // inconsistent state in the first place.
-        
+
         // It would be cool to make a heroic effort to still output the information already in the
         // FlexBuffer for debugging, but we can't really tell how to repair the information there-in.
         return;
@@ -606,7 +606,7 @@ void VM::VMAssert(const char *what)  {
     SeriousError(string("VM internal assertion failure: ") + what);
 }
 
-void VM::EndEval(StackPtr &, const Value &ret, const TypeInfo &ti) {
+void VM::EndEval(StackPtr &, Value ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret.first, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
@@ -660,7 +660,7 @@ void VM::EvalProgram() {
     #endif
 }
 
-void VM::CallFunctionValue(Value &f) {
+void VM::CallFunctionValue(Value f) {
     auto fv = f.ip();
     fv(*this, nullptr);
 }

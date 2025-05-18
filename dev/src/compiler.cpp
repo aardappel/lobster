@@ -406,8 +406,8 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
         }
         s += is_first_row ? doc_tags[Tags::FirstRow][0] : doc_tags[Tags::Row][0];
         if (!group_subsystem) {
-            s += cat(doc_tags[Tags::Subsystem][0], 
-                    nfr.subsystems[nf->subsystemid], 
+            s += cat(doc_tags[Tags::Subsystem][0],
+                    nfr.subsystems[nf->subsystemid],
                     doc_tags[Tags::Subsystem][1]);
         }
         s += cat(doc_tags[Tags::Name][0], nf->name, doc_tags[Tags::Name][1]);
@@ -475,7 +475,7 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
 
 void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
     string html_tags[16][2] = {
-    /* Doc          */  {"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"                                                        
+    /* Doc          */  {"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
     /*              */   "<html>\n<head>\n<title>lobster builtin function reference</title>\n"
     /*              */   "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
     /*              */   "<style type=\"text/css\">"
@@ -504,7 +504,7 @@ void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
 }
 
 void DumpBuiltinDocJson(NativeRegistry &nfr) {
-    string json_tags[16][2] = { 
+    string json_tags[16][2] = {
     /* Doc          */ {"", ""},
     /* Table        */ {"[", "]"},
     /* Row          */ {",\n{", "}"},
@@ -626,7 +626,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, stri
     #endif
 }
 
-Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value &source, bool stringiscode,
+Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringiscode,
                  vector<string> &&args) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
     #ifdef USE_EXCEPTION_HANDLING
@@ -660,13 +660,13 @@ nfr("compile_run_code", "code,args", "SS]", "SS?",
     " with an error string as second return value, or nil if none. using parse_data(),"
     " two program can communicate more complex data structures even if they don't have the same"
     " version of struct definitions.",
-    [](StackPtr &sp, VM &vm, Value &filename, Value &args) {
+    [](StackPtr &sp, VM &vm, Value filename, Value args) {
         return CompileRun(vm, sp, filename, true, ValueToVectorOfStrings(args));
     });
 
 nfr("compile_run_file", "filename,args", "SS]", "SS?",
     "same as compile_run_code(), only now you pass a filename.",
-    [](StackPtr &sp, VM &vm, Value &filename, Value &args) {
+    [](StackPtr &sp, VM &vm, Value filename, Value args) {
         return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings(args));
     });
 

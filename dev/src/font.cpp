@@ -66,7 +66,7 @@ void AddFont(NativeRegistry &nfr) {
 nfr("set_font_name", "filename", "S", "B",
     "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns"
     " true if success.",
-    [](StackPtr &, VM &vm, Value &fname) {
+    [](StackPtr &, VM &vm, Value fname) {
         extern void TestGL(VM &vm); TestGL(vm);
         auto piname = string(fname.sval()->strv());
         auto faceit = loadedfaces.find(piname);
@@ -123,7 +123,7 @@ nfr("set_font_size", "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
 nfr("set_max_font_size", "size", "I", "",
     "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize"
     " will still work but cause scaled rendering. default 256",
-    [](StackPtr &, VM &, Value &fontsize) {
+    [](StackPtr &, VM &, Value fontsize) {
         maxfontsize = fontsize.intval();
         return NilVal();
     });
@@ -138,7 +138,7 @@ nfr("get_outline_size", "", "", "F",
 
 nfr("text", "text", "S", "Sb",
     "renders a text with the current font (at the current coordinate origin)",
-    [](StackPtr &, VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value s) {
         auto f = curfont;
         if (!f) return vm.BuiltinError("gl.text: no font / font size set");
         if (!s.sval()->len) return s;
@@ -170,21 +170,21 @@ nfr("text_size", "text", "S", "I}:2",
 
 nfr("get_glyph_name", "i", "I", "S",
     "the name of a glyph index, or empty string if the font doesn\'t have names",
-    [](StackPtr &, VM &vm, Value &i) {
+    [](StackPtr &, VM &vm, Value i) {
         return Value(vm.NewString(curface ? curface->GetName(i.intval()) : ""));
     });
 
 nfr("get_char_code", "name", "S", "I",
     "the char code of a glyph by specifying its name, or 0 if it can not be found"
     " (or if the font doesn\'t have names)",
-    [](StackPtr &, VM &, Value &n) {
+    [](StackPtr &, VM &, Value n) {
         return Value(curface ? curface->GetCharCode(n.sval()->strvnt()) : 0);
     });
 
 nfr("use_default_font_shader", "on", "B", "",
     "by default set_font_name sets the use of the \"textured\" shader."
     " With this function you can turn that on/off to use a current shader instead.",
-    [](StackPtr &, VM &vm, Value &on) {
+    [](StackPtr &, VM &vm, Value on) {
         extern void TestGL(VM &vm); TestGL(vm);
         if (on.True())  {
             SetDefaultFontShader();

@@ -267,7 +267,7 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
     }
 }
 
-bool Value::Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const {
+bool Value::Equal(VM &vm, ValueType vtype, Value o, ValueType otype, bool structural) const {
     if (vtype != otype) return false;
     switch (vtype) {
         case V_INT: return ival_ == o.ival_;

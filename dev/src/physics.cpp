@@ -78,7 +78,7 @@ struct PhysicsObject : Resource {
 
 static ResourceType physics_type = { "fixture" };
 
-PhysicsObject &GetObject(const Value &res) {
+PhysicsObject &GetObject(Value res) {
     return GetResourceDec<PhysicsObject>(res, &physics_type);
 }
 
@@ -110,7 +110,7 @@ void CheckParticles(float size = 0.1f) {
     }
 }
 
-b2Body &GetBody(StackPtr &, VM &, Value &id, float2 wpos) {
+b2Body &GetBody(StackPtr &, VM &, Value id, float2 wpos) {
     CheckPhysics();
     b2Body *body = id.True() ? GetObject(id).fixture->GetBody() : nullptr;
     if (!body) {
@@ -133,12 +133,12 @@ b2Vec2 OptionalOffset(StackPtr &sp) {
     return PopB2(sp);
 }
 
-Renderable &GetRenderable(VM &, const Value &id) {
+Renderable &GetRenderable(VM &, Value id) {
     CheckPhysics();
     return id.True() ? GetObject(id).r : *particlematerial;
 }
 
-extern int GetSampler(VM &vm, Value &i);  // from graphics
+extern int GetSampler(VM &vm, Value i);  // from graphics
 
 void AddPhysics(NativeRegistry &nfr) {
 
@@ -203,7 +203,7 @@ nfr("create_polygon", "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:fi
 
 nfr("dynamic", "shape,on", "R:fixtureB", "",
     "makes a shape dynamic (on = true) or not.",
-    [](StackPtr &, VM &, Value &fixture_id, Value &on) {
+    [](StackPtr &, VM &, Value fixture_id, Value on) {
         CheckPhysics();
         GetObject(fixture_id)
             .fixture->GetBody()
@@ -243,7 +243,7 @@ nfr("set_color", "id,color", "R:fixture?F}:4", "",
 
 nfr("set_shader", "id,shadername", "R:fixture?S", "",
     "sets a shape (or nil for particles) to be rendered with a particular shader.",
-    [](StackPtr &, VM &vm, Value &fixture_id, Value &shader) {
+    [](StackPtr &, VM &vm, Value fixture_id, Value shader) {
         auto &r = GetRenderable(vm, fixture_id);
         auto sh = LookupShader(shader.sval()->strv());
         if (sh) r.sh = sh;
@@ -253,9 +253,9 @@ nfr("set_shader", "id,shadername", "R:fixture?S", "",
 nfr("set_texture", "id,tex,texunit", "R:fixture?R:textureI?", "",
     "sets a shape (or nil for particles) to be rendered with a particular texture"
     " (assigned to a texture unit, default 0).",
-    [](StackPtr &, VM &vm, Value &fixture_id, Value &tex, Value &tex_unit) {
+    [](StackPtr &, VM &vm, Value fixture_id, Value tex, Value tex_unit) {
         auto &r = GetRenderable(vm, fixture_id);
-        extern Texture GetTexture(const Value &res);
+        extern Texture GetTexture(Value res);
         r.Get(GetSampler(vm, tex_unit)) = GetTexture(tex);
         return NilVal();
     });
@@ -304,7 +304,7 @@ nfr("create_particle_circle", "position,radius,color,flags", "F}:2FF}:4I?", "",
 
 nfr("initialize_particles", "radius", "F", "",
     "initializes the particle system with a given particle radius.",
-    [](StackPtr &, VM &, Value &size) {
+    [](StackPtr &, VM &, Value size) {
         CheckParticles(size.fltval());
         return NilVal();
     });
@@ -313,7 +313,7 @@ nfr("step", "seconds,viter,piter", "FII", "",
     "simulates the physical world for the given period (try: gl.delta_time()). You can specify"
     " the amount of velocity/position iterations per step, more means more accurate but also"
     " more expensive computationally (try 8 and 3).",
-    [](StackPtr &, VM &, Value &delta, Value &viter, Value &piter) {
+    [](StackPtr &, VM &, Value delta, Value viter, Value piter) {
         CheckPhysics();
         world->Step(min(delta.fltval(), 0.1f), viter.intval(), piter.intval());
         if (particlesystem) {
@@ -337,7 +337,7 @@ nfr("step", "seconds,viter,piter", "FII", "",
 nfr("particle_contacts", "id", "R:fixture", "I]",
     "gets the particle indices that are currently contacting a giving physics object."
     " Call after step(). Indices may be invalid after next step().",
-    [](StackPtr &, VM &vm, Value &id) {
+    [](StackPtr &, VM &vm, Value id) {
         CheckPhysics();
         auto &po = GetObject(id);
         if (!po.particle_contacts) po.particle_contacts = new vector<int>();
@@ -377,7 +377,7 @@ nfr("raycast", "p1,p2,n", "F}:2F}:2I", "I]",
 nfr("delete_particle", "i", "I", "",
     "deletes given particle. Deleting particles causes indices to be invalidated at next"
     " step().",
-    [](StackPtr &, VM &, Value &i) {
+    [](StackPtr &, VM &, Value i) {
         CheckPhysics();
         particlesystem->DestroyParticle(i.intval());
         return NilVal();
@@ -436,7 +436,7 @@ nfr("render", "", "", "",
 
 nfr("render_particles", "scale", "F", "",
     "render all particles, with the given scale.",
-    [](StackPtr &, VM &, Value &particlescale) {
+    [](StackPtr &, VM &, Value particlescale) {
         CheckPhysics();
         if (!particlesystem) return NilVal();
         auto num = particlesystem->GetParticleCount();

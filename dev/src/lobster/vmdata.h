@@ -526,7 +526,7 @@ struct Value {
     void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const;
     void ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const;
 
-    bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
+    bool Equal(VM &vm, ValueType vtype, Value o, ValueType otype, bool structural) const;
     uint64_t Hash(VM &vm, ValueType vtype);
     Value CopyRef(VM &vm, iint depth);
 };
@@ -665,7 +665,7 @@ template<typename T, int N> struct InlineVec {
         #else
             for (int i = 0; i < N; i++) {
                 v[i] = valstore[i];
-            }            
+            }
         #endif
     }
 };
@@ -763,7 +763,7 @@ struct LVector : RefObj {
         if (newmax > maxl) Resize(vm, newmax);
     }
 
-    void Push(VM &vm, const Value &val) {
+    void Push(VM &vm, Value val) {
         assert(width == 1);
         if (len == maxl) Resize(vm, maxl ? maxl * 2 : 4);
         v[len++] = val;
@@ -1051,13 +1051,13 @@ struct VM : VMArgs {
     Value WorkerRead(type_elem_t tti);
     Value WorkerCheck(type_elem_t tti);
 
-    void EndEval(StackPtr &sp, const Value &ret, const TypeInfo &ti);
+    void EndEval(StackPtr &sp, Value ret, const TypeInfo &ti);
 
     void EvalProgram();
 
     void FrameStart() { frame_count++; }
 
-    void CallFunctionValue(Value &f);
+    void CallFunctionValue(Value f);
 
     void LvalueIdxVector(int lvalop, iint i);
     void LvalueIdxStruct(int lvalop, iint i);
@@ -1082,7 +1082,7 @@ struct VM : VMArgs {
 
     double Time() { return SecondsSinceStart(); }
 
-    Value ToString(const Value &a, const TypeInfo &ti) {
+    Value ToString(Value a, const TypeInfo &ti) {
         s_reuse.clear();
         a.ToString(*this, s_reuse, ti, programprintprefs);
         return NewString(s_reuse);
@@ -1302,7 +1302,7 @@ template <typename T, int N> inline void ToValue(Value *dest, iint width, const 
     for (iint i = 0; i < width; i++) dest[i] = i < N ? v.c[i] : 0;
 }
 
-inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {
+inline iint RangeCheck(VM &vm, Value idx, iint range, iint bias = 0) {
     auto i = idx.ival();
     if (i < bias || i >= bias + range)
         vm.BuiltinError(cat("index out of range [", bias, "..", bias + range, "): ", i));
@@ -1310,7 +1310,7 @@ inline iint RangeCheck(VM &vm, const Value &idx, iint range, iint bias = 0) {
 }
 
 
-template<typename T> inline T &GetResourceDec(const Value &val, const ResourceType *type) {
+template<typename T> inline T &GetResourceDec(Value val, const ResourceType *type) {
     assert(val.True());
     auto x = val.xval();
     assert(x->type == type);  // If hit, the `R:type` you specified is not the same as `type`.

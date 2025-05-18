@@ -280,7 +280,7 @@ void MyNativeOps(NativeRegistry &nfr) {
 
     nfr("add", "x,y", "II", "I",
         "Adds two integers.",
-        [](StackPtr &, VM &, Value &x, Value &y) {
+        [](StackPtr &, VM &, Value x, Value y) {
             return Value(x.ival() + y.ival());
         });
 

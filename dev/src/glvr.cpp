@@ -266,7 +266,7 @@ Mesh *VRCreateMesh(uint32_t device) {
 
 using namespace lobster;
 
-MotionController *GetMC(const Value &mc) {
+MotionController *GetMC(Value mc) {
     auto n = mc.ival();
     return n >= 0 && n < (int)motioncontrollers.size()
         ? &motioncontrollers[n]
@@ -275,7 +275,7 @@ MotionController *GetMC(const Value &mc) {
 
 #ifdef PLATFORM_VR
 
-vr::EVRButtonId GetButtonId(VM &vm, Value &button) {
+vr::EVRButtonId GetButtonId(VM &vm, Value button) {
     auto it = button_ids.find(button.sval()->strv());
     if (it == button_ids.end())
         vm.BuiltinError("unknown button name: " + button.sval()->strv());
@@ -295,7 +295,7 @@ nfr("init", "", "", "B",
 nfr("start_eye", "isright,znear,zfar", "IFF", "",
     "starts rendering for an eye. call for each eye, followed by drawing the world as normal."
     " replaces gl.perspective",
-    [](StackPtr &, VM &, Value &isright, Value &znear, Value &zfar) {
+    [](StackPtr &, VM &, Value isright, Value znear, Value zfar) {
         VREye(isright.True(), znear.fltval(), zfar.fltval());
         return NilVal();
     });
@@ -317,8 +317,8 @@ nfr("finish", "", "", "",
 nfr("set_eye_texture", "unit,isright", "II", "",
     "sets the texture for an eye (like gl.set_primitive_texture). call after vr.finish. can be"
     " used to render the non-VR display",
-    [](StackPtr &, VM &vm, Value &unit, Value &isright) {
-        extern int GetSampler(VM &vm, Value &i);
+    [](StackPtr &, VM &vm, Value unit, Value isright) {
+        extern int GetSampler(VM &vm, Value i);
         SetTexture(GetSampler(vm, unit), retex[isright.True()]);
         return NilVal();
     });
@@ -331,7 +331,7 @@ nfr("num_motion_controllers", "", "", "I",
 
 nfr("motioncontrollerstracking", "n", "I", "B",
     "returns if motion controller n is tracking",
-    [](StackPtr &, VM &, Value &mc) {
+    [](StackPtr &, VM &, Value mc) {
         auto mcd = GetMC(mc);
         return Value(mcd && mcd->tracking);
     });
@@ -348,7 +348,7 @@ nfr("motion_controller", "n", "I", "",
 
 nfr("create_motion_controller_mesh", "n", "I", "R:mesh?",
     "returns the mesh for motion controller n, or nil if not available",
-    [](StackPtr &, VM &vm, Value &mc) {
+    [](StackPtr &, VM &vm, Value mc) {
         auto mcd = GetMC(mc);
         extern ResourceType mesh_type;
         return mcd ? Value(vm.NewResource(&mesh_type, VRCreateMesh(mcd->device))) : NilVal();
@@ -360,7 +360,7 @@ nfr("motion_controller_button", "n,button", "IS", "I",
     "returns the button state for motion controller n."
     " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
     " buttons are: system, menu, grip, trigger, touchpad",
-    [](StackPtr &, VM &vm, Value &mc, Value &button) {
+    [](StackPtr &, VM &vm, Value mc, Value button) {
         #ifdef PLATFORM_VR
             auto mcd = GetMC(mc);
             auto mask = ButtonMaskFromId(GetButtonId(vm, button));

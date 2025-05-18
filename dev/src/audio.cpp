@@ -29,7 +29,7 @@ nfr("play_wav", "filename,loops,prio", "SI?I?", "I",
     " prio is the priority of the sound which determines whether it can be deleted or not"
     " in case of too many play function calls (defaults to 0)"
     " returns the assigned channel number (1..8) or 0 on error",
-    [](StackPtr &, VM &, Value &ins, Value &loops, Value &prio) {
+    [](StackPtr &, VM &, Value ins, Value loops, Value prio) {
         int ch = SDLPlaySound(ins.sval()->strv(), SOUND_WAV, 1.0, loops.intval(), prio.intval());
         return Value(ch);
     });
@@ -37,7 +37,7 @@ nfr("play_wav", "filename,loops,prio", "SI?I?", "I",
 nfr("load_wav", "filename", "S", "B",
     "loads a sound the same way play_sound does, but ahead of playback, to avoid any"
     " delays later. returns false on error",
-    [](StackPtr &, VM &, Value &ins) {
+    [](StackPtr &, VM &, Value ins) {
         int ok = SDLLoadSound(ins.sval()->strv(), SOUND_WAV);
         return Value(ok);
     });
@@ -49,7 +49,7 @@ nfr("play_sfxr", "filename,loops,prio", "SI?I?", "I",
     " prio is the priority of the sound which determines whether it can be deleted or not"
     " in case of too many play function calls (defaults to 0)"
     " returns the assigned channel number (1..8) or 0 on error",
-    [](StackPtr &, VM &, Value &ins, Value &loops, Value &prio) {
+    [](StackPtr &, VM &, Value ins, Value loops, Value prio) {
         int ch = SDLPlaySound(ins.sval()->strv(), SOUND_SFXR, 1.0, loops.intval(), prio.intval());
         return Value(ch);
     });
@@ -57,7 +57,7 @@ nfr("play_sfxr", "filename,loops,prio", "SI?I?", "I",
 nfr("load_sfxr", "filename", "S", "B",
     "loads a sound the same way play_sfxr does, but ahead of playback, to avoid any"
     " delays later. returns false on error",
-    [](StackPtr &, VM &, Value &ins) {
+    [](StackPtr &, VM &, Value ins) {
         int ok = SDLLoadSound(ins.sval()->strv(), SOUND_SFXR);
         return Value(ok);
     });
@@ -68,7 +68,7 @@ nfr("play_ogg", "filename,loops,prio", "SI?I?", "I",
     " prio is the priority of the sound which determines whether it can be deleted or not"
     " in case of too many play function calls (defaults to 0)"
     " returns the assigned channel number (1..8) or 0 on error",
-    [](StackPtr &, VM &, Value &ins, Value &loops, Value &prio) {
+    [](StackPtr &, VM &, Value ins, Value loops, Value prio) {
         int ch = SDLPlaySound(ins.sval()->strv(), SOUND_OGG, 1.0, loops.intval(), prio.intval());
         return Value(ch);
     });
@@ -76,7 +76,7 @@ nfr("play_ogg", "filename,loops,prio", "SI?I?", "I",
 nfr("load_ogg", "filename", "S", "B",
     "loads a sound the same way play_ogg does, but ahead of playback, to avoid any"
     " delays later. returns false on error",
-    [](StackPtr &, VM &, Value &ins) {
+    [](StackPtr &, VM &, Value ins) {
         int ok = SDLLoadSound(ins.sval()->strv(), SOUND_OGG);
         return Value(ok);
     });
@@ -85,7 +85,7 @@ nfr("sound_status", "channel", "I", "I",
     "provides the status of the specified sound channel."
     " returns -1 on error or if the channel does not exist, 0 if the channel is free,"
     " 1 if it is playing, and 2 if the channel is active but paused.",
-    [](StackPtr &, VM &, Value &ch) {
+    [](StackPtr &, VM &, Value ch) {
         int ch_idx = ch.intval();
         if (ch_idx > 0) // we disallow 0 (which would then be -1; all channels in SDL_Mixer) because it is our error value!
             return Value(SDLSoundStatus(ch_idx));
@@ -95,7 +95,7 @@ nfr("sound_status", "channel", "I", "I",
 
 nfr("sound_halt", "channel", "I", "",
     "terminates a specific sound channel.",
-    [](StackPtr &, VM &, Value &ch) {
+    [](StackPtr &, VM &, Value ch) {
         int ch_idx = ch.intval();
         if (ch_idx > 0)
             SDLHaltSound(ch_idx);
@@ -104,7 +104,7 @@ nfr("sound_halt", "channel", "I", "",
 
 nfr("sound_pause", "channel", "I", "",
     "pauses the specified sound channel.",
-    [](StackPtr &, VM &, Value &ch) {
+    [](StackPtr &, VM &, Value ch) {
         int ch_idx = ch.intval();
         if (ch_idx > 0)
             SDLPauseSound(ch_idx);
@@ -113,7 +113,7 @@ nfr("sound_pause", "channel", "I", "",
 
 nfr("sound_resume", "channel", "I", "",
     "resumes a sound that was paused.",
-    [](StackPtr &, VM &, Value &ch) {
+    [](StackPtr &, VM &, Value ch) {
         int ch_idx = ch.intval();
         if (ch_idx > 0)
             SDLResumeSound(ch_idx);
@@ -122,7 +122,7 @@ nfr("sound_resume", "channel", "I", "",
 
 nfr("sound_volume", "channel,volume", "IF", "",
     "sets the channel volume in the range 0..1.",
-    [](StackPtr &, VM &, Value &ch, Value &vol) {
+    [](StackPtr &, VM &, Value ch, Value vol) {
         int ch_idx = ch.intval();
         if (ch_idx > 0)
             SDLSetVolume(ch_idx, vol.fltval());
@@ -143,14 +143,14 @@ nfr("sound_position", "channel,vecfromlistener,listenerfwd,attnscale", "IF}:3F}:
 
 nfr("sound_time_length", "channel", "I", "F",
     "returns the length in seconds of the sound playing on this channel",
-    [](StackPtr &, VM &, Value &ch_idx) {
+    [](StackPtr &, VM &, Value ch_idx) {
         float length = SDLGetTimeLength(ch_idx.intval());
         return Value(length);
     });
 
 nfr("text_to_speech", "text", "S", "",
     "Queues up text for async text to speech output. Currently on: win32",
-    [](StackPtr &, VM &, Value &text) {
+    [](StackPtr &, VM &, Value text) {
         QueueTextToSpeech(text.sval()->strv());
         return NilVal();
     });
@@ -166,70 +166,70 @@ nfr("play_music", "filename,loops", "SI?", "I",
     "plays music in many common formats (WAV, MP3, OGG, etc.). the default volume is the max volume (1.0)"
     " loops is the number of repeats to play (-1 repeats endlessly, omit for no repeats)."
     " returns the music id or 0 on error",
-    [](StackPtr &, VM &, Value &ins, Value &loops) {
+    [](StackPtr &, VM &, Value ins, Value loops) {
         int mus_id = SDLPlayMusic(ins.sval()->strv(), loops.intval());
         return Value(mus_id);
     });
 
 nfr("play_music_fade_in", "filename,ms,loops", "SII?", "I",
     "plays music while fading in over ms milliseconds. See play_music for more info.",
-    [](StackPtr &, VM &, Value &ins, Value &ms, Value &loops) {
+    [](StackPtr &, VM &, Value ins, Value ms, Value loops) {
         int mus_id = SDLFadeInMusic(ins.sval()->strv(), loops.intval(), ms.intval());
         return Value(mus_id);
     });
 
 nfr("play_music_cross_fade", "old_mus_id,new_filename,ms,loops", "ISII?", "I",
     "cross-fades new music with existing music over ms milliseconds. See play_music for more info.",
-    [](StackPtr &, VM &, Value &old_mus_id, Value &new_ins, Value &ms, Value &loops) {
+    [](StackPtr &, VM &, Value old_mus_id, Value new_ins, Value ms, Value loops) {
         int new_mus_id = SDLCrossFadeMusic(old_mus_id.intval(), new_ins.sval()->strv(), loops.intval(), ms.intval());
         return Value(new_mus_id);
     });
 
 nfr("music_fade_out", "mus_id,ms", "II", "",
     "fade out music over ms milliseconds.",
-    [](StackPtr &, VM &, Value &mus_id, Value &ms) {
+    [](StackPtr &, VM &, Value mus_id, Value ms) {
         SDLFadeOutMusic(mus_id.intval(), ms.intval());
         return NilVal();
     });
 
 nfr("music_halt", "mus_id", "I", "",
     "stop music with the given id.",
-    [](StackPtr &, VM &, Value &mus_id) {
+    [](StackPtr &, VM &, Value mus_id) {
         SDLHaltMusic(mus_id.intval());
         return NilVal();
     });
 
 nfr("music_pause", "mus_id", "I", "",
     "pause music with the given id.",
-    [](StackPtr &, VM &, Value &mus_id) {
+    [](StackPtr &, VM &, Value mus_id) {
         SDLPauseMusic(mus_id.intval());
         return NilVal();
     });
 
 nfr("music_resume", "mus_id", "I", "",
     "resume music with the given id.",
-    [](StackPtr &, VM &, Value &mus_id) {
+    [](StackPtr &, VM &, Value mus_id) {
         SDLResumeMusic(mus_id.intval());
         return NilVal();
     });
 
 nfr("music_volume", "mus_id,vol", "IF", "",
     "set the music volume in the range 0..1.",
-    [](StackPtr &, VM &, Value &mus_id, Value &vol) {
+    [](StackPtr &, VM &, Value mus_id, Value vol) {
         SDLSetMusicVolume(mus_id.intval(), vol.fltval());
         return NilVal();
     });
 
 nfr("music_is_playing", "mus_id", "I", "B",
     "returns whether the music with the given id has not yet finished. Paused music is still considered to be playing",
-    [](StackPtr &, VM &, Value &mus_id) {
+    [](StackPtr &, VM &, Value mus_id) {
         auto is_playing = SDLMusicIsPlaying(mus_id.intval());
         return Value(is_playing);
     });
 
 nfr("music_set_general_volume", "vol", "F", "",
     "set the general music volume in the range 0..1.",
-    [](StackPtr &, VM &, Value &vol) {
+    [](StackPtr &, VM &, Value vol) {
         SDLSetGeneralMusicVolume(vol.fltval());
         return NilVal();
     });

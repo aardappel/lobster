@@ -344,13 +344,13 @@ struct Narg {
 
 typedef void  (*builtinfV)(StackPtr &sp, VM &vm);
 typedef Value (*builtinf0)(StackPtr &sp, VM &vm);
-typedef Value (*builtinf1)(StackPtr &sp, VM &vm, Value &);
-typedef Value (*builtinf2)(StackPtr &sp, VM &vm, Value &, Value &);
-typedef Value (*builtinf3)(StackPtr &sp, VM &vm, Value &, Value &, Value &);
-typedef Value (*builtinf4)(StackPtr &sp, VM &vm, Value &, Value &, Value &, Value &);
-typedef Value (*builtinf5)(StackPtr &sp, VM &vm, Value &, Value &, Value &, Value &, Value &);
-typedef Value (*builtinf6)(StackPtr &sp, VM &vm, Value &, Value &, Value &, Value &, Value &, Value &);
-typedef Value (*builtinf7)(StackPtr &sp, VM &vm, Value &, Value &, Value &, Value &, Value &, Value &, Value &);
+typedef Value (*builtinf1)(StackPtr &sp, VM &vm, Value);
+typedef Value (*builtinf2)(StackPtr &sp, VM &vm, Value, Value);
+typedef Value (*builtinf3)(StackPtr &sp, VM &vm, Value, Value, Value);
+typedef Value (*builtinf4)(StackPtr &sp, VM &vm, Value, Value, Value, Value);
+typedef Value (*builtinf5)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Value);
+typedef Value (*builtinf6)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Value, Value);
+typedef Value (*builtinf7)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Value, Value, Value);
 
 struct BuiltinPtr {
     union  {

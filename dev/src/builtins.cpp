@@ -23,37 +23,37 @@ namespace lobster {
 static RandomNumberGenerator<MersenneTwister> rndm;
 static RandomNumberGenerator<Xoshiro256SS> rndx;
 
-static int IntCompare(const Value &a, const Value &b) {
+static int IntCompare(Value a, Value b) {
     return a.ival() < b.ival() ? -1 : a.ival() > b.ival();
 }
 
-static int FloatCompare(const Value &a, const Value &b) {
+static int FloatCompare(Value a, Value b) {
     return a.fval() < b.fval() ? -1 : a.fval() > b.fval();
 }
 
-static int StringCompare(const Value &a, const Value &b) {
+static int StringCompare(Value a, Value b) {
     auto _a = a.sval()->strv();
     auto _b = b.sval()->strv();
     return (_a > _b) - (_b > _a);
 }
 
-static int ObjectCompare(const Value &a, const Value &b) {
+static int ObjectCompare(Value a, Value b) {
     return a.any() < b.any() ? -1 : a.any() > b.any();
 }
 
-static int FirstStringCompare(const Value &key, const Value &elem) {
+static int FirstStringCompare(Value key, Value elem) {
     auto _a = key.sval()->strv();
     auto _b = elem.oval()->AtS(0).sval()->strv();
     return (_a > _b) - (_b > _a);
 }
 
-static int FirstObjectCompare(const Value &key, const Value &elem) {
+static int FirstObjectCompare(Value key, Value elem) {
     auto _a = key.any();
     auto _b = elem.oval()->AtS(0).any();
     return _a < _b ? -1 : _a > _b;
 }
 
-template<typename T> Value BinarySearch(StackPtr &sp, Value &l, Value &key, T comparefun) {
+template<typename T> Value BinarySearch(StackPtr &sp, Value l, Value key, T comparefun) {
     iint size = l.vval()->len;
     iint i = 0;
     for (;;) {
@@ -81,7 +81,7 @@ void AddBuiltins(NativeRegistry &nfr) {
 
 nfr("print", "x", "Ss", "",
     "output any value to the console (with linefeed).",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         vm.s_reuse.clear();
         RefToString(vm, vm.s_reuse, a.svalnil(), vm.programprintprefs);
         if (vm.evalret.second) {
@@ -95,14 +95,14 @@ nfr("print", "x", "Ss", "",
 // This is now the identity function, but still useful to force a coercion.
 nfr("string", "x", "Ssk", "S",
     "convert any value to string",
-    [](StackPtr &, VM &, Value &a) {
+    [](StackPtr &, VM &, Value a) {
         return a;
     });
 
 nfr("set_print_depth", "depth", "I", "I",
     "for printing / string conversion: sets max vectors/objects recursion depth (default 10), "
     "returns old value",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto old = vm.programprintprefs.depth;
         vm.programprintprefs.depth = a.ival();
         return Value(old);
@@ -111,7 +111,7 @@ nfr("set_print_depth", "depth", "I", "I",
 nfr("set_print_length", "len", "I", "I",
     "for printing / string conversion: sets max string length (default 100000), "
     "returns old value",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto old = vm.programprintprefs.budget;
         vm.programprintprefs.budget = a.ival();
         return Value(old);
@@ -120,7 +120,7 @@ nfr("set_print_length", "len", "I", "I",
 nfr("set_print_quoted", "quoted", "B", "B",
     "for printing / string conversion: if the top level value is a string, whether to convert"
     " it with escape codes and quotes (default false), returns old value",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto old = vm.programprintprefs.quoted;
         vm.programprintprefs.quoted = a.ival() != 0;
         return Value(old);
@@ -129,7 +129,7 @@ nfr("set_print_quoted", "quoted", "B", "B",
 nfr("set_print_decimals", "decimals", "I", "I",
     "for printing / string conversion: number of decimals for any floating point output"
     " (default -1, meaning all), returns old value",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto old = vm.programprintprefs.decimals;
         vm.programprintprefs.decimals = a.ival();
         return Value(old);
@@ -138,7 +138,7 @@ nfr("set_print_decimals", "decimals", "I", "I",
 nfr("set_print_indent", "spaces", "I", "I",
     "for printing / string conversion: number of spaces to indent with. default is 0:"
     " no indent / no multi-line, returns old value",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto old = vm.programprintprefs.indent;
         vm.programprintprefs.indent = a.intval();
         return Value(old);
@@ -147,7 +147,7 @@ nfr("set_print_indent", "spaces", "I", "I",
 nfr("get_line", "prefix", "S", "S",
     "reads a string from the console if possible (followed by enter). Prefix will be"
     " printed before the input",
-    [](StackPtr &, VM &vm, Value &prefix) {
+    [](StackPtr &, VM &vm, Value prefix) {
         fputs(prefix.sval()->data(), stdout);
         const int MAXSIZE = 1000;
         char buf[MAXSIZE];
@@ -159,7 +159,7 @@ nfr("get_line", "prefix", "S", "S",
 
 nfr("append", "xs,ys", "A]*cA]*u1c", "A]1",
     "creates a new vector by appending all elements of 2 input vectors",
-    [](StackPtr &, VM &vm, Value &v1, Value &v2) {
+    [](StackPtr &, VM &vm, Value v1, Value v2) {
         auto type = v1.vval()->tti;
         auto nv = (LVector *)vm.NewVec(0, v1.vval()->len + v2.vval()->len, type);
         nv->Append(vm, v1.vval(), 0, v1.vval()->len);
@@ -169,7 +169,7 @@ nfr("append", "xs,ys", "A]*cA]*u1c", "A]1",
 
 nfr("append_into", "dest,src", "A]*A]1c", "Ab]1",
     "appends all elements of the second vector into the first",
-    [](StackPtr &, VM &vm, Value &v1, Value &v2) {
+    [](StackPtr &, VM &vm, Value v1, Value v2) {
         v1.vval()->Append(vm, v2.vval(), 0, v2.vval()->len);
         return v1;
     });
@@ -179,27 +179,27 @@ nfr("vector_capacity", "xs,len", "A]*I", "Ab]1",
     " is at least \"len\". Does not actually add (or remove) elements. This function is"
     " just for efficiency in the case the amount of \"push\" operations is known."
     " returns original vector.",
-    [](StackPtr &, VM &vm, Value &vec, Value &len) {
+    [](StackPtr &, VM &vm, Value vec, Value len) {
         vec.vval()->MinCapacity(vm, len.ival());
         return vec;
     });
 
 nfr("length", "x", "I", "I",
     "length of int (identity function, useful in combination with string/vector version)",
-    [](StackPtr &, VM &, Value &a) {
+    [](StackPtr &, VM &, Value a) {
         return a;
     });
 
 nfr("length", "s", "S", "I",
     "length of string",
-    [](StackPtr &, VM &, Value &a) {
+    [](StackPtr &, VM &, Value a) {
         auto len = a.sval()->len;
         return Value(len);
     });
 
 nfr("length", "xs", "A]*", "I",
     "length of vector",
-    [](StackPtr &, VM &, Value &a) {
+    [](StackPtr &, VM &, Value a) {
         auto len = a.vval()->len;
         return Value(len);
     });
@@ -207,7 +207,7 @@ nfr("length", "xs", "A]*", "I",
 nfr("equal", "a,b", "AA", "B",
     "structural equality between any two values (recurses into vectors/objects,"
     " unlike == which is only true for vectors/objects if they are the same object)",
-    [](StackPtr &, VM &vm, Value &a, Value &b) {
+    [](StackPtr &, VM &vm, Value a, Value b) {
         bool eq = RefEqual(vm, a.refnil(), b.refnil(), true);
         return Value(eq);
     });
@@ -278,7 +278,7 @@ nfr("remove_range", "xs,i,n", "A]*II", "",
 
 nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
     "remove all elements equal to obj (==), returns obj.",
-    [](StackPtr &, VM &vm, Value &l, Value &o) {
+    [](StackPtr &, VM &vm, Value l, Value o) {
         auto vt = vm.GetTypeInfo(l.vval()->ti(vm).subt).t;
         for (iint i = 0; i < l.vval()->len; i++) {
             auto e = l.vval()->At(i);
@@ -303,28 +303,28 @@ nfr("binary_search", "xs,key", "I]I", "II",
     " matches were found, and as second the index in the array where the matches start (so you"
     " can read them, overwrite them, or remove them), or if none found, where the key could be"
     " inserted such that the vector stays sorted. This overload is for int vectors and keys.",
-    [](StackPtr &sp, VM &, Value &l, Value &key) {
+    [](StackPtr &sp, VM &, Value l, Value key) {
         auto r = BinarySearch(sp, l, key, IntCompare);
         return r;
     });
 
 nfr("binary_search", "xs,key", "F]F", "II",
     "float version.",
-    [](StackPtr &sp, VM &, Value &l, Value &key) {
+    [](StackPtr &sp, VM &, Value l, Value key) {
         auto r = BinarySearch(sp, l, key, FloatCompare);
         return r;
     });
 
 nfr("binary_search", "xs,key", "S]S", "II",
     "string version.",
-    [](StackPtr &sp, VM &, Value &l, Value &key) {
+    [](StackPtr &sp, VM &, Value l, Value key) {
         auto r = BinarySearch(sp, l, key, StringCompare);
         return r;
     });
 
 nfr("binary_search_object", "xs,key", "A]*A1", "II",
     "object version. compares by reference rather than contents.",
-    [](StackPtr &sp, VM &, Value &l, Value &key) {
+    [](StackPtr &sp, VM &, Value l, Value key) {
         auto r = BinarySearch(sp, l, key, ObjectCompare);
         return r;
     });
@@ -332,7 +332,7 @@ nfr("binary_search_object", "xs,key", "A]*A1", "II",
 // TODO: add int/float versions of this?
 nfr("binary_search_first_field_string", "xs,key", "A]*S", "II",
     "object version where key is the first field (must be string, runtime error if it is not)",
-    [](StackPtr &sp, VM &vm, Value &l, Value &key) {
+    [](StackPtr &sp, VM &vm, Value l, Value key) {
         auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
         if (et.t != V_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != V_STRING)
             vm.BuiltinError(
@@ -343,7 +343,7 @@ nfr("binary_search_first_field_string", "xs,key", "A]*S", "II",
 
 nfr("binary_search_first_field_object", "xs,key", "A]*A", "II",
     "object version where key is the first field (must be object, runtime error if it is not)",
-    [](StackPtr &sp, VM &vm, Value &l, Value &key) {
+    [](StackPtr &sp, VM &vm, Value l, Value key) {
         auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
         if (et.t != V_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != V_CLASS)
             vm.BuiltinError(
@@ -354,21 +354,21 @@ nfr("binary_search_first_field_object", "xs,key", "A]*A", "II",
 
 nfr("copy", "x", "A", "A1",
     "makes a shallow copy of any object/vector/string.",
-    [](StackPtr &, VM &vm, Value &v) {
+    [](StackPtr &, VM &vm, Value v) {
         return v.CopyRef(vm, 1);
     });
 
 nfr("deepcopy", "x,depth", "AI", "A1",
     "makes a deep copy of any object/vector/string. DAGs become trees, and cycles will"
     " clone until it reach the given depth. depth == 1 would do the same as copy.",
-    [](StackPtr &, VM &vm, Value &v, Value &depth) {
+    [](StackPtr &, VM &vm, Value v, Value depth) {
         return v.CopyRef(vm, max((iint)1, depth.ival()));
     });
 
 nfr("slice", "xs,start,size", "A]*II", "A]1",
     "returns a sub-vector of size elements from index start."
     " size can be negative to indicate the rest of the vector.",
-    [](StackPtr &, VM &vm, Value &l, Value &s, Value &e) {
+    [](StackPtr &, VM &vm, Value l, Value s, Value e) {
         auto size = e.ival();
         auto start = s.ival();
         if (start < 0)
@@ -383,7 +383,7 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
 
 nfr("any", "xs", "A]*", "B",
     "returns whether any elements of the vector are true values",
-    [](StackPtr &, VM &, Value &v) {
+    [](StackPtr &, VM &, Value v) {
         Value r(false);
         iint l = v.vval()->len;
         for (auto i = 0; i < l; i++) {
@@ -405,7 +405,7 @@ nfr("any", "xs", "I}", "B",
 
 nfr("all", "xs", "A]*", "B",
     "returns whether all elements of the vector are true values",
-    [](StackPtr &, VM &, Value &v) {
+    [](StackPtr &, VM &, Value v) {
         Value r(true);
         for (iint i = 0; i < v.vval()->len; i++) {
             if (v.vval()->At(i).False()) { r = Value(false); break; }
@@ -427,7 +427,7 @@ nfr("all", "xs", "I}", "B",
 nfr("substring", "s,start,size", "SII", "S",
     "returns a substring of size characters from index start."
     " size can be negative to indicate the rest of the string.",
-    [](StackPtr &, VM &vm, Value &l, Value &s, Value &e) {
+    [](StackPtr &, VM &vm, Value l, Value s, Value e) {
         iint size = e.ival();
         iint start = s.ival();
         if (start < 0) vm.BuiltinError(cat("substring: start cannot be negative: ", start));
@@ -441,14 +441,14 @@ nfr("substring", "s,start,size", "SII", "S",
 nfr("find_string", "s,substr,offset", "SSI?", "I",
     "finds the index at which substr first appears, or -1 if none."
     " optionally start at a position other than 0",
-    [](StackPtr &, VM &, Value &s, Value &sub, Value &offset) {
+    [](StackPtr &, VM &, Value s, Value sub, Value offset) {
         return Value((ssize_t)s.sval()->strv().find(sub.sval()->strv(), (size_t)offset.ival()));
     });
 
 nfr("find_string_reverse", "s,substr,offset", "SSI?", "I",
     "finds the index at which substr first appears when searching from the end, or -1 if none."
     " optionally start at a position other than the end of the string",
-    [](StackPtr &, VM &, Value &s, Value &sub, Value &offset) {
+    [](StackPtr &, VM &, Value s, Value sub, Value offset) {
         auto sv = s.sval()->strv();
         auto lim = offset.ival() ? (size_t)offset.ival() : sv.size();
         // Cut sv, because the "pos" arg to rfind has the weird behavior that it
@@ -461,7 +461,7 @@ nfr("replace_string", "s,a,b,count", "SSSI?", "S",
     "returns a copy of s where all occurrences of a have been replaced with b."
     " if a is empty, no replacements are made."
     " if count is specified, makes at most that many replacements",
-    [](StackPtr &, VM &vm, Value &is, Value &ia, Value &ib, Value &count) {
+    [](StackPtr &, VM &vm, Value is, Value ia, Value ib, Value count) {
         string s;
         auto sv = is.sval()->strv();
         auto a = ia.sval()->strv();
@@ -493,7 +493,7 @@ nfr("string_to_int", "s,base", "SI?", "IB",
     "converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10)."
     "returns 0 if no numeric data could be parsed; second return value is true if all"
     "characters of the string were parsed.",
-    [](StackPtr &sp, VM &vm, Value &s, Value &b) {
+    [](StackPtr &sp, VM &vm, Value s, Value b) {
         int base = b.True() ? b.intval() : 10;
         if (base < 2 || base > 36)
             vm.BuiltinError("string_to_int: values out of range");
@@ -507,7 +507,7 @@ nfr("string_to_int", "s,base", "SI?", "IB",
 nfr("string_to_float", "s", "S", "FB",
     "converts a string to a float. returns 0.0 if no numeric data could be parsed;"
     "second return value is true if all characters of the string were parsed.",
-    [](StackPtr &sp, VM &, Value &s) {
+    [](StackPtr &sp, VM &, Value s) {
         const char *end;
         auto sv = s.sval()->strv();
         auto f = parse_float<double>(sv, &end);
@@ -520,7 +520,7 @@ nfr("tokenize", "s,delimiters,whitespace,dividing", "SSSI?", "S]",
     " terminating delimiter. Segments are stripped of leading and trailing whitespace."
     " Example: \"; A ; B C;; \" becomes [ \"\", \"A\", \"B C\", \"\" ] with \";\" as delimiter and"
     " \" \" as whitespace. If dividing was true, there would be a 5th empty string element.",
-    [](StackPtr &, VM &vm, Value &s, Value &delims, Value &whitespace, Value &dividing) {
+    [](StackPtr &, VM &vm, Value s, Value delims, Value whitespace, Value dividing) {
         auto v = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto ws = whitespace.sval()->strv();
         auto dl = delims.sval()->strv();
@@ -542,7 +542,7 @@ nfr("tokenize", "s,delimiters,whitespace,dividing", "SSSI?", "S]",
 
 nfr("unicode_to_string", "us", "I]", "S",
     "converts a vector of ints representing unicode values to a UTF-8 string.",
-    [](StackPtr &, VM &vm, Value &v) {
+    [](StackPtr &, VM &vm, Value v) {
         char buf[7];
         string s;
         for (iint i = 0; i < v.vval()->len; i++) {
@@ -557,7 +557,7 @@ nfr("string_to_unicode", "s", "S", "I]B",
     "converts a UTF-8 string into a vector of unicode values. second return value is false"
     " if there was a decoding error, and the vector will only contain the characters up to the"
     " error",
-    [](StackPtr &sp, VM &vm, Value &s) {
+    [](StackPtr &sp, VM &vm, Value s) {
         auto v = (LVector *)vm.NewVec(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
         Push(sp, v);
         auto p = s.sval()->strv();
@@ -572,7 +572,7 @@ nfr("string_to_unicode", "s", "S", "I]B",
 nfr("number_to_string", "number,base,minchars", "III", "S",
     "converts the (unsigned version) of the input integer number to a string given the base"
     " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).",
-    [](StackPtr &, VM &vm, Value &n, Value &b, Value &mc) {
+    [](StackPtr &, VM &vm, Value n, Value b, Value mc) {
         if (b.ival() < 2 || b.ival() > 36 || mc.ival() > 32)
             vm.BuiltinError("number_to_string: values out of range");
         auto i = (uint64_t)n.ival();
@@ -587,7 +587,7 @@ nfr("number_to_string", "number,base,minchars", "III", "S",
 
 nfr("lowercase", "s", "S", "S",
     "converts a UTF-8 string from any case to lower case, affecting only A-Z",
-    [](StackPtr &, VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value s) {
         auto ns = vm.NewString(s.sval()->strv());
         for (auto &c : ns->strv()) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
@@ -598,7 +598,7 @@ nfr("lowercase", "s", "S", "S",
 
 nfr("uppercase", "s", "S", "S",
     "converts a UTF-8 string from any case to upper case, affecting only a-z",
-    [](StackPtr &, VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value s) {
         auto ns = vm.NewString(s.sval()->strv());
         for (auto &c : ns->strv()) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
@@ -609,7 +609,7 @@ nfr("uppercase", "s", "S", "S",
 
 nfr("escape_string", "s,set,prefix,postfix", "SSSS", "S",
     "prefixes & postfixes any occurrences or characters in set in string s",
-    [](StackPtr &, VM &vm, Value &s, Value &set, Value &prefix, Value &postfix) {
+    [](StackPtr &, VM &vm, Value s, Value set, Value prefix, Value postfix) {
         string out;
         for (auto p = s.sval()->strv();;) {
             auto loc = p.find_first_of(set.sval()->strv());
@@ -631,7 +631,7 @@ nfr("escape_string", "s,set,prefix,postfix", "SSSS", "S",
 
 nfr("concat_string", "v,sep", "S]S", "S",
     "concatenates all elements of the string vector, separated with sep.",
-    [](StackPtr &, VM &vm, Value &v, Value &sep) {
+    [](StackPtr &, VM &vm, Value v, Value sep) {
         string s;
         auto sepsv = sep.sval()->strv();
         for (iint i = 0; i < v.vval()->len; i++) {
@@ -644,7 +644,7 @@ nfr("concat_string", "v,sep", "S]S", "S",
 
 nfr("repeat_string", "s,n", "SI", "S",
     "returns a string consisting of n copies of the input string.",
-    [](StackPtr &, VM &vm, Value &s, Value &_n) {
+    [](StackPtr &, VM &vm, Value s, Value _n) {
         auto n = std::max(iint(0), _n.ival());
         auto len = s.sval()->len;
         auto ns = vm.NewString(len * n);
@@ -669,13 +669,13 @@ nfr("repeat_string", "s,n", "SI", "S",
 
 nfr("pow", "a,b", "II", "I",
     "a raised to the power of b, for integers, using exponentiation by squaring",
-    [](StackPtr &, VM &, Value &a, Value &b) {
+    [](StackPtr &, VM &, Value a, Value b) {
         return Value(b.ival() >= 0 ? ipow<iint>(a.ival(), b.ival()) : 0);
     });
 
 nfr("pow", "a,b", "FF", "F",
     "a raised to the power of b",
-    [](StackPtr &, VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); });
+    [](StackPtr &, VM &, Value a, Value b) { return Value(pow(a.fval(), b.fval())); });
 
 nfr("pow", "a,b", "F}F", "F}",
     "vector elements raised to the power of b",
@@ -686,73 +686,73 @@ nfr("pow", "a,b", "F}F", "F}",
 
 nfr("log", "a", "F", "F",
     "natural logaritm of a",
-    [](StackPtr &, VM &, Value &a) { return Value(log(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(log(a.fval())); });
 
 nfr("log2", "a", "F", "F",
     "base 2 logaritm of a",
-    [](StackPtr &, VM &, Value &a) { return Value(log2(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(log2(a.fval())); });
 
 nfr("sqrt", "f", "F", "F",
     "square root",
-    [](StackPtr &, VM &, Value &a) { return Value(sqrt(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(sqrt(a.fval())); });
 
 nfr("ceiling", "f", "F", "I",
     "the nearest int >= f",
-    [](StackPtr &, VM &, Value &a) { return Value(fceil(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(fceil(a.fval())); });
 nfr("ceiling", "v", "F}", "I}",
     "the nearest ints >= each component of v",
     [](StackPtr &sp, VM &) { VECTOROP(iint(fceil(f.fval()))); });
 
 nfr("floor", "f", "F", "I",
     "the nearest int <= f",
-    [](StackPtr &, VM &, Value &a) { return Value(ffloor(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(ffloor(a.fval())); });
 nfr("floor", "v", "F}", "I}",
     "the nearest ints <= each component of v",
     [](StackPtr &sp, VM &) { VECTOROP(ffloor(f.fval())); });
 
 nfr("int", "f", "F", "I",
     "converts a float to an int by dropping the fraction",
-    [](StackPtr &, VM &, Value &a) { return Value(iint(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(iint(a.fval())); });
 nfr("int", "v", "F}", "I}",
     "converts a vector of floats to ints by dropping the fraction",
     [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval())); });
 
 nfr("round", "f", "F", "I",
     "converts a float to the closest int",
-    [](StackPtr &, VM &, Value &a) { return Value(iint(a.fval() + (double(a.fval() >= 0) - 0.5))); });
+    [](StackPtr &, VM &, Value a) { return Value(iint(a.fval() + (double(a.fval() >= 0) - 0.5))); });
 nfr("round", "v", "F}", "I}",
     "converts a vector of floats to the closest ints",
     [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval() + (double(f.fval() >= 0) - 0.5))); });
 
 nfr("fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - floor(f)",
-    [](StackPtr &, VM &, Value &a) { return Value(a.fval() - floor(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() - floor(a.fval())); });
 nfr("fraction", "v", "F}", "F}",
     "returns the fractional part of a vector of floats",
     [](StackPtr &sp, VM &) { VECTOROP(f.fval() - int(f.fval())); });
 
 nfr("float", "i", "I", "F",
     "converts an int to float",
-    [](StackPtr &, VM &, Value &a) { return Value(double(a.ival())); });
+    [](StackPtr &, VM &, Value a) { return Value(double(a.ival())); });
 nfr("float", "v", "I}", "F}",
     "converts a vector of ints to floats",
     [](StackPtr &sp, VM &) { VECTOROP(double(f.ival())); });
 
 nfr("sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)",
-    [](StackPtr &, VM &, Value &a) { return Value(sin(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value a) { return Value(sin(a.fval() * RAD)); });
 nfr("sin", "angle", "F}", "F}",
     "the y coordinates of the normalized vector indicated by the angles (in degrees)",
     [](StackPtr &sp, VM &) { VECTOROP(sin(f.fval() * RAD)); });
 nfr("cos", "angle", "F", "F",
     "the x coordinate of the normalized vector indicated by angle (in degrees)",
-    [](StackPtr &, VM &, Value &a) { return Value(cos(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value a) { return Value(cos(a.fval() * RAD)); });
 nfr("cos", "angle", "F}", "F}",
     "the x coordinates of the normalized vector indicated by the angles (in degrees)",
     [](StackPtr &sp, VM &) { VECTOROP(cos(f.fval() * RAD)); });
 nfr("tan", "angle", "F", "F",
     "the tangent of an angle (in degrees)",
-    [](StackPtr &, VM &, Value &a) { return Value(tan(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value a) { return Value(tan(a.fval() * RAD)); });
 nfr("tan", "angle", "F}", "F}",
     "the tangents of the angles (in degrees)",
     [](StackPtr &sp, VM &) { VECTOROP(tan(f.fval() * RAD)); });
@@ -766,20 +766,20 @@ nfr("sincos", "angle", "F", "F}:2",
 
 nfr("asin", "y", "F", "F",
     "the angle (in degrees) indicated by the y coordinate projected to the unit circle",
-    [](StackPtr &, VM &, Value &y) { return Value(asin(y.fval()) / RAD); });
+    [](StackPtr &, VM &, Value y) { return Value(asin(y.fval()) / RAD); });
 nfr("acos", "x", "F", "F",
     "the angle (in degrees) indicated by the x coordinate projected to the unit circle",
-    [](StackPtr &, VM &, Value &x) { return Value(acos(x.fval()) / RAD); });
+    [](StackPtr &, VM &, Value x) { return Value(acos(x.fval()) / RAD); });
 nfr("atan", "x", "F", "F",
     "the angle (in degrees) indicated by the y coordinate of the tangent projected to the unit circle",
-    [](StackPtr &, VM &, Value &x) { return Value(atan(x.fval()) / RAD); });
+    [](StackPtr &, VM &, Value x) { return Value(atan(x.fval()) / RAD); });
 
 nfr("radians", "angle", "F", "F",
     "converts an angle in degrees to radians",
-    [](StackPtr &, VM &, Value &a) { return Value(a.fval() * RAD); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() * RAD); });
 nfr("degrees", "angle", "F", "F",
     "converts an angle in radians to degrees",
-    [](StackPtr &, VM &, Value &a) { return Value(a.fval() / RAD); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() / RAD); });
 
 nfr("atan2", "vec", "F}:2" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector",
@@ -790,10 +790,10 @@ nfr("atan2", "vec", "F}:2" , "F",
 
 nfr("radians", "angle", "F", "F",
     "converts an angle in degrees to radians",
-    [](StackPtr &, VM &, Value &a) { return Value(a.fval() * RAD); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() * RAD); });
 nfr("degrees", "angle", "F", "F",
     "converts an angle in radians to degrees",
-    [](StackPtr &, VM &, Value &a) { return Value(a.fval() / RAD); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() / RAD); });
 
 nfr("normalize", "vec",  "F}" , "F}",
     "returns a vector of unit length",
@@ -867,7 +867,7 @@ nfr("volume", "v", "I}", "I", "the volume of the area spanned by the vector",
 
 nfr("rnd", "max", "I", "I",
     "a random value [0..max).",
-    [](StackPtr &, VM &, Value &a) { return Value(rndx.rnd_int64(std::max((iint)1, a.ival()))); });
+    [](StackPtr &, VM &, Value a) { return Value(rndx.rnd_int64(std::max((iint)1, a.ival()))); });
 nfr("rnd", "max", "I}", "I}",
     "a random vector within the range of an input vector.",
     [](StackPtr &sp, VM &) { VECTOROP(rndx.rnd_int64(std::max((iint)1, f.ival()))); });
@@ -879,29 +879,29 @@ nfr("rnd_gaussian", "", "", "F",
     [](StackPtr &, VM &) { return Value(rndx.rnd_gaussian()); });
 nfr("rnd_seed", "seed", "I", "",
     "explicitly set a random seed for reproducable randomness",
-    [](StackPtr &, VM &, Value &seed) { rndx.seed(seed.ival()); return NilVal(); });
+    [](StackPtr &, VM &, Value seed) { rndx.seed(seed.ival()); return NilVal(); });
 
 
 nfr("rndm", "max", "I", "I",
     "deprecated: old mersenne twister version of the above for backwards compat.",
-    [](StackPtr &, VM &, Value &a) { return Value(rndm.rnd_int(std::max(1, (int)a.ival()))); });
+    [](StackPtr &, VM &, Value a) { return Value(rndm.rnd_int(std::max(1, (int)a.ival()))); });
 nfr("rndm_seed", "seed", "I", "",
     "deprecated: old mersenne twister version of the above for backwards compat.",
-    [](StackPtr &, VM &, Value &seed) { rndm.seed((int)seed.ival()); return NilVal(); });
+    [](StackPtr &, VM &, Value seed) { rndm.seed((int)seed.ival()); return NilVal(); });
 
 nfr("div", "a,b", "II", "F",
     "forces two ints to be divided as floats",
-    [](StackPtr &, VM &, Value &a, Value &b) { return Value(double(a.ival()) / double(b.ival())); });
+    [](StackPtr &, VM &, Value a, Value b) { return Value(double(a.ival()) / double(b.ival())); });
 
 nfr("clamp", "x,min,max", "III", "I",
     "forces an integer to be in the range between min and max (inclusive)",
-    [](StackPtr &, VM &, Value &a, Value &b, Value &c) {
+    [](StackPtr &, VM &, Value a, Value b, Value c) {
         return Value(geom::clamp(a.ival(), b.ival(), c.ival()));
     });
 
 nfr("clamp", "x,min,max", "FFF", "F",
     "forces a float to be in the range between min and max (inclusive)",
-    [](StackPtr &, VM &, Value &a, Value &b, Value &c) {
+    [](StackPtr &, VM &, Value a, Value b, Value c) {
         return Value(geom::clamp(a.fval(), b.fval(), c.fval()));
     });
 
@@ -925,13 +925,13 @@ nfr("clamp", "x,min,max", "F}F}1F}1", "F}",
 
 nfr("in_range", "x,range,bias", "III?", "B",
     "checks if an integer is >= bias and < bias + range. Bias defaults to 0.",
-    [](StackPtr &, VM &, Value &x, Value &range, Value &bias) {
+    [](StackPtr &, VM &, Value x, Value range, Value bias) {
         return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
     });
 
 nfr("in_range", "x,range,bias", "FFF?", "B",
     "checks if a float is >= bias and < bias + range. Bias defaults to 0.",
-    [](StackPtr &, VM &, Value &x, Value &range, Value &bias) {
+    [](StackPtr &, VM &, Value x, Value range, Value bias) {
         return Value(x.fval() >= bias.fval() && x.fval() < bias.fval() + range.fval());
     });
 
@@ -972,10 +972,10 @@ nfr("in_range", "x,range,bias", "F}:3F}:3F}:3?", "B",
 
 nfr("abs", "x", "I", "I",
     "absolute value of an integer",
-    [](StackPtr &, VM &, Value &a) { return Value(std::abs(a.ival())); });
+    [](StackPtr &, VM &, Value a) { return Value(std::abs(a.ival())); });
 nfr("abs", "x", "F", "F",
     "absolute value of a float",
-    [](StackPtr &, VM &, Value &a) { return Value(fabs(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(fabs(a.fval())); });
 nfr("abs", "x", "I}", "I}",
     "absolute value of an int vector",
     [](StackPtr &sp, VM &) { VECTOROP(std::abs(f.ival())); });
@@ -985,10 +985,10 @@ nfr("abs", "x", "F}", "F}",
 
 nfr("sign", "x", "I", "I",
     "sign (-1, 0, 1) of an integer",
-    [](StackPtr &, VM &, Value &a) { return Value(signum(a.ival())); });
+    [](StackPtr &, VM &, Value a) { return Value(signum(a.ival())); });
 nfr("sign", "x", "F", "I",
     "sign (-1, 0, 1) of a float",
-    [](StackPtr &, VM &, Value &a) { return Value(signum(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(signum(a.fval())); });
 nfr("sign", "x", "I}", "I}",
     "signs of an int vector",
     [](StackPtr &sp, VM &) { VECTOROP(signum(f.ival())); });
@@ -1016,12 +1016,12 @@ nfr("sign", "x", "F}", "I}",
 
 nfr("min", "x,y", "II", "I",
     "smallest of 2 integers.",
-    [](StackPtr &, VM &, Value &x, Value &y) {
+    [](StackPtr &, VM &, Value x, Value y) {
         return Value(std::min(x.ival(), y.ival()));
     });
 nfr("min", "x,y", "FF", "F",
     "smallest of 2 floats.",
-    [](StackPtr &, VM &, Value &x, Value &y) {
+    [](StackPtr &, VM &, Value x, Value y) {
         return Value(std::min(x.fval(), y.fval()));
     });
 nfr("min", "x,y", "I}I}1", "I}",
@@ -1050,23 +1050,23 @@ nfr("min", "v", "F}", "F",
     });
 nfr("min", "v", "I]", "I",
     "smallest component of a int vector, or INT_MAX if length 0.",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         VECSCALAROP(iint, INT_MAX, v = std::min(v, f.ival()), vval, len, At(i))
     });
 nfr("min", "v", "F]", "F",
     "smallest component of a float vector, or FLT_MAX if length 0.",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         VECSCALAROP(double, FLT_MAX, v = std::min(v, f.fval()), vval, len, At(i))
     });
 
 nfr("max", "x,y", "II", "I",
     "largest of 2 integers.",
-    [](StackPtr &, VM &, Value &x, Value &y) {
+    [](StackPtr &, VM &, Value x, Value y) {
         return Value(std::max(x.ival(), y.ival()));
     });
 nfr("max", "x,y", "FF", "F",
     "largest of 2 floats.",
-    [](StackPtr &, VM &, Value &x, Value &y) {
+    [](StackPtr &, VM &, Value x, Value y) {
         return Value(std::max(x.fval(), y.fval()));
     });
 nfr("max", "x,y", "I}I}1", "I}",
@@ -1095,24 +1095,24 @@ nfr("max", "v", "F}", "F",
     });
 nfr("max", "v", "I]", "I",
     "largest component of a int vector, or INT_MIN if length 0.",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         VECSCALAROP(iint, INT_MIN, v = std::max(v, f.ival()), vval, len, At(i))
     });
 nfr("max", "v", "F]", "F",
     "largest component of a float vector, or FLT_MIN if length 0.",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         VECSCALAROP(double, FLT_MIN, v = std::max(v, f.fval()), vval, len, At(i))
     });
 
 nfr("popcount", "x", "I", "I",
     "number of bits set in an integer",
-    [](StackPtr &, VM &, Value &a) {
+    [](StackPtr &, VM &, Value a) {
         return Value(PopCount((uint64_t)a.ival()));
     });
 
 nfr("lerp", "x,y,f", "FFF", "F",
     "linearly interpolates between x and y with factor f [0..1]",
-    [](StackPtr &, VM &, Value &x, Value &y, Value &f) {
+    [](StackPtr &, VM &, Value x, Value y, Value f) {
         return Value(mix(x.fval(), y.fval(), (float)f.fval()));
     });
 
@@ -1136,25 +1136,25 @@ nfr("spherical_lerp", "a,b,f", "F}:4F}:4F", "F}:4",
 
 nfr("smoothmin", "x,y,k", "FFF", "F",
     "k is the influence range",
-    [](StackPtr &, VM &, Value &x, Value &y, Value &k) {
+    [](StackPtr &, VM &, Value x, Value y, Value k) {
         return Value(smoothmin(x.fltval(), y.fltval(), k.fltval()));
     });
 
 nfr("smoothstep", "x", "F", "F",
     "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         return Value(smoothstep(x.fltval()));
     });
 
 nfr("smoothstep", "a,b,f", "FFF", "F",
     "hermite interpolation between a and b by f [0..1], https://registry.khronos.org/OpenGL-Refpages/gl4/html/smoothstep.xhtml",
-    [](StackPtr &, VM &, Value &a, Value &b, Value &f) {
+    [](StackPtr &, VM &, Value a, Value b, Value f) {
         return Value(smoothstep(a.fltval(), b.fltval(), f.fltval()));
     });
 
 nfr("smootherstep", "x", "F", "F",
     "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         return Value(smootherstep(x.fltval()));
     });
 
@@ -1310,25 +1310,25 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
 
 nfr("hash", "x", "I", "I",
     "hashes an int value into a positive int; may be the identity function",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto h = positive_bits(a.Hash(vm, V_INT));
         return Value(h);
     });
 nfr("hash", "x", "A", "I",
     "hashes any ref value into a positive int",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto h = positive_bits(a.ref()->Hash(vm));
         return Value(h);
     });
 nfr("hash", "x", "L", "I",
     "hashes a function value into a positive int",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto h = positive_bits(a.Hash(vm, V_FUNCTION));
         return Value(h);
     });
 nfr("hash", "x", "F", "I",
     "hashes a float value into a positive int",
-    [](StackPtr &, VM &vm, Value &a) {
+    [](StackPtr &, VM &vm, Value a) {
         auto h = positive_bits(a.Hash(vm, V_FLOAT));
         return Value(h);
     });
@@ -1348,7 +1348,7 @@ nfr("hash", "v", "F}", "I",
 nfr("call_function_value", "x", "L", "",
     "calls a void / no args function value.. you shouldn't need to use this, it is"
     " a demonstration of how native code can call back into Lobster",
-    [](StackPtr &, VM &vm, Value &f) {
+    [](StackPtr &, VM &vm, Value f) {
         vm.CallFunctionValue(f);
         return NilVal();
     });
@@ -1450,7 +1450,7 @@ nfr("seconds_elapsed", "", "", "F",
 nfr("date_time", "utc", "B?", "I]",
     "a vector of integers representing date & time information (index with date_time.lobster)."
     " By default returns local time, pass true for UTC instead.",
-    [](StackPtr &, VM &vm, Value &utc) {
+    [](StackPtr &, VM &vm, Value utc) {
         auto time = std::time(nullptr);
         const iint num_elems = 9;
         auto v = vm.NewVec(num_elems, num_elems, TYPE_ELEM_VECTOR_OF_INT);
@@ -1473,7 +1473,7 @@ nfr("date_time", "utc", "B?", "I]",
 nfr("date_time_string", "utc", "B?", "S",
     "a string representing date & time information in the format: \'Www Mmm dd hh:mm:ss yyyy\'."
     " By default returns local time, pass true for UTC instead.",
-    [](StackPtr &, VM &vm, Value &utc) {
+    [](StackPtr &, VM &vm, Value utc) {
         auto time = std::time(nullptr);
         if (!time) return Value(vm.NewString(""));
         auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
@@ -1487,7 +1487,7 @@ nfr("date_time_string_format", "format,utc", "SB?", "S",
     "a string representing date & time information using a formatting string according to"
     " https://en.cppreference.com/w/cpp/chrono/c/strftime, for example \"%Y_%m_%d_%H_%M_%S\"."
     " By default returns local time, pass true for UTC instead.",
-    [](StackPtr &, VM &vm, Value &fmt, Value &utc) {
+    [](StackPtr &, VM &vm, Value fmt, Value utc) {
         auto time = std::time(nullptr);
         if (!time) return Value(vm.NewString(""));
         auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
@@ -1518,7 +1518,7 @@ nfr("get_stack_trace", "", "", "S",
 
 nfr("get_memory_usage", "n", "I", "S",
     "gets a text showing the top n object types that are using the most memory.",
-    [](StackPtr &, VM &vm, Value &n) {
+    [](StackPtr &, VM &vm, Value n) {
         return Value(vm.NewString(vm.MemoryUsage(n.intval())));
     });
 
@@ -1531,28 +1531,28 @@ nfr("pass", "", "", "",
 nfr("trace_bytecode", "mode", "I", "",
     "tracing shows each bytecode instruction as it is being executed, not very useful unless"
     " you are trying to isolate a compiler bug. Mode is off(0), on(1) or tail only (2)",
-    [](StackPtr &, VM &vm, Value &i) {
+    [](StackPtr &, VM &vm, Value i) {
         vm.Trace((TraceMode)i.ival());
         return NilVal();
     });
 
 nfr("reference_count", "val", "A", "I",
     "get the reference count of any value. for compiler debugging, mostly",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         auto refc = x.refnil() ? x.refnil()->refc - 1 : -1;
         return Value(refc);
     });
 
 nfr("set_console", "on", "B", "",
     "lets you turn on/off the console window (on Windows)",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         SetConsole(x.True());
         return NilVal();
     });
 
 nfr("set_output_level", "level", "I", "",
     "0 = debug, 1 = verbose, 2 = warn (default), 3 = error, 4 = program",
-    [](StackPtr &, VM &, Value &x) {
+    [](StackPtr &, VM &, Value x) {
         // Do "min", so we can override even lower from command-line.
         min_output_level = std::min(min_output_level, (OutputType)x.intval());
         return NilVal();
@@ -1560,7 +1560,7 @@ nfr("set_output_level", "level", "I", "",
 
 nfr("set_exit_code", "code", "I", "",
     "this will be returned when run as a console application",
-    [](StackPtr &, VM &vm, Value &x) {
+    [](StackPtr &, VM &vm, Value x) {
         vm.evalret.second = x.ival();
         return NilVal();
     });
@@ -1586,7 +1586,7 @@ nfr("is_worker_thread", "", "", "B",
 
 nfr("start_worker_threads", "numthreads", "I", "",
     "launch worker threads",
-    [](StackPtr &, VM &vm, Value &n) {
+    [](StackPtr &, VM &vm, Value n) {
         vm.StartWorkers(n.ival());
         return NilVal();
     });
@@ -1609,7 +1609,7 @@ nfr("workers_alive", "", "", "B",
 
 nfr("thread_write", "struct", "A", "",
     "put this struct in the thread queue",
-    [](StackPtr &, VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value s) {
         vm.WorkerWrite(s.refnil());
         return NilVal();
     });
@@ -1617,14 +1617,14 @@ nfr("thread_write", "struct", "A", "",
 nfr("thread_read", "type", "T", "A1?",
     "get a struct from the thread queue. pass the typeof struct. blocks if no such"
     "structs available. returns struct, or nil if stop_worker_threads() was called",
-    [](StackPtr &, VM &vm, Value &t) {
+    [](StackPtr &, VM &vm, Value t) {
         return vm.WorkerRead((type_elem_t)t.ival());
     });
 
 nfr("thread_check", "type", "T", "A1?",
     "tests if a struct is available on the thread queue. pass the typeof struct. "
     "returns struct, or nil if none available, or if stop_worker_threads() was called",
-    [](StackPtr &, VM &vm, Value &t) {
+    [](StackPtr &, VM &vm, Value t) {
         return vm.WorkerCheck((type_elem_t)t.ival());
     });
 
@@ -1642,7 +1642,7 @@ void AddMatrix(NativeRegistry &nfr) {
 
 nfr("multiply", "a,b", "F]F]", "F]",
     "input matrices must be 4x4 elements",
-    [](StackPtr &, VM &vm, Value &a, Value &b) {
+    [](StackPtr &, VM &vm, Value a, Value b) {
         auto av = a.vval();
         auto bv = b.vval();
         if (av->len != 16 || bv->len != 16)

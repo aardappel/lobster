@@ -775,7 +775,7 @@ LString* GetIdentityString(VM &vm, const SteamNetworkingIdentity &identity) {
     return vm.NewString(ident);
 }
 
-CSteamID SteamIDFromValue(Value &steam_id) {
+CSteamID SteamIDFromValue(Value steam_id) {
     return CSteamID((uint64)steam_id.ival());
 }
 
@@ -806,7 +806,7 @@ nfr("init", "appid,allowscreenshots,initrelay", "IBB", "I",
     " called even if steam isn't active."
     " allowscreenshots automatically uploads screenshots to steam (triggered by steam)."
     " initrelay initializes the relay network for p2p early, to save time when it is first used.",
-    [](StackPtr &, VM &, Value &appid, Value &ss, Value &relay) {
+    [](StackPtr &, VM &, Value appid, Value ss, Value relay) {
         return Value(SteamInit(appid.ival(), ss.True(), relay.True()));
     });
 
@@ -829,7 +829,7 @@ nfr("unlock_achievement", "achievementname", "S", "B",
     "Unlocks an achievement and shows the achievement overlay if not already achieved before."
     " Will also Q-up saving achievement to Steam."
     " Returns true if succesful.",
-    [](StackPtr &, VM &, Value &name) {
+    [](StackPtr &, VM &, Value name) {
         auto ok = UnlockAchievement(name.sval()->strvnt());
         return Value(ok);
     });
@@ -837,7 +837,7 @@ nfr("unlock_achievement", "achievementname", "S", "B",
 nfr("write_file", "file,contents", "SS", "B",
     "writes a file with the contents of a string to the steam cloud, or local storage if that"
     " fails, returns false if writing wasn't possible at all",
-    [](StackPtr &, VM &, Value &file, Value &contents) {
+    [](StackPtr &, VM &, Value file, Value contents) {
         auto fn = file.sval()->strvnt();
         auto s = contents.sval();
         auto ok = SteamWriteFile(fn, s->strv());
@@ -850,7 +850,7 @@ nfr("write_file", "file,contents", "SS", "B",
 nfr("read_file", "file", "S", "S?",
     "returns the contents of a file as a string from the steam cloud if available, or otherwise"
     " from local storage, or nil if the file can't be found at all.",
-    [](StackPtr &, VM &vm, Value &file) {
+    [](StackPtr &, VM &vm, Value file) {
         auto fn = file.sval()->strvnt();
         string buf;
         auto len = SteamReadFile(fn, buf);
@@ -874,13 +874,13 @@ nfr("get_steam_id", "", "", "I", "get the steam id of the current user",
 nfr("friend_get_username", "steam_id", "I", "S",
     "returns the name for the given steam id; this only works for friends, or users in the same "
     "lobby, chat room, game server, etc.",
-    [](StackPtr &, VM &vm, Value &steam_id) {
+    [](StackPtr &, VM &vm, Value steam_id) {
         return STEAM_STRING_VALUE(vm, steam->GetFriendPersonaName(SteamIDFromValue(steam_id)));
     });
 
 nfr("has_friend", "steam_id,flags", "II", "B",
     "returns true if the given steam_id is a friend with the matching flags",
-    [](StackPtr &, VM &vm, Value &steam_id, Value &friend_flags) {
+    [](StackPtr &, VM &vm, Value steam_id, Value friend_flags) {
         return STEAM_BOOL_VALUE(vm, steam->HasFriend(SteamIDFromValue(steam_id), friend_flags.intval()));
     });
 
@@ -900,7 +900,7 @@ nfr("net_identity", "", "", "S",
     });
 
 nfr("net_identity_from_steam_id", "steam_id", "I", "S",
-    "returns a network identity for the given steam id", [](StackPtr &, VM &vm, Value &steam_id) {
+    "returns a network identity for the given steam id", [](StackPtr &, VM &vm, Value steam_id) {
         #ifdef PLATFORM_STEAMWORKS
             if (steam) {
                 SteamNetworkingIdentity identity{};
@@ -921,7 +921,7 @@ nfr("net_identity_ipaddr", "", "", "S",
     });
 
 nfr("p2p_set_send_buffer_size", "size", "I", "B", "set the upper limit of pending bytes to be sent",
-    [](StackPtr &, VM &, Value &size) {
+    [](StackPtr &, VM &, Value size) {
         auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_SendBufferSize, size.intval()));
         return Value(ok);
     });
@@ -929,7 +929,7 @@ nfr("p2p_set_send_buffer_size", "size", "I", "B", "set the upper limit of pendin
 nfr("p2p_set_recv_buffer_size", "size", "I", "",
     "upper limit on total size in bytes of received messages that will be buffered waiting "
     "to be processed by the application",
-    [](StackPtr &, VM &, Value &size) {
+    [](StackPtr &, VM &, Value size) {
         auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_RecvBufferSize, size.intval()));
         return Value(ok);
     });
@@ -980,7 +980,7 @@ nfr("p2p_listen", "", "", "B", "open a listen socket to receive new connections"
     });
 
 nfr("p2p_listen_ipaddr", "ipaddr", "S", "B", "open a listen socket for receive new IP address connections",
-    [](StackPtr &, VM &, Value &ipaddr) {
+    [](StackPtr &, VM &, Value ipaddr) {
         return STEAM_BOOL_VALUE(steam->P2PListenIP(ipaddr.sval()->strvnt()));
     });
 
@@ -992,19 +992,19 @@ nfr("p2p_close_listen", "", "", "B", "close the listen socket and stop accepting
 nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam "
     "identity (e.g. \"steam:XXXX\") or ip address (e.g. \"ip:127.0.0.1:5105\") that "
     "has opened a listen socket",
-    [](StackPtr &, VM &, Value &ident) {
+    [](StackPtr &, VM &, Value ident) {
         return STEAM_BOOL_VALUE(steam->P2PConnect(ident.sval()->strvnt()));
     });
 
 nfr("p2p_connect_ipaddr", "ipaddr", "S", "B", "connect to a user with a given IP address that has opened a listen socket",
-    [](StackPtr &, VM &, Value &ipaddr) {
+    [](StackPtr &, VM &, Value ipaddr) {
         return STEAM_BOOL_VALUE(steam->P2PConnectIP(ipaddr.sval()->strvnt()));
     });
 
 nfr("p2p_close_connection", "ident,linger", "SB", "B",
     "close a connection opened with p2p_connect(); if linger is true then the connection will "
     "remain open for a short time to finish pending messages",
-    [](StackPtr &, VM &, Value &ident, Value &linger) {
+    [](StackPtr &, VM &, Value ident, Value linger) {
         return STEAM_BOOL_VALUE(steam->P2PCloseConnection(ident.sval()->strvnt(), linger.intval()));
     });
 
@@ -1030,17 +1030,17 @@ nfr("p2p_rename_peer", "ident,new_ident", "SS", "B", "use a different identifier
     " for this peer. This can be useful when connecting multiple users using"
     " peer-to-peer, so you can have all peers in the network use the listen socket IP"
     " address and port as the identifier.",
-    [](StackPtr &, VM &, Value &ident, Value &new_ident) {
+    [](StackPtr &, VM &, Value ident, Value new_ident) {
         return STEAM_BOOL_VALUE(steam->RenamePeer(ident.sval()->strvnt(), new_ident.sval()->strvnt()));
     });
 
 nfr("p2p_send_message", "ident,data,reliable", "SSB", "B", "send a reliable message to a given steam identity",
-    [](StackPtr &, VM &, Value &ident, Value &data, Value &reliable) {
+    [](StackPtr &, VM &, Value ident, Value data, Value reliable) {
         return STEAM_BOOL_VALUE(steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval()));
     });
 
 nfr("p2p_broadcast_message", "data,reliable", "SB", "B", "send a reliable message to all connected peers",
-    [](StackPtr &, VM &, Value &data, Value &reliable) {
+    [](StackPtr &, VM &, Value data, Value reliable) {
         return STEAM_BOOL_VALUE(steam->BroadcastMessage(data.sval()->strv(), reliable.intval()));
     });
 
@@ -1073,7 +1073,7 @@ nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
 nfr("lobby_create", "max_members", "I", "B",
     "create a new lobby that allows at most a given number of members; this lobby will be "
     "automatically joined. use lobby_get_created() to get the newly created lobby's steam id",
-    [](StackPtr &, VM &, Value &max_members) {
+    [](StackPtr &, VM &, Value max_members) {
         return STEAM_BOOL_VALUE(steam->CreateLobby(k_ELobbyTypePublic, max_members.intval()));
     });
 
@@ -1081,7 +1081,7 @@ nfr("lobby_create", "lobby_type,max_members", "II", "B",
     "create a new lobby of a given lobby type that allows at most a given number "
     "of members; this lobby will be automatically joined. use lobby_get_created() "
     "to get the newly created lobby's steam id",
-    [](StackPtr &, VM &, Value &lobby_type, Value &max_members) {
+    [](StackPtr &, VM &, Value lobby_type, Value max_members) {
         return STEAM_BOOL_VALUE(steam->CreateLobby(lobby_type.intval(), max_members.intval()));
     });
 
@@ -1092,18 +1092,18 @@ nfr("lobby_get_created", "", "", "I",
     });
 
 nfr("lobby_join", "steam_id", "I", "B", "join a lobby with the given steam id",
-    [](StackPtr &, VM &, Value &steam_id) {
+    [](StackPtr &, VM &, Value steam_id) {
         return STEAM_BOOL_VALUE(steam->JoinLobby(SteamIDFromValue(steam_id)));
     });
 
 nfr("lobby_leave", "steam_id", "I", "B", "leave a lobby with the given steam id",
-    [](StackPtr &, VM &, Value &steam_id) {
+    [](StackPtr &, VM &, Value steam_id) {
         return STEAM_BOOL_VALUE(steam->LeaveLobby(SteamIDFromValue(steam_id)));
     });
 
 nfr("lobby_set_joinable", "steam_id,joinable", "IB", "B",
     "mark a lobby as joinable; only works if you are the owner",
-    [](StackPtr &, VM &, Value &steam_id, Value &joinable) {
+    [](StackPtr &, VM &, Value steam_id, Value joinable) {
         return STEAM_BOOL_VALUE(
             steam->SetLobbyJoinable(SteamIDFromValue(steam_id), joinable.intval()));
     });
@@ -1132,21 +1132,21 @@ nfr("lobby_get_all_joined", "", "", "I]",
 
 nfr("lobby_get_owner", "steam_id", "I", "I",
     "get the steam id of the owner of the given lobby",
-    [](StackPtr &, VM &, Value &steam_id) {
+    [](StackPtr &, VM &, Value steam_id) {
         return STEAM_IINT_VALUE(IIntFromSteamID(steam->GetLobbyOwner(SteamIDFromValue(steam_id))));
     });
 
 nfr("lobby_request_data", "steam_id", "I", "B",
     "refresh data for a given lobby; it is not necessary to call this for any lobby that you have "
     "joined",
-    [](StackPtr &, VM &, Value &steam_id) {
+    [](StackPtr &, VM &, Value steam_id) {
         return STEAM_BOOL_VALUE(steam->RequestLobbyData(SteamIDFromValue(steam_id)));
     });
 
 nfr("lobby_get_data", "steam_id,key", "IS", "S",
     "get the matching value for a given key stored on this lobby; if the key has not been set then "
     "the result is an empty string",
-    [](StackPtr &, VM &vm, Value &steam_id, Value &key) {
+    [](StackPtr &, VM &vm, Value steam_id, Value key) {
         return STEAM_STRING_VALUE(
             vm, steam->GetLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str()));
     });
@@ -1181,7 +1181,7 @@ nfr("lobby_get_all_data", "steam_id", "I", "S]S]", "get all key-value pairs stor
 
 nfr("lobby_set_data", "steam_id,key,value", "ISS", "B",
     "set a key-value pair for this lobby; only works if you are the owner",
-    [](StackPtr &, VM &, Value &steam_id, Value &key, Value &value) {
+    [](StackPtr &, VM &, Value steam_id, Value key, Value value) {
         return STEAM_BOOL_VALUE(steam->SetLobbyData(SteamIDFromValue(steam_id),
                                                     key.sval()->strvnt().c_str(),
                                                     value.sval()->strvnt().c_str()));
@@ -1189,19 +1189,19 @@ nfr("lobby_set_data", "steam_id,key,value", "ISS", "B",
 
 nfr("lobby_delete_data", "steam_id,key", "IS", "B",
     "delete a key-value pair for this lobby; only works if you are the owner",
-    [](StackPtr &, VM &, Value &steam_id, Value &key) {
+    [](StackPtr &, VM &, Value steam_id, Value key) {
         return STEAM_BOOL_VALUE(
             steam->DeleteLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str()));
     });
 
 nfr("lobby_get_num_members", "steam_id", "I", "I", "get the number of members in this lobby",
-    [](StackPtr &, VM &, Value &steam_id) {
+    [](StackPtr &, VM &, Value steam_id) {
         return STEAM_INT_VALUE(steam->GetNumLobbyMembers(SteamIDFromValue(steam_id)));
     });
 
 nfr("lobby_get_members", "steam_id", "I", "I]",
     "get the steam ids of all members in this lobby; only works if you have joined the lobby",
-    [](StackPtr &, VM &vm, Value &vsteam_id) {
+    [](StackPtr &, VM &vm, Value vsteam_id) {
         auto *members_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
         #ifdef PLATFORM_STEAMWORKS
@@ -1223,21 +1223,21 @@ nfr("lobby_get_members", "steam_id", "I", "I]",
 
 nfr("lobby_request_add_numerical_filter", "key,value,cmp", "SII", "B",
     "add a numerical filter for the next lobby request",
-    [](StackPtr &, VM &, Value &key, Value &value, Value &cmp) {
+    [](StackPtr &, VM &, Value key, Value value, Value cmp) {
         return STEAM_BOOL_VALUE(steam->AddRequestLobbyListNumericalFilter(
             key.sval()->strvnt().c_str(), value.intval(), (ELobbyComparison)cmp.intval()));
     });
 
 nfr("lobby_request_add_string_filter", "key,value,cmp", "SSI", "B",
     "add a string filter for the next lobby request",
-    [](StackPtr &, VM &, Value &key, Value &value, Value &cmp) {
+    [](StackPtr &, VM &, Value key, Value value, Value cmp) {
         return STEAM_BOOL_VALUE(steam->AddRequestLobbyListStringFilter(
             key.sval()->strvnt().c_str(), value.sval()->strvnt().c_str(),
             (ELobbyComparison)cmp.intval()));
     });
 
 nfr("lobby_request_add_result_count_filter", "count", "I", "B",
-    "add a result count limit for the next lobby request", [](StackPtr &, VM &, Value &count) {
+    "add a result count limit for the next lobby request", [](StackPtr &, VM &, Value count) {
         return STEAM_BOOL_VALUE(steam->AddRequestLobbyListResultCountFilter(count.intval()));
     });
 
@@ -1282,14 +1282,14 @@ nfr("lobby_request_get_lobbies", "", "", "I]",
     });
 
 nfr("lobby_get_game_server", "lobby_id", "I", "I", "get the game server associated with this lobby",
-    [](StackPtr &, VM &, Value &lobby_id) {
+    [](StackPtr &, VM &, Value lobby_id) {
         return STEAM_IINT_VALUE(
             IIntFromSteamID(steam->GetLobbyGameServer(SteamIDFromValue(lobby_id))));
     });
 
 nfr("lobby_set_game_server", "lobby_id,server_id", "II", "B",
     "set the game server associated with this lobby; only works if you are the owner",
-    [](StackPtr &, VM &, Value &lobby_id, Value &server_id) {
+    [](StackPtr &, VM &, Value lobby_id, Value server_id) {
         return STEAM_BOOL_VALUE(
             steam->SetLobbyGameServer(SteamIDFromValue(lobby_id), SteamIDFromValue(server_id)));
     });

@@ -33,7 +33,7 @@ RandomNumberGenerator<Xoshiro256SS> cg_rnd;
 
 ResourceType voxel_type = { "voxels" };
 
-Voxels &GetVoxels(const Value &res) {
+Voxels &GetVoxels(Value res) {
     return GetResourceDec<Voxels>(res, &voxel_type);
 }
 
@@ -78,86 +78,86 @@ const unsigned int default_palette[256] = {
 
 const uint8_t normal_table_size = 162;
 const float3 default_normals[normal_table_size] = {
-    { -0.525731f,  0.000000f,  0.850651f }, { -0.442863f,  0.238856f,  0.864188f }, 
-    { -0.295242f,  0.000000f,  0.955423f }, { -0.309017f,  0.500000f,  0.809017f }, 
-    { -0.162460f,  0.262866f,  0.951056f }, {  0.000000f,  0.000000f,  1.000000f }, 
-    {  0.000000f,  0.850651f,  0.525731f }, { -0.147621f,  0.716567f,  0.681718f }, 
-    {  0.147621f,  0.716567f,  0.681718f }, {  0.000000f,  0.525731f,  0.850651f }, 
-    {  0.309017f,  0.500000f,  0.809017f }, {  0.525731f,  0.000000f,  0.850651f }, 
-    {  0.295242f,  0.000000f,  0.955423f }, {  0.442863f,  0.238856f,  0.864188f }, 
-    {  0.162460f,  0.262866f,  0.951056f }, { -0.681718f,  0.147621f,  0.716567f }, 
-    { -0.809017f,  0.309017f,  0.500000f }, { -0.587785f,  0.425325f,  0.688191f }, 
-    { -0.850651f,  0.525731f,  0.000000f }, { -0.864188f,  0.442863f,  0.238856f }, 
-    { -0.716567f,  0.681718f,  0.147621f }, { -0.688191f,  0.587785f,  0.425325f }, 
-    { -0.500000f,  0.809017f,  0.309017f }, { -0.238856f,  0.864188f,  0.442863f }, 
-    { -0.425325f,  0.688191f,  0.587785f }, { -0.716567f,  0.681718f, -0.147621f }, 
-    { -0.500000f,  0.809017f, -0.309017f }, { -0.525731f,  0.850651f,  0.000000f }, 
-    {  0.000000f,  0.850651f, -0.525731f }, { -0.238856f,  0.864188f, -0.442863f }, 
-    {  0.000000f,  0.955423f, -0.295242f }, { -0.262866f,  0.951056f, -0.162460f }, 
-    {  0.000000f,  1.000000f,  0.000000f }, {  0.000000f,  0.955423f,  0.295242f }, 
-    { -0.262866f,  0.951056f,  0.162460f }, {  0.238856f,  0.864188f,  0.442863f }, 
-    {  0.262866f,  0.951056f,  0.162460f }, {  0.500000f,  0.809017f,  0.309017f }, 
-    {  0.238856f,  0.864188f, -0.442863f }, {  0.262866f,  0.951056f, -0.162460f }, 
-    {  0.500000f,  0.809017f, -0.309017f }, {  0.850651f,  0.525731f,  0.000000f }, 
-    {  0.716567f,  0.681718f,  0.147621f }, {  0.716567f,  0.681718f, -0.147621f }, 
-    {  0.525731f,  0.850651f,  0.000000f }, {  0.425325f,  0.688191f,  0.587785f }, 
-    {  0.864188f,  0.442863f,  0.238856f }, {  0.688191f,  0.587785f,  0.425325f }, 
-    {  0.809017f,  0.309017f,  0.500000f }, {  0.681718f,  0.147621f,  0.716567f }, 
-    {  0.587785f,  0.425325f,  0.688191f }, {  0.955423f,  0.295242f,  0.000000f }, 
-    {  1.000000f,  0.000000f,  0.000000f }, {  0.951056f,  0.162460f,  0.262866f }, 
-    {  0.850651f, -0.525731f,  0.000000f }, {  0.955423f, -0.295242f,  0.000000f }, 
-    {  0.864188f, -0.442863f,  0.238856f }, {  0.951056f, -0.162460f,  0.262866f }, 
-    {  0.809017f, -0.309017f,  0.500000f }, {  0.681718f, -0.147621f,  0.716567f }, 
-    {  0.850651f,  0.000000f,  0.525731f }, {  0.864188f,  0.442863f, -0.238856f }, 
-    {  0.809017f,  0.309017f, -0.500000f }, {  0.951056f,  0.162460f, -0.262866f }, 
-    {  0.525731f,  0.000000f, -0.850651f }, {  0.681718f,  0.147621f, -0.716567f }, 
-    {  0.681718f, -0.147621f, -0.716567f }, {  0.850651f,  0.000000f, -0.525731f }, 
-    {  0.809017f, -0.309017f, -0.500000f }, {  0.864188f, -0.442863f, -0.238856f }, 
-    {  0.951056f, -0.162460f, -0.262866f }, {  0.147621f,  0.716567f, -0.681718f }, 
-    {  0.309017f,  0.500000f, -0.809017f }, {  0.425325f,  0.688191f, -0.587785f }, 
-    {  0.442863f,  0.238856f, -0.864188f }, {  0.587785f,  0.425325f, -0.688191f }, 
-    {  0.688191f,  0.587785f, -0.425325f }, { -0.147621f,  0.716567f, -0.681718f }, 
-    { -0.309017f,  0.500000f, -0.809017f }, {  0.000000f,  0.525731f, -0.850651f }, 
-    { -0.525731f,  0.000000f, -0.850651f }, { -0.442863f,  0.238856f, -0.864188f }, 
-    { -0.295242f,  0.000000f, -0.955423f }, { -0.162460f,  0.262866f, -0.951056f }, 
-    {  0.000000f,  0.000000f, -1.000000f }, {  0.295242f,  0.000000f, -0.955423f }, 
-    {  0.162460f,  0.262866f, -0.951056f }, { -0.442863f, -0.238856f, -0.864188f }, 
-    { -0.309017f, -0.500000f, -0.809017f }, { -0.162460f, -0.262866f, -0.951056f }, 
-    {  0.000000f, -0.850651f, -0.525731f }, { -0.147621f, -0.716567f, -0.681718f }, 
-    {  0.147621f, -0.716567f, -0.681718f }, {  0.000000f, -0.525731f, -0.850651f }, 
-    {  0.309017f, -0.500000f, -0.809017f }, {  0.442863f, -0.238856f, -0.864188f }, 
-    {  0.162460f, -0.262866f, -0.951056f }, {  0.238856f, -0.864188f, -0.442863f }, 
-    {  0.500000f, -0.809017f, -0.309017f }, {  0.425325f, -0.688191f, -0.587785f }, 
-    {  0.716567f, -0.681718f, -0.147621f }, {  0.688191f, -0.587785f, -0.425325f }, 
-    {  0.587785f, -0.425325f, -0.688191f }, {  0.000000f, -0.955423f, -0.295242f }, 
-    {  0.000000f, -1.000000f,  0.000000f }, {  0.262866f, -0.951056f, -0.162460f }, 
-    {  0.000000f, -0.850651f,  0.525731f }, {  0.000000f, -0.955423f,  0.295242f }, 
-    {  0.238856f, -0.864188f,  0.442863f }, {  0.262866f, -0.951056f,  0.162460f }, 
-    {  0.500000f, -0.809017f,  0.309017f }, {  0.716567f, -0.681718f,  0.147621f }, 
-    {  0.525731f, -0.850651f,  0.000000f }, { -0.238856f, -0.864188f, -0.442863f }, 
-    { -0.500000f, -0.809017f, -0.309017f }, { -0.262866f, -0.951056f, -0.162460f }, 
-    { -0.850651f, -0.525731f,  0.000000f }, { -0.716567f, -0.681718f, -0.147621f }, 
-    { -0.716567f, -0.681718f,  0.147621f }, { -0.525731f, -0.850651f,  0.000000f }, 
-    { -0.500000f, -0.809017f,  0.309017f }, { -0.238856f, -0.864188f,  0.442863f }, 
-    { -0.262866f, -0.951056f,  0.162460f }, { -0.864188f, -0.442863f,  0.238856f }, 
-    { -0.809017f, -0.309017f,  0.500000f }, { -0.688191f, -0.587785f,  0.425325f }, 
-    { -0.681718f, -0.147621f,  0.716567f }, { -0.442863f, -0.238856f,  0.864188f }, 
-    { -0.587785f, -0.425325f,  0.688191f }, { -0.309017f, -0.500000f,  0.809017f }, 
-    { -0.147621f, -0.716567f,  0.681718f }, { -0.425325f, -0.688191f,  0.587785f }, 
-    { -0.162460f, -0.262866f,  0.951056f }, {  0.442863f, -0.238856f,  0.864188f }, 
-    {  0.162460f, -0.262866f,  0.951056f }, {  0.309017f, -0.500000f,  0.809017f }, 
-    {  0.147621f, -0.716567f,  0.681718f }, {  0.000000f, -0.525731f,  0.850651f }, 
-    {  0.425325f, -0.688191f,  0.587785f }, {  0.587785f, -0.425325f,  0.688191f }, 
-    {  0.688191f, -0.587785f,  0.425325f }, { -0.955423f,  0.295242f,  0.000000f }, 
-    { -0.951056f,  0.162460f,  0.262866f }, { -1.000000f,  0.000000f,  0.000000f }, 
-    { -0.850651f,  0.000000f,  0.525731f }, { -0.955423f, -0.295242f,  0.000000f }, 
-    { -0.951056f, -0.162460f,  0.262866f }, { -0.864188f,  0.442863f, -0.238856f }, 
-    { -0.951056f,  0.162460f, -0.262866f }, { -0.809017f,  0.309017f, -0.500000f }, 
-    { -0.864188f, -0.442863f, -0.238856f }, { -0.951056f, -0.162460f, -0.262866f }, 
-    { -0.809017f, -0.309017f, -0.500000f }, { -0.681718f,  0.147621f, -0.716567f }, 
-    { -0.681718f, -0.147621f, -0.716567f }, { -0.850651f,  0.000000f, -0.525731f }, 
-    { -0.688191f,  0.587785f, -0.425325f }, { -0.587785f,  0.425325f, -0.688191f }, 
-    { -0.425325f,  0.688191f, -0.587785f }, { -0.425325f, -0.688191f, -0.587785f }, 
+    { -0.525731f,  0.000000f,  0.850651f }, { -0.442863f,  0.238856f,  0.864188f },
+    { -0.295242f,  0.000000f,  0.955423f }, { -0.309017f,  0.500000f,  0.809017f },
+    { -0.162460f,  0.262866f,  0.951056f }, {  0.000000f,  0.000000f,  1.000000f },
+    {  0.000000f,  0.850651f,  0.525731f }, { -0.147621f,  0.716567f,  0.681718f },
+    {  0.147621f,  0.716567f,  0.681718f }, {  0.000000f,  0.525731f,  0.850651f },
+    {  0.309017f,  0.500000f,  0.809017f }, {  0.525731f,  0.000000f,  0.850651f },
+    {  0.295242f,  0.000000f,  0.955423f }, {  0.442863f,  0.238856f,  0.864188f },
+    {  0.162460f,  0.262866f,  0.951056f }, { -0.681718f,  0.147621f,  0.716567f },
+    { -0.809017f,  0.309017f,  0.500000f }, { -0.587785f,  0.425325f,  0.688191f },
+    { -0.850651f,  0.525731f,  0.000000f }, { -0.864188f,  0.442863f,  0.238856f },
+    { -0.716567f,  0.681718f,  0.147621f }, { -0.688191f,  0.587785f,  0.425325f },
+    { -0.500000f,  0.809017f,  0.309017f }, { -0.238856f,  0.864188f,  0.442863f },
+    { -0.425325f,  0.688191f,  0.587785f }, { -0.716567f,  0.681718f, -0.147621f },
+    { -0.500000f,  0.809017f, -0.309017f }, { -0.525731f,  0.850651f,  0.000000f },
+    {  0.000000f,  0.850651f, -0.525731f }, { -0.238856f,  0.864188f, -0.442863f },
+    {  0.000000f,  0.955423f, -0.295242f }, { -0.262866f,  0.951056f, -0.162460f },
+    {  0.000000f,  1.000000f,  0.000000f }, {  0.000000f,  0.955423f,  0.295242f },
+    { -0.262866f,  0.951056f,  0.162460f }, {  0.238856f,  0.864188f,  0.442863f },
+    {  0.262866f,  0.951056f,  0.162460f }, {  0.500000f,  0.809017f,  0.309017f },
+    {  0.238856f,  0.864188f, -0.442863f }, {  0.262866f,  0.951056f, -0.162460f },
+    {  0.500000f,  0.809017f, -0.309017f }, {  0.850651f,  0.525731f,  0.000000f },
+    {  0.716567f,  0.681718f,  0.147621f }, {  0.716567f,  0.681718f, -0.147621f },
+    {  0.525731f,  0.850651f,  0.000000f }, {  0.425325f,  0.688191f,  0.587785f },
+    {  0.864188f,  0.442863f,  0.238856f }, {  0.688191f,  0.587785f,  0.425325f },
+    {  0.809017f,  0.309017f,  0.500000f }, {  0.681718f,  0.147621f,  0.716567f },
+    {  0.587785f,  0.425325f,  0.688191f }, {  0.955423f,  0.295242f,  0.000000f },
+    {  1.000000f,  0.000000f,  0.000000f }, {  0.951056f,  0.162460f,  0.262866f },
+    {  0.850651f, -0.525731f,  0.000000f }, {  0.955423f, -0.295242f,  0.000000f },
+    {  0.864188f, -0.442863f,  0.238856f }, {  0.951056f, -0.162460f,  0.262866f },
+    {  0.809017f, -0.309017f,  0.500000f }, {  0.681718f, -0.147621f,  0.716567f },
+    {  0.850651f,  0.000000f,  0.525731f }, {  0.864188f,  0.442863f, -0.238856f },
+    {  0.809017f,  0.309017f, -0.500000f }, {  0.951056f,  0.162460f, -0.262866f },
+    {  0.525731f,  0.000000f, -0.850651f }, {  0.681718f,  0.147621f, -0.716567f },
+    {  0.681718f, -0.147621f, -0.716567f }, {  0.850651f,  0.000000f, -0.525731f },
+    {  0.809017f, -0.309017f, -0.500000f }, {  0.864188f, -0.442863f, -0.238856f },
+    {  0.951056f, -0.162460f, -0.262866f }, {  0.147621f,  0.716567f, -0.681718f },
+    {  0.309017f,  0.500000f, -0.809017f }, {  0.425325f,  0.688191f, -0.587785f },
+    {  0.442863f,  0.238856f, -0.864188f }, {  0.587785f,  0.425325f, -0.688191f },
+    {  0.688191f,  0.587785f, -0.425325f }, { -0.147621f,  0.716567f, -0.681718f },
+    { -0.309017f,  0.500000f, -0.809017f }, {  0.000000f,  0.525731f, -0.850651f },
+    { -0.525731f,  0.000000f, -0.850651f }, { -0.442863f,  0.238856f, -0.864188f },
+    { -0.295242f,  0.000000f, -0.955423f }, { -0.162460f,  0.262866f, -0.951056f },
+    {  0.000000f,  0.000000f, -1.000000f }, {  0.295242f,  0.000000f, -0.955423f },
+    {  0.162460f,  0.262866f, -0.951056f }, { -0.442863f, -0.238856f, -0.864188f },
+    { -0.309017f, -0.500000f, -0.809017f }, { -0.162460f, -0.262866f, -0.951056f },
+    {  0.000000f, -0.850651f, -0.525731f }, { -0.147621f, -0.716567f, -0.681718f },
+    {  0.147621f, -0.716567f, -0.681718f }, {  0.000000f, -0.525731f, -0.850651f },
+    {  0.309017f, -0.500000f, -0.809017f }, {  0.442863f, -0.238856f, -0.864188f },
+    {  0.162460f, -0.262866f, -0.951056f }, {  0.238856f, -0.864188f, -0.442863f },
+    {  0.500000f, -0.809017f, -0.309017f }, {  0.425325f, -0.688191f, -0.587785f },
+    {  0.716567f, -0.681718f, -0.147621f }, {  0.688191f, -0.587785f, -0.425325f },
+    {  0.587785f, -0.425325f, -0.688191f }, {  0.000000f, -0.955423f, -0.295242f },
+    {  0.000000f, -1.000000f,  0.000000f }, {  0.262866f, -0.951056f, -0.162460f },
+    {  0.000000f, -0.850651f,  0.525731f }, {  0.000000f, -0.955423f,  0.295242f },
+    {  0.238856f, -0.864188f,  0.442863f }, {  0.262866f, -0.951056f,  0.162460f },
+    {  0.500000f, -0.809017f,  0.309017f }, {  0.716567f, -0.681718f,  0.147621f },
+    {  0.525731f, -0.850651f,  0.000000f }, { -0.238856f, -0.864188f, -0.442863f },
+    { -0.500000f, -0.809017f, -0.309017f }, { -0.262866f, -0.951056f, -0.162460f },
+    { -0.850651f, -0.525731f,  0.000000f }, { -0.716567f, -0.681718f, -0.147621f },
+    { -0.716567f, -0.681718f,  0.147621f }, { -0.525731f, -0.850651f,  0.000000f },
+    { -0.500000f, -0.809017f,  0.309017f }, { -0.238856f, -0.864188f,  0.442863f },
+    { -0.262866f, -0.951056f,  0.162460f }, { -0.864188f, -0.442863f,  0.238856f },
+    { -0.809017f, -0.309017f,  0.500000f }, { -0.688191f, -0.587785f,  0.425325f },
+    { -0.681718f, -0.147621f,  0.716567f }, { -0.442863f, -0.238856f,  0.864188f },
+    { -0.587785f, -0.425325f,  0.688191f }, { -0.309017f, -0.500000f,  0.809017f },
+    { -0.147621f, -0.716567f,  0.681718f }, { -0.425325f, -0.688191f,  0.587785f },
+    { -0.162460f, -0.262866f,  0.951056f }, {  0.442863f, -0.238856f,  0.864188f },
+    {  0.162460f, -0.262866f,  0.951056f }, {  0.309017f, -0.500000f,  0.809017f },
+    {  0.147621f, -0.716567f,  0.681718f }, {  0.000000f, -0.525731f,  0.850651f },
+    {  0.425325f, -0.688191f,  0.587785f }, {  0.587785f, -0.425325f,  0.688191f },
+    {  0.688191f, -0.587785f,  0.425325f }, { -0.955423f,  0.295242f,  0.000000f },
+    { -0.951056f,  0.162460f,  0.262866f }, { -1.000000f,  0.000000f,  0.000000f },
+    { -0.850651f,  0.000000f,  0.525731f }, { -0.955423f, -0.295242f,  0.000000f },
+    { -0.951056f, -0.162460f,  0.262866f }, { -0.864188f,  0.442863f, -0.238856f },
+    { -0.951056f,  0.162460f, -0.262866f }, { -0.809017f,  0.309017f, -0.500000f },
+    { -0.864188f, -0.442863f, -0.238856f }, { -0.951056f, -0.162460f, -0.262866f },
+    { -0.809017f, -0.309017f, -0.500000f }, { -0.681718f,  0.147621f, -0.716567f },
+    { -0.681718f, -0.147621f, -0.716567f }, { -0.850651f,  0.000000f, -0.525731f },
+    { -0.688191f,  0.587785f, -0.425325f }, { -0.587785f,  0.425325f, -0.688191f },
+    { -0.425325f,  0.688191f, -0.587785f }, { -0.425325f, -0.688191f, -0.587785f },
     { -0.587785f, -0.425325f, -0.688191f }, { -0.688191f, -0.587785f, -0.425325f }
 };
 
@@ -376,13 +376,13 @@ nfr("palette_to_color", "block,paletteindex", "R:voxelsI", "F}:4",
     });
 
 nfr("get_palette", "world", "R:voxels", "I", "",
-    [](StackPtr &, VM &, Value &world) {
+    [](StackPtr &, VM &, Value world) {
         auto &w = GetVoxels(world);
         return Value(w.palette_idx);
     });
 
 nfr("set_palette", "world,palette_idx", "R:voxelsI", "", "",
-    [](StackPtr &, VM &vm, Value &world, Value &idx) {
+    [](StackPtr &, VM &vm, Value world, Value idx) {
         auto &w = GetVoxels(world);
         auto i = (size_t)idx.ival();
         if (i >= palettes.size()) vm.BuiltinError("set_palette: out of range");
@@ -391,7 +391,7 @@ nfr("set_palette", "world,palette_idx", "R:voxelsI", "", "",
     });
 
 nfr("load_palette", "act_palette_file", "S", "I", "",
-    [](StackPtr &, VM &vm, Value &fn) {
+    [](StackPtr &, VM &vm, Value fn) {
         string buf;
         auto len = LoadFile(fn.sval()->strv(), &buf);
         if (len < 768) vm.BuiltinError("load_palette: load failed");
@@ -410,7 +410,7 @@ nfr("load_palette", "act_palette_file", "S", "I", "",
 
 nfr("new_palette", "palette", "F}:4]", "I",
     "Create a new palette from 256 float4 color values.",
-    [](StackPtr &, VM &vm, Value &palette) {
+    [](StackPtr &, VM &vm, Value palette) {
         vector<byte4> pal;
         pal.reserve(256);
         if (palette.vval()->len != 256) vm.BuiltinError("new_palette: Expected 256 colors");
@@ -439,7 +439,7 @@ nfr("remove_all_palettes", "", "", "",
     });
 
 nfr("sample_down", "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", "",
-    [](StackPtr &, VM &vm, Value &scale, Value &world, Value &alpha_threshold) {
+    [](StackPtr &, VM &vm, Value scale, Value world, Value alpha_threshold) {
         auto sc = scale.intval();
         if (sc < 2 || sc > 128)
             vm.Error("cg.sample_down: scale out of range");
@@ -476,7 +476,7 @@ nfr("sample_down", "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", "",
     });
 
 nfr("scale_up", "scale,world", "IR:voxels", "R:voxels", "",
-    [](StackPtr &, VM &vm, Value &scale, Value &world) {
+    [](StackPtr &, VM &vm, Value scale, Value world) {
         auto sc = scale.intval();
         auto &v = GetVoxels(world);
         if (sc < 2 || sc > 256 || squaredlength(v.grid.dim) * sc > 2048)
@@ -529,7 +529,7 @@ nfr("stretch", "newsize,world", "I}:3R:voxels", "R:voxels", "",
 
 nfr("create_mesh", "block", "R:voxels", "R:mesh",
     "converts block to a mesh",
-    [](StackPtr &, VM &vm, Value &wid) {
+    [](StackPtr &, VM &vm, Value wid) {
         auto &v = GetVoxels(wid);
         auto &palette = palettes[v.palette_idx].colors;
         static int3 neighbors[] = {
@@ -619,7 +619,7 @@ nfr("create_mesh", "block", "R:voxels", "R:mesh",
 nfr("create_3d_texture", "block,textureformat,monochrome", "R:voxelsII?", "R:texture",
     "returns the new texture, for format, pass flags you want in addition to"
     " 3d|single_channel|has_mips",
-    [](StackPtr &, VM &vm, Value &wid, Value &textureflags, Value &monochrome) {
+    [](StackPtr &, VM &vm, Value wid, Value textureflags, Value monochrome) {
         auto &v = GetVoxels(wid);
         auto &palette = palettes[v.palette_idx].colors;
         auto mipsizes = 0;
@@ -676,7 +676,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
     "if file_contents is non-nil, it contains the file already loaded. "
     "if remap_palettes is true, then the palette will be remapped to match the MagicaVoxel UI if necessary. "
     "returns vector of blocks or empty if file failed to load, and error string if any",
-    [](StackPtr &sp, VM &vm, Value &name, Value &material_palette, Value &file_contents, Value &remap_palettes) {
+    [](StackPtr &sp, VM &vm, Value name, Value material_palette, Value file_contents, Value remap_palettes) {
         auto namep = name.sval()->strv();
         auto voxvec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_RESOURCE);
         auto errf = [&](string_view err) {
@@ -1099,7 +1099,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
 
 nfr("load_vox_names", "name", "S", "S]S?",
     "loads a MagicaVoxel .vox file, and returns its contained sub model names.",
-    [](StackPtr &sp, VM &vm, Value &name) {
+    [](StackPtr &sp, VM &vm, Value name) {
         auto namep = name.sval()->strv();
         string buf;
         auto namevec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
@@ -1207,7 +1207,7 @@ nfr("load_vox_names", "name", "S", "S]S?",
 nfr("save_vox", "block,name", "R:voxelsS", "B",
     "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
     " this format can only save blocks <= 256^3, will fail if bigger",
-    [](StackPtr &, VM &, Value &wid, Value &name) {
+    [](StackPtr &, VM &, Value wid, Value name) {
         auto &v = GetVoxels(wid);
         if (!(v.grid.dim <= 256)) { return Value(false); }
         vector<byte4> voxels;
@@ -1255,14 +1255,14 @@ nfr("save_vox", "block,name", "R:voxelsS", "B",
     });
 
 nfr("chunks_skipped", "block", "R:voxels", "B", "",
-    [](StackPtr &, VM &, Value &wid) {
+    [](StackPtr &, VM &, Value wid) {
         auto &v = GetVoxels(wid);
         return Value(v.chunks_skipped);
     });
 
 nfr("get_buf", "block", "R:voxels", "S",
     "returns the data as a string of all palette indices, in z-major order",
-    [](StackPtr &, VM &vm, Value &wid) {
+    [](StackPtr &, VM &vm, Value wid) {
         auto &v = GetVoxels(wid);
         auto buf = vm.NewString(v.grid.dim.volume());
         v.grid.ToContinousGrid((uint8_t *)buf->strv().data());
@@ -1400,7 +1400,7 @@ nfr("num_solid", "world", "R:voxels", "I", "",
 
 nfr("rotate", "block,n", "R:voxelsI", "R:voxels",
     "returns a new block rotated by n 90 degree steps from the input",
-    [](StackPtr &, VM &vm, Value &wid, Value &rots) {
+    [](StackPtr &, VM &vm, Value wid, Value rots) {
         auto &v = GetVoxels(wid);
         auto n = rots.ival();
         auto &d = n == 1 || n == 3
@@ -1501,7 +1501,7 @@ nfr("bounding_box", "world,minsolids", "R:voxelsF", "I}:3I}:3",
 	});
 
 nfr("randomize", "world,rnd_range,cutoff,paletteindex,filter", "R:voxelsIIII", "", "",
-    [](StackPtr &, VM &, Value &world, Value &rnd_range, Value &cutoff, Value &paletteindex, Value &filter) {
+    [](StackPtr &, VM &, Value world, Value rnd_range, Value cutoff, Value paletteindex, Value filter) {
         auto &v = GetVoxels(world);
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
@@ -1517,7 +1517,7 @@ nfr("randomize", "world,rnd_range,cutoff,paletteindex,filter", "R:voxelsIIII", "
     });
 
 nfr("erode", "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "",
-    [](StackPtr &, VM &vm, Value &world, Value &minsolid, Value &maxsolid) {
+    [](StackPtr &, VM &vm, Value world, Value minsolid, Value maxsolid) {
         auto &v = GetVoxels(world);
         auto &d = *NewWorld(v.grid.dim, v.palette_idx);
         for (int x = 0; x < v.grid.dim.x; x++) {

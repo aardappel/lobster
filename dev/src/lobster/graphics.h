@@ -25,4 +25,4 @@ extern lobster::Value UpdateBufferObjectResource(lobster::VM &vm, lobster::Value
                                                  bool ssbo, bool dyn, string_view name);
 extern void BindBufferObjectResource(lobster::VM &vm, lobster::Value buf, string_view_nt name);
 
-extern Texture GetTexture(const lobster::Value &res);
+extern Texture GetTexture(const lobster::Value res);

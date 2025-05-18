@@ -47,15 +47,15 @@ template<typename T, bool B> T Read(VM &vm, iint i, const LString *s) {
     return ReadValLE<T, B>(s, i);
 }
 
-template<typename T, bool B> Value WriteVal(StackPtr &sp, VM &vm, const Value &str, const Value &idx,
-                                            const Value &val) {
+template<typename T, bool B> Value WriteVal(StackPtr &sp, VM &vm, Value str, Value idx,
+                                            Value val) {
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
     Push(sp, WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T>()));
     return Value(i + ssizeof<T>());
 }
 
-template<bool B> Value WriteStr(StackPtr &sp, VM &vm, const Value &str, const Value &idx, LString *s,
+template<bool B> Value WriteStr(StackPtr &sp, VM &vm, Value str, Value idx, LString *s,
                                 iint extra) {
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
@@ -63,7 +63,7 @@ template<bool B> Value WriteStr(StackPtr &sp, VM &vm, const Value &str, const Va
     return Value(i + s->len + extra);
 }
 
-template<typename T, bool B> Value ReadVal(StackPtr &sp, VM &vm, const Value &str, const Value &idx) {
+template<typename T, bool B> Value ReadVal(StackPtr &sp, VM &vm, Value str, Value idx) {
     auto i = idx.ival();
     auto val = Read<T, B>(vm, i, str.sval());
     Push(sp, val);
@@ -71,7 +71,7 @@ template<typename T, bool B> Value ReadVal(StackPtr &sp, VM &vm, const Value &st
 }
 
 template<typename T, bool IF, bool OF, bool ST>
-Value ReadField(VM &vm, const Value &str, const Value &idx, const Value &vidx, const Value &def) {
+Value ReadField(VM &vm, Value str, Value idx, Value vidx, Value def) {
     auto i = idx.ival();
     auto vtable = Read<flatbuffers::soffset_t, false>(vm, i, str.sval());
     auto vi = i - vtable;
@@ -90,7 +90,7 @@ Value ReadField(VM &vm, const Value &str, const Value &idx, const Value &vidx, c
     return def;
 }
 
-Value FieldPresent(VM &vm, const Value &str, const Value &idx, const Value &vidx) {
+Value FieldPresent(VM &vm, Value str, Value idx, Value vidx) {
     auto i = idx.ival();
     auto vtable = Read<flatbuffers::soffset_t, false>(vm, i, str.sval());
     auto vi = i - vtable;
@@ -117,8 +117,8 @@ LString *GetString(VM &vm, iint fi, LString *buf) {
     }
 }
 
-Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, const Value &schema,
-                   const Value &includes) {
+Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, Value schema,
+                   Value includes) {
     vector<string> dirs_storage;
     for (iint i = 0; i < includes.vval()->len; i++) {
         auto dir = flatbuffers::ConCatPathFileName(string(ProjectDir()),
@@ -141,7 +141,7 @@ nfr("format_time", "format,time,localtime", "SIB", "S",
     " using the same format string syntax as POSIX strftime. If localtime is true, then"
     " the time will be displayed using the local timezone, otherwise it will use UTC."
     " Returns an empty string on error.",
-    [](StackPtr &, VM &vm, Value &format, Value &time, Value &use_localtime) {
+    [](StackPtr &, VM &vm, Value format, Value time, Value use_localtime) {
         chrono::system_clock::time_point tp { chrono::system_clock::duration(time.ival()) };
         time_t tt = chrono::system_clock::to_time_t(tp);
         tm ctm{};
@@ -168,7 +168,7 @@ nfr("scan_folder", "folder,rel", "SB?", "S]?I]?I]?",
     " the number of seconds since 00:00:00 UTC, Thursday, 1 January 1970, not including leap seconds."
     " set rel use a relative path, default is absolute."
     " Returns nil if folder couldn't be scanned.",
-    [](StackPtr &sp, VM &vm, Value &fld, Value &rel) {
+    [](StackPtr &sp, VM &vm, Value fld, Value rel) {
         vector<DirectoryInfo> dir;
         auto ok = rel.True()
             ? ScanDir(fld.sval()->strv(), dir)
@@ -189,7 +189,7 @@ nfr("scan_folder", "folder,rel", "SB?", "S]?I]?I]?",
             // workaround for converting between the file_clock time (used for
             // the filesystem) and system_clock time (used for formatting
             // times). Sadly, even if we could use clock_cast, it seems to have
-            // a known memory leak on Windows: 
+            // a known memory leak on Windows:
             // See https://developercommunity.visualstudio.com/t/reported-memory-leak-when-converting-file-time-typ/1467739
             //
             // According to https://stackoverflow.com/a/73748610 (written by Howard Hinnant,
@@ -223,7 +223,7 @@ nfr("scan_folder", "folder,rel", "SB?", "S]?I]?I]?",
 nfr("read_file", "file,textmode", "SI?", "S?",
     "returns the contents of a file as a string, or nil if the file can't be found."
     " you may use either \\ or / as path separators",
-    [](StackPtr &, VM &vm, Value &file, Value &textmode) {
+    [](StackPtr &, VM &vm, Value file, Value textmode) {
         string buf;
         auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, textmode.False());
         if (l < 0) return NilVal();
@@ -233,26 +233,26 @@ nfr("read_file", "file,textmode", "SI?", "S?",
 
 nfr("write_file", "file,contents,textmode,absolute_path", "SSI?I?", "B",
     "creates a file with the contents of a string, returns false if writing wasn't possible",
-    [](StackPtr &, VM &, Value &file, Value &contents, Value &textmode, Value &absolute) {
+    [](StackPtr &, VM &, Value file, Value contents, Value textmode, Value absolute) {
         auto ok = WriteFile(file.sval()->strv(), textmode.False(), contents.sval()->strv(), absolute.True());
         return Value(ok);
     });
 
 nfr("rename_file", "old_file,new_file", "SS", "B",
     "renames a file, returns false if it wasn't possible",
-    [](StackPtr &, VM &, Value &old_file, Value &new_file) {
+    [](StackPtr &, VM &, Value old_file, Value new_file) {
         auto ok = RenameFile(old_file.sval()->strv(), new_file.sval()->strv());
         return Value(ok);
     });
 
 nfr("delete_file", "file", "S", "B", "deletes a file, returns false if it wasn't possible. Will search in all import dirs.",
-    [](StackPtr &, VM &, Value &file) {
+    [](StackPtr &, VM &, Value file) {
         auto ok = FileDelete(file.sval()->strv());
         return Value(ok);
     });
 
 nfr("exists_file", "file", "S", "B", "checks whether a file exists.",
-    [](StackPtr &, VM &, Value &file) {
+    [](StackPtr &, VM &, Value file) {
         auto ok = FileExists(file.sval()->strv(), false);
         return Value(ok);
     });
@@ -278,7 +278,7 @@ nfr("vector_to_buffer", "vec,width", "A]*I?:4", "S",
     "converts a vector of ints/floats (or structs of them) to a buffer, where"
     " each scalar is written with \"width\" bytes (1/2/4/8, default 4). Returns nil if the"
     " type couldn't be converted. Uses native endianness.",
-    [](StackPtr &, VM &vm, Value &vec, Value &width) {
+    [](StackPtr &, VM &vm, Value vec, Value width) {
         auto v = vec.vval();
         auto w = width.intval();
         if (w != 1 && w != 2 && w != 4 && w != 8)
@@ -339,7 +339,7 @@ nfr("ensure_size", "string,size,char,extra", "SkIII?", "S",
     " added), with any new characters set to"
     " char. You can specify a negative size to mean relative to the end, i.e. new"
     " characters will be added at the start. ",
-    [](StackPtr &, VM &vm, Value &str, Value &size, Value &c, Value &extra) {
+    [](StackPtr &, VM &vm, Value str, Value size, Value c, Value extra) {
         auto asize = std::abs(size.ival());
         return str.sval()->len >= asize
             ? str
@@ -355,7 +355,7 @@ auto write_val_desc1 =
 auto write_val_desc2 = "(see write_int64_le)";
 #define WRITEOP(N, T, B, D, S) \
     nfr(#N, "string,i,val", "SkI" S, "SI", D, \
-        [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &val) { \
+        [](StackPtr &sp, VM &vm, Value str, Value idx, Value val) { \
             return WriteVal<T, B>(sp, vm, str, idx, val); \
         });
 WRITEOP(write_int64_le, int64_t, false, write_val_desc1, "I")
@@ -373,20 +373,20 @@ WRITEOP(write_float32_le_back, float, true, write_val_desc2, "F")
 
 nfr("write_substring", "string,i,substr,nullterm", "SkISI", "SI",
     "writes a substring into another string at i (see also write_int64_le)",
-    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &val, Value &term) {
+    [](StackPtr &sp, VM &vm, Value str, Value idx, Value val, Value term) {
         return WriteStr<false>(sp, vm, str, idx, val.sval(), term.True());
     });
 
 nfr("write_substring_back", "string,i,substr,nullterm", "SkISI", "SI",
     "",
-    [](StackPtr &sp, VM &vm, Value &str, Value &idx, Value &val, Value &term) {
+    [](StackPtr &sp, VM &vm, Value str, Value idx, Value val, Value term) {
         return WriteStr<true>(sp, vm, str, idx, val.sval(), term.True());
     });
 
 nfr("compare_substring", "string_a,i_a,string_b,i_b,len", "SISII", "I",
     "returns if the two substrings are equal (0), or a < b (-1) or a > b (1).",
-    [](StackPtr &, VM &vm, Value &str1, Value &idx1, Value &str2, Value &idx2,
-                                    Value &len) {
+    [](StackPtr &, VM &vm, Value str1, Value idx1, Value str2, Value idx2,
+                                    Value len) {
         auto s1 = str1.sval();
         auto s2 = str2.sval();
         auto i1 = idx1.ival();
@@ -406,7 +406,7 @@ auto read_val_desc1 =
 auto read_val_desc2 = "(see read_int64_le)";
 #define READOP(N, T, B, D, S) \
     nfr(#N, "string,i", "SI", S "I", D, \
-        [](StackPtr &sp, VM &vm, Value &str, Value &idx) { return ReadVal<T, B>(sp, vm, str, idx); });
+        [](StackPtr &sp, VM &vm, Value str, Value idx) { return ReadVal<T, B>(sp, vm, str, idx); });
 READOP(read_int64_le, int64_t, false, read_val_desc1, "I")
 READOP(read_int32_le, int32_t, false, read_val_desc2, "I")
 READOP(read_int16_le, int16_t, false, read_val_desc2, "I")
@@ -441,7 +441,7 @@ auto read_field_desc1 =
 auto read_field_desc2 = "(see flatbuffers.field_int64)";
 #define READFOP(N, T, D, S) \
     nfr(#N, "string,tablei,vo,def", "SII" S, S, D, \
-        [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx, Value &def) { \
+        [](StackPtr &, VM &vm, Value str, Value idx, Value vidx, Value def) { \
             auto val = ReadField<T, S[0] == 'F', false, false>(vm, str, idx, vidx, def); \
             return Value(val); \
         });
@@ -458,7 +458,7 @@ READFOP(field_float32, float, read_field_desc2, "F")
 
 nfr("field_string", "string,tablei,vo", "SII", "S",
     "reads a flatbuffer string field, returns \"\" if not present",
-    [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
+    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
         auto ret = Value(GetString(vm, fi, str.sval()));
@@ -467,7 +467,7 @@ nfr("field_string", "string,tablei,vo", "SII", "S",
 
 nfr("field_vector_len", "string,tablei,vo", "SII", "I",
     "reads a flatbuffer vector field length, or 0 if not present",
-    [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
+    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
         Value ret(fi ? Read<flatbuffers::uoffset_t, false>(vm, fi, str.sval()) : 0);
@@ -476,7 +476,7 @@ nfr("field_vector_len", "string,tablei,vo", "SII", "I",
 
 nfr("field_vector", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer vector field element start, or 0 if not present",
-    [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
+    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
         Value ret(fi ? fi + ssizeof<flatbuffers::uoffset_t>() : 0);
@@ -485,7 +485,7 @@ nfr("field_vector", "string,tablei,vo", "SII", "I",
 
 nfr("field_table", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer table field start, or 0 if not present",
-    [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
+    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
         auto ret = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                          Value(0));
         return ret;
@@ -493,7 +493,7 @@ nfr("field_table", "string,tablei,vo", "SII", "I",
 
 nfr("field_struct", "string,tablei,vo", "SII", "I",
     "returns a flatbuffer struct field start, or 0 if not present",
-    [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
+    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
         auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(vm, str, idx, vidx,
                                                                          Value(0));
         return ret;
@@ -501,20 +501,20 @@ nfr("field_struct", "string,tablei,vo", "SII", "I",
 
 nfr("field_present", "string,tablei,vo", "SII", "B",
     "returns if a flatbuffer field is present (unequal to default)",
-    [](StackPtr &, VM &vm, Value &str, Value &idx, Value &vidx) {
+    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
         return FieldPresent(vm, str, idx, vidx);
     });
 
 nfr("indirect", "string,index", "SI", "I",
     "returns a flatbuffer offset at index relative to itself",
-    [](StackPtr &, VM &vm, Value &str, Value &idx) {
+    [](StackPtr &, VM &vm, Value str, Value idx) {
         auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
         return Value(off + idx.ival());
     });
 
 nfr("string", "string,index", "SI", "S",
     "returns a flatbuffer string whose offset is at given index",
-    [](StackPtr &, VM &vm, Value &str, Value &idx) {
+    [](StackPtr &, VM &vm, Value str, Value idx) {
         auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
         auto ret = GetString(vm, off + idx.ival(), str.sval());
         return Value(ret);
@@ -524,7 +524,7 @@ nfr("binary_to_json", "schemas,binary,includedirs", "SSS]", "SS?",
     "returns a JSON string generated from the given binary and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error",
-    [](StackPtr &sp, VM &vm, Value &schema, Value &binary, Value &includes) {
+    [](StackPtr &sp, VM &vm, Value schema, Value binary, Value includes) {
         flatbuffers::Parser parser;
         auto err = ParseSchemas(vm, parser, schema, includes);
         string json;
@@ -542,7 +542,7 @@ nfr("json_to_binary", "schema,json,includedirs", "SSS]", "SS?",
     "returns a binary flatbuffer generated from the given json and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error",
-    [](StackPtr &sp, VM &vm, Value &schema, Value &json, Value &includes) {
+    [](StackPtr &sp, VM &vm, Value schema, Value json, Value includes) {
         flatbuffers::Parser parser;
         auto err = ParseSchemas(vm, parser, schema, includes);
         string binary;

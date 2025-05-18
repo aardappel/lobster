@@ -397,7 +397,7 @@ nfr("parse_data", "typeid,stringdata", "TS", "A1?S?",
 nfr("flexbuffers_value_to_binary", "val,max_nesting,cycle_detection", "AI?B?", "S",
     "turns any reference value into a flexbuffer. max_nesting defaults to 100. "
     "cycle_detection is by default off (expensive)",
-    [](StackPtr &, VM &vm, Value &val, Value &maxnest, Value &cycle_detect) {
+    [](StackPtr &, VM &vm, Value val, Value maxnest, Value cycle_detect) {
         ToFlexBufferContext fbc(vm, 1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS);
         auto mn = maxnest.ival();
         if (mn > 0) fbc.max_depth = mn;
@@ -453,7 +453,7 @@ nfr("flexbuffers_binary_to_json", "flex,field_quotes,indent_string", "SBS", "S?S
 
 nfr("flexbuffers_json_to_binary", "json,filename_for_errors", "SS?", "SS?",
     "turns a JSON string into a flexbuffer, second value is error, if any",
-    [](StackPtr &sp, VM &vm, Value &json, Value &filename) {
+    [](StackPtr &sp, VM &vm, Value json, Value filename) {
         flexbuffers::Builder builder;
         flatbuffers::Parser parser;
         auto err = NilVal();
@@ -476,7 +476,7 @@ nfr("lobster_value_to_binary", "val", "A", "S",
     "this is intended for threads/networking, not for storage (since it is not readable by other languages). "
     "data structures participating must have been marked by attribute serializable. "
     "does not provide protection against cycles, use flexbuffers if that is a concern. ",
-    [](StackPtr &, VM &vm, Value &val) {
+    [](StackPtr &, VM &vm, Value val) {
         vector<uint8_t> buf;
         val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
         // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?

@@ -36,20 +36,20 @@ ResourceType shader_type = { "shader" };
 ResourceType timequery_type = { "timequery" };
 ResourceType buffer_object_type = { "bufferobject" };
 
-Mesh &GetMesh(Value &res) {
+Mesh &GetMesh(Value res) {
     return GetResourceDec<Mesh>(res, &mesh_type);
 }
-Texture GetTexture(const Value &res) {
+Texture GetTexture(Value res) {
     if (res.False()) return DummyTexture();
     return GetResourceDec<OwnedTexture>(res, &texture_type).t;
 }
-Shader &GetShader(Value &res) {
+Shader &GetShader(Value res) {
     return GetResourceDec<Shader>(res, &shader_type);
 }
-BufferObject &GetBufferObject(Value &res) {
+BufferObject &GetBufferObject(Value res) {
     return GetResourceDec<BufferObject>(res, &buffer_object_type);
 }
-TimeQuery &GetTimeQuery(Value &res) {
+TimeQuery &GetTimeQuery(Value res) {
     return GetResourceDec<TimeQuery>(res, &timequery_type);
 }
 
@@ -123,13 +123,13 @@ float2 localfingerpos(int i) {
     return localpos(GetFinger(i, false));
 }
 
-int GetSampler(VM &vm, Value &i) {
+int GetSampler(VM &vm, Value i) {
     if (i.ival() < 0 || i.ival() >= Shader::MAX_SAMPLERS)
         vm.BuiltinError("graphics: illegal texture unit");
     return i.intval();
 }
 
-Mesh *CreatePolygon(VM &vm, Value &vl) {
+Mesh *CreatePolygon(VM &vm, Value vl) {
     TestGL(vm);
     auto len = vl.vval()->len;
     if (len < 3) vm.BuiltinError("polygon: must have at least 3 verts");
@@ -154,14 +154,14 @@ Mesh *CreatePolygon(VM &vm, Value &vl) {
     return m;
 }
 
-Value SetUniform(VM &vm, const Value &name, const float *data, int len) {
+Value SetUniform(VM &vm, Value name, const float *data, int len) {
     TestGL(vm);
     currentshader->Activate();
     auto ok = currentshader->SetUniform(name.sval()->strvnt(), data, len);
     return Value(ok);
 }
 
-Value SetUniform(VM &vm, const Value &name, const int *data, int len) {
+Value SetUniform(VM &vm, Value name, const int *data, int len) {
     TestGL(vm);
     currentshader->Activate();
     auto ok = currentshader->SetUniform(name.sval()->strvnt(), data, len);
@@ -220,7 +220,7 @@ void AddGraphics(NativeRegistry &nfr) {
 nfr("window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
     "opens a window for OpenGL rendering. returns error string if any problems, nil"
     " otherwise. For flags, see modules/gl.lobster",
-    [](StackPtr &, VM &vm, Value &title, Value &xs, Value &ys, Value &flags, Value &samples) {
+    [](StackPtr &, VM &vm, Value title, Value xs, Value ys, Value flags, Value samples) {
         if (graphics_initialized)
             vm.BuiltinError("cannot call gl.window() twice");
         string err = SDLInit(title.sval()->strvnt(), int2(iint2(xs.ival(), ys.ival())),
@@ -243,7 +243,7 @@ nfr("window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
 nfr("require_version", "major,minor", "II", "",
     "Call this before gl.window to request a certain version of OpenGL context."
             " Currently only works on win/nix, minimum is 3.2.",
-    [](StackPtr &, VM &, Value &major, Value &minor) {
+    [](StackPtr &, VM &, Value major, Value minor) {
         SDLRequireGLVersion(major.intval(), minor.intval());
         return NilVal();
     });
@@ -253,7 +253,7 @@ nfr("load_materials", "materialdefs,inline,prefix", "SI?S?", "S?",
     " by gl.window()). if inline is true, materialdefs is not a filename, but the actual"
     " materials. prefix will be added to all shader names allowing you to compile the same"
     " shaders multiple times. returns error string if any problems, nil otherwise.",
-    [](StackPtr &, VM &vm, Value &fn, Value &isinline, Value &prefix) {
+    [](StackPtr &, VM &vm, Value fn, Value isinline, Value prefix) {
         TestGL(vm);
         auto pf = prefix.True() ? prefix.sval()->strv() : string_view{};
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv(), pf)
@@ -293,7 +293,7 @@ nfr("shutdown", "", "", "",
 
 nfr("window_title", "title", "S", "Sb",
     "changes the window title.",
-    [](StackPtr &, VM &vm, Value &s) {
+    [](StackPtr &, VM &vm, Value s) {
         TestGL(vm);
         SDLTitle(s.sval()->strvnt());
         return s;
@@ -301,7 +301,7 @@ nfr("window_title", "title", "S", "Sb",
 
 nfr("window_min_max", "dir", "I", "",
     ">0 to maximize, <0 to minimize or 0 to restore.",
-    [](StackPtr &, VM &vm, Value &dir) {
+    [](StackPtr &, VM &vm, Value dir) {
         TestGL(vm);
         SDLWindowMinMax(dir.intval());
         return NilVal();
@@ -309,7 +309,7 @@ nfr("window_min_max", "dir", "I", "",
 
 nfr("fullscreen", "mode", "I", "",
     "use window_init enum flags from gl module",
-    [](StackPtr &, VM &vm, Value &mode) {
+    [](StackPtr &, VM &vm, Value mode) {
         TestGL(vm);
         SDLSetFullscreen((InitFlags)mode.intval());
         return NilVal();
@@ -333,14 +333,14 @@ nfr("visible", "", "", "B",
 nfr("cursor", "on", "B", "B",
     "default the cursor is visible, turn off for implementing FPS like control schemes. return"
     " whether it was on before this call.",
-    [](StackPtr &, VM &vm, Value &on) {
+    [](StackPtr &, VM &vm, Value on) {
         TestGL(vm);
         return Value(SDLCursor(on.True()));
     });
 
 nfr("grab", "on", "B", "B",
     "grabs the mouse when the window is active. return whether it's on.",
-    [](StackPtr &, VM &vm, Value &on) {
+    [](StackPtr &, VM &vm, Value on) {
         TestGL(vm);
         return Value(SDLGrab(on.ival() != 0));
     });
@@ -353,7 +353,7 @@ nfr("button", "name", "S", "II",
     " it is possible both happen inside one frame, i.e. down==1 and up==1! "
     " for name, pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1/joy1 etc."
     " mouse11 and on are additional fingers",
-    [](StackPtr &sp, VM &, Value &name) {
+    [](StackPtr &sp, VM &, Value name) {
         auto ks = GetKS(name.sval()->strv());
         Push(sp, ks.first);
         return Value(ks.second);
@@ -361,7 +361,7 @@ nfr("button", "name", "S", "II",
 
 nfr("key_repeat", "name", "S", "B",
     "returns if a key was a key repeat (went down, or is down with a key repeat)",
-    [](StackPtr &, VM &, Value &name) {
+    [](StackPtr &, VM &, Value name) {
         auto ks = GetKS(name.sval()->strv());
         return Value(ks.first == 1 || (ks.first > 1 && KeyRepeat(name.sval()->strv())));
     });
@@ -389,7 +389,7 @@ nfr("text_input_state", "", "", "SSII",
 
 nfr("set_text_input", "text", "S", "",
     "overwrites the current text string being accumulated",
-    [](StackPtr &, VM &, Value &text) {
+    [](StackPtr &, VM &, Value text) {
         SDLTextInputSet(text.sval()->strv());
         return NilVal();
     });
@@ -414,7 +414,7 @@ nfr("touchscreen", "", "", "B",
 nfr("dpi", "screen", "I", "I",
     "the DPI of the screen. always returns a value for screen 0, any other screens may return"
     " 0 to indicate the screen doesn\'t exist",
-    [](StackPtr &, VM &, Value &screen) {
+    [](StackPtr &, VM &, Value screen) {
         return Value(SDLScreenDPI(screen.intval()));
     });
 
@@ -474,7 +474,7 @@ nfr("mousewheel_delta", "", "", "I",
 nfr("joy_axis", "i", "I", "F",
     "the current joystick orientation for axis i, as -1 to 1 value."
     " this gives you raw joystick values, prefer to use controller_axis()",
-    [](StackPtr &, VM &, Value &i) {
+    [](StackPtr &, VM &, Value i) {
         return Value(GetJoyAxis(i.intval()));
     });
 
@@ -483,7 +483,7 @@ nfr("controller_axis", "i", "I", "F",
     " the axes are (from 0): leftx, lefty, rightx, righty, triggerleft, triggerright."
     " down/right have positive values."
     " make sure to call gl.init_controller_database()",
-    [](StackPtr &, VM &, Value &i) {
+    [](StackPtr &, VM &, Value i) {
         return Value(GetControllerAxis(i.intval()));
     });
 
@@ -495,13 +495,13 @@ nfr("delta_time", "", "", "F",
 
 nfr("delta_time_rolling", "n", "I", "F",
     "seconds since the last frame, updated only once per frame, as a rolling average over the last N frames (max 64)",
-    [](StackPtr &, VM &, Value &n) {
+    [](StackPtr &, VM &, Value n) {
         return Value(SDLGetRollingAverage((size_t)n.ival()));
     });
 
 nfr("set_target_delta_time", "delta_time", "F", "",
     "attempt to run at no more than the given delta_time (framerate cap). By default uncapped (only capped by vsync)",
-    [](StackPtr &, VM &, Value &ft) {
+    [](StackPtr &, VM &, Value ft) {
         SetTargetFrameTime(ft.fval());
         return NilVal();
     });
@@ -515,7 +515,7 @@ nfr("time", "", "", "F",
 
 nfr("last_time", "name,down", "SI", "F",
     "time key/mousebutton/finger last went down (true) or up (false)",
-    [](StackPtr &, VM &, Value &name, Value &on) {
+    [](StackPtr &, VM &, Value name, Value on) {
         auto t = GetKeyTime(name.sval()->strv(), on.intval());
         return Value(t);
     });
@@ -538,7 +538,7 @@ nfr("color", "col", "F}:4", "F}:4",
 nfr("polygon", "vertlist", "F}]", "",
     "renders a polygon using the list of points given."
     " warning: gl.polygon creates a new mesh every time, gl.new_poly/gl.render_mesh is faster.",
-    [](StackPtr &, VM &vm, Value &vl) {
+    [](StackPtr &, VM &vm, Value vl) {
         auto m = CreatePolygon(vm, vl);
         m->Render(currentshader);
         delete m;
@@ -568,7 +568,7 @@ nfr("rounded_rectangle_border", "size,segments,corner_ratio,border_thickness", "
 
 nfr("circle", "radius,segments", "FI", "",
     "renders a circle",
-    [](StackPtr &, VM &vm, Value &radius, Value &segments) {
+    [](StackPtr &, VM &vm, Value radius, Value segments) {
         TestGL(vm);
         geomcache->RenderCircle(currentshader, polymode, max(segments.intval(), 3), radius.fltval());
         return NilVal();
@@ -577,7 +577,7 @@ nfr("circle", "radius,segments", "FI", "",
 nfr("open_circle", "radius,segments,thickness", "FIF", "",
     "renders a circle that is open on the inside. thickness is the fraction of the radius that"
     " is filled, try e.g. 0.2",
-    [](StackPtr &, VM &vm, Value &radius, Value &segments, Value &thickness) {
+    [](StackPtr &, VM &vm, Value radius, Value segments, Value thickness) {
         TestGL(vm);
 
         geomcache->RenderOpenCircle(currentshader, max(segments.intval(), 3), radius.fltval(),
@@ -589,7 +589,7 @@ nfr("open_circle", "radius,segments,thickness", "FIF", "",
 nfr("unit_cube", "insideout", "I?", "",
     "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
     " out",
-    [](StackPtr &, VM &, Value &inside) {
+    [](StackPtr &, VM &, Value inside) {
         geomcache->RenderUnitCube(currentshader, inside.True());
         return NilVal();
     });
@@ -707,7 +707,7 @@ nfr("point_scale", "factor", "F", "",
     "sets the current scaling factor for point sprites."
     " this can be what the current gl.scale is, or different, depending on the desired visuals."
     " the ideal size may also be FOV dependent.",
-    [](StackPtr &, VM &, Value &f) {
+    [](StackPtr &, VM &, Value f) {
         custompointscale = f.fltval();
         return NilVal();
     });
@@ -795,7 +795,7 @@ nfr("rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
 
 nfr("unit_square", "centered", "I?", "",
     "renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)",
-    [](StackPtr &, VM &vm, Value &centered) {
+    [](StackPtr &, VM &vm, Value centered) {
         TestGL(vm);
         geomcache->RenderUnitSquare(currentshader, polymode, centered.True());
         return NilVal();
@@ -834,7 +834,7 @@ nfr("ortho", "rh,depth", "I?I?", "",
     " call to get back to that after gl.perspective."
     " Pass true to rh have (0,0) bottom-left instead."
     " Pass true to depth to have depth testing/writing on.",
-    [](StackPtr &, VM &, Value &rh, Value &depth) {
+    [](StackPtr &, VM &, Value rh, Value depth) {
         Set2DMode(GetFrameBufferSize(GetScreenSize()), rh.False(), depth.True());
         return NilVal();
     });
@@ -852,7 +852,7 @@ nfr("new_poly", "positions", "F}]", "R:mesh",
     " gl.line_mode determines how this gets drawn (fan or loop)."
     " automatically generates texcoords and normals."
     " returns mesh id",
-    [](StackPtr &, VM &vm, Value &positions) {
+    [](StackPtr &, VM &vm, Value positions) {
         auto m = CreatePolygon(vm, positions);
         return Value(vm.NewResource(&mesh_type, m));
     });
@@ -864,8 +864,8 @@ nfr("new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices",
     " you may specify [] for any of the other attributes if not required by format,"
     " or to get defaults for colors (white) / texcoords (position x & y) /"
     " normals (generated from adjacent triangles).",
-    [](StackPtr &, VM &vm, Value &format, Value &positions, Value &colors,
-                           Value &normals, Value &texcoords1, Value &texcoords2, Value &indices) {
+    [](StackPtr &, VM &vm, Value format, Value positions, Value colors,
+                           Value normals, Value texcoords1, Value texcoords2, Value indices) {
         TestGL(vm);
         auto nattr = format.sval()->len;
         if (nattr < 1 || nattr > 10)
@@ -940,7 +940,7 @@ nfr("new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices",
 
 nfr("new_mesh_iqm", "filename", "S", "R:mesh?",
     "load a .iqm file into a mesh, returns mesh or nil on failure to load.",
-    [](StackPtr &, VM &vm, Value &fn) {
+    [](StackPtr &, VM &vm, Value fn) {
         TestGL(vm);
         auto m = LoadIQM(fn.sval()->strv());
         return m ? Value(vm.NewResource(&mesh_type, m)) : NilVal();
@@ -948,7 +948,7 @@ nfr("new_mesh_iqm", "filename", "S", "R:mesh?",
 
 nfr("mesh_parts", "m", "R:mesh", "S]",
     "returns an array of names of all parts of mesh m (names may be empty)",
-    [](StackPtr &, VM &vm, Value &i) {
+    [](StackPtr &, VM &vm, Value i) {
         auto &m = GetMesh(i);
         auto v = (LVector *)vm.NewVec(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (auto s : m.surfs) v->Push(vm, Value(vm.NewString(s->name)));
@@ -957,7 +957,7 @@ nfr("mesh_parts", "m", "R:mesh", "S]",
 
 nfr("mesh_size", "m", "R:mesh", "I",
     "returns the number of verts in this mesh",
-    [](StackPtr &, VM &, Value &i) {
+    [](StackPtr &, VM &, Value i) {
         auto &m = GetMesh(i);
         return Value((int)m.geom->nverts);
     });
@@ -973,7 +973,7 @@ nfr("mesh_bounds", "m", "R:mesh", "F}:3F}:3",
 
 nfr("mesh_animations", "m", "R:mesh", "S]",
     "return names of animations",
-    [](StackPtr &, VM &vm, Value &i) {
+    [](StackPtr &, VM &vm, Value i) {
         auto &m = GetMesh(i);
         auto v = (LVector *)vm.NewVec(0, (int)m.animations.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (const auto &it : m.animations) v->Push(vm, Value(vm.NewString(it.first)));
@@ -983,7 +983,7 @@ nfr("mesh_animations", "m", "R:mesh", "S]",
 nfr("mesh_animation_frames", "m,name", "R:meshS", "IIF",
     "given name, return animation's first frame, number of frames and framerate, "
     "or '-1, -1, 0.0' if name is invalid",
-    [](StackPtr &sp, VM &, Value &i, Value &n) {
+    [](StackPtr &sp, VM &, Value i, Value n) {
         auto &m = GetMesh(i);
         int first_frame = -1;
         int num_frames = -1;
@@ -1000,7 +1000,7 @@ nfr("mesh_animation_frames", "m,name", "R:meshS", "IIF",
 
 nfr("animate_mesh", "m,frame", "R:meshF", "",
     "set the frame for animated mesh m",
-    [](StackPtr &, VM &, Value &i, Value &f) {
+    [](StackPtr &, VM &, Value i, Value f) {
         auto &m = GetMesh(i);
         m.anim_frame1 = f.fltval();
         m.anim_frame2 = -1.0;
@@ -1009,7 +1009,7 @@ nfr("animate_mesh", "m,frame", "R:meshF", "",
 
 nfr("animate_mesh_blend", "m,frame1,frame2,blending", "R:meshFFF", "",
     "set the blending frames for animated mesh m",
-    [](StackPtr &, VM &, Value &i, Value &f1, Value &f2, Value &b) {
+    [](StackPtr &, VM &, Value i, Value f1, Value f2, Value b) {
         auto &m = GetMesh(i);
         m.anim_frame1 = f1.fltval();
         m.anim_frame2 = f2.fltval();
@@ -1019,7 +1019,7 @@ nfr("animate_mesh_blend", "m,frame1,frame2,blending", "R:meshFFF", "",
 
 nfr("render_mesh", "m", "R:mesh", "",
     "renders the specified mesh",
-    [](StackPtr &, VM &vm, Value &i) {
+    [](StackPtr &, VM &vm, Value i) {
         TestGL(vm);
         GetMesh(i).Render(currentshader);
         return NilVal();
@@ -1031,7 +1031,7 @@ nfr("save_mesh", "m,name,format", "R:meshSI?", "S?",
     "warning: when using iqm format, make sure vertex format is 'PNC', which is being "
     "used by meshgen and cubegen. "
     "returns error string if any problems, nil otherwise.",
-    [](StackPtr &, VM &vm, Value &i, Value &name, Value &format) {
+    [](StackPtr &, VM &vm, Value i, Value name, Value format) {
         TestGL(vm);
         auto err = GetMesh(i).Save(name.sval()->strv(), (ModelFormat)format.intval());
         return err.empty() ? NilVal() : Value(vm.NewString(err));
@@ -1041,7 +1041,7 @@ nfr("mesh_pointsize", "m,pointsize", "R:meshF", "",
     "sets the pointsize for this mesh. "
     "the mesh must have been created with indices = nil for point rendering to be used. "
     "you also want to use a shader that works with points, such as color_attr_particle.",
-    [](StackPtr &, VM &, Value &i, Value &ps) {
+    [](StackPtr &, VM &, Value i, Value ps) {
         auto &m = GetMesh(i);
         m.pointsize = ps.fltval();
         return NilVal();
@@ -1050,7 +1050,7 @@ nfr("mesh_pointsize", "m,pointsize", "R:meshF", "",
 nfr("set_shader", "shader", "S", "",
     "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
     " color / textured / phong",
-    [](StackPtr &, VM &vm, Value &shader) {
+    [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
         auto sh = LookupShader(shader.sval()->strv());
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
@@ -1060,7 +1060,7 @@ nfr("set_shader", "shader", "S", "",
 
 nfr("set_shader", "shader", "R:shader", "",
     "changes the current shader from a value received from gl.get_shader",
-    [](StackPtr &, VM &vm, Value &shader) {
+    [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
         currentshader = &GetShader(shader);
         return NilVal();
@@ -1068,7 +1068,7 @@ nfr("set_shader", "shader", "R:shader", "",
 
 nfr("get_shader", "shader", "S", "R:shader",
     "gets a shader by name, for use with gl.set_shader",
-    [](StackPtr &, VM &vm, Value &shader) {
+    [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
         auto sh = LookupShader(shader.sval()->strv());
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
@@ -1089,7 +1089,7 @@ nfr("set_uniform", "name,value", "SF}", "B",
 nfr("set_uniform", "name,value", "SF", "B",
     "set a uniform on the current shader. uniform"
     " in the shader must be a single float. returns false on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec) {
+    [](StackPtr &, VM &vm, Value name, Value vec) {
         auto f = vec.fltval();
         return SetUniform(vm, name, &f, 1);
     });
@@ -1108,7 +1108,7 @@ nfr("set_uniform", "name,value", "SI}", "B",
 nfr("set_uniform", "name,value", "SI", "B",
     "set a uniform on the current shader. uniform"
     " in the shader must be a single int. returns false on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec) {
+    [](StackPtr &, VM &vm, Value name, Value vec) {
         auto i = vec.intval();
         return SetUniform(vm, name, &i, 1);
     });
@@ -1116,7 +1116,7 @@ nfr("set_uniform", "name,value", "SI", "B",
 nfr("set_uniform_array", "name,value", "SF}:4]", "B",
     "set a uniform on the current shader. uniform in the shader must be an array of vec4."
     " returns false on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec) {
+    [](StackPtr &, VM &vm, Value name, Value vec) {
         TestGL(vm);
         vector<float4> vals;
         vals.reserve(vec.vval()->len);
@@ -1132,7 +1132,7 @@ nfr("set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
     "set a uniform on the current shader. pass a vector of 4/6/9/12/16 floats to set a"
     " mat2/mat3x2/mat3/mat4x3/mat4 respectively. pass true for morerows to get"
     " mat2x3/mat3x4. returns false on error.",
-    [](StackPtr &, VM &vm, Value &name, Value &vec, Value &morerows) {
+    [](StackPtr &, VM &vm, Value name, Value vec, Value morerows) {
         TestGL(vm);
         vector<float> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
@@ -1146,7 +1146,7 @@ nfr("update_buffer_object", "value,ssbo,offset,existing,dyn", "SIIRk:bufferobjec
     "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer resource or nil on error.",
-    [](StackPtr &, VM &vm, Value &vec, Value &ssbo, Value &offset, Value &buf, Value &dyn) {
+    [](StackPtr &, VM &vm, Value vec, Value ssbo, Value offset, Value buf, Value dyn) {
         TestGL(vm);
         return UpdateBufferObjectResource(vm, buf, vec.sval()->strv().data(),
                                           vec.sval()->strv().size(), offset.intval(), ssbo.True(),
@@ -1158,15 +1158,15 @@ nfr("bind_buffer_object", "name,bo", "SR:bufferobject", "I",
     " uniform block name. uniforms in the shader can be any type, as long as it matches the"
     " data layout in the string buffer."
     " returns false for error.",
-    [](StackPtr &, VM &vm, Value &name, Value &buf) {
+    [](StackPtr &, VM &vm, Value name, Value buf) {
         TestGL(vm);
         return Value(BindBufferObject(currentshader, &GetBufferObject(buf), name.sval()->strvnt()));
     });
 
 nfr("copy_buffer_object", "source,destination,srcoffset,dstoffset,length", "R:bufferobject?R:bufferobject?III", "",
     "copies the source buffer object into the destination buffer object",
-    [](StackPtr &, VM &vm, Value &source, Value &destination, Value &srcoffset,
-        Value &dstoffset, Value &length) {
+    [](StackPtr &, VM &vm, Value source, Value destination, Value srcoffset,
+        Value dstoffset, Value length) {
         TestGL(vm);
         auto srco = &GetBufferObject(source);
         auto dsto = &GetBufferObject(destination);
@@ -1177,7 +1177,7 @@ nfr("copy_buffer_object", "source,destination,srcoffset,dstoffset,length", "R:bu
 nfr("bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
     "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
     " unbind.",
-    [](StackPtr &, VM &vm, Value &mesh, Value &name) {
+    [](StackPtr &, VM &vm, Value mesh, Value name) {
         TestGL(vm);
         BindAsSSBO(currentshader, name.sval()->strvnt(), mesh.True() ? GetMesh(mesh).geom->vbo : 0);
         return NilVal();
@@ -1197,7 +1197,7 @@ nfr("dump_shader", "filename,stripnonascii", "SB", "B",
     "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
     " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"
     " pass true for stripnonascii if you're only interested in that part.",
-    [](StackPtr &, VM &vm, Value &filename, Value &stripnonascii) {
+    [](StackPtr &, VM &vm, Value filename, Value stripnonascii) {
         TestGL(vm);
         currentshader->Activate();
         auto ok = currentshader->DumpBinary(filename.sval()->strv(), stripnonascii.True());
@@ -1219,7 +1219,7 @@ nfr("load_texture", "name,textureformat", "SI?", "R:texture?",
     " will load 6 images with \"_ft\" etc inserted before the \".\" in the filename."
     " Uses stb_image internally (see http://nothings.org/), loads JPEG Baseline,"
     " subsets of PNG, TGA, BMP, PSD, GIF, HDR, PIC.",
-    [](StackPtr &, VM &vm, Value &name, Value &tf) {
+    [](StackPtr &, VM &vm, Value name, Value tf) {
         TestGL(vm);
         auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
         return tex.id ? vm.NewResource(&texture_type, new OwnedTexture(tex)) : NilVal();
@@ -1227,7 +1227,7 @@ nfr("load_texture", "name,textureformat", "SI?", "R:texture?",
 
 nfr("save_texture", "tex,filename,flip", "R:textureSB?", "B",
     "saves the texture in .png format, returns true if succesful",
-    [](StackPtr &, VM &vm, Value &t, Value &fn, Value &flip) {
+    [](StackPtr &, VM &vm, Value t, Value fn, Value flip) {
         TestGL(vm);
         auto ok = SaveTexture(GetTexture(t), fn.sval()->strvnt(), flip.True());
         return Value(ok);
@@ -1235,7 +1235,7 @@ nfr("save_texture", "tex,filename,flip", "R:textureSB?", "B",
 
 nfr("set_primitive_texture", "i,tex", "IR:texture", "",
     "sets texture unit i to texture (for use with rect/circle/polygon/line)",
-    [](StackPtr &, VM &vm, Value &i, Value &id) {
+    [](StackPtr &, VM &vm, Value i, Value id) {
         TestGL(vm);
         SetTexture(GetSampler(vm, i), GetTexture(id));
         return NilVal();
@@ -1243,7 +1243,7 @@ nfr("set_primitive_texture", "i,tex", "IR:texture", "",
 
 nfr("set_mesh_texture", "mesh,part,i,texture", "R:meshIIR:texture", "",
     "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)",
-    [](StackPtr &, VM &vm, Value &mid, Value &part, Value &i, Value &id) {
+    [](StackPtr &, VM &vm, Value mid, Value part, Value i, Value id) {
         auto &m = GetMesh(mid);
         if (part.ival() < 0 || part.ival() >= (iint)m.surfs.size())
             vm.BuiltinError("setmeshtexture: illegal part index");
@@ -1254,7 +1254,7 @@ nfr("set_mesh_texture", "mesh,part,i,texture", "R:meshIIR:texture", "",
 nfr("set_image_texture", "i,tex,level,accessflags", "IR:textureII?", "",
     "sets image unit i to texture (for use with compute). optionally specify "
     "writeonly/readwrite flags.",
-    [](StackPtr &, VM &vm, Value &i, Value &id, Value &level, Value &tf) {
+    [](StackPtr &, VM &vm, Value i, Value id, Value level, Value tf) {
         TestGL(vm);
         SetImageTexture(GetSampler(vm, i), GetTexture(id), level.intval(), tf.intval());
         return NilVal();
@@ -1272,7 +1272,7 @@ nfr("create_texture", "matrix,textureformat", "F}:4]]I?", "R:texture",
     "creates a texture from a 2d array of color vectors."
     " see texture.lobster for texture format."
     " for a cubemap, pass an array that is 6x as big on x than y",
-    [](StackPtr &, VM &vm, Value &matv, Value &tf) {
+    [](StackPtr &, VM &vm, Value matv, Value tf) {
         TestGL(vm);
         return Value(
             vm.NewResource(&texture_type, CreateTextureFromValues(matv.vval(), tf.intval())));
@@ -1282,7 +1282,7 @@ nfr("create_texture_single_channel", "matrix,textureformat", "F]]I?", "R:texture
     "creates a texture from a 2d array of float vectors."
     " see texture.lobster for texture format."
     " for a cubemap, pass an array that is 6x as big on x than y",
-    [](StackPtr &, VM &vm, Value &matv, Value &tf) {
+    [](StackPtr &, VM &vm, Value matv, Value tf) {
         TestGL(vm);
         return Value(
             vm.NewResource(&texture_type, CreateTextureFromValues(matv.vval(), tf.intval() | TF_SINGLE_CHANNEL)));
@@ -1321,7 +1321,7 @@ nfr("texture_size", "tex", "R:texture", "I}:2",
 
 nfr("read_texture", "tex", "R:texture", "S?",
     "read back RGBA texture data into a string or nil on failure",
-    [](StackPtr &, VM &vm, Value &t) {
+    [](StackPtr &, VM &vm, Value t) {
         TestGL(vm);
         auto tex = GetTexture(t);
         auto numpixels = tex.size.x * tex.size.y;
@@ -1335,7 +1335,7 @@ nfr("read_texture", "tex", "R:texture", "S?",
 
 nfr("generate_texture_mipmap", "tex", "R:texture?", "",
     "generate mipmaps for the specified texture",
-    [](StackPtr &, VM &vm, Value &t) {
+    [](StackPtr &, VM &vm, Value t) {
         TestGL(vm);
         auto tex = GetTexture(t);
         GenerateTextureMipMap(tex);
@@ -1344,7 +1344,7 @@ nfr("generate_texture_mipmap", "tex", "R:texture?", "",
 
 nfr("set_texture_flags", "tex,tf", "R:textureI", "",
     "change texture filter/wrap/clamp flags on an existing texture",
-    [](StackPtr &, VM &vm, Value &id, Value &tf) {
+    [](StackPtr &, VM &vm, Value id, Value tf) {
         TestGL(vm);
         SetTextureFlags(GetTexture(id), tf.intval());
         return NilVal();
@@ -1359,8 +1359,7 @@ nfr("switch_to_framebuffer", "tex,hasdepth,multisampleformat,resolvetex,depthtex
     " pass your own depth texture if desired."
     " pass a nil texture to switch back to the original framebuffer."
     " performance note: do not recreate texture passed in unless necessary.",
-    [](StackPtr &, VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
-                                       Value &depthtex) {
+    [](StackPtr &, VM &vm, Value t, Value depth, Value tf, Value retex, Value depthtex) {
         TestGL(vm);
         auto tex = GetTexture(t);
         return Value(SwitchToFrameBuffer(tex, GetScreenSize(),
@@ -1473,7 +1472,7 @@ nfr("debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
 
 nfr("screenshot", "filename", "S", "B",
     "saves a screenshot in .png format, returns true if succesful",
-    [](StackPtr &, VM &, Value &fn) {
+    [](StackPtr &, VM &, Value fn) {
         bool ok = ScreenShot(fn.sval()->strvnt());
         return Value(ok);
     });
@@ -1493,7 +1492,7 @@ nfr("create_time_query", "", "", "R:timequery",
 
 nfr("start_time_query", "tq", "R:timequery?", "",
     "starts the time query",
-    [](StackPtr &, VM &vm, Value &tq) {
+    [](StackPtr &, VM &vm, Value tq) {
         if (!tq.True()) return NilVal();
         TestGL(vm);
         GetTimeQuery(tq).Start();
@@ -1502,7 +1501,7 @@ nfr("start_time_query", "tq", "R:timequery?", "",
 
 nfr("stop_time_query", "tq", "R:timequery?", "F",
     "stops the time query and returns the result",
-    [](StackPtr &, VM &vm, Value &tq) {
+    [](StackPtr &, VM &vm, Value tq) {
         if (!tq.True()) return NilVal();
         TestGL(vm);
         GetTimeQuery(tq).Stop();
@@ -1513,7 +1512,7 @@ nfr("init_controller_database", "filename", "S", "S?",
     "loads the controller database if you want your game to support controllers."
     " typically the argument should be: pakfile \"data/controllers/gamecontrollerdb.txt\"."
     " returns error if something went wrong",
-    [](StackPtr &, VM &vm, Value &fn) {
+    [](StackPtr &, VM &vm, Value fn) {
         TestGL(vm);
         string dest;
         auto fnsv = fn.sval()->strv();
@@ -1527,14 +1526,14 @@ nfr("init_controller_database", "filename", "S", "S?",
 
 nfr("open_url", "url", "S", "B",
     "Opens a URL in the system browser, returns true if successful",
-    [](StackPtr &, VM &, Value &url) {
+    [](StackPtr &, VM &, Value url) {
         bool ok = SDLOpenURL(url.sval()->strv());
         return Value(ok);
     });
 
 nfr("set_clipboard", "contents", "S", "",
     "Set the contents of the system clipboard",
-    [](StackPtr &, VM &, Value &contents) {
+    [](StackPtr &, VM &, Value contents) {
         SDLSetClipBoard(contents.sval()->data());
         return NilVal();
     });
