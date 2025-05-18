@@ -1037,7 +1037,7 @@ struct Parser {
                     sfreturntype->reqret = 0;
                     break;
                 }
-                // FALL-THRU:
+                [[fallthrough]];
             default:
                 Error("illegal type syntax: ", Q(lex.TokStr()));
         }

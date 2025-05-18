@@ -3597,8 +3597,8 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
         auto type = ret.type;
         auto rlt = ret.lt;
         switch (ret.flags) {
-            case NF_SUBARG3: sa++;
-            case NF_SUBARG2: sa++;
+            case NF_SUBARG3: sa++; [[fallthrough]];
+            case NF_SUBARG2: sa++; [[fallthrough]];
             case NF_SUBARG1: {
                 type = argtypes[sa];
                 auto nftype = nf->args[sa].type;

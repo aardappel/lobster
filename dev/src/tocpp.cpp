@@ -434,7 +434,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
                 break;
             case IL_KEEPREFLOOP:
                 append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
-                // fall-through:
+                [[fallthrough]];
             case IL_KEEPREF:
                 append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
                 break;

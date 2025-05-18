@@ -719,7 +719,7 @@ struct Lex : LoadedFile {
         return cat(filenames[ln.fileidx].first, "(", ln.line, ")");
     }
 
-    void Error(string_view msg, const Line *ln = nullptr) {
+    [[noreturn]] void Error(string_view msg, const Line *ln = nullptr) {
         num_errors++;
         auto err = Location(ln ? *ln : *this) + ": error: " + msg;
         if (!ln) {

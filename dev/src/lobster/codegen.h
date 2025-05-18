@@ -696,6 +696,7 @@ struct CodeGen  {
                     // FIXME: Would be better to catch this in typechecking, but typechecker does
                     // not currently distinquish lvalues.
                     parser.ErrorAt(lval, "cannot use this type as lvalue");
+                    [[fallthrough]];
                 default:
                     assert(false);
             }
