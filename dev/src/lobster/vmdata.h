@@ -281,7 +281,7 @@ struct LString : RefObj {
 
     uint64_t Hash();
 
-    size_t MemoryUsage() {
+    size_t MemoryUsage() const {
         return sizeof(LString) + len + 1;
     }
 };
@@ -294,7 +294,7 @@ struct Resource : NonCopyable {
     // point to a single Resource, e.g. with Shader.
     int refc = 0;
     virtual ~Resource() {}
-    virtual size_t2 MemoryUsage() {
+    virtual size_t2 MemoryUsage() const {
         return size_t2(sizeof(Resource), 0);
     }
     virtual void Dump(string &) {};
@@ -310,7 +310,7 @@ struct LResource : RefObj {
     void ToString(string &sd);
     void DeleteSelf(VM &vm);
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         return res->MemoryUsage() + size_t2(sizeof(LResource), 0);
     }
 
@@ -696,7 +696,7 @@ struct LObject : RefObj {
     void ToFlexBuffer(ToFlexBufferContext &fbc);
     void ToLobsterBinary(VM &vm, vector<uint8_t> &buf);
 
-    bool Equal(VM &vm, const LObject &o) {
+    bool Equal(VM &vm, const LObject &o) const {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
         auto len = Len(vm);
         assert(len == o.Len(vm));
@@ -724,7 +724,7 @@ struct LObject : RefObj {
         }
     }
 
-    size_t MemoryUsage(VM &vm) {
+    size_t MemoryUsage(VM &vm) const {
         return sizeof(LObject) + Len(vm) * sizeof(iint);
     }
 };
@@ -742,7 +742,9 @@ struct LVector : RefObj {
 
     ~LVector() { assert(0); }   // destructed by DECREF
 
-    ssize_t SLen() { return (ssize_t)len; }
+    ssize_t SLen() const {
+        return (ssize_t)len;
+    }
 
     void DeallocBuf(VM &vm) {
         if (v) DeallocSubBuf(vm, v, maxl * width);
@@ -788,7 +790,7 @@ struct LVector : RefObj {
         return v[len - 1];
     }
 
-    void TopVW(Value *dest) {
+    void TopVW(Value *dest) const {
         tsnz_memcpy(dest, v + (len - 1) * width, width);
     }
 
@@ -862,7 +864,7 @@ struct LVector : RefObj {
 
     type_elem_t SingleType(VM &vm);
 
-    size_t MemoryUsage() {
+    size_t MemoryUsage() const {
         return sizeof(LVector) + len * width * sizeof(iint);
     }
 };
@@ -1000,10 +1002,10 @@ struct VM : VMArgs {
     VM(VMArgs &&args, const bytecode::BytecodeFile *bcf);
     ~VM();
 
-    const TypeInfo &GetTypeInfo(type_elem_t offset) {
+    const TypeInfo &GetTypeInfo(type_elem_t offset) const {
         return *(TypeInfo *)(typetable + offset);
     }
-    type_elem_t TypeInfoToIdx(const TypeInfo *ti) {
+    type_elem_t TypeInfoToIdx(const TypeInfo *ti) const {
         return (type_elem_t)(ptrdiff_t)(((type_elem_t *)ti) - typetable);
     }
     const TypeInfo &GetVarTypeInfo(int varidx);
@@ -1041,7 +1043,7 @@ struct VM : VMArgs {
     Value NormalExit(string err);
     void ErrorBase(const string &err);
     void VMAssert(const char *what);
-    void UnwindOnError();
+    void UnwindOnError() const;
 
     void StartWorkers(iint numthreads);
     void TerminateWorkers();

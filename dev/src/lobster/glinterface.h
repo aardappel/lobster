@@ -43,7 +43,7 @@ struct Texture {
     Texture(int _id, const int3 &_size, int es, unsigned t, unsigned f)
         : id(_id), size(_size), elemsize(es), type(t), internalformat(f) {}
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         return { sizeof(Texture), size_t(max(size, int3_1).volume() * elemsize) };
     }
 };
@@ -55,7 +55,9 @@ struct OwnedTexture : lobster::Resource {
 
     OwnedTexture(Texture t) : t(t) {}
     ~OwnedTexture();
-    size_t2 MemoryUsage() { return t.MemoryUsage(); }
+    size_t2 MemoryUsage() const {
+        return t.MemoryUsage();
+    }
     void Dump(string &sd) {
         append(sd, t.size.to_string());
     }
@@ -97,7 +99,7 @@ struct Shader : lobster::Resource {
     bool SetUniformMatrix(string_view_nt name, const float *val, int components, int elements, bool morerows);
     bool DumpBinary(string_view filename, bool stripnonascii);
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         // FIXME: somehow find out sizes of all attached GPU blocks?
         return { sizeof(Shader), 0 };
     }
@@ -141,7 +143,7 @@ struct Surface : Textured {
     void Render(Shader *sh);
     void WritePLY(string &s);
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         return { sizeof(Surface) + textures.size() * sizeof(Texture), numidx * sizeof(int) };
     }
 };
@@ -188,7 +190,7 @@ class Geometry  {
     void RenderSetup();
     bool WritePLY(string &s, size_t nindices);
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         auto gpu = vertsize * nverts;
         return { sizeof(Geometry), gpu };
     }
@@ -221,7 +223,7 @@ struct Mesh : lobster::Resource {
     void Render(Shader *sh);
     string Save(string_view filename, ModelFormat format);
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         auto usage = size_t2(sizeof(Mesh) + numframes * numbones * sizeof(float3x4), 0);
         usage += geom->MemoryUsage();
         for (auto s : surfs) usage += s->MemoryUsage();
@@ -329,7 +331,7 @@ struct BufferObject : lobster::Resource {
         DeleteBO(bo);
     }
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         return { sizeof(BufferObject), size };
     }
 };

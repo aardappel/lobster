@@ -70,7 +70,7 @@ struct PhysicsObject : Resource {
         return B2ToFloat2(fixture->GetBody()->GetPosition());
     }
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         // FIXME: this is very inexact.
         return { sizeof(PhysicsObject) + sizeof(b2Fixture), 0 };
     }

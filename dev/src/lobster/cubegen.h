@@ -96,7 +96,7 @@ struct Voxels : lobster::Resource {
         return pi;
     }
 
-    size_t2 MemoryUsage() {
+    size_t2 MemoryUsage() const {
         // FIXME: does NOT account for shared palettes.
         return { sizeof(Voxels) + grid.dim.volume() + grid.dim.x * sizeof(void *), 0 };
     }

@@ -80,7 +80,7 @@ struct Ident : Named {
     }
 
     flatbuffers::Offset<bytecode::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb,
-                                                   bool is_top_level) {
+                                                   bool is_top_level) const {
         return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant, is_top_level);
     }
 };
@@ -228,7 +228,7 @@ struct GUDT : Named {
           unspecialized_type(&unspecialized) {
     }
 
-    bool IsGeneric() {
+    bool IsGeneric() const {
         return !generics.empty();
     }
 
@@ -527,7 +527,7 @@ struct Function : Named {
         return false;
     }
 
-    flatbuffers::Offset<bytecode::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
+    flatbuffers::Offset<bytecode::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb) const {
         return bytecode::CreateFunction(fbb, fbb.CreateString(name), bytecodestart);
     }
 };
@@ -640,7 +640,7 @@ struct SymbolTable {
         for (auto su  : specudts)         delete su;
     }
 
-    bool MaybeNameSpace(string_view name) {
+    bool MaybeNameSpace(string_view name) const {
         return !current_namespace.empty() && name.find(".") == name.npos;
     }
 
