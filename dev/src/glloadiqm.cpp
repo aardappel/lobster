@@ -339,10 +339,10 @@ Mesh *LoadIQM(string_view filename) {
     verts.reserve(numverts);
     for (int i = 0; i < numverts; i++) {
         verts.push_back(AnimVert{
-            inposition    ? *(float3 *)&inposition   [i * 3] : float3_0,
-            innormal      ? *(float3 *)&innormal     [i * 3] : float3_0,
-            intexcoord    ? *(float2 *)&intexcoord   [i * 2] : float2_0,
-            incolor       ? *(byte4  *)&incolor      [i * 4] : byte4_255,
+            {inposition    ? *(float3 *)&inposition   [i * 3] : float3_0,
+             innormal      ? *(float3 *)&innormal     [i * 3] : float3_0,
+             intexcoord    ? *(float2 *)&intexcoord   [i * 2] : float2_0,
+             incolor       ? *(byte4  *)&incolor      [i * 4] : byte4_255},
             inblendweight ? *(byte4  *)&inblendweight[i * 4] : byte4_0,
             inblendindex  ? *(byte4  *)&inblendindex [i * 4] : byte4_0,
         });
