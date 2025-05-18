@@ -1048,7 +1048,7 @@ struct VM : VMArgs {
     Value NormalExit(string err);
     void ErrorBase(const string &err);
     void VMAssert(const char *what);
-    void UnwindOnError() const;
+    void UnwindOnError();
 
     void StartWorkers(iint numthreads);
     void TerminateWorkers();

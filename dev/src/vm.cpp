@@ -621,7 +621,7 @@ void VM::EndEval(StackPtr &, Value ret, const TypeInfo &ti) {
     DumpLeaks();
 }
 
-void VM::UnwindOnError() const {
+void VM::UnwindOnError() {
     // This is the single location from which we unwind the execution stack from within the VM.
     // This requires special care, because there may be jitted code on the stack, and depending
     // on the platform we can use exception handling, or not.
