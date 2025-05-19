@@ -402,7 +402,7 @@ void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segme
 void GeometryCache::RenderRoundedRectangleBorder(Shader *sh, int segments, float2 size, float corner_ratio, float border_thickness_pix) {
     assert(segments >= 3);
     // Use plain floats, as the float2::operator< does not work well with std::map
-    auto vibo = roundedboxbordervbos[{ segments, size.x, size.y, corner_ratio, border_thickness_pix }];
+    auto &vibo = roundedboxbordervbos[{ segments, size.x, size.y, corner_ratio, border_thickness_pix }];
     auto nverts = segments * 2;
     auto nindices = segments * 6;
     if (!vibo.first) {
