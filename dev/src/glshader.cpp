@@ -275,6 +275,7 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
                             auto format = (
                                 floatingp   ? (singlechannel ? "r32f" : "rgba32f")
                                            : halffloatingp ? (singlechannel ? "r16f" : "rgba16f")
+                                           // FIXME: support double channel + 16(u)integer + 32(u)integer
                                            : uinteger      ? (singlechannel ? "r8ui" : "rgba8ui")
                                            : integer       ? (singlechannel ? "r8i" : "rgba8i")
                                                            : (singlechannel ? "r8" : "rgba8")
