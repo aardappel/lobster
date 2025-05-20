@@ -47,3 +47,6 @@ let color_blue_violet = color { 0.5, 0.0, 1.0, 1.0 }
 
 def from_srgb(col): return pow(col, 2.2)
 def to_srgb(col): return pow(col, 1.0 / 2.2)
+
+let color_luminance_weights = color { 0.299, 0.587, 0.114, 0.0 }
+def luminance(col): return dot(col, color_luminance_weights)
