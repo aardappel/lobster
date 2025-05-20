@@ -93,13 +93,20 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
         }
     #endif
     auto use_srgb = IsSRGBAwareMode() && !(tf & TF_COMPUTE);
-    auto internalformat =
-        ((tf & TF_SINGLE_CHANNEL) != 0)
-            ? (((tf & TF_32) != 0)
-                   ? ((tf & TF_NOT_NORMALIZED) != 0 ? GL_R32UI : GL_R32F)
-                   : (((tf & TF_16) != 0) ? ((tf & TF_NOT_NORMALIZED) != 0 ? GL_R16UI : GL_R16)
-                                          : ((tf & TF_NOT_NORMALIZED) != 0 ? GL_R8UI : GL_R8)))
-            : (GL_RGBA8);
+        auto internalformat =
+            tf & TF_SINGLE_CHANNEL
+            ? (tf & TF_16
+                ? (tf & TF_NOT_NORMALIZED ? GL_R16UI : GL_R16)
+                : (tf & TF_32
+                   ? (tf & TF_NOT_NORMALIZED ? GL_R32UI : GL_R32I)
+                   : (tf & TF_NOT_NORMALIZED ? GL_R8UI : GL_R8)))
+            :  (tf & TF_TWO_CHANNEL
+                ? (tf & TF_16
+                    ? (tf & TF_NOT_NORMALIZED ? GL_RG16UI : GL_RG16)
+                    : (tf & TF_NOT_NORMALIZED ? GL_RG8UI : GL_RG8))
+                :  (tf & TF_16
+                    ? (tf & TF_NOT_NORMALIZED ? GL_RGBA16UI : GL_RGBA16)
+                    : (tf & TF_NOT_NORMALIZED ? GL_RGBA8UI : (use_srgb ? GL_SRGB8_ALPHA8: GL_RGBA8))));
     auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : (tf & TF_TWO_CHANNEL ? GL_RG : GL_RGBA);
     auto elemsize = tf & TF_SINGLE_CHANNEL ? sizeof(uint8_t) : (tf & TF_TWO_CHANNEL ? sizeof(uint8_t) * 2 : sizeof(byte4));
     auto buffercomponent = GL_UNSIGNED_BYTE;
@@ -111,8 +118,22 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     }
     if (tf & TF_FLOAT) {
         #ifdef PLATFORM_WINNIX
-            if (tf & TF_16) internalformat = tf & TF_SINGLE_CHANNEL ? GL_R16F : (tf & TF_TWO_CHANNEL ? GL_RG16F : GL_RGBA16F);
-            else internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : (tf & TF_TWO_CHANNEL ? GL_RG32F : GL_RGBA32F);
+            if (tf & TF_16)
+                internalformat = tf & TF_SINGLE_CHANNEL
+                    ? GL_R16F
+                    : (tf & TF_TWO_CHANNEL ? GL_RG16F : GL_RGBA16F);
+            else
+                internalformat = tf & TF_SINGLE_CHANNEL
+                    ? GL_R32F
+                    : (tf & TF_TWO_CHANNEL ? GL_RG32F : GL_RGBA32F);
+            bufferformat = tf & TF_SINGLE_CHANNEL
+                ? GL_RED
+                : (tf & TF_TWO_CHANNEL ? GL_RG : GL_RGBA);
+            elemsize = (tf & TF_SINGLE_CHANNEL
+                           ? sizeof(float)
+                           : (tf & TF_TWO_CHANNEL
+                               ? sizeof(float2)
+                               : sizeof(float4))) / (tf & TF_16 ? 2 : 1);
             bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : (tf & TF_TWO_CHANNEL ? GL_RG : GL_RGBA);
             elemsize = (tf & TF_SINGLE_CHANNEL ? sizeof(float) : (tf & TF_TWO_CHANNEL ? sizeof(float2) : sizeof(float4))) / (tf & TF_16 ? 2 : 1);
             buffercomponent = tf & TF_16 ? GL_HALF_FLOAT : GL_FLOAT;
