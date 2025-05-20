@@ -1,3 +1,39 @@
+- Weak ref feature.
+  we use the informal system of having a "destruct" method on classes that contain members
+  causing cycles, and this works well enough to clean up cycles when a tree of objects is deleted in
+  one clear place such as end of program or level load, but gets easier to forget to call if
+  refs are lost in multiple places.
+  We can't detect where to insert these calls automatically because the refc is >= 1
+  What if we had a weak ref feature, where backpointers are counted separately, such the decref can
+  see when the strong refs drop to 0?
+  When strong refs are 0, you'd start the process of deleting, and as that progresses, your weakrefs
+  should also drop to 0. If not, it means some of your weakrefs come from objects you don't "own",
+  which could be a runtime error.
+  Specifically for fields of classes.
+  Assigning an object to such a field would only inc the weak refc of that object.
+  You'd declare it as part of a field decl:
+  class A:
+    bs:[B]
+  class B
+    parent:weak A
+  If you do: b.parent = some_other_object_that_is_not_the_parent, then any time that object
+  gets cleaned up, it will have a left over weak refc, resulting in a runtime error that at best
+  can say: "object of type A has remaining weak refs during destruction".
+  That's not the clearest error, but auditing any assignment of "weak" fields with type A should
+  be able to narrow it down.
+  Harder is: b.parent = A {}, because normally there is no decref to A associated with this code.
+  However, since we know we specifically are wanting to inc the weak ref on A, we can also dec
+  the strong ref at the same time. That then would instantly trigger deletion, and the same runtime
+  error.
+  In fact, VM implementation of this feature is pretty much a VM op that exchanges a strong ref
+  for a weak ref, to be generated between the value and the weak field it is being assigned to.
+  That, and a weak decr for when the field gets overwritten.
+  That actually makes it a shockingly simple feature.
+  The rest of the language's refc is not complicated either, since it mostly ignores the weak field.
+  Biggest deal is the storage of the weak ref field, would not want to add 64-bits to all objects
+  for this feature? Would have to maybe efficiently pack these two refc together with ti in 64-bit..
+  Or somehow only store it for objects that have weak refs to them.
+
 - in this configuration:
   def f_not_inlined():
      ..
