@@ -2163,6 +2163,78 @@ nfr("show_profiling_stats", "num,reset", "IB", "",
         return NilVal();
     });
 
+nfr("set_style_param_slow", "name,vals", "SF]", "",
+    "",
+    [](StackPtr &, VM &vm, Value name, Value vals) {
+        IsInit(vm, { N_NONE, N_NONE });
+        auto n = name.sval()->strv();
+        auto &st = ImGui::GetStyle();
+        auto vs = vals.vval();
+        // This is a reaaaally dumb function, but quickest way I could just expose all this functionality.
+        auto fv = 0.0f;
+        auto vv = ImVec2(0.0f, 0.0f);
+        auto bv = false;
+        auto dv = ImGuiDir_None;
+        if (vs->len > 0) {
+            fv = vs->AtS(0).fltval();
+            vv.x = fv;
+            bv = fv != 0.0f;
+            dv = (ImGuiDir) int(fv);
+            if (vs->len > 1) {
+                vv.y = vs->AtS(1).fltval();
+            }
+        }
+        if (n == "Alpha"                      ) st.Alpha                       = fv; // Global alpha applies to everything in Dear ImGui.
+        if (n == "DisabledAlpha"              ) st.DisabledAlpha               = fv; // Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha.
+        if (n == "WindowPadding"              ) st.WindowPadding               = vv; // Padding within a window.
+        if (n == "WindowRounding"             ) st.WindowRounding              = fv; // Radius of window corners rounding. Set to 0.0f to have rectangular windows. Large values tend to lead to variety of artifacts and are not recommended.
+        if (n == "WindowBorderSize"           ) st.WindowBorderSize            = fv; // Thickness of border around windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly).
+        if (n == "WindowMinSize"              ) st.WindowMinSize               = vv; // Minimum window size. This is a global setting. If you want to constrain individual windows, use SetNextWindowSizeConstraints().
+        if (n == "WindowTitleAlign"           ) st.WindowTitleAlign            = vv; // Alignment for title bar text. Defaults to (0.0f,0.5f) for left-aligned,vertically centered.
+        if (n == "WindowMenuButtonPosition"   ) st.WindowMenuButtonPosition    = dv; // Side of the collapsing/docking button in the title bar (None/Left/Right). Defaults to ImGuiDir_Left.
+        if (n == "ChildRounding"              ) st.ChildRounding               = fv; // Radius of child window corners rounding. Set to 0.0f to have rectangular windows.
+        if (n == "ChildBorderSize"            ) st.ChildBorderSize             = fv; // Thickness of border around child windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly).
+        if (n == "PopupRounding"              ) st.PopupRounding               = fv; // Radius of popup window corners rounding. (Note that tooltip windows use WindowRounding)
+        if (n == "PopupBorderSize"            ) st.PopupBorderSize             = fv; // Thickness of border around popup/tooltip windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly).
+        if (n == "FramePadding"               ) st.FramePadding                = vv; // Padding within a framed rectangle (used by most widgets).
+        if (n == "FrameRounding"              ) st.FrameRounding               = fv; // Radius of frame corners rounding. Set to 0.0f to have rectangular frame (used by most widgets).
+        if (n == "FrameBorderSize"            ) st.FrameBorderSize             = fv; // Thickness of border around frames. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly).
+        if (n == "ItemSpacing"                ) st.ItemSpacing                 = vv; // Horizontal and vertical spacing between widgets/lines.
+        if (n == "ItemInnerSpacing"           ) st.ItemInnerSpacing            = vv; // Horizontal and vertical spacing between within elements of a composed widget (e.g. a slider and its label).
+        if (n == "CellPadding"                ) st.CellPadding                 = vv; // Padding within a table cell. Cellpadding.x is locked for entire table. CellPadding.y may be altered between different rows.
+        if (n == "TouchExtraPadding"          ) st.TouchExtraPadding           = vv; // Expand reactive bounding box for touch-based system where touch position is not accurate enough. Unfortunately we don't sort widgets so priority on overlap will always be given to the first widget. So don't grow this too much!
+        if (n == "IndentSpacing"              ) st.IndentSpacing               = fv; // Horizontal indentation when e.g. entering a tree node. Generally == (FontSize + FramePadding.x*2).
+        if (n == "ColumnsMinSpacing"          ) st.ColumnsMinSpacing           = fv; // Minimum horizontal spacing between two columns. Preferably > (FramePadding.x + 1).
+        if (n == "ScrollbarSize"              ) st.ScrollbarSize               = fv; // Width of the vertical scrollbar, Height of the horizontal scrollbar.
+        if (n == "ScrollbarRounding"          ) st.ScrollbarRounding           = fv; // Radius of grab corners for scrollbar.
+        if (n == "GrabMinSize"                ) st.GrabMinSize                 = fv; // Minimum width/height of a grab box for slider/scrollbar.
+        if (n == "GrabRounding"               ) st.GrabRounding                = fv; // Radius of grabs corners rounding. Set to 0.0f to have rectangular slider grabs.
+        if (n == "LogSliderDeadzone"          ) st.LogSliderDeadzone           = fv; // The size in pixels of the dead-zone around zero on logarithmic sliders that cross zero.
+        if (n == "TabRounding"                ) st.TabRounding                 = fv; // Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.
+        if (n == "TabBorderSize"              ) st.TabBorderSize               = fv; // Thickness of border around tabs.
+        if (n == "TabMinWidthForCloseButton"  ) st.TabMinWidthForCloseButton   = fv; // Minimum width for close button to appear on an unselected tab when hovered. Set to 0.0f to always show when hovering, set to FLT_MAX to never show close button unless selected.
+        if (n == "TabBarBorderSize"           ) st.TabBarBorderSize            = fv; // Thickness of tab-bar separator, which takes on the tab active color to denote focus.
+        if (n == "TabBarOverlineSize"         ) st.TabBarOverlineSize          = fv; // Thickness of tab-bar overline, which highlights the selected tab-bar.
+        if (n == "TableAngledHeadersAngle"    ) st.TableAngledHeadersAngle     = fv; // Angle of angled headers (supported values range from -50.0f degrees to +50.0f degrees).
+        if (n == "TableAngledHeadersTextAlign") st.TableAngledHeadersTextAlign = vv; // Alignment of angled headers within the cell
+        if (n == "ColorButtonPosition"        ) st.ColorButtonPosition         = dv; // Side of the color button in the ColorEdit4 widget (left/right). Defaults to ImGuiDir_Right.
+        if (n == "ButtonTextAlign"            ) st.ButtonTextAlign             = vv; // Alignment of button text when button is larger than text. Defaults to (0.5f, 0.5f) (centered).
+        if (n == "SelectableTextAlign"        ) st.SelectableTextAlign         = vv; // Alignment of selectable text. Defaults to (0.0f, 0.0f) (top-left aligned). It's generally important to keep this left-aligned if you want to lay multiple items on a same line.
+        if (n == "SeparatorTextBorderSize"    ) st.SeparatorTextBorderSize     = fv; // Thickness of border in SeparatorText()
+        if (n == "SeparatorTextAlign"         ) st.SeparatorTextAlign          = vv; // Alignment of text within the separator. Defaults to (0.0f, 0.5f) (left aligned, center).
+        if (n == "SeparatorTextPadding"       ) st.SeparatorTextPadding        = vv; // Horizontal offset of text from each edge of the separator + spacing on other axis. Generally small values. .y is recommended to be == FramePadding.y.
+        if (n == "DisplayWindowPadding"       ) st.DisplayWindowPadding        = vv; // Apply to regular windows: amount which we enforce to keep visible when moving near edges of your screen.
+        if (n == "DisplaySafeAreaPadding"     ) st.DisplaySafeAreaPadding      = vv; // Apply to every windows, menus, popups, tooltips: amount where we avoid displaying contents. Adjust if you cannot see the edges of your screen (e.g. on a TV where scaling has not been configured).
+        if (n == "DockingSeparatorSize"       ) st.DockingSeparatorSize        = fv; // Thickness of resizing border between docked windows
+        if (n == "MouseCursorScale"           ) st.MouseCursorScale            = fv; // Scale software rendered mouse cursor (when io.MouseDrawCursor is enabled). We apply per-monitor DPI scaling over this scale. May be removed later.
+        if (n == "AntiAliasedLines"           ) st.AntiAliasedLines            = bv; // Enable anti-aliased lines/borders. Disable if you are really tight on CPU/GPU. Latched at the beginning of the frame (copied to ImDrawList).
+        if (n == "AntiAliasedLinesUseTex"     ) st.AntiAliasedLinesUseTex      = bv; // Enable anti-aliased lines/borders using textures where possible. Require backend to render with bilinear filtering (NOT point/nearest filtering). Latched at the beginning of the frame (copied to ImDrawList).
+        if (n == "AntiAliasedFill"            ) st.AntiAliasedFill             = bv; // Enable anti-aliased edges around filled shapes (rounded rectangles, circles, etc.). Disable if you are really tight on CPU/GPU. Latched at the beginning of the frame (copied to ImDrawList).
+        if (n == "CurveTessellationTol"       ) st.CurveTessellationTol        = fv; // Tessellation tolerance when using PathBezierCurveTo() without a specific number of segments. Decrease for highly tessellated curves (higher quality, more polygons), increase to reduce quality.
+        if (n == "CircleTessellationMaxError" ) st.CircleTessellationMaxError  = fv; // Maximum error (in pixels) allowed when using AddCircle()/AddCircleFilled() or drawing rounded corner rectangles with no explicit segment count specified. Decrease for higher quality but more geometry.
+        return NilVal();
+    });
+
 }  // AddIMGUI
 
 void AddIMGUIDebug(NativeRegistry & nfr) {
