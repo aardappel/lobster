@@ -86,13 +86,15 @@ jobs:
         include:
           - os: macos-14
             artifact_name: Mac (Apple x64 Intel) Lobster binary
+            use-x86: ON
           - os: macos-14
             artifact_name: Mac (Apple ARM Silicon) Lobster binary
+            use-x86: OFF
     steps:
     - uses: actions/checkout@v1
     - name: cmake
       working-directory: dev
-      run: sh build_osx.sh
+      run: sh build_osx.sh ${{ matrix.use-x86 }}
     - name: build
       working-directory: dev/xcode-cmake
       run: xcodebuild -toolchain clang -configuration Release -target lobster

@@ -71,14 +71,16 @@ jobs:
           - os: macos-14
             artifact_name: lobster_osx_x64_release.zip
             asset_name: Release ${{ github.ref_name }} for macOS (X64 Intel)
+            use-x86: ON
           - os: macos-14
             artifact_name: lobster_osx_arm_release.zip
             asset_name: Release ${{ github.ref_name }} for macOS (Apple ARM Silicon)
+            use-x86: OFF
     steps:
       - uses: actions/checkout@v1
       - name: cmake
         working-directory: dev
-        run: sh build_osx.sh
+        run: sh build_osx.sh ${{ matrix.use-x86 }}
       - name: build
         working-directory: dev/xcode-cmake
         run: xcodebuild -toolchain clang -configuration Release -target lobster

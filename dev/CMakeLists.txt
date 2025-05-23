@@ -11,6 +11,11 @@ option(LOBSTER_ENGINE "Build a Lobster with the default engine included" ON)
 option(LOBSTER_TOCPP "Build Lobster with the output of --to-cpp" OFF)
 option(LOBSTER_JIT "Build Lobster with JIT" ON)
 option(LOBSTER_WERROR "Treat warnings as errors" OFF)
+option(LOBSTER_OSX_X86 "On OSX, build for x86-64 instead of Arm" OFF)
+
+if(LOBSTER_OSX_X86)
+  set(CMAKE_OSX_ARCHITECTURES "x86_64")
+endif()
 
 # Needed on some Linux distros to not get legacy OpenGL?
 set(OpenGL_GL_PREFERENCE GLVND)
