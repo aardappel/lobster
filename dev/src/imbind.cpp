@@ -69,6 +69,7 @@ ImGuiID last_dock_id = 0;
 struct ListSelect { int sel = -1; int64_t last_use = -1; };
 map<ImGuiID, ListSelect> list_state;
 int64_t imgui_frame = 0;
+ImVec2 tabs_extra_padding(0.0f, 0.0f);
 
 // Flags we use in our implementation, in addition to DearImGui.
 enum {
@@ -1014,6 +1015,14 @@ nfr("set_style_frame_padding", "spacing", "F}:2", "",
         ImGui::GetStyle().FramePadding = ImVec2(s.x, s.y);
     });
 
+nfr("set_style_tabs_extra_padding", "spacing", "F}:2", "",
+    "",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm,  { N_NONE, N_NONE });
+        auto s = PopVec<float2>(sp);
+        tabs_extra_padding = ImVec2(s.x, s.y);
+    });
+
 nfr("frame_start", "", "", "",
     "(use im.frame instead)",
     [](StackPtr &, VM &vm) {
@@ -1676,7 +1685,11 @@ nfr("tab_bar_start", "label", "S", "B",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto title = Pop(sp);
+        //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, tabs_extra_padding);
+        ImGui::GetStyle().FramePadding += tabs_extra_padding;
         bool open = ImGui::BeginTabBar(Label(vm, title), 0);
+        ImGui::GetStyle().FramePadding -= tabs_extra_padding;
+        //ImGui::PopStyleVar();
         Push(sp, open);
         if (open) NPush(N_TAB_BAR);
     });
@@ -1694,7 +1707,9 @@ nfr("tab_start", "label,flags", "SI", "B",
         IsInit(vm);
         auto flags = Pop(sp).intval();
         auto title = Pop(sp);
+        ImGui::GetStyle().FramePadding += tabs_extra_padding;
         bool open = ImGui::BeginTabItem(Label(vm, title), nullptr, (ImGuiTabItemFlags)flags);
+        ImGui::GetStyle().FramePadding -= tabs_extra_padding;
         Push(sp, open);
         if (open) NPush(N_TAB);
     });
