@@ -733,24 +733,6 @@ if(SDL_ASSEMBLY)
       set(CMAKE_REQUIRED_FLAGS ${ORIG_CMAKE_REQUIRED_FLAGS})
     endif()
 
-    if(SDL_3DNOW)
-      set(CMAKE_REQUIRED_FLAGS "-m3dnow")
-      check_c_source_compiles("
-          #include <mm3dnow.h>
-          #ifndef __3dNOW__
-          #error Assembler CPP flag not enabled
-          #endif
-          int main(int argc, char **argv) {
-            void *p = 0;
-            _m_prefetch(p);
-            return 0;
-          }" HAVE_3DNOW)
-      if(HAVE_3DNOW)
-        list(APPEND EXTRA_CFLAGS "-m3dnow")
-      endif()
-      set(CMAKE_REQUIRED_FLAGS ${ORIG_CMAKE_REQUIRED_FLAGS})
-    endif()
-
     if(SDL_SSE)
       set(CMAKE_REQUIRED_FLAGS "-msse")
       check_c_source_compiles("

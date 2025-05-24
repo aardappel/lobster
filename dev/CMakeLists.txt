@@ -143,7 +143,8 @@ if(APPLE)
     "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE}")
 elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libstdc++ ${COMMON_GCC_STYLE}")
+    # deprecated-declarations in Clang gives unactionable warnings
+    "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libstdc++ ${COMMON_GCC_STYLE} -Wno-deprecated-declarations")
 elseif(CMAKE_COMPILER_IS_GNUCXX)
     # These warnings seem pretty broken in GCC, with lots of false positives.
     set(CMAKE_CXX_FLAGS
@@ -163,7 +164,9 @@ endif()
 find_package(Threads)
 
 include_directories(include
-                    src
+                    src)
+
+include_directories(SYSTEM
                     external/SDL/include-config-/SDL2
                     external/SDL/include
                     external/SDLMixer
