@@ -4,7 +4,10 @@ import vec
 import color
 import gl
 
+fatal(gl.window("sierpinski", 512, 512))
+
 let directions = [ float2_0, float2_x, float2_y ]
+let poly = gl.new_poly(directions)
 
 def sierpinski(depth) -> void:
     if depth:
@@ -13,9 +16,7 @@ def sierpinski(depth) -> void:
                 gl.translate d:
                     sierpinski(depth - 1)
     else:
-        gl.polygon(directions)
-
-fatal(gl.window("sierpinski", 512, 512))
+        gl.render_mesh(poly)
 
 while gl.frame():
     if gl.button("escape") == 1: return

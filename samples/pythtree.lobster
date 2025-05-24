@@ -4,13 +4,19 @@ import vec
 import color
 import gl
 
+let poly_verts = []
+let poly_meshes = []
+
 def branch(n, max, scale, len) -> void:
-    let poly = [ float2_x, -float2_x, float2 { -scale, len }, float2 { scale, len } ]
+    if n == poly_meshes.length:
+        let poly = [ float2_x, -float2_x, float2 { -scale, len }, float2 { scale, len } ]
+        poly_verts.push(poly)
+        poly_meshes.push(gl.new_poly(poly))
     gl.color(color { n / max, 0.8, n / max, 1.0 })
-    gl.polygon(poly)
+    gl.render_mesh(poly_meshes[n])
     gl.color(color { 0.3, 0.1, 0.0, 0.7 })
     for(2) i:
-        gl.line(poly[i], poly[3 - i], 0.2)
+        gl.line(poly_verts[n][i], poly_verts[n][3 - i], 0.2)
     guard n < max
     gl.translate(float2 { 0.0, len })
     gl.scale(scale)

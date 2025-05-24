@@ -129,7 +129,7 @@ int GetSampler(VM &vm, Value i) {
     return i.intval();
 }
 
-Mesh *CreatePolygon(VM &vm, Value vl) {
+Mesh *CreatePolygon(VM &vm, Value vl, bool render) {
     TestGL(vm);
     auto len = vl.vval()->len;
     if (len < 3) vm.BuiltinError("polygon: must have at least 3 verts");
@@ -150,8 +150,14 @@ Mesh *CreatePolygon(VM &vm, Value vl) {
     for (int i = 0; i < len; i++) {
         vbuf[i].norm = norm;
     }
-    auto m = new Mesh(new Geometry("CreatePolygon", gsl::make_span(vbuf), "PNTC"), polymode);
-    return m;
+    if (render) {
+        currentshader->Set();
+        RenderArraySlow("CreatePolygon", polymode, gsl::make_span(vbuf), "PNTC");
+        return nullptr;
+    } else {
+        auto m = new Mesh(new Geometry("CreatePolygon", gsl::make_span(vbuf), "PNTC"), polymode);
+        return m;
+    }
 }
 
 Value SetUniform(VM &vm, Value name, const float *data, int len) {
@@ -539,9 +545,7 @@ nfr("polygon", "vertlist", "F}]", "",
     "renders a polygon using the list of points given."
     " warning: gl.polygon creates a new mesh every time, gl.new_poly/gl.render_mesh is faster.",
     [](StackPtr &, VM &vm, Value vl) {
-        auto m = CreatePolygon(vm, vl);
-        m->Render(currentshader);
-        delete m;
+        CreatePolygon(vm, vl, true);
         return NilVal();
     });
 
@@ -853,7 +857,7 @@ nfr("new_poly", "positions", "F}]", "R:mesh",
     " automatically generates texcoords and normals."
     " returns mesh id",
     [](StackPtr &, VM &vm, Value positions) {
-        auto m = CreatePolygon(vm, positions);
+        auto m = CreatePolygon(vm, positions, false);
         return Value(vm.NewResource(&mesh_type, m));
     });
 
