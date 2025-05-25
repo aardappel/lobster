@@ -19,8 +19,8 @@ namespace lobster {
 
 struct CodeGen  {
     vector<int> code;
-    vector<bytecode::LineInfo> lineinfo;
-    vector<bytecode::SpecIdent> sids;
+    vector<metadata::LineInfo> lineinfo;
+    vector<metadata::SpecIdent> sids;
     Parser &parser;
     vector<const Node *> linenumbernodes;
     vector<tuple<int, const SubFunction *>> call_fixups;
@@ -47,7 +47,7 @@ struct CodeGen  {
         auto &ln = linenumbernodes.back()->line;
         if (lineinfo.empty() || ln.line != lineinfo.back().line() ||
             ln.fileidx != lineinfo.back().fileidx())
-            lineinfo.push_back(bytecode::LineInfo(ln.line, ln.fileidx, Pos()));
+            lineinfo.push_back(metadata::LineInfo(ln.line, ln.fileidx, Pos()));
         code.push_back(i);
     }
 
@@ -256,7 +256,7 @@ struct CodeGen  {
                 auto ns = ValWidth(sid->type);
                 sidx += ns;
                 for (int i = 0; i < ns; i++)
-                    sids.push_back(bytecode::SpecIdent(sid->id->idx, tti, sid->used_as_freevar));
+                    sids.push_back(metadata::SpecIdent(sid->id->idx, tti, sid->used_as_freevar));
             }
         }
         auto max_ser_ids = parser.serializable_id_max + 1;

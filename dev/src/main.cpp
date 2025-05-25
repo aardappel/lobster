@@ -67,6 +67,7 @@ int main(int argc, char* argv[]) {
         bool dump_builtins = false;
         bool dump_names = false;
         bool tcc_out = false;
+        bool code_pak = false;
         bool compile_only = false;
         bool non_interactive_test = false;
         bool full_error = false;
@@ -86,8 +87,9 @@ int main(int argc, char* argv[]) {
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
             "--help                 This help.\n"
-            "--pak                  Compile to pakfile, don't run.\n"
             "--cpp                  Compile to C++ code, don't run (see implementation.md!).\n"
+            "--pak                  Generate lpak file, don't run.\n"
+            "--rpak                 Generate lpak file, include runnable code, don't run.\n"
             "--import RELDIR        Additional dir (relative to FILE) to load imports from\n"
             "--main MAIN            if present, run this main program file after compiling FILE.\n"
             "--parsedump            Also dump parse tree.\n"
@@ -121,6 +123,7 @@ int main(int argc, char* argv[]) {
                 string a = argv[arg];
                 if      (a == "--wait") { wait = true; }
                 else if (a == "--pak") { lpak = default_lpak; }
+                else if (a == "--rpak") { lpak = default_lpak; code_pak = true; }
                 else if (a == "--cpp") { jit_mode = false; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--disasm") { disasm = true; }
@@ -220,17 +223,21 @@ int main(int argc, char* argv[]) {
         for (auto &import : imports) AddDataDir(import);
         if (!fn.empty()) fn = StripDirPart(fn);
 
-        string bytecode_buffer;
+        string metadata_buffer;
+        vector<int> raw_bytecode;
+        string c_codegen;
         if (fn.empty()) {
             uint64_t src_hash = 0;  // Don't care, from same file as bytecode.
             if (!LoadPakDir(default_lpak, src_hash))
                 THROW_OR_ABORT(
                     "Lobster programming language compiler/runtime (version "
-                               GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load "
-                               + (default_lpak + helptext));
+                    GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load " +
+                    string(default_lpak) + "\n" + helptext);
             // This will now come from the pakfile.
-            if (!LoadByteCode(bytecode_buffer))
-                THROW_OR_ABORT("Cannot load bytecode from pakfile!");
+            if (!LoadMetaDataAndCode(metadata_buffer, c_codegen))
+                THROW_OR_ABORT("Cannot load metadata from pakfile!");
+            if (jit_mode && c_codegen.empty())
+                THROW_OR_ABORT("Cannot load compiled C from pakfile to run it!");
         } else {
             LOG_INFO("compiling...");
             string dump;
@@ -239,10 +246,12 @@ int main(int argc, char* argv[]) {
             dump.clear();
             pakfile.clear();
             for (;;) {
-                bytecode_buffer.clear();
-                Compile(nfr, fn, {}, bytecode_buffer, parsedump ? &dump : nullptr,
+                metadata_buffer.clear();
+                c_codegen.clear();
+                Compile(nfr, fn, {}, metadata_buffer, parsedump ? &dump : nullptr,
                         lpak ? &pakfile : nullptr, false, runtime_checks,
-                        !query.kind.empty() ? &query : nullptr, max_errors, full_error);
+                        !query.kind.empty() ? &query : nullptr, max_errors, full_error, jit_mode,
+                        c_codegen, raw_bytecode, code_pak, "nullptr");
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
                     //LOG_WARN(mainfile, " does not exist, skipping");
@@ -266,13 +275,13 @@ int main(int argc, char* argv[]) {
         }
         if (disasm) {
             string sd;
-            DisAsm(nfr, sd, bytecode_buffer);
+            DisAsm(nfr, sd, metadata_buffer, raw_bytecode);
             WriteFile("disasm.txt", false, sd, false);
         }
         if (jit_mode) {
             string error;
             auto ret = RunTCC(nfr,
-                              bytecode_buffer,
+                              metadata_buffer,
                               !fn.empty() ? fn : "",
                               tcc_out ? "tcc_out.o" : nullptr,
                               std::move(program_args),
@@ -281,20 +290,17 @@ int main(int argc, char* argv[]) {
                               error,
                               runtime_checks,
                               !non_interactive_test,
-                              stack_trace_python_ordering);
+                              stack_trace_python_ordering,
+                              c_codegen);
             if (!error.empty())
                 THROW_OR_ABORT(error);
             return (int)ret.second;
         } else {
-            string sd;
-            auto err = ToCPP(nfr, sd, bytecode_buffer, true, runtime_checks, "nullptr",
-                             "main.lobster");
-            if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/compiled_lobster/src/compiled_lobster.cpp";
             FILE *f = fopen((MainDir() + out).c_str(), "w");
             if (f) {
-                fputs(sd.c_str(), f);
+                fputs(c_codegen.c_str(), f);
                 fclose(f);
             } else {
                 THROW_OR_ABORT(cat("cannot write: ", out));

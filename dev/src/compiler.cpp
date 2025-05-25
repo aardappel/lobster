@@ -184,18 +184,20 @@ bool IsCompressed(string_view filename) {
     auto dot = filename.find_last_of('.');
     if (dot == string_view::npos) return false;
     auto ext = filename.substr(dot);
-    return ext == ".lbc" || ext == ".lobster" || ext == ".materials" || ext == ".glsl";
+    return ext == ".c" || ext == ".lbc" || ext == ".lobster" || ext == ".materials" || ext == ".glsl";
 }
 
 static const uint8_t *magic = (uint8_t *)"LPAK";
 static const size_t magic_size = 4;
 static const size_t header_size = magic_size + sizeof(int64_t) * 4;
-static const char *bcname = "bytecode.lbc";
+static const char *mdname = "metadata.lbc";
+static const char *ccname = "c_codegen.c";
 static const int64_t current_version = 2;
 
 template <typename T> int64_t LE(T x) { return flatbuffers::EndianScalar((int64_t)x); };
 
-string BuildPakFile(string &pakfile, string &bytecode, set<string> &files, uint64_t src_hash) {
+string BuildPakFile(string &pakfile, string &metadata_buffer, set<string> &files, uint64_t src_hash,
+                    const string &c_codegen) {
     // All offsets in 64bit, just in-case we ever want pakfiles > 4GB :)
     // Since we're building this in memory, they can only be created by a 64bit build.
     vector<int64_t> filestarts;
@@ -218,8 +220,11 @@ string BuildPakFile(string &pakfile, string &bytecode, set<string> &files, uint6
     };
     // Start with a magic id, just for the hell of it.
     pakfile.insert(pakfile.end(), magic, magic + magic_size);
-    // Bytecode always first entry.
-    add_file(bytecode, bcname);
+    // Metadata always first entry.
+    add_file(metadata_buffer, mdname);
+    if (!c_codegen.empty()) {
+        add_file(c_codegen, ccname);
+    }
     // Followed by all files.
     files.insert("data/shaders/default.materials");  // If it hadn't already been added.
     string buf;
@@ -320,10 +325,11 @@ bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest) {
     return true;
 }
 
-bool LoadByteCode(string &bytecode) {
-    if (LoadFile(bcname, &bytecode) < 0) return false;
-    flatbuffers::Verifier verifier((const uint8_t *)bytecode.c_str(), bytecode.length());
-    auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
+bool LoadMetaDataAndCode(string &metadata, string &c_codegen) {
+    if (LoadFile(mdname, &metadata) < 0) return false;
+    LoadFile(ccname, &c_codegen);
+    flatbuffers::Verifier verifier((const uint8_t *)metadata.c_str(), metadata.length());
+    auto ok = metadata::VerifyMetadataFileBuffer(verifier);
     assert(ok);
     return ok;
 }
@@ -538,9 +544,10 @@ void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
     query.filenames = &filenames;
 }
 
-void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
+void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &metadata_buffer,
              string *parsedump, string *pakfile, bool return_value, int runtime_checks,
-             Query *query, int max_errors, bool full_error) {
+             Query *query, int max_errors, bool full_error, bool jit_mode, string &c_codegen,
+             vector<int> &raw_bytecode, bool code_pak, string_view custom_pre_init_name) {
     #ifdef NDEBUG
         SlabAlloc slaballoc;
         if (g_current_slaballoc) THROW_OR_ABORT("nested slab allocator use");
@@ -569,32 +576,36 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value, runtime_checks);
     auto src_hash = lex.HashAll();
-    st.Serialize(cg.code, cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, bytecode, cg.vtables,
+    st.Serialize(cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, metadata_buffer, cg.vtables,
                  filenames, cg.ser_ids, src_hash);
+    auto err = ToCPP(nfr, c_codegen, metadata_buffer, !jit_mode, runtime_checks,
+                     custom_pre_init_name,
+                     jit_mode ? "main.lobster" : "", cg.code);
+    if (!err.empty()) THROW_OR_ABORT(err);
     if (pakfile) {
-        auto err = BuildPakFile(*pakfile, bytecode, parser.pakfiles, src_hash);
+        auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
+                                code_pak ? c_codegen : string());
         if (!err.empty()) THROW_OR_ABORT(err);
     }
+    raw_bytecode.swap(cg.code);
 }
 
-pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, string_view fn,
+pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, string_view fn,
                           const char *object_name, vector<string> &&program_args, TraceMode trace,
                           bool compile_only, string &error, int runtime_checks, bool dump_leaks,
-                          bool stack_trace_python_ordering) {
-    string sd;
-    error = ToCPP(nfr, sd, bytecode_buffer, false, runtime_checks, "nullptr", "");
-    if (!error.empty()) return { "", 0 };
+                          bool stack_trace_python_ordering, const string &c_codegen) {
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
         auto start_time = SecondsSinceStart();
         pair<string, iint> ret;
-        auto ok = RunC(sd.c_str(), object_name, error, vm_ops_jit_table, export_names,
+        auto ok = RunC(
+            c_codegen.c_str(), object_name, error, vm_ops_jit_table, export_names,
             [&](void **exports) -> bool {
                 LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
                 if (compile_only) return true;
                 auto vmargs = VMArgs {
-                    nfr, string(fn), (uint8_t *)bytecode_buffer.data(),
-                    bytecode_buffer.size(), std::move(program_args),
+                    nfr, string(fn), (uint8_t *)metadata_buffer.data(),
+                    metadata_buffer.size(), std::move(program_args),
                     (fun_base_t *)exports[1], (fun_base_t)exports[0], trace, dump_leaks,
                     runtime_checks, stack_trace_python_ordering
                 };
@@ -607,7 +618,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, stri
             // So we can see what the problem is..
             FILE *f = fopen((MainDir() + "compiled_lobster_jit_debug.c").c_str(), "w");
             if (f) {
-                fputs(sd.c_str(), f);
+                fputs(c_codegen.c_str(), f);
                 fclose(f);
             }
             error = "libtcc JIT error: " + string(fn) + ":\n" + error;
@@ -621,6 +632,10 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view bytecode_buffer, stri
         (void)compile_only;
         (void)dump_leaks;
         (void)stack_trace_python_ordering;
+        (void)c_codegen;
+        (void)runtime_checks;
+        (void)metadata_buffer;
+        (void)nfr;
         error = "cannot JIT code: libtcc not enabled";
         return { "", 0 };
     #endif
@@ -634,12 +649,15 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringis
     #endif
     {
         int runtime_checks = RUNTIME_ASSERT;  // FIXME: let caller decide?
-        string bytecode_buffer;
+        string metadata_buffer;
+        vector<int> raw_bytecode;
+        string c_codegen;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                bytecode_buffer, nullptr, nullptr, true, runtime_checks, nullptr, 1, false);
+                metadata_buffer, nullptr, nullptr, true, runtime_checks, nullptr, 1, false, true,
+                c_codegen, raw_bytecode, false, "nullptr");
         string error;
-        auto ret = RunTCC(parent_vm.nfr, bytecode_buffer, fn, nullptr, std::move(args),
-                          TraceMode::OFF, false, error, runtime_checks, true, false);
+        auto ret = RunTCC(parent_vm.nfr, metadata_buffer, fn, nullptr, std::move(args),
+                          TraceMode::OFF, false, error, runtime_checks, true, false, c_codegen);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret.first)));
         return NilVal();

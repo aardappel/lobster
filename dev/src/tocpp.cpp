@@ -20,11 +20,12 @@
 
 namespace lobster {
 
-string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bool cpp,
-             int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name) {
-    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
+string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bool cpp,
+             int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name,
+             const vector<int> &raw_bytecode) {
+    auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
     if (!FLATBUFFERS_LITTLEENDIAN) return "native code gen requires little endian";
-    auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
+    auto code = raw_bytecode.data();  // Assumes we're on a little-endian machine.
     auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
     auto function_lookup = CreateFunctionLookUp(bcf);
     auto specidents = bcf->specidents();
@@ -136,7 +137,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     vector<int> var_to_local;
     var_to_local.resize(specidents->size(), -1);
 
-    auto len = bcf->bytecode()->size();
+    auto len = raw_bytecode.size();
     auto ip = code;
     // Skip past 1st jump.
     assert(*ip == IL_JUMP);
@@ -540,11 +541,11 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
     }
 
     if (cpp) {
-        // Output only the metadata part of the bytecode, not the bytecode itself.
+        // Output the metadata.
         // TODO: it be nice if this metadate were in readable format in the generated code.
         sd += "\nstatic const int bytecodefb[] = {";
-        auto bytecode_ints = (const int *)bytecode_buffer.data();
-        for (size_t i = 0; i < size_t(code - bytecode_ints); i++) {
+        auto bytecode_ints = (const int *)metadata_buffer.data();
+        for (size_t i = 0; i < metadata_buffer.size() / sizeof(int); i++) {
             if ((i & 0xF) == 0) sd += "\n ";
             auto x = bytecode_ints[i];
             sd += " ";
@@ -572,7 +573,8 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bo
         sd += "    // This is hard-coded to call compiled_entry_point()\n";
         if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
         sd += "    return RunCompiledCodeMain(argc, argv, ";
-        append(sd, "(uint8_t *)bytecodefb, ", bytecode_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"", aux_src_name ,"\");\n}\n");
+        append(sd, "(uint8_t *)bytecodefb, ", metadata_buffer.size(), ", vtables, ",
+               custom_pre_init_name, ", \"", aux_src_name, "\");\n}\n");
     }
 
     return "";

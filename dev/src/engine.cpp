@@ -32,7 +32,11 @@
 // Lobster without the needs for DLL/so files or whatever.
 // "projects" is already in .gitignore so can even be a
 // separate git repo.
-#if defined(BUILD_CONTEXT_lobster) && __has_include("../../projects/include/lobster_engine_plugins.h")
+// FIXME: Sadly this needs to be 0 when doing compiled_lobster builds
+// (since it interferes with the builtin hashing)
+#define ALLOW_PLUGINS 0
+#if ALLOW_PLUGINS && defined(BUILD_CONTEXT_lobster) && \
+         __has_include("../../projects/include/lobster_engine_plugins.h")
     #include "../../projects/include/lobster_engine_plugins.h"
     #define HAVE_PLUGINS
     void AddPlugins(NativeRegistry &nfr);

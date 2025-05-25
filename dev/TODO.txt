@@ -1,3 +1,6 @@
+- gl.polygon (and presumably any RenderArraySlow) leaks vbo/vao on Linux/Mesa?
+  https://github.com/aardappel/lobster/issues/366
+
 - Weak ref feature.
   we use the informal system of having a "destruct" method on classes that contain members
   causing cycles, and this works well enough to clean up cycles when a tree of objects is deleted in
@@ -32,7 +35,11 @@
   The rest of the language's refc is not complicated either, since it mostly ignores the weak field.
   Biggest deal is the storage of the weak ref field, would not want to add 64-bits to all objects
   for this feature? Would have to maybe efficiently pack these two refc together with ti in 64-bit..
+  Problem is, there are realistic scenarios where either refc must be 32 bit.. 16 million objects
+  is not that much.
   Or somehow only store it for objects that have weak refs to them.
+  It could overlap with the 1st field, and have some metadata for any field iterating code that
+  the first field is not a user field.
 
 - in this configuration:
   def f_not_inlined():
@@ -59,7 +66,7 @@
 - mipmaps are darker than the orginal in both srgb and linear modes? see e.g. puzzlewindow.lobster
 
 - Default ignoring return values is a really bad default, wonder if it is too late to change?
-  Ideally it would error on ignored return values unless the function explicitly marks a return
+  Ideally it would warn/error on ignored return values unless the function explicitly marks a return
   value as ignorable.
   What would be a syntax for this?
   Could be a single keyword like "ignore" that is both used to mark return values or types as
@@ -80,6 +87,8 @@
   One way to solve that would be to improve the C/C++ codegen to output what the bytecode does directly rather
   than the bytecode, but the problem there is that C++ VM code used from there needs to be ported to C first,
   and shared with it.
+  -> actually, not entirely true, you could selectively rewrite code to use naked C structs for everything,
+     with the the "abstraction" done by the codegen.
   Then, once we do that, the speedup might still not be great.
   The problem is that there aren't really any alternative JIT C/C++ compiler solutions, you'd really need to
   link all of Clang into Lobster to both get C++ support (so it is easier to share VM code) and a speedup
@@ -121,6 +130,51 @@
     Can we make the core of what the generated code relies on effectively header-less?
     Would also improve build speeds.
     Downside is not having the ability to save a dll or whatever for offline use.
+- natgen refactor
+  - inline tocpp into codegen, removing bytecode entirely.
+    - will likely make all refactorings below easier!
+    - this stops us from being able to ship bytecode in a pak as a quick way to distribute programs
+      without building C++.. people have to now either ship C output or source.
+    - makes it easier to output C that looks like normal C, which would benefit libtcc codegen.
+  - start moving vmops into tocpp for all simple ops.
+    - see vmcore experiment.
+    - this is not so easy, any call to a function in vmdata.h would need a C wrapper, and
+      pretty much all VM ops do this.
+      In C, you'd replace a single call to the VM op (whose internals are fully optimized)
+      by possibly multiple calls, its calling code less optimized, likely overal slower.
+      Even if most of the core VM data types were ported to pure C, this would only maybe
+      be fast if you didn't abstract at all, i.e. the codegen outputs what it means to
+      access an object or vector directly in raw C every time.
+      Though, can try this, with a parallel C definition of naked structs for everything.
+      The generated code would be casting between Value and a C version, and the same for all
+      other objects.
+      It sounds not so great to not have abstraction for common accessors, but instead now we
+      do the abstraction in terms of codegen functions, i.e. here's a function that generates
+      code for accessing a vector element.
+  - most access to local arrays still thru memory, clearly alias analysis failing.
+    - split up arrays into individual vars where possible.
+    - ideally then make sure these vars never "overlap" when used with structs, so they can
+      be properly register allocated.
+    - make args into actual C++ args?
+      - this could help not having to pass parent pointers to regs which could help optimisation.
+  - somehow remove temp_lval
+  - make all builtin calls direct
+  - move more stuff into the epilogue.
+  - de-inline vm ops that are big: check in disassembly
+  - NO RUNTIME STACKTRACES!
+  - shrink fvars array in VM
+  - can finally remove exceptions? could instead execute a return from -3 or whatever.
+    - the big challenge is doing that for errors.
+      - this may be easier after builtins are inlined.
+  - Now that all bytecode goes to native gen, make bytecode more specific to it.
+  - threading appears broken (sequential?)
+  - remove next_call_target
+  - test/enable
+    - --cpp mode for mac/ios
+  - start regs sp at end to access top slightly more optimally?
+    - need to flip all struct order etc.
+  - reduce use of ElemType.
+  - once things are faster, test with https://github.com/kostya/benchmarks/
 
 - Free Variables
   - This is one of the very inefficient parts of the type checker.
@@ -458,10 +512,6 @@
   - bundle subsequent decls
   - how to do if frame_event: do_for_N_seconds
   - find more places to use it, samples etc
-
-- continue vmcore experiment.
-
-- Inline tocpp into codegen, see below.
 
 - "C-style language to Lobster Cheat Sheet" could use improvements, and more about types.
   Also def for function values.
@@ -802,38 +852,6 @@
   "guard" is a special case of this, since you could implement guard as "each _ = boolean_exp"
   I guess additionally "each" doesn't have an optional else block, so the distinction is still
   useful, besides the clear naming.
-
-- natgen refactor
-  - inline tocpp into codegen, removing bytecode entirely.
-    - will likely make all refactorings below easier!
-    - this stops us from being able to ship bytecode in a pak as a quick way to distribute programs
-      without building C++.. people have to now either ship C output or source.
-    - makes it easier to output C that looks like normal C, which would benefit libtcc codegen.
-  - start moving vmops into tocpp for all simple ops.
-  - most access to local arrays still thru memory, clearly alias analysis failing.
-    - split up arrays into individual vars where possible.
-    - ideally then make sure these vars never "overlap" when used with structs, so they can
-      be properly register allocated.
-    - make args into actual C++ args?
-      - this could help not having to pass parent pointers to regs which could help optimisation.
-  - somehow remove temp_lval
-  - make all builtin calls direct
-  - move more stuff into the epilogue.
-  - de-inline vm ops that are big: check in disassembly
-  - NO RUNTIME STACKTRACES!
-  - shrink fvars array in VM
-  - can finally remove exceptions? could instead execute a return from -3 or whatever.
-    - the big challenge is doing that for errors.
-      - this may be easier after builtins are inlined.
-  - Now that all bytecode goes to native gen, make bytecode more specific to it.
-  - threading appears broken (sequential?)
-  - remove next_call_target
-  - test/enable
-    - --cpp mode for mac/ios
-  - start regs sp at end to access top slightly more optimally?
-    - need to flip all struct order etc.
-  - reduce use of ElemType.
-  - once things are faster, test with https://github.com/kostya/benchmarks/
 
 - Add to docs:
   - As static as possible memory management: https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-908.pdf

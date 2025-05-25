@@ -79,9 +79,9 @@ struct Ident : Named {
         return this;
     }
 
-    flatbuffers::Offset<bytecode::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb,
+    flatbuffers::Offset<metadata::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb,
                                                    bool is_top_level) const {
-        return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant, is_top_level);
+        return metadata::CreateIdent(fbb, fbb.CreateString(name), constant, is_top_level);
     }
 };
 
@@ -133,11 +133,11 @@ struct Enum : Named {
         return nullptr;
     }
 
-    flatbuffers::Offset<bytecode::Enum> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
-        vector<flatbuffers::Offset<bytecode::EnumVal>> valoffsets;
+    flatbuffers::Offset<metadata::Enum> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
+        vector<flatbuffers::Offset<metadata::EnumVal>> valoffsets;
         for (auto &v : vals)
-            valoffsets.push_back(bytecode::CreateEnumVal(fbb, fbb.CreateString(v->name), v->val));
-        return bytecode::CreateEnum(fbb, fbb.CreateString(name), fbb.CreateVector(valoffsets),
+            valoffsets.push_back(metadata::CreateEnumVal(fbb, fbb.CreateString(v->name), v->val));
+        return metadata::CreateEnum(fbb, fbb.CreateString(name), fbb.CreateVector(valoffsets),
                                     flags);
     }
 };
@@ -295,12 +295,12 @@ struct UDT : Named {
         return true;
     }
 
-    flatbuffers::Offset<bytecode::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
-        vector<flatbuffers::Offset<bytecode::Field>> fieldoffsets;
+    flatbuffers::Offset<metadata::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
+        vector<flatbuffers::Offset<metadata::Field>> fieldoffsets;
         for (auto [i, sfield] : enumerate(sfields))
             fieldoffsets.push_back(
-                bytecode::CreateField(fbb, fbb.CreateString(g.fields[i].id->name), sfield.slot));
-        return bytecode::CreateUDT(fbb, fbb.CreateString(name), idx, fbb.CreateVector(fieldoffsets),
+                metadata::CreateField(fbb, fbb.CreateString(g.fields[i].id->name), sfield.slot));
+        return metadata::CreateUDT(fbb, fbb.CreateString(name), idx, fbb.CreateVector(fieldoffsets),
                                    numslots, ssuperclass ? ssuperclass->idx : -1, typeinfo);
     }
 };
@@ -527,8 +527,8 @@ struct Function : Named {
         return false;
     }
 
-    flatbuffers::Offset<bytecode::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb) const {
-        return bytecode::CreateFunction(fbb, fbb.CreateString(name), bytecodestart);
+    flatbuffers::Offset<metadata::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb) const {
+        return metadata::CreateFunction(fbb, fbb.CreateString(name), bytecodestart);
     }
 };
 
@@ -1328,10 +1328,9 @@ struct SymbolTable {
         }
     }
 
-    void Serialize(vector<int> &code,
-                   vector<type_elem_t> &typetable,
-                   vector<bytecode::LineInfo> &linenumbers,
-                   vector<bytecode::SpecIdent> &sids,
+    void Serialize(vector<type_elem_t> &typetable,
+                   vector<metadata::LineInfo> &linenumbers,
+                   vector<metadata::SpecIdent> &sids,
                    vector<string_view> &stringtable,
                    string &bytecode,
                    vector<int> &vtables,
@@ -1339,17 +1338,15 @@ struct SymbolTable {
                    vector<type_elem_t> &ser_ids,
                    uint64_t src_hash) {
         flatbuffers::FlatBufferBuilder fbb;
-        // Always serialize this first! that way it can easily be left out of the generated C code.
-        auto codevec = fbb.CreateVector(code);
         vector<flatbuffers::Offset<flatbuffers::String>> fns;
         for (auto &f : filenames) fns.push_back(fbb.CreateString(f.first));
-        vector<flatbuffers::Offset<bytecode::Function>> functionoffsets;
+        vector<flatbuffers::Offset<metadata::Function>> functionoffsets;
         for (auto f : functiontable) functionoffsets.push_back(f->Serialize(fbb));
-        vector<flatbuffers::Offset<bytecode::UDT>> udtoffsets;
+        vector<flatbuffers::Offset<metadata::UDT>> udtoffsets;
         for (auto u : udttable) udtoffsets.push_back(u->Serialize(fbb));
-        vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
+        vector<flatbuffers::Offset<metadata::Ident>> identoffsets;
         for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->scopelevel == 1));
-        vector<flatbuffers::Offset<bytecode::Enum>> enumoffsets;
+        vector<flatbuffers::Offset<metadata::Enum>> enumoffsets;
         for (auto e : enumtable) enumoffsets.push_back(e->Serialize(fbb));
         string build_info;
         auto time = std::time(nullptr);
@@ -1360,9 +1357,8 @@ struct SymbolTable {
                 build_info = string(ts, 24);
             }
         }
-        auto bcf = bytecode::CreateBytecodeFile(fbb,
-            LOBSTER_BYTECODE_FORMAT_VERSION,
-            codevec,
+        auto bcf = metadata::CreateMetadataFile(fbb,
+            LOBSTER_METADATA_FORMAT_VERSION,
             fbb.CreateVector((vector<int> &)typetable),
             fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(stringtable.size(),
                 [&](size_t i) {
@@ -1380,7 +1376,7 @@ struct SymbolTable {
             fbb.CreateVector((vector<int> &)ser_ids),
             fbb.CreateString(build_info.c_str(), build_info.size()),
             src_hash);
-        bytecode::FinishBytecodeFileBuffer(fbb, bcf);
+        metadata::FinishMetadataFileBuffer(fbb, bcf);
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }
 };

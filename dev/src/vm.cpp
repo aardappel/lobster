@@ -30,7 +30,7 @@ vector<___tracy_source_location_data> g_function_locations;
 vector<tracy::SourceLocationData> g_builtin_locations;
 #endif
 
-VM::VM(VMArgs &&vmargs, const bytecode::BytecodeFile *bcf)
+VM::VM(VMArgs &&vmargs, const metadata::MetadataFile *bcf)
     : VMArgs(std::move(vmargs)), bcf(bcf) {
 
     if (FLATBUFFERS_LITTLEENDIAN) {
@@ -77,11 +77,11 @@ VM::~VM() {
 VMAllocator::VMAllocator(VMArgs &&args) {
     // Verify the bytecode.
     flatbuffers::Verifier verifier(args.static_bytecode, args.static_size);
-    auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
-    if (!ok) THROW_OR_ABORT("bytecode file failed to verify");
-    auto bcf = bytecode::GetBytecodeFile(args.static_bytecode);
-    if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
-        THROW_OR_ABORT("bytecode is from a different version of Lobster");
+    auto ok = metadata::VerifyMetadataFileBuffer(verifier);
+    if (!ok) THROW_OR_ABORT("metadata file failed to verify");
+    auto bcf = metadata::GetMetadataFile(args.static_bytecode);
+    if (bcf->metadata_version() != LOBSTER_METADATA_FORMAT_VERSION)
+        THROW_OR_ABORT("metadata is from a different version of Lobster");
 
     // Allocate enough memory to fit the "fvars" array inline.
     auto size = sizeof(VM) + sizeof(Value) * bcf->specidents()->size();
@@ -1002,7 +1002,7 @@ fun_base_t CVM_GetNextCallTarget(VM *vm) {
 
 void CVM_Entry(int value_size) {
     if (value_size != sizeof(Value)) {
-        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ Value size mismatch!");
+        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ Value size mismatch! (Debug vs Release?)");
     }
 }
 

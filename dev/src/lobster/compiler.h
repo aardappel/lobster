@@ -20,11 +20,13 @@
 namespace lobster {
 
 extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
-                    string &bytecode, string *parsedump, string *pakfile, bool return_value,
-                    int runtime_checks, Query *query, int max_errors, bool full_error);
+                    string &metadata_buffer, string *parsedump, string *pakfile, bool return_value,
+                    int runtime_checks, Query *query, int max_errors, bool full_error,
+                    bool jit_mode, string &c_codegen, vector<int> &raw_bytecode, bool code_pak,
+                    string_view custom_pre_init_name);
 
 extern pair<string, iint> RunTCC(NativeRegistry &nfr,
-                          string_view bytecode_buffer,
+                          string_view metadata_buffer,
                           string_view fn,
                           const char *object_name /* save instead of run if non-null */,
                           vector<string> &&program_args,
@@ -33,10 +35,11 @@ extern pair<string, iint> RunTCC(NativeRegistry &nfr,
                           string &error,
                           int runtime_checks,
                           bool dump_leaks,
-                          bool stack_trace_python_ordering);
+                          bool stack_trace_python_ordering,
+                          const string &c_codegen);
 
 extern bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest);
-extern bool LoadByteCode(string &bytecode);
+extern bool LoadMetaDataAndCode(string &metadata, string &c_codegen);
 extern void RegisterBuiltin(NativeRegistry &natreg, const char *ns, const char *name,
                             void (* regfun)(NativeRegistry &));
 extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);

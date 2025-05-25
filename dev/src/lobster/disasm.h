@@ -22,7 +22,7 @@
 
 namespace lobster {
 
-inline string IdName(const bytecode::BytecodeFile *bcf, int i, const type_elem_t *typetable, bool is_whole_struct) {
+inline string IdName(const metadata::MetadataFile *bcf, int i, const type_elem_t *typetable, bool is_whole_struct) {
     auto idx = bcf->specidents()->Get(i)->ididx();
     auto basename = bcf->idents()->Get(idx)->name()->
     #ifdef __ANDROID__
@@ -41,13 +41,13 @@ inline string IdName(const bytecode::BytecodeFile *bcf, int i, const type_elem_t
     }
 }
 
-const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
-                                     const bytecode::BytecodeFile *bcf);
+const metadata::LineInfo *LookupLine(const int *ip, const int *code,
+                                     const metadata::MetadataFile *bcf);
 
 const int *DisAsmIns(NativeRegistry &natreg, string &sd, const int *ip, const int *code,
-                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf, int line);
+                     const type_elem_t *typetable, const metadata::MetadataFile *bcf, int line);
 
-void DisAsm(NativeRegistry &natreg, string &sd, string_view bytecode_buffer);
+void DisAsm(NativeRegistry &natreg, string &sd, string_view metadata_buffer, const vector<int> &raw_bytecode);
 
 }  // namespace lobster
 

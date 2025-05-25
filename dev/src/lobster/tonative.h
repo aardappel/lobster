@@ -19,8 +19,9 @@
 
 namespace lobster {
 
-extern string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer, bool cpp,
-                    int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name);
+extern string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bool cpp,
+                    int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name,
+                    const vector<int> &raw_bytecode);
 
 extern bool RunC(const char *source,
                  const char *object_name /* save instead of run if non-null */,
@@ -73,8 +74,8 @@ inline int ParseOpAndGetArity(int opc, const int *&ip, int &regso) {
     return arity;
 }
 
-inline auto CreateFunctionLookUp(const bytecode::BytecodeFile *bcf) {
-    map<int, const bytecode::Function *> fl;
+inline auto CreateFunctionLookUp(const metadata::MetadataFile *bcf) {
+    map<int, const metadata::Function *> fl;
     for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
         auto f = bcf->functions()->Get(i);
         fl[f->bytecodestart()] = f;

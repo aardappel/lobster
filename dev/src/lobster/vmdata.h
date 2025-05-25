@@ -16,8 +16,8 @@
 #define LOBSTER_VMDATA
 
 // FIXME
-namespace bytecode {
-    struct BytecodeFile;
+namespace metadata {
+    struct MetadataFile;
     struct UDT;
 }
 
@@ -935,7 +935,7 @@ struct VM : VMArgs {
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts = nullptr;
 
-    const bytecode::BytecodeFile *bcf;
+    const metadata::MetadataFile *bcf;
 
     PrintPrefs programprintprefs { 10, 100000, false, -1 };
     const type_elem_t *typetable = nullptr;
@@ -995,7 +995,7 @@ struct VM : VMArgs {
 
     vector<Value> fvar_def_backup;
 
-    map<string_view, vector<const bytecode::UDT *>> UDTLookup;
+    map<string_view, vector<const metadata::UDT *>> UDTLookup;
     void EnsureUDTLookupPopulated();
 
     // We stick this in here directly, since the constant offsets into this array in
@@ -1004,7 +1004,7 @@ struct VM : VMArgs {
 
     // NOTE: NO MORE VAR DECLS AFTER "fvars"
 
-    VM(VMArgs &&args, const bytecode::BytecodeFile *bcf);
+    VM(VMArgs &&args, const metadata::MetadataFile *bcf);
     ~VM();
 
     const TypeInfo &GetTypeInfo(type_elem_t offset) const {

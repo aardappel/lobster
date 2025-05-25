@@ -18,8 +18,8 @@
 
 namespace lobster {
 
-const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
-                                     const bytecode::BytecodeFile *bcf) {
+const metadata::LineInfo *LookupLine(const int *ip, const int *code,
+                                     const metadata::MetadataFile *bcf) {
     auto lineinfo = bcf->lineinfo();
     int pos = int(ip - code);
     int start = 0;
@@ -38,7 +38,7 @@ const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
 }
 
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
-                     const type_elem_t *typetable, const bytecode::BytecodeFile *bcf,
+                     const type_elem_t *typetable, const metadata::MetadataFile *bcf,
                      int line) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
@@ -207,12 +207,13 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
     return ip;
 }
 
-void DisAsm(NativeRegistry &nfr, string &sd, string_view bytecode_buffer) {
-    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
+void DisAsm(NativeRegistry &nfr, string &sd, string_view metadata_buffer,
+            const vector<int> &raw_bytecode) {
+    auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
     assert(FLATBUFFERS_LITTLEENDIAN);
-    auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
+    auto code = raw_bytecode.data();  // Assumes we're on a little-endian machine.
     auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
-    auto len = bcf->bytecode()->size();
+    auto len = raw_bytecode.size();
     const int *ip = code;
     while (ip < code + len) {
         if (*ip == IL_FUNSTART) sd += "------- ------- ---\n";

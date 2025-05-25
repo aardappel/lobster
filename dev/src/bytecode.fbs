@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace bytecode;
+namespace metadata;
 
 struct LineInfo {
     line:int;
     fileidx:int;
-    bytecodestart:int;
+    bytecodestart:int;  // FIXME: needed only for disasm.
 }
 
 table Function {
     name:string;
-    bytecodestart:int;
+    bytecodestart:int;  // FIXME: needed only for C codegen, replace.
 }
 
 table Field {
@@ -62,9 +62,9 @@ struct SpecIdent {
     used_as_freevar:bool;
 }
 
-table BytecodeFile {
-    bytecode_version:int;  // The format of bytecode/typetable may change.
-    bytecode:[int];
+table MetadataFile {
+    metadata_version:int;  // The format of typetable may change.
+    bytecode:[int] (deprecated);
     bytecode_attr:[ubyte] (deprecated);
     typetable:[int];
 
@@ -95,7 +95,7 @@ table BytecodeFile {
     src_hash:ulong;
 }
 
-root_type BytecodeFile;
+root_type MetadataFile;
 
 file_identifier "LBCF";
 file_extension "lbc";

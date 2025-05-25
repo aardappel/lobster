@@ -27,12 +27,14 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
 -   `-- ARGS` pass args to the running Lobster program, available from
     `command_line_arguments()`. Must be last on the command-line.
 
--   `--pak` : generates a pakfile (currently always called "`default.lpak`") in the
+-   `--pak` or `--rpak` : generates a pakfile (currently always called "`default.lpak`") in the
     same folder as the `.lobster` file it reads, and doesn't run the program
     afterwards. If you run lobster with no arguments at all, it will try to load
-    "`default.lpak`" from the same folder it resides in. Thus distributing
-    programs created in lobster is as simple as packaging up the lobster
-    executable with a pakfile. The pakfile contains the bytecode, and any data
+    "`default.lpak`" from the same folder it resides in. Only `--rpak` includes
+    runnable code in the pak, useful with jit mode runs, whereas without is useful with
+    executables build with `--cpp`.
+    Distributing programs created in lobster can be as simple as packaging up the lobster
+    executable with a runnable pakfile. The pakfile contains the libtcc C code, and any data
     files you have specified with the `pakfile` keyword, see “Distributing
     Lobster programs” in the [implementation](implementation.html) documentation.
 
