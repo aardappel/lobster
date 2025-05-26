@@ -59,7 +59,8 @@ struct CodeGen  {
     void Prologue(string &sd);
     void DeclareFunctions(string &sd);
     void DefineFunctions(string &sd);
-    void Epilogue(string &sd, string_view metadata_buffer, string_view custom_pre_init_name);
+    void Epilogue(string &sd, string_view metadata_buffer, string_view custom_pre_init_name,
+                  uint64_t src_hash);
 
     int Pos() { return (int)code.size(); }
 
@@ -356,7 +357,7 @@ struct CodeGen  {
 
         DeclareFunctions(c_codegen);
         DefineFunctions(c_codegen);
-        Epilogue(c_codegen, metadata_buffer, custom_pre_init_name);
+        Epilogue(c_codegen, metadata_buffer, custom_pre_init_name, src_hash);
     }
 
     ~CodeGen() {

@@ -31,8 +31,7 @@ string IdName(VM &vm, int i, const type_elem_t *typetable, bool is_whole_struct)
 }
 
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
-                     const type_elem_t *typetable, const metadata::MetadataFile *bcf,
-                     int line, VM &vm) {
+                     const type_elem_t *typetable, int line, VM &vm) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
     if (line >= 0) {
@@ -87,7 +86,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
                 auto sf_id = code[bc + 2];
                 auto nargs = code[bc + 4];
                 append(sd, nargs, " ",
-                       vm.meta->function_names[bcf->subfunctions_to_function()->Get(sf_id)],
+                       vm.meta->function_names[vm.meta->subfunctions_to_function[sf_id]],
                        " ",
                        bc);
             } else {
@@ -169,7 +168,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
 
         case IL_FUNSTART: {
             auto sf_idx = *ip++;
-            sd += (sf_idx >= 0 ? vm.meta->function_names[bcf->subfunctions_to_function()->Get(sf_idx)]
+            sd += (sf_idx >= 0 ? vm.meta->function_names[vm.meta->subfunctions_to_function[sf_idx]]
                              : "__dummy");
             auto regs = *ip++;
             sd += "(";

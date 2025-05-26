@@ -235,7 +235,7 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
     #endif
 }
 
-inline void to_string_hex(string &sd, size_t x) {
+inline void to_string_hex(string &sd, uint64_t x) {
     // FIXME: replace with to_chars.
     ostringstream ss;
     ss << "0x" << std::hex << x << std::dec;

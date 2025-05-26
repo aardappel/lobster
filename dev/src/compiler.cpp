@@ -662,6 +662,11 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 for (flatbuffers::uoffset_t i = 0; i < bcf->ser_ids()->size(); i++) {
                     ser_ids.push_back(bcf->ser_ids()->Get(i));
                 }
+                vector<int> subfunctions_to_function;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->subfunctions_to_function()->size();
+                     i++) {
+                    subfunctions_to_function.push_back(bcf->subfunctions_to_function()->Get(i));
+                }               
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
                     bcf->metadata_version(),
@@ -673,6 +678,9 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                     make_span(specidents),
                     make_span(enums),
                     make_span(ser_ids),
+                    bcf->build_info()->string_view(),
+                    bcf->src_hash(),
+                    make_span(subfunctions_to_function),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,
@@ -821,7 +829,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMe
         };
         for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
         lobster::VMAllocator vma(std::move(vmargs));
-        if (from_lpak && src_hash != vma.vm->bcf->src_hash()) {
+        if (from_lpak && src_hash != vma.vm->meta->src_hash) {
             THROW_OR_ABORT("lpak file from different version of the source code than the compiled code");
         }
         vma.vm->EvalProgram();

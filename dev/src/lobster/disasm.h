@@ -23,8 +23,7 @@
 namespace lobster {
 
 const int *DisAsmIns(NativeRegistry &natreg, string &sd, const int *ip, const int *code,
-                     const type_elem_t *typetable, const metadata::MetadataFile *bcf, int line,
-                     VM &vm);
+                     const type_elem_t *typetable, int line, VM &vm);
 
 }  // namespace lobster
 
