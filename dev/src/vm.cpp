@@ -45,11 +45,10 @@ VM::VM(VMArgs &&vmargs, const metadata::MetadataFile *bcf)
     assert(native_vtables);
 
     #if LOBSTER_FRAME_PROFILER
-        auto funs = bcf->functions();
-        for (flatbuffers::uoffset_t i = 0; i < funs->size(); i++) {
-            auto f = funs->Get(i);
+        auto &funs = meta->function_names;
+        for (auto f : funs) {
             pre_allocated_function_locations.push_back(
-                ___tracy_source_location_data { f->name()->c_str(), f->name()->c_str(), "", 0, 0x008888 });
+                ___tracy_source_location_data{ f.data(), f.data(), "", 0, 0x008888 });
         }
     #endif
 }
@@ -412,7 +411,7 @@ pair<string, const int *> VM::DumpStackFrameStart(const int *fip, int fileidx, i
         ti.Print(*this, fname, nullptr);
         append(fname, ".");
     }
-    append(fname, bcf->functions()->Get(bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view(),
+    append(fname, meta->function_names[bcf->subfunctions_to_function()->Get(sf_idx)],
            DumpFileLine(fileidx, line));
     return { fname, fip };
 }
@@ -955,7 +954,7 @@ void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
     auto ip = _ip.begin();
     auto &sd = vm->TraceStream();
     DisAsmIns(vm->nfr, sd, ip, nullptr, (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf,
-              vm->last_line);
+              vm->last_line, *vm);
     #if RTT_ENABLED
         (void)sp;
         /*
@@ -982,7 +981,7 @@ void TraceVA(VM *vm, StackPtr, int opc, int sf_idx) {
     sd += ILNames()[opc];
     if (opc == IL_FUNSTART && sf_idx >= 0) {
         sd += " ";
-        sd += vm->bcf->functions()->Get(vm->bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view();
+        sd += vm->meta->function_names[vm->bcf->subfunctions_to_function()->Get(sf_idx)];
     }
     if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
 }

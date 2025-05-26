@@ -181,11 +181,6 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
             if (sf_idx >= 0) append(sd, "static void fun_", sf_idx, "(VMRef, StackPtr);\n");
             starting_point = sf_idx;
         }
-        if ((false)) {  // Debug corrupt bytecode.
-            string da;
-            DisAsmIns(natreg, da, ip, code, typetable, bcf, -1);
-            LOG_DEBUG(da);
-        }
         int opc = *ip++;
         if (opc < 0 || opc >= IL_MAX_OPS) {
             return cat("Corrupt bytecode: ", opc, " at: ", id);

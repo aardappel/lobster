@@ -20,7 +20,7 @@ namespace lobster {
 
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
                      const type_elem_t *typetable, const metadata::MetadataFile *bcf,
-                     int line) {
+                     int line, VM &vm) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
     if (line >= 0) {
@@ -64,7 +64,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
         case IL_RETURNNONLOCAL: {
             auto nrets = *ip++;
             auto id = *ip++;
-            append(sd, bcf->functions()->Get(id)->name()->string_view(), " ", nrets);
+            append(sd, vm.meta->function_names[id], " ", nrets);
             break;
         }
 
@@ -75,7 +75,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
                 auto sf_id = code[bc + 2];
                 auto nargs = code[bc + 4];
                 append(sd, nargs, " ",
-                       bcf->functions()->Get(bcf->subfunctions_to_function()->Get(sf_id))->name()->string_view(),
+                       vm.meta->function_names[bcf->subfunctions_to_function()->Get(sf_id)],
                        " ",
                        bc);
             } else {
@@ -157,7 +157,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
 
         case IL_FUNSTART: {
             auto sf_idx = *ip++;
-            sd += (sf_idx >= 0 ? bcf->functions()->Get(bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view()
+            sd += (sf_idx >= 0 ? vm.meta->function_names[bcf->subfunctions_to_function()->Get(sf_idx)]
                              : "__dummy");
             auto regs = *ip++;
             sd += "(";
