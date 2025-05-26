@@ -197,7 +197,7 @@ VM_INLINE void U_STATEMENT(VM &vm, StackPtr, int line, int fileidx) {
     #ifndef NDEBUG
         if (vm.trace != TraceMode::OFF) {
             auto &sd = vm.TraceStream();
-            append(sd, vm.bcf->filenames()->Get(fileidx)->string_view(), "(", line, ")");
+            append(sd, vm.meta->file_names[fileidx], "(", line, ")");
             if (vm.trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
         }
     #endif

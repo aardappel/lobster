@@ -341,7 +341,7 @@ void VM::ErrorBase(const string &err) {
     }
     append(errmsg, "VM error (");
     if (last_line >= 0 && last_fileidx >= 0) {
-        append(errmsg, bcf->filenames()->Get(last_fileidx)->string_view(), ":", last_line);
+        append(errmsg, meta->file_names[last_fileidx], ":", last_line);
     } else {
         append(errmsg, programname);
     }
@@ -390,7 +390,7 @@ void VM::DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump) {
 string VM::DumpFileLine(int fileidx, int line) {
     string loc;
     if (line >= 0 && fileidx >= 0) {
-        append(loc, "[", bcf->filenames()->Get(fileidx)->string_view(), ":", line, "]");
+        append(loc, "[", meta->file_names[fileidx], ":", line, "]");
     }
     return loc;
 }

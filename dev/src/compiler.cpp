@@ -600,24 +600,29 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
                 if (compile_only) return true;
                 auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
-                vector<string_view> function_names;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
-                    function_names.push_back(bcf->functions()->Get(i)->name()->string_view());
+                vector<type_elem_t> type_table;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->typetable()->size(); i++) {
+                    type_table.push_back((type_elem_t)bcf->typetable()->Get(i));
                 }
                 vector<string_view> stringtable;
                 for (flatbuffers::uoffset_t i = 0; i < bcf->stringtable()->size(); i++) {
                     stringtable.push_back(bcf->stringtable()->Get(i)->string_view());
                 }
-                vector<type_elem_t> type_table;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->typetable()->size(); i++) {
-                    type_table.push_back((type_elem_t)bcf->typetable()->Get(i));
+                vector<string_view> file_names;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->filenames()->size(); i++) {
+                    file_names.push_back(bcf->filenames()->Get(i)->string_view());
+                }
+                vector<string_view> function_names;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
+                    function_names.push_back(bcf->functions()->Get(i)->name()->string_view());
                 }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
                     bcf->metadata_version(),
-                    make_span(function_names),
-                    make_span(stringtable),
                     make_span(type_table),
+                    make_span(stringtable),
+                    make_span(file_names),
+                    make_span(function_names),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,

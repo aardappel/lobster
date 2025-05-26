@@ -594,7 +594,13 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
 
     if (cpp) {
         // Output the metadata.
-        // TODO: it be nice if this metadate were in readable format in the generated code.
+        auto gen_string = [&](string_view s) {
+            sd += "    string_view(";
+            EscapeAndQuote(s, sd);
+            sd += ", ";
+            sd += to_string(s.size());
+            sd += "),\n";
+        };
         sd += "\nstatic const int bytecodefb[] = {";
         auto bytecode_ints = (const int *)metadata_buffer.data();
         for (size_t i = 0; i < metadata_buffer.size() / sizeof(int); i++) {
@@ -617,23 +623,20 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
             append(sd, x);
             sd += ",";
         }
-        sd += "\n};\n\n";
-        sd += "static const string_view function_names[] = {\n";
-        for (auto f : st.functiontable) {
-            sd += "    string_view(";
-            EscapeAndQuote(f->name, sd);
-            sd += ", ";
-            sd += to_string(f->name.size());
-            sd += "),\n";
-        }
         sd += "};\n\n";
         sd += "static const string_view stringtable[] = {\n";
         for (auto s : stringtable) {
-            sd += "    string_view(";
-            EscapeAndQuote(s, sd);
-            sd += ", ";
-            sd += to_string(s.size());
-            sd += "),\n";
+            gen_string(s);
+        }
+        sd += "\n};\n\n";
+        sd += "static const string_view file_names[] = {\n";
+        for (auto [s, _] : parser.lex.filenames) {
+            gen_string(s);
+        }
+        sd += "};\n\n";
+        sd += "static const string_view function_names[] = {\n";
+        for (auto f : st.functiontable) {
+            gen_string(f->name);
         }
         sd += "};\n\n";
     }
@@ -653,9 +656,10 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "    lobster::VMMetaData vmmeta = {\n";
         sd += "         (uint8_t *)bytecodefb,\n";
         sd += "         " + to_string(LOBSTER_METADATA_FORMAT_VERSION) + ",\n";
-        sd += "         make_span(function_names),\n";
-        sd += "         make_span(stringtable),\n";
         sd += "         make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
+        sd += "         make_span(stringtable),\n";
+        sd += "         make_span(file_names),\n";
+        sd += "         make_span(function_names),\n";
         sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",
