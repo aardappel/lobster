@@ -576,7 +576,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc, runtime_checks);
     if (parsedump) *parsedump = parser.DumpAll(true);
-    CodeGen cg(parser, st, return_value, runtime_checks);
+    CodeGen cg(parser, st, return_value, runtime_checks, !jit_mode);
     auto src_hash = lex.HashAll();
     st.Serialize(cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, metadata_buffer,
                  filenames, cg.ser_ids, src_hash);

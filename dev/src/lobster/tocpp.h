@@ -358,12 +358,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
             case IL_BCALLRET5:
             case IL_BCALLRET6:
             case IL_BCALLRET7:
-                if (natreg.nfuns[args[0]]->IsGLFrame()) {
-                    append(sd, "GLFrame(", sp, ", vm);");
-                } else {
-                    append(sd, "U_", ILNames()[opc], "(vm, ", sp, ", ", args[0], ", ", args[1], ");");
-                    comment(natreg.nfuns[args[0]]->name);
-                }
+                assert(false);
                 break;
             case IL_RETURNLOCAL:
             case IL_RETURNNONLOCAL:
@@ -431,28 +426,21 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
                 break;
             case IL_KEEPREFLOOP:
                 assert(false);
-                [[fallthrough]];
+                break;
             case IL_KEEPREF:
                 assert(false);
                 break;
             case IL_PUSHFUN:
                 assert(false);
                 break;
-            case IL_CALL: {
-                append(sd, "fun_", args[0], "(vm, ", sp, ");");
-                auto sf_idx = args[0];
-                comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
+            case IL_CALL: 
+                assert(false);
                 break;
-            }
             case IL_CALLV:
-                append(sd, "U_CALLV(vm, ", sp, "); ");
-                if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 1, ");");
-                else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 1, ");");
+                assert(false);
                 break;
             case IL_DDCALL:
-                append(sd, "U_DDCALL(vm, ", sp, ", ", args[0], ", ", args[1], "); ");
-                if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
-                else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
+                assert(false);
                 break;
             case IL_PROFILE: {
                 string name;

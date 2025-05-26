@@ -39,6 +39,7 @@ struct CodeGen  {
     size_t tstack_max = 0;
     int dummyfun = -1;
     const SubFunction *cursf = nullptr;
+    bool cpp = false;
 
     // Transitional vector to move codegen from tocpp over here..
     ILOP last_op_started = IL_ABORT;
@@ -55,8 +56,25 @@ struct CodeGen  {
         /* auto arity = */ParseOpAndGetArity(opc, ip, regso);
         // We could store the value of ip here, to verify it is the same as next instr start.
         string sd;
+        auto comment = [&](string_view c) { append(sd, " // ", c); };
         sp = cat("regs + ", regso);
         switch (opc) {
+            case IL_BCALLRETV:
+            case IL_BCALLRET0:
+            case IL_BCALLRET1:
+            case IL_BCALLRET2:
+            case IL_BCALLRET3:
+            case IL_BCALLRET4:
+            case IL_BCALLRET5:
+            case IL_BCALLRET6:
+            case IL_BCALLRET7:
+                if (parser.natreg.nfuns[args[0]]->IsGLFrame()) {
+                    append(sd, "GLFrame(", sp, ", vm);");
+                } else {
+                    append(sd, "U_", ILNames()[opc], "(vm, ", sp, ", ", args[0], ", ", args[1], ");");
+                    comment(parser.natreg.nfuns[args[0]]->name);
+                }
+                break;
             case IL_GOTOFUNEXIT:
                 append(sd, "goto epilogue;");
                 break;
@@ -68,6 +86,22 @@ struct CodeGen  {
                 break;
             case IL_PUSHFUN:
                 append(sd, "U_PUSHFUN(vm, ", sp, ", 0, ", "fun_", args[0], ");");
+                break;
+            case IL_CALL: {
+                append(sd, "fun_", args[0], "(vm, ", sp, ");");
+                auto sf_idx = args[0];
+                comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
+                break;
+            }
+            case IL_CALLV:
+                append(sd, "U_CALLV(vm, ", sp, "); ");
+                if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 1, ");");
+                else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 1, ");");
+                break;
+            case IL_DDCALL:
+                append(sd, "U_DDCALL(vm, ", sp, ", ", args[0], ", ", args[1], "); ");
+                if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
+                else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
                 break;
         }
         temp_codegen[last_op_start] = std::move(sd);
@@ -248,8 +282,8 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks)
-        : parser(_p), st(_st), runtime_checks(runtime_checks) {
+    CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks, bool cpp)
+        : parser(_p), st(_st), runtime_checks(runtime_checks), cpp(cpp) {
         node_context.push_back(parser.root);
         // Reserve space and index for all vtables.
         for (auto udt : st.udttable) {
