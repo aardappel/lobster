@@ -576,13 +576,9 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc, runtime_checks);
     if (parsedump) *parsedump = parser.DumpAll(true);
-    CodeGen cg(parser, st, return_value, runtime_checks, !jit_mode);
     auto src_hash = lex.HashAll();
-    st.Serialize(cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, metadata_buffer,
-                 filenames, cg.ser_ids, src_hash);
-    auto err = cg.ToCPP(nfr, c_codegen, metadata_buffer,
-                     custom_pre_init_name, jit_mode ? "main.lobster" : "");
-    if (!err.empty()) THROW_OR_ABORT(err);
+    CodeGen cg(parser, st, return_value, runtime_checks, !jit_mode, metadata_buffer, src_hash,
+               c_codegen, filenames, custom_pre_init_name);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
                                 code_pak ? c_codegen : string());

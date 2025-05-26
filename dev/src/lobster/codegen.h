@@ -42,7 +42,7 @@ struct CodeGen  {
     bool cpp = false;
 
     // Transitional vector to move codegen from tocpp over here..
-    string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
+    void ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
                  string_view custom_pre_init_name, string_view aux_src_name);
     ILOP last_op_started = IL_ABORT;
     size_t last_op_start = (size_t)-1;
@@ -284,7 +284,9 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks, bool cpp)
+    CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks, bool cpp,
+            string &metadata_buffer, uint64_t src_hash, string &c_codegen,
+            vector<pair<string, string>> &filenames, string_view custom_pre_init_name)
         : parser(_p), st(_st), runtime_checks(runtime_checks), cpp(cpp) {
         node_context.push_back(parser.root);
         // Reserve space and index for all vtables.
@@ -398,6 +400,10 @@ struct CodeGen  {
                 }
             }
         }
+        st.Serialize(type_table, lineinfo, sids, stringtable, metadata_buffer,
+                     filenames, ser_ids, src_hash);
+        ToCPP(parser.natreg, c_codegen, metadata_buffer, custom_pre_init_name,
+                         !cpp ? "main.lobster" : "");
     }
 
     ~CodeGen() {

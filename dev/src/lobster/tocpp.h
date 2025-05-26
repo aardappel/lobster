@@ -14,7 +14,7 @@
 
 namespace lobster {
 
-string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
+void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
                       string_view custom_pre_init_name, string_view aux_src_name) {
 
     auto IdName = [&](int i, bool is_whole_struct) {
@@ -155,7 +155,7 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
         }
         int opc = *ip++;
         if (opc < 0 || opc >= IL_MAX_OPS) {
-            return cat("Corrupt bytecode: ", opc, " at: ", id);
+            THROW_OR_ABORT(cat("Corrupt bytecode: ", opc, " at: ", id));
         }
         int regso = -1;
         ParseOpAndGetArity(opc, ip, regso);
@@ -580,8 +580,6 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ",
                custom_pre_init_name, ", \"", aux_src_name, "\");\n}\n");
     }
-
-    return "";
 }
 
 }  // namespace lobster
