@@ -78,10 +78,6 @@ dev/lobster/Release
 /bin/lobsterDBG.*
 **/lobster.lib
 
-
-dev/compiled_lobster/src/compiled_lobster\.cpp
-
-
 *.tmp
 
 dev/compiled_lobster/compiled_lobster/x64/Debug/
