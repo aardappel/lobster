@@ -23253,7 +23253,7 @@ const int funinfo_table[] = {
 
 
 static const int bytecodefb[] = {
-  44, 0x4643424c, 0, 0x1e0000, 0x40040, 0xc0008, 0x140010, 0x1c0018, 0x240020, 0x2c0028, 0x300034, 30, 22, 56, 6852, 45756,
+  44, 0x4643424c, 0, 0x1e0000, 0x40040, 0xc0008, 0x140010, 0x1c0018, 0x240020, 0x2c0028, 0x300034, 30, 23, 56, 6852, 45756,
   45880, 47484, 47840, 52336, 0x11920, 0x11928, 0x11b18, 0x11b34, 0x18e2f8e9, 0x33793c4a, 0, 1699, 1, -1, 2, -3,
   -4, -7, -6, -1, 0, -1, 2, -1, 3, -1, 7, -1, 9, -1, 4, 3,
   2, 3, 1, 3, 159, 4, 1, 2, 0, -1, -1, 0, -1, 0, 0, -1,
@@ -26219,6 +26219,7 @@ int main(int argc, char *argv[]) {
     // This is hard-coded to call compiled_entry_point()
     lobster::VMMetaData vmmeta = {
          (uint8_t *)bytecodefb,
+         23,
          make_span(function_names),
          make_span(stringtable),
          make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),

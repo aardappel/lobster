@@ -72,7 +72,7 @@ VMAllocator::VMAllocator(VMArgs &&args) {
     auto ok = metadata::VerifyMetadataFileBuffer(verifier);
     if (!ok) THROW_OR_ABORT("metadata file failed to verify");
     auto bcf = metadata::GetMetadataFile(args.meta->static_bytecode);
-    if (bcf->metadata_version() != LOBSTER_METADATA_FORMAT_VERSION)
+    if (args.meta->metadata_version != LOBSTER_METADATA_FORMAT_VERSION)
         THROW_OR_ABORT("metadata is from a different version of Lobster");
 
     // Allocate enough memory to fit the "fvars" array inline.

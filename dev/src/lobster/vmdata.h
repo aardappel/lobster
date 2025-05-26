@@ -910,6 +910,7 @@ enum {
 
 struct VMMetaData {
     const uint8_t *static_bytecode = nullptr;
+    int metadata_version = 0;
     span<const string_view> function_names;
     span<const string_view> stringtable;
     span<const type_elem_t> type_table;

@@ -614,6 +614,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
+                    bcf->metadata_version(),
                     make_span(function_names),
                     make_span(stringtable),
                     make_span(type_table),
