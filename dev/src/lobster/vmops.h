@@ -132,8 +132,8 @@ VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
     // or at least preallocate them all
     auto &s = vm.constant_strings[i];
     if (!s) {
-        auto fb_s = vm.bcf->stringtable()->Get(i);
-        s = vm.NewString(fb_s->string_view());
+        auto fb_s = vm.meta->stringtable[i];
+        s = vm.NewString(fb_s);
     }
     #if STRING_CONSTANTS_KEEP
         s->Inc();
@@ -300,7 +300,7 @@ VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringi
     if (Top(sp).False()) {
         vm.last_line = line;
         vm.last_fileidx = fileidx;
-        auto assert_exp = vm.bcf->stringtable()->Get(stringidx)->string_view();
+        auto assert_exp = vm.meta->stringtable[stringidx];
         vm.Error(cat("assertion failed: ", assert_exp));
     }
 }

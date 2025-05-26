@@ -604,9 +604,14 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
                     function_names.push_back(bcf->functions()->Get(i)->name()->string_view());
                 }
+                vector<string_view> stringtable;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->stringtable()->size(); i++) {
+                    function_names.push_back(bcf->stringtable()->Get(i)->string_view());
+                }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
                     gsl::make_span(function_names),
+                    gsl::make_span(stringtable),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,

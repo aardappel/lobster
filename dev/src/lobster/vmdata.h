@@ -911,6 +911,7 @@ enum {
 struct VMMetaData {
     const uint8_t *static_bytecode = nullptr;
     gsl::span<const string_view> function_names;
+    gsl::span<const string_view> stringtable;
 };
 
 struct VMArgs {

@@ -41,7 +41,7 @@ VM::VM(VMArgs &&vmargs, const metadata::MetadataFile *bcf)
             typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
         typetable = typetablebigendian.data();
     }
-    constant_strings.resize(bcf->stringtable()->size());
+    constant_strings.resize(meta->stringtable.size());
     assert(native_vtables);
 
     #if LOBSTER_FRAME_PROFILER

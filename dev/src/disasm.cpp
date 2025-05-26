@@ -149,7 +149,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             break;
 
         case IL_PUSHSTR:
-            EscapeAndQuote(bcf->stringtable()->Get(*ip++)->string_view(), sd);
+            EscapeAndQuote(vm.meta->stringtable[*ip++], sd);
             break;
 
         case IL_JUMP_TABLE: {

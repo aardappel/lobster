@@ -612,9 +612,20 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "\n};\n\n";
         sd += "static const string_view function_names[] = {\n";
         for (auto f : st.functiontable) {
-            sd += "    ";
+            sd += "    string_view(";
             EscapeAndQuote(f->name, sd);
-            sd += ",\n";
+            sd += ", ";
+            sd += to_string(f->name.size());
+            sd += "),\n";
+        }
+        sd += "};\n\n";
+        sd += "static const string_view stringtable[] = {\n";
+        for (auto s : stringtable) {
+            sd += "    string_view(";
+            EscapeAndQuote(s, sd);
+            sd += ", ";
+            sd += to_string(s.size());
+            sd += "),\n";
         }
         sd += "};\n\n";
     }
@@ -631,7 +642,11 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "int main(int argc, char *argv[]) {\n";
         sd += "    // This is hard-coded to call compiled_entry_point()\n";
         if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
-        sd += "    lobster::VMMetaData vmmeta = { (uint8_t *)bytecodefb, gsl::make_span(function_names) };\n";
+        sd += "    lobster::VMMetaData vmmeta = {\n";
+        sd += "         (uint8_t *)bytecodefb,\n";
+        sd += "         gsl::make_span(function_names),\n";
+        sd += "         gsl::make_span(stringtable),\n";
+        sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",
                (!cpp ? "main.lobster" : ""), "\");\n}\n");
