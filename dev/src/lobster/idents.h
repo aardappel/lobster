@@ -528,7 +528,7 @@ struct Function : Named {
     }
 
     flatbuffers::Offset<metadata::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb) const {
-        return metadata::CreateFunction(fbb, fbb.CreateString(name), bytecodestart);
+        return metadata::CreateFunction(fbb, fbb.CreateString(name));
     }
 };
 

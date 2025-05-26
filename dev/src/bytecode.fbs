@@ -17,12 +17,11 @@ namespace metadata;
 struct LineInfo {
     line:int;
     fileidx:int;
-    bytecodestart:int;  // FIXME: needed only for disasm.
 }
 
 table Function {
     name:string;
-    bytecodestart:int;  // FIXME: needed only for C codegen, replace.
+    bytecodestart:int (deprecated); 
 }
 
 table Field {

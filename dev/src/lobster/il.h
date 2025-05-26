@@ -20,7 +20,7 @@
 
 namespace lobster {
 
-const int LOBSTER_METADATA_FORMAT_VERSION = 20;
+const int LOBSTER_METADATA_FORMAT_VERSION = 21;
 
 // Any type specialized ops below must always have this ordering.
 enum MathOp {

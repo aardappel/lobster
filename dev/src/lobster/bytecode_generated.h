@@ -44,18 +44,15 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) LineInfo FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t line_;
   int32_t fileidx_;
-  int32_t bytecodestart_;
 
  public:
   LineInfo()
       : line_(0),
-        fileidx_(0),
-        bytecodestart_(0) {
+        fileidx_(0) {
   }
-  LineInfo(int32_t _line, int32_t _fileidx, int32_t _bytecodestart)
+  LineInfo(int32_t _line, int32_t _fileidx)
       : line_(::flatbuffers::EndianScalar(_line)),
-        fileidx_(::flatbuffers::EndianScalar(_fileidx)),
-        bytecodestart_(::flatbuffers::EndianScalar(_bytecodestart)) {
+        fileidx_(::flatbuffers::EndianScalar(_fileidx)) {
   }
   int32_t line() const {
     return ::flatbuffers::EndianScalar(line_);
@@ -63,11 +60,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) LineInfo FLATBUFFERS_FINAL_CLASS {
   int32_t fileidx() const {
     return ::flatbuffers::EndianScalar(fileidx_);
   }
-  int32_t bytecodestart() const {
-    return ::flatbuffers::EndianScalar(bytecodestart_);
-  }
 };
-FLATBUFFERS_STRUCT_END(LineInfo, 12);
+FLATBUFFERS_STRUCT_END(LineInfo, 8);
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) SpecIdent FLATBUFFERS_FINAL_CLASS {
  private:
@@ -110,20 +104,15 @@ FLATBUFFERS_STRUCT_END(SpecIdent, 12);
 struct Function FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FunctionBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_BYTECODESTART = 6
+    VT_NAME = 4
   };
   const ::flatbuffers::String *name() const {
     return GetPointer<const ::flatbuffers::String *>(VT_NAME);
-  }
-  int32_t bytecodestart() const {
-    return GetField<int32_t>(VT_BYTECODESTART, 0);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyField<int32_t>(verifier, VT_BYTECODESTART, 4) &&
            verifier.EndTable();
   }
 };
@@ -134,9 +123,6 @@ struct FunctionBuilder {
   ::flatbuffers::uoffset_t start_;
   void add_name(::flatbuffers::Offset<::flatbuffers::String> name) {
     fbb_.AddOffset(Function::VT_NAME, name);
-  }
-  void add_bytecodestart(int32_t bytecodestart) {
-    fbb_.AddElement<int32_t>(Function::VT_BYTECODESTART, bytecodestart, 0);
   }
   explicit FunctionBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -151,23 +137,19 @@ struct FunctionBuilder {
 
 inline ::flatbuffers::Offset<Function> CreateFunction(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::String> name = 0,
-    int32_t bytecodestart = 0) {
+    ::flatbuffers::Offset<::flatbuffers::String> name = 0) {
   FunctionBuilder builder_(_fbb);
-  builder_.add_bytecodestart(bytecodestart);
   builder_.add_name(name);
   return builder_.Finish();
 }
 
 inline ::flatbuffers::Offset<Function> CreateFunctionDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    int32_t bytecodestart = 0) {
+    const char *name = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return metadata::CreateFunction(
       _fbb,
-      name__,
-      bytecodestart);
+      name__);
 }
 
 struct Field FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {

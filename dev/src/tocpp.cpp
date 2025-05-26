@@ -27,7 +27,6 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
     if (!FLATBUFFERS_LITTLEENDIAN) return "native code gen requires little endian";
     auto code = raw_bytecode.data();  // Assumes we're on a little-endian machine.
     auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
-    auto function_lookup = CreateFunctionLookUp(bcf);
     auto specidents = bcf->specidents();
 
     if (cpp) {
@@ -184,11 +183,13 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
             nkeepvars = 0;
             sdt.clear();
             has_profile = false;
-            auto it = function_lookup.find(id);
-            auto f = it != function_lookup.end() ? it->second : nullptr;
             sd += "\n";
-            if (f) append(sd, "// ", f->name()->string_view(), "\n");
             auto sf_idx = is_start ? 8888888 : *funstart;
+            auto name = sf_idx < 8888888
+                    ? bcf->functions()->Get(
+                          bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view()
+                            : string_view{};
+            append(sd, "// ", name, "\n");
             append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
             const int *funstartend = nullptr;
             int numlocals = 0;

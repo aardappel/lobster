@@ -74,15 +74,6 @@ inline int ParseOpAndGetArity(int opc, const int *&ip, int &regso) {
     return arity;
 }
 
-inline auto CreateFunctionLookUp(const metadata::MetadataFile *bcf) {
-    map<int, const metadata::Function *> fl;
-    for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
-        auto f = bcf->functions()->Get(i);
-        fl[f->bytecodestart()] = f;
-    }
-    return fl;
-}
-
 }  // namespace lobster;
 
 #endif  // LOBSTER_TONATIVE

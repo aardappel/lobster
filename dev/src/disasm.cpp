@@ -18,36 +18,12 @@
 
 namespace lobster {
 
-const metadata::LineInfo *LookupLine(const int *ip, const int *code,
-                                     const metadata::MetadataFile *bcf) {
-    auto lineinfo = bcf->lineinfo();
-    int pos = int(ip - code);
-    int start = 0;
-    auto size = lineinfo->size();
-    assert(size);
-    for (;;) {  // quick hardcoded binary search
-        if (size == 1) return lineinfo->Get(start);
-        auto nsize = size / 2;
-        if (lineinfo->Get(start + nsize)->bytecodestart() <= pos) {
-            start += nsize;
-            size -= nsize;
-        } else {
-            size = nsize;
-        }
-    }
-}
-
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
                      const type_elem_t *typetable, const metadata::MetadataFile *bcf,
                      int line) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
-    if (code) {
-        auto li = LookupLine(ip, code, bcf);
-        // FIXME: some indication of the filename, maybe with a table index?
-        append(sd, "I ", ip - code, " \t");
-        append(sd, "L ", li->line(), " \t");
-    } else if (line >= 0) {
+    if (line >= 0) {
         append(sd, "L ", line, " \t");
     }
     auto ins_start = ip;

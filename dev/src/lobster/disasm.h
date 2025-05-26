@@ -41,9 +41,6 @@ inline string IdName(const metadata::MetadataFile *bcf, int i, const type_elem_t
     }
 }
 
-const metadata::LineInfo *LookupLine(const int *ip, const int *code,
-                                     const metadata::MetadataFile *bcf);
-
 const int *DisAsmIns(NativeRegistry &natreg, string &sd, const int *ip, const int *code,
                      const type_elem_t *typetable, const metadata::MetadataFile *bcf, int line);
 

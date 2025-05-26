@@ -79,7 +79,7 @@ struct CodeGen  {
         auto &ln = linenumbernodes.back()->line;
         if (lineinfo.empty() || ln.line != lineinfo.back().line() ||
             ln.fileidx != lineinfo.back().fileidx())
-            lineinfo.push_back(metadata::LineInfo(ln.line, ln.fileidx, Pos()));
+            lineinfo.push_back(metadata::LineInfo(ln.line, ln.fileidx));
         code.push_back(i);
     }
 
