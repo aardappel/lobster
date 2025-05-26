@@ -53,11 +53,12 @@ struct CodeGen  {
     string sp;
     vector<int> funstarttables;
     vector<const int *> jumptables_stack;
+    vector<int> var_to_local;
     void EmitCForPrev();
     string IdName(int i, bool is_whole_struct);
     void Prologue(string &sd);
     void DeclareFunction(SubFunction &sf, string &sd);
-    void DefineFunctions(string &sd);
+    void DefineFunction(string &sd);
     void Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash);
 
     int Pos() { return (int)code.size(); }
@@ -309,23 +310,24 @@ struct CodeGen  {
         Emit(0);   // keepvars
         Emit(0);   // ownedvars
         EmitOp(IL_ABORT);
+        DefineFunction(c_codegen);
 
         // Generate all used functions.
         vector<SubFunction *> sf_used;
         for (auto f : parser.st.functiontable) {
-            if (f->bytecodestart <= 0 && !f->istype) {
-                f->bytecodestart = Pos();
+            if (!f->istype) {
                 for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
                     if (sf->typechecked) {
                         sf_used.push_back(sf);
                         DeclareFunction(*sf, c_codegen);
                     }
                 }
-                if (f->bytecodestart == Pos()) f->bytecodestart = 0;
             }
         }
+        var_to_local.resize(sids.size(), -1);
         for (auto sf : sf_used) {
             GenScope(*sf);
+            DefineFunction(c_codegen);
         }
 
         // Emit the root function.
@@ -342,6 +344,7 @@ struct CodeGen  {
         EmitOp(IL_EXIT, int(return_value));
         Emit(return_value ? GetTypeTableOffset(type) : -1);
         linenumbernodes.pop_back();
+        DefineFunction(c_codegen);
 
         // Now fill in the vtables.
         for (auto udt : st.udttable) {
@@ -356,7 +359,6 @@ struct CodeGen  {
             }
         }
 
-        DefineFunctions(c_codegen);
         Epilogue(c_codegen, custom_pre_init_name, src_hash);
     }
 

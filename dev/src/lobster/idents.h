@@ -476,8 +476,6 @@ struct SubFunction {
 };
 
 struct Function : Named {
-    // Start of all SubFunctions sequentially.
-    int bytecodestart = 0;
     // functions with the same name and args, but different types (dynamic dispatch |
     // specialization)
     vector<Overload *> overloads;

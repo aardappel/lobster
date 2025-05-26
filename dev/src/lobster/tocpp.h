@@ -199,9 +199,7 @@ void CodeGen::DeclareFunction(SubFunction &sf, string &sd) {
     append(sd, "static void fun_", sf.idx, "(VMRef, StackPtr);\n");
 }
 
-void CodeGen::DefineFunctions(string & sd) {
-    vector<int> var_to_local;
-    var_to_local.resize(sids.size(), -1);
+void CodeGen::DefineFunction(string &sd) {
     const int *ip = code.data();
     const int *funstart = nullptr;
     int nkeepvars = 0;
@@ -549,6 +547,12 @@ void CodeGen::DefineFunctions(string & sd) {
             sd += "}\n";
         }
     }
+    code.clear();
+    temp_codegen.clear();
+    assert(jumptables_stack.empty());
+    last_op_started = IL_ABORT;
+    last_op_start = (size_t)-1;
+    // TODO: more stacks can be checked for being empty here.
 }
 
 void CodeGen::Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash) {
