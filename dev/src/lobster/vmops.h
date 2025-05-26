@@ -722,7 +722,7 @@ VM_INLINE void U_SPUSHIDXI(VM &vm, StackPtr sp) {
     PushDerefIdxString(vm, sp, x);
 }
 
-VM_INLINE void U_BLOCK_START(VM &, StackPtr) {
+VM_INLINE void U_LABEL(VM &, StackPtr, int) {
     assert(false);
 }
 

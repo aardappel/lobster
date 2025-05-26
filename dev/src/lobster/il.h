@@ -117,7 +117,7 @@ enum MathOp {
     F(CALL, 1, ILUNKNOWN, ILUNKNOWN) \
     F(CALLV, 0, ILUNKNOWN, ILUNKNOWN) \
     F(DDCALL, 2, ILUNKNOWN, ILUNKNOWN) \
-    F(BLOCK_START, 0, 0, 0) \
+    F(LABEL, 1, 0, 0) \
     F(JUMP_TABLE_END, 0, 0, 0) \
     F(JUMP_TABLE_CASE_START, 0, 0, 0) \
     F(LVAL_VARF, 1, 0, 0) \

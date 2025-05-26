@@ -59,6 +59,7 @@ struct CodeGen  {
     int nkeepvars = -1;
     const int *funstart = nullptr;
     int numlocals = 0;
+    int nlabel = 0;
     void EmitCForPrev();
     string IdName(int i, bool is_whole_struct);
     void Prologue(string &sd);
@@ -70,8 +71,35 @@ struct CodeGen  {
 
     int Pos() { return (int)code.size(); }
 
+    int Label() { return nlabel++; }
+
     void Emit(int i) {
         code.push_back(i);
+    }
+
+    int EmitLabelUse() {
+        auto lab = Label();
+        Emit(lab);
+        return lab;
+    }
+
+    void EmitLabelDef(int lab) {
+        EmitOp(IL_LABEL);
+        Emit(lab);
+    }
+
+    void EmitLabelDefs(vector<int> &labs) {
+        for (auto lab : labs) {
+            EmitLabelDef(lab);
+        }
+        labs.clear();
+    }
+
+    int EmitLabelDefBackwards() {
+        auto lab = Label();
+        EmitOp(IL_LABEL);
+        Emit(lab);
+        return lab;
     }
 
     int TempStackSize() {
@@ -128,22 +156,6 @@ struct CodeGen  {
         for (int i = 0; i < defs; i++) { PushTemp(op); }
 
         //LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs, " -> ", tstack.size());
-    }
-
-    void SetLabelNoBlockStart(int jumploc) {
-        code[jumploc - 1] = Pos();
-    }
-
-    void SetLabel(int jumploc) {
-        SetLabelNoBlockStart(jumploc);
-        EmitOp(IL_BLOCK_START);
-    }
-
-    void SetLabels(vector<int> &jumplocs) {
-        if (jumplocs.empty()) return;
-        for (auto jl : jumplocs) SetLabelNoBlockStart(jl);
-        jumplocs.clear();
-        EmitOp(IL_BLOCK_START);
     }
 
     const int ti_num_udt_fields = 6;
@@ -499,8 +511,7 @@ struct CodeGen  {
             PushTemp(IL_CALL);
         EmitOp(IL_JUMPIFUNWOUND);
         Emit(sf.parent->idx);
-        Emit(0);
-        auto loc = Pos();
+        auto lab = EmitLabelUse();
         for (int i = nretslots_norm; i < nretslots_unwind_max; i++)
             PopTemp();
         // Here we are emitting code executed only if we're falling thru,
@@ -516,7 +527,7 @@ struct CodeGen  {
             GenPop(tse);
         }
         EmitOp(IL_GOTOFUNEXIT);
-        SetLabel(loc);
+        EmitLabelDef(lab);
         tstack = tstackbackup;
     }
 
@@ -1020,7 +1031,7 @@ struct CodeGen  {
 
     void ApplyBreaks(size_t level) {
         while (breaks.size() > level) {
-            SetLabel(breaks.back());
+            EmitLabelDef(breaks.back());
             breaks.pop_back();
         }
     }
@@ -1087,15 +1098,14 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         //auto &f = *field();
         auto &sfield = this_sid->type->udt->sfields[field_idx];
         cg.Emit(sfield.slot + ValWidth(sfield.type));  // It's the var after this one.
-        cg.Emit(0);
-        auto loc = cg.Pos();
+        auto lab = cg.EmitLabelUse();
         cg.Gen(child, 1);
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
         cg.EmitOp(IL_LVAL_FLD);
         cg.Emit(sfield.slot);
         cg.GenOpWithStructInfo(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
-        cg.SetLabel(loc);
+        cg.EmitLabelDef(lab);
     }
     if (!retval) return;
     cg.EmitOp(IL_PUSHNIL);
@@ -1106,11 +1116,10 @@ void Static::Generate(CodeGen &cg, size_t retval) const {
         cg.EmitOp(IL_JUMPIFSTATICLF);
         assert(sid->used_as_freevar);  // Since we'll access these from the freevar buf.
         cg.Emit(sid->Idx() + ValWidth(sid->type));  // It's the var after this one.
-        cg.Emit(0);
-        auto loc = cg.Pos();
+        auto lab = cg.EmitLabelUse();
         cg.Gen(child, 1);
         cg.GenAssignBasic(*sid);
-        cg.SetLabel(loc);
+        cg.EmitLabelDef(lab);
     }
     if (!retval) return;
     cg.EmitOp(IL_PUSHNIL);
@@ -1510,24 +1519,22 @@ void And::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(left, 1);
     cg.TakeTemp(1, false);
     cg.EmitOp(retval ? IL_JUMPFAILR : IL_JUMPFAIL);
-    cg.Emit(0);
-    auto loc = cg.Pos();
+    auto lab = cg.EmitLabelUse();
     if (retval) cg.EmitOp(IL_POP);
     cg.Gen(right, retval);
     if (retval) cg.TakeTemp(1, false);
-    cg.SetLabel(loc);
+    cg.EmitLabelDef(lab);
 }
 
 void Or::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(left, 1);
     cg.TakeTemp(1, false);
     cg.EmitOp(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL);
-    cg.Emit(0);
-    auto loc = cg.Pos();
+    auto lab = cg.EmitLabelUse();
     if (retval) cg.EmitOp(IL_POP);
     cg.Gen(right, retval);
     if (retval) cg.TakeTemp(1, false);
-    cg.SetLabel(loc);
+    cg.EmitLabelDef(lab);
 }
 
 void Not::Generate(CodeGen &cg, size_t retval) const {
@@ -1542,51 +1549,46 @@ void IfThen::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
     cg.EmitOp(IL_JUMPFAIL);
-    cg.Emit(0);
-    auto loc = cg.Pos();
+    auto lab = cg.EmitLabelUse();
     assert(!retval); (void)retval;
     cg.Gen(truepart, 0);
-    cg.SetLabel(loc);
+    cg.EmitLabelDef(lab);
 }
 
 void IfElse::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
     cg.EmitOp(IL_JUMPFAIL);
-    cg.Emit(0);
-    auto loc = cg.Pos();
+    auto lab = cg.EmitLabelUse();
     CodeGen::BlockStack bs(cg.tstack);
     bs.Start();
     cg.Gen(truepart, retval);
     bs.End();
     if (retval) cg.TakeTemp(retval, true);
     cg.EmitOp(IL_JUMP);
-    cg.Emit(0);
-    auto loc2 = cg.Pos();
-    cg.SetLabel(loc);
+    auto lab2 = cg.EmitLabelUse();
+    cg.EmitLabelDef(lab);
     bs.Start();
     cg.Gen(falsepart, retval);
     bs.End();
     if (retval) cg.TakeTemp(retval, true);
-    cg.SetLabel(loc2);
+    cg.EmitLabelDef(lab2);
     bs.Exit(cg);
 }
 
 void While::Generate(CodeGen &cg, size_t retval) const {
-    auto loopback = cg.Pos();
-    cg.EmitOp(IL_BLOCK_START);
+    auto loopback = cg.EmitLabelDefBackwards();
     cg.loops.push_back(this);
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
     cg.EmitOp(IL_JUMPFAIL);
-    cg.Emit(0);
-    auto jumpout = cg.Pos();
+    auto jumpout = cg.EmitLabelUse();
     auto break_level = cg.breaks.size();
     cg.Gen(wbody, 0);
     cg.loops.pop_back();
     cg.EmitOp(IL_JUMP);
     cg.Emit(loopback);
-    cg.SetLabel(jumpout);
+    cg.EmitLabelDef(jumpout);
     cg.ApplyBreaks(break_level);
     cg.Dummy(retval);
 }
@@ -1597,21 +1599,20 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.temptypestack.push_back({ type_int, LT_ANY });
     cg.Gen(iter, 1);
     cg.loops.push_back(this);
-    auto startloop = cg.Pos();
-    cg.EmitOp(IL_BLOCK_START);
+    auto startloop = cg.EmitLabelDefBackwards();
     auto break_level = cg.breaks.size();
     auto tstack_level = cg.tstack.size();
     switch (iter->exptype->t) {
-        case V_INT:      cg.EmitOp(IL_IFOR); cg.Emit(0); break;
-        case V_STRING:   cg.EmitOp(IL_SFOR); cg.Emit(0); break;
-        case V_VECTOR:   cg.EmitOp(IL_VFOR); cg.Emit(0); break;
+        case V_INT:      cg.EmitOp(IL_IFOR); break;
+        case V_STRING:   cg.EmitOp(IL_SFOR); break;
+        case V_VECTOR:   cg.EmitOp(IL_VFOR); break;
         default:         assert(false);
     }
-    auto exitloop = cg.Pos();
+    auto exitloop = cg.EmitLabelUse();
     cg.Gen(fbody, 0);
     cg.EmitOp(IL_JUMP);
     cg.Emit(startloop);
-    cg.SetLabel(exitloop);
+    cg.EmitLabelDef(exitloop);
     cg.loops.pop_back();
     cg.TakeTemp(2, false);
     assert(tstack_level == cg.tstack.size()); (void)tstack_level;
@@ -1668,8 +1669,7 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
     } else {
         cg.EmitOp(IL_JUMP);
     }
-    cg.Emit(0);
-    cg.breaks.push_back(cg.Pos());
+    cg.breaks.push_back(cg.EmitLabelUse());
 }
 
 void Switch::Generate(CodeGen &cg, size_t retval) const {
@@ -1692,7 +1692,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
     for (auto n : cases->children) {
         bs.Start();
         cg.PushTemp(valop);
-        cg.SetLabels(nextcase);
+        cg.EmitLabelDefs(nextcase);
         cg.temptypestack.push_back(valtlt);
         auto cas = AssertIs<Case>(n);
         if (cas->pattern->children.empty()) have_default = true;
@@ -1705,8 +1705,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
                 cg.Gen(r->start, 1);
                 cg.GenMathOp(switchtype, c->exptype, switchtype, MOP_GE);
                 cg.EmitOp(IL_JUMPFAIL);
-                cg.Emit(0);
-                loc = cg.Pos();
+                loc = cg.EmitLabelUse();
                 if (is_last) nextcase.push_back(loc);
                 cg.GenDup(valtlt);
                 cg.Gen(r->end, 1);
@@ -1719,36 +1718,33 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
             }
             if (is_last) {
                 cg.EmitOp(IL_JUMPFAIL);
-                cg.Emit(0);
-                nextcase.push_back(cg.Pos());
+                nextcase.push_back(cg.EmitLabelUse());
             } else {
                 cg.EmitOp(IL_JUMPNOFAIL);
-                cg.Emit(0);
-                thiscase.push_back(cg.Pos());
+                thiscase.push_back(cg.EmitLabelUse());
             }
             if (Is<Range>(c)) {
-                if (!is_last) cg.SetLabel(loc);
+                if (!is_last) cg.EmitLabelDef(loc);
             }
         }
-        cg.SetLabels(thiscase);
+        cg.EmitLabelDefs(thiscase);
         cg.GenPop(valtlt);
         cg.TakeTemp(1, false);
         cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back() || !have_default) {
             cg.EmitOp(IL_JUMP);
-            cg.Emit(0);
-            exitswitch.push_back(cg.Pos());
+            exitswitch.push_back(cg.EmitLabelUse());
         }
     }
-    cg.SetLabels(nextcase);
+    cg.EmitLabelDefs(nextcase);
     if (!have_default) {
         bs.Start();
         cg.PushTemp(valop);
         cg.GenPop(valtlt);
         bs.End();
     }
-    cg.SetLabels(exitswitch);
+    cg.EmitLabelDefs(exitswitch);
     bs.Exit(cg);
 }
 
@@ -1824,12 +1820,11 @@ void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int m
         bs.End();
         if (n != cases->children.back()) {
             cg.EmitOp(IL_JUMP);
-            cg.Emit(0);
-            exitswitch.push_back(cg.Pos());
+            exitswitch.push_back(cg.EmitLabelUse());
         }
     }
     cg.EmitOp(IL_JUMP_TABLE_END);
-    cg.SetLabels(exitswitch);
+    cg.EmitLabelDefs(exitswitch);
     if (default_pos < 0) default_pos = cg.Pos();
     for (int i = 0; i < range + 1; i++) {
         if (cg.code[table_start + i] == -1)

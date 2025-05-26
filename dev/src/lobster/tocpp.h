@@ -128,6 +128,7 @@ const int *CodeGen::DefineFunctionStart(string &sd) {
     const int *ip = code.data();
     int opc = *ip++;
     assert(opc == IL_FUNSTART);
+    (void)opc;
     const int *args = ip + 1;
     funstart = args;
     sd += "\n";
@@ -240,6 +241,28 @@ void CodeGen::EmitCForPrev() {
             append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
             comment(IdName(args[0], false));
             break;
+        case IL_LABEL:
+            append(sd, "block", args[0], ":;");
+            break;
+        case IL_JUMP:
+            append(sd, "goto block", args[0], ";");
+            break;
+        case IL_JUMPFAIL:
+        case IL_JUMPFAILR:
+        case IL_JUMPNOFAIL:
+        case IL_JUMPNOFAILR:
+        case IL_IFOR:
+        case IL_SFOR:
+        case IL_VFOR:
+        case IL_JUMPIFUNWOUND:
+        case IL_JUMPIFSTATICLF:
+        case IL_JUMPIFMEMBERLF: {
+            auto id = args[opc >= IL_JUMPIFUNWOUND ? 1 : 0];
+            append(sd, "if (!U_", ILNames()[opc], "(vm, ", sp);
+            if (opc >= IL_JUMPIFUNWOUND) append(sd, ", ", args[0]);
+            append(sd, ")) goto block", id, ";");
+            break;
+        }
         case IL_BCALLRETV:
         case IL_BCALLRET0:
         case IL_BCALLRET1:
@@ -307,31 +330,6 @@ const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
 
         sp = cat("regs + ", regso);
         switch (opc) {
-            case IL_JUMP:
-                append(sd, "goto block", args[0], ";");
-                break;
-            case IL_JUMPFAIL:
-            case IL_JUMPFAILR:
-            case IL_JUMPNOFAIL:
-            case IL_JUMPNOFAILR:
-            case IL_IFOR:
-            case IL_SFOR:
-            case IL_VFOR:
-            case IL_JUMPIFUNWOUND:
-            case IL_JUMPIFSTATICLF:
-            case IL_JUMPIFMEMBERLF: {
-                auto id = args[opc >= IL_JUMPIFUNWOUND ? 1 : 0];
-                assert(id >= 0);
-                append(sd, "if (!U_", ILNames()[opc], "(vm, ", sp);
-                if (opc >= IL_JUMPIFUNWOUND) append(sd, ", ", args[0]);
-                append(sd, ")) goto block", id, ";");
-                break;
-            }
-            case IL_BLOCK_START:
-                // FIXME: added ";" because blocks may end up just before "}" at the end of a
-                // switch, and generate warnings/errors. Ideally not generate this block at all.
-                append(sd, "block", id, ":;");
-                break;
             case IL_JUMP_TABLE_DISPATCH:
                 if (cpp) {
                     append(sd, "switch (GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
@@ -393,7 +391,7 @@ const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
                 auto ndef = *fip++;
                 auto defvars = fip;
                 fip += ndef;
-                fip++;  // nkeepvars, already parsed above
+                fip++;  // nkeepvars
                 int nrets = args[0];
                 if (opc == IL_RETURNLOCAL) {
                     append(sd, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
@@ -533,6 +531,7 @@ void CodeGen::DefineFunctionEnd(string &sd, bool label) {
     funstart = nullptr;
     nkeepvars = -1;
     numlocals = 0;
+    nlabel = 0;
 }
 
 void CodeGen::Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash) {
