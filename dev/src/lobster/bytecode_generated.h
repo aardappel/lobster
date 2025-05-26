@@ -69,6 +69,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) SpecIdent FLATBUFFERS_FINAL_CLASS {
   int32_t typeidx_;
   uint8_t used_as_freevar_;
   int8_t padding0__;  int16_t padding1__;
+  int32_t idx_;
 
  public:
   SpecIdent()
@@ -76,16 +77,18 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) SpecIdent FLATBUFFERS_FINAL_CLASS {
         typeidx_(0),
         used_as_freevar_(0),
         padding0__(0),
-        padding1__(0) {
+        padding1__(0),
+        idx_(0) {
     (void)padding0__;
     (void)padding1__;
   }
-  SpecIdent(int32_t _ididx, int32_t _typeidx, bool _used_as_freevar)
+  SpecIdent(int32_t _ididx, int32_t _typeidx, bool _used_as_freevar, int32_t _idx)
       : ididx_(::flatbuffers::EndianScalar(_ididx)),
         typeidx_(::flatbuffers::EndianScalar(_typeidx)),
         used_as_freevar_(::flatbuffers::EndianScalar(static_cast<uint8_t>(_used_as_freevar))),
         padding0__(0),
-        padding1__(0) {
+        padding1__(0),
+        idx_(::flatbuffers::EndianScalar(_idx)) {
     (void)padding0__;
     (void)padding1__;
   }
@@ -98,8 +101,11 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) SpecIdent FLATBUFFERS_FINAL_CLASS {
   bool used_as_freevar() const {
     return ::flatbuffers::EndianScalar(used_as_freevar_) != 0;
   }
+  int32_t idx() const {
+    return ::flatbuffers::EndianScalar(idx_);
+  }
 };
-FLATBUFFERS_STRUCT_END(SpecIdent, 12);
+FLATBUFFERS_STRUCT_END(SpecIdent, 16);
 
 struct Function FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FunctionBuilder Builder;

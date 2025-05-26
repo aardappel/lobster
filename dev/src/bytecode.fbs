@@ -58,6 +58,7 @@ struct SpecIdent {
 	ididx:int;
 	typeidx:int;
     used_as_freevar:bool;
+    idx:int;
 }
 
 table MetadataFile {

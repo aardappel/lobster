@@ -666,6 +666,15 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
                        fspan, " },\n");
         }
         sd += "};\n\n";
+        sd += "static const lobster::VMSpecIdent specidents[] = {\n";
+        for (auto &sid : sids) {
+            auto id = st.identtable[sid.ididx()];
+            sd += "    { ";
+            gen_string(id->name);
+            append(sd, ", ", sid.idx(), ", ", sid.typeidx(), ", ", sid.used_as_freevar(), ", ",
+                   id->constant, ", ", id->scopelevel == 1, " },\n");
+        }
+        sd += "};\n\n";
     }
     if (cpp) sd += "extern \"C\" ";
     sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
@@ -688,6 +697,7 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "        make_span(file_names),\n";
         sd += "        make_span(function_names),\n";
         sd += "        make_span(udts),\n";
+        sd += "        make_span(specidents),\n";
         sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",

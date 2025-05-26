@@ -76,7 +76,7 @@ VMAllocator::VMAllocator(VMArgs &&args) {
         THROW_OR_ABORT("metadata is from a different version of Lobster");
 
     // Allocate enough memory to fit the "fvars" array inline.
-    auto size = sizeof(VM) + sizeof(Value) * bcf->specidents()->size();
+    auto size = sizeof(VM) + sizeof(Value) * args.meta->specidents.size();
     auto mem = malloc(size);
     assert(mem);
     memset(mem, 0, size);  // FIXME: this shouldn't be necessary.
@@ -97,7 +97,7 @@ VMAllocator::~VMAllocator() {
 }
 
 const TypeInfo &VM::GetVarTypeInfo(int varidx) {
-    return GetTypeInfo((type_elem_t)bcf->specidents()->Get(varidx)->typeidx());
+    return GetTypeInfo((type_elem_t)meta->specidents[varidx].typeidx);
 }
 
 type_elem_t VM::GetSubClassFromSerID(type_elem_t super, uint32_t ser_id) {
@@ -349,17 +349,16 @@ void VM::ErrorBase(const string &err) {
 }
 
 void VM::DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump) {
-    auto sid = bcf->specidents()->Get((uint32_t)idx);
-    auto is_freevar = sid->used_as_freevar();
-    auto id = bcf->idents()->Get(sid->ididx());
-    auto name = string_view_nt(id->name()->string_view());
+    auto &sid = meta->specidents[(uint32_t)idx];
+    auto is_freevar = sid.used_as_freevar;
+    auto name = string_view_nt(sid.name);
     auto &ti = GetVarTypeInfo(idx);
     auto width = IsStruct(ti.t) ? ti.len : 1;
     auto x = is_freevar ? &fvars[idx] : locals + jl;
     // FIXME: this is not ideal, it filters global "let" declared vars.
     // It should probably instead filter global let vars whose values are entirely
     // constructors, and which are never written to.
-    if (!id->readonly() || !id->global()) {
+    if (!sid.readonly || !sid.global) {
         dump(*this, name, ti, x);
     }
     j += width;

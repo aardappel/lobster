@@ -690,12 +690,11 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
 void VarsToGUI(VM &vm) {
     auto DumpVars = [&](bool constants) {
         if (BeginTable("vars")) {
-            for (uint32_t i = 0; i < vm.bcf->specidents()->size(); i++) {
+            for (uint32_t i = 0; i < vm.meta->specidents.size(); i++) {
                 auto &val = vm.fvars[i];
-                auto sid = vm.bcf->specidents()->Get(i);
-                auto id = vm.bcf->idents()->Get(sid->ididx());
-                if (!id->global() || id->readonly() != constants) continue;
-                auto name = string_view_nt(id->name()->string_view());
+                auto &sid = vm.meta->specidents[i];
+                if (!sid.global || sid.readonly != constants) continue;
+                auto name = string_view_nt(sid.name);
                 auto &ti = vm.GetVarTypeInfo(i);
                 #if RTT_ENABLED
                 if (ti.t != val.type) continue;  // Likely uninitialized.

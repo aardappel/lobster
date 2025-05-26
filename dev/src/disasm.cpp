@@ -18,22 +18,15 @@
 
 namespace lobster {
 
-string IdName(const metadata::MetadataFile *bcf, int i, const type_elem_t *typetable, bool is_whole_struct) {
-    auto idx = bcf->specidents()->Get(i)->ididx();
-    auto basename = bcf->idents()->Get(idx)->name()->
-    #ifdef __ANDROID__
-        str();
-    #else
-        string_view();
-    #endif
-    auto ti = (TypeInfo *)(typetable + bcf->specidents()->Get(i)->typeidx());
+string IdName(VM &vm, int i, const type_elem_t *typetable, bool is_whole_struct) {
+    auto &sid = vm.meta->specidents[i];
+    auto ti = (TypeInfo *)(typetable + sid.typeidx);
     if (is_whole_struct || !IsStruct(ti->t)) {
-        return string(basename);
+        return string(sid.name);
     } else {
         int j = i;
-        // FIXME: this theoretically can span 2 specializations of the same var.
-        while (j && bcf->specidents()->Get(j - 1)->ididx() == idx) j--;
-        return cat(basename, "+", i - j);
+        while (j && vm.meta->specidents[j - 1].idx == sid.idx) j--;
+        return cat(sid.name, "+", i - j);
     }
 }
 
@@ -132,7 +125,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
 
         case IL_PUSHVARVL:
         case IL_PUSHVARVF:
-            sd += IdName(bcf, *ip++, typetable, true);
+            sd += IdName(vm, *ip++, typetable, true);
             append(sd, " ", *ip++);
             break;
 
@@ -140,7 +133,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
         case IL_LVAL_VARF:
         case IL_PUSHVARL:
         case IL_PUSHVARF:
-            sd += IdName(bcf, *ip++, typetable, false);
+            sd += IdName(vm, *ip++, typetable, false);
             break;
 
         case IL_PUSHFLT:
@@ -181,14 +174,14 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             auto regs = *ip++;
             sd += "(";
             int n = *ip++;
-            while (n--) append(sd, IdName(bcf, *ip++, typetable, false), " ");
+            while (n--) append(sd, IdName(vm, *ip++, typetable, false), " ");
             n = *ip++;
             sd += "=> ";
-            while (n--) append(sd, IdName(bcf, *ip++, typetable, false), " ");
+            while (n--) append(sd, IdName(vm, *ip++, typetable, false), " ");
             auto keepvars = *ip++;
             if (keepvars) append(sd, "K:", keepvars, " ");
             n = *ip++;  // owned
-            while (n--) append(sd, "O:", IdName(bcf, *ip++, typetable, false), " ");
+            while (n--) append(sd, "O:", IdName(vm, *ip++, typetable, false), " ");
             append(sd, "R:", regs, " ");
             sd += ")";
             break;

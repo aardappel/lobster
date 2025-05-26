@@ -277,7 +277,7 @@ struct CodeGen  {
                 auto ns = ValWidth(sid->type);
                 sidx += ns;
                 for (int i = 0; i < ns; i++)
-                    sids.push_back(metadata::SpecIdent(sid->id->idx, tti, sid->used_as_freevar));
+                    sids.push_back(metadata::SpecIdent(sid->id->idx, tti, sid->used_as_freevar, sid->idx));
             }
         }
         auto max_ser_ids = parser.serializable_id_max + 1;

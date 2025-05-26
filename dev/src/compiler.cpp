@@ -633,6 +633,14 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                                           udt->super_idx(), udt->typeidx(), fspan });
                     off += udt->fields()->size();
                 }
+                vector<VMSpecIdent> specidents;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->specidents()->size(); i++) {
+                    auto sid = bcf->specidents()->Get(i);
+                    auto id = bcf->idents()->Get(sid->ididx());
+                    specidents.push_back(VMSpecIdent {
+                        id->name()->string_view(), sid->idx(), sid->typeidx(),
+                        sid->used_as_freevar(), id->readonly(), id->global() });
+                }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
                     bcf->metadata_version(),
@@ -641,6 +649,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                     make_span(file_names),
                     make_span(function_names),
                     make_span(udts),
+                    make_span(specidents),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,
