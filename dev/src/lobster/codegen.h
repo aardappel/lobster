@@ -58,6 +58,7 @@ struct CodeGen  {
     string sdt;
     int nkeepvars = -1;
     const int *funstart = nullptr;
+    int numlocals = 0;
     void EmitCForPrev();
     string IdName(int i, bool is_whole_struct);
     void Prologue(string &sd);
@@ -341,7 +342,7 @@ struct CodeGen  {
         // Emit the root function.
         EmitOp(IL_FUNSTART);
         Emit(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY);  // sf.idx
-        Emit(1);        // regs_max
+        Emit(1);  // regs_max
         Emit(0);
         Emit(0);
         Emit(0);  // keepvars
@@ -405,6 +406,11 @@ struct CodeGen  {
         Emit(0);
         auto ret = AssertIs<Return>(sf.sbody->children.back());
         auto ir = sf.consumes_vars_on_return ? AssertIs<IdentRef>(ret->child) : nullptr;
+
+        #ifndef NDEBUG
+            var_to_local.clear();
+            var_to_local.resize(sids.size(), -1);
+        #endif
         auto emitvars = [&](const vector<Arg> &v) {
             auto nvarspos = Pos();
             Emit(0);
@@ -412,7 +418,8 @@ struct CodeGen  {
             for (auto &arg : v) {
                 auto n = ValWidth(arg.sid->type);
                 for (int i = 0; i < n; i++) {
-                    Emit(arg.sid->Idx() + i);
+                    auto varidx = arg.sid->Idx() + i;
+                    Emit(varidx);
                     nvars++;
                     if (ShouldDec(IsStruct(arg.sid->type->t)
                                       ? TypeLT { FindSlot(*arg.sid->type->udt, i)->type,
@@ -420,18 +427,25 @@ struct CodeGen  {
                                       : TypeLT { *arg.sid }) && (!ir || arg.sid != ir->sid)) {
                         ownedvars.push_back(arg.sid->Idx() + i);
                     }
+                    if (!sids[varidx].used_as_freevar()) {
+                        var_to_local[varidx] = numlocals++;
+                    }
+
                 }
             }
             code[nvarspos] = nvars;
         };
         emitvars(sf.args);
         emitvars(sf.locals);
+
         auto keepvarspos = Pos();
         Emit(0);
+
         // FIXME: don't really want to emit these.. instead should ensure someone takes
         // ownership of them.
         Emit((int)ownedvars.size());
         for (auto si : ownedvars) Emit(si);
+
         auto profile = sf.attributes.find("profile");
         if (profile != sf.attributes.end() && LOBSTER_FRAME_PROFILER) {
             EmitOp(IL_PROFILE);
@@ -445,12 +459,14 @@ struct CodeGen  {
             Emit((int)stringtable.size());
             stringtable.push_back(st.StoreName(str));
         }
+
         if (sf.sbody) for (auto c : sf.sbody->children) {
             GenStatDebug(c);
             Gen(c, 0);
             assert(tstack.empty());
         }
         else Dummy(sf.reqret);
+
         assert(temptypestack.empty());
         assert(breaks.empty());
         assert(tstack.empty());

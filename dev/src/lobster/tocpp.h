@@ -136,7 +136,6 @@ const int *CodeGen::DefineFunctionStart(string &sd) {
         append(sd, "// ", st.subfunctiontable[sf_idx]->parent->name, "\n");
     append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
     const int *funstartend = nullptr;
-    int numlocals = 0;
     auto fip = funstart;
     fip++;  // sf.idx
     auto regs_max = *fip++;
@@ -151,20 +150,6 @@ const int *CodeGen::DefineFunctionStart(string &sd) {
     int ownedvars = *fip++;
     fip += ownedvars;
     ip = fip;
-    #ifndef NDEBUG
-    var_to_local.clear();
-    var_to_local.resize(sids.size(), -1);
-    #endif
-    for (int j = 0; j < 2; j++) {
-        auto vars = j ? defs : nargs;
-        auto len = j ? ndefsave : nargs_fun;
-        for (int i = 0; i < len; i++) {
-            auto varidx = vars[i];
-            if (!sids[varidx].used_as_freevar()) {
-                var_to_local[varidx] = numlocals++;
-            }
-        }
-    }
     // FIXME: don't emit array.
     // (there may be functions that don't use regs yet still refer to sp?)
     append(sd, "    Value regs[", std::max(1, regs_max), "];\n");
@@ -241,6 +226,20 @@ void CodeGen::EmitCForPrev() {
     auto comment = [&](string_view c) { append(sd, " // ", c); };
     sp = cat("regs + ", regso);
     switch (opc) {
+        case IL_PUSHVARL:
+            append(sd, "regs[", regso, "] = locals[", var_to_local[args[0]], "];");
+            comment(IdName(args[0], false));
+            break;
+        case IL_PUSHVARVL:
+            for (int i = 0; i < args[1]; i++) {
+                append(sd, "regs[", regso + i, "] = locals[", var_to_local[args[0] + i], "];");
+            }
+            comment(IdName(args[0], true));
+            break;
+        case IL_LVAL_VARL:
+            append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
+            comment(IdName(args[0], false));
+            break;
         case IL_BCALLRETV:
         case IL_BCALLRET0:
         case IL_BCALLRET1:
@@ -308,20 +307,6 @@ const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
 
         sp = cat("regs + ", regso);
         switch (opc) {
-            case IL_PUSHVARL:
-                append(sd, "regs[", regso, "] = locals[", var_to_local[args[0]], "];");
-                comment(IdName(args[0], false));
-                break;
-            case IL_PUSHVARVL:
-                for (int i = 0; i < args[1]; i++) {
-                    append(sd, "regs[", regso + i, "] = locals[", var_to_local[args[0] + i], "];");
-                }
-                comment(IdName(args[0], true));
-                break;
-            case IL_LVAL_VARL:
-                append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
-                comment(IdName(args[0], false));
-                break;
             case IL_JUMP:
                 append(sd, "goto block", args[0], ";");
                 break;
@@ -547,7 +532,7 @@ void CodeGen::DefineFunctionEnd(string &sd, bool label) {
     last_op_start = (size_t)-1;
     funstart = nullptr;
     nkeepvars = -1;
-    // TODO: more stacks can be checked for being empty here.
+    numlocals = 0;
 }
 
 void CodeGen::Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash) {
