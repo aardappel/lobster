@@ -17,7 +17,7 @@ typedef lobster::fun_base_t fun_base_t;
 
 extern const int funinfo_table[];
 
-static void fun_9999999(VMRef, StackPtr);
+static void fun_10000001(VMRef, StackPtr);
 static void fun_0(VMRef, StackPtr);
 static void fun_3(VMRef, StackPtr);
 static void fun_4(VMRef, StackPtr);
@@ -418,11 +418,10 @@ static void fun_454(VMRef, StackPtr);
 static void fun_455(VMRef, StackPtr);
 static void fun_456(VMRef, StackPtr);
 static void fun_457(VMRef, StackPtr);
-static void fun_8888888(VMRef, StackPtr);
+static void fun_10000002(VMRef, StackPtr);
 
 
-// 
-static void fun_9999999(VMRef vm, StackPtr psp) {
+static void fun_10000001(VMRef vm, StackPtr psp) {
     Value regs[1];
     (void)regs;
     U_ABORT(vm, regs + 0);
@@ -4818,7 +4817,7 @@ static void fun_591(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 198, 5);
     regs[0] = locals[1]; // tail
     U_INCREF(vm, regs + 1, 0);
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_592(vm, regs + 2); // call: partition
     SetLVal(vm, &locals[3]); // f2
     U_LV_WRITEREF(vm, regs + 2);
@@ -4922,7 +4921,7 @@ static void fun_585(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 198, 5);
     regs[0] = locals[1]; // tail
     U_INCREF(vm, regs + 1, 0);
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_587(vm, regs + 2); // call: partition
     SetLVal(vm, &locals[3]); // f2
     U_LV_WRITEREF(vm, regs + 2);
@@ -5574,7 +5573,7 @@ static void fun_571(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1013, 0);
     U_STATEMENT(vm, regs + 0, 106, 4);
     U_PUSHVARF(vm, regs + 0, 1470); // v+1
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_573(vm, regs + 2); // call: map
     U_RETURNLOCAL(vm, 0, 1);
     psp = PopArg(vm, 1471, psp);
@@ -5614,7 +5613,7 @@ static void fun_574(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1029, 0);
     U_STATEMENT(vm, regs + 0, 106, 4);
     U_PUSHVARF(vm, regs + 0, 1469); // v+0
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_576(vm, regs + 2); // call: map
     U_RETURNLOCAL(vm, 0, 1);
     psp = PopArg(vm, 1477, psp);
@@ -7688,7 +7687,7 @@ static void fun_133(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1271, locals);
     U_STATEMENT(vm, regs + 0, 29, 7);
     regs[0] = locals[0]; // body
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_128(vm, regs + 2); // call: try
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
@@ -8792,7 +8791,7 @@ static void fun_528(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1454, locals);
     U_STATEMENT(vm, regs + 0, 99, 8);
     regs[0] = locals[0]; // size
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_529(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 514); // dictionary
     U_RETURNLOCAL(vm, 0, 1);
@@ -8811,7 +8810,7 @@ static void fun_501(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1460, locals);
     U_STATEMENT(vm, regs + 0, 99, 8);
     regs[0] = locals[0]; // size
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_502(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 488); // dictionary
     U_RETURNLOCAL(vm, 0, 1);
@@ -8830,7 +8829,7 @@ static void fun_488(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1466, locals);
     U_STATEMENT(vm, regs + 0, 99, 8);
     regs[0] = locals[0]; // size
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_489(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 659); // dictionary
     U_RETURNLOCAL(vm, 0, 1);
@@ -8849,7 +8848,7 @@ static void fun_481(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1472, locals);
     U_STATEMENT(vm, regs + 0, 99, 8);
     regs[0] = locals[0]; // size
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_482(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 631); // dictionary
     U_RETURNLOCAL(vm, 0, 1);
@@ -8868,7 +8867,7 @@ static void fun_148(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1478, locals);
     U_STATEMENT(vm, regs + 0, 99, 8);
     regs[0] = locals[0]; // size
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_479(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 460); // dictionary
     U_RETURNLOCAL(vm, 0, 1);
@@ -11859,7 +11858,7 @@ static void fun_200(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 12, 9);
     U_STATEMENT(vm, regs + 0, 15, 9);
     U_PUSHINT(vm, regs + 0, 1);
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_202(vm, regs + 2); // call: g
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 15, 9, 374);
@@ -11900,7 +11899,7 @@ static void fun_506(VMRef vm, StackPtr psp) {
     SwapVars(vm, 1296, psp, 1);
     PushFunId(vm, funinfo_table + 1848, 0);
     U_STATEMENT(vm, regs + 0, 14, 9);
-    U_PUSHFUN(vm, regs + 0, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 0, 0, fun_10000001);
     fun_508(vm, regs + 1); // call: h
     U_RETURNLOCAL(vm, 0, 1);
     psp = PopArg(vm, 1296, psp);
@@ -13819,7 +13818,7 @@ static void fun_557(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 37, 11);
     U_PUSHVARF(vm, regs + 0, 1406); // n
     U_INCREF(vm, regs + 1, 0);
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_276(vm, regs + 2); // call: function256
     U_STATEMENT(vm, regs + 0, 38, 11);
     U_PUSHNIL(vm, regs + 0);
@@ -13966,7 +13965,7 @@ static void fun_546(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 37, 11);
     U_PUSHVARF(vm, regs + 0, 1371); // n
     U_INCREF(vm, regs + 1, 0);
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_549(vm, regs + 2); // call: function244
     U_STATEMENT(vm, regs + 0, 38, 11);
     U_PUSHNIL(vm, regs + 0);
@@ -14502,9 +14501,9 @@ static void fun_542(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 63, 11);
     regs[0] = locals[0]; // startnode
     U_INCREF(vm, regs + 1, 0);
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
-    U_PUSHFUN(vm, regs + 2, 0, fun_9999999);
-    U_PUSHFUN(vm, regs + 3, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
+    U_PUSHFUN(vm, regs + 2, 0, fun_10000001);
+    U_PUSHFUN(vm, regs + 3, 0, fun_10000001);
     fun_546(vm, regs + 4); // call: astar_generic
     U_RETURNLOCAL(vm, 0, 1);
     psp = PopArg(vm, 1365, psp);
@@ -14591,7 +14590,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2320, 0);
     U_STATEMENT(vm, regs + 0, 61, 11);
     U_PUSHVARF(vm, regs + 0, 1375); // n
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_551(vm, regs + 2); // call: function249
     U_RETURNLOCAL(vm, 0, 0);
     DecOwned(vm, 1375);
@@ -16146,7 +16145,7 @@ static void fun_303(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2638, locals);
     U_STATEMENT(vm, regs + 0, 10, 13);
     U_PUSHVARVF(vm, regs + 0, 588, 2); // dim+0
-    U_PUSHFUN(vm, regs + 2, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 2, 0, fun_10000001);
     fun_100(vm, regs + 3); // call: mapxy
     U_LVAL_VARF(vm, regs + 1, 590); // board
     U_LV_WRITEREF(vm, regs + 1);
@@ -17707,7 +17706,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 2, 125, 2); // int2_1+0
     U_PUSHINT(vm, regs + 4, 5);
     U_IVSMUL(vm, regs + 5, 2);
-    U_PUSHFUN(vm, regs + 4, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 4, 0, fun_10000001);
     fun_331(vm, regs + 5); // call: floodfillpath
     keepvar[0] = TopM(regs + 1, 0);
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
@@ -18364,13 +18363,13 @@ static void fun_347(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 33, 18);
     U_PUSHVARF(vm, regs + 0, 707); // N
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_581(vm, regs + 2); // call: map
     SetLVal(vm, &locals[3]); // x
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 34, 18);
     U_PUSHVARF(vm, regs + 0, 707); // N
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_582(vm, regs + 2); // call: map
     SetLVal(vm, &locals[4]); // d
     U_LV_WRITEREF(vm, regs + 1);
@@ -18457,7 +18456,7 @@ static void fun_348(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2995, locals);
     U_STATEMENT(vm, regs + 0, 13, 18);
     U_PUSHVARF(vm, regs + 0, 707); // N
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_583(vm, regs + 2); // call: map
     SetLVal(vm, &locals[4]); // y
     U_LV_WRITEREF(vm, regs + 1);
@@ -18748,7 +18747,7 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 55, 19);
     U_PUSHVARF(vm, regs + 0, 727); // verts
     U_INCREF(vm, regs + 1, 0);
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_589(vm, regs + 2); // call: map
     SetLVal(vm, &locals[11]); // vnbs
     U_LV_WRITEREF(vm, regs + 1);
@@ -19285,7 +19284,7 @@ static void fun_353(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 23, 19);
     U_PUSHVARF(vm, regs + 0, 727); // verts
     U_INCREF(vm, regs + 1, 0);
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_584(vm, regs + 2); // call: map
     SetLVal(vm, &locals[0]); // disps
     U_LV_WRITEREF(vm, regs + 1);
@@ -20801,7 +20800,7 @@ static void fun_370(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 3262, 0);
     U_STATEMENT(vm, regs + 0, 119, 20);
     U_PUSHVARF(vm, regs + 0, 1015); // w
-    U_PUSHFUN(vm, regs + 1, 0, fun_9999999);
+    U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_599(vm, regs + 2); // call: map
     U_RETURNLOCAL(vm, 0, 1);
     Push(psp, regs[0]);
@@ -22922,8 +22921,7 @@ static void fun_457(VMRef vm, StackPtr psp) {
     PopFunId(vm);
 }
 
-// 
-static void fun_8888888(VMRef vm, StackPtr psp) {
+static void fun_10000002(VMRef vm, StackPtr psp) {
     Value regs[1];
     fun_0(vm, regs + 0); // call: __top_level_expression
     U_EXIT(vm, regs + 0, -1);
@@ -24882,7 +24880,7 @@ static const int bytecodefb[] = {
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 574, 24, 0x206e6f4d, 0x2079614d, 0x30203632,
-  0x30313a30, 0x2034313a, 0x35323032, 0, 614, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  0x35343a37, 0x2039303a, 0x35323032, 0, 614, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
   11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
   27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
   43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
@@ -25970,7 +25968,7 @@ static const string_view function_names[] = {
 
 extern "C" void compiled_entry_point(VMRef vm, StackPtr sp) {
     if (vm.nfr.HashAll() != 7286824047428956706ULL) vm.BuiltinError("code compiled with mismatching builtin function library");
-    fun_8888888(vm, sp);
+    fun_10000002(vm, sp);
 }
 
 int main(int argc, char *argv[]) {

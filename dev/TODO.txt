@@ -151,6 +151,7 @@
       It sounds not so great to not have abstraction for common accessors, but instead now we
       do the abstraction in terms of codegen functions, i.e. here's a function that generates
       code for accessing a vector element.
+      Or macros!
   - most access to local arrays still thru memory, clearly alias analysis failing.
     - split up arrays into individual vars where possible.
     - ideally then make sure these vars never "overlap" when used with structs, so they can

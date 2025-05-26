@@ -236,9 +236,8 @@ void CodeGen::DefineFunctions(string & sd) {
             has_profile = false;
             sd += "\n";
             auto sf_idx = *funstart;
-            auto name =
-                sf_idx < 8888888 ? st.subfunctiontable[sf_idx]->parent->name : string_view{};
-            append(sd, "// ", name, "\n");
+            if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
+                append(sd, "// ", st.subfunctiontable[sf_idx]->parent->name, "\n");
             append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
             const int *funstartend = nullptr;
             int numlocals = 0;
@@ -306,7 +305,8 @@ void CodeGen::DefineFunctions(string & sd) {
                         append(sd, "    NilVal(&locals[", var_to_local[varidx], "]);\n");
                 }
             }
-            if (runtime_checks >= RUNTIME_STACK_TRACE && sf_idx < 8888888) {
+            if (runtime_checks >= RUNTIME_STACK_TRACE &&
+                sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
                 // FIXME: can make this just and index and instead store funinfo_table ref in
                 // VM. Calling this here because now locals have been fully initialized.
                 append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
@@ -557,7 +557,8 @@ void CodeGen::DefineFunctions(string & sd) {
                 append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
             }
             assert(funstart);
-            if (*(funstart - 2) == IL_FUNSTART && runtime_checks >= RUNTIME_STACK_TRACE && *funstart < 8888888) {
+            if (*(funstart - 2) == IL_FUNSTART && runtime_checks >= RUNTIME_STACK_TRACE &&
+                *funstart < CODEGEN_SPECIAL_FUNCTION_ID_START) {
                 append(sd, "    PopFunId(vm);\n");
             }
             sd += "}\n";

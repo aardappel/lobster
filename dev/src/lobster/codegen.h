@@ -17,6 +17,12 @@ namespace lobster {
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "lobster/bytecode_generated.h"
 
+enum {
+    CODEGEN_SPECIAL_FUNCTION_ID_START = 10000000,
+    CODEGEN_SPECIAL_FUNCTION_ID_DUMMY = CODEGEN_SPECIAL_FUNCTION_ID_START + 1,
+    CODEGEN_SPECIAL_FUNCTION_ID_ENTRY = CODEGEN_SPECIAL_FUNCTION_ID_START + 2,
+};
+
 struct CodeGen  {
     vector<int> code;
     vector<metadata::LineInfo> lineinfo;
@@ -305,7 +311,7 @@ struct CodeGen  {
         // more debuggable if it does happen to get called.
         dummyfun = Pos();
         EmitOp(IL_FUNSTART);
-        Emit(9999999);  // sf.idx
+        Emit(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);  // sf.idx
         Emit(0);   // regs_max
         Emit(0);
         Emit(0);
@@ -318,7 +324,7 @@ struct CodeGen  {
             if (f->bytecodestart <= 0 && !f->istype) {
                 f->bytecodestart = Pos();
                 for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
-                    if (sf->typechecked) GenScope(*sf);
+                    if (sf->typechecked && sf->subbytecodestart <= 0) GenScope(*sf);
                 }
                 if (f->bytecodestart == Pos()) f->bytecodestart = 0;
             }
@@ -326,7 +332,7 @@ struct CodeGen  {
 
         // Emit the root function.
         EmitOp(IL_FUNSTART);
-        Emit(8888888);  // sf.idx
+        Emit(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY);  // sf.idx
         Emit(1);        // regs_max
         Emit(0);
         Emit(0);
@@ -379,7 +385,6 @@ struct CodeGen  {
     }
 
     void GenScope(SubFunction &sf) {
-        if (sf.subbytecodestart > 0) return;
         cursf = &sf;
         keepvars = 0;
         tstack_max = 0;
@@ -1323,7 +1328,7 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
         cg.Emit(sf->idx);
     } else {
         cg.EmitOp(IL_PUSHFUN);
-        cg.Emit(9999999);
+        cg.Emit(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);
     }
 }
 
