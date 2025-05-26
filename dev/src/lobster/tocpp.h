@@ -195,23 +195,8 @@ void CodeGen::Prologue(string &sd) {
     }
 }
 
-void CodeGen::DeclareFunctions(string &sd) {
-    const int *ip = code.data();
-    while (ip < code.data() + code.size()) {
-        int id = (int)(ip - code.data());
-        if (*ip == IL_FUNSTART) {
-            auto sf_idx = ip[2];
-            if (sf_idx >= 0) append(sd, "static void fun_", sf_idx, "(VMRef, StackPtr);\n");
-            starting_point = sf_idx;
-        }
-        int opc = *ip++;
-        if (opc < 0 || opc >= IL_MAX_OPS) {
-            THROW_OR_ABORT(cat("Corrupt bytecode: ", opc, " at: ", id));
-        }
-        int regso = -1;
-        ParseOpAndGetArity(opc, ip, regso);
-    }
-    sd += "\n";
+void CodeGen::DeclareFunction(SubFunction &sf, string &sd) {
+    append(sd, "static void fun_", sf.idx, "(VMRef, StackPtr);\n");
 }
 
 void CodeGen::DefineFunctions(string & sd) {
@@ -705,7 +690,7 @@ void CodeGen::Epilogue(string &sd, string_view custom_pre_init_name, uint64_t sr
     } else {
         sd += "    Entry(sizeof(Value));\n";
     }
-    append(sd, "    fun_", starting_point, "(vm, sp);\n}\n\n");
+    append(sd, "    fun_", CODEGEN_SPECIAL_FUNCTION_ID_ENTRY, "(vm, sp);\n}\n\n");
     if (cpp) {
         string build_info;
         auto time = std::time(nullptr);

@@ -52,12 +52,11 @@ struct CodeGen  {
     size_t last_op_start = (size_t)-1;
     string sp;
     vector<int> funstarttables;
-    int starting_point = -1;
     vector<const int *> jumptables_stack;
     void EmitCForPrev();
     string IdName(int i, bool is_whole_struct);
     void Prologue(string &sd);
-    void DeclareFunctions(string &sd);
+    void DeclareFunction(SubFunction &sf, string &sd);
     void DefineFunctions(string &sd);
     void Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash);
 
@@ -312,14 +311,21 @@ struct CodeGen  {
         EmitOp(IL_ABORT);
 
         // Generate all used functions.
+        vector<SubFunction *> sf_used;
         for (auto f : parser.st.functiontable) {
             if (f->bytecodestart <= 0 && !f->istype) {
                 f->bytecodestart = Pos();
                 for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
-                    if (sf->typechecked) GenScope(*sf);
+                    if (sf->typechecked) {
+                        sf_used.push_back(sf);
+                        DeclareFunction(*sf, c_codegen);
+                    }
                 }
                 if (f->bytecodestart == Pos()) f->bytecodestart = 0;
             }
+        }
+        for (auto sf : sf_used) {
+            GenScope(*sf);
         }
 
         // Emit the root function.
@@ -350,7 +356,6 @@ struct CodeGen  {
             }
         }
 
-        DeclareFunctions(c_codegen);
         DefineFunctions(c_codegen);
         Epilogue(c_codegen, custom_pre_init_name, src_hash);
     }

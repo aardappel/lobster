@@ -79,6 +79,13 @@
   For builtin functions, maybe better to have the opposite default since ignoreing them is so
   prevalent, and optionally mark them as non-ignorable.
 
+- Codegen refactor:
+  This is implementing some of things below and is WiP!
+  It is taking the approach to deeply integrate the C/C++ codegen and remove the bytecode abstraction,
+  and see how far we can get with libtcc, not considering JIT Clang use atm.
+  TODO:
+  - migrate the C metadata also to be in code. then remove the FB serialization entirely.
+  - cull unnecessary IL_PUSHFUN and the dummy function it uses.
 - Options for speeding up JIT mode.
   Recent benchmarking has shown that while the C++ mode can be pretty fast (within 5x of native C++),
   the JIT is surprisingly slow (sometimes up to 10x slower than C++ mode for pure number crunching).

@@ -17,7 +17,6 @@ typedef lobster::fun_base_t fun_base_t;
 
 extern const int funinfo_table[];
 
-static void fun_10000001(VMRef, StackPtr);
 static void fun_0(VMRef, StackPtr);
 static void fun_3(VMRef, StackPtr);
 static void fun_4(VMRef, StackPtr);
@@ -418,8 +417,6 @@ static void fun_454(VMRef, StackPtr);
 static void fun_455(VMRef, StackPtr);
 static void fun_456(VMRef, StackPtr);
 static void fun_457(VMRef, StackPtr);
-static void fun_10000002(VMRef, StackPtr);
-
 
 static void fun_10000001(VMRef vm, StackPtr psp) {
     Value regs[1];
@@ -26703,7 +26700,7 @@ int main(int argc, char *argv[]) {
         make_span(specidents),
         make_span(enums),
         make_span(ser_ids),
-        string_view("Mon May 26 13:47:38 2025", 24),
+        string_view("Mon May 26 14:17:41 2025", 24),
         0x33793c4a18e2f8e9,
         make_span(subfunctions_to_function),
     };
