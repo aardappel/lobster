@@ -1328,7 +1328,6 @@ struct SymbolTable {
     }
 
     void Serialize(vector<type_elem_t> &typetable,
-                   vector<metadata::LineInfo> &linenumbers,
                    vector<metadata::SpecIdent> &sids,
                    vector<string_view> &stringtable,
                    string &bytecode,
@@ -1365,7 +1364,6 @@ struct SymbolTable {
                     return fbb.CreateString(stringtable[i].data(), stringtable[i].size());
                 }
             ),
-            fbb.CreateVectorOfStructs(linenumbers),
             fbb.CreateVector(fns),
             fbb.CreateVector(functionoffsets),
             fbb.CreateVector(udtoffsets),

@@ -25,7 +25,6 @@ enum {
 
 struct CodeGen  {
     vector<int> code;
-    vector<metadata::LineInfo> lineinfo;
     vector<metadata::SpecIdent> sids;
     Parser &parser;
     vector<const Node *> linenumbernodes;
@@ -65,10 +64,6 @@ struct CodeGen  {
     int Pos() { return (int)code.size(); }
 
     void Emit(int i) {
-        auto &ln = linenumbernodes.back()->line;
-        if (lineinfo.empty() || ln.line != lineinfo.back().line() ||
-            ln.fileidx != lineinfo.back().fileidx())
-            lineinfo.push_back(metadata::LineInfo(ln.line, ln.fileidx));
         code.push_back(i);
     }
 
@@ -356,7 +351,7 @@ struct CodeGen  {
             }
         }
 
-        st.Serialize(type_table, lineinfo, sids, stringtable, metadata_buffer,
+        st.Serialize(type_table, sids, stringtable, metadata_buffer,
                      filenames, ser_ids, src_hash);
 
         DeclareFunctions(c_codegen);
