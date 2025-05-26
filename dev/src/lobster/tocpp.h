@@ -195,15 +195,8 @@ void CodeGen::Prologue(string &sd) {
     }
 }
 
-void CodeGen::ToCPP(string &sd) {
-    vector<int> var_to_local;
-    var_to_local.resize(sids.size(), -1);
-
+void CodeGen::DeclareFunctions(string &sd) {
     const int *ip = code.data();
-    // Skip past 1st jump.
-    assert(*ip == IL_JUMP);
-    ip += 2;
-    auto starting_ip = code.data() + *ip++;
     while (ip < code.data() + code.size()) {
         int id = (int)(ip - code.data());
         if (*ip == IL_FUNSTART || ip == starting_ip) {
@@ -219,8 +212,12 @@ void CodeGen::ToCPP(string &sd) {
         ParseOpAndGetArity(opc, ip, regso);
     }
     sd += "\n";
-    vector<const int *> jumptables;
-    ip = code.data() + 3;  // Past first IL_JUMP.
+}
+
+void CodeGen::DefineFunctions(string & sd) {
+    vector<int> var_to_local;
+    var_to_local.resize(sids.size(), -1);
+    const int *ip = code.data();
     const int *funstart = nullptr;
     int nkeepvars = 0;
     string sdt;
@@ -392,7 +389,7 @@ void CodeGen::ToCPP(string &sd) {
                     append(sd, "{ int top = GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
                            "); switch (top) {");
                 }
-                jumptables.push_back(args + 1);
+                jumptables_stack.push_back(args + 1);
                 break;
             case IL_JUMP_TABLE:
                 if (cpp) {
@@ -400,10 +397,10 @@ void CodeGen::ToCPP(string &sd) {
                 } else {
                     append(sd, "{ long long top = regs[", regso - 1, "].ival; switch (top) {");
                 }
-                jumptables.push_back(args);
+                jumptables_stack.push_back(args);
                 break;
             case IL_JUMP_TABLE_CASE_START: {
-                auto t = jumptables.back();
+                auto t = jumptables_stack.back();
                 auto mini = *t++;
                 auto maxi = *t++;
                 for (auto i = mini; i <= maxi; i++) {
@@ -417,7 +414,7 @@ void CodeGen::ToCPP(string &sd) {
                     sd += "} // switch";
                 else
                     sd += "}} // switch";
-                jumptables.pop_back();
+                jumptables_stack.pop_back();
                 break;
             }
             case IL_BCALLRETV:

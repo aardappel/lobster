@@ -49,10 +49,13 @@ struct CodeGen  {
     string sp;
     vector<int> funstarttables;
     int starting_point = -1;
+    vector<const int *> jumptables_stack;
+    const int *starting_ip = nullptr; 
     void EmitCForPrev();
     string IdName(int i, bool is_whole_struct);
     void Prologue(string &sd);
-    void ToCPP(string &sd);
+    void DeclareFunctions(string &sd);
+    void DefineFunctions(string &sd);
     void Epilogue(string &sd, string_view metadata_buffer, string_view custom_pre_init_name);
 
     int Pos() { return (int)code.size(); }
@@ -298,10 +301,6 @@ struct CodeGen  {
 
         // Start of the actual bytecode.
         linenumbernodes.push_back(parser.root);
-        EmitOp(IL_JUMP);
-        Emit(0);
-        auto fundefjump = Pos();
-
         // Generate a dummmy function for function values that are never called.
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
@@ -327,7 +326,7 @@ struct CodeGen  {
         }
 
         // Emit the root function.
-        SetLabelNoBlockStart(fundefjump);
+        starting_ip = code.data() + Pos();
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
@@ -352,7 +351,8 @@ struct CodeGen  {
         st.Serialize(type_table, lineinfo, sids, stringtable, metadata_buffer,
                      filenames, ser_ids, src_hash);
 
-        ToCPP(c_codegen);
+        DeclareFunctions(c_codegen);
+        DefineFunctions(c_codegen);
         Epilogue(c_codegen, metadata_buffer, custom_pre_init_name);
     }
 

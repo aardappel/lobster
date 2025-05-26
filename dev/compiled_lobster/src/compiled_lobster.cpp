@@ -1638,8 +1638,8 @@ static void fun_613(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block3185:;
-    if (!U_VFOR(vm, regs + 2)) goto block3237;
+    block3182:;
+    if (!U_VFOR(vm, regs + 2)) goto block3234;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -1655,8 +1655,8 @@ static void fun_613(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block3185;
-    block3237:;
+    goto block3182;
+    block3234:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -1693,8 +1693,8 @@ static void fun_612(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block3303:;
-    if (!U_VFOR(vm, regs + 2)) goto block3355;
+    block3300:;
+    if (!U_VFOR(vm, regs + 2)) goto block3352;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -1710,8 +1710,8 @@ static void fun_612(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block3303;
-    block3355:;
+    goto block3300;
+    block3352:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -1748,8 +1748,8 @@ static void fun_611(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block3422:;
-    if (!U_VFOR(vm, regs + 2)) goto block3474;
+    block3419:;
+    if (!U_VFOR(vm, regs + 2)) goto block3471;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -1765,8 +1765,8 @@ static void fun_611(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block3422;
-    block3474:;
+    goto block3419;
+    block3471:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -1804,8 +1804,8 @@ static void fun_610(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block3541:;
-    if (!U_VFOR(vm, regs + 2)) goto block3593;
+    block3538:;
+    if (!U_VFOR(vm, regs + 2)) goto block3590;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -1821,8 +1821,8 @@ static void fun_610(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block3541;
-    block3593:;
+    goto block3538;
+    block3590:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -1860,8 +1860,8 @@ static void fun_609(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block3660:;
-    if (!U_VFOR(vm, regs + 2)) goto block3712;
+    block3657:;
+    if (!U_VFOR(vm, regs + 2)) goto block3709;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -1877,8 +1877,8 @@ static void fun_609(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block3660;
-    block3712:;
+    goto block3657;
+    block3709:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -1916,8 +1916,8 @@ static void fun_608(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block3779:;
-    if (!U_VFOR(vm, regs + 2)) goto block3834;
+    block3776:;
+    if (!U_VFOR(vm, regs + 2)) goto block3831;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -1934,8 +1934,8 @@ static void fun_608(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block3779;
-    block3834:;
+    goto block3776;
+    block3831:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -1975,8 +1975,8 @@ static void fun_601(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block3902:;
-    if (!U_VFOR(vm, regs + 2)) goto block3956;
+    block3899:;
+    if (!U_VFOR(vm, regs + 2)) goto block3953;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x+0
@@ -1992,8 +1992,8 @@ static void fun_601(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 7, 4);
     U_BCALLRETV(vm, regs + 8, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block3902;
-    block3956:;
+    goto block3899;
+    block3953:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2030,8 +2030,8 @@ static void fun_600(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4023:;
-    if (!U_VFOR(vm, regs + 2)) goto block4075;
+    block4020:;
+    if (!U_VFOR(vm, regs + 2)) goto block4072;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2047,8 +2047,8 @@ static void fun_600(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4023;
-    block4075:;
+    goto block4020;
+    block4072:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2086,8 +2086,8 @@ static void fun_599(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4141:;
-    if (!U_IFOR(vm, regs + 2)) goto block4195;
+    block4138:;
+    if (!U_IFOR(vm, regs + 2)) goto block4192;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2103,8 +2103,8 @@ static void fun_599(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 6, 3);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4141;
-    block4195:;
+    goto block4138;
+    block4192:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2141,8 +2141,8 @@ static void fun_598(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4261:;
-    if (!U_IFOR(vm, regs + 2)) goto block4310;
+    block4258:;
+    if (!U_IFOR(vm, regs + 2)) goto block4307;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2157,8 +2157,8 @@ static void fun_598(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4261;
-    block4310:;
+    goto block4258;
+    block4307:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2195,8 +2195,8 @@ static void fun_590(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4378:;
-    if (!U_VFOR(vm, regs + 2)) goto block4433;
+    block4375:;
+    if (!U_VFOR(vm, regs + 2)) goto block4430;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2213,8 +2213,8 @@ static void fun_590(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4378;
-    block4433:;
+    goto block4375;
+    block4430:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2254,8 +2254,8 @@ static void fun_589(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4501:;
-    if (!U_VFOR(vm, regs + 2)) goto block4556;
+    block4498:;
+    if (!U_VFOR(vm, regs + 2)) goto block4553;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x+0
@@ -2271,8 +2271,8 @@ static void fun_589(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4501;
-    block4556:;
+    goto block4498;
+    block4553:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2311,8 +2311,8 @@ static void fun_584(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4624:;
-    if (!U_VFOR(vm, regs + 2)) goto block4679;
+    block4621:;
+    if (!U_VFOR(vm, regs + 2)) goto block4676;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x+0
@@ -2328,8 +2328,8 @@ static void fun_584(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 5, 2);
     U_BCALLRETV(vm, regs + 6, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4624;
-    block4679:;
+    goto block4621;
+    block4676:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2367,8 +2367,8 @@ static void fun_583(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4745:;
-    if (!U_IFOR(vm, regs + 2)) goto block4798;
+    block4742:;
+    if (!U_IFOR(vm, regs + 2)) goto block4795;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2384,8 +2384,8 @@ static void fun_583(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4745;
-    block4798:;
+    goto block4742;
+    block4795:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2422,8 +2422,8 @@ static void fun_582(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4864:;
-    if (!U_IFOR(vm, regs + 2)) goto block4917;
+    block4861:;
+    if (!U_IFOR(vm, regs + 2)) goto block4914;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2439,8 +2439,8 @@ static void fun_582(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4864;
-    block4917:;
+    goto block4861;
+    block4914:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2477,8 +2477,8 @@ static void fun_581(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block4983:;
-    if (!U_IFOR(vm, regs + 2)) goto block5036;
+    block4980:;
+    if (!U_IFOR(vm, regs + 2)) goto block5033;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2494,8 +2494,8 @@ static void fun_581(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block4983;
-    block5036:;
+    goto block4980;
+    block5033:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2532,8 +2532,8 @@ static void fun_579(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block5102:;
-    if (!U_IFOR(vm, regs + 2)) goto block5154;
+    block5099:;
+    if (!U_IFOR(vm, regs + 2)) goto block5151;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2549,8 +2549,8 @@ static void fun_579(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block5102;
-    block5154:;
+    goto block5099;
+    block5151:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2587,8 +2587,8 @@ static void fun_578(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block5220:;
-    if (!U_IFOR(vm, regs + 2)) goto block5272;
+    block5217:;
+    if (!U_IFOR(vm, regs + 2)) goto block5269;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2604,8 +2604,8 @@ static void fun_578(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block5220;
-    block5272:;
+    goto block5217;
+    block5269:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2642,8 +2642,8 @@ static void fun_576(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block5338:;
-    if (!U_IFOR(vm, regs + 2)) goto block5390;
+    block5335:;
+    if (!U_IFOR(vm, regs + 2)) goto block5387;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2659,8 +2659,8 @@ static void fun_576(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block5338;
-    block5390:;
+    goto block5335;
+    block5387:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2697,8 +2697,8 @@ static void fun_573(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block5456:;
-    if (!U_IFOR(vm, regs + 2)) goto block5508;
+    block5453:;
+    if (!U_IFOR(vm, regs + 2)) goto block5505;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2714,8 +2714,8 @@ static void fun_573(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block5456;
-    block5508:;
+    goto block5453;
+    block5505:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2752,8 +2752,8 @@ static void fun_570(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block5575:;
-    if (!U_VFOR(vm, regs + 2)) goto block5627;
+    block5572:;
+    if (!U_VFOR(vm, regs + 2)) goto block5624;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2769,8 +2769,8 @@ static void fun_570(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block5575;
-    block5627:;
+    goto block5572;
+    block5624:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2809,8 +2809,8 @@ static void fun_563(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block5695:;
-    if (!U_VFOR(vm, regs + 2)) goto block5749;
+    block5692:;
+    if (!U_VFOR(vm, regs + 2)) goto block5746;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x+0
@@ -2826,8 +2826,8 @@ static void fun_563(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block5695;
-    block5749:;
+    goto block5692;
+    block5746:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2866,8 +2866,8 @@ static void fun_562(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block5816:;
-    if (!U_VFOR(vm, regs + 2)) goto block5870;
+    block5813:;
+    if (!U_VFOR(vm, regs + 2)) goto block5867;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x+0
@@ -2883,8 +2883,8 @@ static void fun_562(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 5, 2);
     U_BCALLRETV(vm, regs + 6, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block5816;
-    block5870:;
+    goto block5813;
+    block5867:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2921,8 +2921,8 @@ static void fun_561(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block5936:;
-    if (!U_IFOR(vm, regs + 2)) goto block5988;
+    block5933:;
+    if (!U_IFOR(vm, regs + 2)) goto block5985;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2938,8 +2938,8 @@ static void fun_561(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block5936;
-    block5988:;
+    goto block5933;
+    block5985:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -2976,8 +2976,8 @@ static void fun_560(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block6054:;
-    if (!U_IFOR(vm, regs + 2)) goto block6106;
+    block6051:;
+    if (!U_IFOR(vm, regs + 2)) goto block6103;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -2993,8 +2993,8 @@ static void fun_560(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block6054;
-    block6106:;
+    goto block6051;
+    block6103:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3031,8 +3031,8 @@ static void fun_559(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block6173:;
-    if (!U_VFOR(vm, regs + 2)) goto block6225;
+    block6170:;
+    if (!U_VFOR(vm, regs + 2)) goto block6222;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3048,8 +3048,8 @@ static void fun_559(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block6173;
-    block6225:;
+    goto block6170;
+    block6222:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3087,8 +3087,8 @@ static void fun_555(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block6292:;
-    if (!U_VFOR(vm, regs + 2)) goto block6344;
+    block6289:;
+    if (!U_VFOR(vm, regs + 2)) goto block6341;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3104,8 +3104,8 @@ static void fun_555(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block6292;
-    block6344:;
+    goto block6289;
+    block6341:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3143,8 +3143,8 @@ static void fun_540(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block6410:;
-    if (!U_IFOR(vm, regs + 2)) goto block6462;
+    block6407:;
+    if (!U_IFOR(vm, regs + 2)) goto block6459;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3160,8 +3160,8 @@ static void fun_540(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block6410;
-    block6462:;
+    goto block6407;
+    block6459:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3198,8 +3198,8 @@ static void fun_539(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block6528:;
-    if (!U_IFOR(vm, regs + 2)) goto block6580;
+    block6525:;
+    if (!U_IFOR(vm, regs + 2)) goto block6577;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3215,8 +3215,8 @@ static void fun_539(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block6528;
-    block6580:;
+    goto block6525;
+    block6577:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3253,8 +3253,8 @@ static void fun_529(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block6646:;
-    if (!U_IFOR(vm, regs + 2)) goto block6698;
+    block6643:;
+    if (!U_IFOR(vm, regs + 2)) goto block6695;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3270,8 +3270,8 @@ static void fun_529(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block6646;
-    block6698:;
+    goto block6643;
+    block6695:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3308,8 +3308,8 @@ static void fun_502(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block6764:;
-    if (!U_IFOR(vm, regs + 2)) goto block6816;
+    block6761:;
+    if (!U_IFOR(vm, regs + 2)) goto block6813;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3325,8 +3325,8 @@ static void fun_502(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block6764;
-    block6816:;
+    goto block6761;
+    block6813:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3363,8 +3363,8 @@ static void fun_499(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block6882:;
-    if (!U_IFOR(vm, regs + 2)) goto block6934;
+    block6879:;
+    if (!U_IFOR(vm, regs + 2)) goto block6931;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3380,8 +3380,8 @@ static void fun_499(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block6882;
-    block6934:;
+    goto block6879;
+    block6931:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3418,8 +3418,8 @@ static void fun_489(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7000:;
-    if (!U_IFOR(vm, regs + 2)) goto block7052;
+    block6997:;
+    if (!U_IFOR(vm, regs + 2)) goto block7049;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3435,8 +3435,8 @@ static void fun_489(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block7000;
-    block7052:;
+    goto block6997;
+    block7049:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3473,8 +3473,8 @@ static void fun_482(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7118:;
-    if (!U_IFOR(vm, regs + 2)) goto block7170;
+    block7115:;
+    if (!U_IFOR(vm, regs + 2)) goto block7167;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3490,8 +3490,8 @@ static void fun_482(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block7118;
-    block7170:;
+    goto block7115;
+    block7167:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3528,8 +3528,8 @@ static void fun_479(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7236:;
-    if (!U_IFOR(vm, regs + 2)) goto block7288;
+    block7233:;
+    if (!U_IFOR(vm, regs + 2)) goto block7285;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3545,8 +3545,8 @@ static void fun_479(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block7236;
-    block7288:;
+    goto block7233;
+    block7285:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3583,8 +3583,8 @@ static void fun_468(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7354:;
-    if (!U_VFOR(vm, regs + 2)) goto block7406;
+    block7351:;
+    if (!U_VFOR(vm, regs + 2)) goto block7403;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3600,8 +3600,8 @@ static void fun_468(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block7354;
-    block7406:;
+    goto block7351;
+    block7403:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3638,8 +3638,8 @@ static void fun_7(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 5, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7472:;
-    if (!U_IFOR(vm, regs + 2)) goto block7524;
+    block7469:;
+    if (!U_IFOR(vm, regs + 2)) goto block7521;
     U_STATEMENT(vm, regs + 2, 5, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x
@@ -3655,8 +3655,8 @@ static void fun_7(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block7472;
-    block7524:;
+    goto block7469;
+    block7521:;
     U_STATEMENT(vm, regs + 0, 7, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3687,8 +3687,8 @@ static void fun_564(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 13, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7573:;
-    if (!U_VFOR(vm, regs + 2)) goto block7640;
+    block7570:;
+    if (!U_VFOR(vm, regs + 2)) goto block7637;
     U_STATEMENT(vm, regs + 2, 13, 5);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x+0
@@ -3700,16 +3700,16 @@ static void fun_564(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 14, 5);
     regs[2] = locals[3];regs[3] = locals[4]; // x
     fun_309(vm, regs + 4); // call: function279
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block7635;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block7632;
     U_STATEMENT(vm, regs + 2, 15, 5);
     regs[2] = locals[2]; // r
     regs[3] = locals[3];regs[4] = locals[4]; // x
     U_PUSHINT(vm, regs + 5, 2);
     U_BCALLRETV(vm, regs + 6, 15, 1); // push
     U_POP(vm, regs + 3);
-    block7635:;
-    goto block7573;
-    block7640:;
+    block7632:;
+    goto block7570;
+    block7637:;
     U_STATEMENT(vm, regs + 0, 16, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3739,8 +3739,8 @@ static void fun_10(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 13, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7690:;
-    if (!U_VFOR(vm, regs + 2)) goto block7757;
+    block7687:;
+    if (!U_VFOR(vm, regs + 2)) goto block7754;
     U_STATEMENT(vm, regs + 2, 13, 5);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[3]); // x+0
@@ -3752,16 +3752,16 @@ static void fun_10(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 14, 5);
     regs[2] = locals[3];regs[3] = locals[4]; // x
     fun_307(vm, regs + 4); // call: function277
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block7752;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block7749;
     U_STATEMENT(vm, regs + 2, 15, 5);
     regs[2] = locals[2]; // r
     regs[3] = locals[3];regs[4] = locals[4]; // x
     U_PUSHINT(vm, regs + 5, 2);
     U_BCALLRETV(vm, regs + 6, 15, 1); // push
     U_POP(vm, regs + 3);
-    block7752:;
-    goto block7690;
-    block7757:;
+    block7749:;
+    goto block7687;
+    block7754:;
     U_STATEMENT(vm, regs + 0, 16, 5);
     regs[0] = locals[2]; // r
     U_RETURNLOCAL(vm, 0, 1);
@@ -3796,8 +3796,8 @@ static void fun_592(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 39, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7822:;
-    if (!U_VFOR(vm, regs + 2)) goto block7910;
+    block7819:;
+    if (!U_VFOR(vm, regs + 2)) goto block7907;
     U_STATEMENT(vm, regs + 2, 39, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[4]); // x
@@ -3809,24 +3809,24 @@ static void fun_592(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 40, 5);
     regs[2] = locals[4]; // x
     fun_593(vm, regs + 3); // call: function49
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block7884;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block7881;
     U_STATEMENT(vm, regs + 2, 41, 5);
     regs[2] = locals[2]; // t
     regs[3] = locals[4]; // x
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block7905;
-    block7884:;
+    goto block7902;
+    block7881:;
     U_STATEMENT(vm, regs + 2, 43, 5);
     regs[2] = locals[3]; // f
     regs[3] = locals[4]; // x
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    block7905:;
-    goto block7822;
-    block7910:;
+    block7902:;
+    goto block7819;
+    block7907:;
     U_STATEMENT(vm, regs + 0, 44, 5);
     regs[0] = locals[2]; // t
     regs[1] = locals[3]; // f
@@ -3869,8 +3869,8 @@ static void fun_587(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 39, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block7986:;
-    if (!U_VFOR(vm, regs + 2)) goto block8078;
+    block7983:;
+    if (!U_VFOR(vm, regs + 2)) goto block8075;
     U_STATEMENT(vm, regs + 2, 39, 5);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[4]); // x+0
@@ -3882,24 +3882,24 @@ static void fun_587(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 40, 5);
     regs[2] = locals[4];regs[3] = locals[5];regs[4] = locals[6]; // x
     fun_588(vm, regs + 5); // call: function49
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block8051;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block8048;
     U_STATEMENT(vm, regs + 2, 41, 5);
     regs[2] = locals[2]; // t
     regs[3] = locals[4];regs[4] = locals[5];regs[5] = locals[6]; // x
     U_PUSHINT(vm, regs + 6, 3);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block8073;
-    block8051:;
+    goto block8070;
+    block8048:;
     U_STATEMENT(vm, regs + 2, 43, 5);
     regs[2] = locals[3]; // f
     regs[3] = locals[4];regs[4] = locals[5];regs[5] = locals[6]; // x
     U_PUSHINT(vm, regs + 6, 3);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 3);
-    block8073:;
-    goto block7986;
-    block8078:;
+    block8070:;
+    goto block7983;
+    block8075:;
     U_STATEMENT(vm, regs + 0, 44, 5);
     regs[0] = locals[2]; // t
     regs[1] = locals[3]; // f
@@ -3940,8 +3940,8 @@ static void fun_13(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 39, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8152:;
-    if (!U_VFOR(vm, regs + 2)) goto block8240;
+    block8149:;
+    if (!U_VFOR(vm, regs + 2)) goto block8237;
     U_STATEMENT(vm, regs + 2, 39, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[4]); // x
@@ -3953,24 +3953,24 @@ static void fun_13(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 40, 5);
     regs[2] = locals[4]; // x
     fun_49(vm, regs + 3); // call: function49
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block8214;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block8211;
     U_STATEMENT(vm, regs + 2, 41, 5);
     regs[2] = locals[2]; // t
     regs[3] = locals[4]; // x
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    goto block8235;
-    block8214:;
+    goto block8232;
+    block8211:;
     U_STATEMENT(vm, regs + 2, 43, 5);
     regs[2] = locals[3]; // f
     regs[3] = locals[4]; // x
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    block8235:;
-    goto block8152;
-    block8240:;
+    block8232:;
+    goto block8149;
+    block8237:;
     U_STATEMENT(vm, regs + 0, 44, 5);
     regs[0] = locals[2]; // t
     regs[1] = locals[3]; // f
@@ -4001,8 +4001,8 @@ static void fun_597(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 57, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8284:;
-    if (!U_VFOR(vm, regs + 2)) goto block8343;
+    block8281:;
+    if (!U_VFOR(vm, regs + 2)) goto block8340;
     U_STATEMENT(vm, regs + 2, 57, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[2]); // x
@@ -4014,7 +4014,7 @@ static void fun_597(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 58, 5);
     regs[2] = locals[2]; // x
     fun_363(vm, regs + 3); // call: function330
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block8338;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block8335;
     U_STATEMENT(vm, regs + 2, 59, 5);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
@@ -4025,9 +4025,9 @@ static void fun_597(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block8338:;
-    goto block8284;
-    block8343:;
+    block8335:;
+    goto block8281;
+    block8340:;
     U_STATEMENT(vm, regs + 0, 60, 5);
     U_PUSHINT(vm, regs + 0, 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -4052,8 +4052,8 @@ static void fun_596(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 57, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8379:;
-    if (!U_VFOR(vm, regs + 2)) goto block8438;
+    block8376:;
+    if (!U_VFOR(vm, regs + 2)) goto block8435;
     U_STATEMENT(vm, regs + 2, 57, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[2]); // x
@@ -4065,7 +4065,7 @@ static void fun_596(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 58, 5);
     regs[2] = locals[2]; // x
     fun_362(vm, regs + 3); // call: function329
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block8433;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block8430;
     U_STATEMENT(vm, regs + 2, 59, 5);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
@@ -4077,9 +4077,9 @@ static void fun_596(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block8433:;
-    goto block8379;
-    block8438:;
+    block8430:;
+    goto block8376;
+    block8435:;
     U_STATEMENT(vm, regs + 0, 60, 5);
     U_PUSHINT(vm, regs + 0, 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -4105,8 +4105,8 @@ static void fun_565(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 57, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8474:;
-    if (!U_VFOR(vm, regs + 2)) goto block8533;
+    block8471:;
+    if (!U_VFOR(vm, regs + 2)) goto block8530;
     U_STATEMENT(vm, regs + 2, 57, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[2]); // x
@@ -4118,7 +4118,7 @@ static void fun_565(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 58, 5);
     regs[2] = locals[2]; // x
     fun_330(vm, regs + 3); // call: function297
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block8528;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block8525;
     U_STATEMENT(vm, regs + 2, 59, 5);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
@@ -4130,9 +4130,9 @@ static void fun_565(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block8528:;
-    goto block8474;
-    block8533:;
+    block8525:;
+    goto block8471;
+    block8530:;
     U_STATEMENT(vm, regs + 0, 60, 5);
     U_PUSHINT(vm, regs + 0, 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -4158,8 +4158,8 @@ static void fun_15(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 57, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8567:;
-    if (!U_SFOR(vm, regs + 2)) goto block8626;
+    block8564:;
+    if (!U_SFOR(vm, regs + 2)) goto block8623;
     U_STATEMENT(vm, regs + 2, 57, 5);
     U_SFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[2]); // x
@@ -4171,7 +4171,7 @@ static void fun_15(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 58, 5);
     regs[2] = locals[2]; // x
     fun_326(vm, regs + 3); // call: function293
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block8621;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block8618;
     U_STATEMENT(vm, regs + 2, 59, 5);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
@@ -4181,9 +4181,9 @@ static void fun_15(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block8621:;
-    goto block8567;
-    block8626:;
+    block8618:;
+    goto block8564;
+    block8623:;
     U_STATEMENT(vm, regs + 0, 60, 5);
     U_PUSHINT(vm, regs + 0, 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -4207,8 +4207,8 @@ static void fun_569(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8661:;
-    if (!U_VFOR(vm, regs + 2)) goto block8698;
+    block8658:;
+    if (!U_VFOR(vm, regs + 2)) goto block8695;
     U_STATEMENT(vm, regs + 2, 68, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // _
@@ -4219,8 +4219,8 @@ static void fun_569(VMRef vm, StackPtr psp) {
     fun_319(vm, regs + 4); // call: function287
     SetLVal(vm, &locals[1]); // acc
     U_LV_WRITE(vm, regs + 3);
-    goto block8661;
-    block8698:;
+    goto block8658;
+    block8695:;
     U_STATEMENT(vm, regs + 0, 69, 5);
     regs[0] = locals[1]; // acc
     U_RETURNLOCAL(vm, 0, 1);
@@ -4246,8 +4246,8 @@ static void fun_568(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8733:;
-    if (!U_VFOR(vm, regs + 2)) goto block8770;
+    block8730:;
+    if (!U_VFOR(vm, regs + 2)) goto block8767;
     U_STATEMENT(vm, regs + 2, 68, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // _
@@ -4258,8 +4258,8 @@ static void fun_568(VMRef vm, StackPtr psp) {
     fun_318(vm, regs + 4); // call: function286
     SetLVal(vm, &locals[1]); // acc
     U_LV_WRITE(vm, regs + 3);
-    goto block8733;
-    block8770:;
+    goto block8730;
+    block8767:;
     U_STATEMENT(vm, regs + 0, 69, 5);
     regs[0] = locals[1]; // acc
     U_RETURNLOCAL(vm, 0, 1);
@@ -4285,8 +4285,8 @@ static void fun_567(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8805:;
-    if (!U_VFOR(vm, regs + 2)) goto block8842;
+    block8802:;
+    if (!U_VFOR(vm, regs + 2)) goto block8839;
     U_STATEMENT(vm, regs + 2, 68, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // _
@@ -4297,8 +4297,8 @@ static void fun_567(VMRef vm, StackPtr psp) {
     fun_316(vm, regs + 4); // call: function285
     SetLVal(vm, &locals[1]); // acc
     U_LV_WRITEREF(vm, regs + 3);
-    goto block8805;
-    block8842:;
+    goto block8802;
+    block8839:;
     U_STATEMENT(vm, regs + 0, 69, 5);
     regs[0] = locals[1]; // acc
     U_RETURNLOCAL(vm, 0, 1);
@@ -4324,8 +4324,8 @@ static void fun_556(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8877:;
-    if (!U_VFOR(vm, regs + 2)) goto block8914;
+    block8874:;
+    if (!U_VFOR(vm, regs + 2)) goto block8911;
     U_STATEMENT(vm, regs + 2, 68, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // _
@@ -4336,8 +4336,8 @@ static void fun_556(VMRef vm, StackPtr psp) {
     fun_285(vm, regs + 4); // call: function265
     SetLVal(vm, &locals[1]); // acc
     U_LV_WRITEREF(vm, regs + 3);
-    goto block8877;
-    block8914:;
+    goto block8874;
+    block8911:;
     U_STATEMENT(vm, regs + 0, 69, 5);
     regs[0] = locals[1]; // acc
     U_RETURNLOCAL(vm, 0, 1);
@@ -4363,8 +4363,8 @@ static void fun_478(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block8948:;
-    if (!U_VFOR(vm, regs + 2)) goto block8985;
+    block8945:;
+    if (!U_VFOR(vm, regs + 2)) goto block8982;
     U_STATEMENT(vm, regs + 2, 68, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // _
@@ -4375,8 +4375,8 @@ static void fun_478(VMRef vm, StackPtr psp) {
     fun_180(vm, regs + 4); // call: function173
     SetLVal(vm, &locals[1]); // acc
     U_LV_WRITE(vm, regs + 3);
-    goto block8948;
-    block8985:;
+    goto block8945;
+    block8982:;
     U_STATEMENT(vm, regs + 0, 69, 5);
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
@@ -4399,8 +4399,8 @@ static void fun_17(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block9016:;
-    if (!U_VFOR(vm, regs + 2)) goto block9053;
+    block9013:;
+    if (!U_VFOR(vm, regs + 2)) goto block9050;
     U_STATEMENT(vm, regs + 2, 68, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // _
@@ -4411,8 +4411,8 @@ static void fun_17(VMRef vm, StackPtr psp) {
     fun_30(vm, regs + 4); // call: function30
     SetLVal(vm, &locals[1]); // acc
     U_LV_WRITE(vm, regs + 3);
-    goto block9016;
-    block9053:;
+    goto block9013;
+    block9050:;
     U_STATEMENT(vm, regs + 0, 69, 5);
     regs[0] = locals[1]; // acc
     U_RETURNLOCAL(vm, 0, 1);
@@ -4450,8 +4450,8 @@ static void fun_595(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_PUSHINT(vm, regs + 2, 1);
     U_ISUB(vm, regs + 3);
-    block9130:;
-    if (!U_IFOR(vm, regs + 2)) goto block9177;
+    block9127:;
+    if (!U_IFOR(vm, regs + 2)) goto block9174;
     U_STATEMENT(vm, regs + 2, 79, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // i
@@ -4466,8 +4466,8 @@ static void fun_595(VMRef vm, StackPtr psp) {
     fun_361(vm, regs + 4); // call: function328
     SetLVal(vm, &locals[2]); // acc
     U_LV_WRITE(vm, regs + 3);
-    goto block9130;
-    block9177:;
+    goto block9127;
+    block9174:;
     U_STATEMENT(vm, regs + 0, 80, 5);
     regs[0] = locals[2]; // acc
     U_RETURNLOCAL(vm, 0, 1);
@@ -4506,8 +4506,8 @@ static void fun_19(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_PUSHINT(vm, regs + 2, 1);
     U_ISUB(vm, regs + 3);
-    block9257:;
-    if (!U_IFOR(vm, regs + 2)) goto block9304;
+    block9254:;
+    if (!U_IFOR(vm, regs + 2)) goto block9301;
     U_STATEMENT(vm, regs + 2, 79, 5);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // i
@@ -4522,8 +4522,8 @@ static void fun_19(VMRef vm, StackPtr psp) {
     fun_322(vm, regs + 4); // call: function289
     SetLVal(vm, &locals[2]); // acc
     U_LV_WRITEREF(vm, regs + 3);
-    goto block9257;
-    block9304:;
+    goto block9254;
+    block9301:;
     U_STATEMENT(vm, regs + 0, 80, 5);
     regs[0] = locals[2]; // acc
     U_RETURNLOCAL(vm, 0, 1);
@@ -4548,8 +4548,8 @@ static void fun_594(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 93, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block9338:;
-    if (!U_VFOR(vm, regs + 2)) goto block9397;
+    block9335:;
+    if (!U_VFOR(vm, regs + 2)) goto block9394;
     U_STATEMENT(vm, regs + 2, 93, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[2]); // x
@@ -4561,7 +4561,7 @@ static void fun_594(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 94, 5);
     regs[2] = locals[2]; // x
     fun_360(vm, regs + 3); // call: function327
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block9392;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block9389;
     U_STATEMENT(vm, regs + 2, 95, 5);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
@@ -4571,9 +4571,9 @@ static void fun_594(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block9392:;
-    goto block9338;
-    block9397:;
+    block9389:;
+    goto block9335;
+    block9394:;
     U_STATEMENT(vm, regs + 0, 96, 5);
     U_PUSHINT(vm, regs + 0, -1);
     U_RETURNLOCAL(vm, 0, 1);
@@ -4597,8 +4597,8 @@ static void fun_23(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 93, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block9432:;
-    if (!U_VFOR(vm, regs + 2)) goto block9491;
+    block9429:;
+    if (!U_VFOR(vm, regs + 2)) goto block9488;
     U_STATEMENT(vm, regs + 2, 93, 5);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[2]); // x
@@ -4610,7 +4610,7 @@ static void fun_23(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 94, 5);
     regs[2] = locals[2]; // x
     fun_277(vm, regs + 3); // call: function257
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block9486;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block9483;
     U_STATEMENT(vm, regs + 2, 95, 5);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
@@ -4621,9 +4621,9 @@ static void fun_23(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block9486:;
-    goto block9432;
-    block9491:;
+    block9483:;
+    goto block9429;
+    block9488:;
     U_STATEMENT(vm, regs + 0, 96, 5);
     U_PUSHINT(vm, regs + 0, -1);
     U_RETURNLOCAL(vm, 0, 1);
@@ -4664,8 +4664,8 @@ static void fun_26(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 118, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block9566:;
-    if (!U_VFOR(vm, regs + 2)) goto block9667;
+    block9563:;
+    if (!U_VFOR(vm, regs + 2)) goto block9664;
     U_STATEMENT(vm, regs + 2, 118, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[5]); // x
@@ -4683,13 +4683,13 @@ static void fun_26(VMRef vm, StackPtr psp) {
     regs[2] = locals[4]; // i
     U_PUSHINT(vm, regs + 3, 0);
     U_ILT(vm, regs + 4);
-    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block9633;
+    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block9630;
     U_POP(vm, regs + 3);
     regs[2] = locals[7]; // v
     regs[3] = locals[3]; // best
     U_IGT(vm, regs + 4);
-    block9633:;
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block9662;
+    block9630:;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block9659;
     U_STATEMENT(vm, regs + 2, 121, 5);
     regs[2] = locals[6]; // j
     SetLVal(vm, &locals[4]); // i
@@ -4698,9 +4698,9 @@ static void fun_26(VMRef vm, StackPtr psp) {
     regs[2] = locals[7]; // v
     SetLVal(vm, &locals[3]); // best
     U_LV_WRITE(vm, regs + 3);
-    block9662:;
-    goto block9566;
-    block9667:;
+    block9659:;
+    goto block9563;
+    block9664:;
     U_STATEMENT(vm, regs + 0, 123, 5);
     regs[0] = locals[4]; // i
     U_RETURNLOCAL(vm, 0, 1);
@@ -4803,7 +4803,7 @@ static void fun_591(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     U_PUSHINT(vm, regs + 1, 1);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block9954;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block9951;
     U_STATEMENT(vm, regs + 0, 196, 5);
     regs[0] = locals[0]; // xs
     U_PUSHINT(vm, regs + 1, 0);
@@ -4852,8 +4852,8 @@ static void fun_591(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    goto block9969;
-    block9954:;
+    goto block9966;
+    block9951:;
     U_STATEMENT(vm, regs + 0, 195, 5);
     regs[0] = locals[0]; // xs
     U_INCREF(vm, regs + 1, 0);
@@ -4866,7 +4866,7 @@ static void fun_591(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block9969:;
+    block9966:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -4907,7 +4907,7 @@ static void fun_585(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     U_PUSHINT(vm, regs + 1, 1);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block10145;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block10142;
     U_STATEMENT(vm, regs + 0, 196, 5);
     regs[0] = locals[0]; // xs
     U_PUSHINT(vm, regs + 1, 0);
@@ -4956,8 +4956,8 @@ static void fun_585(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    goto block10160;
-    block10145:;
+    goto block10157;
+    block10142:;
     U_STATEMENT(vm, regs + 0, 195, 5);
     regs[0] = locals[0]; // xs
     U_INCREF(vm, regs + 1, 0);
@@ -4970,7 +4970,7 @@ static void fun_585(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block10160:;
+    block10157:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -5011,7 +5011,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     U_PUSHINT(vm, regs + 1, 1);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block10332;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block10329;
     U_STATEMENT(vm, regs + 0, 196, 5);
     regs[0] = locals[0]; // xs
     U_PUSHINT(vm, regs + 1, 0);
@@ -5060,8 +5060,8 @@ static void fun_48(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    goto block10347;
-    block10332:;
+    goto block10344;
+    block10329:;
     U_STATEMENT(vm, regs + 0, 195, 5);
     regs[0] = locals[0]; // xs
     U_INCREF(vm, regs + 1, 0);
@@ -5074,7 +5074,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block10347:;
+    block10344:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -5192,7 +5192,7 @@ static void fun_51(VMRef vm, StackPtr psp) {
     regs[0] = locals[2]; // l
     U_PUSHINT(vm, regs + 1, 1);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block10750;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block10747;
     U_STATEMENT(vm, regs + 0, 206, 5);
     U_PUSHVARF(vm, regs + 0, 59); // xs
     regs[1] = locals[0]; // s
@@ -5210,11 +5210,11 @@ static void fun_51(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[5]); // ep
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 209, 5);
-    block10562:;
+    block10559:;
     regs[0] = locals[4]; // sp
     regs[1] = locals[5]; // ep
     U_ILT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block10700;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block10697;
     U_STATEMENT(vm, regs + 0, 210, 5);
     U_PUSHVARF(vm, regs + 0, 59); // xs
     regs[1] = locals[4]; // sp
@@ -5225,7 +5225,7 @@ static void fun_51(VMRef vm, StackPtr psp) {
     regs[0] = locals[6]; // c
     regs[1] = locals[3]; // pivot
     fun_163(vm, regs + 2); // call: function156
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block10648;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block10645;
     U_STATEMENT(vm, regs + 0, 212, 5);
     U_PUSHVARF(vm, regs + 0, 59); // xs
     regs[1] = locals[4]; // sp
@@ -5239,8 +5239,8 @@ static void fun_51(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 213, 5);
     SetLVal(vm, &locals[4]); // sp
     U_LV_IPP(vm, regs + 0);
-    goto block10695;
-    block10648:;
+    goto block10692;
+    block10645:;
     U_STATEMENT(vm, regs + 0, 215, 5);
     U_PUSHVARF(vm, regs + 0, 59); // xs
     SetLVal(vm, &locals[5]); // ep
@@ -5257,9 +5257,9 @@ static void fun_51(VMRef vm, StackPtr psp) {
     regs[2] = locals[5]; // ep
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITE(vm, regs + 1);
-    block10695:;
-    goto block10562;
-    block10700:;
+    block10692:;
+    goto block10559;
+    block10697:;
     U_STATEMENT(vm, regs + 0, 217, 5);
     regs[0] = locals[3]; // pivot
     U_PUSHVARF(vm, regs + 1, 59); // xs
@@ -5276,7 +5276,7 @@ static void fun_51(VMRef vm, StackPtr psp) {
     regs[0] = locals[5]; // ep
     regs[1] = locals[1]; // e
     fun_51(vm, regs + 2); // call: rec
-    block10750:;
+    block10747:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     Pop(psp);
@@ -5298,8 +5298,8 @@ static void fun_52(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 223, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
-    block10779:;
-    if (!U_VFOR(vm, regs + 2)) goto block10931;
+    block10776:;
+    if (!U_VFOR(vm, regs + 2)) goto block10928;
     U_STATEMENT(vm, regs + 2, 223, 5);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[2]); // key
@@ -5310,17 +5310,17 @@ static void fun_52(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 3);
     U_STATEMENT(vm, regs + 2, 224, 5);
     regs[2] = locals[3]; // i
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block10926;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block10923;
     U_STATEMENT(vm, regs + 2, 225, 5);
     regs[2] = locals[3]; // i
     SetLVal(vm, &locals[4]); // j
     U_LV_WRITE(vm, regs + 3);
     U_STATEMENT(vm, regs + 2, 226, 5);
-    block10832:;
+    block10829:;
     regs[2] = locals[4]; // j
     U_PUSHINT(vm, regs + 3, 0);
     U_IGT(vm, regs + 4);
-    if (!U_JUMPFAILR(vm, regs + 3)) goto block10866;
+    if (!U_JUMPFAILR(vm, regs + 3)) goto block10863;
     U_POP(vm, regs + 3);
     regs[2] = locals[2]; // key
     regs[3] = locals[0]; // xs
@@ -5329,8 +5329,8 @@ static void fun_52(VMRef vm, StackPtr psp) {
     U_ISUB(vm, regs + 6);
     U_VPUSHIDXI(vm, regs + 5);
     fun_162(vm, regs + 4); // call: function155
-    block10866:;
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block10906;
+    block10863:;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block10903;
     U_STATEMENT(vm, regs + 2, 227, 5);
     regs[2] = locals[0]; // xs
     regs[3] = locals[4]; // j
@@ -5343,17 +5343,17 @@ static void fun_52(VMRef vm, StackPtr psp) {
     U_LV_IMM(vm, regs + 5);
     U_LVAL_IDXVI(vm, regs + 5, 0);
     U_LV_WRITE(vm, regs + 3);
-    goto block10832;
-    block10906:;
+    goto block10829;
+    block10903:;
     U_STATEMENT(vm, regs + 2, 228, 5);
     regs[2] = locals[2]; // key
     regs[3] = locals[0]; // xs
     regs[4] = locals[4]; // j
     U_LVAL_IDXVI(vm, regs + 5, 0);
     U_LV_WRITE(vm, regs + 3);
-    block10926:;
-    goto block10779;
-    block10931:;
+    block10923:;
+    goto block10776;
+    block10928:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -5372,12 +5372,12 @@ static void fun_473(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 954, locals);
     U_STATEMENT(vm, regs + 0, 253, 5);
     fun_175(vm, regs + 0); // call: function168
-    if (!U_JUMPIFUNWOUND(vm, regs + 0, 168)) goto block10961;
+    if (!U_JUMPIFUNWOUND(vm, regs + 0, 168)) goto block10958;
     U_RETURNANY(vm, 0, 0);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block10961:;
+    block10958:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     goto epilogue;
@@ -5535,8 +5535,8 @@ static void fun_98(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 104, 4);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[1]; // v+1
-    block11149:;
-    if (!U_IFOR(vm, regs + 2)) goto block11212;
+    block11146:;
+    if (!U_IFOR(vm, regs + 2)) goto block11209;
     U_STATEMENT(vm, regs + 2, 104, 4);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[3]); // y
@@ -5544,8 +5544,8 @@ static void fun_98(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 104, 4);
     U_PUSHINT(vm, regs + 2, -1);
     regs[3] = locals[0]; // v+0
-    block11175:;
-    if (!U_IFOR(vm, regs + 4)) goto block11207;
+    block11172:;
+    if (!U_IFOR(vm, regs + 4)) goto block11204;
     U_STATEMENT(vm, regs + 4, 104, 4);
     U_IFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[4]); // x
@@ -5554,10 +5554,10 @@ static void fun_98(VMRef vm, StackPtr psp) {
     regs[4] = locals[4]; // x
     regs[5] = locals[3]; // y
     fun_355(vm, regs + 6); // call: function322
-    goto block11175;
-    block11207:;
-    goto block11149;
-    block11212:;
+    goto block11172;
+    block11204:;
+    goto block11146;
+    block11209:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     Pop(psp);
@@ -6301,16 +6301,16 @@ static void fun_113(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 1, 1);
     U_PUSHINT(vm, regs + 2, 2);
     U_BCALLRETV(vm, regs + 3, 89, 1); // manhattan
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block13264;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block13261;
     U_STATEMENT(vm, regs + 0, 98, 3);
     U_PUSHINT(vm, regs + 0, 1);
     U_PUSHINT(vm, regs + 1, 2);
-    goto block13276;
-    block13264:;
+    goto block13273;
+    block13261:;
     U_STATEMENT(vm, regs + 0, 98, 3);
     U_PUSHINT(vm, regs + 0, 3);
     U_PUSHINT(vm, regs + 1, 4);
-    block13276:;
+    block13273:;
     U_PUSHFLDV(vm, regs + 2, 1, 2);
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
@@ -6333,18 +6333,18 @@ static void fun_113(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 3);
     U_PUSHINT(vm, regs + 4, 2);
     U_IEQ(vm, regs + 5);
-    if (!U_JUMPFAIL(vm, regs + 4)) goto block13368;
+    if (!U_JUMPFAIL(vm, regs + 4)) goto block13365;
     U_POP(vm, regs + 3);
     U_STATEMENT(vm, regs + 2, 101, 3);
     U_PUSHINT(vm, regs + 2, 1);
     U_PUSHINT(vm, regs + 3, 2);
-    goto block13382;
-    block13368:;
+    goto block13379;
+    block13365:;
     U_POP(vm, regs + 3);
     U_STATEMENT(vm, regs + 2, 102, 3);
     U_PUSHINT(vm, regs + 2, 3);
     U_PUSHINT(vm, regs + 3, 4);
-    block13382:;
+    block13379:;
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 102, 3, 62);
     U_STATEMENT(vm, regs + 0, 103, 3);
@@ -6355,8 +6355,8 @@ static void fun_113(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 3);
     U_NEWVEC(vm, regs + 5, 37, 2);
     keepvar[0] = TopM(regs + 2, 0);
-    block13419:;
-    if (!U_VFOR(vm, regs + 2)) goto block13461;
+    block13416:;
+    if (!U_VFOR(vm, regs + 2)) goto block13458;
     U_STATEMENT(vm, regs + 2, 103, 3);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[0]); // st+0
@@ -6368,8 +6368,8 @@ static void fun_113(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 3, 3);
     U_IEQ(vm, regs + 4);
     U_ASSERT(vm, regs + 3, 103, 3, 63);
-    goto block13419;
-    block13461:;
+    goto block13416;
+    block13458:;
     U_STATEMENT(vm, regs + 0, 104, 3);
     U_STATEMENT(vm, regs + 0, 105, 3);
     U_PUSHINT(vm, regs + 0, -1);
@@ -6383,8 +6383,8 @@ static void fun_113(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 5, 0);
     U_NEWVEC(vm, regs + 5, 1695, 2);
     keepvar[1] = TopM(regs + 2, 0);
-    block13506:;
-    if (!U_VFOR(vm, regs + 2)) goto block13554;
+    block13503:;
+    if (!U_VFOR(vm, regs + 2)) goto block13551;
     U_STATEMENT(vm, regs + 2, 105, 3);
     U_VFORELEMREF2S(vm, regs + 2, 3);
     SetLVal(vm, &locals[2]); // st+0
@@ -6397,8 +6397,8 @@ static void fun_113(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 3, 68); // "abb"
     U_SEQ(vm, regs + 4);
     U_ASSERT(vm, regs + 3, 105, 3, 69);
-    goto block13506;
-    block13554:;
+    goto block13503;
+    block13551:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[2]);
     DecVal(vm, locals[3]);
@@ -6444,18 +6444,18 @@ static void fun_114(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 2, 7);
     U_PUSHINT(vm, regs + 3, 7);
     U_STEQ(vm, regs + 4, 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block13664;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block13661;
     U_POP(vm, regs + 1);
     regs[0] = locals[0]; // mr1
     U_PUSHINT(vm, regs + 1, 1);
     U_IEQ(vm, regs + 2);
-    block13664:;
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block13679;
+    block13661:;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block13676;
     U_POP(vm, regs + 1);
     regs[0] = locals[3]; // mr3
     U_PUSHINT(vm, regs + 1, 1);
     U_IEQ(vm, regs + 2);
-    block13679:;
+    block13676:;
     U_ASSERT(vm, regs + 1, 114, 3, 71);
     U_RETURNLOCAL(vm, 0, 0);
     goto epilogue;
@@ -6688,14 +6688,14 @@ static void fun_120(VMRef vm, StackPtr psp) {
     regs[0] = locals[8]; // frn+0
     U_PUSHSTR(vm, regs + 1, 83); // "AA"
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block14210;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block14207;
     U_POP(vm, regs + 1);
     regs[0] = locals[10]; // frn+2
     U_PUSHINT(vm, regs + 1, 1);
     U_VPUSHIDXI(vm, regs + 2);
     U_PUSHINT(vm, regs + 1, 64);
     U_IEQ(vm, regs + 2);
-    block14210:;
+    block14207:;
     U_ASSERT(vm, regs + 1, 145, 3, 84);
     U_STATEMENT(vm, regs + 0, 146, 3);
     U_PUSHSTR(vm, regs + 0, 85); // "AA"
@@ -6727,14 +6727,14 @@ static void fun_120(VMRef vm, StackPtr psp) {
     regs[0] = locals[8]; // frn+0
     U_PUSHSTR(vm, regs + 1, 89); // "BBBB"
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block14329;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block14326;
     U_POP(vm, regs + 1);
     regs[0] = locals[10]; // frn+2
     U_PUSHINT(vm, regs + 1, 1);
     U_VPUSHIDXI(vm, regs + 2);
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    block14329:;
+    block14326:;
     U_ASSERT(vm, regs + 1, 148, 3, 90);
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
@@ -6841,12 +6841,12 @@ static void fun_123(VMRef vm, StackPtr psp) {
     regs[0] = locals[0]; // rs+0
     U_PUSHSTR(vm, regs + 1, 92); // "hihi"
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block14512;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block14509;
     U_POP(vm, regs + 1);
     regs[0] = locals[1]; // rs+1
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    block14512:;
+    block14509:;
     U_ASSERT(vm, regs + 1, 158, 3, 93);
     U_STATEMENT(vm, regs + 0, 159, 3);
     regs[0] = locals[0];regs[1] = locals[1]; // rs
@@ -7528,11 +7528,11 @@ static void fun_474(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 5, 7);
     regs[0] = locals[2]; // err
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block16618;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block16615;
     U_STATEMENT(vm, regs + 0, 6, 7);
     regs[0] = locals[2]; // err
     fun_178(vm, regs + 1); // call: function171
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 171)) goto block16616;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 171)) goto block16613;
     U_RETURNANY(vm, 0, 0);
     DecVal(vm, locals[2]);
     DecVal(vm, locals[3]);
@@ -7540,8 +7540,8 @@ static void fun_474(VMRef vm, StackPtr psp) {
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block16616:;
-    block16618:;
+    block16613:;
+    block16615:;
     U_RETURNNONLOCAL(vm, 0, 0, 124);
     DecVal(vm, locals[2]);
     DecVal(vm, locals[3]);
@@ -7571,14 +7571,14 @@ static void fun_128(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 5, 7);
     regs[0] = locals[2]; // err
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block16689;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block16686;
     U_STATEMENT(vm, regs + 0, 6, 7);
     U_STATEMENT(vm, regs + 0, 6, 7);
     regs[0] = locals[2]; // err
     SetLVal(vm, &locals[4]); // _
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 29, 7);
-    block16689:;
+    block16686:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[2]);
     DecVal(vm, locals[3]);
@@ -7597,12 +7597,12 @@ static void fun_475(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1252, locals);
     U_STATEMENT(vm, regs + 0, 9, 7);
     fun_177(vm, regs + 0); // call: function170
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 170)) goto block16719;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 170)) goto block16716;
     U_RETURNANY(vm, 0, 0);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block16719:;
+    block16716:;
     U_STATEMENT(vm, regs + 0, 10, 7);
     U_PUSHNIL(vm, regs + 0);
     U_PUSHSTR(vm, regs + 1, 152); // ""
@@ -7624,12 +7624,12 @@ static void fun_129(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1258, locals);
     U_STATEMENT(vm, regs + 0, 9, 7);
     fun_179(vm, regs + 0); // call: function172
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 172)) goto block16761;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 172)) goto block16758;
     U_RETURNANY(vm, 0, 0);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block16761:;
+    block16758:;
     U_STATEMENT(vm, regs + 0, 10, 7);
     U_PUSHNIL(vm, regs + 0);
     U_PUSHSTR(vm, regs + 1, 153); // ""
@@ -7726,15 +7726,15 @@ static void fun_534(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block16928:;
+    block16925:;
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block16990;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block16987;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 1);
     regs[1] = locals[1]; // key
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block16967;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block16964;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[3]; // c
     U_INCREF(vm, regs + 1, 0);
@@ -7746,15 +7746,15 @@ static void fun_534(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block16967:;
+    block16964:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block16928;
-    block16990:;
+    goto block16925;
+    block16987:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -7796,15 +7796,15 @@ static void fun_532(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block17071:;
+    block17068:;
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17136;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17133;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 1);
     regs[1] = locals[1]; // key
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17113;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17110;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[3]; // c
     regs[1] = locals[2]; // h
@@ -7818,15 +7818,15 @@ static void fun_532(VMRef vm, StackPtr psp) {
     Push(psp, regs[0]);
     Push(psp, regs[1]);
     goto epilogue;
-    block17113:;
+    block17110:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block17071;
-    block17136:;
+    goto block17068;
+    block17133:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     regs[1] = locals[2]; // h
@@ -7870,15 +7870,15 @@ static void fun_504(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block17220:;
+    block17217:;
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17282;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17279;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 1);
     regs[1] = locals[1]; // key
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17259;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17256;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[3]; // c
     U_INCREF(vm, regs + 1, 0);
@@ -7890,15 +7890,15 @@ static void fun_504(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block17259:;
+    block17256:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block17220;
-    block17282:;
+    goto block17217;
+    block17279:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -7943,15 +7943,15 @@ static void fun_494(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[5]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block17368:;
+    block17365:;
     regs[0] = locals[5]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17433;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17430;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[5]; // c
     U_PUSHFLD2V(vm, regs + 1, 1, 3);
     regs[3] = locals[1];regs[4] = locals[2];regs[5] = locals[3]; // key
     U_STEQ(vm, regs + 6, 3);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17410;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17407;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[5]; // c
     U_INCREF(vm, regs + 1, 0);
@@ -7964,15 +7964,15 @@ static void fun_494(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block17410:;
+    block17407:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[5]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[5]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block17368;
-    block17433:;
+    goto block17365;
+    block17430:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -8018,15 +8018,15 @@ static void fun_492(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[5]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block17519:;
+    block17516:;
     regs[0] = locals[5]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17587;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17584;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[5]; // c
     U_PUSHFLD2V(vm, regs + 1, 1, 3);
     regs[3] = locals[1];regs[4] = locals[2];regs[5] = locals[3]; // key
     U_STEQ(vm, regs + 6, 3);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17564;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17561;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[5]; // c
     regs[1] = locals[4]; // h
@@ -8041,15 +8041,15 @@ static void fun_492(VMRef vm, StackPtr psp) {
     Push(psp, regs[0]);
     Push(psp, regs[1]);
     goto epilogue;
-    block17564:;
+    block17561:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[5]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[5]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block17519;
-    block17587:;
+    goto block17516;
+    block17584:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     regs[1] = locals[4]; // h
@@ -8094,15 +8094,15 @@ static void fun_487(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block17671:;
+    block17668:;
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17733;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17730;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 1);
     regs[1] = locals[1]; // key
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17710;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17707;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[3]; // c
     U_INCREF(vm, regs + 1, 0);
@@ -8114,15 +8114,15 @@ static void fun_487(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block17710:;
+    block17707:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block17671;
-    block17733:;
+    goto block17668;
+    block17730:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -8164,15 +8164,15 @@ static void fun_485(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block17814:;
+    block17811:;
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17879;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17876;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 1);
     regs[1] = locals[1]; // key
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block17856;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block17853;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[3]; // c
     regs[1] = locals[2]; // h
@@ -8186,15 +8186,15 @@ static void fun_485(VMRef vm, StackPtr psp) {
     Push(psp, regs[0]);
     Push(psp, regs[1]);
     goto epilogue;
-    block17856:;
+    block17853:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block17814;
-    block17879:;
+    goto block17811;
+    block17876:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     regs[1] = locals[2]; // h
@@ -8238,15 +8238,15 @@ static void fun_480(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block17962:;
+    block17959:;
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18027;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18024;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 1);
     regs[1] = locals[1]; // key
     U_FEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18004;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18001;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[3]; // c
     regs[1] = locals[2]; // h
@@ -8259,15 +8259,15 @@ static void fun_480(VMRef vm, StackPtr psp) {
     Push(psp, regs[0]);
     Push(psp, regs[1]);
     goto epilogue;
-    block18004:;
+    block18001:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block17962;
-    block18027:;
+    goto block17959;
+    block18024:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     regs[1] = locals[2]; // h
@@ -8310,15 +8310,15 @@ static void fun_137(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 27, 8);
-    block18110:;
+    block18107:;
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18172;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18169;
     U_STATEMENT(vm, regs + 0, 28, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 1);
     regs[1] = locals[1]; // key
     U_FEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18149;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18146;
     U_STATEMENT(vm, regs + 0, 29, 8);
     regs[0] = locals[3]; // c
     U_INCREF(vm, regs + 1, 0);
@@ -8329,15 +8329,15 @@ static void fun_137(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block18149:;
+    block18146:;
     U_STATEMENT(vm, regs + 0, 30, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     SetLVal(vm, &locals[3]); // c
     U_LV_WRITEREF(vm, regs + 1);
-    goto block18110;
-    block18172:;
+    goto block18107;
+    block18169:;
     U_STATEMENT(vm, regs + 0, 31, 8);
     U_PUSHNIL(vm, regs + 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -8373,14 +8373,14 @@ static void fun_531(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 35, 8);
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18254;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18251;
     U_STATEMENT(vm, regs + 0, 36, 8);
     regs[0] = locals[2]; // value
     regs[1] = locals[3]; // c
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITE(vm, regs + 1);
-    goto block18300;
-    block18254:;
+    goto block18297;
+    block18251:;
     U_STATEMENT(vm, regs + 0, 38, 8);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -8396,7 +8396,7 @@ static void fun_531(VMRef vm, StackPtr psp) {
     regs[2] = locals[4]; // h
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITEREF(vm, regs + 1);
-    block18300:;
+    block18297:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -8432,14 +8432,14 @@ static void fun_491(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 35, 8);
     regs[0] = locals[7]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18380;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18377;
     U_STATEMENT(vm, regs + 0, 36, 8);
     regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6]; // value
     regs[3] = locals[7]; // c
     U_LVAL_FLD(vm, regs + 4, 4);
     U_LV_WRITEV(vm, regs + 3, 3);
-    goto block18425;
-    block18380:;
+    goto block18422;
+    block18377:;
     U_STATEMENT(vm, regs + 0, 38, 8);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -8454,7 +8454,7 @@ static void fun_491(VMRef vm, StackPtr psp) {
     regs[2] = locals[8]; // h
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITEREF(vm, regs + 1);
-    block18425:;
+    block18422:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[7]);
     Pop(psp);
@@ -8491,15 +8491,15 @@ static void fun_484(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 35, 8);
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18504;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18501;
     U_STATEMENT(vm, regs + 0, 36, 8);
     regs[0] = locals[2]; // value
     U_INCREF(vm, regs + 1, 0);
     regs[1] = locals[3]; // c
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITEREF(vm, regs + 1);
-    goto block18553;
-    block18504:;
+    goto block18550;
+    block18501:;
     U_STATEMENT(vm, regs + 0, 38, 8);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -8516,7 +8516,7 @@ static void fun_484(VMRef vm, StackPtr psp) {
     regs[2] = locals[4]; // h
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITEREF(vm, regs + 1);
-    block18553:;
+    block18550:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -8548,14 +8548,14 @@ static void fun_138(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 35, 8);
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18626;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18623;
     U_STATEMENT(vm, regs + 0, 36, 8);
     regs[0] = locals[2]; // value
     regs[1] = locals[3]; // c
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITE(vm, regs + 1);
-    goto block18669;
-    block18626:;
+    goto block18666;
+    block18623:;
     U_STATEMENT(vm, regs + 0, 38, 8);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -8570,7 +8570,7 @@ static void fun_138(VMRef vm, StackPtr psp) {
     regs[2] = locals[4]; // h
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITEREF(vm, regs + 1);
-    block18669:;
+    block18666:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -8599,15 +8599,15 @@ static void fun_143(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 67, 8);
     regs[0] = locals[2]; // c
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block18729;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block18726;
     U_POP(vm, regs + 1);
     regs[0] = locals[2]; // c
     U_PUSHFLD(vm, regs + 1, 2);
-    block18729:;
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block18738;
+    block18726:;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block18735;
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
-    block18738:;
+    block18735:;
     U_INCREF(vm, regs + 1, 0);
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[0]);
@@ -8639,15 +8639,15 @@ static void fun_533(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18806;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18803;
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 2);
-    goto block18815;
-    block18806:;
+    goto block18812;
+    block18803:;
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[2]; // default_val
-    block18815:;
+    block18812:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -8681,15 +8681,15 @@ static void fun_493(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[7]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18883;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18880;
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[7]; // c
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
-    goto block18893;
-    block18883:;
+    goto block18890;
+    block18880:;
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6]; // default_val
-    block18893:;
+    block18890:;
     U_RETURNLOCAL(vm, 0, 3);
     DecVal(vm, locals[7]);
     Pop(psp);
@@ -8726,17 +8726,17 @@ static void fun_486(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block18961;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block18958;
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 2);
     U_INCREF(vm, regs + 1, 0);
-    goto block18973;
-    block18961:;
+    goto block18970;
+    block18958:;
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[2]; // default_val
     U_INCREF(vm, regs + 1, 0);
-    block18973:;
+    block18970:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -8766,15 +8766,15 @@ static void fun_144(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[3]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block19035;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block19032;
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[3]; // c
     U_PUSHFLD(vm, regs + 1, 2);
-    goto block19044;
-    block19035:;
+    goto block19041;
+    block19032:;
     U_STATEMENT(vm, regs + 0, 74, 8);
     regs[0] = locals[2]; // default_val
-    block19044:;
+    block19041:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -9128,11 +9128,11 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 73, 6);
     regs[0] = locals[4]; // err
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block19767;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block19764;
     U_STATEMENT(vm, regs + 0, 73, 6);
     regs[0] = locals[4]; // err
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
-    block19767:;
+    block19764:;
     U_STATEMENT(vm, regs + 0, 74, 6);
     regs[0] = locals[3]; // parsed
     regs[1] = locals[2]; // direct
@@ -9148,11 +9148,11 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 77, 6);
     regs[0] = locals[4]; // err
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block19833;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block19830;
     U_STATEMENT(vm, regs + 0, 77, 6);
     regs[0] = locals[4]; // err
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
-    block19833:;
+    block19830:;
     U_STATEMENT(vm, regs + 0, 78, 6);
     U_PUSHINT(vm, regs + 0, 1);
     U_PUSHINT(vm, regs + 1, 1);
@@ -9346,47 +9346,47 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 2, 194); // "yes2"
     U_SEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block20478;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block20475;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 117, 6);
     U_PUSHINT(vm, regs + 0, 1);
-    goto block20518;
-    block20478:;
+    goto block20515;
+    block20475:;
     U_DUP(vm, regs + 1);
     regs[2] = locals[18]; // st
     U_PUSHINT(vm, regs + 3, 3);
     U_VPUSHIDXI(vm, regs + 4);
     U_SEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block20507;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block20504;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 118, 6);
     U_PUSHINT(vm, regs + 0, 0);
-    goto block20518;
-    block20507:;
+    goto block20515;
+    block20504:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 119, 6);
     U_PUSHINT(vm, regs + 0, 0);
-    block20518:;
+    block20515:;
     U_ASSERT(vm, regs + 1, 116, 6, 195);
     U_STATEMENT(vm, regs + 0, 120, 6);
     U_PUSHFLT64(vm, regs + 0, 1374389535, 1074339512);
     U_DUP(vm, regs + 1);
     U_PUSHFLT(vm, regs + 2, 1092616192);
     U_FGE(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block20565;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block20562;
     U_DUP(vm, regs + 1);
     U_PUSHFLT(vm, regs + 2, 1101004800);
     U_FLE(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block20565;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block20562;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 121, 6);
     U_PUSHINT(vm, regs + 0, 0);
-    goto block20576;
-    block20565:;
+    goto block20573;
+    block20562:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 122, 6);
     U_PUSHINT(vm, regs + 0, 1);
-    block20576:;
+    block20573:;
     U_ASSERT(vm, regs + 1, 120, 6, 196);
     U_STATEMENT(vm, regs + 0, 124, 6);
     U_STATEMENT(vm, regs + 0, 124, 6);
@@ -9473,12 +9473,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[23]; // found
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block20872;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block20869;
     U_POP(vm, regs + 1);
     regs[0] = locals[24]; // findex
     U_PUSHINT(vm, regs + 1, 0);
     U_IEQ(vm, regs + 2);
-    block20872:;
+    block20869:;
     U_ASSERT(vm, regs + 1, 143, 6, 200);
     U_STATEMENT(vm, regs + 0, 144, 6);
     regs[0] = locals[20]; // sorted1
@@ -9492,12 +9492,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[23]; // found
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block20928;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block20925;
     U_POP(vm, regs + 1);
     regs[0] = locals[24]; // findex
     U_PUSHINT(vm, regs + 1, 8);
     U_IEQ(vm, regs + 2);
-    block20928:;
+    block20925:;
     U_ASSERT(vm, regs + 1, 145, 6, 201);
     U_STATEMENT(vm, regs + 0, 146, 6);
     regs[0] = locals[20]; // sorted1
@@ -9511,12 +9511,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[23]; // found
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block20984;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block20981;
     U_POP(vm, regs + 1);
     regs[0] = locals[24]; // findex
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    block20984:;
+    block20981:;
     U_ASSERT(vm, regs + 1, 147, 6, 202);
     U_STATEMENT(vm, regs + 0, 149, 6);
     U_PUSHINT(vm, regs + 0, 44);
@@ -9596,12 +9596,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[26]; // ns
     U_PUSHSTR(vm, regs + 1, 217); // "\x03\x04\x00\x00"
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21259;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21256;
     U_POP(vm, regs + 1);
     regs[0] = locals[27]; // ni
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    block21259:;
+    block21256:;
     U_ASSERT(vm, regs + 1, 163, 6, 218);
     U_STATEMENT(vm, regs + 0, 164, 6);
     regs[0] = locals[26]; // ns
@@ -9625,12 +9625,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[26]; // ns
     U_PUSHSTR(vm, regs + 1, 221); // "\x00\x00\x02\x08"
     U_SEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21347;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21344;
     U_POP(vm, regs + 1);
     regs[0] = locals[27]; // ni
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    block21347:;
+    block21344:;
     U_ASSERT(vm, regs + 1, 166, 6, 222);
     U_STATEMENT(vm, regs + 0, 167, 6);
     regs[0] = locals[26]; // ns
@@ -9652,10 +9652,10 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 171, 6);
     regs[0] = locals[28]; // s1
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21425;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21422;
     U_POP(vm, regs + 1);
     regs[0] = locals[29]; // s2
-    block21425:;
+    block21422:;
     regs[1] = locals[29]; // s2
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 171, 6, 226);
@@ -9709,18 +9709,18 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[31]; // bb
     U_PUSHINT(vm, regs + 1, 1);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21602;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21599;
     U_POP(vm, regs + 1);
     regs[0] = locals[31]; // bb
     regs[1] = locals[32]; // cc
     U_IEQ(vm, regs + 2);
-    block21602:;
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21617;
+    block21599:;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21614;
     U_POP(vm, regs + 1);
     regs[0] = locals[33]; // dd
     regs[1] = locals[34]; // ee
     U_IEQ(vm, regs + 2);
-    block21617:;
+    block21614:;
     U_ASSERT(vm, regs + 1, 181, 6, 229);
     U_STATEMENT(vm, regs + 0, 182, 6);
     U_PUSHINT(vm, regs + 0, 2);
@@ -9733,12 +9733,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[35]; // ff
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21669;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21666;
     U_POP(vm, regs + 1);
     regs[0] = locals[36]; // gg
     U_PUSHINT(vm, regs + 1, 3);
     U_IEQ(vm, regs + 2);
-    block21669:;
+    block21666:;
     U_ASSERT(vm, regs + 1, 183, 6, 230);
     U_STATEMENT(vm, regs + 0, 184, 6);
     U_PUSHINT(vm, regs + 0, 8);
@@ -9751,12 +9751,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[35]; // ff
     U_PUSHINT(vm, regs + 1, 8);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21721;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21718;
     U_POP(vm, regs + 1);
     regs[0] = locals[36]; // gg
     U_PUSHINT(vm, regs + 1, 9);
     U_IEQ(vm, regs + 2);
-    block21721:;
+    block21718:;
     U_ASSERT(vm, regs + 1, 185, 6, 231);
     U_STATEMENT(vm, regs + 0, 186, 6);
     U_STATEMENT(vm, regs + 0, 189, 6);
@@ -9769,12 +9769,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[37]; // hh
     U_PUSHINT(vm, regs + 1, 6);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21774;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21771;
     U_POP(vm, regs + 1);
     regs[0] = locals[38]; // ii
     U_PUSHINT(vm, regs + 1, 7);
     U_IEQ(vm, regs + 2);
-    block21774:;
+    block21771:;
     U_ASSERT(vm, regs + 1, 190, 6, 232);
     U_STATEMENT(vm, regs + 0, 191, 6);
     fun_470(vm, regs + 0); // call: multiret
@@ -9796,12 +9796,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[0] = locals[40]; // jj
     U_PUSHINT(vm, regs + 1, 6);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block21856;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block21853;
     U_POP(vm, regs + 1);
     regs[0] = locals[41]; // kk
     U_PUSHINT(vm, regs + 1, 7);
     U_IEQ(vm, regs + 2);
-    block21856:;
+    block21853:;
     U_ASSERT(vm, regs + 1, 195, 6, 234);
     U_STATEMENT(vm, regs + 0, 196, 6);
     U_STATEMENT(vm, regs + 0, 197, 6);
@@ -9854,8 +9854,8 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 238, 6);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 10);
-    block22038:;
-    if (!U_IFOR(vm, regs + 2)) goto block22072;
+    block22035:;
+    if (!U_IFOR(vm, regs + 2)) goto block22069;
     U_STATEMENT(vm, regs + 2, 239, 6);
     U_PUSHINT(vm, regs + 2, 7);
     fun_477(vm, regs + 3); // call: factorial
@@ -9864,8 +9864,8 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 3, 0);
     U_PUSHFUN(vm, regs + 4, 0, fun_180);
     fun_478(vm, regs + 5); // call: fold
-    goto block22038;
-    block22072:;
+    goto block22035;
+    block22069:;
     U_STATEMENT(vm, regs + 0, 242, 6);
     regs[0] = locals[19]; // testvector
     U_PUSHINT(vm, regs + 1, 1);
@@ -10017,8 +10017,8 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 271, 6);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 32);
-    block22576:;
-    if (!U_IFOR(vm, regs + 2)) goto block22613;
+    block22573:;
+    if (!U_IFOR(vm, regs + 2)) goto block22610;
     U_STATEMENT(vm, regs + 2, 272, 6);
     U_BCALLRET0(vm, regs + 2, 95, 1); // rnd_float
     SetLVal(vm, &locals[46]); // key
@@ -10028,16 +10028,16 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[3] = locals[46]; // key
     regs[4] = locals[46]; // key
     fun_138(vm, regs + 5); // call: set
-    goto block22576;
-    block22613:;
+    goto block22573;
+    block22610:;
     U_STATEMENT(vm, regs + 0, 274, 6);
     U_PUSHINT(vm, regs + 0, 0);
     U_BCALLRET1(vm, regs + 1, 97, 0); // rnd_seed
     U_STATEMENT(vm, regs + 0, 275, 6);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 32);
-    block22636:;
-    if (!U_IFOR(vm, regs + 2)) goto block22695;
+    block22633:;
+    if (!U_IFOR(vm, regs + 2)) goto block22692;
     U_STATEMENT(vm, regs + 2, 276, 6);
     U_BCALLRET0(vm, regs + 2, 95, 1); // rnd_float
     SetLVal(vm, &locals[47]); // key
@@ -10054,8 +10054,8 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[3] = locals[47]; // key
     U_FEQ(vm, regs + 4);
     U_ASSERT(vm, regs + 3, 278, 6, 258);
-    goto block22636;
-    block22695:;
+    goto block22633;
+    block22692:;
     U_STATEMENT(vm, regs + 0, 280, 6);
     U_PUSHINT(vm, regs + 0, 17);
     fun_481(vm, regs + 1); // call: dictionary
@@ -10076,12 +10076,12 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 283, 6);
     regs[0] = locals[50]; // val
     U_E2B(vm, regs + 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block22770;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block22767;
     U_POP(vm, regs + 1);
     regs[0] = locals[50]; // val
     U_PUSHSTR(vm, regs + 1, 262); // "b"
     U_SEQ(vm, regs + 2);
-    block22770:;
+    block22767:;
     U_ASSERT(vm, regs + 1, 283, 6, 263);
     U_STATEMENT(vm, regs + 0, 285, 6);
     U_PUSHINT(vm, regs + 0, 17);
@@ -10116,8 +10116,8 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 291, 6);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 10);
-    block22882:;
-    if (!U_IFOR(vm, regs + 2)) goto block22938;
+    block22879:;
+    if (!U_IFOR(vm, regs + 2)) goto block22935;
     U_STATEMENT(vm, regs + 2, 291, 6);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[53]); // i
@@ -10126,41 +10126,41 @@ static void fun_153(VMRef vm, StackPtr psp) {
     regs[2] = locals[53]; // i
     U_PUSHINT(vm, regs + 3, 5);
     U_IEQ(vm, regs + 4);
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block22924;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block22921;
     U_STATEMENT(vm, regs + 2, 292, 6);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
-    goto block22940;
-    block22924:;
+    goto block22937;
+    block22921:;
     U_STATEMENT(vm, regs + 2, 293, 6);
     SetLVal(vm, &locals[52]); // lc
     U_LV_IPP(vm, regs + 2);
-    goto block22882;
-    block22938:;
-    block22940:;
+    goto block22879;
+    block22935:;
+    block22937:;
     U_STATEMENT(vm, regs + 0, 294, 6);
     regs[0] = locals[52]; // lc
     U_PUSHINT(vm, regs + 1, 5);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 294, 6, 265);
     U_STATEMENT(vm, regs + 0, 295, 6);
-    block22963:;
+    block22960:;
     regs[0] = locals[52]; // lc
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block23007;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block23004;
     U_STATEMENT(vm, regs + 0, 296, 6);
     regs[0] = locals[52]; // lc
     U_PUSHINT(vm, regs + 1, 1);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block22993;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block22990;
     U_STATEMENT(vm, regs + 0, 296, 6);
-    goto block23009;
-    block22993:;
+    goto block23006;
+    block22990:;
     U_STATEMENT(vm, regs + 0, 297, 6);
     SetLVal(vm, &locals[52]); // lc
     U_LV_IMM(vm, regs + 0);
-    goto block22963;
-    block23007:;
-    block23009:;
+    goto block22960;
+    block23004:;
+    block23006:;
     U_STATEMENT(vm, regs + 0, 298, 6);
     regs[0] = locals[52]; // lc
     U_PUSHINT(vm, regs + 1, 1);
@@ -10583,7 +10583,7 @@ static void fun_159(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 108, 6);
     U_PUSHSTR(vm, regs + 0, 338); // "no"
     U_INCREF(vm, regs + 1, 0);
-    goto block24182;
+    goto block24179;
     case 2:case 3:
     U_STATEMENT(vm, regs + 0, 110, 6);
     regs[0] = locals[0]; // i
@@ -10595,18 +10595,18 @@ static void fun_159(VMRef vm, StackPtr psp) {
     U_A2S(vm, regs + 2, 0);
     keepvar[0] = TopM(regs + 2, 0);
     U_SADD(vm, regs + 2);
-    goto block24182;
+    goto block24179;
     case 4:case 5:case 6:case 8:
     U_STATEMENT(vm, regs + 0, 112, 6);
     U_PUSHSTR(vm, regs + 0, 340); // "maybe"
     U_INCREF(vm, regs + 1, 0);
-    goto block24182;
+    goto block24179;
     case 7:default:
     U_STATEMENT(vm, regs + 0, 113, 6);
     U_PUSHSTR(vm, regs + 0, 341); // "what?"
     U_INCREF(vm, regs + 1, 0);
     } // switch
-    block24182:;
+    block24179:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -10773,13 +10773,13 @@ static void fun_477(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[0]; // n
     U_IGT(vm, regs + 2);
-    if (!U_JUMPNOFAIL(vm, regs + 1)) goto block24485;
+    if (!U_JUMPNOFAIL(vm, regs + 1)) goto block24482;
     regs[0] = locals[0]; // n
     U_PUSHINT(vm, regs + 1, 1);
     U_ISUB(vm, regs + 2);
     fun_165(vm, regs + 1); // call: factorial
     U_POP(vm, regs + 1);
-    block24485:;
+    block24482:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     goto epilogue;
@@ -10797,7 +10797,7 @@ static void fun_165(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[0]; // n
     U_IGT(vm, regs + 2);
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block24532;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block24529;
     U_POP(vm, regs + 1);
     regs[0] = locals[0]; // n
     U_PUSHINT(vm, regs + 1, 1);
@@ -10805,7 +10805,7 @@ static void fun_165(VMRef vm, StackPtr psp) {
     fun_165(vm, regs + 1); // call: factorial
     regs[1] = locals[0]; // n
     U_IMUL(vm, regs + 2);
-    block24532:;
+    block24529:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -10856,13 +10856,13 @@ static void fun_470(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 187, 6);
     U_PUSHFLT(vm, regs + 0, 0);
     U_BCALLRET1(vm, regs + 1, 69, 1); // sin
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block24615;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block24612;
     U_STATEMENT(vm, regs + 0, 187, 6);
     U_PUSHINT(vm, regs + 0, 4);
     U_RETURNLOCAL(vm, 0, 1);
     Push(psp, regs[0]);
     goto epilogue;
-    block24615:;
+    block24612:;
     U_STATEMENT(vm, regs + 0, 188, 6);
     U_PUSHINT(vm, regs + 0, 6);
     U_RETURNLOCAL(vm, 0, 1);
@@ -10879,7 +10879,7 @@ static void fun_168(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 187, 6);
     U_PUSHFLT(vm, regs + 0, 0);
     U_BCALLRET1(vm, regs + 1, 69, 1); // sin
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block24662;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block24659;
     U_STATEMENT(vm, regs + 0, 187, 6);
     U_PUSHINT(vm, regs + 0, 4);
     U_PUSHINT(vm, regs + 1, 5);
@@ -10887,7 +10887,7 @@ static void fun_168(VMRef vm, StackPtr psp) {
     Push(psp, regs[0]);
     Push(psp, regs[1]);
     goto epilogue;
-    block24662:;
+    block24659:;
     U_STATEMENT(vm, regs + 0, 188, 6);
     U_PUSHINT(vm, regs + 0, 6);
     U_PUSHINT(vm, regs + 1, 7);
@@ -10967,8 +10967,8 @@ static void fun_172(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 209, 6);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 10);
-    block24794:;
-    if (!U_IFOR(vm, regs + 2)) goto block24847;
+    block24791:;
+    if (!U_IFOR(vm, regs + 2)) goto block24844;
     U_STATEMENT(vm, regs + 2, 209, 6);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[1]); // a
@@ -10977,7 +10977,7 @@ static void fun_172(VMRef vm, StackPtr psp) {
     regs[2] = locals[1]; // a
     regs[3] = locals[0]; // n
     U_IEQ(vm, regs + 4);
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block24842;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block24839;
     U_STATEMENT(vm, regs + 2, 210, 6);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
@@ -10987,9 +10987,9 @@ static void fun_172(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block24842:;
-    goto block24794;
-    block24847:;
+    block24839:;
+    goto block24791;
+    block24844:;
     U_STATEMENT(vm, regs + 0, 211, 6);
     U_PUSHNIL(vm, regs + 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -11007,11 +11007,11 @@ static void fun_471(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1683, 0);
     U_STATEMENT(vm, regs + 0, 216, 6);
     fun_472(vm, regs + 0); // call: nlr2
-    if (!U_JUMPIFUNWOUND(vm, regs + 0, 167)) goto block24882;
+    if (!U_JUMPIFUNWOUND(vm, regs + 0, 167)) goto block24879;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block24882:;
+    block24879:;
     U_STATEMENT(vm, regs + 0, 217, 6);
     U_RETURNLOCAL(vm, 0, 0);
     goto epilogue;
@@ -11025,11 +11025,11 @@ static void fun_173(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1688, 0);
     U_STATEMENT(vm, regs + 0, 216, 6);
     fun_174(vm, regs + 0); // call: nlr2
-    if (!U_JUMPIFUNWOUND(vm, regs + 1, 167)) goto block24915;
+    if (!U_JUMPIFUNWOUND(vm, regs + 1, 167)) goto block24912;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block24915:;
+    block24912:;
     U_STATEMENT(vm, regs + 0, 217, 6);
     U_PUSHINT(vm, regs + 0, 2);
     U_RETURNLOCAL(vm, 0, 1);
@@ -11073,23 +11073,23 @@ static void fun_175(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 224, 6);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 2);
-    block24981:;
-    if (!U_IFOR(vm, regs + 2)) goto block25024;
+    block24978:;
+    if (!U_IFOR(vm, regs + 2)) goto block25021;
     U_STATEMENT(vm, regs + 2, 224, 6);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[0]); // i
     U_LV_WRITE(vm, regs + 3);
     U_STATEMENT(vm, regs + 2, 225, 6);
     regs[2] = locals[0]; // i
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block25019;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block25016;
     U_STATEMENT(vm, regs + 2, 226, 6);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
     U_RETURNNONLOCAL(vm, 0, 0, 57);
     goto epilogue;
-    block25019:;
-    goto block24981;
-    block25024:;
+    block25016:;
+    goto block24978;
+    block25021:;
     U_RETURNNONLOCAL(vm, 0, 0, 168);
     goto epilogue;
     epilogue:;
@@ -11105,12 +11105,12 @@ static void fun_176(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 0, 0, fun_177);
     U_PUSHFUN(vm, regs + 1, 0, fun_178);
     fun_474(vm, regs + 2); // call: try
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 124)) goto block25061;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 124)) goto block25058;
     U_RETURNANY(vm, 0, 0);
     psp = PopArg(vm, 374, psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25061:;
+    block25058:;
     U_RETURNNONLOCAL(vm, 0, 0, 169);
     psp = PopArg(vm, 374, psp);
     goto epilogue;
@@ -11124,28 +11124,28 @@ static void fun_177(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1715, 0);
     U_STATEMENT(vm, regs + 0, 230, 6);
     U_PUSHVARF(vm, regs + 0, 374); // n
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block25114;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block25111;
     U_STATEMENT(vm, regs + 0, 230, 6);
     U_PUSHVARF(vm, regs + 0, 374); // n
     U_PUSHINT(vm, regs + 1, 1);
     U_ISUB(vm, regs + 2);
     fun_176(vm, regs + 1); // call: recursive_exceptions
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 169)) goto block25109;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 169)) goto block25106;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25109:;
-    goto block25137;
-    block25114:;
+    block25106:;
+    goto block25134;
+    block25111:;
     U_STATEMENT(vm, regs + 0, 231, 6);
     U_PUSHSTR(vm, regs + 0, 346); // ""
     fun_130(vm, regs + 1); // call: throw
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 126)) goto block25135;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 126)) goto block25132;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25135:;
-    block25137:;
+    block25132:;
+    block25134:;
     U_RETURNNONLOCAL(vm, 0, 0, 170);
     goto epilogue;
     epilogue:;
@@ -11169,12 +11169,12 @@ static void fun_178(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 1, 348); // "*"
     U_SADD(vm, regs + 2);
     fun_476(vm, regs + 1); // call: throw
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 126)) goto block25197;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 126)) goto block25194;
     U_RETURNANY(vm, 0, 0);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25197:;
+    block25194:;
     U_RETURNNONLOCAL(vm, 0, 0, 171);
     Pop(psp);
     goto epilogue;
@@ -11189,11 +11189,11 @@ static void fun_179(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 236, 6);
     U_PUSHINT(vm, regs + 0, 10);
     fun_176(vm, regs + 1); // call: recursive_exceptions
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 169)) goto block25230;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 169)) goto block25227;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25230:;
+    block25227:;
     U_RETURNNONLOCAL(vm, 0, 0, 172);
     goto epilogue;
     epilogue:;
@@ -11233,19 +11233,19 @@ static void fun_181(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 1, 111, 1); // abs
     U_PUSHINT(vm, regs + 1, 1);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block25304;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block25301;
     U_STATEMENT(vm, regs + 0, 305, 6);
     U_PUSHINT(vm, regs + 0, 1);
-    goto block25324;
-    block25304:;
+    goto block25321;
+    block25301:;
     U_STATEMENT(vm, regs + 0, 305, 6);
     fun_182(vm, regs + 0); // call: error
-    if (!U_JUMPIFUNWOUND(vm, regs + 0, 175)) goto block25322;
+    if (!U_JUMPIFUNWOUND(vm, regs + 0, 175)) goto block25319;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25322:;
-    block25324:;
+    block25319:;
+    block25321:;
     SetLVal(vm, &locals[0]); // a
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 306, 6);
@@ -11253,21 +11253,21 @@ static void fun_181(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 1);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block25360;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block25357;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 307, 6);
     U_PUSHINT(vm, regs + 0, 2);
-    goto block25382;
-    block25360:;
+    goto block25379;
+    block25357:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 308, 6);
     fun_182(vm, regs + 0); // call: error
-    if (!U_JUMPIFUNWOUND(vm, regs + 0, 175)) goto block25380;
+    if (!U_JUMPIFUNWOUND(vm, regs + 0, 175)) goto block25377;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25380:;
-    block25382:;
+    block25377:;
+    block25379:;
     SetLVal(vm, &locals[1]); // b
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 309, 6);
@@ -11307,12 +11307,12 @@ static void fun_183(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 315, 6);
     U_STATEMENT(vm, regs + 0, 323, 6);
     fun_184(vm, regs + 0); // call: outer_dest1
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 177)) goto block25471;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 177)) goto block25468;
     U_RETURNANY(vm, 0, 1);
     psp = PopArg(vm, 390, psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25471:;
+    block25468:;
     keepvar[0] = TopM(regs + 1, 0);
     U_BCALLRET1(vm, regs + 1, 12, 1); // length
     U_PUSHINT(vm, regs + 1, 0);
@@ -11333,11 +11333,11 @@ static void fun_184(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 316, 6);
     U_STATEMENT(vm, regs + 0, 322, 6);
     fun_185(vm, regs + 0); // call: return_past
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 178)) goto block25515;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 178)) goto block25512;
     U_RETURNANY(vm, 0, 1);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25515:;
+    block25512:;
     U_A2S(vm, regs + 1, 2);
     U_RETURNNONLOCAL(vm, 0, 1, 177);
     Push(psp, regs[0]);
@@ -11355,7 +11355,7 @@ static void fun_185(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 0);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block25568;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block25565;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 318, 6);
     U_PUSHSTR(vm, regs + 0, 351); // "a"
@@ -11363,12 +11363,12 @@ static void fun_185(VMRef vm, StackPtr psp) {
     U_RETURNNONLOCAL(vm, 0, 1, 177);
     Push(psp, regs[0]);
     goto epilogue;
-    goto block25615;
-    block25568:;
+    goto block25612;
+    block25565:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 1);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block25599;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block25596;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 319, 6);
     U_PUSHINT(vm, regs + 0, 4);
@@ -11377,15 +11377,15 @@ static void fun_185(VMRef vm, StackPtr psp) {
     Push(psp, regs[0]);
     Push(psp, regs[1]);
     goto epilogue;
-    goto block25615;
-    block25599:;
+    goto block25612;
+    block25596:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 320, 6);
     U_PUSHFLT64(vm, regs + 0, -858993459, 1074318540);
     U_RETURNNONLOCAL(vm, 0, 1, 178);
     Push(psp, regs[0]);
     goto epilogue;
-    block25615:;
+    block25612:;
     U_RETURNNONLOCAL(vm, 0, 0, 178);
     goto epilogue;
     epilogue:;
@@ -11422,11 +11422,11 @@ static void fun_190(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1774, 0);
     U_STATEMENT(vm, regs + 0, 359, 6);
     fun_191(vm, regs + 0); // call: H
-    if (!U_JUMPIFUNWOUND(vm, regs + 1, 183)) goto block25676;
+    if (!U_JUMPIFUNWOUND(vm, regs + 1, 183)) goto block25673;
     U_RETURNANY(vm, 0, 1);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block25676:;
+    block25673:;
     U_PUSHINT(vm, regs + 1, 1);
     U_IADD(vm, regs + 2);
     U_RETURNLOCAL(vm, 0, 1);
@@ -11445,13 +11445,13 @@ static void fun_191(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 361, 6);
     U_NEWVEC(vm, regs + 0, 1697, 0);
     keepvar[0] = TopM(regs + 1, 0);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block25720;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block25717;
     U_STATEMENT(vm, regs + 0, 362, 6);
     U_PUSHINT(vm, regs + 0, 4);
     U_RETURNNONLOCAL(vm, 0, 1, 183);
     Push(psp, regs[0]);
     goto epilogue;
-    block25720:;
+    block25717:;
     U_STATEMENT(vm, regs + 0, 363, 6);
     U_PUSHINT(vm, regs + 0, 3);
     U_RETURNNONLOCAL(vm, 0, 1, 182);
@@ -11681,34 +11681,34 @@ static void fun_197(VMRef vm, StackPtr psp) {
     regs[0] = locals[0]; // i
     U_PUSHINT(vm, regs + 1, 2);
     U_IGE(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block26305;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block26302;
     U_STATEMENT(vm, regs + 0, 420, 6);
     regs[0] = locals[0]; // i
     U_PUSHINT(vm, regs + 1, 3);
     U_IGE(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block26291;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block26288;
     U_STATEMENT(vm, regs + 0, 422, 6);
     U_PUSHINT(vm, regs + 0, 40);
-    goto block26300;
-    block26291:;
+    goto block26297;
+    block26288:;
     U_STATEMENT(vm, regs + 0, 421, 6);
     U_PUSHINT(vm, regs + 0, 30);
-    block26300:;
-    goto block26343;
-    block26305:;
+    block26297:;
+    goto block26340;
+    block26302:;
     U_STATEMENT(vm, regs + 0, 417, 6);
     regs[0] = locals[0]; // i
     U_PUSHINT(vm, regs + 1, 1);
     U_IGE(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block26332;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block26329;
     U_STATEMENT(vm, regs + 0, 419, 6);
     U_PUSHINT(vm, regs + 0, 20);
-    goto block26341;
-    block26332:;
+    goto block26338;
+    block26329:;
     U_STATEMENT(vm, regs + 0, 418, 6);
     U_PUSHINT(vm, regs + 0, 10);
-    block26341:;
-    block26343:;
+    block26338:;
+    block26340:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -12063,12 +12063,12 @@ static void fun_513(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1898, locals);
     U_STATEMENT(vm, regs + 0, 44, 9);
     fun_210(vm, regs + 0); // call: return_from2
-    if (!U_JUMPIFUNWOUND(vm, regs + 1, 202)) goto block27104;
+    if (!U_JUMPIFUNWOUND(vm, regs + 1, 202)) goto block27101;
     U_RETURNANY(vm, 0, 0);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block27104:;
+    block27101:;
     U_STATEMENT(vm, regs + 0, 45, 9);
     U_PUSHINT(vm, regs + 0, 0);
     U_PUSHINT(vm, regs + 1, 0);
@@ -12089,12 +12089,12 @@ static void fun_209(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1904, locals);
     U_STATEMENT(vm, regs + 0, 44, 9);
     fun_210(vm, regs + 0); // call: return_from2
-    if (!U_JUMPIFUNWOUND(vm, regs + 1, 202)) goto block27147;
+    if (!U_JUMPIFUNWOUND(vm, regs + 1, 202)) goto block27144;
     U_RETURNANY(vm, 0, 0);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block27147:;
+    block27144:;
     U_STATEMENT(vm, regs + 0, 45, 9);
     U_PUSHINT(vm, regs + 0, 0);
     U_PUSHINT(vm, regs + 1, 0);
@@ -12167,24 +12167,24 @@ static void fun_211(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 0);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block27335;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block27332;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 58, 9);
     U_PUSHINT(vm, regs + 0, 0);
     U_ASSERT(vm, regs + 1, 58, 9, 390);
-    goto block27362;
-    block27335:;
+    goto block27359;
+    block27332:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 1);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block27356;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block27353;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 59, 9);
-    goto block27362;
-    block27356:;
+    goto block27359;
+    block27353:;
     U_POP(vm, regs + 1);
     U_ENUM_RANGE_ERR(vm, regs + 0);
-    block27362:;
+    block27359:;
     U_RETURNLOCAL(vm, 0, 0);
     goto epilogue;
     epilogue:;
@@ -12362,12 +12362,12 @@ static void fun_212(VMRef vm, StackPtr psp) {
     regs[0] = locals[3]; // mr1
     U_PUSHINT(vm, regs + 1, 2);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block27913;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block27910;
     U_POP(vm, regs + 1);
     regs[0] = locals[4]; // mr2
     U_PUSHSTR(vm, regs + 1, 405); // "b"
     U_SEQ(vm, regs + 2);
-    block27913:;
+    block27910:;
     U_ASSERT(vm, regs + 1, 115, 9, 406);
     U_STATEMENT(vm, regs + 0, 117, 9);
     U_STATEMENT(vm, regs + 0, 119, 9);
@@ -12654,21 +12654,21 @@ static void fun_518(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2003, locals);
     U_STATEMENT(vm, regs + 0, 87, 9);
     regs[0] = locals[1]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block28384;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block28381;
     U_STATEMENT(vm, regs + 0, 87, 9);
     regs[0] = locals[0]; // this
     regs[1] = locals[1]; // c
     U_PUSHINT(vm, regs + 2, 1);
     U_ISUB(vm, regs + 3);
     fun_518(vm, regs + 2); // call: r
-    goto block28403;
-    block28384:;
+    goto block28400;
+    block28381:;
     U_STATEMENT(vm, regs + 0, 87, 9);
     U_PUSHINT(vm, regs + 0, 0);
     U_NEWOBJECT(vm, regs + 1, 762); // C1
     regs[1] = locals[1]; // c
     U_DDCALL(vm, regs + 2, 3, 1); vm.next_call_target(vm, regs + 2);
-    block28403:;
+    block28400:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Pop(psp);
@@ -12687,21 +12687,21 @@ static void fun_224(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2010, locals);
     U_STATEMENT(vm, regs + 0, 87, 9);
     regs[0] = locals[1]; // c
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block28450;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block28447;
     U_STATEMENT(vm, regs + 0, 87, 9);
     regs[0] = locals[0]; // this
     regs[1] = locals[1]; // c
     U_PUSHINT(vm, regs + 2, 1);
     U_ISUB(vm, regs + 3);
     fun_518(vm, regs + 2); // call: r
-    goto block28469;
-    block28450:;
+    goto block28466;
+    block28447:;
     U_STATEMENT(vm, regs + 0, 87, 9);
     U_PUSHINT(vm, regs + 0, 0);
     U_NEWOBJECT(vm, regs + 1, 762); // C1
     regs[1] = locals[1]; // c
     U_DDCALL(vm, regs + 2, 3, 1); vm.next_call_target(vm, regs + 2);
-    block28469:;
+    block28466:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -12908,16 +12908,16 @@ static void fun_233(VMRef vm, StackPtr psp) {
     regs[0] = locals[1]; // b
     U_PUSHNIL(vm, regs + 1);
     U_AEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block28779;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block28776;
     U_STATEMENT(vm, regs + 0, 133, 9);
-    goto block28798;
-    block28779:;
+    goto block28795;
+    block28776:;
     U_STATEMENT(vm, regs + 0, 135, 9);
     regs[0] = locals[1]; // b
     U_PUSHSTR(vm, regs + 1, 418); // ""
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 135, 9, 419);
-    block28798:;
+    block28795:;
     U_STATEMENT(vm, regs + 0, 136, 9);
     U_STATEMENT(vm, regs + 0, 137, 9);
     regs[0] = locals[0]; // a
@@ -13389,17 +13389,17 @@ static void fun_243(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2158, locals);
     U_STATEMENT(vm, regs + 0, 206, 9);
     regs[0] = locals[0]; // aa
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block29890;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block29887;
     U_STATEMENT(vm, regs + 0, 206, 9);
     regs[0] = locals[0]; // aa
     U_PUSHFLD(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 1, 0);
     U_VPUSHIDXI(vm, regs + 2);
-    goto block29899;
-    block29890:;
+    goto block29896;
+    block29887:;
     U_STATEMENT(vm, regs + 0, 206, 9);
     U_PUSHINT(vm, regs + 0, 2);
-    block29899:;
+    block29896:;
     U_NEWVEC(vm, regs + 1, 7, 1);
     U_PUSHNIL(vm, regs + 1);
     U_NEWVEC(vm, regs + 2, 827, 0);
@@ -13460,17 +13460,17 @@ static void fun_249(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2175, locals);
     U_STATEMENT(vm, regs + 0, 224, 9);
     regs[0] = locals[0]; // aa
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block30020;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block30017;
     U_STATEMENT(vm, regs + 0, 224, 9);
     regs[0] = locals[0]; // aa
     U_PUSHFLD(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 1, 0);
     U_VPUSHIDXI(vm, regs + 2);
-    goto block30029;
-    block30020:;
+    goto block30026;
+    block30017:;
     U_STATEMENT(vm, regs + 0, 224, 9);
     U_PUSHINT(vm, regs + 0, 2);
-    block30029:;
+    block30026:;
     U_NEWVEC(vm, regs + 1, 7, 1);
     U_PUSHNIL(vm, regs + 1);
     U_NEWVEC(vm, regs + 2, 827, 0);
@@ -13623,19 +13623,19 @@ static void fun_254(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 1, 1);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block30442;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block30439;
     U_STATEMENT(vm, regs + 0, 263, 9);
     U_PUSHINT(vm, regs + 0, 1);
     U_NEWOBJECT(vm, regs + 1, 872); // A
     U_NEWVEC(vm, regs + 1, 881, 1);
-    goto block30461;
-    block30442:;
+    goto block30458;
+    block30439:;
     U_STATEMENT(vm, regs + 0, 263, 9);
     U_PUSHINT(vm, regs + 0, 1);
     U_PUSHINT(vm, regs + 1, 2);
     U_NEWOBJECT(vm, regs + 2, 883); // B
     U_NEWVEC(vm, regs + 1, 895, 1);
-    block30461:;
+    block30458:;
     fun_255(vm, regs + 1); // call: f
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
@@ -13790,24 +13790,24 @@ static void fun_557(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 24, 11);
     regs[0] = locals[0]; // startnode
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block30801;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block30798;
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
-    block30801:;
+    block30798:;
     U_INCREF(vm, regs + 1, 0);
     U_LVAL_VARF(vm, regs + 1, 1406); // n
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 25, 11);
-    block30815:;
+    block30812:;
     U_PUSHVARF(vm, regs + 0, 1406); // n
     U_E2B(vm, regs + 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block30835;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block30832;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 1406); // n
     fun_275(vm, regs + 1); // call: function255
     U_LOGNOT(vm, regs + 1);
-    block30835:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block31024;
+    block30832:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block31021;
     U_STATEMENT(vm, regs + 0, 26, 11);
     U_PUSHVARF(vm, regs + 0, 1405); // openlist
     U_PUSHVARF(vm, regs + 1, 1406); // n
@@ -13830,8 +13830,8 @@ static void fun_557(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 39, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 1405); // openlist
-    block30908:;
-    if (!U_VFOR(vm, regs + 2)) goto block31019;
+    block30905:;
+    if (!U_VFOR(vm, regs + 2)) goto block31016;
     U_STATEMENT(vm, regs + 2, 39, 11);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // c
@@ -13839,49 +13839,49 @@ static void fun_557(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 40, 11);
     U_PUSHVARF(vm, regs + 2, 1406); // n
     U_LOGNOTREF(vm, regs + 3);
-    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block30952;
+    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block30949;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 1406); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FLT(vm, regs + 4);
-    block30952:;
-    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block30994;
+    block30949:;
+    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block30991;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 1406); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FEQ(vm, regs + 4);
-    if (!U_JUMPFAILR(vm, regs + 3)) goto block30992;
+    if (!U_JUMPFAILR(vm, regs + 3)) goto block30989;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 1);
     U_PUSHVARF(vm, regs + 3, 1406); // n
     U_PUSHFLD(vm, regs + 4, 1);
     U_FLT(vm, regs + 4);
-    block30992:;
-    block30994:;
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block31014;
+    block30989:;
+    block30991:;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block31011;
     U_STATEMENT(vm, regs + 2, 41, 11);
     regs[2] = locals[3]; // c
     U_INCREF(vm, regs + 3, 0);
     U_LVAL_VARF(vm, regs + 3, 1406); // n
     U_LV_WRITEREF(vm, regs + 3);
-    block31014:;
-    goto block30908;
-    block31019:;
-    goto block30815;
-    block31024:;
+    block31011:;
+    goto block30905;
+    block31016:;
+    goto block30812;
+    block31021:;
     U_STATEMENT(vm, regs + 0, 42, 11);
     U_NEWVEC(vm, regs + 0, 148, 0);
     SetLVal(vm, &locals[4]); // path
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 43, 11);
-    block31043:;
+    block31040:;
     U_PUSHVARF(vm, regs + 0, 1406); // n
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block31094;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block31091;
     U_STATEMENT(vm, regs + 0, 44, 11);
     regs[0] = locals[4]; // path
     U_PUSHVARF(vm, regs + 1, 1406); // n
@@ -13895,8 +13895,8 @@ static void fun_557(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     U_LVAL_VARF(vm, regs + 1, 1406); // n
     U_LV_WRITEREF(vm, regs + 1);
-    goto block31043;
-    block31094:;
+    goto block31040;
+    block31091:;
     U_STATEMENT(vm, regs + 0, 46, 11);
     regs[0] = locals[4]; // path
     U_RETURNLOCAL(vm, 0, 1);
@@ -13937,24 +13937,24 @@ static void fun_546(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 24, 11);
     regs[0] = locals[0]; // startnode
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block31159;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block31156;
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
-    block31159:;
+    block31156:;
     U_INCREF(vm, regs + 1, 0);
     U_LVAL_VARF(vm, regs + 1, 1371); // n
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 25, 11);
-    block31173:;
+    block31170:;
     U_PUSHVARF(vm, regs + 0, 1371); // n
     U_E2B(vm, regs + 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block31193;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block31190;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 1371); // n
     fun_547(vm, regs + 1); // call: function243
     U_LOGNOT(vm, regs + 1);
-    block31193:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block31382;
+    block31190:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block31379;
     U_STATEMENT(vm, regs + 0, 26, 11);
     U_PUSHVARF(vm, regs + 0, 1370); // openlist
     U_PUSHVARF(vm, regs + 1, 1371); // n
@@ -13977,8 +13977,8 @@ static void fun_546(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 39, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 1370); // openlist
-    block31266:;
-    if (!U_VFOR(vm, regs + 2)) goto block31377;
+    block31263:;
+    if (!U_VFOR(vm, regs + 2)) goto block31374;
     U_STATEMENT(vm, regs + 2, 39, 11);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // c
@@ -13986,49 +13986,49 @@ static void fun_546(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 40, 11);
     U_PUSHVARF(vm, regs + 2, 1371); // n
     U_LOGNOTREF(vm, regs + 3);
-    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block31310;
+    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block31307;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 1371); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FLT(vm, regs + 4);
-    block31310:;
-    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block31352;
+    block31307:;
+    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block31349;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 1371); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FEQ(vm, regs + 4);
-    if (!U_JUMPFAILR(vm, regs + 3)) goto block31350;
+    if (!U_JUMPFAILR(vm, regs + 3)) goto block31347;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 1);
     U_PUSHVARF(vm, regs + 3, 1371); // n
     U_PUSHFLD(vm, regs + 4, 1);
     U_FLT(vm, regs + 4);
-    block31350:;
-    block31352:;
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block31372;
+    block31347:;
+    block31349:;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block31369;
     U_STATEMENT(vm, regs + 2, 41, 11);
     regs[2] = locals[3]; // c
     U_INCREF(vm, regs + 3, 0);
     U_LVAL_VARF(vm, regs + 3, 1371); // n
     U_LV_WRITEREF(vm, regs + 3);
-    block31372:;
-    goto block31266;
-    block31377:;
-    goto block31173;
-    block31382:;
+    block31369:;
+    goto block31263;
+    block31374:;
+    goto block31170;
+    block31379:;
     U_STATEMENT(vm, regs + 0, 42, 11);
     U_NEWVEC(vm, regs + 0, 1005, 0);
     SetLVal(vm, &locals[4]); // path
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 43, 11);
-    block31401:;
+    block31398:;
     U_PUSHVARF(vm, regs + 0, 1371); // n
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block31452;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block31449;
     U_STATEMENT(vm, regs + 0, 44, 11);
     regs[0] = locals[4]; // path
     U_PUSHVARF(vm, regs + 1, 1371); // n
@@ -14042,8 +14042,8 @@ static void fun_546(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     U_LVAL_VARF(vm, regs + 1, 1371); // n
     U_LV_WRITEREF(vm, regs + 1);
-    goto block31401;
-    block31452:;
+    goto block31398;
+    block31449:;
     U_STATEMENT(vm, regs + 0, 46, 11);
     regs[0] = locals[4]; // path
     U_RETURNLOCAL(vm, 0, 1);
@@ -14084,24 +14084,24 @@ static void fun_260(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 24, 11);
     regs[0] = locals[0]; // startnode
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block31517;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block31514;
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
-    block31517:;
+    block31514:;
     U_INCREF(vm, regs + 1, 0);
     U_LVAL_VARF(vm, regs + 1, 479); // n
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 25, 11);
-    block31531:;
+    block31528:;
     U_PUSHVARF(vm, regs + 0, 479); // n
     U_E2B(vm, regs + 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block31551;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block31548;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 479); // n
     fun_263(vm, regs + 1); // call: function243
     U_LOGNOT(vm, regs + 1);
-    block31551:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block31740;
+    block31548:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block31737;
     U_STATEMENT(vm, regs + 0, 26, 11);
     U_PUSHVARF(vm, regs + 0, 478); // openlist
     U_PUSHVARF(vm, regs + 1, 479); // n
@@ -14124,8 +14124,8 @@ static void fun_260(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 39, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 478); // openlist
-    block31624:;
-    if (!U_VFOR(vm, regs + 2)) goto block31735;
+    block31621:;
+    if (!U_VFOR(vm, regs + 2)) goto block31732;
     U_STATEMENT(vm, regs + 2, 39, 11);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // c
@@ -14133,49 +14133,49 @@ static void fun_260(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 40, 11);
     U_PUSHVARF(vm, regs + 2, 479); // n
     U_LOGNOTREF(vm, regs + 3);
-    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block31668;
+    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block31665;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 479); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FLT(vm, regs + 4);
-    block31668:;
-    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block31710;
+    block31665:;
+    if (!U_JUMPNOFAILR(vm, regs + 3)) goto block31707;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 479); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FEQ(vm, regs + 4);
-    if (!U_JUMPFAILR(vm, regs + 3)) goto block31708;
+    if (!U_JUMPFAILR(vm, regs + 3)) goto block31705;
     U_POP(vm, regs + 3);
     regs[2] = locals[3]; // c
     U_PUSHFLD(vm, regs + 3, 1);
     U_PUSHVARF(vm, regs + 3, 479); // n
     U_PUSHFLD(vm, regs + 4, 1);
     U_FLT(vm, regs + 4);
-    block31708:;
-    block31710:;
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block31730;
+    block31705:;
+    block31707:;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block31727;
     U_STATEMENT(vm, regs + 2, 41, 11);
     regs[2] = locals[3]; // c
     U_INCREF(vm, regs + 3, 0);
     U_LVAL_VARF(vm, regs + 3, 479); // n
     U_LV_WRITEREF(vm, regs + 3);
-    block31730:;
-    goto block31624;
-    block31735:;
-    goto block31531;
-    block31740:;
+    block31727:;
+    goto block31621;
+    block31732:;
+    goto block31528;
+    block31737:;
     U_STATEMENT(vm, regs + 0, 42, 11);
     U_NEWVEC(vm, regs + 0, 1005, 0);
     SetLVal(vm, &locals[4]); // path
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 43, 11);
-    block31759:;
+    block31756:;
     U_PUSHVARF(vm, regs + 0, 479); // n
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block31810;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block31807;
     U_STATEMENT(vm, regs + 0, 44, 11);
     regs[0] = locals[4]; // path
     U_PUSHVARF(vm, regs + 1, 479); // n
@@ -14189,8 +14189,8 @@ static void fun_260(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     U_LVAL_VARF(vm, regs + 1, 479); // n
     U_LV_WRITEREF(vm, regs + 1);
-    goto block31759;
-    block31810:;
+    goto block31756;
+    block31807:;
     U_STATEMENT(vm, regs + 0, 46, 11);
     regs[0] = locals[4]; // path
     U_RETURNLOCAL(vm, 0, 1);
@@ -14223,7 +14223,7 @@ static void fun_558(VMRef vm, StackPtr psp) {
     regs[0] = locals[2]; // nn
     U_PUSHFLD(vm, regs + 1, 7);
     U_LOGNOT(vm, regs + 1);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32045;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32042;
     U_STATEMENT(vm, regs + 0, 30, 11);
     U_PUSHVARF(vm, regs + 0, 1406); // n
     U_PUSHFLD(vm, regs + 1, 0);
@@ -14236,23 +14236,23 @@ static void fun_558(VMRef vm, StackPtr psp) {
     regs[0] = locals[2]; // nn
     U_PUSHFLD(vm, regs + 1, 6);
     U_LOGNOT(vm, regs + 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block31906;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block31903;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 1405); // openlist
     regs[1] = locals[2]; // nn
     U_INCREF(vm, regs + 2, 0);
     U_PUSHINT(vm, regs + 2, 1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
-    block31906:;
+    block31903:;
     U_E2B(vm, regs + 1);
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block31926;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block31923;
     U_POP(vm, regs + 1);
     regs[0] = locals[3]; // G
     regs[1] = locals[2]; // nn
     U_PUSHFLD(vm, regs + 2, 0);
     U_FLT(vm, regs + 2);
-    block31926:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32043;
+    block31923:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32040;
     U_STATEMENT(vm, regs + 0, 32, 11);
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[2]; // nn
@@ -14291,8 +14291,8 @@ static void fun_558(VMRef vm, StackPtr psp) {
     regs[1] = locals[2]; // nn
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITE(vm, regs + 1);
-    block32043:;
-    block32045:;
+    block32040:;
+    block32042:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[2]);
@@ -14318,7 +14318,7 @@ static void fun_553(VMRef vm, StackPtr psp) {
     regs[0] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 1, 9);
     U_LOGNOT(vm, regs + 1);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32273;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32270;
     U_STATEMENT(vm, regs + 0, 30, 11);
     U_PUSHVARF(vm, regs + 0, 1371); // n
     U_PUSHFLD(vm, regs + 1, 0);
@@ -14331,23 +14331,23 @@ static void fun_553(VMRef vm, StackPtr psp) {
     regs[0] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 1, 8);
     U_LOGNOT(vm, regs + 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block32134;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block32131;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 1370); // openlist
     regs[1] = locals[3]; // nn
     U_INCREF(vm, regs + 2, 0);
     U_PUSHINT(vm, regs + 2, 1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
-    block32134:;
+    block32131:;
     U_E2B(vm, regs + 1);
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block32154;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block32151;
     U_POP(vm, regs + 1);
     regs[0] = locals[4]; // G
     regs[1] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 2, 0);
     U_FLT(vm, regs + 2);
-    block32154:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32271;
+    block32151:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32268;
     U_STATEMENT(vm, regs + 0, 32, 11);
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[3]; // nn
@@ -14385,8 +14385,8 @@ static void fun_553(VMRef vm, StackPtr psp) {
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITE(vm, regs + 1);
-    block32271:;
-    block32273:;
+    block32268:;
+    block32270:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -14412,7 +14412,7 @@ static void fun_261(VMRef vm, StackPtr psp) {
     regs[0] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 1, 9);
     U_LOGNOT(vm, regs + 1);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32499;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32496;
     U_STATEMENT(vm, regs + 0, 30, 11);
     U_PUSHVARF(vm, regs + 0, 479); // n
     U_PUSHFLD(vm, regs + 1, 0);
@@ -14425,23 +14425,23 @@ static void fun_261(VMRef vm, StackPtr psp) {
     regs[0] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 1, 8);
     U_LOGNOT(vm, regs + 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block32362;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block32359;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 478); // openlist
     regs[1] = locals[3]; // nn
     U_INCREF(vm, regs + 2, 0);
     U_PUSHINT(vm, regs + 2, 1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
-    block32362:;
+    block32359:;
     U_E2B(vm, regs + 1);
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block32382;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block32379;
     U_POP(vm, regs + 1);
     regs[0] = locals[4]; // G
     regs[1] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 2, 0);
     U_FLT(vm, regs + 2);
-    block32382:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32497;
+    block32379:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32494;
     U_STATEMENT(vm, regs + 0, 32, 11);
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[3]; // nn
@@ -14478,8 +14478,8 @@ static void fun_261(VMRef vm, StackPtr psp) {
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITE(vm, regs + 1);
-    block32497:;
-    block32499:;
+    block32494:;
+    block32496:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -14641,7 +14641,7 @@ static void fun_552(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 1);
     U_PUSHFLT(vm, regs + 1, 0);
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32761;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32758;
     U_STATEMENT(vm, regs + 0, 61, 11);
     regs[0] = locals[0]; // nn
     U_PUSHFLD2V(vm, regs + 1, 4, 2);
@@ -14652,7 +14652,7 @@ static void fun_552(VMRef vm, StackPtr psp) {
     regs[3] = locals[0]; // nn
     U_INCREF(vm, regs + 4, 0);
     fun_553(vm, regs + 4); // call: function241
-    block32761:;
+    block32758:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -14679,7 +14679,7 @@ static void fun_265(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 1);
     U_PUSHFLT(vm, regs + 1, 0);
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32845;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32842;
     U_STATEMENT(vm, regs + 0, 61, 11);
     regs[0] = locals[0]; // nn
     U_PUSHFLD2V(vm, regs + 1, 4, 2);
@@ -14690,7 +14690,7 @@ static void fun_265(VMRef vm, StackPtr psp) {
     regs[3] = locals[0]; // nn
     U_INCREF(vm, regs + 4, 0);
     fun_261(vm, regs + 4); // call: function241
-    block32845:;
+    block32842:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -14764,7 +14764,7 @@ static void fun_267(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 69, 11);
     U_STATEMENT(vm, regs + 0, 84, 11);
     regs[0] = locals[0]; // isocta
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block32996;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block32993;
     U_STATEMENT(vm, regs + 0, 76, 11);
     U_PUSHVARF(vm, regs + 0, 506); // directions
     U_PUSHVARF(vm, regs + 1, 171); // diagonal_directions
@@ -14774,12 +14774,12 @@ static void fun_267(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 77, 11);
     U_PUSHFUN(vm, regs + 0, 0, fun_270);
     fun_268(vm, regs + 1); // call: astar_distance
-    goto block33008;
-    block32996:;
+    goto block33005;
+    block32993:;
     U_STATEMENT(vm, regs + 0, 84, 11);
     U_PUSHFUN(vm, regs + 0, 0, fun_271);
     fun_541(vm, regs + 1); // call: astar_distance
-    block33008:;
+    block33005:;
     U_RETURNLOCAL(vm, 0, 1);
     DecOwned(vm, 506);
     psp = PopArg(vm, 505, psp);
@@ -14852,8 +14852,8 @@ static void fun_551(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 71, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 506); // directions
-    block33105:;
-    if (!U_VFOR(vm, regs + 2)) goto block33199;
+    block33102:;
+    if (!U_VFOR(vm, regs + 2)) goto block33196;
     U_STATEMENT(vm, regs + 2, 71, 11);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[2]); // delta+0
@@ -14874,14 +14874,14 @@ static void fun_551(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 9, 0);
     U_PUSHINT(vm, regs + 10, 2);
     U_BCALLRETV(vm, regs + 11, 107, 1); // in_range
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block33194;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block33191;
     U_STATEMENT(vm, regs + 2, 74, 11);
     regs[2] = locals[4];regs[3] = locals[5]; // np
     fun_282(vm, regs + 4); // call: function262
     fun_552(vm, regs + 3); // call: function245
-    block33194:;
-    goto block33105;
-    block33199:;
+    block33191:;
+    goto block33102;
+    block33196:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     Pop(psp);
@@ -14904,8 +14904,8 @@ static void fun_269(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 71, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 506); // directions
-    block33228:;
-    if (!U_VFOR(vm, regs + 2)) goto block33322;
+    block33225:;
+    if (!U_VFOR(vm, regs + 2)) goto block33319;
     U_STATEMENT(vm, regs + 2, 71, 11);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[2]); // delta+0
@@ -14926,14 +14926,14 @@ static void fun_269(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 9, 0);
     U_PUSHINT(vm, regs + 10, 2);
     U_BCALLRETV(vm, regs + 11, 107, 1); // in_range
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block33317;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block33314;
     U_STATEMENT(vm, regs + 2, 74, 11);
     regs[2] = locals[4];regs[3] = locals[5]; // np
     fun_282(vm, regs + 4); // call: function262
     fun_265(vm, regs + 3); // call: function245
-    block33317:;
-    goto block33228;
-    block33322:;
+    block33314:;
+    goto block33225;
+    block33319:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     Pop(psp);
@@ -15102,8 +15102,8 @@ static void fun_276(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 102, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 522); // goapactions
-    block33631:;
-    if (!U_VFOR(vm, regs + 2)) goto block33839;
+    block33628:;
+    if (!U_VFOR(vm, regs + 2)) goto block33836;
     U_STATEMENT(vm, regs + 2, 102, 11);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[2]); // act
@@ -15115,7 +15115,7 @@ static void fun_276(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 4, 4);
     U_INCREF(vm, regs + 4, 0);
     U_DDCALL(vm, regs + 4, 0, 1); vm.next_call_target(vm, regs + 4);
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block33834;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block33831;
     U_STATEMENT(vm, regs + 2, 104, 11);
     regs[2] = locals[0]; // n
     U_PUSHFLD(vm, regs + 3, 4);
@@ -15138,7 +15138,7 @@ static void fun_276(VMRef vm, StackPtr psp) {
     regs[2] = locals[3]; // i
     U_PUSHINT(vm, regs + 3, 0);
     U_ILT(vm, regs + 4);
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block33805;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block33802;
     U_STATEMENT(vm, regs + 2, 108, 11);
     U_PUSHVARF(vm, regs + 2, 527); // existingnodes
     U_BCALLRET1(vm, regs + 3, 13, 1); // length
@@ -15159,7 +15159,7 @@ static void fun_276(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    block33805:;
+    block33802:;
     U_STATEMENT(vm, regs + 2, 110, 11);
     regs[2] = locals[2]; // act
     U_INCREF(vm, regs + 3, 0);
@@ -15169,9 +15169,9 @@ static void fun_276(VMRef vm, StackPtr psp) {
     U_VPUSHIDXI(vm, regs + 6);
     U_INCREF(vm, regs + 5, 0);
     fun_558(vm, regs + 5); // call: function241
-    block33834:;
-    goto block33631;
-    block33839:;
+    block33831:;
+    goto block33628;
+    block33836:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[2]);
@@ -15341,8 +15341,8 @@ static void fun_279(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 57, 10);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[1]; // path
-    block34250:;
-    if (!U_VFOR(vm, regs + 2)) goto block34284;
+    block34247:;
+    if (!U_VFOR(vm, regs + 2)) goto block34281;
     U_STATEMENT(vm, regs + 2, 57, 10);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[2]); // n
@@ -15352,8 +15352,8 @@ static void fun_279(VMRef vm, StackPtr psp) {
     regs[3] = locals[2]; // n
     U_LVAL_FLD(vm, regs + 4, 10);
     U_LV_WRITE(vm, regs + 3);
-    goto block34250;
-    block34284:;
+    goto block34247;
+    block34281:;
     U_STATEMENT(vm, regs + 0, 60, 10);
     U_PUSHVARF(vm, regs + 0, 544); // world
     U_PUSHFUN(vm, regs + 1, 0, fun_284);
@@ -15421,24 +15421,24 @@ static void fun_281(VMRef vm, StackPtr psp) {
     regs[0] = locals[1]; // c
     U_PUSHINT(vm, regs + 1, 83);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block34414;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block34411;
     U_STATEMENT(vm, regs + 0, 47, 10);
     regs[0] = locals[0]; // x
     U_PUSHVARF(vm, regs + 1, 545); // y
     U_LVAL_VARF(vm, regs + 2, 540); // startpos+0
     U_LV_WRITEV(vm, regs + 2, 2);
-    block34414:;
+    block34411:;
     U_STATEMENT(vm, regs + 0, 48, 10);
     regs[0] = locals[1]; // c
     U_PUSHINT(vm, regs + 1, 69);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block34447;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block34444;
     U_STATEMENT(vm, regs + 0, 48, 10);
     regs[0] = locals[0]; // x
     U_PUSHVARF(vm, regs + 1, 545); // y
     U_LVAL_VARF(vm, regs + 2, 542); // endpos+0
     U_LV_WRITEV(vm, regs + 2, 2);
-    block34447:;
+    block34444:;
     U_STATEMENT(vm, regs + 0, 49, 10);
     U_PUSHFLT(vm, regs + 0, 0);
     U_PUSHFLT(vm, regs + 1, 0);
@@ -15493,25 +15493,25 @@ static void fun_283(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 11);
     U_PUSHINT(vm, regs + 1, 35);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block34555;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block34552;
     U_POP(vm, regs + 1);
     U_PUSHINT(vm, regs + 0, -1);
-    block34555:;
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block34583;
+    block34552:;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block34580;
     U_POP(vm, regs + 1);
     regs[0] = locals[1]; // nn
     U_PUSHFLD(vm, regs + 1, 11);
     U_PUSHINT(vm, regs + 1, 47);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block34581;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block34578;
     U_POP(vm, regs + 1);
     U_PUSHINT(vm, regs + 0, 5);
-    block34581:;
-    block34583:;
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block34593;
+    block34578:;
+    block34580:;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block34590;
     U_POP(vm, regs + 1);
     U_PUSHINT(vm, regs + 0, 1);
-    block34593:;
+    block34590:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Pop(psp);
@@ -15555,37 +15555,37 @@ static void fun_285(VMRef vm, StackPtr psp) {
     regs[0] = locals[0]; // accum
     regs[1] = locals[1]; // n
     U_PUSHFLD(vm, regs + 2, 10);
-    if (!U_JUMPFAILR(vm, regs + 2)) goto block34660;
+    if (!U_JUMPFAILR(vm, regs + 2)) goto block34657;
     U_POP(vm, regs + 2);
     U_PUSHSTR(vm, regs + 1, 474); // "P"
-    block34660:;
-    if (!U_JUMPNOFAILR(vm, regs + 2)) goto block34683;
+    block34657:;
+    if (!U_JUMPNOFAILR(vm, regs + 2)) goto block34680;
     U_POP(vm, regs + 2);
     regs[1] = locals[1]; // n
     U_PUSHFLD(vm, regs + 2, 9);
-    if (!U_JUMPFAILR(vm, regs + 2)) goto block34681;
+    if (!U_JUMPFAILR(vm, regs + 2)) goto block34678;
     U_POP(vm, regs + 2);
     U_PUSHSTR(vm, regs + 1, 475); // "X"
-    block34681:;
-    block34683:;
-    if (!U_JUMPNOFAILR(vm, regs + 2)) goto block34706;
+    block34678:;
+    block34680:;
+    if (!U_JUMPNOFAILR(vm, regs + 2)) goto block34703;
     U_POP(vm, regs + 2);
     regs[1] = locals[1]; // n
     U_PUSHFLD(vm, regs + 2, 8);
-    if (!U_JUMPFAILR(vm, regs + 2)) goto block34704;
+    if (!U_JUMPFAILR(vm, regs + 2)) goto block34701;
     U_POP(vm, regs + 2);
     U_PUSHSTR(vm, regs + 1, 476); // "O"
-    block34704:;
-    block34706:;
+    block34701:;
+    block34703:;
     U_INCREF(vm, regs + 2, 0);
-    if (!U_JUMPNOFAILR(vm, regs + 2)) goto block34734;
+    if (!U_JUMPNOFAILR(vm, regs + 2)) goto block34731;
     U_POP(vm, regs + 2);
     regs[1] = locals[1]; // n
     U_PUSHFLD(vm, regs + 2, 11);
     U_NEWVEC(vm, regs + 2, 7, 1);
     keepvar[0] = TopM(regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 43, 1); // unicode_to_string
-    block34734:;
+    block34731:;
     keepvar[1] = TopM(regs + 2, 0);
     U_SADD(vm, regs + 2);
     U_RETURNLOCAL(vm, 0, 1);
@@ -15833,20 +15833,20 @@ static void fun_297(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 6);
     U_PUSHINT(vm, regs + 1, 0);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block35271;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block35268;
     U_POP(vm, regs + 1);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 4);
     U_PUSHINT(vm, regs + 1, 0);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block35269;
+    if (!U_JUMPNOFAILR(vm, regs + 1)) goto block35266;
     U_POP(vm, regs + 1);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 5);
     U_PUSHINT(vm, regs + 1, 0);
     U_IGT(vm, regs + 2);
-    block35269:;
-    block35271:;
+    block35266:;
+    block35268:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -15997,18 +15997,18 @@ static void fun_298(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 4);
     U_PUSHINT(vm, regs + 1, 0);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block35522;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block35519;
     U_STATEMENT(vm, regs + 0, 55, 12);
     regs[0] = locals[1]; // s
     U_LVAL_FLD(vm, regs + 1, 4);
     U_LV_IMM(vm, regs + 0);
-    goto block35536;
-    block35522:;
+    goto block35533;
+    block35519:;
     U_STATEMENT(vm, regs + 0, 57, 12);
     regs[0] = locals[1]; // s
     U_LVAL_FLD(vm, regs + 1, 5);
     U_LV_IMM(vm, regs + 0);
-    block35536:;
+    block35533:;
     U_STATEMENT(vm, regs + 0, 58, 12);
     regs[0] = locals[1]; // s
     U_LVAL_FLD(vm, regs + 1, 6);
@@ -16068,17 +16068,17 @@ static void fun_301(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 79, 12);
     regs[0] = locals[0]; // n
     U_PUSHFLD(vm, regs + 1, 5);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block35641;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block35638;
     U_STATEMENT(vm, regs + 0, 79, 12);
     regs[0] = locals[0]; // n
     U_PUSHFLD(vm, regs + 1, 5);
     U_BCALLRETV(vm, regs + 1, 155, 1); // type_string
-    goto block35653;
-    block35641:;
+    goto block35650;
+    block35638:;
     U_STATEMENT(vm, regs + 0, 79, 12);
     U_PUSHSTR(vm, regs + 0, 487); // ""
     U_INCREF(vm, regs + 1, 0);
-    block35653:;
+    block35650:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -16170,8 +16170,8 @@ static void fun_303(VMRef vm, StackPtr psp) {
     U_IMUL(vm, regs + 3);
     U_PUSHINT(vm, regs + 2, 1);
     U_ISUB(vm, regs + 3);
-    block35864:;
-    if (!U_IFOR(vm, regs + 2)) goto block36030;
+    block35861:;
+    if (!U_IFOR(vm, regs + 2)) goto block36027;
     U_STATEMENT(vm, regs + 2, 13, 13);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[0]); // step
@@ -16194,7 +16194,7 @@ static void fun_303(VMRef vm, StackPtr psp) {
     regs[2] = locals[1]; // candidates
     U_BCALLRET1(vm, regs + 3, 13, 1); // length
     U_LOGNOT(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block35952;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block35949;
     U_STATEMENT(vm, regs + 2, 17, 13);
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
@@ -16207,7 +16207,7 @@ static void fun_303(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 588, psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block35952:;
+    block35949:;
     U_STATEMENT(vm, regs + 2, 18, 13);
     regs[2] = locals[1]; // candidates
     U_INCREF(vm, regs + 3, 0);
@@ -16232,8 +16232,8 @@ static void fun_303(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 4, 591, 2); // cur+0
     U_LVAL_IDXVV(vm, regs + 6, 0, 2);
     U_LV_WRITE(vm, regs + 3);
-    goto block35864;
-    block36030:;
+    goto block35861;
+    block36027:;
     U_STATEMENT(vm, regs + 0, 21, 13);
     U_PUSHVARF(vm, regs + 0, 590); // board
     U_INCREF(vm, regs + 1, 0);
@@ -16289,14 +16289,14 @@ static void fun_306(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 7, 0);
     U_PUSHINT(vm, regs + 8, 2);
     U_BCALLRETV(vm, regs + 9, 107, 1); // in_range
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block36134;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block36131;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 590); // board
     regs[1] = locals[0];regs[2] = locals[1]; // v
     U_VPUSHIDXV(vm, regs + 3, 2);
     U_PUSHINT(vm, regs + 1, 0);
     U_ILT(vm, regs + 2);
-    block36134:;
+    block36131:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Pop(psp);
@@ -16426,12 +16426,12 @@ static void fun_311(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 123, 14);
     regs[0] = locals[1]; // ast
     U_E2B(vm, regs + 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block36374;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block36371;
     U_POP(vm, regs + 1);
     regs[0] = locals[2]; // err
     U_PUSHSTR(vm, regs + 1, 490); // ""
     U_SEQ(vm, regs + 2);
-    block36374:;
+    block36371:;
     U_ASSERT(vm, regs + 1, 123, 14, 491);
     U_STATEMENT(vm, regs + 0, 124, 14);
     regs[0] = locals[1]; // ast
@@ -16551,7 +16551,7 @@ static void fun_317(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 2, 499); // "+"
     U_SEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block36636;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block36633;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 28, 14);
     regs[0] = locals[0]; // this
@@ -16559,12 +16559,12 @@ static void fun_317(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 2, 0, fun_318);
     fun_568(vm, regs + 3); // call: fold
-    goto block36688;
-    block36636:;
+    goto block36685;
+    block36633:;
     U_DUP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 2, 500); // "*"
     U_SEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block36672;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block36669;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 30, 14);
     regs[0] = locals[0]; // this
@@ -16572,13 +16572,13 @@ static void fun_317(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 1, 1);
     U_PUSHFUN(vm, regs + 2, 0, fun_319);
     fun_569(vm, regs + 3); // call: fold
-    goto block36688;
-    block36672:;
+    goto block36685;
+    block36669:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 32, 14);
     U_PUSHINT(vm, regs + 0, 0);
     U_ASSERTR(vm, regs + 1, 32, 14, 501);
-    block36688:;
+    block36685:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -16618,12 +16618,12 @@ static void fun_320(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 2, 502); // "+"
     U_SEQ(vm, regs + 3);
-    if (!U_JUMPNOFAIL(vm, regs + 2)) goto block36759;
+    if (!U_JUMPNOFAIL(vm, regs + 2)) goto block36756;
     U_DUP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 2, 503); // "*"
     U_SEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block36788;
-    block36759:;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block36785;
+    block36756:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 37, 14);
     U_PUSHVARF(vm, regs + 0, 619); // this
@@ -16632,13 +16632,13 @@ static void fun_320(VMRef vm, StackPtr psp) {
     fun_570(vm, regs + 2); // call: map
     U_PUSHFUN(vm, regs + 1, 0, fun_322);
     fun_19(vm, regs + 2); // call: reduce
-    goto block36804;
-    block36788:;
+    goto block36801;
+    block36785:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 39, 14);
     U_PUSHINT(vm, regs + 0, 0);
     U_ASSERTR(vm, regs + 1, 39, 14, 504);
-    block36804:;
+    block36801:;
     U_RETURNLOCAL(vm, 0, 1);
     DecOwned(vm, 619);
     psp = PopArg(vm, 619, psp);
@@ -16804,7 +16804,7 @@ static void fun_323(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 61, 14);
     U_STATEMENT(vm, regs + 0, 87, 14);
     fun_327(vm, regs + 0); // call: lex_next
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block37096;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block37093;
     U_RETURNANY(vm, 0, 0);
     DecOwned(vm, 624);
     DecOwned(vm, 625);
@@ -16812,12 +16812,12 @@ static void fun_323(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 623, psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block37096:;
+    block37093:;
     U_STATEMENT(vm, regs + 0, 88, 14);
     U_STATEMENT(vm, regs + 0, 94, 14);
     U_STATEMENT(vm, regs + 0, 112, 14);
     fun_329(vm, regs + 0); // call: parse_exp
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 296)) goto block37122;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 296)) goto block37119;
     U_RETURNANY(vm, 0, 1);
     DecOwned(vm, 624);
     DecOwned(vm, 625);
@@ -16825,13 +16825,13 @@ static void fun_323(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 623, psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block37122:;
+    block37119:;
     SetLVal(vm, &locals[0]); // root
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 113, 14);
     U_PUSHSTR(vm, regs + 0, 510); // "eof"
     fun_566(vm, regs + 1); // call: expect
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 295)) goto block37148;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 295)) goto block37145;
     U_RETURNANY(vm, 0, 0);
     DecOwned(vm, 624);
     DecOwned(vm, 625);
@@ -16839,7 +16839,7 @@ static void fun_323(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 623, psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block37148:;
+    block37145:;
     U_STATEMENT(vm, regs + 0, 114, 14);
     regs[0] = locals[0]; // root
     U_PUSHSTR(vm, regs + 1, 511); // ""
@@ -16907,30 +16907,30 @@ static void fun_325(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[0]); // start
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 54, 14);
-    block37246:;
+    block37243:;
     U_PUSHVARF(vm, regs + 0, 623); // s
     U_PUSHVARF(vm, regs + 1, 626); // i
     U_SPUSHIDXI(vm, regs + 2);
     U_PUSHINT(vm, regs + 1, 32);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block37277;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block37274;
     U_POP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 0, 514); // "()\x7F"
     U_PUSHFUN(vm, regs + 1, 0, fun_326);
     fun_15(vm, regs + 2); // call: exists
     U_LOGNOT(vm, regs + 1);
-    block37277:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block37294;
+    block37274:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block37291;
     U_STATEMENT(vm, regs + 0, 54, 14);
     U_LVAL_VARF(vm, regs + 0, 626); // i
     U_LV_IPP(vm, regs + 0);
-    goto block37246;
-    block37294:;
+    goto block37243;
+    block37291:;
     U_STATEMENT(vm, regs + 0, 55, 14);
     regs[0] = locals[0]; // start
     U_PUSHVARF(vm, regs + 1, 626); // i
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block37349;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block37346;
     U_STATEMENT(vm, regs + 0, 56, 14);
     U_PUSHSTR(vm, regs + 0, 515); // "unprintable character: "
     U_PUSHVARF(vm, regs + 1, 623); // s
@@ -16940,12 +16940,12 @@ static void fun_325(VMRef vm, StackPtr psp) {
     keepvar[0] = TopM(regs + 2, 0);
     U_SADD(vm, regs + 2);
     fun_324(vm, regs + 1); // call: error
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block37347;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block37344;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block37347:;
-    block37349:;
+    block37344:;
+    block37346:;
     U_STATEMENT(vm, regs + 0, 57, 14);
     U_PUSHVARF(vm, regs + 0, 623); // s
     regs[1] = locals[0]; // start
@@ -16969,14 +16969,14 @@ static void fun_325(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 60, 14);
     regs[0] = locals[1]; // all
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block37434;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block37431;
     U_STATEMENT(vm, regs + 0, 60, 14);
     U_PUSHSTR(vm, regs + 0, 516); // "int"
-    goto block37443;
-    block37434:;
+    goto block37440;
+    block37431:;
     U_STATEMENT(vm, regs + 0, 60, 14);
     U_PUSHSTR(vm, regs + 0, 517); // "atom"
-    block37443:;
+    block37440:;
     U_INCREF(vm, regs + 1, 0);
     U_LVAL_VARF(vm, regs + 1, 624); // token
     U_LV_WRITEREF(vm, regs + 1);
@@ -17012,9 +17012,9 @@ static void fun_327(VMRef vm, StackPtr psp) {
     Value regs[3];
     PushFunId(vm, funinfo_table + 2808, 0);
     U_STATEMENT(vm, regs + 0, 62, 14);
-    block37498:;
+    block37495:;
     U_PUSHINT(vm, regs + 0, 1);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block37874;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block37871;
     U_STATEMENT(vm, regs + 0, 63, 14);
     U_PUSHVARF(vm, regs + 0, 623); // s
     U_LVAL_VARF(vm, regs + 1, 626); // i
@@ -17024,7 +17024,7 @@ static void fun_327(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 0);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block37569;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block37566;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 65, 14);
     U_LVAL_VARF(vm, regs + 0, 626); // i
@@ -17037,39 +17037,39 @@ static void fun_327(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 67, 14);
     U_RETURNNONLOCAL(vm, 0, 0, 294);
     goto epilogue;
-    goto block37869;
-    block37569:;
+    goto block37866;
+    block37566:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 10);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block37595;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block37592;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 69, 14);
     U_LVAL_VARF(vm, regs + 0, 627); // line
     U_LV_IPP(vm, regs + 0);
-    goto block37869;
-    block37595:;
+    goto block37866;
+    block37592:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 13);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPNOFAIL(vm, regs + 2)) goto block37627;
+    if (!U_JUMPNOFAIL(vm, regs + 2)) goto block37624;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 9);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPNOFAIL(vm, regs + 2)) goto block37627;
+    if (!U_JUMPNOFAIL(vm, regs + 2)) goto block37624;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 32);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block37638;
-    block37627:;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block37635;
+    block37624:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 71, 14);
-    goto block37869;
-    block37638:;
+    goto block37866;
+    block37635:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 40);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block37678;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block37675;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 73, 14);
     U_PUSHSTR(vm, regs + 0, 519); // "("
@@ -17079,12 +17079,12 @@ static void fun_327(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 74, 14);
     U_RETURNNONLOCAL(vm, 0, 0, 294);
     goto epilogue;
-    goto block37869;
-    block37678:;
+    goto block37866;
+    block37675:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 41);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block37718;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block37715;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 76, 14);
     U_PUSHSTR(vm, regs + 0, 520); // ")"
@@ -17094,12 +17094,12 @@ static void fun_327(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 77, 14);
     U_RETURNNONLOCAL(vm, 0, 0, 294);
     goto epilogue;
-    goto block37869;
-    block37718:;
+    goto block37866;
+    block37715:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 47);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block37839;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block37836;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 79, 14);
     U_PUSHVARF(vm, regs + 0, 623); // s
@@ -17107,55 +17107,55 @@ static void fun_327(VMRef vm, StackPtr psp) {
     U_SPUSHIDXI(vm, regs + 2);
     U_PUSHINT(vm, regs + 1, 47);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block37806;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block37803;
     U_STATEMENT(vm, regs + 0, 80, 14);
-    block37756:;
+    block37753:;
     U_PUSHVARF(vm, regs + 0, 623); // s
     U_PUSHVARF(vm, regs + 1, 626); // i
     U_SPUSHIDXI(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block37784;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block37781;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 623); // s
     U_PUSHVARF(vm, regs + 1, 626); // i
     U_SPUSHIDXI(vm, regs + 2);
     U_PUSHINT(vm, regs + 1, 10);
     U_INE(vm, regs + 2);
-    block37784:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block37801;
+    block37781:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block37798;
     U_STATEMENT(vm, regs + 0, 80, 14);
     U_LVAL_VARF(vm, regs + 0, 626); // i
     U_LV_IPP(vm, regs + 0);
-    goto block37756;
-    block37801:;
-    goto block37834;
-    block37806:;
+    goto block37753;
+    block37798:;
+    goto block37831;
+    block37803:;
     U_STATEMENT(vm, regs + 0, 82, 14);
     fun_325(vm, regs + 0); // call: lex_atom
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 292)) goto block37824;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 292)) goto block37821;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block37824:;
+    block37821:;
     U_STATEMENT(vm, regs + 0, 83, 14);
     U_RETURNNONLOCAL(vm, 0, 0, 294);
     goto epilogue;
-    block37834:;
-    goto block37869;
-    block37839:;
+    block37831:;
+    goto block37866;
+    block37836:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 85, 14);
     fun_325(vm, regs + 0); // call: lex_atom
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 292)) goto block37859;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 292)) goto block37856;
     U_RETURNANY(vm, 0, 0);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block37859:;
+    block37856:;
     U_STATEMENT(vm, regs + 0, 86, 14);
     U_RETURNNONLOCAL(vm, 0, 0, 294);
     goto epilogue;
-    block37869:;
-    goto block37498;
-    block37874:;
+    block37866:;
+    goto block37495;
+    block37871:;
     U_RETURNNONLOCAL(vm, 0, 0, 294);
     goto epilogue;
     epilogue:;
@@ -17173,7 +17173,7 @@ static void fun_566(VMRef vm, StackPtr psp) {
     regs[0] = locals[0]; // tok
     U_PUSHVARF(vm, regs + 1, 624); // token
     U_SNE(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block37939;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block37936;
     U_STATEMENT(vm, regs + 0, 90, 14);
     U_PUSHSTR(vm, regs + 0, 521); // "expected: "
     regs[1] = locals[0]; // tok
@@ -17181,14 +17181,14 @@ static void fun_566(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 3, 624); // token
     U_SADDN(vm, regs + 4, 4);
     fun_324(vm, regs + 1); // call: error
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block37937;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block37934;
     U_RETURNANY(vm, 0, 0);
     DecVal(vm, locals[1]);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block37937:;
-    block37939:;
+    block37934:;
+    block37936:;
     U_STATEMENT(vm, regs + 0, 91, 14);
     U_PUSHVARF(vm, regs + 0, 625); // atom
     U_INCREF(vm, regs + 1, 0);
@@ -17196,13 +17196,13 @@ static void fun_566(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 92, 14);
     fun_327(vm, regs + 0); // call: lex_next
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block37972;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block37969;
     U_RETURNANY(vm, 0, 0);
     DecVal(vm, locals[1]);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block37972:;
+    block37969:;
     U_STATEMENT(vm, regs + 0, 93, 14);
     U_RETURNNONLOCAL(vm, 0, 0, 295);
     DecVal(vm, locals[1]);
@@ -17223,7 +17223,7 @@ static void fun_328(VMRef vm, StackPtr psp) {
     regs[0] = locals[0]; // tok
     U_PUSHVARF(vm, regs + 1, 624); // token
     U_SNE(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block38041;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block38038;
     U_STATEMENT(vm, regs + 0, 90, 14);
     U_PUSHSTR(vm, regs + 0, 523); // "expected: "
     regs[1] = locals[0]; // tok
@@ -17231,14 +17231,14 @@ static void fun_328(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 3, 624); // token
     U_SADDN(vm, regs + 4, 4);
     fun_324(vm, regs + 1); // call: error
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block38039;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block38036;
     U_RETURNANY(vm, 0, 0);
     DecVal(vm, locals[1]);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block38039:;
-    block38041:;
+    block38036:;
+    block38038:;
     U_STATEMENT(vm, regs + 0, 91, 14);
     U_PUSHVARF(vm, regs + 0, 625); // atom
     U_INCREF(vm, regs + 1, 0);
@@ -17246,13 +17246,13 @@ static void fun_328(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 92, 14);
     fun_327(vm, regs + 0); // call: lex_next
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block38074;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block38071;
     U_RETURNANY(vm, 0, 0);
     DecVal(vm, locals[1]);
     Pop(psp);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block38074:;
+    block38071:;
     U_STATEMENT(vm, regs + 0, 93, 14);
     regs[0] = locals[1]; // a
     U_INCREF(vm, regs + 1, 0);
@@ -17278,29 +17278,29 @@ static void fun_329(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 2, 525); // "("
     U_SEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block38340;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block38337;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 97, 14);
     fun_327(vm, regs + 0); // call: lex_next
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block38139;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block38136;
     U_RETURNANY(vm, 0, 0);
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block38139:;
+    block38136:;
     U_STATEMENT(vm, regs + 0, 98, 14);
     U_PUSHSTR(vm, regs + 0, 526); // "atom"
     fun_328(vm, regs + 1); // call: expect
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 295)) goto block38160;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 295)) goto block38157;
     U_RETURNANY(vm, 0, 1);
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block38160:;
+    block38157:;
     U_LVAL_VARF(vm, regs + 1, 635); // name
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 99, 14);
@@ -17312,21 +17312,21 @@ static void fun_329(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 1, 0, fun_330);
     fun_565(vm, regs + 2); // call: exists
     U_LOGNOT(vm, regs + 1);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block38224;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block38221;
     U_STATEMENT(vm, regs + 0, 100, 14);
     U_PUSHSTR(vm, regs + 0, 529); // "unknown op: "
     U_PUSHVARF(vm, regs + 1, 635); // name
     U_SADD(vm, regs + 2);
     fun_324(vm, regs + 1); // call: error
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block38222;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block38219;
     U_RETURNANY(vm, 0, 0);
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block38222:;
-    block38224:;
+    block38219:;
+    block38221:;
     U_STATEMENT(vm, regs + 0, 101, 14);
     U_PUSHVARF(vm, regs + 0, 635); // name
     U_INCREF(vm, regs + 1, 0);
@@ -17335,16 +17335,16 @@ static void fun_329(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[0]); // n
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 102, 14);
-    block38252:;
+    block38249:;
     U_PUSHVARF(vm, regs + 0, 624); // token
     U_PUSHSTR(vm, regs + 1, 530); // ")"
     U_SNE(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block38303;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block38300;
     U_STATEMENT(vm, regs + 0, 103, 14);
     regs[0] = locals[0]; // n
     U_PUSHFLD(vm, regs + 1, 1);
     fun_329(vm, regs + 1); // call: parse_exp
-    if (!U_JUMPIFUNWOUND(vm, regs + 3, 296)) goto block38289;
+    if (!U_JUMPIFUNWOUND(vm, regs + 3, 296)) goto block38286;
     U_RETURNANY(vm, 0, 1);
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
@@ -17352,22 +17352,22 @@ static void fun_329(VMRef vm, StackPtr psp) {
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 1]); }
     U_POP(vm, regs + 1);
     goto epilogue;
-    block38289:;
+    block38286:;
     U_PUSHINT(vm, regs + 2, 1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
-    goto block38252;
-    block38303:;
+    goto block38249;
+    block38300:;
     U_STATEMENT(vm, regs + 0, 104, 14);
     fun_327(vm, regs + 0); // call: lex_next
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block38321;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block38318;
     U_RETURNANY(vm, 0, 0);
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block38321:;
+    block38318:;
     U_STATEMENT(vm, regs + 0, 105, 14);
     regs[0] = locals[0]; // n
     U_INCREF(vm, regs + 1, 0);
@@ -17377,12 +17377,12 @@ static void fun_329(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[1]);
     Push(psp, regs[0]);
     goto epilogue;
-    goto block38434;
-    block38340:;
+    goto block38431;
+    block38337:;
     U_DUP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 2, 531); // "int"
     U_SEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block38404;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block38401;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 107, 14);
     U_PUSHVARF(vm, regs + 0, 628); // ival
@@ -17391,14 +17391,14 @@ static void fun_329(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 108, 14);
     fun_327(vm, regs + 0); // call: lex_next
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block38385;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 294)) goto block38382;
     U_RETURNANY(vm, 0, 0);
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block38385:;
+    block38382:;
     U_STATEMENT(vm, regs + 0, 109, 14);
     regs[0] = locals[1]; // n
     U_INCREF(vm, regs + 1, 0);
@@ -17408,23 +17408,23 @@ static void fun_329(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[1]);
     Push(psp, regs[0]);
     goto epilogue;
-    goto block38434;
-    block38404:;
+    goto block38431;
+    block38401:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 111, 14);
     U_PUSHSTR(vm, regs + 0, 532); // "cannot parse expression starting with: "
     U_PUSHVARF(vm, regs + 1, 624); // token
     U_SADD(vm, regs + 2);
     fun_324(vm, regs + 1); // call: error
-    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block38432;
+    if (!U_JUMPIFUNWOUND(vm, regs + 2, 291)) goto block38429;
     U_RETURNANY(vm, 0, 0);
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
-    block38432:;
-    block38434:;
+    block38429:;
+    block38431:;
     U_RETURNNONLOCAL(vm, 0, 0, 296);
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
@@ -17495,10 +17495,10 @@ static void fun_331(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 18, 16);
     U_STATEMENT(vm, regs + 0, 28, 16);
-    block38569:;
+    block38566:;
     U_PUSHVARF(vm, regs + 0, 653); // pathq
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block38696;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block38693;
     U_STATEMENT(vm, regs + 0, 29, 16);
     U_PUSHVARF(vm, regs + 0, 653); // pathq
     U_BCALLRETV(vm, regs + 1, 16, 1); // pop
@@ -17507,8 +17507,8 @@ static void fun_331(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 30, 16);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 2);
-    block38607:;
-    if (!U_IFOR(vm, regs + 2)) goto block38691;
+    block38604:;
+    if (!U_IFOR(vm, regs + 2)) goto block38688;
     U_STATEMENT(vm, regs + 2, 30, 16);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[4]); // x
@@ -17516,8 +17516,8 @@ static void fun_331(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 30, 16);
     U_PUSHINT(vm, regs + 2, -1);
     U_PUSHINT(vm, regs + 3, 2);
-    block38633:;
-    if (!U_IFOR(vm, regs + 4)) goto block38686;
+    block38630:;
+    if (!U_IFOR(vm, regs + 4)) goto block38683;
     U_STATEMENT(vm, regs + 4, 30, 16);
     U_IFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[5]); // y
@@ -17534,12 +17534,12 @@ static void fun_331(VMRef vm, StackPtr psp) {
     regs[6] = locals[3]; // c
     U_INCREF(vm, regs + 7, 0);
     fun_333(vm, regs + 7); // call: flood
-    goto block38633;
-    block38686:;
-    goto block38607;
-    block38691:;
-    goto block38569;
-    block38696:;
+    goto block38630;
+    block38683:;
+    goto block38604;
+    block38688:;
+    goto block38566;
+    block38693:;
     U_STATEMENT(vm, regs + 0, 32, 16);
     U_PUSHVARF(vm, regs + 0, 649); // m
     U_RETURNLOCAL(vm, 0, 1);
@@ -17610,7 +17610,7 @@ static void fun_333(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 7, 0);
     U_PUSHINT(vm, regs + 8, 2);
     U_BCALLRETV(vm, regs + 9, 107, 1); // in_range
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block39032;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block39029;
     U_STATEMENT(vm, regs + 0, 21, 16);
     U_PUSHVARF(vm, regs + 0, 649); // m
     regs[1] = locals[3];regs[2] = locals[4]; // pos
@@ -17625,14 +17625,14 @@ static void fun_333(VMRef vm, StackPtr psp) {
     U_LV_WRITEV(vm, regs + 2, 2);
     U_STATEMENT(vm, regs + 0, 6, 15);
     U_PUSHINT(vm, regs + 0, 1);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block38879;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block38876;
     U_POP(vm, regs + 1);
     regs[0] = locals[5]; // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 1, 0);
     U_ILT(vm, regs + 2);
-    block38879:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block39030;
+    block38876:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block39027;
     U_STATEMENT(vm, regs + 0, 23, 16);
     regs[0] = locals[2]; // parent
     U_PUSHFLD(vm, regs + 1, 0);
@@ -17653,11 +17653,11 @@ static void fun_333(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[6]); // i
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 26, 16);
-    block38947:;
+    block38944:;
     regs[0] = locals[6]; // i
     U_PUSHINT(vm, regs + 1, 0);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block38986;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block38983;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 653); // pathq
     regs[1] = locals[6]; // i
@@ -17668,13 +17668,13 @@ static void fun_333(VMRef vm, StackPtr psp) {
     regs[1] = locals[5]; // c
     U_PUSHFLD(vm, regs + 2, 0);
     U_ILT(vm, regs + 2);
-    block38986:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block39003;
+    block38983:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block39000;
     U_STATEMENT(vm, regs + 0, 26, 16);
     SetLVal(vm, &locals[6]); // i
     U_LV_IMM(vm, regs + 0);
-    goto block38947;
-    block39003:;
+    goto block38944;
+    block39000:;
     U_STATEMENT(vm, regs + 0, 27, 16);
     U_PUSHVARF(vm, regs + 0, 653); // pathq
     regs[1] = locals[6]; // i
@@ -17683,8 +17683,8 @@ static void fun_333(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 3, 1);
     U_BCALLRETV(vm, regs + 4, 18, 1); // insert
     U_POP(vm, regs + 1);
-    block39030:;
-    block39032:;
+    block39027:;
+    block39029:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[2]);
     DecVal(vm, locals[5]);
@@ -17817,12 +17817,12 @@ static void fun_336(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 84, 17);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 5);
-    block39366:;
-    if (!U_IFOR(vm, regs + 2)) goto block39381;
+    block39363:;
+    if (!U_IFOR(vm, regs + 2)) goto block39378;
     U_STATEMENT(vm, regs + 2, 84, 17);
     fun_343(vm, regs + 2); // call: sim
-    goto block39366;
-    block39381:;
+    goto block39363;
+    block39378:;
     U_RETURNLOCAL(vm, 0, 0);
     DecOwned(vm, 674);
     DecOwned(vm, 684);
@@ -17892,7 +17892,7 @@ static void fun_338(VMRef vm, StackPtr psp) {
     regs[0] = locals[1]; // h
     U_PUSHVARF(vm, regs + 1, 672); // highh
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block39525;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block39522;
     U_STATEMENT(vm, regs + 0, 31, 17);
     regs[0] = locals[1]; // h
     U_LVAL_VARF(vm, regs + 1, 672); // highh
@@ -17902,12 +17902,12 @@ static void fun_338(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 1, 675); // y
     U_LVAL_VARF(vm, regs + 2, 668); // highest+0
     U_LV_WRITEV(vm, regs + 2, 2);
-    block39525:;
+    block39522:;
     U_STATEMENT(vm, regs + 0, 33, 17);
     regs[0] = locals[1]; // h
     U_PUSHVARF(vm, regs + 1, 673); // lowh
     U_FLT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block39570;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block39567;
     U_STATEMENT(vm, regs + 0, 34, 17);
     regs[0] = locals[1]; // h
     U_LVAL_VARF(vm, regs + 1, 673); // lowh
@@ -17917,7 +17917,7 @@ static void fun_338(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 1, 675); // y
     U_LVAL_VARF(vm, regs + 2, 670); // lowest+0
     U_LV_WRITEV(vm, regs + 2, 2);
-    block39570:;
+    block39567:;
     U_STATEMENT(vm, regs + 0, 36, 17);
     regs[0] = locals[1]; // h
     regs[1] = locals[1]; // h
@@ -17942,8 +17942,8 @@ static void fun_580(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 39, 17);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 666); // lssize
-    block39612:;
-    if (!U_IFOR(vm, regs + 2)) goto block39688;
+    block39609:;
+    if (!U_IFOR(vm, regs + 2)) goto block39685;
     U_STATEMENT(vm, regs + 2, 39, 17);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[1]); // y
@@ -17951,8 +17951,8 @@ static void fun_580(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 40, 17);
     U_PUSHINT(vm, regs + 2, -1);
     U_PUSHVARF(vm, regs + 3, 666); // lssize
-    block39638:;
-    if (!U_IFOR(vm, regs + 4)) goto block39683;
+    block39635:;
+    if (!U_IFOR(vm, regs + 4)) goto block39680;
     U_STATEMENT(vm, regs + 4, 40, 17);
     U_IFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[2]); // x
@@ -17966,10 +17966,10 @@ static void fun_580(VMRef vm, StackPtr psp) {
     regs[7] = locals[2]; // x
     U_VPUSHIDXI(vm, regs + 8);
     fun_346(vm, regs + 7); // call: function313
-    goto block39638;
-    block39683:;
-    goto block39612;
-    block39688:;
+    goto block39635;
+    block39680:;
+    goto block39609;
+    block39685:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     goto epilogue;
@@ -17988,8 +17988,8 @@ static void fun_339(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 39, 17);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 666); // lssize
-    block39714:;
-    if (!U_IFOR(vm, regs + 2)) goto block39793;
+    block39711:;
+    if (!U_IFOR(vm, regs + 2)) goto block39790;
     U_STATEMENT(vm, regs + 2, 39, 17);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[1]); // y
@@ -17997,8 +17997,8 @@ static void fun_339(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 40, 17);
     U_PUSHINT(vm, regs + 2, -1);
     U_PUSHVARF(vm, regs + 3, 666); // lssize
-    block39740:;
-    if (!U_IFOR(vm, regs + 4)) goto block39788;
+    block39737:;
+    if (!U_IFOR(vm, regs + 4)) goto block39785;
     U_STATEMENT(vm, regs + 4, 40, 17);
     U_IFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[2]); // x
@@ -18013,10 +18013,10 @@ static void fun_339(VMRef vm, StackPtr psp) {
     U_VPUSHIDXI(vm, regs + 8);
     U_INCREF(vm, regs + 7, 0);
     fun_344(vm, regs + 7); // call: function311
-    goto block39740;
-    block39788:;
-    goto block39714;
-    block39793:;
+    goto block39737;
+    block39785:;
+    goto block39711;
+    block39790:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     goto epilogue;
@@ -18036,28 +18036,28 @@ static void fun_340(VMRef vm, StackPtr psp) {
     regs[0] = locals[0]; // pos+0
     U_PUSHINT(vm, regs + 1, 0);
     U_IGE(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block39834;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block39831;
     U_POP(vm, regs + 1);
     regs[0] = locals[1]; // pos+1
     U_PUSHINT(vm, regs + 1, 0);
     U_IGE(vm, regs + 2);
-    block39834:;
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block39849;
+    block39831:;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block39846;
     U_POP(vm, regs + 1);
     regs[0] = locals[0]; // pos+0
     U_PUSHVARF(vm, regs + 1, 666); // lssize
     U_ILT(vm, regs + 2);
-    block39849:;
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block39864;
+    block39846:;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block39861;
     U_POP(vm, regs + 1);
     regs[0] = locals[1]; // pos+1
     U_PUSHVARF(vm, regs + 1, 666); // lssize
     U_ILT(vm, regs + 2);
-    block39864:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block39876;
+    block39861:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block39873;
     U_STATEMENT(vm, regs + 0, 45, 17);
     fun_342(vm, regs + 0); // call: function309
-    block39876:;
+    block39873:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     Pop(psp);
@@ -18080,8 +18080,8 @@ static void fun_341(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 50, 17);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 684); // neighbours
-    block39904:;
-    if (!U_VFOR(vm, regs + 2)) goto block39954;
+    block39901:;
+    if (!U_VFOR(vm, regs + 2)) goto block39951;
     U_STATEMENT(vm, regs + 2, 50, 17);
     U_VFORELEM2S(vm, regs + 2);
     U_LVAL_VARF(vm, regs + 4, 688); // n+0
@@ -18095,8 +18095,8 @@ static void fun_341(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 2, 688, 2); // n+0
     U_PUSHFUN(vm, regs + 4, 0, fun_342);
     fun_340(vm, regs + 5); // call: ifinworld
-    goto block39904;
-    block39954:;
+    goto block39901;
+    block39951:;
     U_RETURNLOCAL(vm, 0, 0);
     psp = PopArg(vm, 687, psp);
     Pop(psp);
@@ -18172,7 +18172,7 @@ static void fun_344(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 1, 112, 1); // abs
     U_PUSHVARF(vm, regs + 1, 693); // minimum_water_accumulation
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block40273;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block40270;
     U_STATEMENT(vm, regs + 0, 65, 17);
     U_PUSHFLT(vm, regs + 0, 0);
     U_LVAL_VARF(vm, regs + 1, 697); // totald
@@ -18203,8 +18203,8 @@ static void fun_344(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 75, 17);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 698); // lower
-    block40189:;
-    if (!U_VFOR(vm, regs + 2)) goto block40271;
+    block40186:;
+    if (!U_VFOR(vm, regs + 2)) goto block40268;
     U_STATEMENT(vm, regs + 2, 75, 17);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // nc
@@ -18231,9 +18231,9 @@ static void fun_344(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 3, 696); // c
     U_LVAL_FLD(vm, regs + 4, 2);
     U_LV_FSUB(vm, regs + 3);
-    goto block40189;
-    block40271:;
-    block40273:;
+    goto block40186;
+    block40268:;
+    block40270:;
     U_RETURNLOCAL(vm, 0, 0);
     DecOwned(vm, 696);
     DecOwned(vm, 698);
@@ -18267,7 +18267,7 @@ static void fun_345(VMRef vm, StackPtr psp) {
     regs[0] = locals[1]; // d
     U_PUSHVARF(vm, regs + 1, 667); // hmargin
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block40360;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block40357;
     U_STATEMENT(vm, regs + 0, 72, 17);
     regs[0] = locals[1]; // d
     U_LVAL_VARF(vm, regs + 1, 697); // totald
@@ -18279,7 +18279,7 @@ static void fun_345(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 2, 1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
-    block40360:;
+    block40357:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     goto epilogue;
@@ -18300,7 +18300,7 @@ static void fun_346(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 2);
     U_PUSHFLT(vm, regs + 1, 0);
     U_FNE(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block40427;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block40424;
     U_STATEMENT(vm, regs + 0, 81, 17);
     regs[0] = locals[2]; // c
     U_PUSHFLD(vm, regs + 1, 2);
@@ -18312,7 +18312,7 @@ static void fun_346(VMRef vm, StackPtr psp) {
     regs[1] = locals[2]; // c
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITE(vm, regs + 1);
-    block40427:;
+    block40424:;
     U_RETURNLOCAL(vm, 0, 0);
     Pop(psp);
     Pop(psp);
@@ -18379,8 +18379,8 @@ static void fun_347(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 36, 18);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 707); // N
-    block40580:;
-    if (!U_IFOR(vm, regs + 2)) goto block40670;
+    block40577:;
+    if (!U_IFOR(vm, regs + 2)) goto block40667;
     U_STATEMENT(vm, regs + 2, 36, 18);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[5]); // i
@@ -18410,8 +18410,8 @@ static void fun_347(VMRef vm, StackPtr psp) {
     regs[4] = locals[5]; // i
     U_LVAL_IDXVI(vm, regs + 5, 0);
     U_LV_WRITE(vm, regs + 3);
-    goto block40580;
-    block40670:;
+    goto block40577;
+    block40667:;
     U_STATEMENT(vm, regs + 0, 40, 18);
     regs[0] = locals[3]; // x
     U_INCREF(vm, regs + 1, 0);
@@ -18474,8 +18474,8 @@ static void fun_348(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 16, 18);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[3]; // n_epochs
-    block40805:;
-    if (!U_IFOR(vm, regs + 2)) goto block41032;
+    block40802:;
+    if (!U_IFOR(vm, regs + 2)) goto block41029;
     U_STATEMENT(vm, regs + 2, 17, 18);
     U_PUSHFLT(vm, regs + 2, 0);
     SetLVal(vm, &locals[7]); // grad0
@@ -18487,8 +18487,8 @@ static void fun_348(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 19, 18);
     U_PUSHINT(vm, regs + 2, -1);
     U_PUSHVARF(vm, regs + 3, 707); // N
-    block40844:;
-    if (!U_IFOR(vm, regs + 4)) goto block40929;
+    block40841:;
+    if (!U_IFOR(vm, regs + 4)) goto block40926;
     U_STATEMENT(vm, regs + 4, 19, 18);
     U_IFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[9]); // i
@@ -18517,8 +18517,8 @@ static void fun_348(VMRef vm, StackPtr psp) {
     U_FMUL(vm, regs + 6);
     SetLVal(vm, &locals[8]); // grad1
     U_LV_FADD(vm, regs + 5);
-    goto block40844;
-    block40929:;
+    goto block40841;
+    block40926:;
     U_STATEMENT(vm, regs + 2, 23, 18);
     regs[2] = locals[2]; // mu
     regs[3] = locals[7]; // grad0
@@ -18534,8 +18534,8 @@ static void fun_348(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 25, 18);
     U_PUSHINT(vm, regs + 2, -1);
     U_PUSHVARF(vm, regs + 3, 707); // N
-    block40975:;
-    if (!U_IFOR(vm, regs + 4)) goto block41027;
+    block40972:;
+    if (!U_IFOR(vm, regs + 4)) goto block41024;
     U_STATEMENT(vm, regs + 4, 25, 18);
     U_IFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[11]); // i
@@ -18552,10 +18552,10 @@ static void fun_348(VMRef vm, StackPtr psp) {
     regs[6] = locals[11]; // i
     U_LVAL_IDXVI(vm, regs + 7, 0);
     U_LV_WRITE(vm, regs + 5);
-    goto block40975;
-    block41027:;
-    goto block40805;
-    block41032:;
+    goto block40972;
+    block41024:;
+    goto block40802;
+    block41029:;
     U_STATEMENT(vm, regs + 0, 27, 18);
     regs[0] = locals[5]; // w0
     regs[1] = locals[6]; // w1
@@ -18659,14 +18659,14 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 2, 0, fun_355);
     fun_98(vm, regs + 3); // call: forxy
     U_STATEMENT(vm, regs + 0, 41, 19);
-    block41246:;
+    block41243:;
     fun_353(vm, regs + 0); // call: wiggleverts
     U_PUSHFLT(vm, regs + 1, 1065353216);
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block41266;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block41263;
     U_STATEMENT(vm, regs + 0, 41, 19);
-    goto block41246;
-    block41266:;
+    goto block41243;
+    block41263:;
     U_STATEMENT(vm, regs + 0, 42, 19);
     U_STATEMENT(vm, regs + 0, 42, 19);
     U_STATEMENT(vm, regs + 0, 46, 19);
@@ -18676,8 +18676,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 47, 19);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 727); // verts
-    block41299:;
-    if (!U_VFOR(vm, regs + 2)) goto block41459;
+    block41296:;
+    if (!U_VFOR(vm, regs + 2)) goto block41456;
     U_STATEMENT(vm, regs + 2, 47, 19);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[3]); // v+0
@@ -18689,8 +18689,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 48, 19);
     U_PUSHINT(vm, regs + 2, -1);
     U_PUSHVARF(vm, regs + 3, 727); // verts
-    block41337:;
-    if (!U_VFOR(vm, regs + 4)) goto block41454;
+    block41334:;
+    if (!U_VFOR(vm, regs + 4)) goto block41451;
     U_STATEMENT(vm, regs + 4, 48, 19);
     U_VFORELEM2S(vm, regs + 4);
     SetLVal(vm, &locals[6]); // w+0
@@ -18703,7 +18703,7 @@ static void fun_352(VMRef vm, StackPtr psp) {
     regs[4] = locals[5]; // i
     regs[5] = locals[8]; // j
     U_ILT(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block41449;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block41446;
     U_STATEMENT(vm, regs + 4, 50, 19);
     regs[4] = locals[6];regs[5] = locals[7]; // w
     regs[6] = locals[3];regs[7] = locals[4]; // v
@@ -18716,7 +18716,7 @@ static void fun_352(VMRef vm, StackPtr psp) {
     regs[4] = locals[9]; // dist
     U_PUSHFLT(vm, regs + 5, 1073741824);
     U_FLT(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block41447;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block41444;
     U_STATEMENT(vm, regs + 4, 52, 19);
     regs[4] = locals[2]; // pedges
     regs[5] = locals[5]; // i
@@ -18725,12 +18725,12 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 8, 3);
     U_BCALLRETV(vm, regs + 9, 15, 1); // push
     U_POP(vm, regs + 5);
-    block41447:;
-    block41449:;
-    goto block41337;
-    block41454:;
-    goto block41299;
-    block41459:;
+    block41444:;
+    block41446:;
+    goto block41334;
+    block41451:;
+    goto block41296;
+    block41456:;
     U_STATEMENT(vm, regs + 0, 53, 19);
     regs[0] = locals[2]; // pedges
     U_INCREF(vm, regs + 1, 0);
@@ -18757,8 +18757,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 56, 19);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[2]; // pedges
-    block41541:;
-    if (!U_VFOR(vm, regs + 2)) goto block41652;
+    block41538:;
+    if (!U_VFOR(vm, regs + 2)) goto block41649;
     U_STATEMENT(vm, regs + 2, 56, 19);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[12]); // pe+0
@@ -18767,7 +18767,7 @@ static void fun_352(VMRef vm, StackPtr psp) {
     regs[2] = locals[14]; // pe+2
     regs[3] = locals[10]; // edgedistnocross
     U_FLT(vm, regs + 4);
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block41647;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block41644;
     U_STATEMENT(vm, regs + 2, 58, 19);
     regs[2] = locals[0]; // edges
     regs[3] = locals[12]; // pe+0
@@ -18792,9 +18792,9 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 4, 1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
-    block41647:;
-    goto block41541;
-    block41652:;
+    block41644:;
+    goto block41538;
+    block41649:;
     U_STATEMENT(vm, regs + 0, 61, 19);
     U_NEWVEC(vm, regs + 0, 1165, 0);
     SetLVal(vm, &locals[2]); // pedges
@@ -18818,8 +18818,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 727); // verts
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
-    block41728:;
-    if (!U_IFOR(vm, regs + 2)) goto block42205;
+    block41725:;
+    if (!U_IFOR(vm, regs + 2)) goto block42202;
     U_STATEMENT(vm, regs + 2, 67, 19);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[16]); // i
@@ -18829,8 +18829,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     regs[3] = locals[11]; // vnbs
     regs[4] = locals[16]; // i
     U_VPUSHIDXI(vm, regs + 5);
-    block41759:;
-    if (!U_VFOR(vm, regs + 4)) goto block42200;
+    block41756:;
+    if (!U_VFOR(vm, regs + 4)) goto block42197;
     U_STATEMENT(vm, regs + 4, 68, 19);
     U_VFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[17]); // j
@@ -18846,12 +18846,12 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_LVAL_VARF(vm, regs + 5, 774); // p
     U_LV_WRITE(vm, regs + 5);
     U_STATEMENT(vm, regs + 4, 71, 19);
-    block41810:;
+    block41807:;
     U_PUSHVARF(vm, regs + 4, 773); // shape
     U_BCALLRETV(vm, regs + 5, 16, 1); // pop
     regs[5] = locals[16]; // i
     U_INE(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block41966;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block41963;
     U_STATEMENT(vm, regs + 4, 72, 19);
     U_PUSHVARF(vm, regs + 4, 773); // shape
     regs[5] = locals[17]; // j
@@ -18897,14 +18897,14 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 6, 1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
-    goto block41810;
-    block41966:;
+    goto block41807;
+    block41963:;
     U_STATEMENT(vm, regs + 4, 79, 19);
     U_PUSHVARF(vm, regs + 4, 773); // shape
     U_BCALLRET1(vm, regs + 5, 13, 1); // length
     U_PUSHINT(vm, regs + 5, 4);
     U_ILE(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42195;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42192;
     U_STATEMENT(vm, regs + 4, 80, 19);
     U_PUSHVARF(vm, regs + 4, 773); // shape
     U_INCREF(vm, regs + 5, 0);
@@ -18913,13 +18913,13 @@ static void fun_352(VMRef vm, StackPtr psp) {
     SetLVal(vm, &locals[20]); // start
     U_LV_WRITE(vm, regs + 5);
     U_STATEMENT(vm, regs + 4, 81, 19);
-    block42012:;
+    block42009:;
     U_PUSHVARF(vm, regs + 4, 773); // shape
     U_PUSHINT(vm, regs + 5, 0);
     U_VPUSHIDXI(vm, regs + 6);
     regs[5] = locals[20]; // start
     U_INE(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42059;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42056;
     U_STATEMENT(vm, regs + 4, 82, 19);
     U_PUSHVARF(vm, regs + 4, 773); // shape
     U_PUSHINT(vm, regs + 5, 0);
@@ -18928,21 +18928,21 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 7, 1);
     U_BCALLRETV(vm, regs + 8, 18, 1); // insert
     U_POP(vm, regs + 5);
-    goto block42012;
-    block42059:;
+    goto block42009;
+    block42056:;
     U_STATEMENT(vm, regs + 4, 83, 19);
     U_PUSHVARF(vm, regs + 4, 773); // shape
     U_BCALLRET1(vm, regs + 5, 13, 1); // length
     U_PUSHINT(vm, regs + 5, 4);
     U_IEQ(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42128;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42125;
     U_STATEMENT(vm, regs + 4, 84, 19);
     regs[4] = locals[1]; // quads
     U_INCREF(vm, regs + 5, 0);
     U_PUSHFUN(vm, regs + 5, 0, fun_362);
     fun_596(vm, regs + 6); // call: exists
     U_LOGNOT(vm, regs + 5);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42123;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42120;
     U_STATEMENT(vm, regs + 4, 85, 19);
     regs[4] = locals[1]; // quads
     U_PUSHVARF(vm, regs + 5, 773); // shape
@@ -18950,21 +18950,21 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 6, 1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
-    block42123:;
-    goto block42193;
-    block42128:;
+    block42120:;
+    goto block42190;
+    block42125:;
     U_STATEMENT(vm, regs + 4, 86, 19);
     U_PUSHVARF(vm, regs + 4, 773); // shape
     U_BCALLRET1(vm, regs + 5, 13, 1); // length
     U_PUSHINT(vm, regs + 5, 3);
     U_IEQ(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42191;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42188;
     U_STATEMENT(vm, regs + 4, 87, 19);
     regs[4] = locals[15]; // tris
     U_PUSHFUN(vm, regs + 5, 0, fun_363);
     fun_597(vm, regs + 6); // call: exists
     U_LOGNOT(vm, regs + 5);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42189;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42186;
     U_STATEMENT(vm, regs + 4, 88, 19);
     regs[4] = locals[15]; // tris
     U_PUSHVARF(vm, regs + 5, 773); // shape
@@ -18972,19 +18972,19 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 6, 1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
-    block42189:;
-    block42191:;
-    block42193:;
-    block42195:;
-    goto block41759;
-    block42200:;
-    goto block41728;
-    block42205:;
+    block42186:;
+    block42188:;
+    block42190:;
+    block42192:;
+    goto block41756;
+    block42197:;
+    goto block41725;
+    block42202:;
     U_STATEMENT(vm, regs + 0, 89, 19);
-    block42211:;
+    block42208:;
     regs[0] = locals[15]; // tris
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block42954;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block42951;
     U_STATEMENT(vm, regs + 0, 90, 19);
     U_PUSHINT(vm, regs + 0, -1);
     SetLVal(vm, &locals[21]); // besti
@@ -18996,8 +18996,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 92, 19);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[15]; // tris
-    block42257:;
-    if (!U_VFOR(vm, regs + 2)) goto block42459;
+    block42254:;
+    if (!U_VFOR(vm, regs + 2)) goto block42456;
     U_STATEMENT(vm, regs + 2, 92, 19);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[23]); // t
@@ -19013,8 +19013,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 94, 19);
     U_PUSHINT(vm, regs + 2, -1);
     regs[3] = locals[23]; // t
-    block42306:;
-    if (!U_VFOR(vm, regs + 4)) goto block42413;
+    block42303:;
+    if (!U_VFOR(vm, regs + 4)) goto block42410;
     U_STATEMENT(vm, regs + 4, 94, 19);
     U_VFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[26]); // vi1
@@ -19022,8 +19022,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 4, 95, 19);
     U_PUSHINT(vm, regs + 4, -1);
     regs[5] = locals[1]; // quads
-    block42332:;
-    if (!U_VFOR(vm, regs + 6)) goto block42408;
+    block42329:;
+    if (!U_VFOR(vm, regs + 6)) goto block42405;
     U_STATEMENT(vm, regs + 6, 95, 19);
     U_VFORELEMREF(vm, regs + 6);
     SetLVal(vm, &locals[27]); // q
@@ -19031,8 +19031,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 6, 96, 19);
     U_PUSHINT(vm, regs + 6, -1);
     regs[7] = locals[27]; // q
-    block42358:;
-    if (!U_VFOR(vm, regs + 8)) goto block42403;
+    block42355:;
+    if (!U_VFOR(vm, regs + 8)) goto block42400;
     U_STATEMENT(vm, regs + 8, 96, 19);
     U_VFORELEM(vm, regs + 8);
     SetLVal(vm, &locals[28]); // vi2
@@ -19041,22 +19041,22 @@ static void fun_352(VMRef vm, StackPtr psp) {
     regs[8] = locals[26]; // vi1
     regs[9] = locals[28]; // vi2
     U_IEQ(vm, regs + 10);
-    if (!U_JUMPFAIL(vm, regs + 9)) goto block42398;
+    if (!U_JUMPFAIL(vm, regs + 9)) goto block42395;
     U_STATEMENT(vm, regs + 8, 98, 19);
     SetLVal(vm, &locals[25]); // qc
     U_LV_IPP(vm, regs + 8);
-    block42398:;
-    goto block42358;
-    block42403:;
-    goto block42332;
-    block42408:;
-    goto block42306;
-    block42413:;
+    block42395:;
+    goto block42355;
+    block42400:;
+    goto block42329;
+    block42405:;
+    goto block42303;
+    block42410:;
     U_STATEMENT(vm, regs + 2, 99, 19);
     regs[2] = locals[25]; // qc
     regs[3] = locals[22]; // bestqc
     U_IGT(vm, regs + 4);
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block42454;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block42451;
     U_STATEMENT(vm, regs + 2, 100, 19);
     regs[2] = locals[25]; // qc
     SetLVal(vm, &locals[22]); // bestqc
@@ -19065,9 +19065,9 @@ static void fun_352(VMRef vm, StackPtr psp) {
     regs[2] = locals[24]; // i
     SetLVal(vm, &locals[21]); // besti
     U_LV_WRITE(vm, regs + 3);
-    block42454:;
-    goto block42257;
-    block42459:;
+    block42451:;
+    goto block42254;
+    block42456:;
     U_STATEMENT(vm, regs + 0, 102, 19);
     regs[0] = locals[15]; // tris
     regs[1] = locals[21]; // besti
@@ -19081,8 +19081,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 104, 19);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[29]; // t1
-    block42502:;
-    if (!U_VFOR(vm, regs + 2)) goto block42949;
+    block42499:;
+    if (!U_VFOR(vm, regs + 2)) goto block42946;
     U_STATEMENT(vm, regs + 2, 104, 19);
     U_VFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[31]); // vi
@@ -19094,7 +19094,7 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 105, 19);
     regs[2] = locals[30]; // found
     U_LOGNOT(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block42944;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block42941;
     U_STATEMENT(vm, regs + 2, 106, 19);
     regs[2] = locals[29]; // t1
     regs[3] = locals[32]; // vii
@@ -19118,8 +19118,8 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 108, 19);
     U_PUSHINT(vm, regs + 2, -1);
     regs[3] = locals[15]; // tris
-    block42605:;
-    if (!U_VFOR(vm, regs + 4)) goto block42942;
+    block42602:;
+    if (!U_VFOR(vm, regs + 4)) goto block42939;
     U_STATEMENT(vm, regs + 4, 108, 19);
     U_VFORELEMREF(vm, regs + 4);
     SetLVal(vm, &locals[35]); // t
@@ -19127,7 +19127,7 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 4, 109, 19);
     regs[4] = locals[30]; // found
     U_LOGNOT(vm, regs + 5);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42937;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42934;
     U_STATEMENT(vm, regs + 4, 110, 19);
     U_PUSHINT(vm, regs + 4, 1);
     SetLVal(vm, &locals[30]); // found
@@ -19138,15 +19138,15 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_VPUSHIDXI(vm, regs + 6);
     regs[5] = locals[33]; // ni
     U_IEQ(vm, regs + 6);
-    if (!U_JUMPFAILR(vm, regs + 5)) goto block42680;
+    if (!U_JUMPFAILR(vm, regs + 5)) goto block42677;
     U_POP(vm, regs + 5);
     regs[4] = locals[35]; // t
     U_PUSHINT(vm, regs + 5, 1);
     U_VPUSHIDXI(vm, regs + 6);
     regs[5] = locals[31]; // vi
     U_IEQ(vm, regs + 6);
-    block42680:;
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42725;
+    block42677:;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42722;
     U_STATEMENT(vm, regs + 4, 112, 19);
     regs[4] = locals[1]; // quads
     regs[5] = locals[31]; // vi
@@ -19159,23 +19159,23 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 6, 1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
-    goto block42907;
-    block42725:;
+    goto block42904;
+    block42722:;
     U_STATEMENT(vm, regs + 4, 113, 19);
     regs[4] = locals[35]; // t
     U_PUSHINT(vm, regs + 5, 1);
     U_VPUSHIDXI(vm, regs + 6);
     regs[5] = locals[33]; // ni
     U_IEQ(vm, regs + 6);
-    if (!U_JUMPFAILR(vm, regs + 5)) goto block42762;
+    if (!U_JUMPFAILR(vm, regs + 5)) goto block42759;
     U_POP(vm, regs + 5);
     regs[4] = locals[35]; // t
     U_PUSHINT(vm, regs + 5, 2);
     U_VPUSHIDXI(vm, regs + 6);
     regs[5] = locals[31]; // vi
     U_IEQ(vm, regs + 6);
-    block42762:;
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42807;
+    block42759:;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42804;
     U_STATEMENT(vm, regs + 4, 114, 19);
     regs[4] = locals[1]; // quads
     regs[5] = locals[31]; // vi
@@ -19188,23 +19188,23 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 6, 1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
-    goto block42905;
-    block42807:;
+    goto block42902;
+    block42804:;
     U_STATEMENT(vm, regs + 4, 115, 19);
     regs[4] = locals[35]; // t
     U_PUSHINT(vm, regs + 5, 2);
     U_VPUSHIDXI(vm, regs + 6);
     regs[5] = locals[33]; // ni
     U_IEQ(vm, regs + 6);
-    if (!U_JUMPFAILR(vm, regs + 5)) goto block42844;
+    if (!U_JUMPFAILR(vm, regs + 5)) goto block42841;
     U_POP(vm, regs + 5);
     regs[4] = locals[35]; // t
     U_PUSHINT(vm, regs + 5, 0);
     U_VPUSHIDXI(vm, regs + 6);
     regs[5] = locals[31]; // vi
     U_IEQ(vm, regs + 6);
-    block42844:;
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42889;
+    block42841:;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42886;
     U_STATEMENT(vm, regs + 4, 116, 19);
     regs[4] = locals[1]; // quads
     regs[5] = locals[31]; // vi
@@ -19217,32 +19217,32 @@ static void fun_352(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 6, 1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
-    goto block42903;
-    block42889:;
+    goto block42900;
+    block42886:;
     U_STATEMENT(vm, regs + 4, 118, 19);
     U_PUSHINT(vm, regs + 4, 0);
     SetLVal(vm, &locals[30]); // found
     U_LV_WRITE(vm, regs + 5);
-    block42903:;
-    block42905:;
-    block42907:;
+    block42900:;
+    block42902:;
+    block42904:;
     U_STATEMENT(vm, regs + 4, 119, 19);
     regs[4] = locals[30]; // found
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block42935;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block42932;
     U_STATEMENT(vm, regs + 4, 120, 19);
     regs[4] = locals[15]; // tris
     regs[5] = locals[35]; // t
     U_BCALLRET2(vm, regs + 6, 21, 1); // remove_obj
     U_POP(vm, regs + 5);
-    block42935:;
-    block42937:;
-    goto block42605;
-    block42942:;
-    block42944:;
-    goto block42502;
-    block42949:;
-    goto block42211;
-    block42954:;
+    block42932:;
+    block42934:;
+    goto block42602;
+    block42939:;
+    block42941:;
+    goto block42499;
+    block42946:;
+    goto block42208;
+    block42951:;
     U_RETURNLOCAL(vm, 0, 0);
     DecOwned(vm, 727);
     DecVal(vm, locals[0]);
@@ -19294,8 +19294,8 @@ static void fun_353(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 24, 19);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 727); // verts
-    block43012:;
-    if (!U_VFOR(vm, regs + 2)) goto block43193;
+    block43009:;
+    if (!U_VFOR(vm, regs + 2)) goto block43190;
     U_STATEMENT(vm, regs + 2, 24, 19);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[1]); // v+0
@@ -19303,8 +19303,8 @@ static void fun_353(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 25, 19);
     U_PUSHINT(vm, regs + 2, -1);
     U_PUSHVARF(vm, regs + 3, 727); // verts
-    block43039:;
-    if (!U_VFOR(vm, regs + 4)) goto block43188;
+    block43036:;
+    if (!U_VFOR(vm, regs + 4)) goto block43185;
     U_STATEMENT(vm, regs + 4, 25, 19);
     U_VFORELEM2S(vm, regs + 4);
     SetLVal(vm, &locals[3]); // w+0
@@ -19329,13 +19329,13 @@ static void fun_353(VMRef vm, StackPtr psp) {
     regs[4] = locals[8]; // dist
     U_PUSHFLT(vm, regs + 5, 1065353216);
     U_FLT(vm, regs + 6);
-    if (!U_JUMPFAILR(vm, regs + 5)) goto block43136;
+    if (!U_JUMPFAILR(vm, regs + 5)) goto block43133;
     U_POP(vm, regs + 5);
     regs[4] = locals[1];regs[5] = locals[2]; // v
     regs[6] = locals[3];regs[7] = locals[4]; // w
     U_STNE(vm, regs + 8, 2);
-    block43136:;
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block43183;
+    block43133:;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block43180;
     U_STATEMENT(vm, regs + 4, 29, 19);
     regs[4] = locals[6];regs[5] = locals[7]; // tow
     U_PUSHFLT(vm, regs + 6, 1065353216);
@@ -19350,11 +19350,11 @@ static void fun_353(VMRef vm, StackPtr psp) {
     regs[7] = locals[5]; // i
     U_LVAL_IDXVI(vm, regs + 8, 0);
     U_LV_FVVADD(vm, regs + 6, 2);
-    block43183:;
-    goto block43039;
-    block43188:;
-    goto block43012;
-    block43193:;
+    block43180:;
+    goto block43036;
+    block43185:;
+    goto block43009;
+    block43190:;
     U_STATEMENT(vm, regs + 0, 30, 19);
     U_PUSHFLT(vm, regs + 0, 0);
     SetLVal(vm, &locals[9]); // totaldisp
@@ -19362,8 +19362,8 @@ static void fun_353(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 31, 19);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // disps
-    block43217:;
-    if (!U_VFOR(vm, regs + 2)) goto block43288;
+    block43214:;
+    if (!U_VFOR(vm, regs + 2)) goto block43285;
     U_STATEMENT(vm, regs + 2, 31, 19);
     U_VFORELEM2S(vm, regs + 2);
     SetLVal(vm, &locals[10]); // d+0
@@ -19384,8 +19384,8 @@ static void fun_353(VMRef vm, StackPtr psp) {
     U_BCALLRETV(vm, regs + 5, 86, 1); // magnitude
     SetLVal(vm, &locals[9]); // totaldisp
     U_LV_FADD(vm, regs + 3);
-    goto block43217;
-    block43288:;
+    goto block43214;
+    block43285:;
     U_STATEMENT(vm, regs + 0, 34, 19);
     regs[0] = locals[9]; // totaldisp
     U_RETURNLOCAL(vm, 0, 1);
@@ -19804,8 +19804,8 @@ static void fun_367(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 125, 20);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[2]; // h
-    block44223:;
-    if (!U_IFOR(vm, regs + 2)) goto block44628;
+    block44220:;
+    if (!U_IFOR(vm, regs + 2)) goto block44625;
     U_STATEMENT(vm, regs + 2, 125, 20);
     U_IFORELEM(vm, regs + 2);
     SetLVal(vm, &locals[16]); // y
@@ -19813,8 +19813,8 @@ static void fun_367(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 2, 126, 20);
     U_PUSHINT(vm, regs + 2, -1);
     U_PUSHVARF(vm, regs + 3, 1015); // w
-    block44249:;
-    if (!U_IFOR(vm, regs + 4)) goto block44623;
+    block44246:;
+    if (!U_IFOR(vm, regs + 4)) goto block44620;
     U_STATEMENT(vm, regs + 4, 126, 20);
     U_IFORELEM(vm, regs + 4);
     SetLVal(vm, &locals[17]); // x
@@ -19829,14 +19829,14 @@ static void fun_367(VMRef vm, StackPtr psp) {
     regs[4] = locals[18]; // r1
     U_PUSHFLT(vm, regs + 5, 1065353216);
     U_FLT(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block44317;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block44314;
     U_STATEMENT(vm, regs + 4, 128, 20);
     regs[4] = locals[18]; // r1
     U_BCALLRET1(vm, regs + 5, 56, 1); // sqrt
     U_PUSHFLT(vm, regs + 5, 1065353216);
     U_FSUB(vm, regs + 6);
-    goto block44340;
-    block44317:;
+    goto block44337;
+    block44314:;
     U_STATEMENT(vm, regs + 4, 128, 20);
     U_PUSHFLT(vm, regs + 4, 1065353216);
     U_PUSHFLT(vm, regs + 5, 1073741824);
@@ -19844,7 +19844,7 @@ static void fun_367(VMRef vm, StackPtr psp) {
     U_FSUB(vm, regs + 7);
     U_BCALLRET1(vm, regs + 6, 56, 1); // sqrt
     U_FSUB(vm, regs + 6);
-    block44340:;
+    block44337:;
     SetLVal(vm, &locals[19]); // dx
     U_LV_WRITE(vm, regs + 5);
     U_STATEMENT(vm, regs + 4, 129, 20);
@@ -19857,14 +19857,14 @@ static void fun_367(VMRef vm, StackPtr psp) {
     regs[4] = locals[20]; // r2
     U_PUSHFLT(vm, regs + 5, 1065353216);
     U_FLT(vm, regs + 6);
-    if (!U_JUMPFAIL(vm, regs + 5)) goto block44399;
+    if (!U_JUMPFAIL(vm, regs + 5)) goto block44396;
     U_STATEMENT(vm, regs + 4, 130, 20);
     regs[4] = locals[20]; // r2
     U_BCALLRET1(vm, regs + 5, 56, 1); // sqrt
     U_PUSHFLT(vm, regs + 5, 1065353216);
     U_FSUB(vm, regs + 6);
-    goto block44422;
-    block44399:;
+    goto block44419;
+    block44396:;
     U_STATEMENT(vm, regs + 4, 130, 20);
     U_PUSHFLT(vm, regs + 4, 1065353216);
     U_PUSHFLT(vm, regs + 5, 1073741824);
@@ -19872,7 +19872,7 @@ static void fun_367(VMRef vm, StackPtr psp) {
     U_FSUB(vm, regs + 7);
     U_BCALLRET1(vm, regs + 6, 56, 1); // sqrt
     U_FSUB(vm, regs + 6);
-    block44422:;
+    block44419:;
     SetLVal(vm, &locals[21]); // dy
     U_LV_WRITE(vm, regs + 5);
     U_STATEMENT(vm, regs + 4, 131, 20);
@@ -19940,10 +19940,10 @@ static void fun_367(VMRef vm, StackPtr psp) {
     regs[8] = locals[17]; // x
     U_LVAL_IDXVI(vm, regs + 9, 0);
     U_LV_FVVADD(vm, regs + 7, 3);
-    goto block44249;
-    block44623:;
-    goto block44223;
-    block44628:;
+    goto block44246;
+    block44620:;
+    goto block44220;
+    block44625:;
     U_STATEMENT(vm, regs + 0, 137, 20);
     U_LVAL_VARF(vm, regs + 0, 1030); // samples
     U_LV_IPP(vm, regs + 0);
@@ -20031,7 +20031,7 @@ static void fun_368(VMRef vm, StackPtr psp) {
     regs[0] = locals[12]; // det
     U_PUSHFLT(vm, regs + 1, 0);
     U_FLT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block44846;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block44843;
     U_STATEMENT(vm, regs + 0, 30, 20);
     U_PUSHFLT(vm, regs + 0, 0);
     U_RETURNLOCAL(vm, 0, 1);
@@ -20045,7 +20045,7 @@ static void fun_368(VMRef vm, StackPtr psp) {
     Pop(psp);
     Push(psp, regs[0]);
     goto epilogue;
-    block44846:;
+    block44843:;
     U_STATEMENT(vm, regs + 0, 31, 20);
     regs[0] = locals[12]; // det
     U_BCALLRET1(vm, regs + 1, 56, 1); // sqrt
@@ -20061,11 +20061,11 @@ static void fun_368(VMRef vm, StackPtr psp) {
     regs[0] = locals[13]; // t
     regs[1] = locals[10]; // eps
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block44906;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block44903;
     U_STATEMENT(vm, regs + 0, 34, 20);
     regs[0] = locals[13]; // t
-    goto block44961;
-    block44906:;
+    goto block44958;
+    block44903:;
     U_STATEMENT(vm, regs + 0, 36, 20);
     regs[0] = locals[11]; // b
     regs[1] = locals[12]; // det
@@ -20076,15 +20076,15 @@ static void fun_368(VMRef vm, StackPtr psp) {
     regs[0] = locals[13]; // t
     regs[1] = locals[10]; // eps
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block44950;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block44947;
     U_STATEMENT(vm, regs + 0, 37, 20);
     regs[0] = locals[13]; // t
-    goto block44959;
-    block44950:;
+    goto block44956;
+    block44947:;
     U_STATEMENT(vm, regs + 0, 37, 20);
     U_PUSHFLT(vm, regs + 0, 0);
-    block44959:;
-    block44961:;
+    block44956:;
+    block44958:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -20184,8 +20184,8 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 59, 20);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 946); // spheres
-    block45079:;
-    if (!U_VFOR(vm, regs + 2)) goto block45187;
+    block45076:;
+    if (!U_VFOR(vm, regs + 2)) goto block45184;
     U_STATEMENT(vm, regs + 2, 59, 20);
     U_VFORELEMREF(vm, regs + 2);
     SetLVal(vm, &locals[9]); // s
@@ -20205,13 +20205,13 @@ static void fun_369(VMRef vm, StackPtr psp) {
     regs[2] = locals[11]; // d
     U_PUSHFLT(vm, regs + 3, 0);
     U_FNE(vm, regs + 4);
-    if (!U_JUMPFAILR(vm, regs + 3)) goto block45153;
+    if (!U_JUMPFAILR(vm, regs + 3)) goto block45150;
     U_POP(vm, regs + 3);
     regs[2] = locals[11]; // d
     regs[3] = locals[7]; // t
     U_FLT(vm, regs + 4);
-    block45153:;
-    if (!U_JUMPFAIL(vm, regs + 3)) goto block45182;
+    block45150:;
+    if (!U_JUMPFAIL(vm, regs + 3)) goto block45179;
     U_STATEMENT(vm, regs + 2, 62, 20);
     regs[2] = locals[11]; // d
     SetLVal(vm, &locals[7]); // t
@@ -20220,14 +20220,14 @@ static void fun_369(VMRef vm, StackPtr psp) {
     regs[2] = locals[10]; // i
     SetLVal(vm, &locals[8]); // id
     U_LV_WRITE(vm, regs + 3);
-    block45182:;
-    goto block45079;
-    block45187:;
+    block45179:;
+    goto block45076;
+    block45184:;
     U_STATEMENT(vm, regs + 0, 64, 20);
     regs[0] = locals[8]; // id
     U_PUSHINT(vm, regs + 1, 0);
     U_ILT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45215;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45212;
     U_STATEMENT(vm, regs + 0, 64, 20);
     U_PUSHVARVF(vm, regs + 0, 84, 3); // float3_0+0
     U_RETURNLOCAL(vm, 0, 3);
@@ -20244,7 +20244,7 @@ static void fun_369(VMRef vm, StackPtr psp) {
     Push(psp, regs[1]);
     Push(psp, regs[2]);
     goto epilogue;
-    block45215:;
+    block45212:;
     U_STATEMENT(vm, regs + 0, 65, 20);
     U_PUSHVARF(vm, regs + 0, 946); // spheres
     regs[1] = locals[8]; // id
@@ -20277,16 +20277,16 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
     U_PUSHFLT(vm, regs + 1, 0);
     U_FLT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45336;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45333;
     U_STATEMENT(vm, regs + 0, 68, 20);
     regs[0] = locals[16];regs[1] = locals[17];regs[2] = locals[18]; // n
-    goto block45352;
-    block45336:;
+    goto block45349;
+    block45333:;
     U_STATEMENT(vm, regs + 0, 68, 20);
     regs[0] = locals[16];regs[1] = locals[17];regs[2] = locals[18]; // n
     U_PUSHFLT(vm, regs + 3, -1082130432);
     U_FVSMUL(vm, regs + 4, 3);
-    block45352:;
+    block45349:;
     SetLVal(vm, &locals[19]); // nl+0
     U_LV_WRITEV(vm, regs + 3, 3);
     U_STATEMENT(vm, regs + 0, 69, 20);
@@ -20298,30 +20298,30 @@ static void fun_369(VMRef vm, StackPtr psp) {
     regs[0] = locals[22]; // f+0
     regs[1] = locals[23]; // f+1
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAILR(vm, regs + 1)) goto block45402;
+    if (!U_JUMPFAILR(vm, regs + 1)) goto block45399;
     U_POP(vm, regs + 1);
     regs[0] = locals[22]; // f+0
     regs[1] = locals[24]; // f+2
     U_FGT(vm, regs + 2);
-    block45402:;
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45417;
+    block45399:;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45414;
     U_STATEMENT(vm, regs + 0, 70, 20);
     regs[0] = locals[22]; // f+0
-    goto block45455;
-    block45417:;
+    goto block45452;
+    block45414:;
     U_STATEMENT(vm, regs + 0, 70, 20);
     regs[0] = locals[23]; // f+1
     regs[1] = locals[24]; // f+2
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45444;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45441;
     U_STATEMENT(vm, regs + 0, 70, 20);
     regs[0] = locals[23]; // f+1
-    goto block45453;
-    block45444:;
+    goto block45450;
+    block45441:;
     U_STATEMENT(vm, regs + 0, 70, 20);
     regs[0] = locals[24]; // f+2
-    block45453:;
-    block45455:;
+    block45450:;
+    block45452:;
     SetLVal(vm, &locals[25]); // p
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 71, 20);
@@ -20331,12 +20331,12 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 1);
     U_PUSHFLT(vm, regs + 1, 1084227584);
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45545;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45542;
     U_STATEMENT(vm, regs + 0, 71, 20);
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
     regs[1] = locals[25]; // p
     U_FLT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45527;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45524;
     U_STATEMENT(vm, regs + 0, 71, 20);
     regs[0] = locals[22];regs[1] = locals[23];regs[2] = locals[24]; // f
     U_PUSHFLT(vm, regs + 3, 1065353216);
@@ -20345,8 +20345,8 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_FVSMUL(vm, regs + 4, 3);
     SetLVal(vm, &locals[22]); // f+0
     U_LV_WRITEV(vm, regs + 3, 3);
-    goto block45543;
-    block45527:;
+    goto block45540;
+    block45524:;
     U_STATEMENT(vm, regs + 0, 71, 20);
     regs[0] = locals[12]; // obj
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
@@ -20364,14 +20364,14 @@ static void fun_369(VMRef vm, StackPtr psp) {
     Push(psp, regs[1]);
     Push(psp, regs[2]);
     goto epilogue;
-    block45543:;
-    block45545:;
+    block45540:;
+    block45542:;
     U_STATEMENT(vm, regs + 0, 72, 20);
     regs[0] = locals[12]; // obj
     U_PUSHFLD(vm, regs + 1, 10);
     U_PUSHINT(vm, regs + 1, 0);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45847;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45844;
     U_STATEMENT(vm, regs + 0, 73, 20);
     U_PUSHFLT(vm, regs + 0, 1135869952);
     U_BCALLRET0(vm, regs + 1, 95, 1); // rnd_float
@@ -20396,14 +20396,14 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 1, 112, 1); // abs
     U_PUSHFLT64(vm, regs + 1, -1717986918, 1069128089);
     U_FGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45657;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45654;
     U_STATEMENT(vm, regs + 0, 77, 20);
     U_PUSHVARVF(vm, regs + 0, 93, 3); // float3_y+0
-    goto block45667;
-    block45657:;
+    goto block45664;
+    block45654:;
     U_STATEMENT(vm, regs + 0, 77, 20);
     U_PUSHVARVF(vm, regs + 0, 90, 3); // float3_x+0
-    block45667:;
+    block45664:;
     U_PUSHINT(vm, regs + 3, 3);
     regs[4] = locals[29];regs[5] = locals[30];regs[6] = locals[31]; // w
     U_PUSHINT(vm, regs + 7, 3);
@@ -20469,14 +20469,14 @@ static void fun_369(VMRef vm, StackPtr psp) {
     Push(psp, regs[1]);
     Push(psp, regs[2]);
     goto epilogue;
-    goto block45941;
-    block45847:;
+    goto block45938;
+    block45844:;
     U_STATEMENT(vm, regs + 0, 81, 20);
     regs[0] = locals[12]; // obj
     U_PUSHFLD(vm, regs + 1, 10);
     U_PUSHINT(vm, regs + 1, 1);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block45939;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block45936;
     U_STATEMENT(vm, regs + 0, 82, 20);
     regs[0] = locals[12]; // obj
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
@@ -20511,8 +20511,8 @@ static void fun_369(VMRef vm, StackPtr psp) {
     Push(psp, regs[1]);
     Push(psp, regs[2]);
     goto epilogue;
-    block45939:;
-    block45941:;
+    block45936:;
+    block45938:;
     U_STATEMENT(vm, regs + 0, 83, 20);
     regs[0] = locals[13];regs[1] = locals[14];regs[2] = locals[15]; // x
     regs[3] = locals[3];regs[4] = locals[4];regs[5] = locals[5]; // r
@@ -20548,18 +20548,18 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 87, 20);
     regs[0] = locals[47]; // into
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block46076;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block46073;
     U_STATEMENT(vm, regs + 0, 87, 20);
     regs[0] = locals[48]; // nc
     regs[1] = locals[49]; // nt
     U_FDIV(vm, regs + 2);
-    goto block46090;
-    block46076:;
+    goto block46087;
+    block46073:;
     U_STATEMENT(vm, regs + 0, 87, 20);
     regs[0] = locals[49]; // nt
     regs[1] = locals[48]; // nc
     U_FDIV(vm, regs + 2);
-    block46090:;
+    block46087:;
     SetLVal(vm, &locals[50]); // nnt
     U_LV_WRITE(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 88, 20);
@@ -20588,7 +20588,7 @@ static void fun_369(VMRef vm, StackPtr psp) {
     regs[0] = locals[52]; // cos2t
     U_PUSHFLT(vm, regs + 1, 0);
     U_FLT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block46210;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block46207;
     U_STATEMENT(vm, regs + 0, 91, 20);
     regs[0] = locals[12]; // obj
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
@@ -20612,21 +20612,21 @@ static void fun_369(VMRef vm, StackPtr psp) {
     Push(psp, regs[1]);
     Push(psp, regs[2]);
     goto epilogue;
-    block46210:;
+    block46207:;
     U_STATEMENT(vm, regs + 0, 92, 20);
     regs[0] = locals[3];regs[1] = locals[4];regs[2] = locals[5]; // r
     regs[3] = locals[50]; // nnt
     U_FVSMUL(vm, regs + 4, 3);
     regs[3] = locals[16];regs[4] = locals[17];regs[5] = locals[18]; // n
     regs[6] = locals[47]; // into
-    if (!U_JUMPFAIL(vm, regs + 7)) goto block46246;
+    if (!U_JUMPFAIL(vm, regs + 7)) goto block46243;
     U_STATEMENT(vm, regs + 6, 92, 20);
     U_PUSHINT(vm, regs + 6, 1);
-    goto block46255;
-    block46246:;
+    goto block46252;
+    block46243:;
     U_STATEMENT(vm, regs + 6, 92, 20);
     U_PUSHINT(vm, regs + 6, -1);
-    block46255:;
+    block46252:;
     U_I2F(vm, regs + 7);
     regs[7] = locals[51]; // ddn
     regs[8] = locals[50]; // nnt
@@ -20666,19 +20666,19 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 96, 20);
     U_PUSHFLT(vm, regs + 0, 1065353216);
     regs[1] = locals[47]; // into
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block46383;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block46380;
     U_STATEMENT(vm, regs + 1, 96, 20);
     regs[1] = locals[51]; // ddn
     U_FUMINUS(vm, regs + 2);
-    goto block46407;
-    block46383:;
+    goto block46404;
+    block46380:;
     U_STATEMENT(vm, regs + 1, 96, 20);
     regs[1] = locals[53];regs[2] = locals[54];regs[3] = locals[55]; // tdir
     U_PUSHINT(vm, regs + 4, 3);
     regs[5] = locals[16];regs[6] = locals[17];regs[7] = locals[18]; // n
     U_PUSHINT(vm, regs + 8, 3);
     U_BCALLRETV(vm, regs + 9, 85, 1); // dot
-    block46407:;
+    block46404:;
     U_FSUB(vm, regs + 2);
     SetLVal(vm, &locals[59]); // c
     U_LV_WRITE(vm, regs + 1);
@@ -20732,20 +20732,20 @@ static void fun_369(VMRef vm, StackPtr psp) {
     regs[0] = locals[6]; // depth
     U_PUSHINT(vm, regs + 1, 2);
     U_IGT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block46626;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block46623;
     U_STATEMENT(vm, regs + 0, 104, 20);
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
     regs[1] = locals[62]; // P
     U_FLT(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block46595;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block46592;
     U_STATEMENT(vm, regs + 0, 105, 20);
     regs[0] = locals[41];regs[1] = locals[42];regs[2] = locals[43];regs[3] = locals[44];regs[4] = locals[45];regs[5] = locals[46]; // reflRay
     regs[6] = locals[6]; // depth
     fun_369(vm, regs + 7); // call: radiance
     regs[3] = locals[63]; // RP
     U_FVSMUL(vm, regs + 4, 3);
-    goto block46621;
-    block46595:;
+    goto block46618;
+    block46592:;
     U_STATEMENT(vm, regs + 0, 107, 20);
     regs[0] = locals[13];regs[1] = locals[14];regs[2] = locals[15]; // x
     regs[3] = locals[53];regs[4] = locals[54];regs[5] = locals[55]; // tdir
@@ -20753,9 +20753,9 @@ static void fun_369(VMRef vm, StackPtr psp) {
     fun_369(vm, regs + 7); // call: radiance
     regs[3] = locals[64]; // TP
     U_FVSMUL(vm, regs + 4, 3);
-    block46621:;
-    goto block46671;
-    block46626:;
+    block46618:;
+    goto block46668;
+    block46623:;
     U_STATEMENT(vm, regs + 0, 109, 20);
     regs[0] = locals[41];regs[1] = locals[42];regs[2] = locals[43];regs[3] = locals[44];regs[4] = locals[45];regs[5] = locals[46]; // reflRay
     regs[6] = locals[6]; // depth
@@ -20769,7 +20769,7 @@ static void fun_369(VMRef vm, StackPtr psp) {
     regs[6] = locals[61]; // Tr
     U_FVSMUL(vm, regs + 7, 3);
     U_FVVADD(vm, regs + 6, 3);
-    block46671:;
+    block46668:;
     SetLVal(vm, &locals[65]); // temp+0
     U_LV_WRITEV(vm, regs + 3, 3);
     U_STATEMENT(vm, regs + 0, 110, 20);
@@ -21108,7 +21108,7 @@ static void fun_375(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 9, 23);
     U_BCALLRET0(vm, regs + 0, 162, 1); // vm_compiled_mode
     U_LOGNOT(vm, regs + 1);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block47490;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block47487;
     U_STATEMENT(vm, regs + 0, 10, 23);
     U_PUSHSTR(vm, regs + 0, 567); // "return 1 + 2"
     U_NEWVEC(vm, regs + 1, 11, 0);
@@ -21120,11 +21120,11 @@ static void fun_375(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 11, 23);
     regs[0] = locals[1]; // comperr1
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block47402;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block47399;
     U_STATEMENT(vm, regs + 0, 12, 23);
     regs[0] = locals[1]; // comperr1
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
-    block47402:;
+    block47399:;
     U_STATEMENT(vm, regs + 0, 13, 23);
     regs[0] = locals[0]; // compres1
     U_PUSHSTR(vm, regs + 1, 568); // "3"
@@ -21141,17 +21141,17 @@ static void fun_375(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 16, 23);
     regs[0] = locals[3]; // comperr2
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block47471;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block47468;
     U_STATEMENT(vm, regs + 0, 17, 23);
     regs[0] = locals[3]; // comperr2
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
-    block47471:;
+    block47468:;
     U_STATEMENT(vm, regs + 0, 18, 23);
     regs[0] = locals[2]; // compres2
     U_PUSHSTR(vm, regs + 1, 571); // "plugintest return value"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 18, 23, 572);
-    block47490:;
+    block47487:;
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -22008,15 +22008,15 @@ static void fun_422(VMRef vm, StackPtr psp) {
     regs[0] = locals[1]; // i
     U_PUSHINT(vm, regs + 1, 0);
     U_IEQ(vm, regs + 2);
-    if (!U_JUMPFAIL(vm, regs + 1)) goto block48951;
+    if (!U_JUMPFAIL(vm, regs + 1)) goto block48948;
     U_STATEMENT(vm, regs + 0, 46, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
-    goto block48960;
-    block48951:;
+    goto block48957;
+    block48948:;
     U_STATEMENT(vm, regs + 0, 46, 26);
     U_PUSHINT(vm, regs + 0, 0);
-    block48960:;
+    block48957:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Pop(psp);
@@ -22729,23 +22729,23 @@ static void fun_452(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 44, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 1);
-    goto block50894;
+    goto block50891;
     case 1:
     U_STATEMENT(vm, regs + 0, 45, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 2);
-    goto block50894;
+    goto block50891;
     case 2:
     U_STATEMENT(vm, regs + 0, 46, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 2);
-    goto block50894;
+    goto block50891;
     case 3:
     U_STATEMENT(vm, regs + 0, 47, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 3);
     } // switch
-    block50894:;
+    block50891:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -22768,18 +22768,18 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 55, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 1);
-    goto block50968;
+    goto block50965;
     case 1:
     U_STATEMENT(vm, regs + 0, 56, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 2);
-    goto block50968;
+    goto block50965;
     case 2:
     U_STATEMENT(vm, regs + 0, 57, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 2);
     } // switch
-    block50968:;
+    block50965:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -22801,13 +22801,13 @@ static void fun_454(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 65, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 1);
-    goto block51026;
+    goto block51023;
     case 1:
     U_STATEMENT(vm, regs + 0, 66, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 1);
     } // switch
-    block51026:;
+    block51023:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -22829,13 +22829,13 @@ static void fun_455(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 75, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 3);
-    goto block51084;
+    goto block51081;
     case 1:default:
     U_STATEMENT(vm, regs + 0, 74, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 0);
     } // switch
-    block51084:;
+    block51081:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -22855,26 +22855,26 @@ static void fun_456(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 1);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block51130;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block51127;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 86, 30);
     U_PUSHSTR(vm, regs + 0, 618); // "t"
     U_INCREF(vm, regs + 1, 0);
-    goto block51163;
-    block51130:;
+    goto block51160;
+    block51127:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 0);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block51157;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block51154;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 87, 30);
     U_PUSHSTR(vm, regs + 0, 619); // "f"
     U_INCREF(vm, regs + 1, 0);
-    goto block51163;
-    block51157:;
+    goto block51160;
+    block51154:;
     U_POP(vm, regs + 1);
     U_ENUM_RANGE_ERR(vm, regs + 0);
-    block51163:;
+    block51160:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -22894,28 +22894,28 @@ static void fun_457(VMRef vm, StackPtr psp) {
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 1);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block51209;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block51206;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 97, 30);
     U_PUSHSTR(vm, regs + 0, 620); // "t"
     U_INCREF(vm, regs + 1, 0);
-    goto block51250;
-    block51209:;
+    goto block51247;
+    block51206:;
     U_DUP(vm, regs + 1);
     U_PUSHINT(vm, regs + 2, 0);
     U_IEQ(vm, regs + 3);
-    if (!U_JUMPFAIL(vm, regs + 2)) goto block51236;
+    if (!U_JUMPFAIL(vm, regs + 2)) goto block51233;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 98, 30);
     U_PUSHSTR(vm, regs + 0, 621); // "f"
     U_INCREF(vm, regs + 1, 0);
-    goto block51250;
-    block51236:;
+    goto block51247;
+    block51233:;
     U_POP(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 99, 30);
     U_PUSHSTR(vm, regs + 0, 622); // "?"
     U_INCREF(vm, regs + 1, 0);
-    block51250:;
+    block51247:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -24884,7 +24884,7 @@ static const int bytecodefb[] = {
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 574, 24, 0x206e7553, 0x2079614d, 0x32203532,
-  0x38333a31, 0x2038333a, 0x35323032, 0, 614, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  0x30333a33, 0x2034333a, 0x35323032, 0, 614, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
   11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
   27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
   43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
