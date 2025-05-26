@@ -14,13 +14,11 @@
 
 namespace lobster {
 
-string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bool cpp,
-             int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name,
-             const vector<int> &raw_bytecode, vector<string> &temp_codegen, CodeGen &cg, SymbolTable &st) {
+string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
+                      string_view custom_pre_init_name, string_view aux_src_name) {
     auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
     if (!FLATBUFFERS_LITTLEENDIAN) return "native code gen requires little endian";
-    auto code = raw_bytecode.data();
-    auto typetable = cg.type_table.data();
+    auto typetable = type_table.data();
     auto specidents = bcf->specidents();
 
     if (cpp) {
@@ -130,15 +128,14 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
     vector<int> var_to_local;
     var_to_local.resize(specidents->size(), -1);
 
-    auto len = raw_bytecode.size();
-    auto ip = code;
+    const int *ip = code.data();
     // Skip past 1st jump.
     assert(*ip == IL_JUMP);
     ip += 2;
-    auto starting_ip = code + *ip++;
+    auto starting_ip = code.data() + *ip++;
     int starting_point = -1;
-    while (ip < code + len) {
-        int id = (int)(ip - code);
+    while (ip < code.data() + code.size()) {
+        int id = (int)(ip - code.data());
         if (*ip == IL_FUNSTART || ip == starting_ip) {
             auto sf_idx = ip == starting_ip ? 8888888 : ip[2];
             if (sf_idx >= 0) append(sd, "static void fun_", sf_idx, "(VMRef, StackPtr);\n");
@@ -154,16 +151,16 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
     sd += "\n";
     vector<const int *> jumptables;
     vector<int> funstarttables;
-    ip = code + 3;  // Past first IL_JUMP.
+    ip = code.data() + 3;  // Past first IL_JUMP.
     const int *funstart = nullptr;
     int nkeepvars = 0;
-    string sdt, sp;
+    string sdt;
     int opc = -1;
     const int *args = nullptr;
     bool has_profile = false;
     auto comment = [&](string_view c) { append(sd, " // ", c); };
-    while (ip < code + len) {
-        int id = (int)(ip - code);
+    while (ip < code.data() + code.size()) {
+        int id = (int)(ip - code.data());
         bool is_start = ip == starting_ip;
         opc = *ip++;
         args = ip + 1;
@@ -444,7 +441,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
                 break;
             case IL_PROFILE: {
                 string name;
-                EscapeAndQuote(cg.stringtable[args[0]], name);
+                EscapeAndQuote(stringtable[args[0]], name);
                 append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
                        ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ", cpp ? "lobster::" : "" , "StartProfile(&tsld);");
                 has_profile = true;
@@ -465,7 +462,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
                         comment(IdName(bcf, args[0], typetable, false));
                         break;
                     case IL_PUSHSTR: {
-                        auto sv = cg.stringtable[args[0]];
+                        auto sv = stringtable[args[0]];
                         sv = sv.substr(0, 50);
                         string q;
                         EscapeAndQuote(sv, q);
@@ -484,7 +481,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
         }
 
         sd += "\n";
-        if (ip == code + len || *ip == IL_FUNSTART || ip == starting_ip) {
+        if (ip == code.data() + code.size() || *ip == IL_FUNSTART || ip == starting_ip) {
             if (opc != IL_EXIT && opc != IL_ABORT) sd += "    epilogue:;\n";
             if (has_profile) {
                 append(sd, "    ", cpp ? "lobster::" : "", "EndProfile(ctx);\n");
@@ -504,10 +501,10 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
     if (cpp) sd += "\nstatic";
     else sd += "\nextern";
     sd += " const fun_base_t vtables[] = {\n";
-    for (auto id : cg.vtables) {
+    for (auto id : vtables) {
         sd += "    ";
         if (id >= 0) {
-            auto funstart = code + id;
+            auto funstart = code.data() + id;
             append(sd, "fun_", funstart[2]);
         } else if (id <= -2) {
             append(sd, "(fun_base_t)", -id - 2);  // Bit of a hack, would be nice to separate.

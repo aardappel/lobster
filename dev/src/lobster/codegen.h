@@ -42,6 +42,8 @@ struct CodeGen  {
     bool cpp = false;
 
     // Transitional vector to move codegen from tocpp over here..
+    string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
+                 string_view custom_pre_init_name, string_view aux_src_name);
     ILOP last_op_started = IL_ABORT;
     size_t last_op_start = (size_t)-1;
     vector<string> temp_codegen;

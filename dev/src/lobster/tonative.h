@@ -22,11 +22,6 @@ namespace lobster {
 struct CodeGen;
 struct SymbolTable;
 
-extern string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bool cpp,
-                    int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name,
-                    const vector<int> &raw_bytecode, vector<string> &temp_codegen, CodeGen &cg,
-                    SymbolTable &st);
-
 extern bool RunC(const char *source,
                  const char *object_name /* save instead of run if non-null */,
                  string &error,
