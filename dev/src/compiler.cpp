@@ -577,8 +577,9 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     Optimizer opt(parser, st, tc, runtime_checks);
     if (parsedump) *parsedump = parser.DumpAll(true);
     auto src_hash = lex.HashAll();
-    CodeGen cg(parser, st, return_value, runtime_checks, !jit_mode, metadata_buffer, src_hash,
-               c_codegen, filenames, custom_pre_init_name);
+    CodeGen cg(parser, st, return_value, runtime_checks, !jit_mode, src_hash,
+               c_codegen, custom_pre_init_name);
+    st.Serialize(cg.type_table, cg.sids, cg.stringtable, metadata_buffer, filenames, cg.ser_ids, src_hash);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
                                 code_pak ? c_codegen : string());
@@ -599,7 +600,13 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
             [&](void **exports) -> bool {
                 LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
                 if (compile_only) return true;
+                // Verify the bytecode.
+                flatbuffers::Verifier verifier((uint8_t *)metadata_buffer.data(), metadata_buffer.size());
+                auto ok = metadata::VerifyMetadataFileBuffer(verifier);
+                if (!ok) THROW_OR_ABORT("metadata file failed to verify");
                 auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
+                if (bcf->metadata_version() != LOBSTER_METADATA_FORMAT_VERSION)
+                    THROW_OR_ABORT("metadata is from a different version of Lobster");
                 vector<type_elem_t> type_table;
                 for (flatbuffers::uoffset_t i = 0; i < bcf->typetable()->size(); i++) {
                     type_table.push_back((type_elem_t)bcf->typetable()->Get(i));
@@ -668,7 +675,6 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                     subfunctions_to_function.push_back(bcf->subfunctions_to_function()->Get(i));
                 }               
                 VMMetaData vmmeta = {
-                    (uint8_t *)metadata_buffer.data(),
                     bcf->metadata_version(),
                     make_span(type_table),
                     make_span(stringtable),
@@ -684,7 +690,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,
-                    metadata_buffer.size(), std::move(program_args),
+                    std::move(program_args),
                     (fun_base_t *)exports[1], (fun_base_t)exports[0], trace, dump_leaks,
                     runtime_checks, stack_trace_python_ordering
                 };
@@ -792,7 +798,7 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
 #endif
 
 extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMetaData *vmmeta,
-                                   size_t static_size, const lobster::fun_base_t *vtables,
+                                   const lobster::fun_base_t *vtables,
                                    void *custom_pre_init, const char *aux_src_path) {
     #ifdef _MSC_VER
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -819,7 +825,6 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMe
             nfr,
             from_lpak ? string{} : StripDirPart(string_view_nt(argv[0])),
             vmmeta,
-            static_size,
             {},
             vtables,
             nullptr,

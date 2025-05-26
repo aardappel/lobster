@@ -30,8 +30,8 @@ vector<___tracy_source_location_data> g_function_locations;
 vector<tracy::SourceLocationData> g_builtin_locations;
 #endif
 
-VM::VM(VMArgs &&vmargs, const metadata::MetadataFile *bcf)
-    : VMArgs(std::move(vmargs)), bcf(bcf) {
+VM::VM(VMArgs &&vmargs)
+    : VMArgs(std::move(vmargs)) {
 
     typetable = meta->type_table.data();
     constant_strings.resize(meta->stringtable.size());
@@ -67,14 +67,6 @@ VM::~VM() {
 }
 
 VMAllocator::VMAllocator(VMArgs &&args) {
-    // Verify the bytecode.
-    flatbuffers::Verifier verifier(args.meta->static_bytecode, args.static_size);
-    auto ok = metadata::VerifyMetadataFileBuffer(verifier);
-    if (!ok) THROW_OR_ABORT("metadata file failed to verify");
-    auto bcf = metadata::GetMetadataFile(args.meta->static_bytecode);
-    if (args.meta->metadata_version != LOBSTER_METADATA_FORMAT_VERSION)
-        THROW_OR_ABORT("metadata is from a different version of Lobster");
-
     // Allocate enough memory to fit the "fvars" array inline.
     auto size = sizeof(VM) + sizeof(Value) * args.meta->specidents.size();
     auto mem = malloc(size);
@@ -83,7 +75,7 @@ VMAllocator::VMAllocator(VMArgs &&args) {
 
     #undef new
 
-    vm = new (mem) VM(std::move(args), bcf);
+    vm = new (mem) VM(std::move(args));
 
     #if defined(_MSC_VER) && !defined(NDEBUG)
         #define new DEBUG_NEW
@@ -783,14 +775,14 @@ bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
 }
 
 string_view VM::EnumName(int enumidx) {
-    return bcf->enums()->Get(enumidx)->name()->string_view();
+    return meta->enums[enumidx].name;
 }
 
 optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
-    auto &vals = *bcf->enums()->Get(enumidx)->vals();
-    for (auto v : vals)
-        if (v->name()->string_view() == name)
-            return v->val();
+    auto &vals = meta->enums[enumidx].vals;
+    for (auto &ev : vals)
+        if (ev.name == name)
+            return ev.val;
     return {};
 }
 

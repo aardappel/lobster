@@ -566,8 +566,7 @@ void CodeGen::DefineFunctions(string & sd) {
     }
 }
 
-void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view custom_pre_init_name,
-                       uint64_t src_hash) {
+void CodeGen::Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash) {
     if (cpp) sd += "\nstatic";
     else sd += "\nextern";
     sd += " const fun_base_t vtables[] = {\n";
@@ -582,7 +581,7 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         }
         sd += ",\n";
     }
-    sd += "    0\n};\n";  // Make sure table is never empty.
+    sd += "    0\n};\n\n";  // Make sure table is never empty.
 
     if (runtime_checks >= RUNTIME_STACK_TRACE) {
         append(sd, "const int funinfo_table[] = {\n    ");
@@ -600,34 +599,19 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         append(sd, ", ", s.size(), ")");
     };
     if (cpp) {
-        sd += "\nstatic const int bytecodefb[] = {";
-        auto bytecode_ints = (const int *)metadata_buffer.data();
-        for (size_t i = 0; i < metadata_buffer.size() / sizeof(int); i++) {
-            if ((i & 0xF) == 0) sd += "\n ";
-            auto x = bytecode_ints[i];
-            sd += " ";
-            if (x < 0x10000 && x > -0x10000) {
-                append(sd, x);
-            } else {
-                if (x < 0) sd += "(int)";
-                to_string_hex(sd, (uint32_t)x);
-            }
-            sd += ",";
-        }
-        sd += "\n};\n\n";
-        sd += "\nstatic const int type_table[] = {";
+        sd += "static const int type_table[] = {";
         for (auto [i, x] : enumerate(type_table)) {
             if ((i & 0xF) == 0) sd += "\n ";
             append(sd, " ", x, ",");
         }
-        sd += "};\n\n";
+        sd += "\n};\n\n";
         sd += "static const string_view stringtable[] = {\n";
         for (auto s : stringtable) {
             sd += "    ";
             gen_string(s);
             sd += ",\n";
         }
-        sd += "\n};\n\n";
+        sd += "};\n\n";
         sd += "static const string_view file_names[] = {\n";
         for (auto [s, _] : parser.lex.filenames) {
             sd += "    ";
@@ -699,19 +683,19 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
             append(sd, ", ", fspan, ", ", e->flags, " },\n");
         }
         sd += "};\n\n";
-        sd += "\nstatic const int ser_ids[] = {";
+        sd += "static const int ser_ids[] = {";
         for (auto [i, x] : enumerate(ser_ids)) {
             if ((i & 0xF) == 0) sd += "\n ";
             append(sd, " ", x, ",");
         }
-        sd += "};\n\n";
-        sd += "\nstatic const int subfunctions_to_function[] = {";
+        sd += "\n};\n\n";
+        sd += "static const int subfunctions_to_function[] = {";
         vector<int> subfunctions_to_function;
         for (auto [i, sf] : enumerate(st.subfunctiontable)) {
             if ((i & 0xF) == 0) sd += "\n ";
             append(sd, " ", sf->parent->idx, ",");
         }
-        sd += "};\n\n";
+        sd += "\n};\n\n";
     }
     if (cpp) sd += "extern \"C\" ";
     sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
@@ -736,7 +720,6 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "    // This is hard-coded to call compiled_entry_point()\n";
         if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
         sd += "    lobster::VMMetaData vmmeta = {\n";
-        sd += "        (uint8_t *)bytecodefb,\n";
         sd += "        " + to_string(LOBSTER_METADATA_FORMAT_VERSION) + ",\n";
         sd += "        make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
         sd += "        make_span(stringtable),\n";
@@ -755,7 +738,7 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "        make_span(subfunctions_to_function),\n";
         sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
-        append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",
+        append(sd, "&vmmeta, vtables, ", custom_pre_init_name, ", \"",
                (!cpp ? "main.lobster" : ""), "\");\n}\n");
     }
 }

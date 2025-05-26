@@ -943,7 +943,6 @@ struct VMUDT {
 };
 
 struct VMMetaData {
-    const uint8_t *static_bytecode = nullptr;
     int metadata_version = 0;
     span<const type_elem_t> type_table;
     span<const string_view> stringtable;
@@ -962,7 +961,6 @@ struct VMArgs {
     NativeRegistry &nfr;
     string programname;
     const VMMetaData *meta = nullptr;
-    size_t static_size = 0;
     vector<string> program_args;
     const fun_base_t *native_vtables = nullptr;
     fun_base_t jit_entry = nullptr;
@@ -984,8 +982,6 @@ struct VM : VMArgs {
 
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts = nullptr;
-
-    const metadata::MetadataFile *bcf;
 
     PrintPrefs programprintprefs { 10, 100000, false, -1 };
     const type_elem_t *typetable = nullptr;
@@ -1054,7 +1050,7 @@ struct VM : VMArgs {
 
     // NOTE: NO MORE VAR DECLS AFTER "fvars"
 
-    VM(VMArgs &&args, const metadata::MetadataFile *bcf);
+    VM(VMArgs &&args);
     ~VM();
 
     const TypeInfo &GetTypeInfo(type_elem_t offset) const {

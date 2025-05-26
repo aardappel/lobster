@@ -59,8 +59,7 @@ struct CodeGen  {
     void Prologue(string &sd);
     void DeclareFunctions(string &sd);
     void DefineFunctions(string &sd);
-    void Epilogue(string &sd, string_view metadata_buffer, string_view custom_pre_init_name,
-                  uint64_t src_hash);
+    void Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash);
 
     int Pos() { return (int)code.size(); }
 
@@ -234,8 +233,7 @@ struct CodeGen  {
     }
 
     CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks, bool cpp,
-            string &metadata_buffer, uint64_t src_hash, string &c_codegen,
-            vector<pair<string, string>> &filenames, string_view custom_pre_init_name)
+            uint64_t src_hash, string &c_codegen, string_view custom_pre_init_name)
         : parser(_p), st(_st), runtime_checks(runtime_checks), cpp(cpp) {
         node_context.push_back(parser.root);
         // Reserve space and index for all vtables.
@@ -352,12 +350,9 @@ struct CodeGen  {
             }
         }
 
-        st.Serialize(type_table, sids, stringtable, metadata_buffer,
-                     filenames, ser_ids, src_hash);
-
         DeclareFunctions(c_codegen);
         DefineFunctions(c_codegen);
-        Epilogue(c_codegen, metadata_buffer, custom_pre_init_name, src_hash);
+        Epilogue(c_codegen, custom_pre_init_name, src_hash);
     }
 
     ~CodeGen() {
