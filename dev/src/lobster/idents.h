@@ -434,7 +434,6 @@ struct SubFunction {
     Block *sbody = nullptr;
     SubFunction *next = nullptr;
     Function *parent = nullptr;
-    int subbytecodestart = 0;
     bool typechecked = false;
     bool freevarchecked = false;
     bool mustspecialize = false;

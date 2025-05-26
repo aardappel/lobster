@@ -573,8 +573,7 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
     for (auto id : vtables) {
         sd += "    ";
         if (id >= 0) {
-            auto funstart = code.data() + id;
-            append(sd, "fun_", funstart[2]);
+            append(sd, "fun_", id);
         } else if (id <= -2) {
             append(sd, "(fun_base_t)", -id - 2);  // Bit of a hack, would be nice to separate.
         } else {

@@ -43,7 +43,6 @@ struct CodeGen  {
     vector<int> vtables;  // -1 = uninit, -2 and lower is case idx, positive is code offset.
     vector<ILOP> tstack;
     size_t tstack_max = 0;
-    int dummyfun = -1;
     const SubFunction *cursf = nullptr;
     bool cpp = false;
 
@@ -309,7 +308,6 @@ struct CodeGen  {
         // Generate a dummmy function for function values that are never called.
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
-        dummyfun = Pos();
         EmitOp(IL_FUNSTART);
         Emit(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);  // sf.idx
         Emit(0);   // regs_max
@@ -324,7 +322,7 @@ struct CodeGen  {
             if (f->bytecodestart <= 0 && !f->istype) {
                 f->bytecodestart = Pos();
                 for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
-                    if (sf->typechecked && sf->subbytecodestart <= 0) GenScope(*sf);
+                    if (sf->typechecked) GenScope(*sf);
                 }
                 if (f->bytecodestart == Pos()) f->bytecodestart = 0;
             }
@@ -349,8 +347,7 @@ struct CodeGen  {
         for (auto udt : st.udttable) {
             for (auto [i, de] : enumerate(udt->dispatch_table)) {
                 if (de->sf) {
-                    vtables[udt->vtable_start + i] =
-                        de->sf->subbytecodestart ? de->sf->subbytecodestart : dummyfun;
+                    vtables[udt->vtable_start + i] = de->sf->idx;
                     assert(!de->is_switch_dispatch);
                 } else if (de->case_index >= 0) {
                     vtables[udt->vtable_start + i] = -de->case_index - 2;
@@ -388,7 +385,6 @@ struct CodeGen  {
         cursf = &sf;
         keepvars = 0;
         tstack_max = 0;
-        sf.subbytecodestart = Pos();
         if (!sf.typechecked) {
             auto s = DumpNode(*sf.sbody, 0, false);
             LOG_DEBUG("untypechecked: ", sf.parent->name, " : ", s);
