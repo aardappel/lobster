@@ -30,7 +30,7 @@ string IdName(VM &vm, int i, const type_elem_t *typetable, bool is_whole_struct)
     }
 }
 
-const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
+const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip,
                      const type_elem_t *typetable, int line, VM &vm) {
     auto ilnames = ILNames();
     auto ilarity = ILArity();
@@ -81,17 +81,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
 
         case IL_CALL: {
             auto bc = *ip++;
-            if (code) {
-                assert(code[bc] == IL_FUNSTART);
-                auto sf_id = code[bc + 2];
-                auto nargs = code[bc + 4];
-                append(sd, nargs, " ",
-                       vm.meta->function_names[vm.meta->subfunctions_to_function[sf_id]],
-                       " ",
-                       bc);
-            } else {
-                append(sd, " ", bc);
-            }
+            append(sd, " ", bc);
             break;
         }
 

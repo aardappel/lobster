@@ -29,8 +29,8 @@ extern bool RunC(const char *source,
                  const char **export_names,
                  function<bool (void **)> runf);
 
-inline int ParseOpAndGetArity(int opc, const int *&ip, int &regso) {
-    regso = *ip++;
+inline int ParseOpAndGetArity(int opc, const int *&ip) {
+    *ip++;
     auto arity = ILArity()[opc];
     auto ips = ip;
     switch(opc) {

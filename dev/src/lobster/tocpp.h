@@ -20,8 +20,8 @@ void CodeGen::EmitCForPrev() {
     const int *ip = code.data() + last_op_start;
     int opc = *ip++;
     const int *args = ip + 1;
-    int regso = -1;
-    /* auto arity = */ParseOpAndGetArity(opc, ip, regso);
+    int regso = *ip;
+    /* auto arity = */ParseOpAndGetArity(opc, ip);
     // We could store the value of ip here, to verify it is the same as next instr start.
     string sd;
     auto comment = [&](string_view c) { append(sd, " // ", c); };
@@ -199,116 +199,106 @@ void CodeGen::DeclareFunction(SubFunction &sf, string &sd) {
     append(sd, "static void fun_", sf.idx, "(VMRef, StackPtr);\n");
 }
 
-void CodeGen::DefineFunction(string &sd) {
+const int *CodeGen::DefineFunctionStart(string &sd) {
     const int *ip = code.data();
-    const int *funstart = nullptr;
-    int nkeepvars = 0;
-    string sdt;
-    int opc = -1;
-    const int *args = nullptr;
-    bool has_profile = false;
+    int opc = *ip++;
+    assert(opc == IL_FUNSTART);
+    const int *args = ip + 1;
+    funstart = args;
+    sd += "\n";
+    auto sf_idx = *funstart;
+    if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
+        append(sd, "// ", st.subfunctiontable[sf_idx]->parent->name, "\n");
+    append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
+    const int *funstartend = nullptr;
+    int numlocals = 0;
+    auto fip = funstart;
+    fip++;  // sf.idx
+    auto regs_max = *fip++;
+    auto nargs_fun = *fip++;
+    auto nargs = fip;
+    fip += nargs_fun;
+    int ndefsave = *fip++;
+    auto defs = fip;
+    fip += ndefsave;
+    nkeepvars = *fip++;
+    funstartend = fip;
+    int ownedvars = *fip++;
+    fip += ownedvars;
+    ip = fip;
+    #ifndef NDEBUG
+    var_to_local.clear();
+    var_to_local.resize(sids.size(), -1);
+    #endif
+    for (int j = 0; j < 2; j++) {
+        auto vars = j ? defs : nargs;
+        auto len = j ? ndefsave : nargs_fun;
+        for (int i = 0; i < len; i++) {
+            auto varidx = vars[i];
+            if (!sids[varidx].used_as_freevar()) {
+                var_to_local[varidx] = numlocals++;
+            }
+        }
+    }
+    // FIXME: don't emit array.
+    // (there may be functions that don't use regs yet still refer to sp?)
+    append(sd, "    Value regs[", std::max(1, regs_max), "];\n");
+    if (!regs_max) append(sd, "    (void)regs;\n");
+    if (nkeepvars) append(sd, "    Value keepvar[", nkeepvars, "];\n");
+    if (numlocals) append(sd, "    Value locals[", numlocals, "];\n");
+    for (int i = 0; i < nargs_fun; i++) {
+        auto varidx = nargs[i];
+        if (sids[varidx].used_as_freevar()) {
+            append(sd, "    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i, ");\n");
+        } else {
+            append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i, ");\n");
+        }
+    }
+    for (int i = 0; i < ndefsave; i++) {
+        // for most locals, this just saves an nil, only in recursive cases it has an
+        // actual value.
+        auto varidx = defs[i];
+        if (sids[varidx].used_as_freevar()) {
+            append(sd, "    BackupVar(vm, ", varidx, ");\n");
+        } else {
+            // FIXME: it should even be unnecessary to initialize them, but its possible
+            // there is a return before they're fully initialized, and then the decr of
+            // owned vars may cause these to be accessed.
+            if (cpp)
+                append(sd, "    locals[", var_to_local[varidx],
+                       "] = lobster::NilVal();\n");  // FIXME ns
+            else
+                append(sd, "    NilVal(&locals[", var_to_local[varidx], "]);\n");
+        }
+    }
+    if (runtime_checks >= RUNTIME_STACK_TRACE && sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
+        // FIXME: can make this just and index and instead store funinfo_table ref in
+        // VM. Calling this here because now locals have been fully initialized.
+        append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
+               numlocals ? "locals" : "0", ");\n");
+        // TODO: this doesn't need to correspond to to funstart, can stick any info we
+        // want in here.
+        funstarttables.insert(funstarttables.end(), funstart, funstartend);
+    }
+    for (int i = 0; i < nkeepvars; i++) {
+        if (cpp)
+            append(sd, "    keepvar[", i, "] = lobster::NilVal();\n");  // FIXME ns
+        else
+            append(sd, "    NilVal(&keepvar[", i, "]);\n");
+    }
+    return ip;
+}
+
+const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
+    has_profile = false;
+    sdt.clear();
     auto comment = [&](string_view c) { append(sd, " // ", c); };
     while (ip < code.data() + code.size()) {
         int id = (int)(ip - code.data());
-        opc = *ip++;
-        args = ip + 1;
-        if (opc == IL_FUNSTART) {
-            funstart = args;
-            nkeepvars = 0;
-            sdt.clear();
-            has_profile = false;
-            sd += "\n";
-            auto sf_idx = *funstart;
-            if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
-                append(sd, "// ", st.subfunctiontable[sf_idx]->parent->name, "\n");
-            append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
-            const int *funstartend = nullptr;
-            int numlocals = 0;
-            auto fip = funstart;
-            fip++;  // sf.idx
-            auto regs_max = *fip++;
-            auto nargs_fun = *fip++;
-            auto nargs = fip;
-            fip += nargs_fun;
-            int ndefsave = *fip++;
-            auto defs = fip;
-            fip += ndefsave;
-            nkeepvars = *fip++;
-            funstartend = fip;
-            #ifndef NDEBUG
-            var_to_local.clear();
-            var_to_local.resize(sids.size(), -1);
-            #endif
-            for (int j = 0; j < 2; j++) {
-                auto vars = j ? defs : nargs;
-                auto len = j ? ndefsave : nargs_fun;
-                for (int i = 0; i < len; i++) {
-                    auto varidx = vars[i];
-                    if (!sids[varidx].used_as_freevar()) {
-                        var_to_local[varidx] = numlocals++;
-                    }
-                }
-            }
-            // FIXME: don't emit array.
-            // (there may be functions that don't use regs yet still refer to sp?)
-            append(sd, "    Value regs[", std::max(1, regs_max), "];\n");
-            if (!regs_max) append(sd, "    (void)regs;\n");
-            if (nkeepvars) append(sd, "    Value keepvar[", nkeepvars, "];\n");
-            if (numlocals) append(sd, "    Value locals[", numlocals, "];\n");
-            // FIXME: remove duplicate parsing.
-            fip = funstart;
-            fip++;  // sf.idx
-            fip++;  // regs_max.
-            nargs_fun = *fip++;
-            for (int i = 0; i < nargs_fun; i++) {
-                auto varidx = fip[i];
-                if (sids[varidx].used_as_freevar()) {
-                    append(sd, "    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i, ");\n");
-                } else {
-                    append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ",
-                            nargs_fun - i, ");\n");
-                }
-            }
-            fip += nargs_fun;
-            ndefsave = *fip++;
-            for (int i = 0; i < ndefsave; i++) {
-                // for most locals, this just saves an nil, only in recursive cases it has an
-                // actual value.
-                auto varidx = *fip++;
-                if (sids[varidx].used_as_freevar()) {
-                    append(sd, "    BackupVar(vm, ", varidx, ");\n");
-                } else {
-                    // FIXME: it should even be unnecessary to initialize them, but its possible
-                    // there is a return before they're fully initialized, and then the decr of
-                    // owned vars may cause these to be accessed.
-                    if (cpp)
-                        append(sd, "    locals[", var_to_local[varidx],
-                                "] = lobster::NilVal();\n");  // FIXME ns
-                    else
-                        append(sd, "    NilVal(&locals[", var_to_local[varidx], "]);\n");
-                }
-            }
-            if (runtime_checks >= RUNTIME_STACK_TRACE &&
-                sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
-                // FIXME: can make this just and index and instead store funinfo_table ref in
-                // VM. Calling this here because now locals have been fully initialized.
-                append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
-                        numlocals ? "locals" : "0", ");\n");
-                // TODO: this doesn't need to correspond to to funstart, can stick any info we
-                // want in here.
-                funstarttables.insert(funstarttables.end(), funstart, funstartend);
-            }
-            nkeepvars = *fip++;
-            for (int i = 0; i < nkeepvars; i++) {
-                if (cpp)
-                    append(sd, "    keepvar[", i, "] = lobster::NilVal();\n");  // FIXME ns
-                else
-                    append(sd, "    NilVal(&keepvar[", i, "]);\n");
-            }
-        }
-        int regso = -1;
-        auto arity = ParseOpAndGetArity(opc, ip, regso);
-        if (opc == IL_FUNSTART) continue;
+        int opc = *ip++;
+        int regso = *ip;
+        const int *args = ip + 1;
+        auto arity = ParseOpAndGetArity(opc, ip);
         append(sd, "    ");
 
         if (id < (int)temp_codegen.size() && !temp_codegen[id].empty()) {
@@ -530,28 +520,33 @@ void CodeGen::DefineFunction(string &sd) {
         }
 
         sd += "\n";
-        if (ip == code.data() + code.size() || *ip == IL_FUNSTART) {
-            if (opc != IL_EXIT && opc != IL_ABORT) sd += "    epilogue:;\n";
-            if (has_profile) {
-                append(sd, "    ", cpp ? "lobster::" : "", "EndProfile(ctx);\n");
-            }
-            if (!sdt.empty()) append(sd, sdt);
-            for (int i = 0; i < nkeepvars; i++) {
-                append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
-            }
-            assert(funstart);
-            if (*(funstart - 2) == IL_FUNSTART && runtime_checks >= RUNTIME_STACK_TRACE &&
-                *funstart < CODEGEN_SPECIAL_FUNCTION_ID_START) {
-                append(sd, "    PopFunId(vm);\n");
-            }
-            sd += "}\n";
-        }
     }
+    assert(ip == code.data() + code.size());
+    return ip;
+}
+
+void CodeGen::DefineFunctionEnd(string &sd, bool label) {
+    if (label) sd += "    epilogue:;\n";
+    if (has_profile) {
+        append(sd, "    ", cpp ? "lobster::" : "", "EndProfile(ctx);\n");
+    }
+    if (!sdt.empty()) append(sd, sdt);
+    for (int i = 0; i < nkeepvars; i++) {
+        append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
+    }
+    assert(funstart);
+    if (*(funstart - 2) == IL_FUNSTART && runtime_checks >= RUNTIME_STACK_TRACE &&
+        *funstart < CODEGEN_SPECIAL_FUNCTION_ID_START) {
+        append(sd, "    PopFunId(vm);\n");
+    }
+    sd += "}\n";
     code.clear();
     temp_codegen.clear();
     assert(jumptables_stack.empty());
     last_op_started = IL_ABORT;
     last_op_start = (size_t)-1;
+    funstart = nullptr;
+    nkeepvars = -1;
     // TODO: more stacks can be checked for being empty here.
 }
 
