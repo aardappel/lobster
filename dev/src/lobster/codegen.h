@@ -50,7 +50,6 @@ struct CodeGen  {
     vector<int> funstarttables;
     int starting_point = -1;
     vector<const int *> jumptables_stack;
-    const int *starting_ip = nullptr; 
     void EmitCForPrev();
     string IdName(int i, bool is_whole_struct);
     void Prologue(string &sd);
@@ -326,7 +325,13 @@ struct CodeGen  {
         }
 
         // Emit the root function.
-        starting_ip = code.data() + Pos();
+        EmitOp(IL_FUNSTART);
+        Emit(8888888);  // sf.idx
+        Emit(1);        // regs_max
+        Emit(0);
+        Emit(0);
+        Emit(0);  // keepvars
+        Emit(0);  // ownedvars
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
