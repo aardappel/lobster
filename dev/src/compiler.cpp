@@ -614,9 +614,9 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
-                    gsl::make_span(function_names),
-                    gsl::make_span(stringtable),
-                    gsl::make_span(type_table),
+                    make_span(function_names),
+                    make_span(stringtable),
+                    make_span(type_table),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,

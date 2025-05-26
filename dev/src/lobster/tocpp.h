@@ -652,9 +652,9 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
         sd += "    lobster::VMMetaData vmmeta = {\n";
         sd += "         (uint8_t *)bytecodefb,\n";
-        sd += "         gsl::make_span(function_names),\n";
-        sd += "         gsl::make_span(stringtable),\n";
-        sd += "         gsl::make_span((const lobster::type_elem_t *)&type_table, (const lobster::type_elem_t *)&type_table + sizeof(type_table) / sizeof(int)),\n";
+        sd += "         make_span(function_names),\n";
+        sd += "         make_span(stringtable),\n";
+        sd += "         make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
         sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",

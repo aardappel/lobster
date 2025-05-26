@@ -610,13 +610,13 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
            " scale = %f\n", verts.size(), edges.size(), triangles.size() / 3,
            mctriangles.size() / 3, gridscale);
     auto m =
-        new Mesh(new Geometry("polygonize_mc_verts", gsl::make_span(verts), "PNC"),
+        new Mesh(new Geometry("polygonize_mc_verts", make_span(verts), "PNC"),
                       pointmode ? PRIM_POINT : PRIM_TRIS);
     if (pointmode) {
         m->pointsize = 1000 / gridscale;
     } else {
         m->surfs.push_back(
-            new Surface("polygonize_mc_idxs", gsl::make_span(triangles), PRIM_TRIS));
+            new Surface("polygonize_mc_idxs", make_span(triangles), PRIM_TRIS));
     }
     return m;
 }

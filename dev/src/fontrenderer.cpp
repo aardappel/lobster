@@ -179,7 +179,7 @@ void BitmapFont::RenderText(string_view text) {
     }
     SetTexture(0, tex);
     if (!Is2DMode()) CullFace(false);
-    RenderArraySlow("RenderText", PRIM_TRIS, gsl::make_span(vbuf), "pT", gsl::make_span(ibuf));
+    RenderArraySlow("RenderText", PRIM_TRIS, make_span(vbuf), "pT", make_span(ibuf));
     if (!Is2DMode()) CullFace(true);
 }
 

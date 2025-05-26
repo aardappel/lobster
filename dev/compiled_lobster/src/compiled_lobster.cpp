@@ -26712,9 +26712,9 @@ int main(int argc, char *argv[]) {
     // This is hard-coded to call compiled_entry_point()
     lobster::VMMetaData vmmeta = {
          (uint8_t *)bytecodefb,
-         gsl::make_span(function_names),
-         gsl::make_span(stringtable),
-         gsl::make_span((const lobster::type_elem_t *)&type_table, (const lobster::type_elem_t *)&type_table + sizeof(type_table) / sizeof(int)),
+         make_span(function_names),
+         make_span(stringtable),
+         make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),
     };
     return RunCompiledCodeMain(argc, argv, &vmmeta, 147600, vtables, nullptr, "");
 }

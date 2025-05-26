@@ -43,6 +43,7 @@
 #include <unordered_map>
 #include <vector>
 #include <list>
+#include <span>
 #include <set>
 #include <algorithm>
 #include <iterator>
@@ -68,10 +69,6 @@
 #include <iomanip>
 
 using namespace std;
-
-#include "gsl/gsl-lite.hpp"
-
-using gsl::span;
 
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"

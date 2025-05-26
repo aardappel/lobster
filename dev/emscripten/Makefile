@@ -28,7 +28,7 @@ override CFLAGS+= $(SHAREDFLAGS)
 # Also, asyncify relies on there not being any call_indirects in the path to the yield,
 # which exception handling currently inserts.
 override CXXFLAGS+= $(SHAREDFLAGS) -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING \
-                    -std=c++17
+                    -std=c++20
 
 INCLUDES=   -I. \
 			-I../include \

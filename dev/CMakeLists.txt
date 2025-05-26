@@ -13,6 +13,8 @@ option(LOBSTER_JIT "Build Lobster with JIT" ON)
 option(LOBSTER_WERROR "Treat warnings as errors" OFF)
 option(LOBSTER_OSX_X86 "On OSX, build for x86-64 instead of Arm" OFF)
 
+set(CMAKE_CXX_STANDARD 20)
+
 if(LOBSTER_OSX_X86)
   set(CMAKE_OSX_ARCHITECTURES "x86_64")
 endif()

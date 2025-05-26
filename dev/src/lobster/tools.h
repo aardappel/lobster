@@ -54,6 +54,23 @@ template<typename T> ssize_t ssize(const vector<T> &c) { return (ssize_t)c.size(
 template<typename T> ssize_t ssizeof() { return (ssize_t)sizeof(T); }
 template<typename T> ssize_t salignof() { return (ssize_t)alignof(T); }
 
+// std::span helpers.
+template<class T> span<T> make_span(T *p, size_t count) {
+    return span<T>(p, count);
+}
+template<class T> span<T> make_span(T *first, T *last) {
+    return span<T>(first, last);
+}
+template<class T, size_t N> span<T> make_span(T (&a)[N]) {
+    return span<T>(a);
+}
+template<class T> span<const T> make_span(const T *p, size_t count) {
+    return span<const T>(p, count);
+}
+template<class V> span<typename V::value_type> make_span(V &v) {
+    return span<typename V::value_type>(v);
+}
+
 inline iint positive_bits(uint64_t i) { return (i << 1) >> 1; }
 
 // Typed versions of memcpy.
@@ -261,14 +278,14 @@ template<typename T> void WriteMemInc(uint8_t *&dest, const T &src) {
     dest += sizeof(T);
 }
 
-template<typename T> bool ReadSpan(const gsl::span<const uint8_t> p, T &v) {
+template<typename T> bool ReadSpan(const span<const uint8_t> p, T &v) {
     if (p.size_bytes() < sizeof(T))
         return false;
     memcpy(&v, p.data(), sizeof(T));
     return true;
 }
 
-template<typename T> bool ReadSpanInc(gsl::span<const uint8_t> &p, T &v) {
+template<typename T> bool ReadSpanInc(span<const uint8_t> &p, T &v) {
     if (p.size_bytes() < sizeof(T))
         return false;
     memcpy(&v, p.data(), sizeof(T));
@@ -277,7 +294,7 @@ template<typename T> bool ReadSpanInc(gsl::span<const uint8_t> &p, T &v) {
 }
 
 template<typename T, typename K = uint64_t>
-bool ReadSpanVec(gsl::span<const uint8_t> &p, T &v, typename T::value_type def) {
+bool ReadSpanVec(span<const uint8_t> &p, T &v, typename T::value_type def) {
     K len;
     if (!ReadSpanInc<K>(p, len))
         return false;

@@ -605,14 +605,14 @@ nfr("create_mesh", "block", "R:voxels", "R:mesh",
                 }
             }
         }
-        normalize_mesh(gsl::make_span(triangles), verts.data(), verts.size(),
+        normalize_mesh(make_span(triangles), verts.data(), verts.size(),
                        sizeof(cvert), (uint8_t *)&verts.data()->normal - (uint8_t *)&verts.data()->pos,
                        false);
         LOG_INFO("cubegen verts = ", verts.size(), ", tris = ", triangles.size() / 3);
-        auto m = new Mesh(new Geometry("cg.create_mesh_verts", gsl::make_span(verts), "PNC"),
+        auto m = new Mesh(new Geometry("cg.create_mesh_verts", make_span(verts), "PNC"),
                           PRIM_TRIS);
         m->surfs.push_back(
-            new Surface("cg.create_mesh_idxs", gsl::make_span(triangles), PRIM_TRIS));
+            new Surface("cg.create_mesh_idxs", make_span(triangles), PRIM_TRIS));
         return Value(vm.NewResource(&mesh_type, m));
     });
 
@@ -699,7 +699,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
             buf_c_str = buf.c_str();
             buf_size = buf.size();
         }
-        auto bufs = gsl::span<const uint8_t>((const uint8_t *)buf_c_str, buf_size);
+        auto bufs = span<const uint8_t>((const uint8_t *)buf_c_str, buf_size);
         if ((bufs.size() >= 8) && (strncmp((const char *)bufs.data(), "VOX ", 4) == 0)) {
             // This looks like a MagicaVoxel file.
             int3 size = int3_0;
@@ -1113,7 +1113,7 @@ nfr("load_vox_names", "name", "S", "S]S?",
         };
         auto l = LoadFile(namep, &buf);
         if (l < 0) return errf("could not load");
-        auto bufs = gsl::span<const uint8_t>((const uint8_t *)buf.c_str(), buf.size());
+        auto bufs = span<const uint8_t>((const uint8_t *)buf.c_str(), buf.size());
         if ((bufs.size() >= 8) && (strncmp((const char *)bufs.data(), "VOX ", 4) == 0)) {
             // This looks like a MagicaVoxel file.
             bufs = bufs.subspan(8);

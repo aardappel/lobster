@@ -412,7 +412,7 @@ nfr("render", "", "", "",
                         auto polyshape = (b2PolygonShape *)fixture->GetShape();
                         // We also have polyshape->m_normals (2D normals, supported by fmt "n") but the current "color"
                         // shader doesn't use them. If we wanted them, we'd have to interleave the vertex data here.
-                        RenderArraySlow("ph.render", PRIM_FAN, gsl::make_span(polyshape->m_vertices, polyshape->m_count), "p");
+                        RenderArraySlow("ph.render", PRIM_FAN, make_span(polyshape->m_vertices, polyshape->m_count), "p");
                         break;
                     }
                     case b2Shape::e_circle: {
@@ -452,7 +452,7 @@ nfr("render_particles", "scale", "F", "",
         for (int i = 0; i < num; i++) {
             interleaved.push_back({ verts[i], colors[i] });
         }
-        RenderArraySlow("ph.render_particles", PRIM_POINT, gsl::make_span(interleaved),
+        RenderArraySlow("ph.render_particles", PRIM_POINT, make_span(interleaved),
                         "pC");
         return NilVal();
     });

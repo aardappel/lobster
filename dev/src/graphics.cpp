@@ -152,10 +152,10 @@ Mesh *CreatePolygon(VM &vm, Value vl, bool render) {
     }
     if (render) {
         currentshader->Set();
-        RenderArraySlow("CreatePolygon", polymode, gsl::make_span(vbuf), "PNTC");
+        RenderArraySlow("CreatePolygon", polymode, make_span(vbuf), "PNTC");
         return nullptr;
     } else {
-        auto m = new Mesh(new Geometry("CreatePolygon", gsl::make_span(vbuf), "PNTC"), polymode);
+        auto m = new Mesh(new Geometry("CreatePolygon", make_span(vbuf), "PNTC"), polymode);
         return m;
     }
 }
@@ -794,7 +794,7 @@ nfr("rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
             { sz.x, 0,    0, te.x, t.y,  _GETCOL(3) }
         };
         currentshader->Set();
-        RenderArraySlow("gl.rect_tc_col", PRIM_FAN, gsl::make_span(vb_square, 4), "PTC");
+        RenderArraySlow("gl.rect_tc_col", PRIM_FAN, make_span(vb_square, 4), "PTC");
     });
 
 nfr("unit_square", "centered", "I?", "",
@@ -933,11 +933,11 @@ nfr("new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices",
         }
         if (normal_offset) {
             // if no normals were specified, generate them.
-            normalize_mesh(gsl::make_span(idxs), verts, nverts, vsize, normal_offset);
+            normalize_mesh(make_span(idxs), verts, nverts, vsize, normal_offset);
         }
-        auto m = new Mesh(new Geometry("gl.new_mesh_verts", gsl::make_span(verts, nverts * vsize), fmt, vsize),
+        auto m = new Mesh(new Geometry("gl.new_mesh_verts", make_span(verts, nverts * vsize), fmt, vsize),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
-        if (idxs.size()) m->surfs.push_back(new Surface("gl.new_mesh_idxs", gsl::make_span(idxs)));
+        if (idxs.size()) m->surfs.push_back(new Surface("gl.new_mesh_idxs", make_span(idxs)));
         delete[] verts;
         return Value(vm.NewResource(&mesh_type, m));
     });
@@ -1435,7 +1435,7 @@ nfr("render_tiles", "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2]I
             vbuf[i * 6 + 5].tc = t + float2_x / msize;
         }
         currentshader->Set();
-        RenderArraySlow("gl.render_tiles", PRIM_TRIS, gsl::make_span(vbuf), "pT");
+        RenderArraySlow("gl.render_tiles", PRIM_TRIS, make_span(vbuf), "pT");
     });
 
 nfr("debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
