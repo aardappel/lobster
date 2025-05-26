@@ -21,7 +21,8 @@ CFLAGS= $(OPTLEVEL)
 CXXFLAGS= $(OPTLEVEL)
 SHAREDFLAGS= -s USE_SDL=2 -s USE_SDL_MIXER=0 -s USE_FREETYPE=1 -s \
          -Wall -pedantic -Wno-switch \
-         -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
+         -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types \
+		 -Wno-nontrivial-memcall -Wno-strict-prototypes -Wno-empty-translation-unit
 override CFLAGS+= $(SHAREDFLAGS)
 # We always build without exceptions, which is ok, because we don't rely on exception handling
 # to exit the evaluation loop anymore, and we don't support the interpreter mode in Wasm.
