@@ -23,7 +23,6 @@ struct CodeGen  {
     vector<metadata::SpecIdent> sids;
     Parser &parser;
     vector<const Node *> linenumbernodes;
-    vector<tuple<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
     vector<type_elem_t> type_table;
     vector<type_elem_t> ser_ids;
@@ -40,6 +39,39 @@ struct CodeGen  {
     size_t tstack_max = 0;
     int dummyfun = -1;
     const SubFunction *cursf = nullptr;
+
+    // Transitional vector to move codegen from tocpp over here..
+    ILOP last_op_started = IL_ABORT;
+    size_t last_op_start = (size_t)-1;
+    vector<string> temp_codegen;
+    string sp;
+    void EmitCForPrev() {
+        if (last_op_start == (size_t)-1) return;
+        if (temp_codegen.size() <= last_op_start) temp_codegen.resize(last_op_start + 1);
+        const int *ip = code.data() + last_op_start;
+        int opc = *ip++;
+        const int *args = ip + 1;
+        int regso = -1;
+        /* auto arity = */ParseOpAndGetArity(opc, ip, regso);
+        // We could store the value of ip here, to verify it is the same as next instr start.
+        string sd;
+        sp = cat("regs + ", regso);
+        switch (opc) {
+            case IL_GOTOFUNEXIT:
+                append(sd, "goto epilogue;");
+                break;
+            case IL_KEEPREFLOOP:
+                append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
+                [[fallthrough]];
+            case IL_KEEPREF:
+                append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
+                break;
+            case IL_PUSHFUN:
+                append(sd, "U_PUSHFUN(vm, ", sp, ", 0, ", "fun_", args[0], ");");
+                break;
+        }
+        temp_codegen[last_op_start] = std::move(sd);
+    }
 
     int Pos() { return (int)code.size(); }
 
@@ -84,6 +116,9 @@ struct CodeGen  {
     };
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
+        EmitCForPrev();
+        last_op_start = code.size();
+
         Emit(op);
         Emit(TempStackSize());
 
@@ -286,7 +321,7 @@ struct CodeGen  {
         // more debuggable if it does happen to get called.
         dummyfun = Pos();
         EmitOp(IL_FUNSTART);
-        Emit(-1);  // funid
+        Emit(9999999);  // sf.idx
         Emit(0);   // regs_max
         Emit(0);
         Emit(0);
@@ -313,16 +348,6 @@ struct CodeGen  {
         EmitOp(IL_EXIT, int(return_value));
         Emit(return_value ? GetTypeTableOffset(type) : -1);
         linenumbernodes.pop_back();
-
-        // Fix up all calls.
-        for (auto &[loc, sf] : call_fixups) {
-            auto bytecodestart = sf->subbytecodestart;
-            if (!bytecodestart) {
-                bytecodestart = dummyfun;
-            }
-            assert(!code[loc]);
-            code[loc] = bytecodestart;
-        }
 
         // Now fill in the vtables.
         for (auto udt : st.udttable) {
@@ -370,7 +395,7 @@ struct CodeGen  {
         vector<int> ownedvars;
         linenumbernodes.push_back(sf.sbody);
         EmitOp(IL_FUNSTART);
-        Emit(sf.parent->idx);
+        Emit(sf.idx);
         auto regspos = Pos();
         Emit(0);
         auto ret = AssertIs<Return>(sf.sbody->children.back());
@@ -440,12 +465,6 @@ struct CodeGen  {
         }
     }
 
-    void GenFixup(const SubFunction *sf) {
-        assert(sf->sbody);
-        auto pos = Pos() - 1;
-        if (!code[pos]) call_fixups.push_back({ pos, sf });
-    }
-
     void GenUnwind(const SubFunction &sf, int nretslots_unwind_max, int nretslots_norm) {
         // We're in an odd position here, because what is on the stack can either be from
         // the function we're calling (if we're not falling thru) or from any function above it
@@ -497,8 +516,7 @@ struct CodeGen  {
         TakeTemp(nargs, true);
         if (call.vtable_idx < 0) {
             EmitOp(IL_CALL, inw, outw);
-            Emit(sf.subbytecodestart);
-            GenFixup(&sf);
+            Emit(sf.idx);
             if (sf.returned_thru_to_max >= 0) {
                 GenUnwind(sf, sf.returned_thru_to_max, outw);
             }
@@ -1303,13 +1321,12 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
     // If no body, then the function has been optimized away, meaning this
     // function value will never be used.
     // FIXME: instead, ensure such values are removed by the optimizer.
-    if (sf->parent->anonymous && sf->sbody) {
+    if (sf->parent->anonymous && sf->sbody && sf->typechecked) {
         cg.EmitOp(IL_PUSHFUN);
-        cg.Emit(sf->subbytecodestart);
-        cg.GenFixup(sf);
+        cg.Emit(sf->idx);
     } else {
         cg.EmitOp(IL_PUSHFUN);
-        cg.Emit(cg.dummyfun);
+        cg.Emit(9999999);
     }
 }
 

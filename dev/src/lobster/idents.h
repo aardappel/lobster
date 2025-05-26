@@ -1348,6 +1348,8 @@ struct SymbolTable {
         for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->scopelevel == 1));
         vector<flatbuffers::Offset<metadata::Enum>> enumoffsets;
         for (auto e : enumtable) enumoffsets.push_back(e->Serialize(fbb));
+        vector<int> subfunctions_to_function;
+        for (auto sf : subfunctiontable) subfunctions_to_function.push_back(sf->parent->idx);
         string build_info;
         auto time = std::time(nullptr);
         if (time) {
@@ -1375,7 +1377,8 @@ struct SymbolTable {
             fbb.CreateVector(vtables),
             fbb.CreateVector((vector<int> &)ser_ids),
             fbb.CreateString(build_info.c_str(), build_info.size()),
-            src_hash);
+            src_hash,
+            fbb.CreateVector(subfunctions_to_function));
         metadata::FinishMetadataFileBuffer(fbb, bcf);
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }

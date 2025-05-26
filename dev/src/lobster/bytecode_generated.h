@@ -579,7 +579,8 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_VTABLES = 34,
     VT_SER_IDS = 38,
     VT_BUILD_INFO = 40,
-    VT_SRC_HASH = 42
+    VT_SRC_HASH = 42,
+    VT_SUBFUNCTIONS_TO_FUNCTION = 44
   };
   int32_t metadata_version() const {
     return GetField<int32_t>(VT_METADATA_VERSION, 0);
@@ -623,6 +624,9 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint64_t src_hash() const {
     return GetField<uint64_t>(VT_SRC_HASH, 0);
   }
+  const ::flatbuffers::Vector<int32_t> *subfunctions_to_function() const {
+    return GetPointer<const ::flatbuffers::Vector<int32_t> *>(VT_SUBFUNCTIONS_TO_FUNCTION);
+  }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_METADATA_VERSION, 4) &&
@@ -657,6 +661,8 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyOffset(verifier, VT_BUILD_INFO) &&
            verifier.VerifyString(build_info()) &&
            VerifyField<uint64_t>(verifier, VT_SRC_HASH, 8) &&
+           VerifyOffset(verifier, VT_SUBFUNCTIONS_TO_FUNCTION) &&
+           verifier.VerifyVector(subfunctions_to_function()) &&
            verifier.EndTable();
   }
 };
@@ -707,6 +713,9 @@ struct MetadataFileBuilder {
   void add_src_hash(uint64_t src_hash) {
     fbb_.AddElement<uint64_t>(MetadataFile::VT_SRC_HASH, src_hash, 0);
   }
+  void add_subfunctions_to_function(::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> subfunctions_to_function) {
+    fbb_.AddOffset(MetadataFile::VT_SUBFUNCTIONS_TO_FUNCTION, subfunctions_to_function);
+  }
   explicit MetadataFileBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -733,9 +742,11 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFile(
     ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> vtables = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> ser_ids = 0,
     ::flatbuffers::Offset<::flatbuffers::String> build_info = 0,
-    uint64_t src_hash = 0) {
+    uint64_t src_hash = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> subfunctions_to_function = 0) {
   MetadataFileBuilder builder_(_fbb);
   builder_.add_src_hash(src_hash);
+  builder_.add_subfunctions_to_function(subfunctions_to_function);
   builder_.add_build_info(build_info);
   builder_.add_ser_ids(ser_ids);
   builder_.add_vtables(vtables);
@@ -767,7 +778,8 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
     const std::vector<int32_t> *vtables = nullptr,
     const std::vector<int32_t> *ser_ids = nullptr,
     const char *build_info = nullptr,
-    uint64_t src_hash = 0) {
+    uint64_t src_hash = 0,
+    const std::vector<int32_t> *subfunctions_to_function = nullptr) {
   auto typetable__ = typetable ? _fbb.CreateVector<int32_t>(*typetable) : 0;
   auto stringtable__ = stringtable ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*stringtable) : 0;
   auto lineinfo__ = lineinfo ? _fbb.CreateVectorOfStructs<metadata::LineInfo>(*lineinfo) : 0;
@@ -780,6 +792,7 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
   auto vtables__ = vtables ? _fbb.CreateVector<int32_t>(*vtables) : 0;
   auto ser_ids__ = ser_ids ? _fbb.CreateVector<int32_t>(*ser_ids) : 0;
   auto build_info__ = build_info ? _fbb.CreateString(build_info) : 0;
+  auto subfunctions_to_function__ = subfunctions_to_function ? _fbb.CreateVector<int32_t>(*subfunctions_to_function) : 0;
   return metadata::CreateMetadataFile(
       _fbb,
       metadata_version,
@@ -795,7 +808,8 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
       vtables__,
       ser_ids__,
       build_info__,
-      src_hash);
+      src_hash,
+      subfunctions_to_function__);
 }
 
 inline const metadata::MetadataFile *GetMetadataFile(const void *buf) {

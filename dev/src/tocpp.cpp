@@ -22,7 +22,7 @@ namespace lobster {
 
 string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bool cpp,
              int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name,
-             const vector<int> &raw_bytecode) {
+             const vector<int> &raw_bytecode, vector<string> &temp_codegen) {
     auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
     if (!FLATBUFFERS_LITTLEENDIAN) return "native code gen requires little endian";
     auto code = raw_bytecode.data();  // Assumes we're on a little-endian machine.
@@ -147,8 +147,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
     while (ip < code + len) {
         int id = (int)(ip - code);
         if (*ip == IL_FUNSTART || ip == starting_ip) {
-            append(sd, "static void fun_", id, "(VMRef, StackPtr);\n");
-            starting_point = id;
+            auto sf_idx = ip == starting_ip ? 8888888 : ip[2];
+            if (sf_idx >= 0) append(sd, "static void fun_", sf_idx, "(VMRef, StackPtr);\n");
+            starting_point = sf_idx;
         }
         if ((false)) {  // Debug corrupt bytecode.
             string da;
@@ -187,12 +188,13 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
             auto f = it != function_lookup.end() ? it->second : nullptr;
             sd += "\n";
             if (f) append(sd, "// ", f->name()->string_view(), "\n");
-            append(sd, "static void fun_", id, "(VMRef vm, StackPtr psp) {\n");
+            auto sf_idx = is_start ? 8888888 : *funstart;
+            append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
             const int *funstartend = nullptr;
             int numlocals = 0;
             if (opc == IL_FUNSTART) {
                 auto fip = funstart;
-                fip++;  // definedfunction
+                fip++;  // sf.idx
                 auto regs_max = *fip++;
                 auto nargs_fun = *fip++;
                 auto nargs = fip;
@@ -228,7 +230,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
             }
             if (opc == IL_FUNSTART) {
                 auto fip = funstart;
-                fip++;  // definedfunction
+                fip++;  // sf.idx
                 fip++;  // regs_max.
                 auto nargs_fun = *fip++;
                 for (int i = 0; i < nargs_fun; i++) {
@@ -277,8 +279,13 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
         auto arity = ParseOpAndGetArity(opc, ip, regso);
         if (opc == IL_FUNSTART) continue;
         append(sd, "    ");
-        sp = cat("regs + ", regso);
 
+        if (id < temp_codegen.size() && !temp_codegen[id].empty()) {
+            append(sd, temp_codegen[id], "\n");
+            continue;
+        }
+
+        sp = cat("regs + ", regso);
         switch (opc) {
             case IL_PUSHVARL:
                 append(sd, "regs[", regso, "] = locals[", var_to_local[args[0]], "];");
@@ -431,23 +438,21 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
                 break;
             }
             case IL_GOTOFUNEXIT:
-                append(sd, "goto epilogue;");
+                assert(false);
                 break;
             case IL_KEEPREFLOOP:
-                append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
+                assert(false);
                 [[fallthrough]];
             case IL_KEEPREF:
-                append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
+                assert(false);
                 break;
             case IL_PUSHFUN:
-                append(sd, "U_PUSHFUN(vm, ", sp, ", 0, ", "fun_", args[0], ");");
+                assert(false);
                 break;
             case IL_CALL: {
                 append(sd, "fun_", args[0], "(vm, ", sp, ");");
-                auto fs = code + args[0];
-                assert(*fs == IL_FUNSTART);
-                fs += 2;
-                comment("call: " + bcf->functions()->Get(*fs)->name()->string_view());
+                auto sf_idx = args[0];
+                comment("call: " + bcf->functions()->Get(bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view());
                 break;
             }
             case IL_CALLV:
@@ -524,9 +529,14 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
     sd += " const fun_base_t vtables[] = {\n";
     for (auto id : *bcf->vtables()) {
         sd += "    ";
-        if (id >= 0) append(sd, "fun_", id);
-        else if (id <= -2) append(sd, "(fun_base_t)", -id - 2);  // Bit of a hack, would be nice to separate.
-        else sd += "0";
+        if (id >= 0) {
+            auto funstart = code + id;
+            append(sd, "fun_", funstart[2]);
+        } else if (id <= -2) {
+            append(sd, "(fun_base_t)", -id - 2);  // Bit of a hack, would be nice to separate.
+        } else {
+            sd += "0";
+        }
         sd += ",\n";
     }
     sd += "    0\n};\n";  // Make sure table is never empty.

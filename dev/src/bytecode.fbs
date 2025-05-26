@@ -93,6 +93,8 @@ table MetadataFile {
 
     build_info:string;
     src_hash:ulong;
+
+    subfunctions_to_function:[int];
 }
 
 root_type MetadataFile;

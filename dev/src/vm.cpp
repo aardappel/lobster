@@ -404,7 +404,7 @@ string VM::DumpFileLine(int fileidx, int line) {
 }
 
 pair<string, const int *> VM::DumpStackFrameStart(const int *fip, int fileidx, int line) {
-    auto deffun = *fip++;
+    auto sf_idx = *fip++;
     string fname;
     auto nargs = fip[1];
     if (nargs) {
@@ -412,7 +412,7 @@ pair<string, const int *> VM::DumpStackFrameStart(const int *fip, int fileidx, i
         ti.Print(*this, fname, nullptr);
         append(fname, ".");
     }
-    append(fname, bcf->functions()->Get(deffun)->name()->string_view(),
+    append(fname, bcf->functions()->Get(bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view(),
            DumpFileLine(fileidx, line));
     return { fname, fip };
 }
@@ -977,13 +977,13 @@ void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
     if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
 }
 
-void TraceVA(VM *vm, StackPtr, int opc, int fid) {
+void TraceVA(VM *vm, StackPtr, int opc, int sf_idx) {
     auto &sd = vm->TraceStream();
     sd += "\t";
     sd += ILNames()[opc];
-    if (opc == IL_FUNSTART && fid >= 0) {
+    if (opc == IL_FUNSTART && sf_idx >= 0) {
         sd += " ";
-        sd += vm->bcf->functions()->Get(fid)->name()->string_view();
+        sd += vm->bcf->functions()->Get(vm->bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view();
     }
     if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
 }

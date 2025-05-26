@@ -21,7 +21,7 @@ namespace lobster {
 
 extern string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bool cpp,
                     int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name,
-                    const vector<int> &raw_bytecode);
+                    const vector<int> &raw_bytecode, vector<string> &temp_codegen);
 
 extern bool RunC(const char *source,
                  const char *object_name /* save instead of run if non-null */,
@@ -58,7 +58,7 @@ inline int ParseOpAndGetArity(int opc, const int *&ip, int &regso) {
             break;
         }
         case IL_FUNSTART: {
-            ip++;  // function idx.
+            ip++;  // sf idx.
             ip++;  // max regs.
             int n = *ip++;
             ip += n;

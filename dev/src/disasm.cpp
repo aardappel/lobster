@@ -96,9 +96,12 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
             auto bc = *ip++;
             if (code) {
                 assert(code[bc] == IL_FUNSTART);
-                auto id = code[bc + 2];
+                auto sf_id = code[bc + 2];
                 auto nargs = code[bc + 4];
-                append(sd, nargs, " ", bcf->functions()->Get(id)->name()->string_view(), " ", bc);
+                append(sd, nargs, " ",
+                       bcf->functions()->Get(bcf->subfunctions_to_function()->Get(sf_id))->name()->string_view(),
+                       " ",
+                       bc);
             } else {
                 append(sd, " ", bc);
             }
@@ -177,8 +180,9 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
         }
 
         case IL_FUNSTART: {
-            auto fidx = *ip++;
-            sd += (fidx >= 0 ? bcf->functions()->Get(fidx)->name()->string_view() : "__dummy");
+            auto sf_idx = *ip++;
+            sd += (sf_idx >= 0 ? bcf->functions()->Get(bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view()
+                             : "__dummy");
             auto regs = *ip++;
             sd += "(";
             int n = *ip++;
