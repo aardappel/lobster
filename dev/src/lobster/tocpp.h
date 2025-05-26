@@ -610,6 +610,14 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
             sd += ",";
         }
         sd += "\n};\n\n";
+        sd += "\nstatic const int type_table[] = {";
+        for (auto [i, x] : enumerate(type_table)) {
+            if ((i & 0xF) == 0) sd += "\n ";
+            sd += " ";
+            append(sd, x);
+            sd += ",";
+        }
+        sd += "\n};\n\n";
         sd += "static const string_view function_names[] = {\n";
         for (auto f : st.functiontable) {
             sd += "    string_view(";
@@ -646,6 +654,7 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "         (uint8_t *)bytecodefb,\n";
         sd += "         gsl::make_span(function_names),\n";
         sd += "         gsl::make_span(stringtable),\n";
+        sd += "         gsl::make_span((const lobster::type_elem_t *)&type_table, (const lobster::type_elem_t *)&type_table + sizeof(type_table) / sizeof(int)),\n";
         sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",

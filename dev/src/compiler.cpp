@@ -606,12 +606,17 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 }
                 vector<string_view> stringtable;
                 for (flatbuffers::uoffset_t i = 0; i < bcf->stringtable()->size(); i++) {
-                    function_names.push_back(bcf->stringtable()->Get(i)->string_view());
+                    stringtable.push_back(bcf->stringtable()->Get(i)->string_view());
+                }
+                vector<type_elem_t> type_table;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->typetable()->size(); i++) {
+                    type_table.push_back((type_elem_t)bcf->typetable()->Get(i));
                 }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
                     gsl::make_span(function_names),
                     gsl::make_span(stringtable),
+                    gsl::make_span(type_table),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,

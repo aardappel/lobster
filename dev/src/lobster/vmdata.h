@@ -912,6 +912,7 @@ struct VMMetaData {
     const uint8_t *static_bytecode = nullptr;
     gsl::span<const string_view> function_names;
     gsl::span<const string_view> stringtable;
+    gsl::span<const type_elem_t> type_table;
 };
 
 struct VMArgs {

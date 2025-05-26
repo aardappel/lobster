@@ -33,14 +33,7 @@ vector<tracy::SourceLocationData> g_builtin_locations;
 VM::VM(VMArgs &&vmargs, const metadata::MetadataFile *bcf)
     : VMArgs(std::move(vmargs)), bcf(bcf) {
 
-    if (FLATBUFFERS_LITTLEENDIAN) {
-        // We can use the buffer directly.
-        typetable = (const type_elem_t *)bcf->typetable()->Data();
-    } else {
-        for (uint32_t i = 0; i < bcf->typetable()->size(); i++)
-            typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
-        typetable = typetablebigendian.data();
-    }
+    typetable = meta->type_table.data();
     constant_strings.resize(meta->stringtable.size());
     assert(native_vtables);
 
@@ -953,7 +946,7 @@ using namespace lobster;
 void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
     auto ip = _ip.begin();
     auto &sd = vm->TraceStream();
-    DisAsmIns(vm->nfr, sd, ip, nullptr, (type_elem_t *)vm->bcf->typetable()->data(), vm->bcf,
+    DisAsmIns(vm->nfr, sd, ip, nullptr, (type_elem_t *)vm->meta->type_table.data(), vm->bcf,
               vm->last_line, *vm);
     #if RTT_ENABLED
         (void)sp;
