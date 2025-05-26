@@ -21,7 +21,6 @@ struct LineInfo {
 
 table Function {
     name:string;
-    bytecodestart:int (deprecated); 
 }
 
 table Field {
@@ -63,8 +62,6 @@ struct SpecIdent {
 
 table MetadataFile {
     metadata_version:int;  // The format of typetable may change.
-    bytecode:[int] (deprecated);
-    bytecode_attr:[ubyte] (deprecated);
     typetable:[int];
 
     stringtable:[string];
@@ -77,16 +74,9 @@ table MetadataFile {
     idents:[Ident];
     specidents:[SpecIdent];
 
-    default_int_vector_types:[int] (deprecated);
-    default_float_vector_types:[int] (deprecated);
-
-    logvars:[int] (deprecated);
-
     enums:[Enum];
 
     vtables:[int];
-
-    nativemode:bool = true (deprecated);
 
     ser_ids:[int];
 

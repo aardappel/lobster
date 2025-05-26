@@ -549,20 +549,20 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef MetadataFileBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_METADATA_VERSION = 4,
-    VT_TYPETABLE = 10,
-    VT_STRINGTABLE = 12,
-    VT_LINEINFO = 14,
-    VT_FILENAMES = 16,
-    VT_FUNCTIONS = 18,
-    VT_UDTS = 20,
-    VT_IDENTS = 22,
-    VT_SPECIDENTS = 24,
-    VT_ENUMS = 32,
-    VT_VTABLES = 34,
-    VT_SER_IDS = 38,
-    VT_BUILD_INFO = 40,
-    VT_SRC_HASH = 42,
-    VT_SUBFUNCTIONS_TO_FUNCTION = 44
+    VT_TYPETABLE = 6,
+    VT_STRINGTABLE = 8,
+    VT_LINEINFO = 10,
+    VT_FILENAMES = 12,
+    VT_FUNCTIONS = 14,
+    VT_UDTS = 16,
+    VT_IDENTS = 18,
+    VT_SPECIDENTS = 20,
+    VT_ENUMS = 22,
+    VT_VTABLES = 24,
+    VT_SER_IDS = 26,
+    VT_BUILD_INFO = 28,
+    VT_SRC_HASH = 30,
+    VT_SUBFUNCTIONS_TO_FUNCTION = 32
   };
   int32_t metadata_version() const {
     return GetField<int32_t>(VT_METADATA_VERSION, 0);
