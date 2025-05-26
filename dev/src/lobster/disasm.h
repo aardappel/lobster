@@ -42,9 +42,8 @@ inline string IdName(const metadata::MetadataFile *bcf, int i, const type_elem_t
 }
 
 const int *DisAsmIns(NativeRegistry &natreg, string &sd, const int *ip, const int *code,
-                     const type_elem_t *typetable, const metadata::MetadataFile *bcf, int line);
-
-void DisAsm(NativeRegistry &natreg, string &sd, string_view metadata_buffer, const vector<int> &raw_bytecode);
+                     const type_elem_t *typetable, const metadata::MetadataFile *bcf, int line,
+                     VM &vm);
 
 }  // namespace lobster
 

@@ -187,20 +187,4 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
     return ip;
 }
 
-void DisAsm(NativeRegistry &nfr, string &sd, string_view metadata_buffer,
-            const vector<int> &raw_bytecode) {
-    auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
-    assert(FLATBUFFERS_LITTLEENDIAN);
-    auto code = raw_bytecode.data();  // Assumes we're on a little-endian machine.
-    auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
-    auto len = raw_bytecode.size();
-    const int *ip = code;
-    while (ip < code + len) {
-        if (*ip == IL_FUNSTART) sd += "------- ------- ---\n";
-        ip = DisAsmIns(nfr, sd, ip, code, typetable, bcf, -1);
-        sd += "\n";
-        if (!ip) break;
-    }
-}
-
 }  // namespace lobster

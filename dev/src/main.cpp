@@ -61,7 +61,6 @@ int main(int argc, char* argv[]) {
     #endif
     {
         bool parsedump = false;
-        bool disasm = false;
         bool dump_builtins_json = false;
         bool dump_builtins_ng = false;
         bool dump_builtins = false;
@@ -93,7 +92,6 @@ int main(int argc, char* argv[]) {
             "--import RELDIR        Additional dir (relative to FILE) to load imports from\n"
             "--main MAIN            if present, run this main program file after compiling FILE.\n"
             "--parsedump            Also dump parse tree.\n"
-            "--disasm               Also dump bytecode disassembly.\n"
             "--verbose              Output additional informational text.\n"
             "--debug                Output compiler internal logging.\n"
             "--silent               Only output errors.\n"
@@ -126,7 +124,6 @@ int main(int argc, char* argv[]) {
                 else if (a == "--rpak") { lpak = default_lpak; code_pak = true; }
                 else if (a == "--cpp") { jit_mode = false; }
                 else if (a == "--parsedump") { parsedump = true; }
-                else if (a == "--disasm") { disasm = true; }
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
                 else if (a == "--debug") { min_output_level = OUTPUT_DEBUG; }
                 else if (a == "--silent") { min_output_level = OUTPUT_ERROR; }
@@ -224,7 +221,6 @@ int main(int argc, char* argv[]) {
         if (!fn.empty()) fn = StripDirPart(fn);
 
         string metadata_buffer;
-        vector<int> raw_bytecode;
         string c_codegen;
         if (fn.empty()) {
             uint64_t src_hash = 0;  // Don't care, from same file as bytecode.
@@ -251,7 +247,7 @@ int main(int argc, char* argv[]) {
                 Compile(nfr, fn, {}, metadata_buffer, parsedump ? &dump : nullptr,
                         lpak ? &pakfile : nullptr, false, runtime_checks,
                         !query.kind.empty() ? &query : nullptr, max_errors, full_error, jit_mode,
-                        c_codegen, raw_bytecode, code_pak, "nullptr");
+                        c_codegen, code_pak, "nullptr");
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
                     //LOG_WARN(mainfile, " does not exist, skipping");
@@ -272,11 +268,6 @@ int main(int argc, char* argv[]) {
                 WriteFile(lpak, true, pakfile, false);
                 return 0;
             }
-        }
-        if (disasm) {
-            string sd;
-            DisAsm(nfr, sd, metadata_buffer, raw_bytecode);
-            WriteFile("disasm.txt", false, sd, false);
         }
         if (jit_mode) {
             string error;

@@ -22,7 +22,7 @@ namespace lobster {
 extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
                     string &metadata_buffer, string *parsedump, string *pakfile, bool return_value,
                     int runtime_checks, Query *query, int max_errors, bool full_error,
-                    bool jit_mode, string &c_codegen, vector<int> &raw_bytecode, bool code_pak,
+                    bool jit_mode, string &c_codegen, bool code_pak,
                     string_view custom_pre_init_name);
 
 extern pair<string, iint> RunTCC(NativeRegistry &nfr,

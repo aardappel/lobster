@@ -547,7 +547,7 @@ void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &metadata_buffer,
              string *parsedump, string *pakfile, bool return_value, int runtime_checks,
              Query *query, int max_errors, bool full_error, bool jit_mode, string &c_codegen,
-             vector<int> &raw_bytecode, bool code_pak, string_view custom_pre_init_name) {
+             bool code_pak, string_view custom_pre_init_name) {
     #ifdef NDEBUG
         SlabAlloc slaballoc;
         if (g_current_slaballoc) THROW_OR_ABORT("nested slab allocator use");
@@ -587,7 +587,6 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
                                 code_pak ? c_codegen : string());
         if (!err.empty()) THROW_OR_ABORT(err);
     }
-    raw_bytecode.swap(cg.code);
 }
 
 pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, string_view fn,
@@ -659,11 +658,10 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringis
     {
         int runtime_checks = RUNTIME_ASSERT;  // FIXME: let caller decide?
         string metadata_buffer;
-        vector<int> raw_bytecode;
         string c_codegen;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
                 metadata_buffer, nullptr, nullptr, true, runtime_checks, nullptr, 1, false, true,
-                c_codegen, raw_bytecode, false, "nullptr");
+                c_codegen, false, "nullptr");
         string error;
         auto ret = RunTCC(parent_vm.nfr, metadata_buffer, fn, nullptr, std::move(args),
                           TraceMode::OFF, false, error, runtime_checks, true, false, c_codegen);

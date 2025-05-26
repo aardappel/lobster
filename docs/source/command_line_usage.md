@@ -82,9 +82,8 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     `--gen-builtins-names` dumps a plain text list of functions, useful for
     adding to syntax highlighting files etc.
 
--   `--parsedump` : dumps internal representations of the program as AST, and
-    `--disasm` for a readable bytecode dump. Only useful for compiler
-    development or if you are really curious.
+-   `--parsedump` : dumps internal representations of the program as AST.
+    Only useful for compiler development or if you are really curious.
 
 -   `--non-interactive-test` : Quit after running 1 frame. Useful for running graphical
     programs as part of a test suite.
