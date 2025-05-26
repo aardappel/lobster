@@ -714,24 +714,23 @@ void VM::IDXErr(iint i, iint n, const RefObj *v) {
 }
 
 string_view VM::StructName(const TypeInfo &ti) {
-    return bcf->udts()->Get(ti.structidx)->name()->string_view();
+    return meta->udts[ti.structidx].name;
 }
 
 string_view VM::ReverseLookupType(int v) {
-    return bcf->udts()->Get((flatbuffers::uoffset_t)v)->name()->string_view();
+    return meta->udts[v].name;
 }
 
 string_view VM::LookupField(int stidx, iint fieldn) const {
-    auto st = bcf->udts()->Get((flatbuffers::uoffset_t)stidx);
-    return st->fields()->Get((flatbuffers::uoffset_t)fieldn)->name()->string_view();
+    auto &st = meta->udts[stidx];
+    return st.fields[fieldn].name;
 }
 
 string_view VM::LookupFieldByOffset(int stidx, int offset) const {
-    auto st = bcf->udts()->Get((flatbuffers::uoffset_t)stidx);
-    auto fields = st->fields();
-    auto fieldn = fields->size() - 1;
-    for (flatbuffers::uoffset_t i = 1; i < fields->size(); i++) {
-        auto foffset = fields->Get(i)->offset();
+    auto &st = meta->udts[stidx];
+    auto fieldn = st.fields.size() - 1;
+    for (flatbuffers::uoffset_t i = 1; i < st.fields.size(); i++) {
+        auto foffset = st.fields[i].offset;
         if (foffset < 0) {
             // Generic type that does not have field offsets.
             return "";
@@ -741,17 +740,15 @@ string_view VM::LookupFieldByOffset(int stidx, int offset) const {
             break;
         }
     }
-    return fields->Get(fieldn)->name()->string_view();
+    return st.fields[fieldn].name;
 }
 
 int VM::LookupFieldByName(int stidx, string_view fname) const {
-    auto st = bcf->udts()->Get((flatbuffers::uoffset_t)stidx);
-    auto fields = st->fields();
-    for (flatbuffers::uoffset_t i = 0; i < fields->size(); i++) {
-        auto f = fields->Get(i);
-        auto name = f->name()->string_view();
-        if (name == fname) {
-            return f->offset();
+    auto &st = meta->udts[stidx];
+    for (flatbuffers::uoffset_t i = 0; i < st.fields.size(); i++) {
+        auto &f = st.fields[i];
+        if (f.name == fname) {
+            return f.offset;
         }
     }
     return -1;
@@ -800,9 +797,9 @@ optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
 
 void VM::EnsureUDTLookupPopulated() {
     if (!UDTLookup.empty()) return;
-    for (auto udt : *bcf->udts()) {
-        auto &v = UDTLookup[udt->name()->string_view()];
-        v.push_back(udt);
+    for (auto &udt : meta->udts) {
+        auto &v = UDTLookup[udt.name];
+        v.push_back(&udt);
     }
 }
 
@@ -815,7 +812,7 @@ void VM::StartWorkers(iint numthreads) {
     if (tuple_space) Error("workers already running");
     // Stop bad values from locking up the machine :)
     numthreads = std::min(numthreads, 256_L64);
-    tuple_space = new TupleSpace(bcf->udts()->size());
+    tuple_space = new TupleSpace(meta->udts.size());
     for (iint i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
         // from this one.

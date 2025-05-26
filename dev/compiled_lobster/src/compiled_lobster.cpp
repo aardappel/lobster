@@ -24387,7 +24387,7 @@ static const int bytecodefb[] = {
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 574, 24, 0x206e6f4d, 0x2079614d, 0x31203632,
-  0x36303a30, 0x2035303a, 0x35323032, 0, 614, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  0x38343a31, 0x2038313a, 0x35323032, 0, 614, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
   11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
   27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
   43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
@@ -26244,6 +26244,558 @@ static const string_view function_names[] = {
     string_view("function400", 11),
 };
 
+static const lobster::VMField float2_fields0[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+};
+
+static const lobster::VMField int2_fields1[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+};
+
+static const lobster::VMField float3_fields2[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+    { string_view("z", 1), 2 },
+};
+
+static const lobster::VMField int3_fields3[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+    { string_view("z", 1), 2 },
+};
+
+static const lobster::VMField float4_fields4[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+    { string_view("z", 1), 2 },
+    { string_view("w", 1), 3 },
+};
+
+static const lobster::VMField int4_fields5[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+    { string_view("z", 1), 2 },
+    { string_view("w", 1), 3 },
+};
+
+static const lobster::VMField A_fields6[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+};
+
+static const lobster::VMField B_fields7[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 2 },
+};
+
+static const lobster::VMField C_fields8[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 2 },
+};
+
+static const lobster::VMField C_fields9[] = {
+    { string_view("g", 1), 0 },
+    { string_view("f", 1), 3 },
+};
+
+static const lobster::VMField S_fields10[] = {
+    { string_view("g", 1), 0 },
+    { string_view("f", 1), 3 },
+};
+
+static const lobster::VMField xy_s_fields11[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+};
+
+static const lobster::VMField mm1_fields12[] = {
+    { string_view("m", 1), 0 },
+};
+
+static const lobster::VMField mm2_fields13[] = {
+    { string_view("m", 1), 0 },
+};
+
+static const lobster::VMField R_fields14[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField RN_fields15[] = {
+    { string_view("a", 1), 0 },
+    { string_view("r", 1), 1 },
+};
+
+static const lobster::VMField RS_fields16[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField V1_fields17[] = {
+    { string_view("x", 1), 0 },
+};
+
+static const lobster::VMField V5_fields18[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+    { string_view("z", 1), 2 },
+    { string_view("w", 1), 3 },
+    { string_view("v", 1), 4 },
+};
+
+static const lobster::VMField A_fields19[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+    { string_view("c", 1), 2 },
+    { string_view("d", 1), 3 },
+    { string_view("e", 1), 4 },
+};
+
+static const lobster::VMField test_namespace_g_fields20[] = {
+    { string_view("x", 1), 0 },
+};
+
+static const lobster::VMField testa_fields21[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField testb_fields22[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField parsetest_fields23[] = {
+    { string_view("h", 1), 0 },
+    { string_view("a", 1), 1 },
+    { string_view("b", 1), 2 },
+    { string_view("c", 1), 3 },
+    { string_view("d", 1), 6 },
+    { string_view("e", 1), 7 },
+    { string_view("f", 1), 8 },
+    { string_view("g", 1), 9 },
+    { string_view("s", 1), 10 },
+};
+
+static const lobster::VMField mretfields_fields24[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField STLV_fields25[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField Reflect_fields26[] = {
+    { string_view("c", 1), 0 },
+    { string_view("s", 1), 2 },
+    { string_view("v", 1), 3 },
+};
+
+static const lobster::VMField testa_fields27[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField testb_fields28[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField S1_fields29[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField S2_fields30[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField C1_fields32[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField C2_fields33[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField Ai_fields34[] = {
+    { string_view("ts", 2), 0 },
+    { string_view("next", 4), 1 },
+    { string_view("nexts", 5), 2 },
+    { string_view("nexti", 5), 3 },
+    { string_view("nexto", 5), 4 },
+};
+
+static const lobster::VMField A_fields35[] = {
+    { string_view("ts", 2), 0 },
+    { string_view("next", 4), 1 },
+    { string_view("nexts", 5), 2 },
+    { string_view("nexti", 5), 3 },
+    { string_view("nexto", 5), 4 },
+};
+
+static const lobster::VMField A_fields36[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField B_fields37[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField A_fields38[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField A_fields39[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+    { string_view("c", 1), 2 },
+};
+
+static const lobster::VMField pathingcell_fields41[] = {
+    { string_view("G", 1), 0 },
+    { string_view("H", 1), 1 },
+    { string_view("F", 1), 2 },
+    { string_view("previous", 8), 3 },
+    { string_view("state", 5), 4 },
+    { string_view("delta", 5), 6 },
+    { string_view("open", 4), 8 },
+    { string_view("closed", 6), 9 },
+    { string_view("path", 4), 10 },
+    { string_view("c", 1), 11 },
+};
+
+static const lobster::VMField astar_node_fields42[] = {
+    { string_view("G", 1), 0 },
+    { string_view("H", 1), 1 },
+    { string_view("F", 1), 2 },
+    { string_view("previous", 8), 3 },
+    { string_view("state", 5), 4 },
+    { string_view("delta", 5), 6 },
+    { string_view("open", 4), 8 },
+    { string_view("closed", 6), 9 },
+};
+
+static const lobster::VMField resources_fields43[] = {
+    { string_view("wolves", 6), 0 },
+    { string_view("skins", 5), 1 },
+    { string_view("money", 5), 2 },
+    { string_view("flour", 5), 3 },
+    { string_view("bread", 5), 4 },
+    { string_view("pizza", 5), 5 },
+    { string_view("hungry", 6), 6 },
+};
+
+static const lobster::VMField spec_node_fields50[] = {
+    { string_view("G", 1), 0 },
+    { string_view("H", 1), 1 },
+    { string_view("F", 1), 2 },
+    { string_view("previous", 8), 3 },
+    { string_view("state", 5), 4 },
+    { string_view("delta", 5), 5 },
+    { string_view("open", 4), 6 },
+    { string_view("closed", 6), 7 },
+};
+
+static const lobster::VMField astar_node_fields51[] = {
+    { string_view("G", 1), 0 },
+    { string_view("H", 1), 1 },
+    { string_view("F", 1), 2 },
+    { string_view("previous", 8), 3 },
+    { string_view("state", 5), 4 },
+    { string_view("delta", 5), 5 },
+    { string_view("open", 4), 6 },
+    { string_view("closed", 6), 7 },
+};
+
+static const lobster::VMField integer_fields53[] = {
+    { string_view("i", 1), 0 },
+};
+
+static const lobster::VMField inst_fields54[] = {
+    { string_view("atom", 4), 0 },
+    { string_view("args", 4), 1 },
+};
+
+static const lobster::VMField pathmap_fields55[] = {
+    { string_view("steps", 5), 0 },
+    { string_view("dir", 3), 1 },
+    { string_view("pos", 3), 3 },
+};
+
+static const lobster::VMField cell_fields56[] = {
+    { string_view("h", 1), 0 },
+    { string_view("wh", 2), 1 },
+    { string_view("nw", 2), 2 },
+};
+
+static const lobster::VMField triangle_fields57[] = {
+    { string_view("verts", 5), 0 },
+    { string_view("neighbors", 9), 1 },
+};
+
+static const lobster::VMField node_fields58[] = {
+    { string_view("t1", 2), 0 },
+    { string_view("t2", 2), 1 },
+};
+
+static const lobster::VMField pedge_fields59[] = {
+    { string_view("i1", 2), 0 },
+    { string_view("i2", 2), 1 },
+    { string_view("dist", 4), 2 },
+};
+
+static const lobster::VMField color_fields60[] = {
+    { string_view("red", 3), 0 },
+    { string_view("green", 5), 1 },
+    { string_view("blue", 4), 2 },
+    { string_view("alpha", 5), 3 },
+};
+
+static const lobster::VMField Ray_fields61[] = {
+    { string_view("o", 1), 0 },
+    { string_view("d", 1), 3 },
+};
+
+static const lobster::VMField Sphere_fields62[] = {
+    { string_view("rad", 3), 0 },
+    { string_view("p", 1), 1 },
+    { string_view("e", 1), 4 },
+    { string_view("c", 1), 7 },
+    { string_view("refl", 4), 10 },
+};
+
+static const lobster::VMField Nest_fields63[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+    { string_view("c", 1), 2 },
+    { string_view("d", 1), 4 },
+    { string_view("e", 1), 5 },
+    { string_view("f", 1), 6 },
+};
+
+static const lobster::VMField quat_fields64[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+    { string_view("z", 1), 2 },
+    { string_view("w", 1), 3 },
+};
+
+static const lobster::VMField OC_fields65[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField OS_fields66[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField mat2x2_fields67[] = {
+    { string_view("x", 1), 0 },
+    { string_view("y", 1), 1 },
+    { string_view("z", 1), 2 },
+    { string_view("w", 1), 3 },
+};
+
+static const lobster::VMField A_fields68[] = {
+    { string_view("a", 1), 0 },
+};
+
+static const lobster::VMField B_fields69[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField C_fields70[] = {
+    { string_view("a", 1), 0 },
+    { string_view("c", 1), 1 },
+};
+
+static const lobster::VMField D_fields71[] = {
+    { string_view("a", 1), 0 },
+    { string_view("c", 1), 1 },
+    { string_view("d", 1), 2 },
+};
+
+static const lobster::VMField E_fields72[] = {
+    { string_view("a", 1), 0 },
+    { string_view("c", 1), 1 },
+    { string_view("e", 1), 2 },
+};
+
+static const lobster::VMField F_fields73[] = {
+    { string_view("a", 1), 0 },
+    { string_view("c", 1), 1 },
+    { string_view("e", 1), 2 },
+    { string_view("f", 1), 3 },
+};
+
+static const lobster::VMField dictionary_fields74[] = {
+    { string_view("buckets", 7), 0 },
+};
+
+static const lobster::VMField chain_fields75[] = {
+    { string_view("next", 4), 0 },
+    { string_view("key", 3), 1 },
+    { string_view("value", 5), 2 },
+};
+
+static const lobster::VMField dictionary_fields76[] = {
+    { string_view("buckets", 7), 0 },
+};
+
+static const lobster::VMField chain_fields77[] = {
+    { string_view("next", 4), 0 },
+    { string_view("key", 3), 1 },
+    { string_view("value", 5), 2 },
+};
+
+static const lobster::VMField dictionary_fields78[] = {
+    { string_view("buckets", 7), 0 },
+};
+
+static const lobster::VMField chain_fields79[] = {
+    { string_view("next", 4), 0 },
+    { string_view("key", 3), 1 },
+    { string_view("value", 5), 4 },
+};
+
+static const lobster::VMField dictionary_fields80[] = {
+    { string_view("buckets", 7), 0 },
+};
+
+static const lobster::VMField chain_fields81[] = {
+    { string_view("next", 4), 0 },
+    { string_view("key", 3), 1 },
+    { string_view("value", 5), 2 },
+};
+
+static const lobster::VMField dictionary_fields82[] = {
+    { string_view("buckets", 7), 0 },
+};
+
+static const lobster::VMField chain_fields83[] = {
+    { string_view("next", 4), 0 },
+    { string_view("key", 3), 1 },
+    { string_view("value", 5), 2 },
+};
+
+static const lobster::VMField C3_fields84[] = {
+    { string_view("a", 1), 0 },
+    { string_view("b", 1), 1 },
+};
+
+static const lobster::VMField D_fields85[] = {
+    { string_view("x", 1), 0 },
+};
+
+static const lobster::VMField D_fields86[] = {
+    { string_view("x", 1), 0 },
+};
+
+static const lobster::VMField set1_fields87[] = {
+    { string_view("dict", 4), 0 },
+};
+
+static const lobster::VMField set2_fields88[] = {
+    { string_view("dict", 4), 0 },
+};
+
+static const lobster::VMUDT udts[] = {
+    { string_view("float2", 6), 0, 2, -1, 162, make_span(float2_fields0) },
+    { string_view("int2", 4), 1, 2, -1, 25, make_span(int2_fields1) },
+    { string_view("float3", 6), 2, 3, 0, 174, make_span(float3_fields2) },
+    { string_view("int3", 4), 3, 3, 1, 207, make_span(int3_fields3) },
+    { string_view("float4", 6), 4, 4, 2, 189, make_span(float4_fields4) },
+    { string_view("int4", 4), 5, 4, 3, 222, make_span(int4_fields5) },
+    { string_view("A", 1), 6, 2, -1, 279, make_span(A_fields6) },
+    { string_view("B", 1), 7, 3, -1, 264, make_span(B_fields7) },
+    { string_view("C", 1), 8, 3, -1, 291, make_span(C_fields8) },
+    { string_view("C", 1), 9, 5, -1, 318, make_span(C_fields9) },
+    { string_view("S", 1), 10, 5, -1, 339, make_span(S_fields10) },
+    { string_view("xy_s", 4), 11, 2, -1, 360, make_span(xy_s_fields11) },
+    { string_view("mm1", 3), 12, 1, -1, 372, make_span(mm1_fields12) },
+    { string_view("mm2", 3), 13, 1, 12, 381, make_span(mm2_fields13) },
+    { string_view("R", 1), 14, 2, -1, 390, make_span(R_fields14) },
+    { string_view("RN", 2), 15, 3, -1, 404, make_span(RN_fields15) },
+    { string_view("RS", 2), 16, 2, -1, 421, make_span(RS_fields16) },
+    { string_view("V1", 2), 17, 1, -1, 1539, make_span(V1_fields17) },
+    { string_view("V5", 2), 18, 5, -1, 433, make_span(V5_fields18) },
+    { string_view("A", 1), 19, 5, -1, 1548, make_span(A_fields19) },
+    { string_view("test_namespace.g", 16), 20, 1, -1, 544, make_span(test_namespace_g_fields20) },
+    { string_view("testa", 5), 21, 1, -1, 553, make_span(testa_fields21) },
+    { string_view("testb", 5), 22, 2, 21, 562, make_span(testb_fields22) },
+    { string_view("parsetest", 9), 23, 11, -1, 574, make_span(parsetest_fields23) },
+    { string_view("mretfields", 10), 24, 2, -1, 619, make_span(mretfields_fields24) },
+    { string_view("STLV", 4), 25, 2, -1, 699, make_span(STLV_fields25) },
+    { string_view("Reflect", 7), 26, 4, -1, 711, make_span(Reflect_fields26) },
+    { string_view("testa", 5), 27, 1, -1, 1569, make_span(testa_fields27) },
+    { string_view("testb", 5), 28, 2, 27, 1578, make_span(testb_fields28) },
+    { string_view("S1", 2), 29, 1, -1, 735, make_span(S1_fields29) },
+    { string_view("S2", 2), 30, 2, 29, 744, make_span(S2_fields30) },
+    { string_view("C0", 2), 31, 0, -1, 756, {} },
+    { string_view("C1", 2), 32, 1, 31, 762, make_span(C1_fields32) },
+    { string_view("C2", 2), 33, 2, 32, 771, make_span(C2_fields33) },
+    { string_view("Ai", 2), 34, 5, -1, 804, make_span(Ai_fields34) },
+    { string_view("A", 1), 35, 5, -1, 829, make_span(A_fields35) },
+    { string_view("A", 1), 36, 1, -1, 872, make_span(A_fields36) },
+    { string_view("B", 1), 37, 2, 36, 883, make_span(B_fields37) },
+    { string_view("A", 1), 38, 1, -1, 1590, make_span(A_fields38) },
+    { string_view("A", 1), 39, 4, -1, 897, make_span(A_fields39) },
+    { string_view("goapaction", 10), 40, 0, -1, 138, {} },
+    { string_view("pathingcell", 11), 41, 12, 42, 919, make_span(pathingcell_fields41) },
+    { string_view("astar_node", 10), 42, 10, -1, 961, make_span(astar_node_fields42) },
+    { string_view("resources", 9), 43, 7, -1, 111, make_span(resources_fields43) },
+    { string_view("KillWolf", 8), 44, 0, 40, 1029, {} },
+    { string_view("SellSkin", 8), 45, 0, 40, 1035, {} },
+    { string_view("BuyPizza", 8), 46, 0, 40, 1041, {} },
+    { string_view("BuyFlour", 8), 47, 0, 40, 1047, {} },
+    { string_view("BakeBread", 9), 48, 0, 40, 1053, {} },
+    { string_view("Eat", 3), 49, 0, 40, 1059, {} },
+    { string_view("spec_node", 9), 50, 8, 51, 49, make_span(spec_node_fields50) },
+    { string_view("astar_node", 10), 51, 8, -1, 79, make_span(astar_node_fields51) },
+    { string_view("node", 4), 52, 0, -1, 1074, {} },
+    { string_view("integer", 7), 53, 1, 52, 1065, make_span(integer_fields53) },
+    { string_view("inst", 4), 54, 2, 52, 1080, make_span(inst_fields54) },
+    { string_view("pathmap", 7), 55, 5, -1, 1098, make_span(pathmap_fields55) },
+    { string_view("cell", 4), 56, 3, -1, 1123, make_span(cell_fields56) },
+    { string_view("triangle", 8), 57, 2, -1, 1599, make_span(triangle_fields57) },
+    { string_view("node", 4), 58, 2, -1, 1611, make_span(node_fields58) },
+    { string_view("pedge", 5), 59, 3, -1, 1150, make_span(pedge_fields59) },
+    { string_view("color", 5), 60, 4, -1, 1167, make_span(color_fields60) },
+    { string_view("Ray", 3), 61, 6, -1, 1226, make_span(Ray_fields61) },
+    { string_view("Sphere", 6), 62, 11, -1, 1185, make_span(Sphere_fields62) },
+    { string_view("Nest", 4), 63, 7, -1, 1260, make_span(Nest_fields63) },
+    { string_view("quat", 4), 64, 4, 4, 1291, make_span(quat_fields64) },
+    { string_view("OC", 2), 65, 1, -1, 1309, make_span(OC_fields65) },
+    { string_view("OS", 2), 66, 1, -1, 1318, make_span(OS_fields66) },
+    { string_view("mat2x2", 6), 67, 4, 4, 242, make_span(mat2x2_fields67) },
+    { string_view("A", 1), 68, 1, -1, 1327, make_span(A_fields68) },
+    { string_view("B", 1), 69, 2, 68, 1623, make_span(B_fields69) },
+    { string_view("C", 1), 70, 2, 68, 1650, make_span(C_fields70) },
+    { string_view("D", 1), 71, 3, 70, 1635, make_span(D_fields71) },
+    { string_view("E", 1), 72, 3, 70, 1662, make_span(E_fields72) },
+    { string_view("F", 1), 73, 4, 72, 1677, make_span(F_fields73) },
+    { string_view("dictionary", 10), 74, 1, -1, 460, make_span(dictionary_fields74) },
+    { string_view("chain", 5), 75, 3, -1, 469, make_span(chain_fields75) },
+    { string_view("dictionary", 10), 76, 1, -1, 631, make_span(dictionary_fields76) },
+    { string_view("chain", 5), 77, 3, -1, 640, make_span(chain_fields77) },
+    { string_view("dictionary", 10), 78, 1, -1, 659, make_span(dictionary_fields78) },
+    { string_view("chain", 5), 79, 7, -1, 668, make_span(chain_fields79) },
+    { string_view("dictionary", 10), 80, 1, -1, 514, make_span(dictionary_fields80) },
+    { string_view("chain", 5), 81, 3, -1, 523, make_span(chain_fields81) },
+    { string_view("dictionary", 10), 82, 1, -1, 488, make_span(dictionary_fields82) },
+    { string_view("chain", 5), 83, 3, -1, 497, make_span(chain_fields83) },
+    { string_view("C3", 2), 84, 2, 32, 783, make_span(C3_fields84) },
+    { string_view("D", 1), 85, 1, -1, 795, make_span(D_fields85) },
+    { string_view("D", 1), 86, 1, -1, 1402, make_span(D_fields86) },
+    { string_view("set1", 4), 87, 1, -1, 854, make_span(set1_fields87) },
+    { string_view("set2", 4), 88, 1, -1, 863, make_span(set2_fields88) },
+};
+
 extern "C" void compiled_entry_point(VMRef vm, StackPtr sp) {
     if (vm.nfr.HashAll() != 7286824047428956706ULL) vm.BuiltinError("code compiled with mismatching builtin function library");
     fun_10000002(vm, sp);
@@ -26252,12 +26804,13 @@ extern "C" void compiled_entry_point(VMRef vm, StackPtr sp) {
 int main(int argc, char *argv[]) {
     // This is hard-coded to call compiled_entry_point()
     lobster::VMMetaData vmmeta = {
-         (uint8_t *)bytecodefb,
-         23,
-         make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),
-         make_span(stringtable),
-         make_span(file_names),
-         make_span(function_names),
+        (uint8_t *)bytecodefb,
+        23,
+        make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),
+        make_span(stringtable),
+        make_span(file_names),
+        make_span(function_names),
+        make_span(udts),
     };
     return RunCompiledCodeMain(argc, argv, &vmmeta, 116048, vtables, nullptr, "");
 }

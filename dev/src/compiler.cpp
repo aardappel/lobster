@@ -616,6 +616,23 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
                     function_names.push_back(bcf->functions()->Get(i)->name()->string_view());
                 }
+                vector<VMUDT> udts;
+                vector<VMField> fields;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->udts()->size(); i++) {
+                    auto udt = bcf->udts()->Get(i);
+                    for (flatbuffers::uoffset_t j = 0; j < udt->fields()->size(); j++) {
+                        auto field = udt->fields()->Get(j);
+                        fields.push_back(VMField{ field->name()->string_view(), field->offset() });
+                    }
+                }
+                size_t off = 0;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->udts()->size(); i++) {
+                    auto udt = bcf->udts()->Get(i);
+                    auto fspan = make_span(fields.data() + off, fields.data() + off + udt->fields()->size());
+                    udts.push_back(VMUDT{ udt->name()->string_view(), udt->idx(), udt->size(),
+                                          udt->super_idx(), udt->typeidx(), fspan });
+                    off += udt->fields()->size();
+                }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
                     bcf->metadata_version(),
@@ -623,6 +640,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                     make_span(stringtable),
                     make_span(file_names),
                     make_span(function_names),
+                    make_span(udts),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,

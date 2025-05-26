@@ -908,6 +908,20 @@ enum {
     RUNTIME_DEBUGGER       // --runtime-debugger: Instead of a memory dump, will invoke debugger on errors.
 };
 
+struct VMField {
+    string_view name;
+    int offset;
+};
+
+struct VMUDT {
+    string_view name;
+    int idx;
+    int size;
+    int super_idx;
+    int typeidx;
+    span<const VMField> fields;
+};
+
 struct VMMetaData {
     const uint8_t *static_bytecode = nullptr;
     int metadata_version = 0;
@@ -915,6 +929,7 @@ struct VMMetaData {
     span<const string_view> stringtable;
     span<const string_view> file_names;
     span<const string_view> function_names;
+    span<const VMUDT> udts;
 };
 
 struct VMArgs {
@@ -1004,7 +1019,7 @@ struct VM : VMArgs {
 
     vector<Value> fvar_def_backup;
 
-    map<string_view, vector<const metadata::UDT *>> UDTLookup;
+    map<string_view, vector<const VMUDT *>> UDTLookup;
     void EnsureUDTLookupPopulated();
 
     // We stick this in here directly, since the constant offsets into this array in

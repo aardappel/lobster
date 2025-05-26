@@ -595,11 +595,9 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
     if (cpp) {
         // Output the metadata.
         auto gen_string = [&](string_view s) {
-            sd += "    string_view(";
+            sd += "string_view(";
             EscapeAndQuote(s, sd);
-            sd += ", ";
-            sd += to_string(s.size());
-            sd += "),\n";
+            append(sd, ", ", s.size(), ")");
         };
         sd += "\nstatic const int bytecodefb[] = {";
         auto bytecode_ints = (const int *)metadata_buffer.data();
@@ -619,24 +617,53 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "\nstatic const int type_table[] = {";
         for (auto [i, x] : enumerate(type_table)) {
             if ((i & 0xF) == 0) sd += "\n ";
-            sd += " ";
-            append(sd, x);
-            sd += ",";
+            append(sd, " ", x, ",");
         }
         sd += "};\n\n";
         sd += "static const string_view stringtable[] = {\n";
         for (auto s : stringtable) {
+            sd += "    ";
             gen_string(s);
+            sd += ",\n";
         }
         sd += "\n};\n\n";
         sd += "static const string_view file_names[] = {\n";
         for (auto [s, _] : parser.lex.filenames) {
+            sd += "    ";
             gen_string(s);
+            sd += ",\n";
         }
         sd += "};\n\n";
         sd += "static const string_view function_names[] = {\n";
         for (auto f : st.functiontable) {
+            sd += "    ";
             gen_string(f->name);
+            sd += ",\n";
+        }
+        sd += "};\n\n";
+        auto fieldsname = [](UDT *udt) {
+            auto n = cat(udt->name, "_fields", udt->idx);
+            std::replace(n.begin(), n.end(), '.', '_');
+            return n;
+        };
+        for (auto udt : st.udttable) {
+            if (udt->sfields.empty()) continue;
+            append(sd, "static const lobster::VMField ", fieldsname(udt), "[] = {\n");
+            for (auto [i, sfield] : enumerate(udt->sfields)) {
+                sd += "    { ";
+                gen_string(udt->g.fields[i].id->name);
+                append(sd, ", ", sfield.slot, " },\n");
+            }
+            sd += "};\n\n";
+        }
+        sd += "static const lobster::VMUDT udts[] = {\n";
+        for (auto udt : st.udttable) {
+            sd += "    { ";
+            gen_string(udt->name);
+            auto fspan = udt->sfields.empty() ? "{}" : cat("make_span(", fieldsname(udt), ")");
+            append(sd, ", ", udt->idx, ", ", udt->numslots, ", ",
+                       (udt->ssuperclass ? udt->ssuperclass->idx : -1), ", ", udt->typeinfo, ", ",
+                       fspan, " },\n");
         }
         sd += "};\n\n";
     }
@@ -654,12 +681,13 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "    // This is hard-coded to call compiled_entry_point()\n";
         if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
         sd += "    lobster::VMMetaData vmmeta = {\n";
-        sd += "         (uint8_t *)bytecodefb,\n";
-        sd += "         " + to_string(LOBSTER_METADATA_FORMAT_VERSION) + ",\n";
-        sd += "         make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
-        sd += "         make_span(stringtable),\n";
-        sd += "         make_span(file_names),\n";
-        sd += "         make_span(function_names),\n";
+        sd += "        (uint8_t *)bytecodefb,\n";
+        sd += "        " + to_string(LOBSTER_METADATA_FORMAT_VERSION) + ",\n";
+        sd += "        make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
+        sd += "        make_span(stringtable),\n";
+        sd += "        make_span(file_names),\n";
+        sd += "        make_span(function_names),\n";
+        sd += "        make_span(udts),\n";
         sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",

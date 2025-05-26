@@ -96,16 +96,16 @@ struct Deserializer {
         auto &udts = vm.UDTLookup[sname];
         for (auto udt : udts) {
             for (auto ludt = udt;;) {
-                auto super_idx = ludt->super_idx();
+                auto super_idx = ludt->super_idx;
                 if (super_idx < 0) break;
                 if (super_idx == ti->structidx) {
                     // Note: this field only not -1 for UDTs actually constructed/used.
-                    typeoff = (type_elem_t)udt->typeidx();
+                    typeoff = (type_elem_t)udt->typeidx;
                     if (typeoff >= 0) {
                         return { &vm.GetTypeInfo(typeoff), typeoff };
                     }
                 }
-                ludt = vm.bcf->udts()->Get(super_idx);
+                ludt = &vm.meta->udts[super_idx];
             }
         }
         return { nullptr, (type_elem_t)-1 };

@@ -112,7 +112,7 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *
         case IL_ST2S:
         case IL_NEWOBJECT: {
             auto ti = (TypeInfo *)(typetable + *ip++);
-            sd += bcf->udts()->Get(ti->structidx)->name()->string_view();
+            sd += vm.meta->udts[ti->structidx].name;
             break;
         }
 

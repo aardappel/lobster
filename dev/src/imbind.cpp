@@ -588,7 +588,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             v = v->oval()->Elems();  // To iterate it like a struct.
         case V_STRUCT_R:
         case V_STRUCT_S: {
-            auto st = vm.bcf->udts()->Get(ti->structidx);
+            auto &st = vm.meta->udts[ti->structidx];
             // Special case for numeric structs & colors.
             if (ti->len >= 2 && ti->len <= 4) {
                 for (int i = 1; i < ti->len; i++)
@@ -602,7 +602,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                     }
                     break;
                 } else if (ti->elemtypes[0].type == TYPE_ELEM_FLOAT) {
-                    if (st->name()->string_view() == "color") {
+                    if (st.name == "color") {
                         auto c = ValueToFLT<4>(v, ti->len);
                         if (ImGui::ColorEdit4(l, (float *)c.data())) {
                             ToValue(v, ti->len, c);
@@ -622,13 +622,12 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                 }
             }
             generic:
-            if (ImGui::TreeNodeEx(*l ? l : st->name()->c_str(), flags)) {
-                if (BeginTable(st->name()->c_str())) {
-                    auto fields = st->fields();
+            if (ImGui::TreeNodeEx(*l ? l : st.name.data(), flags)) {
+                if (BeginTable(st.name.data())) {
                     int fi = 0;
                     for (int i = 0; i < ti->len; i++) {
                         auto &sti = vm.GetTypeInfo(ti->GetElemOrParent(i));
-                        ValToGUI(vm, v + i, &sti, string_view_nt(fields->Get(fi++)->name()->string_view()),
+                        ValToGUI(vm, v + i, &sti, string_view_nt(st.fields[fi++].name),
                                     false);
                         if (IsStruct(sti.t)) i += sti.len - 1;
                     }
