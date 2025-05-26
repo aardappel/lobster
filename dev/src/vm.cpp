@@ -76,10 +76,10 @@ VM::~VM() {
 
 VMAllocator::VMAllocator(VMArgs &&args) {
     // Verify the bytecode.
-    flatbuffers::Verifier verifier(args.static_bytecode, args.static_size);
+    flatbuffers::Verifier verifier(args.meta->static_bytecode, args.static_size);
     auto ok = metadata::VerifyMetadataFileBuffer(verifier);
     if (!ok) THROW_OR_ABORT("metadata file failed to verify");
-    auto bcf = metadata::GetMetadataFile(args.static_bytecode);
+    auto bcf = metadata::GetMetadataFile(args.meta->static_bytecode);
     if (bcf->metadata_version() != LOBSTER_METADATA_FORMAT_VERSION)
         THROW_OR_ABORT("metadata is from a different version of Lobster");
 
@@ -827,8 +827,7 @@ void VM::StartWorkers(iint numthreads) {
     for (iint i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
         // from this one.
-        // We share nfr and programname for now since they're fully read-only.
-        // FIXME: have to copy bytecode buffer even though it is read-only.
+        // We share nfr, metadata and programname for now since they're fully read-only.
         auto vmargs = *(VMArgs *)this;
         vmargs.program_args.resize(0);
         vmargs.trace = TraceMode::OFF;

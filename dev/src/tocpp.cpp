@@ -20,6 +20,37 @@
 
 namespace lobster {
 
+inline void Escape(std::string &sd, string_view in) {
+    const char *s = in.data();
+    auto length = in.size();
+    sd += "\"";
+    for (size_t i = 0; i < length; i++) {
+        char c = s[i];
+        switch (c) {
+            case '\n': sd += "\\n"; break;
+            case '\t': sd += "\\t"; break;
+            case '\r': sd += "\\r"; break;
+            case '\b': sd += "\\b"; break;
+            case '\f': sd += "\\f"; break;
+            case '\"': sd += "\\\""; break;
+            case '\'': sd += "\\\'"; break;
+            case '\\': sd += "\\\\"; break;
+            case 0: sd += "\\0"; break;
+            default:
+                if (c >= ' ' && c <= '~') {
+                    sd += c;
+                } else {
+                    // TODO: output unicode?
+                    sd += "\\x";
+                    to_string_hex(sd, c);
+                }
+            break;
+        }
+    }
+    sd += "\"";
+}
+
+
 string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bool cpp,
              int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name,
              const vector<int> &raw_bytecode, vector<string> &temp_codegen) {
@@ -569,6 +600,14 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
             sd += ",";
         }
         sd += "\n};\n\n";
+        sd += "static const string_view function_names[] = {\n";
+        for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
+            auto sv = bcf->functions()->Get(i)->name()->string_view();
+            sd += "    ";
+            Escape(sd, sv);
+            sd += ",\n";
+        }
+        sd += "};\n\n";
     }
     if (cpp) sd += "extern \"C\" ";
     sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
@@ -583,8 +622,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
         sd += "int main(int argc, char *argv[]) {\n";
         sd += "    // This is hard-coded to call compiled_entry_point()\n";
         if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
+        sd += "    lobster::VMMetaData vmmeta = { (uint8_t *)bytecodefb, gsl::make_span(function_names) };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
-        append(sd, "(uint8_t *)bytecodefb, ", metadata_buffer.size(), ", vtables, ",
+        append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ",
                custom_pre_init_name, ", \"", aux_src_name, "\");\n}\n");
     }
 

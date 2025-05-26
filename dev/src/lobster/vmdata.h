@@ -908,10 +908,15 @@ enum {
     RUNTIME_DEBUGGER       // --runtime-debugger: Instead of a memory dump, will invoke debugger on errors.
 };
 
+struct VMMetaData {
+    const uint8_t *static_bytecode = nullptr;
+    gsl::span<const string_view> function_names;
+};
+
 struct VMArgs {
     NativeRegistry &nfr;
     string programname;
-    const uint8_t *static_bytecode = nullptr;
+    const VMMetaData *meta = nullptr;
     size_t static_size = 0;
     vector<string> program_args;
     const fun_base_t *native_vtables = nullptr;

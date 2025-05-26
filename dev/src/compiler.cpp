@@ -603,8 +603,17 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
             [&](void **exports) -> bool {
                 LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
                 if (compile_only) return true;
+                auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
+                vector<string_view> function_names;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
+                    function_names.push_back(bcf->functions()->Get(i)->name()->string_view());
+                }
+                VMMetaData vmmeta = {
+                    (uint8_t *)metadata_buffer.data(),
+                    gsl::make_span(function_names),
+                };
                 auto vmargs = VMArgs {
-                    nfr, string(fn), (uint8_t *)metadata_buffer.data(),
+                    nfr, string(fn), &vmmeta,
                     metadata_buffer.size(), std::move(program_args),
                     (fun_base_t *)exports[1], (fun_base_t)exports[0], trace, dump_leaks,
                     runtime_checks, stack_trace_python_ordering
@@ -713,7 +722,7 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
 }
 #endif
 
-extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const uint8_t *bytecodefb,
+extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMetaData *vmmeta,
                                    size_t static_size, const lobster::fun_base_t *vtables,
                                    void *custom_pre_init, const char *aux_src_path) {
     #ifdef _MSC_VER
@@ -740,7 +749,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const uint
         auto vmargs = VMArgs {
             nfr,
             from_lpak ? string{} : StripDirPart(string_view_nt(argv[0])),
-            bytecodefb,
+            vmmeta,
             static_size,
             {},
             vtables,

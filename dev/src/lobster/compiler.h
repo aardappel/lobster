@@ -45,7 +45,7 @@ extern void RegisterBuiltin(NativeRegistry &natreg, const char *ns, const char *
 extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);
 
 extern FileLoader EnginePreInit(NativeRegistry &nfr);
-extern "C" int RunCompiledCodeMain(int argc, const char * const *argv, const uint8_t *bytecodefb,
+extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMetaData *vmmeta,
                                    size_t static_size, const lobster::fun_base_t *vtables, void *custom_pre_init,
                                    const char *aux_src_path);
 
