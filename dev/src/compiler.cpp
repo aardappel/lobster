@@ -658,6 +658,10 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                     enums.push_back(VMEnum{ e->name()->string_view(), fspan, e->flags() });
                     off += e->vals()->size();
                 }
+                vector<int> ser_ids;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->ser_ids()->size(); i++) {
+                    ser_ids.push_back(bcf->ser_ids()->Get(i));
+                }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
                     bcf->metadata_version(),
@@ -668,6 +672,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                     make_span(udts),
                     make_span(specidents),
                     make_span(enums),
+                    make_span(ser_ids),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,

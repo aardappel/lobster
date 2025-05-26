@@ -698,6 +698,12 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
             append(sd, ", ", fspan, ", ", e->flags, " },\n");
         }
         sd += "};\n\n";
+        sd += "\nstatic const int ser_ids[] = {";
+        for (auto [i, x] : enumerate(ser_ids)) {
+            if ((i & 0xF) == 0) sd += "\n ";
+            append(sd, " ", x, ",");
+        }
+        sd += "};\n\n";
     }
     if (cpp) sd += "extern \"C\" ";
     sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
@@ -722,6 +728,7 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "        make_span(udts),\n";
         sd += "        make_span(specidents),\n";
         sd += "        make_span(enums),\n";
+        sd += "        make_span(ser_ids),\n";
         sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",

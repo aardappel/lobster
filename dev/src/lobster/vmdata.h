@@ -952,6 +952,7 @@ struct VMMetaData {
     span<const VMUDT> udts;
     span<const VMSpecIdent> specidents;
     span<const VMEnum> enums;
+    span<const int> ser_ids;
 };
 
 struct VMArgs {

@@ -28553,6 +28553,17 @@ static const lobster::VMEnum enums[] = {
     { string_view("Material", 8), make_span(Material_vals1), 0 },
 };
 
+
+static const int ser_ids[] = {
+  562, 1590, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 574,};
+
 extern "C" void compiled_entry_point(VMRef vm, StackPtr sp) {
     if (vm.nfr.HashAll() != 7286824047428956706ULL) vm.BuiltinError("code compiled with mismatching builtin function library");
     fun_10000002(vm, sp);
@@ -28570,6 +28581,7 @@ int main(int argc, char *argv[]) {
         make_span(udts),
         make_span(specidents),
         make_span(enums),
+        make_span(ser_ids),
     };
     return RunCompiledCodeMain(argc, argv, &vmmeta, 122592, vtables, nullptr, "");
 }

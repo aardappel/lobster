@@ -101,10 +101,10 @@ const TypeInfo &VM::GetVarTypeInfo(int varidx) {
 }
 
 type_elem_t VM::GetSubClassFromSerID(type_elem_t super, uint32_t ser_id) {
-    auto ser_ids = bcf->ser_ids();
-    auto size = ser_ids->size();
+    auto ser_ids = meta->ser_ids;
+    auto size = ser_ids.size();
     if (ser_id >= size) return (type_elem_t)-1;
-    auto typeoff = (type_elem_t)ser_ids->Get(ser_id);
+    auto typeoff = (type_elem_t)ser_ids[ser_id];
     if (typeoff == super) return typeoff;
     auto sup = &GetTypeInfo(typeoff);
     for (;;) {
