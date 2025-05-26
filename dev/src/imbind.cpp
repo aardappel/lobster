@@ -534,16 +534,16 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             } else if (ti->enumidx >= 0) {
                 int val = v->intval();
                 int sel = 0;
-                auto &vals = *vm.bcf->enums()->Get(ti->enumidx)->vals();
+                auto &vals = vm.meta->enums[ti->enumidx].vals;
                 vector<const char *> items(vals.size());
                 int i = 0;
-                for (auto vi : vals) {
-                    items[i] = vi->name()->c_str();
-                    if (val == vi->val()) sel = i;
+                for (auto &ev : vals) {
+                    items[i] = ev.name.data();
+                    if (val == ev.val) sel = i;
                     i++;
                 }
                 ImGui::Combo(l, &sel, items.data(), (int)items.size());
-                *v = vals[sel]->val();
+                *v = vals[sel].val;
             } else {
                 iint i = v->ival();
                 if (ImGui::InputScalar(l, ImGuiDataType_S64, (void *)&i, nullptr, nullptr, "%" PRId64, 0)) *v = i;

@@ -754,18 +754,18 @@ int VM::LookupFieldByName(int stidx, string_view fname) const {
 }
 
 bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
-    auto enum_def = bcf->enums()->Get(enumidx);
-    auto &vals = *enum_def->vals();
+    auto &enum_def = meta->enums[enumidx];
+    auto &vals = enum_def.vals;
     auto lookup = [&](iint val) -> bool {
         // FIXME: can store a bool that says whether this enum is contiguous, so we just index instead.
-        for (auto v : vals)
-            if (v->val() == val) {
-                sd += v->name()->string_view();
+        for (auto &ev : vals)
+            if (ev.val == val) {
+                sd += ev.name;
                 return true;
             }
         return false;
     };
-    if (!enum_def->flags() || !enum_val) return lookup(enum_val);
+    if (!enum_def.flags || !enum_val) return lookup(enum_val);
     auto start = sd.size();
     auto upto = 64 - HighZeroBits(enum_val);
     for (int i = 0; i < upto; i++) {

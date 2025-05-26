@@ -908,6 +908,17 @@ enum {
     RUNTIME_DEBUGGER       // --runtime-debugger: Instead of a memory dump, will invoke debugger on errors.
 };
 
+struct VMEnumVal {
+    string_view name;
+    iint val;
+};
+
+struct VMEnum {
+    string_view name;
+    span<const VMEnumVal> vals;
+    bool flags;
+};
+
 struct VMSpecIdent {
     string_view name;
     int idx;
@@ -940,6 +951,7 @@ struct VMMetaData {
     span<const string_view> function_names;
     span<const VMUDT> udts;
     span<const VMSpecIdent> specidents;
+    span<const VMEnum> enums;
 };
 
 struct VMArgs {

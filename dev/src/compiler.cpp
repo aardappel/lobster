@@ -641,6 +641,23 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                         id->name()->string_view(), sid->idx(), sid->typeidx(),
                         sid->used_as_freevar(), id->readonly(), id->global() });
                 }
+                vector<VMEnum> enums;
+                vector<VMEnumVal> enumvals;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->enums()->size(); i++) {
+                    auto e = bcf->enums()->Get(i);
+                    for (flatbuffers::uoffset_t j = 0; j < e->vals()->size(); j++) {
+                        auto ev = e->vals()->Get(j);
+                        enumvals.push_back(VMEnumVal{ ev->name()->string_view(), ev->val() });
+                    }
+                }
+                off = 0;
+                for (flatbuffers::uoffset_t i = 0; i < bcf->enums()->size(); i++) {
+                    auto e = bcf->enums()->Get(i);
+                    auto fspan = make_span(enumvals.data() + off,
+                                           enumvals.data() + off + e->vals()->size());
+                    enums.push_back(VMEnum{ e->name()->string_view(), fspan, e->flags() });
+                    off += e->vals()->size();
+                }
                 VMMetaData vmmeta = {
                     (uint8_t *)metadata_buffer.data(),
                     bcf->metadata_version(),
@@ -650,6 +667,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                     make_span(function_names),
                     make_span(udts),
                     make_span(specidents),
+                    make_span(enums),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,

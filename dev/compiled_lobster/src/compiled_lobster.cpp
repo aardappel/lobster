@@ -28537,6 +28537,22 @@ static const lobster::VMSpecIdent specidents[] = {
     { string_view("i", 1), 1563, 0, 0, 0, 0 },
 };
 
+static const lobster::VMEnumVal bool_vals0[] = {
+    { string_view("false", 5), 0 },
+    { string_view("true", 4), 1 },
+};
+
+static const lobster::VMEnumVal Material_vals1[] = {
+    { string_view("DIFF", 4), 0 },
+    { string_view("SPEC", 4), 1 },
+    { string_view("REFR", 4), 2 },
+};
+
+static const lobster::VMEnum enums[] = {
+    { string_view("bool", 4), make_span(bool_vals0), 0 },
+    { string_view("Material", 8), make_span(Material_vals1), 0 },
+};
+
 extern "C" void compiled_entry_point(VMRef vm, StackPtr sp) {
     if (vm.nfr.HashAll() != 7286824047428956706ULL) vm.BuiltinError("code compiled with mismatching builtin function library");
     fun_10000002(vm, sp);
@@ -28553,6 +28569,7 @@ int main(int argc, char *argv[]) {
         make_span(function_names),
         make_span(udts),
         make_span(specidents),
+        make_span(enums),
     };
     return RunCompiledCodeMain(argc, argv, &vmmeta, 122592, vtables, nullptr, "");
 }

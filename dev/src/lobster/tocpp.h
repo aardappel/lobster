@@ -675,6 +675,29 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
                    id->constant, ", ", id->scopelevel == 1, " },\n");
         }
         sd += "};\n\n";
+        auto enumvalsname = [](Enum *e) {
+            auto n = cat(e->name, "_vals", e->idx);
+            std::replace(n.begin(), n.end(), '.', '_');
+            return n;
+        };
+        for (auto e : st.enumtable) {
+            if (e->vals.empty()) continue;
+            append(sd, "static const lobster::VMEnumVal ", enumvalsname(e), "[] = {\n");
+            for (auto [i, ev] : enumerate(e->vals)) {
+                sd += "    { ";
+                gen_string(ev->name);
+                append(sd, ", ", ev->val, " },\n");
+            }
+            sd += "};\n\n";
+        }
+        sd += "static const lobster::VMEnum enums[] = {\n";
+        for (auto e : st.enumtable) {
+            sd += "    { ";
+            gen_string(e->name);
+            auto fspan = e->vals.empty() ? "{}" : cat("make_span(", enumvalsname(e), ")");
+            append(sd, ", ", fspan, ", ", e->flags, " },\n");
+        }
+        sd += "};\n\n";
     }
     if (cpp) sd += "extern \"C\" ";
     sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
@@ -698,6 +721,7 @@ void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view cust
         sd += "        make_span(function_names),\n";
         sd += "        make_span(udts),\n";
         sd += "        make_span(specidents),\n";
+        sd += "        make_span(enums),\n";
         sd += "    };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
         append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",
