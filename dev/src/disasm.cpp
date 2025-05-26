@@ -18,6 +18,25 @@
 
 namespace lobster {
 
+string IdName(const metadata::MetadataFile *bcf, int i, const type_elem_t *typetable, bool is_whole_struct) {
+    auto idx = bcf->specidents()->Get(i)->ididx();
+    auto basename = bcf->idents()->Get(idx)->name()->
+    #ifdef __ANDROID__
+        str();
+    #else
+        string_view();
+    #endif
+    auto ti = (TypeInfo *)(typetable + bcf->specidents()->Get(i)->typeidx());
+    if (is_whole_struct || !IsStruct(ti->t)) {
+        return string(basename);
+    } else {
+        int j = i;
+        // FIXME: this theoretically can span 2 specializations of the same var.
+        while (j && bcf->specidents()->Get(j - 1)->ididx() == idx) j--;
+        return cat(basename, "+", i - j);
+    }
+}
+
 const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip, const int *code,
                      const type_elem_t *typetable, const metadata::MetadataFile *bcf,
                      int line, VM &vm) {

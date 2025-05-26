@@ -16,10 +16,22 @@ namespace lobster {
 
 string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
                       string_view custom_pre_init_name, string_view aux_src_name) {
-    auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
-    if (!FLATBUFFERS_LITTLEENDIAN) return "native code gen requires little endian";
+
+    auto IdName = [&](int i, bool is_whole_struct) {
+        auto idx = sids[i].ididx();
+        auto &basename = st.identtable[idx]->name;
+        auto ti = (TypeInfo *)(&type_table[sids[i].typeidx()]);
+        if (is_whole_struct || !IsStruct(ti->t)) {
+            return basename;
+        } else {
+            int j = i;
+            // FIXME: this theoretically can span 2 specializations of the same var.
+            while (j && sids[j - 1].ididx() == idx) j--;
+            return cat(basename, "+", i - j);
+        }
+    };
+
     auto typetable = type_table.data();
-    auto specidents = bcf->specidents();
 
     if (cpp) {
         sd +=
@@ -126,7 +138,7 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
     }
 
     vector<int> var_to_local;
-    var_to_local.resize(specidents->size(), -1);
+    var_to_local.resize(sids.size(), -1);
 
     const int *ip = code.data();
     // Skip past 1st jump.
@@ -192,14 +204,14 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
                 funstartend = fip;
                 #ifndef NDEBUG
                     var_to_local.clear();
-                    var_to_local.resize(specidents->size(), -1);
+                    var_to_local.resize(sids.size(), -1);
                 #endif
                 for (int j = 0; j < 2; j++) {
                     auto vars = j ? defs : nargs;
                     auto len = j ? ndefsave : nargs_fun;
                     for (int i = 0; i < len; i++) {
                         auto varidx = vars[i];
-                        if (!specidents->Get(varidx)->used_as_freevar()) {
+                        if (!sids[varidx].used_as_freevar()) {
                             var_to_local[varidx] = numlocals++;
                         }
                     }
@@ -221,7 +233,7 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
                 auto nargs_fun = *fip++;
                 for (int i = 0; i < nargs_fun; i++) {
                     auto varidx = fip[i];
-                    if (specidents->Get(varidx)->used_as_freevar()) {
+                    if (sids[varidx].used_as_freevar()) {
                         append(sd, "    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i, ");\n");
                     } else {
                         append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i, ");\n");
@@ -233,7 +245,7 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
                     // for most locals, this just saves an nil, only in recursive cases it has an actual
                     // value.
                     auto varidx = *fip++;
-                    if (specidents->Get(varidx)->used_as_freevar()) {
+                    if (sids[varidx].used_as_freevar()) {
                         append(sd, "    BackupVar(vm, ", varidx, ");\n");
                     } else {
                         // FIXME: it should even be unnecessary to initialize them, but its possible
@@ -275,17 +287,17 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
         switch (opc) {
             case IL_PUSHVARL:
                 append(sd, "regs[", regso, "] = locals[", var_to_local[args[0]], "];");
-                comment(IdName(bcf, args[0], typetable, false));
+                comment(IdName(args[0], false));
                 break;
             case IL_PUSHVARVL:
                 for (int i = 0; i < args[1]; i++) {
                     append(sd, "regs[", regso + i, "] = locals[", var_to_local[args[0] + i], "];");
                 }
-                comment(IdName(bcf, args[0], typetable, true));
+                comment(IdName(args[0], true));
                 break;
             case IL_LVAL_VARL:
                 append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
-                comment(IdName(bcf, args[0], typetable, false));
+                comment(IdName(args[0], false));
                 break;
             case IL_JUMP:
                 append(sd, "goto block", args[0], ";");
@@ -383,7 +395,7 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
                 auto ownedvars = *fip++;
                 for (int i = 0; i < ownedvars; i++) {
                     auto varidx = *fip++;
-                    if (specidents->Get(varidx)->used_as_freevar()) {
+                    if (sids[varidx].used_as_freevar()) {
                         append(sd, "\n    DecOwned(vm, ", varidx, ");");
                     } else {
                         append(sd, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
@@ -391,7 +403,7 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
                 }
                 while (nargs--) {
                     auto varidx = *--freevars;
-                    if (specidents->Get(varidx)->used_as_freevar()) {
+                    if (sids[varidx].used_as_freevar()) {
                         append(sd, "\n    psp = PopArg(vm, ", varidx, ", psp);");
                     } else {
                         // TODO: move to when we obtain the arg?
@@ -409,7 +421,7 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
                 sdt.clear();  // FIXME: remove
                 for (int i = ndef - 1; i >= 0; i--) {
                     auto varidx = defvars[i];
-                    if (specidents->Get(varidx)->used_as_freevar()) {
+                    if (sids[varidx].used_as_freevar()) {
                         append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
                     }
                 }
@@ -459,7 +471,7 @@ string CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_b
                     case IL_PUSHVARF:
                     case IL_PUSHVARVF:
                     case IL_LVAL_VARF:
-                        comment(IdName(bcf, args[0], typetable, false));
+                        comment(IdName(args[0], false));
                         break;
                     case IL_PUSHSTR: {
                         auto sv = stringtable[args[0]];
