@@ -41,73 +41,19 @@ struct CodeGen  {
     const SubFunction *cursf = nullptr;
     bool cpp = false;
 
+
     // Transitional vector to move codegen from tocpp over here..
-    void ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
-                 string_view custom_pre_init_name, string_view aux_src_name);
+    vector<string> temp_codegen;
     ILOP last_op_started = IL_ABORT;
     size_t last_op_start = (size_t)-1;
-    vector<string> temp_codegen;
     string sp;
-    void EmitCForPrev() {
-        if (last_op_start == (size_t)-1) return;
-        if (temp_codegen.size() <= last_op_start) temp_codegen.resize(last_op_start + 1);
-        const int *ip = code.data() + last_op_start;
-        int opc = *ip++;
-        const int *args = ip + 1;
-        int regso = -1;
-        /* auto arity = */ParseOpAndGetArity(opc, ip, regso);
-        // We could store the value of ip here, to verify it is the same as next instr start.
-        string sd;
-        auto comment = [&](string_view c) { append(sd, " // ", c); };
-        sp = cat("regs + ", regso);
-        switch (opc) {
-            case IL_BCALLRETV:
-            case IL_BCALLRET0:
-            case IL_BCALLRET1:
-            case IL_BCALLRET2:
-            case IL_BCALLRET3:
-            case IL_BCALLRET4:
-            case IL_BCALLRET5:
-            case IL_BCALLRET6:
-            case IL_BCALLRET7:
-                if (parser.natreg.nfuns[args[0]]->IsGLFrame()) {
-                    append(sd, "GLFrame(", sp, ", vm);");
-                } else {
-                    append(sd, "U_", ILNames()[opc], "(vm, ", sp, ", ", args[0], ", ", args[1], ");");
-                    comment(parser.natreg.nfuns[args[0]]->name);
-                }
-                break;
-            case IL_GOTOFUNEXIT:
-                append(sd, "goto epilogue;");
-                break;
-            case IL_KEEPREFLOOP:
-                append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
-                [[fallthrough]];
-            case IL_KEEPREF:
-                append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
-                break;
-            case IL_PUSHFUN:
-                append(sd, "U_PUSHFUN(vm, ", sp, ", 0, ", "fun_", args[0], ");");
-                break;
-            case IL_CALL: {
-                append(sd, "fun_", args[0], "(vm, ", sp, ");");
-                auto sf_idx = args[0];
-                comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
-                break;
-            }
-            case IL_CALLV:
-                append(sd, "U_CALLV(vm, ", sp, "); ");
-                if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 1, ");");
-                else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 1, ");");
-                break;
-            case IL_DDCALL:
-                append(sd, "U_DDCALL(vm, ", sp, ", ", args[0], ", ", args[1], "); ");
-                if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
-                else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
-                break;
-        }
-        temp_codegen[last_op_start] = std::move(sd);
-    }
+    vector<int> funstarttables;
+    int starting_point = -1;
+    void EmitCForPrev();
+    string IdName(int i, bool is_whole_struct);
+    void Prologue(string &sd);
+    void ToCPP(string &sd);
+    void Epilogue(string &sd, string_view metadata_buffer, string_view custom_pre_init_name);
 
     int Pos() { return (int)code.size(); }
 
@@ -348,6 +294,8 @@ struct CodeGen  {
             }
         }
 
+        Prologue(c_codegen);
+
         // Start of the actual bytecode.
         linenumbernodes.push_back(parser.root);
         EmitOp(IL_JUMP);
@@ -400,10 +348,12 @@ struct CodeGen  {
                 }
             }
         }
+
         st.Serialize(type_table, lineinfo, sids, stringtable, metadata_buffer,
                      filenames, ser_ids, src_hash);
-        ToCPP(parser.natreg, c_codegen, metadata_buffer, custom_pre_init_name,
-                         !cpp ? "main.lobster" : "");
+
+        ToCPP(c_codegen);
+        Epilogue(c_codegen, metadata_buffer, custom_pre_init_name);
     }
 
     ~CodeGen() {

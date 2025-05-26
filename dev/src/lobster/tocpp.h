@@ -14,25 +14,82 @@
 
 namespace lobster {
 
-void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer,
-                      string_view custom_pre_init_name, string_view aux_src_name) {
-
-    auto IdName = [&](int i, bool is_whole_struct) {
-        auto idx = sids[i].ididx();
-        auto &basename = st.identtable[idx]->name;
-        auto ti = (TypeInfo *)(&type_table[sids[i].typeidx()]);
-        if (is_whole_struct || !IsStruct(ti->t)) {
-            return basename;
-        } else {
-            int j = i;
-            // FIXME: this theoretically can span 2 specializations of the same var.
-            while (j && sids[j - 1].ididx() == idx) j--;
-            return cat(basename, "+", i - j);
+void CodeGen::EmitCForPrev() {
+    if (last_op_start == (size_t)-1) return;
+    if (temp_codegen.size() <= last_op_start) temp_codegen.resize(last_op_start + 1);
+    const int *ip = code.data() + last_op_start;
+    int opc = *ip++;
+    const int *args = ip + 1;
+    int regso = -1;
+    /* auto arity = */ParseOpAndGetArity(opc, ip, regso);
+    // We could store the value of ip here, to verify it is the same as next instr start.
+    string sd;
+    auto comment = [&](string_view c) { append(sd, " // ", c); };
+    sp = cat("regs + ", regso);
+    switch (opc) {
+        case IL_BCALLRETV:
+        case IL_BCALLRET0:
+        case IL_BCALLRET1:
+        case IL_BCALLRET2:
+        case IL_BCALLRET3:
+        case IL_BCALLRET4:
+        case IL_BCALLRET5:
+        case IL_BCALLRET6:
+        case IL_BCALLRET7:
+            if (parser.natreg.nfuns[args[0]]->IsGLFrame()) {
+                append(sd, "GLFrame(", sp, ", vm);");
+            } else {
+                append(sd, "U_", ILNames()[opc], "(vm, ", sp, ", ", args[0], ", ", args[1], ");");
+                comment(parser.natreg.nfuns[args[0]]->name);
+            }
+            break;
+        case IL_GOTOFUNEXIT:
+            append(sd, "goto epilogue;");
+            break;
+        case IL_KEEPREFLOOP:
+            append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
+            [[fallthrough]];
+        case IL_KEEPREF:
+            append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
+            break;
+        case IL_PUSHFUN:
+            append(sd, "U_PUSHFUN(vm, ", sp, ", 0, ", "fun_", args[0], ");");
+            break;
+        case IL_CALL: {
+            append(sd, "fun_", args[0], "(vm, ", sp, ");");
+            auto sf_idx = args[0];
+            comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
+            break;
         }
-    };
+        case IL_CALLV:
+            append(sd, "U_CALLV(vm, ", sp, "); ");
+            if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 1, ");");
+            else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 1, ");");
+            break;
+        case IL_DDCALL:
+            append(sd, "U_DDCALL(vm, ", sp, ", ", args[0], ", ", args[1], "); ");
+            if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
+            else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
+            break;
+    }
+    temp_codegen[last_op_start] = std::move(sd);
+}
 
-    auto typetable = type_table.data();
+string CodeGen::IdName(int i, bool is_whole_struct) {
+    auto idx = sids[i].ididx();
+    auto &basename = st.identtable[idx]->name;
+    auto ti = (TypeInfo *)(&type_table[sids[i].typeidx()]);
+    if (is_whole_struct || !IsStruct(ti->t)) {
+        return basename;
+    } else {
+        int j = i;
+        // FIXME: this theoretically can span 2 specializations of the same var.
+        while (j && sids[j - 1].ididx() == idx) j--;
+        return cat(basename, "+", i - j);
+    }
+};
 
+void CodeGen::Prologue(string &sd) {
     if (cpp) {
         sd +=
             "#include \"lobster/stdafx.h\"\n"
@@ -136,7 +193,9 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
     if (runtime_checks >= RUNTIME_STACK_TRACE) {
         append(sd, "extern const int funinfo_table[];\n\n");
     }
+}
 
+void CodeGen::ToCPP(string &sd) {
     vector<int> var_to_local;
     var_to_local.resize(sids.size(), -1);
 
@@ -145,7 +204,6 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
     assert(*ip == IL_JUMP);
     ip += 2;
     auto starting_ip = code.data() + *ip++;
-    int starting_point = -1;
     while (ip < code.data() + code.size()) {
         int id = (int)(ip - code.data());
         if (*ip == IL_FUNSTART || ip == starting_ip) {
@@ -162,7 +220,6 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
     }
     sd += "\n";
     vector<const int *> jumptables;
-    vector<int> funstarttables;
     ip = code.data() + 3;  // Past first IL_JUMP.
     const int *funstart = nullptr;
     int nkeepvars = 0;
@@ -183,9 +240,8 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
             has_profile = false;
             sd += "\n";
             auto sf_idx = is_start ? 8888888 : *funstart;
-            auto name = sf_idx < 8888888
-                    ? st.subfunctiontable[sf_idx]->parent->name
-                    : string_view{};
+            auto name =
+                sf_idx < 8888888 ? st.subfunctiontable[sf_idx]->parent->name : string_view{};
             append(sd, "// ", name, "\n");
             append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
             const int *funstartend = nullptr;
@@ -203,8 +259,8 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
                 nkeepvars = *fip++;
                 funstartend = fip;
                 #ifndef NDEBUG
-                    var_to_local.clear();
-                    var_to_local.resize(sids.size(), -1);
+                var_to_local.clear();
+                var_to_local.resize(sids.size(), -1);
                 #endif
                 for (int j = 0; j < 2; j++) {
                     auto vars = j ? defs : nargs;
@@ -236,14 +292,15 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
                     if (sids[varidx].used_as_freevar()) {
                         append(sd, "    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i, ");\n");
                     } else {
-                        append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i, ");\n");
+                        append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ",
+                               nargs_fun - i, ");\n");
                     }
                 }
                 fip += nargs_fun;
                 int ndefsave = *fip++;
                 for (int i = 0; i < ndefsave; i++) {
-                    // for most locals, this just saves an nil, only in recursive cases it has an actual
-                    // value.
+                    // for most locals, this just saves an nil, only in recursive cases it has an
+                    // actual value.
                     auto varidx = *fip++;
                     if (sids[varidx].used_as_freevar()) {
                         append(sd, "    BackupVar(vm, ", varidx, ");\n");
@@ -252,14 +309,15 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
                         // there is a return before they're fully initialized, and then the decr of
                         // owned vars may cause these to be accessed.
                         if (cpp)
-                            append(sd, "    locals[", var_to_local[varidx], "] = lobster::NilVal();\n");  // FIXME ns
+                            append(sd, "    locals[", var_to_local[varidx],
+                                   "] = lobster::NilVal();\n");  // FIXME ns
                         else
                             append(sd, "    NilVal(&locals[", var_to_local[varidx], "]);\n");
                     }
                 }
                 if (runtime_checks >= RUNTIME_STACK_TRACE) {
-                    // FIXME: can make this just and index and instead store funinfo_table ref in VM.
-                    // Calling this here because now locals have been fully initialized.
+                    // FIXME: can make this just and index and instead store funinfo_table ref in
+                    // VM. Calling this here because now locals have been fully initialized.
                     append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
                            numlocals ? "locals" : "0", ");\n");
                     // TODO: this doesn't need to correspond to to funstart, can stick any info we
@@ -268,8 +326,10 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
                 }
                 nkeepvars = *fip++;
                 for (int i = 0; i < nkeepvars; i++) {
-                    if (cpp) append(sd, "    keepvar[", i, "] = lobster::NilVal();\n");  // FIXME ns
-                    else append(sd, "    NilVal(&keepvar[", i, "]);\n");
+                    if (cpp)
+                        append(sd, "    keepvar[", i, "] = lobster::NilVal();\n");  // FIXME ns
+                    else
+                        append(sd, "    NilVal(&keepvar[", i, "]);\n");
                 }
             }
         }
@@ -327,10 +387,10 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
             case IL_JUMP_TABLE_DISPATCH:
                 if (cpp) {
                     append(sd, "switch (GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
-                               ")) {");
+                           ")) {");
                 } else {
                     append(sd, "{ int top = GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
-                               "); switch (top) {");
+                           "); switch (top) {");
                 }
                 jumptables.push_back(args + 1);
                 break;
@@ -353,8 +413,10 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
                 break;
             }
             case IL_JUMP_TABLE_END: {
-                if (cpp) sd += "} // switch";
-                else sd += "}} // switch";
+                if (cpp)
+                    sd += "} // switch";
+                else
+                    sd += "}} // switch";
                 jumptables.pop_back();
                 break;
             }
@@ -411,8 +473,10 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
                     }
                 }
                 if (opc == IL_RETURNANY) {
-                    append(sd, "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
-                                          "Push(psp, regs[i + ", regso - nrets, "]); }");
+                    append(sd,
+                           "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
+                           "Push(psp, regs[i + ",
+                           regso - nrets, "]); }");
                 } else {
                     for (int i = 0; i < nrets; i++) {
                         append(sd, "\n    Push(psp, regs[", i + regso - nrets, "]);");
@@ -442,7 +506,7 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
             case IL_PUSHFUN:
                 assert(false);
                 break;
-            case IL_CALL: 
+            case IL_CALL:
                 assert(false);
                 break;
             case IL_CALLV:
@@ -454,8 +518,9 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
             case IL_PROFILE: {
                 string name;
                 EscapeAndQuote(stringtable[args[0]], name);
-                append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
-                       ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ", cpp ? "lobster::" : "" , "StartProfile(&tsld);");
+                append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ",
+                       name, ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
+                       cpp ? "lobster::" : "", "StartProfile(&tsld);");
                 has_profile = true;
                 break;
             }
@@ -484,9 +549,8 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
                     case IL_ISTYPE:
                     case IL_NEWOBJECT:
                     case IL_ST2S:
-                        auto ti = ((TypeInfo *)(typetable + args[0]));
-                        if (IsUDT(ti->t))
-                            comment(st.udttable[ti->structidx]->name);
+                        auto ti = ((TypeInfo *)(&type_table[args[0]]));
+                        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
                         break;
                 }
                 break;
@@ -509,7 +573,9 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
             sd += "}\n";
         }
     }
+}
 
+void CodeGen::Epilogue(string &sd, string_view metadata_buffer, string_view custom_pre_init_name) {
     if (cpp) sd += "\nstatic";
     else sd += "\nextern";
     sd += " const fun_base_t vtables[] = {\n";
@@ -565,7 +631,7 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
     if (cpp) sd += "extern \"C\" ";
     sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
     if (cpp) {
-        append(sd, "    if (vm.nfr.HashAll() != ", natreg.HashAll(),
+        append(sd, "    if (vm.nfr.HashAll() != ", parser.natreg.HashAll(),
                "ULL) vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
     } else {
         sd += "    Entry(sizeof(Value));\n";
@@ -577,8 +643,8 @@ void CodeGen::ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buf
         if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
         sd += "    lobster::VMMetaData vmmeta = { (uint8_t *)bytecodefb, gsl::make_span(function_names) };\n";
         sd += "    return RunCompiledCodeMain(argc, argv, ";
-        append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ",
-               custom_pre_init_name, ", \"", aux_src_name, "\");\n}\n");
+        append(sd, "&vmmeta, ", metadata_buffer.size(), ", vtables, ", custom_pre_init_name, ", \"",
+               (!cpp ? "main.lobster" : ""), "\");\n}\n");
     }
 }
 
