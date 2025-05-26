@@ -76,8 +76,6 @@ table MetadataFile {
 
     enums:[Enum];
 
-    vtables:[int];
-
     ser_ids:[int];
 
     build_info:string;

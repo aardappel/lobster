@@ -31,6 +31,8 @@
 #include "lobster/optimizer.h"
 #include "lobster/tonative.h"
 #include "lobster/codegen.h"
+#include "lobster/disasm.h"
+#include "lobster/tocpp.h"
 
 SlabAlloc *g_current_slaballoc = nullptr;
 
@@ -576,11 +578,11 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value, runtime_checks);
     auto src_hash = lex.HashAll();
-    st.Serialize(cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, metadata_buffer, cg.vtables,
+    st.Serialize(cg.type_table, cg.lineinfo, cg.sids, cg.stringtable, metadata_buffer,
                  filenames, cg.ser_ids, src_hash);
     auto err = ToCPP(nfr, c_codegen, metadata_buffer, !jit_mode, runtime_checks,
                      custom_pre_init_name,
-                     jit_mode ? "main.lobster" : "", cg.code, cg.temp_codegen);
+                     jit_mode ? "main.lobster" : "", cg.code, cg.temp_codegen, cg, st);
     if (!err.empty()) THROW_OR_ABORT(err);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,

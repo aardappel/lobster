@@ -85,7 +85,6 @@ else()
     src/main.cpp
     src/platform.cpp
     src/stdafx.cpp
-    src/tocpp.cpp
     src/vm.cpp
     src/vmdata.cpp
     src/tccbind.cpp

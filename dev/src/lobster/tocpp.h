@@ -12,52 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "lobster/stdafx.h"
-#include "lobster/il.h"
-#include "lobster/disasm.h"  // Some shared bytecode utilities.
-#include "lobster/compiler.h"
-#include "lobster/tonative.h"
-
 namespace lobster {
-
-inline void Escape(std::string &sd, string_view in) {
-    const char *s = in.data();
-    auto length = in.size();
-    sd += "\"";
-    for (size_t i = 0; i < length; i++) {
-        char c = s[i];
-        switch (c) {
-            case '\n': sd += "\\n"; break;
-            case '\t': sd += "\\t"; break;
-            case '\r': sd += "\\r"; break;
-            case '\b': sd += "\\b"; break;
-            case '\f': sd += "\\f"; break;
-            case '\"': sd += "\\\""; break;
-            case '\'': sd += "\\\'"; break;
-            case '\\': sd += "\\\\"; break;
-            case 0: sd += "\\0"; break;
-            default:
-                if (c >= ' ' && c <= '~') {
-                    sd += c;
-                } else {
-                    // TODO: output unicode?
-                    sd += "\\x";
-                    to_string_hex(sd, c);
-                }
-            break;
-        }
-    }
-    sd += "\"";
-}
-
 
 string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bool cpp,
              int runtime_checks, string_view custom_pre_init_name, string_view aux_src_name,
-             const vector<int> &raw_bytecode, vector<string> &temp_codegen) {
+             const vector<int> &raw_bytecode, vector<string> &temp_codegen, CodeGen &cg, SymbolTable &st) {
     auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
     if (!FLATBUFFERS_LITTLEENDIAN) return "native code gen requires little endian";
-    auto code = raw_bytecode.data();  // Assumes we're on a little-endian machine.
-    auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
+    auto code = raw_bytecode.data();
+    auto typetable = cg.type_table.data();
     auto specidents = bcf->specidents();
 
     if (cpp) {
@@ -212,9 +175,8 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
             sd += "\n";
             auto sf_idx = is_start ? 8888888 : *funstart;
             auto name = sf_idx < 8888888
-                    ? bcf->functions()->Get(
-                          bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view()
-                            : string_view{};
+                    ? st.subfunctiontable[sf_idx]->parent->name
+                    : string_view{};
             append(sd, "// ", name, "\n");
             append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
             const int *funstartend = nullptr;
@@ -479,7 +441,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
             case IL_CALL: {
                 append(sd, "fun_", args[0], "(vm, ", sp, ");");
                 auto sf_idx = args[0];
-                comment("call: " + bcf->functions()->Get(bcf->subfunctions_to_function()->Get(sf_idx))->name()->string_view());
+                comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
                 break;
             }
             case IL_CALLV:
@@ -494,7 +456,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
                 break;
             case IL_PROFILE: {
                 string name;
-                EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), name);
+                EscapeAndQuote(cg.stringtable[args[0]], name);
                 append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
                        ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ", cpp ? "lobster::" : "" , "StartProfile(&tsld);");
                 has_profile = true;
@@ -515,7 +477,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
                         comment(IdName(bcf, args[0], typetable, false));
                         break;
                     case IL_PUSHSTR: {
-                        auto sv = bcf->stringtable()->Get(args[0])->string_view();
+                        auto sv = cg.stringtable[args[0]];
                         sv = sv.substr(0, 50);
                         string q;
                         EscapeAndQuote(sv, q);
@@ -527,7 +489,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
                     case IL_ST2S:
                         auto ti = ((TypeInfo *)(typetable + args[0]));
                         if (IsUDT(ti->t))
-                            comment(bcf->udts()->Get(ti->structidx)->name()->string_view());
+                            comment(st.udttable[ti->structidx]->name);
                         break;
                 }
                 break;
@@ -554,7 +516,7 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
     if (cpp) sd += "\nstatic";
     else sd += "\nextern";
     sd += " const fun_base_t vtables[] = {\n";
-    for (auto id : *bcf->vtables()) {
+    for (auto id : cg.vtables) {
         sd += "    ";
         if (id >= 0) {
             auto funstart = code + id;
@@ -596,10 +558,9 @@ string ToCPP(NativeRegistry &natreg, string &sd, string_view metadata_buffer, bo
         }
         sd += "\n};\n\n";
         sd += "static const string_view function_names[] = {\n";
-        for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
-            auto sv = bcf->functions()->Get(i)->name()->string_view();
+        for (auto f : st.functiontable) {
             sd += "    ";
-            Escape(sd, sv);
+            EscapeAndQuote(f->name, sd);
             sd += ",\n";
         }
         sd += "};\n\n";

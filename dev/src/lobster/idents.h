@@ -1333,7 +1333,6 @@ struct SymbolTable {
                    vector<metadata::SpecIdent> &sids,
                    vector<string_view> &stringtable,
                    string &bytecode,
-                   vector<int> &vtables,
                    vector<pair<string, string>> &filenames,
                    vector<type_elem_t> &ser_ids,
                    uint64_t src_hash) {
@@ -1374,7 +1373,6 @@ struct SymbolTable {
             fbb.CreateVector(identoffsets),
             fbb.CreateVectorOfStructs(sids),
             fbb.CreateVector(enumoffsets),
-            fbb.CreateVector(vtables),
             fbb.CreateVector((vector<int> &)ser_ids),
             fbb.CreateString(build_info.c_str(), build_info.size()),
             src_hash,

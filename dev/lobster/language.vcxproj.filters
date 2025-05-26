@@ -65,9 +65,6 @@
     <ClCompile Include="..\src\disasm.cpp">
       <Filter>dvm</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\tocpp.cpp">
-      <Filter>tonative</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\libtcc\libtcc.c">
       <Filter>tonative\libtcc</Filter>
     </ClCompile>
@@ -194,9 +191,6 @@
     <ClInclude Include="..\include\flatbuffers\util.h">
       <Filter>compiler\builtins\flatbuffers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\lobster\tonative.h">
-      <Filter>tonative</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\lobster\wasm_binary_writer.h">
       <Filter>tonative</Filter>
     </ClInclude>
@@ -235,6 +229,12 @@
     </ClInclude>
     <ClInclude Include="..\src\lobster\stack_vector.h">
       <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\tonative.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\tocpp.h">
+      <Filter>compiler</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

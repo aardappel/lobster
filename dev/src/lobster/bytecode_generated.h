@@ -558,11 +558,10 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_IDENTS = 18,
     VT_SPECIDENTS = 20,
     VT_ENUMS = 22,
-    VT_VTABLES = 24,
-    VT_SER_IDS = 26,
-    VT_BUILD_INFO = 28,
-    VT_SRC_HASH = 30,
-    VT_SUBFUNCTIONS_TO_FUNCTION = 32
+    VT_SER_IDS = 24,
+    VT_BUILD_INFO = 26,
+    VT_SRC_HASH = 28,
+    VT_SUBFUNCTIONS_TO_FUNCTION = 30
   };
   int32_t metadata_version() const {
     return GetField<int32_t>(VT_METADATA_VERSION, 0);
@@ -593,9 +592,6 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   }
   const ::flatbuffers::Vector<::flatbuffers::Offset<metadata::Enum>> *enums() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<metadata::Enum>> *>(VT_ENUMS);
-  }
-  const ::flatbuffers::Vector<int32_t> *vtables() const {
-    return GetPointer<const ::flatbuffers::Vector<int32_t> *>(VT_VTABLES);
   }
   const ::flatbuffers::Vector<int32_t> *ser_ids() const {
     return GetPointer<const ::flatbuffers::Vector<int32_t> *>(VT_SER_IDS);
@@ -636,8 +632,6 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyOffset(verifier, VT_ENUMS) &&
            verifier.VerifyVector(enums()) &&
            verifier.VerifyVectorOfTables(enums()) &&
-           VerifyOffset(verifier, VT_VTABLES) &&
-           verifier.VerifyVector(vtables()) &&
            VerifyOffset(verifier, VT_SER_IDS) &&
            verifier.VerifyVector(ser_ids()) &&
            VerifyOffset(verifier, VT_BUILD_INFO) &&
@@ -683,9 +677,6 @@ struct MetadataFileBuilder {
   void add_enums(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<metadata::Enum>>> enums) {
     fbb_.AddOffset(MetadataFile::VT_ENUMS, enums);
   }
-  void add_vtables(::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> vtables) {
-    fbb_.AddOffset(MetadataFile::VT_VTABLES, vtables);
-  }
   void add_ser_ids(::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> ser_ids) {
     fbb_.AddOffset(MetadataFile::VT_SER_IDS, ser_ids);
   }
@@ -721,7 +712,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFile(
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<metadata::Ident>>> idents = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<const metadata::SpecIdent *>> specidents = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<metadata::Enum>>> enums = 0,
-    ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> vtables = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> ser_ids = 0,
     ::flatbuffers::Offset<::flatbuffers::String> build_info = 0,
     uint64_t src_hash = 0,
@@ -731,7 +721,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFile(
   builder_.add_subfunctions_to_function(subfunctions_to_function);
   builder_.add_build_info(build_info);
   builder_.add_ser_ids(ser_ids);
-  builder_.add_vtables(vtables);
   builder_.add_enums(enums);
   builder_.add_specidents(specidents);
   builder_.add_idents(idents);
@@ -757,7 +746,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
     const std::vector<::flatbuffers::Offset<metadata::Ident>> *idents = nullptr,
     const std::vector<metadata::SpecIdent> *specidents = nullptr,
     const std::vector<::flatbuffers::Offset<metadata::Enum>> *enums = nullptr,
-    const std::vector<int32_t> *vtables = nullptr,
     const std::vector<int32_t> *ser_ids = nullptr,
     const char *build_info = nullptr,
     uint64_t src_hash = 0,
@@ -771,7 +759,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
   auto idents__ = idents ? _fbb.CreateVector<::flatbuffers::Offset<metadata::Ident>>(*idents) : 0;
   auto specidents__ = specidents ? _fbb.CreateVectorOfStructs<metadata::SpecIdent>(*specidents) : 0;
   auto enums__ = enums ? _fbb.CreateVector<::flatbuffers::Offset<metadata::Enum>>(*enums) : 0;
-  auto vtables__ = vtables ? _fbb.CreateVector<int32_t>(*vtables) : 0;
   auto ser_ids__ = ser_ids ? _fbb.CreateVector<int32_t>(*ser_ids) : 0;
   auto build_info__ = build_info ? _fbb.CreateString(build_info) : 0;
   auto subfunctions_to_function__ = subfunctions_to_function ? _fbb.CreateVector<int32_t>(*subfunctions_to_function) : 0;
@@ -787,7 +774,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
       idents__,
       specidents__,
       enums__,
-      vtables__,
       ser_ids__,
       build_info__,
       src_hash,
