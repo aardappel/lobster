@@ -14,81 +14,6 @@
 
 namespace lobster {
 
-void CodeGen::EmitCForPrev() {
-    if (last_op_start == (size_t)-1) return;
-    if (temp_codegen.size() <= last_op_start) temp_codegen.resize(last_op_start + 1);
-    const int *ip = code.data() + last_op_start;
-    int opc = *ip++;
-    const int *args = ip + 1;
-    int regso = *ip;
-    /* auto arity = */ParseOpAndGetArity(opc, ip);
-    // We could store the value of ip here, to verify it is the same as next instr start.
-    string sd;
-    auto comment = [&](string_view c) { append(sd, " // ", c); };
-    sp = cat("regs + ", regso);
-    switch (opc) {
-        case IL_BCALLRETV:
-        case IL_BCALLRET0:
-        case IL_BCALLRET1:
-        case IL_BCALLRET2:
-        case IL_BCALLRET3:
-        case IL_BCALLRET4:
-        case IL_BCALLRET5:
-        case IL_BCALLRET6:
-        case IL_BCALLRET7:
-            if (parser.natreg.nfuns[args[0]]->IsGLFrame()) {
-                append(sd, "GLFrame(", sp, ", vm);");
-            } else {
-                append(sd, "U_", ILNames()[opc], "(vm, ", sp, ", ", args[0], ", ", args[1], ");");
-                comment(parser.natreg.nfuns[args[0]]->name);
-            }
-            break;
-        case IL_GOTOFUNEXIT:
-            append(sd, "goto epilogue;");
-            break;
-        case IL_KEEPREFLOOP:
-            append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
-            [[fallthrough]];
-        case IL_KEEPREF:
-            append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
-            break;
-        case IL_PUSHFUN:
-            append(sd, "U_PUSHFUN(vm, ", sp, ", 0, ", "fun_", args[0], ");");
-            break;
-        case IL_CALL: {
-            append(sd, "fun_", args[0], "(vm, ", sp, ");");
-            auto sf_idx = args[0];
-            comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
-            break;
-        }
-        case IL_CALLV:
-            append(sd, "U_CALLV(vm, ", sp, "); ");
-            if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 1, ");");
-            else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 1, ");");
-            break;
-        case IL_DDCALL:
-            append(sd, "U_DDCALL(vm, ", sp, ", ", args[0], ", ", args[1], "); ");
-            if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
-            else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
-            break;
-    }
-    temp_codegen[last_op_start] = std::move(sd);
-}
-
-string CodeGen::IdName(int i, bool is_whole_struct) {
-    auto idx = sids[i].ididx();
-    auto &basename = st.identtable[idx]->name;
-    auto ti = (TypeInfo *)(&type_table[sids[i].typeidx()]);
-    if (is_whole_struct || !IsStruct(ti->t)) {
-        return basename;
-    } else {
-        int j = i;
-        // FIXME: this theoretically can span 2 specializations of the same var.
-        while (j && sids[j - 1].ididx() == idx) j--;
-        return cat(basename, "+", i - j);
-    }
-};
-
 void CodeGen::Prologue(string &sd) {
     if (cpp) {
         sd +=
@@ -287,6 +212,81 @@ const int *CodeGen::DefineFunctionStart(string &sd) {
             append(sd, "    NilVal(&keepvar[", i, "]);\n");
     }
     return ip;
+}
+
+string CodeGen::IdName(int i, bool is_whole_struct) {
+    auto ididx = sids[i].ididx();
+    auto idx = sids[i].idx();
+    auto &basename = st.identtable[ididx]->name;
+    auto ti = (TypeInfo *)(&type_table[sids[i].typeidx()]);
+    if (is_whole_struct || !IsStruct(ti->t)) {
+        return basename;
+    } else {
+        int j = i;
+        while (j && sids[j - 1].idx() == idx) j--;
+        return cat(basename, "+", i - j);
+    }
+};
+
+void CodeGen::EmitCForPrev() {
+    if (last_op_start == (size_t)-1) return;
+    if (temp_codegen.size() <= last_op_start) temp_codegen.resize(last_op_start + 1);
+    const int *ip = code.data() + last_op_start;
+    int opc = *ip++;
+    const int *args = ip + 1;
+    int regso = *ip;
+    /* auto arity = */ParseOpAndGetArity(opc, ip);
+    // We could store the value of ip here, to verify it is the same as next instr start.
+    string sd;
+    auto comment = [&](string_view c) { append(sd, " // ", c); };
+    sp = cat("regs + ", regso);
+    switch (opc) {
+        case IL_BCALLRETV:
+        case IL_BCALLRET0:
+        case IL_BCALLRET1:
+        case IL_BCALLRET2:
+        case IL_BCALLRET3:
+        case IL_BCALLRET4:
+        case IL_BCALLRET5:
+        case IL_BCALLRET6:
+        case IL_BCALLRET7:
+            if (parser.natreg.nfuns[args[0]]->IsGLFrame()) {
+                append(sd, "GLFrame(", sp, ", vm);");
+            } else {
+                append(sd, "U_", ILNames()[opc], "(vm, ", sp, ", ", args[0], ", ", args[1], ");");
+                comment(parser.natreg.nfuns[args[0]]->name);
+            }
+            break;
+        case IL_GOTOFUNEXIT:
+            append(sd, "goto epilogue;");
+            break;
+        case IL_KEEPREFLOOP:
+            append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
+            [[fallthrough]];
+        case IL_KEEPREF:
+            append(sd, "keepvar[", args[1], "] = TopM(", sp, ", ", args[0], ");");
+            break;
+        case IL_PUSHFUN:
+            append(sd, "U_PUSHFUN(vm, ", sp, ", 0, ", "fun_", args[0], ");");
+            break;
+        case IL_CALL: {
+            append(sd, "fun_", args[0], "(vm, ", sp, ");");
+            auto sf_idx = args[0];
+            comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
+            break;
+        }
+        case IL_CALLV:
+            append(sd, "U_CALLV(vm, ", sp, "); ");
+            if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 1, ");");
+            else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 1, ");");
+            break;
+        case IL_DDCALL:
+            append(sd, "U_DDCALL(vm, ", sp, ", ", args[0], ", ", args[1], "); ");
+            if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
+            else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
+            break;
+    }
+    temp_codegen[last_op_start] = std::move(sd);
 }
 
 const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
