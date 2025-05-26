@@ -328,7 +328,7 @@ void CodeGen::DefineFunctions(string & sd) {
         if (opc == IL_FUNSTART) continue;
         append(sd, "    ");
 
-        if (id < temp_codegen.size() && !temp_codegen[id].empty()) {
+        if (id < (int)temp_codegen.size() && !temp_codegen[id].empty()) {
             append(sd, temp_codegen[id], "\n");
             continue;
         }
