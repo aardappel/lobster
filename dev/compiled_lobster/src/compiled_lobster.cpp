@@ -10579,7 +10579,7 @@ static void fun_159(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 108, 6);
     U_PUSHSTR(vm, regs + 0, 338); // "no"
     U_INCREF(vm, regs + 1, 0);
-    goto block0;
+    goto block5;
     case 2:case 3:
     U_STATEMENT(vm, regs + 0, 110, 6);
     regs[0] = locals[0]; // i
@@ -10591,20 +10591,20 @@ static void fun_159(VMRef vm, StackPtr psp) {
     U_A2S(vm, regs + 2, 0);
     keepvar[0] = TopM(regs + 2, 0);
     U_SADD(vm, regs + 2);
-    goto block1;
+    goto block6;
     case 4:case 5:case 6:case 8:
     U_STATEMENT(vm, regs + 0, 112, 6);
     U_PUSHSTR(vm, regs + 0, 340); // "maybe"
     U_INCREF(vm, regs + 1, 0);
-    goto block2;
+    goto block7;
     case 7:default:
     U_STATEMENT(vm, regs + 0, 113, 6);
     U_PUSHSTR(vm, regs + 0, 341); // "what?"
     U_INCREF(vm, regs + 1, 0);
     } // switch
-    block0:;
-    block1:;
-    block2:;
+    block5:;
+    block6:;
+    block7:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -22737,25 +22737,25 @@ static void fun_452(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 44, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 1);
-    goto block0;
+    goto block5;
     case 1:
     U_STATEMENT(vm, regs + 0, 45, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 2);
-    goto block1;
+    goto block6;
     case 2:
     U_STATEMENT(vm, regs + 0, 46, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 2);
-    goto block2;
+    goto block7;
     case 3:
     U_STATEMENT(vm, regs + 0, 47, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 3);
     } // switch
-    block0:;
-    block1:;
-    block2:;
+    block5:;
+    block6:;
+    block7:;
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -22778,19 +22778,19 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 55, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 1);
-    goto block0;
+    goto block4;
     case 1:
     U_STATEMENT(vm, regs + 0, 56, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 2);
-    goto block1;
+    goto block5;
     case 2:
     U_STATEMENT(vm, regs + 0, 57, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 2);
     } // switch
-    block0:;
-    block1:;
+    block4:;
+    block5:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -22812,13 +22812,13 @@ static void fun_454(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 65, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 1);
-    goto block0;
+    goto block3;
     case 1:
     U_STATEMENT(vm, regs + 0, 66, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 1);
     } // switch
-    block0:;
+    block3:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -22840,13 +22840,13 @@ static void fun_455(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 75, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 3);
-    goto block0;
+    goto block3;
     case 1:default:
     U_STATEMENT(vm, regs + 0, 74, 30);
     regs[0] = locals[0]; // t
     U_PUSHFLD(vm, regs + 1, 0);
     } // switch
-    block0:;
+    block3:;
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -26719,7 +26719,7 @@ int main(int argc, char *argv[]) {
         make_span(specidents),
         make_span(enums),
         make_span(ser_ids),
-        string_view("Mon May 26 16:44:46 2025", 24),
+        string_view("Mon May 26 17:45:06 2025", 24),
         0x33793c4a18e2f8e9,
         make_span(subfunctions_to_function),
     };

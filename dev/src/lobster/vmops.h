@@ -730,7 +730,7 @@ VM_INLINE void U_JUMP_TABLE_END(VM &, StackPtr) {
     assert(false);
 }
 
-VM_INLINE void U_JUMP_TABLE_CASE_START(VM &, StackPtr) {
+VM_INLINE void U_JUMP_TABLE_CASE_START(VM &, StackPtr, int) {
     assert(false);
 }
 

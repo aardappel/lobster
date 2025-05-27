@@ -1796,26 +1796,38 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
 
 void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int mini) const {
     auto table_start = cg.Pos();
-    for (int i = 0; i < range + 1; i++) cg.Emit(-1);
-    vector<int> exitswitch;
-    int default_pos = -1;
-    CodeGen::BlockStack bs(cg.tstack);
+    auto deflab = cg.Label();
+    for (int i = 0; i < range + 1; i++) cg.Emit(deflab);
+    // Figure out labels first, so we can generate code for it all at once.
+    vector<int> labels;
     for (auto [i, n] : enumerate(cases->children)) {
-        bs.Start();
         auto cas = AssertIs<Case>(n);
+        auto lab = cg.Label();
+        labels.push_back(lab);
         for (auto c : cas->pattern->children) {
             if (value->exptype->t == V_CLASS) {
-                cg.code[table_start + (int)i] = cg.Pos();
+                cg.code[table_start + (int)i] = lab;
             } else {
                 auto [istart, iend] = get_range(c);
                 assert(istart && iend);
                 for (auto i = istart->integer; i <= iend->integer; i++) {
-                    cg.code[table_start + (int)i - mini] = cg.Pos();
+                    cg.code[table_start + (int)i - mini] = lab;
                 }
             }
         }
-        if (cas->pattern->children.empty()) default_pos = cg.Pos();
+    }
+    vector<int> exitswitch;
+    CodeGen::BlockStack bs(cg.tstack);
+    for (auto [i, n] : enumerate(cases->children)) {
+        bs.Start();
+        auto cas = AssertIs<Case>(n);
+        auto lab = labels[i];
+        // Don't actually emit labels because C code turns these into "case"
+        if (cas->pattern->children.empty()) {
+            lab = deflab;
+        }
         cg.EmitOp(IL_JUMP_TABLE_CASE_START);
+        cg.Emit(lab);
         cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back()) {
@@ -1825,11 +1837,6 @@ void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int m
     }
     cg.EmitOp(IL_JUMP_TABLE_END);
     cg.EmitLabelDefs(exitswitch);
-    if (default_pos < 0) default_pos = cg.Pos();
-    for (int i = 0; i < range + 1; i++) {
-        if (cg.code[table_start + i] == -1)
-            cg.code[table_start + i] = default_pos;
-    }
     bs.Exit(cg);
 }
 

@@ -263,6 +263,43 @@ void CodeGen::EmitCForPrev() {
             append(sd, ")) goto block", id, ";");
             break;
         }
+        case IL_JUMP_TABLE_DISPATCH:
+            if (cpp) {
+                append(sd, "switch (GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
+                        ")) {");
+            } else {
+                append(sd, "{ int top = GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
+                        "); switch (top) {");
+            }
+            jumptables_stack.push_back(args + 1);
+            break;
+        case IL_JUMP_TABLE:
+            if (cpp) {
+                append(sd, "switch (regs[", regso - 1, "].ival()) {");
+            } else {
+                append(sd, "{ long long top = regs[", regso - 1, "].ival; switch (top) {");
+            }
+            jumptables_stack.push_back(args);
+            break;
+        case IL_JUMP_TABLE_CASE_START: {
+            auto curlab = args[0];
+            auto t = jumptables_stack.back();
+            auto mini = *t++;
+            auto maxi = *t++;
+            for (auto i = mini; i <= maxi; i++) {
+                if (*t++ == curlab) append(sd, "case ", i, ":");
+            }
+            if (*t++ == curlab) append(sd, "default:");
+            break;
+        }
+        case IL_JUMP_TABLE_END: {
+            if (cpp)
+                sd += "} // switch";
+            else
+                sd += "}} // switch";
+            jumptables_stack.pop_back();
+            break;
+        }
         case IL_BCALLRETV:
         case IL_BCALLRET0:
         case IL_BCALLRET1:
@@ -330,42 +367,6 @@ const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
 
         sp = cat("regs + ", regso);
         switch (opc) {
-            case IL_JUMP_TABLE_DISPATCH:
-                if (cpp) {
-                    append(sd, "switch (GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
-                           ")) {");
-                } else {
-                    append(sd, "{ int top = GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
-                           "); switch (top) {");
-                }
-                jumptables_stack.push_back(args + 1);
-                break;
-            case IL_JUMP_TABLE:
-                if (cpp) {
-                    append(sd, "switch (regs[", regso - 1, "].ival()) {");
-                } else {
-                    append(sd, "{ long long top = regs[", regso - 1, "].ival; switch (top) {");
-                }
-                jumptables_stack.push_back(args);
-                break;
-            case IL_JUMP_TABLE_CASE_START: {
-                auto t = jumptables_stack.back();
-                auto mini = *t++;
-                auto maxi = *t++;
-                for (auto i = mini; i <= maxi; i++) {
-                    if (*t++ == id) append(sd, "case ", i, ":");
-                }
-                if (*t++ == id) append(sd, "default:");
-                break;
-            }
-            case IL_JUMP_TABLE_END: {
-                if (cpp)
-                    sd += "} // switch";
-                else
-                    sd += "}} // switch";
-                jumptables_stack.pop_back();
-                break;
-            }
             case IL_BCALLRETV:
             case IL_BCALLRET0:
             case IL_BCALLRET1:
