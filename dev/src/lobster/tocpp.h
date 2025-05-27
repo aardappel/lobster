@@ -218,10 +218,10 @@ void CodeGen::EmitCForPrev() {
     if (last_op_start == (size_t)-1) return;
     if (temp_codegen.size() <= last_op_start) temp_codegen.resize(last_op_start + 1);
     const int *ip = code.data() + last_op_start;
-    int opc = *ip++;
+    auto opc = (ILOP)*ip++;
     const int *args = ip + 1;
     int regso = *ip;
-    /* auto arity = */ParseOpAndGetArity(opc, ip);
+    auto arity = ParseOpAndGetArity(opc, ip);
     // We could store the value of ip here, to verify it is the same as next instr start.
     string sd;
     auto comment = [&](string_view c) { append(sd, " // ", c); };
@@ -344,6 +344,50 @@ void CodeGen::EmitCForPrev() {
             if (cpp) append(sd, "vm.next_call_target(vm, ", sp, ");");
             else append(sd, "GetNextCallTarget(vm)(vm, ", sp, ");");
             break;
+        case IL_PROFILE: {
+            string name;
+            EscapeAndQuote(stringtable[args[0]], name);
+            append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
+                   ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
+                   cpp ? "lobster::" : "", "StartProfile(&tsld);");
+            has_profile = true;
+            break;
+        }
+        case IL_RETURNLOCAL:
+        case IL_RETURNNONLOCAL:
+        case IL_RETURNANY:
+            return;
+        default: {
+            assert(ILArity()[opc] != ILUNKNOWN);
+            append(sd, "U_", ILNames()[opc], "(vm, ", sp, "");
+            for (int i = 0; i < arity; i++) {
+                sd += ", ";
+                append(sd, args[i]);
+            }
+            sd += ");";
+            switch (opc) {
+                case IL_PUSHVARF:
+                case IL_PUSHVARVF:
+                case IL_LVAL_VARF:
+                    comment(IdName(args[0], false));
+                    break;
+                case IL_PUSHSTR: {
+                    auto sv = stringtable[args[0]];
+                    sv = sv.substr(0, 50);
+                    string q;
+                    EscapeAndQuote(sv, q);
+                    comment(q);
+                    break;
+                }
+                case IL_ISTYPE:
+                case IL_NEWOBJECT:
+                case IL_ST2S:
+                    auto ti = ((TypeInfo *)(&type_table[args[0]]));
+                    if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
+                    break;
+            }
+            break;
+        }
     }
     temp_codegen[last_op_start] = std::move(sd);
 }
@@ -354,10 +398,10 @@ const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
     auto comment = [&](string_view c) { append(sd, " // ", c); };
     while (ip < code.data() + code.size()) {
         int id = (int)(ip - code.data());
-        int opc = *ip++;
+        auto opc = (ILOP)*ip++;
         int regso = *ip;
         const int *args = ip + 1;
-        auto arity = ParseOpAndGetArity(opc, ip);
+        /*auto arity =*/ ParseOpAndGetArity(opc, ip);
         append(sd, "    ");
 
         if (id < (int)temp_codegen.size() && !temp_codegen[id].empty()) {
@@ -367,17 +411,6 @@ const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
 
         sp = cat("regs + ", regso);
         switch (opc) {
-            case IL_BCALLRETV:
-            case IL_BCALLRET0:
-            case IL_BCALLRET1:
-            case IL_BCALLRET2:
-            case IL_BCALLRET3:
-            case IL_BCALLRET4:
-            case IL_BCALLRET5:
-            case IL_BCALLRET6:
-            case IL_BCALLRET7:
-                assert(false);
-                break;
             case IL_RETURNLOCAL:
             case IL_RETURNNONLOCAL:
             case IL_RETURNANY: {
@@ -441,68 +474,9 @@ const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
                 }
                 break;
             }
-            case IL_GOTOFUNEXIT:
-                assert(false);
-                break;
-            case IL_KEEPREFLOOP:
-                assert(false);
-                break;
-            case IL_KEEPREF:
-                assert(false);
-                break;
-            case IL_PUSHFUN:
-                assert(false);
-                break;
-            case IL_CALL:
-                assert(false);
-                break;
-            case IL_CALLV:
-                assert(false);
-                break;
-            case IL_DDCALL:
-                assert(false);
-                break;
-            case IL_PROFILE: {
-                string name;
-                EscapeAndQuote(stringtable[args[0]], name);
-                append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ",
-                       name, ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
-                       cpp ? "lobster::" : "", "StartProfile(&tsld);");
-                has_profile = true;
-                break;
-            }
             default:
-                assert(ILArity()[opc] != ILUNKNOWN);
-                append(sd, "U_", ILNames()[opc], "(vm, ", sp, "");
-                for (int i = 0; i < arity; i++) {
-                    sd += ", ";
-                    append(sd, args[i]);
-                }
-                sd += ");";
-                switch (opc) {
-                    case IL_PUSHVARF:
-                    case IL_PUSHVARVF:
-                    case IL_LVAL_VARF:
-                        comment(IdName(args[0], false));
-                        break;
-                    case IL_PUSHSTR: {
-                        auto sv = stringtable[args[0]];
-                        sv = sv.substr(0, 50);
-                        string q;
-                        EscapeAndQuote(sv, q);
-                        comment(q);
-                        break;
-                    }
-                    case IL_ISTYPE:
-                    case IL_NEWOBJECT:
-                    case IL_ST2S:
-                        auto ti = ((TypeInfo *)(&type_table[args[0]]));
-                        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
-                        break;
-                }
-                break;
+                assert(0);
         }
-
         sd += "\n";
     }
     assert(ip == code.data() + code.size());
@@ -527,7 +501,6 @@ void CodeGen::DefineFunctionEnd(string &sd, bool label) {
     code.clear();
     temp_codegen.clear();
     assert(jumptables_stack.empty());
-    last_op_started = IL_ABORT;
     last_op_start = (size_t)-1;
     funstart = nullptr;
     nkeepvars = -1;

@@ -48,7 +48,6 @@ struct CodeGen  {
 
     // Transitional vector to move codegen from tocpp over here..
     vector<string> temp_codegen;
-    ILOP last_op_started = IL_ABORT;
     size_t last_op_start = (size_t)-1;
     string sp;
     vector<int> funstarttables;
@@ -136,7 +135,7 @@ struct CodeGen  {
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitCForPrev();
-        last_op_start = code.size();
+        if (op != IL_FUNSTART) last_op_start = code.size();
 
         Emit(op);
         Emit(TempStackSize());
@@ -329,6 +328,7 @@ struct CodeGen  {
         Emit(0);   // keepvars
         Emit(0);   // ownedvars
         EmitOp(IL_ABORT);
+        EmitCForPrev();
         DefineFunctionMid(c_codegen, DefineFunctionStart(c_codegen));
         DefineFunctionEnd(c_codegen, false);
 
@@ -347,6 +347,7 @@ struct CodeGen  {
         var_to_local.resize(sids.size(), -1);
         for (auto sf : sf_used) {
             GenScope(*sf);
+            EmitCForPrev();
             DefineFunctionMid(c_codegen, DefineFunctionStart(c_codegen));
             DefineFunctionEnd(c_codegen, true);
         }
@@ -365,6 +366,7 @@ struct CodeGen  {
         EmitOp(IL_EXIT, int(return_value));
         Emit(return_value ? GetTypeTableOffset(type) : -1);
         linenumbernodes.pop_back();
+        EmitCForPrev();
         DefineFunctionMid(c_codegen, DefineFunctionStart(c_codegen));
         DefineFunctionEnd(c_codegen, false);
 
