@@ -28,7 +28,7 @@ LResource::LResource(const ResourceType *t, Resource *res)
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
-void EscapeAndQuote(string_view s, string &sd) {
+void EscapeAndQuote(string_view s, string &sd, bool cpp) {
     sd += '\"';
     for (auto c : s) switch(c) {
         case '\n': sd += "\\n"; break;
@@ -41,9 +41,19 @@ void EscapeAndQuote(string_view s, string &sd) {
             if (c >= ' ' && c <= '~') {
                 sd += c;
             } else {
-                sd += "\\x";
-                sd += HexChar(((uint8_t)c) >> 4);
-                sd += HexChar(c & 0xF);
+                if (cpp) {
+                    // The only safe way to stick binary in string in C++ is exactly 3 octal characters,
+                    // because hex chars have no limit, thus they will consume following characters!
+                    sd += "\\";
+                    sd += '0' + (((uint8_t)c) >> 6);
+                    sd += '0' + ((((uint8_t)c) >> 3) & 7);
+                    sd += '0' + (c & 7);
+                } else {
+                    // Lobster uses exactly 2 hex digits.
+                    sd += "\\x";
+                    sd += HexChar(((uint8_t)c) >> 4);
+                    sd += HexChar(c & 0xF);
+                }
             }
             break;
     }

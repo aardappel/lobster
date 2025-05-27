@@ -9097,7 +9097,7 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_PUSHFLT(vm, regs + 3, 1077936128);
     U_PUSHFLT(vm, regs + 4, 1082130432);
     U_PUSHFLT(vm, regs + 5, 1084227584);
-    U_PUSHSTR(vm, regs + 6, 162); // "hello, world!\n\"\'\r\t\\\xC0"
+    U_PUSHSTR(vm, regs + 6, 162); // "hello, world!\n\"\'\r\t\\\300"
     U_INCREF(vm, regs + 7, 0);
     U_PUSHINT(vm, regs + 7, 0);
     U_PUSHINT(vm, regs + 8, -64);
@@ -9590,7 +9590,7 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 163, 6);
     regs[0] = locals[26]; // ns
-    U_PUSHSTR(vm, regs + 1, 217); // "\x03\x04\x00\x00"
+    U_PUSHSTR(vm, regs + 1, 217); // "\003\004\000\000"
     U_SEQ(vm, regs + 2);
     if (!U_JUMPFAILR(vm, regs + 1)) goto block12;
     U_POP(vm, regs + 1);
@@ -9619,7 +9619,7 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 166, 6);
     regs[0] = locals[26]; // ns
-    U_PUSHSTR(vm, regs + 1, 221); // "\x00\x00\x02\x08"
+    U_PUSHSTR(vm, regs + 1, 221); // "\000\000\002\010"
     U_SEQ(vm, regs + 2);
     if (!U_JUMPFAILR(vm, regs + 1)) goto block13;
     U_POP(vm, regs + 1);
@@ -9946,8 +9946,8 @@ static void fun_153(VMRef vm, StackPtr psp) {
     U_FLT(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 253, 6, 248);
     U_STATEMENT(vm, regs + 0, 256, 6);
-    U_PUSHSTR(vm, regs + 0, 249); // "\xE2\xBA\x86\xE3\x8B\x87\xE4\xAC\x88"
-    U_PUSHSTR(vm, regs + 1, 250); // "\xE2\xBA\x86\xE3\x8B\x87\xE4\xAC\x88"
+    U_PUSHSTR(vm, regs + 0, 249); // "\342\272\206\343\213\207\344\254\210"
+    U_PUSHSTR(vm, regs + 1, 250); // "\342\272\206\343\213\207\344\254\210"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 256, 6, 251);
     U_STATEMENT(vm, regs + 0, 259, 6);
@@ -16916,7 +16916,7 @@ static void fun_325(VMRef vm, StackPtr psp) {
     U_IGT(vm, regs + 2);
     if (!U_JUMPFAILR(vm, regs + 1)) goto block1;
     U_POP(vm, regs + 1);
-    U_PUSHSTR(vm, regs + 0, 514); // "()\x7F"
+    U_PUSHSTR(vm, regs + 0, 514); // "()\177"
     U_PUSHFUN(vm, regs + 1, 0, fun_326);
     fun_15(vm, regs + 2); // call: exists
     U_LOGNOT(vm, regs + 1);
@@ -23541,7 +23541,7 @@ static const string_view stringtable[] = {
     string_view("(== (block (x var \"\":string):void (y var 0:int):void 2:int):int 2:int)", 70),
     string_view("(== (tf (object_constructor 0:int 0:int):testb 4:int):int 4:int)", 64),
     string_view("(== (tf (block (a var (object_constructor 0:int 0:int):testb):void (lifetime change<1|0> a:testa):testa):testa 1:int):int 4:int)", 128),
-    string_view("hello, world!\n\"\'\r\t\\\xC0", 20),
+    string_view("hello, world!\n\"\'\r\t\\\300", 20),
     string_view("(equal parsed:parsetest? direct:parsetest)", 42),
     string_view("parsetest { true, 1, 1.0, float3 {}, \"\", [], nil, -1, testb { 6, 7 } }", 70),
     string_view("", 0),
@@ -23596,11 +23596,11 @@ static const string_view stringtable[] = {
     string_view("zzabc", 5),
     string_view("(== (lifetime change<0|1> (ensure_size (lifetime change<1|0> \"abc\":string):string -5:int 122:int 0:int):string):string \"zzabc\":string)", 134),
     string_view("", 0),
-    string_view("\x03\x04\x00\x00", 4),
+    string_view("\003\004\000\000", 4),
     string_view("(and (== ns:string \"\\x03\\x04\\x00\\x00\":string):bool (== ni:int 2:int):bool)", 74),
     string_view("(== (read_int32_le ns:string 0:int):int 1027:int)", 49),
     string_view("", 0),
-    string_view("\x00\x00\x02\x08", 4),
+    string_view("\000\000\002\010", 4),
     string_view("(and (== ns:string \"\\x00\\x00\\x02\\x08\":string):bool (== ni:int 2:int):bool)", 74),
     string_view("(== (read_int16_le_back ns:string 0:int):int 2050:int)", 54),
     string_view("a", 1),
@@ -23628,8 +23628,8 @@ static const string_view stringtable[] = {
     string_view("(< (abs (- (% 4.0:float 1.5:float):float 1.0:float):float):float 0.01:float)", 76),
     string_view("(< (max (abs (- (% (object_constructor 10.1:float 20.1:float):float2 (object_constructor 3.0:float 6.0:float):float2):float2 (object_constructor 1.1:float 2.1:float):float2):float2):float2):float 0.01:float)", 207),
     string_view("(< (max (abs (- (% (object_constructor 10.1:float 20.1:float):float2 3.0:float):float2 (object_constructor 1.1:float 2.1:float):float2):float2):float2):float 0.01:float)", 169),
-    string_view("\xE2\xBA\x86\xE3\x8B\x87\xE4\xAC\x88", 9),
-    string_view("\xE2\xBA\x86\xE3\x8B\x87\xE4\xAC\x88", 9),
+    string_view("\342\272\206\343\213\207\344\254\210", 9),
+    string_view("\342\272\206\343\213\207\344\254\210", 9),
     string_view("(== \"\\xE2\\xBA\\x86\\xE3\\x8B\\x87\\xE4\\xAC\\x88\":string \"\\xE2\\xBA\\x86\\xE3\\x8B\\x87\\xE4\\xAC\\x88\":string)", 96),
     string_view("(== (|= bit:int 2:int):int 3:int)", 33),
     string_view("(== (&= bit:int -3:int):int 1:int)", 34),
@@ -23893,7 +23893,7 @@ static const string_view stringtable[] = {
     string_view("", 0),
     string_view("error: line ", 12),
     string_view(": ", 2),
-    string_view("()\x7F", 3),
+    string_view("()\177", 3),
     string_view("unprintable character: ", 23),
     string_view("int", 3),
     string_view("atom", 4),

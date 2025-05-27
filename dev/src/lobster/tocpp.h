@@ -265,7 +265,7 @@ void CodeGen::EmitCForPrev(string &sd) {
             break;
         case IL_PROFILE: {
             string name;
-            EscapeAndQuote(stringtable[args[0]], name);
+            EscapeAndQuote(stringtable[args[0]], name, true);
             append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
                    ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
                    cpp ? "lobster::" : "", "StartProfile(&tsld);");
@@ -351,7 +351,7 @@ void CodeGen::EmitCForPrev(string &sd) {
                     auto sv = stringtable[args[0]];
                     sv = sv.substr(0, 50);
                     string q;
-                    EscapeAndQuote(sv, q);
+                    EscapeAndQuote(sv, q, true);
                     comment(q);
                     break;
                 }
@@ -492,7 +492,7 @@ void CodeGen::Epilogue(string &sd, string_view custom_pre_init_name, uint64_t sr
     // Output the metadata.
     auto gen_string = [&](string_view s) {
         sd += "string_view(";
-        EscapeAndQuote(s, sd);
+        EscapeAndQuote(s, sd, true);
         append(sd, ", ", s.size(), ")");
     };
     if (cpp) {

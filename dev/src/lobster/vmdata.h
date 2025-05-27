@@ -1387,7 +1387,7 @@ inline Value ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) 
     return Value(v);
 }
 
-void EscapeAndQuote(string_view s, string &sd);
+void EscapeAndQuote(string_view s, string &sd, bool cpp = false);
 
 #if !defined(NDEBUG) && RTT_ENABLED
     #define STRINGIFY(x) #x
