@@ -168,9 +168,6 @@ VM_INLINE void U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     assert(vm.next_call_target);
 }
 
-VM_INLINE void U_FUNSTART(VM &, StackPtr, const int *) {
-}
-
 VM_INLINE void U_RETURNLOCAL(VM &vm, StackPtr, int /*nrv*/) {
     #ifndef NDEBUG
         vm.ret_unwind_to = -9;

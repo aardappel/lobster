@@ -25,6 +25,8 @@ enum {
 
 struct CodeGen  {
     vector<int> code;
+    vector<int> fcode;
+    vector<int> ownedvars;
     vector<metadata::SpecIdent> sids;
     Parser &parser;
     vector<const Node *> linenumbernodes;
@@ -130,7 +132,7 @@ struct CodeGen  {
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitCForPrev(c_body);
-        if (op != IL_FUNSTART) last_op_start = code.size();
+        last_op_start = code.size();
 
         Emit(op);
         Emit(TempStackSize());
@@ -315,13 +317,11 @@ struct CodeGen  {
         // Generate a dummmy function for function values that are never called.
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
-        EmitOp(IL_FUNSTART);
-        Emit(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);  // sf.idx
-        Emit(0);   // regs_max
-        Emit(0);
-        Emit(0);
-        Emit(0);   // keepvars
-        Emit(0);   // ownedvars
+        fcode.push_back(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);  // sf.idx
+        fcode.push_back(0);  // regs_max
+        fcode.push_back(0);
+        fcode.push_back(0);
+        fcode.push_back(0);  // keepvars
         EmitOp(IL_ABORT);
         DefineFunction(c_codegen, false);
 
@@ -344,13 +344,11 @@ struct CodeGen  {
         }
 
         // Emit the root function.
-        EmitOp(IL_FUNSTART);
-        Emit(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY);  // sf.idx
-        Emit(1);  // regs_max
-        Emit(0);
-        Emit(0);
-        Emit(0);  // keepvars
-        Emit(0);  // ownedvars
+        fcode.push_back(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY);  // sf.idx
+        fcode.push_back(1);  // regs_max
+        fcode.push_back(0);
+        fcode.push_back(0);
+        fcode.push_back(0);  // keepvars
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
@@ -401,12 +399,10 @@ struct CodeGen  {
             LOG_DEBUG("untypechecked: ", sf.parent->name, " : ", s);
             assert(0);
         }
-        vector<int> ownedvars;
         linenumbernodes.push_back(sf.sbody);
-        EmitOp(IL_FUNSTART);
-        Emit(sf.idx);
-        auto regspos = Pos();
-        Emit(0);
+        fcode.push_back(sf.idx);
+        auto regspos = fcode.size();
+        fcode.push_back(0);
         auto ret = AssertIs<Return>(sf.sbody->children.back());
         auto ir = sf.consumes_vars_on_return ? AssertIs<IdentRef>(ret->child) : nullptr;
 
@@ -415,14 +411,14 @@ struct CodeGen  {
             var_to_local.resize(sids.size(), -1);
         #endif
         auto emitvars = [&](const vector<Arg> &v) {
-            auto nvarspos = Pos();
-            Emit(0);
+            auto nvarspos = fcode.size();
+            fcode.push_back(0);
             auto nvars = 0;
             for (auto &arg : v) {
                 auto n = ValWidth(arg.sid->type);
                 for (int i = 0; i < n; i++) {
                     auto varidx = arg.sid->Idx() + i;
-                    Emit(varidx);
+                    fcode.push_back(varidx);
                     nvars++;
                     if (ShouldDec(IsStruct(arg.sid->type->t)
                                       ? TypeLT { FindSlot(*arg.sid->type->udt, i)->type,
@@ -436,18 +432,13 @@ struct CodeGen  {
 
                 }
             }
-            code[nvarspos] = nvars;
+            fcode[nvarspos] = nvars;
         };
         emitvars(sf.args);
         emitvars(sf.locals);
 
-        auto keepvarspos = Pos();
-        Emit(0);
-
-        // FIXME: don't really want to emit these.. instead should ensure someone takes
-        // ownership of them.
-        Emit((int)ownedvars.size());
-        for (auto si : ownedvars) Emit(si);
+        auto keepvarspos = fcode.size();
+        fcode.push_back(0);
 
         auto profile = sf.attributes.find("profile");
         if (profile != sf.attributes.end() && LOBSTER_FRAME_PROFILER) {
@@ -473,8 +464,8 @@ struct CodeGen  {
         assert(temptypestack.empty());
         assert(breaks.empty());
         assert(tstack.empty());
-        code[regspos] = (int)tstack_max;
-        code[keepvarspos] = keepvars;
+        fcode[regspos] = (int)tstack_max;
+        fcode[keepvarspos] = keepvars;
         linenumbernodes.pop_back();
         cursf = nullptr;
     }

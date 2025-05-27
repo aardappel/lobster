@@ -956,23 +956,19 @@ void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
     if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
 }
 
-void TraceVA(VM *vm, StackPtr, int opc, int sf_idx) {
+void TraceVA(VM *vm, StackPtr, int opc) {
     auto &sd = vm->TraceStream();
     sd += "\t";
     sd += ILNames()[opc];
-    if (opc == IL_FUNSTART && sf_idx >= 0) {
-        sd += " ";
-        sd += vm->meta->function_names[vm->meta->subfunctions_to_function[sf_idx]];
-    }
     if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
 }
 
 #ifndef NDEBUG
     #define CHECK(B) if (vm->trace != TraceMode::OFF) TraceIL(vm, sp, {B});
-    #define CHECKVA(OPC, FID) if (vm->trace != TraceMode::OFF) TraceVA(vm, sp, OPC, FID);
+    #define CHECKVA(OPC) if (vm->trace != TraceMode::OFF) TraceVA(vm, sp, OPC);
 #else
     #define CHECK(B)
-    #define CHECKVA(OPC, FID)
+    #define CHECKVA(OPC)
 #endif
 
 fun_base_t CVM_GetNextCallTarget(VM *vm) {
@@ -1022,7 +1018,7 @@ ILCALLNAMES
 #undef F
 #define F(N, A, USE, DEF) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECKVA(IL_##N, *ip);                                             \
+        CHECKVA(IL_##N);                                             \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
 ILVARARGNAMES

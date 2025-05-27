@@ -280,9 +280,7 @@ void CodeGen::EmitCForPrev(string &sd) {
         case IL_RETURNNONLOCAL:
         case IL_RETURNANY: {
             // FIXME: emit epilogue stuff only once at end of function.
-            auto fip = code.data();
-            assert(*fip == IL_FUNSTART);
-            fip += 2;
+            auto fip = fcode.data();
             fip++;  // function id.
             fip++;  // regs_max, not set until end of function
             auto nargs = *fip++;
@@ -292,6 +290,7 @@ void CodeGen::EmitCForPrev(string &sd) {
             auto defvars = fip;
             fip += ndef;
             fip++;  // nkeepvars, not set until end of function
+            assert(fip == fcode.data() + fcode.size());
             int nrets = args[0];
             if (opc == IL_RETURNLOCAL) {
                 append(sd, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
@@ -300,9 +299,7 @@ void CodeGen::EmitCForPrev(string &sd) {
             } else {
                 append(sd, "U_RETURNANY(vm, 0, ", nrets, ");");
             }
-            auto ownedvars = *fip++;
-            for (int i = 0; i < ownedvars; i++) {
-                auto varidx = *fip++;
+            for (auto varidx : ownedvars) {
                 if (sids[varidx].used_as_freevar()) {
                     append(sd, "\n    DecOwned(vm, ", varidx, ");");
                 } else {
@@ -376,19 +373,12 @@ void CodeGen::EmitCForPrev(string &sd) {
 }
 
 void CodeGen::DefineFunction(string &sd, bool label) {
-    const int *ip = code.data();
-    int opc = *ip++;
-    assert(opc == IL_FUNSTART);
-    (void)opc;
-    const int *args = ip + 1;
-    auto funstart = args;
     sd += "\n";
-    auto sf_idx = *funstart;
+    auto sf_idx = fcode[0];
     if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
         append(sd, "// ", st.subfunctiontable[sf_idx]->parent->name, "\n");
     append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
-    const int *funstartend = nullptr;
-    auto fip = funstart;
+    auto fip = fcode.data();
     fip++;  // sf.idx
     auto regs_max = *fip++;
     auto nargs_fun = *fip++;
@@ -398,10 +388,7 @@ void CodeGen::DefineFunction(string &sd, bool label) {
     auto defs = fip;
     fip += ndefsave;
     auto nkeepvars = *fip++;
-    funstartend = fip;
-    int ownedvars = *fip++;
-    fip += ownedvars;
-    ip = fip;
+    assert(fip == fcode.data() + fcode.size());
     // FIXME: don't emit array.
     // (there may be functions that don't use regs yet still refer to sp?)
     append(sd, "    Value regs[", std::max(1, regs_max), "];\n");
@@ -440,7 +427,7 @@ void CodeGen::DefineFunction(string &sd, bool label) {
                numlocals ? "locals" : "0", ");\n");
         // TODO: this doesn't need to correspond to to funstart, can stick any info we
         // want in here.
-        funstarttables.insert(funstarttables.end(), funstart, funstartend);
+        funstarttables.insert(funstarttables.end(), fcode.data(), fcode.data() + fcode.size());
     }
     for (int i = 0; i < nkeepvars; i++) {
         if (cpp)
@@ -464,16 +451,15 @@ void CodeGen::DefineFunction(string &sd, bool label) {
     for (int i = 0; i < nkeepvars; i++) {
         append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
     }
-    assert(funstart);
-    if (*(funstart - 2) == IL_FUNSTART && runtime_checks >= RUNTIME_STACK_TRACE &&
-        *funstart < CODEGEN_SPECIAL_FUNCTION_ID_START) {
+    if (runtime_checks >= RUNTIME_STACK_TRACE && fcode[0] < CODEGEN_SPECIAL_FUNCTION_ID_START) {
         append(sd, "    PopFunId(vm);\n");
     }
     sd += "}\n";
     code.clear();
+    fcode.clear();
+    ownedvars.clear();
     assert(jumptables_stack.empty());
     last_op_start = (size_t)-1;
-    funstart = nullptr;
     nkeepvars = -1;
     numlocals = 0;
     nlabel = 0;

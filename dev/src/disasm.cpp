@@ -156,26 +156,6 @@ const int *DisAsmIns(NativeRegistry &nfr, string &sd, const int *ip,
             break;
         }
 
-        case IL_FUNSTART: {
-            auto sf_idx = *ip++;
-            sd += (sf_idx >= 0 ? vm.meta->function_names[vm.meta->subfunctions_to_function[sf_idx]]
-                             : "__dummy");
-            auto regs = *ip++;
-            sd += "(";
-            int n = *ip++;
-            while (n--) append(sd, IdName(vm, *ip++, typetable, false), " ");
-            n = *ip++;
-            sd += "=> ";
-            while (n--) append(sd, IdName(vm, *ip++, typetable, false), " ");
-            auto keepvars = *ip++;
-            if (keepvars) append(sd, "K:", keepvars, " ");
-            n = *ip++;  // owned
-            while (n--) append(sd, "O:", IdName(vm, *ip++, typetable, false), " ");
-            append(sd, "R:", regs, " ");
-            sd += ")";
-            break;
-        }
-
         default:
             for (int i = 0; i < arity; i++) {
                 if (i) sd += ' ';

@@ -56,19 +56,6 @@ inline int ParseOpAndGetArity(int opc, const int *&ip) {
             arity = int(ip - ips);
             break;
         }
-        case IL_FUNSTART: {
-            ip++;  // sf idx.
-            ip++;  // max regs.
-            int n = *ip++;
-            ip += n;
-            int m = *ip++;
-            ip += m;
-            ip++;  // keepvar
-            int o = *ip++;  // ownedvar
-            ip += o;
-            arity = int(ip - ips);
-            break;
-        }
     }
     return arity;
 }
