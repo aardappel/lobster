@@ -197,6 +197,7 @@ const int *CodeGen::DefineFunctionStart(string &sd) {
         else
             append(sd, "    NilVal(&keepvar[", i, "]);\n");
     }
+    has_profile = false;
     return ip;
 }
 
@@ -355,8 +356,68 @@ void CodeGen::EmitCForPrev() {
         }
         case IL_RETURNLOCAL:
         case IL_RETURNNONLOCAL:
-        case IL_RETURNANY:
-            return;
+        case IL_RETURNANY: {
+            // FIXME: emit epilogue stuff only once at end of function.
+            auto fip = code.data();
+            assert(*fip == IL_FUNSTART);
+            fip += 2;
+            fip++;  // function id.
+            fip++;  // regs_max, not set until end of function
+            auto nargs = *fip++;
+            auto freevars = fip + nargs;
+            fip += nargs;
+            auto ndef = *fip++;
+            auto defvars = fip;
+            fip += ndef;
+            fip++;  // nkeepvars, not set until end of function
+            int nrets = args[0];
+            if (opc == IL_RETURNLOCAL) {
+                append(sd, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
+            } else if (opc == IL_RETURNNONLOCAL) {
+                append(sd, "U_RETURNNONLOCAL(vm, 0, ", nrets, ", ", args[1], ");");
+            } else {
+                append(sd, "U_RETURNANY(vm, 0, ", nrets, ");");
+            }
+            auto ownedvars = *fip++;
+            for (int i = 0; i < ownedvars; i++) {
+                auto varidx = *fip++;
+                if (sids[varidx].used_as_freevar()) {
+                    append(sd, "\n    DecOwned(vm, ", varidx, ");");
+                } else {
+                    append(sd, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
+                }
+            }
+            while (nargs--) {
+                auto varidx = *--freevars;
+                if (sids[varidx].used_as_freevar()) {
+                    append(sd, "\n    psp = PopArg(vm, ", varidx, ", psp);");
+                } else {
+                    // TODO: move to when we obtain the arg?
+                    append(sd, "\n    Pop(psp);");
+                }
+            }
+            if (opc == IL_RETURNANY) {
+                append(sd,
+                        "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
+                        "Push(psp, regs[i + ",
+                        regso - nrets, "]); }");
+            } else {
+                for (int i = 0; i < nrets; i++) {
+                    append(sd, "\n    Push(psp, regs[", i + regso - nrets, "]);");
+                }
+            }
+            sdt.clear();  // FIXME: remove
+            for (int i = ndef - 1; i >= 0; i--) {
+                auto varidx = defvars[i];
+                if (sids[varidx].used_as_freevar()) {
+                    append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
+                }
+            }
+            if (opc != IL_RETURNANY) {
+                append(sd, "\n    goto epilogue;");
+            }
+            break;
+        }
         default: {
             assert(ILArity()[opc] != ILUNKNOWN);
             append(sd, "U_", ILNames()[opc], "(vm, ", sp, "");
@@ -393,14 +454,9 @@ void CodeGen::EmitCForPrev() {
 }
 
 const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
-    has_profile = false;
-    sdt.clear();
-    auto comment = [&](string_view c) { append(sd, " // ", c); };
     while (ip < code.data() + code.size()) {
         int id = (int)(ip - code.data());
         auto opc = (ILOP)*ip++;
-        int regso = *ip;
-        const int *args = ip + 1;
         /*auto arity =*/ ParseOpAndGetArity(opc, ip);
         append(sd, "    ");
 
@@ -408,76 +464,7 @@ const int *CodeGen::DefineFunctionMid(string &sd, const int *ip) {
             append(sd, temp_codegen[id], "\n");
             continue;
         }
-
-        sp = cat("regs + ", regso);
-        switch (opc) {
-            case IL_RETURNLOCAL:
-            case IL_RETURNNONLOCAL:
-            case IL_RETURNANY: {
-                // FIXME: emit epilogue stuff only once at end of function.
-                assert(funstart);
-                auto fip = funstart;
-                fip++;  // function id.
-                fip++;  // regs_max.
-                auto nargs = *fip++;
-                auto freevars = fip + nargs;
-                fip += nargs;
-                auto ndef = *fip++;
-                auto defvars = fip;
-                fip += ndef;
-                fip++;  // nkeepvars
-                int nrets = args[0];
-                if (opc == IL_RETURNLOCAL) {
-                    append(sd, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
-                } else if (opc == IL_RETURNNONLOCAL) {
-                    append(sd, "U_RETURNNONLOCAL(vm, 0, ", nrets, ", ", args[1], ");");
-                } else {
-                    append(sd, "U_RETURNANY(vm, 0, ", nrets, ");");
-                }
-                auto ownedvars = *fip++;
-                for (int i = 0; i < ownedvars; i++) {
-                    auto varidx = *fip++;
-                    if (sids[varidx].used_as_freevar()) {
-                        append(sd, "\n    DecOwned(vm, ", varidx, ");");
-                    } else {
-                        append(sd, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
-                    }
-                }
-                while (nargs--) {
-                    auto varidx = *--freevars;
-                    if (sids[varidx].used_as_freevar()) {
-                        append(sd, "\n    psp = PopArg(vm, ", varidx, ", psp);");
-                    } else {
-                        // TODO: move to when we obtain the arg?
-                        append(sd, "\n    Pop(psp);");
-                    }
-                }
-                if (opc == IL_RETURNANY) {
-                    append(sd,
-                           "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
-                           "Push(psp, regs[i + ",
-                           regso - nrets, "]); }");
-                } else {
-                    for (int i = 0; i < nrets; i++) {
-                        append(sd, "\n    Push(psp, regs[", i + regso - nrets, "]);");
-                    }
-                }
-                sdt.clear();  // FIXME: remove
-                for (int i = ndef - 1; i >= 0; i--) {
-                    auto varidx = defvars[i];
-                    if (sids[varidx].used_as_freevar()) {
-                        append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
-                    }
-                }
-                if (opc != IL_RETURNANY) {
-                    append(sd, "\n    goto epilogue;");
-                }
-                break;
-            }
-            default:
-                assert(0);
-        }
-        sd += "\n";
+        assert(0);
     }
     assert(ip == code.data() + code.size());
     return ip;
