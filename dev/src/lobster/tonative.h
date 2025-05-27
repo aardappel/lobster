@@ -29,37 +29,6 @@ extern bool RunC(const char *source,
                  const char **export_names,
                  function<bool (void **)> runf);
 
-inline int ParseOpAndGetArity(int opc, const int *&ip) {
-    *ip++;
-    auto arity = ILArity()[opc];
-    auto ips = ip;
-    switch(opc) {
-        default: {
-            assert(arity != ILUNKNOWN);
-            ip += arity;
-            break;
-        }
-        case IL_JUMP_TABLE: {
-            auto mini = *ip++;
-            auto maxi = *ip++;
-            auto n = maxi - mini + 2;
-            ip += n;
-            arity = int(ip - ips);
-            break;
-        }
-        case IL_JUMP_TABLE_DISPATCH: {
-            ip++;  // vtable_idx
-            auto mini = *ip++;
-            auto maxi = *ip++;
-            auto n = maxi - mini + 2;
-            ip += n;
-            arity = int(ip - ips);
-            break;
-        }
-    }
-    return arity;
-}
-
 }  // namespace lobster;
 
 #endif  // LOBSTER_TONATIVE

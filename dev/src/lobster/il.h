@@ -30,6 +30,7 @@ enum MathOp {
 #define ILUNKNOWN 999999
 
 #define ILBASENAMES \
+    F(UNUSED,       0, 0, 0) \
     F(PUSHINT,      1, 0, 1) \
     F(PUSHINT64,    2, 0, 1) \
     F(PUSHFLT,      1, 0, 1) \

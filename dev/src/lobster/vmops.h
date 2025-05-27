@@ -188,6 +188,10 @@ VM_INLINE void U_RETURNANY(VM &, StackPtr, int /*nretslots_norm*/) {
 VM_INLINE void U_GOTOFUNEXIT(VM &, StackPtr) {
 }
 
+VM_INLINE void U_UNUSED(VM &, StackPtr) {
+    assert(false);
+}
+
 VM_INLINE void U_STATEMENT(VM &vm, StackPtr, int line, int fileidx) {
     vm.last_line = line;
     vm.last_fileidx = fileidx;

@@ -139,13 +139,8 @@ string CodeGen::IdName(int i, bool is_whole_struct) {
 };
 
 void CodeGen::EmitCForPrev(string &sd) {
-    if (last_op_start == (size_t)-1) return;
-    const int *ip = code.data() + last_op_start;
-    auto opc = (ILOP)*ip++;
-    const int *args = ip + 1;
-    int regso = *ip;
-    auto arity = ParseOpAndGetArity(opc, ip);
-    // We could store the value of ip here, to verify it is the same as next instr start.
+    if (opc == IL_UNUSED) return;
+    const int *args = icode.data();
     auto comment = [&](string_view c) { append(sd, " // ", c); };
     append(sd, "    ");
     auto sp = [&]() { return cat("regs + ", regso); };
@@ -194,7 +189,7 @@ void CodeGen::EmitCForPrev(string &sd) {
                 append(sd, "{ int top = GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
                         "); switch (top) {");
             }
-            jumptables_stack.push_back(args + 1);
+            jumptables_stack.push_back(vector<int>(args + 1, args + icode.size()));
             break;
         case IL_JUMP_TABLE:
             if (cpp) {
@@ -202,11 +197,12 @@ void CodeGen::EmitCForPrev(string &sd) {
             } else {
                 append(sd, "{ long long top = regs[", regso - 1, "].ival; switch (top) {");
             }
-            jumptables_stack.push_back(args);
+            jumptables_stack.push_back(vector<int>(args, args + icode.size()));
             break;
         case IL_JUMP_TABLE_CASE_START: {
             auto curlab = args[0];
-            auto t = jumptables_stack.back();
+            auto &vec = jumptables_stack.back();
+            auto t = vec.data();
             auto mini = *t++;
             auto maxi = *t++;
             for (auto i = mini; i <= maxi; i++) {
@@ -340,7 +336,7 @@ void CodeGen::EmitCForPrev(string &sd) {
         default: {
             assert(ILArity()[opc] != ILUNKNOWN);
             append(sd, "U_", ILNames()[opc], "(vm, ", sp(), "");
-            for (int i = 0; i < arity; i++) {
+            for (int i = 0; i < icode.size(); i++) {
                 sd += ", ";
                 append(sd, args[i]);
             }
@@ -370,6 +366,7 @@ void CodeGen::EmitCForPrev(string &sd) {
         }
     }
     sd += "\n";
+    icode.clear();
 }
 
 void CodeGen::DefineFunction(string &sd, bool label) {
@@ -455,15 +452,15 @@ void CodeGen::DefineFunction(string &sd, bool label) {
         append(sd, "    PopFunId(vm);\n");
     }
     sd += "}\n";
-    code.clear();
+    icode.clear();
     fcode.clear();
     ownedvars.clear();
     assert(jumptables_stack.empty());
-    last_op_start = (size_t)-1;
     nkeepvars = -1;
     numlocals = 0;
     nlabel = 0;
     has_profile = false;
+    opc = IL_UNUSED;
 }
 
 void CodeGen::Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash) {

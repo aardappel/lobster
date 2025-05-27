@@ -24,9 +24,6 @@ enum {
 };
 
 struct CodeGen  {
-    vector<int> code;
-    vector<int> fcode;
-    vector<int> ownedvars;
     vector<metadata::SpecIdent> sids;
     Parser &parser;
     vector<const Node *> linenumbernodes;
@@ -50,9 +47,13 @@ struct CodeGen  {
     // C/C++ codegen related.
     string &c_codegen;
     string c_body;
-    size_t last_op_start = (size_t)-1;
+    ILOP opc = IL_UNUSED;
+    int regso = 0;
+    vector<int> icode;
+    vector<int> fcode;
+    vector<int> ownedvars;
     vector<int> funstarttables;
-    vector<const int *> jumptables_stack;
+    vector<vector<int>> jumptables_stack;
     vector<int> var_to_local;
     bool has_profile = false;
     string sdt;
@@ -65,12 +66,12 @@ struct CodeGen  {
     void DefineFunction(string &sd, bool label);
     void Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash);
 
-    int Pos() { return (int)code.size(); }
+    int Pos() { return (int)icode.size(); }
 
     int Label() { return nlabel++; }
 
     void Emit(int i) {
-        code.push_back(i);
+        icode.push_back(i);
     }
 
     int EmitLabelUse() {
@@ -132,10 +133,10 @@ struct CodeGen  {
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitCForPrev(c_body);
-        last_op_start = code.size();
+        assert(icode.empty());
 
-        Emit(op);
-        Emit(TempStackSize());
+        opc = op;
+        regso = TempStackSize();
 
         auto uses = ILUses()[op];
         if (uses == ILUNKNOWN) {
@@ -816,61 +817,61 @@ struct CodeGen  {
         }
     }
 
-    void GenMathOp(const BinOp *n, size_t retval, int opc) {
+    void GenMathOp(const BinOp *n, size_t retval, int op) {
         Gen(n->left, retval);
         Gen(n->right, retval);
-        if (retval) GenMathOp(n->left->exptype, n->right->exptype, n->exptype, opc);
+        if (retval) GenMathOp(n->left->exptype, n->right->exptype, n->exptype, op);
     }
 
-    void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, int opc) {
+    void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, int op) {
         TakeTemp(2, true);
         // Have to check right and left because comparison ops generate ints for node
         // overall.
         if (rtype->t == V_INT && ltype->t == V_INT) {
-            EmitOp(GENOP(IL_IADD + opc));
+            EmitOp(GENOP(IL_IADD + op));
         } else if (rtype->t == V_FLOAT && ltype->t == V_FLOAT) {
-            EmitOp(GENOP(IL_FADD + opc));
+            EmitOp(GENOP(IL_FADD + op));
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
-            EmitOp(GENOP(IL_SADD + opc));
+            EmitOp(GENOP(IL_SADD + op));
         } else if ((rtype->t == V_FUNCTION && ltype->t == V_FUNCTION) ||
                    (rtype->t == V_TYPEID && ltype->t == V_TYPEID)) {
-            assert(opc == MOP_EQ || opc == MOP_NE);
-            EmitOp(GENOP(IL_LEQ + (opc - MOP_EQ)));
+            assert(op == MOP_EQ || op == MOP_NE);
+            EmitOp(GENOP(IL_LEQ + (op - MOP_EQ)));
         } else {
-            if (opc >= MOP_EQ) {  // EQ/NEQ
+            if (op >= MOP_EQ) {  // EQ/NEQ
                 if (IsStruct(ltype->t)) {
-                    EmitOp(GENOP(IL_STEQ + opc - MOP_EQ), ValWidth(ltype) * 2, 1);
+                    EmitOp(GENOP(IL_STEQ + op - MOP_EQ), ValWidth(ltype) * 2, 1);
                     EmitWidthIfStruct(ltype);
                 } else {
                     assert(IsRefNil(ltype->t) &&
                            IsRefNil(rtype->t));
-                    EmitOp(GENOP(IL_AEQ + opc - MOP_EQ));
+                    EmitOp(GENOP(IL_AEQ + op - MOP_EQ));
                 }
             } else {
                 bool leftisvec = ltype->t == V_STRUCT_S;
                 // If this is a comparison op, be sure to use the child type.
-                TypeRef vectype = opc >= MOP_LT ? (leftisvec ? ltype : rtype) : ptype;
+                TypeRef vectype = op >= MOP_LT ? (leftisvec ? ltype : rtype) : ptype;
                 assert(vectype->t == V_STRUCT_S);
                 auto sub = vectype->udt->sametype;
                 bool withscalar = IsScalar(rtype->t) || IsScalar(ltype->t);
                 auto outw = ValWidth(ptype);
                 auto inw = withscalar ? outw + 1 : outw * 2;
                 if (sub->t == V_INT) 
-                    EmitOp(GENOP((withscalar ? (leftisvec ? IL_IVSADD : IL_SIVADD) : IL_IVVADD) + opc), inw, outw);
+                    EmitOp(GENOP((withscalar ? (leftisvec ? IL_IVSADD : IL_SIVADD) : IL_IVVADD) + op), inw, outw);
                 else if (sub->t == V_FLOAT)
-                    EmitOp(GENOP((withscalar ? (leftisvec ? IL_FVSADD : IL_SFVADD) : IL_FVVADD) + opc), inw, outw);
+                    EmitOp(GENOP((withscalar ? (leftisvec ? IL_FVSADD : IL_SFVADD) : IL_FVVADD) + op), inw, outw);
                 else assert(false);
                 EmitWidthIfStruct(vectype);
             }
         }
     }
 
-    void GenBitOp(const BinOp *n, size_t retval, ILOP opc) {
+    void GenBitOp(const BinOp *n, size_t retval, ILOP op) {
         Gen(n->left, retval);
         Gen(n->right, retval);
         if (retval) {
             TakeTemp(2, false);
-            EmitOp(opc);
+            EmitOp(op);
         }
     }
 
@@ -882,8 +883,8 @@ struct CodeGen  {
     }
 
     void EmitKeep(int stack_offset, int keep_index_add) {
-        auto opc = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
-        EmitOp(opc);
+        auto op = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
+        EmitOp(op);
         Emit(stack_offset);
         Emit(keepvars++ + keep_index_add);
     }
@@ -1788,12 +1789,12 @@ void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int m
         labels.push_back(lab);
         for (auto c : cas->pattern->children) {
             if (value->exptype->t == V_CLASS) {
-                cg.code[table_start + (int)i] = lab;
+                cg.icode[table_start + (int)i] = lab;
             } else {
                 auto [istart, iend] = get_range(c);
                 assert(istart && iend);
                 for (auto i = istart->integer; i <= iend->integer; i++) {
-                    cg.code[table_start + (int)i - mini] = lab;
+                    cg.icode[table_start + (int)i - mini] = lab;
                 }
             }
         }
