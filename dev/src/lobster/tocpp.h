@@ -336,7 +336,7 @@ void CodeGen::EmitCForPrev(string &sd) {
         default: {
             assert(ILArity()[opc] != ILUNKNOWN);
             append(sd, "U_", ILNames()[opc], "(vm, ", sp(), "");
-            for (int i = 0; i < icode.size(); i++) {
+            for (size_t i = 0; i < icode.size(); i++) {
                 sd += ", ";
                 append(sd, args[i]);
             }
