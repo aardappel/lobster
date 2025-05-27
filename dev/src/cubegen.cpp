@@ -452,21 +452,27 @@ nfr("sample_down", "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", "",
                     auto pos = int3(x, y, z);
                     float3 acc(0.0f);
                     float acca = 0.0f;
+                    int solid_count = 0;
                     for (int xd = 0; xd < sc; xd++) {
                         for (int yd = 0; yd < sc; yd++) {
                             for (int zd = 0; zd < sc; zd++) {
                                 auto d = int3(xd, yd, zd);
                                 auto c = v.grid.Get(pos * sc + d);
                                 auto col = int4(palette[c]);
-                                auto alpha = col.w & 0x80 ? 1.0f : 0.0f;
-                                auto linear = from_srgb(float3(col.xyz()) / 255.0f);
-                                acc += linear;
+                                auto alpha = 0.0f;
+                                if (col.w & 0x80) {
+                                    alpha = 1.0f; 
+                                    auto linear = from_srgb(float3(col.xyz()) / 255.0f);
+                                    acc += linear;
+                                    solid_count++;
+                                }
                                 acca += alpha;
                             }
                         }
                     }
                     auto volume = float(sc * sc * sc);
-                    auto np = v.Color2Palette(float4(to_srgb(acc / volume), acca / volume),
+                    auto col = solid_count ? acc / float(solid_count) : float3_0;
+                    auto np = v.Color2Palette(float4(to_srgb(col), acca / volume),
                                               alpha_threshold.fltval());
                     nw->grid.Get(pos) = np;
                 }
