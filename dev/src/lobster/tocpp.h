@@ -138,32 +138,33 @@ string CodeGen::IdName(int i, bool is_whole_struct) {
     }
 };
 
-void CodeGen::EmitCForPrev(string &sd) {
+string CodeGen::sp(int off) { return cat("regs + ", regso - off); };
+string CodeGen::spslot(int off) { return cat("regs[", regso - off, "]"); };
+void CodeGen::comment(string_view c) { append(cb, " // ", c); };
+
+void CodeGen::EmitCForPrev() {
     if (opc == IL_UNUSED) return;
-    const int *args = icode.data();
-    auto comment = [&](string_view c) { append(sd, " // ", c); };
-    append(sd, "    ");
-    auto sp = [&]() { return cat("regs + ", regso); };
+    append(cb, "    ");
     switch (opc) {
         case IL_PUSHVARL:
-            append(sd, "regs[", regso, "] = locals[", var_to_local[args[0]], "];");
-            comment(IdName(args[0], false));
+            append(cb, spslot(0), " = locals[", var_to_local[icode[0]], "];");
+            comment(IdName(icode[0], false));
             break;
         case IL_PUSHVARVL:
-            for (int i = 0; i < args[1]; i++) {
-                append(sd, "regs[", regso + i, "] = locals[", var_to_local[args[0] + i], "];");
+            for (int i = 0; i < icode[1]; i++) {
+                append(cb, spslot(-i), " = locals[", var_to_local[icode[0] + i], "];");
             }
-            comment(IdName(args[0], true));
+            comment(IdName(icode[0], true));
             break;
         case IL_LVAL_VARL:
-            append(sd, "SetLVal(vm, &locals[", var_to_local[args[0]], "]);");
-            comment(IdName(args[0], false));
+            append(cb, "SetLVal(vm, &locals[", var_to_local[icode[0]], "]);");
+            comment(IdName(icode[0], false));
             break;
         case IL_LABEL:
-            append(sd, "block", args[0], ":;");
+            append(cb, "block", icode[0], ":;");
             break;
         case IL_JUMP:
-            append(sd, "goto block", args[0], ";");
+            append(cb, "goto block", icode[0], ";");
             break;
         case IL_JUMPFAIL:
         case IL_JUMPFAILR:
@@ -175,47 +176,47 @@ void CodeGen::EmitCForPrev(string &sd) {
         case IL_JUMPIFUNWOUND:
         case IL_JUMPIFSTATICLF:
         case IL_JUMPIFMEMBERLF: {
-            auto id = args[opc >= IL_JUMPIFUNWOUND ? 1 : 0];
-            append(sd, "if (!U_", ILNames()[opc], "(vm, ", sp());
-            if (opc >= IL_JUMPIFUNWOUND) append(sd, ", ", args[0]);
-            append(sd, ")) goto block", id, ";");
+            auto id = icode[opc >= IL_JUMPIFUNWOUND ? 1 : 0];
+            append(cb, "if (!U_", ILNames()[opc], "(vm, ", sp());
+            if (opc >= IL_JUMPIFUNWOUND) append(cb, ", ", icode[0]);
+            append(cb, ")) goto block", id, ";");
             break;
         }
         case IL_JUMP_TABLE_DISPATCH:
             if (cpp) {
-                append(sd, "switch (GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
+                append(cb, "switch (GetTypeSwitchID(vm, ", spslot(1), ", ", icode[0],
                         ")) {");
             } else {
-                append(sd, "{ int top = GetTypeSwitchID(vm, regs[", regso - 1, "], ", args[0],
+                append(cb, "{ int top = GetTypeSwitchID(vm, ", spslot(1), ", ", icode[0],
                         "); switch (top) {");
             }
-            jumptables_stack.push_back(vector<int>(args + 1, args + icode.size()));
+            jumptables_stack.push_back(vector<int>(icode.data() + 1, icode.data() + icode.size()));
             break;
         case IL_JUMP_TABLE:
             if (cpp) {
-                append(sd, "switch (regs[", regso - 1, "].ival()) {");
+                append(cb, "switch (", spslot(1), ".ival()) {");
             } else {
-                append(sd, "{ long long top = regs[", regso - 1, "].ival; switch (top) {");
+                append(cb, "{ long long top = ", spslot(1), ".ival; switch (top) {");
             }
-            jumptables_stack.push_back(vector<int>(args, args + icode.size()));
+            jumptables_stack.push_back(icode);
             break;
         case IL_JUMP_TABLE_CASE_START: {
-            auto curlab = args[0];
+            auto curlab = icode[0];
             auto &vec = jumptables_stack.back();
             auto t = vec.data();
             auto mini = *t++;
             auto maxi = *t++;
             for (auto i = mini; i <= maxi; i++) {
-                if (*t++ == curlab) append(sd, "case ", i, ":");
+                if (*t++ == curlab) append(cb, "case ", i, ":");
             }
-            if (*t++ == curlab) append(sd, "default:");
+            if (*t++ == curlab) append(cb, "default:");
             break;
         }
         case IL_JUMP_TABLE_END: {
             if (cpp)
-                sd += "} // switch";
+                cb += "} // switch";
             else
-                sd += "}} // switch";
+                cb += "}} // switch";
             jumptables_stack.pop_back();
             break;
         }
@@ -228,45 +229,45 @@ void CodeGen::EmitCForPrev(string &sd) {
         case IL_BCALLRET5:
         case IL_BCALLRET6:
         case IL_BCALLRET7:
-            if (parser.natreg.nfuns[args[0]]->IsGLFrame()) {
-                append(sd, "GLFrame(", sp(), ", vm);");
+            if (parser.natreg.nfuns[icode[0]]->IsGLFrame()) {
+                append(cb, "GLFrame(", sp(), ", vm);");
             } else {
-                append(sd, "U_", ILNames()[opc], "(vm, ", sp(), ", ", args[0], ", ", args[1], ");");
-                comment(parser.natreg.nfuns[args[0]]->name);
+                append(cb, "U_", ILNames()[opc], "(vm, ", sp(), ", ", icode[0], ", ", icode[1], ");");
+                comment(parser.natreg.nfuns[icode[0]]->name);
             }
             break;
         case IL_GOTOFUNEXIT:
-            append(sd, "goto epilogue;");
+            append(cb, "goto epilogue;");
             break;
         case IL_KEEPREFLOOP:
-            append(sd, "DecVal(vm, keepvar[", args[1], "]); ");
+            append(cb, "DecVal(vm, keepvar[", icode[1], "]); ");
             [[fallthrough]];
         case IL_KEEPREF:
-            append(sd, "keepvar[", args[1], "] = TopM(", sp(), ", ", args[0], ");");
+            append(cb, "keepvar[", icode[1], "] = TopM(", sp(), ", ", icode[0], ");");
             break;
         case IL_PUSHFUN:
-            append(sd, "U_PUSHFUN(vm, ", sp(), ", 0, ", "fun_", args[0], ");");
+            append(cb, "U_PUSHFUN(vm, ", sp(), ", 0, ", "fun_", icode[0], ");");
             break;
         case IL_CALL: {
-            append(sd, "fun_", args[0], "(vm, ", sp(), ");");
-            auto sf_idx = args[0];
+            append(cb, "fun_", icode[0], "(vm, ", sp(), ");");
+            auto sf_idx = icode[0];
             comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
             break;
         }
         case IL_CALLV:
-            append(sd, "U_CALLV(vm, ", sp(), "); ");
-            if (cpp) append(sd, "vm.next_call_target(vm, regs + ", regso - 1, ");");
-            else append(sd, "GetNextCallTarget(vm)(vm, regs + ", regso - 1, ");");
+            append(cb, "U_CALLV(vm, ", sp(), "); ");
+            if (cpp) append(cb, "vm.next_call_target(vm, ", sp(1), ");");
+            else append(cb, "GetNextCallTarget(vm)(vm, ", sp(1), ");");
             break;
         case IL_DDCALL:
-            append(sd, "U_DDCALL(vm, ", sp(), ", ", args[0], ", ", args[1], "); ");
-            if (cpp) append(sd, "vm.next_call_target(vm, ", sp(), ");");
-            else append(sd, "GetNextCallTarget(vm)(vm, ", sp(), ");");
+            append(cb, "U_DDCALL(vm, ", sp(), ", ", icode[0], ", ", icode[1], "); ");
+            if (cpp) append(cb, "vm.next_call_target(vm, ", sp(), ");");
+            else append(cb, "GetNextCallTarget(vm)(vm, ", sp(), ");");
             break;
         case IL_PROFILE: {
             string name;
-            EscapeAndQuote(stringtable[args[0]], name, true);
-            append(sd, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
+            EscapeAndQuote(stringtable[icode[0]], name, true);
+            append(cb, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
                    ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
                    cpp ? "lobster::" : "", "StartProfile(&tsld);");
             has_profile = true;
@@ -287,38 +288,37 @@ void CodeGen::EmitCForPrev(string &sd) {
             fip += ndef;
             fip++;  // nkeepvars, not set until end of function
             assert(fip == fcode.data() + fcode.size());
-            int nrets = args[0];
+            int nrets = icode[0];
             if (opc == IL_RETURNLOCAL) {
-                append(sd, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
+                append(cb, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
             } else if (opc == IL_RETURNNONLOCAL) {
-                append(sd, "U_RETURNNONLOCAL(vm, 0, ", nrets, ", ", args[1], ");");
+                append(cb, "U_RETURNNONLOCAL(vm, 0, ", nrets, ", ", icode[1], ");");
             } else {
-                append(sd, "U_RETURNANY(vm, 0, ", nrets, ");");
+                append(cb, "U_RETURNANY(vm, 0, ", nrets, ");");
             }
             for (auto varidx : ownedvars) {
                 if (sids[varidx].used_as_freevar()) {
-                    append(sd, "\n    DecOwned(vm, ", varidx, ");");
+                    append(cb, "\n    DecOwned(vm, ", varidx, ");");
                 } else {
-                    append(sd, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
+                    append(cb, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
                 }
             }
             while (nargs--) {
                 auto varidx = *--freevars;
                 if (sids[varidx].used_as_freevar()) {
-                    append(sd, "\n    psp = PopArg(vm, ", varidx, ", psp);");
+                    append(cb, "\n    psp = PopArg(vm, ", varidx, ", psp);");
                 } else {
                     // TODO: move to when we obtain the arg?
-                    append(sd, "\n    Pop(psp);");
+                    append(cb, "\n    Pop(psp);");
                 }
             }
             if (opc == IL_RETURNANY) {
-                append(sd,
+                append(cb,
                         "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
-                        "Push(psp, regs[i + ",
-                        regso - nrets, "]); }");
+                        "Push(psp, regs[i + ", regso - nrets, "]); }");
             } else {
                 for (int i = 0; i < nrets; i++) {
-                    append(sd, "\n    Push(psp, regs[", i + regso - nrets, "]);");
+                    append(cb, "\n    Push(psp, ", spslot(nrets - i), ");");
                 }
             }
             sdt.clear();  // FIXME: remove
@@ -329,26 +329,26 @@ void CodeGen::EmitCForPrev(string &sd) {
                 }
             }
             if (opc != IL_RETURNANY) {
-                append(sd, "\n    goto epilogue;");
+                append(cb, "\n    goto epilogue;");
             }
             break;
         }
         default: {
             assert(ILArity()[opc] != ILUNKNOWN);
-            append(sd, "U_", ILNames()[opc], "(vm, ", sp(), "");
+            append(cb, "U_", ILNames()[opc], "(vm, ", sp(), "");
             for (size_t i = 0; i < icode.size(); i++) {
-                sd += ", ";
-                append(sd, args[i]);
+                cb += ", ";
+                append(cb, icode[i]);
             }
-            sd += ");";
+            cb += ");";
             switch (opc) {
                 case IL_PUSHVARF:
                 case IL_PUSHVARVF:
                 case IL_LVAL_VARF:
-                    comment(IdName(args[0], false));
+                    comment(IdName(icode[0], false));
                     break;
                 case IL_PUSHSTR: {
-                    auto sv = stringtable[args[0]];
+                    auto sv = stringtable[icode[0]];
                     sv = sv.substr(0, 50);
                     string q;
                     EscapeAndQuote(sv, q, true);
@@ -358,14 +358,14 @@ void CodeGen::EmitCForPrev(string &sd) {
                 case IL_ISTYPE:
                 case IL_NEWOBJECT:
                 case IL_ST2S:
-                    auto ti = ((TypeInfo *)(&type_table[args[0]]));
+                    auto ti = ((TypeInfo *)(&type_table[icode[0]]));
                     if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
                     break;
             }
             break;
         }
     }
-    sd += "\n";
+    cb += "\n";
     icode.clear();
 }
 
@@ -434,9 +434,9 @@ void CodeGen::DefineFunction(string &sd, bool label) {
     }
 
     // Last instruction of the body.
-    EmitCForPrev(c_body);
-    sd += c_body;
-    c_body.clear();
+    EmitCForPrev();
+    sd += cb;
+    cb.clear();
 
 
     if (label) sd += "    epilogue:;\n";

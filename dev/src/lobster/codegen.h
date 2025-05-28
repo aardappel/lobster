@@ -46,7 +46,7 @@ struct CodeGen  {
 
     // C/C++ codegen related.
     string &c_codegen;
-    string c_body;
+    string cb;
     ILOP opc = IL_UNUSED;
     int regso = 0;
     vector<int> icode;
@@ -59,7 +59,10 @@ struct CodeGen  {
     string sdt;
     int numlocals = 0;
     int nlabel = 0;
-    void EmitCForPrev(string &sd);
+    string sp(int off = 0);
+    string spslot(int off);
+    void comment(string_view c);
+    void EmitCForPrev();
     string IdName(int i, bool is_whole_struct);
     void Prologue(string &sd);
     void DeclareFunction(SubFunction &sf, string &sd);
@@ -132,7 +135,7 @@ struct CodeGen  {
     };
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        EmitCForPrev(c_body);
+        EmitCForPrev();
         assert(icode.empty());
 
         opc = op;
