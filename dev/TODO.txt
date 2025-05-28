@@ -1,3 +1,34 @@
+- a tuple-like feature, in particular for the "temp vector with 2 elements" use case.
+  It is pretty easy to declare a new struct, but it feel overdone sometimes.
+  * we could simply declare a struct pair<A,B> in the modules and be done with it, but
+    having these values accessed as .a and .b really just makes the code worse.
+    It needs a solution that still allows names.
+  * FPLs get around this with always requiring destructuring to access, giving sensible
+    variable names. But in Lobster you really want to be able to do vec[i].foo
+    without first having to let (foo, bar) = vec[i], esp if you only need foo.
+  * The big ick around just declaring a struct is naming it, so what if we could have
+    anonymously declared structs directly in types?
+    let vec:{ foo:string, bar:int } = []
+    And you can still construct these thanks to our newly added anonymous constructors:
+    vec.push({ "a", 1 })
+    It would be cool to allow these typeless:
+    let vec:{ foo, bar } = []
+    That may be tricky, as the push would need to instantiate the template on the fly,
+    but probably can be made to work.
+    It would name these under the hood as "tuple" + increasing index, which would occasionally
+    show up in error messages, but that be ok?
+    One big no-no with that is if these things would get serialized, they may have a different
+    type each run. To avoid that, we'd really have to lift it into a language feature instead.
+    I guess ideally, you'd want tuples with the same element types and field names to end up with
+    the same type, such that if you { foo:string, bar:int } in two places they'd actually be
+    compatible types, but "tuple_64bithash" might be a bit too userunfriendly, and "tuple_si"
+    would work for this example but not for custom types, and also ignores field names.
+    You'd need "tuple_foo_string_bar_namespace_MyCustomType" etc :)
+    Really if you need to use it in multiple places or serialize, just lift into a named struct.
+    Oh and if we're going to implement this syntax, we should also allow one-liner structs the
+    same way:
+    struct X { foo:string, bar:int }
+
 - gl.polygon (and presumably any RenderArraySlow) leaks vbo/vao on Linux/Mesa?
   https://github.com/aardappel/lobster/issues/366
 
