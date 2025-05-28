@@ -634,7 +634,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 size_t off = 0;
                 for (flatbuffers::uoffset_t i = 0; i < bcf->udts()->size(); i++) {
                     auto udt = bcf->udts()->Get(i);
-                    auto fspan = make_span(fields.data() + off, fields.data() + off + udt->fields()->size());
+                    auto fspan = span(fields.data() + off, fields.data() + off + udt->fields()->size());
                     udts.push_back(VMUDT{ udt->name()->string_view(), udt->idx(), udt->size(),
                                           udt->super_idx(), udt->typeidx(), fspan });
                     off += udt->fields()->size();
@@ -659,7 +659,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 off = 0;
                 for (flatbuffers::uoffset_t i = 0; i < bcf->enums()->size(); i++) {
                     auto e = bcf->enums()->Get(i);
-                    auto fspan = make_span(enumvals.data() + off,
+                    auto fspan = span(enumvals.data() + off,
                                            enumvals.data() + off + e->vals()->size());
                     enums.push_back(VMEnum{ e->name()->string_view(), fspan, e->flags() });
                     off += e->vals()->size();
@@ -675,17 +675,17 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 }               
                 VMMetaData vmmeta = {
                     bcf->metadata_version(),
-                    make_span(type_table),
-                    make_span(stringtable),
-                    make_span(file_names),
-                    make_span(function_names),
-                    make_span(udts),
-                    make_span(specidents),
-                    make_span(enums),
-                    make_span(ser_ids),
+                    span(type_table),
+                    span(stringtable),
+                    span(file_names),
+                    span(function_names),
+                    span(udts),
+                    span(specidents),
+                    span(enums),
+                    span(ser_ids),
                     bcf->build_info()->string_view(),
                     bcf->src_hash(),
-                    make_span(subfunctions_to_function),
+                    span(subfunctions_to_function),
                 };
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,

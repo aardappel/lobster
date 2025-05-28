@@ -244,7 +244,7 @@ Mesh *VRCreateMesh(uint32_t device) {
     auto tex = CreateTexture("vr.controller_tex", modeltex->rubTextureMapData,
                              int3(modeltex->unWidth, modeltex->unHeight, 0), TF_CLAMP);
     auto m = new Mesh(
-        new Geometry("vr.controller_verts", make_span(model->rVertexData, model->unVertexCount),
+        new Geometry("vr.controller_verts", span(model->rVertexData, model->unVertexCount),
                                    "PNT"), PRIM_TRIS);
     auto nindices = model->unTriangleCount * 3;
     vector<int> indices(nindices);
@@ -253,7 +253,7 @@ Mesh *VRCreateMesh(uint32_t device) {
         indices[i + 1] = model->rIndexData[i + 2];
         indices[i + 2] = model->rIndexData[i + 1];
     }
-    auto surf = new Surface("vr.controller_idxs", make_span(indices), PRIM_TRIS);
+    auto surf = new Surface("vr.controller_idxs", span(indices), PRIM_TRIS);
     surf->Get(0) = tex;
     m->surfs.push_back(surf);
     vr::VRRenderModels()->FreeRenderModel(model);

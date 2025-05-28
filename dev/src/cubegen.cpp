@@ -611,14 +611,14 @@ nfr("create_mesh", "block", "R:voxels", "R:mesh",
                 }
             }
         }
-        normalize_mesh(make_span(triangles), verts.data(), verts.size(),
+        normalize_mesh(span(triangles), verts.data(), verts.size(),
                        sizeof(cvert), (uint8_t *)&verts.data()->normal - (uint8_t *)&verts.data()->pos,
                        false);
         LOG_INFO("cubegen verts = ", verts.size(), ", tris = ", triangles.size() / 3);
-        auto m = new Mesh(new Geometry("cg.create_mesh_verts", make_span(verts), "PNC"),
+        auto m = new Mesh(new Geometry("cg.create_mesh_verts", span(verts), "PNC"),
                           PRIM_TRIS);
         m->surfs.push_back(
-            new Surface("cg.create_mesh_idxs", make_span(triangles), PRIM_TRIS));
+            new Surface("cg.create_mesh_idxs", span(triangles), PRIM_TRIS));
         return Value(vm.NewResource(&mesh_type, m));
     });
 

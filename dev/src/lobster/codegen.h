@@ -998,7 +998,7 @@ struct CodeGen  {
             for (auto udt : st.udttable) {
                 sd += "    { ";
                 gen_string(udt->name);
-                auto fspan = udt->sfields.empty() ? "{}" : cat("make_span(", fieldsname(udt), ")");
+                auto fspan = udt->sfields.empty() ? "{}" : cat("span(", fieldsname(udt), ")");
                 append(sd, ", ", udt->idx, ", ", udt->numslots, ", ",
                            (udt->ssuperclass ? udt->ssuperclass->idx : -1), ", ", udt->typeinfo, ", ",
                            fspan, " },\n");
@@ -1032,7 +1032,7 @@ struct CodeGen  {
             for (auto e : st.enumtable) {
                 sd += "    { ";
                 gen_string(e->name);
-                auto fspan = e->vals.empty() ? "{}" : cat("make_span(", enumvalsname(e), ")");
+                auto fspan = e->vals.empty() ? "{}" : cat("span(", enumvalsname(e), ")");
                 append(sd, ", ", fspan, ", ", e->flags, " },\n");
             }
             sd += "};\n\n";
@@ -1074,21 +1074,21 @@ struct CodeGen  {
             if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
             sd += "    lobster::VMMetaData vmmeta = {\n";
             sd += "        " + to_string(LOBSTER_METADATA_FORMAT_VERSION) + ",\n";
-            sd += "        make_span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
-            sd += "        make_span(stringtable),\n";
-            sd += "        make_span(file_names),\n";
-            sd += "        make_span(function_names),\n";
-            sd += "        make_span(udts),\n";
-            sd += "        make_span(specidents),\n";
-            sd += "        make_span(enums),\n";
-            sd += "        make_span(ser_ids),\n";
+            sd += "        span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
+            sd += "        span(stringtable),\n";
+            sd += "        span(file_names),\n";
+            sd += "        span(function_names),\n";
+            sd += "        span(udts),\n";
+            sd += "        span(specidents),\n";
+            sd += "        span(enums),\n";
+            sd += "        span(ser_ids),\n";
             sd += "        ";
             gen_string(build_info);
             sd += ",\n";
             sd += "        ";
             to_string_hex(sd, src_hash);
             sd += ",\n";
-            sd += "        make_span(subfunctions_to_function),\n";
+            sd += "        span(subfunctions_to_function),\n";
             sd += "    };\n";
             sd += "    return RunCompiledCodeMain(argc, argv, ";
             append(sd, "&vmmeta, vtables, ", custom_pre_init_name, ", \"",

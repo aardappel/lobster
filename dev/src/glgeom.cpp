@@ -304,7 +304,7 @@ void GeometryCache::RenderUnitSquare(Shader *sh, Primitive prim, bool centered) 
             SpriteVert{ float2( 1, -1), float2(1, 0) },
         };
         quadgeom[centered] =
-            new Geometry("RenderUnitSquare", make_span(centered ? vb_square_centered : vb_square, 4), "pT");
+            new Geometry("RenderUnitSquare", span(centered ? vb_square_centered : vb_square, 4), "pT");
     }
     sh->Set();
     RenderArray(prim, quadgeom[centered]);
@@ -366,9 +366,9 @@ void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
                 verts.push_back(vert);
             }
         }
-        cube_geom[inside] = new Geometry("RenderUnitCube_verts", make_span(verts), "PNT");
+        cube_geom[inside] = new Geometry("RenderUnitCube_verts", span(verts), "PNT");
         cube_ibo[inside] =
-            GenBO("RenderUnitCube_idxs", GL_ELEMENT_ARRAY_BUFFER, make_span(triangles), false);
+            GenBO("RenderUnitCube_idxs", GL_ELEMENT_ARRAY_BUFFER, span(triangles), false);
     }
     sh->Set();
     RenderArray(PRIM_TRIS, cube_geom[inside], cube_ibo[inside], 36);
@@ -393,7 +393,7 @@ void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segme
             xy *= size;
             vbuf.push_back(float3(xy, 0));
         }
-        geom = new Geometry("RenderRoundedRectangle", make_span(vbuf), "P");
+        geom = new Geometry("RenderRoundedRectangle", span(vbuf), "P");
     }
     sh->Set();
     RenderArray(prim, geom);
@@ -441,9 +441,9 @@ void GeometryCache::RenderRoundedRectangleBorder(Shader *sh, int segments, float
             ibuf.push_back(((i + 1) * 2 + 1) % nverts);
             ibuf.push_back(((i + 1) * 2 + 0) % nverts);
         }
-        vibo.first = new Geometry("RenderRoundedRectangleBorder_verts", make_span(vbuf), "P");
+        vibo.first = new Geometry("RenderRoundedRectangleBorder_verts", span(vbuf), "P");
         vibo.second = GenBO("RenderRoundedRectangleBorder_idxs", GL_ELEMENT_ARRAY_BUFFER,
-                            make_span(ibuf), false);
+                            span(ibuf), false);
     }
     sh->Set();
     RenderArray(PRIM_TRIS, vibo.first, vibo.second, nindices);
@@ -461,7 +461,7 @@ void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float
             vbuf.push_back(float3(sinf(i * step + 1),
                                   cosf(i * step + 1), 0));
         }
-        geom = new Geometry("RenderCircle", make_span(vbuf), "P");
+        geom = new Geometry("RenderCircle", span(vbuf), "P");
     }
     Transform(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();
@@ -494,8 +494,8 @@ void GeometryCache::RenderOpenCircle(Shader *sh, int segments, float radius, flo
             ibuf.push_back(((i + 1) * 2 + 1) % nverts);
             ibuf.push_back(((i + 1) * 2 + 0) % nverts);
         }
-        vibo.first = new Geometry("RenderOpenCircle_verts", make_span(vbuf), "P");
-        vibo.second = GenBO("RenderOpenCircle_idxs", GL_ELEMENT_ARRAY_BUFFER, make_span(ibuf), false);
+        vibo.first = new Geometry("RenderOpenCircle_verts", span(vbuf), "P");
+        vibo.second = GenBO("RenderOpenCircle_idxs", GL_ELEMENT_ARRAY_BUFFER, span(ibuf), false);
     }
     Transform(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();

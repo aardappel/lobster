@@ -54,23 +54,6 @@ template<typename T> ssize_t ssize(const vector<T> &c) { return (ssize_t)c.size(
 template<typename T> ssize_t ssizeof() { return (ssize_t)sizeof(T); }
 template<typename T> ssize_t salignof() { return (ssize_t)alignof(T); }
 
-// std::span helpers.
-template<class T> span<T> make_span(T *p, size_t count) {
-    return span<T>(p, count);
-}
-template<class T> span<T> make_span(T *first, T *last) {
-    return span<T>(first, last);
-}
-template<class T, size_t N> span<T> make_span(T (&a)[N]) {
-    return span<T>(a);
-}
-template<class T> span<const T> make_span(const T *p, size_t count) {
-    return span<const T>(p, count);
-}
-template<class V> span<typename V::value_type> make_span(V &v) {
-    return span<typename V::value_type>(v);
-}
-
 inline iint positive_bits(uint64_t i) { return (i << 1) >> 1; }
 
 // Typed versions of memcpy.
