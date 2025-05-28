@@ -320,7 +320,6 @@
     <ClInclude Include="..\src\lobster\stack_vector.h" />
     <ClInclude Include="..\src\lobster\stdafx.h" />
     <ClInclude Include="..\src\lobster\string_tools.h" />
-    <ClInclude Include="..\src\lobster\tocpp.h" />
     <ClInclude Include="..\src\lobster\tonative.h" />
     <ClInclude Include="..\src\lobster\tools.h" />
     <ClInclude Include="..\src\lobster\ttypes.h" />
