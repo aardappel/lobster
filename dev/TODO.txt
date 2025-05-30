@@ -1,3 +1,11 @@
+- Fix defaultval typechecking in TypeCheckUDT
+
+- FIX:
+  a = nil
+  if not a:
+    a = ..
+  assert a
+
 - a tuple-like feature, in particular for the "temp vector with 2 elements" use case.
   It is pretty easy to declare a new struct, but it feel overdone sometimes.
   * we could simply declare a struct pair<A,B> in the modules and be done with it, but
@@ -28,6 +36,14 @@
     Oh and if we're going to implement this syntax, we should also allow one-liner structs the
     same way:
     struct X { foo:string, bar:int }
+
+- FIX:
+  class PreDecl
+  class Foo:
+    p = PreDecl {}
+  Tries to typecheck that constructor and fails on not knowing its default values yet.
+  Should either know a UDT has not been typechecked and attempt to do so before typechecking constructor,
+  or this should be part of separating out a separate pass?
 
 - gl.polygon (and presumably any RenderArraySlow) leaks vbo/vao on Linux/Mesa?
   https://github.com/aardappel/lobster/issues/366

@@ -810,6 +810,12 @@ struct TypeChecker {
                 TT(sfield.defaultval, 1, LT_ANY);
                 st.PopSuperGenerics(&udt);
                 DecBorrowers(sfield.defaultval->lt, errn);
+                // FIXME: because the above may do things like insert coercions etc in exp,
+                // we have to undo that here.
+                auto n = f.gdefaultval->Clone(true);
+                n->exptype = sfield.defaultval->exptype;  // FIXME: even safer if this was not set.
+                delete sfield.defaultval;
+                sfield.defaultval = n;
             } else {
                 // TODO: expand the cases where CFType is sufficient.
                 sfield.defaultval->exptype = cf_type;
