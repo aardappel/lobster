@@ -37,6 +37,8 @@ struct Node {
     virtual bool Terminal(TypeChecker &) const { return false; }
     // Node will have this type regardless of type-checking context.
     virtual TypeRef CFType() { return nullptr; }
+    // Derive type without type checking any expressions recursively.
+    virtual TypeRef SimpleType(SymbolTable &) { return CFType(); }
     virtual string_view Name() const = 0;
     virtual void Dump(string &sd) const { sd += Name(); }
     template<typename F> void Iterate(F f) {
@@ -234,6 +236,7 @@ struct TypeAnnotation : Node {
 #define RETURNSMETHOD bool Terminal(TypeChecker &tc) const;
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
 #define INITMETHOD bool IsConstInit() const;
+#define SIMPLEMETHOD TypeRef SimpleType(SymbolTable &);
 
 // generic node types
 NARY_NODE(List, "list", false, )
@@ -280,7 +283,7 @@ BINARY_NODE(Seq, "statements", false, head, tail, )
 BINARY_NODE(Indexing, "indexing operation", false, object, index, )
 UNOP_NODE(PostIncr, TName(T_INCR), true, )
 UNOP_NODE(PostDecr, TName(T_DECR), true, )
-UNARY_NODE(UnaryMinus, TName(T_MINUS), false, INITMETHOD)
+UNARY_NODE(UnaryMinus, TName(T_MINUS), false, INITMETHOD SIMPLEMETHOD)
 COER_NODE(ToFloat, "tofloat", )
 COER_NODE(ToString, "tostring", )
 COER_NODE(ToBool, "tobool", )
@@ -324,6 +327,7 @@ struct IdentRef : Node {
         return sid == ((IdentRef *)o)->sid;
     }
     SHARED_SIGNATURE(IdentRef, TName(T_IDENT), false)
+    SIMPLEMETHOD
 };
 
 struct IntConstant : Node {
@@ -444,6 +448,7 @@ struct VectorConstructor : List {
     }
     SHARED_SIGNATURE(VectorConstructor, "vector_constructor", false)
     OPTMETHOD
+    SIMPLEMETHOD
 };
 
 struct ObjectConstructor : List {
@@ -460,6 +465,7 @@ struct ObjectConstructor : List {
     }
     SHARED_SIGNATURE(ObjectConstructor, "object_constructor", false)
     OPTMETHOD
+    SIMPLEMETHOD
 };
 
 struct AutoConstructor : List {

@@ -796,11 +796,15 @@ struct TypeChecker {
             }
             sfield.defaultval = f.gdefaultval->Clone(true);
             if (sfield.type->t != V_ANY) {
+                // Type was specified explicitly or CFType succeeded, we are done.
                 sfield.defaultval->exptype = sfield.type;
                 continue;
             }
-            auto cf_type = sfield.defaultval->CFType();
-            if (cf_type.Null()) {
+            auto simple_type = sfield.defaultval->SimpleType(st);
+            if (simple_type.Null()) {
+                // TODO: put in this error once we're confident about SimpleType being conservatively correct.
+                //Error(errn, "non-trivial default value for ", Q(udt.g.fields[i].id->name),
+                //      " requires explicit field type");
                 // FIXME: would be good to not call TT here generically but instead rely
                 // on CFType entirely, just in case TT has a side effect on type
                 // checking, especially function calls, whose "return from" may fail here.
@@ -818,7 +822,7 @@ struct TypeChecker {
                 sfield.defaultval = n;
             } else {
                 // TODO: expand the cases where CFType is sufficient.
-                sfield.defaultval->exptype = cf_type;
+                sfield.defaultval->exptype = simple_type;
             }
             sfield.defaultval->lt = LT_UNDEF;
             sfield.type = sfield.defaultval->exptype;
@@ -3169,6 +3173,9 @@ Node *PreIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bo
     return tc.TypeCheckPlusPlus(*this);
 }
 
+TypeRef UnaryMinus::SimpleType(SymbolTable &st) {
+    return child->SimpleType(st);
+}
 Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
     exptype = child->exptype;
@@ -3180,6 +3187,11 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     return this;
 }
 
+TypeRef IdentRef::SimpleType(SymbolTable &) {
+    // This should really never return a type that later is improved by TypeCheck() is that the case?
+    //return sid->id->constant && sid->id->scopelevel == 1 && !sid->type.Null() && sid->type->t != V_UNDEFINED ? sid->type : nullptr;
+    return nullptr;
+}
 Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.UpdateCurrentSid(sid);
     for (auto &sc : reverse(tc.scopes)) if (sc.sf == sid->sf_def) goto in_scope;
@@ -3830,6 +3842,12 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     return this;
 }
 
+TypeRef VectorConstructor::SimpleType(SymbolTable &) {
+    // This should really never return a type that later is improved by TypeCheck() is that the case?
+    // How to deal with resolving types?
+    //return giventype.Null() ? nullptr : giventype;
+    return nullptr;
+}
 Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef parent_bound) {
     if (giventype.Null()) {
         if (parent_bound->t == V_VECTOR && parent_bound->sub->IsConcrete()) {
@@ -3912,6 +3930,10 @@ Node *AutoConstructor::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_
     return constructor;
 }
 
+TypeRef ObjectConstructor::SimpleType(SymbolTable &) {
+    // This should really never return a type that later is improved by TypeCheck().
+    return nullptr;
+}
 Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     UDT *udt = nullptr;
     if (giventype->t == V_UUDT && giventype->spec_udt->specializers.empty()) {
