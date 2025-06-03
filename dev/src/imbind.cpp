@@ -394,6 +394,12 @@ bool LoadFont(string_view name, float size, string_view lang_name) {
     } else if (lang_name == "Polish") {
         static const ImWchar ranges[] = { 0x0020, 0x00FF, 0x0100, 0x017F, 0 };
         glyph_ranges = ranges;
+    } else if (lang_name == "FontAwesome6") {
+        static const ImWchar ranges[] = { 0xe005, 0xf8ff, 0 };
+        glyph_ranges = ranges;
+        imfc.MergeMode = true;
+        imfc.PixelSnapH = true;
+        imfc.GlyphMinAdvanceX = size;
     }
     auto font = atlas->AddFontFromMemoryTTF(mb, (int)buf.size(), size, &imfc, glyph_ranges);
     return font != nullptr;
