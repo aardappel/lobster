@@ -224,8 +224,8 @@ struct NAME : Node { \
 };
 
 struct TypeAnnotation : Node {
-    TypeRef giventype;
-    TypeAnnotation(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
+    UnTypeRef giventype;
+    TypeAnnotation(const Line &ln, UnTypeRef tr) : Node(ln), giventype(tr) {}
     void Dump(string &sd) const { sd += TypeName(giventype); }
     bool EqAttr(const Node *o) const {
         return giventype->Equal(*((TypeAnnotation *)o)->giventype);
@@ -308,7 +308,7 @@ ZERO_NODE(Break, "break", false, RETURNSMETHOD)
 UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD)
 
 struct Nil : Node {
-    TypeRef giventype;
+    UnTypeRef giventype;
     Nil(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
     bool EqAttr(const Node *o) const {
         return giventype->Equal(*((Nil *)o)->giventype);
@@ -422,9 +422,9 @@ struct GenericCall : List {
     bool fromdot;
     bool noparens;
     bool super;
-    vector<TypeRef> specializers;
+    vector<UnTypeRef> specializers;
     GenericCall(const Line &ln, string_view name, string_view ns, bool fromdot, bool noparens,
-                bool super, vector<TypeRef> *spec)
+                bool super, vector<UnTypeRef> *spec)
         : List(ln), name(name), ns(ns), fromdot(fromdot), noparens(noparens), super(super) {
         if (spec) specializers = *spec;
     };
@@ -435,8 +435,8 @@ struct GenericCall : List {
 };
 
 struct VectorConstructor : List {
-    TypeRef giventype;
-    VectorConstructor(const Line &ln) : List(ln), giventype(nullptr) {};
+    UnTypeRef giventype;
+    VectorConstructor(const Line &ln) : List(ln), giventype((UnType *)nullptr) {};
     bool IsConstInit() const {
         for (auto n : children) {
             if (!n->IsConstInit()) return false;
@@ -452,8 +452,8 @@ struct VectorConstructor : List {
 };
 
 struct ObjectConstructor : List {
-    TypeRef giventype;
-    ObjectConstructor(const Line &ln, TypeRef _type) : List(ln), giventype(_type) {};
+    UnTypeRef giventype;
+    ObjectConstructor(const Line &ln, UnTypeRef _type) : List(ln), giventype(_type) {};
     bool IsConstInit() const {
         for (auto n : children) {
             if (!n->IsConstInit()) return false;
@@ -489,7 +489,7 @@ struct AutoConstructor : List {
 struct Call : List {
     int vtable_idx = -1;
     SubFunction *sf;
-    vector<TypeRef> specializers;
+    vector<UnTypeRef> specializers;
     bool super;
     explicit Call(GenericCall &gc, SubFunction *sf)
         : List(gc.line), sf(sf), specializers(gc.specializers), super(gc.super) {};
@@ -554,11 +554,16 @@ struct AssignList : List {
     SHARED_SIGNATURE(AssignList, "assign list", true)
 };
 
+struct TypedSid {
+    SpecIdent *sid;
+    UnTypeRef giventype;
+};
+
 struct Define : Unary {
-    vector<pair<SpecIdent *, TypeRef>> sids;
+    vector<TypedSid> tsids;
     Define(const Line &ln, Node *_a) : Unary(ln, _a) {}
     void Dump(string &sd) const {
-        for (auto &p : sids) append(sd, p.first->id->name, " ");
+        for (auto &p : tsids) append(sd, p.sid->id->name, " ");
         sd += Name();
     }
     bool EqAttr(const Node *) const {
@@ -586,7 +591,7 @@ struct Member : Unary {
 
 struct Static : Unary {
     SpecIdent *sid = nullptr;
-    TypeRef giventype;
+    UnTypeRef giventype;
     bool frame = false;
     Static(const Line &ln, Node *init) : Unary(ln, init) {}
     void Dump(string &sd) const {
@@ -611,9 +616,9 @@ struct Dot : Unary {
 };
 
 struct IsType : Unary {
-    TypeRef giventype;
+    UnTypeRef giventype;
     TypeRef resolvedtype = nullptr;
-    IsType(const Line &ln, Node *_a, TypeRef _type) : Unary(ln, _a), giventype(_type) {}
+    IsType(const Line &ln, Node *_a, UnTypeRef _type) : Unary(ln, _a), giventype(_type) {}
     void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype)); }
     bool EqAttr(const Node *o) const {
         return giventype->Equal(*((IsType *)o)->giventype);

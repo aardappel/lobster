@@ -64,7 +64,7 @@ struct Ident : Named {
 
     SpecIdent *cursid = nullptr;
 
-    TypeRef giventype = nullptr;
+    UnTypeRef giventype = (UnType *)nullptr;
 
     Ident(string_view _name, int _idx, size_t _sl, Line &_line)
         : Named(_name, _idx), scopelevel(_sl), line(_line) {}
@@ -150,13 +150,13 @@ struct SharedField : Named {
 
 struct Field {
     SharedField *id;
-    TypeRef giventype;
+    UnTypeRef giventype;
     Node *gdefaultval;
     bool isprivate;
     bool in_scope;  // For tracking scopes of ones declared by `member`.
     Line defined_in;
 
-    Field(SharedField *_id, TypeRef _type, Node *_gdefaultval, bool isprivate,
+    Field(SharedField *_id, UnTypeRef _type, Node *_gdefaultval, bool isprivate,
           bool in_scope, const Line &defined_in)
         : id(_id),
           giventype(_type),
@@ -176,13 +176,13 @@ struct SField {
 
 struct TypeVariable {
     string_view name;
-    Type thistype;
+    UnType thistype;
 
     TypeVariable(string_view name) : name(name), thistype(this) {}
 };
 
 struct GenericTypeVariable {
-    TypeRef type;  // Either given or resolved, depending on context.
+    TypeRef type;
     TypeVariable *tv;
 
     GenericTypeVariable() : tv(nullptr) {}
@@ -208,7 +208,7 @@ struct GUDT : Named {
     vector<GenericTypeVariable> generics;
     UDT *first = nullptr;  // Specializations
     vector<Field> fields;
-    TypeRef gsuperclass;
+    UnTypeRef gsuperclass;
     bool is_struct = false;
     bool is_abstract = false;
     bool isprivate = false;
@@ -217,7 +217,7 @@ struct GUDT : Named {
     bool has_subclasses = false;
     bool has_constructor_function = false;
     SpecUDT unspecialized;
-    Type unspecialized_type;
+    UnType unspecialized_type;
     map<string_view, string_view> attributes;
 
     GUDT(string_view _name, int _idx, bool is_struct, Line &line)
@@ -305,11 +305,11 @@ struct UDT : Named {
     }
 };
 
-GUDT *GetGUDTSuper(TypeRef type) {
+GUDT *GetGUDTSuper(UnTypeRef type) {
     return type->t == V_UNDEFINED ? nullptr : (type->t == V_UUDT ? type->spec_udt->gudt : &type->udt->g);
 }
 
-GUDT *GetGUDTAny(TypeRef type) {
+GUDT *GetGUDTAny(UnTypeRef type) {
     return type->t == V_UUDT ? type->spec_udt->gudt : (IsUDT(type->t) ? &type->udt->g : nullptr);
 }
 
@@ -403,7 +403,7 @@ struct Caller {
 
 struct Overload {
     SubFunction *sf = nullptr;
-    vector<TypeRef> givenargs;
+    vector<UnTypeRef> givenargs;
     Block *gbody = nullptr;
     Line declared_at;
     bool isprivate;
@@ -421,8 +421,8 @@ struct SubFunction {
     vector<Arg> args;
     vector<Arg> locals;
     vector<Arg> freevars;       // any used from outside this scope
-    vector<TypeRef> giventypes;  // before specialization, includes typevars. FIXME: Only needed once per overload
-    TypeRef returngiventype = nullptr;
+    vector<UnTypeRef> giventypes;  // before specialization, includes typevars. FIXME: Only needed once per overload
+    UnTypeRef returngiventype = (UnType *)nullptr;
     TypeRef returntype = type_undefined;
     size_t num_returns = 0;
     size_t num_returns_non_local = 0;
@@ -552,7 +552,7 @@ template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
     }
 }
 
-inline string TypeName(TypeRef type, bool tuple_brackets = true);
+inline string TypeName(UnTypeRef type, bool tuple_brackets = true);
 
 struct SymbolTable {
     Lex &lex;
@@ -603,6 +603,7 @@ struct SymbolTable {
     vector<SubFunction *> defsubfunctionstack;
 
     vector<Type *> typelist;  // Used for constructing new vector types, variables, etc.
+    vector<UnType *> untypelist;
     vector<vector<Type::TupleElem> *> tuplelist;
     vector<SpecUDT *> specudts;
 
@@ -631,6 +632,7 @@ struct SymbolTable {
         for (auto sf  : subfunctiontable) delete sf;
         for (auto f   : fieldtable)       delete f;
         for (auto t   : typelist)         delete t;
+        for (auto t   : untypelist)       delete t;
         for (auto t   : tuplelist)        delete t;
         for (auto n   : stored_names)     delete[] n;
         for (auto tv  : typevars)         delete tv;
@@ -721,8 +723,7 @@ struct SymbolTable {
         return ident;
     }
 
-    void AddWithStruct(TypeRef type, Ident *id, SubFunction *sf) {
-        auto gudt = GetGUDTAny(type);
+    void AddWithStruct(GUDT *gudt, Ident *id, SubFunction *sf) {
         if (!gudt) lex.Error(":: can only be used with struct/class types");
         for (auto &wp : withstack)
             if (wp.gudt == gudt)
@@ -1088,6 +1089,14 @@ struct SymbolTable {
         return t;
     }
 
+    UnType *NewUnType() {
+        // These get allocated for very few nodes, given that most types are shared or stored in
+        // their own struct.
+        auto t = new UnType();
+        untypelist.push_back(t);
+        return t;
+    }
+
     TypeRef NewTypeVar() {
         auto var = NewType();
         *var = Type(V_VAR);
@@ -1111,15 +1120,15 @@ struct SymbolTable {
         return type;
     }
 
-    TypeRef NewSpecUDT(GUDT *gudt) {
+    UnTypeRef NewSpecUDT(GUDT *gudt) {
         auto su = new SpecUDT(gudt);
         specudts.push_back(su);
-        auto nt = NewType();
-        *nt = Type(su);
+        auto nt = NewUnType();
+        *nt = UnType(su);
         return nt;
     }
 
-    TypeRef Wrap(TypeRef elem, ValueType with, const Line *errl = nullptr) {
+    template<typename T> T Wrap(T elem, ValueType with, const Line *errl = nullptr) {
         if (with == V_NIL) {
             if (elem->t == V_NIL) return elem;
             if (elem->t != V_VAR && elem->t != V_TYPEVAR && !IsNillable(elem))
@@ -1190,13 +1199,13 @@ struct SymbolTable {
             : default_float_vector_types[level][arity];
     }
 
-    bool IsGeneric(TypeRef type) {
+    bool IsGeneric(UnTypeRef type) {
         auto u = type->UnWrapAll();
         return u->t == V_TYPEVAR ||
                (u->t == V_UUDT && u->spec_udt->IsGeneric());
     }
 
-    bool IsNillable(TypeRef type) {
+    bool IsNillable(UnTypeRef type) {
         return (IsRef(type->t) && type->t != V_STRUCT_R) ||
                (type->t == V_UUDT && !type->spec_udt->gudt->is_struct);
     }
@@ -1207,7 +1216,7 @@ struct SymbolTable {
         return tv;
     }
 
-    TypeRef ResolveTypeVars(TypeRef type, const Line &errl) {
+    TypeRef ResolveTypeVars(UnTypeRef type, const Line &errl) {
         switch (type->t) {
             case V_NIL:
             case V_VECTOR: {
@@ -1215,7 +1224,7 @@ struct SymbolTable {
                 if (&*nt != &*type->Element()) {
                     return Wrap(nt, type->t, &errl);
                 }
-                return type;
+                return &*type;
             }
             case V_TUPLE: {
                 vector<TypeRef> types;
@@ -1225,7 +1234,7 @@ struct SymbolTable {
                     types.push_back(tr);
                     if (!tr->Equal(*te.type)) same = false;
                 }
-                if (same) return type;
+                if (same) return &*type;
                 auto nt = NewTuple(type->tup->size());
                 for (auto [i, te] : enumerate(*type->tup)) {
                     nt->Set(i, &*types[i], te.lt);
@@ -1267,10 +1276,10 @@ struct SymbolTable {
                     }
                 }
                 lex.Error(cat("could not resolve type variable ", Q(type->tv->name)), &errl);
-                return type;
+                return type_undefined;
             }
             default:
-                return type;
+                return &*type;
         }
     }
 
@@ -1377,7 +1386,7 @@ struct SymbolTable {
     }
 };
 
-inline void FormatArg(string &r, string_view name, size_t i, TypeRef type) {
+inline void FormatArg(string &r, string_view name, size_t i, UnTypeRef type) {
     if (i) r += ", ";
     r += name;
     if (type->t != V_ANY) {
@@ -1445,7 +1454,7 @@ inline string Signature(const SubFunction &sf) {
     return r;
 }
 
-inline string TypeName(TypeRef type, bool tuple_brackets) {
+inline string TypeName(UnTypeRef type, bool tuple_brackets) {
     switch (type->t) {
         case V_STRUCT_NUM: {
             auto nvt = SymbolTable::GetVectorName(type->ns->t, type->ns->flen);

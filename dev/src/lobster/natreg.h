@@ -79,25 +79,31 @@ struct Type {
     union {
         const Type *sub;         // V_VECTOR | V_NIL | V_VAR | V_TYPEID
         SubFunction *sf;         // V_FUNCTION
-        SpecUDT *spec_udt;       // V_UUDT
         UDT *udt;                // V_CLASS | V_STRUCT_*
         NumStruct *ns;           // V_STRUCT_NUM
         Enum *e;                 // V_INT
         vector<TupleElem> *tup;  // V_TUPLE
-        TypeVariable *tv;        // V_TYPEVAR
         ResourceType *rt;        // V_RESOURCE
+
+        // These only if in an UnType.
+        SpecUDT *spec_udt;       // V_UUDT
+        TypeVariable *tv;        // V_TYPEVAR
     };
 
     Type()                               :                  sub(nullptr) {}
     explicit Type(ValueType _t)          : t(_t),           sub(nullptr) {}
     Type(ValueType _t, const Type *_s)   : t(_t),           sub(_s)      {}
     Type(ValueType _t, SubFunction *_sf) : t(_t),           sf(_sf)      {}
-    Type(SpecUDT *_su)                   : t(V_UUDT),       spec_udt(_su){}
     Type(NumStruct *_ns)                 : t(V_STRUCT_NUM), ns(_ns)      {}
     Type(ValueType _t, UDT *_udt)        : t(_t),           udt(_udt)    {}
     Type(Enum *_e)                       : t(V_INT),        e(_e)        {}
-    Type(TypeVariable *_tv)              : t(V_TYPEVAR),    tv(_tv)      {}
     Type(ResourceType *_rt)              : t(V_RESOURCE),   rt(_rt)      {}
+
+    protected:
+    Type(SpecUDT *_su)                   : t(V_UUDT),       spec_udt(_su){}
+    Type(TypeVariable *_tv)              : t(V_TYPEVAR),    tv(_tv)      {}
+    public:
+
 
     bool Equal(const Type &o, bool allow_unresolved = false) const;
 
@@ -166,16 +172,48 @@ struct Type {
 
 extern const Type g_type_undefined;
 
+struct UnType : Type {
+    UnType()                  : Type()    {}
+    UnType(SpecUDT *_su)      : Type(_su) {}
+    UnType(TypeVariable *_tv) : Type(_tv) {}
+
+    const Type *Resolved() const {
+        return t == V_UUDT || t == V_TYPEVAR ? &g_type_undefined : (Type *)this;
+    }
+};
+
+// This one is allowed to have V_UUDT and V_TYPEVAR in it.
+class UnTypeRef {
+    protected:
+    const Type *type;
+
+    public:
+    UnTypeRef()                    : type(&g_type_undefined) {}
+    UnTypeRef(const UnType *_type) : type(_type) {}
+    UnTypeRef(const Type *_type)   : type(_type) {}
+
+    UnTypeRef &operator=(const UnTypeRef &o) {
+        type = o.type;
+        return *this;
+    }
+
+    const UnType &operator*()  const { return *(const UnType *)type; }
+    const UnType *operator->() const { return (const UnType *)type; }
+
+    const UnType *get() const { return (UnType *)type; }
+
+    bool Null() const { return type == nullptr; }
+};
+
 // This is essentially a smart-pointer, but behaves a little bit differently:
 // - initialized to type_undefined instead of nullptr
 // - pointer is const
 // - comparisons are by value.
-class TypeRef {
-    const Type *type;
+class TypeRef : public UnTypeRef {
 
     public:
-    TypeRef()                  : type(&g_type_undefined) {}
-    TypeRef(const Type *_type) : type(_type) {}
+    TypeRef()                  : UnTypeRef() {}
+    TypeRef(const Type *_type) : UnTypeRef(_type) {}
 
     TypeRef &operator=(const TypeRef &o) {
         type = o.type;
@@ -204,7 +242,7 @@ extern TypeRef type_typeid;
 extern TypeRef type_void;
 extern TypeRef type_undefined;
 
-TypeRef WrapKnown(TypeRef elem, ValueType with);
+TypeRef WrapKnown(UnTypeRef elem, ValueType with);
 TypeRef FixedNumStruct(ValueType num, int flen);
 
 // There must be a single of these per type, since they are compared by pointer.

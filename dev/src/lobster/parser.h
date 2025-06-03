@@ -141,21 +141,21 @@ struct Parser {
                 // For now, don't warn when declaring multiple vars and they are mixed const,
                 // since there is no way to use var for one and let for the other.
                 bool warn_all = true;
-                for (auto p : d->sids) {
-                    auto id = p.first->id;
+                for (auto p : d->tsids) {
+                    auto id = p.sid->id;
                     id->static_constant =
                         id->single_assignment && d->child->IsConstInit();
                     if (!id->single_assignment || id->constant || d->line.fileidx != 0)
                         warn_all = false;
                     if (!id->read && !id->static_constant && id->scopelevel != 1 &&
-                        (id->name[0] != '_' || d->sids.size() == 1))
+                        (id->name[0] != '_' || d->tsids.size() == 1))
                         Warn("unused variable ", Q(id->name));
                     if (id->predeclaration)
                         Error("missing declaration for ", id->name);
                 }
                 if (warn_all) {
-                    for (auto p : d->sids) {
-                        WarnAt(d, "use ", Q("let"), " to declare ", Q(p.first->id->name));
+                    for (auto p : d->tsids) {
+                        WarnAt(d, "use ", Q("let"), " to declare ", Q(p.sid->id->name));
                     }
                 }
             } else if (auto r = Is<Return>(def)) {
@@ -290,7 +290,7 @@ struct Parser {
                 for (;;) {
                     auto idname = ExpectId();
                     bool withtype = lex.token == T_TYPEIN;
-                    TypeRef type = nullptr;
+                    UnTypeRef type = (UnType *)nullptr;
                     if (lex.token == T_COLON || withtype) {
                         lex.Next();
                         type = ParseType(withtype);
@@ -308,7 +308,7 @@ struct Parser {
                     }
                     if (isconst)  id->constant = true;
                     if (isprivate) id->isprivate = true;
-                    def->sids.push_back({ id->cursid, type });
+                    def->tsids.push_back({ id->cursid, type });
                     id->giventype = type;
                     if (!IsNext(T_COMMA)) break;
                 }
@@ -320,10 +320,10 @@ struct Parser {
                     if (st.scopelevels.size() != 1)
                         // For now, since we track it in Idents which don't work with specialization in TC.
                         Error("variable pre-declarations only allowed at top level");
-                    for (auto &sid : def->sids) {
-                        if (sid.second.Null())
+                    for (auto &tsid : def->tsids) {
+                        if (tsid.giventype.Null())
                             Error("a variable pre-declaration must have a type specified");
-                        sid.first->id->predeclaration = true;
+                        tsid.sid->id->predeclaration = true;
                     }
                     def->child = new DefaultVal(lex);
                 }
@@ -343,7 +343,7 @@ struct Parser {
                 }
                 auto id = st.LookupDefStatic(idname);
                 id->isprivate = true;
-                TypeRef type = nullptr;
+                UnTypeRef type = (UnType *)nullptr;
                 if (IsNext(T_COLON)) {
                     type = ParseType(false);
                 }
@@ -354,7 +354,7 @@ struct Parser {
                 Expect(T_ASSIGN);
                 Node *init = ParseExp();
                 auto def = new Define(lex, init);
-                def->sids.push_back({ id->cursid, type });
+                def->tsids.push_back({ id->cursid, type });
                 // Add to toplevel scope in progress! Should end up before our parent.
                 st.toplevel->parent->overloads[0]->gbody->Add(def);
                 if (frame) {
@@ -366,7 +366,7 @@ struct Parser {
                     cid->Assign(lex);
                     cid->cursid->used_as_freevar = true;
                     auto cdef = new Define(lex, new IntConstant(lex, 0));
-                    cdef->sids.push_back({ cid->cursid, { type_int } });
+                    cdef->tsids.push_back({ cid->cursid, { type_int } });
                     // Add to toplevel scope too.
                     st.toplevel->parent->overloads[0]->gbody->Add(cdef);
                 }
@@ -480,7 +480,7 @@ struct Parser {
     void ParseField(GUDT *gudt, bool member_private, bool local_member) {
         ExpectId();
         auto &sfield = st.FieldDecl(lastid, gudt);
-        TypeRef type = nullptr;
+        UnTypeRef type = (UnType *)nullptr;
         if (IsNext(T_COLON)) {
             type = ParseType(false);
         }
@@ -519,7 +519,7 @@ struct Parser {
             size_t j = 0;
             for (;;) {
                 if (j == gsup->generics.size()) Error("too many type specializers");
-                udt->bound_generics.push_back(ParseType(false, nullptr, false));
+                udt->bound_generics.push_back(ParseType<TypeRef>(false, nullptr, false));
                 j++;
                 if (lex.token == T_GT) {
                     lex.allow_shift_right = true;
@@ -553,7 +553,7 @@ struct Parser {
                     for (auto &g : gudt->generics)
                         if (g.tv->name == id)
                             Error("re-declaration of generic type");
-                    gudt->generics.push_back({ { nullptr }, st.NewGeneric(id) });
+                    gudt->generics.push_back({ TypeRef { nullptr }, st.NewGeneric(id) });
                     if (IsNext(T_GT)) break;
                     Expect(T_COMMA);
                 }
@@ -773,10 +773,9 @@ struct Parser {
             nargs++;
             self_withtype = true;
             auto id = st.LookupDef("this", false, true);
-            auto &arg = sf->args.back();
-            arg.type = &self->unspecialized_type;
-            sf->giventypes.push_back({ arg.type });
-            st.AddWithStruct(arg.type, id, sf);
+            auto atype = &self->unspecialized_type;
+            sf->giventypes.push_back({ atype });
+            st.AddWithStruct(GetGUDTAny(atype), id, sf);
             id->cursid->withtype = true;
         }
         bool non_inline_method = false;
@@ -788,18 +787,17 @@ struct Parser {
                 nargs++;
                 bool withtype = lex.token == T_TYPEIN;
                 auto id = st.LookupDef(lastid, false, withtype);
-                auto &arg = sf->args.back();
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
-                    arg.type = ParseType(withtype, nullptr);
-                    if (withtype) st.AddWithStruct(arg.type, id, sf);
-                    if (nargs == 1 && (arg.type->t == V_UUDT || IsUDT(arg.type->t))) {
+                    auto atype = ParseType(withtype, nullptr);
+                    if (withtype) st.AddWithStruct(GetGUDTAny(atype), id, sf);
+                    if (nargs == 1 && (atype->t == V_UUDT || IsUDT(atype->t))) {
                         non_inline_method = true;
-                        self = GetGUDTAny(arg.type);
+                        self = GetGUDTAny(atype);
                         self_withtype = withtype;
                         st.bound_typevars_stack.push_back(self->generics);
                     }
-                    sf->giventypes.push_back({ arg.type });
+                    sf->giventypes.push_back({ atype });
                 } else {
                     GenImplicitGenericForLastArg();
                 }
@@ -845,12 +843,11 @@ struct Parser {
         f.overloads.emplace_back(ov);
         ov->method_of = self;
         sf->SetParent(f, *ov);
-        for (auto &arg : sf->args) {
-            ov->givenargs.push_back(arg.type);
+        for (auto type : sf->giventypes) {
+            ov->givenargs.push_back(type);
         }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
-            sf->returntype = sf->returngiventype;
         }
         if (!IsNext(T_COLON)) {
             // This must be a function type.
@@ -871,7 +868,7 @@ struct Parser {
                 Error("missing return type or ", Q(":"), " in function definition header");
             if (!sf->generics.empty())
                 Error("function type cannot have generics");
-            sf->reqret = sf->returntype->NumValues();
+            sf->reqret = sf->returngiventype->NumValues();
         }
         // Check if there's mixed function types.
         for (auto ff = st.GetFirstFunction(f.name); ff; ff = ff->sibf) {
@@ -912,10 +909,10 @@ struct Parser {
         return new FunRef(line, sf);
     }
 
-    TypeRef ParseTypes(SubFunction *sfreturntype, Lifetime lt) {
+    UnTypeRef ParseTypes(SubFunction *sfreturntype, Lifetime lt) {
         auto dest = ParseType(false, sfreturntype);
         if (!IsNext(T_COMMA)) return dest;
-        vector<TypeRef> types;
+        vector<UnTypeRef> types;
         types.push_back(dest);
         do {
             types.push_back(ParseType(false, sfreturntype));
@@ -937,8 +934,8 @@ struct Parser {
         return nullptr;
     }
 
-    TypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr, bool allow_unresolved = true) {
-        TypeRef dest;
+    template<typename T = UnTypeRef> T ParseType(bool withtype, SubFunction *sfreturntype = nullptr, bool allow_unresolved = true) {
+        T dest;
         switch(lex.token) {
             case T_INTTYPE:
                 dest = type_int;
@@ -997,9 +994,9 @@ struct Parser {
                                     "named specialization)");
                         }
                         lex.allow_shift_right = false;
-                        dest = st.NewSpecUDT(gudt);
+                        dest = (const Type *)st.NewSpecUDT(gudt).get();
                         for (;;) {
-                            auto s = ParseType(false, nullptr, allow_unresolved);
+                            auto s = ParseType<T>(false, nullptr, allow_unresolved);
                             dest->spec_udt->specializers.push_back(&*s);
                             if (lex.token == T_GT) {
                                 lex.allow_shift_right = true;
@@ -1013,7 +1010,7 @@ struct Parser {
                         }
                     } else {
                         if (gudt->predeclaration) {
-                            dest = st.NewSpecUDT(gudt);
+                            dest = (const Type *)st.NewSpecUDT(gudt).get();
                         } else if (allow_unresolved) {
                             Error("use of type ", Q(gudt->name), " requires specializers");
                         } else {
@@ -1025,7 +1022,7 @@ struct Parser {
             }
             case T_LEFTBRACKET: {
                 lex.Next();
-                TypeRef elem = ParseType(false, nullptr, allow_unresolved);
+                T elem = ParseType<T>(false, nullptr, allow_unresolved);
                 Expect(T_RIGHTBRACKET);
                 dest = st.Wrap(elem, V_VECTOR);
                 break;
@@ -1192,7 +1189,7 @@ struct Parser {
     }
 
     List *ParseFunctionCall(Line line, Function *f, NativeFun *nf, string_view idname, Node *dotarg,
-                            bool noparenscall, vector<TypeRef> *specializers) {
+                            bool noparenscall, vector<UnTypeRef> *specializers) {
         node_small_vector list;
         bool parens_parsed = false;
         [&]() {
@@ -1594,7 +1591,7 @@ struct Parser {
         }
     }
 
-    void ForLoopVar(int existing, SpecIdent *sid, TypeRef type, node_small_vector &list) {
+    void ForLoopVar(int existing, SpecIdent *sid, UnTypeRef type, node_small_vector &list) {
         Node *init = nullptr;
         if (existing == 0)
             init = new ForLoopElem(lex);
@@ -1603,7 +1600,7 @@ struct Parser {
         else
             Error("for loop takes at most an element and index variable");
         auto def = new Define(lex, init);
-        def->sids.push_back({ sid , type });
+        def->tsids.push_back({ sid , type });
         list.insert(existing, def);
     }
 
@@ -1617,11 +1614,13 @@ struct Parser {
                 bool withtype = lex.token == T_TYPEIN;
                 auto id = st.LookupDef(lastid, true, withtype);
                 id->single_assignment = false;  // Mostly to stop warning that it is constant.
-                TypeRef type = nullptr;
+                UnTypeRef type = (UnType *)nullptr;
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
                     type = ParseType(withtype, nullptr);
-                    if (withtype) st.AddWithStruct(type, id, st.defsubfunctionstack.back());
+                    if (withtype) {
+                        st.AddWithStruct(GetGUDTAny(type), id, st.defsubfunctionstack.back());
+                    }
                 }
                 id->cursid->withtype = withtype;
                 ForLoopVar(for_args, id->cursid, type, block->children);
@@ -1646,8 +1645,8 @@ struct Parser {
         Expect(closing);
     }
 
-    vector<TypeRef> ParseSpecializers(bool likely_named_function) {
-        vector<TypeRef> specializers;
+    vector<UnTypeRef> ParseSpecializers(bool likely_named_function) {
+        vector<UnTypeRef> specializers;
         // Check for function call with generic params.
         // This is not a great way to distinguish from < operator exps, but best we can do?
         if (likely_named_function && lex.whitespacebefore == 0 && IsNext(T_LT)) {
@@ -1691,7 +1690,7 @@ struct Parser {
         auto udt = st.LookupSpecialization(idname);
         auto gudt = udt ? &udt->g : st.LookupStruct(idname);
         auto curf = functionstack.empty() ? nullptr : functionstack.back();
-        TypeRef type = nullptr;
+        UnTypeRef type = (UnType *)nullptr;
         if (gudt &&
             lex.token == T_LT &&
             (!gudt->has_constructor_function || (curf && curf->is_constructor_of == gudt))) {

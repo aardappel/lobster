@@ -1751,9 +1751,9 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
     if (Is<DefaultVal>(child)) {
         return;  // Pre-decl. 
     }
-    cg.Gen(child, sids.size());
-    for (size_t i = sids.size(); i-- > 0; ) {
-        auto sid = sids[i].first;
+    cg.Gen(child, tsids.size());
+    for (size_t i = tsids.size(); i-- > 0; ) {
+        auto sid = tsids[i].sid;
         // FIXME: Sadly, even though FunIntro now guarantees that variables start as V_NIL,
         // we still can't replace this with a WRITE that doesn't have to decrement, since
         // loops with inlined bodies cause this def to be execute multiple times.

@@ -168,8 +168,8 @@ struct TypeChecker {
                     for (auto dl : scope.sf->sbody->children) {
                         if (auto def = Is<Define>(dl)) {
                             if (Is<DefaultVal>(def->child)) continue;  // A pre-decl.
-                            for (auto p : def->sids) {
-                                err += ", " + p.first->id->name + ":" + TypeName(p.first->type);
+                            for (auto p : def->tsids) {
+                                err += ", " + p.sid->id->name + ":" + TypeName(p.sid->type);
                             }
                         }
                     }
@@ -228,7 +228,8 @@ struct TypeChecker {
         Error(call_args, err);
     }
 
-    void UnifyVar(TypeRef type, TypeRef hasvar, ValueType var_parent) {
+    // FIXME: unifying UnTypeRef ideally should be fixed in the callers.
+    void UnifyVar(UnTypeRef type, UnTypeRef hasvar, ValueType var_parent) {
         // Typically Type is const, but this is the one place we overwrite them.
         // Type objects that are V_VAR are seperate heap instances, so overwriting them has no
         // side-effects on non-V_VAR Type instances.
@@ -258,7 +259,9 @@ struct TypeChecker {
         }
     }
 
-    bool ConvertsTo(TypeRef type, TypeRef bound, ConvertFlags cf,
+    // FIXME: we have bound at UnTypeRef to allow callers to just fail with unresolved types,
+    // but ideally they should resolve first.
+    bool ConvertsTo(TypeRef type, UnTypeRef bound, ConvertFlags cf,
                     ValueType type_parent = V_UNDEFINED, ValueType bound_parent = V_UNDEFINED) {
         if (bound->Equal(*type)) return true;
         if (type->t == V_VAR) {
@@ -667,7 +670,7 @@ struct TypeChecker {
         c->children.append(n.Children(), n.Arity());
         n.ClearChildren();
         int vtable_idx = -1;
-        vector<TypeRef> specializers;
+        vector<UnTypeRef> specializers;
         c->exptype = TypeCheckCall(c->sf, *c, 1, vtable_idx, &specializers, false);
         c->lt = c->sf->ltret;
         delete &n;
@@ -1248,14 +1251,14 @@ struct TypeChecker {
 
 
 
-    void UnWrapBoth(TypeRef &otype, TypeRef &atype) {
+    void UnWrapBoth(UnTypeRef &otype, TypeRef &atype) {
         while (otype->Wrapped() && otype->t == atype->t) {
             otype = otype->Element();
             atype = atype->Element();
         }
     }
 
-    void BindTypeVar(TypeRef giventype, TypeRef atype,
+    void BindTypeVar(UnTypeRef giventype, TypeRef atype,
                      vector<GenericTypeVariable> &generics, GUDT *parent = nullptr) {
         auto otype = giventype;
         UnWrapBoth(otype, atype);
@@ -1282,7 +1285,7 @@ struct TypeChecker {
     }
 
     TypeRef TypeCheckCallStatic(SubFunction *&sf, List &call_args, size_t reqret,
-                                vector<TypeRef> *specializers, Overload &ov,
+                                vector<UnTypeRef> *specializers, Overload &ov,
                                 bool static_dispatch, bool first_dynamic, bool force_keep, DispatchEntry *de) {
         STACK_PROFILE;
         Function &f = *sf->parent;
@@ -1421,7 +1424,7 @@ struct TypeChecker {
     };
 
     TypeRef TypeCheckCallDispatch(UDT &dispatch_udt, SubFunction *&csf, List &call_args,
-                                  size_t reqret, vector<TypeRef> *specializers,
+                                  size_t reqret, vector<UnTypeRef> *specializers,
                                   int &vtable_idx) {
         // FIXME: this is to lock the subudts, since adding to them later would invalidate
         // this dispatch.. would be better to solve ordering problems differently.
@@ -1643,7 +1646,7 @@ struct TypeChecker {
     vector<Overload *> matches;
 
     TypeRef TypeCheckCall(SubFunction *&csf, List &call_args, size_t reqret, int &vtable_idx,
-                          vector<TypeRef> *specializers, bool super) {
+                          vector<UnTypeRef> *specializers, bool super) {
         STACK_PROFILE;
         Function &f = *csf->parent;
         vtable_idx = -1;
@@ -1790,16 +1793,15 @@ struct TypeChecker {
             // uniquely identify an overload, e.g. for a [T] arg where T is now bound, or other
             // cases where the trivial case of T above doesn't apply.
             if (matches.empty() && specializers && !specializers->empty()) {
-                // FIXME: This overlaps somewhat with resolving them during TypeCheckCallStatic
+                // FIXME: This does double the resolving work since it is also done during
+                // TypeCheckCallStatic. We could cache this work, but its not needed for
+                // all callers, so may not be worth it.
                 vector<GenericTypeVariable> generics(specializers->size());
-                for (auto [i, gtv] : enumerate(generics)) {
-                    gtv.type = specializers->at(i);
-                }
                 for (auto ov : pickfrom) {
                     if (generics.size() != ov->sf->generics.size()) continue;
                     for (auto [i, gtv] : enumerate(generics)) {
                         gtv.tv = ov->sf->generics[i].tv;
-                        gtv.type = st.ResolveTypeVars({ gtv.type }, call_args.line);
+                        gtv.type = st.ResolveTypeVars(specializers->at(i), call_args.line);
                     }
                     st.bound_typevars_stack.push_back(generics);
                     auto arg = st.ResolveTypeVars(ov->sf->giventypes[argidx], call_args.line);
@@ -2700,8 +2702,8 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
         auto fle = Is<ForLoopElem>(def->child);
         if (fle) {
             fle->exptype = itertype;
-            if (def->sids[0].first->withtype)
-                tc.st.AddWithStructTT(itertype, def->sids[0].first->id, tc.scopes.back().sf);
+            if (def->tsids[0].sid->withtype)
+                tc.st.AddWithStructTT(itertype, def->tsids[0].sid->id, tc.scopes.back().sf);
         }
     }
     tc.scopes.back().loop_count++;
@@ -2902,13 +2904,13 @@ Node *Range::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_boun
 }
 
 Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-    for (auto &p : sids) {
-        tc.UpdateCurrentSid(p.first);
+    for (auto &p : tsids) {
+        tc.UpdateCurrentSid(p.sid);
         // We have to set these here just in case the init exp is a function call that
         // tries use/assign this variable, type_undefined will force that to be an error.
         // TODO: could make this a specialized error, but probably not worth it because it is rare.
-        p.first->type = type_undefined;
-        p.first->lt = LT_UNDEF;
+        p.sid->type = type_undefined;
+        p.sid->lt = LT_UNDEF;
     }
     // We default to LT_KEEP here.
     // There are case where we could allow borrow, but in practise this runs into trouble easily:
@@ -2916,33 +2918,35 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     //   was really what was intended (since the lval being assigned from may go away).
     // - old := cur cases, where old is meant to hang on to the previous value as cur gets updated,
     //   which then runs into borrowing errors.
-    auto parent_bound = sids.size() == 1 && !sids[0].second.Null() ? sids[0].second : TypeRef{};
-    tc.TT(child, Is<DefaultVal>(child) ? 0 : sids.size(), LT_KEEP, parent_bound);
-    for (auto [i, p] : enumerate(sids)) {
+    auto parent_bound = tsids.size() == 1 && !tsids[0].giventype.Null()
+        ? tsids[0].giventype->Resolved()
+        : TypeRef{};
+    tc.TT(child, Is<DefaultVal>(child) ? 0 : tsids.size(), LT_KEEP, parent_bound);
+    for (auto [i, p] : enumerate(tsids)) {
         auto var = TypeLT(*child, i);
-        if (!p.second.Null()) {
-            var.type = tc.st.ResolveTypeVars(p.second, this->line);
+        if (!p.giventype.Null()) {
+            var.type = tc.st.ResolveTypeVars(p.giventype, this->line);
             if (Is<DefaultVal>(child)) {  // A pre-decl.
-                p.first->id->predeclaration = true;
+                p.sid->id->predeclaration = true;
             } else {
-                p.first->id->predeclaration = false;
+                p.sid->id->predeclaration = false;
                 // Have to subtype the initializer value, as that node may contain
                 // unbound vars (a:[int] = []) or values that that need to be coerced
                 // (a:float = 1)
-                if (sids.size() == 1) {
+                if (tsids.size() == 1) {
                     tc.SubType(child, var.type, "initializer", "definition");
                 } else {
                     // FIXME: no coercion when mult-return?
-                    tc.SubTypeT(child->exptype->Get(i), var.type, *this, p.first->id->name);
+                    tc.SubTypeT(child->exptype->Get(i), var.type, *this, p.sid->id->name);
                 }
                 // In addition, the initializer may already cause the type to be promoted.
                 // a:string? = ""
-                FlowItem fi(p.first, var.type, child->exptype);
+                FlowItem fi(p.sid, var.type, child->exptype);
                 // Similar to AssignFlowPromote (TODO: refactor):
                 if (fi.now->t != V_NIL && fi.old->t == V_NIL) tc.flowstack.push_back(fi);
             }
         }
-        auto sid = p.first;
+        auto sid = p.sid;
         sid->type = var.type;
         tc.StorageType(var.type, *this);
         sid->type = var.type;
@@ -3259,7 +3263,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
                 if (i < sf->giventypes.size() && sf->giventypes[i]->IsConcrete()) {
                     // This function is not typechecked, so this could be a generic type, but that
                     // is ok for the current use of parent_bound.
-                    parent_bound = sf->giventypes[i];
+                    parent_bound = sf->giventypes[i]->Resolved();
                 }
             }
         }
@@ -3349,12 +3353,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
                         if (!in_lex_scope) continue;
                         int best_superdist = INT_MAX;
                         for (auto ov : f->overloads) {
-                            auto &arg0 = ov->sf->args[0];
                             // If we're in the context of a withtype, calling a function that starts
                             // with an arg of the same type we pass it in automatically. This is
                             // maybe a bit very liberal, should maybe restrict it?
-                            auto gudt0 = GetGUDTAny(arg0.type);
-                            if (gudt0 && arg0.sid->withtype && wse.id) {
+                            auto gudt0 = GetGUDTAny(ov->givenargs[0]);
+                            if (gudt0 && ov->sf->args[0].sid->withtype && wse.id) {
                                 auto superdist = DistanceToSpecializedSuper(gudt0, wse.udt_tc);
                                 if (superdist >= 0 && superdist < best_superdist) {
                                     best_superdist = superdist;
@@ -3382,12 +3385,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
                     // Really this whole function needs rewriting from scratch.
                     int best_superdist = INT_MAX;
                     for (auto ov : f->overloads) {
-                        auto &arg0 = ov->sf->args[0];
                         // If we're in the context of a withtype, calling a function that starts
                         // with an arg of the same type we pass it in automatically. This is
                         // maybe a bit very liberal, should maybe restrict it?
-                        auto gudt0 = GetGUDTAny(arg0.type);
-                        if (gudt0 && arg0.sid->withtype) {
+                        auto gudt0 = GetGUDTAny(ov->givenargs[0]);
+                        if (gudt0 && ov->sf->args[0].sid->withtype) {
                             auto superdist = DistanceToSpecializedSuper(gudt0, udt);
                             if (superdist >= 0 && superdist < best_superdist) {
                                 best_superdist = superdist;

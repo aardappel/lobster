@@ -116,7 +116,7 @@ const Type g_type_vector_vector_ns_float[] = {
 
 ResourceType *g_resource_type_list = nullptr;
 
-TypeRef WrapKnown(TypeRef elem, ValueType with) {
+TypeRef WrapKnown(UnTypeRef elem, ValueType with) {
     if (with == V_VECTOR) {
         switch (elem->t) {
             case V_ANY:      return &g_type_vector_any;
