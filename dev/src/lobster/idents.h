@@ -707,7 +707,7 @@ struct SymbolTable {
         auto sf = defsubfunctionstack.back();
         ident = NewId(name, sf, withtype, scopelevels.size(), lex);
         (islocal ? sf->locals : sf->args).push_back(
-            Arg(ident->cursid, type_any));
+            Arg(ident->cursid, type_undefined));
         return ident;
     }
 
@@ -718,7 +718,7 @@ struct SymbolTable {
         auto sf = defsubfunctionstack[0];
         // Is going to get removed as if it was part of the current function.
         ident = NewId(name, sf, false, 1, lex);
-        sf->locals.push_back(Arg(ident->cursid, type_any));
+        sf->locals.push_back(Arg(ident->cursid, type_undefined));
         return ident;
     }
 
