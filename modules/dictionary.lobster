@@ -73,6 +73,27 @@ class dictionary<K,V>:
         let c = lookup(key)
         return if c: c.value else: default_val
 
+    // Will return existing value (and discard given value) if already present.
+    // Otherwise insert the new value and return that.
+    def get_or_set(key:K, value:V):
+        let c, h = lookup(key)
+        return if c:
+            c.value
+        else:
+            buckets[h] = chain<K,V> { buckets[h], key, value }
+            value
+
+    // This will create the element with a V {} constructor if not present.
+    // More efficient than get_or_set because the constructor only allocates when needed.
+    def get_or_create(key:K):
+        let c, h = lookup(key)
+        return if c:
+            c.value
+        else:
+            let value = V {}
+            buckets[h] = chain<K,V> { buckets[h], key, value }
+            value
+
     def get_keys() -> [K]:
         let keys = []
         for(buckets) c:
