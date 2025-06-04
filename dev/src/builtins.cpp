@@ -1428,6 +1428,21 @@ nfr("type_field_value", "obj,idx", "AI", "S",
         }
     });
 
+nfr("type_enum_value_name", "enum_type_id,idx", "II", "S",
+    "string representing the name of an enum value, belonging to the enum (use typeof)",
+    [](StackPtr &sp, VM &vm) {
+        auto i = Pop(sp).ival();
+        auto id = Pop(sp).ival();
+        // FIXME: this is unsafe due to out of bounds access, but even if we bounds checked,
+        // an incorrect offset can cause out of bounds access from that, so this is fundamentally broken.
+        auto &ti = vm.GetTypeInfo((type_elem_t)id);
+        string sd;
+        if (ti.t == V_INT && ti.enumidx >= 0) {
+            vm.EnumName(sd, i, ti.enumidx);
+        }
+        Push(sp, vm.NewString(sd));
+    });
+
 nfr("program_name", "", "", "S",
     "returns the name of the main program (e.g. \"foo.lobster\"), \"\" if running from lpak.",
     [](StackPtr &, VM &vm) {
