@@ -98,18 +98,6 @@ struct TypeChecker {
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultTypes())
             Error(*parser.root, "cannot find standard types (from stdtype.lobster)");
-        for (auto sf : st.subfunctiontable) {
-            // TODO: This is not great, it mostly just substitutes SpecUDTs with no specialization for
-            // the UDT such that function overload selection can work. We could also not do this
-            // here, and instead improve that code.
-            for (auto [i, arg] : enumerate(sf->args)) {
-                auto type = sf->overload->givenargs[i];
-                if (type->t == V_UUDT &&
-                    (type->spec_udt->specializers.empty() || !type->spec_udt->IsGeneric())) {
-                    arg.type = SingleNonGenericSpecialization(*type->spec_udt->gudt);
-                }
-            }
-        }
         AssertIs<Call>(parser.root)->sf->reqret = retreq;
         TT(parser.root, retreq, LT_KEEP);
         CleanUpFlow(0);
@@ -126,10 +114,10 @@ struct TypeChecker {
         string s = Signature(sf) + " { ";
         size_t j = 0;
         for (auto [i, freevar] : enumerate(sf.freevars)) {
-            if (freevar.type->t != V_FUNCTION &&
+            if (freevar.spec_type->t != V_FUNCTION &&
                 !freevar.sid->id->static_constant &&
                 (!already_seen || already_seen->find(freevar.sid->id) == already_seen->end())) {
-                FormatArg(s, freevar.sid->id->name, j++, freevar.type);
+                FormatArg(s, freevar.sid->id->name, j++, freevar.spec_type);
                 if (already_seen) already_seen->insert(freevar.sid->id);
             }
         }
@@ -261,7 +249,7 @@ struct TypeChecker {
 
     // FIXME: we have bound at UnTypeRef to allow callers to just fail with unresolved types,
     // but ideally they should resolve first.
-    bool ConvertsTo(TypeRef type, UnTypeRef bound, ConvertFlags cf,
+    bool ConvertsTo(UnTypeRef type, UnTypeRef bound, ConvertFlags cf,
                     ValueType type_parent = V_UNDEFINED, ValueType bound_parent = V_UNDEFINED) {
         if (bound->Equal(*type)) return true;
         if (type->t == V_VAR) {
@@ -461,13 +449,13 @@ struct TypeChecker {
                 // Specialize to the function type, if requested.
                 if (!sf->parent->istype) {
                     if (!sf->typechecked && st.IsGeneric(sf->overload->givenargs[i])) {
-                        arg.type = (*args)[i].type;
+                        arg.spec_type = (*args)[i].spec_type;
                     } else {
-                        arg.type = st.ResolveTypeVars(sf->overload->givenargs[i], a->line);
+                        arg.spec_type = st.ResolveTypeVars(sf->overload->givenargs[i], a->line);
                     }
                 }
                 // Note this has the args in reverse: function args are contravariant.
-                if (!ConvertsTo((*args)[i].type, arg.type, CF_UNIFICATION))
+                if (!ConvertsTo((*args)[i].spec_type, arg.spec_type, CF_UNIFICATION))
                     goto error;
                 // This function must be compatible with all other function values that
                 // match this type, so we fix lifetimes to LT_BORROW.
@@ -652,7 +640,7 @@ struct TypeChecker {
         // overload specified for it, so that TypeCheckCall can do the actual work of finding
         // the correct overload (and we don't have to duplicate that here).
         for (auto [i, ov] : enumerate(f->overloads)) {
-            auto atype = ov->sf->args[0].type;
+            auto atype = ov->sf->overload->givenargs[0];
             if ((atype->t == V_UUDT &&
                  (DistanceToSpecializedSuper(atype->spec_udt->gudt, ctype->udt) >= 0 ||
                   (ctype->udt->g.is_abstract && DistanceFromSpecializedSub(ctype->udt, atype->spec_udt->gudt) >= 0))) ||
@@ -935,15 +923,15 @@ struct TypeChecker {
         st.BlockScopeStart();
         sf.typechecked = true;
         for (auto &arg : sf.args) {
-            StorageType(arg.type, call_context);
-            if (arg.sid->withtype) st.AddWithStructTT(arg.type, arg.sid->id, &sf);
+            StorageType(arg.spec_type, call_context);
+            if (arg.sid->withtype) st.AddWithStructTT(arg.spec_type, arg.sid->id, &sf);
         }
         for (auto &fv : sf.freevars) UpdateCurrentSid(fv.sid);
         auto backup_vars = [&](vector<Arg> &in, vector<Arg> &backup) {
             for (auto [i, arg] : enumerate(in)) {
                 // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
                 backup[i].sid = arg.sid->Current();
-                arg.sid->type = arg.type;
+                arg.sid->type = arg.spec_type;
                 RevertCurrentSid(arg.sid);
             }
         };
@@ -1033,7 +1021,7 @@ struct TypeChecker {
             //auto atype = Promote(freevar.id->type);
             auto sid = freevar.sid;
             auto cur = sid->Current();
-            if (sid != cur || !freevar.type->Equal(*cur->type)) {
+            if (sid != cur || !freevar.spec_type->Equal(*cur->type)) {
                 (void)prespecialize;
                 assert(prespecialize || sid == cur || (sid && cur));
                 return false;
@@ -1124,11 +1112,11 @@ struct TypeChecker {
                 auto &arg = sf->args[i];
                 // Check a dynamic dispatch only for the first case, and then skip
                 // checking the first arg.
-                if (static_dispatch || i) SubType(c, arg.type, ArgName(i), f.name);
+                if (static_dispatch || i) SubType(c, arg.spec_type, ArgName(i), f.name);
                 AdjustLifetime(c, arg.sid->lt);  // Remaining cases.
                 // We really don't want to specialize functions on variables, so we simply
                 // disallow them. This should happen only infrequently.
-                if (arg.type->HasValueType(V_VAR))
+                if (arg.spec_type->HasValueType(V_VAR))
                     Error(call_args, "can\'t infer ", Q(ArgName(i)), " argument of call to ",
                           Q(f.name));
                 // This has to happen even to dead args:
@@ -1139,7 +1127,7 @@ struct TypeChecker {
             // New freevars may have been added during the function def typecheck above.
             // In case their types differ from the flow-sensitive value at the callsite (here),
             // we want to override them.
-            freevar.type = freevar.sid->Current()->type;
+            freevar.spec_type = freevar.sid->Current()->type;
         }
         // See if this call is recursive:
         for (auto &sc : scopes) {
@@ -1355,7 +1343,7 @@ struct TypeChecker {
                     // struct (or function) generic, and thus isn't covered by the checking
                     // of sf->generics below. Can this be done more elegantly?
                     auto parent_generic =
-                        st.IsGeneric(sf->overload->givenargs[i]) && !c->exptype->Equal(*arg.type);
+                        st.IsGeneric(sf->overload->givenargs[i]) && !c->exptype->Equal(*arg.spec_type);
                     auto incompatible = unequal_lifetimes || parent_generic;
                     if (incompatible)
                         goto fail;
@@ -1407,8 +1395,8 @@ struct TypeChecker {
         for (auto [i, c] : enumerate(call_args.children)) {
             auto &arg = sf->args[i];
             arg.sid->lt = ArgLifetime(c, arg);
-            arg.type = st.ResolveTypeVars(sf->overload->givenargs[i], call_args.line);
-            LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
+            arg.spec_type = st.ResolveTypeVars(sf->overload->givenargs[i], call_args.line);
+            LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.spec_type));
         }
         // This must be the correct freevar specialization.
         assert(!f.anonymous || sf->freevarchecked);
@@ -1440,7 +1428,7 @@ struct TypeChecker {
                 !disp->is_switch_dispatch && &f == disp->sf->parent) {
                 for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = disp->sf->args[i];
-                    if (i && !ConvertsTo(c->exptype, arg.type, CF_NONE))
+                    if (i && !ConvertsTo(c->exptype, arg.spec_type, CF_NONE))
                         goto fail;
                 }
                 // If this ever fails, that means new types got added during typechecking..
@@ -1626,12 +1614,12 @@ struct TypeChecker {
                     // FIXME: good to have this check here so it only occurs for functions
                     // participating in the dispatch, but error now appears at the call site!
                     for (auto [j, arg] : enumerate(sf->args)) {
-                        if (j && !arg.type->Equal(*last_sf->args[j].type) &&
+                        if (j && !arg.spec_type->Equal(*last_sf->args[j].spec_type) &&
                             !st.IsGeneric(sf->overload->givenargs[j]))
                             Error(call_args, "argument ", j + 1, " of declaration of ", Q(f.name),
-                                          ", type ", Q(TypeName(arg.type)),
+                                          ", type ", Q(TypeName(arg.spec_type)),
                                           " doesn\'t match type of previous declaration: ",
-                                          Q(TypeName(last_sf->args[j].type)));
+                                          Q(TypeName(last_sf->args[j].spec_type)));
                     }
                 }
                 last_sf = sf;
@@ -3301,14 +3289,16 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         int udist = 999;
         if (udt && f && f->nargs()) {
             for (auto ov : f->overloads) {
-                auto ti = ov->sf->args[0].type;
-                if (IsUDT(ti->t)) {
-                    auto dist = SuperDistance(ti->udt, udt);
-                    if (dist >= 0 && dist < udist) {
-                        usf = ov->sf;
-                        udist = dist;
-                        if (dist == 0) break;
-                    }
+                auto ti = ov->sf->overload->givenargs[0];
+                auto dist = IsUDT(ti->t)
+                    ? SuperDistance(ti->udt, udt)
+                    : ti->t == V_UUDT
+                        ? DistanceToSpecializedSuper(ti->spec_udt->gudt, udt)
+                        : -1;
+                if (dist >= 0 && dist < udist) {
+                    usf = ov->sf;
+                    udist = dist;
+                    if (dist == 0) break;
                 }
             }
         }
@@ -3693,7 +3683,7 @@ Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     sf = tc.PreSpecializeFunction(sf);
     if (sf->parent->istype) {
         for (auto [i, arg] : enumerate(sf->args)) {
-            arg.type = tc.st.ResolveTypeVars(sf->overload->givenargs[i], this->line);
+            arg.spec_type = tc.st.ResolveTypeVars(sf->overload->givenargs[i], this->line);
         }
         sf->returntype = tc.st.ResolveTypeVars(sf->returngiventype, this->line);
     }

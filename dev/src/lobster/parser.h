@@ -730,7 +730,6 @@ struct Parser {
         }
         auto ng = st.NewGeneric(nn);
         sf->generics.push_back({ { nullptr }, ng });
-        sf->args.back().type = &ng->thistype;
         ov->givenargs.push_back({ &ng->thistype });
     }
 
@@ -1904,7 +1903,7 @@ struct Parser {
                     if (!onlytypechecked || sf->typechecked) {
                         s += "FUNCTION: " + f->name + "(";
                         for (auto &arg : sf->args) {
-                            s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
+                            s += arg.sid->id->name + ":" + TypeName(arg.spec_type) + " ";
                         }
                         s += ") -> ";
                         s += TypeName(sf->returntype);

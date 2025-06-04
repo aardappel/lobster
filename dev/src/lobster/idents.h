@@ -384,13 +384,13 @@ inline const SField *FindSlot(const UDT &udt, int i) {
 }
 
 struct Arg {
-    TypeRef type = type_undefined;
+    TypeRef spec_type = type_undefined;
     SpecIdent *sid = nullptr;
 
     Arg() = default;
     Arg(const Arg &o) = default;
     Arg(SpecIdent *_sid, TypeRef _type)
-        : type(_type), sid(_sid) {}
+        : spec_type(_type), sid(_sid) {}
 };
 
 struct Function;
@@ -1443,7 +1443,7 @@ inline string Signature(const SubFunction &sf) {
     }
     r += "(";
     for (auto [i, arg] : enumerate(sf.args)) {
-        FormatArg(r, arg.sid->id->name, i, arg.type);
+        FormatArg(r, arg.sid->id->name, i, arg.spec_type);
     }
     r += ")";
     if (sf.returntype->t != V_VOID && sf.returntype->t != V_UNDEFINED && sf.returntype->t != V_VAR) {

@@ -221,6 +221,7 @@ struct CodeGen  {
                 return udt->typeinfo;
             }
             case V_VAR:
+            case V_UNDEFINED:
                 // This happens for values/types that are never accessed, common case are
                 // [] or nil. It would be nice to ensure this is impossible, but it is too
                 // fragile to have to ensure all vars allways get bound, given how types are
@@ -442,7 +443,7 @@ struct CodeGen  {
             if (str.empty()) {
                 str = sf.parent->name;
                 if (!sf.args.empty() && !sf.parent->overloads.empty()) {
-                    append(str, "(", TypeName(sf.args[0].type), (sf.args.size() > 1 ? ", .." : ""), ")");
+                    append(str, "(", TypeName(sf.args[0].spec_type), (sf.args.size() > 1 ? ", .." : ""), ")");
                 }
             }
             Emit((int)stringtable.size());

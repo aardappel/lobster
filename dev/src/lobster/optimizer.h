@@ -177,7 +177,7 @@ Node *Call::Optimize(Optimizer &opt) {
         // that creates an overwite of a borrowed variable, but the codegen ensures the overwrite
         // does not decref.
         auto def = new Define(line, c);
-        def->tsids.push_back({ arg.sid, { arg.type } });
+        def->tsids.push_back({ arg.sid, { arg.spec_type } });
         list->Add(opt.Typed(type_void, LT_ANY, def));
         ai++;
     }
