@@ -1037,9 +1037,6 @@
 
 - jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
-  - especially so since insatiable random generators (to get multiple
-    independent streams) would be great in addition to / instead of a shared
-    global generator
 
 - NEWVEC can defeat the STACKMARGIN check if called with sufficient args.
 
