@@ -68,7 +68,7 @@ enum ValueType : int {
     V_STRUCT_NUM,       // [typechecker only] like V_STRUCT_S but an unknown set of ints or floats, used by builtins.
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEVAR,          // [typechecker only] refers to an explicit type variable in code, e.g. "T".
-    V_TYPEID,           // [typechecker only] a typetable offset.
+    V_TYPEID,           // [typechecker only] a typetable offset. Present at runtime as V_INT.
     V_VOID,             // [typechecker/codegen only] this exp does not produce a value.
     V_TUPLE,            // [typechecker/codegen only] this exp produces >1 value.
     V_UUDT,             // [parser/typechecker only] udt with unresolved generics.

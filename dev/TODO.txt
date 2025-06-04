@@ -1,5 +1,3 @@
-- The result of typeof should be its own type?
-
 - Fix defaultval typechecking in TypeCheckUDT
 - Split TypeRef into one that has the unresolved types vs the normal types.
 
