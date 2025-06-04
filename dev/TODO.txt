@@ -1,5 +1,4 @@
 - Fix defaultval typechecking in TypeCheckUDT
-- Split TypeRef into one that has the unresolved types vs the normal types.
 
 - FIX:
   a = nil
@@ -1090,7 +1089,7 @@
   https://github.com/aardappel/lobster/issues/89
 
 - Explicit genericity for functions.
-  - overload resolution still doesn't use giventypes.
+  - overload resolution still doesn't use givenargs.
   - if we had T() as a cast, we could fix the enum type problem in gui_multiselect.
     - that is yet another form of function call in the parser.. better first refactor that.
   - weighted_pick: being able to write "T is float" would be cool.

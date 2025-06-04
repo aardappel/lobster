@@ -718,8 +718,7 @@ struct Parser {
         }
     }
 
-    void GenImplicitGenericForLastArg() {
-        auto sf = st.defsubfunctionstack.back();
+    void GenImplicitGenericForLastArg(SubFunction *sf, Overload *ov) {
         static const char *typevar_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         string_view nn;
         size_t gen_generics = 0;
@@ -732,7 +731,7 @@ struct Parser {
         auto ng = st.NewGeneric(nn);
         sf->generics.push_back({ { nullptr }, ng });
         sf->args.back().type = &ng->thistype;
-        sf->giventypes.push_back({ &ng->thistype });
+        ov->givenargs.push_back({ &ng->thistype });
     }
 
     void ParseBody(Block *block, int for_nargs) {
@@ -750,6 +749,7 @@ struct Parser {
                           bool parseargs, GUDT *self, size_t maxargs = 1024) {
         bool in_class = !!self;
         auto sf = st.FunctionScopeStart();
+        auto ov = new Overload{ lex, isprivate };
         if (name) {
             // Parse generic params if any.
             // TODO: can this be extended to non-named functions syntactically?
@@ -774,7 +774,7 @@ struct Parser {
             self_withtype = true;
             auto id = st.LookupDef("this", false, true);
             auto atype = &self->unspecialized_type;
-            sf->giventypes.push_back({ atype });
+            ov->givenargs.push_back({ atype });
             st.AddWithStruct(GetGUDTAny(atype), id, sf);
             id->cursid->withtype = true;
         }
@@ -797,9 +797,9 @@ struct Parser {
                         self_withtype = withtype;
                         st.bound_typevars_stack.push_back(self->generics);
                     }
-                    sf->giventypes.push_back({ atype });
+                    ov->givenargs.push_back({ atype });
                 } else {
-                    GenImplicitGenericForLastArg();
+                    GenImplicitGenericForLastArg(sf, ov);
                 }
                 if (parens && IsNext(T_ASSIGN)) {
                     if (first_default_arg < 0) first_default_arg = (int)sf->args.size() - 1;
@@ -838,14 +838,10 @@ struct Parser {
             if (f.is_constructor_of != is_constructor_of)
                 Error("either all overloads of ", Q(f.name), " must be a constructor, or none");
         }
-        // Create the overload.
-        auto ov = new Overload{ lex, isprivate };
+        // Connect the overload.
         f.overloads.emplace_back(ov);
         ov->method_of = self;
         sf->SetParent(f, *ov);
-        for (auto type : sf->giventypes) {
-            ov->givenargs.push_back(type);
-        }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
         }
@@ -859,7 +855,7 @@ struct Parser {
             if (in_class || st.scopelevels.size() != 2)
                 Error("function type must be declared at top level");
             for (auto [i, arg] : enumerate(sf->args)) {
-                if (st.IsGeneric(sf->giventypes[i]))
+                if (st.IsGeneric(ov->givenargs[i]))
                     Error("function type arguments can\'t be generic (missing ", Q(":"), " ?)");
                 // No idea what the function is going to be, so have to default to borrow.
                 arg.sid->lt = LT_BORROW;
@@ -1828,8 +1824,7 @@ struct Parser {
                     if (sf->args[0].sid->id->name[0] != '_')
                         Error("cannot mix implicit argument ", Q(idname),
                               " with declared arguments in function");
-                    if (st.defsubfunctionstack.back()->args.back().type->Equal(*type_any))
-                        GenImplicitGenericForLastArg();
+                    GenImplicitGenericForLastArg(sf, sf->overload);
                 }
                 id->Read();
             }

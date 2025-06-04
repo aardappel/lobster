@@ -103,7 +103,7 @@ struct TypeChecker {
             // the UDT such that function overload selection can work. We could also not do this
             // here, and instead improve that code.
             for (auto [i, arg] : enumerate(sf->args)) {
-                auto type = sf->giventypes[i];
+                auto type = sf->overload->givenargs[i];
                 if (type->t == V_UUDT &&
                     (type->spec_udt->specializers.empty() || !type->spec_udt->IsGeneric())) {
                     arg.type = SingleNonGenericSpecialization(*type->spec_udt->gudt);
@@ -460,10 +460,10 @@ struct TypeChecker {
             for (auto [i, arg] : enumerate(sf->args)) {
                 // Specialize to the function type, if requested.
                 if (!sf->parent->istype) {
-                    if (!sf->typechecked && st.IsGeneric(sf->giventypes[i])) {
+                    if (!sf->typechecked && st.IsGeneric(sf->overload->givenargs[i])) {
                         arg.type = (*args)[i].type;
                     } else {
-                        arg.type = st.ResolveTypeVars(sf->giventypes[i], a->line);
+                        arg.type = st.ResolveTypeVars(sf->overload->givenargs[i], a->line);
                     }
                 }
                 // Note this has the args in reverse: function args are contravariant.
@@ -1062,7 +1062,7 @@ struct TypeChecker {
         sf->returntype = esf->returntype;
         sf->method_of = esf->method_of;
         sf->generics = esf->generics;
-        sf->giventypes = esf->giventypes;
+        sf->overload->givenargs = esf->overload->givenargs;
         sf->returned_thru_to_max = -1;
         sf->attributes = esf->attributes;
         sf->lexical_parent = esf->lexical_parent;
@@ -1303,7 +1303,7 @@ struct TypeChecker {
         }
         bool has_lambda_args = false;
         for (auto [i, c] : enumerate(call_args.children)) {
-            BindTypeVar(sf->giventypes[i], c->exptype, generics);
+            BindTypeVar(sf->overload->givenargs[i], c->exptype, generics);
             if (c->exptype->t == V_FUNCTION) has_lambda_args = true;
         }
         for (auto &gtv : generics)
@@ -1355,7 +1355,7 @@ struct TypeChecker {
                     // struct (or function) generic, and thus isn't covered by the checking
                     // of sf->generics below. Can this be done more elegantly?
                     auto parent_generic =
-                        st.IsGeneric(sf->giventypes[i]) && !c->exptype->Equal(*arg.type);
+                        st.IsGeneric(sf->overload->givenargs[i]) && !c->exptype->Equal(*arg.type);
                     auto incompatible = unequal_lifetimes || parent_generic;
                     if (incompatible)
                         goto fail;
@@ -1407,7 +1407,7 @@ struct TypeChecker {
         for (auto [i, c] : enumerate(call_args.children)) {
             auto &arg = sf->args[i];
             arg.sid->lt = ArgLifetime(c, arg);
-            arg.type = st.ResolveTypeVars(sf->giventypes[i], call_args.line);
+            arg.type = st.ResolveTypeVars(sf->overload->givenargs[i], call_args.line);
             LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
         }
         // This must be the correct freevar specialization.
@@ -1627,7 +1627,7 @@ struct TypeChecker {
                     // participating in the dispatch, but error now appears at the call site!
                     for (auto [j, arg] : enumerate(sf->args)) {
                         if (j && !arg.type->Equal(*last_sf->args[j].type) &&
-                            !st.IsGeneric(sf->giventypes[j]))
+                            !st.IsGeneric(sf->overload->givenargs[j]))
                             Error(call_args, "argument ", j + 1, " of declaration of ", Q(f.name),
                                           ", type ", Q(TypeName(arg.type)),
                                           " doesn\'t match type of previous declaration: ",
@@ -1724,7 +1724,7 @@ struct TypeChecker {
             // Then see if there's a match if we'd instantiate a generic UDT arg.
             if (matches.empty() && IsUDT(type->t)) {
                 for (auto ov : pickfrom) {
-                    auto &arg = ov->sf->giventypes[argidx];  // Want unresolved type.
+                    auto &arg = ov->sf->overload->givenargs[argidx];  // Want unresolved type.
                     if (arg->t == V_UUDT && arg->spec_udt->gudt == &type->udt->g) {
                         matches.push_back(ov);
                     }
@@ -1785,7 +1785,7 @@ struct TypeChecker {
             // Then see if there's a match if we'd instantiate a fully generic arg.
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
-                    auto arg = ov->sf->giventypes[argidx];  // Want unresolved type.
+                    auto arg = ov->sf->overload->givenargs[argidx];  // Want unresolved type.
                     if (arg->t == V_TYPEVAR) { matches.push_back(ov); }
                 }
             }
@@ -1804,7 +1804,7 @@ struct TypeChecker {
                         gtv.type = st.ResolveTypeVars(specializers->at(i), call_args.line);
                     }
                     st.bound_typevars_stack.push_back(generics);
-                    auto arg = st.ResolveTypeVars(ov->sf->giventypes[argidx], call_args.line);
+                    auto arg = st.ResolveTypeVars(ov->sf->overload->givenargs[argidx], call_args.line);
                     st.bound_typevars_stack.pop_back();
                     // TODO: Should we instead do ConvertsTo here?
                     if (type->Equal(*arg)) {
@@ -3260,10 +3260,10 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             // For now only functions that have a single definition.
             if (!ff->sibf && ff->overloads.size() == 1) {
                 auto sf = ff->overloads[0]->sf;
-                if (i < sf->giventypes.size() && sf->giventypes[i]->IsConcrete()) {
+                if (i < sf->overload->givenargs.size() && sf->overload->givenargs[i]->IsConcrete()) {
                     // This function is not typechecked, so this could be a generic type, but that
                     // is ok for the current use of parent_bound.
-                    parent_bound = sf->giventypes[i]->Resolved();
+                    parent_bound = sf->overload->givenargs[i]->Resolved();
                 }
             }
         }
@@ -3693,7 +3693,7 @@ Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     sf = tc.PreSpecializeFunction(sf);
     if (sf->parent->istype) {
         for (auto [i, arg] : enumerate(sf->args)) {
-            arg.type = tc.st.ResolveTypeVars(sf->giventypes[i], this->line);
+            arg.type = tc.st.ResolveTypeVars(sf->overload->givenargs[i], this->line);
         }
         sf->returntype = tc.st.ResolveTypeVars(sf->returngiventype, this->line);
     }

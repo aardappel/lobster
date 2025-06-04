@@ -421,7 +421,6 @@ struct SubFunction {
     vector<Arg> args;
     vector<Arg> locals;
     vector<Arg> freevars;       // any used from outside this scope
-    vector<UnTypeRef> giventypes;  // before specialization, includes typevars. FIXME: Only needed once per overload
     UnTypeRef returngiventype = (UnType *)nullptr;
     TypeRef returntype = type_undefined;
     size_t num_returns = 0;
