@@ -207,6 +207,7 @@ enum color_idx:
     col_resize_grip            // Resize grip in lower-right and lower-left corners of windows.
     col_resize_grip_hovered
     col_resize_grip_active
+    col_input_text_cursor
     col_tab_hovered            // Tab background, when hovered
     col_tab                    // Tab background, when tab-bar is focused & tab is unselected
     col_tab_selected           // Tab background, when tab-bar is focused & tab is selected
@@ -227,6 +228,7 @@ enum color_idx:
     col_table_row_bg_alt       // Table row background (odd rows)
     col_text_link
     col_text_selected_bg
+    col_tree_lines
     col_drag_drop_target       // Rectangle highlighting a drop target
     col_nav_highlight          // Gamepad/keyboard: current highlighted item
     col_nav_windowing_highlight// Highlight window when using CTRL+TAB

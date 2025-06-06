@@ -2231,7 +2231,6 @@ nfr("set_style_param_slow", "name,vals", "SF]", "",
         if (n == "LogSliderDeadzone"          ) st.LogSliderDeadzone           = fv; // The size in pixels of the dead-zone around zero on logarithmic sliders that cross zero.
         if (n == "TabRounding"                ) st.TabRounding                 = fv; // Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.
         if (n == "TabBorderSize"              ) st.TabBorderSize               = fv; // Thickness of border around tabs.
-        if (n == "TabMinWidthForCloseButton"  ) st.TabMinWidthForCloseButton   = fv; // Minimum width for close button to appear on an unselected tab when hovered. Set to 0.0f to always show when hovering, set to FLT_MAX to never show close button unless selected.
         if (n == "TabBarBorderSize"           ) st.TabBarBorderSize            = fv; // Thickness of tab-bar separator, which takes on the tab active color to denote focus.
         if (n == "TabBarOverlineSize"         ) st.TabBarOverlineSize          = fv; // Thickness of tab-bar overline, which highlights the selected tab-bar.
         if (n == "TableAngledHeadersAngle"    ) st.TableAngledHeadersAngle     = fv; // Angle of angled headers (supported values range from -50.0f degrees to +50.0f degrees).
