@@ -925,11 +925,7 @@ void SDLMessageBox(string_view_nt title, string_view_nt msg) {
 }
 
 bool SDLOpenURL(string_view url) {
-    #ifdef __ANDROID__
-        return false;
-    #else
-        return SDL_OpenURL(url.data()) == 0;
-    #endif
+    return SDL_OpenURL(url.data()) == 0;
 }
 
 int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len) {
