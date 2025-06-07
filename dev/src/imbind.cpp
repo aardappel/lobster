@@ -31,6 +31,13 @@
 
 #include "lobster/graphics.h"
 
+#undef new
+#include "imgui_internal.h"
+#if defined(_MSC_VER) && !defined(NDEBUG)
+    #define new DEBUG_NEW
+#endif
+
+
 using namespace lobster;
 
 extern SDL_Window *_sdl_window;
@@ -1703,6 +1710,16 @@ nfr("tab_bar_end", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_TAB_BAR);
+    });
+
+nfr("tab_select", "label", "S", "",
+    "call before any tabs to make a tab other than the first selected",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto title = Pop(sp).sval()->strv();
+        auto tb = ImGui::GetCurrentTabBar();
+        if (!tb) vm.BuiltinError("imgui: tab_bar_select not in contect of tab bar");
+        ImGui::TabBarQueueFocus(tb, title.data());
     });
 
 nfr("tab_start", "label,flags", "SI", "B",
