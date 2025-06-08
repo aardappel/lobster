@@ -31,7 +31,6 @@
 #include "lobster/optimizer.h"
 #include "lobster/tonative.h"
 #include "lobster/codegen.h"
-#include "lobster/disasm.h"
 
 SlabAlloc *g_current_slaballoc = nullptr;
 

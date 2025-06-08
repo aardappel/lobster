@@ -62,9 +62,6 @@
     <ClCompile Include="..\external\flatbuffers\src\util.cpp">
       <Filter>compiler\builtins\flatbuffers</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\disasm.cpp">
-      <Filter>dvm</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\libtcc\libtcc.c">
       <Filter>tonative\libtcc</Filter>
     </ClCompile>
@@ -105,9 +102,6 @@
       <Filter>base</Filter>
     </ClInclude>
     <ClInclude Include="..\src\lobster\vmdata.h">
-      <Filter>dvm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\lobster\disasm.h">
       <Filter>dvm</Filter>
     </ClInclude>
     <ClInclude Include="..\src\lobster\codegen.h">

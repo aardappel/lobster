@@ -15,6 +15,9 @@
 #ifndef LOBSTER_IL
 #define LOBSTER_IL
 
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+#include "lobster/bytecode_generated.h"
+
 // FlatBuffers takes care of backwards compatibility of all metadata, but not the actual bytecode.
 // This needs to be bumped each time we make changes to the format.
 

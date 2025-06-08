@@ -15,7 +15,6 @@
 #include "lobster/stdafx.h"
 
 #include "lobster/il.h"
-#include "lobster/disasm.h"
 
 #include "lobster/vmops.h"
 
@@ -928,11 +927,8 @@ extern "C" {
 
 using namespace lobster;
 
-void TraceIL(VM *vm, StackPtr sp, initializer_list<int> _ip) {
-    auto ip = _ip.begin();
+void TraceIL(VM *vm, StackPtr sp, initializer_list<int>) {
     auto &sd = vm->TraceStream();
-    DisAsmIns(vm->nfr, sd, ip, (type_elem_t *)vm->meta->type_table.data(),
-              vm->last_line, *vm);
     #if RTT_ENABLED
         (void)sp;
         /*

@@ -3291,8 +3291,7 @@ idents.h
     [node.h]
     natreg.h
 
-disasm.h
-    natreg.h
-        vmdata.h
-            il.h
-    bytecode_generated.h
+natreg.h
+    vmdata.h
+        il.h
+            bytecode_generated.h
