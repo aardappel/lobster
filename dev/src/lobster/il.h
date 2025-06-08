@@ -15,9 +15,6 @@
 #ifndef LOBSTER_IL
 #define LOBSTER_IL
 
-#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
-#include "lobster/bytecode_generated.h"
-
 // FlatBuffers takes care of backwards compatibility of all metadata, but not the actual bytecode.
 // This needs to be bumped each time we make changes to the format.
 
@@ -190,13 +187,6 @@ inline const char **ILNames() {
         static const char *ilnames[] = { ILNAMES };
     #undef F
     return ilnames;
-}
-
-inline const int *ILArity() {
-    #define F(N, A, USE, DEF) A,
-        static const int ilarity[] = { ILNAMES };
-    #undef F
-    return ilarity;
 }
 
 inline const int *ILUses() {

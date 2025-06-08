@@ -230,6 +230,69 @@
     - need to flip all struct order etc.
   - reduce use of ElemType.
   - once things are faster, test with https://github.com/kostya/benchmarks/
+  - frequent functions possibly worth inlining:
+        U_STATEMENT: 2624                               
+        U_PUSHINT: 1566                                 
+        NilVal: 1054                                    
+        SetLVal: 734                                    
+        Pop: 687                                        
+        DecVal: 573                                     
+        U_PUSHFLT: 519                                  
+        Push: 423                                       
+        U_RETURNLOCAL: 410                              
+        PushFunId: 400                                  
+        PopFunId: 400                                   
+        U_LV_WRITE: 390                                 
+        U_INCREF: 361                                   
+        U_ASSERT: 324                                   
+        U_LV_WRITEREF: 310                              
+        U_PUSHSTR: 295                                  
+        U_BCALLRET: 264                                 
+        U_PUSHVARF: 257                                 
+        U_PUSHFLD: 231                                  
+        U_POP: 222                                      
+        U_JUMPFAIL: 188                                 
+        U_NEWVEC: 170                                   
+        TopM: 163                                       
+        U_BCALLRETV: 162                                
+        U_PUSHFUN: 159                                  
+        U_IEQ: 156                                      
+        U_LV_WRITEV: 148                                
+        U_LVAL_VARF: 104                                
+        U_STEQ: 104                                     
+        BackupVar: 99                                   
+        RestoreBackup: 99                               
+        U_NEWOBJECT: 95                                 
+        U_VPUSHIDXI: 92                                 
+        U_PUSHVARVF: 91                                 
+        PopArg: 67                                      
+        U_SEQ: 66                                       
+        U_LVAL_FLD: 65                                  
+        U_PUSHNIL: 64                                   
+        U_VFOR: 60                                      
+        U_FORLOOPI: 57                                  
+        U_IADD: 55                                      
+        U_FMUL: 55                                      
+        SwapVars: 54                                    
+        U_JUMPFAILR: 51                                 
+        DecOwned: 45                                    
+        U_IFOR: 45                                      
+        U_IFORELEM: 40                                  
+        U_FSUB: 36                                      
+        U_JUMPIFUNWOUND: 35                             
+        U_RETURNANY: 35                                 
+        RetSlots: 35                                    
+        U_FVSMUL: 34                                    
+        U_RETURNNONLOCAL: 33                            
+        U_A: 33                                         
+        U_VFORELEM: 32                                  
+        U_FADD: 32                                      
+        U_FLT: 29                                       
+        U_VFORELEMREF: 28                               
+        U_DUP: 28                                       
+        U_LVAL_IDXVI: 24                                
+        U_LV_DUP: 22                                    
+        U_DDCALL: 22                                    
 
 - if the user has written T {} and T resolves to a non-UDT, allow to replace with default values of other
   types such as 0, 0.0, "", [] etc.

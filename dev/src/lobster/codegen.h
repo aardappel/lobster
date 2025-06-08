@@ -101,6 +101,9 @@ struct CodeGen  {
         if (uses == ILUNKNOWN) {
             assert(useslots != ILUNKNOWN);
             uses = useslots;
+        } else {
+            // FIXME: this would be good to enforce, but GenAssign is very sloppy with these numbers..
+            //assert(useslots == ILUNKNOWN || useslots == uses);
         }
         for (int i = 0; i < uses; i++) PopTemp();
 
@@ -108,6 +111,8 @@ struct CodeGen  {
         if (defs == ILUNKNOWN) {
             assert(defslots != ILUNKNOWN);
             defs = defslots;
+        } else {
+            assert(defslots == ILUNKNOWN || defslots == defs);
         }
         for (int i = 0; i < defs; i++) { PushTemp(op); }
 
@@ -371,13 +376,11 @@ struct CodeGen  {
         #endif
         auto emitvars = [&](const vector<Arg> &v, vector<int> &f_ad) {
             f_ad.clear();
-            auto nvars = 0;
             for (auto &arg : v) {
                 auto n = ValWidth(arg.sid->type);
                 for (int i = 0; i < n; i++) {
                     auto varidx = arg.sid->Idx() + i;
                     f_ad.push_back(varidx);
-                    nvars++;
                     if (ShouldDec(IsStruct(arg.sid->type->t)
                                       ? TypeLT { FindSlot(*arg.sid->type->udt, i)->type,
                                                  arg.sid->lt }
