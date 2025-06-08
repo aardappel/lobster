@@ -814,6 +814,25 @@ struct CodeGen  {
         }
     }
 
+    void GenFloat(double f) {
+        if ((float)f == f && isfinite(f)) {
+            EmitOp(IL_PUSHFLT);
+            // We're printint the float as text which seems dangerous, but PUSHFLT is only used in cases where
+            // double and float are identical, meaning typically whole numbers and other precisely representable
+            // numbers.
+            if (cpp) {
+                append(cb, "    *(", sp(), ") = Value(", (float)f, ");\n");
+            } else {
+                append(cb, "    { StackPtr _sp = ", sp(), "; _sp->fval = ", (float)f, ";", SetType(V_FLOAT), " }\n");
+            }
+        } else {
+            int2float64 i2f(f);
+            EmitOp(IL_PUSHFLT64);
+            append(cb, "    U_PUSHFLT64(vm, ", sp(), ", ", (int)i2f.i, ", ", (int)(i2f.i >> 32), ");");
+            comment(to_string_float(f));
+        }
+    }
+
     void SetToNil(string &sd, string_view target) {
         if (cpp)
             append(sd, "    ", target, " = Value(0, lobster::V_NIL);\n");
@@ -1185,15 +1204,6 @@ struct CodeGen  {
             PushTemp(IL_EXIT);
         }
     };
-
-    void GenFloat(double f) {
-        if ((float)f == f) {
-            EmitOp1(IL_PUSHFLT, int2float((float)f).i);
-        } else {
-            int2float64 i2f(f);
-            EmitOp2(IL_PUSHFLT64, (int)i2f.i, (int)(i2f.i >> 32));
-        }
-    }
 
     bool ShouldDec(TypeLT typelt) {
         return IsRefNil(typelt.type->t) && typelt.lt == LT_KEEP;

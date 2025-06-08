@@ -745,100 +745,100 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {284, 5};
     vm.last = {290, 5};
     vm.last = {7, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
     U_LVAL_VARF(vm, regs + 2, 74); // float2_0+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {8, 4};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
     U_LVAL_VARF(vm, regs + 2, 76); // float2_1+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {9, 4};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(0.500000);
     vm.temp_lval = &locals[0]; // float2_h+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {10, 4};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.000000);
     vm.temp_lval = &locals[2]; // float2_x+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {11, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(1.000000);
     vm.temp_lval = &locals[4]; // float2_y+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {13, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
     U_LVAL_VARF(vm, regs + 3, 84); // float3_0+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {14, 4};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(1.000000);
     U_LVAL_VARF(vm, regs + 3, 87); // float3_1+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {15, 4};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
     U_LVAL_VARF(vm, regs + 3, 90); // float3_x+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {16, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 0);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(0.000000);
     U_LVAL_VARF(vm, regs + 3, 93); // float3_y+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {17, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(1.000000);
     vm.temp_lval = &locals[6]; // float3_z+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {19, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(0.000000);
     vm.temp_lval = &locals[9]; // float4_0+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {20, 4};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[13]; // float4_1+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {21, 4};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(0.000000);
     vm.temp_lval = &locals[17]; // float4_x+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {22, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(0.000000);
     vm.temp_lval = &locals[21]; // float4_y+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {23, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(0.000000);
     vm.temp_lval = &locals[25]; // float4_z+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {24, 4};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[29]; // float4_w+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {28, 4};
@@ -1122,236 +1122,236 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {3, 21};
     vm.last = {3, 21};
     vm.last = {9, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(0.000000);
     vm.temp_lval = &locals[68]; // color_clear+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {10, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[72]; // color_black+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {11, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[76]; // color_white+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {13, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[80]; // color_red+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {14, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[84]; // color_green+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {15, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[88]; // color_blue+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {17, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[92]; // color_yellow+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {18, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[96]; // color_cyan+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {19, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[100]; // color_pink+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {21, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[104]; // color_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {22, 21};
-    U_PUSHFLT(vm, regs + 0, 1048576000);
-    U_PUSHFLT(vm, regs + 1, 1048576000);
-    U_PUSHFLT(vm, regs + 2, 1048576000);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.250000);
+    *(regs + 1) = Value(0.250000);
+    *(regs + 2) = Value(0.250000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[108]; // color_dark_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {23, 21};
-    U_PUSHFLT(vm, regs + 0, 1061158912);
-    U_PUSHFLT(vm, regs + 1, 1061158912);
-    U_PUSHFLT(vm, regs + 2, 1061158912);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.750000);
+    *(regs + 1) = Value(0.750000);
+    *(regs + 2) = Value(0.750000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[112]; // color_light_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {24, 21};
-    U_PUSHFLT64(vm, regs + 0, -858993459, 1072483532);
-    U_PUSHFLT64(vm, regs + 1, -858993459, 1072483532);
-    U_PUSHFLT64(vm, regs + 2, -858993459, 1072483532);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    U_PUSHFLT64(vm, regs + 0, -858993459, 1072483532); // 0.9
+    U_PUSHFLT64(vm, regs + 1, -858993459, 1072483532); // 0.9
+    U_PUSHFLT64(vm, regs + 2, -858993459, 1072483532); // 0.9
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[116]; // color_lightest_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {25, 21};
-    U_PUSHFLT64(vm, regs + 0, -1717986918, 1069128089);
-    U_PUSHFLT64(vm, regs + 1, -1717986918, 1069128089);
-    U_PUSHFLT64(vm, regs + 2, -1717986918, 1069128089);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    U_PUSHFLT64(vm, regs + 0, -1717986918, 1069128089); // 0.1
+    U_PUSHFLT64(vm, regs + 1, -1717986918, 1069128089); // 0.1
+    U_PUSHFLT64(vm, regs + 2, -1717986918, 1069128089); // 0.1
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[120]; // color_darkest_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {27, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[124]; // color_light_red+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {28, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[128]; // color_light_green+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {29, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[132]; // color_light_blue+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {30, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[136]; // color_light_yellow+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {31, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[140]; // color_light_cyan+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {32, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[144]; // color_light_pink+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {34, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[148]; // color_dark_red+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {35, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[152]; // color_dark_green+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {36, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[156]; // color_dark_blue+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {37, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[160]; // color_olive+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {38, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[164]; // color_teal+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {39, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[168]; // color_purple+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {41, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[172]; // color_orange+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {42, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[176]; // color_chartreuse+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {43, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[180]; // color_springgreen+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {44, 21};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.500000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[184]; // color_dodgerblue+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {45, 21};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1056964608);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.500000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[188]; // color_pink_violet+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {46, 21};
-    U_PUSHFLT(vm, regs + 0, 1056964608);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.500000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[192]; // color_blue_violet+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {48, 21};
     vm.last = {49, 21};
     vm.last = {51, 21};
-    U_PUSHFLT64(vm, regs + 0, -446676599, 1070801616);
-    U_PUSHFLT64(vm, regs + 1, 962072674, 1071827124);
-    U_PUSHFLT64(vm, regs + 2, -1614907703, 1069362970);
-    U_PUSHFLT(vm, regs + 3, 0);
+    U_PUSHFLT64(vm, regs + 0, -446676599, 1070801616); // 0.299
+    U_PUSHFLT64(vm, regs + 1, 962072674, 1071827124); // 0.587
+    U_PUSHFLT64(vm, regs + 2, -1614907703, 1069362970); // 0.114
+    *(regs + 3) = Value(0.000000);
     vm.temp_lval = &locals[196]; // color_luminance_weights+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {52, 21};
@@ -1388,10 +1388,10 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {57, 27};
     vm.last = {62, 27};
     vm.last = {67, 27};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     vm.temp_lval = &locals[200]; // quat_unit+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {10, 26};
@@ -1462,10 +1462,10 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {7, 29};
     vm.last = {7, 29};
     vm.last = {33, 29};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
+    *(regs + 3) = Value(1.000000);
     U_LVAL_VARF(vm, regs + 4, 1150); // mat2x2_identity+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {4, 28};
@@ -2376,7 +2376,7 @@ static void fun_585(VMRef vm, StackPtr psp) {
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {13, 18};
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 3) = Value(0.000000);
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -2431,7 +2431,7 @@ static void fun_584(VMRef vm, StackPtr psp) {
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {34, 18};
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 3) = Value(0.000000);
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -2486,7 +2486,7 @@ static void fun_583(VMRef vm, StackPtr psp) {
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {33, 18};
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 3) = Value(0.000000);
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -5918,8 +5918,8 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 34, 3, 35);
     vm.last = {35, 3};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1073741824);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(2.000000);
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 62, 1); // int
     *(regs + 2) = Value(1);
@@ -5947,8 +5947,8 @@ static void fun_111(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[8]; // nv+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {39, 3};
-    U_PUSHFLT(vm, regs + 0, 1123418112);
-    U_PUSHFLT(vm, regs + 1, 1139015680);
+    *(regs + 0) = Value(123.000000);
+    *(regs + 1) = Value(456.000000);
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 84, 1); // normalize
     vm.temp_lval = &locals[8]; // nv+0
@@ -5957,10 +5957,10 @@ static void fun_111(VMRef vm, StackPtr psp) {
     regs[0] = locals[8];regs[1] = locals[9]; // nv
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 86, 1); // magnitude
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FSUB(vm, regs + 2);
     U_BCALLRET1(vm, regs + 1, 113, 1); // abs
-    U_PUSHFLT64(vm, regs + 1, -755914244, 1062232653);
+    U_PUSHFLT64(vm, regs + 1, -755914244, 1062232653); // 0.001
     U_FLT(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 40, 3, 39);
     vm.last = {41, 3};
@@ -5974,7 +5974,7 @@ static void fun_111(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 86, 1); // magnitude
     U_BCALLRET1(vm, regs + 1, 113, 1); // abs
-    U_PUSHFLT64(vm, regs + 1, -755914244, 1062232653);
+    U_PUSHFLT64(vm, regs + 1, -755914244, 1062232653); // 0.001
     U_FLT(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 42, 3, 40);
     vm.last = {43, 3};
@@ -6931,11 +6931,11 @@ static void fun_125(VMRef vm, StackPtr psp) {
     vm.last = {169, 3};
     vm.last = {169, 3};
     vm.last = {175, 3};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1073741824);
-    U_PUSHFLT(vm, regs + 2, 1077936128);
-    U_PUSHFLT(vm, regs + 3, 1082130432);
-    U_PUSHFLT(vm, regs + 4, 1084227584);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(2.000000);
+    *(regs + 2) = Value(3.000000);
+    *(regs + 3) = Value(4.000000);
+    *(regs + 4) = Value(5.000000);
     vm.temp_lval = &locals[0]; // v5test+0
     U_LV_WRITEV(vm, regs + 5, 5);
     vm.last = {176, 3};
@@ -6947,7 +6947,7 @@ static void fun_125(VMRef vm, StackPtr psp) {
     vm.last = {177, 3};
     regs[0] = locals[5];regs[1] = locals[6];regs[2] = locals[7];regs[3] = locals[8];regs[4] = locals[9]; // v5test2
     regs[5] = locals[0];regs[6] = locals[1];regs[7] = locals[2];regs[8] = locals[3];regs[9] = locals[4]; // v5test
-    U_PUSHFLT(vm, regs + 10, 1073741824);
+    *(regs + 10) = Value(2.000000);
     U_FVSMUL(vm, regs + 11, 5);
     U_STEQ(vm, regs + 10, 5);
     U_ASSERT(vm, regs + 1, 177, 3, 99);
@@ -6957,7 +6957,7 @@ static void fun_125(VMRef vm, StackPtr psp) {
     U_BCALLRETV(vm, regs + 6, 84, 1); // normalize
     *(regs + 5) = Value(5);
     U_BCALLRETV(vm, regs + 6, 86, 1); // magnitude
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 178, 3, 100);
     vm.last = {179, 3};
@@ -6979,7 +6979,7 @@ static void fun_125(VMRef vm, StackPtr psp) {
     regs[6] = locals[5];regs[7] = locals[6];regs[8] = locals[7];regs[9] = locals[8];regs[10] = locals[9]; // v5test2
     *(regs + 11) = Value(5);
     U_BCALLRETV(vm, regs + 12, 85, 1); // dot
-    U_PUSHFLT(vm, regs + 1, 1121714176);
+    *(regs + 1) = Value(110.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 180, 3, 102);
     U_RETURNLOCAL(vm, 0, 0);
@@ -7033,21 +7033,21 @@ static void fun_126(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 6, 3);
     U_ASSERT(vm, regs + 1, 190, 3, 106);
     vm.last = {193, 3};
-    U_PUSHFLT64(vm, regs + 0, -858993459, 1073794252);
-    U_PUSHFLT64(vm, regs + 1, -1717986918, 1074370969);
-    U_PUSHFLT(vm, regs + 2, 1084227584);
+    U_PUSHFLT64(vm, regs + 0, -858993459, 1073794252); // 2.1
+    U_PUSHFLT64(vm, regs + 1, -1717986918, 1074370969); // 3.2
+    *(regs + 2) = Value(5.000000);
     U_FVSMUL(vm, regs + 3, 2);
-    U_PUSHFLT(vm, regs + 2, 1093140480);
-    U_PUSHFLT(vm, regs + 3, 1098907648);
+    *(regs + 2) = Value(10.500000);
+    *(regs + 3) = Value(16.000000);
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 193, 3, 107);
     vm.last = {194, 3};
-    U_PUSHFLT(vm, regs + 0, 1084227584);
-    U_PUSHFLT64(vm, regs + 1, -858993459, 1073794252);
-    U_PUSHFLT64(vm, regs + 2, -1717986918, 1074370969);
+    *(regs + 0) = Value(5.000000);
+    U_PUSHFLT64(vm, regs + 1, -858993459, 1073794252); // 2.1
+    U_PUSHFLT64(vm, regs + 2, -1717986918, 1074370969); // 3.2
     U_SFVMUL(vm, regs + 3, 2);
-    U_PUSHFLT(vm, regs + 2, 1093140480);
-    U_PUSHFLT(vm, regs + 3, 1098907648);
+    *(regs + 2) = Value(10.500000);
+    *(regs + 3) = Value(16.000000);
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 194, 3, 108);
     vm.last = {197, 3};
@@ -9095,10 +9095,10 @@ static void fun_155(VMRef vm, StackPtr psp) {
     vm.last = {68, 6};
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(1);
-    U_PUSHFLT(vm, regs + 2, 1073741824);
-    U_PUSHFLT(vm, regs + 3, 1077936128);
-    U_PUSHFLT(vm, regs + 4, 1082130432);
-    U_PUSHFLT(vm, regs + 5, 1084227584);
+    *(regs + 2) = Value(2.000000);
+    *(regs + 3) = Value(3.000000);
+    *(regs + 4) = Value(4.000000);
+    *(regs + 5) = Value(5.000000);
     U_PUSHSTR(vm, regs + 6, 162); // "hello, world!\n\"\'\r\t\\\300"
     U_INCREF(vm, regs + 7, 0);
     *(regs + 7) = Value(0);
@@ -9152,10 +9152,10 @@ static void fun_155(VMRef vm, StackPtr psp) {
     vm.last = {78, 6};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(1);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 0);
-    U_PUSHFLT(vm, regs + 4, 0);
-    U_PUSHFLT(vm, regs + 5, 0);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(0.000000);
+    *(regs + 4) = Value(0.000000);
+    *(regs + 5) = Value(0.000000);
     U_PUSHSTR(vm, regs + 6, 165); // ""
     U_INCREF(vm, regs + 7, 0);
     U_NEWVEC(vm, regs + 7, 7, 0);
@@ -9366,13 +9366,13 @@ static void fun_155(VMRef vm, StackPtr psp) {
     block5:;
     U_ASSERT(vm, regs + 1, 116, 6, 195);
     vm.last = {120, 6};
-    U_PUSHFLT64(vm, regs + 0, 1374389535, 1074339512);
+    U_PUSHFLT64(vm, regs + 0, 1374389535, 1074339512); // 3.14
     U_DUP(vm, regs + 1);
-    U_PUSHFLT(vm, regs + 2, 1092616192);
+    *(regs + 2) = Value(10.000000);
     U_FGE(vm, regs + 3);
     if (!U_JUMPFAIL(vm, regs + 2)) goto block6;
     U_DUP(vm, regs + 1);
-    U_PUSHFLT(vm, regs + 2, 1101004800);
+    *(regs + 2) = Value(20.000000);
     U_FLE(vm, regs + 3);
     if (!U_JUMPFAIL(vm, regs + 2)) goto block7;
     U_POP(vm, regs + 1);
@@ -9680,9 +9680,9 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 176, 6, 227);
     vm.last = {177, 6};
-    U_PUSHFLT(vm, regs + 0, -1061158912);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 1086324736);
+    *(regs + 0) = Value(-6.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(6.000000);
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 119, 1); // sign
     *(regs + 3) = Value(-1);
@@ -9810,7 +9810,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     vm.last = {198, 6};
     regs[0] = locals[42]; // nn
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 198, 6, 235);
     vm.last = {199, 6};
@@ -9907,44 +9907,44 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 250, 6, 245);
     vm.last = {251, 6};
-    U_PUSHFLT(vm, regs + 0, 1082130432);
-    U_PUSHFLT(vm, regs + 1, 1069547520);
+    *(regs + 0) = Value(4.000000);
+    *(regs + 1) = Value(1.500000);
     U_FMOD(vm, regs + 2);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FSUB(vm, regs + 2);
     U_BCALLRET1(vm, regs + 1, 113, 1); // abs
-    U_PUSHFLT64(vm, regs + 1, 1202590843, 1065646817);
+    U_PUSHFLT64(vm, regs + 1, 1202590843, 1065646817); // 0.01
     U_FLT(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 251, 6, 246);
     vm.last = {252, 6};
-    U_PUSHFLT64(vm, regs + 0, 858993459, 1076114227);
-    U_PUSHFLT64(vm, regs + 1, -1717986918, 1077156249);
-    U_PUSHFLT(vm, regs + 2, 1077936128);
-    U_PUSHFLT(vm, regs + 3, 1086324736);
+    U_PUSHFLT64(vm, regs + 0, 858993459, 1076114227); // 10.1
+    U_PUSHFLT64(vm, regs + 1, -1717986918, 1077156249); // 20.1
+    *(regs + 2) = Value(3.000000);
+    *(regs + 3) = Value(6.000000);
     U_FVVMOD(vm, regs + 4, 2);
-    U_PUSHFLT64(vm, regs + 2, -1717986918, 1072798105);
-    U_PUSHFLT64(vm, regs + 3, -858993459, 1073794252);
+    U_PUSHFLT64(vm, regs + 2, -1717986918, 1072798105); // 1.1
+    U_PUSHFLT64(vm, regs + 3, -858993459, 1073794252); // 2.1
     U_FVVSUB(vm, regs + 4, 2);
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 115, 1); // abs
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 133, 1); // max
-    U_PUSHFLT64(vm, regs + 1, 1202590843, 1065646817);
+    U_PUSHFLT64(vm, regs + 1, 1202590843, 1065646817); // 0.01
     U_FLT(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 252, 6, 247);
     vm.last = {253, 6};
-    U_PUSHFLT64(vm, regs + 0, 858993459, 1076114227);
-    U_PUSHFLT64(vm, regs + 1, -1717986918, 1077156249);
-    U_PUSHFLT(vm, regs + 2, 1077936128);
+    U_PUSHFLT64(vm, regs + 0, 858993459, 1076114227); // 10.1
+    U_PUSHFLT64(vm, regs + 1, -1717986918, 1077156249); // 20.1
+    *(regs + 2) = Value(3.000000);
     U_FVSMOD(vm, regs + 3, 2);
-    U_PUSHFLT64(vm, regs + 2, -1717986918, 1072798105);
-    U_PUSHFLT64(vm, regs + 3, -858993459, 1073794252);
+    U_PUSHFLT64(vm, regs + 2, -1717986918, 1072798105); // 1.1
+    U_PUSHFLT64(vm, regs + 3, -858993459, 1073794252); // 2.1
     U_FVVSUB(vm, regs + 4, 2);
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 115, 1); // abs
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 133, 1); // max
-    U_PUSHFLT64(vm, regs + 1, 1202590843, 1065646817);
+    U_PUSHFLT64(vm, regs + 1, 1202590843, 1065646817); // 0.01
     U_FLT(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 253, 6, 248);
     vm.last = {256, 6};
@@ -10003,10 +10003,10 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {269, 6};
     regs[0] = locals[45]; // dict
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, -1082130432);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(-1.000000);
     fun_144(vm, regs + 3); // call: get
-    U_PUSHFLT(vm, regs + 1, -1082130432);
+    *(regs + 1) = Value(-1.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 269, 6, 257);
     vm.last = {270, 6};
@@ -10043,7 +10043,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     vm.last = {277, 6};
     regs[2] = locals[45]; // dict
     regs[3] = locals[47]; // key
-    U_PUSHFLT(vm, regs + 4, -1082130432);
+    *(regs + 4) = Value(-1.000000);
     fun_144(vm, regs + 5); // call: get
     vm.temp_lval = &locals[48]; // value
     U_LV_WRITE(vm, regs + 3);
@@ -10399,15 +10399,15 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 375, 6, 331);
     vm.last = {378, 6};
-    U_PUSHFLT(vm, regs + 0, 2139095040);
+    U_PUSHFLT64(vm, regs + 0, 0, 2146435072); // inf
     U_A2S(vm, regs + 1, 2);
     keepvar[21] = TopM(regs + 1, 0);
     U_PUSHSTR(vm, regs + 1, 332); // "inf"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 378, 6, 333);
     vm.last = {379, 6};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(0.000000);
     U_FMOD(vm, regs + 2);
     U_A2S(vm, regs + 1, 2);
     keepvar[22] = TopM(regs + 1, 0);
@@ -10854,7 +10854,7 @@ static void fun_472(VMRef vm, StackPtr psp) {
     Value regs[1];
     PushFunId(vm, funinfo_table + 1345, 0);
     vm.last = {187, 6};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     U_BCALLRET1(vm, regs + 1, 69, 1); // sin
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
     vm.last = {187, 6};
@@ -10877,7 +10877,7 @@ static void fun_170(VMRef vm, StackPtr psp) {
     Value regs[2];
     PushFunId(vm, funinfo_table + 1348, 0);
     vm.last = {187, 6};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     U_BCALLRET1(vm, regs + 1, 69, 1); // sin
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
     vm.last = {187, 6};
@@ -10918,7 +10918,7 @@ static void fun_172(VMRef vm, StackPtr psp) {
     Value regs[2];
     PushFunId(vm, funinfo_table + 1354, 0);
     vm.last = {196, 6};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     U_PUSHSTR(vm, regs + 1, 344); // "a"
     U_INCREF(vm, regs + 2, 0);
     U_RETURNLOCAL(vm, 0, 2);
@@ -11381,7 +11381,7 @@ static void fun_187(VMRef vm, StackPtr psp) {
     block2:;
     U_POP(vm, regs + 1);
     vm.last = {320, 6};
-    U_PUSHFLT64(vm, regs + 0, -858993459, 1074318540);
+    U_PUSHFLT64(vm, regs + 0, -858993459, 1074318540); // 3.1
     U_RETURNNONLOCAL(vm, 0, 1, 180);
     Push(psp, regs[0]);
     goto epilogue;
@@ -11470,19 +11470,19 @@ static void fun_194(VMRef vm, StackPtr psp) {
     locals[0] = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1431, locals);
     vm.last = {383, 6};
-    U_PUSHFLT(vm, regs + 0, 1073741824);
+    *(regs + 0) = Value(2.000000);
     vm.temp_lval = &locals[0]; // divisor
     U_LV_WRITE(vm, regs + 1);
     vm.last = {385, 6};
-    U_PUSHFLT(vm, regs + 0, 1084227584);
+    *(regs + 0) = Value(5.000000);
     regs[1] = locals[0]; // divisor
     U_FMOD(vm, regs + 2);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 385, 6, 352);
     vm.last = {386, 6};
     U_PUSHVARVF(vm, regs + 0, 76, 2); // float2_1+0
-    U_PUSHFLT(vm, regs + 2, 1084227584);
+    *(regs + 2) = Value(5.000000);
     U_FVSMUL(vm, regs + 3, 2);
     regs[2] = locals[0]; // divisor
     U_FVSMOD(vm, regs + 3, 2);
@@ -12405,9 +12405,9 @@ static void fun_214(VMRef vm, StackPtr psp) {
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 124, 9, 411);
     vm.last = {125, 9};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     fun_234(vm, regs + 1); // call: foo
-    U_PUSHFLT(vm, regs + 1, 1073741824);
+    *(regs + 1) = Value(2.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 125, 9, 412);
     U_RETURNLOCAL(vm, 0, 0);
@@ -12875,7 +12875,7 @@ static void fun_234(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1627, locals);
     vm.last = {122, 9};
     regs[0] = locals[0]; // t
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FADD(vm, regs + 2);
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
@@ -13078,11 +13078,11 @@ static void fun_237(VMRef vm, StackPtr psp) {
     vm.last = {195, 9};
     vm.last = {196, 9};
     vm.last = {196, 9};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[4]; // x
     U_LV_WRITE(vm, regs + 1);
     vm.last = {196, 9};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[5]; // y
     U_LV_WRITE(vm, regs + 1);
     vm.last = {195, 9};
@@ -13090,11 +13090,11 @@ static void fun_237(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 196, 9, 427);
     vm.last = {197, 9};
     vm.last = {197, 9};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[6]; // x
     U_LV_WRITE(vm, regs + 1);
     vm.last = {197, 9};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[7]; // y
     U_LV_WRITE(vm, regs + 1);
     vm.last = {195, 9};
@@ -13102,15 +13102,15 @@ static void fun_237(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 197, 9, 428);
     vm.last = {198, 9};
     vm.last = {199, 9};
-    U_PUSHFLT(vm, regs + 0, 1073741824);
+    *(regs + 0) = Value(2.000000);
     fun_243(vm, regs + 1); // call: k
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 199, 9, 429);
     vm.last = {200, 9};
-    U_PUSHFLT(vm, regs + 0, 1073741824);
+    *(regs + 0) = Value(2.000000);
     fun_243(vm, regs + 1); // call: k
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 200, 9, 430);
     vm.last = {201, 9};
@@ -13359,7 +13359,7 @@ static void fun_243(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 1);
     PushFunId(vm, funinfo_table + 1686, locals);
     vm.last = {198, 9};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
     Push(psp, regs[0]);
@@ -13373,8 +13373,8 @@ static void fun_244(VMRef vm, StackPtr psp) {
     Value regs[2];
     PushFunId(vm, funinfo_table + 1690, 0);
     vm.last = {202, 9};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
     U_RETURNLOCAL(vm, 0, 2);
     Push(psp, regs[0]);
     Push(psp, regs[1]);
@@ -14641,7 +14641,7 @@ static void fun_554(VMRef vm, StackPtr psp) {
     vm.last = {60, 11};
     regs[0] = locals[1]; // cost
     U_I2F(vm, regs + 1);
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 1) = Value(0.000000);
     U_FGT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
     vm.last = {61, 11};
@@ -14679,7 +14679,7 @@ static void fun_267(VMRef vm, StackPtr psp) {
     vm.last = {60, 11};
     regs[0] = locals[1]; // cost
     U_I2F(vm, regs + 1);
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 1) = Value(0.000000);
     U_FGT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
     vm.last = {61, 11};
@@ -14978,7 +14978,7 @@ static void fun_272(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[5]; // small
     U_LV_WRITE(vm, regs + 1);
     vm.last = {82, 11};
-    U_PUSHFLT(vm, regs + 0, 1073741824);
+    *(regs + 0) = Value(2.000000);
     U_BCALLRET1(vm, regs + 1, 56, 1); // sqrt
     regs[1] = locals[5]; // small
     U_I2F(vm, regs + 2);
@@ -15035,7 +15035,7 @@ static void fun_276(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[1]; // H
     U_LV_WRITE(vm, regs + 1);
     vm.last = {98, 11};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     regs[1] = locals[1]; // H
     U_I2F(vm, regs + 2);
     regs[2] = locals[1]; // H
@@ -15148,9 +15148,9 @@ static void fun_278(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 3);
     vm.last = {109, 11};
     U_PUSHVARF(vm, regs + 2, 527); // existingnodes
-    U_PUSHFLT(vm, regs + 3, 0);
-    U_PUSHFLT(vm, regs + 4, 0);
-    U_PUSHFLT(vm, regs + 5, 0);
+    *(regs + 3) = Value(0.000000);
+    *(regs + 4) = Value(0.000000);
+    *(regs + 5) = Value(0.000000);
     U_PUSHNIL(vm, regs + 6);
     U_PUSHVARF(vm, regs + 7, 532); // nstate
     U_INCREF(vm, regs + 8, 0);
@@ -15442,9 +15442,9 @@ static void fun_283(VMRef vm, StackPtr psp) {
     U_LV_WRITEV(vm, regs + 2, 2);
     block1:;
     vm.last = {49, 10};
-    U_PUSHFLT(vm, regs + 0, 0);
-    U_PUSHFLT(vm, regs + 1, 0);
-    U_PUSHFLT(vm, regs + 2, 0);
+    *(regs + 0) = Value(0.000000);
+    *(regs + 1) = Value(0.000000);
+    *(regs + 2) = Value(0.000000);
     U_PUSHNIL(vm, regs + 3);
     regs[4] = locals[0]; // x
     U_PUSHVARF(vm, regs + 5, 545); // y
@@ -17762,7 +17762,7 @@ static void fun_338(VMRef vm, StackPtr psp) {
     U_LVAL_VARF(vm, regs + 1, 666); // lssize
     U_LV_WRITE(vm, regs + 1);
     vm.last = {17, 17};
-    U_PUSHFLT64(vm, regs + 0, -1717986918, 1070176665);
+    U_PUSHFLT64(vm, regs + 0, -1717986918, 1070176665); // 0.2
     U_LVAL_VARF(vm, regs + 1, 667); // hmargin
     U_LV_WRITE(vm, regs + 1);
     vm.last = {19, 17};
@@ -17774,11 +17774,11 @@ static void fun_338(VMRef vm, StackPtr psp) {
     U_LVAL_VARF(vm, regs + 2, 670); // lowest+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {21, 17};
-    U_PUSHFLT(vm, regs + 0, -998637568);
+    *(regs + 0) = Value(-1000.000000);
     U_LVAL_VARF(vm, regs + 1, 672); // highh
     U_LV_WRITE(vm, regs + 1);
     vm.last = {22, 17};
-    U_PUSHFLT(vm, regs + 0, 1148846080);
+    *(regs + 0) = Value(1000.000000);
     U_LVAL_VARF(vm, regs + 1, 673); // lowh
     U_LV_WRITE(vm, regs + 1);
     vm.last = {24, 17};
@@ -17801,19 +17801,19 @@ static void fun_338(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {49, 17};
     vm.last = {54, 17};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     vm.temp_lval = &locals[0]; // starting_extra_water
     U_LV_WRITE(vm, regs + 1);
     vm.last = {55, 17};
-    U_PUSHFLT(vm, regs + 0, 1082130432);
+    *(regs + 0) = Value(4.000000);
     U_LVAL_VARF(vm, regs + 1, 691); // water_per_second
     U_LV_WRITE(vm, regs + 1);
     vm.last = {56, 17};
-    U_PUSHFLT(vm, regs + 0, 1109393408);
+    *(regs + 0) = Value(40.000000);
     U_LVAL_VARF(vm, regs + 1, 692); // give_water_divider
     U_LV_WRITE(vm, regs + 1);
     vm.last = {57, 17};
-    U_PUSHFLT64(vm, regs + 0, -1717986918, 1070176665);
+    U_PUSHFLT64(vm, regs + 0, -1717986918, 1070176665); // 0.2
     U_LVAL_VARF(vm, regs + 1, 693); // minimum_water_accumulation
     U_LV_WRITE(vm, regs + 1);
     vm.last = {59, 17};
@@ -17883,18 +17883,18 @@ static void fun_340(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[1]; // h
     U_LV_WRITE(vm, regs + 1);
     vm.last = {27, 17};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[1]; // h
     U_LV_FADD(vm, regs + 1);
     vm.last = {28, 17};
     regs[0] = locals[1]; // h
-    U_PUSHFLT(vm, regs + 1, 1077936128);
+    *(regs + 1) = Value(3.000000);
     U_BCALLRET2(vm, regs + 2, 52, 1); // pow
     vm.temp_lval = &locals[1]; // h
     U_LV_WRITE(vm, regs + 1);
     vm.last = {29, 17};
     regs[0] = locals[1]; // h
-    U_PUSHFLT(vm, regs + 1, 1092616192);
+    *(regs + 1) = Value(10.000000);
     U_FMUL(vm, regs + 2);
     vm.temp_lval = &locals[1]; // h
     U_LV_WRITE(vm, regs + 1);
@@ -17931,7 +17931,7 @@ static void fun_340(VMRef vm, StackPtr psp) {
     vm.last = {36, 17};
     regs[0] = locals[1]; // h
     regs[1] = locals[1]; // h
-    U_PUSHFLT(vm, regs + 2, 0);
+    *(regs + 2) = Value(0.000000);
     U_NEWOBJECT(vm, regs + 3, 1123); // cell
     U_RETURNLOCAL(vm, 0, 1);
     Pop(psp);
@@ -18140,7 +18140,7 @@ static void fun_345(VMRef vm, StackPtr psp) {
     Value regs[4];
     PushFunId(vm, funinfo_table + 2283, 0);
     vm.last = {62, 17};
-    U_PUSHFLT64(vm, regs + 0, 286331153, 1066471697);
+    U_PUSHFLT64(vm, regs + 0, 286331153, 1066471697); // 0.016666666666666666
     U_PUSHVARF(vm, regs + 1, 691); // water_per_second
     U_FMUL(vm, regs + 2);
     U_PUSHVARF(vm, regs + 1, 674); // cells
@@ -18184,7 +18184,7 @@ static void fun_346(VMRef vm, StackPtr psp) {
     U_FGT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
     vm.last = {65, 17};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     U_LVAL_VARF(vm, regs + 1, 697); // totald
     U_LV_WRITE(vm, regs + 1);
     vm.last = {66, 17};
@@ -18308,7 +18308,7 @@ static void fun_348(VMRef vm, StackPtr psp) {
     vm.last = {80, 17};
     regs[0] = locals[2]; // c
     U_PUSHFLD(vm, regs + 1, 2);
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 1) = Value(0.000000);
     U_FNE(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
     vm.last = {81, 17};
@@ -18318,7 +18318,7 @@ static void fun_348(VMRef vm, StackPtr psp) {
     U_LVAL_FLD(vm, regs + 2, 1);
     U_LV_FADD(vm, regs + 1);
     vm.last = {82, 17};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     regs[1] = locals[2]; // c
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITE(vm, regs + 1);
@@ -18355,7 +18355,7 @@ static void fun_349(VMRef vm, StackPtr psp) {
     U_LVAL_VARF(vm, regs + 1, 707); // N
     U_LV_WRITE(vm, regs + 1);
     vm.last = {10, 18};
-    U_PUSHFLT(vm, regs + 0, 1073741824);
+    *(regs + 0) = Value(2.000000);
     U_PUSHVARF(vm, regs + 1, 707); // N
     U_I2F(vm, regs + 2);
     U_FDIV(vm, regs + 2);
@@ -18363,11 +18363,11 @@ static void fun_349(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     vm.last = {12, 18};
     vm.last = {29, 18};
-    U_PUSHFLT64(vm, regs + 0, -1717986918, 1069128089);
+    U_PUSHFLT64(vm, regs + 0, -1717986918, 1069128089); // 0.1
     vm.temp_lval = &locals[0]; // sigma
     U_LV_WRITE(vm, regs + 1);
     vm.last = {30, 18};
-    U_PUSHFLT64(vm, regs + 0, -755914244, 1062232653);
+    U_PUSHFLT64(vm, regs + 0, -755914244, 1062232653); // 0.001
     vm.temp_lval = &locals[1]; // mu
     U_LV_WRITE(vm, regs + 1);
     vm.last = {31, 18};
@@ -18405,8 +18405,8 @@ static void fun_349(VMRef vm, StackPtr psp) {
     U_LVAL_IDXVI(vm, regs + 5, 0);
     U_LV_WRITE(vm, regs + 3);
     vm.last = {38, 18};
-    U_PUSHFLT(vm, regs + 2, 1077936128);
-    U_PUSHFLT(vm, regs + 3, 1073741824);
+    *(regs + 2) = Value(3.000000);
+    *(regs + 3) = Value(2.000000);
     regs[4] = locals[3]; // x
     regs[5] = locals[5]; // i
     U_VPUSHIDXI(vm, regs + 6);
@@ -18433,10 +18433,10 @@ static void fun_349(VMRef vm, StackPtr psp) {
     keepvar[0] = TopM(regs + 1, 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
-    U_PUSHFLT64(vm, regs + 1, -1941428633, 1073966704);
+    U_PUSHFLT64(vm, regs + 1, -1941428633, 1073966704); // 2.428925605728
     U_FSUB(vm, regs + 2);
     U_BCALLRET1(vm, regs + 1, 113, 1); // abs
-    U_PUSHFLT64(vm, regs + 1, 1202590843, 1065646817);
+    U_PUSHFLT64(vm, regs + 1, 1202590843, 1065646817); // 0.01
     U_FLT(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 40, 18, 534);
     U_RETURNLOCAL(vm, 0, 0);
@@ -18474,11 +18474,11 @@ static void fun_350(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[4]; // y
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {14, 18};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     vm.temp_lval = &locals[5]; // w0
     U_LV_WRITE(vm, regs + 1);
     vm.last = {15, 18};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     vm.temp_lval = &locals[6]; // w1
     U_LV_WRITE(vm, regs + 1);
     vm.last = {16, 18};
@@ -18487,11 +18487,11 @@ static void fun_350(VMRef vm, StackPtr psp) {
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {17, 18};
-    U_PUSHFLT(vm, regs + 2, 0);
+    *(regs + 2) = Value(0.000000);
     vm.temp_lval = &locals[7]; // grad0
     U_LV_WRITE(vm, regs + 3);
     vm.last = {18, 18};
-    U_PUSHFLT(vm, regs + 2, 0);
+    *(regs + 2) = Value(0.000000);
     vm.temp_lval = &locals[8]; // grad1
     U_LV_WRITE(vm, regs + 3);
     vm.last = {19, 18};
@@ -18671,7 +18671,7 @@ static void fun_354(VMRef vm, StackPtr psp) {
     vm.last = {41, 19};
     block0:;
     fun_355(vm, regs + 0); // call: wiggleverts
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     U_FGT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block1;
     vm.last = {41, 19};
@@ -18724,7 +18724,7 @@ static void fun_354(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 5);
     vm.last = {51, 19};
     regs[4] = locals[9]; // dist
-    U_PUSHFLT(vm, regs + 5, 1073741824);
+    *(regs + 5) = Value(2.000000);
     U_FLT(vm, regs + 6);
     if (!U_JUMPFAIL(vm, regs + 5)) goto block7;
     vm.last = {52, 19};
@@ -18752,7 +18752,7 @@ static void fun_354(VMRef vm, StackPtr psp) {
     regs[0] = locals[2]; // pedges
     *(regs + 1) = Value(0);
     U_VPUSHIDXIS2V(vm, regs + 2, 1, 2);
-    U_PUSHFLT(vm, regs + 1, 1073741824);
+    *(regs + 1) = Value(2.000000);
     U_BCALLRET1(vm, regs + 2, 56, 1); // sqrt
     U_FMUL(vm, regs + 2);
     vm.temp_lval = &locals[10]; // edgedistnocross
@@ -19337,7 +19337,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 5);
     vm.last = {28, 19};
     regs[4] = locals[8]; // dist
-    U_PUSHFLT(vm, regs + 5, 1065353216);
+    *(regs + 5) = Value(1.000000);
     U_FLT(vm, regs + 6);
     if (!U_JUMPFAILR(vm, regs + 5)) goto block4;
     U_POP(vm, regs + 5);
@@ -19348,11 +19348,11 @@ static void fun_355(VMRef vm, StackPtr psp) {
     if (!U_JUMPFAIL(vm, regs + 5)) goto block5;
     vm.last = {29, 19};
     regs[4] = locals[6];regs[5] = locals[7]; // tow
-    U_PUSHFLT(vm, regs + 6, 1065353216);
+    *(regs + 6) = Value(1.000000);
     regs[7] = locals[8]; // dist
     U_FDIV(vm, regs + 8);
     U_FVSMUL(vm, regs + 7, 2);
-    U_PUSHFLT(vm, regs + 6, 1065353216);
+    *(regs + 6) = Value(1.000000);
     regs[7] = locals[8]; // dist
     U_FSUB(vm, regs + 8);
     U_FVSMUL(vm, regs + 7, 2);
@@ -19366,7 +19366,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {30, 19};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     vm.temp_lval = &locals[9]; // totaldisp
     U_LV_WRITE(vm, regs + 1);
     vm.last = {31, 19};
@@ -19423,7 +19423,7 @@ static void fun_357(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 3, 743, 2); // wsize+0
     *(regs + 5) = Value(2);
     U_BCALLRETV(vm, regs + 6, 68, 1); // float
-    U_PUSHFLT(vm, regs + 5, 1073741824);
+    *(regs + 5) = Value(2.000000);
     U_FVSDIV(vm, regs + 6, 2);
     U_FVVSUB(vm, regs + 5, 2);
     *(regs + 3) = Value(2);
@@ -19640,115 +19640,115 @@ static void fun_369(VMRef vm, StackPtr psp) {
     vm.last = {18, 20};
     vm.last = {25, 20};
     vm.last = {41, 20};
-    U_PUSHFLT(vm, regs + 0, 1148846080);
+    *(regs + 0) = Value(1000.000000);
     vm.temp_lval = &locals[0]; // bigrad
     U_LV_WRITE(vm, regs + 1);
     vm.last = {42, 20};
-    U_PUSHFLT(vm, regs + 0, 1120403456);
+    *(regs + 0) = Value(100.000000);
     vm.temp_lval = &locals[1]; // lrad
     U_LV_WRITE(vm, regs + 1);
     vm.last = {44, 20};
     regs[0] = locals[1]; // lrad
-    U_PUSHFLT(vm, regs + 1, 1112014848);
+    *(regs + 1) = Value(50.000000);
     regs[2] = locals[1]; // lrad
-    U_PUSHFLT64(vm, regs + 3, 1717986918, 1079273062);
+    U_PUSHFLT64(vm, regs + 3, 1717986918, 1079273062); // 81.6
     U_FADD(vm, regs + 4);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 3) = Value(1.000000);
     U_FSUB(vm, regs + 4);
-    U_PUSHFLT64(vm, regs + 3, 1717986918, 1079273062);
+    U_PUSHFLT64(vm, regs + 3, 1717986918, 1079273062); // 81.6
     U_PUSHVARVF(vm, regs + 4, 87, 3); // float3_1+0
-    U_PUSHFLT(vm, regs + 7, 1094713344);
+    *(regs + 7) = Value(12.000000);
     U_FVSMUL(vm, regs + 8, 3);
     U_PUSHVARVF(vm, regs + 7, 84, 3); // float3_0+0
     *(regs + 10) = Value(0);
     U_NEWOBJECT(vm, regs + 11, 1185); // Sphere
-    U_PUSHFLT(vm, regs + 1, 1099169792);
-    U_PUSHFLT(vm, regs + 2, 1116864512);
-    U_PUSHFLT(vm, regs + 3, 1099169792);
-    U_PUSHFLT(vm, regs + 4, 1117519872);
+    *(regs + 1) = Value(16.500000);
+    *(regs + 2) = Value(73.000000);
+    *(regs + 3) = Value(16.500000);
+    *(regs + 4) = Value(78.000000);
     U_PUSHVARVF(vm, regs + 5, 84, 3); // float3_0+0
     U_PUSHVARVF(vm, regs + 8, 87, 3); // float3_1+0
-    U_PUSHFLT64(vm, regs + 11, -652835029, 1072691150);
+    U_PUSHFLT64(vm, regs + 11, -652835029, 1072691150); // 0.999
     U_FVSMUL(vm, regs + 12, 3);
     *(regs + 11) = Value(2);
     U_NEWOBJECT(vm, regs + 12, 1185); // Sphere
-    U_PUSHFLT(vm, regs + 2, 1099169792);
-    U_PUSHFLT(vm, regs + 3, 1104674816);
-    U_PUSHFLT(vm, regs + 4, 1099169792);
-    U_PUSHFLT(vm, regs + 5, 1111228416);
+    *(regs + 2) = Value(16.500000);
+    *(regs + 3) = Value(27.000000);
+    *(regs + 4) = Value(16.500000);
+    *(regs + 5) = Value(47.000000);
     U_PUSHVARVF(vm, regs + 6, 84, 3); // float3_0+0
     U_PUSHVARVF(vm, regs + 9, 87, 3); // float3_1+0
-    U_PUSHFLT64(vm, regs + 12, -652835029, 1072691150);
+    U_PUSHFLT64(vm, regs + 12, -652835029, 1072691150); // 0.999
     U_FVSMUL(vm, regs + 13, 3);
     *(regs + 12) = Value(1);
     U_NEWOBJECT(vm, regs + 13, 1185); // Sphere
     regs[3] = locals[0]; // bigrad
-    U_PUSHFLT(vm, regs + 4, 1112014848);
+    *(regs + 4) = Value(50.000000);
     regs[5] = locals[0]; // bigrad
     U_FUMINUS(vm, regs + 6);
-    U_PUSHFLT64(vm, regs + 6, 1717986918, 1079273062);
+    U_PUSHFLT64(vm, regs + 6, 1717986918, 1079273062); // 81.6
     U_FADD(vm, regs + 7);
-    U_PUSHFLT64(vm, regs + 6, 1717986918, 1079273062);
+    U_PUSHFLT64(vm, regs + 6, 1717986918, 1079273062); // 81.6
     U_PUSHVARVF(vm, regs + 7, 84, 3); // float3_0+0
     U_PUSHVARVF(vm, regs + 10, 87, 3); // float3_1+0
-    U_PUSHFLT(vm, regs + 13, 1061158912);
+    *(regs + 13) = Value(0.750000);
     U_FVSMUL(vm, regs + 14, 3);
     *(regs + 13) = Value(0);
     U_NEWOBJECT(vm, regs + 14, 1185); // Sphere
     regs[4] = locals[0]; // bigrad
-    U_PUSHFLT(vm, regs + 5, 1112014848);
+    *(regs + 5) = Value(50.000000);
     regs[6] = locals[0]; // bigrad
-    U_PUSHFLT64(vm, regs + 7, 1717986918, 1079273062);
+    U_PUSHFLT64(vm, regs + 7, 1717986918, 1079273062); // 81.6
     U_PUSHVARVF(vm, regs + 8, 84, 3); // float3_0+0
     U_PUSHVARVF(vm, regs + 11, 87, 3); // float3_1+0
-    U_PUSHFLT(vm, regs + 14, 1061158912);
+    *(regs + 14) = Value(0.750000);
     U_FVSMUL(vm, regs + 15, 3);
     *(regs + 14) = Value(0);
     U_NEWOBJECT(vm, regs + 15, 1185); // Sphere
     regs[5] = locals[0]; // bigrad
-    U_PUSHFLT(vm, regs + 6, 1112014848);
-    U_PUSHFLT64(vm, regs + 7, 1717986918, 1078224486);
+    *(regs + 6) = Value(50.000000);
+    U_PUSHFLT64(vm, regs + 7, 1717986918, 1078224486); // 40.8
     regs[8] = locals[0]; // bigrad
     U_FUMINUS(vm, regs + 9);
-    U_PUSHFLT(vm, regs + 9, 1126825984);
+    *(regs + 9) = Value(170.000000);
     U_FADD(vm, regs + 10);
     U_PUSHVARVF(vm, regs + 9, 84, 3); // float3_0+0
     U_PUSHVARVF(vm, regs + 12, 84, 3); // float3_0+0
     *(regs + 15) = Value(0);
     U_NEWOBJECT(vm, regs + 16, 1185); // Sphere
     regs[6] = locals[0]; // bigrad
-    U_PUSHFLT(vm, regs + 7, 1112014848);
-    U_PUSHFLT64(vm, regs + 8, 1717986918, 1078224486);
+    *(regs + 7) = Value(50.000000);
+    U_PUSHFLT64(vm, regs + 8, 1717986918, 1078224486); // 40.8
     regs[9] = locals[0]; // bigrad
     U_PUSHVARVF(vm, regs + 10, 84, 3); // float3_0+0
     U_PUSHVARVF(vm, regs + 13, 87, 3); // float3_1+0
-    U_PUSHFLT(vm, regs + 16, 1061158912);
+    *(regs + 16) = Value(0.750000);
     U_FVSMUL(vm, regs + 17, 3);
     *(regs + 16) = Value(0);
     U_NEWOBJECT(vm, regs + 17, 1185); // Sphere
     regs[7] = locals[0]; // bigrad
     regs[8] = locals[0]; // bigrad
     U_FUMINUS(vm, regs + 9);
-    U_PUSHFLT(vm, regs + 9, 1120272384);
+    *(regs + 9) = Value(99.000000);
     U_FADD(vm, regs + 10);
-    U_PUSHFLT64(vm, regs + 9, 1717986918, 1078224486);
-    U_PUSHFLT64(vm, regs + 10, 1717986918, 1079273062);
+    U_PUSHFLT64(vm, regs + 9, 1717986918, 1078224486); // 40.8
+    U_PUSHFLT64(vm, regs + 10, 1717986918, 1079273062); // 81.6
     U_PUSHVARVF(vm, regs + 11, 84, 3); // float3_0+0
-    U_PUSHFLT(vm, regs + 14, 1048576000);
-    U_PUSHFLT(vm, regs + 15, 1048576000);
-    U_PUSHFLT(vm, regs + 16, 1061158912);
+    *(regs + 14) = Value(0.250000);
+    *(regs + 15) = Value(0.250000);
+    *(regs + 16) = Value(0.750000);
     *(regs + 17) = Value(0);
     U_NEWOBJECT(vm, regs + 18, 1185); // Sphere
     regs[8] = locals[0]; // bigrad
     regs[9] = locals[0]; // bigrad
-    U_PUSHFLT(vm, regs + 10, 1065353216);
+    *(regs + 10) = Value(1.000000);
     U_FADD(vm, regs + 11);
-    U_PUSHFLT64(vm, regs + 10, 1717986918, 1078224486);
-    U_PUSHFLT64(vm, regs + 11, 1717986918, 1079273062);
+    U_PUSHFLT64(vm, regs + 10, 1717986918, 1078224486); // 40.8
+    U_PUSHFLT64(vm, regs + 11, 1717986918, 1079273062); // 81.6
     U_PUSHVARVF(vm, regs + 12, 84, 3); // float3_0+0
-    U_PUSHFLT(vm, regs + 15, 1061158912);
-    U_PUSHFLT(vm, regs + 16, 1048576000);
-    U_PUSHFLT(vm, regs + 17, 1048576000);
+    *(regs + 15) = Value(0.750000);
+    *(regs + 16) = Value(0.250000);
+    *(regs + 17) = Value(0.250000);
     *(regs + 18) = Value(0);
     U_NEWOBJECT(vm, regs + 19, 1185); // Sphere
     U_NEWVEC(vm, regs + 9, 1250, 9);
@@ -19764,12 +19764,12 @@ static void fun_369(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[2]; // h
     U_LV_WRITE(vm, regs + 1);
     vm.last = {115, 20};
-    U_PUSHFLT(vm, regs + 0, 1112014848);
-    U_PUSHFLT(vm, regs + 1, 1112014848);
-    U_PUSHFLT(vm, regs + 2, 1133576192);
-    U_PUSHFLT(vm, regs + 3, 0);
-    U_PUSHFLT64(vm, regs + 4, 1960154354, -1079652035);
-    U_PUSHFLT(vm, regs + 5, -1082130432);
+    *(regs + 0) = Value(50.000000);
+    *(regs + 1) = Value(50.000000);
+    *(regs + 2) = Value(290.000000);
+    *(regs + 3) = Value(0.000000);
+    U_PUSHFLT64(vm, regs + 4, 1960154354, -1079652035); // -0.042612
+    *(regs + 5) = Value(-1.000000);
     *(regs + 6) = Value(3);
     U_BCALLRETV(vm, regs + 7, 84, 1); // normalize
     vm.temp_lval = &locals[3]; // cam+0
@@ -19778,7 +19778,7 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 0, 90, 3); // float3_x+0
     U_PUSHVARF(vm, regs + 3, 1015); // w
     U_I2F(vm, regs + 4);
-    U_PUSHFLT64(vm, regs + 4, -1924145349, 1071672983);
+    U_PUSHFLT64(vm, regs + 4, -1924145349, 1071672983); // 0.5135
     U_FMUL(vm, regs + 5);
     regs[4] = locals[2]; // h
     U_I2F(vm, regs + 5);
@@ -19794,7 +19794,7 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_BCALLRETV(vm, regs + 8, 90, 1); // cross
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 84, 1); // normalize
-    U_PUSHFLT64(vm, regs + 3, -1924145349, 1071672983);
+    U_PUSHFLT64(vm, regs + 3, -1924145349, 1071672983); // 0.5135
     U_FVSMUL(vm, regs + 4, 3);
     vm.temp_lval = &locals[12]; // cy+0
     U_LV_WRITEV(vm, regs + 3, 3);
@@ -19830,26 +19830,26 @@ static void fun_369(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[17]; // x
     U_LV_WRITE(vm, regs + 5);
     vm.last = {127, 20};
-    U_PUSHFLT(vm, regs + 4, 1073741824);
+    *(regs + 4) = Value(2.000000);
     U_BCALLRET0(vm, regs + 5, 95, 1); // rnd_float
     U_FMUL(vm, regs + 6);
     vm.temp_lval = &locals[18]; // r1
     U_LV_WRITE(vm, regs + 5);
     vm.last = {128, 20};
     regs[4] = locals[18]; // r1
-    U_PUSHFLT(vm, regs + 5, 1065353216);
+    *(regs + 5) = Value(1.000000);
     U_FLT(vm, regs + 6);
     if (!U_JUMPFAIL(vm, regs + 5)) goto block4;
     vm.last = {128, 20};
     regs[4] = locals[18]; // r1
     U_BCALLRET1(vm, regs + 5, 56, 1); // sqrt
-    U_PUSHFLT(vm, regs + 5, 1065353216);
+    *(regs + 5) = Value(1.000000);
     U_FSUB(vm, regs + 6);
     goto block5;
     block4:;
     vm.last = {128, 20};
-    U_PUSHFLT(vm, regs + 4, 1065353216);
-    U_PUSHFLT(vm, regs + 5, 1073741824);
+    *(regs + 4) = Value(1.000000);
+    *(regs + 5) = Value(2.000000);
     regs[6] = locals[18]; // r1
     U_FSUB(vm, regs + 7);
     U_BCALLRET1(vm, regs + 6, 56, 1); // sqrt
@@ -19858,26 +19858,26 @@ static void fun_369(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[19]; // dx
     U_LV_WRITE(vm, regs + 5);
     vm.last = {129, 20};
-    U_PUSHFLT(vm, regs + 4, 1073741824);
+    *(regs + 4) = Value(2.000000);
     U_BCALLRET0(vm, regs + 5, 95, 1); // rnd_float
     U_FMUL(vm, regs + 6);
     vm.temp_lval = &locals[20]; // r2
     U_LV_WRITE(vm, regs + 5);
     vm.last = {130, 20};
     regs[4] = locals[20]; // r2
-    U_PUSHFLT(vm, regs + 5, 1065353216);
+    *(regs + 5) = Value(1.000000);
     U_FLT(vm, regs + 6);
     if (!U_JUMPFAIL(vm, regs + 5)) goto block6;
     vm.last = {130, 20};
     regs[4] = locals[20]; // r2
     U_BCALLRET1(vm, regs + 5, 56, 1); // sqrt
-    U_PUSHFLT(vm, regs + 5, 1065353216);
+    *(regs + 5) = Value(1.000000);
     U_FSUB(vm, regs + 6);
     goto block7;
     block6:;
     vm.last = {130, 20};
-    U_PUSHFLT(vm, regs + 4, 1065353216);
-    U_PUSHFLT(vm, regs + 5, 1073741824);
+    *(regs + 4) = Value(1.000000);
+    *(regs + 5) = Value(2.000000);
     regs[6] = locals[20]; // r2
     U_FSUB(vm, regs + 7);
     U_BCALLRET1(vm, regs + 6, 56, 1); // sqrt
@@ -19887,10 +19887,10 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 5);
     vm.last = {131, 20};
     regs[4] = locals[9];regs[5] = locals[10];regs[6] = locals[11]; // cx
-    U_PUSHFLT(vm, regs + 7, 1065353216);
+    *(regs + 7) = Value(1.000000);
     regs[8] = locals[19]; // dx
     U_FADD(vm, regs + 9);
-    U_PUSHFLT(vm, regs + 8, 1073741824);
+    *(regs + 8) = Value(2.000000);
     U_FDIV(vm, regs + 9);
     regs[8] = locals[17]; // x
     U_I2F(vm, regs + 9);
@@ -19898,14 +19898,14 @@ static void fun_369(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 8, 1015); // w
     U_I2F(vm, regs + 9);
     U_FDIV(vm, regs + 9);
-    U_PUSHFLT(vm, regs + 8, 1056964608);
+    *(regs + 8) = Value(0.500000);
     U_FSUB(vm, regs + 9);
     U_FVSMUL(vm, regs + 8, 3);
     regs[7] = locals[12];regs[8] = locals[13];regs[9] = locals[14]; // cy
-    U_PUSHFLT(vm, regs + 10, 1065353216);
+    *(regs + 10) = Value(1.000000);
     regs[11] = locals[21]; // dy
     U_FADD(vm, regs + 12);
-    U_PUSHFLT(vm, regs + 11, 1073741824);
+    *(regs + 11) = Value(2.000000);
     U_FDIV(vm, regs + 12);
     regs[11] = locals[16]; // y
     U_I2F(vm, regs + 12);
@@ -19913,7 +19913,7 @@ static void fun_369(VMRef vm, StackPtr psp) {
     regs[11] = locals[2]; // h
     U_I2F(vm, regs + 12);
     U_FDIV(vm, regs + 12);
-    U_PUSHFLT(vm, regs + 11, 1056964608);
+    *(regs + 11) = Value(0.500000);
     U_FSUB(vm, regs + 12);
     U_FVSMUL(vm, regs + 11, 3);
     U_FVVADD(vm, regs + 10, 3);
@@ -19930,7 +19930,7 @@ static void fun_369(VMRef vm, StackPtr psp) {
     vm.last = {134, 20};
     regs[4] = locals[3];regs[5] = locals[4];regs[6] = locals[5]; // cam
     regs[7] = locals[22];regs[8] = locals[23];regs[9] = locals[24]; // d
-    U_PUSHFLT(vm, regs + 10, 1124859904);
+    *(regs + 10) = Value(140.000000);
     U_FVSMUL(vm, regs + 11, 3);
     U_FVVADD(vm, regs + 10, 3);
     regs[7] = locals[22];regs[8] = locals[23];regs[9] = locals[24]; // d
@@ -20008,7 +20008,7 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[7]; // op+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {27, 20};
-    U_PUSHFLT64(vm, regs + 0, -350469331, 1058682594);
+    U_PUSHFLT64(vm, regs + 0, -350469331, 1058682594); // 0.0001
     vm.temp_lval = &locals[10]; // eps
     U_LV_WRITE(vm, regs + 1);
     vm.last = {28, 20};
@@ -20039,11 +20039,11 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     vm.last = {30, 20};
     regs[0] = locals[12]; // det
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 1) = Value(0.000000);
     U_FLT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
     vm.last = {30, 20};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     U_RETURNLOCAL(vm, 0, 1);
     DecVal(vm, locals[0]);
     Pop(psp);
@@ -20092,7 +20092,7 @@ static void fun_370(VMRef vm, StackPtr psp) {
     goto block4;
     block3:;
     vm.last = {37, 20};
-    U_PUSHFLT(vm, regs + 0, 0);
+    *(regs + 0) = Value(0.000000);
     block4:;
     block2:;
     U_RETURNLOCAL(vm, 0, 1);
@@ -20184,7 +20184,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     locals[67] = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2487, locals);
     vm.last = {57, 20};
-    U_PUSHFLT64(vm, regs + 0, -1577058304, 1114446484);
+    U_PUSHFLT64(vm, regs + 0, -1577058304, 1114446484); // 1000000000000.0
     vm.temp_lval = &locals[7]; // t
     U_LV_WRITE(vm, regs + 1);
     vm.last = {58, 20};
@@ -20213,7 +20213,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 3);
     vm.last = {61, 20};
     regs[2] = locals[11]; // d
-    U_PUSHFLT(vm, regs + 3, 0);
+    *(regs + 3) = Value(0.000000);
     U_FNE(vm, regs + 4);
     if (!U_JUMPFAILR(vm, regs + 3)) goto block2;
     U_POP(vm, regs + 3);
@@ -20285,7 +20285,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     regs[4] = locals[3];regs[5] = locals[4];regs[6] = locals[5]; // r
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 1) = Value(0.000000);
     U_FLT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block5;
     vm.last = {68, 20};
@@ -20294,7 +20294,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     block5:;
     vm.last = {68, 20};
     regs[0] = locals[16];regs[1] = locals[17];regs[2] = locals[18]; // n
-    U_PUSHFLT(vm, regs + 3, -1082130432);
+    *(regs + 3) = Value(-1.000000);
     U_FVSMUL(vm, regs + 4, 3);
     block6:;
     vm.temp_lval = &locals[19]; // nl+0
@@ -20339,7 +20339,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     U_LV_IPP(vm, regs + 0);
     U_LV_DUP(vm, regs + 0);
     U_I2F(vm, regs + 1);
-    U_PUSHFLT(vm, regs + 1, 1084227584);
+    *(regs + 1) = Value(5.000000);
     U_FGT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block12;
     vm.last = {71, 20};
@@ -20349,7 +20349,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     if (!U_JUMPFAIL(vm, regs + 1)) goto block13;
     vm.last = {71, 20};
     regs[0] = locals[22];regs[1] = locals[23];regs[2] = locals[24]; // f
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 3) = Value(1.000000);
     regs[4] = locals[25]; // p
     U_FDIV(vm, regs + 5);
     U_FVSMUL(vm, regs + 4, 3);
@@ -20383,7 +20383,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block15;
     vm.last = {73, 20};
-    U_PUSHFLT(vm, regs + 0, 1135869952);
+    *(regs + 0) = Value(360.000000);
     U_BCALLRET0(vm, regs + 1, 95, 1); // rnd_float
     U_FMUL(vm, regs + 2);
     vm.temp_lval = &locals[26]; // r1
@@ -20404,7 +20404,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     vm.last = {77, 20};
     regs[0] = locals[29]; // w+0
     U_BCALLRET1(vm, regs + 1, 113, 1); // abs
-    U_PUSHFLT64(vm, regs + 1, -1717986918, 1069128089);
+    U_PUSHFLT64(vm, regs + 1, -1717986918, 1069128089); // 0.1
     U_FGT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block16;
     vm.last = {77, 20};
@@ -20445,7 +20445,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     U_FVSMUL(vm, regs + 7, 3);
     U_FVVADD(vm, regs + 6, 3);
     regs[3] = locals[29];regs[4] = locals[30];regs[5] = locals[31]; // w
-    U_PUSHFLT(vm, regs + 6, 1065353216);
+    *(regs + 6) = Value(1.000000);
     regs[7] = locals[27]; // r2
     U_FSUB(vm, regs + 8);
     U_BCALLRET1(vm, regs + 7, 56, 1); // sqrt
@@ -20494,7 +20494,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     regs[6] = locals[13];regs[7] = locals[14];regs[8] = locals[15]; // x
     regs[9] = locals[3];regs[10] = locals[4];regs[11] = locals[5]; // r
     regs[12] = locals[16];regs[13] = locals[17];regs[14] = locals[18]; // n
-    U_PUSHFLT(vm, regs + 15, 1073741824);
+    *(regs + 15) = Value(2.000000);
     U_FVSMUL(vm, regs + 16, 3);
     regs[15] = locals[16];regs[16] = locals[17];regs[17] = locals[18]; // n
     *(regs + 18) = Value(3);
@@ -20527,7 +20527,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     regs[0] = locals[13];regs[1] = locals[14];regs[2] = locals[15]; // x
     regs[3] = locals[3];regs[4] = locals[4];regs[5] = locals[5]; // r
     regs[6] = locals[16];regs[7] = locals[17];regs[8] = locals[18]; // n
-    U_PUSHFLT(vm, regs + 9, 1073741824);
+    *(regs + 9) = Value(2.000000);
     U_FVSMUL(vm, regs + 10, 3);
     regs[9] = locals[16];regs[10] = locals[17];regs[11] = locals[18]; // n
     *(regs + 12) = Value(3);
@@ -20544,16 +20544,16 @@ static void fun_371(VMRef vm, StackPtr psp) {
     regs[4] = locals[19];regs[5] = locals[20];regs[6] = locals[21]; // nl
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 1) = Value(0.000000);
     U_FGT(vm, regs + 2);
     vm.temp_lval = &locals[47]; // into
     U_LV_WRITE(vm, regs + 1);
     vm.last = {85, 20};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[48]; // nc
     U_LV_WRITE(vm, regs + 1);
     vm.last = {86, 20};
-    U_PUSHFLT(vm, regs + 0, 1069547520);
+    *(regs + 0) = Value(1.500000);
     vm.temp_lval = &locals[49]; // nt
     U_LV_WRITE(vm, regs + 1);
     vm.last = {87, 20};
@@ -20581,11 +20581,11 @@ static void fun_371(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[51]; // ddn
     U_LV_WRITE(vm, regs + 1);
     vm.last = {89, 20};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     regs[1] = locals[50]; // nnt
     regs[2] = locals[50]; // nnt
     U_FMUL(vm, regs + 3);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
+    *(regs + 2) = Value(1.000000);
     regs[3] = locals[51]; // ddn
     regs[4] = locals[51]; // ddn
     U_FMUL(vm, regs + 5);
@@ -20596,7 +20596,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     vm.last = {90, 20};
     regs[0] = locals[52]; // cos2t
-    U_PUSHFLT(vm, regs + 1, 0);
+    *(regs + 1) = Value(0.000000);
     U_FLT(vm, regs + 2);
     if (!U_JUMPFAIL(vm, regs + 1)) goto block22;
     vm.last = {91, 20};
@@ -20674,7 +20674,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[58]; // R0
     U_LV_WRITE(vm, regs + 1);
     vm.last = {96, 20};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     regs[1] = locals[47]; // into
     if (!U_JUMPFAIL(vm, regs + 2)) goto block25;
     vm.last = {96, 20};
@@ -20694,7 +20694,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     vm.last = {97, 20};
     regs[0] = locals[58]; // R0
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     regs[2] = locals[58]; // R0
     U_FSUB(vm, regs + 3);
     regs[2] = locals[59]; // c
@@ -20711,14 +20711,14 @@ static void fun_371(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[60]; // Re
     U_LV_WRITE(vm, regs + 1);
     vm.last = {98, 20};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
+    *(regs + 0) = Value(1.000000);
     regs[1] = locals[60]; // Re
     U_FSUB(vm, regs + 2);
     vm.temp_lval = &locals[61]; // Tr
     U_LV_WRITE(vm, regs + 1);
     vm.last = {99, 20};
-    U_PUSHFLT(vm, regs + 0, 1048576000);
-    U_PUSHFLT(vm, regs + 1, 1056964608);
+    *(regs + 0) = Value(0.250000);
+    *(regs + 1) = Value(0.500000);
     regs[2] = locals[60]; // Re
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
@@ -20732,7 +20732,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     U_LV_WRITE(vm, regs + 1);
     vm.last = {101, 20};
     regs[0] = locals[61]; // Tr
-    U_PUSHFLT(vm, regs + 1, 1065353216);
+    *(regs + 1) = Value(1.000000);
     regs[2] = locals[62]; // P
     U_FSUB(vm, regs + 3);
     U_FDIV(vm, regs + 2);
@@ -20860,9 +20860,9 @@ static void fun_375(VMRef vm, StackPtr psp) {
     *(regs + 11) = Value(3);
     U_BCALLRETV(vm, regs + 12, 105, 1); // clamp
     *(regs + 3) = Value(3);
-    U_PUSHFLT64(vm, regs + 4, -780903145, 1071454021);
+    U_PUSHFLT64(vm, regs + 4, -780903145, 1071454021); // 0.45454545454545453
     U_BCALLRETV(vm, regs + 5, 53, 1); // pow
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 3) = Value(1.000000);
     fun_79(vm, regs + 4); // call: vec4
     U_RETURNLOCAL(vm, 0, 4);
     Pop(psp);
@@ -20922,7 +20922,7 @@ static void fun_376(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[0]; // a
     U_LV_WRITE(vm, regs + 1);
     vm.last = {5, 22};
-    U_PUSHFLT64(vm, regs + 0, 1374389535, 1074339512);
+    U_PUSHFLT64(vm, regs + 0, 1374389535, 1074339512); // 3.14
     U_NEWVEC(vm, regs + 1, 9, 1);
     vm.temp_lval = &locals[1]; // b
     U_LV_WRITEREF(vm, regs + 1);
@@ -21301,8 +21301,8 @@ static void fun_382(VMRef vm, StackPtr psp) {
     U_NEWVEC(vm, regs + 0, 1287, 0);
     U_PUSHSTR(vm, regs + 1, 574); // "a"
     U_INCREF(vm, regs + 2, 0);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1073741824);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(2.000000);
     U_PUSHNIL(vm, regs + 4);
     U_PUSHSTR(vm, regs + 5, 575); // "b"
     U_INCREF(vm, regs + 6, 0);
@@ -22159,44 +22159,44 @@ static void fun_444(VMRef vm, StackPtr psp) {
     fun_435(vm, regs + 2); // call: operator==
     U_ASSERT(vm, regs + 1, 100, 26, 584);
     vm.last = {103, 26};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
     fun_385(vm, regs + 4); // call: operator-
-    U_PUSHFLT(vm, regs + 4, -1082130432);
-    U_PUSHFLT(vm, regs + 5, -1082130432);
-    U_PUSHFLT(vm, regs + 6, -1082130432);
-    U_PUSHFLT(vm, regs + 7, 1065353216);
+    *(regs + 4) = Value(-1.000000);
+    *(regs + 5) = Value(-1.000000);
+    *(regs + 6) = Value(-1.000000);
+    *(regs + 7) = Value(1.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 103, 26, 585);
     vm.last = {104, 26};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
-    U_PUSHFLT(vm, regs + 4, 1073741824);
-    U_PUSHFLT(vm, regs + 5, 1073741824);
-    U_PUSHFLT(vm, regs + 6, 1073741824);
-    U_PUSHFLT(vm, regs + 7, 1065353216);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
+    *(regs + 4) = Value(2.000000);
+    *(regs + 5) = Value(2.000000);
+    *(regs + 6) = Value(2.000000);
+    *(regs + 7) = Value(1.000000);
     fun_383(vm, regs + 8); // call: operator*
-    U_PUSHFLT(vm, regs + 4, 1077936128);
-    U_PUSHFLT(vm, regs + 5, 1077936128);
-    U_PUSHFLT(vm, regs + 6, 1077936128);
-    U_PUSHFLT(vm, regs + 7, -1063256064);
+    *(regs + 4) = Value(3.000000);
+    *(regs + 5) = Value(3.000000);
+    *(regs + 6) = Value(3.000000);
+    *(regs + 7) = Value(-5.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 104, 26, 586);
     vm.last = {105, 26};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1065353216);
-    U_PUSHFLT(vm, regs + 2, 1065353216);
-    U_PUSHFLT(vm, regs + 3, 1065353216);
-    U_PUSHFLT(vm, regs + 4, 1073741824);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(1.000000);
+    *(regs + 2) = Value(1.000000);
+    *(regs + 3) = Value(1.000000);
+    *(regs + 4) = Value(2.000000);
     fun_384(vm, regs + 5); // call: operator*
-    U_PUSHFLT(vm, regs + 4, 1073741824);
-    U_PUSHFLT(vm, regs + 5, 1073741824);
-    U_PUSHFLT(vm, regs + 6, 1073741824);
-    U_PUSHFLT(vm, regs + 7, 1073741824);
+    *(regs + 4) = Value(2.000000);
+    *(regs + 5) = Value(2.000000);
+    *(regs + 6) = Value(2.000000);
+    *(regs + 7) = Value(2.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 105, 26, 587);
     U_RETURNLOCAL(vm, 0, 0);
@@ -22355,17 +22355,17 @@ static void fun_452(VMRef vm, StackPtr psp) {
     locals[9] = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2787, locals);
     vm.last = {7, 28};
-    U_PUSHFLT(vm, regs + 0, 1065353216);
-    U_PUSHFLT(vm, regs + 1, 1073741824);
-    U_PUSHFLT(vm, regs + 2, 1077936128);
-    U_PUSHFLT(vm, regs + 3, 1082130432);
+    *(regs + 0) = Value(1.000000);
+    *(regs + 1) = Value(2.000000);
+    *(regs + 2) = Value(3.000000);
+    *(regs + 3) = Value(4.000000);
     vm.temp_lval = &locals[0]; // a+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {8, 28};
-    U_PUSHFLT(vm, regs + 0, 1084227584);
-    U_PUSHFLT(vm, regs + 1, 1086324736);
-    U_PUSHFLT(vm, regs + 2, 1088421888);
-    U_PUSHFLT(vm, regs + 3, 1090519040);
+    *(regs + 0) = Value(5.000000);
+    *(regs + 1) = Value(6.000000);
+    *(regs + 2) = Value(7.000000);
+    *(regs + 3) = Value(8.000000);
     vm.temp_lval = &locals[4]; // b+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {10, 28};
@@ -22375,10 +22375,10 @@ static void fun_452(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 10, 28, 588);
     vm.last = {11, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    U_PUSHFLT(vm, regs + 4, 1065353216);
-    U_PUSHFLT(vm, regs + 5, 1073741824);
-    U_PUSHFLT(vm, regs + 6, 1077936128);
-    U_PUSHFLT(vm, regs + 7, 1082130432);
+    *(regs + 4) = Value(1.000000);
+    *(regs + 5) = Value(2.000000);
+    *(regs + 6) = Value(3.000000);
+    *(regs + 7) = Value(4.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 11, 28, 589);
     vm.last = {12, 28};
@@ -22387,123 +22387,123 @@ static void fun_452(VMRef vm, StackPtr psp) {
     U_STNE(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 12, 28, 590);
     vm.last = {14, 28};
-    U_PUSHFLT(vm, regs + 0, 1084227584);
+    *(regs + 0) = Value(5.000000);
     regs[1] = locals[0];regs[2] = locals[1];regs[3] = locals[2];regs[4] = locals[3]; // a
     U_SFVADD(vm, regs + 5, 4);
-    U_PUSHFLT(vm, regs + 4, 1086324736);
-    U_PUSHFLT(vm, regs + 5, 1088421888);
-    U_PUSHFLT(vm, regs + 6, 1090519040);
-    U_PUSHFLT(vm, regs + 7, 1091567616);
+    *(regs + 4) = Value(6.000000);
+    *(regs + 5) = Value(7.000000);
+    *(regs + 6) = Value(8.000000);
+    *(regs + 7) = Value(9.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 14, 28, 591);
     vm.last = {15, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    U_PUSHFLT(vm, regs + 4, 1084227584);
+    *(regs + 4) = Value(5.000000);
     U_FVSADD(vm, regs + 5, 4);
-    U_PUSHFLT(vm, regs + 4, 1086324736);
-    U_PUSHFLT(vm, regs + 5, 1088421888);
-    U_PUSHFLT(vm, regs + 6, 1090519040);
-    U_PUSHFLT(vm, regs + 7, 1091567616);
+    *(regs + 4) = Value(6.000000);
+    *(regs + 5) = Value(7.000000);
+    *(regs + 6) = Value(8.000000);
+    *(regs + 7) = Value(9.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 15, 28, 592);
     vm.last = {16, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
     regs[4] = locals[4];regs[5] = locals[5];regs[6] = locals[6];regs[7] = locals[7]; // b
     U_FVVADD(vm, regs + 8, 4);
-    U_PUSHFLT(vm, regs + 4, 1086324736);
-    U_PUSHFLT(vm, regs + 5, 1090519040);
-    U_PUSHFLT(vm, regs + 6, 1092616192);
-    U_PUSHFLT(vm, regs + 7, 1094713344);
+    *(regs + 4) = Value(6.000000);
+    *(regs + 5) = Value(8.000000);
+    *(regs + 6) = Value(10.000000);
+    *(regs + 7) = Value(12.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 16, 28, 593);
     vm.last = {18, 28};
-    U_PUSHFLT(vm, regs + 0, 1084227584);
+    *(regs + 0) = Value(5.000000);
     regs[1] = locals[0];regs[2] = locals[1];regs[3] = locals[2];regs[4] = locals[3]; // a
     U_SFVSUB(vm, regs + 5, 4);
-    U_PUSHFLT(vm, regs + 4, 1082130432);
-    U_PUSHFLT(vm, regs + 5, 1077936128);
-    U_PUSHFLT(vm, regs + 6, 1073741824);
-    U_PUSHFLT(vm, regs + 7, 1065353216);
+    *(regs + 4) = Value(4.000000);
+    *(regs + 5) = Value(3.000000);
+    *(regs + 6) = Value(2.000000);
+    *(regs + 7) = Value(1.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 18, 28, 594);
     vm.last = {19, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    U_PUSHFLT(vm, regs + 4, 1084227584);
+    *(regs + 4) = Value(5.000000);
     U_FVSSUB(vm, regs + 5, 4);
-    U_PUSHFLT(vm, regs + 4, -1065353216);
-    U_PUSHFLT(vm, regs + 5, -1069547520);
-    U_PUSHFLT(vm, regs + 6, -1073741824);
-    U_PUSHFLT(vm, regs + 7, -1082130432);
+    *(regs + 4) = Value(-4.000000);
+    *(regs + 5) = Value(-3.000000);
+    *(regs + 6) = Value(-2.000000);
+    *(regs + 7) = Value(-1.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 19, 28, 595);
     vm.last = {20, 28};
     regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6];regs[3] = locals[7]; // b
     regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // a
     U_FVVSUB(vm, regs + 8, 4);
-    U_PUSHFLT(vm, regs + 4, 1082130432);
-    U_PUSHFLT(vm, regs + 5, 1082130432);
-    U_PUSHFLT(vm, regs + 6, 1082130432);
-    U_PUSHFLT(vm, regs + 7, 1082130432);
+    *(regs + 4) = Value(4.000000);
+    *(regs + 5) = Value(4.000000);
+    *(regs + 6) = Value(4.000000);
+    *(regs + 7) = Value(4.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 20, 28, 596);
     vm.last = {22, 28};
-    U_PUSHFLT(vm, regs + 0, 1084227584);
+    *(regs + 0) = Value(5.000000);
     regs[1] = locals[0];regs[2] = locals[1];regs[3] = locals[2];regs[4] = locals[3]; // a
     U_SFVMUL(vm, regs + 5, 4);
-    U_PUSHFLT(vm, regs + 4, 1084227584);
-    U_PUSHFLT(vm, regs + 5, 1092616192);
-    U_PUSHFLT(vm, regs + 6, 1097859072);
-    U_PUSHFLT(vm, regs + 7, 1101004800);
+    *(regs + 4) = Value(5.000000);
+    *(regs + 5) = Value(10.000000);
+    *(regs + 6) = Value(15.000000);
+    *(regs + 7) = Value(20.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 22, 28, 597);
     vm.last = {26, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
     regs[4] = locals[4];regs[5] = locals[5];regs[6] = locals[6];regs[7] = locals[7]; // b
     fun_445(vm, regs + 8); // call: operator*
-    U_PUSHFLT(vm, regs + 4, 1100480512);
-    U_PUSHFLT(vm, regs + 5, 1102053376);
-    U_PUSHFLT(vm, regs + 6, 1110179840);
-    U_PUSHFLT(vm, regs + 7, 1112014848);
+    *(regs + 4) = Value(19.000000);
+    *(regs + 5) = Value(22.000000);
+    *(regs + 6) = Value(43.000000);
+    *(regs + 7) = Value(50.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 26, 28, 598);
     vm.last = {27, 28};
     regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6];regs[3] = locals[7]; // b
     regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // a
     fun_445(vm, regs + 8); // call: operator*
-    U_PUSHFLT(vm, regs + 4, 1102577664);
-    U_PUSHFLT(vm, regs + 5, 1107820544);
-    U_PUSHFLT(vm, regs + 6, 1106771968);
-    U_PUSHFLT(vm, regs + 7, 1110966272);
+    *(regs + 4) = Value(23.000000);
+    *(regs + 5) = Value(34.000000);
+    *(regs + 6) = Value(31.000000);
+    *(regs + 7) = Value(46.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 27, 28, 599);
     vm.last = {29, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
     fun_447(vm, regs + 4); // call: determinant
-    U_PUSHFLT(vm, regs + 1, -1073741824);
+    *(regs + 1) = Value(-2.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 29, 28, 600);
     vm.last = {30, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
     fun_450(vm, regs + 4); // call: trace
-    U_PUSHFLT(vm, regs + 1, 1082130432);
+    *(regs + 1) = Value(4.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 30, 28, 601);
     vm.last = {31, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
     fun_448(vm, regs + 4); // call: adjugate
-    U_PUSHFLT(vm, regs + 4, 1082130432);
-    U_PUSHFLT(vm, regs + 5, -1073741824);
-    U_PUSHFLT(vm, regs + 6, -1069547520);
-    U_PUSHFLT(vm, regs + 7, 1065353216);
+    *(regs + 4) = Value(4.000000);
+    *(regs + 5) = Value(-2.000000);
+    *(regs + 6) = Value(-3.000000);
+    *(regs + 7) = Value(1.000000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 31, 28, 602);
     vm.last = {32, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
     fun_449(vm, regs + 4); // call: inverse
-    U_PUSHFLT(vm, regs + 4, -1073741824);
-    U_PUSHFLT(vm, regs + 5, 1065353216);
-    U_PUSHFLT(vm, regs + 6, 1069547520);
-    U_PUSHFLT(vm, regs + 7, -1090519040);
+    *(regs + 4) = Value(-2.000000);
+    *(regs + 5) = Value(1.000000);
+    *(regs + 6) = Value(1.500000);
+    *(regs + 7) = Value(-0.500000);
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 32, 28, 603);
     vm.last = {34, 28};
@@ -22515,24 +22515,24 @@ static void fun_452(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 34, 28, 604);
     vm.last = {38, 28};
-    U_PUSHFLT(vm, regs + 0, 1073741824);
-    U_PUSHFLT(vm, regs + 1, 1077936128);
+    *(regs + 0) = Value(2.000000);
+    *(regs + 1) = Value(3.000000);
     vm.temp_lval = &locals[8]; // c+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {40, 28};
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
     regs[4] = locals[8];regs[5] = locals[9]; // c
     fun_446(vm, regs + 6); // call: operator*
-    U_PUSHFLT(vm, regs + 2, 1090519040);
-    U_PUSHFLT(vm, regs + 3, 1099956224);
+    *(regs + 2) = Value(8.000000);
+    *(regs + 3) = Value(18.000000);
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 40, 28, 605);
     vm.last = {41, 28};
     regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6];regs[3] = locals[7]; // b
     regs[4] = locals[8];regs[5] = locals[9]; // c
     fun_446(vm, regs + 6); // call: operator*
-    U_PUSHFLT(vm, regs + 2, 1105199104);
-    U_PUSHFLT(vm, regs + 3, 1108869120);
+    *(regs + 2) = Value(28.000000);
+    *(regs + 3) = Value(38.000000);
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 41, 28, 606);
     U_RETURNLOCAL(vm, 0, 0);
@@ -26673,7 +26673,7 @@ int main(int argc, char *argv[]) {
         span(specidents),
         span(enums),
         span(ser_ids),
-        string_view("Sun Jun  8 15:27:07 2025", 24),
+        string_view("Sun Jun  8 16:16:06 2025", 24),
         0x7e9c40b3dc8c1e10,
         span(subfunctions_to_function),
     };

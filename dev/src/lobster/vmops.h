@@ -105,8 +105,8 @@ VM_INLINE void U_PUSHINT(VM &, StackPtr, int) {
     assert(false);
 }
 
-VM_INLINE void U_PUSHFLT(VM &, StackPtr sp, int x) {
-    Push(sp, Value(int2float(x).f));
+VM_INLINE void U_PUSHFLT(VM &, StackPtr, int) {
+    assert(false);
 }
 
 VM_INLINE void U_PUSHNIL(VM &, StackPtr sp) {
