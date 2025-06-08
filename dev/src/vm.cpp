@@ -30,14 +30,14 @@ vector<tracy::SourceLocationData> g_builtin_locations;
 #endif
 
 VM::VM(VMArgs &&vmargs)
-    : VMArgs(std::move(vmargs)) {
+    : vma(std::move(vmargs)) {
 
-    typetable = meta->type_table.data();
-    constant_strings.resize(meta->stringtable.size());
-    assert(native_vtables);
+    typetable = vma.meta->type_table.data();
+    constant_strings.resize(vma.meta->stringtable.size());
+    assert(vma.native_vtables);
 
     #if LOBSTER_FRAME_PROFILER
-        auto &funs = meta->function_names;
+        auto &funs = vma.meta->function_names;
         for (auto f : funs) {
             pre_allocated_function_locations.push_back(
                 ___tracy_source_location_data{ f.data(), f.data(), "", 0, 0x008888 });
@@ -88,11 +88,11 @@ VMAllocator::~VMAllocator() {
 }
 
 const TypeInfo &VM::GetVarTypeInfo(int varidx) {
-    return GetTypeInfo((type_elem_t)meta->specidents[varidx].typeidx);
+    return GetTypeInfo((type_elem_t)vma.meta->specidents[varidx].typeidx);
 }
 
 type_elem_t VM::GetSubClassFromSerID(type_elem_t super, uint32_t ser_id) {
-    auto ser_ids = meta->ser_ids;
+    auto ser_ids = vma.meta->ser_ids;
     auto size = ser_ids.size();
     if (ser_id >= size) return (type_elem_t)-1;
     auto typeoff = (type_elem_t)ser_ids[ser_id];
@@ -125,7 +125,7 @@ void VM::DumpVal(RefObj *ro, const char *prefix) {
 }
 
 void VM::DumpLeaks() {
-    if (!dump_leaks) return;
+    if (!vma.dump_leaks) return;
     vector<void *> leaks = pool.findleaks();
     auto filename = "memory_leaks.txt";
     if (leaks.empty()) {
@@ -326,15 +326,15 @@ void VM::ErrorBase(const string &err) {
     error_has_occured = true;
     append(errmsg, "VM error (");
     if (last_line >= 0 && last_fileidx >= 0) {
-        append(errmsg, meta->file_names[last_fileidx], ":", last_line);
+        append(errmsg, vma.meta->file_names[last_fileidx], ":", last_line);
     } else {
-        append(errmsg, programname);
+        append(errmsg, vma.programname);
     }
     append(errmsg, "): ", err);
 }
 
 void VM::DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump) {
-    auto &sid = meta->specidents[(uint32_t)idx];
+    auto &sid = vma.meta->specidents[(uint32_t)idx];
     auto is_freevar = sid.used_as_freevar;
     auto name = string_view_nt(sid.name);
     auto &ti = GetVarTypeInfo(idx);
@@ -371,7 +371,7 @@ void VM::DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump) {
 string VM::DumpFileLine(int fileidx, int line) {
     string loc;
     if (line >= 0 && fileidx >= 0) {
-        append(loc, "[", meta->file_names[fileidx], ":", line, "]");
+        append(loc, "[", vma.meta->file_names[fileidx], ":", line, "]");
     }
     return loc;
 }
@@ -385,7 +385,7 @@ pair<string, const int *> VM::DumpStackFrameStart(const int *fip, int fileidx, i
         ti.Print(*this, fname, nullptr);
         append(fname, ".");
     }
-    append(fname, meta->function_names[meta->subfunctions_to_function[sf_idx]],
+    append(fname, vma.meta->function_names[vma.meta->subfunctions_to_function[sf_idx]],
            DumpFileLine(fileidx, line));
     return { fname, fip };
 }
@@ -543,15 +543,15 @@ void VM::DumpStackTraceMemory(const string &err) {
 }
 
 Value VM::Error(string err) {
-    if (stack_trace_python_ordering && runtime_checks <= RUNTIME_DEBUG) {
+    if (vma.stack_trace_python_ordering && vma.runtime_checks <= RUNTIME_DEBUG) {
         DumpStackTrace(errmsg, true);
         ErrorBase(err);
     } else {
         ErrorBase(err);
         #if LOBSTER_ENGINE
-            if (runtime_checks >= RUNTIME_DEBUGGER) {
+            if (vma.runtime_checks >= RUNTIME_DEBUGGER) {
                 BreakPoint(*this, errmsg);
-            } else if (runtime_checks >= RUNTIME_DEBUG_DUMP) {
+            } else if (vma.runtime_checks >= RUNTIME_DEBUG_DUMP) {
                 DumpStackTraceMemory(err);
             }
         #endif
@@ -627,7 +627,7 @@ void VM::EvalProgram() {
         }
     #endif
     #if VM_JIT_MODE
-        jit_entry(*this, nullptr);
+        vma.jit_entry(*this, nullptr);
     #else
         compiled_entry_point(*this, nullptr);
     #endif
@@ -686,20 +686,20 @@ void VM::IDXErr(iint i, iint n, const RefObj *v) {
 }
 
 string_view VM::StructName(const TypeInfo &ti) {
-    return meta->udts[ti.structidx].name;
+    return vma.meta->udts[ti.structidx].name;
 }
 
 string_view VM::ReverseLookupType(int v) {
-    return meta->udts[v].name;
+    return vma.meta->udts[v].name;
 }
 
 string_view VM::LookupField(int stidx, iint fieldn) const {
-    auto &st = meta->udts[stidx];
+    auto &st = vma.meta->udts[stidx];
     return st.fields[fieldn].name;
 }
 
 string_view VM::LookupFieldByOffset(int stidx, int offset) const {
-    auto &st = meta->udts[stidx];
+    auto &st = vma.meta->udts[stidx];
     auto fieldn = st.fields.size() - 1;
     for (flatbuffers::uoffset_t i = 1; i < st.fields.size(); i++) {
         auto foffset = st.fields[i].offset;
@@ -716,7 +716,7 @@ string_view VM::LookupFieldByOffset(int stidx, int offset) const {
 }
 
 int VM::LookupFieldByName(int stidx, string_view fname) const {
-    auto &st = meta->udts[stidx];
+    auto &st = vma.meta->udts[stidx];
     for (flatbuffers::uoffset_t i = 0; i < st.fields.size(); i++) {
         auto &f = st.fields[i];
         if (f.name == fname) {
@@ -727,7 +727,7 @@ int VM::LookupFieldByName(int stidx, string_view fname) const {
 }
 
 bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
-    auto &enum_def = meta->enums[enumidx];
+    auto &enum_def = vma.meta->enums[enumidx];
     auto &vals = enum_def.vals;
     auto lookup = [&](iint val) -> bool {
         // FIXME: can store a bool that says whether this enum is contiguous, so we just index instead.
@@ -756,11 +756,11 @@ bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
 }
 
 string_view VM::EnumName(int enumidx) {
-    return meta->enums[enumidx].name;
+    return vma.meta->enums[enumidx].name;
 }
 
 optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
-    auto &vals = meta->enums[enumidx].vals;
+    auto &vals = vma.meta->enums[enumidx].vals;
     for (auto &ev : vals)
         if (ev.name == name)
             return ev.val;
@@ -769,14 +769,14 @@ optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
 
 void VM::EnsureUDTLookupPopulated() {
     if (!UDTLookup.empty()) return;
-    for (auto &udt : meta->udts) {
+    for (auto &udt : vma.meta->udts) {
         auto &v = UDTLookup[udt.name];
         v.push_back(&udt);
     }
 }
 
 string_view VM::BuildInfo() {
-    return meta->build_info;
+    return vma.meta->build_info;
 }
 
 void VM::StartWorkers(iint numthreads) {
@@ -784,30 +784,30 @@ void VM::StartWorkers(iint numthreads) {
     if (tuple_space) Error("workers already running");
     // Stop bad values from locking up the machine :)
     numthreads = std::min(numthreads, 256_L64);
-    tuple_space = new TupleSpace(meta->udts.size());
+    tuple_space = new TupleSpace(vma.meta->udts.size());
     for (iint i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
         // from this one.
         // We share nfr, metadata and programname for now since they're fully read-only.
         auto vmargs = *(VMArgs *)this;
         vmargs.program_args.resize(0);
-        auto vma = new VMAllocator(std::move(vmargs));
-        vma->vm->is_worker = true;
-        vma->vm->tuple_space = tuple_space;
-        workers.emplace_back([vma] {
+        auto vmalloc = new VMAllocator(std::move(vmargs));
+        vmalloc->vm->is_worker = true;
+        vmalloc->vm->tuple_space = tuple_space;
+        workers.emplace_back([vmalloc] {
             string err;
             #ifdef USE_EXCEPTION_HANDLING
             try
             #endif
             {
-                vma->vm->EvalProgram();
+                vmalloc->vm->EvalProgram();
             }
             #ifdef USE_EXCEPTION_HANDLING
             catch (string &s) {
                 err = s;
             }
             #endif
-            delete vma;
+            delete vmalloc;
             // FIXME: instead return err to main thread?
             if (!err.empty()) LOG_ERROR("worker error: ", err);
         });

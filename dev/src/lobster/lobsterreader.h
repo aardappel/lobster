@@ -105,7 +105,7 @@ struct Deserializer {
                         return { &vm.GetTypeInfo(typeoff), typeoff };
                     }
                 }
-                ludt = &vm.meta->udts[super_idx];
+                ludt = &vm.vma.meta->udts[super_idx];
             }
         }
         return { nullptr, (type_elem_t)-1 };

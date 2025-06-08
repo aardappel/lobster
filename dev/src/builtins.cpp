@@ -1605,7 +1605,7 @@ nfr("set_exit_code", "code", "I", "",
 nfr("command_line_arguments", "", "", "S]",
     "",
     [](StackPtr &, VM &vm) {
-        return ToValueOfVectorOfStrings(vm, vm.program_args);
+        return ToValueOfVectorOfStrings(vm, vm.vma.program_args);
     });
 
 nfr("thread_information", "", "", "II",

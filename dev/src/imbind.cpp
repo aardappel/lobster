@@ -547,7 +547,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             } else if (ti->enumidx >= 0) {
                 int val = v->intval();
                 int sel = 0;
-                auto &vals = vm.meta->enums[ti->enumidx].vals;
+                auto &vals = vm.vma.meta->enums[ti->enumidx].vals;
                 vector<const char *> items(vals.size());
                 int i = 0;
                 for (auto &ev : vals) {
@@ -601,7 +601,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             v = v->oval()->Elems();  // To iterate it like a struct.
         case V_STRUCT_R:
         case V_STRUCT_S: {
-            auto &st = vm.meta->udts[ti->structidx];
+            auto &st = vm.vma.meta->udts[ti->structidx];
             // Special case for numeric structs & colors.
             if (ti->len >= 2 && ti->len <= 4) {
                 for (int i = 1; i < ti->len; i++)
@@ -703,9 +703,9 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
 void VarsToGUI(VM &vm) {
     auto DumpVars = [&](bool constants) {
         if (BeginTable("vars")) {
-            for (uint32_t i = 0; i < vm.meta->specidents.size(); i++) {
+            for (uint32_t i = 0; i < vm.vma.meta->specidents.size(); i++) {
                 auto &val = vm.fvars[i];
-                auto &sid = vm.meta->specidents[i];
+                auto &sid = vm.vma.meta->specidents[i];
                 if (!sid.global || sid.readonly != constants) continue;
                 auto name = string_view_nt(sid.name);
                 auto &ti = vm.GetVarTypeInfo(i);

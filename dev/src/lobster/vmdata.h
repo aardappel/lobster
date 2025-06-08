@@ -968,7 +968,8 @@ struct VMArgs {
     bool stack_trace_python_ordering = false;
 };
 
-struct VM : VMArgs {
+struct VM {
+    VMArgs vma;
     SlabAlloc pool;
 
     Value *temp_lval = nullptr;
@@ -1060,7 +1061,7 @@ struct VM : VMArgs {
     const TypeInfo &GetVarTypeInfo(int varidx);
     type_elem_t GetSubClassFromSerID(type_elem_t super, uint32_t ser_id);
 
-    string_view GetProgramName() { return programname; }
+    string_view GetProgramName() { return vma.programname; }
 
     typedef function<void(VM &, string_view_nt, const TypeInfo &, Value *)> DumperFun;
     void DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump);
@@ -1206,7 +1207,7 @@ VM_INLINE int RetSlots(VM &vm) {
 
 VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {
     auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
-    auto id = (int)(size_t)vm.native_vtables[start + vtable_idx];
+    auto id = (int)(size_t)vm.vma.native_vtables[start + vtable_idx];
     assert(id >= 0);
     return id;
 }

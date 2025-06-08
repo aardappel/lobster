@@ -734,11 +734,11 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringis
         int runtime_checks = RUNTIME_ASSERT;  // FIXME: let caller decide?
         string metadata_buffer;
         string c_codegen;
-        Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
+        Compile(parent_vm.vma.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
                 metadata_buffer, nullptr, nullptr, true, runtime_checks, nullptr, 1, false, true,
                 c_codegen, false, "nullptr");
         string error;
-        auto ret = RunTCC(parent_vm.nfr, metadata_buffer, fn, nullptr, std::move(args),
+        auto ret = RunTCC(parent_vm.vma.nfr, metadata_buffer, fn, nullptr, std::move(args),
                           false, error, runtime_checks, true, false, c_codegen);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret.first)));
@@ -831,7 +831,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMe
         };
         for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
         lobster::VMAllocator vma(std::move(vmargs));
-        if (from_lpak && src_hash != vma.vm->meta->src_hash) {
+        if (from_lpak && src_hash != vma.vm->vma.meta->src_hash) {
             THROW_OR_ABORT("lpak file from different version of the source code than the compiled code");
         }
         vma.vm->EvalProgram();

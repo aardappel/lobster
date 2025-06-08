@@ -132,7 +132,7 @@ VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
     // or at least preallocate them all
     auto &s = vm.constant_strings[i];
     if (!s) {
-        auto fb_s = vm.meta->stringtable[i];
+        auto fb_s = vm.vma.meta->stringtable[i];
         s = vm.NewString(fb_s);
     }
     #if STRING_CONSTANTS_KEEP
@@ -164,7 +164,7 @@ VM_INLINE void U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     auto self = TopM(sp, stack_idx);
     VMTYPEEQ(self, V_CLASS);
     auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
-    vm.next_call_target = vm.native_vtables[start + vtable_idx];
+    vm.next_call_target = vm.vma.native_vtables[start + vtable_idx];
     assert(vm.next_call_target);
 }
 
@@ -264,7 +264,7 @@ VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
 
 
 VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
-    auto nf = vm.nfr.nfuns[nfi];
+    auto nf = vm.vma.nfr.nfuns[nfi];
     BPROF(nfi);
     GPROF_START(nfi);
     nf->fun.fV(sp, vm);
@@ -273,7 +273,7 @@ VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
 
 #define BCALLOP(N,DECLS,ARGS) \
 VM_INLINE void U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
-    auto nf = vm.nfr.nfuns[nfi]; \
+    auto nf = vm.vma.nfr.nfuns[nfi]; \
     BPROF(nfi); \
     GPROF_START(nfi); \
     DECLS; \
@@ -295,7 +295,7 @@ VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringi
     if (Top(sp).False()) {
         vm.last_line = line;
         vm.last_fileidx = fileidx;
-        auto assert_exp = vm.meta->stringtable[stringidx];
+        auto assert_exp = vm.vma.meta->stringtable[stringidx];
         vm.Error(cat("assertion failed: ", assert_exp));
     }
 }
