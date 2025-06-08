@@ -518,7 +518,6 @@ struct CodeGen  {
                   "extern void GLFrame(StackPtr, VMRef);\n"
                   "extern void SwapVars(VMRef, int, StackPtr, int);\n"
                   "extern void BackupVar(VMRef, int);\n"
-                  "extern void NilVal(Value *);\n"
                   "extern void DecOwned(VMRef, int);\n"
                   "extern void DecVal(VMRef, Value);\n"
                   "extern void RestoreBackup(VMRef, int);\n"
@@ -797,17 +796,28 @@ struct CodeGen  {
         else cb += "\n";
     }
 
+    string SetType(ValueType t) {
+        #if RTT_ENABLED
+            return cat(" _sp->type = ", (int)t, ";");
+        #else
+            return {};
+        #endif
+    }
+
     void EmitPUSHINT(int val) {
         EmitOp(IL_PUSHINT);
         if (cpp) {
             append(cb, "    *(", sp(), ") = Value(", val, ");\n");
         } else {
-            append(cb, "    { StackPtr _sp = ", sp(), "; _sp->ival = ", val, ";");
-            #if RTT_ENABLED
-                append(cb, " _sp->type = ", V_INT, ";");
-            #endif
-            append(cb, " }\n");
+            append(cb, "    { StackPtr _sp = ", sp(), "; _sp->ival = ", val, ";", SetType(V_INT), " }\n");
         }
+    }
+
+    void SetToNil(string &sd, string_view target) {
+        if (cpp)
+            append(sd, "    ", target, " = Value(0, lobster::V_NIL);\n");
+        else
+            append(sd, "    { StackPtr _sp = &", target, "; _sp->ival = 0;", SetType(V_NIL), " }\n");
     }
 
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
@@ -861,11 +871,7 @@ struct CodeGen  {
                 // FIXME: it should even be unnecessary to initialize them, but its possible
                 // there is a return before they're fully initialized, and then the decr of
                 // owned vars may cause these to be accessed.
-                if (cpp)
-                    append(sd, "    locals[", var_to_local[varidx],
-                           "] = lobster::NilVal();\n");  // FIXME ns
-                else
-                    append(sd, "    NilVal(&locals[", var_to_local[varidx], "]);\n");
+                SetToNil(sd, cat("locals[", var_to_local[varidx], "]"));
             }
         }
         if (runtime_checks >= RUNTIME_STACK_TRACE && sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
@@ -881,10 +887,7 @@ struct CodeGen  {
             funstarttables.insert(funstarttables.end(), f_defs.begin(), f_defs.end());
         }
         for (int i = 0; i < f_keepvars; i++) {
-            if (cpp)
-                append(sd, "    keepvar[", i, "] = lobster::NilVal();\n");  // FIXME ns
-            else
-                append(sd, "    NilVal(&keepvar[", i, "]);\n");
+            SetToNil(sd, cat("keepvar[", i, "]"));
         }
 
         sd += cb;

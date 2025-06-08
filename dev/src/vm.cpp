@@ -926,7 +926,6 @@ void CVM_Entry(int value_size, int vmbase_size) {
 
 void CVM_SwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
 void CVM_BackupVar(VM *vm, int i) { BackupVar(*vm, i); }
-void CVM_NilVal(Value *d) { *d = NilVal(); }
 void CVM_DecOwned(VM *vm, int i) { DecOwned(*vm, i); }
 void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
 void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
@@ -990,7 +989,6 @@ const void *vm_ops_jit_table[] = {
     "Entry", (void *)CVM_Entry,
     "SwapVars", (void *)CVM_SwapVars,
     "BackupVar", (void *)CVM_BackupVar,
-    "NilVal", (void *)CVM_NilVal,
     "DecOwned", (void *)CVM_DecOwned,
     "DecVal", (void *)CVM_DecVal,
     "RestoreBackup", (void *)CVM_RestoreBackup,
