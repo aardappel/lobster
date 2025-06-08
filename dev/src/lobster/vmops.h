@@ -186,6 +186,7 @@ VM_INLINE void U_RETURNANY(VM &, StackPtr, int /*nretslots_norm*/) {
 }
 
 VM_INLINE void U_GOTOFUNEXIT(VM &, StackPtr) {
+    assert(false);
 }
 
 VM_INLINE void U_UNUSED(VM &, StackPtr) {

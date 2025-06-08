@@ -56,7 +56,6 @@ struct CodeGen  {
     vector<int> icode;
     vector<int> ownedvars;
     vector<int> funstarttables;
-    vector<vector<int>> jumptables_stack;
     vector<int> var_to_local;
     bool has_profile = false;
     string sdt;
@@ -68,12 +67,11 @@ struct CodeGen  {
     int Label() { return nlabel++; }
 
     void Emit(int i) {
-        assert(in_ins);
         icode.push_back(i);
     }
 
     void EmitLabelDef(int lab) {
-        EmitOp1(IL_LABEL, lab);
+        EmitLABEL(lab);
     }
 
     void EmitLabelDefs(vector<int> &labs) {
@@ -85,7 +83,7 @@ struct CodeGen  {
 
     int EmitLabelDefBackwards() {
         auto lab = Label();
-        EmitOp1(IL_LABEL, lab);
+        EmitLABEL(lab);
         return lab;
     }
 
@@ -121,10 +119,7 @@ struct CodeGen  {
         }
     };
 
-    bool in_ins = false;
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        assert(!in_ins);
-        in_ins = true;
         assert(icode.empty());
 
         opc = op;
@@ -148,10 +143,8 @@ struct CodeGen  {
     }
 
     void OpEnd() {
-        EmitCForPrev();
+        EmitDefaultIns();
         icode.clear();
-        assert(in_ins);
-        in_ins = false;
     }
 
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
@@ -172,29 +165,12 @@ struct CodeGen  {
         OpEnd();
     }
 
-    void EmitOp3(ILOP op, int a1, int a2, int a3, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        EmitOp(op, useslots, defslots);
+    void EmitOp3(ILOP op, int a1, int a2, int a3) {
+        EmitOp(op);
         Emit(a1);
         Emit(a2);
         Emit(a3);
         OpEnd();
-    }
-
-    int EmitOpJump1(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        EmitOp(op, useslots, defslots);
-        auto lab = Label();
-        Emit(lab);
-        OpEnd();
-        return lab;
-    }
-
-    int EmitOpJump2(ILOP op, int a1, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        EmitOp(op, useslots, defslots);
-        Emit(a1);
-        auto lab = Label();
-        Emit(lab);
-        OpEnd();
-        return lab;
     }
 
     const int ti_num_udt_fields = 6;
@@ -486,7 +462,7 @@ struct CodeGen  {
                 }
             }
             stringtable.push_back(st.StoreName(str));
-            EmitOp1(IL_PROFILE, (int)stringtable.size() - 1);
+            EmitPROFILE((int)stringtable.size() - 1);
         }
 
         if (sf.sbody) for (auto c : sf.sbody->children) {
@@ -630,228 +606,236 @@ struct CodeGen  {
 
     string sp(int off = 0) { return cat("regs + ", regso - off); };
     string spslot(int off) { return cat("regs[", regso - off, "]"); };
-    void comment(string_view c) { append(cb, " // ", c); };
+    void comment(string_view c) { append(cb, " // ", c, "\n"); };
 
-    void EmitCForPrev() {
-        switch (opc) {
-            /*
-            case IL_PUSHINT:
-                append(cb, spslot(0), " = ", icode[0], ";");
-                break;
-            */
-            case IL_PUSHVARL:
-                append(cb, "    ", spslot(0), " = locals[", var_to_local[icode[0]], "];");
-                comment(IdName(icode[0], false));
-                break;
-            case IL_PUSHVARVL:
+    void GenPushVar(size_t retval, TypeRef type, int offset, bool used_as_freevar) {
+        if (!retval) return;
+        if (IsStruct(type->t)) {
+            auto width = ValWidth(type);
+            if (used_as_freevar) {
+                EmitOp(IL_PUSHVARVF, 0, width);
+                append(cb, "    U_PUSHVARVF(vm, ", sp(), ", ", offset, ", ", width, ");");
+                comment(IdName(offset, false));
+            } else {
+                EmitOp(IL_PUSHVARVL, 0, width);
                 append(cb, "    ");
-                for (int i = 0; i < icode[1]; i++) {
-                    append(cb, spslot(-i), " = locals[", var_to_local[icode[0] + i], "];");
+                for (int i = 0; i < width; i++) {
+                    append(cb, spslot(-i), " = locals[", var_to_local[offset + i], "];");
                 }
-                comment(IdName(icode[0], true));
-                break;
-            case IL_LVAL_VARL:
-                append(cb, "    SetLVal(vm, &locals[", var_to_local[icode[0]], "]);");
-                comment(IdName(icode[0], false));
-                break;
-            case IL_LABEL:
-                append(cb, "    block", icode[0], ":;");
-                break;
-            case IL_JUMP:
-                append(cb, "    goto block", icode[0], ";");
-                break;
-            case IL_JUMPFAIL:
-            case IL_JUMPFAILR:
-            case IL_JUMPNOFAIL:
-            case IL_JUMPNOFAILR:
-            case IL_IFOR:
-            case IL_SFOR:
-            case IL_VFOR:
-            case IL_JUMPIFUNWOUND:
-            case IL_JUMPIFSTATICLF:
-            case IL_JUMPIFMEMBERLF: {
-                auto id = icode[opc >= IL_JUMPIFUNWOUND ? 1 : 0];
-                append(cb, "    if (!U_", ILNames()[opc], "(vm, ", sp());
-                if (opc >= IL_JUMPIFUNWOUND) append(cb, ", ", icode[0]);
-                append(cb, ")) goto block", id, ";");
-                break;
+                comment(IdName(offset, true));
             }
-            case IL_JUMP_TABLE_DISPATCH:
-                if (cpp) {
-                    append(cb, "    switch (GetTypeSwitchID(vm, ", spslot(1), ", ", icode[0],
-                            ")) {");
-                } else {
-                    append(cb, "    { int top = GetTypeSwitchID(vm, ", spslot(1), ", ", icode[0],
-                            "); switch (top) {");
-                }
-                jumptables_stack.push_back(vector<int>(icode.data() + 1, icode.data() + icode.size()));
-                break;
-            case IL_JUMP_TABLE:
-                if (cpp) {
-                    append(cb, "    switch (", spslot(1), ".ival()) {");
-                } else {
-                    append(cb, "    { long long top = ", spslot(1), ".ival; switch (top) {");
-                }
-                jumptables_stack.push_back(icode);
-                break;
-            case IL_JUMP_TABLE_CASE_START: {
-                auto curlab = icode[0];
-                auto &vec = jumptables_stack.back();
-                auto t = vec.data();
-                auto mini = *t++;
-                auto maxi = *t++;
-                append(cb, "    ");
-                for (auto i = mini; i <= maxi; i++) {
-                    if (*t++ == curlab) append(cb, "case ", i, ":");
-                }
-                if (*t++ == curlab) append(cb, "default:");
-                break;
-            }
-            case IL_JUMP_TABLE_END: {
-                if (cpp)
-                    cb += "    } // switch";
-                else
-                    cb += "    }} // switch";
-                jumptables_stack.pop_back();
-                break;
-            }
-            case IL_BCALLRETV:
-            case IL_BCALLRET0:
-            case IL_BCALLRET1:
-            case IL_BCALLRET2:
-            case IL_BCALLRET3:
-            case IL_BCALLRET4:
-            case IL_BCALLRET5:
-            case IL_BCALLRET6:
-            case IL_BCALLRET7:
-                if (parser.natreg.nfuns[icode[0]]->IsGLFrame()) {
-                    append(cb, "    GLFrame(", sp(), ", vm);");
-                } else {
-                    append(cb, "    U_", ILNames()[opc], "(vm, ", sp(), ", ", icode[0], ", ", icode[1], ");");
-                    comment(parser.natreg.nfuns[icode[0]]->name);
-                }
-                break;
-            case IL_GOTOFUNEXIT:
-                append(cb, "    goto epilogue;");
-                break;
-            case IL_KEEPREFLOOP:
-            case IL_KEEPREF:
-                append(cb, "    ");
-                if (opc == IL_KEEPREFLOOP) append(cb, "DecVal(vm, keepvar[", icode[1], "]); ");
-                append(cb, "keepvar[", icode[1], "] = TopM(", sp(), ", ", icode[0], ");");
-                break;
-            case IL_PUSHFUN:
-                append(cb, "    U_PUSHFUN(vm, ", sp(), ", 0, ", "fun_", icode[0], ");");
-                break;
-            case IL_CALL: {
-                append(cb, "    fun_", icode[0], "(vm, ", sp(), ");");
-                auto sf_idx = icode[0];
-                comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
-                break;
-            }
-            case IL_CALLV:
-                append(cb, "    U_CALLV(vm, ", sp(), "); ");
-                if (cpp) append(cb, "vm.next_call_target(vm, ", sp(1), ");");
-                else append(cb, "GetNextCallTarget(vm)(vm, ", sp(1), ");");
-                break;
-            case IL_DDCALL:
-                append(cb, "    U_DDCALL(vm, ", sp(), ", ", icode[0], ", ", icode[1], "); ");
-                if (cpp) append(cb, "vm.next_call_target(vm, ", sp(), ");");
-                else append(cb, "GetNextCallTarget(vm)(vm, ", sp(), ");");
-                break;
-            case IL_PROFILE: {
-                string name;
-                EscapeAndQuote(stringtable[icode[0]], name, true);
-                append(cb, "    static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
-                       ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
-                       cpp ? "lobster::" : "", "StartProfile(&tsld);");
-                has_profile = true;
-                break;
-            }
-            case IL_RETURNLOCAL:
-            case IL_RETURNNONLOCAL:
-            case IL_RETURNANY: {
-                // FIXME: emit epilogue stuff only once at end of function.
-                int nrets = icode[0];
-                if (opc == IL_RETURNLOCAL) {
-                    append(cb, "    U_RETURNLOCAL(vm, 0, ", nrets, ");");
-                } else if (opc == IL_RETURNNONLOCAL) {
-                    append(cb, "    U_RETURNNONLOCAL(vm, 0, ", nrets, ", ", icode[1], ");");
-                } else {
-                    append(cb, "    U_RETURNANY(vm, 0, ", nrets, ");");
-                }
-                for (auto varidx : ownedvars) {
-                    if (sids[varidx].used_as_freevar()) {
-                        append(cb, "\n    DecOwned(vm, ", varidx, ");");
-                    } else {
-                        append(cb, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
-                    }
-                }
-                auto nargs = (int)f_args.size();
-                auto freevars = f_args.data() + nargs;
-                while (nargs--) {
-                    auto varidx = *--freevars;
-                    if (sids[varidx].used_as_freevar()) {
-                        append(cb, "\n    psp = PopArg(vm, ", varidx, ", psp);");
-                    } else {
-                        // TODO: move to when we obtain the arg?
-                        append(cb, "\n    Pop(psp);");
-                    }
-                }
-                if (opc == IL_RETURNANY) {
-                    append(cb,
-                            "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
-                            "Push(psp, regs[i + ", regso - nrets, "]); }");
-                } else {
-                    for (int i = 0; i < nrets; i++) {
-                        append(cb, "\n    Push(psp, ", spslot(nrets - i), ");");
-                    }
-                }
-                sdt.clear();  // FIXME: remove
-                for (int i = (int)f_defs.size() - 1; i >= 0; i--) {
-                    auto varidx = f_defs[i];
-                    if (sids[varidx].used_as_freevar()) {
-                        append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
-                    }
-                }
-                if (opc != IL_RETURNANY) {
-                    append(cb, "\n    goto epilogue;");
-                }
-                break;
-            }
-            default: {
-                assert(ILArity()[opc] != ILUNKNOWN);
-                append(cb, "    U_", ILNames()[opc], "(vm, ", sp(), "");
-                for (size_t i = 0; i < icode.size(); i++) {
-                    cb += ", ";
-                    append(cb, icode[i]);
-                }
-                cb += ");";
-                switch (opc) {
-                    case IL_PUSHVARF:
-                    case IL_PUSHVARVF:
-                    case IL_LVAL_VARF:
-                        comment(IdName(icode[0], false));
-                        break;
-                    case IL_PUSHSTR: {
-                        auto sv = stringtable[icode[0]];
-                        sv = sv.substr(0, 50);
-                        string q;
-                        EscapeAndQuote(sv, q, true);
-                        comment(q);
-                        break;
-                    }
-                    case IL_ISTYPE:
-                    case IL_NEWOBJECT:
-                    case IL_ST2S:
-                        auto ti = ((TypeInfo *)(&type_table[icode[0]]));
-                        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
-                        break;
-                }
-                break;
+        } else {
+            if (used_as_freevar) {
+                EmitOp(IL_PUSHVARF);
+                append(cb, "    U_PUSHVARF(vm, ", sp(), ", ", offset, ");");
+                comment(IdName(offset, false));
+            } else {
+                EmitOp(IL_PUSHVARL);
+                append(cb, "    ", spslot(0), " = locals[", var_to_local[offset], "];");
+                comment(IdName(offset, false));
             }
         }
+    }
+
+    void EmitLVAL_VARL(int offset) {
+        EmitOp(IL_LVAL_VARL);
+        append(cb, "    SetLVal(vm, &locals[", var_to_local[offset], "]);");
+        comment(IdName(offset, false));
+    }
+
+    void EmitLVAL_VARF(int offset) {
+        EmitOp(IL_LVAL_VARF);
+        append(cb, "    U_LVAL_VARF(vm, ", sp(), ", ", offset, ");");
+        comment(IdName(offset, false));
+    }
+
+    void EmitPUSHSTR(int stringtableindex) {
+        EmitOp(IL_PUSHSTR);
+        append(cb, "    U_PUSHSTR(vm, ", sp(), ", ", stringtableindex, ");");
+        auto sv = stringtable[stringtableindex];
+        sv = sv.substr(0, 50);
+        string q;
+        EscapeAndQuote(sv, q, true);
+        comment(q);
+    }
+
+    void EmitLABEL(int lab) {
+        EmitOp(IL_LABEL);
+        append(cb, "    block", lab, ":;\n");
+    }
+
+    int EmitJUMP() {
+        EmitOp(IL_JUMP);
+        auto lab = Label();
+        append(cb, "    goto block", lab, ";\n");
+        return lab;
+    }
+
+    int EmitJUMPback(int lab) {
+        EmitOp(IL_JUMP);
+        append(cb, "    goto block", lab, ";\n");
+        return lab;
+    }
+
+    int EmitOpJump1(ILOP op) {
+        EmitOp(op);
+        auto lab = Label();
+        append(cb, "    if (!U_", ILNames()[opc], "(vm, ", sp());
+        append(cb, ")) goto block", lab, ";\n");
+        return lab;
+    }
+
+    int EmitOpJump2(ILOP op, int a1) {
+        EmitOp(op);
+        auto lab = Label();
+        append(cb, "    if (!U_", ILNames()[opc], "(vm, ", sp());
+        append(cb, ", ", a1);
+        append(cb, ")) goto block", lab, ";\n");
+        return lab;
+    }
+
+    void EmitBCALLRET(ILOP op, NativeFun *nf, int has_ret, int useslots, int defslots) {
+        EmitOp(op, useslots, defslots);
+        if (nf->IsGLFrame()) {
+            append(cb, "    GLFrame(", sp(), ", vm);\n");
+        } else {
+            append(cb, "    U_", ILNames()[opc], "(vm, ", sp(), ", ", nf->idx, ", ", has_ret, ");");
+            comment(nf->name);
+        }
+    }
+
+    void EmitGOTOFUNEXIT() {
+        EmitOp(IL_GOTOFUNEXIT);
+        append(cb, "    goto epilogue;\n");
+    }
+
+    void EmitKeep(int stack_offset, int keep_index_add) {
+        auto op = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
+        EmitOp(op);
+        auto offset = f_keepvars++ + keep_index_add;
+        append(cb, "    ");
+        if (opc == IL_KEEPREFLOOP) append(cb, "DecVal(vm, keepvar[", offset, "]); ");
+        append(cb, "keepvar[", offset, "] = TopM(", sp(), ", ", stack_offset, ");\n");
+
+    }
+
+    void EmitRETURN(ILOP op, int nretslots, int parent_idx = -1, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
+        EmitOp(op, useslots, defslots);
+        // FIXME: emit epilogue stuff only once at end of function.
+        if (opc == IL_RETURNLOCAL) {
+            append(cb, "    U_RETURNLOCAL(vm, 0, ", nretslots, ");");
+        } else if (opc == IL_RETURNNONLOCAL) {
+            append(cb, "    U_RETURNNONLOCAL(vm, 0, ", nretslots, ", ", parent_idx, ");");
+        } else {
+            append(cb, "    U_RETURNANY(vm, 0, ", nretslots, ");");
+        }
+        for (auto varidx : ownedvars) {
+            if (sids[varidx].used_as_freevar()) {
+                append(cb, "\n    DecOwned(vm, ", varidx, ");");
+            } else {
+                append(cb, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
+            }
+        }
+        auto nargs = (int)f_args.size();
+        auto freevars = f_args.data() + nargs;
+        while (nargs--) {
+            auto varidx = *--freevars;
+            if (sids[varidx].used_as_freevar()) {
+                append(cb, "\n    psp = PopArg(vm, ", varidx, ", psp);");
+            } else {
+                // TODO: move to when we obtain the arg?
+                append(cb, "\n    Pop(psp);");
+            }
+        }
+        if (opc == IL_RETURNANY) {
+            append(cb,
+                    "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
+                    "Push(psp, regs[i + ", regso - nretslots, "]); }");
+        } else {
+            for (int i = 0; i < nretslots; i++) {
+                append(cb, "\n    Push(psp, ", spslot(nretslots - i), ");");
+            }
+        }
+        sdt.clear();  // FIXME: remove
+        for (int i = (int)f_defs.size() - 1; i >= 0; i--) {
+            auto varidx = f_defs[i];
+            if (sids[varidx].used_as_freevar()) {
+                append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
+            }
+        }
+        if (opc != IL_RETURNANY) {
+            append(cb, "\n    goto epilogue;");
+        }
         cb += "\n";
+    }
+
+    void EmitPUSHFUN(int fidx) {
+        EmitOp(IL_PUSHFUN);
+        append(cb, "    U_PUSHFUN(vm, ", sp(), ", 0, ", "fun_", fidx, ");\n");
+    }
+
+    void EmitCALL(int fidx, int uses, int defs) {
+        EmitOp(IL_CALL, uses, defs);
+        append(cb, "    fun_", fidx, "(vm, ", sp(), ");");
+        comment("call: " + st.subfunctiontable[fidx]->parent->name);
+    }
+
+    void EmitCALLV(int uses, int defs) {
+        EmitOp(IL_CALLV, uses, defs);
+        append(cb, "    U_CALLV(vm, ", sp(), "); ");
+        if (cpp) append(cb, "vm.next_call_target(vm, ", sp(1), ");\n");
+        else append(cb, "GetNextCallTarget(vm)(vm, ", sp(1), ");\n");
+    }
+
+    void EmitDDCALL(int vtable_idx, int nargs, int uses, int defs) {
+        EmitOp(IL_DDCALL, uses, defs);
+        append(cb, "    U_DDCALL(vm, ", sp(), ", ", vtable_idx, ", ", nargs, "); ");
+        if (cpp) append(cb, "vm.next_call_target(vm, ", sp(), ");\n");
+        else append(cb, "GetNextCallTarget(vm)(vm, ", sp(), ");\n");
+    }
+
+    void EmitPROFILE(int stringtable_idx) {
+        EmitOp(IL_PROFILE);
+        string name;
+        EscapeAndQuote(stringtable[stringtable_idx], name, true);
+        append(cb, "    static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
+               ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
+               cpp ? "lobster::" : "", "StartProfile(&tsld);\n");
+        has_profile = true;
+    }
+
+    void EmitISTYPE(int type_idx) {
+        EmitOp(IL_ISTYPE);
+        append(cb, "    U_ISTYPE(vm, ", sp(), ", ", type_idx, ");");
+        auto ti = ((TypeInfo *)(&type_table[type_idx]));
+        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
+        else cb += "\n";
+    }
+
+    void EmitNEWOBJECT(int type_idx, int uses) {
+        EmitOp(IL_NEWOBJECT, uses);
+        append(cb, "    U_NEWOBJECT(vm, ", sp(), ", ", type_idx, ");");
+        auto ti = ((TypeInfo *)(&type_table[type_idx]));
+        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
+        else cb += "\n";
+    }
+
+    void EmitST2S(int type_idx, int uses, int defs) {
+        EmitOp(IL_ST2S, uses, defs);
+        append(cb, "    U_ST2S(vm, ", sp(), ", ", type_idx, ");");
+        auto ti = ((TypeInfo *)(&type_table[type_idx]));
+        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
+        else cb += "\n";
+    }
+
+    void EmitDefaultIns() {
+        assert(ILArity()[opc] != ILUNKNOWN);
+        append(cb, "    U_", ILNames()[opc], "(vm, ", sp(), "");
+        for (size_t i = 0; i < icode.size(); i++) {
+            cb += ", ";
+            append(cb, icode[i]);
+        }
+        cb += ");\n";
     }
 
     void DefineFunction(string &sd, bool label) {
@@ -930,7 +914,6 @@ struct CodeGen  {
         sd += "}\n";
         icode.clear();
         ownedvars.clear();
-        assert(jumptables_stack.empty());
         f_keepvars = -1;
         numlocals = 0;
         nlabel = 0;
@@ -1144,7 +1127,7 @@ struct CodeGen  {
         // Here we are emitting code executed only if we're falling thru,
         // so temp modify the tstack to match that.
         auto tstackbackup = tstack;
-        EmitOp1(IL_RETURNANY, nretslots_norm);
+        EmitRETURN(IL_RETURNANY, nretslots_norm);
         // RETURNANY has taken care of falling thru retvals, but the normal retvals are
         // still on the tstack.
         for (int i = 0; i < nretslots_norm; i++)
@@ -1152,7 +1135,7 @@ struct CodeGen  {
         for (auto &tse : reverse(temptypestack)) {
             GenPop(tse);
         }
-        EmitOp0(IL_GOTOFUNEXIT);
+        EmitGOTOFUNEXIT();
         EmitLabelDef(lab);
         tstack = tstackbackup;
     }
@@ -1173,12 +1156,12 @@ struct CodeGen  {
                            " arguments, ", nargs, " given");
         TakeTemp(nargs, true);
         if (call.vtable_idx < 0) {
-            EmitOp1(IL_CALL, sf.idx, inw, outw);
+            EmitCALL(sf.idx, inw, outw);
             if (sf.returned_thru_to_max >= 0) {
                 GenUnwind(sf, sf.returned_thru_to_max, outw);
             }
         } else {
-            EmitOp2(IL_DDCALL, call.vtable_idx, inw - 1, inw, outw);
+            EmitDDCALL(call.vtable_idx, inw - 1, inw, outw);
             // We get the dispatch from arg 0, since sf is an arbitrary overloads and
             // doesn't necessarily point to the dispatch root (which may not even have an sf).
             auto dispatch_type = call.children[0]->exptype;
@@ -1519,26 +1502,11 @@ struct CodeGen  {
             : (dec ? IL_LV_WRITEREF : IL_LV_WRITE);
     }
 
-    void EmitKeep(int stack_offset, int keep_index_add) {
-        auto op = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
-        EmitOp2(op, stack_offset, f_keepvars++ + keep_index_add);
-    }
-
     void GenLvalVar(const SpecIdent &sid, int offset) {
-        EmitOp1(sid.used_as_freevar ? IL_LVAL_VARF : IL_LVAL_VARL, sid.Idx() + offset);
-    }
-
-
-    void GenPushVar(size_t retval, TypeRef type, int offset, bool used_as_freevar) {
-        if (!retval) return;
-        if (IsStruct(type->t)) {
-            EmitOp(used_as_freevar ? IL_PUSHVARVF : IL_PUSHVARVL, 0, ValWidth(type));
-            Emit(offset);
-            EmitWidthIfStruct(type);
-            OpEnd();
-        } else {
-            EmitOp1(used_as_freevar ? IL_PUSHVARF : IL_PUSHVARL, offset);
-        }
+        if (sid.used_as_freevar)
+            EmitLVAL_VARF(sid.Idx() + offset);
+        else
+            EmitLVAL_VARL(sid.Idx() + offset);
     }
 
     void GenPushField(size_t retval, Node *object, TypeRef stype, TypeRef ftype, int offset) {
@@ -1678,7 +1646,7 @@ void FloatConstant::Generate(CodeGen &cg, size_t retval) const {
 void StringConstant::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
     cg.stringtable.push_back(str);
-    cg.EmitOp1(IL_PUSHSTR, (int)cg.stringtable.size() - 1);
+    cg.EmitPUSHSTR((int)cg.stringtable.size() - 1);
 }
 
 void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
@@ -1873,7 +1841,7 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
         case V_STRUCT_R:
         case V_STRUCT_S: {
             // TODO: can also roll these into A2S?
-            cg.EmitOp1(IL_ST2S, cg.GetTypeTableOffset(child->exptype), ValWidth(child->exptype), 1);
+            cg.EmitST2S(cg.GetTypeTableOffset(child->exptype), ValWidth(child->exptype), 1);
             break;
         }
         default: {
@@ -1960,9 +1928,9 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
     // function value will never be used.
     // FIXME: instead, ensure such values are removed by the optimizer.
     if (sf->parent->anonymous && sf->sbody && sf->typechecked) {
-        cg.EmitOp1(IL_PUSHFUN, sf->idx);
+        cg.EmitPUSHFUN(sf->idx);
     } else {
-        cg.EmitOp1(IL_PUSHFUN, CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);
+        cg.EmitPUSHFUN(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);
     }
 }
 
@@ -2020,8 +1988,8 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(nargs + numstructs, true);
     assert(nargs == nf->args.size() && (nf->fun.fnargs < 0 || nargs <= 7));
     auto vmop = nf->fun.fnargs >= 0 ? GENOP(IL_BCALLRET0 + (int)nargs) : IL_BCALLRETV;
-    cg.EmitOp2(vmop, nf->idx, !nf->retvals.empty(), inw,
-               ValWidthMulti(nattype, nattype->NumValues()));
+    cg.EmitBCALLRET(vmop, nf, !nf->retvals.empty(), inw,
+                    ValWidthMulti(nattype, nattype->NumValues()));
     if (nf->retvals.size() > 0) {
         assert(nf->retvals.size() == nattype->NumValues());
         for (size_t i = 0; i < nattype->NumValues(); i++) {
@@ -2053,7 +2021,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
     assert(nargs == sf->args.size());
     cg.GenPushVar(1, type_function_null_void, sid->Idx(), sid->used_as_freevar);
     cg.TakeTemp(nargs, true);
-    cg.EmitOp0(IL_CALLV, arg_width + 1, ValWidthMulti(exptype, sf->returntype->NumValues()));
+    cg.EmitCALLV(arg_width + 1, ValWidthMulti(exptype, sf->returntype->NumValues()));
     if (sf->reqret) {
         if (!retval) cg.GenPop({ exptype, lt });
     } else {
@@ -2164,7 +2132,7 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(truepart, retval);
     bs.End();
     if (retval) cg.TakeTemp(retval, true);
-    auto lab2 = cg.EmitOpJump1(IL_JUMP);
+    auto lab2 = cg.EmitJUMP();
     cg.EmitLabelDef(lab);
     bs.Start();
     cg.Gen(falsepart, retval);
@@ -2183,7 +2151,7 @@ void While::Generate(CodeGen &cg, size_t retval) const {
     auto break_level = cg.breaks.size();
     cg.Gen(wbody, 0);
     cg.loops.pop_back();
-    cg.EmitOp1(IL_JUMP, loopback);
+    cg.EmitJUMPback(loopback);
     cg.EmitLabelDef(jumpout);
     cg.ApplyBreaks(break_level);
     cg.Dummy(retval);
@@ -2205,7 +2173,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
         default:         assert(false);
     }
     cg.Gen(fbody, 0);
-    cg.EmitOp1(IL_JUMP, startloop);
+    cg.EmitJUMPback(startloop);
     cg.EmitLabelDef(exitloop);
     cg.loops.pop_back();
     cg.TakeTemp(2, false);
@@ -2259,11 +2227,11 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
         cg.PushTemp(fort1);
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 1]);
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 2]);
-        lab = cg.EmitOpJump1(IL_JUMP);
+        lab = cg.EmitJUMP();
         cg.PushTemp(fort2);
         cg.PushTemp(fort1);
     } else {
-        lab = cg.EmitOpJump1(IL_JUMP);
+        lab = cg.EmitJUMP();
     }
     cg.breaks.push_back(lab);
 }
@@ -2328,7 +2296,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back() || !have_default) {
-            auto lab = cg.EmitOpJump1(IL_JUMP);
+            auto lab = cg.EmitJUMP();
             exitswitch.push_back(lab);
         }
     }
@@ -2383,16 +2351,13 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
         return false;
     // Emit jump table version.
     cg.EmitOp(IL_JUMP_TABLE);
-    cg.Emit((int)mini);
-    cg.Emit((int)maxi);
-    GenerateJumpTableMain(cg, retval, (int)range, (int)mini);
+    GenerateJumpTableMain(cg, retval, (int)range, (int)mini, (int)maxi);
     return true;
 }
 
-void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int mini) const {
-    auto table_start = cg.Pos();
+void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mini, int maxi) const {
     auto deflab = cg.Label();
-    for (int i = 0; i < range + 1; i++) cg.Emit(deflab);
+    vector<int> ilab(range + 1, deflab);
     // Figure out labels first, so we can generate code for it all at once.
     vector<int> labels;
     for (auto [i, n] : enumerate(cases->children)) {
@@ -2401,17 +2366,29 @@ void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int m
         labels.push_back(lab);
         for (auto c : cas->pattern->children) {
             if (value->exptype->t == V_CLASS) {
-                cg.icode[table_start + (int)i] = lab;
+                ilab[i] = lab;
             } else {
                 auto [istart, iend] = get_range(c);
                 assert(istart && iend);
                 for (auto i = istart->integer; i <= iend->integer; i++) {
-                    cg.icode[table_start + (int)i - mini] = lab;
+                    ilab[i - mini] = lab;
                 }
             }
         }
     }
-    cg.OpEnd();
+    if (vtable_idx >= 0) {
+        if (cg.cpp) {
+            append(cg.cb, "    switch (GetTypeSwitchID(vm, ", cg.spslot(1), ", ", vtable_idx, ")) {\n");
+        } else {
+            append(cg.cb, "    { int top = GetTypeSwitchID(vm, ", cg.spslot(1), ", ", vtable_idx, "); switch (top) {\n");
+        }
+    } else {
+        if (cg.cpp) {
+            append(cg.cb, "    switch (", cg.spslot(1), ".ival()) {\n");
+        } else {
+            append(cg.cb, "    { long long top = ", cg.spslot(1), ".ival; switch (top) {\n");
+        }
+    }
     vector<int> exitswitch;
     CodeGen::BlockStack bs(cg.tstack);
     for (auto [i, n] : enumerate(cases->children)) {
@@ -2422,15 +2399,24 @@ void Switch::GenerateJumpTableMain(CodeGen & cg, size_t retval, int range, int m
         if (cas->pattern->children.empty()) {
             lab = deflab;
         }
-        cg.EmitOp1(IL_JUMP_TABLE_CASE_START, lab);
+        cg.EmitOp(IL_JUMP_TABLE_CASE_START);
+        auto t = ilab.data();
+        append(cg.cb, "    ");
+        for (auto i = mini; i <= maxi; i++) {
+            if (*t++ == lab) append(cg.cb, "case ", i, ":");
+        }
+        if (*t++ == lab) append(cg.cb, "default:");
+        cg.cb += "\n";
         cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back()) {
-            auto lab = cg.EmitOpJump1(IL_JUMP);
+            auto lab = cg.EmitJUMP();
             exitswitch.push_back(lab);
         }
     }
-    cg.EmitOp0(IL_JUMP_TABLE_END);
+    cg.EmitOp(IL_JUMP_TABLE_END);
+    if (cg.cpp) cg.cb += "    } // switch\n";
+    else cg.cb += "    }} // switch\n";
     cg.EmitLabelDefs(exitswitch);
     bs.Exit(cg);
 }
@@ -2442,11 +2428,8 @@ void Switch::GenerateTypeDispatch(CodeGen &cg, size_t retval) const {
            de->subudts_size == dispatch_udt->subudts.size());
     (void)de;
     cg.EmitOp(IL_JUMP_TABLE_DISPATCH);
-    cg.Emit(vtable_idx);
-    cg.Emit(0);
     int range = (int)cases->children.size();
-    cg.Emit(range - 1);
-    GenerateJumpTableMain(cg, retval, range, 0);
+    GenerateJumpTableMain(cg, retval, range, 0, range - 1);
 }
 
 void Case::Generate(CodeGen &cg, size_t retval) const {
@@ -2494,7 +2477,7 @@ void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
     if (IsStruct(exptype->t)) {
         // This is now a no-op! Struct elements sit inline on the stack.
     } else {
-        cg.EmitOp1(IL_NEWOBJECT, offset, arg_width);
+        cg.EmitNEWOBJECT(offset, arg_width);
     }
 }
 
@@ -2510,7 +2493,7 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     assert(!IsUnBoxed(child->exptype->t));
     if (retval) {
         cg.TakeTemp(1, false);
-        cg.EmitOp1(IL_ISTYPE, cg.GetTypeTableOffset(resolvedtype));
+        cg.EmitISTYPE(cg.GetTypeTableOffset(resolvedtype));
     }
 }
 
@@ -2554,11 +2537,11 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     // Actually, doesn't work with DDCALL and RETURN_THRU.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
     if (sf == cg.cursf && sf->returned_thru_to_max < 0) {
-        cg.EmitOp1(IL_RETURNLOCAL, nretslots, nretslots);
+        cg.EmitRETURN(IL_RETURNLOCAL, nretslots, -1, nretslots);
     } else {
         // This is for both if the return itself is non-local, or if the destination has
         // an unwind check.
-        cg.EmitOp2(IL_RETURNNONLOCAL, nretslots, sf->parent->idx, nretslots);
+        cg.EmitRETURN(IL_RETURNNONLOCAL, nretslots, sf->parent->idx, nretslots);
     }
 
     reset_from_small_vector(cg.temptypestack, typestackbackup);
