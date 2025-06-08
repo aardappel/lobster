@@ -324,12 +324,6 @@ void VM::ErrorBase(const string &err) {
         UnwindOnError();
     }
     error_has_occured = true;
-    if (trace == TraceMode::TAIL && trace_output.size()) {
-        for (size_t i = trace_ring_idx; i < trace_output.size(); i++) errmsg += trace_output[i];
-        for (size_t i = 0; i < trace_ring_idx; i++) errmsg += trace_output[i];
-        errmsg += err;
-        UnwindOnError();
-    }
     append(errmsg, "VM error (");
     if (last_line >= 0 && last_fileidx >= 0) {
         append(errmsg, meta->file_names[last_fileidx], ":", last_line);
@@ -644,15 +638,6 @@ void VM::CallFunctionValue(Value f) {
     fv(*this, nullptr);
 }
 
-string &VM::TraceStream() {
-  size_t trace_size = trace == TraceMode::TAIL ? 50 : 1;
-  if (trace_output.size() < trace_size) trace_output.resize(trace_size);
-  if (trace_ring_idx == trace_size) trace_ring_idx = 0;
-  auto &sd = trace_output[trace_ring_idx++];
-  sd.clear();
-  return sd;
-}
-
 string VM::ProperTypeName(const TypeInfo &ti) {
     switch (ti.t) {
         case V_STRUCT_R:
@@ -806,7 +791,6 @@ void VM::StartWorkers(iint numthreads) {
         // We share nfr, metadata and programname for now since they're fully read-only.
         auto vmargs = *(VMArgs *)this;
         vmargs.program_args.resize(0);
-        vmargs.trace = TraceMode::OFF;
         auto vma = new VMAllocator(std::move(vmargs));
         vma->vm->is_worker = true;
         vma->vm->tuple_space = tuple_space;
@@ -927,43 +911,6 @@ extern "C" {
 
 using namespace lobster;
 
-void TraceIL(VM *vm, StackPtr sp, initializer_list<int>) {
-    auto &sd = vm->TraceStream();
-    #if RTT_ENABLED
-        (void)sp;
-        /*
-        if (sp >= vm->stack) {
-            sd += " - ";
-            Top(sp).ToStringBase(*vm, sd, Top(sp).type, vm->debugpp);
-            if (sp > vm->stack) {
-                sd += " - ";
-                TopM(sp, 1).ToStringBase(*vm, sd, TopM(sp, 1).type, vm->debugpp);
-            }
-        }
-        */
-    #else
-        (void)sp;
-    #endif
-    // append(sd, " / ", (size_t)Top(sp).any());
-    // for (int _i = 0; _i < 7; _i++) { append(sd, " #", (size_t)vm->vars[_i].any()); }
-    if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
-}
-
-void TraceVA(VM *vm, StackPtr, int opc) {
-    auto &sd = vm->TraceStream();
-    sd += "\t";
-    sd += ILNames()[opc];
-    if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
-}
-
-#ifndef NDEBUG
-    #define CHECK(B) if (vm->trace != TraceMode::OFF) TraceIL(vm, sp, {B});
-    #define CHECKVA(OPC) if (vm->trace != TraceMode::OFF) TraceVA(vm, sp, OPC);
-#else
-    #define CHECK(B)
-    #define CHECKVA(OPC)
-#endif
-
 fun_base_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
@@ -997,35 +944,30 @@ void CVM_EndProfile(___tracy_c_zone_context ctx) {
 
 #define F(N, A, USE, DEF) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_IF(A) VM_OP_PASSN(A));         \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
 ILBASENAMES
 #undef F
 #define F(N, A, USE, DEF) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
-        CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_IF(A) VM_OP_PASSN(A));                           \
         return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont);                         \
     }
 ILCALLNAMES
 #undef F
 #define F(N, A, USE, DEF) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
-        CHECKVA(IL_##N);                                             \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
 ILVARARGNAMES
 #undef F
 #define F(N, A, USE, DEF) \
     int CVM_##N(VM *vm, StackPtr sp) {                     \
-        CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_1 0 /*FIXME*/); \
         return U_##N(*vm, sp);                             \
     }
 ILJUMPNAMES1
 #undef F
 #define F(N, A, USE, DEF) \
     int CVM_##N(VM *vm, StackPtr sp, int df) {                           \
-        CHECK(IL_##N VM_COMMA_1 0 VM_COMMA_1 df VM_COMMA_1 0 /*FIXME*/); \
         return U_##N(*vm, sp, df);                                       \
     }
 ILJUMPNAMES2

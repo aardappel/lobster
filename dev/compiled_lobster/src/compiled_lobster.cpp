@@ -9117,7 +9117,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     regs[1] = locals[2]; // direct
     U_A2S(vm, regs + 2, 574);
     keepvar[1] = TopM(regs + 2, 0);
-    U_BCALLRETV(vm, regs + 2, 255, 1); // parse_data
+    U_BCALLRETV(vm, regs + 2, 254, 1); // parse_data
     SetLVal(vm, &locals[4]); // err
     U_LV_WRITEREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // parsed
@@ -9137,7 +9137,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 76, 6);
     U_PUSHINT(vm, regs + 0, 574);
     U_PUSHSTR(vm, regs + 1, 164); // "parsetest { true, 1, 1.0, float3 {}, \"\", [], nil, "
-    U_BCALLRETV(vm, regs + 2, 255, 1); // parse_data
+    U_BCALLRETV(vm, regs + 2, 254, 1); // parse_data
     SetLVal(vm, &locals[4]); // err
     U_LV_WRITEREF(vm, regs + 2);
     SetLVal(vm, &locals[3]); // parsed
@@ -9176,14 +9176,14 @@ static void fun_155(VMRef vm, StackPtr psp) {
     regs[0] = locals[3]; // parsed
     U_PUSHINT(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 2, 0);
-    U_BCALLRET3(vm, regs + 3, 256, 1); // flexbuffers_value_to_binary
+    U_BCALLRET3(vm, regs + 3, 255, 1); // flexbuffers_value_to_binary
     SetLVal(vm, &locals[6]); // flex
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 81, 6);
     regs[0] = locals[6]; // flex
     U_PUSHINT(vm, regs + 1, 0);
     U_PUSHSTR(vm, regs + 2, 167); // ""
-    U_BCALLRETV(vm, regs + 3, 258, 1); // flexbuffers_binary_to_json
+    U_BCALLRETV(vm, regs + 3, 257, 1); // flexbuffers_binary_to_json
     U_POPREF(vm, regs + 2);
     SetLVal(vm, &locals[7]); // json
     U_LV_WRITEREF(vm, regs + 1);
@@ -9203,7 +9203,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 86, 6);
     regs[0] = locals[7]; // json
     U_PUSHNIL(vm, regs + 1);
-    U_BCALLRET2(vm, regs + 2, 259, 1); // flexbuffers_json_to_binary
+    U_BCALLRET2(vm, regs + 2, 258, 1); // flexbuffers_json_to_binary
     SetLVal(vm, &locals[10]); // ferr
     U_LV_WRITEREF(vm, regs + 2);
     SetLVal(vm, &locals[9]); // flex2
@@ -9216,7 +9216,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     regs[0] = locals[9]; // flex2
     U_PUSHINT(vm, regs + 1, 0);
     U_PUSHSTR(vm, regs + 2, 172); // ""
-    U_BCALLRETV(vm, regs + 3, 258, 1); // flexbuffers_binary_to_json
+    U_BCALLRETV(vm, regs + 3, 257, 1); // flexbuffers_binary_to_json
     U_POPREF(vm, regs + 2);
     SetLVal(vm, &locals[11]); // json2
     U_LV_WRITEREF(vm, regs + 1);
@@ -9231,7 +9231,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 91, 6);
     U_PUSHINT(vm, regs + 0, 574);
     regs[1] = locals[9]; // flex2
-    U_BCALLRETV(vm, regs + 2, 257, 1); // flexbuffers_binary_to_value
+    U_BCALLRETV(vm, regs + 2, 256, 1); // flexbuffers_binary_to_value
     SetLVal(vm, &locals[13]); // fverr
     U_LV_WRITEREF(vm, regs + 2);
     SetLVal(vm, &locals[12]); // fval
@@ -9247,13 +9247,13 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 93, 6, 176);
     U_STATEMENT(vm, regs + 0, 94, 6);
     regs[0] = locals[3]; // parsed
-    U_BCALLRET1(vm, regs + 1, 260, 1); // lobster_value_to_binary
+    U_BCALLRET1(vm, regs + 1, 259, 1); // lobster_value_to_binary
     SetLVal(vm, &locals[14]); // lb
     U_LV_WRITEREF(vm, regs + 1);
     U_STATEMENT(vm, regs + 0, 95, 6);
     U_PUSHINT(vm, regs + 0, 574);
     regs[1] = locals[14]; // lb
-    U_BCALLRETV(vm, regs + 2, 261, 1); // lobster_binary_to_value
+    U_BCALLRETV(vm, regs + 2, 260, 1); // lobster_binary_to_value
     SetLVal(vm, &locals[16]); // lberr
     U_LV_WRITEREF(vm, regs + 2);
     SetLVal(vm, &locals[15]); // lbval
@@ -9270,7 +9270,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 99, 6);
     U_PUSHINT(vm, regs + 0, 544);
     U_PUSHSTR(vm, regs + 1, 179); // "test_namespace.g {}"
-    U_BCALLRETV(vm, regs + 2, 255, 1); // parse_data
+    U_BCALLRETV(vm, regs + 2, 254, 1); // parse_data
     U_POPREF(vm, regs + 2);
     keepvar[2] = TopM(regs + 1, 0);
     U_ASSERT(vm, regs + 1, 99, 6, 180);
@@ -9553,7 +9553,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 1, 3);
     U_PUSHINT(vm, regs + 2, 122);
     U_PUSHINT(vm, regs + 3, 0);
-    U_BCALLRET4(vm, regs + 4, 199, 1); // ensure_size
+    U_BCALLRET4(vm, regs + 4, 198, 1); // ensure_size
     keepvar[7] = TopM(regs + 1, 0);
     U_PUSHSTR(vm, regs + 1, 208); // "abc"
     U_SEQ(vm, regs + 2);
@@ -9564,7 +9564,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 1, 5);
     U_PUSHINT(vm, regs + 2, 122);
     U_PUSHINT(vm, regs + 3, 0);
-    U_BCALLRET4(vm, regs + 4, 199, 1); // ensure_size
+    U_BCALLRET4(vm, regs + 4, 198, 1); // ensure_size
     keepvar[8] = TopM(regs + 1, 0);
     U_PUSHSTR(vm, regs + 1, 211); // "abczz"
     U_SEQ(vm, regs + 2);
@@ -9575,7 +9575,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_PUSHINT(vm, regs + 1, -5);
     U_PUSHINT(vm, regs + 2, 122);
     U_PUSHINT(vm, regs + 3, 0);
-    U_BCALLRET4(vm, regs + 4, 199, 1); // ensure_size
+    U_BCALLRET4(vm, regs + 4, 198, 1); // ensure_size
     keepvar[9] = TopM(regs + 1, 0);
     U_PUSHSTR(vm, regs + 1, 214); // "zzabc"
     U_SEQ(vm, regs + 2);
@@ -9585,7 +9585,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 2, 1027);
-    U_BCALLRET3(vm, regs + 3, 202, 1); // write_int16_le
+    U_BCALLRET3(vm, regs + 3, 201, 1); // write_int16_le
     SetLVal(vm, &locals[27]); // ni
     U_LV_WRITE(vm, regs + 2);
     SetLVal(vm, &locals[26]); // ns
@@ -9604,7 +9604,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 164, 6);
     regs[0] = locals[26]; // ns
     U_PUSHINT(vm, regs + 1, 0);
-    U_BCALLRET2(vm, regs + 2, 216, 1); // read_int32_le
+    U_BCALLRET2(vm, regs + 2, 215, 1); // read_int32_le
     U_POP(vm, regs + 2);
     U_PUSHINT(vm, regs + 1, 1027);
     U_IEQ(vm, regs + 2);
@@ -9614,7 +9614,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 1, 0);
     U_PUSHINT(vm, regs + 2, 2050);
-    U_BCALLRET3(vm, regs + 3, 208, 1); // write_int16_le_back
+    U_BCALLRET3(vm, regs + 3, 207, 1); // write_int16_le_back
     SetLVal(vm, &locals[27]); // ni
     U_LV_WRITE(vm, regs + 2);
     SetLVal(vm, &locals[26]); // ns
@@ -9633,7 +9633,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 167, 6);
     regs[0] = locals[26]; // ns
     U_PUSHINT(vm, regs + 1, 0);
-    U_BCALLRET2(vm, regs + 2, 227, 1); // read_int16_le_back
+    U_BCALLRET2(vm, regs + 2, 226, 1); // read_int16_le_back
     U_POP(vm, regs + 2);
     U_PUSHINT(vm, regs + 1, 2050);
     U_IEQ(vm, regs + 2);
@@ -10942,7 +10942,7 @@ static void fun_173(VMRef vm, StackPtr psp) {
     regs[1] = locals[0]; // this
     U_PUSHFLD(vm, regs + 2, 1);
     U_PUSHINT(vm, regs + 2, 12345);
-    U_BCALLRET3(vm, regs + 3, 202, 1); // write_int16_le
+    U_BCALLRET3(vm, regs + 3, 201, 1); // write_int16_le
     regs[2] = locals[0]; // this
     U_LVAL_FLD(vm, regs + 3, 1);
     U_LV_WRITE(vm, regs + 2);
@@ -12154,7 +12154,7 @@ static void fun_213(VMRef vm, StackPtr psp) {
     U_STATEMENT(vm, regs + 0, 56, 9);
     U_PUSHINT(vm, regs + 0, 1338);
     U_PUSHSTR(vm, regs + 1, 387); // "[true]"
-    U_BCALLRETV(vm, regs + 2, 255, 1); // parse_data
+    U_BCALLRETV(vm, regs + 2, 254, 1); // parse_data
     U_POPREF(vm, regs + 2);
     U_ASSERTR(vm, regs + 1, 56, 9, 388);
     keepvar[1] = TopM(regs + 1, 0);
@@ -21123,7 +21123,7 @@ static void fun_377(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 0, 567); // "return 1 + 2"
     U_NEWVEC(vm, regs + 1, 11, 0);
     keepvar[0] = TopM(regs + 2, 0);
-    U_BCALLRET2(vm, regs + 2, 188, 1); // compile_run_code
+    U_BCALLRET2(vm, regs + 2, 187, 1); // compile_run_code
     SetLVal(vm, &locals[1]); // comperr1
     U_LV_WRITEREF(vm, regs + 2);
     SetLVal(vm, &locals[0]); // compres1
@@ -21144,7 +21144,7 @@ static void fun_377(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 0, 570); // "plugintest.lobster"
     U_NEWVEC(vm, regs + 1, 11, 0);
     keepvar[1] = TopM(regs + 2, 0);
-    U_BCALLRET2(vm, regs + 2, 189, 1); // compile_run_file
+    U_BCALLRET2(vm, regs + 2, 188, 1); // compile_run_file
     SetLVal(vm, &locals[3]); // comperr2
     U_LV_WRITEREF(vm, regs + 2);
     SetLVal(vm, &locals[2]); // compres2
@@ -26657,7 +26657,7 @@ static const int subfunctions_to_function[] = {
 };
 
 extern "C" void compiled_entry_point(VMRef vm, StackPtr sp) {
-    if (vm.nfr.HashAll() != 2216468507617830005ULL) vm.BuiltinError("code compiled with mismatching builtin function library");
+    if (vm.nfr.HashAll() != 12557089539824322831ULL) vm.BuiltinError("code compiled with mismatching builtin function library");
     fun_10000002(vm, sp);
 }
 

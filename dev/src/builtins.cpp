@@ -1573,14 +1573,6 @@ nfr("pass", "", "", "",
         return NilVal();
     });
 
-nfr("trace_bytecode", "mode", "I", "",
-    "tracing shows each bytecode instruction as it is being executed, not very useful unless"
-    " you are trying to isolate a compiler bug. Mode is off(0), on(1) or tail only (2)",
-    [](StackPtr &, VM &vm, Value i) {
-        vm.Trace((TraceMode)i.ival());
-        return NilVal();
-    });
-
 nfr("reference_count", "val", "A", "I",
     "get the reference count of any value. for compiler debugging, mostly",
     [](StackPtr &, VM &, Value x) {

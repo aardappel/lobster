@@ -78,7 +78,6 @@ int main(int argc, char* argv[]) {
         string mainfile;
         vector<string> program_args;
         vector<string> imports;
-        auto trace = TraceMode::OFF;
         auto jit_mode = true;
         Query query;
         string helptext = "Usage:\n"
@@ -108,8 +107,6 @@ int main(int argc, char* argv[]) {
             #if LOBSTER_ENGINE
             "--non-interactive-test Quit after running 1 frame.\n"
             #endif
-            "--trace                Log bytecode instructions (SLOW, Debug only).\n"
-            "--trace-tail           Show last 50 bytecode instructions on error.\n"
             "--tcc-out              Output tcc .o file instead of running.\n"
             "--wait                 Wait for input before exiting.\n"
             "--query QUERY_ARGS     Queries about definitions in the program being compiled.\n"
@@ -143,8 +140,6 @@ int main(int argc, char* argv[]) {
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") { non_interactive_test = true; SDLTestMode(); }
                 #endif
-                else if (a == "--trace") { trace = TraceMode::ON; runtime_checks = RUNTIME_DEBUG; }
-                else if (a == "--trace-tail") { trace = TraceMode::TAIL; runtime_checks = RUNTIME_DEBUG; }
                 else if (a == "--tcc-out") { tcc_out = true; }
                 else if (a == "--import") {
                     arg++;
@@ -275,7 +270,6 @@ int main(int argc, char* argv[]) {
                               !fn.empty() ? fn : "",
                               tcc_out ? "tcc_out.o" : nullptr,
                               std::move(program_args),
-                              trace,
                               compile_only,
                               error,
                               runtime_checks,

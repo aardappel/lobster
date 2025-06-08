@@ -196,13 +196,6 @@ VM_INLINE void U_UNUSED(VM &, StackPtr) {
 VM_INLINE void U_STATEMENT(VM &vm, StackPtr, int line, int fileidx) {
     vm.last_line = line;
     vm.last_fileidx = fileidx;
-    #ifndef NDEBUG
-        if (vm.trace != TraceMode::OFF) {
-            auto &sd = vm.TraceStream();
-            append(sd, vm.meta->file_names[fileidx], "(", line, ")");
-            if (vm.trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
-        }
-    #endif
 }
 
 VM_INLINE void U_EXIT(VM &vm, StackPtr sp, int tidx) {

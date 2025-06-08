@@ -586,7 +586,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
 }
 
 pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, string_view fn,
-                          const char *object_name, vector<string> &&program_args, TraceMode trace,
+                          const char *object_name, vector<string> &&program_args,
                           bool compile_only, string &error, int runtime_checks, bool dump_leaks,
                           bool stack_trace_python_ordering, const string &c_codegen) {
     #if VM_JIT_MODE
@@ -689,7 +689,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 auto vmargs = VMArgs {
                     nfr, string(fn), &vmmeta,
                     std::move(program_args),
-                    (fun_base_t *)exports[1], (fun_base_t)exports[0], trace, dump_leaks,
+                    (fun_base_t *)exports[1], (fun_base_t)exports[0], dump_leaks,
                     runtime_checks, stack_trace_python_ordering
                 };
                 lobster::VMAllocator vma(std::move(vmargs));
@@ -739,7 +739,7 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringis
                 c_codegen, false, "nullptr");
         string error;
         auto ret = RunTCC(parent_vm.nfr, metadata_buffer, fn, nullptr, std::move(args),
-                          TraceMode::OFF, false, error, runtime_checks, true, false, c_codegen);
+                          false, error, runtime_checks, true, false, c_codegen);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret.first)));
         return NilVal();
@@ -826,7 +826,6 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMe
             {},
             vtables,
             nullptr,
-            TraceMode::OFF,
             false,
             RUNTIME_ASSERT
         };

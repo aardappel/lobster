@@ -898,7 +898,6 @@ struct TupleSpace {
     TupleSpace(size_t numstructs) : tupletypes(numstructs), alive(true) {}
 };
 
-enum class TraceMode { OFF, ON, TAIL };
 enum {
     RUNTIME_NO_ASSERT,     // --runtime-no-asserts: Asserts generate no code, this may produce crashes if the code would instead have run into an assert
     RUNTIME_ASSERT,        // --runtime-asserts: Default.
@@ -964,7 +963,6 @@ struct VMArgs {
     vector<string> program_args;
     const fun_base_t *native_vtables = nullptr;
     fun_base_t jit_entry = nullptr;
-    TraceMode trace = TraceMode::OFF;
     bool dump_leaks = true;
     int runtime_checks = RUNTIME_ASSERT;
     bool stack_trace_python_ordering = false;
@@ -1077,8 +1075,6 @@ struct VM : VMArgs {
 
     string MemoryUsage(size_t show_max);
 
-    string &TraceStream();
-
     void OnAlloc(RefObj *ro);
     LVector *NewVec(iint initial, iint max, type_elem_t tti);
     LObject *NewObject(iint max, type_elem_t tti);
@@ -1123,8 +1119,6 @@ struct VM : VMArgs {
     string_view LookupField(int stidx, iint fieldn) const;
     string_view LookupFieldByOffset(int stidx, int offset) const;
     int LookupFieldByName(int stidx, string_view fname) const;
-
-    void Trace(TraceMode m) { trace = m; }
 
     double Time() { return SecondsSinceStart(); }
 
