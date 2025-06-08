@@ -349,7 +349,12 @@ struct CodeGen  {
 
     void GenStatDebug(const Node *c) {
         if (runtime_checks >= RUNTIME_STACK_TRACE) {
-            EmitOp2(IL_STATEMENT, c->line.line, c->line.fileidx);
+            if (cpp) {
+                append(cb, "    vm.last = {", c->line.line, ", ", c->line.fileidx, "};\n");
+            } else {
+                append(cb, "    vm->last_line = ", c->line.line, ";\n");
+                append(cb, "    vm->last_fileidx = ", c->line.fileidx, ";\n");
+            }
         }
     }
 
@@ -458,8 +463,13 @@ struct CodeGen  {
                 "    int type;\n"
                 #endif
                 "} Value;\n"
+                // This needs to correspond to the C++ VMBase, enforced in Entry().
+                "typedef struct {\n"
+                "    int last_line;\n"
+                "    int last_fileidx;\n"
+                "} VMBase;\n"
                 "typedef Value *StackPtr;\n"
-                "typedef void *VMRef;\n"
+                "typedef VMBase *VMRef;\n"
                 "typedef void(*fun_base_t)(VMRef, StackPtr);\n"
                 "#define Pop(sp) (*--(sp))\n"
                 "#define Push(sp, V) (*(sp)++ = (V))\n"
@@ -504,7 +514,7 @@ struct CodeGen  {
             #undef F
 
             sd += "extern fun_base_t GetNextCallTarget(VMRef);\n"
-                  "extern void Entry(int);\n"
+                  "extern void Entry(int, int);\n"
                   "extern void GLFrame(StackPtr, VMRef);\n"
                   "extern void SwapVars(VMRef, int, StackPtr, int);\n"
                   "extern void BackupVar(VMRef, int);\n"
@@ -1026,7 +1036,7 @@ struct CodeGen  {
             append(sd, "    if (vm.nfr.HashAll() != ", parser.natreg.HashAll(),
                    "ULL) vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
         } else {
-            sd += "    Entry(sizeof(Value));\n";
+            sd += "    Entry(sizeof(Value), sizeof(VMBase));\n";
         }
         append(sd, "    fun_", CODEGEN_SPECIAL_FUNCTION_ID_ENTRY, "(vm, sp);\n}\n\n");
         if (cpp) {

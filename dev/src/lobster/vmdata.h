@@ -968,7 +968,26 @@ struct VMArgs {
     bool stack_trace_python_ordering = false;
 };
 
-struct VM {
+struct Line {
+    int line;
+    int fileidx;
+
+    Line(int _line, int _fileidx) : line(_line), fileidx(_fileidx) {}
+
+    bool operator==(const Line &o) const {
+        return line == o.line && fileidx == o.fileidx;
+    }
+    bool operator<(const Line &o) const {
+        return fileidx < o.fileidx || (fileidx == o.fileidx && line < o.line);
+    }
+};
+
+// This is the part of the VM we share with the C code.
+struct VMBase {
+    Line last{ -1, -1 };
+};
+
+struct VM : VMBase {
     VMArgs vma;
     SlabAlloc pool;
 
@@ -995,9 +1014,6 @@ struct VM {
 
     vector<string> trace_output;
     size_t trace_ring_idx = 0;
-
-    int last_line = -1;
-    int last_fileidx = -1;
 
     vector<RefObj *> delete_delay;
 
@@ -1218,7 +1234,7 @@ VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {
 #endif
 
 VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {
-    vm.fun_id_stack.push_back({ funstart, locals, vm.last_line, vm.last_fileidx
+    vm.fun_id_stack.push_back({ funstart, locals, vm.last.line, vm.last.fileidx
     #if LOBSTER_FRAME_PROFILER_FUNCTIONS
         , ___tracy_emit_zone_begin(&vm.pre_allocated_function_locations[*funstart], true)
     #endif

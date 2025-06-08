@@ -817,8 +817,8 @@ void DumpStackTrace(VM &vm) {
         }
     };
 
-    auto cur_fileidx = vm.last_fileidx;
-    auto cur_line = vm.last_line;
+    auto cur_fileidx = vm.last.fileidx;
+    auto cur_line = vm.last.line;
     int i = 0;
     for (auto &funstackelem : reverse(vm.fun_id_stack)) {
         auto [name, fip] = vm.DumpStackFrameStart(funstackelem.funstartinfo, cur_fileidx, cur_line);

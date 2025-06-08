@@ -325,8 +325,8 @@ void VM::ErrorBase(const string &err) {
     }
     error_has_occured = true;
     append(errmsg, "VM error (");
-    if (last_line >= 0 && last_fileidx >= 0) {
-        append(errmsg, vma.meta->file_names[last_fileidx], ":", last_line);
+    if (last.line >= 0 && last.fileidx >= 0) {
+        append(errmsg, vma.meta->file_names[last.fileidx], ":", last.line);
     } else {
         append(errmsg, vma.programname);
     }
@@ -395,7 +395,7 @@ void VM::DumpStackTrace(string &sd, bool python_ordering) {
     if (fun_id_stack.empty()) {
         // We don't have a stack trace, but maybe this minimum information will be better
         // than nothing:
-        sd += DumpFileLine(last_fileidx, last_line);
+        sd += DumpFileLine(last.fileidx, last.line);
         return;
     }
 
@@ -434,8 +434,8 @@ void VM::DumpStackTrace(string &sd, bool python_ordering) {
 
     if (!sd.empty()) append(sd, "\n");
     if (!python_ordering) {
-        auto cur_fileidx = last_fileidx;
-        auto cur_line = last_line;
+        auto cur_fileidx = last.fileidx;
+        auto cur_line = last.line;
         for (auto &funstackelem : reverse(fun_id_stack)) {
             auto [name, fip] =
                 DumpStackFrameStart(funstackelem.funstartinfo, cur_fileidx, cur_line);
@@ -447,8 +447,8 @@ void VM::DumpStackTrace(string &sd, bool python_ordering) {
     } else {
         append(sd, "Traceback (most recent call last):\n");  // Python in-joke?
         for (auto [i, funstackelem] : enumerate(fun_id_stack)) {
-            auto fileidx = i < fun_id_stack.size() - 1 ? fun_id_stack[i + 1].fileidx : last_fileidx;
-            auto line = i < fun_id_stack.size() - 1 ? fun_id_stack[i + 1].line : last_line;
+            auto fileidx = i < fun_id_stack.size() - 1 ? fun_id_stack[i + 1].fileidx : last.fileidx;
+            auto line = i < fun_id_stack.size() - 1 ? fun_id_stack[i + 1].line : last.line;
             auto [name, fip] = DumpStackFrameStart(funstackelem.funstartinfo, fileidx, line);
             append(sd, "in function ", name, "\n");
             DumpStackFrame(fip, funstackelem.locals, dumper);
@@ -505,8 +505,8 @@ void VM::DumpStackTraceMemory(const string &err) {
 
     auto vstart = fbc.builder.StartVector();
     fbc.builder.String(err);
-    auto cur_fileidx = last_fileidx;
-    auto cur_line = last_line;
+    auto cur_fileidx = last.fileidx;
+    auto cur_line = last.line;
     for (auto &funstackelem : reverse(fun_id_stack)) {
         auto vstart2 = fbc.builder.StartVector();
         auto [name, fip] = DumpStackFrameStart(funstackelem.funstartinfo, cur_fileidx, cur_line);
@@ -915,9 +915,12 @@ fun_base_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
 
-void CVM_Entry(int value_size) {
+void CVM_Entry(int value_size, int vmbase_size) {
     if (value_size != sizeof(Value)) {
         THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ Value size mismatch! (Debug vs Release?)");
+    }
+    if (vmbase_size != sizeof(VMBase)) {
+        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ VMBase size mismatch!");
     }
 }
 

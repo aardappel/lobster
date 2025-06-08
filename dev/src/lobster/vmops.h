@@ -193,9 +193,8 @@ VM_INLINE void U_UNUSED(VM &, StackPtr) {
     assert(false);
 }
 
-VM_INLINE void U_STATEMENT(VM &vm, StackPtr, int line, int fileidx) {
-    vm.last_line = line;
-    vm.last_fileidx = fileidx;
+VM_INLINE void U_STATEMENT(VM &, StackPtr, int, int) {
+    assert(false);
 }
 
 VM_INLINE void U_EXIT(VM &vm, StackPtr sp, int tidx) {
@@ -293,8 +292,8 @@ BCALLOP(7, auto a6 = Pop(sp);auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(s
 
 VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
     if (Top(sp).False()) {
-        vm.last_line = line;
-        vm.last_fileidx = fileidx;
+        vm.last.line = line;
+        vm.last.fileidx = fileidx;
         auto assert_exp = vm.vma.meta->stringtable[stringidx];
         vm.Error(cat("assertion failed: ", assert_exp));
     }
