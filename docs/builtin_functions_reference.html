@@ -301,6 +301,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>rnd_seed</b>(seed<font color="#666666">: int</font>)</tt></td><td class="a">explicitly set a random seed for reproducable randomness</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>rnd_select</b>(index<font color="#666666">: int</font>)</tt></td><td class="a">select a different random number generator to be active. default is 0, max is 1000000</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>rndm</b>(max<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">deprecated: old mersenne twister version of the above for backwards compat.</td>
 
 </tr>
@@ -490,6 +493,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>type_field_value</b>(obj<font color="#666666">: any</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">string representing the value of a field in an object, or empty for other reference types</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>type_enum_value_name</b>(enum_type_id<font color="#666666">: typeid(any)</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">string representing the name of an enum value, belonging to the enum (use typeof)</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>program_name</b>() -> <font color="#666666">string</font></tt></td><td class="a">returns the name of the main program (e.g. "foo.lobster"), "" if running from lpak.</td>
 
 </tr>
@@ -518,9 +524,6 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>pass</b>()</tt></td><td class="a">does nothing. useful for empty bodies of control structures.</td>
-
-</tr>
-<tr class="a" valign=top><td class="a"><tt><b>trace_bytecode</b>(mode<font color="#666666">: int</font>)</tt></td><td class="a">tracing shows each bytecode instruction as it is being executed, not very useful unless you are trying to isolate a compiler bug. Mode is off(0), on(1) or tail only (2)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>reference_count</b>(val<font color="#666666">: any</font>) -> <font color="#666666">int</font></tt></td><td class="a">get the reference count of any value. for compiler debugging, mostly</td>
@@ -931,6 +934,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.rounded_rectangle</b>(size<font color="#666666">: float2</font>, segments<font color="#666666">: int</font>, corner_ratio<font color="#666666">: float</font>)</tt></td><td class="a">renders a rounded rectangle, try segments 50, corner_ratio 0.2</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.rounded_rectangle_border</b>(size<font color="#666666">: float2</font>, segments<font color="#666666">: int</font>, corner_ratio<font color="#666666">: float</font>, border_thickness<font color="#666666">: float</font>)</tt></td><td class="a">renders a rounded rectangle border, try segments 50, corner_ratio 0.2</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.circle</b>(radius<font color="#666666">: float</font>, segments<font color="#666666">: int</font>)</tt></td><td class="a">renders a circle</td>
 
 </tr>
@@ -1028,6 +1034,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.mesh_size</b>(m<font color="#666666">: resource&lt;mesh&gt;</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns the number of verts in this mesh</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.mesh_bounds</b>(m<font color="#666666">: resource&lt;mesh&gt;</font>) -> <font color="#666666">float3</font>, <font color="#666666">float3</font></tt></td><td class="a">returns the min and max vert dimensions of this mesh</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.mesh_animations</b>(m<font color="#666666">: resource&lt;mesh&gt;</font>) -> <font color="#666666">[string]</font></tt></td><td class="a">return names of animations</td>
@@ -1783,6 +1792,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.set_style_frame_padding</b>(spacing<font color="#666666">: float2</font>)</tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.set_style_tabs_extra_padding</b>(spacing<font color="#666666">: float2</font>)</tt></td><td class="a"></td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.frame_start</b>()</tt></td><td class="a">(use im.frame instead)</td>
 
 </tr>
@@ -1823,6 +1835,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.separator</b>()</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.spacing</b>()</tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.is_item_deactivated_after_edit</b>() -> <font color="#666666">int</font></tt></td><td class="a">returns true if the last item was made inactive and made a value change when it was active</td>
@@ -1993,6 +2008,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.tab_bar_end</b>()</tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.tab_select</b>(label<font color="#666666">: string</font>)</tt></td><td class="a">call before any tabs to make a tab other than the first selected</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.tab_start</b>(label<font color="#666666">: string</font>, flags<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im.tab instead)</td>
 
 </tr>
@@ -2135,6 +2153,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.show_profiling_stats</b>(num<font color="#666666">: int</font>, reset<font color="#666666">: bool</font>)</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.set_style_param_slow</b>(name<font color="#666666">: string</font>, vals<font color="#666666">: [float]</font>)</tt></td><td class="a"></td>
 
 </tr>
 </table></td></tr>
