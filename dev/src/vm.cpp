@@ -358,15 +358,12 @@ void VM::DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump)
 }
 
 void VM::DumpStackFrame(const int *fip, Value *locals, const DumperFun &dump) {
-    fip++;  // regs_max
     auto nargs = *fip++;
     auto args = fip;
     fip += nargs;
     auto ndef = *fip++;
     auto defvars = fip;
     fip += ndef;
-    fip++;  // nkeepvars
-    fip++;  // Owned vars.
     int jla = 0;
     for (int j = 0; j < nargs;) {
         auto i = *(args + j);
@@ -389,9 +386,9 @@ string VM::DumpFileLine(int fileidx, int line) {
 pair<string, const int *> VM::DumpStackFrameStart(const int *fip, int fileidx, int line) {
     auto sf_idx = *fip++;
     string fname;
-    auto nargs = fip[1];
+    auto nargs = fip[0];
     if (nargs) {
-        auto &ti = GetVarTypeInfo(fip[2]);
+        auto &ti = GetVarTypeInfo(fip[1]);
         ti.Print(*this, fname, nullptr);
         append(fname, ".");
     }

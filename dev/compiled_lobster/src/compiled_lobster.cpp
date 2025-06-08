@@ -1530,7 +1530,7 @@ static void fun_3(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 246, locals);
+    PushFunId(vm, funinfo_table + 244, locals);
     U_STATEMENT(vm, regs + 0, 8, 2);
     regs[0] = locals[1]; // t
     U_CALLV(vm, regs + 1); vm.next_call_target(vm, regs + 0);
@@ -1548,7 +1548,7 @@ static void fun_4(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 253, locals);
+    PushFunId(vm, funinfo_table + 249, locals);
     U_STATEMENT(vm, regs + 0, 11, 2);
     regs[0] = locals[0]; // name
     regs[1] = locals[1]; // t
@@ -1566,7 +1566,7 @@ static void fun_4(VMRef vm, StackPtr psp) {
 static void fun_5(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
-    PushFunId(vm, funinfo_table + 260, 0);
+    PushFunId(vm, funinfo_table + 254, 0);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 15, 2);
     U_PUSHSTR(vm, regs + 0, 20); // "a"
@@ -1590,7 +1590,7 @@ static void fun_6(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 265, locals);
+    PushFunId(vm, funinfo_table + 257, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 6, 0);
     U_PUSHSTR(vm, regs + 0, 24); // "testing: "
@@ -1620,7 +1620,7 @@ static void fun_615(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 272, locals);
+    PushFunId(vm, funinfo_table + 262, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 11, 0);
@@ -1675,7 +1675,7 @@ static void fun_614(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 282, locals);
+    PushFunId(vm, funinfo_table + 270, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 11, 0);
@@ -1730,7 +1730,7 @@ static void fun_613(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 292, locals);
+    PushFunId(vm, funinfo_table + 278, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
@@ -1786,7 +1786,7 @@ static void fun_612(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 302, locals);
+    PushFunId(vm, funinfo_table + 286, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
@@ -1842,7 +1842,7 @@ static void fun_611(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 312, locals);
+    PushFunId(vm, funinfo_table + 294, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
@@ -1898,7 +1898,7 @@ static void fun_610(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 322, locals);
+    PushFunId(vm, funinfo_table + 302, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
@@ -1957,7 +1957,7 @@ static void fun_603(VMRef vm, StackPtr psp) {
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
     locals[6] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 332, locals);
+    PushFunId(vm, funinfo_table + 310, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1256, 0);
@@ -2012,7 +2012,7 @@ static void fun_602(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 344, locals);
+    PushFunId(vm, funinfo_table + 320, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1258, 0);
@@ -2068,7 +2068,7 @@ static void fun_601(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 354, locals);
+    PushFunId(vm, funinfo_table + 328, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1252, 0);
@@ -2123,7 +2123,7 @@ static void fun_600(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 364, locals);
+    PushFunId(vm, funinfo_table + 336, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1254, 0);
@@ -2177,7 +2177,7 @@ static void fun_592(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 374, locals);
+    PushFunId(vm, funinfo_table + 344, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 13, 0);
@@ -2236,7 +2236,7 @@ static void fun_591(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 384, locals);
+    PushFunId(vm, funinfo_table + 352, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 13, 0);
@@ -2293,7 +2293,7 @@ static void fun_586(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 395, locals);
+    PushFunId(vm, funinfo_table + 361, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1148, 0);
@@ -2349,7 +2349,7 @@ static void fun_585(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 406, locals);
+    PushFunId(vm, funinfo_table + 370, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 9, 0);
@@ -2404,7 +2404,7 @@ static void fun_584(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 416, locals);
+    PushFunId(vm, funinfo_table + 378, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 9, 0);
@@ -2459,7 +2459,7 @@ static void fun_583(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 426, locals);
+    PushFunId(vm, funinfo_table + 386, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 9, 0);
@@ -2514,7 +2514,7 @@ static void fun_581(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 436, locals);
+    PushFunId(vm, funinfo_table + 394, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1138, 0);
@@ -2569,7 +2569,7 @@ static void fun_580(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 446, locals);
+    PushFunId(vm, funinfo_table + 402, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1140, 0);
@@ -2624,7 +2624,7 @@ static void fun_578(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 456, locals);
+    PushFunId(vm, funinfo_table + 410, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1119, 0);
@@ -2679,7 +2679,7 @@ static void fun_575(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 466, locals);
+    PushFunId(vm, funinfo_table + 418, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1121, 0);
@@ -2734,7 +2734,7 @@ static void fun_572(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 476, locals);
+    PushFunId(vm, funinfo_table + 426, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 11, 0);
@@ -2791,7 +2791,7 @@ static void fun_565(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 486, locals);
+    PushFunId(vm, funinfo_table + 434, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
@@ -2848,7 +2848,7 @@ static void fun_564(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 497, locals);
+    PushFunId(vm, funinfo_table + 443, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 37, 0);
@@ -2903,7 +2903,7 @@ static void fun_563(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 508, locals);
+    PushFunId(vm, funinfo_table + 452, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
@@ -2958,7 +2958,7 @@ static void fun_562(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 518, locals);
+    PushFunId(vm, funinfo_table + 460, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 13, 0);
@@ -3013,7 +3013,7 @@ static void fun_561(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 528, locals);
+    PushFunId(vm, funinfo_table + 468, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 11, 0);
@@ -3069,7 +3069,7 @@ static void fun_557(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 538, locals);
+    PushFunId(vm, funinfo_table + 476, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 11, 0);
@@ -3125,7 +3125,7 @@ static void fun_542(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 548, locals);
+    PushFunId(vm, funinfo_table + 484, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1005, 0);
@@ -3180,7 +3180,7 @@ static void fun_541(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 558, locals);
+    PushFunId(vm, funinfo_table + 492, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 1027, 0);
@@ -3235,7 +3235,7 @@ static void fun_531(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 568, locals);
+    PushFunId(vm, funinfo_table + 500, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 540, 0);
@@ -3290,7 +3290,7 @@ static void fun_504(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 578, locals);
+    PushFunId(vm, funinfo_table + 508, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 542, 0);
@@ -3345,7 +3345,7 @@ static void fun_501(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 588, locals);
+    PushFunId(vm, funinfo_table + 516, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
@@ -3400,7 +3400,7 @@ static void fun_491(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 598, locals);
+    PushFunId(vm, funinfo_table + 524, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 697, 0);
@@ -3455,7 +3455,7 @@ static void fun_484(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 608, locals);
+    PushFunId(vm, funinfo_table + 532, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 657, 0);
@@ -3510,7 +3510,7 @@ static void fun_481(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 618, locals);
+    PushFunId(vm, funinfo_table + 540, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 486, 0);
@@ -3565,7 +3565,7 @@ static void fun_470(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 628, locals);
+    PushFunId(vm, funinfo_table + 548, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
@@ -3620,7 +3620,7 @@ static void fun_7(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 638, locals);
+    PushFunId(vm, funinfo_table + 556, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 4, 5);
     U_NEWVEC(vm, regs + 0, 11, 0);
@@ -3675,7 +3675,7 @@ static void fun_566(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 648, locals);
+    PushFunId(vm, funinfo_table + 564, locals);
     U_STATEMENT(vm, regs + 0, 12, 5);
     U_NEWVEC(vm, regs + 0, 37, 0);
     SetLVal(vm, &locals[2]); // r
@@ -3727,7 +3727,7 @@ static void fun_10(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 659, locals);
+    PushFunId(vm, funinfo_table + 573, locals);
     U_STATEMENT(vm, regs + 0, 12, 5);
     U_NEWVEC(vm, regs + 0, 37, 0);
     SetLVal(vm, &locals[2]); // r
@@ -3780,7 +3780,7 @@ static void fun_594(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 670, locals);
+    PushFunId(vm, funinfo_table + 582, locals);
     U_STATEMENT(vm, regs + 0, 37, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
     SetLVal(vm, &locals[2]); // t
@@ -3853,7 +3853,7 @@ static void fun_589(VMRef vm, StackPtr psp) {
     locals[5] = lobster::NilVal();
     locals[6] = lobster::NilVal();
     locals[7] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 681, locals);
+    PushFunId(vm, funinfo_table + 591, locals);
     U_STATEMENT(vm, regs + 0, 37, 5);
     U_NEWVEC(vm, regs + 0, 1165, 0);
     SetLVal(vm, &locals[2]); // t
@@ -3924,7 +3924,7 @@ static void fun_13(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 694, locals);
+    PushFunId(vm, funinfo_table + 602, locals);
     U_STATEMENT(vm, regs + 0, 37, 5);
     U_NEWVEC(vm, regs + 0, 7, 0);
     SetLVal(vm, &locals[2]); // t
@@ -3993,7 +3993,7 @@ static void fun_599(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 705, locals);
+    PushFunId(vm, funinfo_table + 611, locals);
     U_STATEMENT(vm, regs + 0, 57, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4044,7 +4044,7 @@ static void fun_598(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 714, locals);
+    PushFunId(vm, funinfo_table + 618, locals);
     U_STATEMENT(vm, regs + 0, 57, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4097,7 +4097,7 @@ static void fun_567(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 723, locals);
+    PushFunId(vm, funinfo_table + 625, locals);
     U_STATEMENT(vm, regs + 0, 57, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4150,7 +4150,7 @@ static void fun_15(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 732, locals);
+    PushFunId(vm, funinfo_table + 632, locals);
     U_STATEMENT(vm, regs + 0, 57, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4199,7 +4199,7 @@ static void fun_571(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 741, locals);
+    PushFunId(vm, funinfo_table + 639, locals);
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4238,7 +4238,7 @@ static void fun_570(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 750, locals);
+    PushFunId(vm, funinfo_table + 646, locals);
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4277,7 +4277,7 @@ static void fun_569(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 759, locals);
+    PushFunId(vm, funinfo_table + 653, locals);
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4316,7 +4316,7 @@ static void fun_558(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 768, locals);
+    PushFunId(vm, funinfo_table + 660, locals);
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4355,7 +4355,7 @@ static void fun_480(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 777, locals);
+    PushFunId(vm, funinfo_table + 667, locals);
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4391,7 +4391,7 @@ static void fun_17(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 786, locals);
+    PushFunId(vm, funinfo_table + 674, locals);
     U_STATEMENT(vm, regs + 0, 67, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4429,7 +4429,7 @@ static void fun_597(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 795, locals);
+    PushFunId(vm, funinfo_table + 681, locals);
     U_STATEMENT(vm, regs + 0, 77, 5);
     regs[0] = locals[0]; // xs
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
@@ -4484,7 +4484,7 @@ static void fun_19(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 804, locals);
+    PushFunId(vm, funinfo_table + 688, locals);
     U_STATEMENT(vm, regs + 0, 77, 5);
     regs[0] = locals[0]; // xs
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
@@ -4540,7 +4540,7 @@ static void fun_596(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 813, locals);
+    PushFunId(vm, funinfo_table + 695, locals);
     U_STATEMENT(vm, regs + 0, 93, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4589,7 +4589,7 @@ static void fun_23(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 822, locals);
+    PushFunId(vm, funinfo_table + 702, locals);
     U_STATEMENT(vm, regs + 0, 93, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -4644,7 +4644,7 @@ static void fun_26(VMRef vm, StackPtr psp) {
     locals[5] = lobster::NilVal();
     locals[6] = lobster::NilVal();
     locals[7] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 831, locals);
+    PushFunId(vm, funinfo_table + 709, locals);
     U_STATEMENT(vm, regs + 0, 115, 5);
     U_PUSHINT(vm, regs + 0, 0);
     SetLVal(vm, &locals[2]); // init
@@ -4715,7 +4715,7 @@ static void fun_471(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 844, locals);
+    PushFunId(vm, funinfo_table + 720, locals);
     U_STATEMENT(vm, regs + 0, 140, 5);
     U_PUSHINT(vm, regs + 0, 0);
     SetLVal(vm, &locals[1]); // init
@@ -4740,7 +4740,7 @@ static void fun_29(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 851, locals);
+    PushFunId(vm, funinfo_table + 725, locals);
     U_STATEMENT(vm, regs + 0, 140, 5);
     U_PUSHINT(vm, regs + 0, 0);
     SetLVal(vm, &locals[1]); // init
@@ -4764,7 +4764,7 @@ static void fun_30(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 858, locals);
+    PushFunId(vm, funinfo_table + 730, locals);
     U_STATEMENT(vm, regs + 0, 141, 5);
     regs[0] = locals[0]; // _x
     regs[1] = locals[1]; // _y
@@ -4789,7 +4789,7 @@ static void fun_593(VMRef vm, StackPtr psp) {
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 865, locals);
+    PushFunId(vm, funinfo_table + 735, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -4893,7 +4893,7 @@ static void fun_587(VMRef vm, StackPtr psp) {
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 876, locals);
+    PushFunId(vm, funinfo_table + 744, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -4997,7 +4997,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 889, locals);
+    PushFunId(vm, funinfo_table + 755, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -5093,7 +5093,7 @@ static void fun_595(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 900, locals);
+    PushFunId(vm, funinfo_table + 764, locals);
     U_STATEMENT(vm, regs + 0, 198, 5);
     regs[0] = locals[0]; // _
     U_PUSHVARF(vm, regs + 1, 1550); // pivot
@@ -5113,7 +5113,7 @@ static void fun_590(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 3);
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 906, locals);
+    PushFunId(vm, funinfo_table + 768, locals);
     U_STATEMENT(vm, regs + 0, 198, 5);
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2]; // _
     U_PUSHVARVF(vm, regs + 3, 1520, 3); // pivot+0
@@ -5133,7 +5133,7 @@ static void fun_49(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 914, locals);
+    PushFunId(vm, funinfo_table + 774, locals);
     U_STATEMENT(vm, regs + 0, 198, 5);
     regs[0] = locals[0]; // _
     U_PUSHVARF(vm, regs + 1, 54); // pivot
@@ -5151,7 +5151,7 @@ static void fun_50(VMRef vm, StackPtr psp) {
     Value regs[2];
     SwapVars(vm, 59, psp, 2);
     SwapVars(vm, 60, psp, 1);
-    PushFunId(vm, funinfo_table + 920, 0);
+    PushFunId(vm, funinfo_table + 778, 0);
     U_STATEMENT(vm, regs + 0, 203, 5);
     U_STATEMENT(vm, regs + 0, 220, 5);
     U_PUSHINT(vm, regs + 0, 0);
@@ -5177,7 +5177,7 @@ static void fun_51(VMRef vm, StackPtr psp) {
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
     locals[6] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 927, locals);
+    PushFunId(vm, funinfo_table + 783, locals);
     U_STATEMENT(vm, regs + 0, 204, 5);
     regs[0] = locals[1]; // e
     regs[1] = locals[0]; // s
@@ -5290,7 +5290,7 @@ static void fun_52(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 939, locals);
+    PushFunId(vm, funinfo_table + 793, locals);
     U_STATEMENT(vm, regs + 0, 223, 5);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[0]; // xs
@@ -5365,7 +5365,7 @@ static void fun_475(VMRef vm, StackPtr psp) {
     (void)regs;
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 949, locals);
+    PushFunId(vm, funinfo_table + 801, locals);
     U_STATEMENT(vm, regs + 0, 253, 5);
     fun_177(vm, regs + 0); // call: function170
     if (!U_JUMPIFUNWOUND(vm, regs + 0, 170)) goto block0;
@@ -5389,7 +5389,7 @@ static void fun_70(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 955, locals);
+    PushFunId(vm, funinfo_table + 805, locals);
     U_STATEMENT(vm, regs + 0, 64, 4);
     regs[0] = locals[0]; // v+0
     regs[1] = locals[2]; // v+2
@@ -5413,7 +5413,7 @@ static void fun_71(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 964, locals);
+    PushFunId(vm, funinfo_table + 812, locals);
     U_STATEMENT(vm, regs + 0, 65, 4);
     regs[0] = locals[1]; // v+1
     regs[1] = locals[3]; // v+3
@@ -5437,7 +5437,7 @@ static void fun_72(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 973, locals);
+    PushFunId(vm, funinfo_table + 819, locals);
     U_STATEMENT(vm, regs + 0, 66, 4);
     regs[0] = locals[2]; // v+2
     regs[1] = locals[3]; // v+3
@@ -5461,7 +5461,7 @@ static void fun_79(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 982, locals);
+    PushFunId(vm, funinfo_table + 826, locals);
     U_STATEMENT(vm, regs + 0, 76, 4);
     regs[0] = locals[0]; // v+0
     regs[1] = locals[1]; // v+1
@@ -5484,7 +5484,7 @@ static void fun_79(VMRef vm, StackPtr psp) {
 // rnd_float2
 static void fun_89(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 991, 0);
+    PushFunId(vm, funinfo_table + 833, 0);
     U_STATEMENT(vm, regs + 0, 92, 4);
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
     U_BCALLRET0(vm, regs + 1, 95, 1); // rnd_float
@@ -5502,7 +5502,7 @@ static void fun_95(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 996, locals);
+    PushFunId(vm, funinfo_table + 836, locals);
     U_STATEMENT(vm, regs + 0, 100, 4);
     regs[0] = locals[0]; // n+0
     U_BCALLRET1(vm, regs + 1, 93, 1); // rnd
@@ -5527,7 +5527,7 @@ static void fun_98(VMRef vm, StackPtr psp) {
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1003, locals);
+    PushFunId(vm, funinfo_table + 841, locals);
     U_STATEMENT(vm, regs + 0, 104, 4);
     U_PUSHINT(vm, regs + 0, -1);
     regs[1] = locals[1]; // v+1
@@ -5569,7 +5569,7 @@ static void fun_573(VMRef vm, StackPtr psp) {
     SwapVars(vm, 1469, psp, 3);
     SwapVars(vm, 1470, psp, 2);
     SwapVars(vm, 1471, psp, 1);
-    PushFunId(vm, funinfo_table + 1013, 0);
+    PushFunId(vm, funinfo_table + 849, 0);
     U_STATEMENT(vm, regs + 0, 106, 4);
     U_PUSHVARF(vm, regs + 0, 1470); // v+1
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -5590,7 +5590,7 @@ static void fun_100(VMRef vm, StackPtr psp) {
     SwapVars(vm, 197, psp, 3);
     SwapVars(vm, 198, psp, 2);
     SwapVars(vm, 199, psp, 1);
-    PushFunId(vm, funinfo_table + 1021, 0);
+    PushFunId(vm, funinfo_table + 855, 0);
     U_STATEMENT(vm, regs + 0, 106, 4);
     U_PUSHVARF(vm, regs + 0, 198); // v+1
     U_PUSHFUN(vm, regs + 1, 0, fun_101);
@@ -5609,7 +5609,7 @@ static void fun_100(VMRef vm, StackPtr psp) {
 static void fun_576(VMRef vm, StackPtr psp) {
     Value regs[2];
     SwapVars(vm, 1477, psp, 1);
-    PushFunId(vm, funinfo_table + 1029, 0);
+    PushFunId(vm, funinfo_table + 861, 0);
     U_STATEMENT(vm, regs + 0, 106, 4);
     U_PUSHVARF(vm, regs + 0, 1469); // v+0
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -5627,7 +5627,7 @@ static void fun_101(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1035, locals);
+    PushFunId(vm, funinfo_table + 865, locals);
     U_STATEMENT(vm, regs + 0, 106, 4);
     U_PUSHVARF(vm, regs + 0, 197); // v+0
     U_PUSHFUN(vm, regs + 1, 0, fun_102);
@@ -5645,7 +5645,7 @@ static void fun_579(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1041, locals);
+    PushFunId(vm, funinfo_table + 869, locals);
     U_STATEMENT(vm, regs + 0, 106, 4);
     regs[0] = locals[0]; // x
     U_PUSHVARF(vm, regs + 1, 1477); // y
@@ -5663,7 +5663,7 @@ static void fun_102(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1047, locals);
+    PushFunId(vm, funinfo_table + 873, locals);
     U_STATEMENT(vm, regs + 0, 106, 4);
     U_STATEMENT(vm, regs + 0, 10, 13);
     U_PUSHINT(vm, regs + 0, -1);
@@ -5689,7 +5689,7 @@ static void fun_110(VMRef vm, StackPtr psp) {
     locals[7] = lobster::NilVal();
     locals[8] = lobster::NilVal();
     locals[9] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1053, locals);
+    PushFunId(vm, funinfo_table + 877, locals);
     U_STATEMENT(vm, regs + 0, 7, 3);
     U_STATEMENT(vm, regs + 0, 7, 3);
     U_PUSHFUN(vm, regs + 0, 0, fun_111);
@@ -5784,7 +5784,7 @@ static void fun_111(VMRef vm, StackPtr psp) {
     locals[11] = lobster::NilVal();
     locals[12] = lobster::NilVal();
     locals[13] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1068, locals);
+    PushFunId(vm, funinfo_table + 890, locals);
     U_STATEMENT(vm, regs + 0, 8, 3);
     U_STATEMENT(vm, regs + 0, 8, 3);
     U_STATEMENT(vm, regs + 0, 11, 3);
@@ -6186,7 +6186,7 @@ static void fun_112(VMRef vm, StackPtr psp) {
     locals[8] = lobster::NilVal();
     locals[9] = lobster::NilVal();
     locals[10] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1087, locals);
+    PushFunId(vm, funinfo_table + 907, locals);
     U_STATEMENT(vm, regs + 0, 69, 3);
     U_PUSHVARVF(vm, regs + 0, 123, 2); // int2_0+0
     SetLVal(vm, &locals[0]); // a+0
@@ -6288,7 +6288,7 @@ static void fun_113(VMRef vm, StackPtr psp) {
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1103, locals);
+    PushFunId(vm, funinfo_table + 921, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -6414,7 +6414,7 @@ static void fun_114(VMRef vm, StackPtr psp) {
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1112, locals);
+    PushFunId(vm, funinfo_table + 928, locals);
     U_STATEMENT(vm, regs + 0, 109, 3);
     U_STATEMENT(vm, regs + 0, 111, 3);
     U_STATEMENT(vm, regs + 0, 112, 3);
@@ -6467,7 +6467,7 @@ static void fun_115(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1121, locals);
+    PushFunId(vm, funinfo_table + 935, locals);
     U_STATEMENT(vm, regs + 0, 110, 3);
     regs[0] = locals[0]; // a
     regs[1] = locals[1]; // b+0
@@ -6492,7 +6492,7 @@ static void fun_116(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1130, locals);
+    PushFunId(vm, funinfo_table + 942, locals);
     U_STATEMENT(vm, regs + 0, 111, 3);
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[0]; // a
@@ -6512,7 +6512,7 @@ static void fun_116(VMRef vm, StackPtr psp) {
 // function114
 static void fun_117(VMRef vm, StackPtr psp) {
     Value regs[3];
-    PushFunId(vm, funinfo_table + 1136, 0);
+    PushFunId(vm, funinfo_table + 946, 0);
     U_STATEMENT(vm, regs + 0, 118, 3);
     U_STATEMENT(vm, regs + 0, 118, 3);
     U_STATEMENT(vm, regs + 0, 120, 3);
@@ -6550,7 +6550,7 @@ static void fun_118(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 3);
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1141, locals);
+    PushFunId(vm, funinfo_table + 949, locals);
     U_STATEMENT(vm, regs + 0, 121, 3);
     regs[0] = locals[0]; // a
     U_PUSHFLD(vm, regs + 1, 0);
@@ -6576,7 +6576,7 @@ static void fun_119(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 3);
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1149, locals);
+    PushFunId(vm, funinfo_table + 955, locals);
     U_STATEMENT(vm, regs + 0, 122, 3);
     regs[0] = locals[0]; // a
     U_PUSHFLD(vm, regs + 1, 0);
@@ -6611,7 +6611,7 @@ static void fun_120(VMRef vm, StackPtr psp) {
     locals[9] = lobster::NilVal();
     locals[10] = lobster::NilVal();
     locals[11] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1157, locals);
+    PushFunId(vm, funinfo_table + 961, locals);
     U_STATEMENT(vm, regs + 0, 129, 3);
     U_STATEMENT(vm, regs + 0, 129, 3);
     U_STATEMENT(vm, regs + 0, 132, 3);
@@ -6756,7 +6756,7 @@ static void fun_121(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1174, locals);
+    PushFunId(vm, funinfo_table + 976, locals);
     U_STATEMENT(vm, regs + 0, 136, 3);
     regs[0] = locals[0]; // x+0
     regs[1] = locals[0]; // x+0
@@ -6783,7 +6783,7 @@ static void fun_122(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 3);
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1181, locals);
+    PushFunId(vm, funinfo_table + 981, locals);
     U_STATEMENT(vm, regs + 0, 143, 3);
     regs[0] = locals[0]; // x+0
     regs[1] = locals[0]; // x+0
@@ -6816,7 +6816,7 @@ static void fun_123(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1189, locals);
+    PushFunId(vm, funinfo_table + 987, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 152, 3);
     U_STATEMENT(vm, regs + 0, 152, 3);
@@ -6865,7 +6865,7 @@ static void fun_124(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1196, locals);
+    PushFunId(vm, funinfo_table + 992, locals);
     U_STATEMENT(vm, regs + 0, 156, 3);
     regs[0] = locals[0]; // x+0
     regs[1] = locals[0]; // x+0
@@ -6898,7 +6898,7 @@ static void fun_125(VMRef vm, StackPtr psp) {
     locals[7] = lobster::NilVal();
     locals[8] = lobster::NilVal();
     locals[9] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1203, locals);
+    PushFunId(vm, funinfo_table + 997, locals);
     U_STATEMENT(vm, regs + 0, 163, 3);
     U_STATEMENT(vm, regs + 0, 163, 3);
     U_STATEMENT(vm, regs + 0, 165, 3);
@@ -6991,7 +6991,7 @@ static void fun_125(VMRef vm, StackPtr psp) {
 // function122
 static void fun_126(VMRef vm, StackPtr psp) {
     Value regs[10];
-    PushFunId(vm, funinfo_table + 1218, 0);
+    PushFunId(vm, funinfo_table + 1010, 0);
     U_STATEMENT(vm, regs + 0, 187, 3);
     U_PUSHINT(vm, regs + 0, 2);
     U_PUSHINT(vm, regs + 1, 3);
@@ -7484,7 +7484,7 @@ static void fun_126(VMRef vm, StackPtr psp) {
 static void fun_127(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value keepvar[2];
-    PushFunId(vm, funinfo_table + 1223, 0);
+    PushFunId(vm, funinfo_table + 1013, 0);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 273, 3);
@@ -7514,7 +7514,7 @@ static void fun_476(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1228, locals);
+    PushFunId(vm, funinfo_table + 1016, locals);
     U_STATEMENT(vm, regs + 0, 4, 7);
     regs[0] = locals[0]; // body
     fun_477(vm, regs + 1); // call: exception_handler
@@ -7557,7 +7557,7 @@ static void fun_128(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1237, locals);
+    PushFunId(vm, funinfo_table + 1023, locals);
     U_STATEMENT(vm, regs + 0, 4, 7);
     regs[0] = locals[0]; // body
     fun_129(vm, regs + 1); // call: exception_handler
@@ -7590,7 +7590,7 @@ static void fun_477(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1247, locals);
+    PushFunId(vm, funinfo_table + 1031, locals);
     U_STATEMENT(vm, regs + 0, 9, 7);
     fun_179(vm, regs + 0); // call: function172
     if (!U_JUMPIFUNWOUND(vm, regs + 2, 172)) goto block0;
@@ -7617,7 +7617,7 @@ static void fun_129(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1253, locals);
+    PushFunId(vm, funinfo_table + 1035, locals);
     U_STATEMENT(vm, regs + 0, 9, 7);
     fun_181(vm, regs + 0); // call: function174
     if (!U_JUMPIFUNWOUND(vm, regs + 2, 174)) goto block0;
@@ -7644,7 +7644,7 @@ static void fun_478(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1259, locals);
+    PushFunId(vm, funinfo_table + 1039, locals);
     U_STATEMENT(vm, regs + 0, 17, 7);
     regs[0] = locals[0]; // v
     U_BCALLRET0(vm, regs + 1, 170, 1); // get_stack_trace
@@ -7664,7 +7664,7 @@ static void fun_130(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1265, locals);
+    PushFunId(vm, funinfo_table + 1043, locals);
     U_STATEMENT(vm, regs + 0, 17, 7);
     regs[0] = locals[0]; // v
     U_BCALLRET0(vm, regs + 1, 170, 1); // get_stack_trace
@@ -7683,7 +7683,7 @@ static void fun_133(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1271, locals);
+    PushFunId(vm, funinfo_table + 1047, locals);
     U_STATEMENT(vm, regs + 0, 29, 7);
     regs[0] = locals[0]; // body
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -7703,7 +7703,7 @@ static void fun_536(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1277, locals);
+    PushFunId(vm, funinfo_table + 1051, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1]; // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
@@ -7773,7 +7773,7 @@ static void fun_534(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1286, locals);
+    PushFunId(vm, funinfo_table + 1058, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1]; // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
@@ -7847,7 +7847,7 @@ static void fun_506(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1295, locals);
+    PushFunId(vm, funinfo_table + 1065, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1]; // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
@@ -7919,7 +7919,7 @@ static void fun_496(VMRef vm, StackPtr psp) {
     locals[3] = *(psp - 1);
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1304, locals);
+    PushFunId(vm, funinfo_table + 1072, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1];regs[1] = locals[2];regs[2] = locals[3]; // key
     U_PUSHINT(vm, regs + 3, 3);
@@ -7994,7 +7994,7 @@ static void fun_494(VMRef vm, StackPtr psp) {
     locals[3] = *(psp - 1);
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1315, locals);
+    PushFunId(vm, funinfo_table + 1081, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1];regs[1] = locals[2];regs[2] = locals[3]; // key
     U_PUSHINT(vm, regs + 3, 3);
@@ -8071,7 +8071,7 @@ static void fun_489(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1326, locals);
+    PushFunId(vm, funinfo_table + 1090, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1]; // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
@@ -8141,7 +8141,7 @@ static void fun_487(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1335, locals);
+    PushFunId(vm, funinfo_table + 1097, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1]; // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
@@ -8215,7 +8215,7 @@ static void fun_482(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1344, locals);
+    PushFunId(vm, funinfo_table + 1104, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1]; // key
     U_BCALLRET1(vm, regs + 1, 151, 1); // hash
@@ -8287,7 +8287,7 @@ static void fun_137(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1353, locals);
+    PushFunId(vm, funinfo_table + 1111, locals);
     U_STATEMENT(vm, regs + 0, 25, 8);
     regs[0] = locals[1]; // key
     U_BCALLRET1(vm, regs + 1, 151, 1); // hash
@@ -8356,7 +8356,7 @@ static void fun_533(VMRef vm, StackPtr psp) {
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1362, locals);
+    PushFunId(vm, funinfo_table + 1118, locals);
     U_STATEMENT(vm, regs + 0, 34, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8416,7 +8416,7 @@ static void fun_493(VMRef vm, StackPtr psp) {
     locals[6] = *(psp - 1);
     locals[7] = lobster::NilVal();
     locals[8] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1372, locals);
+    PushFunId(vm, funinfo_table + 1126, locals);
     U_STATEMENT(vm, regs + 0, 34, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8474,7 +8474,7 @@ static void fun_486(VMRef vm, StackPtr psp) {
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1386, locals);
+    PushFunId(vm, funinfo_table + 1138, locals);
     U_STATEMENT(vm, regs + 0, 34, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8532,7 +8532,7 @@ static void fun_138(VMRef vm, StackPtr psp) {
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1396, locals);
+    PushFunId(vm, funinfo_table + 1146, locals);
     U_STATEMENT(vm, regs + 0, 34, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8584,7 +8584,7 @@ static void fun_143(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
     locals[2] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1406, locals);
+    PushFunId(vm, funinfo_table + 1154, locals);
     U_STATEMENT(vm, regs + 0, 66, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8624,7 +8624,7 @@ static void fun_535(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1414, locals);
+    PushFunId(vm, funinfo_table + 1160, locals);
     U_STATEMENT(vm, regs + 0, 73, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8667,7 +8667,7 @@ static void fun_495(VMRef vm, StackPtr psp) {
     locals[5] = *(psp - 2);
     locals[6] = *(psp - 1);
     locals[7] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1423, locals);
+    PushFunId(vm, funinfo_table + 1167, locals);
     U_STATEMENT(vm, regs + 0, 73, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8711,7 +8711,7 @@ static void fun_488(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1436, locals);
+    PushFunId(vm, funinfo_table + 1178, locals);
     U_STATEMENT(vm, regs + 0, 73, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8752,7 +8752,7 @@ static void fun_144(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1445, locals);
+    PushFunId(vm, funinfo_table + 1185, locals);
     U_STATEMENT(vm, regs + 0, 73, 8);
     regs[0] = locals[0]; // this
     U_INCREF(vm, regs + 1, 0);
@@ -8787,7 +8787,7 @@ static void fun_530(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1454, locals);
+    PushFunId(vm, funinfo_table + 1192, locals);
     U_STATEMENT(vm, regs + 0, 120, 8);
     regs[0] = locals[0]; // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -8806,7 +8806,7 @@ static void fun_503(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1460, locals);
+    PushFunId(vm, funinfo_table + 1196, locals);
     U_STATEMENT(vm, regs + 0, 120, 8);
     regs[0] = locals[0]; // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -8825,7 +8825,7 @@ static void fun_490(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1466, locals);
+    PushFunId(vm, funinfo_table + 1200, locals);
     U_STATEMENT(vm, regs + 0, 120, 8);
     regs[0] = locals[0]; // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -8844,7 +8844,7 @@ static void fun_483(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1472, locals);
+    PushFunId(vm, funinfo_table + 1204, locals);
     U_STATEMENT(vm, regs + 0, 120, 8);
     regs[0] = locals[0]; // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -8863,7 +8863,7 @@ static void fun_150(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1478, locals);
+    PushFunId(vm, funinfo_table + 1208, locals);
     U_STATEMENT(vm, regs + 0, 120, 8);
     regs[0] = locals[0]; // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -8880,7 +8880,7 @@ static void fun_150(VMRef vm, StackPtr psp) {
 // test_namespace.f
 static void fun_152(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1484, 0);
+    PushFunId(vm, funinfo_table + 1212, 0);
     U_STATEMENT(vm, regs + 0, 11, 6);
     U_STATEMENT(vm, regs + 0, 12, 6);
     U_PUSHINT(vm, regs + 0, 1);
@@ -8968,7 +8968,7 @@ static void fun_155(VMRef vm, StackPtr psp) {
     locals[69] = lobster::NilVal();
     locals[70] = lobster::NilVal();
     locals[71] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1489, locals);
+    PushFunId(vm, funinfo_table + 1215, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -10533,7 +10533,7 @@ static void fun_158(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1566, locals);
+    PushFunId(vm, funinfo_table + 1290, locals);
     U_STATEMENT(vm, regs + 0, 44, 6);
     U_PUSHINT(vm, regs + 0, 3);
     U_RETURNLOCAL(vm, 0, 1);
@@ -10552,7 +10552,7 @@ static void fun_159(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1573, locals);
+    PushFunId(vm, funinfo_table + 1295, locals);
     U_STATEMENT(vm, regs + 0, 45, 6);
     U_PUSHINT(vm, regs + 0, 4);
     U_RETURNLOCAL(vm, 0, 1);
@@ -10572,7 +10572,7 @@ static void fun_161(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1580, locals);
+    PushFunId(vm, funinfo_table + 1300, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 107, 6);
     regs[0] = locals[0]; // i
@@ -10622,7 +10622,7 @@ static void fun_162(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1587, locals);
+    PushFunId(vm, funinfo_table + 1305, locals);
     U_STATEMENT(vm, regs + 0, 125, 6);
     U_PUSHINT(vm, regs + 0, 0);
     SetLVal(vm, &locals[0]); // a
@@ -10691,7 +10691,7 @@ static void fun_163(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1594, locals);
+    PushFunId(vm, funinfo_table + 1310, locals);
     U_STATEMENT(vm, regs + 0, 132, 6);
     regs[0] = locals[0]; // _a
     regs[1] = locals[1]; // _b
@@ -10711,7 +10711,7 @@ static void fun_164(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1601, locals);
+    PushFunId(vm, funinfo_table + 1315, locals);
     U_STATEMENT(vm, regs + 0, 134, 6);
     regs[0] = locals[0]; // _a
     regs[1] = locals[1]; // _b
@@ -10731,7 +10731,7 @@ static void fun_165(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1608, locals);
+    PushFunId(vm, funinfo_table + 1320, locals);
     U_STATEMENT(vm, regs + 0, 136, 6);
     regs[0] = locals[0]; // _a
     regs[1] = locals[1]; // _b
@@ -10750,7 +10750,7 @@ static void fun_166(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1615, locals);
+    PushFunId(vm, funinfo_table + 1325, locals);
     U_STATEMENT(vm, regs + 0, 150, 6);
     regs[0] = locals[0]; // _
     regs[1] = locals[0]; // _
@@ -10768,7 +10768,7 @@ static void fun_479(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1621, locals);
+    PushFunId(vm, funinfo_table + 1329, locals);
     U_STATEMENT(vm, regs + 0, 153, 6);
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[0]; // n
@@ -10792,7 +10792,7 @@ static void fun_167(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1627, locals);
+    PushFunId(vm, funinfo_table + 1333, locals);
     U_STATEMENT(vm, regs + 0, 153, 6);
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[0]; // n
@@ -10819,7 +10819,7 @@ static void fun_168(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1633, locals);
+    PushFunId(vm, funinfo_table + 1337, locals);
     U_STATEMENT(vm, regs + 0, 156, 6);
     U_PUSHINT(vm, regs + 0, 4);
     fun_169(vm, regs + 1); // call: function162
@@ -10836,7 +10836,7 @@ static void fun_169(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1639, locals);
+    PushFunId(vm, funinfo_table + 1341, locals);
     U_STATEMENT(vm, regs + 0, 157, 6);
     regs[0] = locals[0]; // x
     regs[1] = locals[0]; // x
@@ -10852,7 +10852,7 @@ static void fun_169(VMRef vm, StackPtr psp) {
 // multiret
 static void fun_472(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1645, 0);
+    PushFunId(vm, funinfo_table + 1345, 0);
     U_STATEMENT(vm, regs + 0, 187, 6);
     U_PUSHFLT(vm, regs + 0, 0);
     U_BCALLRET1(vm, regs + 1, 69, 1); // sin
@@ -10875,7 +10875,7 @@ static void fun_472(VMRef vm, StackPtr psp) {
 // multiret
 static void fun_170(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 1650, 0);
+    PushFunId(vm, funinfo_table + 1348, 0);
     U_STATEMENT(vm, regs + 0, 187, 6);
     U_PUSHFLT(vm, regs + 0, 0);
     U_BCALLRET1(vm, regs + 1, 69, 1); // sin
@@ -10902,7 +10902,7 @@ static void fun_170(VMRef vm, StackPtr psp) {
 // multiretpassthru
 static void fun_171(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 1655, 0);
+    PushFunId(vm, funinfo_table + 1351, 0);
     U_STATEMENT(vm, regs + 0, 193, 6);
     fun_170(vm, regs + 0); // call: multiret
     U_RETURNLOCAL(vm, 0, 2);
@@ -10916,7 +10916,7 @@ static void fun_171(VMRef vm, StackPtr psp) {
 // multirettyped
 static void fun_172(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 1660, 0);
+    PushFunId(vm, funinfo_table + 1354, 0);
     U_STATEMENT(vm, regs + 0, 196, 6);
     U_PUSHFLT(vm, regs + 0, 1065353216);
     U_PUSHSTR(vm, regs + 1, 344); // "a"
@@ -10934,7 +10934,7 @@ static void fun_173(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1665, locals);
+    PushFunId(vm, funinfo_table + 1357, locals);
     U_STATEMENT(vm, regs + 0, 204, 6);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -10963,7 +10963,7 @@ static void fun_174(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1671, locals);
+    PushFunId(vm, funinfo_table + 1361, locals);
     U_STATEMENT(vm, regs + 0, 209, 6);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 10);
@@ -11004,7 +11004,7 @@ static void fun_174(VMRef vm, StackPtr psp) {
 static void fun_473(VMRef vm, StackPtr psp) {
     Value regs[1];
     (void)regs;
-    PushFunId(vm, funinfo_table + 1678, 0);
+    PushFunId(vm, funinfo_table + 1366, 0);
     U_STATEMENT(vm, regs + 0, 216, 6);
     fun_474(vm, regs + 0); // call: nlr2
     if (!U_JUMPIFUNWOUND(vm, regs + 0, 169)) goto block0;
@@ -11022,7 +11022,7 @@ static void fun_473(VMRef vm, StackPtr psp) {
 // nlr1
 static void fun_175(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1683, 0);
+    PushFunId(vm, funinfo_table + 1369, 0);
     U_STATEMENT(vm, regs + 0, 216, 6);
     fun_176(vm, regs + 0); // call: nlr2
     if (!U_JUMPIFUNWOUND(vm, regs + 1, 169)) goto block0;
@@ -11043,7 +11043,7 @@ static void fun_175(VMRef vm, StackPtr psp) {
 static void fun_474(VMRef vm, StackPtr psp) {
     Value regs[1];
     (void)regs;
-    PushFunId(vm, funinfo_table + 1688, 0);
+    PushFunId(vm, funinfo_table + 1372, 0);
     U_STATEMENT(vm, regs + 0, 219, 6);
     U_RETURNNONLOCAL(vm, 0, 0, 168);
     goto epilogue;
@@ -11054,7 +11054,7 @@ static void fun_474(VMRef vm, StackPtr psp) {
 // nlr2
 static void fun_176(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1693, 0);
+    PushFunId(vm, funinfo_table + 1375, 0);
     U_STATEMENT(vm, regs + 0, 219, 6);
     U_PUSHINT(vm, regs + 0, 1);
     U_RETURNNONLOCAL(vm, 0, 1, 168);
@@ -11069,7 +11069,7 @@ static void fun_177(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1698, locals);
+    PushFunId(vm, funinfo_table + 1378, locals);
     U_STATEMENT(vm, regs + 0, 224, 6);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHINT(vm, regs + 1, 2);
@@ -11100,7 +11100,7 @@ static void fun_177(VMRef vm, StackPtr psp) {
 static void fun_178(VMRef vm, StackPtr psp) {
     Value regs[2];
     SwapVars(vm, 374, psp, 1);
-    PushFunId(vm, funinfo_table + 1704, 0);
+    PushFunId(vm, funinfo_table + 1382, 0);
     U_STATEMENT(vm, regs + 0, 229, 6);
     U_PUSHFUN(vm, regs + 0, 0, fun_179);
     U_PUSHFUN(vm, regs + 1, 0, fun_180);
@@ -11121,7 +11121,7 @@ static void fun_178(VMRef vm, StackPtr psp) {
 // function172
 static void fun_179(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 1710, 0);
+    PushFunId(vm, funinfo_table + 1386, 0);
     U_STATEMENT(vm, regs + 0, 230, 6);
     U_PUSHVARF(vm, regs + 0, 374); // n
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
@@ -11157,7 +11157,7 @@ static void fun_180(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1715, locals);
+    PushFunId(vm, funinfo_table + 1389, locals);
     U_STATEMENT(vm, regs + 0, 233, 6);
     regs[0] = locals[0]; // v
     U_BCALLRET1(vm, regs + 1, 12, 1); // length
@@ -11185,7 +11185,7 @@ static void fun_180(VMRef vm, StackPtr psp) {
 // function174
 static void fun_181(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 1721, 0);
+    PushFunId(vm, funinfo_table + 1393, 0);
     U_STATEMENT(vm, regs + 0, 236, 6);
     U_PUSHINT(vm, regs + 0, 10);
     fun_178(vm, regs + 1); // call: recursive_exceptions
@@ -11206,7 +11206,7 @@ static void fun_182(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1726, locals);
+    PushFunId(vm, funinfo_table + 1396, locals);
     U_STATEMENT(vm, regs + 0, 240, 6);
     regs[0] = locals[0]; // _x
     regs[1] = locals[1]; // _y
@@ -11226,7 +11226,7 @@ static void fun_183(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1733, locals);
+    PushFunId(vm, funinfo_table + 1401, locals);
     U_STATEMENT(vm, regs + 0, 302, 6);
     U_STATEMENT(vm, regs + 0, 305, 6);
     U_PUSHINT(vm, regs + 0, 1);
@@ -11286,7 +11286,7 @@ static void fun_183(VMRef vm, StackPtr psp) {
 // error
 static void fun_184(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1740, 0);
+    PushFunId(vm, funinfo_table + 1406, 0);
     U_STATEMENT(vm, regs + 0, 303, 6);
     U_PUSHINT(vm, regs + 0, 0);
     U_ASSERT(vm, regs + 1, 303, 6, 350);
@@ -11302,7 +11302,7 @@ static void fun_185(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     SwapVars(vm, 390, psp, 1);
-    PushFunId(vm, funinfo_table + 1745, 0);
+    PushFunId(vm, funinfo_table + 1409, 0);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 315, 6);
     U_STATEMENT(vm, regs + 0, 323, 6);
@@ -11329,7 +11329,7 @@ static void fun_185(VMRef vm, StackPtr psp) {
 // outer_dest1
 static void fun_186(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 1751, 0);
+    PushFunId(vm, funinfo_table + 1413, 0);
     U_STATEMENT(vm, regs + 0, 316, 6);
     U_STATEMENT(vm, regs + 0, 322, 6);
     fun_187(vm, regs + 0); // call: return_past
@@ -11349,7 +11349,7 @@ static void fun_186(VMRef vm, StackPtr psp) {
 // return_past
 static void fun_187(VMRef vm, StackPtr psp) {
     Value regs[3];
-    PushFunId(vm, funinfo_table + 1756, 0);
+    PushFunId(vm, funinfo_table + 1416, 0);
     U_STATEMENT(vm, regs + 0, 317, 6);
     U_PUSHVARF(vm, regs + 0, 390); // mode
     U_DUP(vm, regs + 1);
@@ -11400,7 +11400,7 @@ static void fun_189(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 3);
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1761, locals);
+    PushFunId(vm, funinfo_table + 1419, locals);
     U_STATEMENT(vm, regs + 0, 339, 6);
     regs[0] = locals[0]; // a
     regs[1] = locals[1]; // b
@@ -11420,7 +11420,7 @@ static void fun_189(VMRef vm, StackPtr psp) {
 // G
 static void fun_192(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 1769, 0);
+    PushFunId(vm, funinfo_table + 1425, 0);
     U_STATEMENT(vm, regs + 0, 359, 6);
     fun_193(vm, regs + 0); // call: H
     if (!U_JUMPIFUNWOUND(vm, regs + 1, 185)) goto block0;
@@ -11441,7 +11441,7 @@ static void fun_192(VMRef vm, StackPtr psp) {
 static void fun_193(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value keepvar[1];
-    PushFunId(vm, funinfo_table + 1774, 0);
+    PushFunId(vm, funinfo_table + 1428, 0);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 361, 6);
     U_NEWVEC(vm, regs + 0, 1697, 0);
@@ -11468,7 +11468,7 @@ static void fun_194(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1779, locals);
+    PushFunId(vm, funinfo_table + 1431, locals);
     U_STATEMENT(vm, regs + 0, 383, 6);
     U_PUSHFLT(vm, regs + 0, 1073741824);
     SetLVal(vm, &locals[0]); // divisor
@@ -11510,7 +11510,7 @@ static void fun_195(VMRef vm, StackPtr psp) {
     Value keepvar[6];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1785, locals);
+    PushFunId(vm, funinfo_table + 1435, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -11600,7 +11600,7 @@ static void fun_196(VMRef vm, StackPtr psp) {
     Value locals[1];
     BackupVar(vm, 402);
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1791, locals);
+    PushFunId(vm, funinfo_table + 1439, locals);
     U_STATEMENT(vm, regs + 0, 406, 6);
     U_PUSHINT(vm, regs + 0, 1);
     U_LVAL_VARF(vm, regs + 1, 402); // state
@@ -11627,7 +11627,7 @@ static void fun_196(VMRef vm, StackPtr psp) {
 // function189
 static void fun_197(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1798, 0);
+    PushFunId(vm, funinfo_table + 1444, 0);
     U_STATEMENT(vm, regs + 0, 409, 6);
     U_PUSHINT(vm, regs + 0, 2);
     U_LVAL_VARF(vm, regs + 1, 402); // state
@@ -11644,7 +11644,7 @@ static void fun_198(VMRef vm, StackPtr psp) {
     Value keepvar[1];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1803, locals);
+    PushFunId(vm, funinfo_table + 1447, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 415, 6);
     U_PUSHINT(vm, regs + 0, 4);
@@ -11677,7 +11677,7 @@ static void fun_199(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1809, locals);
+    PushFunId(vm, funinfo_table + 1451, locals);
     U_STATEMENT(vm, regs + 0, 416, 6);
     regs[0] = locals[0]; // i
     U_PUSHINT(vm, regs + 1, 2);
@@ -11722,7 +11722,7 @@ static void fun_199(VMRef vm, StackPtr psp) {
 static void fun_200(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
-    PushFunId(vm, funinfo_table + 1815, 0);
+    PushFunId(vm, funinfo_table + 1455, 0);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 430, 6);
     U_PUSHINT(vm, regs + 0, 17);
@@ -11756,7 +11756,7 @@ static void fun_201(VMRef vm, StackPtr psp) {
     locals[9] = lobster::NilVal();
     locals[10] = lobster::NilVal();
     locals[11] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1820, locals);
+    PushFunId(vm, funinfo_table + 1458, locals);
     U_STATEMENT(vm, regs + 0, 10, 9);
     U_STATEMENT(vm, regs + 0, 10, 9);
     U_PUSHFUN(vm, regs + 0, 0, fun_202);
@@ -11856,7 +11856,7 @@ static void fun_201(VMRef vm, StackPtr psp) {
 static void fun_202(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
-    PushFunId(vm, funinfo_table + 1837, 0);
+    PushFunId(vm, funinfo_table + 1473, 0);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 11, 9);
     U_STATEMENT(vm, regs + 0, 12, 9);
@@ -11885,7 +11885,7 @@ static void fun_510(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1842, locals);
+    PushFunId(vm, funinfo_table + 1476, locals);
     U_STATEMENT(vm, regs + 0, 11, 9);
     U_STATEMENT(vm, regs + 0, 14, 9);
     fun_207(vm, regs + 0); // call: function199
@@ -11901,7 +11901,7 @@ static void fun_510(VMRef vm, StackPtr psp) {
 static void fun_508(VMRef vm, StackPtr psp) {
     Value regs[1];
     SwapVars(vm, 1296, psp, 1);
-    PushFunId(vm, funinfo_table + 1848, 0);
+    PushFunId(vm, funinfo_table + 1480, 0);
     U_STATEMENT(vm, regs + 0, 14, 9);
     U_PUSHFUN(vm, regs + 0, 0, fun_10000001);
     fun_510(vm, regs + 1); // call: h
@@ -11919,7 +11919,7 @@ static void fun_204(VMRef vm, StackPtr psp) {
     Value locals[1];
     SwapVars(vm, 407, psp, 1);
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1854, locals);
+    PushFunId(vm, funinfo_table + 1484, locals);
     U_STATEMENT(vm, regs + 0, 14, 9);
     U_STATEMENT(vm, regs + 0, 14, 9);
     U_PUSHFUN(vm, regs + 0, 0, fun_205);
@@ -11938,7 +11938,7 @@ static void fun_204(VMRef vm, StackPtr psp) {
 // function197
 static void fun_205(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1861, 0);
+    PushFunId(vm, funinfo_table + 1489, 0);
     U_STATEMENT(vm, regs + 0, 14, 9);
     U_STATEMENT(vm, regs + 0, 15, 9);
     U_PUSHINT(vm, regs + 0, 1);
@@ -11952,7 +11952,7 @@ static void fun_205(VMRef vm, StackPtr psp) {
 // function199
 static void fun_207(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1866, 0);
+    PushFunId(vm, funinfo_table + 1492, 0);
     U_STATEMENT(vm, regs + 0, 16, 9);
     U_PUSHSTR(vm, regs + 0, 377); // "a"
     U_INCREF(vm, regs + 1, 0);
@@ -11966,7 +11966,7 @@ static void fun_207(VMRef vm, StackPtr psp) {
 // function200
 static void fun_208(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1871, 0);
+    PushFunId(vm, funinfo_table + 1495, 0);
     U_STATEMENT(vm, regs + 0, 19, 9);
     U_STATEMENT(vm, regs + 0, 31, 9);
     U_PUSHINT(vm, regs + 0, 1);
@@ -11991,7 +11991,7 @@ static void fun_513(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1876, locals);
+    PushFunId(vm, funinfo_table + 1498, locals);
     U_STATEMENT(vm, regs + 0, 30, 9);
     U_STATEMENT(vm, regs + 0, 30, 9);
     regs[0] = locals[0]; // x
@@ -12009,7 +12009,7 @@ static void fun_209(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1882, locals);
+    PushFunId(vm, funinfo_table + 1502, locals);
     U_STATEMENT(vm, regs + 0, 30, 9);
     U_STATEMENT(vm, regs + 0, 26, 9);
     U_PUSHINT(vm, regs + 0, 1);
@@ -12027,7 +12027,7 @@ static void fun_209(VMRef vm, StackPtr psp) {
 static void fun_210(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value keepvar[2];
-    PushFunId(vm, funinfo_table + 1888, 0);
+    PushFunId(vm, funinfo_table + 1506, 0);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 37, 9);
@@ -12061,7 +12061,7 @@ static void fun_515(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1893, locals);
+    PushFunId(vm, funinfo_table + 1509, locals);
     U_STATEMENT(vm, regs + 0, 44, 9);
     fun_212(vm, regs + 0); // call: return_from2
     if (!U_JUMPIFUNWOUND(vm, regs + 1, 204)) goto block0;
@@ -12087,7 +12087,7 @@ static void fun_211(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1899, locals);
+    PushFunId(vm, funinfo_table + 1513, locals);
     U_STATEMENT(vm, regs + 0, 44, 9);
     fun_212(vm, regs + 0); // call: return_from2
     if (!U_JUMPIFUNWOUND(vm, regs + 1, 204)) goto block0;
@@ -12111,7 +12111,7 @@ static void fun_211(VMRef vm, StackPtr psp) {
 // return_from2
 static void fun_212(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 1905, 0);
+    PushFunId(vm, funinfo_table + 1517, 0);
     U_STATEMENT(vm, regs + 0, 46, 9);
     U_PUSHINT(vm, regs + 0, 0);
     U_NEWOBJECT(vm, regs + 1, 1569); // testa
@@ -12128,7 +12128,7 @@ static void fun_213(VMRef vm, StackPtr psp) {
     Value keepvar[2];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1910, locals);
+    PushFunId(vm, funinfo_table + 1520, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 52, 9);
@@ -12209,7 +12209,7 @@ static void fun_214(VMRef vm, StackPtr psp) {
     locals[6] = lobster::NilVal();
     locals[7] = lobster::NilVal();
     locals[8] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 1916, locals);
+    PushFunId(vm, funinfo_table + 1524, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -12429,7 +12429,7 @@ static void fun_217(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1930, locals);
+    PushFunId(vm, funinfo_table + 1536, locals);
     U_STATEMENT(vm, regs + 0, 74, 9);
     U_PUSHINT(vm, regs + 0, 10);
     U_RETURNLOCAL(vm, 0, 1);
@@ -12446,7 +12446,7 @@ static void fun_229(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1936, locals);
+    PushFunId(vm, funinfo_table + 1540, locals);
     U_STATEMENT(vm, regs + 0, 90, 9);
     U_PUSHINT(vm, regs + 0, 11);
     U_RETURNLOCAL(vm, 0, 1);
@@ -12464,7 +12464,7 @@ static void fun_218(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1942, locals);
+    PushFunId(vm, funinfo_table + 1544, locals);
     U_STATEMENT(vm, regs + 0, 77, 9);
     U_PUSHINT(vm, regs + 0, 1);
     regs[1] = locals[0]; // this
@@ -12488,7 +12488,7 @@ static void fun_224(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1949, locals);
+    PushFunId(vm, funinfo_table + 1549, locals);
     U_STATEMENT(vm, regs + 0, 85, 9);
     U_PUSHINT(vm, regs + 0, 2);
     regs[1] = locals[0]; // this
@@ -12515,7 +12515,7 @@ static void fun_230(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1956, locals);
+    PushFunId(vm, funinfo_table + 1554, locals);
     U_STATEMENT(vm, regs + 0, 93, 9);
     regs[0] = locals[1]; // c
     regs[1] = locals[0]; // this
@@ -12538,7 +12538,7 @@ static void fun_518(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1963, locals);
+    PushFunId(vm, funinfo_table + 1559, locals);
     U_STATEMENT(vm, regs + 0, 78, 9);
     regs[0] = locals[1]; // c
     U_PUSHINT(vm, regs + 1, 1);
@@ -12560,7 +12560,7 @@ static void fun_219(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1970, locals);
+    PushFunId(vm, funinfo_table + 1564, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 78, 9);
     regs[0] = locals[1]; // c
@@ -12586,7 +12586,7 @@ static void fun_519(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1977, locals);
+    PushFunId(vm, funinfo_table + 1569, locals);
     U_STATEMENT(vm, regs + 0, 86, 9);
     regs[0] = locals[1]; // c
     U_PUSHINT(vm, regs + 1, 2);
@@ -12608,7 +12608,7 @@ static void fun_225(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1984, locals);
+    PushFunId(vm, funinfo_table + 1574, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 86, 9);
     regs[0] = locals[1]; // c
@@ -12634,7 +12634,7 @@ static void fun_220(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1991, locals);
+    PushFunId(vm, funinfo_table + 1579, locals);
     U_STATEMENT(vm, regs + 0, 79, 9);
     regs[0] = locals[1]; // c
     U_RETURNLOCAL(vm, 0, 1);
@@ -12653,7 +12653,7 @@ static void fun_520(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 1998, locals);
+    PushFunId(vm, funinfo_table + 1584, locals);
     U_STATEMENT(vm, regs + 0, 87, 9);
     regs[0] = locals[1]; // c
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
@@ -12686,7 +12686,7 @@ static void fun_226(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2005, locals);
+    PushFunId(vm, funinfo_table + 1589, locals);
     U_STATEMENT(vm, regs + 0, 87, 9);
     regs[0] = locals[1]; // c
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
@@ -12719,7 +12719,7 @@ static void fun_221(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2012, locals);
+    PushFunId(vm, funinfo_table + 1594, locals);
     U_STATEMENT(vm, regs + 0, 80, 9);
     U_PUSHINT(vm, regs + 0, 1);
     U_PUSHSTR(vm, regs + 1, 413); // "a"
@@ -12739,7 +12739,7 @@ static void fun_227(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2018, locals);
+    PushFunId(vm, funinfo_table + 1598, locals);
     U_STATEMENT(vm, regs + 0, 88, 9);
     U_PUSHINT(vm, regs + 0, 2);
     U_PUSHSTR(vm, regs + 1, 414); // "b"
@@ -12759,7 +12759,7 @@ static void fun_222(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2024, locals);
+    PushFunId(vm, funinfo_table + 1602, locals);
     U_STATEMENT(vm, regs + 0, 81, 9);
     U_PUSHINT(vm, regs + 0, 1);
     U_RETURNLOCAL(vm, 0, 1);
@@ -12777,7 +12777,7 @@ static void fun_228(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2030, locals);
+    PushFunId(vm, funinfo_table + 1606, locals);
     U_STATEMENT(vm, regs + 0, 89, 9);
     U_PUSHINT(vm, regs + 0, 1);
     U_STATEMENT(vm, regs + 1, 89, 9);
@@ -12801,7 +12801,7 @@ static void fun_223(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2037, locals);
+    PushFunId(vm, funinfo_table + 1611, locals);
     U_STATEMENT(vm, regs + 0, 82, 9);
     U_PUSHINT(vm, regs + 0, 12);
     U_RETURNLOCAL(vm, 0, 1);
@@ -12818,7 +12818,7 @@ static void fun_522(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2043, locals);
+    PushFunId(vm, funinfo_table + 1615, locals);
     U_STATEMENT(vm, regs + 0, 119, 9);
     regs[0] = locals[0]; // d
     U_PUSHFLD(vm, regs + 1, 0);
@@ -12837,7 +12837,7 @@ static void fun_231(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2049, locals);
+    PushFunId(vm, funinfo_table + 1619, locals);
     U_STATEMENT(vm, regs + 0, 119, 9);
     regs[0] = locals[0]; // d
     U_PUSHFLD(vm, regs + 1, 0);
@@ -12855,7 +12855,7 @@ static void fun_233(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2055, locals);
+    PushFunId(vm, funinfo_table + 1623, locals);
     U_STATEMENT(vm, regs + 0, 121, 9);
     regs[0] = locals[0]; // s
     U_INCREF(vm, regs + 1, 0);
@@ -12872,7 +12872,7 @@ static void fun_234(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2061, locals);
+    PushFunId(vm, funinfo_table + 1627, locals);
     U_STATEMENT(vm, regs + 0, 122, 9);
     regs[0] = locals[0]; // t
     U_PUSHFLT(vm, regs + 1, 1065353216);
@@ -12891,7 +12891,7 @@ static void fun_235(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2067, locals);
+    PushFunId(vm, funinfo_table + 1631, locals);
     U_STATEMENT(vm, regs + 0, 129, 9);
     U_PUSHSTR(vm, regs + 0, 415); // ""
     U_INCREF(vm, regs + 1, 0);
@@ -12937,7 +12937,7 @@ static void fun_236(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2074, locals);
+    PushFunId(vm, funinfo_table + 1636, locals);
     U_STATEMENT(vm, regs + 0, 136, 9);
     regs[0] = locals[0]; // x
     U_PUSHSTR(vm, regs + 1, 420); // ""
@@ -12963,7 +12963,7 @@ static void fun_237(VMRef vm, StackPtr psp) {
     locals[5] = lobster::NilVal();
     locals[6] = lobster::NilVal();
     locals[7] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2080, locals);
+    PushFunId(vm, funinfo_table + 1640, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -13202,7 +13202,7 @@ static void fun_525(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2093, locals);
+    PushFunId(vm, funinfo_table + 1651, locals);
     U_STATEMENT(vm, regs + 0, 148, 9);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13225,7 +13225,7 @@ static void fun_238(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2100, locals);
+    PushFunId(vm, funinfo_table + 1656, locals);
     U_STATEMENT(vm, regs + 0, 148, 9);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13247,7 +13247,7 @@ static void fun_526(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2107, locals);
+    PushFunId(vm, funinfo_table + 1661, locals);
     U_STATEMENT(vm, regs + 0, 150, 9);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13270,7 +13270,7 @@ static void fun_239(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2114, locals);
+    PushFunId(vm, funinfo_table + 1666, locals);
     U_STATEMENT(vm, regs + 0, 150, 9);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13292,7 +13292,7 @@ static void fun_240(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2121, locals);
+    PushFunId(vm, funinfo_table + 1671, locals);
     U_STATEMENT(vm, regs + 0, 152, 9);
     U_PUSHINT(vm, regs + 0, 1);
     SetLVal(vm, &locals[1]); // x
@@ -13313,7 +13313,7 @@ static void fun_527(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2128, locals);
+    PushFunId(vm, funinfo_table + 1676, locals);
     U_STATEMENT(vm, regs + 0, 155, 9);
     regs[0] = locals[0]; // a
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13336,7 +13336,7 @@ static void fun_241(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2135, locals);
+    PushFunId(vm, funinfo_table + 1681, locals);
     U_STATEMENT(vm, regs + 0, 155, 9);
     regs[0] = locals[0]; // a
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13357,7 +13357,7 @@ static void fun_243(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2142, locals);
+    PushFunId(vm, funinfo_table + 1686, locals);
     U_STATEMENT(vm, regs + 0, 198, 9);
     U_PUSHFLT(vm, regs + 0, 1065353216);
     U_RETURNLOCAL(vm, 0, 1);
@@ -13371,7 +13371,7 @@ static void fun_243(VMRef vm, StackPtr psp) {
 // q
 static void fun_244(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 2148, 0);
+    PushFunId(vm, funinfo_table + 1690, 0);
     U_STATEMENT(vm, regs + 0, 202, 9);
     U_PUSHFLT(vm, regs + 0, 1065353216);
     U_PUSHFLT(vm, regs + 1, 1065353216);
@@ -13388,7 +13388,7 @@ static void fun_245(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2153, locals);
+    PushFunId(vm, funinfo_table + 1693, locals);
     U_STATEMENT(vm, regs + 0, 206, 9);
     regs[0] = locals[0]; // aa
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
@@ -13419,7 +13419,7 @@ static void fun_245(VMRef vm, StackPtr psp) {
 // p
 static void fun_249(VMRef vm, StackPtr psp) {
     Value regs[1];
-    PushFunId(vm, funinfo_table + 2159, 0);
+    PushFunId(vm, funinfo_table + 1697, 0);
     U_STATEMENT(vm, regs + 0, 216, 9);
     U_PUSHINT(vm, regs + 0, 3);
     U_RETURNLOCAL(vm, 0, 1);
@@ -13434,7 +13434,7 @@ static void fun_250(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2164, locals);
+    PushFunId(vm, funinfo_table + 1700, locals);
     U_STATEMENT(vm, regs + 0, 221, 9);
     regs[0] = locals[0]; // aa
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13459,7 +13459,7 @@ static void fun_251(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2170, locals);
+    PushFunId(vm, funinfo_table + 1704, locals);
     U_STATEMENT(vm, regs + 0, 224, 9);
     regs[0] = locals[0]; // aa
     if (!U_JUMPFAIL(vm, regs + 1)) goto block0;
@@ -13493,7 +13493,7 @@ static void fun_252(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2176, locals);
+    PushFunId(vm, funinfo_table + 1708, locals);
     U_STATEMENT(vm, regs + 0, 229, 9);
     U_STATEMENT(vm, regs + 0, 231, 9);
     U_STATEMENT(vm, regs + 0, 233, 9);
@@ -13546,7 +13546,7 @@ static void fun_253(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2183, locals);
+    PushFunId(vm, funinfo_table + 1713, locals);
     U_STATEMENT(vm, regs + 0, 241, 9);
     U_STATEMENT(vm, regs + 0, 242, 9);
     U_STATEMENT(vm, regs + 0, 243, 9);
@@ -13576,7 +13576,7 @@ static void fun_256(VMRef vm, StackPtr psp) {
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2189, locals);
+    PushFunId(vm, funinfo_table + 1717, locals);
     U_STATEMENT(vm, regs + 0, 248, 9);
     U_STATEMENT(vm, regs + 0, 248, 9);
     U_STATEMENT(vm, regs + 0, 250, 9);
@@ -13654,7 +13654,7 @@ static void fun_257(VMRef vm, StackPtr psp) {
     (void)regs;
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2197, locals);
+    PushFunId(vm, funinfo_table + 1723, locals);
     U_STATEMENT(vm, regs + 0, 260, 9);
     U_RETURNLOCAL(vm, 0, 0);
     DecVal(vm, locals[0]);
@@ -13668,7 +13668,7 @@ static void fun_257(VMRef vm, StackPtr psp) {
 static void fun_258(VMRef vm, StackPtr psp) {
     Value regs[1];
     (void)regs;
-    PushFunId(vm, funinfo_table + 2203, 0);
+    PushFunId(vm, funinfo_table + 1727, 0);
     U_STATEMENT(vm, regs + 0, 267, 9);
     U_STATEMENT(vm, regs + 0, 267, 9);
     U_STATEMENT(vm, regs + 0, 270, 9);
@@ -13683,7 +13683,7 @@ static void fun_259(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2208, locals);
+    PushFunId(vm, funinfo_table + 1730, locals);
     U_STATEMENT(vm, regs + 0, 274, 9);
     U_STATEMENT(vm, regs + 0, 274, 9);
     U_STATEMENT(vm, regs + 0, 279, 9);
@@ -13756,7 +13756,7 @@ static void fun_260(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2214, locals);
+    PushFunId(vm, funinfo_table + 1734, locals);
     U_STATEMENT(vm, regs + 0, 287, 9);
     regs[0] = locals[0]; // a
     U_PUSHFLD(vm, regs + 1, 1);
@@ -13783,7 +13783,7 @@ static void fun_559(VMRef vm, StackPtr psp) {
     BackupVar(vm, 1406);
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2220, locals);
+    PushFunId(vm, funinfo_table + 1738, locals);
     U_STATEMENT(vm, regs + 0, 23, 11);
     regs[0] = locals[0]; // startnode
     U_INCREF(vm, regs + 1, 0);
@@ -13930,7 +13930,7 @@ static void fun_548(VMRef vm, StackPtr psp) {
     BackupVar(vm, 1371);
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2233, locals);
+    PushFunId(vm, funinfo_table + 1749, locals);
     U_STATEMENT(vm, regs + 0, 23, 11);
     regs[0] = locals[0]; // startnode
     U_INCREF(vm, regs + 1, 0);
@@ -14077,7 +14077,7 @@ static void fun_262(VMRef vm, StackPtr psp) {
     BackupVar(vm, 479);
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2246, locals);
+    PushFunId(vm, funinfo_table + 1760, locals);
     U_STATEMENT(vm, regs + 0, 23, 11);
     regs[0] = locals[0]; // startnode
     U_INCREF(vm, regs + 1, 0);
@@ -14220,7 +14220,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2259, locals);
+    PushFunId(vm, funinfo_table + 1771, locals);
     U_STATEMENT(vm, regs + 0, 29, 11);
     regs[0] = locals[2]; // nn
     U_PUSHFLD(vm, regs + 1, 7);
@@ -14315,7 +14315,7 @@ static void fun_555(VMRef vm, StackPtr psp) {
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2268, locals);
+    PushFunId(vm, funinfo_table + 1778, locals);
     U_STATEMENT(vm, regs + 0, 29, 11);
     regs[0] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 1, 9);
@@ -14409,7 +14409,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2278, locals);
+    PushFunId(vm, funinfo_table + 1786, locals);
     U_STATEMENT(vm, regs + 0, 29, 11);
     regs[0] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 1, 9);
@@ -14502,7 +14502,7 @@ static void fun_544(VMRef vm, StackPtr psp) {
     SwapVars(vm, 1363, psp, 3);
     SwapVars(vm, 1364, psp, 2);
     SwapVars(vm, 1365, psp, 1);
-    PushFunId(vm, funinfo_table + 2288, locals);
+    PushFunId(vm, funinfo_table + 1794, locals);
     U_STATEMENT(vm, regs + 0, 63, 11);
     regs[0] = locals[0]; // startnode
     U_INCREF(vm, regs + 1, 0);
@@ -14531,7 +14531,7 @@ static void fun_264(VMRef vm, StackPtr psp) {
     SwapVars(vm, 489, psp, 3);
     SwapVars(vm, 490, psp, 2);
     SwapVars(vm, 491, psp, 1);
-    PushFunId(vm, funinfo_table + 2298, locals);
+    PushFunId(vm, funinfo_table + 1802, locals);
     U_STATEMENT(vm, regs + 0, 63, 11);
     regs[0] = locals[0]; // startnode
     U_INCREF(vm, regs + 1, 0);
@@ -14556,7 +14556,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2308, locals);
+    PushFunId(vm, funinfo_table + 1810, locals);
     U_STATEMENT(vm, regs + 0, 56, 11);
     regs[0] = locals[0]; // n
     U_PUSHVARF(vm, regs + 1, 1362); // endnode
@@ -14574,7 +14574,7 @@ static void fun_265(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2314, locals);
+    PushFunId(vm, funinfo_table + 1814, locals);
     U_STATEMENT(vm, regs + 0, 56, 11);
     regs[0] = locals[0]; // n
     U_PUSHVARF(vm, regs + 1, 488); // endnode
@@ -14592,7 +14592,7 @@ static void fun_551(VMRef vm, StackPtr psp) {
     Value regs[2];
     SwapVars(vm, 1375, psp, 2);
     SwapVars(vm, 1376, psp, 1);
-    PushFunId(vm, funinfo_table + 2320, 0);
+    PushFunId(vm, funinfo_table + 1818, 0);
     U_STATEMENT(vm, regs + 0, 61, 11);
     U_PUSHVARF(vm, regs + 0, 1375); // n
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -14611,7 +14611,7 @@ static void fun_266(VMRef vm, StackPtr psp) {
     Value regs[2];
     SwapVars(vm, 493, psp, 2);
     SwapVars(vm, 494, psp, 1);
-    PushFunId(vm, funinfo_table + 2327, 0);
+    PushFunId(vm, funinfo_table + 1823, 0);
     U_STATEMENT(vm, regs + 0, 61, 11);
     U_PUSHVARF(vm, regs + 0, 493); // n
     U_PUSHFUN(vm, regs + 1, 0, fun_267);
@@ -14631,7 +14631,7 @@ static void fun_554(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2334, locals);
+    PushFunId(vm, funinfo_table + 1828, locals);
     U_STATEMENT(vm, regs + 0, 59, 11);
     U_PUSHVARF(vm, regs + 0, 1375); // n
     regs[1] = locals[0]; // nn
@@ -14669,7 +14669,7 @@ static void fun_267(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2341, locals);
+    PushFunId(vm, funinfo_table + 1833, locals);
     U_STATEMENT(vm, regs + 0, 59, 11);
     U_PUSHVARF(vm, regs + 0, 493); // n
     regs[1] = locals[0]; // nn
@@ -14707,7 +14707,7 @@ static void fun_556(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2348, locals);
+    PushFunId(vm, funinfo_table + 1838, locals);
     U_STATEMENT(vm, regs + 0, 63, 11);
     regs[0] = locals[0];regs[1] = locals[1]; // state
     U_PUSHVARF(vm, regs + 2, 1362); // endnode
@@ -14729,7 +14729,7 @@ static void fun_268(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2355, locals);
+    PushFunId(vm, funinfo_table + 1843, locals);
     U_STATEMENT(vm, regs + 0, 63, 11);
     regs[0] = locals[0];regs[1] = locals[1]; // state
     U_PUSHVARF(vm, regs + 2, 488); // endnode
@@ -14757,7 +14757,7 @@ static void fun_269(VMRef vm, StackPtr psp) {
     SwapVars(vm, 504, psp, 2);
     SwapVars(vm, 505, psp, 1);
     BackupVar(vm, 506);
-    PushFunId(vm, funinfo_table + 2362, locals);
+    PushFunId(vm, funinfo_table + 1848, locals);
     U_STATEMENT(vm, regs + 0, 68, 11);
     U_PUSHVARF(vm, regs + 0, 170); // cardinal_directions
     U_INCREF(vm, regs + 1, 0);
@@ -14803,7 +14803,7 @@ static void fun_543(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2375, locals);
+    PushFunId(vm, funinfo_table + 1859, locals);
     U_STATEMENT(vm, regs + 0, 74, 11);
     U_PUSHVARF(vm, regs + 0, 502); // startnode
     U_PUSHVARF(vm, regs + 1, 503); // endnode
@@ -14824,7 +14824,7 @@ static void fun_270(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2381, locals);
+    PushFunId(vm, funinfo_table + 1863, locals);
     U_STATEMENT(vm, regs + 0, 74, 11);
     U_PUSHVARF(vm, regs + 0, 502); // startnode
     U_PUSHVARF(vm, regs + 1, 503); // endnode
@@ -14850,7 +14850,7 @@ static void fun_553(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2387, locals);
+    PushFunId(vm, funinfo_table + 1867, locals);
     U_STATEMENT(vm, regs + 0, 71, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 506); // directions
@@ -14902,7 +14902,7 @@ static void fun_271(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2398, locals);
+    PushFunId(vm, funinfo_table + 1876, locals);
     U_STATEMENT(vm, regs + 0, 71, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 506); // directions
@@ -14954,7 +14954,7 @@ static void fun_272(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2409, locals);
+    PushFunId(vm, funinfo_table + 1885, locals);
     U_STATEMENT(vm, regs + 0, 78, 11);
     regs[0] = locals[0]; // v+0
     U_BCALLRET1(vm, regs + 1, 112, 1); // abs
@@ -15004,7 +15004,7 @@ static void fun_273(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2420, locals);
+    PushFunId(vm, funinfo_table + 1894, locals);
     U_STATEMENT(vm, regs + 0, 84, 11);
     regs[0] = locals[0];regs[1] = locals[1]; // _
     U_PUSHINT(vm, regs + 2, 2);
@@ -15028,7 +15028,7 @@ static void fun_276(VMRef vm, StackPtr psp) {
     SwapVars(vm, 525, psp, 1);
     locals[1] = lobster::NilVal();
     BackupVar(vm, 527);
-    PushFunId(vm, funinfo_table + 2427, locals);
+    PushFunId(vm, funinfo_table + 1899, locals);
     U_STATEMENT(vm, regs + 0, 97, 11);
     regs[0] = locals[0]; // initstate
     fun_301(vm, regs + 1); // call: function271
@@ -15078,7 +15078,7 @@ static void fun_277(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2438, locals);
+    PushFunId(vm, funinfo_table + 1908, locals);
     U_STATEMENT(vm, regs + 0, 100, 11);
     regs[0] = locals[0]; // _
     U_PUSHFLD(vm, regs + 1, 4);
@@ -15100,7 +15100,7 @@ static void fun_278(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     BackupVar(vm, 532);
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2444, locals);
+    PushFunId(vm, funinfo_table + 1912, locals);
     U_STATEMENT(vm, regs + 0, 102, 11);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 522); // goapactions
@@ -15191,7 +15191,7 @@ static void fun_279(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2454, locals);
+    PushFunId(vm, funinfo_table + 1920, locals);
     U_STATEMENT(vm, regs + 0, 106, 11);
     regs[0] = locals[0]; // _
     U_PUSHFLD(vm, regs + 1, 4);
@@ -15210,7 +15210,7 @@ static void fun_280(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2460, locals);
+    PushFunId(vm, funinfo_table + 1924, locals);
     U_STATEMENT(vm, regs + 0, 111, 11);
     regs[0] = locals[0]; // _
     fun_301(vm, regs + 1); // call: function271
@@ -15238,7 +15238,7 @@ static void fun_281(VMRef vm, StackPtr psp) {
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2466, locals);
+    PushFunId(vm, funinfo_table + 1928, locals);
     U_STATEMENT(vm, regs + 0, 6, 10);
     U_PUSHSTR(vm, regs + 0, 447); // "................................."
     U_INCREF(vm, regs + 1, 0);
@@ -15391,7 +15391,7 @@ static void fun_281(VMRef vm, StackPtr psp) {
 static void fun_282(VMRef vm, StackPtr psp) {
     Value regs[2];
     SwapVars(vm, 545, psp, 1);
-    PushFunId(vm, funinfo_table + 2483, 0);
+    PushFunId(vm, funinfo_table + 1943, 0);
     U_STATEMENT(vm, regs + 0, 45, 10);
     U_PUSHVARF(vm, regs + 0, 538); // worldsize+0
     U_PUSHFUN(vm, regs + 1, 0, fun_283);
@@ -15410,7 +15410,7 @@ static void fun_283(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2489, locals);
+    PushFunId(vm, funinfo_table + 1947, locals);
     U_STATEMENT(vm, regs + 0, 46, 10);
     U_PUSHVARF(vm, regs + 0, 536); // initworld
     U_PUSHVARF(vm, regs + 1, 545); // y
@@ -15468,7 +15468,7 @@ static void fun_284(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2496, locals);
+    PushFunId(vm, funinfo_table + 1952, locals);
     U_STATEMENT(vm, regs + 0, 52, 10);
     U_PUSHVARF(vm, regs + 0, 544); // world
     regs[1] = locals[0];regs[2] = locals[1]; // _
@@ -15489,7 +15489,7 @@ static void fun_285(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2503, locals);
+    PushFunId(vm, funinfo_table + 1957, locals);
     U_STATEMENT(vm, regs + 0, 53, 10);
     regs[0] = locals[1]; // nn
     U_PUSHFLD(vm, regs + 1, 11);
@@ -15528,7 +15528,7 @@ static void fun_286(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2510, locals);
+    PushFunId(vm, funinfo_table + 1962, locals);
     U_STATEMENT(vm, regs + 0, 60, 10);
     regs[0] = locals[0]; // row
     U_PUSHSTR(vm, regs + 1, 473); // ""
@@ -15550,7 +15550,7 @@ static void fun_287(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2516, locals);
+    PushFunId(vm, funinfo_table + 1966, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 64, 10);
@@ -15608,7 +15608,7 @@ static void fun_288(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2523, locals);
+    PushFunId(vm, funinfo_table + 1971, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 6, 12);
@@ -15714,7 +15714,7 @@ static void fun_289(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2530, locals);
+    PushFunId(vm, funinfo_table + 1976, locals);
     U_STATEMENT(vm, regs + 0, 17, 12);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 0);
@@ -15737,7 +15737,7 @@ static void fun_291(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2537, locals);
+    PushFunId(vm, funinfo_table + 1981, locals);
     U_STATEMENT(vm, regs + 0, 24, 12);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 1);
@@ -15760,7 +15760,7 @@ static void fun_293(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2544, locals);
+    PushFunId(vm, funinfo_table + 1986, locals);
     U_STATEMENT(vm, regs + 0, 31, 12);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 2);
@@ -15783,7 +15783,7 @@ static void fun_295(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2551, locals);
+    PushFunId(vm, funinfo_table + 1991, locals);
     U_STATEMENT(vm, regs + 0, 38, 12);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 2);
@@ -15806,7 +15806,7 @@ static void fun_297(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2558, locals);
+    PushFunId(vm, funinfo_table + 1996, locals);
     U_STATEMENT(vm, regs + 0, 45, 12);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 3);
@@ -15829,7 +15829,7 @@ static void fun_299(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2565, locals);
+    PushFunId(vm, funinfo_table + 2001, locals);
     U_STATEMENT(vm, regs + 0, 52, 12);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 6);
@@ -15866,7 +15866,7 @@ static void fun_290(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2572, locals);
+    PushFunId(vm, funinfo_table + 2006, locals);
     U_STATEMENT(vm, regs + 0, 19, 12);
     regs[0] = locals[1]; // s
     U_LVAL_FLD(vm, regs + 1, 0);
@@ -15891,7 +15891,7 @@ static void fun_292(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2579, locals);
+    PushFunId(vm, funinfo_table + 2011, locals);
     U_STATEMENT(vm, regs + 0, 26, 12);
     U_PUSHINT(vm, regs + 0, 2);
     regs[1] = locals[1]; // s
@@ -15917,7 +15917,7 @@ static void fun_294(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2586, locals);
+    PushFunId(vm, funinfo_table + 2016, locals);
     U_STATEMENT(vm, regs + 0, 33, 12);
     U_PUSHINT(vm, regs + 0, 2);
     regs[1] = locals[1]; // s
@@ -15943,7 +15943,7 @@ static void fun_296(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2593, locals);
+    PushFunId(vm, funinfo_table + 2021, locals);
     U_STATEMENT(vm, regs + 0, 40, 12);
     regs[0] = locals[1]; // s
     U_LVAL_FLD(vm, regs + 1, 2);
@@ -15968,7 +15968,7 @@ static void fun_298(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2600, locals);
+    PushFunId(vm, funinfo_table + 2026, locals);
     U_STATEMENT(vm, regs + 0, 47, 12);
     regs[0] = locals[1]; // s
     U_LVAL_FLD(vm, regs + 1, 3);
@@ -15993,7 +15993,7 @@ static void fun_300(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2607, locals);
+    PushFunId(vm, funinfo_table + 2031, locals);
     U_STATEMENT(vm, regs + 0, 54, 12);
     regs[0] = locals[1]; // s
     U_PUSHFLD(vm, regs + 1, 4);
@@ -16030,7 +16030,7 @@ static void fun_301(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2614, locals);
+    PushFunId(vm, funinfo_table + 2036, locals);
     U_STATEMENT(vm, regs + 0, 73, 12);
     regs[0] = locals[0]; // state
     U_PUSHFLD(vm, regs + 1, 6);
@@ -16047,7 +16047,7 @@ static void fun_302(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2620, locals);
+    PushFunId(vm, funinfo_table + 2040, locals);
     U_STATEMENT(vm, regs + 0, 75, 12);
     regs[0] = locals[0]; // s
     U_PUSHFLD(vm, regs + 1, 6);
@@ -16066,7 +16066,7 @@ static void fun_303(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2626, locals);
+    PushFunId(vm, funinfo_table + 2044, locals);
     U_STATEMENT(vm, regs + 0, 79, 12);
     regs[0] = locals[0]; // n
     U_PUSHFLD(vm, regs + 1, 5);
@@ -16094,7 +16094,7 @@ static void fun_304(VMRef vm, StackPtr psp) {
     Value regs[16];
     Value keepvar[1];
     BackupVar(vm, 587);
-    PushFunId(vm, funinfo_table + 2632, 0);
+    PushFunId(vm, funinfo_table + 2048, 0);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 6, 13);
     U_PUSHINT(vm, regs + 0, 1);
@@ -16147,7 +16147,7 @@ static void fun_305(VMRef vm, StackPtr psp) {
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2638, locals);
+    PushFunId(vm, funinfo_table + 2052, locals);
     U_STATEMENT(vm, regs + 0, 10, 13);
     U_PUSHVARVF(vm, regs + 0, 588, 2); // dim+0
     U_PUSHFUN(vm, regs + 2, 0, fun_10000001);
@@ -16260,7 +16260,7 @@ static void fun_307(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2651, locals);
+    PushFunId(vm, funinfo_table + 2063, locals);
     U_STATEMENT(vm, regs + 0, 14, 13);
     U_PUSHVARVF(vm, regs + 0, 591, 2); // cur+0
     regs[2] = locals[0];regs[3] = locals[1]; // m
@@ -16281,7 +16281,7 @@ static void fun_308(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2658, locals);
+    PushFunId(vm, funinfo_table + 2068, locals);
     U_STATEMENT(vm, regs + 0, 15, 13);
     regs[0] = locals[0];regs[1] = locals[1]; // v
     U_PUSHINT(vm, regs + 2, 2);
@@ -16314,7 +16314,7 @@ static void fun_309(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2665, locals);
+    PushFunId(vm, funinfo_table + 2073, locals);
     U_STATEMENT(vm, regs + 0, 16, 13);
     regs[0] = locals[0];regs[1] = locals[1]; // c
     fun_308(vm, regs + 2); // call: empty
@@ -16333,7 +16333,7 @@ static void fun_310(VMRef vm, StackPtr psp) {
     Value keepvar[1];
     SwapVars(vm, 602, psp, 2);
     SwapVars(vm, 603, psp, 1);
-    PushFunId(vm, funinfo_table + 2672, 0);
+    PushFunId(vm, funinfo_table + 2078, 0);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 18, 13);
     U_PUSHVARF(vm, regs + 0, 587); // knight_moves
@@ -16357,7 +16357,7 @@ static void fun_311(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2679, locals);
+    PushFunId(vm, funinfo_table + 2083, locals);
     U_STATEMENT(vm, regs + 0, 18, 13);
     U_PUSHVARVF(vm, regs + 0, 602, 2); // c+0
     regs[2] = locals[0];regs[3] = locals[1]; // m
@@ -16377,7 +16377,7 @@ static void fun_312(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2686, locals);
+    PushFunId(vm, funinfo_table + 2088, locals);
     U_STATEMENT(vm, regs + 0, 19, 13);
     regs[0] = locals[0]; // d
     U_IUMINUS(vm, regs + 1);
@@ -16398,7 +16398,7 @@ static void fun_313(VMRef vm, StackPtr psp) {
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2692, locals);
+    PushFunId(vm, funinfo_table + 2092, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 8, 14);
     U_STATEMENT(vm, regs + 0, 8, 14);
@@ -16477,7 +16477,7 @@ static void fun_314(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2701, locals);
+    PushFunId(vm, funinfo_table + 2099, locals);
     U_STATEMENT(vm, regs + 0, 13, 14);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -16497,7 +16497,7 @@ static void fun_317(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2707, locals);
+    PushFunId(vm, funinfo_table + 2103, locals);
     U_STATEMENT(vm, regs + 0, 22, 14);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 1);
@@ -16528,7 +16528,7 @@ static void fun_315(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2714, locals);
+    PushFunId(vm, funinfo_table + 2108, locals);
     U_STATEMENT(vm, regs + 0, 14, 14);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -16546,7 +16546,7 @@ static void fun_319(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2720, locals);
+    PushFunId(vm, funinfo_table + 2112, locals);
     U_STATEMENT(vm, regs + 0, 32, 14);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -16596,7 +16596,7 @@ static void fun_316(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2726, locals);
+    PushFunId(vm, funinfo_table + 2116, locals);
     U_STATEMENT(vm, regs + 0, 15, 14);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -16614,7 +16614,7 @@ static void fun_316(VMRef vm, StackPtr psp) {
 static void fun_322(VMRef vm, StackPtr psp) {
     Value regs[3];
     SwapVars(vm, 619, psp, 1);
-    PushFunId(vm, funinfo_table + 2732, 0);
+    PushFunId(vm, funinfo_table + 2120, 0);
     U_STATEMENT(vm, regs + 0, 39, 14);
     U_PUSHVARF(vm, regs + 0, 619); // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -16658,7 +16658,7 @@ static void fun_318(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2738, locals);
+    PushFunId(vm, funinfo_table + 2124, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 22, 14);
@@ -16688,7 +16688,7 @@ static void fun_320(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2745, locals);
+    PushFunId(vm, funinfo_table + 2129, locals);
     U_STATEMENT(vm, regs + 0, 28, 14);
     regs[0] = locals[0]; // _a
     regs[1] = locals[1]; // _e
@@ -16710,7 +16710,7 @@ static void fun_321(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2752, locals);
+    PushFunId(vm, funinfo_table + 2134, locals);
     U_STATEMENT(vm, regs + 0, 30, 14);
     regs[0] = locals[0]; // _a
     regs[1] = locals[1]; // _e
@@ -16731,7 +16731,7 @@ static void fun_323(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2759, locals);
+    PushFunId(vm, funinfo_table + 2139, locals);
     U_STATEMENT(vm, regs + 0, 37, 14);
     regs[0] = locals[0]; // _
     U_INCREF(vm, regs + 1, 0);
@@ -16750,7 +16750,7 @@ static void fun_324(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2765, locals);
+    PushFunId(vm, funinfo_table + 2143, locals);
     U_STATEMENT(vm, regs + 0, 37, 14);
     U_PUSHSTR(vm, regs + 0, 506); // "("
     regs[1] = locals[0]; // _a
@@ -16779,7 +16779,7 @@ static void fun_325(VMRef vm, StackPtr psp) {
     BackupVar(vm, 627);
     BackupVar(vm, 628);
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2772, locals);
+    PushFunId(vm, funinfo_table + 2148, locals);
     U_STATEMENT(vm, regs + 0, 42, 14);
     U_PUSHSTR(vm, regs + 0, 508); // ""
     U_INCREF(vm, regs + 1, 0);
@@ -16871,7 +16871,7 @@ static void fun_326(VMRef vm, StackPtr psp) {
     Value keepvar[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2784, locals);
+    PushFunId(vm, funinfo_table + 2158, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 50, 14);
     U_PUSHNIL(vm, regs + 0);
@@ -16900,7 +16900,7 @@ static void fun_327(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2790, locals);
+    PushFunId(vm, funinfo_table + 2162, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 52, 14);
     U_LVAL_VARF(vm, regs + 0, 626); // i
@@ -16995,7 +16995,7 @@ static void fun_328(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2797, locals);
+    PushFunId(vm, funinfo_table + 2167, locals);
     U_STATEMENT(vm, regs + 0, 54, 14);
     regs[0] = locals[0]; // _
     U_PUSHVARF(vm, regs + 1, 623); // s
@@ -17013,7 +17013,7 @@ static void fun_328(VMRef vm, StackPtr psp) {
 // lex_next
 static void fun_329(VMRef vm, StackPtr psp) {
     Value regs[3];
-    PushFunId(vm, funinfo_table + 2803, 0);
+    PushFunId(vm, funinfo_table + 2171, 0);
     U_STATEMENT(vm, regs + 0, 62, 14);
     block0:;
     U_PUSHINT(vm, regs + 0, 1);
@@ -17177,7 +17177,7 @@ static void fun_568(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2808, locals);
+    PushFunId(vm, funinfo_table + 2174, locals);
     U_STATEMENT(vm, regs + 0, 89, 14);
     regs[0] = locals[0]; // tok
     U_PUSHVARF(vm, regs + 1, 624); // token
@@ -17227,7 +17227,7 @@ static void fun_330(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2815, locals);
+    PushFunId(vm, funinfo_table + 2179, locals);
     U_STATEMENT(vm, regs + 0, 89, 14);
     regs[0] = locals[0]; // tok
     U_PUSHVARF(vm, regs + 1, 624); // token
@@ -17281,7 +17281,7 @@ static void fun_331(VMRef vm, StackPtr psp) {
     BackupVar(vm, 635);
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2822, locals);
+    PushFunId(vm, funinfo_table + 2184, locals);
     U_STATEMENT(vm, regs + 0, 95, 14);
     U_PUSHVARF(vm, regs + 0, 624); // token
     U_DUP(vm, regs + 1);
@@ -17450,7 +17450,7 @@ static void fun_332(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2830, locals);
+    PushFunId(vm, funinfo_table + 2190, locals);
     U_STATEMENT(vm, regs + 0, 99, 14);
     U_PUSHVARF(vm, regs + 0, 635); // name
     regs[1] = locals[0]; // _
@@ -17478,7 +17478,7 @@ static void fun_333(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2836, locals);
+    PushFunId(vm, funinfo_table + 2194, locals);
     U_STATEMENT(vm, regs + 0, 14, 16);
     U_PUSHVARVF(vm, regs + 0, 644, 2); // sz+0
     U_PUSHFUN(vm, regs + 2, 0, fun_334);
@@ -17575,7 +17575,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2852, locals);
+    PushFunId(vm, funinfo_table + 2208, locals);
     U_STATEMENT(vm, regs + 0, 14, 16);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARVF(vm, regs + 1, 123, 2); // int2_0+0
@@ -17603,7 +17603,7 @@ static void fun_335(VMRef vm, StackPtr psp) {
     locals[6] = lobster::NilVal();
     locals[7] = lobster::NilVal();
     locals[8] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2859, locals);
+    PushFunId(vm, funinfo_table + 2213, locals);
     U_STATEMENT(vm, regs + 0, 19, 16);
     regs[0] = locals[2]; // parent
     U_PUSHFLD2V(vm, regs + 1, 3, 2);
@@ -17710,7 +17710,7 @@ static void fun_335(VMRef vm, StackPtr psp) {
 static void fun_336(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
-    PushFunId(vm, funinfo_table + 2873, 0);
+    PushFunId(vm, funinfo_table + 2225, 0);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 6, 15);
     U_PUSHVARVF(vm, regs + 0, 125, 2); // int2_1+0
@@ -17751,7 +17751,7 @@ static void fun_338(VMRef vm, StackPtr psp) {
     BackupVar(vm, 691);
     BackupVar(vm, 692);
     BackupVar(vm, 693);
-    PushFunId(vm, funinfo_table + 2878, locals);
+    PushFunId(vm, funinfo_table + 2228, locals);
     U_STATEMENT(vm, regs + 0, 9, 17);
     U_PUSHINT(vm, regs + 0, 0);
     U_BCALLRET1(vm, regs + 1, 97, 0); // rnd_seed
@@ -17858,7 +17858,7 @@ static void fun_338(VMRef vm, StackPtr psp) {
 static void fun_339(VMRef vm, StackPtr psp) {
     Value regs[2];
     SwapVars(vm, 675, psp, 1);
-    PushFunId(vm, funinfo_table + 2897, 0);
+    PushFunId(vm, funinfo_table + 2245, 0);
     U_STATEMENT(vm, regs + 0, 25, 17);
     U_PUSHVARF(vm, regs + 0, 666); // lssize
     U_PUSHFUN(vm, regs + 1, 0, fun_340);
@@ -17877,7 +17877,7 @@ static void fun_340(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2903, locals);
+    PushFunId(vm, funinfo_table + 2249, locals);
     U_STATEMENT(vm, regs + 0, 26, 17);
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
     SetLVal(vm, &locals[1]); // h
@@ -17948,7 +17948,7 @@ static void fun_582(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2910, locals);
+    PushFunId(vm, funinfo_table + 2254, locals);
     U_STATEMENT(vm, regs + 0, 39, 17);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 666); // lssize
@@ -17994,7 +17994,7 @@ static void fun_341(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2918, locals);
+    PushFunId(vm, funinfo_table + 2260, locals);
     U_STATEMENT(vm, regs + 0, 39, 17);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 666); // lssize
@@ -18041,7 +18041,7 @@ static void fun_342(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 3);
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2926, locals);
+    PushFunId(vm, funinfo_table + 2266, locals);
     U_STATEMENT(vm, regs + 0, 44, 17);
     regs[0] = locals[0]; // pos+0
     U_PUSHINT(vm, regs + 1, 0);
@@ -18086,7 +18086,7 @@ static void fun_343(VMRef vm, StackPtr psp) {
     SwapVars(vm, 687, psp, 1);
     BackupVar(vm, 688);
     BackupVar(vm, 689);
-    PushFunId(vm, funinfo_table + 2934, locals);
+    PushFunId(vm, funinfo_table + 2272, locals);
     U_STATEMENT(vm, regs + 0, 50, 17);
     U_PUSHINT(vm, regs + 0, -1);
     U_PUSHVARF(vm, regs + 1, 684); // neighbours
@@ -18121,7 +18121,7 @@ static void fun_343(VMRef vm, StackPtr psp) {
 // function311
 static void fun_344(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 2944, 0);
+    PushFunId(vm, funinfo_table + 2280, 0);
     U_STATEMENT(vm, regs + 0, 52, 17);
     U_PUSHVARF(vm, regs + 0, 674); // cells
     U_PUSHVARF(vm, regs + 1, 689); // n+1
@@ -18138,7 +18138,7 @@ static void fun_344(VMRef vm, StackPtr psp) {
 // sim
 static void fun_345(VMRef vm, StackPtr psp) {
     Value regs[4];
-    PushFunId(vm, funinfo_table + 2949, 0);
+    PushFunId(vm, funinfo_table + 2283, 0);
     U_STATEMENT(vm, regs + 0, 62, 17);
     U_PUSHFLT64(vm, regs + 0, 286331153, 1066471697);
     U_PUSHVARF(vm, regs + 1, 691); // water_per_second
@@ -18172,7 +18172,7 @@ static void fun_346(VMRef vm, StackPtr psp) {
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2954, locals);
+    PushFunId(vm, funinfo_table + 2286, locals);
     U_STATEMENT(vm, regs + 0, 64, 17);
     U_PUSHVARF(vm, regs + 0, 696); // c
     U_PUSHFLD(vm, regs + 1, 1);
@@ -18264,7 +18264,7 @@ static void fun_347(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 1);
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2967, locals);
+    PushFunId(vm, funinfo_table + 2297, locals);
     U_STATEMENT(vm, regs + 0, 70, 17);
     U_PUSHVARF(vm, regs + 0, 696); // c
     U_PUSHFLD(vm, regs + 1, 1);
@@ -18304,7 +18304,7 @@ static void fun_348(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 3);
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 2974, locals);
+    PushFunId(vm, funinfo_table + 2302, locals);
     U_STATEMENT(vm, regs + 0, 80, 17);
     regs[0] = locals[2]; // c
     U_PUSHFLD(vm, regs + 1, 2);
@@ -18345,7 +18345,7 @@ static void fun_349(VMRef vm, StackPtr psp) {
     locals[3] = lobster::NilVal();
     locals[4] = lobster::NilVal();
     locals[5] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2982, locals);
+    PushFunId(vm, funinfo_table + 2308, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 7, 18);
     U_PUSHINT(vm, regs + 0, 0);
@@ -18466,7 +18466,7 @@ static void fun_350(VMRef vm, StackPtr psp) {
     locals[9] = lobster::NilVal();
     locals[10] = lobster::NilVal();
     locals[11] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 2995, locals);
+    PushFunId(vm, funinfo_table + 2319, locals);
     U_STATEMENT(vm, regs + 0, 13, 18);
     U_PUSHVARF(vm, regs + 0, 707); // N
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -18629,7 +18629,7 @@ static void fun_354(VMRef vm, StackPtr psp) {
     locals[33] = lobster::NilVal();
     locals[34] = lobster::NilVal();
     locals[35] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3012, locals);
+    PushFunId(vm, funinfo_table + 2334, locals);
     U_STATEMENT(vm, regs + 0, 8, 19);
     U_PUSHINT(vm, regs + 0, 0);
     U_BCALLRET1(vm, regs + 1, 97, 0); // rnd_seed
@@ -19293,7 +19293,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     locals[10] = lobster::NilVal();
     locals[11] = lobster::NilVal();
     locals[12] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3058, locals);
+    PushFunId(vm, funinfo_table + 2378, locals);
     U_STATEMENT(vm, regs + 0, 23, 19);
     U_PUSHVARF(vm, regs + 0, 727); // verts
     U_INCREF(vm, regs + 1, 0);
@@ -19412,7 +19412,7 @@ static void fun_357(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3076, locals);
+    PushFunId(vm, funinfo_table + 2394, locals);
     U_STATEMENT(vm, regs + 0, 40, 19);
     U_PUSHVARF(vm, regs + 0, 727); // verts
     regs[1] = locals[0];regs[2] = locals[1]; // p
@@ -19447,7 +19447,7 @@ static void fun_358(VMRef vm, StackPtr psp) {
     locals[3] = *(psp - 3);
     locals[4] = *(psp - 2);
     locals[5] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3083, locals);
+    PushFunId(vm, funinfo_table + 2399, locals);
     U_STATEMENT(vm, regs + 0, 53, 19);
     regs[0] = locals[2]; // a+2
     regs[1] = locals[5]; // b+2
@@ -19471,7 +19471,7 @@ static void fun_360(VMRef vm, StackPtr psp) {
     Value locals[1];
     locals[0] = *(psp - 2);
     SwapVars(vm, 767, psp, 1);
-    PushFunId(vm, funinfo_table + 3094, locals);
+    PushFunId(vm, funinfo_table + 2408, locals);
     U_STATEMENT(vm, regs + 0, 63, 19);
     regs[0] = locals[0]; // nbl
     U_INCREF(vm, regs + 1, 0);
@@ -19492,7 +19492,7 @@ static void fun_361(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3101, locals);
+    PushFunId(vm, funinfo_table + 2413, locals);
     U_STATEMENT(vm, regs + 0, 64, 19);
     U_PUSHVARF(vm, regs + 0, 727); // verts
     regs[1] = locals[0]; // a
@@ -19527,7 +19527,7 @@ static void fun_362(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3108, locals);
+    PushFunId(vm, funinfo_table + 2418, locals);
     U_STATEMENT(vm, regs + 0, 74, 19);
     regs[0] = locals[0]; // _
     U_PUSHVARF(vm, regs + 1, 774); // p
@@ -19546,7 +19546,7 @@ static void fun_363(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3114, locals);
+    PushFunId(vm, funinfo_table + 2422, locals);
     U_STATEMENT(vm, regs + 0, 80, 19);
     regs[0] = locals[0]; // _a
     regs[1] = locals[1]; // _b
@@ -19565,7 +19565,7 @@ static void fun_364(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3121, locals);
+    PushFunId(vm, funinfo_table + 2427, locals);
     U_STATEMENT(vm, regs + 0, 84, 19);
     regs[0] = locals[0]; // _
     U_PUSHVARF(vm, regs + 1, 773); // shape
@@ -19583,7 +19583,7 @@ static void fun_365(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3127, locals);
+    PushFunId(vm, funinfo_table + 2431, locals);
     U_STATEMENT(vm, regs + 0, 87, 19);
     regs[0] = locals[0]; // _
     U_PUSHVARF(vm, regs + 1, 773); // shape
@@ -19632,7 +19632,7 @@ static void fun_369(VMRef vm, StackPtr psp) {
     locals[26] = lobster::NilVal();
     locals[27] = lobster::NilVal();
     locals[28] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3133, locals);
+    PushFunId(vm, funinfo_table + 2435, locals);
     U_STATEMENT(vm, regs + 0, 9, 20);
     U_STATEMENT(vm, regs + 0, 9, 20);
     U_STATEMENT(vm, regs + 0, 13, 20);
@@ -19999,7 +19999,7 @@ static void fun_370(VMRef vm, StackPtr psp) {
     locals[11] = lobster::NilVal();
     locals[12] = lobster::NilVal();
     locals[13] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3170, locals);
+    PushFunId(vm, funinfo_table + 2470, locals);
     U_STATEMENT(vm, regs + 0, 26, 20);
     regs[0] = locals[0]; // sphere
     U_PUSHFLD2V(vm, regs + 1, 1, 3);
@@ -20182,7 +20182,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     locals[65] = lobster::NilVal();
     locals[66] = lobster::NilVal();
     locals[67] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3189, locals);
+    PushFunId(vm, funinfo_table + 2487, locals);
     U_STATEMENT(vm, regs + 0, 57, 20);
     U_PUSHFLT64(vm, regs + 0, -1577058304, 1114446484);
     SetLVal(vm, &locals[7]); // t
@@ -20810,7 +20810,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
 // function339
 static void fun_372(VMRef vm, StackPtr psp) {
     Value regs[2];
-    PushFunId(vm, funinfo_table + 3262, 0);
+    PushFunId(vm, funinfo_table + 2558, 0);
     U_STATEMENT(vm, regs + 0, 119, 20);
     U_PUSHVARF(vm, regs + 0, 1015); // w
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -20827,7 +20827,7 @@ static void fun_374(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3267, locals);
+    PushFunId(vm, funinfo_table + 2561, locals);
     U_STATEMENT(vm, regs + 0, 138, 20);
     regs[0] = locals[0]; // row
     U_PUSHFUN(vm, regs + 1, 0, fun_375);
@@ -20847,7 +20847,7 @@ static void fun_375(VMRef vm, StackPtr psp) {
     locals[0] = *(psp - 3);
     locals[1] = *(psp - 2);
     locals[2] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3273, locals);
+    PushFunId(vm, funinfo_table + 2565, locals);
     U_STATEMENT(vm, regs + 0, 138, 20);
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2]; // col
     U_PUSHVARF(vm, regs + 3, 1030); // samples
@@ -20884,7 +20884,7 @@ static void fun_376(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3281, locals);
+    PushFunId(vm, funinfo_table + 2571, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -21112,7 +21112,7 @@ static void fun_377(VMRef vm, StackPtr psp) {
     locals[1] = lobster::NilVal();
     locals[2] = lobster::NilVal();
     locals[3] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3288, locals);
+    PushFunId(vm, funinfo_table + 2576, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 9, 23);
@@ -21180,7 +21180,7 @@ static void fun_378(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3297, locals);
+    PushFunId(vm, funinfo_table + 2583, locals);
     U_STATEMENT(vm, regs + 0, 8, 24);
     U_STATEMENT(vm, regs + 0, 8, 24);
     U_PUSHFUN(vm, regs + 0, 0, fun_379);
@@ -21207,7 +21207,7 @@ static void fun_379(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3304, locals);
+    PushFunId(vm, funinfo_table + 2588, locals);
     U_STATEMENT(vm, regs + 0, 9, 24);
     U_PUSHSTR(vm, regs + 0, 573); // ""
     U_INCREF(vm, regs + 1, 0);
@@ -21242,7 +21242,7 @@ static void fun_380(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3311, locals);
+    PushFunId(vm, funinfo_table + 2593, locals);
     U_STATEMENT(vm, regs + 0, 14, 24);
     U_PUSHINT(vm, regs + 0, 1);
     U_NEWVEC(vm, regs + 1, 7, 1);
@@ -21272,7 +21272,7 @@ static void fun_381(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3318, locals);
+    PushFunId(vm, funinfo_table + 2598, locals);
     U_STATEMENT(vm, regs + 0, 7, 25);
     U_STATEMENT(vm, regs + 0, 7, 25);
     U_PUSHFUN(vm, regs + 0, 0, fun_382);
@@ -21293,7 +21293,7 @@ static void fun_382(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = lobster::NilVal();
     locals[1] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3324, locals);
+    PushFunId(vm, funinfo_table + 2602, locals);
     keepvar[0] = lobster::NilVal();
     U_STATEMENT(vm, regs + 0, 8, 25);
     U_STATEMENT(vm, regs + 0, 8, 25);
@@ -21376,7 +21376,7 @@ static void fun_383(VMRef vm, StackPtr psp) {
     locals[5] = *(psp - 3);
     locals[6] = *(psp - 2);
     locals[7] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3331, locals);
+    PushFunId(vm, funinfo_table + 2607, locals);
     U_STATEMENT(vm, regs + 0, 13, 27);
     regs[0] = locals[3]; // this+3
     regs[1] = locals[4]; // o+0
@@ -21465,7 +21465,7 @@ static void fun_384(VMRef vm, StackPtr psp) {
     locals[2] = *(psp - 3);
     locals[3] = *(psp - 2);
     locals[4] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3344, locals);
+    PushFunId(vm, funinfo_table + 2618, locals);
     U_STATEMENT(vm, regs + 0, 16, 27);
     regs[0] = locals[0]; // this+0
     regs[1] = locals[4]; // f
@@ -21500,7 +21500,7 @@ static void fun_395(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3354, locals);
+    PushFunId(vm, funinfo_table + 2626, locals);
     U_STATEMENT(vm, regs + 0, 12, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21524,7 +21524,7 @@ static void fun_427(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3361, locals);
+    PushFunId(vm, funinfo_table + 2631, locals);
     U_STATEMENT(vm, regs + 0, 56, 26);
     regs[0] = locals[0]; // this+0
     regs[1] = locals[1]; // o+0
@@ -21550,7 +21550,7 @@ static void fun_445(VMRef vm, StackPtr psp) {
     locals[5] = *(psp - 3);
     locals[6] = *(psp - 2);
     locals[7] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3368, locals);
+    PushFunId(vm, funinfo_table + 2636, locals);
     U_STATEMENT(vm, regs + 0, 11, 29);
     regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6];regs[3] = locals[7]; // o
     fun_70(vm, regs + 4); // call: xz
@@ -21610,7 +21610,7 @@ static void fun_446(VMRef vm, StackPtr psp) {
     locals[3] = *(psp - 3);
     locals[4] = *(psp - 2);
     locals[5] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3381, locals);
+    PushFunId(vm, funinfo_table + 2647, locals);
     U_STATEMENT(vm, regs + 0, 15, 29);
     regs[0] = locals[4];regs[1] = locals[5]; // o
     U_PUSHINT(vm, regs + 2, 2);
@@ -21647,7 +21647,7 @@ static void fun_385(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3392, locals);
+    PushFunId(vm, funinfo_table + 2656, locals);
     U_STATEMENT(vm, regs + 0, 19, 27);
     regs[0] = locals[0]; // this+0
     U_FUMINUS(vm, regs + 1);
@@ -21675,7 +21675,7 @@ static void fun_608(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3401, locals);
+    PushFunId(vm, funinfo_table + 2663, locals);
     U_STATEMENT(vm, regs + 0, 40, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21695,7 +21695,7 @@ static void fun_420(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3407, locals);
+    PushFunId(vm, funinfo_table + 2667, locals);
     U_STATEMENT(vm, regs + 0, 40, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21715,7 +21715,7 @@ static void fun_393(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3413, locals);
+    PushFunId(vm, funinfo_table + 2671, locals);
     U_STATEMENT(vm, regs + 0, 10, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21738,7 +21738,7 @@ static void fun_425(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3420, locals);
+    PushFunId(vm, funinfo_table + 2676, locals);
     U_STATEMENT(vm, regs + 0, 54, 26);
     regs[0] = locals[0]; // this+0
     regs[1] = locals[1]; // o+0
@@ -21758,7 +21758,7 @@ static void fun_394(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3427, locals);
+    PushFunId(vm, funinfo_table + 2681, locals);
     U_STATEMENT(vm, regs + 0, 11, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21782,7 +21782,7 @@ static void fun_426(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3434, locals);
+    PushFunId(vm, funinfo_table + 2686, locals);
     U_STATEMENT(vm, regs + 0, 55, 26);
     regs[0] = locals[0]; // this+0
     regs[1] = locals[1]; // o+0
@@ -21802,7 +21802,7 @@ static void fun_396(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3441, locals);
+    PushFunId(vm, funinfo_table + 2691, locals);
     U_STATEMENT(vm, regs + 0, 13, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21826,7 +21826,7 @@ static void fun_428(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3448, locals);
+    PushFunId(vm, funinfo_table + 2696, locals);
     U_STATEMENT(vm, regs + 0, 57, 26);
     regs[0] = locals[0]; // this+0
     regs[1] = locals[1]; // o+0
@@ -21846,7 +21846,7 @@ static void fun_403(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3455, locals);
+    PushFunId(vm, funinfo_table + 2701, locals);
     U_STATEMENT(vm, regs + 0, 21, 26);
     regs[0] = locals[1]; // o
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21867,7 +21867,7 @@ static void fun_607(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3462, locals);
+    PushFunId(vm, funinfo_table + 2706, locals);
     U_STATEMENT(vm, regs + 0, 32, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21889,7 +21889,7 @@ static void fun_413(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3469, locals);
+    PushFunId(vm, funinfo_table + 2711, locals);
     U_STATEMENT(vm, regs + 0, 32, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21912,7 +21912,7 @@ static void fun_435(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3476, locals);
+    PushFunId(vm, funinfo_table + 2716, locals);
     U_STATEMENT(vm, regs + 0, 65, 26);
     regs[0] = locals[0]; // this+0
     regs[1] = locals[1]; // o+0
@@ -21932,7 +21932,7 @@ static void fun_414(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3483, locals);
+    PushFunId(vm, funinfo_table + 2721, locals);
     U_STATEMENT(vm, regs + 0, 33, 26);
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -21953,7 +21953,7 @@ static void fun_421(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3490, locals);
+    PushFunId(vm, funinfo_table + 2726, locals);
     U_STATEMENT(vm, regs + 0, 41, 26);
     regs[0] = locals[0]; // this
     U_LVAL_FLD(vm, regs + 1, 0);
@@ -21972,7 +21972,7 @@ static void fun_422(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3496, locals);
+    PushFunId(vm, funinfo_table + 2730, locals);
     U_STATEMENT(vm, regs + 0, 42, 26);
     regs[0] = locals[0]; // this
     U_LVAL_FLD(vm, regs + 1, 0);
@@ -21992,7 +21992,7 @@ static void fun_423(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3502, locals);
+    PushFunId(vm, funinfo_table + 2734, locals);
     U_STATEMENT(vm, regs + 0, 44, 26);
     regs[0] = locals[1]; // o
     U_PUSHFLD(vm, regs + 1, 0);
@@ -22013,7 +22013,7 @@ static void fun_424(VMRef vm, StackPtr psp) {
     Value locals[2];
     locals[0] = *(psp - 2);
     locals[1] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3509, locals);
+    PushFunId(vm, funinfo_table + 2739, locals);
     U_STATEMENT(vm, regs + 0, 46, 26);
     regs[0] = locals[1]; // i
     U_PUSHINT(vm, regs + 1, 0);
@@ -22048,7 +22048,7 @@ static void fun_444(VMRef vm, StackPtr psp) {
     locals[5] = lobster::NilVal();
     locals[6] = lobster::NilVal();
     locals[7] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3516, locals);
+    PushFunId(vm, funinfo_table + 2744, locals);
     U_STATEMENT(vm, regs + 0, 80, 26);
     U_PUSHINT(vm, regs + 0, 1);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
@@ -22217,7 +22217,7 @@ static void fun_447(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3529, locals);
+    PushFunId(vm, funinfo_table + 2755, locals);
     U_STATEMENT(vm, regs + 0, 18, 29);
     regs[0] = locals[0]; // this+0
     regs[1] = locals[3]; // this+3
@@ -22245,7 +22245,7 @@ static void fun_448(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3538, locals);
+    PushFunId(vm, funinfo_table + 2762, locals);
     U_STATEMENT(vm, regs + 0, 21, 29);
     regs[0] = locals[3]; // this+3
     regs[1] = locals[1]; // this+1
@@ -22275,7 +22275,7 @@ static void fun_449(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3547, locals);
+    PushFunId(vm, funinfo_table + 2769, locals);
     U_STATEMENT(vm, regs + 0, 24, 29);
     regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // this
     fun_448(vm, regs + 4); // call: adjugate
@@ -22304,7 +22304,7 @@ static void fun_450(VMRef vm, StackPtr psp) {
     locals[1] = *(psp - 3);
     locals[2] = *(psp - 2);
     locals[3] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3556, locals);
+    PushFunId(vm, funinfo_table + 2776, locals);
     U_STATEMENT(vm, regs + 0, 27, 29);
     regs[0] = locals[0]; // this+0
     regs[1] = locals[3]; // this+3
@@ -22325,7 +22325,7 @@ static void fun_451(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3565, locals);
+    PushFunId(vm, funinfo_table + 2783, locals);
     U_STATEMENT(vm, regs + 0, 6, 28);
     U_STATEMENT(vm, regs + 0, 6, 28);
     U_PUSHFUN(vm, regs + 0, 0, fun_452);
@@ -22353,7 +22353,7 @@ static void fun_452(VMRef vm, StackPtr psp) {
     locals[7] = lobster::NilVal();
     locals[8] = lobster::NilVal();
     locals[9] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3571, locals);
+    PushFunId(vm, funinfo_table + 2787, locals);
     U_STATEMENT(vm, regs + 0, 7, 28);
     U_PUSHFLT(vm, regs + 0, 1065353216);
     U_PUSHFLT(vm, regs + 1, 1073741824);
@@ -22555,7 +22555,7 @@ static void fun_453(VMRef vm, StackPtr psp) {
     locals[6] = lobster::NilVal();
     locals[7] = lobster::NilVal();
     locals[8] = lobster::NilVal();
-    PushFunId(vm, funinfo_table + 3586, locals);
+    PushFunId(vm, funinfo_table + 2800, locals);
     keepvar[0] = lobster::NilVal();
     keepvar[1] = lobster::NilVal();
     keepvar[2] = lobster::NilVal();
@@ -22731,7 +22731,7 @@ static void fun_454(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3600, locals);
+    PushFunId(vm, funinfo_table + 2812, locals);
     U_STATEMENT(vm, regs + 0, 43, 30);
     regs[0] = locals[0]; // t
     switch (GetTypeSwitchID(vm, regs[0], 0)) {
@@ -22772,7 +22772,7 @@ static void fun_455(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3606, locals);
+    PushFunId(vm, funinfo_table + 2816, locals);
     U_STATEMENT(vm, regs + 0, 54, 30);
     regs[0] = locals[0]; // t
     switch (GetTypeSwitchID(vm, regs[0], 1)) {
@@ -22806,7 +22806,7 @@ static void fun_456(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3612, locals);
+    PushFunId(vm, funinfo_table + 2820, locals);
     U_STATEMENT(vm, regs + 0, 64, 30);
     regs[0] = locals[0]; // t
     switch (GetTypeSwitchID(vm, regs[0], 2)) {
@@ -22834,7 +22834,7 @@ static void fun_457(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3618, locals);
+    PushFunId(vm, funinfo_table + 2824, locals);
     U_STATEMENT(vm, regs + 0, 73, 30);
     regs[0] = locals[0]; // t
     switch (GetTypeSwitchID(vm, regs[0], 3)) {
@@ -22862,7 +22862,7 @@ static void fun_458(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3624, locals);
+    PushFunId(vm, funinfo_table + 2828, locals);
     U_STATEMENT(vm, regs + 0, 85, 30);
     regs[0] = locals[0]; // t
     U_DUP(vm, regs + 1);
@@ -22902,7 +22902,7 @@ static void fun_459(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
     locals[0] = *(psp - 1);
-    PushFunId(vm, funinfo_table + 3630, locals);
+    PushFunId(vm, funinfo_table + 2832, locals);
     U_STATEMENT(vm, regs + 0, 96, 30);
     regs[0] = locals[0]; // t
     U_DUP(vm, regs + 1);
@@ -23040,234 +23040,184 @@ static const fun_base_t vtables[] = {
 };
 
 const int funinfo_table[] = {
-    0, 24, 0, 241, 0, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 
-    85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 
-    101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 
-    117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 
-    133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 
-    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 
-    165, 166, 167, 168, 169, 170, 171, 172, 173, 798, 799, 800, 801, 802, 803, 804, 
-    805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819, 820, 
-    821, 822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 
-    837, 838, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 
-    853, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 
-    869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 
-    885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900, 
-    901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 
-    917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 1077, 1078, 1079, 
-    1080, 1150, 1151, 1152, 1153, 0, 3, 1, 2, 1, 2, 0, 0, 4, 3, 2, 
-    3, 4, 0, 0, 5, 2, 0, 0, 1, 6, 2, 2, 5, 6, 0, 1, 
-    615, 5, 2, 1631, 1632, 3, 1633, 1634, 1635, 1, 614, 5, 2, 1626, 1627, 3, 
-    1628, 1629, 1630, 1, 613, 5, 2, 1621, 1622, 3, 1623, 1624, 1625, 1, 612, 5, 
-    2, 1616, 1617, 3, 1618, 1619, 1620, 1, 611, 5, 2, 1611, 1612, 3, 1613, 1614, 
-    1615, 1, 610, 5, 2, 1606, 1607, 3, 1608, 1609, 1610, 1, 603, 8, 2, 1592, 
-    1593, 5, 1594, 1595, 1596, 1597, 1598, 1, 602, 5, 2, 1587, 1588, 3, 1589, 1590, 
-    1591, 1, 601, 7, 2, 1582, 1583, 3, 1584, 1585, 1586, 1, 600, 5, 2, 1577, 
-    1578, 3, 1579, 1580, 1581, 1, 592, 5, 2, 1543, 1544, 3, 1545, 1546, 1547, 1, 
-    591, 5, 2, 1537, 1538, 4, 1539, 1540, 1541, 1542, 1, 586, 6, 2, 1512, 1513, 
-    4, 1514, 1515, 1516, 1517, 1, 585, 5, 2, 1507, 1508, 3, 1509, 1510, 1511, 1, 
-    584, 5, 2, 1502, 1503, 3, 1504, 1505, 1506, 1, 583, 5, 2, 1497, 1498, 3, 
-    1499, 1500, 1501, 1, 581, 5, 2, 1489, 1490, 3, 1491, 1492, 1493, 1, 580, 5, 
-    2, 1484, 1485, 3, 1486, 1487, 1488, 1, 578, 5, 2, 1478, 1479, 3, 1480, 1481, 
-    1482, 1, 575, 5, 2, 1472, 1473, 3, 1474, 1475, 1476, 1, 572, 5, 2, 1464, 
-    1465, 3, 1466, 1467, 1468, 1, 565, 5, 2, 1434, 1435, 4, 1436, 1437, 1438, 1439, 
-    1, 564, 6, 2, 1428, 1429, 4, 1430, 1431, 1432, 1433, 1, 563, 5, 2, 1423, 
-    1424, 3, 1425, 1426, 1427, 1, 562, 5, 2, 1418, 1419, 3, 1420, 1421, 1422, 1, 
-    561, 5, 2, 1413, 1414, 3, 1415, 1416, 1417, 1, 557, 5, 2, 1392, 1393, 3, 
-    1394, 1395, 1396, 1, 542, 5, 2, 1355, 1356, 3, 1357, 1358, 1359, 1, 541, 5, 
-    2, 1350, 1351, 3, 1352, 1353, 1354, 1, 531, 5, 2, 1324, 1325, 3, 1326, 1327, 
-    1328, 1, 504, 5, 2, 1286, 1287, 3, 1288, 1289, 1290, 1, 501, 5, 2, 1279, 
-    1280, 3, 1281, 1282, 1283, 1, 491, 5, 2, 1241, 1242, 3, 1243, 1244, 1245, 1, 
-    484, 5, 2, 1218, 1219, 3, 1220, 1221, 1222, 1, 481, 5, 2, 1208, 1209, 3, 
-    1210, 1211, 1212, 1, 470, 5, 2, 1189, 1190, 3, 1191, 1192, 1193, 1, 7, 5, 
-    2, 7, 8, 3, 9, 10, 11, 1, 566, 6, 2, 1440, 1441, 4, 1442, 1443, 
-    1444, 1445, 0, 10, 6, 2, 12, 13, 4, 14, 15, 16, 17, 0, 594, 5, 
-    2, 1554, 1555, 4, 1556, 1557, 1558, 1559, 0, 589, 7, 2, 1526, 1527, 6, 1528, 
-    1529, 1530, 1531, 1532, 1533, 0, 13, 5, 2, 18, 19, 4, 20, 21, 22, 23, 
-    0, 599, 3, 2, 1573, 1574, 2, 1575, 1576, 0, 598, 3, 2, 1569, 1570, 2, 
-    1571, 1572, 0, 567, 3, 2, 1446, 1447, 2, 1448, 1449, 0, 15, 3, 2, 24, 
-    25, 2, 26, 27, 0, 571, 4, 3, 1460, 1461, 1462, 1, 1463, 0, 570, 4, 
-    3, 1456, 1457, 1458, 1, 1459, 0, 569, 4, 3, 1452, 1453, 1454, 1, 1455, 0, 
-    558, 4, 3, 1397, 1398, 1399, 1, 1400, 0, 480, 4, 3, 1204, 1205, 1206, 1, 
-    1207, 0, 17, 4, 3, 28, 29, 30, 1, 31, 0, 597, 6, 2, 1565, 1566, 
-    2, 1567, 1568, 0, 19, 6, 2, 32, 33, 2, 34, 35, 0, 596, 3, 2, 
-    1561, 1562, 2, 1563, 1564, 0, 23, 3, 2, 36, 37, 2, 38, 39, 0, 26, 
-    4, 2, 40, 41, 6, 42, 43, 44, 45, 46, 47, 0, 471, 3, 1, 1194, 
-    1, 1195, 0, 29, 3, 1, 48, 1, 49, 0, 30, 2, 2, 50, 51, 0, 
-    0, 593, 3, 2, 1548, 1549, 4, 1550, 1551, 1552, 1553, 4, 587, 4, 2, 1518, 
-    1519, 6, 1520, 1521, 1522, 1523, 1524, 1525, 4, 48, 3, 2, 52, 53, 4, 54, 
-    55, 56, 57, 4, 595, 2, 1, 1560, 0, 0, 590, 6, 3, 1534, 1535, 1536, 
-    0, 0, 49, 2, 1, 58, 0, 0, 50, 2, 2, 59, 60, 0, 0, 51, 
-    4, 2, 61, 62, 5, 63, 64, 65, 66, 67, 0, 52, 6, 2, 68, 69, 
-    3, 70, 71, 72, 0, 475, 0, 1, 1196, 0, 0, 70, 2, 4, 174, 175, 
-    176, 177, 0, 0, 71, 2, 4, 178, 179, 180, 181, 0, 0, 72, 2, 4, 
-    182, 183, 184, 185, 0, 0, 79, 4, 4, 186, 187, 188, 189, 0, 0, 89, 
-    2, 0, 0, 0, 95, 2, 2, 190, 191, 0, 0, 98, 6, 3, 192, 193, 
-    194, 2, 195, 196, 0, 573, 2, 3, 1469, 1470, 1471, 0, 0, 100, 2, 3, 
-    197, 198, 199, 0, 0, 576, 2, 1, 1477, 0, 0, 101, 2, 1, 200, 0, 
-    0, 579, 2, 1, 1483, 0, 0, 102, 1, 1, 201, 0, 0, 110, 1, 0, 
-    10, 73, 1179, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187, 0, 111, 5, 0, 14, 
-    202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 0, 112, 
-    5, 0, 11, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 0, 113, 
-    5, 0, 4, 227, 228, 229, 230, 3, 114, 4, 0, 4, 236, 237, 238, 239, 
-    0, 115, 2, 4, 231, 232, 233, 234, 0, 0, 116, 4, 1, 235, 0, 0, 
-    117, 3, 0, 0, 0, 118, 2, 3, 240, 241, 242, 0, 0, 119, 2, 3, 
-    243, 244, 245, 0, 0, 120, 6, 0, 12, 246, 247, 250, 251, 252, 253, 254, 
-    255, 259, 260, 261, 262, 0, 121, 3, 2, 248, 249, 0, 0, 122, 4, 3, 
-    256, 257, 258, 0, 0, 123, 2, 0, 2, 263, 264, 1, 124, 3, 2, 265, 
-    266, 0, 0, 125, 18, 0, 10, 267, 268, 269, 270, 271, 272, 273, 274, 275, 
-    276, 0, 126, 10, 0, 0, 0, 127, 3, 0, 0, 2, 476, 2, 2, 1197, 
-    1198, 2, 1199, 1200, 0, 128, 2, 2, 277, 278, 3, 279, 280, 284, 0, 477, 
-    2, 1, 1201, 0, 0, 129, 2, 1, 281, 0, 0, 478, 2, 1, 1202, 0, 
-    0, 130, 2, 1, 282, 0, 0, 133, 2, 1, 283, 0, 0, 536, 2, 2, 
-    1342, 1343, 2, 1344, 1345, 0, 534, 2, 2, 1334, 1335, 2, 1336, 1337, 0, 506, 
-    2, 2, 1291, 1292, 2, 1293, 1294, 0, 496, 6, 4, 1269, 1270, 1271, 1272, 2, 
-    1273, 1274, 0, 494, 6, 4, 1255, 1256, 1257, 1258, 2, 1259, 1260, 0, 489, 2, 
-    2, 1236, 1237, 2, 1238, 1239, 0, 487, 2, 2, 1228, 1229, 2, 1230, 1231, 0, 
-    482, 2, 2, 1213, 1214, 2, 1215, 1216, 0, 137, 2, 2, 285, 286, 2, 287, 
-    288, 0, 533, 3, 3, 1329, 1330, 1331, 2, 1332, 1333, 0, 493, 7, 7, 1246, 
-    1247, 1248, 1249, 1250, 1251, 1252, 2, 1253, 1254, 0, 486, 3, 3, 1223, 1224, 1225, 
-    2, 1226, 1227, 0, 138, 3, 3, 289, 290, 291, 2, 292, 293, 0, 143, 2, 
-    2, 294, 295, 1, 296, 0, 535, 2, 3, 1338, 1339, 1340, 1, 1341, 0, 495, 
-    4, 7, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1, 1268, 0, 488, 2, 3, 1232, 
-    1233, 1234, 1, 1235, 0, 144, 2, 3, 297, 298, 299, 1, 300, 0, 530, 2, 
-    1, 1323, 0, 0, 503, 2, 1, 1285, 0, 0, 490, 2, 1, 1240, 0, 0, 
-    483, 2, 1, 1217, 0, 0, 150, 2, 1, 301, 0, 0, 152, 1, 0, 0, 
-    0, 155, 12, 0, 72, 303, 304, 314, 315, 316, 317, 318, 319, 320, 321, 322, 
-    323, 324, 325, 326, 327, 328, 329, 330, 335, 336, 339, 342, 345, 346, 349, 352, 
-    353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 
-    369, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 391, 396, 397, 398, 399, 
-    302, 305, 306, 307, 308, 313, 1188, 395, 1275, 1276, 1277, 1278, 1284, 24, 158, 1, 
-    2, 309, 310, 0, 0, 159, 1, 2, 311, 312, 0, 0, 161, 2, 1, 331, 
-    1, 332, 1, 162, 3, 0, 2, 333, 334, 0, 163, 2, 2, 337, 338, 0, 
-    0, 164, 2, 2, 340, 341, 0, 0, 165, 2, 2, 343, 344, 0, 0, 166, 
-    2, 1, 347, 0, 0, 479, 2, 1, 1203, 0, 0, 167, 2, 1, 348, 0, 
-    0, 168, 1, 1, 350, 0, 0, 169, 2, 1, 351, 0, 0, 472, 1, 0, 
-    0, 0, 170, 2, 0, 0, 0, 171, 2, 0, 0, 0, 172, 2, 0, 0, 
-    0, 173, 3, 1, 370, 0, 0, 174, 4, 1, 371, 1, 372, 0, 473, 0, 
-    0, 0, 0, 175, 1, 0, 0, 0, 474, 0, 0, 0, 0, 176, 1, 0, 
-    0, 0, 177, 3, 0, 1, 373, 0, 178, 2, 1, 374, 0, 0, 179, 2, 
-    0, 0, 0, 180, 2, 1, 375, 0, 0, 181, 2, 0, 0, 0, 182, 2, 
-    2, 376, 377, 0, 0, 183, 3, 0, 2, 388, 389, 0, 184, 1, 0, 0, 
-    0, 185, 2, 1, 390, 0, 1, 186, 2, 0, 0, 0, 187, 3, 0, 0, 
-    0, 189, 2, 3, 392, 393, 394, 0, 0, 192, 2, 0, 0, 0, 193, 1, 
-    0, 0, 1, 194, 4, 0, 1, 400, 0, 195, 4, 0, 1, 401, 6, 196, 
-    2, 0, 2, 402, 403, 0, 197, 1, 0, 0, 0, 198, 5, 0, 1, 404, 
-    1, 199, 2, 1, 405, 0, 0, 200, 2, 0, 0, 1, 201, 2, 0, 12, 
-    1295, 1298, 1300, 1302, 1303, 1312, 1313, 1322, 1346, 1347, 1348, 1349, 0, 202, 2, 0, 
-    0, 1, 510, 1, 1, 1297, 0, 0, 508, 1, 1, 1296, 0, 0, 204, 1, 
-    1, 407, 1, 406, 0, 205, 1, 0, 0, 0, 207, 1, 0, 0, 0, 208, 
-    1, 0, 0, 0, 513, 1, 1, 1299, 0, 0, 209, 2, 1, 408, 0, 0, 
-    210, 1, 0, 0, 2, 515, 2, 1, 1301, 0, 0, 211, 2, 1, 409, 0, 
-    0, 212, 1, 0, 0, 0, 213, 3, 0, 1, 410, 2, 214, 2, 0, 9, 
-    435, 436, 437, 438, 439, 411, 412, 413, 441, 4, 217, 1, 1, 414, 0, 0, 
-    229, 1, 1, 432, 0, 0, 218, 2, 2, 415, 416, 0, 0, 224, 2, 2, 
-    424, 425, 0, 0, 230, 2, 2, 433, 434, 0, 0, 518, 2, 2, 1304, 1305, 
-    0, 0, 219, 2, 2, 417, 418, 0, 1, 519, 2, 2, 1306, 1307, 0, 0, 
-    225, 2, 2, 426, 427, 0, 1, 220, 1, 2, 419, 420, 0, 0, 520, 3, 
-    2, 1308, 1309, 0, 0, 226, 3, 2, 428, 429, 0, 0, 221, 2, 1, 421, 
-    0, 0, 227, 2, 1, 430, 0, 0, 222, 1, 1, 422, 0, 0, 228, 2, 
-    1, 431, 1, 1310, 0, 223, 1, 1, 423, 0, 0, 522, 1, 1, 1311, 0, 
-    0, 231, 1, 1, 440, 0, 0, 233, 1, 1, 442, 0, 0, 234, 2, 1, 
-    443, 0, 0, 235, 2, 0, 2, 444, 445, 0, 236, 2, 1, 446, 0, 0, 
-    237, 5, 0, 8, 455, 456, 460, 461, 457, 458, 1320, 1321, 6, 525, 3, 2, 
-    1314, 1315, 0, 0, 238, 3, 2, 447, 448, 0, 0, 526, 3, 2, 1316, 1317, 
-    0, 0, 239, 3, 2, 449, 450, 0, 0, 240, 1, 1, 451, 1, 452, 0, 
-    527, 3, 2, 1318, 1319, 0, 0, 241, 3, 2, 453, 454, 0, 0, 243, 1, 
-    1, 459, 0, 0, 244, 2, 0, 0, 0, 245, 5, 1, 462, 0, 0, 249, 
-    1, 0, 0, 0, 250, 5, 1, 463, 0, 0, 251, 5, 1, 464, 0, 0, 
-    252, 4, 0, 2, 465, 466, 0, 253, 3, 0, 1, 467, 0, 256, 2, 0, 
-    3, 468, 469, 470, 0, 257, 0, 1, 471, 0, 0, 258, 0, 0, 0, 0, 
-    259, 6, 0, 1, 472, 0, 260, 2, 1, 473, 0, 0, 559, 4, 4, 1401, 
-    1402, 1403, 1404, 4, 1405, 1406, 1407, 1408, 0, 548, 4, 4, 1366, 1367, 1368, 1369, 
-    4, 1370, 1371, 1372, 1373, 0, 262, 4, 4, 474, 475, 476, 477, 4, 478, 479, 
-    485, 486, 0, 560, 3, 3, 1409, 1410, 1411, 1, 1412, 0, 555, 3, 4, 1385, 
-    1386, 1387, 1388, 1, 1389, 0, 263, 3, 4, 480, 481, 482, 483, 1, 484, 0, 
-    544, 4, 5, 1361, 1362, 1363, 1364, 1365, 0, 0, 264, 4, 5, 487, 488, 489, 
-    490, 491, 0, 0, 549, 2, 1, 1374, 0, 0, 265, 2, 1, 492, 0, 0, 
-    551, 2, 2, 1375, 1376, 0, 0, 266, 2, 2, 493, 494, 0, 0, 554, 4, 
-    1, 1383, 1, 1384, 0, 267, 4, 1, 495, 1, 496, 0, 556, 4, 2, 1390, 
-    1391, 0, 0, 268, 4, 2, 497, 498, 0, 0, 269, 2, 7, 499, 500, 501, 
-    502, 503, 504, 505, 1, 506, 0, 543, 5, 1, 1360, 0, 0, 270, 5, 1, 
-    507, 0, 0, 553, 11, 2, 1377, 1378, 4, 1379, 1380, 1381, 1382, 0, 271, 11, 
-    2, 508, 509, 4, 510, 511, 512, 513, 0, 272, 2, 2, 514, 515, 4, 516, 
-    517, 518, 519, 0, 273, 3, 2, 520, 521, 0, 0, 276, 8, 4, 522, 523, 
-    524, 525, 2, 526, 527, 0, 277, 1, 1, 528, 0, 0, 278, 11, 2, 529, 
-    530, 3, 531, 532, 533, 0, 279, 2, 1, 534, 0, 0, 280, 1, 1, 535, 
-    0, 0, 281, 12, 0, 12, 536, 537, 538, 539, 540, 541, 542, 543, 544, 548, 
-    553, 554, 0, 282, 2, 1, 545, 0, 0, 283, 12, 1, 546, 1, 547, 0, 
-    284, 3, 2, 549, 550, 0, 0, 285, 2, 2, 551, 552, 0, 0, 286, 3, 
-    1, 555, 0, 0, 287, 2, 2, 556, 557, 0, 2, 288, 9, 0, 2, 582, 
-    583, 2, 289, 2, 2, 558, 559, 0, 0, 291, 2, 2, 562, 563, 0, 0, 
-    293, 2, 2, 566, 567, 0, 0, 295, 2, 2, 570, 571, 0, 0, 297, 2, 
-    2, 574, 575, 0, 0, 299, 2, 2, 578, 579, 0, 0, 290, 1, 2, 560, 
-    561, 0, 0, 292, 2, 2, 564, 565, 0, 0, 294, 2, 2, 568, 569, 0, 
-    0, 296, 1, 2, 572, 573, 0, 0, 298, 1, 2, 576, 577, 0, 0, 300, 
-    2, 2, 580, 581, 0, 0, 301, 1, 1, 584, 0, 0, 302, 2, 1, 585, 
-    0, 0, 303, 1, 1, 586, 0, 0, 304, 16, 0, 1, 587, 1, 305, 6, 
-    2, 588, 589, 6, 590, 591, 592, 593, 594, 601, 0, 307, 4, 2, 595, 596, 
-    0, 0, 308, 9, 2, 597, 598, 0, 0, 309, 2, 2, 599, 600, 0, 0, 
-    310, 2, 2, 602, 603, 0, 1, 311, 4, 2, 604, 605, 0, 0, 312, 1, 
-    1, 606, 0, 0, 313, 2, 0, 4, 640, 641, 642, 643, 1, 314, 1, 1, 
-    607, 0, 0, 317, 3, 1, 610, 1, 611, 0, 315, 1, 1, 608, 0, 0, 
-    319, 3, 1, 614, 0, 0, 316, 1, 1, 609, 0, 0, 322, 3, 1, 619, 
-    0, 0, 318, 3, 2, 612, 613, 0, 2, 320, 2, 2, 615, 616, 0, 0, 
-    321, 2, 2, 617, 618, 0, 0, 323, 1, 1, 620, 0, 0, 324, 5, 2, 
-    621, 622, 0, 0, 325, 2, 1, 623, 6, 624, 625, 626, 627, 628, 639, 0, 
-    326, 5, 1, 629, 0, 1, 327, 4, 0, 2, 630, 632, 1, 328, 3, 1, 
-    631, 0, 0, 329, 3, 0, 0, 0, 568, 4, 1, 1450, 1, 1451, 0, 330, 
-    4, 1, 633, 1, 634, 0, 331, 3, 0, 3, 635, 637, 638, 0, 332, 2, 
-    1, 636, 0, 0, 333, 7, 5, 644, 645, 646, 647, 648, 6, 649, 652, 653, 
-    661, 662, 663, 0, 334, 5, 2, 650, 651, 0, 0, 335, 9, 3, 654, 655, 
-    656, 6, 657, 658, 659, 660, 664, 665, 0, 336, 5, 0, 0, 1, 338, 8, 
-    0, 14, 666, 667, 668, 669, 670, 671, 672, 673, 674, 684, 690, 691, 692, 693, 
-    0, 339, 2, 1, 675, 0, 0, 340, 3, 1, 676, 1, 677, 0, 582, 8, 
-    1, 1494, 2, 1495, 1496, 0, 341, 8, 1, 678, 2, 679, 680, 0, 342, 2, 
-    3, 681, 682, 683, 0, 0, 343, 5, 3, 685, 686, 687, 2, 688, 689, 0, 
-    344, 2, 0, 0, 0, 345, 4, 0, 0, 0, 346, 4, 3, 694, 695, 696, 
-    5, 697, 698, 701, 702, 703, 0, 347, 3, 1, 699, 1, 700, 0, 348, 2, 
-    3, 704, 705, 706, 0, 0, 349, 6, 0, 8, 707, 708, 721, 722, 723, 724, 
-    725, 726, 1, 350, 8, 4, 709, 710, 711, 712, 8, 713, 714, 715, 716, 717, 
-    718, 719, 720, 0, 354, 10, 0, 41, 727, 728, 729, 743, 744, 747, 748, 749, 
-    750, 751, 752, 753, 754, 761, 762, 763, 764, 765, 770, 771, 772, 773, 774, 775, 
-    776, 778, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 
-    797, 0, 355, 8, 0, 13, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 
-    740, 741, 742, 0, 357, 6, 2, 745, 746, 0, 0, 358, 2, 6, 755, 756, 
-    757, 758, 759, 760, 0, 0, 360, 2, 2, 766, 767, 0, 0, 361, 5, 2, 
-    768, 769, 0, 0, 362, 2, 1, 777, 0, 0, 363, 2, 2, 779, 780, 0, 
-    0, 364, 2, 1, 781, 0, 0, 365, 2, 1, 782, 0, 0, 369, 19, 0, 
-    32, 944, 945, 946, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 
-    1027, 1028, 1029, 1030, 1031, 1032, 1033, 1034, 1035, 1036, 1037, 1038, 1039, 1040, 1041, 1042, 
-    1043, 0, 370, 9, 7, 930, 931, 932, 933, 934, 935, 936, 7, 937, 938, 939, 
-    940, 941, 942, 943, 0, 371, 23, 7, 947, 948, 949, 950, 951, 952, 953, 61, 
-    954, 955, 956, 957, 958, 959, 960, 961, 962, 963, 964, 965, 966, 967, 968, 969, 
-    970, 971, 972, 973, 974, 975, 976, 977, 978, 979, 980, 981, 982, 983, 984, 985, 
-    986, 987, 988, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000, 1001, 
-    1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 0, 372, 2, 
-    0, 0, 0, 374, 2, 1, 1044, 0, 0, 375, 12, 3, 1045, 1046, 1047, 0, 
-    0, 376, 6, 0, 2, 1048, 1049, 32, 377, 2, 0, 4, 1050, 1051, 1052, 1053, 
-    2, 378, 1, 0, 2, 1599, 1600, 0, 379, 2, 0, 2, 1054, 1055, 0, 380, 
-    2, 0, 2, 1056, 1057, 0, 381, 1, 0, 1, 1601, 0, 382, 9, 0, 2, 
-    1058, 1059, 1, 383, 6, 8, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 0, 0, 
-    384, 5, 5, 1068, 1069, 1070, 1071, 1072, 0, 0, 395, 2, 2, 1085, 1086, 0, 
-    0, 427, 2, 2, 1106, 1107, 0, 0, 445, 10, 8, 1120, 1121, 1122, 1123, 1124, 
-    1125, 1126, 1127, 0, 0, 446, 8, 6, 1128, 1129, 1130, 1131, 1132, 1133, 0, 0, 
-    385, 4, 4, 1073, 1074, 1075, 1076, 0, 0, 608, 1, 1, 1604, 0, 0, 420, 
-    1, 1, 1095, 0, 0, 393, 2, 2, 1081, 1082, 0, 0, 425, 2, 2, 1102, 
-    1103, 0, 0, 394, 2, 2, 1083, 1084, 0, 0, 426, 2, 2, 1104, 1105, 0, 
-    0, 396, 2, 2, 1087, 1088, 0, 0, 428, 2, 2, 1108, 1109, 0, 0, 403, 
-    2, 2, 1089, 1090, 0, 0, 607, 2, 2, 1602, 1603, 0, 0, 413, 2, 2, 
-    1091, 1092, 0, 0, 435, 2, 2, 1110, 1111, 0, 0, 414, 2, 2, 1093, 1094, 
-    0, 0, 421, 1, 1, 1096, 0, 0, 422, 1, 1, 1097, 0, 0, 423, 2, 
-    2, 1098, 1099, 0, 0, 424, 2, 2, 1100, 1101, 0, 0, 444, 8, 0, 8, 
-    1112, 1113, 1114, 1115, 1116, 1117, 1118, 1119, 0, 447, 3, 4, 1134, 1135, 1136, 1137, 
-    0, 0, 448, 4, 4, 1138, 1139, 1140, 1141, 0, 0, 449, 8, 4, 1142, 1143, 
-    1144, 1145, 0, 0, 450, 2, 4, 1146, 1147, 1148, 1149, 0, 0, 451, 1, 0, 
-    1, 1605, 0, 452, 8, 0, 10, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 
-    1163, 0, 453, 7, 0, 9, 1164, 1165, 1167, 1169, 1171, 1173, 1174, 1176, 1177, 6, 
-    454, 1, 1, 1166, 0, 0, 455, 1, 1, 1168, 0, 0, 456, 1, 1, 1170, 
-    0, 0, 457, 1, 1, 1172, 0, 0, 458, 3, 1, 1175, 0, 0, 459, 3, 
-    1, 1178, 0, 0,     0
+    0, 0, 241, 0, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 
+    86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 
+    102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 
+    118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 
+    134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 
+    150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 
+    166, 167, 168, 169, 170, 171, 172, 173, 798, 799, 800, 801, 802, 803, 804, 805, 
+    806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819, 820, 821, 
+    822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 837, 
+    838, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 
+    854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 
+    870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 
+    886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900, 901, 
+    902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917, 
+    918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 1077, 1078, 1079, 1080, 
+    1150, 1151, 1152, 1153, 3, 2, 1, 2, 0, 4, 2, 3, 4, 0, 5, 0, 
+    0, 6, 2, 5, 6, 0, 615, 2, 1631, 1632, 3, 1633, 1634, 1635, 614, 2, 
+    1626, 1627, 3, 1628, 1629, 1630, 613, 2, 1621, 1622, 3, 1623, 1624, 1625, 612, 2, 
+    1616, 1617, 3, 1618, 1619, 1620, 611, 2, 1611, 1612, 3, 1613, 1614, 1615, 610, 2, 
+    1606, 1607, 3, 1608, 1609, 1610, 603, 2, 1592, 1593, 5, 1594, 1595, 1596, 1597, 1598, 
+    602, 2, 1587, 1588, 3, 1589, 1590, 1591, 601, 2, 1582, 1583, 3, 1584, 1585, 1586, 
+    600, 2, 1577, 1578, 3, 1579, 1580, 1581, 592, 2, 1543, 1544, 3, 1545, 1546, 1547, 
+    591, 2, 1537, 1538, 4, 1539, 1540, 1541, 1542, 586, 2, 1512, 1513, 4, 1514, 1515, 
+    1516, 1517, 585, 2, 1507, 1508, 3, 1509, 1510, 1511, 584, 2, 1502, 1503, 3, 1504, 
+    1505, 1506, 583, 2, 1497, 1498, 3, 1499, 1500, 1501, 581, 2, 1489, 1490, 3, 1491, 
+    1492, 1493, 580, 2, 1484, 1485, 3, 1486, 1487, 1488, 578, 2, 1478, 1479, 3, 1480, 
+    1481, 1482, 575, 2, 1472, 1473, 3, 1474, 1475, 1476, 572, 2, 1464, 1465, 3, 1466, 
+    1467, 1468, 565, 2, 1434, 1435, 4, 1436, 1437, 1438, 1439, 564, 2, 1428, 1429, 4, 
+    1430, 1431, 1432, 1433, 563, 2, 1423, 1424, 3, 1425, 1426, 1427, 562, 2, 1418, 1419, 
+    3, 1420, 1421, 1422, 561, 2, 1413, 1414, 3, 1415, 1416, 1417, 557, 2, 1392, 1393, 
+    3, 1394, 1395, 1396, 542, 2, 1355, 1356, 3, 1357, 1358, 1359, 541, 2, 1350, 1351, 
+    3, 1352, 1353, 1354, 531, 2, 1324, 1325, 3, 1326, 1327, 1328, 504, 2, 1286, 1287, 
+    3, 1288, 1289, 1290, 501, 2, 1279, 1280, 3, 1281, 1282, 1283, 491, 2, 1241, 1242, 
+    3, 1243, 1244, 1245, 484, 2, 1218, 1219, 3, 1220, 1221, 1222, 481, 2, 1208, 1209, 
+    3, 1210, 1211, 1212, 470, 2, 1189, 1190, 3, 1191, 1192, 1193, 7, 2, 7, 8, 
+    3, 9, 10, 11, 566, 2, 1440, 1441, 4, 1442, 1443, 1444, 1445, 10, 2, 12, 
+    13, 4, 14, 15, 16, 17, 594, 2, 1554, 1555, 4, 1556, 1557, 1558, 1559, 589, 
+    2, 1526, 1527, 6, 1528, 1529, 1530, 1531, 1532, 1533, 13, 2, 18, 19, 4, 20, 
+    21, 22, 23, 599, 2, 1573, 1574, 2, 1575, 1576, 598, 2, 1569, 1570, 2, 1571, 
+    1572, 567, 2, 1446, 1447, 2, 1448, 1449, 15, 2, 24, 25, 2, 26, 27, 571, 
+    3, 1460, 1461, 1462, 1, 1463, 570, 3, 1456, 1457, 1458, 1, 1459, 569, 3, 1452, 
+    1453, 1454, 1, 1455, 558, 3, 1397, 1398, 1399, 1, 1400, 480, 3, 1204, 1205, 1206, 
+    1, 1207, 17, 3, 28, 29, 30, 1, 31, 597, 2, 1565, 1566, 2, 1567, 1568, 
+    19, 2, 32, 33, 2, 34, 35, 596, 2, 1561, 1562, 2, 1563, 1564, 23, 2, 
+    36, 37, 2, 38, 39, 26, 2, 40, 41, 6, 42, 43, 44, 45, 46, 47, 
+    471, 1, 1194, 1, 1195, 29, 1, 48, 1, 49, 30, 2, 50, 51, 0, 593, 
+    2, 1548, 1549, 4, 1550, 1551, 1552, 1553, 587, 2, 1518, 1519, 6, 1520, 1521, 1522, 
+    1523, 1524, 1525, 48, 2, 52, 53, 4, 54, 55, 56, 57, 595, 1, 1560, 0, 
+    590, 3, 1534, 1535, 1536, 0, 49, 1, 58, 0, 50, 2, 59, 60, 0, 51, 
+    2, 61, 62, 5, 63, 64, 65, 66, 67, 52, 2, 68, 69, 3, 70, 71, 
+    72, 475, 1, 1196, 0, 70, 4, 174, 175, 176, 177, 0, 71, 4, 178, 179, 
+    180, 181, 0, 72, 4, 182, 183, 184, 185, 0, 79, 4, 186, 187, 188, 189, 
+    0, 89, 0, 0, 95, 2, 190, 191, 0, 98, 3, 192, 193, 194, 2, 195, 
+    196, 573, 3, 1469, 1470, 1471, 0, 100, 3, 197, 198, 199, 0, 576, 1, 1477, 
+    0, 101, 1, 200, 0, 579, 1, 1483, 0, 102, 1, 201, 0, 110, 0, 10, 
+    73, 1179, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187, 111, 0, 14, 202, 203, 204, 
+    205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 112, 0, 11, 216, 217, 
+    218, 219, 220, 221, 222, 223, 224, 225, 226, 113, 0, 4, 227, 228, 229, 230, 
+    114, 0, 4, 236, 237, 238, 239, 115, 4, 231, 232, 233, 234, 0, 116, 1, 
+    235, 0, 117, 0, 0, 118, 3, 240, 241, 242, 0, 119, 3, 243, 244, 245, 
+    0, 120, 0, 12, 246, 247, 250, 251, 252, 253, 254, 255, 259, 260, 261, 262, 
+    121, 2, 248, 249, 0, 122, 3, 256, 257, 258, 0, 123, 0, 2, 263, 264, 
+    124, 2, 265, 266, 0, 125, 0, 10, 267, 268, 269, 270, 271, 272, 273, 274, 
+    275, 276, 126, 0, 0, 127, 0, 0, 476, 2, 1197, 1198, 2, 1199, 1200, 128, 
+    2, 277, 278, 3, 279, 280, 284, 477, 1, 1201, 0, 129, 1, 281, 0, 478, 
+    1, 1202, 0, 130, 1, 282, 0, 133, 1, 283, 0, 536, 2, 1342, 1343, 2, 
+    1344, 1345, 534, 2, 1334, 1335, 2, 1336, 1337, 506, 2, 1291, 1292, 2, 1293, 1294, 
+    496, 4, 1269, 1270, 1271, 1272, 2, 1273, 1274, 494, 4, 1255, 1256, 1257, 1258, 2, 
+    1259, 1260, 489, 2, 1236, 1237, 2, 1238, 1239, 487, 2, 1228, 1229, 2, 1230, 1231, 
+    482, 2, 1213, 1214, 2, 1215, 1216, 137, 2, 285, 286, 2, 287, 288, 533, 3, 
+    1329, 1330, 1331, 2, 1332, 1333, 493, 7, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 2, 
+    1253, 1254, 486, 3, 1223, 1224, 1225, 2, 1226, 1227, 138, 3, 289, 290, 291, 2, 
+    292, 293, 143, 2, 294, 295, 1, 296, 535, 3, 1338, 1339, 1340, 1, 1341, 495, 
+    7, 1261, 1262, 1263, 1264, 1265, 1266, 1267, 1, 1268, 488, 3, 1232, 1233, 1234, 1, 
+    1235, 144, 3, 297, 298, 299, 1, 300, 530, 1, 1323, 0, 503, 1, 1285, 0, 
+    490, 1, 1240, 0, 483, 1, 1217, 0, 150, 1, 301, 0, 152, 0, 0, 155, 
+    0, 72, 303, 304, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 
+    326, 327, 328, 329, 330, 335, 336, 339, 342, 345, 346, 349, 352, 353, 354, 355, 
+    356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 378, 379, 
+    380, 381, 382, 383, 384, 385, 386, 387, 391, 396, 397, 398, 399, 302, 305, 306, 
+    307, 308, 313, 1188, 395, 1275, 1276, 1277, 1278, 1284, 158, 2, 309, 310, 0, 159, 
+    2, 311, 312, 0, 161, 1, 331, 1, 332, 162, 0, 2, 333, 334, 163, 2, 
+    337, 338, 0, 164, 2, 340, 341, 0, 165, 2, 343, 344, 0, 166, 1, 347, 
+    0, 479, 1, 1203, 0, 167, 1, 348, 0, 168, 1, 350, 0, 169, 1, 351, 
+    0, 472, 0, 0, 170, 0, 0, 171, 0, 0, 172, 0, 0, 173, 1, 370, 
+    0, 174, 1, 371, 1, 372, 473, 0, 0, 175, 0, 0, 474, 0, 0, 176, 
+    0, 0, 177, 0, 1, 373, 178, 1, 374, 0, 179, 0, 0, 180, 1, 375, 
+    0, 181, 0, 0, 182, 2, 376, 377, 0, 183, 0, 2, 388, 389, 184, 0, 
+    0, 185, 1, 390, 0, 186, 0, 0, 187, 0, 0, 189, 3, 392, 393, 394, 
+    0, 192, 0, 0, 193, 0, 0, 194, 0, 1, 400, 195, 0, 1, 401, 196, 
+    0, 2, 402, 403, 197, 0, 0, 198, 0, 1, 404, 199, 1, 405, 0, 200, 
+    0, 0, 201, 0, 12, 1295, 1298, 1300, 1302, 1303, 1312, 1313, 1322, 1346, 1347, 1348, 
+    1349, 202, 0, 0, 510, 1, 1297, 0, 508, 1, 1296, 0, 204, 1, 407, 1, 
+    406, 205, 0, 0, 207, 0, 0, 208, 0, 0, 513, 1, 1299, 0, 209, 1, 
+    408, 0, 210, 0, 0, 515, 1, 1301, 0, 211, 1, 409, 0, 212, 0, 0, 
+    213, 0, 1, 410, 214, 0, 9, 435, 436, 437, 438, 439, 411, 412, 413, 441, 
+    217, 1, 414, 0, 229, 1, 432, 0, 218, 2, 415, 416, 0, 224, 2, 424, 
+    425, 0, 230, 2, 433, 434, 0, 518, 2, 1304, 1305, 0, 219, 2, 417, 418, 
+    0, 519, 2, 1306, 1307, 0, 225, 2, 426, 427, 0, 220, 2, 419, 420, 0, 
+    520, 2, 1308, 1309, 0, 226, 2, 428, 429, 0, 221, 1, 421, 0, 227, 1, 
+    430, 0, 222, 1, 422, 0, 228, 1, 431, 1, 1310, 223, 1, 423, 0, 522, 
+    1, 1311, 0, 231, 1, 440, 0, 233, 1, 442, 0, 234, 1, 443, 0, 235, 
+    0, 2, 444, 445, 236, 1, 446, 0, 237, 0, 8, 455, 456, 460, 461, 457, 
+    458, 1320, 1321, 525, 2, 1314, 1315, 0, 238, 2, 447, 448, 0, 526, 2, 1316, 
+    1317, 0, 239, 2, 449, 450, 0, 240, 1, 451, 1, 452, 527, 2, 1318, 1319, 
+    0, 241, 2, 453, 454, 0, 243, 1, 459, 0, 244, 0, 0, 245, 1, 462, 
+    0, 249, 0, 0, 250, 1, 463, 0, 251, 1, 464, 0, 252, 0, 2, 465, 
+    466, 253, 0, 1, 467, 256, 0, 3, 468, 469, 470, 257, 1, 471, 0, 258, 
+    0, 0, 259, 0, 1, 472, 260, 1, 473, 0, 559, 4, 1401, 1402, 1403, 1404, 
+    4, 1405, 1406, 1407, 1408, 548, 4, 1366, 1367, 1368, 1369, 4, 1370, 1371, 1372, 1373, 
+    262, 4, 474, 475, 476, 477, 4, 478, 479, 485, 486, 560, 3, 1409, 1410, 1411, 
+    1, 1412, 555, 4, 1385, 1386, 1387, 1388, 1, 1389, 263, 4, 480, 481, 482, 483, 
+    1, 484, 544, 5, 1361, 1362, 1363, 1364, 1365, 0, 264, 5, 487, 488, 489, 490, 
+    491, 0, 549, 1, 1374, 0, 265, 1, 492, 0, 551, 2, 1375, 1376, 0, 266, 
+    2, 493, 494, 0, 554, 1, 1383, 1, 1384, 267, 1, 495, 1, 496, 556, 2, 
+    1390, 1391, 0, 268, 2, 497, 498, 0, 269, 7, 499, 500, 501, 502, 503, 504, 
+    505, 1, 506, 543, 1, 1360, 0, 270, 1, 507, 0, 553, 2, 1377, 1378, 4, 
+    1379, 1380, 1381, 1382, 271, 2, 508, 509, 4, 510, 511, 512, 513, 272, 2, 514, 
+    515, 4, 516, 517, 518, 519, 273, 2, 520, 521, 0, 276, 4, 522, 523, 524, 
+    525, 2, 526, 527, 277, 1, 528, 0, 278, 2, 529, 530, 3, 531, 532, 533, 
+    279, 1, 534, 0, 280, 1, 535, 0, 281, 0, 12, 536, 537, 538, 539, 540, 
+    541, 542, 543, 544, 548, 553, 554, 282, 1, 545, 0, 283, 1, 546, 1, 547, 
+    284, 2, 549, 550, 0, 285, 2, 551, 552, 0, 286, 1, 555, 0, 287, 2, 
+    556, 557, 0, 288, 0, 2, 582, 583, 289, 2, 558, 559, 0, 291, 2, 562, 
+    563, 0, 293, 2, 566, 567, 0, 295, 2, 570, 571, 0, 297, 2, 574, 575, 
+    0, 299, 2, 578, 579, 0, 290, 2, 560, 561, 0, 292, 2, 564, 565, 0, 
+    294, 2, 568, 569, 0, 296, 2, 572, 573, 0, 298, 2, 576, 577, 0, 300, 
+    2, 580, 581, 0, 301, 1, 584, 0, 302, 1, 585, 0, 303, 1, 586, 0, 
+    304, 0, 1, 587, 305, 2, 588, 589, 6, 590, 591, 592, 593, 594, 601, 307, 
+    2, 595, 596, 0, 308, 2, 597, 598, 0, 309, 2, 599, 600, 0, 310, 2, 
+    602, 603, 0, 311, 2, 604, 605, 0, 312, 1, 606, 0, 313, 0, 4, 640, 
+    641, 642, 643, 314, 1, 607, 0, 317, 1, 610, 1, 611, 315, 1, 608, 0, 
+    319, 1, 614, 0, 316, 1, 609, 0, 322, 1, 619, 0, 318, 2, 612, 613, 
+    0, 320, 2, 615, 616, 0, 321, 2, 617, 618, 0, 323, 1, 620, 0, 324, 
+    2, 621, 622, 0, 325, 1, 623, 6, 624, 625, 626, 627, 628, 639, 326, 1, 
+    629, 0, 327, 0, 2, 630, 632, 328, 1, 631, 0, 329, 0, 0, 568, 1, 
+    1450, 1, 1451, 330, 1, 633, 1, 634, 331, 0, 3, 635, 637, 638, 332, 1, 
+    636, 0, 333, 5, 644, 645, 646, 647, 648, 6, 649, 652, 653, 661, 662, 663, 
+    334, 2, 650, 651, 0, 335, 3, 654, 655, 656, 6, 657, 658, 659, 660, 664, 
+    665, 336, 0, 0, 338, 0, 14, 666, 667, 668, 669, 670, 671, 672, 673, 674, 
+    684, 690, 691, 692, 693, 339, 1, 675, 0, 340, 1, 676, 1, 677, 582, 1, 
+    1494, 2, 1495, 1496, 341, 1, 678, 2, 679, 680, 342, 3, 681, 682, 683, 0, 
+    343, 3, 685, 686, 687, 2, 688, 689, 344, 0, 0, 345, 0, 0, 346, 3, 
+    694, 695, 696, 5, 697, 698, 701, 702, 703, 347, 1, 699, 1, 700, 348, 3, 
+    704, 705, 706, 0, 349, 0, 8, 707, 708, 721, 722, 723, 724, 725, 726, 350, 
+    4, 709, 710, 711, 712, 8, 713, 714, 715, 716, 717, 718, 719, 720, 354, 0, 
+    41, 727, 728, 729, 743, 744, 747, 748, 749, 750, 751, 752, 753, 754, 761, 762, 
+    763, 764, 765, 770, 771, 772, 773, 774, 775, 776, 778, 783, 784, 785, 786, 787, 
+    788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 355, 0, 13, 730, 731, 732, 
+    733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 357, 2, 745, 746, 0, 358, 
+    6, 755, 756, 757, 758, 759, 760, 0, 360, 2, 766, 767, 0, 361, 2, 768, 
+    769, 0, 362, 1, 777, 0, 363, 2, 779, 780, 0, 364, 1, 781, 0, 365, 
+    1, 782, 0, 369, 0, 32, 944, 945, 946, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 
+    1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1034, 1035, 1036, 1037, 
+    1038, 1039, 1040, 1041, 1042, 1043, 370, 7, 930, 931, 932, 933, 934, 935, 936, 7, 
+    937, 938, 939, 940, 941, 942, 943, 371, 7, 947, 948, 949, 950, 951, 952, 953, 
+    61, 954, 955, 956, 957, 958, 959, 960, 961, 962, 963, 964, 965, 966, 967, 968, 
+    969, 970, 971, 972, 973, 974, 975, 976, 977, 978, 979, 980, 981, 982, 983, 984, 
+    985, 986, 987, 988, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000, 
+    1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 372, 0, 
+    0, 374, 1, 1044, 0, 375, 3, 1045, 1046, 1047, 0, 376, 0, 2, 1048, 1049, 
+    377, 0, 4, 1050, 1051, 1052, 1053, 378, 0, 2, 1599, 1600, 379, 0, 2, 1054, 
+    1055, 380, 0, 2, 1056, 1057, 381, 0, 1, 1601, 382, 0, 2, 1058, 1059, 383, 
+    8, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 0, 384, 5, 1068, 1069, 1070, 1071, 
+    1072, 0, 395, 2, 1085, 1086, 0, 427, 2, 1106, 1107, 0, 445, 8, 1120, 1121, 
+    1122, 1123, 1124, 1125, 1126, 1127, 0, 446, 6, 1128, 1129, 1130, 1131, 1132, 1133, 0, 
+    385, 4, 1073, 1074, 1075, 1076, 0, 608, 1, 1604, 0, 420, 1, 1095, 0, 393, 
+    2, 1081, 1082, 0, 425, 2, 1102, 1103, 0, 394, 2, 1083, 1084, 0, 426, 2, 
+    1104, 1105, 0, 396, 2, 1087, 1088, 0, 428, 2, 1108, 1109, 0, 403, 2, 1089, 
+    1090, 0, 607, 2, 1602, 1603, 0, 413, 2, 1091, 1092, 0, 435, 2, 1110, 1111, 
+    0, 414, 2, 1093, 1094, 0, 421, 1, 1096, 0, 422, 1, 1097, 0, 423, 2, 
+    1098, 1099, 0, 424, 2, 1100, 1101, 0, 444, 0, 8, 1112, 1113, 1114, 1115, 1116, 
+    1117, 1118, 1119, 447, 4, 1134, 1135, 1136, 1137, 0, 448, 4, 1138, 1139, 1140, 1141, 
+    0, 449, 4, 1142, 1143, 1144, 1145, 0, 450, 4, 1146, 1147, 1148, 1149, 0, 451, 
+    0, 1, 1605, 452, 0, 10, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 1163, 
+    453, 0, 9, 1164, 1165, 1167, 1169, 1171, 1173, 1174, 1176, 1177, 454, 1, 1166, 0, 
+    455, 1, 1168, 0, 456, 1, 1170, 0, 457, 1, 1172, 0, 458, 1, 1175, 0, 
+    459, 1, 1178, 0,     0
 };
 
 static const int type_table[] = {
@@ -26723,7 +26673,7 @@ int main(int argc, char *argv[]) {
         span(specidents),
         span(enums),
         span(ser_ids),
-        string_view("Sat Jun  7 17:00:38 2025", 24),
+        string_view("Sat Jun  7 17:15:09 2025", 24),
         0x7e9c40b3dc8c1e10,
         span(subfunctions_to_function),
     };

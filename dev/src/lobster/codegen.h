@@ -399,8 +399,8 @@ struct CodeGen  {
         }
 
         f_function_idx = sf.idx;
-        f_regs_max = 0;
-        f_keepvars = 0;
+        f_regs_max = 0;  // Not valid until end of codegen of this function.
+        f_keepvars = 0;  // Not valid until end of codegen of this function.
 
         linenumbernodes.push_back(sf.sbody);
         auto ret = AssertIs<Return>(sf.sbody->children.back());
@@ -428,7 +428,6 @@ struct CodeGen  {
                     if (!sids[varidx].used_as_freevar()) {
                         var_to_local[varidx] = numlocals++;
                     }
-
                 }
             }
         };
@@ -858,14 +857,12 @@ struct CodeGen  {
             // VM. Calling this here because now locals have been fully initialized.
             append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
                    numlocals ? "locals" : "0", ");\n");
-            // This can be any format we want.
+            // This can be any format we want, see VM::DumpStackFrame
             funstarttables.push_back(f_function_idx);
-            funstarttables.push_back(f_regs_max);
             funstarttables.push_back((int)f_args.size());
             funstarttables.insert(funstarttables.end(), f_args.begin(), f_args.end());
             funstarttables.push_back((int)f_defs.size());
             funstarttables.insert(funstarttables.end(), f_defs.begin(), f_defs.end());
-            funstarttables.push_back(f_keepvars);
         }
         for (int i = 0; i < f_keepvars; i++) {
             if (cpp)
