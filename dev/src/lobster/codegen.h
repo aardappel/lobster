@@ -797,6 +797,19 @@ struct CodeGen  {
         else cb += "\n";
     }
 
+    void EmitPUSHINT(int val) {
+        EmitOp(IL_PUSHINT);
+        if (cpp) {
+            append(cb, "    *(", sp(), ") = Value(", val, ");\n");
+        } else {
+            append(cb, "    { StackPtr _sp = ", sp(), "; _sp->ival = ", val, ";");
+            #if RTT_ENABLED
+                append(cb, " _sp->type = ", V_INT, ";");
+            #endif
+            append(cb, " }\n");
+        }
+    }
+
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitOp(op, useslots, defslots);
         append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ");\n");
@@ -1033,7 +1046,7 @@ struct CodeGen  {
         if (cpp) sd += "extern \"C\" ";
         sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
         if (cpp) {
-            append(sd, "    if (vm.nfr.HashAll() != ", parser.natreg.HashAll(),
+            append(sd, "    if (vm.vma.nfr.HashAll() != ", parser.natreg.HashAll(),
                    "ULL) vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
         } else {
             sd += "    Entry(sizeof(Value), sizeof(VMBase));\n";
@@ -1263,7 +1276,7 @@ struct CodeGen  {
 
     void GenValueWidth(TypeRef type) {
         // FIXME: struct variable size.
-        EmitOp1(IL_PUSHINT, ValWidth(type));
+        EmitPUSHINT( ValWidth(type));
     }
 
     void GenOpWithStructInfo(ILOP op, TypeRef type) {
@@ -1610,7 +1623,7 @@ void Nil::Generate(CodeGen &cg, size_t retval) const {
 void IntConstant::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
     if (integer == (int)integer) {
-        cg.EmitOp1(IL_PUSHINT, (int)integer);
+        cg.EmitPUSHINT((int)integer);
     } else {
         cg.EmitOp2(IL_PUSHINT64, (int)integer, (int)(integer >> 32));
     }
@@ -2133,7 +2146,7 @@ void While::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void For::Generate(CodeGen &cg, size_t retval) const {
-    cg.EmitOp1(IL_PUSHINT, -1);   // i
+    cg.EmitPUSHINT(-1);  // i
     cg.temptypestack.push_back({ type_int, LT_ANY });
     cg.Gen(iter, 1);
     cg.loops.push_back(this);
@@ -2538,10 +2551,10 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
 
 void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {
     if (auto idr = Is<IdentRef>(child)) {
-        cg.EmitOp1(IL_PUSHINT, cg.GetTypeTableOffset(idr->exptype));
+        cg.EmitPUSHINT(cg.GetTypeTableOffset(idr->exptype));
     } else {
         auto ta = AssertIs<TypeAnnotation>(child);
-        cg.EmitOp1(IL_PUSHINT, cg.GetTypeTableOffset(ta->exptype));
+        cg.EmitPUSHINT(cg.GetTypeTableOffset(ta->exptype));
     }
 }
 

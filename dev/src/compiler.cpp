@@ -711,7 +711,6 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
         (void)fn;
         (void)object_name;
         (void)program_args;
-        (void)trace;
         (void)compile_only;
         (void)dump_leaks;
         (void)stack_trace_python_ordering;

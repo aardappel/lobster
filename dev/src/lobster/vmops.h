@@ -101,8 +101,8 @@ VM_INLINE Value &GetVecLVal(VM &vm, StackPtr &sp, iint i) {
     return *v->AtSt(i);
 }
 
-VM_INLINE void U_PUSHINT(VM &, StackPtr sp, int x) {
-    Push(sp, Value(x));
+VM_INLINE void U_PUSHINT(VM &, StackPtr, int) {
+    assert(false);
 }
 
 VM_INLINE void U_PUSHFLT(VM &, StackPtr sp, int x) {
