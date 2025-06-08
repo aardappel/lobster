@@ -36,7 +36,6 @@ struct CodeGen  {
     vector<int> breaks;
     vector<string_view> stringtable;  // sized strings.
     vector<const Node *> node_context;
-    int keepvars = 0;
     int runtime_checks;
     vector<int> vtables;  // -1 = uninit, -2 and lower is case idx, positive is code offset.
     vector<ILOP> tstack;
@@ -49,8 +48,12 @@ struct CodeGen  {
     string cb;
     ILOP opc = IL_UNUSED;
     int regso = 0;
+    int f_function_idx = -1;
+    int f_regs_max = -1;
+    vector<int> f_args;
+    vector<int> f_defs;
+    int f_keepvars = -1;
     vector<int> icode;
-    vector<int> fcode;
     vector<int> ownedvars;
     vector<int> funstarttables;
     vector<vector<int>> jumptables_stack;
@@ -313,11 +316,11 @@ struct CodeGen  {
         // Generate a dummmy function for function values that are never called.
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
-        fcode.push_back(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);  // sf.idx
-        fcode.push_back(0);  // regs_max
-        fcode.push_back(0);
-        fcode.push_back(0);
-        fcode.push_back(0);  // keepvars
+        f_function_idx = CODEGEN_SPECIAL_FUNCTION_ID_DUMMY;
+        f_regs_max = 0;
+        f_args.clear();
+        f_defs.clear();
+        f_keepvars = 0;
         EmitOp(IL_ABORT);
         DefineFunction(c_codegen, false);
 
@@ -340,11 +343,11 @@ struct CodeGen  {
         }
 
         // Emit the root function.
-        fcode.push_back(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY);  // sf.idx
-        fcode.push_back(1);  // regs_max
-        fcode.push_back(0);
-        fcode.push_back(0);
-        fcode.push_back(0);  // keepvars
+        f_function_idx = CODEGEN_SPECIAL_FUNCTION_ID_ENTRY;
+        f_regs_max = 1;
+        f_args.clear();
+        f_defs.clear();
+        f_keepvars = 0;
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
@@ -388,17 +391,18 @@ struct CodeGen  {
 
     void GenScope(SubFunction &sf) {
         cursf = &sf;
-        keepvars = 0;
         tstack_max = 0;
         if (!sf.typechecked) {
             auto s = DumpNode(*sf.sbody, 0, false);
             LOG_DEBUG("untypechecked: ", sf.parent->name, " : ", s);
             assert(0);
         }
+
+        f_function_idx = sf.idx;
+        f_regs_max = 0;
+        f_keepvars = 0;
+
         linenumbernodes.push_back(sf.sbody);
-        fcode.push_back(sf.idx);
-        auto regspos = fcode.size();
-        fcode.push_back(0);
         auto ret = AssertIs<Return>(sf.sbody->children.back());
         auto ir = sf.consumes_vars_on_return ? AssertIs<IdentRef>(ret->child) : nullptr;
 
@@ -406,15 +410,14 @@ struct CodeGen  {
             var_to_local.clear();
             var_to_local.resize(sids.size(), -1);
         #endif
-        auto emitvars = [&](const vector<Arg> &v) {
-            auto nvarspos = fcode.size();
-            fcode.push_back(0);
+        auto emitvars = [&](const vector<Arg> &v, vector<int> &f_ad) {
+            f_ad.clear();
             auto nvars = 0;
             for (auto &arg : v) {
                 auto n = ValWidth(arg.sid->type);
                 for (int i = 0; i < n; i++) {
                     auto varidx = arg.sid->Idx() + i;
-                    fcode.push_back(varidx);
+                    f_ad.push_back(varidx);
                     nvars++;
                     if (ShouldDec(IsStruct(arg.sid->type->t)
                                       ? TypeLT { FindSlot(*arg.sid->type->udt, i)->type,
@@ -428,13 +431,9 @@ struct CodeGen  {
 
                 }
             }
-            fcode[nvarspos] = nvars;
         };
-        emitvars(sf.args);
-        emitvars(sf.locals);
-
-        auto keepvarspos = fcode.size();
-        fcode.push_back(0);
+        emitvars(sf.args, f_args);
+        emitvars(sf.locals, f_defs);
 
         auto profile = sf.attributes.find("profile");
         if (profile != sf.attributes.end() && LOBSTER_FRAME_PROFILER) {
@@ -460,8 +459,7 @@ struct CodeGen  {
         assert(temptypestack.empty());
         assert(breaks.empty());
         assert(tstack.empty());
-        fcode[regspos] = (int)tstack_max;
-        fcode[keepvarspos] = keepvars;
+        f_regs_max = (int)tstack_max;
         linenumbernodes.pop_back();
         cursf = nullptr;
     }
@@ -734,17 +732,6 @@ struct CodeGen  {
             case IL_RETURNNONLOCAL:
             case IL_RETURNANY: {
                 // FIXME: emit epilogue stuff only once at end of function.
-                auto fip = fcode.data();
-                fip++;  // function id.
-                fip++;  // regs_max, not set until end of function
-                auto nargs = *fip++;
-                auto freevars = fip + nargs;
-                fip += nargs;
-                auto ndef = *fip++;
-                auto defvars = fip;
-                fip += ndef;
-                fip++;  // nkeepvars, not set until end of function
-                assert(fip == fcode.data() + fcode.size());
                 int nrets = icode[0];
                 if (opc == IL_RETURNLOCAL) {
                     append(cb, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
@@ -760,6 +747,8 @@ struct CodeGen  {
                         append(cb, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
                     }
                 }
+                auto nargs = (int)f_args.size();
+                auto freevars = f_args.data() + nargs;
                 while (nargs--) {
                     auto varidx = *--freevars;
                     if (sids[varidx].used_as_freevar()) {
@@ -779,8 +768,8 @@ struct CodeGen  {
                     }
                 }
                 sdt.clear();  // FIXME: remove
-                for (int i = ndef - 1; i >= 0; i--) {
-                    auto varidx = defvars[i];
+                for (int i = (int)f_defs.size() - 1; i >= 0; i--) {
+                    auto varidx = f_defs[i];
                     if (sids[varidx].used_as_freevar()) {
                         append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
                     }
@@ -828,39 +817,29 @@ struct CodeGen  {
 
     void DefineFunction(string &sd, bool label) {
         sd += "\n";
-        auto sf_idx = fcode[0];
+        auto sf_idx = f_function_idx;
         if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
             append(sd, "// ", st.subfunctiontable[sf_idx]->parent->name, "\n");
         append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
-        auto fip = fcode.data();
-        fip++;  // sf.idx
-        auto regs_max = *fip++;
-        auto nargs_fun = *fip++;
-        auto nargs = fip;
-        fip += nargs_fun;
-        int ndefsave = *fip++;
-        auto defs = fip;
-        fip += ndefsave;
-        auto nkeepvars = *fip++;
-        assert(fip == fcode.data() + fcode.size());
+        // NOTE: f_keepvars and f_regs_max are not known until end of codegen of function!
         // FIXME: don't emit array.
         // (there may be functions that don't use regs yet still refer to sp?)
-        append(sd, "    Value regs[", std::max(1, regs_max), "];\n");
-        if (!regs_max) append(sd, "    (void)regs;\n");
-        if (nkeepvars) append(sd, "    Value keepvar[", nkeepvars, "];\n");
+        append(sd, "    Value regs[", std::max(1, f_regs_max), "];\n");
+        if (!f_regs_max) append(sd, "    (void)regs;\n");
+        if (f_keepvars) append(sd, "    Value keepvar[", f_keepvars, "];\n");
         if (numlocals) append(sd, "    Value locals[", numlocals, "];\n");
-        for (int i = 0; i < nargs_fun; i++) {
-            auto varidx = nargs[i];
+        for (int i = 0; i < (int)f_args.size(); i++) {
+            auto varidx = f_args[i];
             if (sids[varidx].used_as_freevar()) {
-                append(sd, "    SwapVars(vm, ", varidx, ", psp, ", nargs_fun - i, ");\n");
+                append(sd, "    SwapVars(vm, ", varidx, ", psp, ", (int)f_args.size() - i, ");\n");
             } else {
-                append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", nargs_fun - i, ");\n");
+                append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", (int)f_args.size() - i, ");\n");
             }
         }
-        for (int i = 0; i < ndefsave; i++) {
+        for (int i = 0; i < (int)f_defs.size(); i++) {
             // for most locals, this just saves an nil, only in recursive cases it has an
             // actual value.
-            auto varidx = defs[i];
+            auto varidx = f_defs[i];
             if (sids[varidx].used_as_freevar()) {
                 append(sd, "    BackupVar(vm, ", varidx, ");\n");
             } else {
@@ -879,11 +858,16 @@ struct CodeGen  {
             // VM. Calling this here because now locals have been fully initialized.
             append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
                    numlocals ? "locals" : "0", ");\n");
-            // TODO: this doesn't need to correspond to to funstart, can stick any info we
-            // want in here.
-            funstarttables.insert(funstarttables.end(), fcode.data(), fcode.data() + fcode.size());
+            // This can be any format we want.
+            funstarttables.push_back(f_function_idx);
+            funstarttables.push_back(f_regs_max);
+            funstarttables.push_back((int)f_args.size());
+            funstarttables.insert(funstarttables.end(), f_args.begin(), f_args.end());
+            funstarttables.push_back((int)f_defs.size());
+            funstarttables.insert(funstarttables.end(), f_defs.begin(), f_defs.end());
+            funstarttables.push_back(f_keepvars);
         }
-        for (int i = 0; i < nkeepvars; i++) {
+        for (int i = 0; i < f_keepvars; i++) {
             if (cpp)
                 append(sd, "    keepvar[", i, "] = lobster::NilVal();\n");  // FIXME ns
             else
@@ -902,18 +886,17 @@ struct CodeGen  {
         }
         if (!sdt.empty()) append(sd, sdt);
         sdt.clear();
-        for (int i = 0; i < nkeepvars; i++) {
+        for (int i = 0; i < f_keepvars; i++) {
             append(sd, "    DecVal(vm, keepvar[", i, "]);\n");
         }
-        if (runtime_checks >= RUNTIME_STACK_TRACE && fcode[0] < CODEGEN_SPECIAL_FUNCTION_ID_START) {
+        if (runtime_checks >= RUNTIME_STACK_TRACE && f_function_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
             append(sd, "    PopFunId(vm);\n");
         }
         sd += "}\n";
         icode.clear();
-        fcode.clear();
         ownedvars.clear();
         assert(jumptables_stack.empty());
-        nkeepvars = -1;
+        f_keepvars = -1;
         numlocals = 0;
         nlabel = 0;
         has_profile = false;
@@ -1514,7 +1497,7 @@ struct CodeGen  {
         auto op = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
         EmitOp(op);
         Emit(stack_offset);
-        Emit(keepvars++ + keep_index_add);
+        Emit(f_keepvars++ + keep_index_add);
     }
 
     void GenLvalVar(const SpecIdent &sid, int offset) {
