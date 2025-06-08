@@ -467,6 +467,7 @@ struct CodeGen  {
                 "typedef struct {\n"
                 "    int last_line;\n"
                 "    int last_fileidx;\n"
+                "    Value *temp_lval;\n"
                 "} VMBase;\n"
                 "typedef Value *StackPtr;\n"
                 "typedef VMBase *VMRef;\n"
@@ -522,7 +523,6 @@ struct CodeGen  {
                   "extern void DecVal(VMRef, Value);\n"
                   "extern void RestoreBackup(VMRef, int);\n"
                   "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
-                  "extern void SetLVal(VMRef, Value *);\n"
                   "extern int RetSlots(VMRef);\n"
                   "extern int GetTypeSwitchID(VMRef, Value, int);\n"
                   "extern void PushFunId(VMRef, const int *, StackPtr);\n"
@@ -560,6 +560,7 @@ struct CodeGen  {
     string sp(int off = 0) { return cat("regs + ", regso - off); };
     string spslot(int off) { return cat("regs[", regso - off, "]"); };
     void comment(string_view c) { append(cb, " // ", c, "\n"); };
+    string_view vmref() { return string_view(cpp ? "vm." : "vm->"); };
 
     int Label() { return nlabel++; }
 
@@ -612,7 +613,7 @@ struct CodeGen  {
 
     void EmitLVAL_VARL(int offset) {
         EmitOp(IL_LVAL_VARL);
-        append(cb, "    SetLVal(vm, &locals[", var_to_local[offset], "]);");
+        append(cb, "    ", vmref(), "temp_lval = &locals[", var_to_local[offset], "];");
         comment(IdName(offset, false));
     }
 

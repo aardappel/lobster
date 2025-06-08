@@ -985,13 +985,12 @@ struct Line {
 // This is the part of the VM we share with the C code.
 struct VMBase {
     Line last{ -1, -1 };
+    Value *temp_lval = nullptr;
 };
 
 struct VM : VMBase {
     VMArgs vma;
     SlabAlloc pool;
-
-    Value *temp_lval = nullptr;
 
     fun_base_t next_call_target = 0;
 
@@ -1211,10 +1210,6 @@ VM_INLINE void RestoreBackup(VM &vm, int i) {
 VM_INLINE StackPtr PopArg(VM &vm, int i, StackPtr psp) {
     vm.fvars[i] = Pop(psp);
     return psp;
-}
-
-VM_INLINE void SetLVal(VM &vm, Value *v) {
-    vm.temp_lval = v;
 }
 
 VM_INLINE int RetSlots(VM &vm) {

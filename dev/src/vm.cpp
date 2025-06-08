@@ -930,7 +930,6 @@ void CVM_DecOwned(VM *vm, int i) { DecOwned(*vm, i); }
 void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
 void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
-void CVM_SetLVal(VM *vm, Value *v) { SetLVal(*vm, v); }
 int CVM_RetSlots(VM *vm) { return RetSlots(*vm); }
 int CVM_GetTypeSwitchID(VM *vm, Value self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
 void CVM_PushFunId(VM *vm, const int *id, StackPtr locals) { PushFunId(*vm, id, locals); }
@@ -993,7 +992,6 @@ const void *vm_ops_jit_table[] = {
     "DecVal", (void *)CVM_DecVal,
     "RestoreBackup", (void *)CVM_RestoreBackup,
     "PopArg", (void *)CVM_PopArg,
-    "SetLVal", (void *)CVM_SetLVal,
     "RetSlots", (void *)CVM_RetSlots,
     "GetTypeSwitchID", (void *)CVM_GetTypeSwitchID,
     "PushFunId", (void *)CVM_PushFunId,
