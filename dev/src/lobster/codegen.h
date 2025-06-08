@@ -53,7 +53,6 @@ struct CodeGen  {
     vector<int> f_args;
     vector<int> f_defs;
     int f_keepvars = -1;
-    vector<int> icode;
     vector<int> ownedvars;
     vector<int> funstarttables;
     vector<int> var_to_local;
@@ -61,31 +60,6 @@ struct CodeGen  {
     string sdt;
     int numlocals = 0;
     int nlabel = 0;
-
-    int Pos() { return (int)icode.size(); }
-
-    int Label() { return nlabel++; }
-
-    void Emit(int i) {
-        icode.push_back(i);
-    }
-
-    void EmitLabelDef(int lab) {
-        EmitLABEL(lab);
-    }
-
-    void EmitLabelDefs(vector<int> &labs) {
-        for (auto lab : labs) {
-            EmitLabelDef(lab);
-        }
-        labs.clear();
-    }
-
-    int EmitLabelDefBackwards() {
-        auto lab = Label();
-        EmitLABEL(lab);
-        return lab;
-    }
 
     int TempStackSize() {
         return (int)tstack.size();
@@ -120,8 +94,6 @@ struct CodeGen  {
     };
 
     void EmitOp(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        assert(icode.empty());
-
         opc = op;
         regso = TempStackSize();
 
@@ -140,37 +112,6 @@ struct CodeGen  {
         for (int i = 0; i < defs; i++) { PushTemp(op); }
 
         //LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs, " -> ", tstack.size());
-    }
-
-    void OpEnd() {
-        EmitDefaultIns();
-        icode.clear();
-    }
-
-    void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        EmitOp(op, useslots, defslots);
-        OpEnd();
-    }
-
-    void EmitOp1(ILOP op, int a1, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        EmitOp(op, useslots, defslots);
-        Emit(a1);
-        OpEnd();
-    }
-
-    void EmitOp2(ILOP op, int a1, int a2, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
-        EmitOp(op, useslots, defslots);
-        Emit(a1);
-        Emit(a2);
-        OpEnd();
-    }
-
-    void EmitOp3(ILOP op, int a1, int a2, int a3) {
-        EmitOp(op);
-        Emit(a1);
-        Emit(a2);
-        Emit(a3);
-        OpEnd();
     }
 
     const int ti_num_udt_fields = 6;
@@ -608,6 +549,26 @@ struct CodeGen  {
     string spslot(int off) { return cat("regs[", regso - off, "]"); };
     void comment(string_view c) { append(cb, " // ", c, "\n"); };
 
+    int Label() { return nlabel++; }
+
+    void EmitLabelDef(int lab) {
+        EmitOp(IL_LABEL);
+        append(cb, "    block", lab, ":;\n");
+    }
+
+    void EmitLabelDefs(vector<int> &labs) {
+        for (auto lab : labs) {
+            EmitLabelDef(lab);
+        }
+        labs.clear();
+    }
+
+    int EmitLabelDefBackwards() {
+        auto lab = Label();
+        EmitLabelDef(lab);
+        return lab;
+    }
+
     void GenPushVar(size_t retval, TypeRef type, int offset, bool used_as_freevar) {
         if (!retval) return;
         if (IsStruct(type->t)) {
@@ -657,11 +618,6 @@ struct CodeGen  {
         string q;
         EscapeAndQuote(sv, q, true);
         comment(q);
-    }
-
-    void EmitLABEL(int lab) {
-        EmitOp(IL_LABEL);
-        append(cb, "    block", lab, ":;\n");
     }
 
     int EmitJUMP() {
@@ -828,14 +784,24 @@ struct CodeGen  {
         else cb += "\n";
     }
 
-    void EmitDefaultIns() {
-        assert(ILArity()[opc] != ILUNKNOWN);
-        append(cb, "    U_", ILNames()[opc], "(vm, ", sp(), "");
-        for (size_t i = 0; i < icode.size(); i++) {
-            cb += ", ";
-            append(cb, icode[i]);
-        }
-        cb += ");\n";
+    void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
+        EmitOp(op, useslots, defslots);
+        append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ");\n");
+    }
+
+    void EmitOp1(ILOP op, int a1, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
+        EmitOp(op, useslots, defslots);
+        append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ", ", a1, ");\n");
+    }
+
+    void EmitOp2(ILOP op, int a1, int a2, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
+        EmitOp(op, useslots, defslots);
+        append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ", ", a1, ", ", a2, ");\n");
+    }
+
+    void EmitOp3(ILOP op, int a1, int a2, int a3, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
+        EmitOp(op, useslots, defslots);
+        append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ", ", a1, ", ", a2, ", ", a3, ");\n");
     }
 
     void DefineFunction(string &sd, bool label) {
@@ -912,7 +878,6 @@ struct CodeGen  {
             append(sd, "    PopFunId(vm);\n");
         }
         sd += "}\n";
-        icode.clear();
         ownedvars.clear();
         f_keepvars = -1;
         numlocals = 0;
@@ -1207,7 +1172,7 @@ struct CodeGen  {
     void GenPop(TypeLT typelt) {
         if (IsStruct(typelt.type->t)) {
             if (typelt.type->t == V_STRUCT_R) {
-                // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
+                // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
                     EmitOp0(IsRefNil(FindSlot(*typelt.type->udt, j)->type->t) ? IL_POPREF
                                                                              : IL_POP);
@@ -1265,10 +1230,6 @@ struct CodeGen  {
         linenumbernodes.pop_back();
     }
 
-    void EmitWidthIfStruct(TypeRef type) {
-        if (IsStruct(type->t)) Emit(ValWidth(type));
-    }
-
     int ComputeBitMask(const UDT &udt) {
         int bits = 0;
         for (int j = 0; j < udt.numslots; j++) {
@@ -1282,9 +1243,9 @@ struct CodeGen  {
         return bits;
     }
 
-    void EmitBitMaskForRefStuct(TypeRef type) {
+    int BitMaskForRefStuct(TypeRef type) {
         assert(type->t == V_STRUCT_R);
-        Emit(ComputeBitMask(*type->udt));
+        return ComputeBitMask(*type->udt);
     }
 
     void GenValueWidth(TypeRef type) {
@@ -1294,9 +1255,10 @@ struct CodeGen  {
 
     void GenOpWithStructInfo(ILOP op, TypeRef type) {
         EmitOp(op, ValWidth(type));
-        EmitWidthIfStruct(type);
-        if (op == IL_LV_WRITEREFV) EmitBitMaskForRefStuct(type);
-        OpEnd();
+        append(cb, "    U_", ILNames()[opc], "(vm, ", sp());
+        if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
+        if (op == IL_LV_WRITEREFV) append(cb, ", ", BitMaskForRefStuct(type));
+        cb += ");\n";
     }
 
     void GenAssignBasic(const SpecIdent &sid) {
@@ -1329,11 +1291,13 @@ struct CodeGen  {
             TakeTemp(take_temp + 2, true);
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
-                    EmitOp(indexing->index->exptype->t == V_INT ? IL_LVAL_IDXVI : IL_LVAL_IDXVV,
-                           ValWidth(indexing->index->exptype) + 1);
-                    Emit(offset);
-                    EmitWidthIfStruct(indexing->index->exptype);  // When index is struct.
-                    OpEnd();
+                    if (indexing->index->exptype->t == V_INT) {
+                        EmitOp1(IL_LVAL_IDXVI, offset, 2);
+                    } else {
+                        assert(IsStruct(indexing->index->exptype->t));
+                        auto width = ValWidth(indexing->index->exptype);
+                        EmitOp2(IL_LVAL_IDXVV, offset, width, width + 1);
+                    }
                     break;
                 case V_CLASS:
                     assert(indexing->index->exptype->t == V_INT &&
@@ -1389,10 +1353,12 @@ struct CodeGen  {
         if (retval) {
             // FIXME: it seems these never need a refcount increase because they're always
             // borrowed? Be good to assert that somehow.
-            auto outw = ValWidth(type);
-            EmitOp(IsStruct(type->t) ? IL_LV_DUPV : IL_LV_DUP, 0, outw);
-            EmitWidthIfStruct(type);
-            OpEnd();
+            if (IsStruct(type->t)) {
+                auto width = ValWidth(type);
+                EmitOp1(IL_LV_DUPV, width, 0, width);
+            } else {
+                EmitOp0(IL_LV_DUP, 0, 1);
+            }
         }
         if (post) {
             GenOpWithStructInfo(lvalop, type);
@@ -1458,9 +1424,8 @@ struct CodeGen  {
         } else {
             if (op >= MOP_EQ) {  // EQ/NEQ
                 if (IsStruct(ltype->t)) {
-                    EmitOp(GENOP(IL_STEQ + op - MOP_EQ), ValWidth(ltype) * 2, 1);
-                    EmitWidthIfStruct(ltype);
-                    OpEnd();
+                    auto width = ValWidth(ltype);
+                    EmitOp1(GENOP(IL_STEQ + op - MOP_EQ), width, width * 2, 1);
                 } else {
                     assert(IsRefNil(ltype->t) &&
                            IsRefNil(rtype->t));
@@ -1475,13 +1440,12 @@ struct CodeGen  {
                 bool withscalar = IsScalar(rtype->t) || IsScalar(ltype->t);
                 auto outw = ValWidth(ptype);
                 auto inw = withscalar ? outw + 1 : outw * 2;
+                auto width = ValWidth(vectype);
                 if (sub->t == V_INT) 
-                    EmitOp(GENOP((withscalar ? (leftisvec ? IL_IVSADD : IL_SIVADD) : IL_IVVADD) + op), inw, outw);
+                    EmitOp1(GENOP((withscalar ? (leftisvec ? IL_IVSADD : IL_SIVADD) : IL_IVVADD) + op), width, inw, outw);
                 else if (sub->t == V_FLOAT)
-                    EmitOp(GENOP((withscalar ? (leftisvec ? IL_FVSADD : IL_SFVADD) : IL_FVVADD) + op), inw, outw);
+                    EmitOp1(GENOP((withscalar ? (leftisvec ? IL_FVSADD : IL_SFVADD) : IL_FVVADD) + op), width, inw, outw);
                 else assert(false);
-                EmitWidthIfStruct(vectype);
-                OpEnd();
             }
         }
     }
@@ -1510,6 +1474,8 @@ struct CodeGen  {
     }
 
     void GenPushField(size_t retval, Node *object, TypeRef stype, TypeRef ftype, int offset) {
+        auto fwidth = ValWidth(ftype);
+        auto swidth = ValWidth(stype);
         if (IsStruct(stype->t)) {
             // Attempt to not generate object at all, by reading the field inline.
             if (auto idr = Is<IdentRef>(object)) {
@@ -1527,7 +1493,7 @@ struct CodeGen  {
             } else if (auto indexing = Is<Indexing>(object)) {
                 // For now only do this for vectors.
                 if (indexing->object->exptype->t == V_VECTOR) {
-                    GenPushIndex(retval, indexing->object, indexing->index, ValWidth(ftype), offset);
+                    GenPushIndex(retval, indexing->object, indexing->index, fwidth, offset);
                     return;
                 }
             }
@@ -1537,21 +1503,13 @@ struct CodeGen  {
         TakeTemp(1, true);
         if (IsStruct(stype->t)) {
             if (IsStruct(ftype->t)) {
-                EmitOp(IL_PUSHFLDV2V, ValWidth(stype), ValWidth(ftype));
-                Emit(offset);
-                EmitWidthIfStruct(ftype);
+                EmitOp3(IL_PUSHFLDV2V, offset, fwidth, swidth, swidth, fwidth);
             } else {
-                EmitOp(IL_PUSHFLDV, ValWidth(stype), 1);
-                Emit(offset);
+                EmitOp2(IL_PUSHFLDV, offset, swidth, swidth, 1);
             }
-            EmitWidthIfStruct(stype);
-            OpEnd();
         } else {
             if (IsStruct(ftype->t)) {
-                EmitOp(IL_PUSHFLD2V, 1, ValWidth(ftype));
-                Emit(offset);
-                EmitWidthIfStruct(ftype);
-                OpEnd();
+                EmitOp2(IL_PUSHFLD2V, offset, fwidth, 1, fwidth);
             } else {
                 EmitOp1(IL_PUSHFLD, offset);
             }
@@ -1579,30 +1537,36 @@ struct CodeGen  {
                 auto inw = ValWidth(index->exptype) + 1;
                 auto elemwidth = ValWidth(etype);
                 if (struct_elem_sub_width < 0) {
-                    EmitOp(index->exptype->t == V_INT
-                        ? (elemwidth == 1 ? IL_VPUSHIDXI : IL_VPUSHIDXI2V)
-                        : IL_VPUSHIDXV, inw, elemwidth);
-                    EmitWidthIfStruct(index->exptype);
-                    OpEnd();
+                    if (index->exptype->t == V_INT) {
+                        EmitOp0(elemwidth == 1 ? IL_VPUSHIDXI : IL_VPUSHIDXI2V, inw, elemwidth);
+                    } else {
+                        assert(IsStruct(index->exptype->t));
+                        EmitOp1(IL_VPUSHIDXV, ValWidth(index->exptype), inw, elemwidth);
+                    }
                 } else {
                     // We're indexing a sub-part of the element.
-                    auto op = index->exptype->t == V_INT
-                        ? (elemwidth == 1 ? IL_VPUSHIDXIS : IL_VPUSHIDXIS2V)
-                        : IL_VPUSHIDXVS;
-                    EmitOp(op, inw, struct_elem_sub_width);
-                    EmitWidthIfStruct(index->exptype);
-                    if (op != IL_VPUSHIDXIS) Emit(struct_elem_sub_width);
-                    Emit(struct_elem_sub_offset);
-                    OpEnd();
+                    if (index->exptype->t == V_INT) {
+                        if (elemwidth == 1) {
+                            EmitOp1(IL_VPUSHIDXIS, struct_elem_sub_offset,
+                                    inw, struct_elem_sub_width);
+                        } else {
+                            EmitOp2(IL_VPUSHIDXIS2V, struct_elem_sub_width, struct_elem_sub_offset,
+                                    inw, struct_elem_sub_width);
+                        }
+                    } else {
+                        assert(IsStruct(index->exptype->t));
+                        EmitOp3(IL_VPUSHIDXVS, ValWidth(index->exptype), struct_elem_sub_width,
+                                struct_elem_sub_offset, inw, struct_elem_sub_width);
+                    }
                 }
                 break;
             }
-            case V_STRUCT_S:
+            case V_STRUCT_S: {
+                auto width = ValWidth(object->exptype);
                 assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
-                EmitOp(IL_NPUSHIDXI, ValWidth(object->exptype) + 1);
-                EmitWidthIfStruct(object->exptype);
-                OpEnd();
+                EmitOp1(IL_NPUSHIDXI, width, width + 1);
                 break;
+            }
             case V_STRING:
                 assert(index->exptype->t == V_INT);
                 EmitOp0(IL_SPUSHIDXI);
@@ -1804,9 +1768,7 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
         case V_STRUCT_S: {
             auto elem = ctype->udt->sametype->t;
             auto inw = ValWidth(ctype);
-            cg.EmitOp(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS, inw, inw);
-            cg.EmitWidthIfStruct(ctype);
-            cg.OpEnd();
+            cg.EmitOp1(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS, inw, inw, inw);
             break;
         }
         default: assert(false);
@@ -1889,7 +1851,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
             if (incref & (1LL << i)) {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
-                    // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
+                    // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->type->t)) {
                             cg.EmitOp1(IL_INCREF, stack_offset + type->udt->numslots - 1 - j);
@@ -1902,7 +1864,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
             if (decref & (1LL << i)) {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
-                    // TODO: alternatively emit a single op with a list or bitmask? see EmitBitMaskForRefStuct
+                    // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->type->t))
                             cg.EmitKeep(stack_offset + (type->udt->numslots - j - 1), 0);
@@ -2194,12 +2156,20 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
             cg.EmitOp0(IL_SFORELEM);
             break;
         case V_VECTOR: {
-            auto op = IsRefNil(typelt.type->sub->t)
-                          ? (IsStruct(typelt.type->sub->t) ? IL_VFORELEMREF2S : IL_VFORELEMREF)
-                          : (IsStruct(typelt.type->sub->t) ? IL_VFORELEM2S : IL_VFORELEM);
-            cg.EmitOp(op, 2, ValWidth(typelt.type->sub) + 2);
-            if (op == IL_VFORELEMREF2S) cg.EmitBitMaskForRefStuct(typelt.type->sub);
-            cg.OpEnd();
+            auto outw = ValWidth(typelt.type->sub) + 2;
+            if (IsRefNil(typelt.type->sub->t)) {
+                if (IsStruct(typelt.type->sub->t)) {
+                    cg.EmitOp1(IL_VFORELEMREF2S, cg.BitMaskForRefStuct(typelt.type->sub) , 2, outw);
+                } else {
+                    cg.EmitOp0(IL_VFORELEMREF, 2, outw);
+                }
+            } else {
+                if (IsStruct(typelt.type->sub->t)) {
+                    cg.EmitOp0(IL_VFORELEM2S, 2, outw);
+                } else {
+                    cg.EmitOp0(IL_VFORELEM, 2, outw);
+                }
+            }
             break;
         }
         default:
