@@ -149,6 +149,7 @@ struct CodeGen  {
 
     void OpEnd() {
         EmitCForPrev();
+        icode.clear();
         assert(in_ins);
         in_ins = false;
     }
@@ -632,7 +633,6 @@ struct CodeGen  {
     void comment(string_view c) { append(cb, " // ", c); };
 
     void EmitCForPrev() {
-        append(cb, "    ");
         switch (opc) {
             /*
             case IL_PUSHINT:
@@ -640,24 +640,25 @@ struct CodeGen  {
                 break;
             */
             case IL_PUSHVARL:
-                append(cb, spslot(0), " = locals[", var_to_local[icode[0]], "];");
+                append(cb, "    ", spslot(0), " = locals[", var_to_local[icode[0]], "];");
                 comment(IdName(icode[0], false));
                 break;
             case IL_PUSHVARVL:
+                append(cb, "    ");
                 for (int i = 0; i < icode[1]; i++) {
                     append(cb, spslot(-i), " = locals[", var_to_local[icode[0] + i], "];");
                 }
                 comment(IdName(icode[0], true));
                 break;
             case IL_LVAL_VARL:
-                append(cb, "SetLVal(vm, &locals[", var_to_local[icode[0]], "]);");
+                append(cb, "    SetLVal(vm, &locals[", var_to_local[icode[0]], "]);");
                 comment(IdName(icode[0], false));
                 break;
             case IL_LABEL:
-                append(cb, "block", icode[0], ":;");
+                append(cb, "    block", icode[0], ":;");
                 break;
             case IL_JUMP:
-                append(cb, "goto block", icode[0], ";");
+                append(cb, "    goto block", icode[0], ";");
                 break;
             case IL_JUMPFAIL:
             case IL_JUMPFAILR:
@@ -670,26 +671,26 @@ struct CodeGen  {
             case IL_JUMPIFSTATICLF:
             case IL_JUMPIFMEMBERLF: {
                 auto id = icode[opc >= IL_JUMPIFUNWOUND ? 1 : 0];
-                append(cb, "if (!U_", ILNames()[opc], "(vm, ", sp());
+                append(cb, "    if (!U_", ILNames()[opc], "(vm, ", sp());
                 if (opc >= IL_JUMPIFUNWOUND) append(cb, ", ", icode[0]);
                 append(cb, ")) goto block", id, ";");
                 break;
             }
             case IL_JUMP_TABLE_DISPATCH:
                 if (cpp) {
-                    append(cb, "switch (GetTypeSwitchID(vm, ", spslot(1), ", ", icode[0],
+                    append(cb, "    switch (GetTypeSwitchID(vm, ", spslot(1), ", ", icode[0],
                             ")) {");
                 } else {
-                    append(cb, "{ int top = GetTypeSwitchID(vm, ", spslot(1), ", ", icode[0],
+                    append(cb, "    { int top = GetTypeSwitchID(vm, ", spslot(1), ", ", icode[0],
                             "); switch (top) {");
                 }
                 jumptables_stack.push_back(vector<int>(icode.data() + 1, icode.data() + icode.size()));
                 break;
             case IL_JUMP_TABLE:
                 if (cpp) {
-                    append(cb, "switch (", spslot(1), ".ival()) {");
+                    append(cb, "    switch (", spslot(1), ".ival()) {");
                 } else {
-                    append(cb, "{ long long top = ", spslot(1), ".ival; switch (top) {");
+                    append(cb, "    { long long top = ", spslot(1), ".ival; switch (top) {");
                 }
                 jumptables_stack.push_back(icode);
                 break;
@@ -699,6 +700,7 @@ struct CodeGen  {
                 auto t = vec.data();
                 auto mini = *t++;
                 auto maxi = *t++;
+                append(cb, "    ");
                 for (auto i = mini; i <= maxi; i++) {
                     if (*t++ == curlab) append(cb, "case ", i, ":");
                 }
@@ -707,9 +709,9 @@ struct CodeGen  {
             }
             case IL_JUMP_TABLE_END: {
                 if (cpp)
-                    cb += "} // switch";
+                    cb += "    } // switch";
                 else
-                    cb += "}} // switch";
+                    cb += "    }} // switch";
                 jumptables_stack.pop_back();
                 break;
             }
@@ -723,44 +725,44 @@ struct CodeGen  {
             case IL_BCALLRET6:
             case IL_BCALLRET7:
                 if (parser.natreg.nfuns[icode[0]]->IsGLFrame()) {
-                    append(cb, "GLFrame(", sp(), ", vm);");
+                    append(cb, "    GLFrame(", sp(), ", vm);");
                 } else {
-                    append(cb, "U_", ILNames()[opc], "(vm, ", sp(), ", ", icode[0], ", ", icode[1], ");");
+                    append(cb, "    U_", ILNames()[opc], "(vm, ", sp(), ", ", icode[0], ", ", icode[1], ");");
                     comment(parser.natreg.nfuns[icode[0]]->name);
                 }
                 break;
             case IL_GOTOFUNEXIT:
-                append(cb, "goto epilogue;");
+                append(cb, "    goto epilogue;");
                 break;
             case IL_KEEPREFLOOP:
-                append(cb, "DecVal(vm, keepvar[", icode[1], "]); ");
-                [[fallthrough]];
             case IL_KEEPREF:
+                append(cb, "    ");
+                if (opc == IL_KEEPREFLOOP) append(cb, "DecVal(vm, keepvar[", icode[1], "]); ");
                 append(cb, "keepvar[", icode[1], "] = TopM(", sp(), ", ", icode[0], ");");
                 break;
             case IL_PUSHFUN:
-                append(cb, "U_PUSHFUN(vm, ", sp(), ", 0, ", "fun_", icode[0], ");");
+                append(cb, "    U_PUSHFUN(vm, ", sp(), ", 0, ", "fun_", icode[0], ");");
                 break;
             case IL_CALL: {
-                append(cb, "fun_", icode[0], "(vm, ", sp(), ");");
+                append(cb, "    fun_", icode[0], "(vm, ", sp(), ");");
                 auto sf_idx = icode[0];
                 comment("call: " + st.subfunctiontable[sf_idx]->parent->name);
                 break;
             }
             case IL_CALLV:
-                append(cb, "U_CALLV(vm, ", sp(), "); ");
+                append(cb, "    U_CALLV(vm, ", sp(), "); ");
                 if (cpp) append(cb, "vm.next_call_target(vm, ", sp(1), ");");
                 else append(cb, "GetNextCallTarget(vm)(vm, ", sp(1), ");");
                 break;
             case IL_DDCALL:
-                append(cb, "U_DDCALL(vm, ", sp(), ", ", icode[0], ", ", icode[1], "); ");
+                append(cb, "    U_DDCALL(vm, ", sp(), ", ", icode[0], ", ", icode[1], "); ");
                 if (cpp) append(cb, "vm.next_call_target(vm, ", sp(), ");");
                 else append(cb, "GetNextCallTarget(vm)(vm, ", sp(), ");");
                 break;
             case IL_PROFILE: {
                 string name;
                 EscapeAndQuote(stringtable[icode[0]], name, true);
-                append(cb, "static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
+                append(cb, "    static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
                        ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
                        cpp ? "lobster::" : "", "StartProfile(&tsld);");
                 has_profile = true;
@@ -772,11 +774,11 @@ struct CodeGen  {
                 // FIXME: emit epilogue stuff only once at end of function.
                 int nrets = icode[0];
                 if (opc == IL_RETURNLOCAL) {
-                    append(cb, "U_RETURNLOCAL(vm, 0, ", nrets, ");");
+                    append(cb, "    U_RETURNLOCAL(vm, 0, ", nrets, ");");
                 } else if (opc == IL_RETURNNONLOCAL) {
-                    append(cb, "U_RETURNNONLOCAL(vm, 0, ", nrets, ", ", icode[1], ");");
+                    append(cb, "    U_RETURNNONLOCAL(vm, 0, ", nrets, ", ", icode[1], ");");
                 } else {
-                    append(cb, "U_RETURNANY(vm, 0, ", nrets, ");");
+                    append(cb, "    U_RETURNANY(vm, 0, ", nrets, ");");
                 }
                 for (auto varidx : ownedvars) {
                     if (sids[varidx].used_as_freevar()) {
@@ -819,7 +821,7 @@ struct CodeGen  {
             }
             default: {
                 assert(ILArity()[opc] != ILUNKNOWN);
-                append(cb, "U_", ILNames()[opc], "(vm, ", sp(), "");
+                append(cb, "    U_", ILNames()[opc], "(vm, ", sp(), "");
                 for (size_t i = 0; i < icode.size(); i++) {
                     cb += ", ";
                     append(cb, icode[i]);
@@ -850,7 +852,6 @@ struct CodeGen  {
             }
         }
         cb += "\n";
-        icode.clear();
     }
 
     void DefineFunction(string &sd, bool label) {
