@@ -145,7 +145,7 @@ VM_INLINE void U_INCREF(VM &, StackPtr sp, int off) {
     TopM(sp, off).LTINCRTNIL();
 }
 
-VM_INLINE void U_KEEPREFLOOP(VM &, StackPtr, int, int) {
+VM_INLINE void U_KEEPREFLOOP(VM &, StackPtr, int, int) { 
 }
 
 VM_INLINE void U_KEEPREF(VM &, StackPtr, int, int) {
@@ -168,21 +168,16 @@ VM_INLINE void U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     assert(vm.next_call_target);
 }
 
-VM_INLINE void U_RETURNLOCAL(VM &vm, StackPtr, int /*nrv*/) {
-    #ifndef NDEBUG
-        vm.ret_unwind_to = -9;
-        vm.ret_slots = -9;
-    #else
-        (void)vm;
-    #endif
+VM_INLINE void U_RETURNLOCAL(VM &, StackPtr, int /*nrv*/) {
+    assert(false);
 }
 
-VM_INLINE void U_RETURNNONLOCAL(VM &vm, StackPtr, int nrv, int df) {
-    vm.ret_unwind_to = df;
-    vm.ret_slots = nrv;
+VM_INLINE void U_RETURNNONLOCAL(VM &, StackPtr, int, int) {
+    assert(false);
 }
 
 VM_INLINE void U_RETURNANY(VM &, StackPtr, int /*nretslots_norm*/) {
+    assert(false);
 }
 
 VM_INLINE void U_GOTOFUNEXIT(VM &, StackPtr) {

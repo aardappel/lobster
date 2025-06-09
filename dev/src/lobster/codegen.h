@@ -467,6 +467,8 @@ struct CodeGen  {
                 "typedef struct {\n"
                 "    int last_line;\n"
                 "    int last_fileidx;\n"
+                "    int ret_unwind_to;\n"
+                "    int ret_slots;\n"
                 "    Value *temp_lval;\n"
                 "} VMBase;\n"
                 "typedef Value *StackPtr;\n"
@@ -673,11 +675,6 @@ struct CodeGen  {
         }
     }
 
-    void EmitGOTOFUNEXIT() {
-        EmitOp(IL_GOTOFUNEXIT);
-        append(cb, "    goto epilogue;\n");
-    }
-
     void EmitKeep(int stack_offset, int keep_index_add) {
         auto op = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
         EmitOp(op);
@@ -692,17 +689,19 @@ struct CodeGen  {
         EmitOp(op, useslots, defslots);
         // FIXME: emit epilogue stuff only once at end of function.
         if (opc == IL_RETURNLOCAL) {
-            append(cb, "    U_RETURNLOCAL(vm, 0, ", nretslots, ");");
+            #if VM_EXTRA_CHECKING
+                append(cb, "    ", vmref(), "ret_slots = -9;\n");
+                append(cb, "    ", vmref(), "ret_unwind_to = -9;\n");
+            #endif
         } else if (opc == IL_RETURNNONLOCAL) {
-            append(cb, "    U_RETURNNONLOCAL(vm, 0, ", nretslots, ", ", parent_idx, ");");
-        } else {
-            append(cb, "    U_RETURNANY(vm, 0, ", nretslots, ");");
+            append(cb, "    ", vmref(), "ret_slots = ", nretslots, ";\n");
+            append(cb, "    ", vmref(), "ret_unwind_to = ", parent_idx, ";\n");
         }
         for (auto varidx : ownedvars) {
             if (sids[varidx].used_as_freevar()) {
-                append(cb, "\n    DecOwned(vm, ", varidx, ");");
+                append(cb, "    DecOwned(vm, ", varidx, ");\n");
             } else {
-                append(cb, "\n    DecVal(vm, locals[", var_to_local[varidx], "]);");
+                append(cb, "    DecVal(vm, locals[", var_to_local[varidx], "]);\n");
             }
         }
         auto nargs = (int)f_args.size();
@@ -710,19 +709,18 @@ struct CodeGen  {
         while (nargs--) {
             auto varidx = *--freevars;
             if (sids[varidx].used_as_freevar()) {
-                append(cb, "\n    psp = PopArg(vm, ", varidx, ", psp);");
+                append(cb, "    psp = PopArg(vm, ", varidx, ", psp);\n");
             } else {
                 // TODO: move to when we obtain the arg?
-                append(cb, "\n    Pop(psp);");
+                append(cb, "    Pop(psp);\n");
             }
         }
         if (opc == IL_RETURNANY) {
-            append(cb,
-                    "\n    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
-                    "Push(psp, regs[i + ", regso - nretslots, "]); }");
+            append(cb, "    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
+                       "Push(psp, regs[i + ", regso - nretslots, "]); }\n");
         } else {
             for (int i = 0; i < nretslots; i++) {
-                append(cb, "\n    Push(psp, ", spslot(nretslots - i), ");");
+                append(cb, "    Push(psp, ", spslot(nretslots - i), ");\n");
             }
         }
         sdt.clear();  // FIXME: remove
@@ -732,10 +730,16 @@ struct CodeGen  {
                 append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
             }
         }
-        if (opc != IL_RETURNANY) {
-            append(cb, "\n    goto epilogue;");
+        if (opc == IL_RETURNANY) {
+            // The above has taken care of falling thru retvals, but the normal retvals are
+            // still on the tstack.
+            for (int i = 0; i < nretslots; i++)
+                PopTemp();
+            for (auto &tse : reverse(temptypestack)) {
+                GenPop(tse);
+            }
         }
-        cb += "\n";
+        append(cb, "    goto epilogue;\n");
     }
 
     void EmitPUSHFUN(int fidx) {
@@ -1142,14 +1146,6 @@ struct CodeGen  {
         // so temp modify the tstack to match that.
         auto tstackbackup = tstack;
         EmitRETURN(IL_RETURNANY, nretslots_norm);
-        // RETURNANY has taken care of falling thru retvals, but the normal retvals are
-        // still on the tstack.
-        for (int i = 0; i < nretslots_norm; i++)
-            PopTemp();
-        for (auto &tse : reverse(temptypestack)) {
-            GenPop(tse);
-        }
-        EmitGOTOFUNEXIT();
         EmitLabelDef(lab);
         tstack = tstackbackup;
     }

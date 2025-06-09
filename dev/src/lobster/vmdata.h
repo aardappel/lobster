@@ -33,7 +33,9 @@ namespace lobster {
 
 #define STRING_CONSTANTS_KEEP 0
 
+// For debugging hairier issues.
 #define DELETE_DELAY 0
+#define VM_EXTRA_CHECKING 0
 
 #ifdef NDEBUG
     // Inlining the base VM ops allows for a great deal of optimisation,
@@ -985,6 +987,8 @@ struct Line {
 // This is the part of the VM we share with the C code.
 struct VMBase {
     Line last{ -1, -1 };
+    int ret_unwind_to = -1;
+    int ret_slots = -1;
     Value *temp_lval = nullptr;
 };
 
@@ -993,9 +997,6 @@ struct VM : VMBase {
     SlabAlloc pool;
 
     fun_base_t next_call_target = 0;
-
-    int ret_unwind_to = -1;
-    int ret_slots = -1;
 
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts = nullptr;
