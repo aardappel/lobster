@@ -141,8 +141,8 @@ VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
     Push(sp, Value(s));
 }
 
-VM_INLINE void U_INCREF(VM &, StackPtr sp, int off) {
-    TopM(sp, off).LTINCRTNIL();
+VM_INLINE void U_INCREF(VM &, StackPtr, int) {
+    assert(false);
 }
 
 VM_INLINE void U_KEEPREFLOOP(VM &, StackPtr, int, int) { 

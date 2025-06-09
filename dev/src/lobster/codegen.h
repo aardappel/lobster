@@ -452,12 +452,17 @@ struct CodeGen  {
                 ;
         } else {
             sd +=
+                // This needs to correspond to the C++ RefObj, enforced in Entry().
+                "typedef struct {\n"
+                "    int typeinfo;\n"
+                "    int refc;\n"
+                "} RefObj;\n"
                 // This needs to correspond to the C++ Value, enforced in Entry().
                 "typedef struct {\n"
                 "    union {\n"
                 "        long long ival;\n"
                 "        double fval;\n"
-                "        void *rval;\n"
+                "        RefObj *ref;\n"
                 "    };\n"
                 #if RTT_ENABLED
                 "    int type;\n"
@@ -518,7 +523,7 @@ struct CodeGen  {
             #undef F
 
             sd += "extern fun_base_t GetNextCallTarget(VMRef);\n"
-                  "extern void Entry(int, int);\n"
+                  "extern void Entry(int, int, int);\n"
                   "extern void GLFrame(StackPtr, VMRef);\n"
                   "extern void SwapVars(VMRef, int, StackPtr, int);\n"
                   "extern void BackupVar(VMRef, int);\n"
@@ -564,6 +569,10 @@ struct CodeGen  {
     string spslot(int off) { return cat("regs[", regso - off, "]"); };
     void comment(string_view c) { append(cb, " // ", c, "\n"); };
     string_view vmref() { return string_view(cpp ? "vm." : "vm->"); };
+    string_view ref() { return string_view(cpp ? "ref()" : "ref"); };
+    string_view refnil() { return string_view(cpp ? "refnil()" : "ref"); };
+    string_view lnamespace() { return string_view(cpp ? "lobster::" : ""); };
+    string_view refobj() { return string_view(cpp ? "auto " : "RefObj *"); };
 
     int Label() { return nlabel++; }
 
@@ -877,6 +886,28 @@ struct CodeGen  {
             append(sd, "    { StackPtr _sp = ", target, "; _sp->ival = 0;", SetType(V_NIL), " }\n");
     }
 
+    void EmitINCREF(int off, TypeRef type) {
+        EmitOp(IL_INCREF);
+        // FIXME: even when the static type is IsRef (i.e. no NIL or scalar), at runtime it is
+        // still possible we get passed an int false value due to the way and/or are compiled?
+        // See e.g. astar_result in the test.
+        // Would be great to remove this case since the if-check is not needed in almost all cases.
+        auto could_be_nil = true || !IsRef(type->t);
+        if (cpp) {
+            if (could_be_nil) {
+                append(cb, "    (", sp(off + 1), ")->LTINCRTNIL();\n");
+            } else {
+                append(cb, "    (", sp(off + 1), ")->LTINCRT();\n");
+            }
+        } else {
+            if (could_be_nil) {
+                append(cb, "    { RefObj *_r = (", sp(off + 1), ")->ref; if (_r) _r->refc++; }\n");
+            } else {
+                append(cb, "    (", sp(off + 1), ")->ref->refc++;\n");
+            }
+        }
+    }
+
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitOp(op, useslots, defslots);
         append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ");\n");
@@ -1110,7 +1141,7 @@ struct CodeGen  {
             append(sd, "    if (vm.vma.nfr.HashAll() != ", parser.natreg.HashAll(),
                    "ULL) vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
         } else {
-            sd += "    Entry(sizeof(Value), sizeof(VMBase));\n";
+            sd += "    Entry(sizeof(Value), sizeof(VMBase), sizeof(RefObj));\n";
         }
         append(sd, "    fun_", CODEGEN_SPECIAL_FUNCTION_ID_ENTRY, "(vm, sp);\n}\n\n");
         if (cpp) {
@@ -1927,12 +1958,13 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
                     for (int j = 0; j < type->udt->numslots; j++) {
-                        if (IsRefNil(FindSlot(*type->udt, j)->type->t)) {
-                            cg.EmitOp1(IL_INCREF, stack_offset + type->udt->numslots - 1 - j);
+                        auto stype = FindSlot(*type->udt, j)->type;
+                        if (IsRefNil(stype->t)) {
+                            cg.EmitINCREF(stack_offset + type->udt->numslots - 1 - j, stype);
                         }
                     }
                 } else {
-                    cg.EmitOp1(IL_INCREF, stack_offset);
+                    cg.EmitINCREF(stack_offset, type);
                 }
             }
             if (decref & (1LL << i)) {

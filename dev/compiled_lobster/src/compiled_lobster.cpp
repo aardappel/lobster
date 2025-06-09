@@ -1624,7 +1624,7 @@ static void fun_616(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -1678,7 +1678,7 @@ static void fun_615(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -1732,7 +1732,7 @@ static void fun_614(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -1787,7 +1787,7 @@ static void fun_613(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -1842,7 +1842,7 @@ static void fun_612(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -1897,7 +1897,7 @@ static void fun_611(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -1916,7 +1916,7 @@ static void fun_611(VMRef vm, StackPtr psp) {
     vm.last = {6, 5};
     *(regs + 2) = *(locals + 2); // r
     *(regs + 3) = *(locals + 3); // x
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     fun_455(vm, regs + 4); // call: function398
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -1955,7 +1955,7 @@ static void fun_604(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2011,7 +2011,7 @@ static void fun_603(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2066,7 +2066,7 @@ static void fun_602(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2120,7 +2120,7 @@ static void fun_601(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2173,7 +2173,7 @@ static void fun_593(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2231,7 +2231,7 @@ static void fun_592(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2287,7 +2287,7 @@ static void fun_587(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2342,7 +2342,7 @@ static void fun_586(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2396,7 +2396,7 @@ static void fun_585(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2450,7 +2450,7 @@ static void fun_584(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2504,7 +2504,7 @@ static void fun_582(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2558,7 +2558,7 @@ static void fun_581(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2612,7 +2612,7 @@ static void fun_579(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2666,7 +2666,7 @@ static void fun_576(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2720,7 +2720,7 @@ static void fun_573(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2776,7 +2776,7 @@ static void fun_566(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2833,7 +2833,7 @@ static void fun_565(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2888,7 +2888,7 @@ static void fun_564(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2942,7 +2942,7 @@ static void fun_563(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -2996,7 +2996,7 @@ static void fun_562(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3051,7 +3051,7 @@ static void fun_558(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3106,7 +3106,7 @@ static void fun_543(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3160,7 +3160,7 @@ static void fun_542(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3214,7 +3214,7 @@ static void fun_532(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3268,7 +3268,7 @@ static void fun_505(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3322,7 +3322,7 @@ static void fun_502(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3376,7 +3376,7 @@ static void fun_492(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3430,7 +3430,7 @@ static void fun_485(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3484,7 +3484,7 @@ static void fun_482(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3538,7 +3538,7 @@ static void fun_471(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3592,7 +3592,7 @@ static void fun_7(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
@@ -3791,8 +3791,8 @@ static void fun_595(VMRef vm, StackPtr psp) {
     vm.last = {44, 5};
     *(regs + 0) = *(locals + 2); // t
     *(regs + 1) = *(locals + 3); // f
-    U_INCREF(vm, regs + 2, 0);
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 1)->LTINCRTNIL();
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[2]);
     DecVal(vm, locals[3]);
@@ -3869,8 +3869,8 @@ static void fun_590(VMRef vm, StackPtr psp) {
     vm.last = {44, 5};
     *(regs + 0) = *(locals + 2); // t
     *(regs + 1) = *(locals + 3); // f
-    U_INCREF(vm, regs + 2, 0);
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 1)->LTINCRTNIL();
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[2]);
     DecVal(vm, locals[3]);
@@ -3939,8 +3939,8 @@ static void fun_13(VMRef vm, StackPtr psp) {
     vm.last = {44, 5};
     *(regs + 0) = *(locals + 2); // t
     *(regs + 1) = *(locals + 3); // f
-    U_INCREF(vm, regs + 2, 0);
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 1)->LTINCRTNIL();
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[2]);
     DecVal(vm, locals[3]);
@@ -4446,7 +4446,7 @@ static void fun_19(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // acc
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {79, 5};
@@ -4759,7 +4759,7 @@ static void fun_594(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {198, 5};
     *(regs + 0) = *(locals + 1); // tail
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_595(vm, regs + 2); // call: partition
     vm.temp_lval = locals + 3; // f2
@@ -4768,7 +4768,7 @@ static void fun_594(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {200, 5};
     *(regs + 0) = *(locals + 2); // f1
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHVARF(vm, regs + 1, 1549); // lt
     fun_594(vm, regs + 2); // call: qsort
     *(keepvar + 0) = *(regs + 0);
@@ -4778,7 +4778,7 @@ static void fun_594(VMRef vm, StackPtr psp) {
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
     *(keepvar + 2) = *(regs + 0);
     *(regs + 1) = *(locals + 3); // f2
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHVARF(vm, regs + 2, 1549); // lt
     fun_594(vm, regs + 3); // call: qsort
     *(keepvar + 3) = *(regs + 1);
@@ -4795,7 +4795,7 @@ static void fun_594(VMRef vm, StackPtr psp) {
     block0:;
     vm.last = {195, 5};
     *(regs + 0) = *(locals + 0); // xs
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[2]);
@@ -4860,7 +4860,7 @@ static void fun_588(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {198, 5};
     *(regs + 0) = *(locals + 1); // tail
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_590(vm, regs + 2); // call: partition
     vm.temp_lval = locals + 3; // f2
@@ -4869,7 +4869,7 @@ static void fun_588(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {200, 5};
     *(regs + 0) = *(locals + 2); // f1
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHVARF(vm, regs + 1, 1519); // lt
     fun_588(vm, regs + 2); // call: qsort
     *(keepvar + 0) = *(regs + 0);
@@ -4879,7 +4879,7 @@ static void fun_588(VMRef vm, StackPtr psp) {
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
     *(keepvar + 2) = *(regs + 0);
     *(regs + 1) = *(locals + 3); // f2
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHVARF(vm, regs + 2, 1519); // lt
     fun_588(vm, regs + 3); // call: qsort
     *(keepvar + 3) = *(regs + 1);
@@ -4896,7 +4896,7 @@ static void fun_588(VMRef vm, StackPtr psp) {
     block0:;
     vm.last = {195, 5};
     *(regs + 0) = *(locals + 0); // xs
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[2]);
@@ -4961,7 +4961,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {198, 5};
     *(regs + 0) = *(locals + 1); // tail
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_49);
     fun_13(vm, regs + 2); // call: partition
     vm.temp_lval = locals + 3; // f2
@@ -4970,7 +4970,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {200, 5};
     *(regs + 0) = *(locals + 2); // f1
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHVARF(vm, regs + 1, 53); // lt
     fun_48(vm, regs + 2); // call: qsort
     *(keepvar + 0) = *(regs + 0);
@@ -4980,7 +4980,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
     *(keepvar + 2) = *(regs + 0);
     *(regs + 1) = *(locals + 3); // f2
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHVARF(vm, regs + 2, 53); // lt
     fun_48(vm, regs + 3); // call: qsort
     *(keepvar + 3) = *(regs + 1);
@@ -4997,7 +4997,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     block0:;
     vm.last = {195, 5};
     *(regs + 0) = *(locals + 0); // xs
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[2]);
@@ -6296,13 +6296,13 @@ static void fun_113(VMRef vm, StackPtr psp) {
     vm.last = {105, 3};
     *(regs + 0) = Value(-1);
     U_PUSHSTR(vm, regs + 1, 64); // "a"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 65); // "bb"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 66); // "ab"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 4, 67); // "b"
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 5, 1695, 2);
     *(keepvar + 1) = *(regs + 1);
     block6:;
@@ -6539,7 +6539,7 @@ static void fun_120(VMRef vm, StackPtr psp) {
     vm.last = {132, 3};
     vm.last = {135, 3};
     U_PUSHSTR(vm, regs + 0, 74); // "hello"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(123);
     U_NEWVEC(vm, regs + 2, 7, 1);
     vm.temp_lval = locals + 0; // r+0
@@ -6548,8 +6548,8 @@ static void fun_120(VMRef vm, StackPtr psp) {
     vm.last = {137, 3};
     *(regs + 0) = *(locals + 0); // r.0
     *(regs + 1) = *(locals + 1); // r.1
-    U_INCREF(vm, regs + 2, 1);
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 0)->LTINCRTNIL();
+    (regs + 1)->LTINCRTNIL();
     fun_121(vm, regs + 2); // call: f
     vm.temp_lval = locals + 2; // fr+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
@@ -6560,11 +6560,11 @@ static void fun_120(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 138, 3, 76);
     vm.last = {139, 3};
     U_PUSHSTR(vm, regs + 0, 77); // "one"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(1);
     U_NEWVEC(vm, regs + 2, 7, 1);
     U_PUSHSTR(vm, regs + 2, 78); // "two"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     *(regs + 3) = Value(2);
     U_NEWVEC(vm, regs + 4, 7, 1);
     U_NEWVEC(vm, regs + 4, 402, 2);
@@ -6574,8 +6574,8 @@ static void fun_120(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 4); // rs
     *(regs + 1) = Value(1);
     U_VPUSHIDXI2V(vm, regs + 2);
-    U_INCREF(vm, regs + 2, 1);
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 0)->LTINCRTNIL();
+    (regs + 1)->LTINCRTNIL();
     fun_121(vm, regs + 2); // call: f
     vm.temp_lval = locals + 2; // fr+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
@@ -6586,9 +6586,9 @@ static void fun_120(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 141, 3, 80);
     vm.last = {142, 3};
     U_PUSHSTR(vm, regs + 0, 81); // "A"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 1, 82); // "B"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(64);
     U_NEWVEC(vm, regs + 3, 7, 1);
     vm.temp_lval = locals + 5; // rn+0
@@ -6598,9 +6598,9 @@ static void fun_120(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 5); // rn.0
     *(regs + 1) = *(locals + 6); // rn.1
     *(regs + 2) = *(locals + 7); // rn.2
-    U_INCREF(vm, regs + 3, 2);
-    U_INCREF(vm, regs + 3, 1);
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 0)->LTINCRTNIL();
+    (regs + 1)->LTINCRTNIL();
+    (regs + 2)->LTINCRTNIL();
     fun_122(vm, regs + 3); // call: fun
     vm.temp_lval = locals + 8; // frn+0
     U_LV_WRITEREFV(vm, regs + 3, 3, 7);
@@ -6619,15 +6619,15 @@ static void fun_120(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 145, 3, 84);
     vm.last = {146, 3};
     U_PUSHSTR(vm, regs + 0, 85); // "AA"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 1, 86); // "one"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_NEWVEC(vm, regs + 3, 7, 1);
     U_PUSHSTR(vm, regs + 3, 87); // "BB"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 4, 88); // "two"
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     *(regs + 5) = Value(2);
     U_NEWVEC(vm, regs + 6, 7, 1);
     U_NEWVEC(vm, regs + 6, 419, 2);
@@ -6637,9 +6637,9 @@ static void fun_120(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 11); // rns
     *(regs + 1) = Value(1);
     U_VPUSHIDXI2V(vm, regs + 2);
-    U_INCREF(vm, regs + 3, 2);
-    U_INCREF(vm, regs + 3, 1);
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 0)->LTINCRTNIL();
+    (regs + 1)->LTINCRTNIL();
+    (regs + 2)->LTINCRTNIL();
     fun_122(vm, regs + 3); // call: fun
     vm.temp_lval = locals + 8; // frn+0
     U_LV_WRITEREFV(vm, regs + 3, 3, 7);
@@ -6743,7 +6743,7 @@ static void fun_123(VMRef vm, StackPtr psp) {
     vm.last = {152, 3};
     vm.last = {155, 3};
     U_PUSHSTR(vm, regs + 0, 91); // "hi"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(1);
     vm.temp_lval = locals + 0; // rs+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 1);
@@ -6751,7 +6751,7 @@ static void fun_123(VMRef vm, StackPtr psp) {
     vm.last = {157, 3};
     *(regs + 0) = *(locals + 0); // rs.0
     *(regs + 1) = *(locals + 1); // rs.1
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 0)->LTINCRTNIL();
     fun_124(vm, regs + 2); // call: frs
     vm.temp_lval = locals + 0; // rs+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 1);
@@ -7562,7 +7562,7 @@ static void fun_478(VMRef vm, StackPtr psp) {
     vm.last = {10, 7};
     U_PUSHNIL(vm, regs + 0);
     U_PUSHSTR(vm, regs + 1, 152); // ""
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     Pop(psp);
     *(psp++) = *(regs + 0);
     *(psp++) = *(regs + 1);
@@ -7587,7 +7587,7 @@ static void fun_129(VMRef vm, StackPtr psp) {
     vm.last = {10, 7};
     U_PUSHNIL(vm, regs + 0);
     U_PUSHSTR(vm, regs + 1, 153); // ""
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     Pop(psp);
     *(psp++) = *(regs + 0);
     *(psp++) = *(regs + 1);
@@ -7605,8 +7605,8 @@ static void fun_479(VMRef vm, StackPtr psp) {
     vm.last = {17, 7};
     *(regs + 0) = *(locals + 0); // v
     U_PUSHSTR(vm, regs + 1, 154); // ""
-    U_INCREF(vm, regs + 2, 0);
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 1)->LTINCRTNIL();
+    (regs + 0)->LTINCRTNIL();
     vm.ret_slots = 2;
     vm.ret_unwind_to = 125;
     DecVal(vm, locals[0]);
@@ -7627,8 +7627,8 @@ static void fun_130(VMRef vm, StackPtr psp) {
     vm.last = {17, 7};
     *(regs + 0) = *(locals + 0); // v
     U_PUSHSTR(vm, regs + 1, 155); // ""
-    U_INCREF(vm, regs + 2, 0);
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 1)->LTINCRTNIL();
+    (regs + 0)->LTINCRTNIL();
     vm.ret_slots = 2;
     vm.ret_unwind_to = 125;
     Pop(psp);
@@ -7678,7 +7678,7 @@ static void fun_537(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -7693,7 +7693,7 @@ static void fun_537(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 3); // c
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
@@ -7705,7 +7705,7 @@ static void fun_537(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -7746,7 +7746,7 @@ static void fun_535(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -7762,7 +7762,7 @@ static void fun_535(VMRef vm, StackPtr psp) {
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 3); // c
     *(regs + 1) = *(locals + 2); // h
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
@@ -7775,7 +7775,7 @@ static void fun_535(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -7818,7 +7818,7 @@ static void fun_507(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -7833,7 +7833,7 @@ static void fun_507(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 3); // c
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
@@ -7845,7 +7845,7 @@ static void fun_507(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -7891,7 +7891,7 @@ static void fun_497(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -7908,7 +7908,7 @@ static void fun_497(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 5); // c
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[5]);
     Pop(psp);
@@ -7921,7 +7921,7 @@ static void fun_497(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 5); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -7968,7 +7968,7 @@ static void fun_495(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -7986,7 +7986,7 @@ static void fun_495(VMRef vm, StackPtr psp) {
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 5); // c
     *(regs + 1) = *(locals + 4); // h
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[5]);
     Pop(psp);
@@ -8000,7 +8000,7 @@ static void fun_495(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 5); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -8044,7 +8044,7 @@ static void fun_490(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -8059,7 +8059,7 @@ static void fun_490(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 3); // c
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
@@ -8071,7 +8071,7 @@ static void fun_490(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -8112,7 +8112,7 @@ static void fun_488(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -8128,7 +8128,7 @@ static void fun_488(VMRef vm, StackPtr psp) {
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 3); // c
     *(regs + 1) = *(locals + 2); // h
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
@@ -8141,7 +8141,7 @@ static void fun_488(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -8184,7 +8184,7 @@ static void fun_483(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -8200,7 +8200,7 @@ static void fun_483(VMRef vm, StackPtr psp) {
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 3); // c
     *(regs + 1) = *(locals + 2); // h
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -8212,7 +8212,7 @@ static void fun_483(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -8254,7 +8254,7 @@ static void fun_138(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
@@ -8269,7 +8269,7 @@ static void fun_138(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
     *(regs + 0) = *(locals + 3); // c
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -8280,7 +8280,7 @@ static void fun_138(VMRef vm, StackPtr psp) {
     vm.last = {30, 8};
     *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
@@ -8309,9 +8309,9 @@ static void fun_534(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1118, locals);
     vm.last = {34, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     fun_535(vm, regs + 2); // call: lookup
     vm.temp_lval = locals + 4; // h
     *(vm.temp_lval) = *(regs + 1);
@@ -8332,9 +8332,9 @@ static void fun_534(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = *(locals + 2); // value
     U_NEWOBJECT(vm, regs + 3, 523); // chain
     *(regs + 1) = *(locals + 0); // this
@@ -8368,7 +8368,7 @@ static void fun_494(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1126, locals);
     vm.last = {34, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key.0
     *(regs + 2) = *(locals + 2); // key.1
     *(regs + 3) = *(locals + 3); // key.2
@@ -8394,7 +8394,7 @@ static void fun_494(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 8); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key.0
     *(regs + 2) = *(locals + 2); // key.1
     *(regs + 3) = *(locals + 3); // key.2
@@ -8433,9 +8433,9 @@ static void fun_487(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1138, locals);
     vm.last = {34, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     fun_488(vm, regs + 2); // call: lookup
     vm.temp_lval = locals + 4; // h
     *(vm.temp_lval) = *(regs + 1);
@@ -8446,7 +8446,7 @@ static void fun_487(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block0;
     vm.last = {36, 8};
     *(regs + 0) = *(locals + 2); // value
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 3); // c
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITEREF(vm, regs + 1);
@@ -8457,11 +8457,11 @@ static void fun_487(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = *(locals + 2); // value
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_NEWOBJECT(vm, regs + 3, 640); // chain
     *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
@@ -8490,7 +8490,7 @@ static void fun_139(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1146, locals);
     vm.last = {34, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
     fun_483(vm, regs + 2); // call: lookup
     vm.temp_lval = locals + 4; // h
@@ -8512,7 +8512,7 @@ static void fun_139(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
     *(regs + 2) = *(locals + 2); // value
     U_NEWOBJECT(vm, regs + 3, 469); // chain
@@ -8541,9 +8541,9 @@ static void fun_144(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1154, locals);
     vm.last = {66, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     fun_507(vm, regs + 2); // call: lookup
     vm.temp_lval = locals + 2; // c
     U_LV_WRITEREF(vm, regs + 1);
@@ -8558,7 +8558,7 @@ static void fun_144(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
     block1:;
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     DecVal(vm, locals[2]);
     Pop(psp);
@@ -8580,9 +8580,9 @@ static void fun_536(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1160, locals);
     vm.last = {73, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     fun_537(vm, regs + 2); // call: lookup
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
@@ -8622,7 +8622,7 @@ static void fun_496(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1167, locals);
     vm.last = {73, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key.0
     *(regs + 2) = *(locals + 2); // key.1
     *(regs + 3) = *(locals + 3); // key.2
@@ -8669,9 +8669,9 @@ static void fun_489(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1178, locals);
     vm.last = {73, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     fun_490(vm, regs + 2); // call: lookup
     vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
@@ -8681,12 +8681,12 @@ static void fun_489(VMRef vm, StackPtr psp) {
     vm.last = {74, 8};
     *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     goto block1;
     block0:;
     vm.last = {74, 8};
     *(regs + 0) = *(locals + 2); // default_val
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     block1:;
     DecVal(vm, locals[3]);
     Pop(psp);
@@ -8709,7 +8709,7 @@ static void fun_145(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1185, locals);
     vm.last = {73, 8};
     *(regs + 0) = *(locals + 0); // this
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // key
     fun_138(vm, regs + 2); // call: lookup
     vm.temp_lval = locals + 3; // c
@@ -9031,7 +9031,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {53, 6};
     *(regs + 0) = *(locals + 64); // a
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(1);
     U_DDCALL(vm, regs + 2, 0, 1); vm.next_call_target(vm, regs + 2);
     *(regs + 1) = Value(4);
@@ -9047,7 +9047,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 4) = Value(4.000000);
     *(regs + 5) = Value(5.000000);
     U_PUSHSTR(vm, regs + 6, 164); // "hello, world!\n\"\'\r\t\\\300"
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     *(regs + 7) = Value(0);
     *(regs + 8) = Value(-64);
     U_NEWVEC(vm, regs + 9, 7, 2);
@@ -9104,7 +9104,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 4) = Value(0.000000);
     *(regs + 5) = Value(0.000000);
     U_PUSHSTR(vm, regs + 6, 167); // ""
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 7, 7, 0);
     U_PUSHNIL(vm, regs + 8);
     *(regs + 9) = Value(-1);
@@ -9139,7 +9139,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 82, 6, 170);
     vm.last = {84, 6};
     U_PUSHSTR(vm, regs + 0, 171); // "{ a: 1, b: 1.0, d: \"\", e: [  ], g: -1, h: 1, s: { "
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 8; // groundj
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {85, 6};
@@ -9259,25 +9259,25 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {115, 6};
     *(regs + 0) = *(locals + 18); // st
     U_PUSHSTR(vm, regs + 1, 185); // "what?"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 186); // "no"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 187); // "yes2"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 4, 188); // "yes3"
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 5, 189); // "maybe"
-    U_INCREF(vm, regs + 6, 0);
+    (regs + 5)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 6, 190); // "maybe"
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 7, 191); // "maybe"
-    U_INCREF(vm, regs + 8, 0);
+    (regs + 7)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 8, 192); // "what?"
-    U_INCREF(vm, regs + 9, 0);
+    (regs + 8)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 9, 193); // "maybe"
-    U_INCREF(vm, regs + 10, 0);
+    (regs + 9)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 10, 194); // "what?"
-    U_INCREF(vm, regs + 11, 0);
+    (regs + 10)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 11, 11, 10);
     *(keepvar + 5) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
@@ -9356,7 +9356,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {132, 6};
     *(regs + 0) = *(locals + 19); // testvector
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_164);
     fun_48(vm, regs + 2); // call: qsort
     vm.temp_lval = locals + 20; // sorted1
@@ -9368,7 +9368,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {134, 6};
     *(regs + 0) = *(locals + 21); // sorted2
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_165);
     fun_52(vm, regs + 2); // call: insertion_sort
     vm.last = {135, 6};
@@ -9496,7 +9496,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 157, 6, 208);
     vm.last = {159, 6};
     U_PUSHSTR(vm, regs + 0, 209); // "abc"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(3);
     *(regs + 2) = Value(122);
     *(regs + 3) = Value(0);
@@ -9507,7 +9507,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 159, 6, 211);
     vm.last = {160, 6};
     U_PUSHSTR(vm, regs + 0, 212); // "abc"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(5);
     *(regs + 2) = Value(122);
     *(regs + 3) = Value(0);
@@ -9518,7 +9518,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 160, 6, 214);
     vm.last = {161, 6};
     U_PUSHSTR(vm, regs + 0, 215); // "abc"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(-5);
     *(regs + 2) = Value(122);
     *(regs + 3) = Value(0);
@@ -9529,7 +9529,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 161, 6, 217);
     vm.last = {162, 6};
     U_PUSHSTR(vm, regs + 0, 218); // ""
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(1027);
     U_BCALLRET3(vm, regs + 3, 201, 1); // write_int16_le
@@ -9558,7 +9558,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 164, 6, 221);
     vm.last = {165, 6};
     U_PUSHSTR(vm, regs + 0, 222); // ""
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(2050);
     U_BCALLRET3(vm, regs + 3, 207, 1); // write_int16_le_back
@@ -9587,12 +9587,12 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 167, 6, 225);
     vm.last = {169, 6};
     U_PUSHSTR(vm, regs + 0, 226); // "a"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 28; // s1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {170, 6};
     U_PUSHSTR(vm, regs + 0, 227); // "b"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 29; // s2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {171, 6};
@@ -9607,8 +9607,8 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {172, 6};
     *(regs + 0) = *(locals + 29); // s2
     *(regs + 1) = *(locals + 28); // s1
-    U_INCREF(vm, regs + 2, 0);
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 1)->LTINCRTNIL();
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 29; // s2
     U_LV_WRITEREF(vm, regs + 2);
     vm.temp_lval = locals + 28; // s1
@@ -9770,7 +9770,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {200, 6};
     vm.last = {205, 6};
     U_PUSHSTR(vm, regs + 0, 240); // ""
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(0);
     U_NEWOBJECT(vm, regs + 2, 619); // mretfields
     fun_174(vm, regs + 1); // call: write
@@ -10235,11 +10235,11 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_BCALLRET4(vm, regs + 4, 42, 1); // tokenize
     *(keepvar + 14) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 301); // "A"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 302); // "B C"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 303); // ""
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 4, 11, 3);
     *(keepvar + 15) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
@@ -10252,13 +10252,13 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_BCALLRET4(vm, regs + 4, 42, 1); // tokenize
     *(keepvar + 16) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 308); // ""
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 309); // "A"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 310); // "B C"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 4, 311); // ""
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 5, 11, 4);
     *(keepvar + 17) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
@@ -10271,15 +10271,15 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_BCALLRET4(vm, regs + 4, 42, 1); // tokenize
     *(keepvar + 18) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 316); // ""
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 317); // "A"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 318); // "B C"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 4, 319); // ""
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 5, 320); // ""
-    U_INCREF(vm, regs + 6, 0);
+    (regs + 5)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 6, 11, 5);
     *(keepvar + 19) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
@@ -10293,7 +10293,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 364, 6, 322);
     vm.last = {367, 6};
     U_PUSHSTR(vm, regs + 0, 323); // "a"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 55; // slv
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {368, 6};
@@ -10324,17 +10324,17 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {371, 6};
     vm.last = {374, 6};
     U_PUSHSTR(vm, regs + 0, 328); // "a"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 1, 329); // "a"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 2, 11, 1);
     vm.temp_lval = locals + 57; // stlv+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
     vm.last = {375, 6};
     U_PUSHSTR(vm, regs + 0, 330); // "b"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 1, 331); // "b"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 2, 11, 1);
     vm.temp_lval = locals + 57; // stlv+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
@@ -10524,7 +10524,7 @@ static void fun_162(VMRef vm, StackPtr psp) {
     case 1:
     vm.last = {108, 6};
     U_PUSHSTR(vm, regs + 0, 340); // "no"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     goto block5;
     case 2:case 3:
     vm.last = {110, 6};
@@ -10541,12 +10541,12 @@ static void fun_162(VMRef vm, StackPtr psp) {
     case 4:case 5:case 6:case 8:
     vm.last = {112, 6};
     U_PUSHSTR(vm, regs + 0, 342); // "maybe"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     goto block7;
     case 7:default:
     vm.last = {113, 6};
     U_PUSHSTR(vm, regs + 0, 343); // "what?"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     } // switch
     block5:;
     block6:;
@@ -10849,7 +10849,7 @@ static void fun_173(VMRef vm, StackPtr psp) {
     vm.last = {196, 6};
     *(regs + 0) = Value(1.000000);
     U_PUSHSTR(vm, regs + 1, 346); // "a"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(psp++) = *(regs + 0);
     *(psp++) = *(regs + 1);
     goto epilogue;
@@ -10866,7 +10866,7 @@ static void fun_174(VMRef vm, StackPtr psp) {
     vm.last = {204, 6};
     *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 1);
     *(regs + 2) = Value(12345);
@@ -10909,7 +10909,7 @@ static void fun_175(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 0, 347); // "foo"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     Pop(psp);
     *(psp++) = *(regs + 0);
     goto epilogue;
@@ -11278,7 +11278,7 @@ static void fun_188(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     vm.last = {318, 6};
     U_PUSHSTR(vm, regs + 0, 353); // "a"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.ret_slots = 1;
     vm.ret_unwind_to = 180;
     *(psp++) = *(regs + 0);
@@ -11443,7 +11443,7 @@ static void fun_196(VMRef vm, StackPtr psp) {
     vm.last = {395, 6};
     U_PUSHVARVF(vm, regs + 0, 76, 2); // float2_1+0
     U_PUSHSTR(vm, regs + 2, 357); // "hello"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     *(regs + 3) = Value(2);
     U_NEWVEC(vm, regs + 4, 7, 1);
     U_NEWOBJECT(vm, regs + 4, 711); // Reflect
@@ -11864,7 +11864,7 @@ static void fun_208(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1492, 0);
     vm.last = {16, 9};
     U_PUSHSTR(vm, regs + 0, 379); // "a"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
@@ -11902,7 +11902,7 @@ static void fun_514(VMRef vm, StackPtr psp) {
     vm.last = {30, 9};
     vm.last = {30, 9};
     *(regs + 0) = *(locals + 0); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     Pop(psp);
     *(psp++) = *(regs + 0);
     goto epilogue;
@@ -12171,13 +12171,13 @@ static void fun_215(VMRef vm, StackPtr psp) {
     vm.last = {95, 9};
     *(regs + 0) = Value(0);
     U_PUSHSTR(vm, regs + 1, 395); // "hello"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_NEWOBJECT(vm, regs + 2, 783); // C3
     vm.temp_lval = locals + 1; // x2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {97, 9};
     *(regs + 0) = *(locals + 0); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(0);
     U_DDCALL(vm, regs + 2, 0, 1); vm.next_call_target(vm, regs + 2);
     *(regs + 1) = Value(2);
@@ -12194,9 +12194,9 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 99, 9, 397);
     vm.last = {101, 9};
     *(regs + 0) = *(locals + 0); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 1, 398); // "hi"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_DDCALL(vm, regs + 2, 1, 1); vm.next_call_target(vm, regs + 2);
     *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 399); // "hi2"
@@ -12204,7 +12204,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 101, 9, 400);
     vm.last = {102, 9};
     *(regs + 0) = *(locals + 0); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(3);
     U_DDCALL(vm, regs + 2, 2, 1); vm.next_call_target(vm, regs + 2);
     *(regs + 1) = Value(5);
@@ -12212,7 +12212,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 102, 9, 401);
     vm.last = {103, 9};
     *(regs + 0) = *(locals + 1); // x2
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(10);
     U_DDCALL(vm, regs + 2, 0, 1); vm.next_call_target(vm, regs + 2);
     *(regs + 1) = Value(15);
@@ -12220,7 +12220,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 103, 9, 402);
     vm.last = {105, 9};
     *(regs + 0) = *(locals + 0); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = Value(10);
     U_DDCALL(vm, regs + 2, 3, 1); vm.next_call_target(vm, regs + 2);
     *(regs + 1) = Value(0);
@@ -12228,14 +12228,14 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 105, 9, 403);
     vm.last = {107, 9};
     *(regs + 0) = *(locals + 0); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_DDCALL(vm, regs + 1, 4, 0); vm.next_call_target(vm, regs + 1);
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 107, 9, 404);
     vm.last = {109, 9};
     *(regs + 0) = *(locals + 0); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_DDCALL(vm, regs + 1, 5, 0); vm.next_call_target(vm, regs + 1);
     *(regs + 1) = Value(11);
     U_IEQ(vm, regs + 2);
@@ -12247,14 +12247,14 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {112, 9};
     *(regs + 0) = *(locals + 2); // x3
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_DDCALL(vm, regs + 1, 6, 0); vm.next_call_target(vm, regs + 1);
     *(regs + 1) = Value(12);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 112, 9, 406);
     vm.last = {114, 9};
     *(regs + 0) = *(locals + 0); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_DDCALL(vm, regs + 1, 7, 0); vm.next_call_target(vm, regs + 1);
     vm.temp_lval = locals + 4; // mr2
     U_LV_WRITEREF(vm, regs + 2);
@@ -12292,7 +12292,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 123, 9, 409);
     vm.last = {124, 9};
     U_PUSHSTR(vm, regs + 0, 410); // "ha"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_NEWOBJECT(vm, regs + 1, 1402); // D
     fun_523(vm, regs + 1); // call: foo
     *(keepvar + 1) = *(regs + 0);
@@ -12610,7 +12610,7 @@ static void fun_222(VMRef vm, StackPtr psp) {
     vm.last = {80, 9};
     *(regs + 0) = Value(1);
     U_PUSHSTR(vm, regs + 1, 415); // "a"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     Pop(psp);
     *(psp++) = *(regs + 0);
@@ -12629,7 +12629,7 @@ static void fun_228(VMRef vm, StackPtr psp) {
     vm.last = {88, 9};
     *(regs + 0) = Value(2);
     U_PUSHSTR(vm, regs + 1, 416); // "b"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     Pop(psp);
     *(psp++) = *(regs + 0);
@@ -12704,7 +12704,7 @@ static void fun_523(VMRef vm, StackPtr psp) {
     vm.last = {119, 9};
     *(regs + 0) = *(locals + 0); // d
     U_PUSHFLD(vm, regs + 1, 0);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecVal(vm, locals[0]);
     Pop(psp);
     *(psp++) = *(regs + 0);
@@ -12738,7 +12738,7 @@ static void fun_234(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1623, locals);
     vm.last = {121, 9};
     *(regs + 0) = *(locals + 0); // s
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     Pop(psp);
     *(psp++) = *(regs + 0);
     goto epilogue;
@@ -12772,7 +12772,7 @@ static void fun_236(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1631, locals);
     vm.last = {129, 9};
     U_PUSHSTR(vm, regs + 0, 417); // ""
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 0; // a
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {130, 9};
@@ -12866,7 +12866,7 @@ static void fun_238(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 0); // a
     U_PUSHFLD(vm, regs + 1, 2);
     *(regs + 1) = *(locals + 0); // a
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -12877,7 +12877,7 @@ static void fun_238(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {161, 9};
     *(regs + 0) = *(locals + 0); // a
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 0); // a
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
@@ -12906,7 +12906,7 @@ static void fun_238(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 166, 9, 424);
     vm.last = {168, 9};
     U_PUSHSTR(vm, regs + 0, 425); // "hello"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 1, 11, 1);
     U_PUSHNIL(vm, regs + 1);
     U_NEWVEC(vm, regs + 2, 852, 0);
@@ -12919,7 +12919,7 @@ static void fun_238(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 1); // b
     U_PUSHFLD(vm, regs + 1, 2);
     *(regs + 1) = *(locals + 1); // b
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -12930,7 +12930,7 @@ static void fun_238(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {171, 9};
     *(regs + 0) = *(locals + 1); // b
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 1); // b
     U_LVAL_FLD(vm, regs + 2, 4);
     U_LV_WRITEREF(vm, regs + 1);
@@ -13082,7 +13082,7 @@ static void fun_526(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 1); // t
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -13125,7 +13125,7 @@ static void fun_527(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 1); // u
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -13188,7 +13188,7 @@ static void fun_528(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 0); // a
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 1); // t
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -13641,7 +13641,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1738, locals);
     vm.last = {23, 11};
     *(regs + 0) = *(locals + 0); // startnode
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 1, 148, 1);
     U_LVAL_VARF(vm, regs + 1, 1405); // openlist
     U_LV_WRITEREF(vm, regs + 1);
@@ -13651,7 +13651,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
     block0:;
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 1406); // n
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {25, 11};
@@ -13677,7 +13677,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 1406); // n
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_279(vm, regs + 2); // call: function259
     vm.last = {38, 11};
@@ -13723,7 +13723,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     if (!(regs + 2)->True()) goto block9;
     vm.last = {41, 11};
     *(regs + 2) = *(locals + 3); // c
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 3, 1406); // n
     U_LV_WRITEREF(vm, regs + 3);
     block9:;
@@ -13742,14 +13742,14 @@ static void fun_560(VMRef vm, StackPtr psp) {
     vm.last = {44, 11};
     *(regs + 0) = *(locals + 4); // path
     U_PUSHVARF(vm, regs + 1, 1406); // n
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
     vm.last = {45, 11};
     U_PUSHVARF(vm, regs + 0, 1406); // n
     U_PUSHFLD(vm, regs + 1, 3);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 1406); // n
     U_LV_WRITEREF(vm, regs + 1);
     goto block10;
@@ -13787,7 +13787,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1749, locals);
     vm.last = {23, 11};
     *(regs + 0) = *(locals + 0); // startnode
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 1, 1005, 1);
     U_LVAL_VARF(vm, regs + 1, 1370); // openlist
     U_LV_WRITEREF(vm, regs + 1);
@@ -13797,7 +13797,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
     block0:;
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 1371); // n
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {25, 11};
@@ -13823,7 +13823,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 1371); // n
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_552(vm, regs + 2); // call: function247
     vm.last = {38, 11};
@@ -13869,7 +13869,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     if (!(regs + 2)->True()) goto block9;
     vm.last = {41, 11};
     *(regs + 2) = *(locals + 3); // c
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 3, 1371); // n
     U_LV_WRITEREF(vm, regs + 3);
     block9:;
@@ -13888,14 +13888,14 @@ static void fun_549(VMRef vm, StackPtr psp) {
     vm.last = {44, 11};
     *(regs + 0) = *(locals + 4); // path
     U_PUSHVARF(vm, regs + 1, 1371); // n
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
     vm.last = {45, 11};
     U_PUSHVARF(vm, regs + 0, 1371); // n
     U_PUSHFLD(vm, regs + 1, 3);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 1371); // n
     U_LV_WRITEREF(vm, regs + 1);
     goto block10;
@@ -13933,7 +13933,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1760, locals);
     vm.last = {23, 11};
     *(regs + 0) = *(locals + 0); // startnode
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 1, 1005, 1);
     U_LVAL_VARF(vm, regs + 1, 478); // openlist
     U_LV_WRITEREF(vm, regs + 1);
@@ -13943,7 +13943,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
     block0:;
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 479); // n
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {25, 11};
@@ -13969,7 +13969,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 479); // n
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_264);
     fun_267(vm, regs + 2); // call: function247
     vm.last = {38, 11};
@@ -14015,7 +14015,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     if (!(regs + 2)->True()) goto block9;
     vm.last = {41, 11};
     *(regs + 2) = *(locals + 3); // c
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 3, 479); // n
     U_LV_WRITEREF(vm, regs + 3);
     block9:;
@@ -14034,14 +14034,14 @@ static void fun_263(VMRef vm, StackPtr psp) {
     vm.last = {44, 11};
     *(regs + 0) = *(locals + 4); // path
     U_PUSHVARF(vm, regs + 1, 479); // n
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
     vm.last = {45, 11};
     U_PUSHVARF(vm, regs + 0, 479); // n
     U_PUSHFLD(vm, regs + 1, 3);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 479); // n
     U_LV_WRITEREF(vm, regs + 1);
     goto block10;
@@ -14094,7 +14094,7 @@ static void fun_561(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 1405); // openlist
     *(regs + 1) = *(locals + 2); // nn
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     block1:;
@@ -14114,13 +14114,13 @@ static void fun_561(VMRef vm, StackPtr psp) {
     *(vm.temp_lval) = *(regs + 0);
     vm.last = {33, 11};
     *(regs + 0) = *(locals + 0); // delta
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 2); // nn
     U_LVAL_FLD(vm, regs + 2, 5);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {34, 11};
     U_PUSHVARF(vm, regs + 0, 1406); // n
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 2); // nn
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
@@ -14188,7 +14188,7 @@ static void fun_556(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 1370); // openlist
     *(regs + 1) = *(locals + 3); // nn
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     block1:;
@@ -14214,7 +14214,7 @@ static void fun_556(VMRef vm, StackPtr psp) {
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {34, 11};
     U_PUSHVARF(vm, regs + 0, 1371); // n
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
@@ -14282,7 +14282,7 @@ static void fun_264(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 478); // openlist
     *(regs + 1) = *(locals + 3); // nn
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     block1:;
@@ -14308,7 +14308,7 @@ static void fun_264(VMRef vm, StackPtr psp) {
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {34, 11};
     U_PUSHVARF(vm, regs + 0, 479); // n
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
@@ -14356,7 +14356,7 @@ static void fun_545(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1794, locals);
     vm.last = {63, 11};
     *(regs + 0) = *(locals + 0); // startnode
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     U_PUSHFUN(vm, regs + 2, 0, fun_10000001);
     U_PUSHFUN(vm, regs + 3, 0, fun_10000001);
@@ -14384,7 +14384,7 @@ static void fun_265(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1802, locals);
     vm.last = {63, 11};
     *(regs + 0) = *(locals + 0); // startnode
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_266);
     U_PUSHFUN(vm, regs + 2, 0, fun_267);
     U_PUSHFUN(vm, regs + 3, 0, fun_269);
@@ -14497,7 +14497,7 @@ static void fun_555(VMRef vm, StackPtr psp) {
     U_IVVSUB(vm, regs + 4, 2);
     *(regs + 2) = *(locals + 1); // cost
     *(regs + 3) = *(locals + 0); // nn
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     fun_556(vm, regs + 4); // call: function244
     block0:;
     DecVal(vm, locals[0]);
@@ -14534,7 +14534,7 @@ static void fun_268(VMRef vm, StackPtr psp) {
     U_IVVSUB(vm, regs + 4, 2);
     *(regs + 2) = *(locals + 1); // cost
     *(regs + 3) = *(locals + 0); // nn
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     fun_264(vm, regs + 4); // call: function244
     block0:;
     DecVal(vm, locals[0]);
@@ -14603,7 +14603,7 @@ static void fun_270(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1848, locals);
     vm.last = {68, 11};
     U_PUSHVARF(vm, regs + 0, 170); // cardinal_directions
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 506); // directions
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {69, 11};
@@ -14885,7 +14885,7 @@ static void fun_277(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 3);
     U_PUSHNIL(vm, regs + 3);
     *(regs + 4) = *(locals + 0); // initstate
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_PUSHNIL(vm, regs + 5);
     *(regs + 6) = Value(0);
     *(regs + 7) = Value(0);
@@ -14897,7 +14897,7 @@ static void fun_277(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 0, 527); // existingnodes
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_278);
     U_PUSHFUN(vm, regs + 2, 0, fun_279);
     U_PUSHFUN(vm, regs + 3, 0, fun_281);
@@ -14953,10 +14953,10 @@ static void fun_279(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {103, 11};
     *(regs + 2) = *(locals + 2); // act
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     *(regs + 3) = *(locals + 0); // n
     U_PUSHFLD(vm, regs + 4, 4);
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_DDCALL(vm, regs + 4, 0, 1); vm.next_call_target(vm, regs + 4);
     if (!(regs + 2)->True()) goto block2;
     vm.last = {104, 11};
@@ -14967,9 +14967,9 @@ static void fun_279(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {105, 11};
     *(regs + 2) = *(locals + 2); // act
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHVARF(vm, regs + 3, 532); // nstate
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_DDCALL(vm, regs + 4, 1, 1); vm.next_call_target(vm, regs + 4);
     vm.last = {106, 11};
     U_PUSHVARF(vm, regs + 2, 527); // existingnodes
@@ -14994,7 +14994,7 @@ static void fun_279(VMRef vm, StackPtr psp) {
     *(regs + 5) = Value(0.000000);
     U_PUSHNIL(vm, regs + 6);
     U_PUSHVARF(vm, regs + 7, 532); // nstate
-    U_INCREF(vm, regs + 8, 0);
+    (regs + 7)->LTINCRTNIL();
     U_PUSHNIL(vm, regs + 8);
     *(regs + 9) = Value(0);
     *(regs + 10) = Value(0);
@@ -15005,12 +15005,12 @@ static void fun_279(VMRef vm, StackPtr psp) {
     block3:;
     vm.last = {110, 11};
     *(regs + 2) = *(locals + 2); // act
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     *(regs + 3) = Value(1);
     U_PUSHVARF(vm, regs + 4, 527); // existingnodes
     *(regs + 5) = *(locals + 3); // i
     U_VPUSHIDXI(vm, regs + 6);
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     fun_561(vm, regs + 5); // call: function244
     block2:;
     goto block0;
@@ -15079,57 +15079,57 @@ static void fun_282(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1928, locals);
     vm.last = {6, 10};
     U_PUSHSTR(vm, regs + 0, 449); // "................................."
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 1, 450); // "................S................"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 451); // "........#..............#........."
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 452); // "........#..............#/////////"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 4, 453); // "........#..............#........."
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 5, 454); // "........#..............#........."
-    U_INCREF(vm, regs + 6, 0);
+    (regs + 5)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 6, 455); // "........################........."
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 7, 456); // "................................."
-    U_INCREF(vm, regs + 8, 0);
+    (regs + 7)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 8, 457); // "...............///..............."
-    U_INCREF(vm, regs + 9, 0);
+    (regs + 8)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 9, 458); // ".............../E/..............."
-    U_INCREF(vm, regs + 10, 0);
+    (regs + 9)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 10, 459); // "...............///..............."
-    U_INCREF(vm, regs + 11, 0);
+    (regs + 10)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 11, 460); // "................................."
-    U_INCREF(vm, regs + 12, 0);
+    (regs + 11)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 12, 11, 12);
     U_LVAL_VARF(vm, regs + 1, 536); // initworld
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {21, 10};
     U_PUSHSTR(vm, regs + 0, 461); // "......OXXXXXXXXXXXXXXXXXXXO......"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 1, 462); // ".....OXPPPPPPPPPPXXXXXXXXXXO....."
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 463); // ".....OXP#XXXXXXXXXXXXXX#XXXO....."
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 464); // ".....OXP#XXXXXXXXXXXXXX#XOO//////"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 4, 465); // ".....OXP#XXXXXXXXXXXXXX#XO......."
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 5, 466); // ".....OXP#XXXXXXXXXXXXXX#XO......."
-    U_INCREF(vm, regs + 6, 0);
+    (regs + 5)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 6, 467); // ".....OXP################XO......."
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 7, 468); // ".....OXPPPPPPPPPPXXXXXXXXO......."
-    U_INCREF(vm, regs + 8, 0);
+    (regs + 7)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 8, 469); // ".....OXXXXXXXXXOPOXXXXXXXO......."
-    U_INCREF(vm, regs + 9, 0);
+    (regs + 8)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 9, 470); // ".....OXXXXXXXXXOPOXXXXXXXO......."
-    U_INCREF(vm, regs + 10, 0);
+    (regs + 9)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 10, 471); // "......OXXXXXXXXO//OOOOOOO........"
-    U_INCREF(vm, regs + 11, 0);
+    (regs + 10)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 11, 472); // ".......OOOOOOOO.................."
-    U_INCREF(vm, regs + 12, 0);
+    (regs + 11)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 12, 11, 12);
     vm.temp_lval = locals + 0; // expected_result
     U_LV_WRITEREF(vm, regs + 1);
@@ -15309,7 +15309,7 @@ static void fun_285(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // _.0
     *(regs + 2) = *(locals + 1); // _.1
     U_VPUSHIDXV(vm, regs + 3, 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     Pop(psp);
     Pop(psp);
     *(psp++) = *(regs + 0);
@@ -15366,7 +15366,7 @@ static void fun_287(VMRef vm, StackPtr psp) {
     vm.last = {60, 10};
     *(regs + 0) = *(locals + 0); // row
     U_PUSHSTR(vm, regs + 1, 475); // ""
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 2, 0, fun_288);
     fun_559(vm, regs + 3); // call: fold
     Pop(psp);
@@ -15412,7 +15412,7 @@ static void fun_288(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 1, 478); // "O"
     block4:;
     block3:;
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     if ((regs + 1)->True()) goto block5;
     U_POP(vm, regs + 2);
     *(regs + 1) = *(locals + 1); // n
@@ -15511,21 +15511,21 @@ static void fun_289(VMRef vm, StackPtr psp) {
     fun_562(vm, regs + 2); // call: map
     *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 480); // "Eat"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 481); // "BuyPizza"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 482); // "SellSkin"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 4, 483); // "KillWolf"
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 5, 484); // "Eat"
-    U_INCREF(vm, regs + 6, 0);
+    (regs + 5)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 6, 485); // "BuyPizza"
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 7, 486); // "SellSkin"
-    U_INCREF(vm, regs + 8, 0);
+    (regs + 7)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 8, 487); // "KillWolf"
-    U_INCREF(vm, regs + 9, 0);
+    (regs + 8)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 9, 11, 8);
     *(keepvar + 1) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
@@ -15896,7 +15896,7 @@ static void fun_304(VMRef vm, StackPtr psp) {
     block0:;
     vm.last = {79, 12};
     U_PUSHSTR(vm, regs + 0, 489); // ""
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     block1:;
     Pop(psp);
     *(psp++) = *(regs + 0);
@@ -16002,7 +16002,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     vm.last = {15, 13};
     vm.last = {16, 13};
     *(regs + 2) = *(locals + 1); // candidates
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 3, 0, fun_310);
     fun_10(vm, regs + 4); // call: filter
     vm.temp_lval = locals + 1; // candidates
@@ -16026,7 +16026,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     block2:;
     vm.last = {18, 13};
     *(regs + 2) = *(locals + 1); // candidates
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 3, 0, fun_311);
     fun_566(vm, regs + 4); // call: map
     vm.temp_lval = locals + 2; // degrees
@@ -16034,7 +16034,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     vm.last = {19, 13};
     *(regs + 2) = *(locals + 1); // candidates
     *(regs + 3) = *(locals + 2); // degrees
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 4, 0, fun_313);
     fun_26(vm, regs + 5); // call: find_best
     U_VPUSHIDXI2V(vm, regs + 4);
@@ -16052,7 +16052,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     block1:;
     vm.last = {21, 13};
     U_PUSHVARF(vm, regs + 0, 590); // board
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     DecOwned(vm, 590);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[2]);
@@ -16227,7 +16227,7 @@ static void fun_314(VMRef vm, StackPtr psp) {
     vm.last = {41, 14};
     vm.last = {116, 14};
     U_PUSHSTR(vm, regs + 0, 491); // "(+\n(* 2 3 4)  // Comment.\n10)\n"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 0; // test_code
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {122, 14};
@@ -16249,7 +16249,7 @@ static void fun_314(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 123, 14, 493);
     vm.last = {124, 14};
     *(regs + 0) = *(locals + 1); // ast
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_DDCALL(vm, regs + 1, 0, 0); vm.next_call_target(vm, regs + 1);
     *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 494); // "(+ (* 2 3 4) 10)"
@@ -16257,14 +16257,14 @@ static void fun_314(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 124, 14, 495);
     vm.last = {125, 14};
     *(regs + 0) = *(locals + 1); // ast
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_DDCALL(vm, regs + 1, 2, 0); vm.next_call_target(vm, regs + 1);
     *(regs + 1) = Value(34);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 125, 14, 496);
     vm.last = {126, 14};
     *(regs + 0) = *(locals + 1); // ast
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_DDCALL(vm, regs + 1, 5, 0); vm.next_call_target(vm, regs + 1);
     vm.temp_lval = locals + 3; // code
     U_LV_WRITEREF(vm, regs + 1);
@@ -16313,7 +16313,7 @@ static void fun_318(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 1);
     *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 2, 0, fun_319);
     fun_570(vm, regs + 3); // call: fold
     vm.temp_lval = locals + 1; // elems
@@ -16468,11 +16468,11 @@ static void fun_319(VMRef vm, StackPtr psp) {
     *(keepvar + 1) = Value(0, lobster::V_NIL);
     vm.last = {22, 14};
     *(regs + 0) = *(locals + 0); // _a
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 507); // " "
     *(regs + 2) = *(locals + 1); // _e
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_DDCALL(vm, regs + 3, 1, 0); vm.next_call_target(vm, regs + 3);
     *(keepvar + 1) = *(regs + 2);
     U_SADDN(vm, regs + 3, 3);
@@ -16496,7 +16496,7 @@ static void fun_321(VMRef vm, StackPtr psp) {
     vm.last = {28, 14};
     *(regs + 0) = *(locals + 0); // _a
     *(regs + 1) = *(locals + 1); // _e
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_DDCALL(vm, regs + 2, 3, 0); vm.next_call_target(vm, regs + 2);
     U_IADD(vm, regs + 2);
     Pop(psp);
@@ -16517,7 +16517,7 @@ static void fun_322(VMRef vm, StackPtr psp) {
     vm.last = {30, 14};
     *(regs + 0) = *(locals + 0); // _a
     *(regs + 1) = *(locals + 1); // _e
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_DDCALL(vm, regs + 2, 4, 0); vm.next_call_target(vm, regs + 2);
     U_IMUL(vm, regs + 2);
     Pop(psp);
@@ -16536,7 +16536,7 @@ static void fun_324(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2139, locals);
     vm.last = {37, 14};
     *(regs + 0) = *(locals + 0); // _
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_DDCALL(vm, regs + 1, 6, 0); vm.next_call_target(vm, regs + 1);
     Pop(psp);
     *(psp++) = *(regs + 0);
@@ -16582,12 +16582,12 @@ static void fun_326(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2148, locals);
     vm.last = {42, 14};
     U_PUSHSTR(vm, regs + 0, 510); // ""
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 624); // token
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {43, 14};
     U_PUSHSTR(vm, regs + 0, 511); // ""
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 625); // atom
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {44, 14};
@@ -16643,8 +16643,8 @@ static void fun_326(VMRef vm, StackPtr psp) {
     vm.last = {114, 14};
     *(regs + 0) = *(locals + 0); // root
     U_PUSHSTR(vm, regs + 1, 513); // ""
-    U_INCREF(vm, regs + 2, 0);
-    U_INCREF(vm, regs + 2, 1);
+    (regs + 1)->LTINCRTNIL();
+    (regs + 0)->LTINCRTNIL();
     DecOwned(vm, 624);
     DecOwned(vm, 625);
     DecVal(vm, locals[0]);
@@ -16776,7 +16776,7 @@ static void fun_328(VMRef vm, StackPtr psp) {
     vm.last = {60, 14};
     U_PUSHSTR(vm, regs + 0, 519); // "atom"
     block6:;
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 624); // token
     U_LV_WRITEREF(vm, regs + 1);
     vm.ret_slots = 0;
@@ -16830,7 +16830,7 @@ static void fun_330(VMRef vm, StackPtr psp) {
     U_LV_IMM(vm, regs + 0);
     vm.last = {66, 14};
     U_PUSHSTR(vm, regs + 0, 520); // "eof"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 624); // token
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {67, 14};
@@ -16874,7 +16874,7 @@ static void fun_330(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     vm.last = {73, 14};
     U_PUSHSTR(vm, regs + 0, 521); // "("
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 624); // token
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {74, 14};
@@ -16890,7 +16890,7 @@ static void fun_330(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     vm.last = {76, 14};
     U_PUSHSTR(vm, regs + 0, 522); // ")"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_LVAL_VARF(vm, regs + 1, 624); // token
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {77, 14};
@@ -16999,7 +16999,7 @@ static void fun_569(VMRef vm, StackPtr psp) {
     block0:;
     vm.last = {91, 14};
     U_PUSHVARF(vm, regs + 0, 625); // atom
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 1; // a
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {92, 14};
@@ -17048,7 +17048,7 @@ static void fun_331(VMRef vm, StackPtr psp) {
     block0:;
     vm.last = {91, 14};
     U_PUSHVARF(vm, regs + 0, 625); // atom
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 1; // a
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {92, 14};
@@ -17061,7 +17061,7 @@ static void fun_331(VMRef vm, StackPtr psp) {
     block2:;
     vm.last = {93, 14};
     *(regs + 0) = *(locals + 1); // a
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.ret_slots = 1;
     vm.ret_unwind_to = 298;
     DecVal(vm, locals[1]);
@@ -17110,9 +17110,9 @@ static void fun_332(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {99, 14};
     U_PUSHSTR(vm, regs + 0, 529); // "+"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 1, 530); // "*"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 2, 11, 2);
     U_PUSHFUN(vm, regs + 1, 0, fun_333);
     fun_568(vm, regs + 2); // call: exists
@@ -17133,7 +17133,7 @@ static void fun_332(VMRef vm, StackPtr psp) {
     block3:;
     vm.last = {101, 14};
     U_PUSHVARF(vm, regs + 0, 635); // name
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 1, 1092, 0);
     U_NEWOBJECT(vm, regs + 2, 1080); // inst
     vm.temp_lval = locals + 0; // n
@@ -17172,7 +17172,7 @@ static void fun_332(VMRef vm, StackPtr psp) {
     block8:;
     vm.last = {105, 14};
     *(regs + 0) = *(locals + 0); // n
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.ret_slots = 1;
     vm.ret_unwind_to = 299;
     DecOwned(vm, 635);
@@ -17203,7 +17203,7 @@ static void fun_332(VMRef vm, StackPtr psp) {
     block11:;
     vm.last = {109, 14};
     *(regs + 0) = *(locals + 1); // n
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.ret_slots = 1;
     vm.ret_unwind_to = 299;
     DecOwned(vm, 635);
@@ -17283,7 +17283,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 0); // target.0
     *(regs + 2) = *(locals + 1); // target.1
     U_VPUSHIDXV(vm, regs + 3, 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 2; // end
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {16, 16};
@@ -17293,7 +17293,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     *(vm.temp_lval) = *(regs + 0);
     vm.last = {17, 16};
     *(regs + 0) = *(locals + 2); // end
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 1, 1119, 1);
     U_LVAL_VARF(vm, regs + 1, 653); // pathq
     U_LV_WRITEREF(vm, regs + 1);
@@ -17336,7 +17336,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     *(regs + 6) = *(locals + 4); // x
     U_ISUB(vm, regs + 7);
     *(regs + 6) = *(locals + 3); // c
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     fun_336(vm, regs + 7); // call: flood
     goto block4;
     block5:;
@@ -17421,7 +17421,7 @@ static void fun_336(VMRef vm, StackPtr psp) {
     *(regs + 1) = *(locals + 3); // pos.0
     *(regs + 2) = *(locals + 4); // pos.1
     U_VPUSHIDXV(vm, regs + 3, 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {22, 16};
@@ -17487,7 +17487,7 @@ static void fun_336(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 0, 653); // pathq
     *(regs + 1) = *(locals + 6); // i
     *(regs + 2) = *(locals + 5); // c
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     *(regs + 3) = Value(1);
     U_BCALLRETV(vm, regs + 4, 18, 1); // insert
     U_POP(vm, regs + 1);
@@ -17813,7 +17813,7 @@ static void fun_342(VMRef vm, StackPtr psp) {
     U_VPUSHIDXI(vm, regs + 8);
     *(regs + 7) = *(locals + 2); // x
     U_VPUSHIDXI(vm, regs + 8);
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     fun_347(vm, regs + 7); // call: function314
     goto block2;
     block3:;
@@ -18071,7 +18071,7 @@ static void fun_348(VMRef vm, StackPtr psp) {
     vm.last = {73, 17};
     U_PUSHVARF(vm, regs + 0, 698); // lower
     *(regs + 1) = *(locals + 0); // nc
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -18208,9 +18208,9 @@ static void fun_350(VMRef vm, StackPtr psp) {
     block1:;
     vm.last = {40, 18};
     *(regs + 0) = *(locals + 3); // x
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 4); // d
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = *(locals + 1); // mu
     *(regs + 3) = *(locals + 2); // n_epochs
     fun_351(vm, regs + 4); // call: gradient_descent
@@ -18527,7 +18527,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     block3:;
     vm.last = {53, 19};
     *(regs + 0) = *(locals + 2); // pedges
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_359);
     fun_588(vm, regs + 2); // call: qsort
     vm.temp_lval = locals + 2; // pedges
@@ -18543,7 +18543,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     *(vm.temp_lval) = *(regs + 0);
     vm.last = {55, 19};
     U_PUSHVARF(vm, regs + 0, 727); // verts
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_592(vm, regs + 2); // call: map
     vm.temp_lval = locals + 11; // vnbs
@@ -18595,7 +18595,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {64, 19};
     *(regs + 0) = *(locals + 11); // vnbs
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_361);
     fun_593(vm, regs + 2); // call: map
     vm.temp_lval = locals + 11; // vnbs
@@ -18656,7 +18656,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     *(regs + 4) = *(locals + 11); // vnbs
     *(regs + 5) = *(locals + 17); // j
     U_VPUSHIDXI(vm, regs + 6);
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     vm.temp_lval = locals + 18; // nbl
     U_LV_WRITEREF(vm, regs + 5);
     vm.last = {74, 19};
@@ -18701,7 +18701,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     if (!(regs + 4)->True()) goto block17;
     vm.last = {80, 19};
     U_PUSHVARF(vm, regs + 4, 773); // shape
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 5, 0, fun_364);
     fun_598(vm, regs + 6); // call: reduce
     vm.temp_lval = locals + 20; // start
@@ -18732,7 +18732,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     if (!(regs + 4)->True()) goto block20;
     vm.last = {84, 19};
     *(regs + 4) = *(locals + 1); // quads
-    U_INCREF(vm, regs + 5, 0);
+    (regs + 4)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 5, 0, fun_365);
     fun_599(vm, regs + 6); // call: exists
     U_LOGNOT(vm, regs + 5);
@@ -18740,7 +18740,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {85, 19};
     *(regs + 4) = *(locals + 1); // quads
     U_PUSHVARF(vm, regs + 5, 773); // shape
-    U_INCREF(vm, regs + 6, 0);
+    (regs + 5)->LTINCRTNIL();
     *(regs + 6) = Value(1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
@@ -18762,7 +18762,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {88, 19};
     *(regs + 4) = *(locals + 15); // tris
     U_PUSHVARF(vm, regs + 5, 773); // shape
-    U_INCREF(vm, regs + 6, 0);
+    (regs + 5)->LTINCRTNIL();
     *(regs + 6) = Value(1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
@@ -19079,7 +19079,7 @@ static void fun_356(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2378, locals);
     vm.last = {23, 19};
     U_PUSHVARF(vm, regs + 0, 727); // verts
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_587(vm, regs + 2); // call: map
     vm.temp_lval = locals + 0; // disps
@@ -19263,7 +19263,7 @@ static void fun_361(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2408, locals);
     vm.last = {63, 19};
     *(regs + 0) = *(locals + 0); // nbl
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_PUSHFUN(vm, regs + 1, 0, fun_362);
     fun_594(vm, regs + 2); // call: qsort
     psp = PopArg(vm, 767, psp);
@@ -20016,7 +20016,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     *(vm.temp_lval) = *(regs + 2);
     vm.last = {60, 20};
     *(regs + 2) = *(locals + 9); // s
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     *(regs + 3) = *(locals + 0); // r.0
     *(regs + 4) = *(locals + 1); // r.1
     *(regs + 5) = *(locals + 2); // r.2
@@ -20073,7 +20073,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 0, 946); // spheres
     *(regs + 1) = *(locals + 8); // id
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 12; // obj
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {66, 20};
@@ -21118,7 +21118,7 @@ static void fun_380(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 2588, locals);
     vm.last = {9, 24};
     U_PUSHSTR(vm, regs + 0, 575); // ""
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 1, 11, 1);
     vm.temp_lval = locals + 0; // v
     U_LV_WRITEREF(vm, regs + 1);
@@ -21126,14 +21126,14 @@ static void fun_380(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 0); // v
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 1; // k
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {11, 24};
     *(regs + 0) = *(locals + 0); // v
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     vm.temp_lval = locals + 1; // k
     U_LV_WRITEREF(vm, regs + 1);
     DecVal(vm, locals[0]);
@@ -21205,14 +21205,14 @@ static void fun_383(VMRef vm, StackPtr psp) {
     vm.last = {15, 25};
     U_NEWVEC(vm, regs + 0, 1287, 0);
     U_PUSHSTR(vm, regs + 1, 576); // "a"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(2.000000);
     U_PUSHNIL(vm, regs + 4);
     U_PUSHSTR(vm, regs + 5, 577); // "b"
-    U_INCREF(vm, regs + 6, 0);
+    (regs + 5)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 6, 578); // "c"
-    U_INCREF(vm, regs + 7, 0);
+    (regs + 6)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 7, 11, 2);
     *(regs + 6) = Value(1);
     *(regs + 7) = Value(2);
@@ -21232,7 +21232,7 @@ static void fun_383(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {17, 25};
     *(regs + 0) = *(locals + 1); // sub
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     *(regs + 1) = *(locals + 0); // nested
     U_LVAL_FLD(vm, regs + 2, 4);
     U_LV_WRITEREF(vm, regs + 1);
@@ -21240,7 +21240,7 @@ static void fun_383(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 0); // nested
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 1); // sub
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -21248,7 +21248,7 @@ static void fun_383(VMRef vm, StackPtr psp) {
     *(regs + 0) = *(locals + 0); // nested
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = *(locals + 1); // sub
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -22664,9 +22664,9 @@ static void fun_454(VMRef vm, StackPtr psp) {
     vm.last = {91, 30};
     *(regs + 0) = *(locals + 6); // results5
     U_PUSHSTR(vm, regs + 1, 613); // "t"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 614); // "f"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 3, 11, 2);
     *(keepvar + 4) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
@@ -22687,11 +22687,11 @@ static void fun_454(VMRef vm, StackPtr psp) {
     vm.last = {110, 30};
     *(regs + 0) = *(locals + 8); // results6
     U_PUSHSTR(vm, regs + 1, 616); // "t"
-    U_INCREF(vm, regs + 2, 0);
+    (regs + 1)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 2, 617); // "f"
-    U_INCREF(vm, regs + 3, 0);
+    (regs + 2)->LTINCRTNIL();
     U_PUSHSTR(vm, regs + 3, 618); // "?"
-    U_INCREF(vm, regs + 4, 0);
+    (regs + 3)->LTINCRTNIL();
     U_NEWVEC(vm, regs + 4, 11, 3);
     *(keepvar + 5) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
@@ -22858,7 +22858,7 @@ static void fun_459(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     vm.last = {86, 30};
     U_PUSHSTR(vm, regs + 0, 620); // "t"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     goto block1;
     block0:;
     U_DUP(vm, regs + 1);
@@ -22868,7 +22868,7 @@ static void fun_459(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     vm.last = {87, 30};
     U_PUSHSTR(vm, regs + 0, 621); // "f"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     goto block3;
     block2:;
     U_POP(vm, regs + 1);
@@ -22897,7 +22897,7 @@ static void fun_460(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     vm.last = {97, 30};
     U_PUSHSTR(vm, regs + 0, 622); // "t"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     goto block1;
     block0:;
     U_DUP(vm, regs + 1);
@@ -22907,13 +22907,13 @@ static void fun_460(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 1);
     vm.last = {98, 30};
     U_PUSHSTR(vm, regs + 0, 623); // "f"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     goto block3;
     block2:;
     U_POP(vm, regs + 1);
     vm.last = {99, 30};
     U_PUSHSTR(vm, regs + 0, 624); // "?"
-    U_INCREF(vm, regs + 1, 0);
+    (regs + 0)->LTINCRTNIL();
     block1:;
     block3:;
     Pop(psp);
@@ -26660,7 +26660,7 @@ int main(int argc, char *argv[]) {
         span(specidents),
         span(enums),
         span(ser_ids),
-        string_view("Sun Jun  8 21:39:23 2025", 24),
+        string_view("Sun Jun  8 22:40:03 2025", 24),
         0x883db8532f6e1faa,
         span(subfunctions_to_function),
     };

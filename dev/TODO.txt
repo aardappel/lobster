@@ -235,7 +235,6 @@
       SlabAlloc::dealloc_small   // surprisingly a lot slower than alloc.. cache misses?
       CVM_LV_WRITEREF
       CVM_LV_WRITEV	 
-      CVM_INCREF	 
       CVM_BCALLRET1	 
       CVM_PUSHFLD	 
       CVM_VPUSHIDXI
@@ -271,7 +270,6 @@
     - according to word freq:
         DecVal: 573               // This goes into object delete code.                                  
         PushFunId,PopFunId: 400   // push/pop a vec and may call into profiler.
-        U_INCREF: 361     
         U_ASSERT: 324     
         U_LV_WRITEREF: 310
         U_PUSHSTR: 295    

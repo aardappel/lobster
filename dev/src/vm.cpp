@@ -915,12 +915,15 @@ fun_base_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
 
-void CVM_Entry(int value_size, int vmbase_size) {
+void CVM_Entry(int value_size, int vmbase_size, int refobj_size) {
     if (value_size != sizeof(Value)) {
         THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ Value size mismatch! (Debug vs Release?)");
     }
     if (vmbase_size != sizeof(VMBase)) {
         THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ VMBase size mismatch!");
+    }
+    if (refobj_size != sizeof(RefObj)) {
+        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ RefObj size mismatch!");
     }
 }
 
