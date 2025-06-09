@@ -433,12 +433,12 @@ static void fun_0(VMRef vm, StackPtr psp) {
     BackupVar(vm, 75);
     BackupVar(vm, 76);
     BackupVar(vm, 77);
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     BackupVar(vm, 84);
     BackupVar(vm, 85);
     BackupVar(vm, 86);
@@ -451,33 +451,33 @@ static void fun_0(VMRef vm, StackPtr psp) {
     BackupVar(vm, 93);
     BackupVar(vm, 94);
     BackupVar(vm, 95);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
-    locals[12] = Value(0, lobster::V_NIL);
-    locals[13] = Value(0, lobster::V_NIL);
-    locals[14] = Value(0, lobster::V_NIL);
-    locals[15] = Value(0, lobster::V_NIL);
-    locals[16] = Value(0, lobster::V_NIL);
-    locals[17] = Value(0, lobster::V_NIL);
-    locals[18] = Value(0, lobster::V_NIL);
-    locals[19] = Value(0, lobster::V_NIL);
-    locals[20] = Value(0, lobster::V_NIL);
-    locals[21] = Value(0, lobster::V_NIL);
-    locals[22] = Value(0, lobster::V_NIL);
-    locals[23] = Value(0, lobster::V_NIL);
-    locals[24] = Value(0, lobster::V_NIL);
-    locals[25] = Value(0, lobster::V_NIL);
-    locals[26] = Value(0, lobster::V_NIL);
-    locals[27] = Value(0, lobster::V_NIL);
-    locals[28] = Value(0, lobster::V_NIL);
-    locals[29] = Value(0, lobster::V_NIL);
-    locals[30] = Value(0, lobster::V_NIL);
-    locals[31] = Value(0, lobster::V_NIL);
-    locals[32] = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
+    *(locals + 12) = Value(0, lobster::V_NIL);
+    *(locals + 13) = Value(0, lobster::V_NIL);
+    *(locals + 14) = Value(0, lobster::V_NIL);
+    *(locals + 15) = Value(0, lobster::V_NIL);
+    *(locals + 16) = Value(0, lobster::V_NIL);
+    *(locals + 17) = Value(0, lobster::V_NIL);
+    *(locals + 18) = Value(0, lobster::V_NIL);
+    *(locals + 19) = Value(0, lobster::V_NIL);
+    *(locals + 20) = Value(0, lobster::V_NIL);
+    *(locals + 21) = Value(0, lobster::V_NIL);
+    *(locals + 22) = Value(0, lobster::V_NIL);
+    *(locals + 23) = Value(0, lobster::V_NIL);
+    *(locals + 24) = Value(0, lobster::V_NIL);
+    *(locals + 25) = Value(0, lobster::V_NIL);
+    *(locals + 26) = Value(0, lobster::V_NIL);
+    *(locals + 27) = Value(0, lobster::V_NIL);
+    *(locals + 28) = Value(0, lobster::V_NIL);
+    *(locals + 29) = Value(0, lobster::V_NIL);
+    *(locals + 30) = Value(0, lobster::V_NIL);
+    *(locals + 31) = Value(0, lobster::V_NIL);
+    *(locals + 32) = Value(0, lobster::V_NIL);
     BackupVar(vm, 123);
     BackupVar(vm, 124);
     BackupVar(vm, 125);
@@ -492,179 +492,179 @@ static void fun_0(VMRef vm, StackPtr psp) {
     BackupVar(vm, 134);
     BackupVar(vm, 135);
     BackupVar(vm, 136);
-    locals[33] = Value(0, lobster::V_NIL);
-    locals[34] = Value(0, lobster::V_NIL);
-    locals[35] = Value(0, lobster::V_NIL);
-    locals[36] = Value(0, lobster::V_NIL);
-    locals[37] = Value(0, lobster::V_NIL);
-    locals[38] = Value(0, lobster::V_NIL);
-    locals[39] = Value(0, lobster::V_NIL);
-    locals[40] = Value(0, lobster::V_NIL);
-    locals[41] = Value(0, lobster::V_NIL);
-    locals[42] = Value(0, lobster::V_NIL);
-    locals[43] = Value(0, lobster::V_NIL);
-    locals[44] = Value(0, lobster::V_NIL);
-    locals[45] = Value(0, lobster::V_NIL);
-    locals[46] = Value(0, lobster::V_NIL);
-    locals[47] = Value(0, lobster::V_NIL);
-    locals[48] = Value(0, lobster::V_NIL);
-    locals[49] = Value(0, lobster::V_NIL);
-    locals[50] = Value(0, lobster::V_NIL);
-    locals[51] = Value(0, lobster::V_NIL);
-    locals[52] = Value(0, lobster::V_NIL);
-    locals[53] = Value(0, lobster::V_NIL);
-    locals[54] = Value(0, lobster::V_NIL);
-    locals[55] = Value(0, lobster::V_NIL);
-    locals[56] = Value(0, lobster::V_NIL);
-    locals[57] = Value(0, lobster::V_NIL);
-    locals[58] = Value(0, lobster::V_NIL);
-    locals[59] = Value(0, lobster::V_NIL);
-    locals[60] = Value(0, lobster::V_NIL);
-    locals[61] = Value(0, lobster::V_NIL);
-    locals[62] = Value(0, lobster::V_NIL);
-    locals[63] = Value(0, lobster::V_NIL);
-    locals[64] = Value(0, lobster::V_NIL);
-    locals[65] = Value(0, lobster::V_NIL);
+    *(locals + 33) = Value(0, lobster::V_NIL);
+    *(locals + 34) = Value(0, lobster::V_NIL);
+    *(locals + 35) = Value(0, lobster::V_NIL);
+    *(locals + 36) = Value(0, lobster::V_NIL);
+    *(locals + 37) = Value(0, lobster::V_NIL);
+    *(locals + 38) = Value(0, lobster::V_NIL);
+    *(locals + 39) = Value(0, lobster::V_NIL);
+    *(locals + 40) = Value(0, lobster::V_NIL);
+    *(locals + 41) = Value(0, lobster::V_NIL);
+    *(locals + 42) = Value(0, lobster::V_NIL);
+    *(locals + 43) = Value(0, lobster::V_NIL);
+    *(locals + 44) = Value(0, lobster::V_NIL);
+    *(locals + 45) = Value(0, lobster::V_NIL);
+    *(locals + 46) = Value(0, lobster::V_NIL);
+    *(locals + 47) = Value(0, lobster::V_NIL);
+    *(locals + 48) = Value(0, lobster::V_NIL);
+    *(locals + 49) = Value(0, lobster::V_NIL);
+    *(locals + 50) = Value(0, lobster::V_NIL);
+    *(locals + 51) = Value(0, lobster::V_NIL);
+    *(locals + 52) = Value(0, lobster::V_NIL);
+    *(locals + 53) = Value(0, lobster::V_NIL);
+    *(locals + 54) = Value(0, lobster::V_NIL);
+    *(locals + 55) = Value(0, lobster::V_NIL);
+    *(locals + 56) = Value(0, lobster::V_NIL);
+    *(locals + 57) = Value(0, lobster::V_NIL);
+    *(locals + 58) = Value(0, lobster::V_NIL);
+    *(locals + 59) = Value(0, lobster::V_NIL);
+    *(locals + 60) = Value(0, lobster::V_NIL);
+    *(locals + 61) = Value(0, lobster::V_NIL);
+    *(locals + 62) = Value(0, lobster::V_NIL);
+    *(locals + 63) = Value(0, lobster::V_NIL);
+    *(locals + 64) = Value(0, lobster::V_NIL);
+    *(locals + 65) = Value(0, lobster::V_NIL);
     BackupVar(vm, 170);
     BackupVar(vm, 171);
-    locals[66] = Value(0, lobster::V_NIL);
-    locals[67] = Value(0, lobster::V_NIL);
-    locals[68] = Value(0, lobster::V_NIL);
-    locals[69] = Value(0, lobster::V_NIL);
-    locals[70] = Value(0, lobster::V_NIL);
-    locals[71] = Value(0, lobster::V_NIL);
-    locals[72] = Value(0, lobster::V_NIL);
-    locals[73] = Value(0, lobster::V_NIL);
-    locals[74] = Value(0, lobster::V_NIL);
-    locals[75] = Value(0, lobster::V_NIL);
-    locals[76] = Value(0, lobster::V_NIL);
-    locals[77] = Value(0, lobster::V_NIL);
-    locals[78] = Value(0, lobster::V_NIL);
-    locals[79] = Value(0, lobster::V_NIL);
-    locals[80] = Value(0, lobster::V_NIL);
-    locals[81] = Value(0, lobster::V_NIL);
-    locals[82] = Value(0, lobster::V_NIL);
-    locals[83] = Value(0, lobster::V_NIL);
-    locals[84] = Value(0, lobster::V_NIL);
-    locals[85] = Value(0, lobster::V_NIL);
-    locals[86] = Value(0, lobster::V_NIL);
-    locals[87] = Value(0, lobster::V_NIL);
-    locals[88] = Value(0, lobster::V_NIL);
-    locals[89] = Value(0, lobster::V_NIL);
-    locals[90] = Value(0, lobster::V_NIL);
-    locals[91] = Value(0, lobster::V_NIL);
-    locals[92] = Value(0, lobster::V_NIL);
-    locals[93] = Value(0, lobster::V_NIL);
-    locals[94] = Value(0, lobster::V_NIL);
-    locals[95] = Value(0, lobster::V_NIL);
-    locals[96] = Value(0, lobster::V_NIL);
-    locals[97] = Value(0, lobster::V_NIL);
-    locals[98] = Value(0, lobster::V_NIL);
-    locals[99] = Value(0, lobster::V_NIL);
-    locals[100] = Value(0, lobster::V_NIL);
-    locals[101] = Value(0, lobster::V_NIL);
-    locals[102] = Value(0, lobster::V_NIL);
-    locals[103] = Value(0, lobster::V_NIL);
-    locals[104] = Value(0, lobster::V_NIL);
-    locals[105] = Value(0, lobster::V_NIL);
-    locals[106] = Value(0, lobster::V_NIL);
-    locals[107] = Value(0, lobster::V_NIL);
-    locals[108] = Value(0, lobster::V_NIL);
-    locals[109] = Value(0, lobster::V_NIL);
-    locals[110] = Value(0, lobster::V_NIL);
-    locals[111] = Value(0, lobster::V_NIL);
-    locals[112] = Value(0, lobster::V_NIL);
-    locals[113] = Value(0, lobster::V_NIL);
-    locals[114] = Value(0, lobster::V_NIL);
-    locals[115] = Value(0, lobster::V_NIL);
-    locals[116] = Value(0, lobster::V_NIL);
-    locals[117] = Value(0, lobster::V_NIL);
-    locals[118] = Value(0, lobster::V_NIL);
-    locals[119] = Value(0, lobster::V_NIL);
-    locals[120] = Value(0, lobster::V_NIL);
-    locals[121] = Value(0, lobster::V_NIL);
-    locals[122] = Value(0, lobster::V_NIL);
-    locals[123] = Value(0, lobster::V_NIL);
-    locals[124] = Value(0, lobster::V_NIL);
-    locals[125] = Value(0, lobster::V_NIL);
-    locals[126] = Value(0, lobster::V_NIL);
-    locals[127] = Value(0, lobster::V_NIL);
-    locals[128] = Value(0, lobster::V_NIL);
-    locals[129] = Value(0, lobster::V_NIL);
-    locals[130] = Value(0, lobster::V_NIL);
-    locals[131] = Value(0, lobster::V_NIL);
-    locals[132] = Value(0, lobster::V_NIL);
-    locals[133] = Value(0, lobster::V_NIL);
-    locals[134] = Value(0, lobster::V_NIL);
-    locals[135] = Value(0, lobster::V_NIL);
-    locals[136] = Value(0, lobster::V_NIL);
-    locals[137] = Value(0, lobster::V_NIL);
-    locals[138] = Value(0, lobster::V_NIL);
-    locals[139] = Value(0, lobster::V_NIL);
-    locals[140] = Value(0, lobster::V_NIL);
-    locals[141] = Value(0, lobster::V_NIL);
-    locals[142] = Value(0, lobster::V_NIL);
-    locals[143] = Value(0, lobster::V_NIL);
-    locals[144] = Value(0, lobster::V_NIL);
-    locals[145] = Value(0, lobster::V_NIL);
-    locals[146] = Value(0, lobster::V_NIL);
-    locals[147] = Value(0, lobster::V_NIL);
-    locals[148] = Value(0, lobster::V_NIL);
-    locals[149] = Value(0, lobster::V_NIL);
-    locals[150] = Value(0, lobster::V_NIL);
-    locals[151] = Value(0, lobster::V_NIL);
-    locals[152] = Value(0, lobster::V_NIL);
-    locals[153] = Value(0, lobster::V_NIL);
-    locals[154] = Value(0, lobster::V_NIL);
-    locals[155] = Value(0, lobster::V_NIL);
-    locals[156] = Value(0, lobster::V_NIL);
-    locals[157] = Value(0, lobster::V_NIL);
-    locals[158] = Value(0, lobster::V_NIL);
-    locals[159] = Value(0, lobster::V_NIL);
-    locals[160] = Value(0, lobster::V_NIL);
-    locals[161] = Value(0, lobster::V_NIL);
-    locals[162] = Value(0, lobster::V_NIL);
-    locals[163] = Value(0, lobster::V_NIL);
-    locals[164] = Value(0, lobster::V_NIL);
-    locals[165] = Value(0, lobster::V_NIL);
-    locals[166] = Value(0, lobster::V_NIL);
-    locals[167] = Value(0, lobster::V_NIL);
-    locals[168] = Value(0, lobster::V_NIL);
-    locals[169] = Value(0, lobster::V_NIL);
-    locals[170] = Value(0, lobster::V_NIL);
-    locals[171] = Value(0, lobster::V_NIL);
-    locals[172] = Value(0, lobster::V_NIL);
-    locals[173] = Value(0, lobster::V_NIL);
-    locals[174] = Value(0, lobster::V_NIL);
-    locals[175] = Value(0, lobster::V_NIL);
-    locals[176] = Value(0, lobster::V_NIL);
-    locals[177] = Value(0, lobster::V_NIL);
-    locals[178] = Value(0, lobster::V_NIL);
-    locals[179] = Value(0, lobster::V_NIL);
-    locals[180] = Value(0, lobster::V_NIL);
-    locals[181] = Value(0, lobster::V_NIL);
-    locals[182] = Value(0, lobster::V_NIL);
-    locals[183] = Value(0, lobster::V_NIL);
-    locals[184] = Value(0, lobster::V_NIL);
-    locals[185] = Value(0, lobster::V_NIL);
-    locals[186] = Value(0, lobster::V_NIL);
-    locals[187] = Value(0, lobster::V_NIL);
-    locals[188] = Value(0, lobster::V_NIL);
-    locals[189] = Value(0, lobster::V_NIL);
-    locals[190] = Value(0, lobster::V_NIL);
-    locals[191] = Value(0, lobster::V_NIL);
-    locals[192] = Value(0, lobster::V_NIL);
-    locals[193] = Value(0, lobster::V_NIL);
-    locals[194] = Value(0, lobster::V_NIL);
-    locals[195] = Value(0, lobster::V_NIL);
-    locals[196] = Value(0, lobster::V_NIL);
-    locals[197] = Value(0, lobster::V_NIL);
-    locals[198] = Value(0, lobster::V_NIL);
-    locals[199] = Value(0, lobster::V_NIL);
-    locals[200] = Value(0, lobster::V_NIL);
-    locals[201] = Value(0, lobster::V_NIL);
-    locals[202] = Value(0, lobster::V_NIL);
-    locals[203] = Value(0, lobster::V_NIL);
+    *(locals + 66) = Value(0, lobster::V_NIL);
+    *(locals + 67) = Value(0, lobster::V_NIL);
+    *(locals + 68) = Value(0, lobster::V_NIL);
+    *(locals + 69) = Value(0, lobster::V_NIL);
+    *(locals + 70) = Value(0, lobster::V_NIL);
+    *(locals + 71) = Value(0, lobster::V_NIL);
+    *(locals + 72) = Value(0, lobster::V_NIL);
+    *(locals + 73) = Value(0, lobster::V_NIL);
+    *(locals + 74) = Value(0, lobster::V_NIL);
+    *(locals + 75) = Value(0, lobster::V_NIL);
+    *(locals + 76) = Value(0, lobster::V_NIL);
+    *(locals + 77) = Value(0, lobster::V_NIL);
+    *(locals + 78) = Value(0, lobster::V_NIL);
+    *(locals + 79) = Value(0, lobster::V_NIL);
+    *(locals + 80) = Value(0, lobster::V_NIL);
+    *(locals + 81) = Value(0, lobster::V_NIL);
+    *(locals + 82) = Value(0, lobster::V_NIL);
+    *(locals + 83) = Value(0, lobster::V_NIL);
+    *(locals + 84) = Value(0, lobster::V_NIL);
+    *(locals + 85) = Value(0, lobster::V_NIL);
+    *(locals + 86) = Value(0, lobster::V_NIL);
+    *(locals + 87) = Value(0, lobster::V_NIL);
+    *(locals + 88) = Value(0, lobster::V_NIL);
+    *(locals + 89) = Value(0, lobster::V_NIL);
+    *(locals + 90) = Value(0, lobster::V_NIL);
+    *(locals + 91) = Value(0, lobster::V_NIL);
+    *(locals + 92) = Value(0, lobster::V_NIL);
+    *(locals + 93) = Value(0, lobster::V_NIL);
+    *(locals + 94) = Value(0, lobster::V_NIL);
+    *(locals + 95) = Value(0, lobster::V_NIL);
+    *(locals + 96) = Value(0, lobster::V_NIL);
+    *(locals + 97) = Value(0, lobster::V_NIL);
+    *(locals + 98) = Value(0, lobster::V_NIL);
+    *(locals + 99) = Value(0, lobster::V_NIL);
+    *(locals + 100) = Value(0, lobster::V_NIL);
+    *(locals + 101) = Value(0, lobster::V_NIL);
+    *(locals + 102) = Value(0, lobster::V_NIL);
+    *(locals + 103) = Value(0, lobster::V_NIL);
+    *(locals + 104) = Value(0, lobster::V_NIL);
+    *(locals + 105) = Value(0, lobster::V_NIL);
+    *(locals + 106) = Value(0, lobster::V_NIL);
+    *(locals + 107) = Value(0, lobster::V_NIL);
+    *(locals + 108) = Value(0, lobster::V_NIL);
+    *(locals + 109) = Value(0, lobster::V_NIL);
+    *(locals + 110) = Value(0, lobster::V_NIL);
+    *(locals + 111) = Value(0, lobster::V_NIL);
+    *(locals + 112) = Value(0, lobster::V_NIL);
+    *(locals + 113) = Value(0, lobster::V_NIL);
+    *(locals + 114) = Value(0, lobster::V_NIL);
+    *(locals + 115) = Value(0, lobster::V_NIL);
+    *(locals + 116) = Value(0, lobster::V_NIL);
+    *(locals + 117) = Value(0, lobster::V_NIL);
+    *(locals + 118) = Value(0, lobster::V_NIL);
+    *(locals + 119) = Value(0, lobster::V_NIL);
+    *(locals + 120) = Value(0, lobster::V_NIL);
+    *(locals + 121) = Value(0, lobster::V_NIL);
+    *(locals + 122) = Value(0, lobster::V_NIL);
+    *(locals + 123) = Value(0, lobster::V_NIL);
+    *(locals + 124) = Value(0, lobster::V_NIL);
+    *(locals + 125) = Value(0, lobster::V_NIL);
+    *(locals + 126) = Value(0, lobster::V_NIL);
+    *(locals + 127) = Value(0, lobster::V_NIL);
+    *(locals + 128) = Value(0, lobster::V_NIL);
+    *(locals + 129) = Value(0, lobster::V_NIL);
+    *(locals + 130) = Value(0, lobster::V_NIL);
+    *(locals + 131) = Value(0, lobster::V_NIL);
+    *(locals + 132) = Value(0, lobster::V_NIL);
+    *(locals + 133) = Value(0, lobster::V_NIL);
+    *(locals + 134) = Value(0, lobster::V_NIL);
+    *(locals + 135) = Value(0, lobster::V_NIL);
+    *(locals + 136) = Value(0, lobster::V_NIL);
+    *(locals + 137) = Value(0, lobster::V_NIL);
+    *(locals + 138) = Value(0, lobster::V_NIL);
+    *(locals + 139) = Value(0, lobster::V_NIL);
+    *(locals + 140) = Value(0, lobster::V_NIL);
+    *(locals + 141) = Value(0, lobster::V_NIL);
+    *(locals + 142) = Value(0, lobster::V_NIL);
+    *(locals + 143) = Value(0, lobster::V_NIL);
+    *(locals + 144) = Value(0, lobster::V_NIL);
+    *(locals + 145) = Value(0, lobster::V_NIL);
+    *(locals + 146) = Value(0, lobster::V_NIL);
+    *(locals + 147) = Value(0, lobster::V_NIL);
+    *(locals + 148) = Value(0, lobster::V_NIL);
+    *(locals + 149) = Value(0, lobster::V_NIL);
+    *(locals + 150) = Value(0, lobster::V_NIL);
+    *(locals + 151) = Value(0, lobster::V_NIL);
+    *(locals + 152) = Value(0, lobster::V_NIL);
+    *(locals + 153) = Value(0, lobster::V_NIL);
+    *(locals + 154) = Value(0, lobster::V_NIL);
+    *(locals + 155) = Value(0, lobster::V_NIL);
+    *(locals + 156) = Value(0, lobster::V_NIL);
+    *(locals + 157) = Value(0, lobster::V_NIL);
+    *(locals + 158) = Value(0, lobster::V_NIL);
+    *(locals + 159) = Value(0, lobster::V_NIL);
+    *(locals + 160) = Value(0, lobster::V_NIL);
+    *(locals + 161) = Value(0, lobster::V_NIL);
+    *(locals + 162) = Value(0, lobster::V_NIL);
+    *(locals + 163) = Value(0, lobster::V_NIL);
+    *(locals + 164) = Value(0, lobster::V_NIL);
+    *(locals + 165) = Value(0, lobster::V_NIL);
+    *(locals + 166) = Value(0, lobster::V_NIL);
+    *(locals + 167) = Value(0, lobster::V_NIL);
+    *(locals + 168) = Value(0, lobster::V_NIL);
+    *(locals + 169) = Value(0, lobster::V_NIL);
+    *(locals + 170) = Value(0, lobster::V_NIL);
+    *(locals + 171) = Value(0, lobster::V_NIL);
+    *(locals + 172) = Value(0, lobster::V_NIL);
+    *(locals + 173) = Value(0, lobster::V_NIL);
+    *(locals + 174) = Value(0, lobster::V_NIL);
+    *(locals + 175) = Value(0, lobster::V_NIL);
+    *(locals + 176) = Value(0, lobster::V_NIL);
+    *(locals + 177) = Value(0, lobster::V_NIL);
+    *(locals + 178) = Value(0, lobster::V_NIL);
+    *(locals + 179) = Value(0, lobster::V_NIL);
+    *(locals + 180) = Value(0, lobster::V_NIL);
+    *(locals + 181) = Value(0, lobster::V_NIL);
+    *(locals + 182) = Value(0, lobster::V_NIL);
+    *(locals + 183) = Value(0, lobster::V_NIL);
+    *(locals + 184) = Value(0, lobster::V_NIL);
+    *(locals + 185) = Value(0, lobster::V_NIL);
+    *(locals + 186) = Value(0, lobster::V_NIL);
+    *(locals + 187) = Value(0, lobster::V_NIL);
+    *(locals + 188) = Value(0, lobster::V_NIL);
+    *(locals + 189) = Value(0, lobster::V_NIL);
+    *(locals + 190) = Value(0, lobster::V_NIL);
+    *(locals + 191) = Value(0, lobster::V_NIL);
+    *(locals + 192) = Value(0, lobster::V_NIL);
+    *(locals + 193) = Value(0, lobster::V_NIL);
+    *(locals + 194) = Value(0, lobster::V_NIL);
+    *(locals + 195) = Value(0, lobster::V_NIL);
+    *(locals + 196) = Value(0, lobster::V_NIL);
+    *(locals + 197) = Value(0, lobster::V_NIL);
+    *(locals + 198) = Value(0, lobster::V_NIL);
+    *(locals + 199) = Value(0, lobster::V_NIL);
+    *(locals + 200) = Value(0, lobster::V_NIL);
+    *(locals + 201) = Value(0, lobster::V_NIL);
+    *(locals + 202) = Value(0, lobster::V_NIL);
+    *(locals + 203) = Value(0, lobster::V_NIL);
     BackupVar(vm, 1150);
     BackupVar(vm, 1151);
     BackupVar(vm, 1152);
@@ -685,7 +685,7 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {8, 2};
     U_PUSHFUN(vm, regs + 0, 0, fun_3);
     U_LVAL_VARF(vm, regs + 1, 0); // current_test_runner
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {10, 2};
     vm.last = {14, 2};
     U_PUSHSTR(vm, regs + 0, 0); // "example"
@@ -694,7 +694,7 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {7, 0};
     U_PUSHFUN(vm, regs + 0, 0, fun_6);
     U_LVAL_VARF(vm, regs + 1, 0); // current_test_runner
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {3, 5};
     vm.last = {9, 5};
     vm.last = {11, 5};
@@ -757,17 +757,17 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {9, 4};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(0.500000);
-    vm.temp_lval = &locals[0]; // float2_h+0
+    vm.temp_lval = locals + 0; // float2_h+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {10, 4};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(0.000000);
-    vm.temp_lval = &locals[2]; // float2_x+0
+    vm.temp_lval = locals + 2; // float2_x+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {11, 4};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(1.000000);
-    vm.temp_lval = &locals[4]; // float2_y+0
+    vm.temp_lval = locals + 4; // float2_y+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {13, 4};
     *(regs + 0) = Value(0.000000);
@@ -797,49 +797,49 @@ static void fun_0(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(1.000000);
-    vm.temp_lval = &locals[6]; // float3_z+0
+    vm.temp_lval = locals + 6; // float3_z+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {19, 4};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(0.000000);
-    vm.temp_lval = &locals[9]; // float4_0+0
+    vm.temp_lval = locals + 9; // float4_0+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {20, 4};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[13]; // float4_1+0
+    vm.temp_lval = locals + 13; // float4_1+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {21, 4};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(0.000000);
-    vm.temp_lval = &locals[17]; // float4_x+0
+    vm.temp_lval = locals + 17; // float4_x+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {22, 4};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(0.000000);
-    vm.temp_lval = &locals[21]; // float4_y+0
+    vm.temp_lval = locals + 21; // float4_y+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {23, 4};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(0.000000);
-    vm.temp_lval = &locals[25]; // float4_z+0
+    vm.temp_lval = locals + 25; // float4_z+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {24, 4};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[29]; // float4_w+0
+    vm.temp_lval = locals + 29; // float4_w+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {28, 4};
     *(regs + 0) = Value(0);
@@ -877,61 +877,61 @@ static void fun_0(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
-    vm.temp_lval = &locals[33]; // int3_x+0
+    vm.temp_lval = locals + 33; // int3_x+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {36, 4};
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(0);
-    vm.temp_lval = &locals[36]; // int3_y+0
+    vm.temp_lval = locals + 36; // int3_y+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {37, 4};
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(1);
-    vm.temp_lval = &locals[39]; // int3_z+0
+    vm.temp_lval = locals + 39; // int3_z+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {39, 4};
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
-    vm.temp_lval = &locals[42]; // int4_0+0
+    vm.temp_lval = locals + 42; // int4_0+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {40, 4};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(1);
     *(regs + 3) = Value(1);
-    vm.temp_lval = &locals[46]; // int4_1+0
+    vm.temp_lval = locals + 46; // int4_1+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {41, 4};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
-    vm.temp_lval = &locals[50]; // int4_x+0
+    vm.temp_lval = locals + 50; // int4_x+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {42, 4};
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
-    vm.temp_lval = &locals[54]; // int4_y+0
+    vm.temp_lval = locals + 54; // int4_y+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {43, 4};
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(1);
     *(regs + 3) = Value(0);
-    vm.temp_lval = &locals[58]; // int4_z+0
+    vm.temp_lval = locals + 58; // int4_z+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {44, 4};
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(1);
-    vm.temp_lval = &locals[62]; // int4_w+0
+    vm.temp_lval = locals + 62; // int4_w+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {46, 4};
     *(regs + 0) = Value(0);
@@ -967,7 +967,7 @@ static void fun_0(VMRef vm, StackPtr psp) {
     *(regs + 6) = Value(0);
     *(regs + 7) = Value(1);
     U_NEWVEC(vm, regs + 8, 37, 4);
-    vm.temp_lval = &locals[66]; // positive_directions
+    vm.temp_lval = locals + 66; // positive_directions
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {50, 4};
     *(regs + 0) = Value(1);
@@ -995,7 +995,7 @@ static void fun_0(VMRef vm, StackPtr psp) {
     *(regs + 22) = Value(-1);
     *(regs + 23) = Value(-1);
     U_NEWVEC(vm, regs + 24, 240, 8);
-    vm.temp_lval = &locals[67]; // octant_directions
+    vm.temp_lval = locals + 67; // octant_directions
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {62, 4};
     vm.last = {63, 4};
@@ -1127,224 +1127,224 @@ static void fun_0(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(0.000000);
-    vm.temp_lval = &locals[68]; // color_clear+0
+    vm.temp_lval = locals + 68; // color_clear+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {10, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[72]; // color_black+0
+    vm.temp_lval = locals + 72; // color_black+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {11, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[76]; // color_white+0
+    vm.temp_lval = locals + 76; // color_white+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {13, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[80]; // color_red+0
+    vm.temp_lval = locals + 80; // color_red+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {14, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[84]; // color_green+0
+    vm.temp_lval = locals + 84; // color_green+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {15, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[88]; // color_blue+0
+    vm.temp_lval = locals + 88; // color_blue+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {17, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[92]; // color_yellow+0
+    vm.temp_lval = locals + 92; // color_yellow+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {18, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[96]; // color_cyan+0
+    vm.temp_lval = locals + 96; // color_cyan+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {19, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[100]; // color_pink+0
+    vm.temp_lval = locals + 100; // color_pink+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {21, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[104]; // color_grey+0
+    vm.temp_lval = locals + 104; // color_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {22, 21};
     *(regs + 0) = Value(0.250000);
     *(regs + 1) = Value(0.250000);
     *(regs + 2) = Value(0.250000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[108]; // color_dark_grey+0
+    vm.temp_lval = locals + 108; // color_dark_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {23, 21};
     *(regs + 0) = Value(0.750000);
     *(regs + 1) = Value(0.750000);
     *(regs + 2) = Value(0.750000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[112]; // color_light_grey+0
+    vm.temp_lval = locals + 112; // color_light_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {24, 21};
     U_PUSHFLT64(vm, regs + 0, -858993459, 1072483532); // 0.9
     U_PUSHFLT64(vm, regs + 1, -858993459, 1072483532); // 0.9
     U_PUSHFLT64(vm, regs + 2, -858993459, 1072483532); // 0.9
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[116]; // color_lightest_grey+0
+    vm.temp_lval = locals + 116; // color_lightest_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {25, 21};
     U_PUSHFLT64(vm, regs + 0, -1717986918, 1069128089); // 0.1
     U_PUSHFLT64(vm, regs + 1, -1717986918, 1069128089); // 0.1
     U_PUSHFLT64(vm, regs + 2, -1717986918, 1069128089); // 0.1
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[120]; // color_darkest_grey+0
+    vm.temp_lval = locals + 120; // color_darkest_grey+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {27, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[124]; // color_light_red+0
+    vm.temp_lval = locals + 124; // color_light_red+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {28, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[128]; // color_light_green+0
+    vm.temp_lval = locals + 128; // color_light_green+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {29, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[132]; // color_light_blue+0
+    vm.temp_lval = locals + 132; // color_light_blue+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {30, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[136]; // color_light_yellow+0
+    vm.temp_lval = locals + 136; // color_light_yellow+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {31, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[140]; // color_light_cyan+0
+    vm.temp_lval = locals + 140; // color_light_cyan+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {32, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[144]; // color_light_pink+0
+    vm.temp_lval = locals + 144; // color_light_pink+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {34, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[148]; // color_dark_red+0
+    vm.temp_lval = locals + 148; // color_dark_red+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {35, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[152]; // color_dark_green+0
+    vm.temp_lval = locals + 152; // color_dark_green+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {36, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[156]; // color_dark_blue+0
+    vm.temp_lval = locals + 156; // color_dark_blue+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {37, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[160]; // color_olive+0
+    vm.temp_lval = locals + 160; // color_olive+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {38, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[164]; // color_teal+0
+    vm.temp_lval = locals + 164; // color_teal+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {39, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[168]; // color_purple+0
+    vm.temp_lval = locals + 168; // color_purple+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {41, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[172]; // color_orange+0
+    vm.temp_lval = locals + 172; // color_orange+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {42, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[176]; // color_chartreuse+0
+    vm.temp_lval = locals + 176; // color_chartreuse+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {43, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[180]; // color_springgreen+0
+    vm.temp_lval = locals + 180; // color_springgreen+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {44, 21};
     *(regs + 0) = Value(0.000000);
     *(regs + 1) = Value(0.500000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[184]; // color_dodgerblue+0
+    vm.temp_lval = locals + 184; // color_dodgerblue+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {45, 21};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.500000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[188]; // color_pink_violet+0
+    vm.temp_lval = locals + 188; // color_pink_violet+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {46, 21};
     *(regs + 0) = Value(0.500000);
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(1.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[192]; // color_blue_violet+0
+    vm.temp_lval = locals + 192; // color_blue_violet+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {48, 21};
     vm.last = {49, 21};
@@ -1353,7 +1353,7 @@ static void fun_0(VMRef vm, StackPtr psp) {
     U_PUSHFLT64(vm, regs + 1, 962072674, 1071827124); // 0.587
     U_PUSHFLT64(vm, regs + 2, -1614907703, 1069362970); // 0.114
     *(regs + 3) = Value(0.000000);
-    vm.temp_lval = &locals[196]; // color_luminance_weights+0
+    vm.temp_lval = locals + 196; // color_luminance_weights+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {52, 21};
     vm.last = {7, 20};
@@ -1393,7 +1393,7 @@ static void fun_0(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     *(regs + 3) = Value(1.000000);
-    vm.temp_lval = &locals[200]; // quat_unit+0
+    vm.temp_lval = locals + 200; // quat_unit+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {10, 26};
     vm.last = {11, 26};
@@ -1528,11 +1528,11 @@ static void fun_0(VMRef vm, StackPtr psp) {
 static void fun_3(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 244, locals);
     vm.last = {8, 2};
-    regs[0] = locals[1]; // t
+    *(regs + 0) = *(locals + 1); // t
     U_CALLV(vm, regs + 1); vm.next_call_target(vm, regs + 0);
     Pop(psp);
     Pop(psp);
@@ -1545,12 +1545,12 @@ static void fun_3(VMRef vm, StackPtr psp) {
 static void fun_4(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 249, locals);
     vm.last = {11, 2};
-    regs[0] = locals[0]; // name
-    regs[1] = locals[1]; // t
+    *(regs + 0) = *(locals + 0); // name
+    *(regs + 1) = *(locals + 1); // t
     U_PUSHVARF(vm, regs + 2, 0); // current_test_runner
     U_CALLV(vm, regs + 3); vm.next_call_target(vm, regs + 2);
     Pop(psp);
@@ -1565,12 +1565,12 @@ static void fun_5(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     PushFunId(vm, funinfo_table + 254, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {15, 2};
     U_PUSHSTR(vm, regs + 0, 20); // "a"
     U_PUSHSTR(vm, regs + 1, 21); // "b"
     U_SADD(vm, regs + 2);
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 22); // "ab"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 15, 2, 23);
@@ -1585,18 +1585,18 @@ static void fun_6(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 257, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {6, 0};
     U_PUSHSTR(vm, regs + 0, 24); // "testing: "
-    regs[1] = locals[0]; // name
+    *(regs + 1) = *(locals + 0); // name
     U_SADD(vm, regs + 2);
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
     vm.last = {7, 0};
-    regs[0] = locals[1]; // t
+    *(regs + 0) = *(locals + 1); // t
     U_CALLV(vm, regs + 1); vm.next_call_target(vm, regs + 0);
     Pop(psp);
     Pop(psp);
@@ -1611,38 +1611,38 @@ static void fun_616(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 262, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 11, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_460(vm, regs + 4); // call: function403
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -1650,10 +1650,10 @@ static void fun_616(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -1665,38 +1665,38 @@ static void fun_615(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 270, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 11, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_459(vm, regs + 4); // call: function402
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -1704,10 +1704,10 @@ static void fun_615(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -1719,38 +1719,38 @@ static void fun_614(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 278, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_458(vm, regs + 4); // call: function401
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -1758,11 +1758,11 @@ static void fun_614(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -1774,38 +1774,38 @@ static void fun_613(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 286, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_457(vm, regs + 4); // call: function400
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -1813,11 +1813,11 @@ static void fun_613(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -1829,38 +1829,38 @@ static void fun_612(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 294, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_456(vm, regs + 4); // call: function399
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -1868,11 +1868,11 @@ static void fun_612(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -1884,38 +1884,38 @@ static void fun_611(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 302, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     U_INCREF(vm, regs + 4, 0);
     fun_455(vm, regs + 4); // call: function398
     *(regs + 4) = Value(1);
@@ -1924,11 +1924,11 @@ static void fun_611(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -1940,40 +1940,42 @@ static void fun_604(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value keepvar[1];
     Value locals[7];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 310, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1256, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x+0
+    vm.temp_lval = locals + 3; // x+0
     U_LV_WRITEV(vm, regs + 5, 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[6]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 6; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3];regs[4] = locals[4];regs[5] = locals[5]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x.0
+    *(regs + 4) = *(locals + 4); // x.1
+    *(regs + 5) = *(locals + 5); // x.2
     fun_376(vm, regs + 6); // call: function343
     *(regs + 7) = Value(4);
     U_BCALLRETV(vm, regs + 8, 15, 1); // push
@@ -1981,10 +1983,10 @@ static void fun_604(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -1996,38 +1998,38 @@ static void fun_603(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 320, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1258, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_375(vm, regs + 4); // call: function342
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2035,11 +2037,11 @@ static void fun_603(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2051,37 +2053,37 @@ static void fun_602(VMRef vm, StackPtr psp) {
     Value regs[7];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 328, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1252, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {119, 20};
     U_PUSHVARVF(vm, regs + 3, 84, 3); // float3_0+0
     *(regs + 6) = Value(3);
@@ -2090,10 +2092,10 @@ static void fun_602(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2105,37 +2107,37 @@ static void fun_601(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 336, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1254, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     fun_373(vm, regs + 3); // call: function340
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2143,10 +2145,10 @@ static void fun_601(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2158,39 +2160,39 @@ static void fun_593(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 344, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 13, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
-    regs[4] = locals[4]; // i
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
+    *(regs + 4) = *(locals + 4); // i
     fun_361(vm, regs + 5); // call: function328
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2198,12 +2200,12 @@ static void fun_593(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[0]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2215,38 +2217,38 @@ static void fun_592(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 352, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 13, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x+0
+    vm.temp_lval = locals + 3; // x+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {55, 19};
     U_NEWVEC(vm, regs + 3, 7, 0);
     *(regs + 4) = Value(1);
@@ -2255,11 +2257,11 @@ static void fun_592(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2271,38 +2273,38 @@ static void fun_587(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value keepvar[1];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 361, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1148, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x+0
+    vm.temp_lval = locals + 3; // x+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {23, 19};
     U_PUSHVARVF(vm, regs + 3, 74, 2); // float2_0+0
     *(regs + 5) = Value(2);
@@ -2311,11 +2313,11 @@ static void fun_587(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2327,37 +2329,37 @@ static void fun_586(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 370, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 9, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {13, 18};
     *(regs + 3) = Value(0.000000);
     *(regs + 4) = Value(1);
@@ -2366,10 +2368,10 @@ static void fun_586(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2381,37 +2383,37 @@ static void fun_585(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 378, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 9, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {34, 18};
     *(regs + 3) = Value(0.000000);
     *(regs + 4) = Value(1);
@@ -2420,10 +2422,10 @@ static void fun_585(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2435,37 +2437,37 @@ static void fun_584(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 386, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 9, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {33, 18};
     *(regs + 3) = Value(0.000000);
     *(regs + 4) = Value(1);
@@ -2474,10 +2476,10 @@ static void fun_584(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2489,38 +2491,38 @@ static void fun_582(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 394, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1138, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_341(vm, regs + 4); // call: function308
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2528,10 +2530,10 @@ static void fun_582(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2543,38 +2545,38 @@ static void fun_581(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 402, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1140, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_340(vm, regs + 4); // call: function307
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2582,10 +2584,10 @@ static void fun_581(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2597,38 +2599,38 @@ static void fun_579(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 410, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1119, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_580(vm, regs + 4); // call: function99
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2636,10 +2638,10 @@ static void fun_579(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2651,38 +2653,38 @@ static void fun_576(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 418, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1121, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_577(vm, regs + 4); // call: function98
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2690,10 +2692,10 @@ static void fun_576(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2705,38 +2707,38 @@ static void fun_573(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 426, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 11, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_324(vm, regs + 4); // call: function291
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2744,11 +2746,11 @@ static void fun_573(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2760,39 +2762,40 @@ static void fun_566(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 434, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x+0
+    vm.temp_lval = locals + 3; // x+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3];regs[4] = locals[4]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x.0
+    *(regs + 4) = *(locals + 4); // x.1
     fun_311(vm, regs + 5); // call: function281
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2800,11 +2803,11 @@ static void fun_566(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2816,39 +2819,40 @@ static void fun_565(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value keepvar[1];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 443, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 37, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x+0
+    vm.temp_lval = locals + 3; // x+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3];regs[4] = locals[4]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x.0
+    *(regs + 4) = *(locals + 4); // x.1
     fun_308(vm, regs + 5); // call: function278
     *(regs + 5) = Value(2);
     U_BCALLRETV(vm, regs + 6, 15, 1); // push
@@ -2856,10 +2860,10 @@ static void fun_565(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2871,38 +2875,38 @@ static void fun_564(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 452, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_102(vm, regs + 4); // call: function99
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2910,10 +2914,10 @@ static void fun_564(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2925,38 +2929,38 @@ static void fun_563(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 460, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 13, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_101(vm, regs + 4); // call: function98
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -2964,10 +2968,10 @@ static void fun_563(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -2979,38 +2983,38 @@ static void fun_562(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 468, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 11, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_304(vm, regs + 4); // call: function274
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -3018,11 +3022,11 @@ static void fun_562(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3034,38 +3038,38 @@ static void fun_558(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 476, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 11, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_287(vm, regs + 4); // call: function267
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -3073,11 +3077,11 @@ static void fun_558(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3089,38 +3093,38 @@ static void fun_543(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 484, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1005, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_284(vm, regs + 4); // call: function264
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -3128,10 +3132,10 @@ static void fun_543(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3143,38 +3147,38 @@ static void fun_542(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 492, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 1027, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_283(vm, regs + 4); // call: function263
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -3182,10 +3186,10 @@ static void fun_542(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3197,37 +3201,37 @@ static void fun_532(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 500, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 540, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {120, 8};
     U_PUSHNIL(vm, regs + 3);
     *(regs + 4) = Value(1);
@@ -3236,10 +3240,10 @@ static void fun_532(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3251,37 +3255,37 @@ static void fun_505(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 508, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 542, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {120, 8};
     U_PUSHNIL(vm, regs + 3);
     *(regs + 4) = Value(1);
@@ -3290,10 +3294,10 @@ static void fun_505(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3305,38 +3309,38 @@ static void fun_502(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 516, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_200(vm, regs + 4); // call: function192
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -3344,10 +3348,10 @@ static void fun_502(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3359,37 +3363,37 @@ static void fun_492(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 524, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 697, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {120, 8};
     U_PUSHNIL(vm, regs + 3);
     *(regs + 4) = Value(1);
@@ -3398,10 +3402,10 @@ static void fun_492(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3413,37 +3417,37 @@ static void fun_485(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 532, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 657, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {120, 8};
     U_PUSHNIL(vm, regs + 3);
     *(regs + 4) = Value(1);
@@ -3452,10 +3456,10 @@ static void fun_485(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3467,37 +3471,37 @@ static void fun_482(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 540, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 486, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
+    *(regs + 2) = *(locals + 2); // r
     vm.last = {120, 8};
     U_PUSHNIL(vm, regs + 3);
     *(regs + 4) = Value(1);
@@ -3506,10 +3510,10 @@ static void fun_482(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3521,38 +3525,38 @@ static void fun_471(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 548, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_167(vm, regs + 4); // call: function160
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -3560,10 +3564,10 @@ static void fun_471(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3575,38 +3579,38 @@ static void fun_7(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 556, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {4, 5};
     U_NEWVEC(vm, regs + 0, 11, 0);
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // xs
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 11, 1); // length
     U_BCALLRET2(vm, regs + 2, 10, 1); // vector_capacity
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {6, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x
     fun_162(vm, regs + 4); // call: function155
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
@@ -3614,10 +3618,10 @@ static void fun_7(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {7, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -3628,37 +3632,39 @@ static void fun_7(VMRef vm, StackPtr psp) {
 static void fun_567(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 564, locals);
     vm.last = {12, 5};
     U_NEWVEC(vm, regs + 0, 37, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {13, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {13, 5};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x+0
+    vm.temp_lval = locals + 3; // x+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {13, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {14, 5};
-    regs[2] = locals[3];regs[3] = locals[4]; // x
+    *(regs + 2) = *(locals + 3); // x.0
+    *(regs + 3) = *(locals + 4); // x.1
     fun_312(vm, regs + 4); // call: function282
     if (!(regs + 2)->True()) goto block2;
     vm.last = {15, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3];regs[4] = locals[4]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x.0
+    *(regs + 4) = *(locals + 4); // x.1
     *(regs + 5) = Value(2);
     U_BCALLRETV(vm, regs + 6, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -3666,10 +3672,10 @@ static void fun_567(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {16, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -3679,37 +3685,39 @@ static void fun_567(VMRef vm, StackPtr psp) {
 static void fun_10(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 573, locals);
     vm.last = {12, 5};
     U_NEWVEC(vm, regs + 0, 37, 0);
-    vm.temp_lval = &locals[2]; // r
+    vm.temp_lval = locals + 2; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {13, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {13, 5};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // x+0
+    vm.temp_lval = locals + 3; // x+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {13, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {14, 5};
-    regs[2] = locals[3];regs[3] = locals[4]; // x
+    *(regs + 2) = *(locals + 3); // x.0
+    *(regs + 3) = *(locals + 4); // x.1
     fun_310(vm, regs + 4); // call: function280
     if (!(regs + 2)->True()) goto block2;
     vm.last = {15, 5};
-    regs[2] = locals[2]; // r
-    regs[3] = locals[3];regs[4] = locals[4]; // x
+    *(regs + 2) = *(locals + 2); // r
+    *(regs + 3) = *(locals + 3); // x.0
+    *(regs + 4) = *(locals + 4); // x.1
     *(regs + 5) = Value(2);
     U_BCALLRETV(vm, regs + 6, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -3717,11 +3725,11 @@ static void fun_10(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {16, 5};
-    regs[0] = locals[2]; // r
+    *(regs + 0) = *(locals + 2); // r
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -3731,49 +3739,49 @@ static void fun_10(VMRef vm, StackPtr psp) {
 static void fun_595(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 582, locals);
     vm.last = {37, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    vm.temp_lval = &locals[2]; // t
+    vm.temp_lval = locals + 2; // t
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {38, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    vm.temp_lval = &locals[3]; // f
+    vm.temp_lval = locals + 3; // f
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {39, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {39, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {39, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {40, 5};
-    regs[2] = locals[4]; // x
+    *(regs + 2) = *(locals + 4); // x
     fun_596(vm, regs + 3); // call: function49
     if (!(regs + 2)->True()) goto block2;
     vm.last = {41, 5};
-    regs[2] = locals[2]; // t
-    regs[3] = locals[4]; // x
+    *(regs + 2) = *(locals + 2); // t
+    *(regs + 3) = *(locals + 4); // x
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
     goto block3;
     block2:;
     vm.last = {43, 5};
-    regs[2] = locals[3]; // f
-    regs[3] = locals[4]; // x
+    *(regs + 2) = *(locals + 3); // f
+    *(regs + 3) = *(locals + 4); // x
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -3781,8 +3789,8 @@ static void fun_595(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {44, 5};
-    regs[0] = locals[2]; // t
-    regs[1] = locals[3]; // f
+    *(regs + 0) = *(locals + 2); // t
+    *(regs + 1) = *(locals + 3); // f
     U_INCREF(vm, regs + 2, 0);
     U_INCREF(vm, regs + 2, 1);
     DecVal(vm, locals[0]);
@@ -3790,8 +3798,8 @@ static void fun_595(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -3801,51 +3809,57 @@ static void fun_595(VMRef vm, StackPtr psp) {
 static void fun_590(VMRef vm, StackPtr psp) {
     Value regs[7];
     Value locals[8];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 591, locals);
     vm.last = {37, 5};
     U_NEWVEC(vm, regs + 0, 1165, 0);
-    vm.temp_lval = &locals[2]; // t
+    vm.temp_lval = locals + 2; // t
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {38, 5};
     U_NEWVEC(vm, regs + 0, 1165, 0);
-    vm.temp_lval = &locals[3]; // f
+    vm.temp_lval = locals + 3; // f
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {39, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {39, 5};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // x+0
+    vm.temp_lval = locals + 4; // x+0
     U_LV_WRITEV(vm, regs + 5, 3);
     vm.last = {39, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[7]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 7; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {40, 5};
-    regs[2] = locals[4];regs[3] = locals[5];regs[4] = locals[6]; // x
+    *(regs + 2) = *(locals + 4); // x.0
+    *(regs + 3) = *(locals + 5); // x.1
+    *(regs + 4) = *(locals + 6); // x.2
     fun_591(vm, regs + 5); // call: function49
     if (!(regs + 2)->True()) goto block2;
     vm.last = {41, 5};
-    regs[2] = locals[2]; // t
-    regs[3] = locals[4];regs[4] = locals[5];regs[5] = locals[6]; // x
+    *(regs + 2) = *(locals + 2); // t
+    *(regs + 3) = *(locals + 4); // x.0
+    *(regs + 4) = *(locals + 5); // x.1
+    *(regs + 5) = *(locals + 6); // x.2
     *(regs + 6) = Value(3);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 3);
     goto block3;
     block2:;
     vm.last = {43, 5};
-    regs[2] = locals[3]; // f
-    regs[3] = locals[4];regs[4] = locals[5];regs[5] = locals[6]; // x
+    *(regs + 2) = *(locals + 3); // f
+    *(regs + 3) = *(locals + 4); // x.0
+    *(regs + 4) = *(locals + 5); // x.1
+    *(regs + 5) = *(locals + 6); // x.2
     *(regs + 6) = Value(3);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -3853,8 +3867,8 @@ static void fun_590(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {44, 5};
-    regs[0] = locals[2]; // t
-    regs[1] = locals[3]; // f
+    *(regs + 0) = *(locals + 2); // t
+    *(regs + 1) = *(locals + 3); // f
     U_INCREF(vm, regs + 2, 0);
     U_INCREF(vm, regs + 2, 1);
     DecVal(vm, locals[0]);
@@ -3862,8 +3876,8 @@ static void fun_590(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -3873,49 +3887,49 @@ static void fun_590(VMRef vm, StackPtr psp) {
 static void fun_13(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 602, locals);
     vm.last = {37, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    vm.temp_lval = &locals[2]; // t
+    vm.temp_lval = locals + 2; // t
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {38, 5};
     U_NEWVEC(vm, regs + 0, 7, 0);
-    vm.temp_lval = &locals[3]; // f
+    vm.temp_lval = locals + 3; // f
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {39, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {39, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {39, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {40, 5};
-    regs[2] = locals[4]; // x
+    *(regs + 2) = *(locals + 4); // x
     fun_49(vm, regs + 3); // call: function49
     if (!(regs + 2)->True()) goto block2;
     vm.last = {41, 5};
-    regs[2] = locals[2]; // t
-    regs[3] = locals[4]; // x
+    *(regs + 2) = *(locals + 2); // t
+    *(regs + 3) = *(locals + 4); // x
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
     goto block3;
     block2:;
     vm.last = {43, 5};
-    regs[2] = locals[3]; // f
-    regs[3] = locals[4]; // x
+    *(regs + 2) = *(locals + 3); // f
+    *(regs + 3) = *(locals + 4); // x
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -3923,8 +3937,8 @@ static void fun_13(VMRef vm, StackPtr psp) {
     goto block0;
     block1:;
     vm.last = {44, 5};
-    regs[0] = locals[2]; // t
-    regs[1] = locals[3]; // f
+    *(regs + 0) = *(locals + 2); // t
+    *(regs + 1) = *(locals + 3); // f
     U_INCREF(vm, regs + 2, 0);
     U_INCREF(vm, regs + 2, 1);
     DecVal(vm, locals[0]);
@@ -3932,8 +3946,8 @@ static void fun_13(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -3943,26 +3957,26 @@ static void fun_13(VMRef vm, StackPtr psp) {
 static void fun_600(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 611, locals);
     vm.last = {57, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {57, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // x
+    vm.temp_lval = locals + 2; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {57, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {58, 5};
-    regs[2] = locals[2]; // x
+    *(regs + 2) = *(locals + 2); // x
     fun_366(vm, regs + 3); // call: function333
     if (!(regs + 2)->True()) goto block2;
     vm.last = {59, 5};
@@ -3972,7 +3986,7 @@ static void fun_600(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     goto block0;
@@ -3982,7 +3996,7 @@ static void fun_600(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -3992,26 +4006,26 @@ static void fun_600(VMRef vm, StackPtr psp) {
 static void fun_599(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 618, locals);
     vm.last = {57, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {57, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // x
+    vm.temp_lval = locals + 2; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {57, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {58, 5};
-    regs[2] = locals[2]; // x
+    *(regs + 2) = *(locals + 2); // x
     fun_365(vm, regs + 3); // call: function332
     if (!(regs + 2)->True()) goto block2;
     vm.last = {59, 5};
@@ -4022,7 +4036,7 @@ static void fun_599(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     goto block0;
@@ -4033,7 +4047,7 @@ static void fun_599(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4043,26 +4057,26 @@ static void fun_599(VMRef vm, StackPtr psp) {
 static void fun_568(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 625, locals);
     vm.last = {57, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {57, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // x
+    vm.temp_lval = locals + 2; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {57, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {58, 5};
-    regs[2] = locals[2]; // x
+    *(regs + 2) = *(locals + 2); // x
     fun_333(vm, regs + 3); // call: function300
     if (!(regs + 2)->True()) goto block2;
     vm.last = {59, 5};
@@ -4073,7 +4087,7 @@ static void fun_568(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     goto block0;
@@ -4084,7 +4098,7 @@ static void fun_568(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4094,26 +4108,26 @@ static void fun_568(VMRef vm, StackPtr psp) {
 static void fun_15(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 632, locals);
     vm.last = {57, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_SFOR(vm, regs + 2)) goto block1;
     vm.last = {57, 5};
     U_SFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 2; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {57, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {58, 5};
-    regs[2] = locals[2]; // x
+    *(regs + 2) = *(locals + 2); // x
     fun_329(vm, regs + 3); // call: function296
     if (!(regs + 2)->True()) goto block2;
     vm.last = {59, 5};
@@ -4122,7 +4136,7 @@ static void fun_15(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     goto block0;
@@ -4131,7 +4145,7 @@ static void fun_15(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(0);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4141,35 +4155,35 @@ static void fun_15(VMRef vm, StackPtr psp) {
 static void fun_572(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 639, locals);
     vm.last = {67, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {68, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // _
+    vm.temp_lval = locals + 3; // _
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {68, 5};
-    regs[2] = locals[1]; // acc
-    regs[3] = locals[3]; // _
+    *(regs + 2) = *(locals + 1); // acc
+    *(regs + 3) = *(locals + 3); // _
     fun_322(vm, regs + 4); // call: function290
-    vm.temp_lval = &locals[1]; // acc
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 1; // acc
+    *(vm.temp_lval) = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {69, 5};
-    regs[0] = locals[1]; // acc
+    *(regs + 0) = *(locals + 1); // acc
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4179,35 +4193,35 @@ static void fun_572(VMRef vm, StackPtr psp) {
 static void fun_571(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 646, locals);
     vm.last = {67, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {68, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // _
+    vm.temp_lval = locals + 3; // _
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {68, 5};
-    regs[2] = locals[1]; // acc
-    regs[3] = locals[3]; // _
+    *(regs + 2) = *(locals + 1); // acc
+    *(regs + 3) = *(locals + 3); // _
     fun_321(vm, regs + 4); // call: function289
-    vm.temp_lval = &locals[1]; // acc
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 1; // acc
+    *(vm.temp_lval) = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {69, 5};
-    regs[0] = locals[1]; // acc
+    *(regs + 0) = *(locals + 1); // acc
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4217,35 +4231,35 @@ static void fun_571(VMRef vm, StackPtr psp) {
 static void fun_570(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 653, locals);
     vm.last = {67, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {68, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // _
+    vm.temp_lval = locals + 3; // _
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {68, 5};
-    regs[2] = locals[1]; // acc
-    regs[3] = locals[3]; // _
+    *(regs + 2) = *(locals + 1); // acc
+    *(regs + 3) = *(locals + 3); // _
     fun_319(vm, regs + 4); // call: function288
-    vm.temp_lval = &locals[1]; // acc
+    vm.temp_lval = locals + 1; // acc
     U_LV_WRITEREF(vm, regs + 3);
     goto block0;
     block1:;
     vm.last = {69, 5};
-    regs[0] = locals[1]; // acc
+    *(regs + 0) = *(locals + 1); // acc
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4255,35 +4269,35 @@ static void fun_570(VMRef vm, StackPtr psp) {
 static void fun_559(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 660, locals);
     vm.last = {67, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {68, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // _
+    vm.temp_lval = locals + 3; // _
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {68, 5};
-    regs[2] = locals[1]; // acc
-    regs[3] = locals[3]; // _
+    *(regs + 2) = *(locals + 1); // acc
+    *(regs + 3) = *(locals + 3); // _
     fun_288(vm, regs + 4); // call: function268
-    vm.temp_lval = &locals[1]; // acc
+    vm.temp_lval = locals + 1; // acc
     U_LV_WRITEREF(vm, regs + 3);
     goto block0;
     block1:;
     vm.last = {69, 5};
-    regs[0] = locals[1]; // acc
+    *(regs + 0) = *(locals + 1); // acc
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4293,26 +4307,26 @@ static void fun_559(VMRef vm, StackPtr psp) {
 static void fun_481(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 667, locals);
     vm.last = {67, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {68, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // _
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // _
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {68, 5};
-    regs[2] = locals[1]; // acc
-    regs[3] = locals[3]; // _
+    *(regs + 2) = *(locals + 1); // acc
+    *(regs + 3) = *(locals + 3); // _
     fun_183(vm, regs + 4); // call: function176
-    vm.temp_lval = &locals[1]; // acc
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 1; // acc
+    *(vm.temp_lval) = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {69, 5};
@@ -4328,34 +4342,34 @@ static void fun_481(VMRef vm, StackPtr psp) {
 static void fun_17(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 674, locals);
     vm.last = {67, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {68, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // _
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // _
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {68, 5};
-    regs[2] = locals[1]; // acc
-    regs[3] = locals[3]; // _
+    *(regs + 2) = *(locals + 1); // acc
+    *(regs + 3) = *(locals + 3); // _
     fun_30(vm, regs + 4); // call: function30
-    vm.temp_lval = &locals[1]; // acc
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 1; // acc
+    *(vm.temp_lval) = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {69, 5};
-    regs[0] = locals[1]; // acc
+    *(regs + 0) = *(locals + 1); // acc
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4365,24 +4379,24 @@ static void fun_17(VMRef vm, StackPtr psp) {
 static void fun_598(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 681, locals);
     vm.last = {77, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     U_ASSERT(vm, regs + 1, 77, 5, 25);
     vm.last = {78, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // acc
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // acc
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {79, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     *(regs + 2) = Value(1);
     U_ISUB(vm, regs + 3);
@@ -4390,26 +4404,26 @@ static void fun_598(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {79, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {79, 5};
-    regs[2] = locals[2]; // acc
-    regs[3] = locals[0]; // xs
-    regs[4] = locals[3]; // i
+    *(regs + 2) = *(locals + 2); // acc
+    *(regs + 3) = *(locals + 0); // xs
+    *(regs + 4) = *(locals + 3); // i
     *(regs + 5) = Value(1);
     U_IADD(vm, regs + 6);
     U_VPUSHIDXI(vm, regs + 5);
     fun_364(vm, regs + 4); // call: function331
-    vm.temp_lval = &locals[2]; // acc
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 2; // acc
+    *(vm.temp_lval) = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {80, 5};
-    regs[0] = locals[2]; // acc
+    *(regs + 0) = *(locals + 2); // acc
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4419,25 +4433,25 @@ static void fun_598(VMRef vm, StackPtr psp) {
 static void fun_19(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 688, locals);
     vm.last = {77, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     U_ASSERT(vm, regs + 1, 77, 5, 26);
     vm.last = {78, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // acc
+    vm.temp_lval = locals + 2; // acc
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {79, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     *(regs + 2) = Value(1);
     U_ISUB(vm, regs + 3);
@@ -4445,26 +4459,26 @@ static void fun_19(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {79, 5};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {79, 5};
-    regs[2] = locals[2]; // acc
-    regs[3] = locals[0]; // xs
-    regs[4] = locals[3]; // i
+    *(regs + 2) = *(locals + 2); // acc
+    *(regs + 3) = *(locals + 0); // xs
+    *(regs + 4) = *(locals + 3); // i
     *(regs + 5) = Value(1);
     U_IADD(vm, regs + 6);
     U_VPUSHIDXI(vm, regs + 5);
     fun_325(vm, regs + 4); // call: function292
-    vm.temp_lval = &locals[2]; // acc
+    vm.temp_lval = locals + 2; // acc
     U_LV_WRITEREF(vm, regs + 3);
     goto block0;
     block1:;
     vm.last = {80, 5};
-    regs[0] = locals[2]; // acc
+    *(regs + 0) = *(locals + 2); // acc
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4474,35 +4488,35 @@ static void fun_19(VMRef vm, StackPtr psp) {
 static void fun_597(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 695, locals);
     vm.last = {93, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {93, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 2; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {93, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {94, 5};
-    regs[2] = locals[2]; // x
+    *(regs + 2) = *(locals + 2); // x
     fun_363(vm, regs + 3); // call: function330
     if (!(regs + 2)->True()) goto block2;
     vm.last = {95, 5};
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
-    regs[0] = locals[3]; // i
+    *(regs + 0) = *(locals + 3); // i
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     goto block0;
@@ -4511,7 +4525,7 @@ static void fun_597(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(-1);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4521,36 +4535,36 @@ static void fun_597(VMRef vm, StackPtr psp) {
 static void fun_23(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 702, locals);
     vm.last = {93, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {93, 5};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // x
+    vm.temp_lval = locals + 2; // x
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {93, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {94, 5};
-    regs[2] = locals[2]; // x
+    *(regs + 2) = *(locals + 2); // x
     fun_280(vm, regs + 3); // call: function260
     if (!(regs + 2)->True()) goto block2;
     vm.last = {95, 5};
     U_POP(vm, regs + 2);
     U_POP(vm, regs + 1);
-    regs[0] = locals[3]; // i
+    *(regs + 0) = *(locals + 3); // i
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     goto block0;
@@ -4560,7 +4574,7 @@ static void fun_23(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4570,73 +4584,73 @@ static void fun_23(VMRef vm, StackPtr psp) {
 static void fun_26(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[8];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 709, locals);
     vm.last = {115, 5};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[2]; // init
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // init
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {116, 5};
-    regs[0] = locals[2]; // init
-    vm.temp_lval = &locals[3]; // best
-    *vm.temp_lval = *(regs + 0);
+    *(regs + 0) = *(locals + 2); // init
+    vm.temp_lval = locals + 3; // best
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {117, 5};
     *(regs + 0) = Value(-1);
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {118, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {118, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {118, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[6]; // j
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 6; // j
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {119, 5};
-    regs[2] = locals[5]; // x
+    *(regs + 2) = *(locals + 5); // x
     fun_313(vm, regs + 3); // call: function283
-    vm.temp_lval = &locals[7]; // v
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 7; // v
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {120, 5};
-    regs[2] = locals[4]; // i
+    *(regs + 2) = *(locals + 4); // i
     *(regs + 3) = Value(0);
     U_ILT(vm, regs + 4);
     if ((regs + 2)->True()) goto block2;
     U_POP(vm, regs + 3);
-    regs[2] = locals[7]; // v
-    regs[3] = locals[3]; // best
+    *(regs + 2) = *(locals + 7); // v
+    *(regs + 3) = *(locals + 3); // best
     U_IGT(vm, regs + 4);
     block2:;
     if (!(regs + 2)->True()) goto block3;
     vm.last = {121, 5};
-    regs[2] = locals[6]; // j
-    vm.temp_lval = &locals[4]; // i
-    *vm.temp_lval = *(regs + 2);
+    *(regs + 2) = *(locals + 6); // j
+    vm.temp_lval = locals + 4; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {122, 5};
-    regs[2] = locals[7]; // v
-    vm.temp_lval = &locals[3]; // best
-    *vm.temp_lval = *(regs + 2);
+    *(regs + 2) = *(locals + 7); // v
+    vm.temp_lval = locals + 3; // best
+    *(vm.temp_lval) = *(regs + 2);
     block3:;
     goto block0;
     block1:;
     vm.last = {123, 5};
-    regs[0] = locals[4]; // i
+    *(regs + 0) = *(locals + 4); // i
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4646,21 +4660,21 @@ static void fun_26(VMRef vm, StackPtr psp) {
 static void fun_472(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 720, locals);
     vm.last = {140, 5};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[1]; // init
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // init
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {141, 5};
-    regs[0] = locals[0]; // xs
-    regs[1] = locals[1]; // init
+    *(regs + 0) = *(locals + 0); // xs
+    *(regs + 1) = *(locals + 1); // init
     U_PUSHFUN(vm, regs + 2, 0, fun_30);
     fun_17(vm, regs + 3); // call: fold
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4670,20 +4684,20 @@ static void fun_472(VMRef vm, StackPtr psp) {
 static void fun_29(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 725, locals);
     vm.last = {140, 5};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[1]; // init
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // init
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {141, 5};
-    regs[0] = locals[0]; // xs
-    regs[1] = locals[1]; // init
+    *(regs + 0) = *(locals + 0); // xs
+    *(regs + 1) = *(locals + 1); // init
     U_PUSHFUN(vm, regs + 2, 0, fun_30);
     fun_17(vm, regs + 3); // call: fold
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4693,16 +4707,16 @@ static void fun_29(VMRef vm, StackPtr psp) {
 static void fun_30(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 730, locals);
     vm.last = {141, 5};
-    regs[0] = locals[0]; // _x
-    regs[1] = locals[1]; // _y
+    *(regs + 0) = *(locals + 0); // _x
+    *(regs + 1) = *(locals + 1); // _y
     U_IADD(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -4713,61 +4727,61 @@ static void fun_594(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value keepvar[4];
     Value locals[4];
-    locals[0] = *(psp - 2);
+    *(locals + 0) = *(psp - 2);
     SwapVars(vm, 1549, psp, 1);
     BackupVar(vm, 1550);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 735, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
     vm.last = {194, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     *(regs + 1) = Value(1);
     U_IGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {196, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_LVAL_VARF(vm, regs + 1, 1550); // pivot
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {197, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(-1);
     U_BCALLRET3(vm, regs + 3, 31, 1); // slice
-    vm.temp_lval = &locals[1]; // tail
+    vm.temp_lval = locals + 1; // tail
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {198, 5};
-    regs[0] = locals[1]; // tail
+    *(regs + 0) = *(locals + 1); // tail
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_595(vm, regs + 2); // call: partition
-    vm.temp_lval = &locals[3]; // f2
+    vm.temp_lval = locals + 3; // f2
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // f1
+    vm.temp_lval = locals + 2; // f1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {200, 5};
-    regs[0] = locals[2]; // f1
+    *(regs + 0) = *(locals + 2); // f1
     U_INCREF(vm, regs + 1, 0);
     U_PUSHVARF(vm, regs + 1, 1549); // lt
     fun_594(vm, regs + 2); // call: qsort
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHVARF(vm, regs + 1, 1550); // pivot
     U_NEWVEC(vm, regs + 2, 7, 1);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
-    keepvar[2] = TopM(regs + 1, 0);
-    regs[1] = locals[3]; // f2
+    *(keepvar + 2) = *(regs + 0);
+    *(regs + 1) = *(locals + 3); // f2
     U_INCREF(vm, regs + 2, 0);
     U_PUSHVARF(vm, regs + 2, 1549); // lt
     fun_594(vm, regs + 3); // call: qsort
-    keepvar[3] = TopM(regs + 2, 0);
+    *(keepvar + 3) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -4775,12 +4789,12 @@ static void fun_594(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     psp = PopArg(vm, 1549, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     goto block1;
     block0:;
     vm.last = {195, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -4788,7 +4802,7 @@ static void fun_594(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     psp = PopArg(vm, 1549, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block1:;
     DecVal(vm, locals[0]);
@@ -4812,63 +4826,63 @@ static void fun_588(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value keepvar[4];
     Value locals[4];
-    locals[0] = *(psp - 2);
+    *(locals + 0) = *(psp - 2);
     SwapVars(vm, 1519, psp, 1);
     BackupVar(vm, 1520);
     BackupVar(vm, 1521);
     BackupVar(vm, 1522);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 744, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
     vm.last = {194, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     *(regs + 1) = Value(1);
     U_IGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {196, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(0);
     U_VPUSHIDXI2V(vm, regs + 2);
     U_LVAL_VARF(vm, regs + 3, 1520); // pivot+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {197, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(-1);
     U_BCALLRET3(vm, regs + 3, 31, 1); // slice
-    vm.temp_lval = &locals[1]; // tail
+    vm.temp_lval = locals + 1; // tail
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {198, 5};
-    regs[0] = locals[1]; // tail
+    *(regs + 0) = *(locals + 1); // tail
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_590(vm, regs + 2); // call: partition
-    vm.temp_lval = &locals[3]; // f2
+    vm.temp_lval = locals + 3; // f2
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // f1
+    vm.temp_lval = locals + 2; // f1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {200, 5};
-    regs[0] = locals[2]; // f1
+    *(regs + 0) = *(locals + 2); // f1
     U_INCREF(vm, regs + 1, 0);
     U_PUSHVARF(vm, regs + 1, 1519); // lt
     fun_588(vm, regs + 2); // call: qsort
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHVARVF(vm, regs + 1, 1520, 3); // pivot+0
     U_NEWVEC(vm, regs + 4, 1165, 1);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
-    keepvar[2] = TopM(regs + 1, 0);
-    regs[1] = locals[3]; // f2
+    *(keepvar + 2) = *(regs + 0);
+    *(regs + 1) = *(locals + 3); // f2
     U_INCREF(vm, regs + 2, 0);
     U_PUSHVARF(vm, regs + 2, 1519); // lt
     fun_588(vm, regs + 3); // call: qsort
-    keepvar[3] = TopM(regs + 2, 0);
+    *(keepvar + 3) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -4876,12 +4890,12 @@ static void fun_588(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     psp = PopArg(vm, 1519, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     goto block1;
     block0:;
     vm.last = {195, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -4889,7 +4903,7 @@ static void fun_588(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     psp = PopArg(vm, 1519, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block1:;
     DecVal(vm, locals[0]);
@@ -4915,61 +4929,61 @@ static void fun_48(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value keepvar[4];
     Value locals[4];
-    locals[0] = *(psp - 2);
+    *(locals + 0) = *(psp - 2);
     SwapVars(vm, 53, psp, 1);
     BackupVar(vm, 54);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 755, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
     vm.last = {194, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     *(regs + 1) = Value(1);
     U_IGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {196, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_LVAL_VARF(vm, regs + 1, 54); // pivot
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {197, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(-1);
     U_BCALLRET3(vm, regs + 3, 31, 1); // slice
-    vm.temp_lval = &locals[1]; // tail
+    vm.temp_lval = locals + 1; // tail
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {198, 5};
-    regs[0] = locals[1]; // tail
+    *(regs + 0) = *(locals + 1); // tail
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_49);
     fun_13(vm, regs + 2); // call: partition
-    vm.temp_lval = &locals[3]; // f2
+    vm.temp_lval = locals + 3; // f2
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // f1
+    vm.temp_lval = locals + 2; // f1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {200, 5};
-    regs[0] = locals[2]; // f1
+    *(regs + 0) = *(locals + 2); // f1
     U_INCREF(vm, regs + 1, 0);
     U_PUSHVARF(vm, regs + 1, 53); // lt
     fun_48(vm, regs + 2); // call: qsort
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHVARF(vm, regs + 1, 54); // pivot
     U_NEWVEC(vm, regs + 2, 7, 1);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
-    keepvar[2] = TopM(regs + 1, 0);
-    regs[1] = locals[3]; // f2
+    *(keepvar + 2) = *(regs + 0);
+    *(regs + 1) = *(locals + 3); // f2
     U_INCREF(vm, regs + 2, 0);
     U_PUSHVARF(vm, regs + 2, 53); // lt
     fun_48(vm, regs + 3); // call: qsort
-    keepvar[3] = TopM(regs + 2, 0);
+    *(keepvar + 3) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -4977,12 +4991,12 @@ static void fun_48(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     psp = PopArg(vm, 53, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     goto block1;
     block0:;
     vm.last = {195, 5};
-    regs[0] = locals[0]; // xs
+    *(regs + 0) = *(locals + 0); // xs
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -4990,7 +5004,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     psp = PopArg(vm, 53, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block1:;
     DecVal(vm, locals[0]);
@@ -5013,14 +5027,14 @@ static void fun_48(VMRef vm, StackPtr psp) {
 static void fun_596(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 764, locals);
     vm.last = {198, 5};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_PUSHVARF(vm, regs + 1, 1550); // pivot
     fun_362(vm, regs + 2); // call: function329
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5030,18 +5044,20 @@ static void fun_596(VMRef vm, StackPtr psp) {
 static void fun_591(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[3];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
     PushFunId(vm, funinfo_table + 768, locals);
     vm.last = {198, 5};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2]; // _
+    *(regs + 0) = *(locals + 0); // _.0
+    *(regs + 1) = *(locals + 1); // _.1
+    *(regs + 2) = *(locals + 2); // _.2
     U_PUSHVARVF(vm, regs + 3, 1520, 3); // pivot+0
     fun_359(vm, regs + 6); // call: function326
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5051,14 +5067,14 @@ static void fun_591(VMRef vm, StackPtr psp) {
 static void fun_49(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 774, locals);
     vm.last = {198, 5};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_PUSHVARF(vm, regs + 1, 54); // pivot
     fun_164(vm, regs + 2); // call: function157
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5087,107 +5103,107 @@ static void fun_50(VMRef vm, StackPtr psp) {
 static void fun_51(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[7];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 783, locals);
     vm.last = {204, 5};
-    regs[0] = locals[1]; // e
-    regs[1] = locals[0]; // s
+    *(regs + 0) = *(locals + 1); // e
+    *(regs + 1) = *(locals + 0); // s
     U_ISUB(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // l
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // l
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {205, 5};
-    regs[0] = locals[2]; // l
+    *(regs + 0) = *(locals + 2); // l
     *(regs + 1) = Value(1);
     U_IGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {206, 5};
     U_PUSHVARF(vm, regs + 0, 59); // xs
-    regs[1] = locals[0]; // s
+    *(regs + 1) = *(locals + 0); // s
     U_VPUSHIDXI(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // pivot
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 3; // pivot
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {207, 5};
-    regs[0] = locals[0]; // s
+    *(regs + 0) = *(locals + 0); // s
     *(regs + 1) = Value(1);
     U_IADD(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // sp
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // sp
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {208, 5};
-    regs[0] = locals[1]; // e
-    vm.temp_lval = &locals[5]; // ep
-    *vm.temp_lval = *(regs + 0);
+    *(regs + 0) = *(locals + 1); // e
+    vm.temp_lval = locals + 5; // ep
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {209, 5};
     block1:;
-    regs[0] = locals[4]; // sp
-    regs[1] = locals[5]; // ep
+    *(regs + 0) = *(locals + 4); // sp
+    *(regs + 1) = *(locals + 5); // ep
     U_ILT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {210, 5};
     U_PUSHVARF(vm, regs + 0, 59); // xs
-    regs[1] = locals[4]; // sp
+    *(regs + 1) = *(locals + 4); // sp
     U_VPUSHIDXI(vm, regs + 2);
-    vm.temp_lval = &locals[6]; // c
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 6; // c
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {211, 5};
-    regs[0] = locals[6]; // c
-    regs[1] = locals[3]; // pivot
+    *(regs + 0) = *(locals + 6); // c
+    *(regs + 1) = *(locals + 3); // pivot
     fun_166(vm, regs + 2); // call: function159
     if (!(regs + 0)->True()) goto block3;
     vm.last = {212, 5};
     U_PUSHVARF(vm, regs + 0, 59); // xs
-    regs[1] = locals[4]; // sp
+    *(regs + 1) = *(locals + 4); // sp
     U_VPUSHIDXI(vm, regs + 2);
     U_PUSHVARF(vm, regs + 1, 59); // xs
-    regs[2] = locals[4]; // sp
+    *(regs + 2) = *(locals + 4); // sp
     *(regs + 3) = Value(1);
     U_ISUB(vm, regs + 4);
     U_LVAL_IDXVI(vm, regs + 3, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {213, 5};
-    vm.temp_lval = &locals[4]; // sp
+    vm.temp_lval = locals + 4; // sp
     U_LV_IPP(vm, regs + 0);
     goto block4;
     block3:;
     vm.last = {215, 5};
     U_PUSHVARF(vm, regs + 0, 59); // xs
-    vm.temp_lval = &locals[5]; // ep
+    vm.temp_lval = locals + 5; // ep
     U_LV_IMM(vm, regs + 1);
     U_LV_DUP(vm, regs + 1);
     U_VPUSHIDXI(vm, regs + 2);
     U_PUSHVARF(vm, regs + 1, 59); // xs
-    regs[2] = locals[4]; // sp
+    *(regs + 2) = *(locals + 4); // sp
     U_LVAL_IDXVI(vm, regs + 3, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {216, 5};
-    regs[0] = locals[6]; // c
+    *(regs + 0) = *(locals + 6); // c
     U_PUSHVARF(vm, regs + 1, 59); // xs
-    regs[2] = locals[5]; // ep
+    *(regs + 2) = *(locals + 5); // ep
     U_LVAL_IDXVI(vm, regs + 3, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     block4:;
     goto block1;
     block2:;
     vm.last = {217, 5};
-    regs[0] = locals[3]; // pivot
+    *(regs + 0) = *(locals + 3); // pivot
     U_PUSHVARF(vm, regs + 1, 59); // xs
-    vm.temp_lval = &locals[4]; // sp
+    vm.temp_lval = locals + 4; // sp
     U_LV_IMM(vm, regs + 2);
     U_LV_DUP(vm, regs + 2);
     U_LVAL_IDXVI(vm, regs + 3, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {218, 5};
-    regs[0] = locals[0]; // s
-    regs[1] = locals[4]; // sp
+    *(regs + 0) = *(locals + 0); // s
+    *(regs + 1) = *(locals + 4); // sp
     fun_51(vm, regs + 2); // call: rec
     vm.last = {219, 5};
-    regs[0] = locals[5]; // ep
-    regs[1] = locals[1]; // e
+    *(regs + 0) = *(locals + 5); // ep
+    *(regs + 1) = *(locals + 1); // e
     fun_51(vm, regs + 2); // call: rec
     block0:;
     Pop(psp);
@@ -5201,42 +5217,42 @@ static void fun_51(VMRef vm, StackPtr psp) {
 static void fun_52(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 793, locals);
     vm.last = {223, 5};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // xs
+    *(regs + 1) = *(locals + 0); // xs
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {223, 5};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // key
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 2; // key
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {223, 5};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {224, 5};
-    regs[2] = locals[3]; // i
+    *(regs + 2) = *(locals + 3); // i
     if (!(regs + 2)->True()) goto block2;
     vm.last = {225, 5};
-    regs[2] = locals[3]; // i
-    vm.temp_lval = &locals[4]; // j
-    *vm.temp_lval = *(regs + 2);
+    *(regs + 2) = *(locals + 3); // i
+    vm.temp_lval = locals + 4; // j
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {226, 5};
     block3:;
-    regs[2] = locals[4]; // j
+    *(regs + 2) = *(locals + 4); // j
     *(regs + 3) = Value(0);
     U_IGT(vm, regs + 4);
     if (!(regs + 2)->True()) goto block4;
     U_POP(vm, regs + 3);
-    regs[2] = locals[2]; // key
-    regs[3] = locals[0]; // xs
-    regs[4] = locals[4]; // j
+    *(regs + 2) = *(locals + 2); // key
+    *(regs + 3) = *(locals + 0); // xs
+    *(regs + 4) = *(locals + 4); // j
     *(regs + 5) = Value(1);
     U_ISUB(vm, regs + 6);
     U_VPUSHIDXI(vm, regs + 5);
@@ -5244,25 +5260,25 @@ static void fun_52(VMRef vm, StackPtr psp) {
     block4:;
     if (!(regs + 2)->True()) goto block5;
     vm.last = {227, 5};
-    regs[2] = locals[0]; // xs
-    regs[3] = locals[4]; // j
+    *(regs + 2) = *(locals + 0); // xs
+    *(regs + 3) = *(locals + 4); // j
     *(regs + 4) = Value(1);
     U_ISUB(vm, regs + 5);
     U_VPUSHIDXI(vm, regs + 4);
-    regs[3] = locals[0]; // xs
-    vm.temp_lval = &locals[4]; // j
+    *(regs + 3) = *(locals + 0); // xs
+    vm.temp_lval = locals + 4; // j
     U_LV_DUP(vm, regs + 4);
     U_LV_IMM(vm, regs + 5);
     U_LVAL_IDXVI(vm, regs + 5, 0);
-    *vm.temp_lval = *(regs + 2);
+    *(vm.temp_lval) = *(regs + 2);
     goto block3;
     block5:;
     vm.last = {228, 5};
-    regs[2] = locals[2]; // key
-    regs[3] = locals[0]; // xs
-    regs[4] = locals[4]; // j
+    *(regs + 2) = *(locals + 2); // key
+    *(regs + 3) = *(locals + 0); // xs
+    *(regs + 4) = *(locals + 4); // j
     U_LVAL_IDXVI(vm, regs + 5, 0);
-    *vm.temp_lval = *(regs + 2);
+    *(vm.temp_lval) = *(regs + 2);
     block2:;
     goto block0;
     block1:;
@@ -5279,7 +5295,7 @@ static void fun_476(VMRef vm, StackPtr psp) {
     Value regs[1];
     (void)regs;
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 801, locals);
     vm.last = {253, 5};
     fun_178(vm, regs + 0); // call: function171
@@ -5298,20 +5314,20 @@ static void fun_476(VMRef vm, StackPtr psp) {
 static void fun_70(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 805, locals);
     vm.last = {64, 4};
-    regs[0] = locals[0]; // v+0
-    regs[1] = locals[2]; // v+2
+    *(regs + 0) = *(locals + 0); // v+0
+    *(regs + 1) = *(locals + 2); // v+2
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5321,20 +5337,20 @@ static void fun_70(VMRef vm, StackPtr psp) {
 static void fun_71(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 812, locals);
     vm.last = {65, 4};
-    regs[0] = locals[1]; // v+1
-    regs[1] = locals[3]; // v+3
+    *(regs + 0) = *(locals + 1); // v+1
+    *(regs + 1) = *(locals + 3); // v+3
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5344,20 +5360,20 @@ static void fun_71(VMRef vm, StackPtr psp) {
 static void fun_72(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 819, locals);
     vm.last = {66, 4};
-    regs[0] = locals[2]; // v+2
-    regs[1] = locals[3]; // v+3
+    *(regs + 0) = *(locals + 2); // v+2
+    *(regs + 1) = *(locals + 3); // v+3
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5367,24 +5383,24 @@ static void fun_72(VMRef vm, StackPtr psp) {
 static void fun_79(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 826, locals);
     vm.last = {76, 4};
-    regs[0] = locals[0]; // v+0
-    regs[1] = locals[1]; // v+1
-    regs[2] = locals[2]; // v+2
-    regs[3] = locals[3]; // w
+    *(regs + 0) = *(locals + 0); // v+0
+    *(regs + 1) = *(locals + 1); // v+1
+    *(regs + 2) = *(locals + 2); // v+2
+    *(regs + 3) = *(locals + 3); // w
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5397,8 +5413,8 @@ static void fun_89(VMRef vm, StackPtr psp) {
     vm.last = {92, 4};
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
     U_BCALLRET0(vm, regs + 1, 95, 1); // rnd_float
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5408,18 +5424,18 @@ static void fun_89(VMRef vm, StackPtr psp) {
 static void fun_95(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 836, locals);
     vm.last = {100, 4};
-    regs[0] = locals[0]; // n+0
+    *(regs + 0) = *(locals + 0); // n+0
     U_BCALLRET1(vm, regs + 1, 93, 1); // rnd
-    regs[1] = locals[1]; // n+1
+    *(regs + 1) = *(locals + 1); // n+1
     U_BCALLRET1(vm, regs + 2, 93, 1); // rnd
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5429,33 +5445,33 @@ static void fun_95(VMRef vm, StackPtr psp) {
 static void fun_98(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[5];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 841, locals);
     vm.last = {104, 4};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[1]; // v+1
+    *(regs + 1) = *(locals + 1); // v+1
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {104, 4};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // y
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // y
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {104, 4};
     *(regs + 2) = Value(-1);
-    regs[3] = locals[0]; // v+0
+    *(regs + 3) = *(locals + 0); // v+0
     block2:;
     if (!U_IFOR(vm, regs + 4)) goto block3;
     vm.last = {104, 4};
     U_IFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[4]; // x
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 4; // x
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {104, 4};
-    regs[4] = locals[4]; // x
-    regs[5] = locals[3]; // y
+    *(regs + 4) = *(locals + 4); // x
+    *(regs + 5) = *(locals + 3); // y
     fun_358(vm, regs + 6); // call: function325
     goto block2;
     block3:;
@@ -5483,7 +5499,7 @@ static void fun_574(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 1471, psp);
     psp = PopArg(vm, 1470, psp);
     psp = PopArg(vm, 1469, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5503,7 +5519,7 @@ static void fun_100(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 199, psp);
     psp = PopArg(vm, 198, psp);
     psp = PopArg(vm, 197, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5519,7 +5535,7 @@ static void fun_577(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_579(vm, regs + 2); // call: map
     psp = PopArg(vm, 1477, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5529,14 +5545,14 @@ static void fun_577(VMRef vm, StackPtr psp) {
 static void fun_101(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 865, locals);
     vm.last = {106, 4};
     U_PUSHVARF(vm, regs + 0, 197); // v+0
     U_PUSHFUN(vm, regs + 1, 0, fun_102);
     fun_564(vm, regs + 2); // call: map
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5546,14 +5562,14 @@ static void fun_101(VMRef vm, StackPtr psp) {
 static void fun_580(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 869, locals);
     vm.last = {106, 4};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_PUSHVARF(vm, regs + 1, 1477); // y
     fun_335(vm, regs + 2); // call: function302
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5563,13 +5579,13 @@ static void fun_580(VMRef vm, StackPtr psp) {
 static void fun_102(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 873, locals);
     vm.last = {106, 4};
     vm.last = {10, 13};
     *(regs + 0) = Value(-1);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -5579,85 +5595,85 @@ static void fun_102(VMRef vm, StackPtr psp) {
 static void fun_110(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[10];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 877, locals);
     vm.last = {7, 3};
     vm.last = {7, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_111);
-    vm.temp_lval = &locals[0]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_111(vm, regs + 0); // call: function108
     vm.last = {67, 3};
     vm.last = {67, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_112);
-    vm.temp_lval = &locals[1]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_112(vm, regs + 0); // call: function109
     vm.last = {97, 3};
     vm.last = {97, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_113);
-    vm.temp_lval = &locals[2]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_113(vm, regs + 0); // call: function110
     vm.last = {108, 3};
     vm.last = {108, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_114);
-    vm.temp_lval = &locals[3]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 3; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_114(vm, regs + 0); // call: function111
     vm.last = {117, 3};
     vm.last = {117, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_117);
-    vm.temp_lval = &locals[4]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_117(vm, regs + 0); // call: function114
     vm.last = {128, 3};
     vm.last = {128, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_120);
-    vm.temp_lval = &locals[5]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 5; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_120(vm, regs + 0); // call: function116
     vm.last = {151, 3};
     vm.last = {151, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_123);
-    vm.temp_lval = &locals[6]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 6; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_123(vm, regs + 0); // call: function119
     vm.last = {162, 3};
     vm.last = {162, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_125);
-    vm.temp_lval = &locals[7]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 7; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_125(vm, regs + 0); // call: function121
     vm.last = {183, 3};
     vm.last = {183, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_126);
-    vm.temp_lval = &locals[8]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 8; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_126(vm, regs + 0); // call: function122
     vm.last = {272, 3};
     vm.last = {272, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_127);
-    vm.temp_lval = &locals[9]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 9; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_127(vm, regs + 0); // call: function123
     goto epilogue;
@@ -5669,20 +5685,20 @@ static void fun_110(VMRef vm, StackPtr psp) {
 static void fun_111(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[14];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
-    locals[12] = Value(0, lobster::V_NIL);
-    locals[13] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
+    *(locals + 12) = Value(0, lobster::V_NIL);
+    *(locals + 13) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 890, locals);
     vm.last = {8, 3};
     vm.last = {8, 3};
@@ -5699,40 +5715,43 @@ static void fun_111(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(1);
     *(regs + 3) = Value(1);
     U_IVVSUB(vm, regs + 4, 2);
-    vm.temp_lval = &locals[0]; // a+0
+    vm.temp_lval = locals + 0; // a+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {18, 3};
     *(regs + 0) = Value(5);
     *(regs + 1) = Value(6);
-    regs[2] = locals[0]; // a+0
-    regs[3] = locals[1]; // a+1
+    *(regs + 2) = *(locals + 0); // a+0
+    *(regs + 3) = *(locals + 1); // a+1
     U_IADD(vm, regs + 4);
-    vm.temp_lval = &locals[2]; // b+0
+    vm.temp_lval = locals + 2; // b+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {19, 3};
-    regs[0] = locals[2]; // b+0
-    regs[1] = locals[3]; // b+1
+    *(regs + 0) = *(locals + 2); // b+0
+    *(regs + 1) = *(locals + 3); // b+1
     U_IADD(vm, regs + 2);
-    regs[1] = locals[4]; // b+2
+    *(regs + 1) = *(locals + 4); // b+2
     U_IADD(vm, regs + 2);
     *(regs + 1) = Value(18);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 19, 3, 27);
     vm.last = {20, 3};
-    regs[0] = locals[0];regs[1] = locals[1]; // a
-    regs[2] = locals[0];regs[3] = locals[1]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 0); // a.0
+    *(regs + 3) = *(locals + 1); // a.1
     U_IVVADD(vm, regs + 4, 2);
-    vm.temp_lval = &locals[5]; // aa+0
+    vm.temp_lval = locals + 5; // aa+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {21, 3};
-    regs[0] = locals[5]; // aa+0
-    regs[1] = locals[6]; // aa+1
+    *(regs + 0) = *(locals + 5); // aa+0
+    *(regs + 1) = *(locals + 6); // aa+1
     U_IADD(vm, regs + 2);
     *(regs + 1) = Value(14);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 21, 3, 28);
     vm.last = {22, 3};
-    regs[0] = locals[5];regs[1] = locals[6]; // aa
+    *(regs + 0) = *(locals + 5); // aa.0
+    *(regs + 1) = *(locals + 6); // aa.1
     *(regs + 2) = Value(1);
     U_IVSADD(vm, regs + 3, 2);
     *(regs + 2) = Value(7);
@@ -5740,21 +5759,24 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 22, 3, 29);
     vm.last = {23, 3};
-    regs[0] = locals[0];regs[1] = locals[1]; // a
-    vm.temp_lval = &locals[0]; // a+0
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    vm.temp_lval = locals + 0; // a+0
     U_LV_IVVADD(vm, regs + 2, 2);
     vm.last = {24, 3};
-    regs[0] = locals[0];regs[1] = locals[1]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
     *(regs + 2) = Value(6);
     *(regs + 3) = Value(8);
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 24, 3, 30);
     vm.last = {25, 3};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[5]; // aa+0
+    vm.temp_lval = locals + 5; // aa+0
     U_LV_IVSADD(vm, regs + 1, 2);
     vm.last = {26, 3};
-    regs[0] = locals[5];regs[1] = locals[6]; // aa
+    *(regs + 0) = *(locals + 5); // aa.0
+    *(regs + 1) = *(locals + 6); // aa.1
     *(regs + 2) = Value(7);
     *(regs + 3) = Value(9);
     U_STEQ(vm, regs + 4, 2);
@@ -5764,15 +5786,15 @@ static void fun_111(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(11);
     *(regs + 2) = Value(12);
     U_NEWOBJECT(vm, regs + 3, 291); // C
-    vm.temp_lval = &locals[7]; // c
+    vm.temp_lval = locals + 7; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {28, 3};
-    regs[0] = locals[7]; // c
+    *(regs + 0) = *(locals + 7); // c
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[7]; // c
+    *(regs + 1) = *(locals + 7); // c
     U_PUSHFLD(vm, regs + 2, 1);
     U_IADD(vm, regs + 2);
-    regs[1] = locals[7]; // c
+    *(regs + 1) = *(locals + 7); // c
     U_PUSHFLD(vm, regs + 2, 2);
     U_IADD(vm, regs + 2);
     *(regs + 1) = Value(33);
@@ -5780,11 +5802,11 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 28, 3, 32);
     vm.last = {29, 3};
     *(regs + 0) = Value(1);
-    regs[1] = locals[7]; // c
+    *(regs + 1) = *(locals + 7); // c
     U_LVAL_FLD(vm, regs + 2, 0);
     U_LV_IVSADD(vm, regs + 1, 2);
     vm.last = {30, 3};
-    regs[0] = locals[7]; // c
+    *(regs + 0) = *(locals + 7); // c
     U_PUSHFLD2V(vm, regs + 1, 0, 2);
     *(regs + 2) = Value(11);
     *(regs + 3) = Value(12);
@@ -5793,11 +5815,11 @@ static void fun_111(VMRef vm, StackPtr psp) {
     vm.last = {31, 3};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(2);
-    regs[2] = locals[7]; // c
+    *(regs + 2) = *(locals + 7); // c
     U_LVAL_FLD(vm, regs + 3, 0);
     U_LV_IVVADD(vm, regs + 2, 2);
     vm.last = {32, 3};
-    regs[0] = locals[7]; // c
+    *(regs + 0) = *(locals + 7); // c
     U_PUSHFLD2V(vm, regs + 1, 0, 2);
     *(regs + 2) = Value(12);
     *(regs + 3) = Value(14);
@@ -5806,11 +5828,11 @@ static void fun_111(VMRef vm, StackPtr psp) {
     vm.last = {33, 3};
     *(regs + 0) = Value(3);
     *(regs + 1) = Value(4);
-    regs[2] = locals[7]; // c
+    *(regs + 2) = *(locals + 7); // c
     U_LVAL_FLD(vm, regs + 3, 0);
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {34, 3};
-    regs[0] = locals[7]; // c
+    *(regs + 0) = *(locals + 7); // c
     U_PUSHFLD2V(vm, regs + 1, 0, 2);
     *(regs + 2) = Value(3);
     *(regs + 3) = Value(4);
@@ -5843,17 +5865,18 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 37, 3, 38);
     vm.last = {38, 3};
     U_PUSHVARVF(vm, regs + 0, 74, 2); // float2_0+0
-    vm.temp_lval = &locals[8]; // nv+0
+    vm.temp_lval = locals + 8; // nv+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {39, 3};
     *(regs + 0) = Value(123.000000);
     *(regs + 1) = Value(456.000000);
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 84, 1); // normalize
-    vm.temp_lval = &locals[8]; // nv+0
+    vm.temp_lval = locals + 8; // nv+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {40, 3};
-    regs[0] = locals[8];regs[1] = locals[9]; // nv
+    *(regs + 0) = *(locals + 8); // nv.0
+    *(regs + 1) = *(locals + 9); // nv.1
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 86, 1); // magnitude
     *(regs + 1) = Value(1.000000);
@@ -5866,10 +5889,11 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 0, 74, 2); // float2_0+0
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 84, 1); // normalize
-    vm.temp_lval = &locals[8]; // nv+0
+    vm.temp_lval = locals + 8; // nv+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {42, 3};
-    regs[0] = locals[8];regs[1] = locals[9]; // nv
+    *(regs + 0) = *(locals + 8); // nv.0
+    *(regs + 1) = *(locals + 9); // nv.1
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 86, 1); // magnitude
     U_BCALLRET1(vm, regs + 1, 113, 1); // abs
@@ -5882,10 +5906,10 @@ static void fun_111(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(3);
     *(regs + 3) = Value(4);
     U_NEWVEC(vm, regs + 4, 37, 2);
-    vm.temp_lval = &locals[10]; // v
+    vm.temp_lval = locals + 10; // v
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {44, 3};
-    regs[0] = locals[10]; // v
+    *(regs + 0) = *(locals + 10); // v
     *(regs + 1) = Value(1);
     U_VPUSHIDXI2V(vm, regs + 2);
     *(regs + 2) = Value(3);
@@ -5895,12 +5919,12 @@ static void fun_111(VMRef vm, StackPtr psp) {
     vm.last = {45, 3};
     *(regs + 0) = Value(5);
     *(regs + 1) = Value(6);
-    regs[2] = locals[10]; // v
+    *(regs + 2) = *(locals + 10); // v
     *(regs + 3) = Value(1);
     U_LVAL_IDXVI(vm, regs + 4, 0);
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {46, 3};
-    regs[0] = locals[10]; // v
+    *(regs + 0) = *(locals + 10); // v
     *(regs + 1) = Value(1);
     U_VPUSHIDXI2V(vm, regs + 2);
     *(regs + 2) = Value(5);
@@ -5908,7 +5932,7 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 46, 3, 42);
     vm.last = {47, 3};
-    regs[0] = locals[10]; // v
+    *(regs + 0) = *(locals + 10); // v
     *(regs + 1) = Value(1);
     U_VPUSHIDXIS2V(vm, regs + 2, 1, 1);
     *(regs + 1) = Value(6);
@@ -5917,12 +5941,12 @@ static void fun_111(VMRef vm, StackPtr psp) {
     vm.last = {48, 3};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(1);
-    regs[2] = locals[10]; // v
+    *(regs + 2) = *(locals + 10); // v
     *(regs + 3) = Value(1);
     U_LVAL_IDXVI(vm, regs + 4, 0);
     U_LV_IVVADD(vm, regs + 2, 2);
     vm.last = {49, 3};
-    regs[0] = locals[10]; // v
+    *(regs + 0) = *(locals + 10); // v
     *(regs + 1) = Value(1);
     U_VPUSHIDXI2V(vm, regs + 2);
     *(regs + 2) = Value(6);
@@ -5931,12 +5955,12 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 49, 3, 44);
     vm.last = {50, 3};
     *(regs + 0) = Value(1);
-    regs[1] = locals[10]; // v
+    *(regs + 1) = *(locals + 10); // v
     *(regs + 2) = Value(1);
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_IVSADD(vm, regs + 1, 2);
     vm.last = {51, 3};
-    regs[0] = locals[10]; // v
+    *(regs + 0) = *(locals + 10); // v
     *(regs + 1) = Value(1);
     U_VPUSHIDXI2V(vm, regs + 2);
     *(regs + 2) = Value(7);
@@ -5948,10 +5972,10 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_NEWVEC(vm, regs + 1, 7, 1);
     U_NEWVEC(vm, regs + 1, 13, 1);
     U_NEWVEC(vm, regs + 1, 306, 1);
-    vm.temp_lval = &locals[11]; // tri
+    vm.temp_lval = locals + 11; // tri
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {53, 3};
-    regs[0] = locals[11]; // tri
+    *(regs + 0) = *(locals + 11); // tri
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
@@ -5961,14 +5985,14 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 53, 3, 46);
     vm.last = {54, 3};
     *(regs + 0) = Value(124);
-    regs[1] = locals[11]; // tri
+    *(regs + 1) = *(locals + 11); // tri
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
     *(regs + 4) = Value(0);
     U_LVAL_IDXVV(vm, regs + 5, 0, 3);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {55, 3};
-    regs[0] = locals[11]; // tri
+    *(regs + 0) = *(locals + 11); // tri
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
@@ -5982,10 +6006,10 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_NEWVEC(vm, regs + 2, 37, 1);
     U_NEWVEC(vm, regs + 1, 308, 1);
     U_NEWVEC(vm, regs + 1, 310, 1);
-    vm.temp_lval = &locals[12]; // triv
+    vm.temp_lval = locals + 12; // triv
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {57, 3};
-    regs[0] = locals[12]; // triv
+    *(regs + 0) = *(locals + 12); // triv
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
@@ -5996,14 +6020,14 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 57, 3, 48);
     vm.last = {58, 3};
     *(regs + 0) = Value(4);
-    regs[1] = locals[12]; // triv
+    *(regs + 1) = *(locals + 12); // triv
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
     *(regs + 4) = Value(0);
     U_LVAL_IDXVV(vm, regs + 5, 0, 3);
     U_LV_IVSADD(vm, regs + 1, 2);
     vm.last = {59, 3};
-    regs[0] = locals[12]; // triv
+    *(regs + 0) = *(locals + 12); // triv
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
@@ -6019,10 +6043,10 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_NEWVEC(vm, regs + 3, 312, 1);
     U_NEWVEC(vm, regs + 1, 314, 1);
     U_NEWVEC(vm, regs + 1, 316, 1);
-    vm.temp_lval = &locals[13]; // trivv
+    vm.temp_lval = locals + 13; // trivv
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {61, 3};
-    regs[0] = locals[13]; // trivv
+    *(regs + 0) = *(locals + 13); // trivv
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
@@ -6032,7 +6056,7 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 61, 3, 50);
     vm.last = {62, 3};
-    regs[0] = locals[13]; // trivv
+    *(regs + 0) = *(locals + 13); // trivv
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
@@ -6041,7 +6065,7 @@ static void fun_111(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 62, 3, 51);
     vm.last = {63, 3};
-    regs[0] = locals[13]; // trivv
+    *(regs + 0) = *(locals + 13); // trivv
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     U_VPUSHIDXV(vm, regs + 3, 2);
@@ -6073,37 +6097,40 @@ static void fun_111(VMRef vm, StackPtr psp) {
 static void fun_112(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[11];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 907, locals);
     vm.last = {69, 3};
     U_PUSHVARVF(vm, regs + 0, 123, 2); // int2_0+0
-    vm.temp_lval = &locals[0]; // a+0
+    vm.temp_lval = locals + 0; // a+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {70, 3};
-    regs[0] = locals[0];regs[1] = locals[1]; // a
-    vm.temp_lval = &locals[2]; // b+0
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    vm.temp_lval = locals + 2; // b+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {71, 3};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[1]; // a+1
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // a+1
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {72, 3};
-    regs[0] = locals[0];regs[1] = locals[1]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
     U_PUSHVARVF(vm, regs + 2, 129, 2); // int2_y+0
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 72, 3, 54);
     vm.last = {73, 3};
-    regs[0] = locals[2];regs[1] = locals[3]; // b
+    *(regs + 0) = *(locals + 2); // b.0
+    *(regs + 1) = *(locals + 3); // b.1
     U_PUSHVARVF(vm, regs + 2, 123, 2); // int2_0+0
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 73, 3, 55);
@@ -6113,15 +6140,15 @@ static void fun_112(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 0, 134, 3); // int3_1+0
     U_PUSHVARVF(vm, regs + 3, 123, 2); // int2_0+0
     U_NEWOBJECT(vm, regs + 5, 318); // C
-    vm.temp_lval = &locals[4]; // c
+    vm.temp_lval = locals + 4; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {79, 3};
     *(regs + 0) = Value(1);
-    regs[1] = locals[4]; // c
+    *(regs + 1) = *(locals + 4); // c
     U_LVAL_FLD(vm, regs + 2, 4);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {80, 3};
-    regs[0] = locals[4]; // c
+    *(regs + 0) = *(locals + 4); // c
     U_PUSHFLD2V(vm, regs + 1, 3, 2);
     U_PUSHVARVF(vm, regs + 2, 129, 2); // int2_y+0
     U_STEQ(vm, regs + 4, 2);
@@ -6131,39 +6158,41 @@ static void fun_112(VMRef vm, StackPtr psp) {
     vm.last = {85, 3};
     U_PUSHVARVF(vm, regs + 0, 134, 3); // int3_1+0
     U_PUSHVARVF(vm, regs + 3, 123, 2); // int2_0+0
-    vm.temp_lval = &locals[5]; // s+0
+    vm.temp_lval = locals + 5; // s+0
     U_LV_WRITEREFV(vm, regs + 5, 5, 0);
     vm.last = {86, 3};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[9]; // s+4
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 9; // s+4
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {87, 3};
-    regs[0] = locals[8];regs[1] = locals[9]; // s
+    *(regs + 0) = *(locals + 8); // s.0
+    *(regs + 1) = *(locals + 9); // s.1
     U_PUSHVARVF(vm, regs + 2, 129, 2); // int2_y+0
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 87, 3, 57);
     vm.last = {89, 3};
     U_PUSHVARVF(vm, regs + 0, 127, 2); // int2_x+0
-    vm.temp_lval = &locals[8]; // s+3
+    vm.temp_lval = locals + 8; // s+3
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {90, 3};
-    regs[0] = locals[8];regs[1] = locals[9]; // s
+    *(regs + 0) = *(locals + 8); // s.0
+    *(regs + 1) = *(locals + 9); // s.1
     U_PUSHVARVF(vm, regs + 2, 127, 2); // int2_x+0
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 90, 3, 58);
     vm.last = {92, 3};
     U_PUSHVARVF(vm, regs + 0, 123, 2); // int2_0+0
     U_NEWVEC(vm, regs + 2, 37, 1);
-    vm.temp_lval = &locals[10]; // v
+    vm.temp_lval = locals + 10; // v
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {93, 3};
     *(regs + 0) = Value(1);
-    regs[1] = locals[10]; // v
+    *(regs + 1) = *(locals + 10); // v
     *(regs + 2) = Value(0);
     U_LVAL_IDXVI(vm, regs + 3, 1);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {94, 3};
-    regs[0] = locals[10]; // v
+    *(regs + 0) = *(locals + 10); // v
     *(regs + 1) = Value(0);
     U_VPUSHIDXI2V(vm, regs + 2);
     U_PUSHVARVF(vm, regs + 2, 129, 2); // int2_y+0
@@ -6181,14 +6210,14 @@ static void fun_113(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[3];
     Value locals[4];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 921, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
     vm.last = {98, 3};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(1);
@@ -6247,16 +6276,16 @@ static void fun_113(VMRef vm, StackPtr psp) {
     *(regs + 3) = Value(0);
     *(regs + 4) = Value(3);
     U_NEWVEC(vm, regs + 5, 37, 2);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     block4:;
     if (!U_VFOR(vm, regs + 2)) goto block5;
     vm.last = {103, 3};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[0]; // st+0
+    vm.temp_lval = locals + 0; // st+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {103, 3};
-    regs[2] = locals[0]; // st+0
-    regs[3] = locals[1]; // st+1
+    *(regs + 2) = *(locals + 0); // st+0
+    *(regs + 3) = *(locals + 1); // st+1
     U_IADD(vm, regs + 4);
     *(regs + 3) = Value(3);
     U_IEQ(vm, regs + 4);
@@ -6275,18 +6304,19 @@ static void fun_113(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 4, 67); // "b"
     U_INCREF(vm, regs + 5, 0);
     U_NEWVEC(vm, regs + 5, 1695, 2);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     block6:;
     if (!U_VFOR(vm, regs + 2)) goto block7;
     vm.last = {105, 3};
     U_VFORELEMREF2S(vm, regs + 2, 3);
-    vm.temp_lval = &locals[2]; // st+0
+    vm.temp_lval = locals + 2; // st+0
     U_LV_WRITEREFV(vm, regs + 4, 2, 3);
     vm.last = {105, 3};
-    regs[2] = locals[2]; // st+0
-    regs[3] = locals[3]; // st+1
+    *(regs + 2) = *(locals + 2); // st+0
+    *(regs + 3) = *(locals + 3); // st+1
     U_SADD(vm, regs + 4);
-    DecVal(vm, keepvar[2]); keepvar[2] = TopM(regs + 3, 0);
+    DecVal(vm, keepvar[2]);
+    *(keepvar + 2) = *(regs + 2);
     U_PUSHSTR(vm, regs + 3, 68); // "abb"
     U_SEQ(vm, regs + 4);
     U_ASSERT(vm, regs + 3, 105, 3, 69);
@@ -6306,10 +6336,10 @@ static void fun_113(VMRef vm, StackPtr psp) {
 static void fun_114(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 928, locals);
     vm.last = {109, 3};
     vm.last = {111, 3};
@@ -6325,26 +6355,27 @@ static void fun_114(VMRef vm, StackPtr psp) {
     vm.last = {113, 3};
     *(regs + 0) = Value(7);
     fun_116(vm, regs + 1); // call: g
-    vm.temp_lval = &locals[3]; // mr3
-    *vm.temp_lval = *(regs + 3);
-    vm.temp_lval = &locals[1]; // mr2+0
+    vm.temp_lval = locals + 3; // mr3
+    *(vm.temp_lval) = *(regs + 3);
+    vm.temp_lval = locals + 1; // mr2+0
     U_LV_WRITEV(vm, regs + 3, 2);
-    vm.temp_lval = &locals[0]; // mr1
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // mr1
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {114, 3};
-    regs[0] = locals[1];regs[1] = locals[2]; // mr2
+    *(regs + 0) = *(locals + 1); // mr2.0
+    *(regs + 1) = *(locals + 2); // mr2.1
     *(regs + 2) = Value(7);
     *(regs + 3) = Value(7);
     U_STEQ(vm, regs + 4, 2);
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[0]; // mr1
+    *(regs + 0) = *(locals + 0); // mr1
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
     block0:;
     if (!(regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
-    regs[0] = locals[3]; // mr3
+    *(regs + 0) = *(locals + 3); // mr3
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
     block1:;
@@ -6358,24 +6389,24 @@ static void fun_114(VMRef vm, StackPtr psp) {
 static void fun_115(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 935, locals);
     vm.last = {110, 3};
-    regs[0] = locals[0]; // a
-    regs[1] = locals[1]; // b+0
+    *(regs + 0) = *(locals + 0); // a
+    *(regs + 1) = *(locals + 1); // b+0
     U_IADD(vm, regs + 2);
-    regs[1] = locals[2]; // b+1
+    *(regs + 1) = *(locals + 2); // b+1
     U_IADD(vm, regs + 2);
-    regs[1] = locals[3]; // c
+    *(regs + 1) = *(locals + 3); // c
     U_IADD(vm, regs + 2);
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -6385,18 +6416,18 @@ static void fun_115(VMRef vm, StackPtr psp) {
 static void fun_116(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 942, locals);
     vm.last = {111, 3};
     *(regs + 0) = Value(1);
-    regs[1] = locals[0]; // a
-    regs[2] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
+    *(regs + 2) = *(locals + 0); // a
     *(regs + 3) = Value(1);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -6439,22 +6470,22 @@ static void fun_117(VMRef vm, StackPtr psp) {
 static void fun_118(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[3];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
     PushFunId(vm, funinfo_table + 949, locals);
     vm.last = {121, 3};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // b+0
+    *(regs + 1) = *(locals + 1); // b+0
     U_IADD(vm, regs + 2);
-    regs[1] = locals[2]; // b+1
+    *(regs + 1) = *(locals + 2); // b+1
     U_IADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -6464,22 +6495,22 @@ static void fun_118(VMRef vm, StackPtr psp) {
 static void fun_119(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[3];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
     PushFunId(vm, funinfo_table + 955, locals);
     vm.last = {122, 3};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // b+0
+    *(regs + 1) = *(locals + 1); // b+0
     U_IADD(vm, regs + 2);
-    regs[1] = locals[2]; // b+1
+    *(regs + 1) = *(locals + 2); // b+1
     U_IADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -6489,18 +6520,18 @@ static void fun_119(VMRef vm, StackPtr psp) {
 static void fun_120(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[12];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 961, locals);
     vm.last = {129, 3};
     vm.last = {129, 3};
@@ -6511,18 +6542,19 @@ static void fun_120(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     *(regs + 1) = Value(123);
     U_NEWVEC(vm, regs + 2, 7, 1);
-    vm.temp_lval = &locals[0]; // r+0
+    vm.temp_lval = locals + 0; // r+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
     vm.last = {136, 3};
     vm.last = {137, 3};
-    regs[0] = locals[0];regs[1] = locals[1]; // r
+    *(regs + 0) = *(locals + 0); // r.0
+    *(regs + 1) = *(locals + 1); // r.1
     U_INCREF(vm, regs + 2, 1);
     U_INCREF(vm, regs + 2, 0);
     fun_121(vm, regs + 2); // call: f
-    vm.temp_lval = &locals[2]; // fr+0
+    vm.temp_lval = locals + 2; // fr+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
     vm.last = {138, 3};
-    regs[0] = locals[2]; // fr+0
+    *(regs + 0) = *(locals + 2); // fr+0
     U_PUSHSTR(vm, regs + 1, 75); // "hellohello"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 138, 3, 76);
@@ -6536,19 +6568,19 @@ static void fun_120(VMRef vm, StackPtr psp) {
     *(regs + 3) = Value(2);
     U_NEWVEC(vm, regs + 4, 7, 1);
     U_NEWVEC(vm, regs + 4, 402, 2);
-    vm.temp_lval = &locals[4]; // rs
+    vm.temp_lval = locals + 4; // rs
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {140, 3};
-    regs[0] = locals[4]; // rs
+    *(regs + 0) = *(locals + 4); // rs
     *(regs + 1) = Value(1);
     U_VPUSHIDXI2V(vm, regs + 2);
     U_INCREF(vm, regs + 2, 1);
     U_INCREF(vm, regs + 2, 0);
     fun_121(vm, regs + 2); // call: f
-    vm.temp_lval = &locals[2]; // fr+0
+    vm.temp_lval = locals + 2; // fr+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
     vm.last = {141, 3};
-    regs[0] = locals[2]; // fr+0
+    *(regs + 0) = *(locals + 2); // fr+0
     U_PUSHSTR(vm, regs + 1, 79); // "twotwo"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 141, 3, 80);
@@ -6559,24 +6591,26 @@ static void fun_120(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(64);
     U_NEWVEC(vm, regs + 3, 7, 1);
-    vm.temp_lval = &locals[5]; // rn+0
+    vm.temp_lval = locals + 5; // rn+0
     U_LV_WRITEREFV(vm, regs + 3, 3, 7);
     vm.last = {143, 3};
     vm.last = {144, 3};
-    regs[0] = locals[5];regs[1] = locals[6];regs[2] = locals[7]; // rn
+    *(regs + 0) = *(locals + 5); // rn.0
+    *(regs + 1) = *(locals + 6); // rn.1
+    *(regs + 2) = *(locals + 7); // rn.2
     U_INCREF(vm, regs + 3, 2);
     U_INCREF(vm, regs + 3, 1);
     U_INCREF(vm, regs + 3, 0);
     fun_122(vm, regs + 3); // call: fun
-    vm.temp_lval = &locals[8]; // frn+0
+    vm.temp_lval = locals + 8; // frn+0
     U_LV_WRITEREFV(vm, regs + 3, 3, 7);
     vm.last = {145, 3};
-    regs[0] = locals[8]; // frn+0
+    *(regs + 0) = *(locals + 8); // frn+0
     U_PUSHSTR(vm, regs + 1, 83); // "AA"
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[10]; // frn+2
+    *(regs + 0) = *(locals + 10); // frn+2
     *(regs + 1) = Value(1);
     U_VPUSHIDXI(vm, regs + 2);
     *(regs + 1) = Value(64);
@@ -6597,25 +6631,25 @@ static void fun_120(VMRef vm, StackPtr psp) {
     *(regs + 5) = Value(2);
     U_NEWVEC(vm, regs + 6, 7, 1);
     U_NEWVEC(vm, regs + 6, 419, 2);
-    vm.temp_lval = &locals[11]; // rns
+    vm.temp_lval = locals + 11; // rns
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {147, 3};
-    regs[0] = locals[11]; // rns
+    *(regs + 0) = *(locals + 11); // rns
     *(regs + 1) = Value(1);
     U_VPUSHIDXI2V(vm, regs + 2);
     U_INCREF(vm, regs + 3, 2);
     U_INCREF(vm, regs + 3, 1);
     U_INCREF(vm, regs + 3, 0);
     fun_122(vm, regs + 3); // call: fun
-    vm.temp_lval = &locals[8]; // frn+0
+    vm.temp_lval = locals + 8; // frn+0
     U_LV_WRITEREFV(vm, regs + 3, 3, 7);
     vm.last = {148, 3};
-    regs[0] = locals[8]; // frn+0
+    *(regs + 0) = *(locals + 8); // frn+0
     U_PUSHSTR(vm, regs + 1, 89); // "BBBB"
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
-    regs[0] = locals[10]; // frn+2
+    *(regs + 0) = *(locals + 10); // frn+2
     *(regs + 1) = Value(1);
     U_VPUSHIDXI(vm, regs + 2);
     *(regs + 1) = Value(2);
@@ -6643,22 +6677,22 @@ static void fun_120(VMRef vm, StackPtr psp) {
 static void fun_121(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 976, locals);
     vm.last = {136, 3};
-    regs[0] = locals[0]; // x+0
-    regs[1] = locals[0]; // x+0
+    *(regs + 0) = *(locals + 0); // x+0
+    *(regs + 1) = *(locals + 0); // x+0
     U_SADD(vm, regs + 2);
-    regs[1] = locals[1]; // x+1
-    regs[2] = locals[1]; // x+1
+    *(regs + 1) = *(locals + 1); // x+1
+    *(regs + 2) = *(locals + 1); // x+1
     U_BCALLRET2(vm, regs + 3, 8, 1); // append
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -6668,19 +6702,19 @@ static void fun_121(VMRef vm, StackPtr psp) {
 static void fun_122(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[3];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
     PushFunId(vm, funinfo_table + 981, locals);
     vm.last = {143, 3};
-    regs[0] = locals[0]; // x+0
-    regs[1] = locals[0]; // x+0
+    *(regs + 0) = *(locals + 0); // x+0
+    *(regs + 1) = *(locals + 0); // x+0
     U_SADD(vm, regs + 2);
-    regs[1] = locals[1]; // x+1
-    regs[2] = locals[1]; // x+1
+    *(regs + 1) = *(locals + 1); // x+1
+    *(regs + 2) = *(locals + 1); // x+1
     U_SADD(vm, regs + 3);
-    regs[2] = locals[2]; // x+2
-    regs[3] = locals[2]; // x+2
+    *(regs + 2) = *(locals + 2); // x+2
+    *(regs + 3) = *(locals + 2); // x+2
     U_BCALLRET2(vm, regs + 4, 8, 1); // append
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -6688,9 +6722,9 @@ static void fun_122(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -6701,40 +6735,42 @@ static void fun_123(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 987, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {152, 3};
     vm.last = {152, 3};
     vm.last = {155, 3};
     U_PUSHSTR(vm, regs + 0, 91); // "hi"
     U_INCREF(vm, regs + 1, 0);
     *(regs + 1) = Value(1);
-    vm.temp_lval = &locals[0]; // rs+0
+    vm.temp_lval = locals + 0; // rs+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 1);
     vm.last = {156, 3};
     vm.last = {157, 3};
-    regs[0] = locals[0];regs[1] = locals[1]; // rs
+    *(regs + 0) = *(locals + 0); // rs.0
+    *(regs + 1) = *(locals + 1); // rs.1
     U_INCREF(vm, regs + 2, 1);
     fun_124(vm, regs + 2); // call: frs
-    vm.temp_lval = &locals[0]; // rs+0
+    vm.temp_lval = locals + 0; // rs+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 1);
     vm.last = {158, 3};
-    regs[0] = locals[0]; // rs+0
+    *(regs + 0) = *(locals + 0); // rs+0
     U_PUSHSTR(vm, regs + 1, 92); // "hihi"
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[1]; // rs+1
+    *(regs + 0) = *(locals + 1); // rs+1
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     block0:;
     U_ASSERT(vm, regs + 1, 158, 3, 93);
     vm.last = {159, 3};
-    regs[0] = locals[0];regs[1] = locals[1]; // rs
+    *(regs + 0) = *(locals + 0); // rs.0
+    *(regs + 1) = *(locals + 1); // rs.1
     U_ST2S(vm, regs + 2, 421); // RS
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 94); // "RS{\"hihi\", 2}"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 159, 3, 95);
@@ -6749,21 +6785,21 @@ static void fun_123(VMRef vm, StackPtr psp) {
 static void fun_124(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 992, locals);
     vm.last = {156, 3};
-    regs[0] = locals[0]; // x+0
-    regs[1] = locals[0]; // x+0
+    *(regs + 0) = *(locals + 0); // x+0
+    *(regs + 1) = *(locals + 0); // x+0
     U_SADD(vm, regs + 2);
-    regs[1] = locals[1]; // x+1
-    regs[2] = locals[1]; // x+1
+    *(regs + 1) = *(locals + 1); // x+1
+    *(regs + 2) = *(locals + 1); // x+1
     U_IADD(vm, regs + 3);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -6773,16 +6809,16 @@ static void fun_124(VMRef vm, StackPtr psp) {
 static void fun_125(VMRef vm, StackPtr psp) {
     Value regs[18];
     Value locals[10];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 997, locals);
     vm.last = {163, 3};
     vm.last = {163, 3};
@@ -6821,23 +6857,43 @@ static void fun_125(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(3.000000);
     *(regs + 3) = Value(4.000000);
     *(regs + 4) = Value(5.000000);
-    vm.temp_lval = &locals[0]; // v5test+0
+    vm.temp_lval = locals + 0; // v5test+0
     U_LV_WRITEV(vm, regs + 5, 5);
     vm.last = {176, 3};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3];regs[4] = locals[4]; // v5test
-    regs[5] = locals[0];regs[6] = locals[1];regs[7] = locals[2];regs[8] = locals[3];regs[9] = locals[4]; // v5test
+    *(regs + 0) = *(locals + 0); // v5test.0
+    *(regs + 1) = *(locals + 1); // v5test.1
+    *(regs + 2) = *(locals + 2); // v5test.2
+    *(regs + 3) = *(locals + 3); // v5test.3
+    *(regs + 4) = *(locals + 4); // v5test.4
+    *(regs + 5) = *(locals + 0); // v5test.0
+    *(regs + 6) = *(locals + 1); // v5test.1
+    *(regs + 7) = *(locals + 2); // v5test.2
+    *(regs + 8) = *(locals + 3); // v5test.3
+    *(regs + 9) = *(locals + 4); // v5test.4
     U_FVVADD(vm, regs + 10, 5);
-    vm.temp_lval = &locals[5]; // v5test2+0
+    vm.temp_lval = locals + 5; // v5test2+0
     U_LV_WRITEV(vm, regs + 5, 5);
     vm.last = {177, 3};
-    regs[0] = locals[5];regs[1] = locals[6];regs[2] = locals[7];regs[3] = locals[8];regs[4] = locals[9]; // v5test2
-    regs[5] = locals[0];regs[6] = locals[1];regs[7] = locals[2];regs[8] = locals[3];regs[9] = locals[4]; // v5test
+    *(regs + 0) = *(locals + 5); // v5test2.0
+    *(regs + 1) = *(locals + 6); // v5test2.1
+    *(regs + 2) = *(locals + 7); // v5test2.2
+    *(regs + 3) = *(locals + 8); // v5test2.3
+    *(regs + 4) = *(locals + 9); // v5test2.4
+    *(regs + 5) = *(locals + 0); // v5test.0
+    *(regs + 6) = *(locals + 1); // v5test.1
+    *(regs + 7) = *(locals + 2); // v5test.2
+    *(regs + 8) = *(locals + 3); // v5test.3
+    *(regs + 9) = *(locals + 4); // v5test.4
     *(regs + 10) = Value(2.000000);
     U_FVSMUL(vm, regs + 11, 5);
     U_STEQ(vm, regs + 10, 5);
     U_ASSERT(vm, regs + 1, 177, 3, 99);
     vm.last = {178, 3};
-    regs[0] = locals[5];regs[1] = locals[6];regs[2] = locals[7];regs[3] = locals[8];regs[4] = locals[9]; // v5test2
+    *(regs + 0) = *(locals + 5); // v5test2.0
+    *(regs + 1) = *(locals + 6); // v5test2.1
+    *(regs + 2) = *(locals + 7); // v5test2.2
+    *(regs + 3) = *(locals + 8); // v5test2.3
+    *(regs + 4) = *(locals + 9); // v5test2.4
     *(regs + 5) = Value(5);
     U_BCALLRETV(vm, regs + 6, 84, 1); // normalize
     *(regs + 5) = Value(5);
@@ -6846,22 +6902,46 @@ static void fun_125(VMRef vm, StackPtr psp) {
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 178, 3, 100);
     vm.last = {179, 3};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3];regs[4] = locals[4]; // v5test
+    *(regs + 0) = *(locals + 0); // v5test.0
+    *(regs + 1) = *(locals + 1); // v5test.1
+    *(regs + 2) = *(locals + 2); // v5test.2
+    *(regs + 3) = *(locals + 3); // v5test.3
+    *(regs + 4) = *(locals + 4); // v5test.4
     *(regs + 5) = Value(5);
-    regs[6] = locals[0];regs[7] = locals[1];regs[8] = locals[2];regs[9] = locals[3];regs[10] = locals[4]; // v5test
+    *(regs + 6) = *(locals + 0); // v5test.0
+    *(regs + 7) = *(locals + 1); // v5test.1
+    *(regs + 8) = *(locals + 2); // v5test.2
+    *(regs + 9) = *(locals + 3); // v5test.3
+    *(regs + 10) = *(locals + 4); // v5test.4
     *(regs + 11) = Value(5);
-    regs[12] = locals[5];regs[13] = locals[6];regs[14] = locals[7];regs[15] = locals[8];regs[16] = locals[9]; // v5test2
+    *(regs + 12) = *(locals + 5); // v5test2.0
+    *(regs + 13) = *(locals + 6); // v5test2.1
+    *(regs + 14) = *(locals + 7); // v5test2.2
+    *(regs + 15) = *(locals + 8); // v5test2.3
+    *(regs + 16) = *(locals + 9); // v5test2.4
     *(regs + 17) = Value(5);
     U_BCALLRETV(vm, regs + 18, 131, 1); // max
     *(regs + 11) = Value(5);
     U_BCALLRETV(vm, regs + 12, 123, 1); // min
-    regs[5] = locals[0];regs[6] = locals[1];regs[7] = locals[2];regs[8] = locals[3];regs[9] = locals[4]; // v5test
+    *(regs + 5) = *(locals + 0); // v5test.0
+    *(regs + 6) = *(locals + 1); // v5test.1
+    *(regs + 7) = *(locals + 2); // v5test.2
+    *(regs + 8) = *(locals + 3); // v5test.3
+    *(regs + 9) = *(locals + 4); // v5test.4
     U_STEQ(vm, regs + 10, 5);
     U_ASSERT(vm, regs + 1, 179, 3, 101);
     vm.last = {180, 3};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3];regs[4] = locals[4]; // v5test
+    *(regs + 0) = *(locals + 0); // v5test.0
+    *(regs + 1) = *(locals + 1); // v5test.1
+    *(regs + 2) = *(locals + 2); // v5test.2
+    *(regs + 3) = *(locals + 3); // v5test.3
+    *(regs + 4) = *(locals + 4); // v5test.4
     *(regs + 5) = Value(5);
-    regs[6] = locals[5];regs[7] = locals[6];regs[8] = locals[7];regs[9] = locals[8];regs[10] = locals[9]; // v5test2
+    *(regs + 6) = *(locals + 5); // v5test2.0
+    *(regs + 7) = *(locals + 6); // v5test2.1
+    *(regs + 8) = *(locals + 7); // v5test2.2
+    *(regs + 9) = *(locals + 8); // v5test2.3
+    *(regs + 10) = *(locals + 9); // v5test2.4
     *(regs + 11) = Value(5);
     U_BCALLRETV(vm, regs + 12, 85, 1); // dot
     *(regs + 1) = Value(110.000000);
@@ -7368,17 +7448,17 @@ static void fun_127(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value keepvar[2];
     PushFunId(vm, funinfo_table + 1013, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
     vm.last = {273, 3};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(2);
     U_NEWVEC(vm, regs + 2, 37, 1);
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(2);
     U_NEWVEC(vm, regs + 3, 37, 1);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 273, 3, 151);
     goto epilogue;
@@ -7392,23 +7472,23 @@ static void fun_127(VMRef vm, StackPtr psp) {
 static void fun_477(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1016, locals);
     vm.last = {4, 7};
-    regs[0] = locals[0]; // body
+    *(regs + 0) = *(locals + 0); // body
     fun_478(vm, regs + 1); // call: exception_handler
-    vm.temp_lval = &locals[3]; // stack_trace
+    vm.temp_lval = locals + 3; // stack_trace
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // err
+    vm.temp_lval = locals + 2; // err
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 7};
-    regs[0] = locals[2]; // err
+    *(regs + 0) = *(locals + 2); // err
     if (!(regs + 0)->True()) goto block0;
     vm.last = {6, 7};
-    regs[0] = locals[2]; // err
+    *(regs + 0) = *(locals + 2); // err
     fun_181(vm, regs + 1); // call: function174
     if (vm.ret_unwind_to == 174) goto block1;
     DecVal(vm, locals[2]);
@@ -7434,27 +7514,27 @@ static void fun_477(VMRef vm, StackPtr psp) {
 static void fun_128(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[5];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1023, locals);
     vm.last = {4, 7};
-    regs[0] = locals[0]; // body
+    *(regs + 0) = *(locals + 0); // body
     fun_129(vm, regs + 1); // call: exception_handler
-    vm.temp_lval = &locals[3]; // stack_trace
+    vm.temp_lval = locals + 3; // stack_trace
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // err
+    vm.temp_lval = locals + 2; // err
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {5, 7};
-    regs[0] = locals[2]; // err
+    *(regs + 0) = *(locals + 2); // err
     if (!(regs + 0)->True()) goto block0;
     vm.last = {6, 7};
     vm.last = {6, 7};
-    regs[0] = locals[2]; // err
-    vm.temp_lval = &locals[4]; // _
-    *vm.temp_lval = *(regs + 0);
+    *(regs + 0) = *(locals + 2); // err
+    vm.temp_lval = locals + 4; // _
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {33, 7};
     block0:;
     DecVal(vm, locals[2]);
@@ -7470,7 +7550,7 @@ static void fun_128(VMRef vm, StackPtr psp) {
 static void fun_478(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1031, locals);
     vm.last = {9, 7};
     fun_180(vm, regs + 0); // call: function173
@@ -7484,8 +7564,8 @@ static void fun_478(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 1, 152); // ""
     U_INCREF(vm, regs + 2, 0);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7495,7 +7575,7 @@ static void fun_478(VMRef vm, StackPtr psp) {
 static void fun_129(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1035, locals);
     vm.last = {9, 7};
     fun_182(vm, regs + 0); // call: function175
@@ -7509,8 +7589,8 @@ static void fun_129(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 1, 153); // ""
     U_INCREF(vm, regs + 2, 0);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7520,10 +7600,10 @@ static void fun_129(VMRef vm, StackPtr psp) {
 static void fun_479(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1039, locals);
     vm.last = {17, 7};
-    regs[0] = locals[0]; // v
+    *(regs + 0) = *(locals + 0); // v
     U_PUSHSTR(vm, regs + 1, 154); // ""
     U_INCREF(vm, regs + 2, 0);
     U_INCREF(vm, regs + 2, 1);
@@ -7531,8 +7611,8 @@ static void fun_479(VMRef vm, StackPtr psp) {
     vm.ret_unwind_to = 125;
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7542,18 +7622,18 @@ static void fun_479(VMRef vm, StackPtr psp) {
 static void fun_130(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1043, locals);
     vm.last = {17, 7};
-    regs[0] = locals[0]; // v
+    *(regs + 0) = *(locals + 0); // v
     U_PUSHSTR(vm, regs + 1, 155); // ""
     U_INCREF(vm, regs + 2, 0);
     U_INCREF(vm, regs + 2, 1);
     vm.ret_slots = 2;
     vm.ret_unwind_to = 125;
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7563,10 +7643,10 @@ static void fun_130(VMRef vm, StackPtr psp) {
 static void fun_134(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1047, locals);
     vm.last = {33, 7};
-    regs[0] = locals[0]; // body
+    *(regs + 0) = *(locals + 0); // body
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_128(vm, regs + 2); // call: try
     Pop(psp);
@@ -7579,54 +7659,54 @@ static void fun_134(VMRef vm, StackPtr psp) {
 static void fun_537(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1051, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1]; // key
+    *(regs + 0) = *(locals + 1); // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
@@ -7637,7 +7717,7 @@ static void fun_537(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7647,69 +7727,69 @@ static void fun_537(VMRef vm, StackPtr psp) {
 static void fun_535(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1058, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1]; // key
+    *(regs + 0) = *(locals + 1); // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[3]; // c
-    regs[1] = locals[2]; // h
+    *(regs + 0) = *(locals + 3); // c
+    *(regs + 1) = *(locals + 2); // h
     U_INCREF(vm, regs + 2, 1);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
     vm.last = {31, 8};
     U_PUSHNIL(vm, regs + 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7719,54 +7799,54 @@ static void fun_535(VMRef vm, StackPtr psp) {
 static void fun_507(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1065, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1]; // key
+    *(regs + 0) = *(locals + 1); // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
@@ -7777,7 +7857,7 @@ static void fun_507(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7787,43 +7867,47 @@ static void fun_507(VMRef vm, StackPtr psp) {
 static void fun_497(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[6];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1072, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1];regs[1] = locals[2];regs[2] = locals[3]; // key
+    *(regs + 0) = *(locals + 1); // key.0
+    *(regs + 1) = *(locals + 2); // key.1
+    *(regs + 2) = *(locals + 3); // key.2
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 152, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[4]; // h
+    *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[5]; // c
+    vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[5]; // c
+    *(regs + 0) = *(locals + 5); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[5]; // c
+    *(regs + 0) = *(locals + 5); // c
     U_PUSHFLD2V(vm, regs + 1, 1, 3);
-    regs[3] = locals[1];regs[4] = locals[2];regs[5] = locals[3]; // key
+    *(regs + 3) = *(locals + 1); // key.0
+    *(regs + 4) = *(locals + 2); // key.1
+    *(regs + 5) = *(locals + 3); // key.2
     U_STEQ(vm, regs + 6, 3);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[5]; // c
+    *(regs + 0) = *(locals + 5); // c
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[5]);
@@ -7831,14 +7915,14 @@ static void fun_497(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[5]; // c
+    *(regs + 0) = *(locals + 5); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[5]; // c
+    vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
@@ -7850,7 +7934,7 @@ static void fun_497(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7860,44 +7944,48 @@ static void fun_497(VMRef vm, StackPtr psp) {
 static void fun_495(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[6];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1081, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1];regs[1] = locals[2];regs[2] = locals[3]; // key
+    *(regs + 0) = *(locals + 1); // key.0
+    *(regs + 1) = *(locals + 2); // key.1
+    *(regs + 2) = *(locals + 3); // key.2
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 152, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[4]; // h
+    *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[5]; // c
+    vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[5]; // c
+    *(regs + 0) = *(locals + 5); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[5]; // c
+    *(regs + 0) = *(locals + 5); // c
     U_PUSHFLD2V(vm, regs + 1, 1, 3);
-    regs[3] = locals[1];regs[4] = locals[2];regs[5] = locals[3]; // key
+    *(regs + 3) = *(locals + 1); // key.0
+    *(regs + 4) = *(locals + 2); // key.1
+    *(regs + 5) = *(locals + 3); // key.2
     U_STEQ(vm, regs + 6, 3);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[5]; // c
-    regs[1] = locals[4]; // h
+    *(regs + 0) = *(locals + 5); // c
+    *(regs + 1) = *(locals + 4); // h
     U_INCREF(vm, regs + 2, 1);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[5]);
@@ -7905,29 +7993,29 @@ static void fun_495(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[5]; // c
+    *(regs + 0) = *(locals + 5); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[5]; // c
+    vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
     vm.last = {31, 8};
     U_PUSHNIL(vm, regs + 0);
-    regs[1] = locals[4]; // h
+    *(regs + 1) = *(locals + 4); // h
     DecVal(vm, locals[0]);
     DecVal(vm, locals[5]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -7937,54 +8025,54 @@ static void fun_495(VMRef vm, StackPtr psp) {
 static void fun_490(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1090, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1]; // key
+    *(regs + 0) = *(locals + 1); // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
@@ -7995,7 +8083,7 @@ static void fun_490(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8005,69 +8093,69 @@ static void fun_490(VMRef vm, StackPtr psp) {
 static void fun_488(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1097, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1]; // key
+    *(regs + 0) = *(locals + 1); // key
     U_BCALLRET1(vm, regs + 1, 149, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[3]; // c
-    regs[1] = locals[2]; // h
+    *(regs + 0) = *(locals + 3); // c
+    *(regs + 1) = *(locals + 2); // h
     U_INCREF(vm, regs + 2, 1);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
     vm.last = {31, 8};
     U_PUSHNIL(vm, regs + 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8077,67 +8165,67 @@ static void fun_488(VMRef vm, StackPtr psp) {
 static void fun_483(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1104, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1]; // key
+    *(regs + 0) = *(locals + 1); // key
     U_BCALLRET1(vm, regs + 1, 151, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_FEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[3]; // c
-    regs[1] = locals[2]; // h
+    *(regs + 0) = *(locals + 3); // c
+    *(regs + 1) = *(locals + 2); // h
     U_INCREF(vm, regs + 2, 1);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
     vm.last = {31, 8};
     U_PUSHNIL(vm, regs + 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     DecVal(vm, locals[0]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8147,53 +8235,53 @@ static void fun_483(VMRef vm, StackPtr psp) {
 static void fun_138(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1111, locals);
     vm.last = {25, 8};
-    regs[0] = locals[1]; // key
+    *(regs + 0) = *(locals + 1); // key
     U_BCALLRET1(vm, regs + 1, 151, 1); // hash
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {27, 8};
     block0:;
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block1;
     vm.last = {28, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_FEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block2;
     vm.last = {29, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     vm.last = {30, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     goto block0;
     block1:;
@@ -8203,7 +8291,7 @@ static void fun_138(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8213,45 +8301,45 @@ static void fun_138(VMRef vm, StackPtr psp) {
 static void fun_534(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[5];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1118, locals);
     vm.last = {34, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_INCREF(vm, regs + 2, 0);
     fun_535(vm, regs + 2); // call: lookup
-    vm.temp_lval = &locals[4]; // h
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 4; // h
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {36, 8};
-    regs[0] = locals[2]; // value
-    regs[1] = locals[3]; // c
+    *(regs + 0) = *(locals + 2); // value
+    *(regs + 1) = *(locals + 3); // c
     U_LVAL_FLD(vm, regs + 2, 2);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     goto block1;
     block0:;
     vm.last = {38, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[4]; // h
+    *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_INCREF(vm, regs + 2, 0);
-    regs[2] = locals[2]; // value
+    *(regs + 2) = *(locals + 2); // value
     U_NEWOBJECT(vm, regs + 3, 523); // chain
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
-    regs[2] = locals[4]; // h
+    *(regs + 2) = *(locals + 4); // h
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITEREF(vm, regs + 1);
     block1:;
@@ -8268,47 +8356,55 @@ static void fun_534(VMRef vm, StackPtr psp) {
 static void fun_494(VMRef vm, StackPtr psp) {
     Value regs[7];
     Value locals[9];
-    locals[0] = *(psp - 7);
-    locals[1] = *(psp - 6);
-    locals[2] = *(psp - 5);
-    locals[3] = *(psp - 4);
-    locals[4] = *(psp - 3);
-    locals[5] = *(psp - 2);
-    locals[6] = *(psp - 1);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 7);
+    *(locals + 1) = *(psp - 6);
+    *(locals + 2) = *(psp - 5);
+    *(locals + 3) = *(psp - 4);
+    *(locals + 4) = *(psp - 3);
+    *(locals + 5) = *(psp - 2);
+    *(locals + 6) = *(psp - 1);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1126, locals);
     vm.last = {34, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // key
+    *(regs + 1) = *(locals + 1); // key.0
+    *(regs + 2) = *(locals + 2); // key.1
+    *(regs + 3) = *(locals + 3); // key.2
     fun_495(vm, regs + 4); // call: lookup
-    vm.temp_lval = &locals[8]; // h
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[7]; // c
+    vm.temp_lval = locals + 8; // h
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 7; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 8};
-    regs[0] = locals[7]; // c
+    *(regs + 0) = *(locals + 7); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {36, 8};
-    regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6]; // value
-    regs[3] = locals[7]; // c
+    *(regs + 0) = *(locals + 4); // value.0
+    *(regs + 1) = *(locals + 5); // value.1
+    *(regs + 2) = *(locals + 6); // value.2
+    *(regs + 3) = *(locals + 7); // c
     U_LVAL_FLD(vm, regs + 4, 4);
     U_LV_WRITEV(vm, regs + 3, 3);
     goto block1;
     block0:;
     vm.last = {38, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[8]; // h
+    *(regs + 1) = *(locals + 8); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // key
-    regs[4] = locals[4];regs[5] = locals[5];regs[6] = locals[6]; // value
+    *(regs + 1) = *(locals + 1); // key.0
+    *(regs + 2) = *(locals + 2); // key.1
+    *(regs + 3) = *(locals + 3); // key.2
+    *(regs + 4) = *(locals + 4); // value.0
+    *(regs + 5) = *(locals + 5); // value.1
+    *(regs + 6) = *(locals + 6); // value.2
     U_NEWOBJECT(vm, regs + 7, 668); // chain
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
-    regs[2] = locals[8]; // h
+    *(regs + 2) = *(locals + 8); // h
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITEREF(vm, regs + 1);
     block1:;
@@ -8329,47 +8425,47 @@ static void fun_494(VMRef vm, StackPtr psp) {
 static void fun_487(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[5];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1138, locals);
     vm.last = {34, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_INCREF(vm, regs + 2, 0);
     fun_488(vm, regs + 2); // call: lookup
-    vm.temp_lval = &locals[4]; // h
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 4; // h
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {36, 8};
-    regs[0] = locals[2]; // value
+    *(regs + 0) = *(locals + 2); // value
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[3]; // c
+    *(regs + 1) = *(locals + 3); // c
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITEREF(vm, regs + 1);
     goto block1;
     block0:;
     vm.last = {38, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[4]; // h
+    *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_INCREF(vm, regs + 2, 0);
-    regs[2] = locals[2]; // value
+    *(regs + 2) = *(locals + 2); // value
     U_INCREF(vm, regs + 3, 0);
     U_NEWOBJECT(vm, regs + 3, 640); // chain
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
-    regs[2] = locals[4]; // h
+    *(regs + 2) = *(locals + 4); // h
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITEREF(vm, regs + 1);
     block1:;
@@ -8386,43 +8482,43 @@ static void fun_487(VMRef vm, StackPtr psp) {
 static void fun_139(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[5];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1146, locals);
     vm.last = {34, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     fun_483(vm, regs + 2); // call: lookup
-    vm.temp_lval = &locals[4]; // h
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 4; // h
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {36, 8};
-    regs[0] = locals[2]; // value
-    regs[1] = locals[3]; // c
+    *(regs + 0) = *(locals + 2); // value
+    *(regs + 1) = *(locals + 3); // c
     U_LVAL_FLD(vm, regs + 2, 2);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     goto block1;
     block0:;
     vm.last = {38, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[4]; // h
+    *(regs + 1) = *(locals + 4); // h
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
-    regs[2] = locals[2]; // value
+    *(regs + 1) = *(locals + 1); // key
+    *(regs + 2) = *(locals + 2); // value
     U_NEWOBJECT(vm, regs + 3, 469); // chain
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
-    regs[2] = locals[4]; // h
+    *(regs + 2) = *(locals + 4); // h
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_WRITEREF(vm, regs + 1);
     block1:;
@@ -8439,23 +8535,23 @@ static void fun_139(VMRef vm, StackPtr psp) {
 static void fun_144(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[3];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1154, locals);
     vm.last = {66, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_INCREF(vm, regs + 2, 0);
     fun_507(vm, regs + 2); // call: lookup
-    vm.temp_lval = &locals[2]; // c
+    vm.temp_lval = locals + 2; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {67, 8};
-    regs[0] = locals[2]; // c
+    *(regs + 0) = *(locals + 2); // c
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[2]; // c
+    *(regs + 0) = *(locals + 2); // c
     U_PUSHFLD(vm, regs + 1, 2);
     block0:;
     if ((regs + 0)->True()) goto block1;
@@ -8467,7 +8563,7 @@ static void fun_144(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8477,35 +8573,35 @@ static void fun_144(VMRef vm, StackPtr psp) {
 static void fun_536(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1160, locals);
     vm.last = {73, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_INCREF(vm, regs + 2, 0);
     fun_537(vm, regs + 2); // call: lookup
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {74, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {74, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 2);
     goto block1;
     block0:;
     vm.last = {74, 8};
-    regs[0] = locals[2]; // default_val
+    *(regs + 0) = *(locals + 2); // default_val
     block1:;
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8515,32 +8611,36 @@ static void fun_536(VMRef vm, StackPtr psp) {
 static void fun_496(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[8];
-    locals[0] = *(psp - 7);
-    locals[1] = *(psp - 6);
-    locals[2] = *(psp - 5);
-    locals[3] = *(psp - 4);
-    locals[4] = *(psp - 3);
-    locals[5] = *(psp - 2);
-    locals[6] = *(psp - 1);
-    locals[7] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 7);
+    *(locals + 1) = *(psp - 6);
+    *(locals + 2) = *(psp - 5);
+    *(locals + 3) = *(psp - 4);
+    *(locals + 4) = *(psp - 3);
+    *(locals + 5) = *(psp - 2);
+    *(locals + 6) = *(psp - 1);
+    *(locals + 7) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1167, locals);
     vm.last = {73, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // key
+    *(regs + 1) = *(locals + 1); // key.0
+    *(regs + 2) = *(locals + 2); // key.1
+    *(regs + 3) = *(locals + 3); // key.2
     fun_497(vm, regs + 4); // call: lookup
-    vm.temp_lval = &locals[7]; // c
+    vm.temp_lval = locals + 7; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {74, 8};
-    regs[0] = locals[7]; // c
+    *(regs + 0) = *(locals + 7); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {74, 8};
-    regs[0] = locals[7]; // c
+    *(regs + 0) = *(locals + 7); // c
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
     goto block1;
     block0:;
     vm.last = {74, 8};
-    regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6]; // default_val
+    *(regs + 0) = *(locals + 4); // default_val.0
+    *(regs + 1) = *(locals + 5); // default_val.1
+    *(regs + 2) = *(locals + 6); // default_val.2
     block1:;
     DecVal(vm, locals[7]);
     Pop(psp);
@@ -8550,9 +8650,9 @@ static void fun_496(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8562,37 +8662,37 @@ static void fun_496(VMRef vm, StackPtr psp) {
 static void fun_489(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1178, locals);
     vm.last = {73, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     U_INCREF(vm, regs + 2, 0);
     fun_490(vm, regs + 2); // call: lookup
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {74, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {74, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 2);
     U_INCREF(vm, regs + 1, 0);
     goto block1;
     block0:;
     vm.last = {74, 8};
-    regs[0] = locals[2]; // default_val
+    *(regs + 0) = *(locals + 2); // default_val
     U_INCREF(vm, regs + 1, 0);
     block1:;
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8602,34 +8702,34 @@ static void fun_489(VMRef vm, StackPtr psp) {
 static void fun_145(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1185, locals);
     vm.last = {73, 8};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // key
+    *(regs + 1) = *(locals + 1); // key
     fun_138(vm, regs + 2); // call: lookup
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {74, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {74, 8};
-    regs[0] = locals[3]; // c
+    *(regs + 0) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 1, 2);
     goto block1;
     block0:;
     vm.last = {74, 8};
-    regs[0] = locals[2]; // default_val
+    *(regs + 0) = *(locals + 2); // default_val
     block1:;
     DecVal(vm, locals[3]);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8639,15 +8739,15 @@ static void fun_145(VMRef vm, StackPtr psp) {
 static void fun_531(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1192, locals);
     vm.last = {120, 8};
-    regs[0] = locals[0]; // size
+    *(regs + 0) = *(locals + 0); // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_532(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 514); // dictionary
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8657,15 +8757,15 @@ static void fun_531(VMRef vm, StackPtr psp) {
 static void fun_504(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1196, locals);
     vm.last = {120, 8};
-    regs[0] = locals[0]; // size
+    *(regs + 0) = *(locals + 0); // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_505(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 488); // dictionary
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8675,15 +8775,15 @@ static void fun_504(VMRef vm, StackPtr psp) {
 static void fun_491(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1200, locals);
     vm.last = {120, 8};
-    regs[0] = locals[0]; // size
+    *(regs + 0) = *(locals + 0); // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_492(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 659); // dictionary
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8693,15 +8793,15 @@ static void fun_491(VMRef vm, StackPtr psp) {
 static void fun_484(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1204, locals);
     vm.last = {120, 8};
-    regs[0] = locals[0]; // size
+    *(regs + 0) = *(locals + 0); // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_485(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 631); // dictionary
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8711,15 +8811,15 @@ static void fun_484(VMRef vm, StackPtr psp) {
 static void fun_151(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1208, locals);
     vm.last = {120, 8};
-    regs[0] = locals[0]; // size
+    *(regs + 0) = *(locals + 0); // size
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_482(vm, regs + 2); // call: map
     U_NEWOBJECT(vm, regs + 1, 460); // dictionary
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8732,7 +8832,7 @@ static void fun_153(VMRef vm, StackPtr psp) {
     vm.last = {11, 6};
     vm.last = {12, 6};
     *(regs + 0) = Value(1);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -8743,115 +8843,115 @@ static void fun_156(VMRef vm, StackPtr psp) {
     Value regs[12];
     Value keepvar[24];
     Value locals[72];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
-    locals[12] = Value(0, lobster::V_NIL);
-    locals[13] = Value(0, lobster::V_NIL);
-    locals[14] = Value(0, lobster::V_NIL);
-    locals[15] = Value(0, lobster::V_NIL);
-    locals[16] = Value(0, lobster::V_NIL);
-    locals[17] = Value(0, lobster::V_NIL);
-    locals[18] = Value(0, lobster::V_NIL);
-    locals[19] = Value(0, lobster::V_NIL);
-    locals[20] = Value(0, lobster::V_NIL);
-    locals[21] = Value(0, lobster::V_NIL);
-    locals[22] = Value(0, lobster::V_NIL);
-    locals[23] = Value(0, lobster::V_NIL);
-    locals[24] = Value(0, lobster::V_NIL);
-    locals[25] = Value(0, lobster::V_NIL);
-    locals[26] = Value(0, lobster::V_NIL);
-    locals[27] = Value(0, lobster::V_NIL);
-    locals[28] = Value(0, lobster::V_NIL);
-    locals[29] = Value(0, lobster::V_NIL);
-    locals[30] = Value(0, lobster::V_NIL);
-    locals[31] = Value(0, lobster::V_NIL);
-    locals[32] = Value(0, lobster::V_NIL);
-    locals[33] = Value(0, lobster::V_NIL);
-    locals[34] = Value(0, lobster::V_NIL);
-    locals[35] = Value(0, lobster::V_NIL);
-    locals[36] = Value(0, lobster::V_NIL);
-    locals[37] = Value(0, lobster::V_NIL);
-    locals[38] = Value(0, lobster::V_NIL);
-    locals[39] = Value(0, lobster::V_NIL);
-    locals[40] = Value(0, lobster::V_NIL);
-    locals[41] = Value(0, lobster::V_NIL);
-    locals[42] = Value(0, lobster::V_NIL);
-    locals[43] = Value(0, lobster::V_NIL);
-    locals[44] = Value(0, lobster::V_NIL);
-    locals[45] = Value(0, lobster::V_NIL);
-    locals[46] = Value(0, lobster::V_NIL);
-    locals[47] = Value(0, lobster::V_NIL);
-    locals[48] = Value(0, lobster::V_NIL);
-    locals[49] = Value(0, lobster::V_NIL);
-    locals[50] = Value(0, lobster::V_NIL);
-    locals[51] = Value(0, lobster::V_NIL);
-    locals[52] = Value(0, lobster::V_NIL);
-    locals[53] = Value(0, lobster::V_NIL);
-    locals[54] = Value(0, lobster::V_NIL);
-    locals[55] = Value(0, lobster::V_NIL);
-    locals[56] = Value(0, lobster::V_NIL);
-    locals[57] = Value(0, lobster::V_NIL);
-    locals[58] = Value(0, lobster::V_NIL);
-    locals[59] = Value(0, lobster::V_NIL);
-    locals[60] = Value(0, lobster::V_NIL);
-    locals[61] = Value(0, lobster::V_NIL);
-    locals[62] = Value(0, lobster::V_NIL);
-    locals[63] = Value(0, lobster::V_NIL);
-    locals[64] = Value(0, lobster::V_NIL);
-    locals[65] = Value(0, lobster::V_NIL);
-    locals[66] = Value(0, lobster::V_NIL);
-    locals[67] = Value(0, lobster::V_NIL);
-    locals[68] = Value(0, lobster::V_NIL);
-    locals[69] = Value(0, lobster::V_NIL);
-    locals[70] = Value(0, lobster::V_NIL);
-    locals[71] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
+    *(locals + 12) = Value(0, lobster::V_NIL);
+    *(locals + 13) = Value(0, lobster::V_NIL);
+    *(locals + 14) = Value(0, lobster::V_NIL);
+    *(locals + 15) = Value(0, lobster::V_NIL);
+    *(locals + 16) = Value(0, lobster::V_NIL);
+    *(locals + 17) = Value(0, lobster::V_NIL);
+    *(locals + 18) = Value(0, lobster::V_NIL);
+    *(locals + 19) = Value(0, lobster::V_NIL);
+    *(locals + 20) = Value(0, lobster::V_NIL);
+    *(locals + 21) = Value(0, lobster::V_NIL);
+    *(locals + 22) = Value(0, lobster::V_NIL);
+    *(locals + 23) = Value(0, lobster::V_NIL);
+    *(locals + 24) = Value(0, lobster::V_NIL);
+    *(locals + 25) = Value(0, lobster::V_NIL);
+    *(locals + 26) = Value(0, lobster::V_NIL);
+    *(locals + 27) = Value(0, lobster::V_NIL);
+    *(locals + 28) = Value(0, lobster::V_NIL);
+    *(locals + 29) = Value(0, lobster::V_NIL);
+    *(locals + 30) = Value(0, lobster::V_NIL);
+    *(locals + 31) = Value(0, lobster::V_NIL);
+    *(locals + 32) = Value(0, lobster::V_NIL);
+    *(locals + 33) = Value(0, lobster::V_NIL);
+    *(locals + 34) = Value(0, lobster::V_NIL);
+    *(locals + 35) = Value(0, lobster::V_NIL);
+    *(locals + 36) = Value(0, lobster::V_NIL);
+    *(locals + 37) = Value(0, lobster::V_NIL);
+    *(locals + 38) = Value(0, lobster::V_NIL);
+    *(locals + 39) = Value(0, lobster::V_NIL);
+    *(locals + 40) = Value(0, lobster::V_NIL);
+    *(locals + 41) = Value(0, lobster::V_NIL);
+    *(locals + 42) = Value(0, lobster::V_NIL);
+    *(locals + 43) = Value(0, lobster::V_NIL);
+    *(locals + 44) = Value(0, lobster::V_NIL);
+    *(locals + 45) = Value(0, lobster::V_NIL);
+    *(locals + 46) = Value(0, lobster::V_NIL);
+    *(locals + 47) = Value(0, lobster::V_NIL);
+    *(locals + 48) = Value(0, lobster::V_NIL);
+    *(locals + 49) = Value(0, lobster::V_NIL);
+    *(locals + 50) = Value(0, lobster::V_NIL);
+    *(locals + 51) = Value(0, lobster::V_NIL);
+    *(locals + 52) = Value(0, lobster::V_NIL);
+    *(locals + 53) = Value(0, lobster::V_NIL);
+    *(locals + 54) = Value(0, lobster::V_NIL);
+    *(locals + 55) = Value(0, lobster::V_NIL);
+    *(locals + 56) = Value(0, lobster::V_NIL);
+    *(locals + 57) = Value(0, lobster::V_NIL);
+    *(locals + 58) = Value(0, lobster::V_NIL);
+    *(locals + 59) = Value(0, lobster::V_NIL);
+    *(locals + 60) = Value(0, lobster::V_NIL);
+    *(locals + 61) = Value(0, lobster::V_NIL);
+    *(locals + 62) = Value(0, lobster::V_NIL);
+    *(locals + 63) = Value(0, lobster::V_NIL);
+    *(locals + 64) = Value(0, lobster::V_NIL);
+    *(locals + 65) = Value(0, lobster::V_NIL);
+    *(locals + 66) = Value(0, lobster::V_NIL);
+    *(locals + 67) = Value(0, lobster::V_NIL);
+    *(locals + 68) = Value(0, lobster::V_NIL);
+    *(locals + 69) = Value(0, lobster::V_NIL);
+    *(locals + 70) = Value(0, lobster::V_NIL);
+    *(locals + 71) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1215, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
-    keepvar[4] = Value(0, lobster::V_NIL);
-    keepvar[5] = Value(0, lobster::V_NIL);
-    keepvar[6] = Value(0, lobster::V_NIL);
-    keepvar[7] = Value(0, lobster::V_NIL);
-    keepvar[8] = Value(0, lobster::V_NIL);
-    keepvar[9] = Value(0, lobster::V_NIL);
-    keepvar[10] = Value(0, lobster::V_NIL);
-    keepvar[11] = Value(0, lobster::V_NIL);
-    keepvar[12] = Value(0, lobster::V_NIL);
-    keepvar[13] = Value(0, lobster::V_NIL);
-    keepvar[14] = Value(0, lobster::V_NIL);
-    keepvar[15] = Value(0, lobster::V_NIL);
-    keepvar[16] = Value(0, lobster::V_NIL);
-    keepvar[17] = Value(0, lobster::V_NIL);
-    keepvar[18] = Value(0, lobster::V_NIL);
-    keepvar[19] = Value(0, lobster::V_NIL);
-    keepvar[20] = Value(0, lobster::V_NIL);
-    keepvar[21] = Value(0, lobster::V_NIL);
-    keepvar[22] = Value(0, lobster::V_NIL);
-    keepvar[23] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
+    *(keepvar + 4) = Value(0, lobster::V_NIL);
+    *(keepvar + 5) = Value(0, lobster::V_NIL);
+    *(keepvar + 6) = Value(0, lobster::V_NIL);
+    *(keepvar + 7) = Value(0, lobster::V_NIL);
+    *(keepvar + 8) = Value(0, lobster::V_NIL);
+    *(keepvar + 9) = Value(0, lobster::V_NIL);
+    *(keepvar + 10) = Value(0, lobster::V_NIL);
+    *(keepvar + 11) = Value(0, lobster::V_NIL);
+    *(keepvar + 12) = Value(0, lobster::V_NIL);
+    *(keepvar + 13) = Value(0, lobster::V_NIL);
+    *(keepvar + 14) = Value(0, lobster::V_NIL);
+    *(keepvar + 15) = Value(0, lobster::V_NIL);
+    *(keepvar + 16) = Value(0, lobster::V_NIL);
+    *(keepvar + 17) = Value(0, lobster::V_NIL);
+    *(keepvar + 18) = Value(0, lobster::V_NIL);
+    *(keepvar + 19) = Value(0, lobster::V_NIL);
+    *(keepvar + 20) = Value(0, lobster::V_NIL);
+    *(keepvar + 21) = Value(0, lobster::V_NIL);
+    *(keepvar + 22) = Value(0, lobster::V_NIL);
+    *(keepvar + 23) = Value(0, lobster::V_NIL);
     vm.last = {20, 6};
     vm.last = {27, 6};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[0]; // vardef
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // vardef
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {28, 6};
-    vm.temp_lval = &locals[0]; // vardef
+    vm.temp_lval = locals + 0; // vardef
     U_LV_IPP(vm, regs + 0);
     vm.last = {29, 6};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[1]; // constdef
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // constdef
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {32, 6};
     fun_153(vm, regs + 0); // call: test_namespace.f
     *(regs + 1) = Value(1);
@@ -8860,7 +8960,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {33, 6};
     *(regs + 0) = Value(1);
     U_NEWOBJECT(vm, regs + 1, 544); // test_namespace.g
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
@@ -8869,7 +8969,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {34, 6};
     *(regs + 0) = Value(1);
     U_NEWOBJECT(vm, regs + 1, 544); // test_namespace.g
-    vm.temp_lval = &locals[59]; // this
+    vm.temp_lval = locals + 59; // this
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {15, 6};
     *(regs + 0) = Value(2);
@@ -8887,12 +8987,12 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {48, 6};
     vm.last = {48, 6};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[60]; // x
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 60; // x
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {48, 6};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[61]; // y
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 61; // y
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {42, 6};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(1);
@@ -8901,12 +9001,12 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {49, 6};
     vm.last = {49, 6};
     U_PUSHSTR(vm, regs + 0, 160); // ""
-    vm.temp_lval = &locals[62]; // x
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 62; // x
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {49, 6};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[63]; // y
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 63; // y
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {43, 6};
     *(regs + 0) = Value(2);
     *(regs + 1) = Value(2);
@@ -8927,10 +9027,10 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(0);
     U_NEWOBJECT(vm, regs + 2, 562); // testb
-    vm.temp_lval = &locals[64]; // a
+    vm.temp_lval = locals + 64; // a
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {53, 6};
-    regs[0] = locals[64]; // a
+    *(regs + 0) = *(locals + 64); // a
     U_INCREF(vm, regs + 1, 0);
     *(regs + 1) = Value(1);
     U_DDCALL(vm, regs + 2, 0, 1); vm.next_call_target(vm, regs + 2);
@@ -8957,43 +9057,43 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 11) = Value(7);
     U_NEWOBJECT(vm, regs + 12, 562); // testb
     U_NEWOBJECT(vm, regs + 11, 574); // parsetest
-    vm.temp_lval = &locals[2]; // direct
+    vm.temp_lval = locals + 2; // direct
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {72, 6};
     *(regs + 0) = Value(574);
-    regs[1] = locals[2]; // direct
+    *(regs + 1) = *(locals + 2); // direct
     U_A2S(vm, regs + 2, 574);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_BCALLRETV(vm, regs + 2, 254, 1); // parse_data
-    vm.temp_lval = &locals[4]; // err
+    vm.temp_lval = locals + 4; // err
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // parsed
+    vm.temp_lval = locals + 3; // parsed
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {73, 6};
-    regs[0] = locals[4]; // err
+    *(regs + 0) = *(locals + 4); // err
     if (!(regs + 0)->True()) goto block0;
     vm.last = {73, 6};
-    regs[0] = locals[4]; // err
+    *(regs + 0) = *(locals + 4); // err
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
     block0:;
     vm.last = {74, 6};
-    regs[0] = locals[3]; // parsed
-    regs[1] = locals[2]; // direct
+    *(regs + 0) = *(locals + 3); // parsed
+    *(regs + 1) = *(locals + 2); // direct
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 74, 6, 165);
     vm.last = {76, 6};
     *(regs + 0) = Value(574);
     U_PUSHSTR(vm, regs + 1, 166); // "parsetest { true, 1, 1.0, float3 {}, \"\", [], nil, "
     U_BCALLRETV(vm, regs + 2, 254, 1); // parse_data
-    vm.temp_lval = &locals[4]; // err
+    vm.temp_lval = locals + 4; // err
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // parsed
+    vm.temp_lval = locals + 3; // parsed
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {77, 6};
-    regs[0] = locals[4]; // err
+    *(regs + 0) = *(locals + 4); // err
     if (!(regs + 0)->True()) goto block1;
     vm.last = {77, 6};
-    regs[0] = locals[4]; // err
+    *(regs + 0) = *(locals + 4); // err
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
     block1:;
     vm.last = {78, 6};
@@ -9012,106 +9112,106 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 11) = Value(7);
     U_NEWOBJECT(vm, regs + 12, 562); // testb
     U_NEWOBJECT(vm, regs + 11, 574); // parsetest
-    vm.temp_lval = &locals[5]; // groundv
+    vm.temp_lval = locals + 5; // groundv
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {79, 6};
-    regs[0] = locals[3]; // parsed
-    regs[1] = locals[5]; // groundv
+    *(regs + 0) = *(locals + 3); // parsed
+    *(regs + 1) = *(locals + 5); // groundv
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 79, 6, 168);
     vm.last = {80, 6};
-    regs[0] = locals[3]; // parsed
+    *(regs + 0) = *(locals + 3); // parsed
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     U_BCALLRET3(vm, regs + 3, 255, 1); // flexbuffers_value_to_binary
-    vm.temp_lval = &locals[6]; // flex
+    vm.temp_lval = locals + 6; // flex
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {81, 6};
-    regs[0] = locals[6]; // flex
+    *(regs + 0) = *(locals + 6); // flex
     *(regs + 1) = Value(0);
     U_PUSHSTR(vm, regs + 2, 169); // ""
     U_BCALLRETV(vm, regs + 3, 257, 1); // flexbuffers_binary_to_json
     U_POPREF(vm, regs + 2);
-    vm.temp_lval = &locals[7]; // json
+    vm.temp_lval = locals + 7; // json
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {82, 6};
-    regs[0] = locals[7]; // json
+    *(regs + 0) = *(locals + 7); // json
     U_ASSERT(vm, regs + 1, 82, 6, 170);
     vm.last = {84, 6};
     U_PUSHSTR(vm, regs + 0, 171); // "{ a: 1, b: 1.0, d: \"\", e: [  ], g: -1, h: 1, s: { "
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[8]; // groundj
+    vm.temp_lval = locals + 8; // groundj
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {85, 6};
-    regs[0] = locals[7]; // json
-    regs[1] = locals[8]; // groundj
+    *(regs + 0) = *(locals + 7); // json
+    *(regs + 1) = *(locals + 8); // groundj
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 85, 6, 172);
     vm.last = {86, 6};
-    regs[0] = locals[7]; // json
+    *(regs + 0) = *(locals + 7); // json
     U_PUSHNIL(vm, regs + 1);
     U_BCALLRET2(vm, regs + 2, 258, 1); // flexbuffers_json_to_binary
-    vm.temp_lval = &locals[10]; // ferr
+    vm.temp_lval = locals + 10; // ferr
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[9]; // flex2
+    vm.temp_lval = locals + 9; // flex2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {87, 6};
-    regs[0] = locals[10]; // ferr
+    *(regs + 0) = *(locals + 10); // ferr
     U_LOGNOTREF(vm, regs + 1);
     U_ASSERT(vm, regs + 1, 87, 6, 173);
     vm.last = {88, 6};
-    regs[0] = locals[9]; // flex2
+    *(regs + 0) = *(locals + 9); // flex2
     *(regs + 1) = Value(0);
     U_PUSHSTR(vm, regs + 2, 174); // ""
     U_BCALLRETV(vm, regs + 3, 257, 1); // flexbuffers_binary_to_json
     U_POPREF(vm, regs + 2);
-    vm.temp_lval = &locals[11]; // json2
+    vm.temp_lval = locals + 11; // json2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {89, 6};
-    regs[0] = locals[11]; // json2
+    *(regs + 0) = *(locals + 11); // json2
     U_ASSERT(vm, regs + 1, 89, 6, 175);
     vm.last = {90, 6};
-    regs[0] = locals[11]; // json2
-    regs[1] = locals[8]; // groundj
+    *(regs + 0) = *(locals + 11); // json2
+    *(regs + 1) = *(locals + 8); // groundj
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 90, 6, 176);
     vm.last = {91, 6};
     *(regs + 0) = Value(574);
-    regs[1] = locals[9]; // flex2
+    *(regs + 1) = *(locals + 9); // flex2
     U_BCALLRETV(vm, regs + 2, 256, 1); // flexbuffers_binary_to_value
-    vm.temp_lval = &locals[13]; // fverr
+    vm.temp_lval = locals + 13; // fverr
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[12]; // fval
+    vm.temp_lval = locals + 12; // fval
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {92, 6};
-    regs[0] = locals[13]; // fverr
+    *(regs + 0) = *(locals + 13); // fverr
     U_LOGNOTREF(vm, regs + 1);
     U_ASSERT(vm, regs + 1, 92, 6, 177);
     vm.last = {93, 6};
-    regs[0] = locals[12]; // fval
-    regs[1] = locals[5]; // groundv
+    *(regs + 0) = *(locals + 12); // fval
+    *(regs + 1) = *(locals + 5); // groundv
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 93, 6, 178);
     vm.last = {94, 6};
-    regs[0] = locals[3]; // parsed
+    *(regs + 0) = *(locals + 3); // parsed
     U_BCALLRET1(vm, regs + 1, 259, 1); // lobster_value_to_binary
-    vm.temp_lval = &locals[14]; // lb
+    vm.temp_lval = locals + 14; // lb
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {95, 6};
     *(regs + 0) = Value(574);
-    regs[1] = locals[14]; // lb
+    *(regs + 1) = *(locals + 14); // lb
     U_BCALLRETV(vm, regs + 2, 260, 1); // lobster_binary_to_value
-    vm.temp_lval = &locals[16]; // lberr
+    vm.temp_lval = locals + 16; // lberr
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[15]; // lbval
+    vm.temp_lval = locals + 15; // lbval
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {96, 6};
-    regs[0] = locals[16]; // lberr
+    *(regs + 0) = *(locals + 16); // lberr
     U_LOGNOTREF(vm, regs + 1);
     U_ASSERT(vm, regs + 1, 96, 6, 179);
     vm.last = {97, 6};
-    regs[0] = locals[15]; // lbval
-    regs[1] = locals[5]; // groundv
+    *(regs + 0) = *(locals + 15); // lbval
+    *(regs + 1) = *(locals + 5); // groundv
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 97, 6, 180);
     vm.last = {99, 6};
@@ -9119,7 +9219,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 1, 181); // "test_namespace.g {}"
     U_BCALLRETV(vm, regs + 2, 254, 1); // parse_data
     U_POPREF(vm, regs + 2);
-    keepvar[2] = TopM(regs + 1, 0);
+    *(keepvar + 2) = *(regs + 0);
     U_ASSERT(vm, regs + 1, 99, 6, 182);
     vm.last = {101, 6};
     *(regs + 0) = Value(2);
@@ -9138,26 +9238,26 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 6) = Value(12452);
     *(regs + 7) = Value(12488);
     U_NEWVEC(vm, regs + 8, 7, 8);
-    vm.temp_lval = &locals[17]; // unicodetests
+    vm.temp_lval = locals + 17; // unicodetests
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {105, 6};
-    regs[0] = locals[17]; // unicodetests
+    *(regs + 0) = *(locals + 17); // unicodetests
     U_BCALLRET1(vm, regs + 1, 43, 1); // unicode_to_string
-    keepvar[3] = TopM(regs + 1, 0);
+    *(keepvar + 3) = *(regs + 0);
     U_BCALLRET1(vm, regs + 1, 44, 1); // string_to_unicode
     U_POP(vm, regs + 2);
-    keepvar[4] = TopM(regs + 1, 0);
-    regs[1] = locals[17]; // unicodetests
+    *(keepvar + 4) = *(regs + 0);
+    *(regs + 1) = *(locals + 17); // unicodetests
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 105, 6, 184);
     vm.last = {107, 6};
     *(regs + 0) = Value(10);
     U_PUSHFUN(vm, regs + 1, 0, fun_162);
     fun_7(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[18]; // st
+    vm.temp_lval = locals + 18; // st
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {115, 6};
-    regs[0] = locals[18]; // st
+    *(regs + 0) = *(locals + 18); // st
     U_PUSHSTR(vm, regs + 1, 185); // "what?"
     U_INCREF(vm, regs + 2, 0);
     U_PUSHSTR(vm, regs + 2, 186); // "no"
@@ -9179,11 +9279,11 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 10, 194); // "what?"
     U_INCREF(vm, regs + 11, 0);
     U_NEWVEC(vm, regs + 11, 11, 10);
-    keepvar[5] = TopM(regs + 2, 0);
+    *(keepvar + 5) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 115, 6, 195);
     vm.last = {116, 6};
-    regs[0] = locals[18]; // st
+    *(regs + 0) = *(locals + 18); // st
     *(regs + 1) = Value(2);
     U_VPUSHIDXI(vm, regs + 2);
     U_DUP(vm, regs + 1);
@@ -9196,7 +9296,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     goto block3;
     block2:;
     U_DUP(vm, regs + 1);
-    regs[2] = locals[18]; // st
+    *(regs + 2) = *(locals + 18); // st
     *(regs + 3) = Value(3);
     U_VPUSHIDXI(vm, regs + 4);
     U_SEQ(vm, regs + 3);
@@ -9236,8 +9336,8 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {124, 6};
     vm.last = {124, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_163);
-    vm.temp_lval = &locals[65]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 65; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_163(vm, regs + 0); // call: function156
     vm.last = {130, 6};
@@ -9252,36 +9352,36 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 8) = Value(4);
     *(regs + 9) = Value(1);
     U_NEWVEC(vm, regs + 10, 7, 10);
-    vm.temp_lval = &locals[19]; // testvector
+    vm.temp_lval = locals + 19; // testvector
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {132, 6};
-    regs[0] = locals[19]; // testvector
+    *(regs + 0) = *(locals + 19); // testvector
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_164);
     fun_48(vm, regs + 2); // call: qsort
-    vm.temp_lval = &locals[20]; // sorted1
+    vm.temp_lval = locals + 20; // sorted1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {133, 6};
-    regs[0] = locals[19]; // testvector
+    *(regs + 0) = *(locals + 19); // testvector
     U_BCALLRET1(vm, regs + 1, 29, 1); // copy
-    vm.temp_lval = &locals[21]; // sorted2
+    vm.temp_lval = locals + 21; // sorted2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {134, 6};
-    regs[0] = locals[21]; // sorted2
+    *(regs + 0) = *(locals + 21); // sorted2
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_165);
     fun_52(vm, regs + 2); // call: insertion_sort
     vm.last = {135, 6};
-    regs[0] = locals[19]; // testvector
+    *(regs + 0) = *(locals + 19); // testvector
     U_BCALLRET1(vm, regs + 1, 29, 1); // copy
-    vm.temp_lval = &locals[22]; // sorted3
+    vm.temp_lval = locals + 22; // sorted3
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {136, 6};
-    regs[0] = locals[22]; // sorted3
+    *(regs + 0) = *(locals + 22); // sorted3
     U_PUSHFUN(vm, regs + 1, 0, fun_166);
     fun_50(vm, regs + 2); // call: qsort_in_place
     vm.last = {138, 6};
-    regs[0] = locals[20]; // sorted1
+    *(regs + 0) = *(locals + 20); // sorted1
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(1);
     *(regs + 3) = Value(3);
@@ -9293,85 +9393,85 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 9) = Value(9);
     *(regs + 10) = Value(9);
     U_NEWVEC(vm, regs + 11, 7, 10);
-    keepvar[6] = TopM(regs + 2, 0);
+    *(keepvar + 6) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 138, 6, 199);
     vm.last = {139, 6};
-    regs[0] = locals[20]; // sorted1
-    regs[1] = locals[21]; // sorted2
+    *(regs + 0) = *(locals + 20); // sorted1
+    *(regs + 1) = *(locals + 21); // sorted2
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 139, 6, 200);
     vm.last = {140, 6};
-    regs[0] = locals[20]; // sorted1
-    regs[1] = locals[22]; // sorted3
+    *(regs + 0) = *(locals + 20); // sorted1
+    *(regs + 1) = *(locals + 22); // sorted3
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 140, 6, 201);
     vm.last = {142, 6};
-    regs[0] = locals[20]; // sorted1
+    *(regs + 0) = *(locals + 20); // sorted1
     *(regs + 1) = Value(1);
     U_BCALLRET2(vm, regs + 2, 23, 1); // binary_search
-    vm.temp_lval = &locals[24]; // findex
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[23]; // found
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 24; // findex
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 23; // found
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {143, 6};
-    regs[0] = locals[23]; // found
+    *(regs + 0) = *(locals + 23); // found
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block9;
     U_POP(vm, regs + 1);
-    regs[0] = locals[24]; // findex
+    *(regs + 0) = *(locals + 24); // findex
     *(regs + 1) = Value(0);
     U_IEQ(vm, regs + 2);
     block9:;
     U_ASSERT(vm, regs + 1, 143, 6, 202);
     vm.last = {144, 6};
-    regs[0] = locals[20]; // sorted1
+    *(regs + 0) = *(locals + 20); // sorted1
     *(regs + 1) = Value(9);
     U_BCALLRET2(vm, regs + 2, 23, 1); // binary_search
-    vm.temp_lval = &locals[24]; // findex
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[23]; // found
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 24; // findex
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 23; // found
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {145, 6};
-    regs[0] = locals[23]; // found
+    *(regs + 0) = *(locals + 23); // found
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block10;
     U_POP(vm, regs + 1);
-    regs[0] = locals[24]; // findex
+    *(regs + 0) = *(locals + 24); // findex
     *(regs + 1) = Value(8);
     U_IEQ(vm, regs + 2);
     block10:;
     U_ASSERT(vm, regs + 1, 145, 6, 203);
     vm.last = {146, 6};
-    regs[0] = locals[20]; // sorted1
+    *(regs + 0) = *(locals + 20); // sorted1
     *(regs + 1) = Value(3);
     U_BCALLRET2(vm, regs + 2, 23, 1); // binary_search
-    vm.temp_lval = &locals[24]; // findex
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[23]; // found
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 24; // findex
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 23; // found
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {147, 6};
-    regs[0] = locals[23]; // found
+    *(regs + 0) = *(locals + 23); // found
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block11;
     U_POP(vm, regs + 1);
-    regs[0] = locals[24]; // findex
+    *(regs + 0) = *(locals + 24); // findex
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     block11:;
     U_ASSERT(vm, regs + 1, 147, 6, 204);
     vm.last = {149, 6};
     *(regs + 0) = Value(44);
-    regs[1] = locals[19]; // testvector
+    *(regs + 1) = *(locals + 19); // testvector
     fun_29(vm, regs + 2); // call: sum
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 149, 6, 205);
     vm.last = {150, 6};
     *(regs + 0) = Value(264);
-    regs[1] = locals[19]; // testvector
+    *(regs + 1) = *(locals + 19); // testvector
     U_PUSHFUN(vm, regs + 2, 0, fun_167);
     fun_471(vm, regs + 3); // call: map
     fun_472(vm, regs + 2); // call: sum
@@ -9386,8 +9486,8 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 154, 6, 207);
     vm.last = {156, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_169);
-    vm.temp_lval = &locals[25]; // applyto4
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 25; // applyto4
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {157, 6};
     *(regs + 0) = Value(16);
     U_PUSHFUN(vm, regs + 1, 0, fun_170);
@@ -9401,7 +9501,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(122);
     *(regs + 3) = Value(0);
     U_BCALLRET4(vm, regs + 4, 198, 1); // ensure_size
-    keepvar[7] = TopM(regs + 1, 0);
+    *(keepvar + 7) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 210); // "abc"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 159, 6, 211);
@@ -9412,7 +9512,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(122);
     *(regs + 3) = Value(0);
     U_BCALLRET4(vm, regs + 4, 198, 1); // ensure_size
-    keepvar[8] = TopM(regs + 1, 0);
+    *(keepvar + 8) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 213); // "abczz"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 160, 6, 214);
@@ -9423,7 +9523,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(122);
     *(regs + 3) = Value(0);
     U_BCALLRET4(vm, regs + 4, 198, 1); // ensure_size
-    keepvar[9] = TopM(regs + 1, 0);
+    *(keepvar + 9) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 216); // "zzabc"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 161, 6, 217);
@@ -9433,23 +9533,23 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(1027);
     U_BCALLRET3(vm, regs + 3, 201, 1); // write_int16_le
-    vm.temp_lval = &locals[27]; // ni
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[26]; // ns
+    vm.temp_lval = locals + 27; // ni
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 26; // ns
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {163, 6};
-    regs[0] = locals[26]; // ns
+    *(regs + 0) = *(locals + 26); // ns
     U_PUSHSTR(vm, regs + 1, 219); // "\003\004\000\000"
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block12;
     U_POP(vm, regs + 1);
-    regs[0] = locals[27]; // ni
+    *(regs + 0) = *(locals + 27); // ni
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     block12:;
     U_ASSERT(vm, regs + 1, 163, 6, 220);
     vm.last = {164, 6};
-    regs[0] = locals[26]; // ns
+    *(regs + 0) = *(locals + 26); // ns
     *(regs + 1) = Value(0);
     U_BCALLRET2(vm, regs + 2, 215, 1); // read_int32_le
     U_POP(vm, regs + 2);
@@ -9462,23 +9562,23 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(2050);
     U_BCALLRET3(vm, regs + 3, 207, 1); // write_int16_le_back
-    vm.temp_lval = &locals[27]; // ni
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[26]; // ns
+    vm.temp_lval = locals + 27; // ni
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 26; // ns
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {166, 6};
-    regs[0] = locals[26]; // ns
+    *(regs + 0) = *(locals + 26); // ns
     U_PUSHSTR(vm, regs + 1, 223); // "\000\000\002\010"
     U_SEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block13;
     U_POP(vm, regs + 1);
-    regs[0] = locals[27]; // ni
+    *(regs + 0) = *(locals + 27); // ni
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     block13:;
     U_ASSERT(vm, regs + 1, 166, 6, 224);
     vm.last = {167, 6};
-    regs[0] = locals[26]; // ns
+    *(regs + 0) = *(locals + 26); // ns
     *(regs + 1) = Value(0);
     U_BCALLRET2(vm, regs + 2, 226, 1); // read_int16_le_back
     U_POP(vm, regs + 2);
@@ -9488,41 +9588,41 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {169, 6};
     U_PUSHSTR(vm, regs + 0, 226); // "a"
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[28]; // s1
+    vm.temp_lval = locals + 28; // s1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {170, 6};
     U_PUSHSTR(vm, regs + 0, 227); // "b"
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[29]; // s2
+    vm.temp_lval = locals + 29; // s2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {171, 6};
-    regs[0] = locals[28]; // s1
+    *(regs + 0) = *(locals + 28); // s1
     if (!(regs + 0)->True()) goto block14;
     U_POP(vm, regs + 1);
-    regs[0] = locals[29]; // s2
+    *(regs + 0) = *(locals + 29); // s2
     block14:;
-    regs[1] = locals[29]; // s2
+    *(regs + 1) = *(locals + 29); // s2
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 171, 6, 228);
     vm.last = {172, 6};
-    regs[0] = locals[29]; // s2
-    regs[1] = locals[28]; // s1
+    *(regs + 0) = *(locals + 29); // s2
+    *(regs + 1) = *(locals + 28); // s1
     U_INCREF(vm, regs + 2, 0);
     U_INCREF(vm, regs + 2, 1);
-    vm.temp_lval = &locals[29]; // s2
+    vm.temp_lval = locals + 29; // s2
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[28]; // s1
+    vm.temp_lval = locals + 28; // s1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {174, 6};
     *(regs + 0) = Value(5);
-    vm.temp_lval = &locals[30]; // aa
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 30; // aa
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {175, 6};
     *(regs + 0) = Value(2);
-    vm.temp_lval = &locals[30]; // aa
+    vm.temp_lval = locals + 30; // aa
     U_LV_IMOD(vm, regs + 1);
     vm.last = {176, 6};
-    regs[0] = locals[30]; // aa
+    *(regs + 0) = *(locals + 30); // aa
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 176, 6, 229);
@@ -9542,45 +9642,45 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(1);
     *(regs + 3) = Value(1);
-    vm.temp_lval = &locals[34]; // ee
-    *vm.temp_lval = *(regs + 3);
-    vm.temp_lval = &locals[33]; // dd
-    *vm.temp_lval = *(regs + 2);
-    vm.temp_lval = &locals[32]; // cc
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[31]; // bb
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 34; // ee
+    *(vm.temp_lval) = *(regs + 3);
+    vm.temp_lval = locals + 33; // dd
+    *(vm.temp_lval) = *(regs + 2);
+    vm.temp_lval = locals + 32; // cc
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 31; // bb
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {181, 6};
-    regs[0] = locals[31]; // bb
+    *(regs + 0) = *(locals + 31); // bb
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block15;
     U_POP(vm, regs + 1);
-    regs[0] = locals[31]; // bb
-    regs[1] = locals[32]; // cc
+    *(regs + 0) = *(locals + 31); // bb
+    *(regs + 1) = *(locals + 32); // cc
     U_IEQ(vm, regs + 2);
     block15:;
     if (!(regs + 0)->True()) goto block16;
     U_POP(vm, regs + 1);
-    regs[0] = locals[33]; // dd
-    regs[1] = locals[34]; // ee
+    *(regs + 0) = *(locals + 33); // dd
+    *(regs + 1) = *(locals + 34); // ee
     U_IEQ(vm, regs + 2);
     block16:;
     U_ASSERT(vm, regs + 1, 181, 6, 231);
     vm.last = {182, 6};
     *(regs + 0) = Value(2);
     *(regs + 1) = Value(3);
-    vm.temp_lval = &locals[36]; // gg
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[35]; // ff
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 36; // gg
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 35; // ff
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {183, 6};
-    regs[0] = locals[35]; // ff
+    *(regs + 0) = *(locals + 35); // ff
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block17;
     U_POP(vm, regs + 1);
-    regs[0] = locals[36]; // gg
+    *(regs + 0) = *(locals + 36); // gg
     *(regs + 1) = Value(3);
     U_IEQ(vm, regs + 2);
     block17:;
@@ -9588,17 +9688,17 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {184, 6};
     *(regs + 0) = Value(8);
     *(regs + 1) = Value(9);
-    vm.temp_lval = &locals[36]; // gg
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[35]; // ff
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 36; // gg
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 35; // ff
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {185, 6};
-    regs[0] = locals[35]; // ff
+    *(regs + 0) = *(locals + 35); // ff
     *(regs + 1) = Value(8);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block18;
     U_POP(vm, regs + 1);
-    regs[0] = locals[36]; // gg
+    *(regs + 0) = *(locals + 36); // gg
     *(regs + 1) = Value(9);
     U_IEQ(vm, regs + 2);
     block18:;
@@ -9606,44 +9706,44 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {186, 6};
     vm.last = {189, 6};
     fun_171(vm, regs + 0); // call: multiret
-    vm.temp_lval = &locals[38]; // ii
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[37]; // hh
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 38; // ii
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 37; // hh
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {190, 6};
-    regs[0] = locals[37]; // hh
+    *(regs + 0) = *(locals + 37); // hh
     *(regs + 1) = Value(6);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block19;
     U_POP(vm, regs + 1);
-    regs[0] = locals[38]; // ii
+    *(regs + 0) = *(locals + 38); // ii
     *(regs + 1) = Value(7);
     U_IEQ(vm, regs + 2);
     block19:;
     U_ASSERT(vm, regs + 1, 190, 6, 234);
     vm.last = {191, 6};
     fun_473(vm, regs + 0); // call: multiret
-    vm.temp_lval = &locals[39]; // ll
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 39; // ll
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {192, 6};
-    regs[0] = locals[39]; // ll
+    *(regs + 0) = *(locals + 39); // ll
     *(regs + 1) = Value(6);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 192, 6, 235);
     vm.last = {193, 6};
     vm.last = {194, 6};
     fun_172(vm, regs + 0); // call: multiretpassthru
-    vm.temp_lval = &locals[41]; // kk
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[40]; // jj
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 41; // kk
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 40; // jj
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {195, 6};
-    regs[0] = locals[40]; // jj
+    *(regs + 0) = *(locals + 40); // jj
     *(regs + 1) = Value(6);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block20;
     U_POP(vm, regs + 1);
-    regs[0] = locals[41]; // kk
+    *(regs + 0) = *(locals + 41); // kk
     *(regs + 1) = Value(7);
     U_IEQ(vm, regs + 2);
     block20:;
@@ -9651,17 +9751,17 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {196, 6};
     vm.last = {197, 6};
     fun_173(vm, regs + 0); // call: multirettyped
-    vm.temp_lval = &locals[43]; // mm
+    vm.temp_lval = locals + 43; // mm
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[42]; // nn
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 42; // nn
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {198, 6};
-    regs[0] = locals[42]; // nn
+    *(regs + 0) = *(locals + 42); // nn
     *(regs + 1) = Value(1.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 198, 6, 237);
     vm.last = {199, 6};
-    regs[0] = locals[43]; // mm
+    *(regs + 0) = *(locals + 43); // mm
     U_PUSHSTR(vm, regs + 1, 238); // "a"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 199, 6, 239);
@@ -9678,7 +9778,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {212, 6};
     *(regs + 0) = Value(5);
     fun_175(vm, regs + 1); // call: union_return
-    keepvar[10] = TopM(regs + 1, 0);
+    *(keepvar + 10) = *(regs + 0);
     U_ASSERT(vm, regs + 1, 212, 6, 241);
     vm.last = {215, 6};
     vm.last = {218, 6};
@@ -9705,21 +9805,21 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(7);
     fun_480(vm, regs + 3); // call: factorial
     vm.last = {240, 6};
-    regs[2] = locals[19]; // testvector
+    *(regs + 2) = *(locals + 19); // testvector
     *(regs + 3) = Value(0);
     U_PUSHFUN(vm, regs + 4, 0, fun_183);
     fun_481(vm, regs + 5); // call: fold
     goto block21;
     block22:;
     vm.last = {242, 6};
-    regs[0] = locals[19]; // testvector
+    *(regs + 0) = *(locals + 19); // testvector
     *(regs + 1) = Value(1);
     U_BCALLRETV(vm, regs + 2, 22, 0); // truncate
     vm.last = {243, 6};
-    regs[0] = locals[19]; // testvector
+    *(regs + 0) = *(locals + 19); // testvector
     *(regs + 1) = Value(3);
     U_NEWVEC(vm, regs + 2, 7, 1);
-    keepvar[11] = TopM(regs + 2, 0);
+    *(keepvar + 11) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 243, 6, 243);
     vm.last = {245, 6};
@@ -9801,11 +9901,11 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 256, 6, 253);
     vm.last = {259, 6};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[44]; // bit
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 44; // bit
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {260, 6};
     *(regs + 0) = Value(2);
-    vm.temp_lval = &locals[44]; // bit
+    vm.temp_lval = locals + 44; // bit
     U_LV_BINOR(vm, regs + 1);
     U_LV_DUP(vm, regs + 0);
     *(regs + 1) = Value(3);
@@ -9813,7 +9913,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 260, 6, 254);
     vm.last = {261, 6};
     *(regs + 0) = Value(-3);
-    vm.temp_lval = &locals[44]; // bit
+    vm.temp_lval = locals + 44; // bit
     U_LV_BINAND(vm, regs + 1);
     U_LV_DUP(vm, regs + 0);
     *(regs + 1) = Value(1);
@@ -9821,7 +9921,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 261, 6, 255);
     vm.last = {262, 6};
     *(regs + 0) = Value(3);
-    vm.temp_lval = &locals[44]; // bit
+    vm.temp_lval = locals + 44; // bit
     U_LV_XOR(vm, regs + 1);
     U_LV_DUP(vm, regs + 0);
     *(regs + 1) = Value(2);
@@ -9829,7 +9929,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 262, 6, 256);
     vm.last = {263, 6};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[44]; // bit
+    vm.temp_lval = locals + 44; // bit
     U_LV_ASL(vm, regs + 1);
     U_LV_DUP(vm, regs + 0);
     *(regs + 1) = Value(4);
@@ -9837,7 +9937,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 263, 6, 257);
     vm.last = {264, 6};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[44]; // bit
+    vm.temp_lval = locals + 44; // bit
     U_LV_ASR(vm, regs + 1);
     U_LV_DUP(vm, regs + 0);
     *(regs + 1) = Value(2);
@@ -9846,10 +9946,10 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {267, 6};
     *(regs + 0) = Value(17);
     fun_151(vm, regs + 1); // call: dictionary
-    vm.temp_lval = &locals[45]; // dict
+    vm.temp_lval = locals + 45; // dict
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {269, 6};
-    regs[0] = locals[45]; // dict
+    *(regs + 0) = *(locals + 45); // dict
     *(regs + 1) = Value(1.000000);
     *(regs + 2) = Value(-1.000000);
     fun_145(vm, regs + 3); // call: get
@@ -9866,12 +9966,12 @@ static void fun_156(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block24;
     vm.last = {272, 6};
     U_BCALLRET0(vm, regs + 2, 95, 1); // rnd_float
-    vm.temp_lval = &locals[46]; // key
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 46; // key
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {273, 6};
-    regs[2] = locals[45]; // dict
-    regs[3] = locals[46]; // key
-    regs[4] = locals[46]; // key
+    *(regs + 2) = *(locals + 45); // dict
+    *(regs + 3) = *(locals + 46); // key
+    *(regs + 4) = *(locals + 46); // key
     fun_139(vm, regs + 5); // call: set
     goto block23;
     block24:;
@@ -9885,18 +9985,18 @@ static void fun_156(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block26;
     vm.last = {276, 6};
     U_BCALLRET0(vm, regs + 2, 95, 1); // rnd_float
-    vm.temp_lval = &locals[47]; // key
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 47; // key
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {277, 6};
-    regs[2] = locals[45]; // dict
-    regs[3] = locals[47]; // key
+    *(regs + 2) = *(locals + 45); // dict
+    *(regs + 3) = *(locals + 47); // key
     *(regs + 4) = Value(-1.000000);
     fun_145(vm, regs + 5); // call: get
-    vm.temp_lval = &locals[48]; // value
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 48; // value
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {278, 6};
-    regs[2] = locals[48]; // value
-    regs[3] = locals[47]; // key
+    *(regs + 2) = *(locals + 48); // value
+    *(regs + 3) = *(locals + 47); // key
     U_FEQ(vm, regs + 4);
     U_ASSERT(vm, regs + 3, 278, 6, 260);
     goto block25;
@@ -9904,26 +10004,26 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {280, 6};
     *(regs + 0) = Value(17);
     fun_484(vm, regs + 1); // call: dictionary
-    vm.temp_lval = &locals[49]; // dict2
+    vm.temp_lval = locals + 49; // dict2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {281, 6};
-    regs[0] = locals[49]; // dict2
+    *(regs + 0) = *(locals + 49); // dict2
     U_PUSHSTR(vm, regs + 1, 261); // "a"
     U_PUSHSTR(vm, regs + 2, 262); // "b"
     fun_487(vm, regs + 3); // call: set
     vm.last = {282, 6};
-    regs[0] = locals[49]; // dict2
+    *(regs + 0) = *(locals + 49); // dict2
     U_PUSHSTR(vm, regs + 1, 263); // "a"
     U_PUSHNIL(vm, regs + 2);
     fun_489(vm, regs + 3); // call: get
-    vm.temp_lval = &locals[50]; // val
+    vm.temp_lval = locals + 50; // val
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {283, 6};
-    regs[0] = locals[50]; // val
+    *(regs + 0) = *(locals + 50); // val
     U_E2B(vm, regs + 1);
     if (!(regs + 0)->True()) goto block27;
     U_POP(vm, regs + 1);
-    regs[0] = locals[50]; // val
+    *(regs + 0) = *(locals + 50); // val
     U_PUSHSTR(vm, regs + 1, 264); // "b"
     U_SEQ(vm, regs + 2);
     block27:;
@@ -9931,10 +10031,10 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {285, 6};
     *(regs + 0) = Value(17);
     fun_491(vm, regs + 1); // call: dictionary
-    vm.temp_lval = &locals[51]; // dict3
+    vm.temp_lval = locals + 51; // dict3
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {286, 6};
-    regs[0] = locals[51]; // dict3
+    *(regs + 0) = *(locals + 51); // dict3
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(2);
     *(regs + 3) = Value(3);
@@ -9943,7 +10043,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 6) = Value(6);
     fun_494(vm, regs + 7); // call: set
     vm.last = {287, 6};
-    regs[0] = locals[51]; // dict3
+    *(regs + 0) = *(locals + 51); // dict3
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(2);
     *(regs + 3) = Value(3);
@@ -9956,8 +10056,8 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 287, 6, 266);
     vm.last = {290, 6};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[52]; // lc
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 52; // lc
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {291, 6};
     *(regs + 0) = Value(-1);
     *(regs + 1) = Value(10);
@@ -9965,10 +10065,10 @@ static void fun_156(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block29;
     vm.last = {291, 6};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[53]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 53; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {292, 6};
-    regs[2] = locals[53]; // i
+    *(regs + 2) = *(locals + 53); // i
     *(regs + 3) = Value(5);
     U_IEQ(vm, regs + 4);
     if (!(regs + 2)->True()) goto block30;
@@ -9978,22 +10078,22 @@ static void fun_156(VMRef vm, StackPtr psp) {
     goto block31;
     block30:;
     vm.last = {293, 6};
-    vm.temp_lval = &locals[52]; // lc
+    vm.temp_lval = locals + 52; // lc
     U_LV_IPP(vm, regs + 2);
     goto block28;
     block29:;
     block31:;
     vm.last = {294, 6};
-    regs[0] = locals[52]; // lc
+    *(regs + 0) = *(locals + 52); // lc
     *(regs + 1) = Value(5);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 294, 6, 267);
     vm.last = {295, 6};
     block32:;
-    regs[0] = locals[52]; // lc
+    *(regs + 0) = *(locals + 52); // lc
     if (!(regs + 0)->True()) goto block33;
     vm.last = {296, 6};
-    regs[0] = locals[52]; // lc
+    *(regs + 0) = *(locals + 52); // lc
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block34;
@@ -10001,13 +10101,13 @@ static void fun_156(VMRef vm, StackPtr psp) {
     goto block35;
     block34:;
     vm.last = {297, 6};
-    vm.temp_lval = &locals[52]; // lc
+    vm.temp_lval = locals + 52; // lc
     U_LV_IMM(vm, regs + 0);
     goto block32;
     block33:;
     block35:;
     vm.last = {298, 6};
-    regs[0] = locals[52]; // lc
+    *(regs + 0) = *(locals + 52); // lc
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 298, 6, 268);
@@ -10040,21 +10140,21 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {332, 6};
     vm.last = {338, 6};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[54]; // dav
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 54; // dav
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {339, 6};
     vm.last = {340, 6};
     vm.last = {341, 6};
     vm.last = {342, 6};
     vm.last = {342, 6};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[66]; // a
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 66; // a
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {341, 6};
-    regs[0] = locals[66]; // a
+    *(regs + 0) = *(locals + 66); // a
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(2);
-    regs[3] = locals[54]; // dav
+    *(regs + 3) = *(locals + 54); // dav
     *(regs + 4) = Value(1);
     U_IADD(vm, regs + 5);
     fun_190(vm, regs + 4); // call: da
@@ -10113,7 +10213,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 2, 290); // "X"
     *(regs + 3) = Value(0);
     U_BCALLRET4(vm, regs + 4, 39, 1); // replace_string
-    keepvar[12] = TopM(regs + 1, 0);
+    *(keepvar + 12) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 291); // "aXdaXd"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 350, 6, 292);
@@ -10123,7 +10223,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 2, 295); // "X"
     *(regs + 3) = Value(1);
     U_BCALLRET4(vm, regs + 4, 39, 1); // replace_string
-    keepvar[13] = TopM(regs + 1, 0);
+    *(keepvar + 13) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 296); // "aXdabcd"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 351, 6, 297);
@@ -10133,7 +10233,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 2, 300); // " "
     *(regs + 3) = Value(1);
     U_BCALLRET4(vm, regs + 4, 42, 1); // tokenize
-    keepvar[14] = TopM(regs + 1, 0);
+    *(keepvar + 14) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 301); // "A"
     U_INCREF(vm, regs + 2, 0);
     U_PUSHSTR(vm, regs + 2, 302); // "B C"
@@ -10141,7 +10241,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 3, 303); // ""
     U_INCREF(vm, regs + 4, 0);
     U_NEWVEC(vm, regs + 4, 11, 3);
-    keepvar[15] = TopM(regs + 2, 0);
+    *(keepvar + 15) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 353, 6, 304);
     vm.last = {354, 6};
@@ -10150,7 +10250,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 2, 307); // " "
     *(regs + 3) = Value(0);
     U_BCALLRET4(vm, regs + 4, 42, 1); // tokenize
-    keepvar[16] = TopM(regs + 1, 0);
+    *(keepvar + 16) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 308); // ""
     U_INCREF(vm, regs + 2, 0);
     U_PUSHSTR(vm, regs + 2, 309); // "A"
@@ -10160,7 +10260,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 4, 311); // ""
     U_INCREF(vm, regs + 5, 0);
     U_NEWVEC(vm, regs + 5, 11, 4);
-    keepvar[17] = TopM(regs + 2, 0);
+    *(keepvar + 17) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 354, 6, 312);
     vm.last = {355, 6};
@@ -10169,7 +10269,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 2, 315); // " "
     *(regs + 3) = Value(1);
     U_BCALLRET4(vm, regs + 4, 42, 1); // tokenize
-    keepvar[18] = TopM(regs + 1, 0);
+    *(keepvar + 18) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 316); // ""
     U_INCREF(vm, regs + 2, 0);
     U_PUSHSTR(vm, regs + 2, 317); // "A"
@@ -10181,7 +10281,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 5, 320); // ""
     U_INCREF(vm, regs + 6, 0);
     U_NEWVEC(vm, regs + 6, 11, 5);
-    keepvar[19] = TopM(regs + 2, 0);
+    *(keepvar + 19) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 355, 6, 321);
     vm.last = {358, 6};
@@ -10194,11 +10294,11 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {367, 6};
     U_PUSHSTR(vm, regs + 0, 323); // "a"
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[55]; // slv
+    vm.temp_lval = locals + 55; // slv
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {368, 6};
     U_PUSHSTR(vm, regs + 0, 324); // "b"
-    vm.temp_lval = &locals[55]; // slv
+    vm.temp_lval = locals + 55; // slv
     U_LV_SADD(vm, regs + 1);
     U_LV_DUP(vm, regs + 0);
     U_PUSHSTR(vm, regs + 1, 325); // "ab"
@@ -10207,17 +10307,17 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {369, 6};
     *(regs + 0) = Value(1);
     U_NEWVEC(vm, regs + 1, 7, 1);
-    vm.temp_lval = &locals[56]; // vlv
+    vm.temp_lval = locals + 56; // vlv
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {370, 6};
     *(regs + 0) = Value(2);
     U_NEWVEC(vm, regs + 1, 7, 1);
-    vm.temp_lval = &locals[56]; // vlv
+    vm.temp_lval = locals + 56; // vlv
     U_LV_WRITEREF(vm, regs + 1);
     U_LV_DUP(vm, regs + 0);
     *(regs + 1) = Value(2);
     U_NEWVEC(vm, regs + 2, 7, 1);
-    keepvar[20] = TopM(regs + 2, 0);
+    *(keepvar + 20) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 370, 6, 327);
     vm.last = {371, 6};
@@ -10228,7 +10328,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 1, 329); // "a"
     U_INCREF(vm, regs + 2, 0);
     U_NEWVEC(vm, regs + 2, 11, 1);
-    vm.temp_lval = &locals[57]; // stlv+0
+    vm.temp_lval = locals + 57; // stlv+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
     vm.last = {375, 6};
     U_PUSHSTR(vm, regs + 0, 330); // "b"
@@ -10236,7 +10336,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 1, 331); // "b"
     U_INCREF(vm, regs + 2, 0);
     U_NEWVEC(vm, regs + 2, 11, 1);
-    vm.temp_lval = &locals[57]; // stlv+0
+    vm.temp_lval = locals + 57; // stlv+0
     U_LV_WRITEREFV(vm, regs + 2, 2, 3);
     U_LV_DUPV(vm, regs + 0, 2);
     U_PUSHFLDV(vm, regs + 2, 1, 2);
@@ -10248,7 +10348,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {378, 6};
     U_PUSHFLT64(vm, regs + 0, 0, 2146435072); // inf
     U_A2S(vm, regs + 1, 2);
-    keepvar[21] = TopM(regs + 1, 0);
+    *(keepvar + 21) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 334); // "inf"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 378, 6, 335);
@@ -10257,7 +10357,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0.000000);
     U_FMOD(vm, regs + 2);
     U_A2S(vm, regs + 1, 2);
-    keepvar[22] = TopM(regs + 1, 0);
+    *(keepvar + 22) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 336); // "nan"
     *(regs + 2) = Value(0);
     U_BCALLRET3(vm, regs + 3, 37, 1); // find_string
@@ -10270,43 +10370,43 @@ static void fun_156(VMRef vm, StackPtr psp) {
     U_FVVDIV(vm, regs + 4, 2);
     U_PUSHFLDV(vm, regs + 2, 1, 2);
     U_A2S(vm, regs + 1, 2);
-    keepvar[23] = TopM(regs + 1, 0);
+    *(keepvar + 23) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 338); // "inf"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 380, 6, 339);
     vm.last = {382, 6};
     vm.last = {382, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_195);
-    vm.temp_lval = &locals[67]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 67; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_195(vm, regs + 0); // call: function187
     vm.last = {389, 6};
     vm.last = {389, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_196);
-    vm.temp_lval = &locals[68]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 68; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_196(vm, regs + 0); // call: function188
     vm.last = {404, 6};
     vm.last = {404, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_197);
-    vm.temp_lval = &locals[69]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 69; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_197(vm, regs + 0); // call: function189
     vm.last = {413, 6};
     vm.last = {413, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_199);
-    vm.temp_lval = &locals[70]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 70; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_199(vm, regs + 0); // call: function191
     vm.last = {428, 6};
     vm.last = {428, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_201);
-    vm.temp_lval = &locals[71]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 71; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_201(vm, regs + 0); // call: function193
     DecVal(vm, locals[2]);
@@ -10377,15 +10477,15 @@ static void fun_156(VMRef vm, StackPtr psp) {
 static void fun_159(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1290, locals);
     vm.last = {44, 6};
     *(regs + 0) = Value(3);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10395,15 +10495,15 @@ static void fun_159(VMRef vm, StackPtr psp) {
 static void fun_160(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1295, locals);
     vm.last = {45, 6};
     *(regs + 0) = Value(4);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10414,12 +10514,12 @@ static void fun_162(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1300, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {107, 6};
-    regs[0] = locals[0]; // i
+    *(regs + 0) = *(locals + 0); // i
     switch (regs[0].ival()) {
     case 1:
     vm.last = {108, 6};
@@ -10428,14 +10528,14 @@ static void fun_162(VMRef vm, StackPtr psp) {
     goto block5;
     case 2:case 3:
     vm.last = {110, 6};
-    regs[0] = locals[0]; // i
-    vm.temp_lval = &locals[1]; // x
-    *vm.temp_lval = *(regs + 0);
+    *(regs + 0) = *(locals + 0); // i
+    vm.temp_lval = locals + 1; // x
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {111, 6};
     U_PUSHSTR(vm, regs + 0, 341); // "yes"
-    regs[1] = locals[1]; // x
+    *(regs + 1) = *(locals + 1); // x
     U_A2S(vm, regs + 2, 0);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_SADD(vm, regs + 2);
     goto block6;
     case 4:case 5:case 6:case 8:
@@ -10452,7 +10552,7 @@ static void fun_162(VMRef vm, StackPtr psp) {
     block6:;
     block7:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -10463,26 +10563,26 @@ static void fun_162(VMRef vm, StackPtr psp) {
 static void fun_163(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1305, locals);
     vm.last = {125, 6};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[0]; // a
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // a
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {126, 6};
-    vm.temp_lval = &locals[0]; // a
+    vm.temp_lval = locals + 0; // a
     U_LV_DUP(vm, regs + 0);
     U_LV_IPP(vm, regs + 1);
-    vm.temp_lval = &locals[0]; // a
+    vm.temp_lval = locals + 0; // a
     U_LV_IPP(vm, regs + 1);
     U_LV_DUP(vm, regs + 1);
     U_IADD(vm, regs + 2);
-    vm.temp_lval = &locals[0]; // a
+    vm.temp_lval = locals + 0; // a
     U_LV_DUP(vm, regs + 1);
     U_LV_IMM(vm, regs + 2);
     U_IADD(vm, regs + 2);
-    vm.temp_lval = &locals[0]; // a
+    vm.temp_lval = locals + 0; // a
     U_LV_IMM(vm, regs + 1);
     U_LV_DUP(vm, regs + 1);
     U_IADD(vm, regs + 2);
@@ -10492,27 +10592,27 @@ static void fun_163(VMRef vm, StackPtr psp) {
     vm.last = {127, 6};
     *(regs + 0) = Value(0);
     U_NEWVEC(vm, regs + 1, 7, 1);
-    vm.temp_lval = &locals[1]; // b
+    vm.temp_lval = locals + 1; // b
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {128, 6};
-    regs[0] = locals[1]; // b
+    *(regs + 0) = *(locals + 1); // b
     *(regs + 1) = Value(0);
     U_LVAL_IDXVI(vm, regs + 2, 0);
     U_LV_DUP(vm, regs + 0);
     U_LV_IPP(vm, regs + 1);
-    regs[1] = locals[1]; // b
+    *(regs + 1) = *(locals + 1); // b
     *(regs + 2) = Value(0);
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_IPP(vm, regs + 1);
     U_LV_DUP(vm, regs + 1);
     U_IADD(vm, regs + 2);
-    regs[1] = locals[1]; // b
+    *(regs + 1) = *(locals + 1); // b
     *(regs + 2) = Value(0);
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_DUP(vm, regs + 1);
     U_LV_IMM(vm, regs + 2);
     U_IADD(vm, regs + 2);
-    regs[1] = locals[1]; // b
+    *(regs + 1) = *(locals + 1); // b
     *(regs + 2) = Value(0);
     U_LVAL_IDXVI(vm, regs + 3, 0);
     U_LV_IMM(vm, regs + 1);
@@ -10531,16 +10631,16 @@ static void fun_163(VMRef vm, StackPtr psp) {
 static void fun_164(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1310, locals);
     vm.last = {132, 6};
-    regs[0] = locals[0]; // _a
-    regs[1] = locals[1]; // _b
+    *(regs + 0) = *(locals + 0); // _a
+    *(regs + 1) = *(locals + 1); // _b
     U_ILT(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10550,16 +10650,16 @@ static void fun_164(VMRef vm, StackPtr psp) {
 static void fun_165(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1315, locals);
     vm.last = {134, 6};
-    regs[0] = locals[0]; // _a
-    regs[1] = locals[1]; // _b
+    *(regs + 0) = *(locals + 0); // _a
+    *(regs + 1) = *(locals + 1); // _b
     U_ILT(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10569,16 +10669,16 @@ static void fun_165(VMRef vm, StackPtr psp) {
 static void fun_166(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1320, locals);
     vm.last = {136, 6};
-    regs[0] = locals[0]; // _a
-    regs[1] = locals[1]; // _b
+    *(regs + 0) = *(locals + 0); // _a
+    *(regs + 1) = *(locals + 1); // _b
     U_ILT(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10588,14 +10688,14 @@ static void fun_166(VMRef vm, StackPtr psp) {
 static void fun_167(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1325, locals);
     vm.last = {150, 6};
-    regs[0] = locals[0]; // _
-    regs[1] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
+    *(regs + 1) = *(locals + 0); // _
     U_IMUL(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10605,14 +10705,14 @@ static void fun_167(VMRef vm, StackPtr psp) {
 static void fun_480(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1329, locals);
     vm.last = {153, 6};
     *(regs + 0) = Value(1);
-    regs[1] = locals[0]; // n
+    *(regs + 1) = *(locals + 0); // n
     U_IGT(vm, regs + 2);
     if ((regs + 0)->True()) goto block0;
-    regs[0] = locals[0]; // n
+    *(regs + 0) = *(locals + 0); // n
     *(regs + 1) = Value(1);
     U_ISUB(vm, regs + 2);
     fun_168(vm, regs + 1); // call: factorial
@@ -10628,23 +10728,23 @@ static void fun_480(VMRef vm, StackPtr psp) {
 static void fun_168(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1333, locals);
     vm.last = {153, 6};
     *(regs + 0) = Value(1);
-    regs[1] = locals[0]; // n
+    *(regs + 1) = *(locals + 0); // n
     U_IGT(vm, regs + 2);
     if ((regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[0]; // n
+    *(regs + 0) = *(locals + 0); // n
     *(regs + 1) = Value(1);
     U_ISUB(vm, regs + 2);
     fun_168(vm, regs + 1); // call: factorial
-    regs[1] = locals[0]; // n
+    *(regs + 1) = *(locals + 0); // n
     U_IMUL(vm, regs + 2);
     block0:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10654,13 +10754,13 @@ static void fun_168(VMRef vm, StackPtr psp) {
 static void fun_169(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1337, locals);
     vm.last = {156, 6};
     *(regs + 0) = Value(4);
     fun_170(vm, regs + 1); // call: function163
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10670,14 +10770,14 @@ static void fun_169(VMRef vm, StackPtr psp) {
 static void fun_170(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1341, locals);
     vm.last = {157, 6};
-    regs[0] = locals[0]; // x
-    regs[1] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
+    *(regs + 1) = *(locals + 0); // x
     U_IMUL(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10693,12 +10793,12 @@ static void fun_473(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block0;
     vm.last = {187, 6};
     *(regs + 0) = Value(4);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block0:;
     vm.last = {188, 6};
     *(regs + 0) = Value(6);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10715,15 +10815,15 @@ static void fun_171(VMRef vm, StackPtr psp) {
     vm.last = {187, 6};
     *(regs + 0) = Value(4);
     *(regs + 1) = Value(5);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     block0:;
     vm.last = {188, 6};
     *(regs + 0) = Value(6);
     *(regs + 1) = Value(7);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10735,8 +10835,8 @@ static void fun_172(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1351, 0);
     vm.last = {193, 6};
     fun_171(vm, regs + 0); // call: multiret
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10750,8 +10850,8 @@ static void fun_173(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1.000000);
     U_PUSHSTR(vm, regs + 1, 346); // "a"
     U_INCREF(vm, regs + 2, 0);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10761,20 +10861,20 @@ static void fun_173(VMRef vm, StackPtr psp) {
 static void fun_174(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1357, locals);
     vm.last = {204, 6};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 1);
     *(regs + 2) = Value(12345);
     U_BCALLRET3(vm, regs + 3, 201, 1); // write_int16_le
-    regs[2] = locals[0]; // this
+    *(regs + 2) = *(locals + 0); // this
     U_LVAL_FLD(vm, regs + 3, 1);
-    *vm.temp_lval = *(regs + 1);
-    regs[1] = locals[0]; // this
+    *(vm.temp_lval) = *(regs + 1);
+    *(regs + 1) = *(locals + 0); // this
     U_LVAL_FLD(vm, regs + 2, 0);
     U_LV_WRITEREF(vm, regs + 1);
     DecVal(vm, locals[0]);
@@ -10788,8 +10888,8 @@ static void fun_174(VMRef vm, StackPtr psp) {
 static void fun_175(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1361, locals);
     vm.last = {209, 6};
     *(regs + 0) = Value(-1);
@@ -10798,11 +10898,11 @@ static void fun_175(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {209, 6};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // a
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 1; // a
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {210, 6};
-    regs[2] = locals[1]; // a
-    regs[3] = locals[0]; // n
+    *(regs + 2) = *(locals + 1); // a
+    *(regs + 3) = *(locals + 0); // n
     U_IEQ(vm, regs + 4);
     if (!(regs + 2)->True()) goto block2;
     vm.last = {210, 6};
@@ -10811,7 +10911,7 @@ static void fun_175(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 0, 347); // "foo"
     U_INCREF(vm, regs + 1, 0);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     goto block0;
@@ -10819,7 +10919,7 @@ static void fun_175(VMRef vm, StackPtr psp) {
     vm.last = {211, 6};
     U_PUSHNIL(vm, regs + 0);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10854,7 +10954,7 @@ static void fun_176(VMRef vm, StackPtr psp) {
     block0:;
     vm.last = {217, 6};
     *(regs + 0) = Value(2);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10881,7 +10981,7 @@ static void fun_177(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     vm.ret_slots = 1;
     vm.ret_unwind_to = 169;
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -10891,7 +10991,7 @@ static void fun_177(VMRef vm, StackPtr psp) {
 static void fun_178(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1378, locals);
     vm.last = {224, 6};
     *(regs + 0) = Value(-1);
@@ -10900,10 +11000,10 @@ static void fun_178(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {224, 6};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[0]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 0; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {225, 6};
-    regs[2] = locals[0]; // i
+    *(regs + 2) = *(locals + 0); // i
     if (!(regs + 2)->True()) goto block2;
     vm.last = {226, 6};
     U_POP(vm, regs + 2);
@@ -10980,16 +11080,16 @@ static void fun_180(VMRef vm, StackPtr psp) {
 static void fun_181(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1389, locals);
     vm.last = {233, 6};
-    regs[0] = locals[0]; // v
+    *(regs + 0) = *(locals + 0); // v
     U_BCALLRET1(vm, regs + 1, 12, 1); // length
     U_PUSHVARF(vm, regs + 1, 374); // n
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 233, 6, 349);
     vm.last = {234, 6};
-    regs[0] = locals[0]; // v
+    *(regs + 0) = *(locals + 0); // v
     U_PUSHSTR(vm, regs + 1, 350); // "*"
     U_SADD(vm, regs + 2);
     fun_479(vm, regs + 1); // call: throw
@@ -11028,16 +11128,16 @@ static void fun_182(VMRef vm, StackPtr psp) {
 static void fun_183(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1396, locals);
     vm.last = {240, 6};
-    regs[0] = locals[0]; // _x
-    regs[1] = locals[1]; // _y
+    *(regs + 0) = *(locals + 0); // _x
+    *(regs + 1) = *(locals + 1); // _y
     U_IADD(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11047,8 +11147,8 @@ static void fun_183(VMRef vm, StackPtr psp) {
 static void fun_184(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1401, locals);
     vm.last = {302, 6};
     vm.last = {305, 6};
@@ -11068,10 +11168,10 @@ static void fun_184(VMRef vm, StackPtr psp) {
     goto epilogue;
     block2:;
     block1:;
-    vm.temp_lval = &locals[0]; // a
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // a
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {306, 6};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_DUP(vm, regs + 1);
     *(regs + 2) = Value(1);
     U_IEQ(vm, regs + 3);
@@ -11089,11 +11189,11 @@ static void fun_184(VMRef vm, StackPtr psp) {
     goto epilogue;
     block5:;
     block4:;
-    vm.temp_lval = &locals[1]; // b
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // b
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {309, 6};
-    regs[0] = locals[0]; // a
-    regs[1] = locals[1]; // b
+    *(regs + 0) = *(locals + 0); // a
+    *(regs + 1) = *(locals + 1); // b
     U_IADD(vm, regs + 2);
     *(regs + 1) = Value(3);
     U_IEQ(vm, regs + 2);
@@ -11124,7 +11224,7 @@ static void fun_186(VMRef vm, StackPtr psp) {
     Value keepvar[1];
     SwapVars(vm, 390, psp, 1);
     PushFunId(vm, funinfo_table + 1409, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {315, 6};
     vm.last = {323, 6};
     fun_187(vm, regs + 0); // call: outer_dest1
@@ -11133,12 +11233,12 @@ static void fun_186(VMRef vm, StackPtr psp) {
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
     block0:;
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_BCALLRET1(vm, regs + 1, 12, 1); // length
     *(regs + 1) = Value(0);
     psp = PopArg(vm, 390, psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -11159,7 +11259,7 @@ static void fun_187(VMRef vm, StackPtr psp) {
     U_A2S(vm, regs + 1, 2);
     vm.ret_slots = 1;
     vm.ret_unwind_to = 180;
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11181,7 +11281,7 @@ static void fun_188(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     vm.ret_slots = 1;
     vm.ret_unwind_to = 180;
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     goto block1;
     block0:;
@@ -11195,8 +11295,8 @@ static void fun_188(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(5);
     vm.ret_slots = 2;
     vm.ret_unwind_to = 179;
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     goto block3;
     block2:;
@@ -11205,7 +11305,7 @@ static void fun_188(VMRef vm, StackPtr psp) {
     U_PUSHFLT64(vm, regs + 0, -858993459, 1074318540); // 3.1
     vm.ret_slots = 1;
     vm.ret_unwind_to = 181;
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block1:;
     block3:;
@@ -11220,20 +11320,20 @@ static void fun_188(VMRef vm, StackPtr psp) {
 static void fun_190(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[3];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1419, locals);
     vm.last = {339, 6};
-    regs[0] = locals[0]; // a
-    regs[1] = locals[1]; // b
+    *(regs + 0) = *(locals + 0); // a
+    *(regs + 1) = *(locals + 1); // b
     U_IADD(vm, regs + 2);
-    regs[1] = locals[2]; // c
+    *(regs + 1) = *(locals + 2); // c
     U_IADD(vm, regs + 2);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11251,7 +11351,7 @@ static void fun_193(VMRef vm, StackPtr psp) {
     block0:;
     *(regs + 1) = Value(1);
     U_IADD(vm, regs + 2);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11262,23 +11362,23 @@ static void fun_194(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value keepvar[1];
     PushFunId(vm, funinfo_table + 1428, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {361, 6};
     U_NEWVEC(vm, regs + 0, 1697, 0);
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {362, 6};
     *(regs + 0) = Value(4);
     vm.ret_slots = 1;
     vm.ret_unwind_to = 186;
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block0:;
     vm.last = {363, 6};
     *(regs + 0) = Value(3);
     vm.ret_slots = 1;
     vm.ret_unwind_to = 185;
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -11289,15 +11389,15 @@ static void fun_194(VMRef vm, StackPtr psp) {
 static void fun_195(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1431, locals);
     vm.last = {383, 6};
     *(regs + 0) = Value(2.000000);
-    vm.temp_lval = &locals[0]; // divisor
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // divisor
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {385, 6};
     *(regs + 0) = Value(5.000000);
-    regs[1] = locals[0]; // divisor
+    *(regs + 1) = *(locals + 0); // divisor
     U_FMOD(vm, regs + 2);
     *(regs + 1) = Value(1.000000);
     U_FEQ(vm, regs + 2);
@@ -11306,7 +11406,7 @@ static void fun_195(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 0, 76, 2); // float2_1+0
     *(regs + 2) = Value(5.000000);
     U_FVSMUL(vm, regs + 3, 2);
-    regs[2] = locals[0]; // divisor
+    *(regs + 2) = *(locals + 0); // divisor
     U_FVSMOD(vm, regs + 3, 2);
     U_PUSHVARVF(vm, regs + 2, 76, 2); // float2_1+0
     U_STEQ(vm, regs + 4, 2);
@@ -11330,14 +11430,14 @@ static void fun_196(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value keepvar[6];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1435, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
-    keepvar[4] = Value(0, lobster::V_NIL);
-    keepvar[5] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
+    *(keepvar + 4) = Value(0, lobster::V_NIL);
+    *(keepvar + 5) = Value(0, lobster::V_NIL);
     vm.last = {391, 6};
     vm.last = {391, 6};
     vm.last = {395, 6};
@@ -11347,58 +11447,58 @@ static void fun_196(VMRef vm, StackPtr psp) {
     *(regs + 3) = Value(2);
     U_NEWVEC(vm, regs + 4, 7, 1);
     U_NEWOBJECT(vm, regs + 4, 711); // Reflect
-    vm.temp_lval = &locals[0]; // r
+    vm.temp_lval = locals + 0; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {396, 6};
-    regs[0] = locals[0]; // r
+    *(regs + 0) = *(locals + 0); // r
     U_BCALLRETV(vm, regs + 1, 156, 1); // type_string
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 358); // "Reflect"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 396, 6, 359);
     vm.last = {397, 6};
-    regs[0] = locals[0]; // r
+    *(regs + 0) = *(locals + 0); // r
     U_BCALLRETV(vm, regs + 1, 158, 1); // type_field_count
     *(regs + 1) = Value(4);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 397, 6, 360);
     vm.last = {398, 6};
-    regs[0] = locals[0]; // r
+    *(regs + 0) = *(locals + 0); // r
     *(regs + 1) = Value(0);
     U_BCALLRETV(vm, regs + 2, 159, 1); // type_field_string
-    keepvar[1] = TopM(regs + 1, 0);
+    *(keepvar + 1) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 361); // "float"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 398, 6, 362);
     vm.last = {399, 6};
-    regs[0] = locals[0]; // r
+    *(regs + 0) = *(locals + 0); // r
     *(regs + 1) = Value(3);
     U_BCALLRETV(vm, regs + 2, 159, 1); // type_field_string
-    keepvar[2] = TopM(regs + 1, 0);
+    *(keepvar + 2) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 363); // "[int]"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 399, 6, 364);
     vm.last = {400, 6};
-    regs[0] = locals[0]; // r
+    *(regs + 0) = *(locals + 0); // r
     *(regs + 1) = Value(2);
     U_BCALLRETV(vm, regs + 2, 160, 1); // type_field_name
-    keepvar[3] = TopM(regs + 1, 0);
+    *(keepvar + 3) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 365); // "s"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 400, 6, 366);
     vm.last = {401, 6};
-    regs[0] = locals[0]; // r
+    *(regs + 0) = *(locals + 0); // r
     *(regs + 1) = Value(0);
     U_BCALLRETV(vm, regs + 2, 161, 1); // type_field_value
-    keepvar[4] = TopM(regs + 1, 0);
+    *(keepvar + 4) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 367); // "1.0"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 401, 6, 368);
     vm.last = {402, 6};
-    regs[0] = locals[0]; // r
+    *(regs + 0) = *(locals + 0); // r
     U_PUSHFLD(vm, regs + 1, 3);
     U_BCALLRETV(vm, regs + 1, 157, 1); // type_element_string
-    keepvar[5] = TopM(regs + 1, 0);
+    *(keepvar + 5) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 369); // "int"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 402, 6, 370);
@@ -11419,18 +11519,18 @@ static void fun_197(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
     BackupVar(vm, 402);
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1439, locals);
     vm.last = {406, 6};
     *(regs + 0) = Value(1);
     U_LVAL_VARF(vm, regs + 1, 402); // state
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {407, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_198);
-    vm.temp_lval = &locals[0]; // fv
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // fv
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {410, 6};
-    regs[0] = locals[0]; // fv
+    *(regs + 0) = *(locals + 0); // fv
     U_BCALLRET1(vm, regs + 1, 154, 0); // call_function_value
     vm.last = {411, 6};
     U_PUSHVARF(vm, regs + 0, 402); // state
@@ -11450,7 +11550,7 @@ static void fun_198(VMRef vm, StackPtr psp) {
     vm.last = {409, 6};
     *(regs + 0) = Value(2);
     U_LVAL_VARF(vm, regs + 1, 402); // state
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11461,23 +11561,23 @@ static void fun_199(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1447, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {415, 6};
     *(regs + 0) = Value(4);
     U_PUSHFUN(vm, regs + 1, 0, fun_200);
     fun_502(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[0]; // gs
+    vm.temp_lval = locals + 0; // gs
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {423, 6};
-    regs[0] = locals[0]; // gs
+    *(regs + 0) = *(locals + 0); // gs
     *(regs + 1) = Value(10);
     *(regs + 2) = Value(20);
     *(regs + 3) = Value(30);
     *(regs + 4) = Value(40);
     U_NEWVEC(vm, regs + 5, 7, 4);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 423, 6, 372);
     vm.last = {424, 6};
@@ -11493,15 +11593,15 @@ static void fun_199(VMRef vm, StackPtr psp) {
 static void fun_200(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1451, locals);
     vm.last = {416, 6};
-    regs[0] = locals[0]; // i
+    *(regs + 0) = *(locals + 0); // i
     *(regs + 1) = Value(2);
     U_IGE(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {420, 6};
-    regs[0] = locals[0]; // i
+    *(regs + 0) = *(locals + 0); // i
     *(regs + 1) = Value(3);
     U_IGE(vm, regs + 2);
     if (!(regs + 0)->True()) goto block1;
@@ -11515,7 +11615,7 @@ static void fun_200(VMRef vm, StackPtr psp) {
     goto block3;
     block0:;
     vm.last = {417, 6};
-    regs[0] = locals[0]; // i
+    *(regs + 0) = *(locals + 0); // i
     *(regs + 1) = Value(1);
     U_IGE(vm, regs + 2);
     if (!(regs + 0)->True()) goto block4;
@@ -11528,7 +11628,7 @@ static void fun_200(VMRef vm, StackPtr psp) {
     block5:;
     block3:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11539,13 +11639,13 @@ static void fun_201(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     PushFunId(vm, funinfo_table + 1455, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {430, 6};
     *(regs + 0) = Value(17);
     fun_504(vm, regs + 1); // call: dictionary
     U_PUSHSTR(vm, regs + 1, 373); // "foo"
     fun_144(vm, regs + 2); // call: get
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHNIL(vm, regs + 1);
     U_AEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 430, 6, 374);
@@ -11559,31 +11659,31 @@ static void fun_201(VMRef vm, StackPtr psp) {
 static void fun_202(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[12];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1458, locals);
     vm.last = {10, 9};
     vm.last = {10, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_203);
-    vm.temp_lval = &locals[0]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_203(vm, regs + 0); // call: function195
     vm.last = {18, 9};
     vm.last = {18, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_209);
-    vm.temp_lval = &locals[1]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_209(vm, regs + 0); // call: function201
     vm.last = {34, 9};
@@ -11594,71 +11694,71 @@ static void fun_202(VMRef vm, StackPtr psp) {
     vm.last = {36, 9};
     vm.last = {36, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_211);
-    vm.temp_lval = &locals[2]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_211(vm, regs + 0); // call: function203
     vm.last = {50, 9};
     vm.last = {50, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_214);
-    vm.temp_lval = &locals[3]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 3; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_214(vm, regs + 0); // call: function206
     vm.last = {61, 9};
     vm.last = {61, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_215);
-    vm.temp_lval = &locals[4]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_215(vm, regs + 0); // call: function207
     vm.last = {127, 9};
     vm.last = {127, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_236);
-    vm.temp_lval = &locals[5]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 5; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_236(vm, regs + 0); // call: function217
     vm.last = {139, 9};
     vm.last = {139, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_238);
-    vm.temp_lval = &locals[6]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 6; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_238(vm, regs + 0); // call: function219
     vm.last = {227, 9};
     vm.last = {227, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_253);
-    vm.temp_lval = &locals[7]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 7; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_253(vm, regs + 0); // call: function234
     vm.last = {239, 9};
     vm.last = {239, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_254);
-    vm.temp_lval = &locals[8]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 8; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_254(vm, regs + 0); // call: function235
     vm.last = {245, 9};
     vm.last = {245, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_257);
-    vm.temp_lval = &locals[9]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 9; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_257(vm, regs + 0); // call: function237
     vm.last = {265, 9};
     vm.last = {265, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_259);
-    vm.temp_lval = &locals[10]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 10; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_259(vm, regs + 0); // call: function239
     vm.last = {272, 9};
     vm.last = {272, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_260);
-    vm.temp_lval = &locals[11]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 11; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_260(vm, regs + 0); // call: function240
     goto epilogue;
@@ -11671,7 +11771,7 @@ static void fun_203(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     PushFunId(vm, funinfo_table + 1473, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {11, 9};
     vm.last = {12, 9};
     vm.last = {15, 9};
@@ -11684,7 +11784,7 @@ static void fun_203(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 0, 377); // "a"
     U_PUSHFUN(vm, regs + 1, 0, fun_208);
     fun_509(vm, regs + 2); // call: g
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 16, 9, 378);
     goto epilogue;
@@ -11697,13 +11797,13 @@ static void fun_203(VMRef vm, StackPtr psp) {
 static void fun_511(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1476, locals);
     vm.last = {11, 9};
     vm.last = {14, 9};
     fun_208(vm, regs + 0); // call: function200
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11718,7 +11818,7 @@ static void fun_509(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 0, 0, fun_10000001);
     fun_511(vm, regs + 1); // call: h
     psp = PopArg(vm, 1296, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11729,17 +11829,17 @@ static void fun_205(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
     SwapVars(vm, 407, psp, 1);
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1484, locals);
     vm.last = {14, 9};
     vm.last = {14, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_206);
-    vm.temp_lval = &locals[0]; // i
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // i
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {11, 9};
     fun_206(vm, regs + 0); // call: function198
     psp = PopArg(vm, 407, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11752,7 +11852,7 @@ static void fun_206(VMRef vm, StackPtr psp) {
     vm.last = {14, 9};
     vm.last = {15, 9};
     *(regs + 0) = Value(1);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11765,7 +11865,7 @@ static void fun_208(VMRef vm, StackPtr psp) {
     vm.last = {16, 9};
     U_PUSHSTR(vm, regs + 0, 379); // "a"
     U_INCREF(vm, regs + 1, 0);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11797,14 +11897,14 @@ static void fun_209(VMRef vm, StackPtr psp) {
 static void fun_514(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1498, locals);
     vm.last = {30, 9};
     vm.last = {30, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_INCREF(vm, regs + 1, 0);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11814,15 +11914,15 @@ static void fun_514(VMRef vm, StackPtr psp) {
 static void fun_210(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1502, locals);
     vm.last = {30, 9};
     vm.last = {26, 9};
     *(regs + 0) = Value(1);
-    regs[1] = locals[0]; // x
+    *(regs + 1) = *(locals + 0); // x
     U_IDIV(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11833,8 +11933,8 @@ static void fun_211(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value keepvar[2];
     PushFunId(vm, funinfo_table + 1506, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
     vm.last = {37, 9};
     vm.last = {37, 9};
     vm.last = {39, 9};
@@ -11844,13 +11944,13 @@ static void fun_211(VMRef vm, StackPtr psp) {
     vm.last = {47, 9};
     *(regs + 0) = Value(1);
     fun_212(vm, regs + 1); // call: return_from
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_ISTYPE(vm, regs + 1, 1569); // testa
     U_ASSERT(vm, regs + 1, 47, 9, 383);
     vm.last = {48, 9};
     U_PUSHSTR(vm, regs + 0, 384); // ""
     fun_516(vm, regs + 1); // call: return_from
-    keepvar[1] = TopM(regs + 1, 0);
+    *(keepvar + 1) = *(regs + 0);
     U_ISTYPE(vm, regs + 1, 1569); // testa
     U_ASSERT(vm, regs + 1, 48, 9, 385);
     goto epilogue;
@@ -11864,7 +11964,7 @@ static void fun_211(VMRef vm, StackPtr psp) {
 static void fun_516(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1509, locals);
     vm.last = {44, 9};
     fun_213(vm, regs + 0); // call: return_from2
@@ -11878,7 +11978,7 @@ static void fun_516(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     U_NEWOBJECT(vm, regs + 2, 1578); // testb
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11888,7 +11988,7 @@ static void fun_516(VMRef vm, StackPtr psp) {
 static void fun_212(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1513, locals);
     vm.last = {44, 9};
     fun_213(vm, regs + 0); // call: return_from2
@@ -11902,7 +12002,7 @@ static void fun_212(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     U_NEWOBJECT(vm, regs + 2, 1578); // testb
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11917,7 +12017,7 @@ static void fun_213(VMRef vm, StackPtr psp) {
     U_NEWOBJECT(vm, regs + 1, 1569); // testa
     vm.ret_slots = 1;
     vm.ret_unwind_to = 204;
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11928,27 +12028,27 @@ static void fun_214(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value keepvar[2];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1520, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
     vm.last = {52, 9};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[0]; // b
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // b
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {53, 9};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[0]; // b
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // b
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {54, 9};
-    regs[0] = locals[0]; // b
+    *(regs + 0) = *(locals + 0); // b
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 54, 9, 386);
     vm.last = {55, 9};
     *(regs + 0) = Value(1);
     U_A2S(vm, regs + 1, 146);
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 387); // "true"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 55, 9, 388);
@@ -11958,7 +12058,7 @@ static void fun_214(VMRef vm, StackPtr psp) {
     U_BCALLRETV(vm, regs + 2, 254, 1); // parse_data
     U_POPREF(vm, regs + 2);
     U_ASSERTR(vm, regs + 1, 56, 9, 390);
-    keepvar[1] = TopM(regs + 1, 0);
+    *(keepvar + 1) = *(regs + 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     *(regs + 1) = Value(1);
@@ -12000,20 +12100,20 @@ static void fun_215(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[4];
     Value locals[9];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1524, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
     vm.last = {65, 9};
     vm.last = {63, 9};
     vm.last = {63, 9};
@@ -12023,7 +12123,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     vm.last = {71, 9};
     vm.last = {71, 9};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[5]; // this+0
+    vm.temp_lval = locals + 5; // this+0
     U_LV_WRITEV(vm, regs + 1, 1);
     vm.last = {65, 9};
     *(regs + 0) = Value(1);
@@ -12034,7 +12134,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     vm.last = {72, 9};
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(0);
-    vm.temp_lval = &locals[6]; // this+0
+    vm.temp_lval = locals + 6; // this+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {68, 9};
     *(regs + 0) = Value(2);
@@ -12066,17 +12166,17 @@ static void fun_215(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(0);
     *(regs + 1) = Value(0);
     U_NEWOBJECT(vm, regs + 2, 771); // C2
-    vm.temp_lval = &locals[0]; // x
+    vm.temp_lval = locals + 0; // x
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {95, 9};
     *(regs + 0) = Value(0);
     U_PUSHSTR(vm, regs + 1, 395); // "hello"
     U_INCREF(vm, regs + 2, 0);
     U_NEWOBJECT(vm, regs + 2, 783); // C3
-    vm.temp_lval = &locals[1]; // x2
+    vm.temp_lval = locals + 1; // x2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {97, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_INCREF(vm, regs + 1, 0);
     *(regs + 1) = Value(0);
     U_DDCALL(vm, regs + 2, 0, 1); vm.next_call_target(vm, regs + 2);
@@ -12093,17 +12193,17 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 99, 9, 397);
     vm.last = {101, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_INCREF(vm, regs + 1, 0);
     U_PUSHSTR(vm, regs + 1, 398); // "hi"
     U_INCREF(vm, regs + 2, 0);
     U_DDCALL(vm, regs + 2, 1, 1); vm.next_call_target(vm, regs + 2);
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 399); // "hi2"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 101, 9, 400);
     vm.last = {102, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_INCREF(vm, regs + 1, 0);
     *(regs + 1) = Value(3);
     U_DDCALL(vm, regs + 2, 2, 1); vm.next_call_target(vm, regs + 2);
@@ -12111,7 +12211,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 102, 9, 401);
     vm.last = {103, 9};
-    regs[0] = locals[1]; // x2
+    *(regs + 0) = *(locals + 1); // x2
     U_INCREF(vm, regs + 1, 0);
     *(regs + 1) = Value(10);
     U_DDCALL(vm, regs + 2, 0, 1); vm.next_call_target(vm, regs + 2);
@@ -12119,7 +12219,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 103, 9, 402);
     vm.last = {105, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_INCREF(vm, regs + 1, 0);
     *(regs + 1) = Value(10);
     U_DDCALL(vm, regs + 2, 3, 1); vm.next_call_target(vm, regs + 2);
@@ -12127,14 +12227,14 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 105, 9, 403);
     vm.last = {107, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_INCREF(vm, regs + 1, 0);
     U_DDCALL(vm, regs + 1, 4, 0); vm.next_call_target(vm, regs + 1);
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 107, 9, 404);
     vm.last = {109, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_INCREF(vm, regs + 1, 0);
     U_DDCALL(vm, regs + 1, 5, 0); vm.next_call_target(vm, regs + 1);
     *(regs + 1) = Value(11);
@@ -12143,30 +12243,30 @@ static void fun_215(VMRef vm, StackPtr psp) {
     vm.last = {110, 9};
     *(regs + 0) = Value(0);
     U_NEWOBJECT(vm, regs + 1, 762); // C1
-    vm.temp_lval = &locals[2]; // x3
+    vm.temp_lval = locals + 2; // x3
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {112, 9};
-    regs[0] = locals[2]; // x3
+    *(regs + 0) = *(locals + 2); // x3
     U_INCREF(vm, regs + 1, 0);
     U_DDCALL(vm, regs + 1, 6, 0); vm.next_call_target(vm, regs + 1);
     *(regs + 1) = Value(12);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 112, 9, 406);
     vm.last = {114, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_INCREF(vm, regs + 1, 0);
     U_DDCALL(vm, regs + 1, 7, 0); vm.next_call_target(vm, regs + 1);
-    vm.temp_lval = &locals[4]; // mr2
+    vm.temp_lval = locals + 4; // mr2
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // mr1
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 3; // mr1
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {115, 9};
-    regs[0] = locals[3]; // mr1
+    *(regs + 0) = *(locals + 3); // mr1
     *(regs + 1) = Value(2);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[4]; // mr2
+    *(regs + 0) = *(locals + 4); // mr2
     U_PUSHSTR(vm, regs + 1, 407); // "b"
     U_SEQ(vm, regs + 2);
     block0:;
@@ -12182,10 +12282,10 @@ static void fun_215(VMRef vm, StackPtr psp) {
     fun_232(vm, regs + 1); // call: foo
     vm.last = {123, 9};
     *(regs + 1) = Value(2);
-    vm.temp_lval = &locals[8]; // i
-    *vm.temp_lval = *(regs + 1);
+    vm.temp_lval = locals + 8; // i
+    *(vm.temp_lval) = *(regs + 1);
     vm.last = {120, 9};
-    regs[1] = locals[8]; // i
+    *(regs + 1) = *(locals + 8); // i
     U_IADD(vm, regs + 2);
     *(regs + 1) = Value(3);
     U_IEQ(vm, regs + 2);
@@ -12195,12 +12295,12 @@ static void fun_215(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     U_NEWOBJECT(vm, regs + 1, 1402); // D
     fun_523(vm, regs + 1); // call: foo
-    keepvar[1] = TopM(regs + 1, 0);
+    *(keepvar + 1) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 411); // "llo"
     fun_234(vm, regs + 2); // call: foo
-    keepvar[2] = TopM(regs + 2, 0);
+    *(keepvar + 2) = *(regs + 1);
     U_SADD(vm, regs + 2);
-    keepvar[3] = TopM(regs + 1, 0);
+    *(keepvar + 3) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 412); // "hallo"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 124, 9, 413);
@@ -12227,13 +12327,13 @@ static void fun_215(VMRef vm, StackPtr psp) {
 static void fun_218(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1536, locals);
     vm.last = {74, 9};
     *(regs + 0) = Value(10);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12243,13 +12343,13 @@ static void fun_218(VMRef vm, StackPtr psp) {
 static void fun_230(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1540, locals);
     vm.last = {90, 9};
     *(regs + 0) = Value(11);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12259,20 +12359,20 @@ static void fun_230(VMRef vm, StackPtr psp) {
 static void fun_219(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1544, locals);
     vm.last = {77, 9};
     *(regs + 0) = Value(1);
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_IADD(vm, regs + 2);
-    regs[1] = locals[1]; // c
+    *(regs + 1) = *(locals + 1); // c
     U_IADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12282,23 +12382,23 @@ static void fun_219(VMRef vm, StackPtr psp) {
 static void fun_225(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1549, locals);
     vm.last = {85, 9};
     *(regs + 0) = Value(2);
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_IADD(vm, regs + 2);
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 1);
     U_IADD(vm, regs + 2);
-    regs[1] = locals[1]; // c
+    *(regs + 1) = *(locals + 1); // c
     U_IADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12308,19 +12408,19 @@ static void fun_225(VMRef vm, StackPtr psp) {
 static void fun_231(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1554, locals);
     vm.last = {93, 9};
-    regs[0] = locals[1]; // c
-    regs[1] = locals[0]; // this
+    *(regs + 0) = *(locals + 1); // c
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 1);
     U_BCALLRET1(vm, regs + 2, 12, 1); // length
     U_IADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12330,17 +12430,17 @@ static void fun_231(VMRef vm, StackPtr psp) {
 static void fun_519(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1559, locals);
     vm.last = {78, 9};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     *(regs + 1) = Value(1);
     U_IADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12351,21 +12451,21 @@ static void fun_220(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1564, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {78, 9};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     *(regs + 1) = Value(1);
     U_A2S(vm, regs + 2, 0);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_SADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -12376,17 +12476,17 @@ static void fun_220(VMRef vm, StackPtr psp) {
 static void fun_520(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1569, locals);
     vm.last = {86, 9};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     *(regs + 1) = Value(2);
     U_IADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12397,21 +12497,21 @@ static void fun_226(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1574, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {86, 9};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     *(regs + 1) = Value(2);
     U_A2S(vm, regs + 2, 0);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_SADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -12422,15 +12522,15 @@ static void fun_226(VMRef vm, StackPtr psp) {
 static void fun_221(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1579, locals);
     vm.last = {79, 9};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12440,15 +12540,15 @@ static void fun_221(VMRef vm, StackPtr psp) {
 static void fun_521(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1584, locals);
     vm.last = {87, 9};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {87, 9};
-    regs[0] = locals[0]; // this
-    regs[1] = locals[1]; // c
+    *(regs + 0) = *(locals + 0); // this
+    *(regs + 1) = *(locals + 1); // c
     *(regs + 2) = Value(1);
     U_ISUB(vm, regs + 3);
     fun_521(vm, regs + 2); // call: r
@@ -12457,12 +12557,12 @@ static void fun_521(VMRef vm, StackPtr psp) {
     vm.last = {87, 9};
     *(regs + 0) = Value(0);
     U_NEWOBJECT(vm, regs + 1, 762); // C1
-    regs[1] = locals[1]; // c
+    *(regs + 1) = *(locals + 1); // c
     U_DDCALL(vm, regs + 2, 3, 1); vm.next_call_target(vm, regs + 2);
     block1:;
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12472,15 +12572,15 @@ static void fun_521(VMRef vm, StackPtr psp) {
 static void fun_227(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1589, locals);
     vm.last = {87, 9};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     if (!(regs + 0)->True()) goto block0;
     vm.last = {87, 9};
-    regs[0] = locals[0]; // this
-    regs[1] = locals[1]; // c
+    *(regs + 0) = *(locals + 0); // this
+    *(regs + 1) = *(locals + 1); // c
     *(regs + 2) = Value(1);
     U_ISUB(vm, regs + 3);
     fun_521(vm, regs + 2); // call: r
@@ -12489,13 +12589,13 @@ static void fun_227(VMRef vm, StackPtr psp) {
     vm.last = {87, 9};
     *(regs + 0) = Value(0);
     U_NEWOBJECT(vm, regs + 1, 762); // C1
-    regs[1] = locals[1]; // c
+    *(regs + 1) = *(locals + 1); // c
     U_DDCALL(vm, regs + 2, 3, 1); vm.next_call_target(vm, regs + 2);
     block1:;
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12505,7 +12605,7 @@ static void fun_227(VMRef vm, StackPtr psp) {
 static void fun_222(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1594, locals);
     vm.last = {80, 9};
     *(regs + 0) = Value(1);
@@ -12513,8 +12613,8 @@ static void fun_222(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 2, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12524,7 +12624,7 @@ static void fun_222(VMRef vm, StackPtr psp) {
 static void fun_228(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1598, locals);
     vm.last = {88, 9};
     *(regs + 0) = Value(2);
@@ -12532,8 +12632,8 @@ static void fun_228(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 2, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12543,13 +12643,13 @@ static void fun_228(VMRef vm, StackPtr psp) {
 static void fun_223(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1602, locals);
     vm.last = {81, 9};
     *(regs + 0) = Value(1);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12559,21 +12659,21 @@ static void fun_223(VMRef vm, StackPtr psp) {
 static void fun_229(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1606, locals);
     vm.last = {89, 9};
     *(regs + 0) = Value(1);
     vm.last = {89, 9};
-    regs[1] = locals[0]; // this
-    vm.temp_lval = &locals[1]; // this
-    *vm.temp_lval = *(regs + 1);
+    *(regs + 1) = *(locals + 0); // this
+    vm.temp_lval = locals + 1; // this
+    *(vm.temp_lval) = *(regs + 1);
     vm.last = {81, 9};
     *(regs + 1) = Value(1);
     U_IADD(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12583,13 +12683,13 @@ static void fun_229(VMRef vm, StackPtr psp) {
 static void fun_224(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1611, locals);
     vm.last = {82, 9};
     *(regs + 0) = Value(12);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12599,15 +12699,15 @@ static void fun_224(VMRef vm, StackPtr psp) {
 static void fun_523(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1615, locals);
     vm.last = {119, 9};
-    regs[0] = locals[0]; // d
+    *(regs + 0) = *(locals + 0); // d
     U_PUSHFLD(vm, regs + 1, 0);
     U_INCREF(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12617,14 +12717,14 @@ static void fun_523(VMRef vm, StackPtr psp) {
 static void fun_232(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1619, locals);
     vm.last = {119, 9};
-    regs[0] = locals[0]; // d
+    *(regs + 0) = *(locals + 0); // d
     U_PUSHFLD(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12634,13 +12734,13 @@ static void fun_232(VMRef vm, StackPtr psp) {
 static void fun_234(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1623, locals);
     vm.last = {121, 9};
-    regs[0] = locals[0]; // s
+    *(regs + 0) = *(locals + 0); // s
     U_INCREF(vm, regs + 1, 0);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12650,14 +12750,14 @@ static void fun_234(VMRef vm, StackPtr psp) {
 static void fun_235(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1627, locals);
     vm.last = {122, 9};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     *(regs + 1) = Value(1.000000);
     U_FADD(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -12667,25 +12767,25 @@ static void fun_235(VMRef vm, StackPtr psp) {
 static void fun_236(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1631, locals);
     vm.last = {129, 9};
     U_PUSHSTR(vm, regs + 0, 417); // ""
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[0]; // a
+    vm.temp_lval = locals + 0; // a
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {130, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_PUSHSTR(vm, regs + 1, 418); // ""
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 130, 9, 419);
     vm.last = {131, 9};
     U_PUSHNIL(vm, regs + 0);
-    vm.temp_lval = &locals[1]; // b
+    vm.temp_lval = locals + 1; // b
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {132, 9};
-    regs[0] = locals[1]; // b
+    *(regs + 0) = *(locals + 1); // b
     U_PUSHNIL(vm, regs + 1);
     U_AEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
@@ -12693,14 +12793,14 @@ static void fun_236(VMRef vm, StackPtr psp) {
     goto block1;
     block0:;
     vm.last = {135, 9};
-    regs[0] = locals[1]; // b
+    *(regs + 0) = *(locals + 1); // b
     U_PUSHSTR(vm, regs + 1, 420); // ""
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 135, 9, 421);
     block1:;
     vm.last = {136, 9};
     vm.last = {137, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     fun_237(vm, regs + 1); // call: f
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -12713,10 +12813,10 @@ static void fun_236(VMRef vm, StackPtr psp) {
 static void fun_237(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1636, locals);
     vm.last = {136, 9};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_PUSHSTR(vm, regs + 1, 422); // ""
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 136, 9, 423);
@@ -12731,21 +12831,21 @@ static void fun_238(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[6];
     Value locals[8];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1640, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
-    keepvar[4] = Value(0, lobster::V_NIL);
-    keepvar[5] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
+    *(keepvar + 4) = Value(0, lobster::V_NIL);
+    *(keepvar + 5) = Value(0, lobster::V_NIL);
     vm.last = {147, 9};
     vm.last = {149, 9};
     vm.last = {151, 9};
@@ -12760,46 +12860,46 @@ static void fun_238(VMRef vm, StackPtr psp) {
     U_PUSHNIL(vm, regs + 3);
     U_PUSHNIL(vm, regs + 4);
     U_NEWOBJECT(vm, regs + 5, 804); // Ai
-    vm.temp_lval = &locals[0]; // a
+    vm.temp_lval = locals + 0; // a
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {159, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_PUSHFLD(vm, regs + 1, 2);
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
     vm.last = {160, 9};
     U_NEWVEC(vm, regs + 0, 827, 0);
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {161, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {162, 9};
     U_PUSHNIL(vm, regs + 0);
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {163, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     *(regs + 1) = Value(2);
     fun_239(vm, regs + 2); // call: f
     vm.last = {164, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     *(regs + 1) = Value(3);
     fun_240(vm, regs + 2); // call: g
     vm.last = {165, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     *(regs + 1) = Value(4);
     fun_242(vm, regs + 2); // call: i
     vm.last = {166, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     fun_241(vm, regs + 1); // call: h
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
@@ -12813,66 +12913,66 @@ static void fun_238(VMRef vm, StackPtr psp) {
     U_PUSHNIL(vm, regs + 3);
     U_PUSHNIL(vm, regs + 4);
     U_NEWOBJECT(vm, regs + 5, 829); // A
-    vm.temp_lval = &locals[1]; // b
+    vm.temp_lval = locals + 1; // b
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {169, 9};
-    regs[0] = locals[1]; // b
+    *(regs + 0) = *(locals + 1); // b
     U_PUSHFLD(vm, regs + 1, 2);
-    regs[1] = locals[1]; // b
+    *(regs + 1) = *(locals + 1); // b
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
     vm.last = {170, 9};
     U_NEWVEC(vm, regs + 0, 852, 0);
-    regs[1] = locals[1]; // b
+    *(regs + 1) = *(locals + 1); // b
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {171, 9};
-    regs[0] = locals[1]; // b
+    *(regs + 0) = *(locals + 1); // b
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[1]; // b
+    *(regs + 1) = *(locals + 1); // b
     U_LVAL_FLD(vm, regs + 2, 4);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {172, 9};
     U_PUSHNIL(vm, regs + 0);
-    regs[1] = locals[1]; // b
+    *(regs + 1) = *(locals + 1); // b
     U_LVAL_FLD(vm, regs + 2, 4);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {173, 9};
-    regs[0] = locals[1]; // b
+    *(regs + 0) = *(locals + 1); // b
     U_PUSHSTR(vm, regs + 1, 426); // "hi"
     fun_526(vm, regs + 2); // call: f
     vm.last = {174, 9};
-    regs[0] = locals[1]; // b
+    *(regs + 0) = *(locals + 1); // b
     U_PUSHSTR(vm, regs + 1, 427); // "yo"
     fun_527(vm, regs + 2); // call: g
     vm.last = {175, 9};
-    regs[0] = locals[1]; // b
+    *(regs + 0) = *(locals + 1); // b
     U_PUSHSTR(vm, regs + 1, 428); // "sup"
     fun_528(vm, regs + 2); // call: i
     vm.last = {195, 9};
     vm.last = {196, 9};
     vm.last = {196, 9};
     *(regs + 0) = Value(1.000000);
-    vm.temp_lval = &locals[4]; // x
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // x
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {196, 9};
     *(regs + 0) = Value(1.000000);
-    vm.temp_lval = &locals[5]; // y
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 5; // y
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {195, 9};
     *(regs + 0) = Value(1);
     U_ASSERT(vm, regs + 1, 196, 9, 429);
     vm.last = {197, 9};
     vm.last = {197, 9};
     *(regs + 0) = Value(1.000000);
-    vm.temp_lval = &locals[6]; // x
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 6; // x
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {197, 9};
     *(regs + 0) = Value(1.000000);
-    vm.temp_lval = &locals[7]; // y
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 7; // y
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {195, 9};
     *(regs + 0) = Value(1);
     U_ASSERT(vm, regs + 1, 197, 9, 430);
@@ -12892,16 +12992,16 @@ static void fun_238(VMRef vm, StackPtr psp) {
     vm.last = {201, 9};
     vm.last = {203, 9};
     fun_245(vm, regs + 0); // call: q
-    vm.temp_lval = &locals[3]; // s
-    *vm.temp_lval = *(regs + 1);
-    vm.temp_lval = &locals[2]; // r
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 3; // s
+    *(vm.temp_lval) = *(regs + 1);
+    vm.temp_lval = locals + 2; // r
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {204, 9};
     vm.last = {205, 9};
     vm.last = {207, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     fun_246(vm, regs + 1); // call: t0
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
@@ -12917,7 +13017,7 @@ static void fun_238(VMRef vm, StackPtr psp) {
     vm.last = {213, 9};
     vm.last = {212, 9};
     U_PUSHNIL(vm, regs + 0);
-    keepvar[1] = TopM(regs + 1, 0);
+    *(keepvar + 1) = *(regs + 0);
     U_PUSHNIL(vm, regs + 1);
     U_AEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 213, 9, 435);
@@ -12925,9 +13025,9 @@ static void fun_238(VMRef vm, StackPtr psp) {
     vm.last = {215, 9};
     vm.last = {214, 9};
     U_NEWVEC(vm, regs + 0, 11, 0);
-    keepvar[2] = TopM(regs + 1, 0);
+    *(keepvar + 2) = *(regs + 0);
     U_NEWVEC(vm, regs + 1, 11, 0);
-    keepvar[3] = TopM(regs + 2, 0);
+    *(keepvar + 3) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 215, 9, 436);
     vm.last = {216, 9};
@@ -12938,9 +13038,9 @@ static void fun_238(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 217, 9, 437);
     vm.last = {220, 9};
     vm.last = {222, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     fun_251(vm, regs + 1); // call: t1
-    keepvar[4] = TopM(regs + 1, 0);
+    *(keepvar + 4) = *(regs + 0);
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
@@ -12949,9 +13049,9 @@ static void fun_238(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 222, 9, 438);
     vm.last = {223, 9};
     vm.last = {225, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     fun_252(vm, regs + 1); // call: t2
-    keepvar[5] = TopM(regs + 1, 0);
+    *(keepvar + 5) = *(regs + 0);
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
@@ -12975,13 +13075,13 @@ static void fun_238(VMRef vm, StackPtr psp) {
 static void fun_526(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1651, locals);
     vm.last = {148, 9};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // t
+    *(regs + 1) = *(locals + 1); // t
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
@@ -12997,13 +13097,13 @@ static void fun_526(VMRef vm, StackPtr psp) {
 static void fun_239(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1656, locals);
     vm.last = {148, 9};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // t
+    *(regs + 1) = *(locals + 1); // t
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -13018,13 +13118,13 @@ static void fun_239(VMRef vm, StackPtr psp) {
 static void fun_527(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1661, locals);
     vm.last = {150, 9};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // u
+    *(regs + 1) = *(locals + 1); // u
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
@@ -13040,13 +13140,13 @@ static void fun_527(VMRef vm, StackPtr psp) {
 static void fun_240(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1666, locals);
     vm.last = {150, 9};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // u
+    *(regs + 1) = *(locals + 1); // u
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -13061,17 +13161,17 @@ static void fun_240(VMRef vm, StackPtr psp) {
 static void fun_241(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1671, locals);
     vm.last = {152, 9};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[1]; // x
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // x
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {153, 9};
-    regs[0] = locals[1]; // x
+    *(regs + 0) = *(locals + 1); // x
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -13081,13 +13181,13 @@ static void fun_241(VMRef vm, StackPtr psp) {
 static void fun_528(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1676, locals);
     vm.last = {155, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // t
+    *(regs + 1) = *(locals + 1); // t
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
@@ -13103,13 +13203,13 @@ static void fun_528(VMRef vm, StackPtr psp) {
 static void fun_242(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1681, locals);
     vm.last = {155, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // t
+    *(regs + 1) = *(locals + 1); // t
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
@@ -13124,12 +13224,12 @@ static void fun_242(VMRef vm, StackPtr psp) {
 static void fun_244(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1686, locals);
     vm.last = {198, 9};
     *(regs + 0) = Value(1.000000);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -13142,8 +13242,8 @@ static void fun_245(VMRef vm, StackPtr psp) {
     vm.last = {202, 9};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(1.000000);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -13153,13 +13253,13 @@ static void fun_245(VMRef vm, StackPtr psp) {
 static void fun_246(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1693, locals);
     vm.last = {206, 9};
-    regs[0] = locals[0]; // aa
+    *(regs + 0) = *(locals + 0); // aa
     if (!(regs + 0)->True()) goto block0;
     vm.last = {206, 9};
-    regs[0] = locals[0]; // aa
+    *(regs + 0) = *(locals + 0); // aa
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
@@ -13175,7 +13275,7 @@ static void fun_246(VMRef vm, StackPtr psp) {
     U_PUSHNIL(vm, regs + 4);
     U_NEWOBJECT(vm, regs + 5, 804); // Ai
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -13187,7 +13287,7 @@ static void fun_250(VMRef vm, StackPtr psp) {
     PushFunId(vm, funinfo_table + 1697, 0);
     vm.last = {216, 9};
     *(regs + 0) = Value(3);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -13197,10 +13297,10 @@ static void fun_250(VMRef vm, StackPtr psp) {
 static void fun_251(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1700, locals);
     vm.last = {221, 9};
-    regs[0] = locals[0]; // aa
+    *(regs + 0) = *(locals + 0); // aa
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
@@ -13211,7 +13311,7 @@ static void fun_251(VMRef vm, StackPtr psp) {
     U_PUSHNIL(vm, regs + 4);
     U_NEWOBJECT(vm, regs + 5, 804); // Ai
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -13221,13 +13321,13 @@ static void fun_251(VMRef vm, StackPtr psp) {
 static void fun_252(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1704, locals);
     vm.last = {224, 9};
-    regs[0] = locals[0]; // aa
+    *(regs + 0) = *(locals + 0); // aa
     if (!(regs + 0)->True()) goto block0;
     vm.last = {224, 9};
-    regs[0] = locals[0]; // aa
+    *(regs + 0) = *(locals + 0); // aa
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
@@ -13243,7 +13343,7 @@ static void fun_252(VMRef vm, StackPtr psp) {
     U_PUSHNIL(vm, regs + 4);
     U_NEWOBJECT(vm, regs + 5, 804); // Ai
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -13253,8 +13353,8 @@ static void fun_252(VMRef vm, StackPtr psp) {
 static void fun_253(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1708, locals);
     vm.last = {229, 9};
     vm.last = {231, 9};
@@ -13262,33 +13362,33 @@ static void fun_253(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(5);
     fun_531(vm, regs + 1); // call: dictionary
     U_NEWOBJECT(vm, regs + 1, 854); // set1
-    vm.temp_lval = &locals[0]; // a1
+    vm.temp_lval = locals + 0; // a1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {234, 9};
     *(regs + 0) = Value(15);
     fun_531(vm, regs + 1); // call: dictionary
     U_NEWOBJECT(vm, regs + 1, 863); // set2
-    vm.temp_lval = &locals[1]; // a2
+    vm.temp_lval = locals + 1; // a2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {235, 9};
-    regs[0] = locals[0]; // a1
+    *(regs + 0) = *(locals + 0); // a1
     U_PUSHFLD(vm, regs + 1, 0);
     U_PUSHSTR(vm, regs + 1, 440); // "a"
     *(regs + 2) = Value(13);
     fun_534(vm, regs + 3); // call: set
     vm.last = {236, 9};
-    regs[0] = locals[1]; // a2
+    *(regs + 0) = *(locals + 1); // a2
     U_PUSHFLD(vm, regs + 1, 0);
     U_PUSHSTR(vm, regs + 1, 441); // "a"
     *(regs + 2) = Value(13);
     fun_534(vm, regs + 3); // call: set
     vm.last = {237, 9};
-    regs[0] = locals[0]; // a1
+    *(regs + 0) = *(locals + 0); // a1
     U_PUSHFLD(vm, regs + 1, 0);
     U_PUSHSTR(vm, regs + 1, 442); // "a"
     *(regs + 2) = Value(0);
     fun_536(vm, regs + 3); // call: get
-    regs[1] = locals[1]; // a2
+    *(regs + 1) = *(locals + 1); // a2
     U_PUSHFLD(vm, regs + 2, 0);
     U_PUSHSTR(vm, regs + 2, 443); // "a"
     *(regs + 3) = Value(0);
@@ -13306,7 +13406,7 @@ static void fun_253(VMRef vm, StackPtr psp) {
 static void fun_254(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1713, locals);
     vm.last = {241, 9};
     vm.last = {242, 9};
@@ -13316,7 +13416,7 @@ static void fun_254(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(2);
     *(regs + 2) = Value(3);
     U_NEWVEC(vm, regs + 3, 7, 3);
-    vm.temp_lval = &locals[0]; // xs
+    vm.temp_lval = locals + 0; // xs
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {242, 9};
     *(regs + 0) = Value(2);
@@ -13333,9 +13433,9 @@ static void fun_254(VMRef vm, StackPtr psp) {
 static void fun_257(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[3];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1717, locals);
     vm.last = {248, 9};
     vm.last = {248, 9};
@@ -13345,23 +13445,23 @@ static void fun_257(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     U_NEWOBJECT(vm, regs + 1, 872); // A
     U_NEWVEC(vm, regs + 1, 881, 1);
-    vm.temp_lval = &locals[0]; // as
+    vm.temp_lval = locals + 0; // as
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {253, 9};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(2);
     U_NEWOBJECT(vm, regs + 2, 883); // B
     U_NEWVEC(vm, regs + 1, 895, 1);
-    vm.temp_lval = &locals[1]; // bs
+    vm.temp_lval = locals + 1; // bs
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {255, 9};
-    regs[0] = locals[0]; // as
-    regs[1] = locals[1]; // bs
+    *(regs + 0) = *(locals + 0); // as
+    *(regs + 1) = *(locals + 1); // bs
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
     U_POPREF(vm, regs + 1);
     vm.last = {256, 9};
-    regs[0] = locals[1]; // bs
-    regs[1] = locals[0]; // as
+    *(regs + 0) = *(locals + 1); // bs
+    *(regs + 1) = *(locals + 0); // as
     U_BCALLRET2(vm, regs + 2, 8, 1); // append
     U_POPREF(vm, regs + 1);
     vm.last = {258, 9};
@@ -13369,7 +13469,7 @@ static void fun_257(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(2);
     U_NEWOBJECT(vm, regs + 2, 883); // B
     U_NEWVEC(vm, regs + 1, 881, 1);
-    vm.temp_lval = &locals[2]; // xs
+    vm.temp_lval = locals + 2; // xs
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {260, 9};
     vm.last = {261, 9};
@@ -13379,7 +13479,7 @@ static void fun_257(VMRef vm, StackPtr psp) {
     U_NEWVEC(vm, regs + 1, 895, 1);
     fun_258(vm, regs + 1); // call: f
     vm.last = {263, 9};
-    regs[0] = locals[0]; // as
+    *(regs + 0) = *(locals + 0); // as
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13412,7 +13512,7 @@ static void fun_258(VMRef vm, StackPtr psp) {
     Value regs[1];
     (void)regs;
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1723, locals);
     vm.last = {260, 9};
     DecVal(vm, locals[0]);
@@ -13439,7 +13539,7 @@ static void fun_259(VMRef vm, StackPtr psp) {
 static void fun_260(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1730, locals);
     vm.last = {274, 9};
     vm.last = {274, 9};
@@ -13464,10 +13564,10 @@ static void fun_260(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 4, 123, 2); // int2_0+0
     U_NEWOBJECT(vm, regs + 6, 897); // A
     U_NEWVEC(vm, regs + 3, 917, 3);
-    vm.temp_lval = &locals[0]; // as
+    vm.temp_lval = locals + 0; // as
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {284, 9};
-    regs[0] = locals[0]; // as
+    *(regs + 0) = *(locals + 0); // as
     *(regs + 1) = Value(2);
     U_VPUSHIDXI(vm, regs + 2);
     U_PUSHFLD(vm, regs + 1, 0);
@@ -13511,10 +13611,10 @@ static void fun_260(VMRef vm, StackPtr psp) {
 static void fun_261(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1734, locals);
     vm.last = {287, 9};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_PUSHFLD(vm, regs + 1, 1);
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
@@ -13530,23 +13630,23 @@ static void fun_261(VMRef vm, StackPtr psp) {
 static void fun_560(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[5];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
     SwapVars(vm, 1404, psp, 1);
     BackupVar(vm, 1405);
     BackupVar(vm, 1406);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1738, locals);
     vm.last = {23, 11};
-    regs[0] = locals[0]; // startnode
+    *(regs + 0) = *(locals + 0); // startnode
     U_INCREF(vm, regs + 1, 0);
     U_NEWVEC(vm, regs + 1, 148, 1);
     U_LVAL_VARF(vm, regs + 1, 1405); // openlist
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {24, 11};
-    regs[0] = locals[0]; // startnode
+    *(regs + 0) = *(locals + 0); // startnode
     if ((regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
@@ -13574,7 +13674,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     U_PUSHVARF(vm, regs + 1, 1406); // n
     U_LVAL_FLD(vm, regs + 2, 7);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 1406); // n
     U_INCREF(vm, regs + 1, 0);
@@ -13591,14 +13691,14 @@ static void fun_560(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block5;
     vm.last = {39, 11};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {40, 11};
     U_PUSHVARF(vm, regs + 2, 1406); // n
     U_LOGNOTREF(vm, regs + 3);
     if ((regs + 2)->True()) goto block6;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 1406); // n
     U_PUSHFLD(vm, regs + 4, 2);
@@ -13606,14 +13706,14 @@ static void fun_560(VMRef vm, StackPtr psp) {
     block6:;
     if ((regs + 2)->True()) goto block7;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 1406); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FEQ(vm, regs + 4);
     if (!(regs + 2)->True()) goto block8;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 1);
     U_PUSHVARF(vm, regs + 3, 1406); // n
     U_PUSHFLD(vm, regs + 4, 1);
@@ -13622,7 +13722,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     block7:;
     if (!(regs + 2)->True()) goto block9;
     vm.last = {41, 11};
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_INCREF(vm, regs + 3, 0);
     U_LVAL_VARF(vm, regs + 3, 1406); // n
     U_LV_WRITEREF(vm, regs + 3);
@@ -13633,14 +13733,14 @@ static void fun_560(VMRef vm, StackPtr psp) {
     block3:;
     vm.last = {42, 11};
     U_NEWVEC(vm, regs + 0, 148, 0);
-    vm.temp_lval = &locals[4]; // path
+    vm.temp_lval = locals + 4; // path
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {43, 11};
     block10:;
     U_PUSHVARF(vm, regs + 0, 1406); // n
     if (!(regs + 0)->True()) goto block11;
     vm.last = {44, 11};
-    regs[0] = locals[4]; // path
+    *(regs + 0) = *(locals + 4); // path
     U_PUSHVARF(vm, regs + 1, 1406); // n
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
@@ -13655,7 +13755,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     goto block10;
     block11:;
     vm.last = {46, 11};
-    regs[0] = locals[4]; // path
+    *(regs + 0) = *(locals + 4); // path
     DecVal(vm, locals[0]);
     DecOwned(vm, 1405);
     DecOwned(vm, 1406);
@@ -13664,7 +13764,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     RestoreBackup(vm, 1406);
@@ -13676,23 +13776,23 @@ static void fun_560(VMRef vm, StackPtr psp) {
 static void fun_549(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[5];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
     SwapVars(vm, 1369, psp, 1);
     BackupVar(vm, 1370);
     BackupVar(vm, 1371);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1749, locals);
     vm.last = {23, 11};
-    regs[0] = locals[0]; // startnode
+    *(regs + 0) = *(locals + 0); // startnode
     U_INCREF(vm, regs + 1, 0);
     U_NEWVEC(vm, regs + 1, 1005, 1);
     U_LVAL_VARF(vm, regs + 1, 1370); // openlist
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {24, 11};
-    regs[0] = locals[0]; // startnode
+    *(regs + 0) = *(locals + 0); // startnode
     if ((regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
@@ -13720,7 +13820,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     U_PUSHVARF(vm, regs + 1, 1371); // n
     U_LVAL_FLD(vm, regs + 2, 9);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 1371); // n
     U_INCREF(vm, regs + 1, 0);
@@ -13737,14 +13837,14 @@ static void fun_549(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block5;
     vm.last = {39, 11};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {40, 11};
     U_PUSHVARF(vm, regs + 2, 1371); // n
     U_LOGNOTREF(vm, regs + 3);
     if ((regs + 2)->True()) goto block6;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 1371); // n
     U_PUSHFLD(vm, regs + 4, 2);
@@ -13752,14 +13852,14 @@ static void fun_549(VMRef vm, StackPtr psp) {
     block6:;
     if ((regs + 2)->True()) goto block7;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 1371); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FEQ(vm, regs + 4);
     if (!(regs + 2)->True()) goto block8;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 1);
     U_PUSHVARF(vm, regs + 3, 1371); // n
     U_PUSHFLD(vm, regs + 4, 1);
@@ -13768,7 +13868,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     block7:;
     if (!(regs + 2)->True()) goto block9;
     vm.last = {41, 11};
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_INCREF(vm, regs + 3, 0);
     U_LVAL_VARF(vm, regs + 3, 1371); // n
     U_LV_WRITEREF(vm, regs + 3);
@@ -13779,14 +13879,14 @@ static void fun_549(VMRef vm, StackPtr psp) {
     block3:;
     vm.last = {42, 11};
     U_NEWVEC(vm, regs + 0, 1005, 0);
-    vm.temp_lval = &locals[4]; // path
+    vm.temp_lval = locals + 4; // path
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {43, 11};
     block10:;
     U_PUSHVARF(vm, regs + 0, 1371); // n
     if (!(regs + 0)->True()) goto block11;
     vm.last = {44, 11};
-    regs[0] = locals[4]; // path
+    *(regs + 0) = *(locals + 4); // path
     U_PUSHVARF(vm, regs + 1, 1371); // n
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
@@ -13801,7 +13901,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     goto block10;
     block11:;
     vm.last = {46, 11};
-    regs[0] = locals[4]; // path
+    *(regs + 0) = *(locals + 4); // path
     DecVal(vm, locals[0]);
     DecOwned(vm, 1370);
     DecOwned(vm, 1371);
@@ -13810,7 +13910,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     RestoreBackup(vm, 1371);
@@ -13822,23 +13922,23 @@ static void fun_549(VMRef vm, StackPtr psp) {
 static void fun_263(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[5];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
     SwapVars(vm, 477, psp, 1);
     BackupVar(vm, 478);
     BackupVar(vm, 479);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1760, locals);
     vm.last = {23, 11};
-    regs[0] = locals[0]; // startnode
+    *(regs + 0) = *(locals + 0); // startnode
     U_INCREF(vm, regs + 1, 0);
     U_NEWVEC(vm, regs + 1, 1005, 1);
     U_LVAL_VARF(vm, regs + 1, 478); // openlist
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {24, 11};
-    regs[0] = locals[0]; // startnode
+    *(regs + 0) = *(locals + 0); // startnode
     if ((regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
     U_PUSHNIL(vm, regs + 0);
@@ -13866,7 +13966,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     U_PUSHVARF(vm, regs + 1, 479); // n
     U_LVAL_FLD(vm, regs + 2, 9);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 479); // n
     U_INCREF(vm, regs + 1, 0);
@@ -13883,14 +13983,14 @@ static void fun_263(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block5;
     vm.last = {39, 11};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {40, 11};
     U_PUSHVARF(vm, regs + 2, 479); // n
     U_LOGNOTREF(vm, regs + 3);
     if ((regs + 2)->True()) goto block6;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 479); // n
     U_PUSHFLD(vm, regs + 4, 2);
@@ -13898,14 +13998,14 @@ static void fun_263(VMRef vm, StackPtr psp) {
     block6:;
     if ((regs + 2)->True()) goto block7;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 2);
     U_PUSHVARF(vm, regs + 3, 479); // n
     U_PUSHFLD(vm, regs + 4, 2);
     U_FEQ(vm, regs + 4);
     if (!(regs + 2)->True()) goto block8;
     U_POP(vm, regs + 3);
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_PUSHFLD(vm, regs + 3, 1);
     U_PUSHVARF(vm, regs + 3, 479); // n
     U_PUSHFLD(vm, regs + 4, 1);
@@ -13914,7 +14014,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     block7:;
     if (!(regs + 2)->True()) goto block9;
     vm.last = {41, 11};
-    regs[2] = locals[3]; // c
+    *(regs + 2) = *(locals + 3); // c
     U_INCREF(vm, regs + 3, 0);
     U_LVAL_VARF(vm, regs + 3, 479); // n
     U_LV_WRITEREF(vm, regs + 3);
@@ -13925,14 +14025,14 @@ static void fun_263(VMRef vm, StackPtr psp) {
     block3:;
     vm.last = {42, 11};
     U_NEWVEC(vm, regs + 0, 1005, 0);
-    vm.temp_lval = &locals[4]; // path
+    vm.temp_lval = locals + 4; // path
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {43, 11};
     block10:;
     U_PUSHVARF(vm, regs + 0, 479); // n
     if (!(regs + 0)->True()) goto block11;
     vm.last = {44, 11};
-    regs[0] = locals[4]; // path
+    *(regs + 0) = *(locals + 4); // path
     U_PUSHVARF(vm, regs + 1, 479); // n
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
@@ -13947,7 +14047,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     goto block10;
     block11:;
     vm.last = {46, 11};
-    regs[0] = locals[4]; // path
+    *(regs + 0) = *(locals + 4); // path
     DecVal(vm, locals[0]);
     DecOwned(vm, 478);
     DecOwned(vm, 479);
@@ -13956,7 +14056,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     RestoreBackup(vm, 479);
@@ -13968,32 +14068,32 @@ static void fun_263(VMRef vm, StackPtr psp) {
 static void fun_561(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[4];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1771, locals);
     vm.last = {29, 11};
-    regs[0] = locals[2]; // nn
+    *(regs + 0) = *(locals + 2); // nn
     U_PUSHFLD(vm, regs + 1, 7);
     U_LOGNOT(vm, regs + 1);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {30, 11};
     U_PUSHVARF(vm, regs + 0, 1406); // n
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // cost
+    *(regs + 1) = *(locals + 1); // cost
     U_I2F(vm, regs + 2);
     U_FADD(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // G
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 3; // G
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {31, 11};
-    regs[0] = locals[2]; // nn
+    *(regs + 0) = *(locals + 2); // nn
     U_PUSHFLD(vm, regs + 1, 6);
     U_LOGNOT(vm, regs + 1);
     if (!(regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 1405); // openlist
-    regs[1] = locals[2]; // nn
+    *(regs + 1) = *(locals + 2); // nn
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
@@ -14001,50 +14101,50 @@ static void fun_561(VMRef vm, StackPtr psp) {
     U_E2B(vm, regs + 1);
     if ((regs + 0)->True()) goto block2;
     U_POP(vm, regs + 1);
-    regs[0] = locals[3]; // G
-    regs[1] = locals[2]; // nn
+    *(regs + 0) = *(locals + 3); // G
+    *(regs + 1) = *(locals + 2); // nn
     U_PUSHFLD(vm, regs + 2, 0);
     U_FLT(vm, regs + 2);
     block2:;
     if (!(regs + 0)->True()) goto block3;
     vm.last = {32, 11};
     *(regs + 0) = Value(1);
-    regs[1] = locals[2]; // nn
+    *(regs + 1) = *(locals + 2); // nn
     U_LVAL_FLD(vm, regs + 2, 6);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {33, 11};
-    regs[0] = locals[0]; // delta
+    *(regs + 0) = *(locals + 0); // delta
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[2]; // nn
+    *(regs + 1) = *(locals + 2); // nn
     U_LVAL_FLD(vm, regs + 2, 5);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {34, 11};
     U_PUSHVARF(vm, regs + 0, 1406); // n
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[2]; // nn
+    *(regs + 1) = *(locals + 2); // nn
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 11};
-    regs[0] = locals[2]; // nn
+    *(regs + 0) = *(locals + 2); // nn
     U_PUSHFLD(vm, regs + 1, 4);
     fun_281(vm, regs + 1); // call: function261
     U_I2F(vm, regs + 1);
-    regs[1] = locals[2]; // nn
+    *(regs + 1) = *(locals + 2); // nn
     U_LVAL_FLD(vm, regs + 2, 1);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {36, 11};
-    regs[0] = locals[3]; // G
-    regs[1] = locals[2]; // nn
+    *(regs + 0) = *(locals + 3); // G
+    *(regs + 1) = *(locals + 2); // nn
     U_LVAL_FLD(vm, regs + 2, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
-    regs[0] = locals[3]; // G
-    regs[1] = locals[2]; // nn
+    *(regs + 0) = *(locals + 3); // G
+    *(regs + 1) = *(locals + 2); // nn
     U_PUSHFLD(vm, regs + 2, 1);
     U_FADD(vm, regs + 2);
-    regs[1] = locals[2]; // nn
+    *(regs + 1) = *(locals + 2); // nn
     U_LVAL_FLD(vm, regs + 2, 2);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     block3:;
     block0:;
     DecVal(vm, locals[0]);
@@ -14061,33 +14161,33 @@ static void fun_561(VMRef vm, StackPtr psp) {
 static void fun_556(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[5];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1778, locals);
     vm.last = {29, 11};
-    regs[0] = locals[3]; // nn
+    *(regs + 0) = *(locals + 3); // nn
     U_PUSHFLD(vm, regs + 1, 9);
     U_LOGNOT(vm, regs + 1);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {30, 11};
     U_PUSHVARF(vm, regs + 0, 1371); // n
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // cost
+    *(regs + 1) = *(locals + 2); // cost
     U_I2F(vm, regs + 2);
     U_FADD(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // G
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // G
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {31, 11};
-    regs[0] = locals[3]; // nn
+    *(regs + 0) = *(locals + 3); // nn
     U_PUSHFLD(vm, regs + 1, 8);
     U_LOGNOT(vm, regs + 1);
     if (!(regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 1370); // openlist
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
@@ -14095,49 +14195,50 @@ static void fun_556(VMRef vm, StackPtr psp) {
     U_E2B(vm, regs + 1);
     if ((regs + 0)->True()) goto block2;
     U_POP(vm, regs + 1);
-    regs[0] = locals[4]; // G
-    regs[1] = locals[3]; // nn
+    *(regs + 0) = *(locals + 4); // G
+    *(regs + 1) = *(locals + 3); // nn
     U_PUSHFLD(vm, regs + 2, 0);
     U_FLT(vm, regs + 2);
     block2:;
     if (!(regs + 0)->True()) goto block3;
     vm.last = {32, 11};
     *(regs + 0) = Value(1);
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 8);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {33, 11};
-    regs[0] = locals[0];regs[1] = locals[1]; // delta
-    regs[2] = locals[3]; // nn
+    *(regs + 0) = *(locals + 0); // delta.0
+    *(regs + 1) = *(locals + 1); // delta.1
+    *(regs + 2) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 3, 6);
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {34, 11};
     U_PUSHVARF(vm, regs + 0, 1371); // n
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 11};
-    regs[0] = locals[3]; // nn
+    *(regs + 0) = *(locals + 3); // nn
     U_PUSHFLD2V(vm, regs + 1, 4, 2);
     fun_557(vm, regs + 2); // call: function249
     U_I2F(vm, regs + 1);
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 1);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {36, 11};
-    regs[0] = locals[4]; // G
-    regs[1] = locals[3]; // nn
+    *(regs + 0) = *(locals + 4); // G
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
-    regs[0] = locals[4]; // G
-    regs[1] = locals[3]; // nn
+    *(regs + 0) = *(locals + 4); // G
+    *(regs + 1) = *(locals + 3); // nn
     U_PUSHFLD(vm, regs + 2, 1);
     U_FADD(vm, regs + 2);
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 2);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     block3:;
     block0:;
     DecVal(vm, locals[3]);
@@ -14154,33 +14255,33 @@ static void fun_556(VMRef vm, StackPtr psp) {
 static void fun_264(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[5];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1786, locals);
     vm.last = {29, 11};
-    regs[0] = locals[3]; // nn
+    *(regs + 0) = *(locals + 3); // nn
     U_PUSHFLD(vm, regs + 1, 9);
     U_LOGNOT(vm, regs + 1);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {30, 11};
     U_PUSHVARF(vm, regs + 0, 479); // n
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[2]; // cost
+    *(regs + 1) = *(locals + 2); // cost
     U_I2F(vm, regs + 2);
     U_FADD(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // G
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // G
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {31, 11};
-    regs[0] = locals[3]; // nn
+    *(regs + 0) = *(locals + 3); // nn
     U_PUSHFLD(vm, regs + 1, 8);
     U_LOGNOT(vm, regs + 1);
     if (!(regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 478); // openlist
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
@@ -14188,48 +14289,49 @@ static void fun_264(VMRef vm, StackPtr psp) {
     U_E2B(vm, regs + 1);
     if ((regs + 0)->True()) goto block2;
     U_POP(vm, regs + 1);
-    regs[0] = locals[4]; // G
-    regs[1] = locals[3]; // nn
+    *(regs + 0) = *(locals + 4); // G
+    *(regs + 1) = *(locals + 3); // nn
     U_PUSHFLD(vm, regs + 2, 0);
     U_FLT(vm, regs + 2);
     block2:;
     if (!(regs + 0)->True()) goto block3;
     vm.last = {32, 11};
     *(regs + 0) = Value(1);
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 8);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {33, 11};
-    regs[0] = locals[0];regs[1] = locals[1]; // delta
-    regs[2] = locals[3]; // nn
+    *(regs + 0) = *(locals + 0); // delta.0
+    *(regs + 1) = *(locals + 1); // delta.1
+    *(regs + 2) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 3, 6);
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {34, 11};
     U_PUSHVARF(vm, regs + 0, 479); // n
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 3);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 11};
-    regs[0] = locals[3]; // nn
+    *(regs + 0) = *(locals + 3); // nn
     U_PUSHFLD2V(vm, regs + 1, 4, 2);
     fun_269(vm, regs + 2); // call: function249
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 1);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {36, 11};
-    regs[0] = locals[4]; // G
-    regs[1] = locals[3]; // nn
+    *(regs + 0) = *(locals + 4); // G
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 11};
-    regs[0] = locals[4]; // G
-    regs[1] = locals[3]; // nn
+    *(regs + 0) = *(locals + 4); // G
+    *(regs + 1) = *(locals + 3); // nn
     U_PUSHFLD(vm, regs + 2, 1);
     U_FADD(vm, regs + 2);
-    regs[1] = locals[3]; // nn
+    *(regs + 1) = *(locals + 3); // nn
     U_LVAL_FLD(vm, regs + 2, 2);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     block3:;
     block0:;
     DecVal(vm, locals[3]);
@@ -14246,14 +14348,14 @@ static void fun_264(VMRef vm, StackPtr psp) {
 static void fun_545(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[1];
-    locals[0] = *(psp - 5);
+    *(locals + 0) = *(psp - 5);
     SwapVars(vm, 1362, psp, 4);
     SwapVars(vm, 1363, psp, 3);
     SwapVars(vm, 1364, psp, 2);
     SwapVars(vm, 1365, psp, 1);
     PushFunId(vm, funinfo_table + 1794, locals);
     vm.last = {63, 11};
-    regs[0] = locals[0]; // startnode
+    *(regs + 0) = *(locals + 0); // startnode
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     U_PUSHFUN(vm, regs + 2, 0, fun_10000001);
@@ -14264,7 +14366,7 @@ static void fun_545(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 1363, psp);
     psp = PopArg(vm, 1362, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14274,14 +14376,14 @@ static void fun_545(VMRef vm, StackPtr psp) {
 static void fun_265(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[1];
-    locals[0] = *(psp - 5);
+    *(locals + 0) = *(psp - 5);
     SwapVars(vm, 488, psp, 4);
     SwapVars(vm, 489, psp, 3);
     SwapVars(vm, 490, psp, 2);
     SwapVars(vm, 491, psp, 1);
     PushFunId(vm, funinfo_table + 1802, locals);
     vm.last = {63, 11};
-    regs[0] = locals[0]; // startnode
+    *(regs + 0) = *(locals + 0); // startnode
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_266);
     U_PUSHFUN(vm, regs + 2, 0, fun_267);
@@ -14292,7 +14394,7 @@ static void fun_265(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 489, psp);
     psp = PopArg(vm, 488, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14302,14 +14404,14 @@ static void fun_265(VMRef vm, StackPtr psp) {
 static void fun_550(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1810, locals);
     vm.last = {56, 11};
-    regs[0] = locals[0]; // n
+    *(regs + 0) = *(locals + 0); // n
     U_PUSHVARF(vm, regs + 1, 1362); // endnode
     U_AEQ(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14319,14 +14421,14 @@ static void fun_550(VMRef vm, StackPtr psp) {
 static void fun_266(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1814, locals);
     vm.last = {56, 11};
-    regs[0] = locals[0]; // n
+    *(regs + 0) = *(locals + 0); // n
     U_PUSHVARF(vm, regs + 1, 488); // endnode
     U_AEQ(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14372,29 +14474,29 @@ static void fun_267(VMRef vm, StackPtr psp) {
 static void fun_555(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1828, locals);
     vm.last = {59, 11};
     U_PUSHVARF(vm, regs + 0, 1375); // n
-    regs[1] = locals[0]; // nn
+    *(regs + 1) = *(locals + 0); // nn
     fun_286(vm, regs + 2); // call: function266
-    vm.temp_lval = &locals[1]; // cost
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // cost
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {60, 11};
-    regs[0] = locals[1]; // cost
+    *(regs + 0) = *(locals + 1); // cost
     U_I2F(vm, regs + 1);
     *(regs + 1) = Value(0.000000);
     U_FGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {61, 11};
-    regs[0] = locals[0]; // nn
+    *(regs + 0) = *(locals + 0); // nn
     U_PUSHFLD2V(vm, regs + 1, 4, 2);
     U_PUSHVARF(vm, regs + 2, 1375); // n
     U_PUSHFLD2V(vm, regs + 3, 4, 2);
     U_IVVSUB(vm, regs + 4, 2);
-    regs[2] = locals[1]; // cost
-    regs[3] = locals[0]; // nn
+    *(regs + 2) = *(locals + 1); // cost
+    *(regs + 3) = *(locals + 0); // nn
     U_INCREF(vm, regs + 4, 0);
     fun_556(vm, regs + 4); // call: function244
     block0:;
@@ -14409,29 +14511,29 @@ static void fun_555(VMRef vm, StackPtr psp) {
 static void fun_268(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1833, locals);
     vm.last = {59, 11};
     U_PUSHVARF(vm, regs + 0, 493); // n
-    regs[1] = locals[0]; // nn
+    *(regs + 1) = *(locals + 0); // nn
     fun_286(vm, regs + 2); // call: function266
-    vm.temp_lval = &locals[1]; // cost
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // cost
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {60, 11};
-    regs[0] = locals[1]; // cost
+    *(regs + 0) = *(locals + 1); // cost
     U_I2F(vm, regs + 1);
     *(regs + 1) = Value(0.000000);
     U_FGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {61, 11};
-    regs[0] = locals[0]; // nn
+    *(regs + 0) = *(locals + 0); // nn
     U_PUSHFLD2V(vm, regs + 1, 4, 2);
     U_PUSHVARF(vm, regs + 2, 493); // n
     U_PUSHFLD2V(vm, regs + 3, 4, 2);
     U_IVVSUB(vm, regs + 4, 2);
-    regs[2] = locals[1]; // cost
-    regs[3] = locals[0]; // nn
+    *(regs + 2) = *(locals + 1); // cost
+    *(regs + 3) = *(locals + 0); // nn
     U_INCREF(vm, regs + 4, 0);
     fun_264(vm, regs + 4); // call: function244
     block0:;
@@ -14446,18 +14548,19 @@ static void fun_268(VMRef vm, StackPtr psp) {
 static void fun_557(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1838, locals);
     vm.last = {63, 11};
-    regs[0] = locals[0];regs[1] = locals[1]; // state
+    *(regs + 0) = *(locals + 0); // state.0
+    *(regs + 1) = *(locals + 1); // state.1
     U_PUSHVARF(vm, regs + 2, 1362); // endnode
     U_PUSHFLD2V(vm, regs + 3, 4, 2);
     U_IVVSUB(vm, regs + 4, 2);
     fun_274(vm, regs + 2); // call: function254
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14467,18 +14570,19 @@ static void fun_557(VMRef vm, StackPtr psp) {
 static void fun_269(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1843, locals);
     vm.last = {63, 11};
-    regs[0] = locals[0];regs[1] = locals[1]; // state
+    *(regs + 0) = *(locals + 0); // state.0
+    *(regs + 1) = *(locals + 1); // state.1
     U_PUSHVARF(vm, regs + 2, 488); // endnode
     U_PUSHFLD2V(vm, regs + 3, 4, 2);
     U_IVVSUB(vm, regs + 4, 2);
     fun_273(vm, regs + 2); // call: function253
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14488,7 +14592,7 @@ static void fun_269(VMRef vm, StackPtr psp) {
 static void fun_270(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 7);
+    *(locals + 0) = *(psp - 7);
     SwapVars(vm, 500, psp, 6);
     SwapVars(vm, 501, psp, 5);
     SwapVars(vm, 502, psp, 4);
@@ -14504,7 +14608,7 @@ static void fun_270(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {69, 11};
     vm.last = {84, 11};
-    regs[0] = locals[0]; // isocta
+    *(regs + 0) = *(locals + 0); // isocta
     if (!(regs + 0)->True()) goto block0;
     vm.last = {76, 11};
     U_PUSHVARF(vm, regs + 0, 506); // directions
@@ -14529,7 +14633,7 @@ static void fun_270(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 501, psp);
     psp = PopArg(vm, 500, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     RestoreBackup(vm, 506);
@@ -14540,17 +14644,17 @@ static void fun_270(VMRef vm, StackPtr psp) {
 static void fun_544(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1859, locals);
     vm.last = {74, 11};
     U_PUSHVARF(vm, regs + 0, 502); // startnode
     U_PUSHVARF(vm, regs + 1, 503); // endnode
     U_PUSHVARF(vm, regs + 2, 505); // costf
-    regs[3] = locals[0]; // distancef
+    *(regs + 3) = *(locals + 0); // distancef
     U_PUSHFUN(vm, regs + 4, 0, fun_272);
     fun_545(vm, regs + 5); // call: astar_graph
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14560,17 +14664,17 @@ static void fun_544(VMRef vm, StackPtr psp) {
 static void fun_271(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1863, locals);
     vm.last = {74, 11};
     U_PUSHVARF(vm, regs + 0, 502); // startnode
     U_PUSHVARF(vm, regs + 1, 503); // endnode
     U_PUSHVARF(vm, regs + 2, 505); // costf
-    regs[3] = locals[0]; // distancef
+    *(regs + 3) = *(locals + 0); // distancef
     U_PUSHFUN(vm, regs + 4, 0, fun_272);
     fun_265(vm, regs + 5); // call: astar_graph
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14580,12 +14684,12 @@ static void fun_271(VMRef vm, StackPtr psp) {
 static void fun_554(VMRef vm, StackPtr psp) {
     Value regs[11];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1867, locals);
     vm.last = {71, 11};
     *(regs + 0) = Value(-1);
@@ -14594,17 +14698,19 @@ static void fun_554(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {71, 11};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // delta+0
+    vm.temp_lval = locals + 2; // delta+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {72, 11};
-    regs[2] = locals[0]; // n
+    *(regs + 2) = *(locals + 0); // n
     U_PUSHFLD2V(vm, regs + 3, 4, 2);
-    regs[4] = locals[2];regs[5] = locals[3]; // delta
+    *(regs + 4) = *(locals + 2); // delta.0
+    *(regs + 5) = *(locals + 3); // delta.1
     U_IVVADD(vm, regs + 6, 2);
-    vm.temp_lval = &locals[4]; // np+0
+    vm.temp_lval = locals + 4; // np+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {73, 11};
-    regs[2] = locals[4];regs[3] = locals[5]; // np
+    *(regs + 2) = *(locals + 4); // np.0
+    *(regs + 3) = *(locals + 5); // np.1
     *(regs + 4) = Value(2);
     U_PUSHVARVF(vm, regs + 5, 500, 2); // gridsize+0
     *(regs + 7) = Value(2);
@@ -14614,7 +14720,8 @@ static void fun_554(VMRef vm, StackPtr psp) {
     U_BCALLRETV(vm, regs + 11, 108, 1); // in_range
     if (!(regs + 2)->True()) goto block2;
     vm.last = {74, 11};
-    regs[2] = locals[4];regs[3] = locals[5]; // np
+    *(regs + 2) = *(locals + 4); // np.0
+    *(regs + 3) = *(locals + 5); // np.1
     fun_285(vm, regs + 4); // call: function265
     fun_555(vm, regs + 3); // call: function248
     block2:;
@@ -14631,12 +14738,12 @@ static void fun_554(VMRef vm, StackPtr psp) {
 static void fun_272(VMRef vm, StackPtr psp) {
     Value regs[11];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1876, locals);
     vm.last = {71, 11};
     *(regs + 0) = Value(-1);
@@ -14645,17 +14752,19 @@ static void fun_272(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {71, 11};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // delta+0
+    vm.temp_lval = locals + 2; // delta+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {72, 11};
-    regs[2] = locals[0]; // n
+    *(regs + 2) = *(locals + 0); // n
     U_PUSHFLD2V(vm, regs + 3, 4, 2);
-    regs[4] = locals[2];regs[5] = locals[3]; // delta
+    *(regs + 4) = *(locals + 2); // delta.0
+    *(regs + 5) = *(locals + 3); // delta.1
     U_IVVADD(vm, regs + 6, 2);
-    vm.temp_lval = &locals[4]; // np+0
+    vm.temp_lval = locals + 4; // np+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {73, 11};
-    regs[2] = locals[4];regs[3] = locals[5]; // np
+    *(regs + 2) = *(locals + 4); // np.0
+    *(regs + 3) = *(locals + 5); // np.1
     *(regs + 4) = Value(2);
     U_PUSHVARVF(vm, regs + 5, 500, 2); // gridsize+0
     *(regs + 7) = Value(2);
@@ -14665,7 +14774,8 @@ static void fun_272(VMRef vm, StackPtr psp) {
     U_BCALLRETV(vm, regs + 11, 108, 1); // in_range
     if (!(regs + 2)->True()) goto block2;
     vm.last = {74, 11};
-    regs[2] = locals[4];regs[3] = locals[5]; // np
+    *(regs + 2) = *(locals + 4); // np.0
+    *(regs + 3) = *(locals + 5); // np.1
     fun_285(vm, regs + 4); // call: function265
     fun_268(vm, regs + 3); // call: function248
     block2:;
@@ -14682,50 +14792,50 @@ static void fun_272(VMRef vm, StackPtr psp) {
 static void fun_273(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[6];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1885, locals);
     vm.last = {78, 11};
-    regs[0] = locals[0]; // v+0
+    *(regs + 0) = *(locals + 0); // v+0
     U_BCALLRET1(vm, regs + 1, 112, 1); // abs
-    vm.temp_lval = &locals[2]; // x
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // x
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {79, 11};
-    regs[0] = locals[1]; // v+1
+    *(regs + 0) = *(locals + 1); // v+1
     U_BCALLRET1(vm, regs + 1, 112, 1); // abs
-    vm.temp_lval = &locals[3]; // y
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 3; // y
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {80, 11};
-    regs[0] = locals[2]; // x
-    regs[1] = locals[3]; // y
+    *(regs + 0) = *(locals + 2); // x
+    *(regs + 1) = *(locals + 3); // y
     U_BCALLRET2(vm, regs + 2, 128, 1); // max
-    vm.temp_lval = &locals[4]; // big
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 4; // big
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {81, 11};
-    regs[0] = locals[2]; // x
-    regs[1] = locals[3]; // y
+    *(regs + 0) = *(locals + 2); // x
+    *(regs + 1) = *(locals + 3); // y
     U_BCALLRET2(vm, regs + 2, 120, 1); // min
-    vm.temp_lval = &locals[5]; // small
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 5; // small
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {82, 11};
     *(regs + 0) = Value(2.000000);
     U_BCALLRET1(vm, regs + 1, 56, 1); // sqrt
-    regs[1] = locals[5]; // small
+    *(regs + 1) = *(locals + 5); // small
     U_I2F(vm, regs + 2);
     U_FMUL(vm, regs + 2);
-    regs[1] = locals[4]; // big
+    *(regs + 1) = *(locals + 4); // big
     U_I2F(vm, regs + 2);
     U_FADD(vm, regs + 2);
-    regs[1] = locals[5]; // small
+    *(regs + 1) = *(locals + 5); // small
     U_I2F(vm, regs + 2);
     U_FSUB(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14735,16 +14845,17 @@ static void fun_273(VMRef vm, StackPtr psp) {
 static void fun_274(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1894, locals);
     vm.last = {84, 11};
-    regs[0] = locals[0];regs[1] = locals[1]; // _
+    *(regs + 0) = *(locals + 0); // _.0
+    *(regs + 1) = *(locals + 1); // _.1
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 89, 1); // manhattan
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14755,25 +14866,25 @@ static void fun_277(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[2];
     SwapVars(vm, 522, psp, 4);
-    locals[0] = *(psp - 3);
+    *(locals + 0) = *(psp - 3);
     SwapVars(vm, 524, psp, 2);
     SwapVars(vm, 525, psp, 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     BackupVar(vm, 527);
     PushFunId(vm, funinfo_table + 1899, locals);
     vm.last = {97, 11};
-    regs[0] = locals[0]; // initstate
+    *(regs + 0) = *(locals + 0); // initstate
     fun_302(vm, regs + 1); // call: function272
-    vm.temp_lval = &locals[1]; // H
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // H
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {98, 11};
     *(regs + 0) = Value(0.000000);
-    regs[1] = locals[1]; // H
+    *(regs + 1) = *(locals + 1); // H
     U_I2F(vm, regs + 2);
-    regs[2] = locals[1]; // H
+    *(regs + 2) = *(locals + 1); // H
     U_I2F(vm, regs + 3);
     U_PUSHNIL(vm, regs + 3);
-    regs[4] = locals[0]; // initstate
+    *(regs + 4) = *(locals + 0); // initstate
     U_INCREF(vm, regs + 5, 0);
     U_PUSHNIL(vm, regs + 5);
     *(regs + 6) = Value(0);
@@ -14797,7 +14908,7 @@ static void fun_277(VMRef vm, StackPtr psp) {
     psp = PopArg(vm, 524, psp);
     Pop(psp);
     psp = PopArg(vm, 522, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     RestoreBackup(vm, 527);
@@ -14808,14 +14919,14 @@ static void fun_277(VMRef vm, StackPtr psp) {
 static void fun_278(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1908, locals);
     vm.last = {100, 11};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_PUSHFLD(vm, regs + 1, 4);
     fun_303(vm, regs + 1); // call: function273
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14825,11 +14936,11 @@ static void fun_278(VMRef vm, StackPtr psp) {
 static void fun_279(VMRef vm, StackPtr psp) {
     Value regs[11];
     Value locals[4];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
-    locals[2] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
+    *(locals + 2) = Value(0, lobster::V_NIL);
     BackupVar(vm, 532);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1912, locals);
     vm.last = {102, 11};
     *(regs + 0) = Value(-1);
@@ -14838,24 +14949,24 @@ static void fun_279(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {102, 11};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // act
+    vm.temp_lval = locals + 2; // act
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {103, 11};
-    regs[2] = locals[2]; // act
+    *(regs + 2) = *(locals + 2); // act
     U_INCREF(vm, regs + 3, 0);
-    regs[3] = locals[0]; // n
+    *(regs + 3) = *(locals + 0); // n
     U_PUSHFLD(vm, regs + 4, 4);
     U_INCREF(vm, regs + 4, 0);
     U_DDCALL(vm, regs + 4, 0, 1); vm.next_call_target(vm, regs + 4);
     if (!(regs + 2)->True()) goto block2;
     vm.last = {104, 11};
-    regs[2] = locals[0]; // n
+    *(regs + 2) = *(locals + 0); // n
     U_PUSHFLD(vm, regs + 3, 4);
     U_BCALLRET1(vm, regs + 3, 29, 1); // copy
     U_LVAL_VARF(vm, regs + 3, 532); // nstate
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {105, 11};
-    regs[2] = locals[2]; // act
+    *(regs + 2) = *(locals + 2); // act
     U_INCREF(vm, regs + 3, 0);
     U_PUSHVARF(vm, regs + 3, 532); // nstate
     U_INCREF(vm, regs + 4, 0);
@@ -14864,18 +14975,18 @@ static void fun_279(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 2, 527); // existingnodes
     U_PUSHFUN(vm, regs + 3, 0, fun_280);
     fun_23(vm, regs + 4); // call: find
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {107, 11};
-    regs[2] = locals[3]; // i
+    *(regs + 2) = *(locals + 3); // i
     *(regs + 3) = Value(0);
     U_ILT(vm, regs + 4);
     if (!(regs + 2)->True()) goto block3;
     vm.last = {108, 11};
     U_PUSHVARF(vm, regs + 2, 527); // existingnodes
     U_BCALLRET1(vm, regs + 3, 13, 1); // length
-    vm.temp_lval = &locals[3]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 3; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {109, 11};
     U_PUSHVARF(vm, regs + 2, 527); // existingnodes
     *(regs + 3) = Value(0.000000);
@@ -14893,11 +15004,11 @@ static void fun_279(VMRef vm, StackPtr psp) {
     U_POP(vm, regs + 3);
     block3:;
     vm.last = {110, 11};
-    regs[2] = locals[2]; // act
+    *(regs + 2) = *(locals + 2); // act
     U_INCREF(vm, regs + 3, 0);
     *(regs + 3) = Value(1);
     U_PUSHVARF(vm, regs + 4, 527); // existingnodes
-    regs[5] = locals[3]; // i
+    *(regs + 5) = *(locals + 3); // i
     U_VPUSHIDXI(vm, regs + 6);
     U_INCREF(vm, regs + 5, 0);
     fun_561(vm, regs + 5); // call: function244
@@ -14919,15 +15030,15 @@ static void fun_279(VMRef vm, StackPtr psp) {
 static void fun_280(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1920, locals);
     vm.last = {106, 11};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_PUSHFLD(vm, regs + 1, 4);
     U_PUSHVARF(vm, regs + 1, 532); // nstate
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14937,13 +15048,13 @@ static void fun_280(VMRef vm, StackPtr psp) {
 static void fun_281(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1924, locals);
     vm.last = {111, 11};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     fun_302(vm, regs + 1); // call: function272
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -14954,7 +15065,7 @@ static void fun_282(VMRef vm, StackPtr psp) {
     Value regs[12];
     Value locals[4];
     BackupVar(vm, 536);
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     BackupVar(vm, 538);
     BackupVar(vm, 539);
     BackupVar(vm, 540);
@@ -14962,9 +15073,9 @@ static void fun_282(VMRef vm, StackPtr psp) {
     BackupVar(vm, 542);
     BackupVar(vm, 543);
     BackupVar(vm, 544);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1928, locals);
     vm.last = {6, 10};
     U_PUSHSTR(vm, regs + 0, 449); // "................................."
@@ -15020,7 +15131,7 @@ static void fun_282(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 11, 472); // ".......OOOOOOOO.................."
     U_INCREF(vm, regs + 12, 0);
     U_NEWVEC(vm, regs + 12, 11, 12);
-    vm.temp_lval = &locals[0]; // expected_result
+    vm.temp_lval = locals + 0; // expected_result
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {36, 10};
     vm.last = {36, 10};
@@ -15059,39 +15170,39 @@ static void fun_282(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 5, 0, fun_285);
     U_PUSHFUN(vm, regs + 6, 0, fun_286);
     fun_270(vm, regs + 7); // call: astar_2dgrid
-    vm.temp_lval = &locals[1]; // path
+    vm.temp_lval = locals + 1; // path
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {55, 10};
-    regs[0] = locals[1]; // path
+    *(regs + 0) = *(locals + 1); // path
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     *(regs + 1) = Value(27);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 55, 10, 473);
     vm.last = {57, 10};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[1]; // path
+    *(regs + 1) = *(locals + 1); // path
     block0:;
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {57, 10};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // n
+    vm.temp_lval = locals + 2; // n
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {58, 10};
     *(regs + 2) = Value(1);
-    regs[3] = locals[2]; // n
+    *(regs + 3) = *(locals + 2); // n
     U_LVAL_FLD(vm, regs + 4, 10);
-    *vm.temp_lval = *(regs + 2);
+    *(vm.temp_lval) = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {60, 10};
     U_PUSHVARF(vm, regs + 0, 544); // world
     U_PUSHFUN(vm, regs + 1, 0, fun_287);
     fun_558(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[3]; // astar_result
+    vm.temp_lval = locals + 3; // astar_result
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {66, 10};
-    regs[0] = locals[3]; // astar_result
-    regs[1] = locals[0]; // expected_result
+    *(regs + 0) = *(locals + 3); // astar_result
+    *(regs + 1) = *(locals + 0); // expected_result
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 66, 10, 474);
     DecOwned(vm, 536);
@@ -15123,7 +15234,7 @@ static void fun_283(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 1, 0, fun_284);
     fun_543(vm, regs + 2); // call: map
     psp = PopArg(vm, 545, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15133,35 +15244,35 @@ static void fun_283(VMRef vm, StackPtr psp) {
 static void fun_284(VMRef vm, StackPtr psp) {
     Value regs[12];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1947, locals);
     vm.last = {46, 10};
     U_PUSHVARF(vm, regs + 0, 536); // initworld
     U_PUSHVARF(vm, regs + 1, 545); // y
     U_VPUSHIDXI(vm, regs + 2);
-    regs[1] = locals[0]; // x
+    *(regs + 1) = *(locals + 0); // x
     U_SPUSHIDXI(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // c
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // c
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {47, 10};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     *(regs + 1) = Value(83);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {47, 10};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_PUSHVARF(vm, regs + 1, 545); // y
     U_LVAL_VARF(vm, regs + 2, 540); // startpos+0
     U_LV_WRITEV(vm, regs + 2, 2);
     block0:;
     vm.last = {48, 10};
-    regs[0] = locals[1]; // c
+    *(regs + 0) = *(locals + 1); // c
     *(regs + 1) = Value(69);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block1;
     vm.last = {48, 10};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_PUSHVARF(vm, regs + 1, 545); // y
     U_LVAL_VARF(vm, regs + 2, 542); // endpos+0
     U_LV_WRITEV(vm, regs + 2, 2);
@@ -15171,16 +15282,16 @@ static void fun_284(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0.000000);
     *(regs + 2) = Value(0.000000);
     U_PUSHNIL(vm, regs + 3);
-    regs[4] = locals[0]; // x
+    *(regs + 4) = *(locals + 0); // x
     U_PUSHVARF(vm, regs + 5, 545); // y
     U_PUSHVARVF(vm, regs + 6, 123, 2); // int2_0+0
     *(regs + 8) = Value(0);
     *(regs + 9) = Value(0);
     *(regs + 10) = Value(0);
-    regs[11] = locals[1]; // c
+    *(regs + 11) = *(locals + 1); // c
     U_NEWOBJECT(vm, regs + 12, 919); // pathingcell
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15190,17 +15301,18 @@ static void fun_284(VMRef vm, StackPtr psp) {
 static void fun_285(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1952, locals);
     vm.last = {52, 10};
     U_PUSHVARF(vm, regs + 0, 544); // world
-    regs[1] = locals[0];regs[2] = locals[1]; // _
+    *(regs + 1) = *(locals + 0); // _.0
+    *(regs + 2) = *(locals + 1); // _.1
     U_VPUSHIDXV(vm, regs + 3, 2);
     U_INCREF(vm, regs + 1, 0);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15210,11 +15322,11 @@ static void fun_285(VMRef vm, StackPtr psp) {
 static void fun_286(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1957, locals);
     vm.last = {53, 10};
-    regs[0] = locals[1]; // nn
+    *(regs + 0) = *(locals + 1); // nn
     U_PUSHFLD(vm, regs + 1, 11);
     *(regs + 1) = Value(35);
     U_IEQ(vm, regs + 2);
@@ -15224,7 +15336,7 @@ static void fun_286(VMRef vm, StackPtr psp) {
     block0:;
     if ((regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
-    regs[0] = locals[1]; // nn
+    *(regs + 0) = *(locals + 1); // nn
     U_PUSHFLD(vm, regs + 1, 11);
     *(regs + 1) = Value(47);
     U_IEQ(vm, regs + 2);
@@ -15239,7 +15351,7 @@ static void fun_286(VMRef vm, StackPtr psp) {
     block3:;
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15249,16 +15361,16 @@ static void fun_286(VMRef vm, StackPtr psp) {
 static void fun_287(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1962, locals);
     vm.last = {60, 10};
-    regs[0] = locals[0]; // row
+    *(regs + 0) = *(locals + 0); // row
     U_PUSHSTR(vm, regs + 1, 475); // ""
     U_INCREF(vm, regs + 2, 0);
     U_PUSHFUN(vm, regs + 2, 0, fun_288);
     fun_559(vm, regs + 3); // call: fold
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15269,14 +15381,14 @@ static void fun_288(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1966, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
     vm.last = {64, 10};
-    regs[0] = locals[0]; // accum
-    regs[1] = locals[1]; // n
+    *(regs + 0) = *(locals + 0); // accum
+    *(regs + 1) = *(locals + 1); // n
     U_PUSHFLD(vm, regs + 2, 10);
     if (!(regs + 1)->True()) goto block0;
     U_POP(vm, regs + 2);
@@ -15284,7 +15396,7 @@ static void fun_288(VMRef vm, StackPtr psp) {
     block0:;
     if ((regs + 1)->True()) goto block1;
     U_POP(vm, regs + 2);
-    regs[1] = locals[1]; // n
+    *(regs + 1) = *(locals + 1); // n
     U_PUSHFLD(vm, regs + 2, 9);
     if (!(regs + 1)->True()) goto block2;
     U_POP(vm, regs + 2);
@@ -15293,7 +15405,7 @@ static void fun_288(VMRef vm, StackPtr psp) {
     block1:;
     if ((regs + 1)->True()) goto block3;
     U_POP(vm, regs + 2);
-    regs[1] = locals[1]; // n
+    *(regs + 1) = *(locals + 1); // n
     U_PUSHFLD(vm, regs + 2, 8);
     if (!(regs + 1)->True()) goto block4;
     U_POP(vm, regs + 2);
@@ -15303,17 +15415,17 @@ static void fun_288(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 2, 0);
     if ((regs + 1)->True()) goto block5;
     U_POP(vm, regs + 2);
-    regs[1] = locals[1]; // n
+    *(regs + 1) = *(locals + 1); // n
     U_PUSHFLD(vm, regs + 2, 11);
     U_NEWVEC(vm, regs + 2, 7, 1);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_BCALLRET1(vm, regs + 2, 43, 1); // unicode_to_string
     block5:;
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_SADD(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -15326,11 +15438,11 @@ static void fun_289(VMRef vm, StackPtr psp) {
     Value regs[9];
     Value keepvar[2];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 1971, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
     vm.last = {6, 12};
     vm.last = {6, 12};
     vm.last = {16, 12};
@@ -15365,11 +15477,11 @@ static void fun_289(VMRef vm, StackPtr psp) {
     U_NEWOBJECT(vm, regs + 4, 1053); // BakeBread
     U_NEWOBJECT(vm, regs + 5, 1059); // Eat
     U_NEWVEC(vm, regs + 6, 1019, 6);
-    vm.temp_lval = &locals[0]; // goapactions
+    vm.temp_lval = locals + 0; // goapactions
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {69, 12};
     vm.last = {71, 12};
-    regs[0] = locals[0]; // goapactions
+    *(regs + 0) = *(locals + 0); // goapactions
     *(regs + 1) = Value(3);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
@@ -15381,23 +15493,23 @@ static void fun_289(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 2, 0, fun_302);
     U_PUSHFUN(vm, regs + 3, 0, fun_303);
     fun_277(vm, regs + 4); // call: astar_goap
-    vm.temp_lval = &locals[1]; // goap_path
+    vm.temp_lval = locals + 1; // goap_path
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {77, 12};
-    regs[0] = locals[1]; // goap_path
+    *(regs + 0) = *(locals + 1); // goap_path
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     *(regs + 1) = Value(9);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 77, 12, 479);
     vm.last = {78, 12};
-    regs[0] = locals[1]; // goap_path
+    *(regs + 0) = *(locals + 1); // goap_path
     U_BCALLRETV(vm, regs + 1, 16, 1); // pop
     U_POPREF(vm, regs + 1);
     vm.last = {79, 12};
-    regs[0] = locals[1]; // goap_path
+    *(regs + 0) = *(locals + 1); // goap_path
     U_PUSHFUN(vm, regs + 1, 0, fun_304);
     fun_562(vm, regs + 2); // call: map
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 480); // "Eat"
     U_INCREF(vm, regs + 2, 0);
     U_PUSHSTR(vm, regs + 2, 481); // "BuyPizza"
@@ -15415,7 +15527,7 @@ static void fun_289(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 8, 487); // "KillWolf"
     U_INCREF(vm, regs + 9, 0);
     U_NEWVEC(vm, regs + 9, 11, 8);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 79, 12, 488);
     DecVal(vm, locals[0]);
@@ -15431,11 +15543,11 @@ static void fun_289(VMRef vm, StackPtr psp) {
 static void fun_290(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1976, locals);
     vm.last = {17, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(1);
     U_IGE(vm, regs + 2);
@@ -15443,7 +15555,7 @@ static void fun_290(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15453,11 +15565,11 @@ static void fun_290(VMRef vm, StackPtr psp) {
 static void fun_292(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1981, locals);
     vm.last = {24, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 1);
     *(regs + 1) = Value(1);
     U_IGE(vm, regs + 2);
@@ -15465,7 +15577,7 @@ static void fun_292(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15475,11 +15587,11 @@ static void fun_292(VMRef vm, StackPtr psp) {
 static void fun_294(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1986, locals);
     vm.last = {31, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 2);
     *(regs + 1) = Value(2);
     U_IGE(vm, regs + 2);
@@ -15487,7 +15599,7 @@ static void fun_294(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15497,11 +15609,11 @@ static void fun_294(VMRef vm, StackPtr psp) {
 static void fun_296(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1991, locals);
     vm.last = {38, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 2);
     *(regs + 1) = Value(1);
     U_IGE(vm, regs + 2);
@@ -15509,7 +15621,7 @@ static void fun_296(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15519,11 +15631,11 @@ static void fun_296(VMRef vm, StackPtr psp) {
 static void fun_298(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 1996, locals);
     vm.last = {45, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 3);
     *(regs + 1) = Value(1);
     U_IGE(vm, regs + 2);
@@ -15531,7 +15643,7 @@ static void fun_298(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15541,23 +15653,23 @@ static void fun_298(VMRef vm, StackPtr psp) {
 static void fun_300(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2001, locals);
     vm.last = {52, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 6);
     *(regs + 1) = Value(0);
     U_IGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 4);
     *(regs + 1) = Value(0);
     U_IGT(vm, regs + 2);
     if ((regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 5);
     *(regs + 1) = Value(0);
     U_IGT(vm, regs + 2);
@@ -15567,7 +15679,7 @@ static void fun_300(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[1]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15577,15 +15689,15 @@ static void fun_300(VMRef vm, StackPtr psp) {
 static void fun_291(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2006, locals);
     vm.last = {19, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 0);
     U_LV_IMM(vm, regs + 0);
     vm.last = {20, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 1);
     U_LV_IPP(vm, regs + 0);
     DecVal(vm, locals[0]);
@@ -15601,16 +15713,16 @@ static void fun_291(VMRef vm, StackPtr psp) {
 static void fun_293(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2011, locals);
     vm.last = {26, 12};
     *(regs + 0) = Value(2);
-    regs[1] = locals[1]; // s
+    *(regs + 1) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_IADD(vm, regs + 1);
     vm.last = {27, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 1);
     U_LV_IMM(vm, regs + 0);
     DecVal(vm, locals[0]);
@@ -15626,16 +15738,16 @@ static void fun_293(VMRef vm, StackPtr psp) {
 static void fun_295(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2016, locals);
     vm.last = {33, 12};
     *(regs + 0) = Value(2);
-    regs[1] = locals[1]; // s
+    *(regs + 1) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 2, 2);
     U_LV_ISUB(vm, regs + 1);
     vm.last = {34, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 5);
     U_LV_IPP(vm, regs + 0);
     DecVal(vm, locals[0]);
@@ -15651,15 +15763,15 @@ static void fun_295(VMRef vm, StackPtr psp) {
 static void fun_297(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2021, locals);
     vm.last = {40, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 2);
     U_LV_IMM(vm, regs + 0);
     vm.last = {41, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 3);
     U_LV_IPP(vm, regs + 0);
     DecVal(vm, locals[0]);
@@ -15675,15 +15787,15 @@ static void fun_297(VMRef vm, StackPtr psp) {
 static void fun_299(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2026, locals);
     vm.last = {47, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 3);
     U_LV_IMM(vm, regs + 0);
     vm.last = {48, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 4);
     U_LV_IPP(vm, regs + 0);
     DecVal(vm, locals[0]);
@@ -15699,28 +15811,28 @@ static void fun_299(VMRef vm, StackPtr psp) {
 static void fun_301(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2031, locals);
     vm.last = {54, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_PUSHFLD(vm, regs + 1, 4);
     *(regs + 1) = Value(0);
     U_IGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {55, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 4);
     U_LV_IMM(vm, regs + 0);
     goto block1;
     block0:;
     vm.last = {57, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 5);
     U_LV_IMM(vm, regs + 0);
     block1:;
     vm.last = {58, 12};
-    regs[0] = locals[1]; // s
+    *(regs + 0) = *(locals + 1); // s
     U_LVAL_FLD(vm, regs + 1, 6);
     U_LV_IMM(vm, regs + 0);
     DecVal(vm, locals[0]);
@@ -15736,13 +15848,13 @@ static void fun_301(VMRef vm, StackPtr psp) {
 static void fun_302(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2036, locals);
     vm.last = {73, 12};
-    regs[0] = locals[0]; // state
+    *(regs + 0) = *(locals + 0); // state
     U_PUSHFLD(vm, regs + 1, 6);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15752,15 +15864,15 @@ static void fun_302(VMRef vm, StackPtr psp) {
 static void fun_303(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2040, locals);
     vm.last = {75, 12};
-    regs[0] = locals[0]; // s
+    *(regs + 0) = *(locals + 0); // s
     U_PUSHFLD(vm, regs + 1, 6);
     *(regs + 1) = Value(0);
     U_ILE(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15770,14 +15882,14 @@ static void fun_303(VMRef vm, StackPtr psp) {
 static void fun_304(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2044, locals);
     vm.last = {79, 12};
-    regs[0] = locals[0]; // n
+    *(regs + 0) = *(locals + 0); // n
     U_PUSHFLD(vm, regs + 1, 5);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {79, 12};
-    regs[0] = locals[0]; // n
+    *(regs + 0) = *(locals + 0); // n
     U_PUSHFLD(vm, regs + 1, 5);
     U_BCALLRETV(vm, regs + 1, 156, 1); // type_string
     goto block1;
@@ -15787,7 +15899,7 @@ static void fun_304(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     block1:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15799,7 +15911,7 @@ static void fun_305(VMRef vm, StackPtr psp) {
     Value keepvar[1];
     BackupVar(vm, 587);
     PushFunId(vm, funinfo_table + 2048, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {6, 13};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(2);
@@ -15828,7 +15940,7 @@ static void fun_305(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(8);
     *(regs + 1) = Value(8);
     fun_306(vm, regs + 2); // call: knights_tour
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_ASSERT(vm, regs + 1, 24, 13, 490);
     DecOwned(vm, 587);
     goto epilogue;
@@ -15847,9 +15959,9 @@ static void fun_306(VMRef vm, StackPtr psp) {
     BackupVar(vm, 590);
     BackupVar(vm, 591);
     BackupVar(vm, 592);
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2052, locals);
     vm.last = {10, 13};
     U_PUSHVARVF(vm, regs + 0, 588, 2); // dim+0
@@ -15867,7 +15979,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 1, 590); // board
     U_PUSHVARVF(vm, regs + 2, 591, 2); // cur+0
     U_LVAL_IDXVV(vm, regs + 4, 0, 2);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {13, 13};
     *(regs + 0) = Value(-1);
     U_PUSHVARF(vm, regs + 1, 588); // dim+0
@@ -15879,24 +15991,24 @@ static void fun_306(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {13, 13};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[0]; // step
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 0; // step
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {14, 13};
     U_PUSHVARF(vm, regs + 2, 587); // knight_moves
     U_PUSHFUN(vm, regs + 3, 0, fun_308);
     fun_565(vm, regs + 4); // call: map
-    vm.temp_lval = &locals[1]; // candidates
+    vm.temp_lval = locals + 1; // candidates
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {15, 13};
     vm.last = {16, 13};
-    regs[2] = locals[1]; // candidates
+    *(regs + 2) = *(locals + 1); // candidates
     U_INCREF(vm, regs + 3, 0);
     U_PUSHFUN(vm, regs + 3, 0, fun_310);
     fun_10(vm, regs + 4); // call: filter
-    vm.temp_lval = &locals[1]; // candidates
+    vm.temp_lval = locals + 1; // candidates
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {17, 13};
-    regs[2] = locals[1]; // candidates
+    *(regs + 2) = *(locals + 1); // candidates
     U_BCALLRET1(vm, regs + 3, 13, 1); // length
     U_LOGNOT(vm, regs + 3);
     if (!(regs + 2)->True()) goto block2;
@@ -15909,19 +16021,19 @@ static void fun_306(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     psp = PopArg(vm, 589, psp);
     psp = PopArg(vm, 588, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block2:;
     vm.last = {18, 13};
-    regs[2] = locals[1]; // candidates
+    *(regs + 2) = *(locals + 1); // candidates
     U_INCREF(vm, regs + 3, 0);
     U_PUSHFUN(vm, regs + 3, 0, fun_311);
     fun_566(vm, regs + 4); // call: map
-    vm.temp_lval = &locals[2]; // degrees
+    vm.temp_lval = locals + 2; // degrees
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {19, 13};
-    regs[2] = locals[1]; // candidates
-    regs[3] = locals[2]; // degrees
+    *(regs + 2) = *(locals + 1); // candidates
+    *(regs + 3) = *(locals + 2); // degrees
     U_INCREF(vm, regs + 4, 0);
     U_PUSHFUN(vm, regs + 4, 0, fun_313);
     fun_26(vm, regs + 5); // call: find_best
@@ -15929,13 +16041,13 @@ static void fun_306(VMRef vm, StackPtr psp) {
     U_LVAL_VARF(vm, regs + 4, 591); // cur+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {20, 13};
-    regs[2] = locals[0]; // step
+    *(regs + 2) = *(locals + 0); // step
     *(regs + 3) = Value(1);
     U_IADD(vm, regs + 4);
     U_PUSHVARF(vm, regs + 3, 590); // board
     U_PUSHVARVF(vm, regs + 4, 591, 2); // cur+0
     U_LVAL_IDXVV(vm, regs + 6, 0, 2);
-    *vm.temp_lval = *(regs + 2);
+    *(vm.temp_lval) = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {21, 13};
@@ -15946,7 +16058,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     DecVal(vm, locals[2]);
     psp = PopArg(vm, 589, psp);
     psp = PopArg(vm, 588, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     RestoreBackup(vm, 592);
@@ -15959,17 +16071,18 @@ static void fun_306(VMRef vm, StackPtr psp) {
 static void fun_308(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2063, locals);
     vm.last = {14, 13};
     U_PUSHVARVF(vm, regs + 0, 591, 2); // cur+0
-    regs[2] = locals[0];regs[3] = locals[1]; // m
+    *(regs + 2) = *(locals + 0); // m.0
+    *(regs + 3) = *(locals + 1); // m.1
     U_IVVADD(vm, regs + 4, 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -15979,11 +16092,12 @@ static void fun_308(VMRef vm, StackPtr psp) {
 static void fun_309(VMRef vm, StackPtr psp) {
     Value regs[9];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2068, locals);
     vm.last = {15, 13};
-    regs[0] = locals[0];regs[1] = locals[1]; // v
+    *(regs + 0) = *(locals + 0); // v.0
+    *(regs + 1) = *(locals + 1); // v.1
     *(regs + 2) = Value(2);
     U_PUSHVARVF(vm, regs + 3, 588, 2); // dim+0
     *(regs + 5) = Value(2);
@@ -15994,14 +16108,15 @@ static void fun_309(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 590); // board
-    regs[1] = locals[0];regs[2] = locals[1]; // v
+    *(regs + 1) = *(locals + 0); // v.0
+    *(regs + 2) = *(locals + 1); // v.1
     U_VPUSHIDXV(vm, regs + 3, 2);
     *(regs + 1) = Value(0);
     U_ILT(vm, regs + 2);
     block0:;
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16011,15 +16126,16 @@ static void fun_309(VMRef vm, StackPtr psp) {
 static void fun_310(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2073, locals);
     vm.last = {16, 13};
-    regs[0] = locals[0];regs[1] = locals[1]; // c
+    *(regs + 0) = *(locals + 0); // c.0
+    *(regs + 1) = *(locals + 1); // c.1
     fun_309(vm, regs + 2); // call: empty
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16032,16 +16148,16 @@ static void fun_311(VMRef vm, StackPtr psp) {
     SwapVars(vm, 602, psp, 2);
     SwapVars(vm, 603, psp, 1);
     PushFunId(vm, funinfo_table + 2078, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {18, 13};
     U_PUSHVARF(vm, regs + 0, 587); // knight_moves
     U_PUSHFUN(vm, regs + 1, 0, fun_312);
     fun_567(vm, regs + 2); // call: filter
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     psp = PopArg(vm, 603, psp);
     psp = PopArg(vm, 602, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -16052,17 +16168,18 @@ static void fun_311(VMRef vm, StackPtr psp) {
 static void fun_312(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2083, locals);
     vm.last = {18, 13};
     U_PUSHVARVF(vm, regs + 0, 602, 2); // c+0
-    regs[2] = locals[0];regs[3] = locals[1]; // m
+    *(regs + 2) = *(locals + 0); // m.0
+    *(regs + 3) = *(locals + 1); // m.1
     U_IVVADD(vm, regs + 4, 2);
     fun_309(vm, regs + 2); // call: empty
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16072,13 +16189,13 @@ static void fun_312(VMRef vm, StackPtr psp) {
 static void fun_313(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2088, locals);
     vm.last = {19, 13};
-    regs[0] = locals[0]; // d
+    *(regs + 0) = *(locals + 0); // d
     U_IUMINUS(vm, regs + 1);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16089,12 +16206,12 @@ static void fun_314(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[1];
     Value locals[4];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2092, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {8, 14};
     vm.last = {8, 14};
     vm.last = {13, 14};
@@ -16111,48 +16228,48 @@ static void fun_314(VMRef vm, StackPtr psp) {
     vm.last = {116, 14};
     U_PUSHSTR(vm, regs + 0, 491); // "(+\n(* 2 3 4)  // Comment.\n10)\n"
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[0]; // test_code
+    vm.temp_lval = locals + 0; // test_code
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {122, 14};
-    regs[0] = locals[0]; // test_code
+    *(regs + 0) = *(locals + 0); // test_code
     fun_326(vm, regs + 1); // call: parse
-    vm.temp_lval = &locals[2]; // err
+    vm.temp_lval = locals + 2; // err
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // ast
+    vm.temp_lval = locals + 1; // ast
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {123, 14};
-    regs[0] = locals[1]; // ast
+    *(regs + 0) = *(locals + 1); // ast
     U_E2B(vm, regs + 1);
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[2]; // err
+    *(regs + 0) = *(locals + 2); // err
     U_PUSHSTR(vm, regs + 1, 492); // ""
     U_SEQ(vm, regs + 2);
     block0:;
     U_ASSERT(vm, regs + 1, 123, 14, 493);
     vm.last = {124, 14};
-    regs[0] = locals[1]; // ast
+    *(regs + 0) = *(locals + 1); // ast
     U_INCREF(vm, regs + 1, 0);
     U_DDCALL(vm, regs + 1, 0, 0); vm.next_call_target(vm, regs + 1);
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 494); // "(+ (* 2 3 4) 10)"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 124, 14, 495);
     vm.last = {125, 14};
-    regs[0] = locals[1]; // ast
+    *(regs + 0) = *(locals + 1); // ast
     U_INCREF(vm, regs + 1, 0);
     U_DDCALL(vm, regs + 1, 2, 0); vm.next_call_target(vm, regs + 1);
     *(regs + 1) = Value(34);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 125, 14, 496);
     vm.last = {126, 14};
-    regs[0] = locals[1]; // ast
+    *(regs + 0) = *(locals + 1); // ast
     U_INCREF(vm, regs + 1, 0);
     U_DDCALL(vm, regs + 1, 5, 0); vm.next_call_target(vm, regs + 1);
-    vm.temp_lval = &locals[3]; // code
+    vm.temp_lval = locals + 3; // code
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {127, 14};
-    regs[0] = locals[3]; // code
+    *(regs + 0) = *(locals + 3); // code
     U_PUSHSTR(vm, regs + 1, 497); // "(((2*3)*4)+10)"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 127, 14, 498);
@@ -16170,15 +16287,15 @@ static void fun_314(VMRef vm, StackPtr psp) {
 static void fun_315(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2099, locals);
     vm.last = {13, 14};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     U_A2S(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16188,28 +16305,28 @@ static void fun_315(VMRef vm, StackPtr psp) {
 static void fun_318(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2103, locals);
     vm.last = {22, 14};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 2, 0);
     U_INCREF(vm, regs + 2, 0);
     U_PUSHFUN(vm, regs + 2, 0, fun_319);
     fun_570(vm, regs + 3); // call: fold
-    vm.temp_lval = &locals[1]; // elems
+    vm.temp_lval = locals + 1; // elems
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {23, 14};
     U_PUSHSTR(vm, regs + 0, 499); // "("
-    regs[1] = locals[1]; // elems
+    *(regs + 1) = *(locals + 1); // elems
     U_PUSHSTR(vm, regs + 2, 500); // ")"
     U_SADDN(vm, regs + 3, 3);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16219,14 +16336,14 @@ static void fun_318(VMRef vm, StackPtr psp) {
 static void fun_316(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2108, locals);
     vm.last = {14, 14};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16236,10 +16353,10 @@ static void fun_316(VMRef vm, StackPtr psp) {
 static void fun_320(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2112, locals);
     vm.last = {32, 14};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     U_DUP(vm, regs + 1);
     U_PUSHSTR(vm, regs + 2, 501); // "+"
@@ -16247,7 +16364,7 @@ static void fun_320(VMRef vm, StackPtr psp) {
     if (!(regs + 1)->True()) goto block0;
     U_POP(vm, regs + 1);
     vm.last = {28, 14};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 1);
     *(regs + 1) = Value(0);
     U_PUSHFUN(vm, regs + 2, 0, fun_321);
@@ -16260,7 +16377,7 @@ static void fun_320(VMRef vm, StackPtr psp) {
     if (!(regs + 1)->True()) goto block2;
     U_POP(vm, regs + 1);
     vm.last = {30, 14};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 1);
     *(regs + 1) = Value(1);
     U_PUSHFUN(vm, regs + 2, 0, fun_322);
@@ -16275,7 +16392,7 @@ static void fun_320(VMRef vm, StackPtr psp) {
     block3:;
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16285,15 +16402,15 @@ static void fun_320(VMRef vm, StackPtr psp) {
 static void fun_317(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2116, locals);
     vm.last = {15, 14};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     U_A2S(vm, regs + 1, 0);
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16333,7 +16450,7 @@ static void fun_323(VMRef vm, StackPtr psp) {
     block2:;
     DecOwned(vm, 619);
     psp = PopArg(vm, 619, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16344,24 +16461,24 @@ static void fun_319(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value keepvar[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2124, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
     vm.last = {22, 14};
-    regs[0] = locals[0]; // _a
+    *(regs + 0) = *(locals + 0); // _a
     U_INCREF(vm, regs + 1, 0);
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 507); // " "
-    regs[2] = locals[1]; // _e
+    *(regs + 2) = *(locals + 1); // _e
     U_INCREF(vm, regs + 3, 0);
     U_DDCALL(vm, regs + 3, 1, 0); vm.next_call_target(vm, regs + 3);
-    keepvar[1] = TopM(regs + 3, 0);
+    *(keepvar + 1) = *(regs + 2);
     U_SADDN(vm, regs + 3, 3);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -16373,18 +16490,18 @@ static void fun_319(VMRef vm, StackPtr psp) {
 static void fun_321(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2129, locals);
     vm.last = {28, 14};
-    regs[0] = locals[0]; // _a
-    regs[1] = locals[1]; // _e
+    *(regs + 0) = *(locals + 0); // _a
+    *(regs + 1) = *(locals + 1); // _e
     U_INCREF(vm, regs + 2, 0);
     U_DDCALL(vm, regs + 2, 3, 0); vm.next_call_target(vm, regs + 2);
     U_IADD(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16394,18 +16511,18 @@ static void fun_321(VMRef vm, StackPtr psp) {
 static void fun_322(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2134, locals);
     vm.last = {30, 14};
-    regs[0] = locals[0]; // _a
-    regs[1] = locals[1]; // _e
+    *(regs + 0) = *(locals + 0); // _a
+    *(regs + 1) = *(locals + 1); // _e
     U_INCREF(vm, regs + 2, 0);
     U_DDCALL(vm, regs + 2, 4, 0); vm.next_call_target(vm, regs + 2);
     U_IMUL(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16415,14 +16532,14 @@ static void fun_322(VMRef vm, StackPtr psp) {
 static void fun_324(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2139, locals);
     vm.last = {37, 14};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_INCREF(vm, regs + 1, 0);
     U_DDCALL(vm, regs + 1, 6, 0); vm.next_call_target(vm, regs + 1);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16432,20 +16549,20 @@ static void fun_324(VMRef vm, StackPtr psp) {
 static void fun_325(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2143, locals);
     vm.last = {37, 14};
     U_PUSHSTR(vm, regs + 0, 508); // "("
-    regs[1] = locals[0]; // _a
+    *(regs + 1) = *(locals + 0); // _a
     U_PUSHVARF(vm, regs + 2, 619); // this
     U_PUSHFLD(vm, regs + 3, 0);
-    regs[3] = locals[1]; // _e
+    *(regs + 3) = *(locals + 1); // _e
     U_PUSHSTR(vm, regs + 4, 509); // ")"
     U_SADDN(vm, regs + 5, 5);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16461,7 +16578,7 @@ static void fun_326(VMRef vm, StackPtr psp) {
     BackupVar(vm, 626);
     BackupVar(vm, 627);
     BackupVar(vm, 628);
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2148, locals);
     vm.last = {42, 14};
     U_PUSHSTR(vm, regs + 0, 510); // ""
@@ -16476,15 +16593,15 @@ static void fun_326(VMRef vm, StackPtr psp) {
     vm.last = {44, 14};
     *(regs + 0) = Value(0);
     U_LVAL_VARF(vm, regs + 1, 626); // i
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {45, 14};
     *(regs + 0) = Value(1);
     U_LVAL_VARF(vm, regs + 1, 627); // line
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {46, 14};
     *(regs + 0) = Value(0);
     U_LVAL_VARF(vm, regs + 1, 628); // ival
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {47, 14};
     vm.last = {51, 14};
     vm.last = {61, 14};
@@ -16510,7 +16627,7 @@ static void fun_326(VMRef vm, StackPtr psp) {
     { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) Push(psp, regs[i + 0]); }
     goto epilogue;
     block1:;
-    vm.temp_lval = &locals[0]; // root
+    vm.temp_lval = locals + 0; // root
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {113, 14};
     U_PUSHSTR(vm, regs + 0, 512); // "eof"
@@ -16524,7 +16641,7 @@ static void fun_326(VMRef vm, StackPtr psp) {
     goto epilogue;
     block2:;
     vm.last = {114, 14};
-    regs[0] = locals[0]; // root
+    *(regs + 0) = *(locals + 0); // root
     U_PUSHSTR(vm, regs + 1, 513); // ""
     U_INCREF(vm, regs + 2, 0);
     U_INCREF(vm, regs + 2, 1);
@@ -16532,8 +16649,8 @@ static void fun_326(VMRef vm, StackPtr psp) {
     DecOwned(vm, 625);
     DecVal(vm, locals[0]);
     psp = PopArg(vm, 623, psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     RestoreBackup(vm, 628);
@@ -16549,24 +16666,24 @@ static void fun_327(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2158, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {50, 14};
     U_PUSHNIL(vm, regs + 0);
     U_PUSHSTR(vm, regs + 1, 514); // "error: line "
     U_PUSHVARF(vm, regs + 2, 627); // line
     U_A2S(vm, regs + 3, 0);
-    keepvar[0] = TopM(regs + 3, 0);
+    *(keepvar + 0) = *(regs + 2);
     U_PUSHSTR(vm, regs + 3, 515); // ": "
-    regs[4] = locals[0]; // err
+    *(regs + 4) = *(locals + 0); // err
     U_SADDN(vm, regs + 5, 4);
     vm.ret_slots = 2;
     vm.ret_unwind_to = 293;
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     DecVal(vm, keepvar[0]);
@@ -16578,17 +16695,17 @@ static void fun_328(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value keepvar[1];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2162, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {52, 14};
     U_LVAL_VARF(vm, regs + 0, 626); // i
     U_LV_IMM(vm, regs + 0);
     vm.last = {53, 14};
     U_PUSHVARF(vm, regs + 0, 626); // i
-    vm.temp_lval = &locals[0]; // start
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // start
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {54, 14};
     block0:;
     U_PUSHVARF(vm, regs + 0, 623); // s
@@ -16610,7 +16727,7 @@ static void fun_328(VMRef vm, StackPtr psp) {
     goto block0;
     block2:;
     vm.last = {55, 14};
-    regs[0] = locals[0]; // start
+    *(regs + 0) = *(locals + 0); // start
     U_PUSHVARF(vm, regs + 1, 626); // i
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block3;
@@ -16620,7 +16737,7 @@ static void fun_328(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 2, 626); // i
     U_SPUSHIDXI(vm, regs + 3);
     U_A2S(vm, regs + 2, 0);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_SADD(vm, regs + 2);
     fun_327(vm, regs + 1); // call: error
     if (vm.ret_unwind_to == 294) goto block4;
@@ -16630,27 +16747,27 @@ static void fun_328(VMRef vm, StackPtr psp) {
     block3:;
     vm.last = {57, 14};
     U_PUSHVARF(vm, regs + 0, 623); // s
-    regs[1] = locals[0]; // start
+    *(regs + 1) = *(locals + 0); // start
     U_PUSHVARF(vm, regs + 2, 626); // i
-    regs[3] = locals[0]; // start
+    *(regs + 3) = *(locals + 0); // start
     U_ISUB(vm, regs + 4);
     U_BCALLRET3(vm, regs + 3, 36, 1); // substring
     U_LVAL_VARF(vm, regs + 1, 625); // atom
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {58, 14};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[1]; // all
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // all
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {59, 14};
     U_PUSHVARF(vm, regs + 0, 625); // atom
     *(regs + 1) = Value(0);
     U_BCALLRET2(vm, regs + 2, 40, 1); // string_to_int
-    vm.temp_lval = &locals[1]; // all
-    *vm.temp_lval = *(regs + 1);
+    vm.temp_lval = locals + 1; // all
+    *(vm.temp_lval) = *(regs + 1);
     U_LVAL_VARF(vm, regs + 1, 628); // ival
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {60, 14};
-    regs[0] = locals[1]; // all
+    *(regs + 0) = *(locals + 1); // all
     if (!(regs + 0)->True()) goto block5;
     vm.last = {60, 14};
     U_PUSHSTR(vm, regs + 0, 518); // "int"
@@ -16674,16 +16791,16 @@ static void fun_328(VMRef vm, StackPtr psp) {
 static void fun_329(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2167, locals);
     vm.last = {54, 14};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_PUSHVARF(vm, regs + 1, 623); // s
     U_PUSHVARF(vm, regs + 2, 626); // i
     U_SPUSHIDXI(vm, regs + 3);
     U_IEQ(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16858,17 +16975,17 @@ static void fun_330(VMRef vm, StackPtr psp) {
 static void fun_569(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2174, locals);
     vm.last = {89, 14};
-    regs[0] = locals[0]; // tok
+    *(regs + 0) = *(locals + 0); // tok
     U_PUSHVARF(vm, regs + 1, 624); // token
     U_SNE(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {90, 14};
     U_PUSHSTR(vm, regs + 0, 523); // "expected: "
-    regs[1] = locals[0]; // tok
+    *(regs + 1) = *(locals + 0); // tok
     U_PUSHSTR(vm, regs + 2, 524); // ", found: "
     U_PUSHVARF(vm, regs + 3, 624); // token
     U_SADDN(vm, regs + 4, 4);
@@ -16883,7 +17000,7 @@ static void fun_569(VMRef vm, StackPtr psp) {
     vm.last = {91, 14};
     U_PUSHVARF(vm, regs + 0, 625); // atom
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[1]; // a
+    vm.temp_lval = locals + 1; // a
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {92, 14};
     fun_330(vm, regs + 0); // call: lex_next
@@ -16907,17 +17024,17 @@ static void fun_569(VMRef vm, StackPtr psp) {
 static void fun_331(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2179, locals);
     vm.last = {89, 14};
-    regs[0] = locals[0]; // tok
+    *(regs + 0) = *(locals + 0); // tok
     U_PUSHVARF(vm, regs + 1, 624); // token
     U_SNE(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {90, 14};
     U_PUSHSTR(vm, regs + 0, 525); // "expected: "
-    regs[1] = locals[0]; // tok
+    *(regs + 1) = *(locals + 0); // tok
     U_PUSHSTR(vm, regs + 2, 526); // ", found: "
     U_PUSHVARF(vm, regs + 3, 624); // token
     U_SADDN(vm, regs + 4, 4);
@@ -16932,7 +17049,7 @@ static void fun_331(VMRef vm, StackPtr psp) {
     vm.last = {91, 14};
     U_PUSHVARF(vm, regs + 0, 625); // atom
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[1]; // a
+    vm.temp_lval = locals + 1; // a
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {92, 14};
     fun_330(vm, regs + 0); // call: lex_next
@@ -16943,13 +17060,13 @@ static void fun_331(VMRef vm, StackPtr psp) {
     goto epilogue;
     block2:;
     vm.last = {93, 14};
-    regs[0] = locals[1]; // a
+    *(regs + 0) = *(locals + 1); // a
     U_INCREF(vm, regs + 1, 0);
     vm.ret_slots = 1;
     vm.ret_unwind_to = 298;
     DecVal(vm, locals[1]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -16960,8 +17077,8 @@ static void fun_332(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
     BackupVar(vm, 635);
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2184, locals);
     vm.last = {95, 14};
     U_PUSHVARF(vm, regs + 0, 624); // token
@@ -17019,7 +17136,7 @@ static void fun_332(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 1, 0);
     U_NEWVEC(vm, regs + 1, 1092, 0);
     U_NEWOBJECT(vm, regs + 2, 1080); // inst
-    vm.temp_lval = &locals[0]; // n
+    vm.temp_lval = locals + 0; // n
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {102, 14};
     block5:;
@@ -17028,7 +17145,7 @@ static void fun_332(VMRef vm, StackPtr psp) {
     U_SNE(vm, regs + 2);
     if (!(regs + 0)->True()) goto block6;
     vm.last = {103, 14};
-    regs[0] = locals[0]; // n
+    *(regs + 0) = *(locals + 0); // n
     U_PUSHFLD(vm, regs + 1, 1);
     fun_332(vm, regs + 1); // call: parse_exp
     if (vm.ret_unwind_to == 299) goto block7;
@@ -17054,14 +17171,14 @@ static void fun_332(VMRef vm, StackPtr psp) {
     goto epilogue;
     block8:;
     vm.last = {105, 14};
-    regs[0] = locals[0]; // n
+    *(regs + 0) = *(locals + 0); // n
     U_INCREF(vm, regs + 1, 0);
     vm.ret_slots = 1;
     vm.ret_unwind_to = 299;
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     goto block9;
     block0:;
@@ -17073,7 +17190,7 @@ static void fun_332(VMRef vm, StackPtr psp) {
     vm.last = {107, 14};
     U_PUSHVARF(vm, regs + 0, 628); // ival
     U_NEWOBJECT(vm, regs + 1, 1065); // integer
-    vm.temp_lval = &locals[1]; // n
+    vm.temp_lval = locals + 1; // n
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {108, 14};
     fun_330(vm, regs + 0); // call: lex_next
@@ -17085,14 +17202,14 @@ static void fun_332(VMRef vm, StackPtr psp) {
     goto epilogue;
     block11:;
     vm.last = {109, 14};
-    regs[0] = locals[1]; // n
+    *(regs + 0) = *(locals + 1); // n
     U_INCREF(vm, regs + 1, 0);
     vm.ret_slots = 1;
     vm.ret_unwind_to = 299;
     DecOwned(vm, 635);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     goto block12;
     block10:;
@@ -17126,14 +17243,14 @@ static void fun_332(VMRef vm, StackPtr psp) {
 static void fun_333(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2190, locals);
     vm.last = {99, 14};
     U_PUSHVARF(vm, regs + 0, 635); // name
-    regs[1] = locals[0]; // _
+    *(regs + 1) = *(locals + 0); // _
     U_SEQ(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -17145,15 +17262,15 @@ static void fun_334(VMRef vm, StackPtr psp) {
     Value locals[6];
     SwapVars(vm, 644, psp, 5);
     SwapVars(vm, 645, psp, 4);
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
     SwapVars(vm, 648, psp, 1);
     BackupVar(vm, 649);
-    locals[2] = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
     BackupVar(vm, 653);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2194, locals);
     vm.last = {14, 16};
     U_PUSHVARVF(vm, regs + 0, 644, 2); // sz+0
@@ -17163,18 +17280,19 @@ static void fun_334(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {15, 16};
     U_PUSHVARF(vm, regs + 0, 649); // m
-    regs[1] = locals[0];regs[2] = locals[1]; // target
+    *(regs + 1) = *(locals + 0); // target.0
+    *(regs + 2) = *(locals + 1); // target.1
     U_VPUSHIDXV(vm, regs + 3, 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[2]; // end
+    vm.temp_lval = locals + 2; // end
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {16, 16};
     *(regs + 0) = Value(0);
-    regs[1] = locals[2]; // end
+    *(regs + 1) = *(locals + 2); // end
     U_LVAL_FLD(vm, regs + 2, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {17, 16};
-    regs[0] = locals[2]; // end
+    *(regs + 0) = *(locals + 2); // end
     U_INCREF(vm, regs + 1, 0);
     U_NEWVEC(vm, regs + 1, 1119, 1);
     U_LVAL_VARF(vm, regs + 1, 653); // pathq
@@ -17188,7 +17306,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     vm.last = {29, 16};
     U_PUSHVARF(vm, regs + 0, 653); // pathq
     U_BCALLRETV(vm, regs + 1, 16, 1); // pop
-    vm.temp_lval = &locals[3]; // c
+    vm.temp_lval = locals + 3; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {30, 16};
     *(regs + 0) = Value(-1);
@@ -17197,8 +17315,8 @@ static void fun_334(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block3;
     vm.last = {30, 16};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[4]; // x
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // x
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {30, 16};
     *(regs + 2) = Value(-1);
     *(regs + 3) = Value(2);
@@ -17206,18 +17324,18 @@ static void fun_334(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 4)) goto block5;
     vm.last = {30, 16};
     U_IFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[5]; // y
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 5; // y
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {31, 16};
     *(regs + 4) = Value(1);
-    regs[5] = locals[5]; // y
+    *(regs + 5) = *(locals + 5); // y
     U_ISUB(vm, regs + 6);
-    regs[5] = locals[4]; // x
+    *(regs + 5) = *(locals + 4); // x
     U_ISUB(vm, regs + 6);
-    regs[5] = locals[5]; // y
-    regs[6] = locals[4]; // x
+    *(regs + 5) = *(locals + 5); // y
+    *(regs + 6) = *(locals + 4); // x
     U_ISUB(vm, regs + 7);
-    regs[6] = locals[3]; // c
+    *(regs + 6) = *(locals + 3); // c
     U_INCREF(vm, regs + 7, 0);
     fun_336(vm, regs + 7); // call: flood
     goto block4;
@@ -17236,7 +17354,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     Pop(psp);
     psp = PopArg(vm, 645, psp);
     psp = PopArg(vm, 644, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     RestoreBackup(vm, 653);
@@ -17248,17 +17366,18 @@ static void fun_334(VMRef vm, StackPtr psp) {
 static void fun_335(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2208, locals);
     vm.last = {14, 16};
     *(regs + 0) = Value(-1);
     U_PUSHVARVF(vm, regs + 1, 123, 2); // int2_0+0
-    regs[3] = locals[0];regs[4] = locals[1]; // v
+    *(regs + 3) = *(locals + 0); // v.0
+    *(regs + 4) = *(locals + 1); // v.1
     U_NEWOBJECT(vm, regs + 5, 1098); // pathmap
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -17268,25 +17387,27 @@ static void fun_335(VMRef vm, StackPtr psp) {
 static void fun_336(VMRef vm, StackPtr psp) {
     Value regs[9];
     Value locals[9];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2213, locals);
     vm.last = {19, 16};
-    regs[0] = locals[2]; // parent
+    *(regs + 0) = *(locals + 2); // parent
     U_PUSHFLD2V(vm, regs + 1, 3, 2);
-    regs[2] = locals[0];regs[3] = locals[1]; // dir
+    *(regs + 2) = *(locals + 0); // dir.0
+    *(regs + 3) = *(locals + 1); // dir.1
     U_IVVADD(vm, regs + 4, 2);
-    vm.temp_lval = &locals[3]; // pos+0
+    vm.temp_lval = locals + 3; // pos+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {20, 16};
-    regs[0] = locals[3];regs[1] = locals[4]; // pos
+    *(regs + 0) = *(locals + 3); // pos.0
+    *(regs + 1) = *(locals + 4); // pos.1
     *(regs + 2) = Value(2);
     U_PUSHVARVF(vm, regs + 3, 644, 2); // sz+0
     *(regs + 5) = Value(2);
@@ -17297,72 +17418,75 @@ static void fun_336(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block0;
     vm.last = {21, 16};
     U_PUSHVARF(vm, regs + 0, 649); // m
-    regs[1] = locals[3];regs[2] = locals[4]; // pos
+    *(regs + 1) = *(locals + 3); // pos.0
+    *(regs + 2) = *(locals + 4); // pos.1
     U_VPUSHIDXV(vm, regs + 3, 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[5]; // c
+    vm.temp_lval = locals + 5; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {22, 16};
     vm.last = {22, 16};
-    regs[0] = locals[3];regs[1] = locals[4]; // pos
-    vm.temp_lval = &locals[7]; // v+0
+    *(regs + 0) = *(locals + 3); // pos.0
+    *(regs + 1) = *(locals + 4); // pos.1
+    vm.temp_lval = locals + 7; // v+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {6, 15};
     *(regs + 0) = Value(1);
     if (!(regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
-    regs[0] = locals[5]; // c
+    *(regs + 0) = *(locals + 5); // c
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(0);
     U_ILT(vm, regs + 2);
     block1:;
     if (!(regs + 0)->True()) goto block2;
     vm.last = {23, 16};
-    regs[0] = locals[2]; // parent
+    *(regs + 0) = *(locals + 2); // parent
     U_PUSHFLD(vm, regs + 1, 0);
     *(regs + 1) = Value(1);
     U_IADD(vm, regs + 2);
-    regs[1] = locals[5]; // c
+    *(regs + 1) = *(locals + 5); // c
     U_LVAL_FLD(vm, regs + 2, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {24, 16};
-    regs[0] = locals[0];regs[1] = locals[1]; // dir
+    *(regs + 0) = *(locals + 0); // dir.0
+    *(regs + 1) = *(locals + 1); // dir.1
     U_IVUMINUS(vm, regs + 2, 2);
-    regs[2] = locals[5]; // c
+    *(regs + 2) = *(locals + 5); // c
     U_LVAL_FLD(vm, regs + 3, 1);
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {25, 16};
     U_PUSHVARF(vm, regs + 0, 653); // pathq
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
-    vm.temp_lval = &locals[6]; // i
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 6; // i
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {26, 16};
     block3:;
-    regs[0] = locals[6]; // i
+    *(regs + 0) = *(locals + 6); // i
     *(regs + 1) = Value(0);
     U_IGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block4;
     U_POP(vm, regs + 1);
     U_PUSHVARF(vm, regs + 0, 653); // pathq
-    regs[1] = locals[6]; // i
+    *(regs + 1) = *(locals + 6); // i
     *(regs + 2) = Value(1);
     U_ISUB(vm, regs + 3);
     U_VPUSHIDXI(vm, regs + 2);
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[5]; // c
+    *(regs + 1) = *(locals + 5); // c
     U_PUSHFLD(vm, regs + 2, 0);
     U_ILT(vm, regs + 2);
     block4:;
     if (!(regs + 0)->True()) goto block5;
     vm.last = {26, 16};
-    vm.temp_lval = &locals[6]; // i
+    vm.temp_lval = locals + 6; // i
     U_LV_IMM(vm, regs + 0);
     goto block3;
     block5:;
     vm.last = {27, 16};
     U_PUSHVARF(vm, regs + 0, 653); // pathq
-    regs[1] = locals[6]; // i
-    regs[2] = locals[5]; // c
+    *(regs + 1) = *(locals + 6); // i
+    *(regs + 2) = *(locals + 5); // c
     U_INCREF(vm, regs + 3, 0);
     *(regs + 3) = Value(1);
     U_BCALLRETV(vm, regs + 4, 18, 1); // insert
@@ -17384,7 +17508,7 @@ static void fun_337(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value keepvar[1];
     PushFunId(vm, funinfo_table + 2225, 0);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {6, 15};
     U_PUSHVARVF(vm, regs + 0, 125, 2); // int2_1+0
     *(regs + 2) = Value(20);
@@ -17394,7 +17518,7 @@ static void fun_337(VMRef vm, StackPtr psp) {
     U_IVSMUL(vm, regs + 5, 2);
     U_PUSHFUN(vm, regs + 4, 0, fun_10000001);
     fun_334(vm, regs + 5); // call: floodfillpath
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     *(regs + 1) = Value(20);
     U_IEQ(vm, regs + 2);
@@ -17419,7 +17543,7 @@ static void fun_339(VMRef vm, StackPtr psp) {
     BackupVar(vm, 673);
     BackupVar(vm, 674);
     BackupVar(vm, 684);
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     BackupVar(vm, 691);
     BackupVar(vm, 692);
     BackupVar(vm, 693);
@@ -17432,11 +17556,11 @@ static void fun_339(VMRef vm, StackPtr psp) {
     vm.last = {16, 17};
     *(regs + 0) = Value(100);
     U_LVAL_VARF(vm, regs + 1, 666); // lssize
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {17, 17};
     U_PUSHFLT64(vm, regs + 0, -1717986918, 1070176665); // 0.2
     U_LVAL_VARF(vm, regs + 1, 667); // hmargin
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {19, 17};
     U_PUSHVARVF(vm, regs + 0, 123, 2); // int2_0+0
     U_LVAL_VARF(vm, regs + 2, 668); // highest+0
@@ -17448,11 +17572,11 @@ static void fun_339(VMRef vm, StackPtr psp) {
     vm.last = {21, 17};
     *(regs + 0) = Value(-1000.000000);
     U_LVAL_VARF(vm, regs + 1, 672); // highh
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {22, 17};
     *(regs + 0) = Value(1000.000000);
     U_LVAL_VARF(vm, regs + 1, 673); // lowh
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {24, 17};
     U_PUSHVARF(vm, regs + 0, 666); // lssize
     U_PUSHFUN(vm, regs + 1, 0, fun_340);
@@ -17474,22 +17598,22 @@ static void fun_339(VMRef vm, StackPtr psp) {
     vm.last = {49, 17};
     vm.last = {54, 17};
     *(regs + 0) = Value(0.000000);
-    vm.temp_lval = &locals[0]; // starting_extra_water
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // starting_extra_water
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {55, 17};
     *(regs + 0) = Value(4.000000);
     U_LVAL_VARF(vm, regs + 1, 691); // water_per_second
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {56, 17};
     *(regs + 0) = Value(40.000000);
     U_LVAL_VARF(vm, regs + 1, 692); // give_water_divider
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {57, 17};
     U_PUSHFLT64(vm, regs + 0, -1717986918, 1070176665); // 0.2
     U_LVAL_VARF(vm, regs + 1, 693); // minimum_water_accumulation
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {59, 17};
-    regs[0] = locals[0]; // starting_extra_water
+    *(regs + 0) = *(locals + 0); // starting_extra_water
     U_PUSHVARF(vm, regs + 1, 674); // cells
     U_PUSHVARVF(vm, regs + 2, 668, 2); // highest+0
     U_VPUSHIDXV(vm, regs + 4, 2);
@@ -17535,7 +17659,7 @@ static void fun_340(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 1, 0, fun_341);
     fun_582(vm, regs + 2); // call: map
     psp = PopArg(vm, 675, psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -17545,66 +17669,66 @@ static void fun_340(VMRef vm, StackPtr psp) {
 static void fun_341(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2249, locals);
     vm.last = {26, 17};
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
-    vm.temp_lval = &locals[1]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {27, 17};
     *(regs + 0) = Value(1.000000);
-    vm.temp_lval = &locals[1]; // h
+    vm.temp_lval = locals + 1; // h
     U_LV_FADD(vm, regs + 1);
     vm.last = {28, 17};
-    regs[0] = locals[1]; // h
+    *(regs + 0) = *(locals + 1); // h
     *(regs + 1) = Value(3.000000);
     U_BCALLRET2(vm, regs + 2, 52, 1); // pow
-    vm.temp_lval = &locals[1]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {29, 17};
-    regs[0] = locals[1]; // h
+    *(regs + 0) = *(locals + 1); // h
     *(regs + 1) = Value(10.000000);
     U_FMUL(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {30, 17};
-    regs[0] = locals[1]; // h
+    *(regs + 0) = *(locals + 1); // h
     U_PUSHVARF(vm, regs + 1, 672); // highh
     U_FGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {31, 17};
-    regs[0] = locals[1]; // h
+    *(regs + 0) = *(locals + 1); // h
     U_LVAL_VARF(vm, regs + 1, 672); // highh
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {32, 17};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_PUSHVARF(vm, regs + 1, 675); // y
     U_LVAL_VARF(vm, regs + 2, 668); // highest+0
     U_LV_WRITEV(vm, regs + 2, 2);
     block0:;
     vm.last = {33, 17};
-    regs[0] = locals[1]; // h
+    *(regs + 0) = *(locals + 1); // h
     U_PUSHVARF(vm, regs + 1, 673); // lowh
     U_FLT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block1;
     vm.last = {34, 17};
-    regs[0] = locals[1]; // h
+    *(regs + 0) = *(locals + 1); // h
     U_LVAL_VARF(vm, regs + 1, 673); // lowh
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {35, 17};
-    regs[0] = locals[0]; // x
+    *(regs + 0) = *(locals + 0); // x
     U_PUSHVARF(vm, regs + 1, 675); // y
     U_LVAL_VARF(vm, regs + 2, 670); // lowest+0
     U_LV_WRITEV(vm, regs + 2, 2);
     block1:;
     vm.last = {36, 17};
-    regs[0] = locals[1]; // h
-    regs[1] = locals[1]; // h
+    *(regs + 0) = *(locals + 1); // h
+    *(regs + 1) = *(locals + 1); // h
     *(regs + 2) = Value(0.000000);
     U_NEWOBJECT(vm, regs + 3, 1123); // cell
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -17614,9 +17738,9 @@ static void fun_341(VMRef vm, StackPtr psp) {
 static void fun_583(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[3];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2254, locals);
     vm.last = {39, 17};
     *(regs + 0) = Value(-1);
@@ -17625,8 +17749,8 @@ static void fun_583(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {39, 17};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // y
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 1; // y
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {40, 17};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 666); // lssize
@@ -17634,15 +17758,15 @@ static void fun_583(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 4)) goto block3;
     vm.last = {40, 17};
     U_IFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[2]; // x
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 2; // x
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {41, 17};
-    regs[4] = locals[2]; // x
-    regs[5] = locals[1]; // y
+    *(regs + 4) = *(locals + 2); // x
+    *(regs + 5) = *(locals + 1); // y
     U_PUSHVARF(vm, regs + 6, 674); // cells
-    regs[7] = locals[1]; // y
+    *(regs + 7) = *(locals + 1); // y
     U_VPUSHIDXI(vm, regs + 8);
-    regs[7] = locals[2]; // x
+    *(regs + 7) = *(locals + 2); // x
     U_VPUSHIDXI(vm, regs + 8);
     fun_349(vm, regs + 7); // call: function316
     goto block2;
@@ -17659,9 +17783,9 @@ static void fun_583(VMRef vm, StackPtr psp) {
 static void fun_342(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[3];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2260, locals);
     vm.last = {39, 17};
     *(regs + 0) = Value(-1);
@@ -17670,8 +17794,8 @@ static void fun_342(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {39, 17};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // y
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 1; // y
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {40, 17};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 666); // lssize
@@ -17679,15 +17803,15 @@ static void fun_342(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 4)) goto block3;
     vm.last = {40, 17};
     U_IFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[2]; // x
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 2; // x
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {41, 17};
-    regs[4] = locals[2]; // x
-    regs[5] = locals[1]; // y
+    *(regs + 4) = *(locals + 2); // x
+    *(regs + 5) = *(locals + 1); // y
     U_PUSHVARF(vm, regs + 6, 674); // cells
-    regs[7] = locals[1]; // y
+    *(regs + 7) = *(locals + 1); // y
     U_VPUSHIDXI(vm, regs + 8);
-    regs[7] = locals[2]; // x
+    *(regs + 7) = *(locals + 2); // x
     U_VPUSHIDXI(vm, regs + 8);
     U_INCREF(vm, regs + 7, 0);
     fun_347(vm, regs + 7); // call: function314
@@ -17705,29 +17829,29 @@ static void fun_342(VMRef vm, StackPtr psp) {
 static void fun_343(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[3];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2266, locals);
     vm.last = {44, 17};
-    regs[0] = locals[0]; // pos+0
+    *(regs + 0) = *(locals + 0); // pos+0
     *(regs + 1) = Value(0);
     U_IGE(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     U_POP(vm, regs + 1);
-    regs[0] = locals[1]; // pos+1
+    *(regs + 0) = *(locals + 1); // pos+1
     *(regs + 1) = Value(0);
     U_IGE(vm, regs + 2);
     block0:;
     if (!(regs + 0)->True()) goto block1;
     U_POP(vm, regs + 1);
-    regs[0] = locals[0]; // pos+0
+    *(regs + 0) = *(locals + 0); // pos+0
     U_PUSHVARF(vm, regs + 1, 666); // lssize
     U_ILT(vm, regs + 2);
     block1:;
     if (!(regs + 0)->True()) goto block2;
     U_POP(vm, regs + 1);
-    regs[0] = locals[1]; // pos+1
+    *(regs + 0) = *(locals + 1); // pos+1
     U_PUSHVARF(vm, regs + 1, 666); // lssize
     U_ILT(vm, regs + 2);
     block2:;
@@ -17747,8 +17871,8 @@ static void fun_343(VMRef vm, StackPtr psp) {
 static void fun_344(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[2];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
     SwapVars(vm, 687, psp, 1);
     BackupVar(vm, 688);
     BackupVar(vm, 689);
@@ -17763,8 +17887,8 @@ static void fun_344(VMRef vm, StackPtr psp) {
     U_LVAL_VARF(vm, regs + 4, 688); // n+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {51, 17};
-    regs[2] = locals[0]; // x
-    regs[3] = locals[1]; // y
+    *(regs + 2) = *(locals + 0); // x
+    *(regs + 3) = *(locals + 1); // y
     U_LVAL_VARF(vm, regs + 4, 688); // n+0
     U_LV_IVVADD(vm, regs + 4, 2);
     vm.last = {52, 17};
@@ -17827,14 +17951,14 @@ static void fun_346(VMRef vm, StackPtr psp) {
 static void fun_347(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[5];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
     SwapVars(vm, 696, psp, 1);
     BackupVar(vm, 697);
     BackupVar(vm, 698);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2286, locals);
     vm.last = {64, 17};
     U_PUSHVARF(vm, regs + 0, 696); // c
@@ -17849,14 +17973,14 @@ static void fun_347(VMRef vm, StackPtr psp) {
     vm.last = {65, 17};
     *(regs + 0) = Value(0.000000);
     U_LVAL_VARF(vm, regs + 1, 697); // totald
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {66, 17};
     U_NEWVEC(vm, regs + 0, 1138, 0);
     U_LVAL_VARF(vm, regs + 1, 698); // lower
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {69, 17};
-    regs[0] = locals[0]; // x
-    regs[1] = locals[1]; // y
+    *(regs + 0) = *(locals + 0); // x
+    *(regs + 1) = *(locals + 1); // y
     U_PUSHFUN(vm, regs + 2, 0, fun_348);
     fun_344(vm, regs + 3); // call: forneighboursinworld
     vm.last = {74, 17};
@@ -17871,8 +17995,8 @@ static void fun_347(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 2, 692); // give_water_divider
     U_FDIV(vm, regs + 3);
     U_BCALLRET2(vm, regs + 2, 121, 1); // min
-    vm.temp_lval = &locals[2]; // w
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // w
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {75, 17};
     *(regs + 0) = Value(-1);
     U_PUSHVARF(vm, regs + 1, 698); // lower
@@ -17880,27 +18004,27 @@ static void fun_347(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block2;
     vm.last = {75, 17};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // nc
+    vm.temp_lval = locals + 3; // nc
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {76, 17};
     U_PUSHVARF(vm, regs + 2, 696); // c
     U_PUSHFLD(vm, regs + 3, 1);
-    regs[3] = locals[3]; // nc
+    *(regs + 3) = *(locals + 3); // nc
     U_PUSHFLD(vm, regs + 4, 1);
     U_FSUB(vm, regs + 4);
     U_PUSHVARF(vm, regs + 3, 697); // totald
     U_FDIV(vm, regs + 4);
-    regs[3] = locals[2]; // w
+    *(regs + 3) = *(locals + 2); // w
     U_FMUL(vm, regs + 4);
-    vm.temp_lval = &locals[4]; // give
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 4; // give
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {77, 17};
-    regs[2] = locals[4]; // give
-    regs[3] = locals[3]; // nc
+    *(regs + 2) = *(locals + 4); // give
+    *(regs + 3) = *(locals + 3); // nc
     U_LVAL_FLD(vm, regs + 4, 2);
     U_LV_FADD(vm, regs + 3);
     vm.last = {78, 17};
-    regs[2] = locals[4]; // give
+    *(regs + 2) = *(locals + 4); // give
     U_PUSHVARF(vm, regs + 3, 696); // c
     U_LVAL_FLD(vm, regs + 4, 2);
     U_LV_FSUB(vm, regs + 3);
@@ -17924,29 +18048,29 @@ static void fun_347(VMRef vm, StackPtr psp) {
 static void fun_348(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[2];
-    locals[0] = *(psp - 1);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 1);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2297, locals);
     vm.last = {70, 17};
     U_PUSHVARF(vm, regs + 0, 696); // c
     U_PUSHFLD(vm, regs + 1, 1);
-    regs[1] = locals[0]; // nc
+    *(regs + 1) = *(locals + 0); // nc
     U_PUSHFLD(vm, regs + 2, 1);
     U_FSUB(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // d
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // d
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {71, 17};
-    regs[0] = locals[1]; // d
+    *(regs + 0) = *(locals + 1); // d
     U_PUSHVARF(vm, regs + 1, 667); // hmargin
     U_FGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {72, 17};
-    regs[0] = locals[1]; // d
+    *(regs + 0) = *(locals + 1); // d
     U_LVAL_VARF(vm, regs + 1, 697); // totald
     U_LV_FADD(vm, regs + 1);
     vm.last = {73, 17};
     U_PUSHVARF(vm, regs + 0, 698); // lower
-    regs[1] = locals[0]; // nc
+    *(regs + 1) = *(locals + 0); // nc
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
@@ -17962,27 +18086,27 @@ static void fun_348(VMRef vm, StackPtr psp) {
 static void fun_349(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[3];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2302, locals);
     vm.last = {80, 17};
-    regs[0] = locals[2]; // c
+    *(regs + 0) = *(locals + 2); // c
     U_PUSHFLD(vm, regs + 1, 2);
     *(regs + 1) = Value(0.000000);
     U_FNE(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {81, 17};
-    regs[0] = locals[2]; // c
+    *(regs + 0) = *(locals + 2); // c
     U_PUSHFLD(vm, regs + 1, 2);
-    regs[1] = locals[2]; // c
+    *(regs + 1) = *(locals + 2); // c
     U_LVAL_FLD(vm, regs + 2, 1);
     U_LV_FADD(vm, regs + 1);
     vm.last = {82, 17};
     *(regs + 0) = Value(0.000000);
-    regs[1] = locals[2]; // c
+    *(regs + 1) = *(locals + 2); // c
     U_LVAL_FLD(vm, regs + 2, 2);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     block0:;
     Pop(psp);
     Pop(psp);
@@ -17999,52 +18123,52 @@ static void fun_350(VMRef vm, StackPtr psp) {
     Value locals[6];
     BackupVar(vm, 707);
     BackupVar(vm, 708);
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2308, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {7, 18};
     *(regs + 0) = Value(0);
     U_BCALLRET1(vm, regs + 1, 97, 0); // rnd_seed
     vm.last = {9, 18};
     *(regs + 0) = Value(100);
     U_LVAL_VARF(vm, regs + 1, 707); // N
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {10, 18};
     *(regs + 0) = Value(2.000000);
     U_PUSHVARF(vm, regs + 1, 707); // N
     U_I2F(vm, regs + 2);
     U_FDIV(vm, regs + 2);
     U_LVAL_VARF(vm, regs + 1, 708); // f
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {12, 18};
     vm.last = {29, 18};
     U_PUSHFLT64(vm, regs + 0, -1717986918, 1069128089); // 0.1
-    vm.temp_lval = &locals[0]; // sigma
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // sigma
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {30, 18};
     U_PUSHFLT64(vm, regs + 0, -755914244, 1062232653); // 0.001
-    vm.temp_lval = &locals[1]; // mu
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // mu
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {31, 18};
     *(regs + 0) = Value(1000);
-    vm.temp_lval = &locals[2]; // n_epochs
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // n_epochs
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {33, 18};
     U_PUSHVARF(vm, regs + 0, 707); // N
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_584(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[3]; // x
+    vm.temp_lval = locals + 3; // x
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {34, 18};
     U_PUSHVARF(vm, regs + 0, 707); // N
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_585(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[4]; // d
+    vm.temp_lval = locals + 4; // d
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {36, 18};
     *(regs + 0) = Value(-1);
@@ -18053,44 +18177,44 @@ static void fun_350(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {36, 18};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {37, 18};
     U_PUSHVARF(vm, regs + 2, 708); // f
-    regs[3] = locals[5]; // i
+    *(regs + 3) = *(locals + 5); // i
     U_BCALLRET1(vm, regs + 4, 67, 1); // float
     U_FMUL(vm, regs + 4);
-    regs[3] = locals[3]; // x
-    regs[4] = locals[5]; // i
+    *(regs + 3) = *(locals + 3); // x
+    *(regs + 4) = *(locals + 5); // i
     U_LVAL_IDXVI(vm, regs + 5, 0);
-    *vm.temp_lval = *(regs + 2);
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {38, 18};
     *(regs + 2) = Value(3.000000);
     *(regs + 3) = Value(2.000000);
-    regs[4] = locals[3]; // x
-    regs[5] = locals[5]; // i
+    *(regs + 4) = *(locals + 3); // x
+    *(regs + 5) = *(locals + 5); // i
     U_VPUSHIDXI(vm, regs + 6);
     U_FMUL(vm, regs + 5);
     U_FADD(vm, regs + 4);
-    regs[3] = locals[0]; // sigma
+    *(regs + 3) = *(locals + 0); // sigma
     U_BCALLRET0(vm, regs + 4, 96, 1); // rnd_gaussian
     U_FMUL(vm, regs + 5);
     U_FADD(vm, regs + 4);
-    regs[3] = locals[4]; // d
-    regs[4] = locals[5]; // i
+    *(regs + 3) = *(locals + 4); // d
+    *(regs + 4) = *(locals + 5); // i
     U_LVAL_IDXVI(vm, regs + 5, 0);
-    *vm.temp_lval = *(regs + 2);
+    *(vm.temp_lval) = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {40, 18};
-    regs[0] = locals[3]; // x
+    *(regs + 0) = *(locals + 3); // x
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[4]; // d
+    *(regs + 1) = *(locals + 4); // d
     U_INCREF(vm, regs + 2, 0);
-    regs[2] = locals[1]; // mu
-    regs[3] = locals[2]; // n_epochs
+    *(regs + 2) = *(locals + 1); // mu
+    *(regs + 3) = *(locals + 2); // n_epochs
     fun_351(vm, regs + 4); // call: gradient_descent
-    keepvar[0] = TopM(regs + 1, 0);
+    *(keepvar + 0) = *(regs + 0);
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_PUSHFLT64(vm, regs + 1, -1941428633, 1073966704); // 2.428925605728
@@ -18113,46 +18237,46 @@ static void fun_350(VMRef vm, StackPtr psp) {
 static void fun_351(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[12];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2319, locals);
     vm.last = {13, 18};
     U_PUSHVARF(vm, regs + 0, 707); // N
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_586(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[4]; // y
+    vm.temp_lval = locals + 4; // y
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {14, 18};
     *(regs + 0) = Value(0.000000);
-    vm.temp_lval = &locals[5]; // w0
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 5; // w0
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {15, 18};
     *(regs + 0) = Value(0.000000);
-    vm.temp_lval = &locals[6]; // w1
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 6; // w1
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {16, 18};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[3]; // n_epochs
+    *(regs + 1) = *(locals + 3); // n_epochs
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {17, 18};
     *(regs + 2) = Value(0.000000);
-    vm.temp_lval = &locals[7]; // grad0
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 7; // grad0
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {18, 18};
     *(regs + 2) = Value(0.000000);
-    vm.temp_lval = &locals[8]; // grad1
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 8; // grad1
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {19, 18};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 707); // N
@@ -18160,45 +18284,45 @@ static void fun_351(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 4)) goto block3;
     vm.last = {19, 18};
     U_IFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[9]; // i
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 9; // i
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {20, 18};
     U_PUSHVARF(vm, regs + 4, 708); // f
-    regs[5] = locals[1]; // d
-    regs[6] = locals[9]; // i
+    *(regs + 5) = *(locals + 1); // d
+    *(regs + 6) = *(locals + 9); // i
     U_VPUSHIDXI(vm, regs + 7);
-    regs[6] = locals[4]; // y
-    regs[7] = locals[9]; // i
+    *(regs + 6) = *(locals + 4); // y
+    *(regs + 7) = *(locals + 9); // i
     U_VPUSHIDXI(vm, regs + 8);
     U_FSUB(vm, regs + 7);
     U_FMUL(vm, regs + 6);
-    vm.temp_lval = &locals[10]; // err
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 10; // err
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {21, 18};
-    regs[4] = locals[10]; // err
-    vm.temp_lval = &locals[7]; // grad0
+    *(regs + 4) = *(locals + 10); // err
+    vm.temp_lval = locals + 7; // grad0
     U_LV_FADD(vm, regs + 5);
     vm.last = {22, 18};
-    regs[4] = locals[10]; // err
-    regs[5] = locals[0]; // x
-    regs[6] = locals[9]; // i
+    *(regs + 4) = *(locals + 10); // err
+    *(regs + 5) = *(locals + 0); // x
+    *(regs + 6) = *(locals + 9); // i
     U_VPUSHIDXI(vm, regs + 7);
     U_FMUL(vm, regs + 6);
-    vm.temp_lval = &locals[8]; // grad1
+    vm.temp_lval = locals + 8; // grad1
     U_LV_FADD(vm, regs + 5);
     goto block2;
     block3:;
     vm.last = {23, 18};
-    regs[2] = locals[2]; // mu
-    regs[3] = locals[7]; // grad0
+    *(regs + 2) = *(locals + 2); // mu
+    *(regs + 3) = *(locals + 7); // grad0
     U_FMUL(vm, regs + 4);
-    vm.temp_lval = &locals[5]; // w0
+    vm.temp_lval = locals + 5; // w0
     U_LV_FADD(vm, regs + 3);
     vm.last = {24, 18};
-    regs[2] = locals[2]; // mu
-    regs[3] = locals[8]; // grad1
+    *(regs + 2) = *(locals + 2); // mu
+    *(regs + 3) = *(locals + 8); // grad1
     U_FMUL(vm, regs + 4);
-    vm.temp_lval = &locals[6]; // w1
+    vm.temp_lval = locals + 6; // w1
     U_LV_FADD(vm, regs + 3);
     vm.last = {25, 18};
     *(regs + 2) = Value(-1);
@@ -18207,27 +18331,27 @@ static void fun_351(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 4)) goto block5;
     vm.last = {25, 18};
     U_IFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[11]; // i
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 11; // i
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {26, 18};
-    regs[4] = locals[5]; // w0
-    regs[5] = locals[6]; // w1
-    regs[6] = locals[0]; // x
-    regs[7] = locals[11]; // i
+    *(regs + 4) = *(locals + 5); // w0
+    *(regs + 5) = *(locals + 6); // w1
+    *(regs + 6) = *(locals + 0); // x
+    *(regs + 7) = *(locals + 11); // i
     U_VPUSHIDXI(vm, regs + 8);
     U_FMUL(vm, regs + 7);
     U_FADD(vm, regs + 6);
-    regs[5] = locals[4]; // y
-    regs[6] = locals[11]; // i
+    *(regs + 5) = *(locals + 4); // y
+    *(regs + 6) = *(locals + 11); // i
     U_LVAL_IDXVI(vm, regs + 7, 0);
-    *vm.temp_lval = *(regs + 4);
+    *(vm.temp_lval) = *(regs + 4);
     goto block4;
     block5:;
     goto block0;
     block1:;
     vm.last = {27, 18};
-    regs[0] = locals[5]; // w0
-    regs[1] = locals[6]; // w1
+    *(regs + 0) = *(locals + 5); // w0
+    *(regs + 1) = *(locals + 6); // w1
     U_NEWVEC(vm, regs + 2, 9, 2);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -18236,7 +18360,7 @@ static void fun_351(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -18247,46 +18371,46 @@ static void fun_355(VMRef vm, StackPtr psp) {
     Value regs[10];
     Value locals[36];
     BackupVar(vm, 727);
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     BackupVar(vm, 743);
     BackupVar(vm, 744);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
-    locals[12] = Value(0, lobster::V_NIL);
-    locals[13] = Value(0, lobster::V_NIL);
-    locals[14] = Value(0, lobster::V_NIL);
-    locals[15] = Value(0, lobster::V_NIL);
-    locals[16] = Value(0, lobster::V_NIL);
-    locals[17] = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
+    *(locals + 12) = Value(0, lobster::V_NIL);
+    *(locals + 13) = Value(0, lobster::V_NIL);
+    *(locals + 14) = Value(0, lobster::V_NIL);
+    *(locals + 15) = Value(0, lobster::V_NIL);
+    *(locals + 16) = Value(0, lobster::V_NIL);
+    *(locals + 17) = Value(0, lobster::V_NIL);
     BackupVar(vm, 773);
     BackupVar(vm, 774);
-    locals[18] = Value(0, lobster::V_NIL);
-    locals[19] = Value(0, lobster::V_NIL);
-    locals[20] = Value(0, lobster::V_NIL);
-    locals[21] = Value(0, lobster::V_NIL);
-    locals[22] = Value(0, lobster::V_NIL);
-    locals[23] = Value(0, lobster::V_NIL);
-    locals[24] = Value(0, lobster::V_NIL);
-    locals[25] = Value(0, lobster::V_NIL);
-    locals[26] = Value(0, lobster::V_NIL);
-    locals[27] = Value(0, lobster::V_NIL);
-    locals[28] = Value(0, lobster::V_NIL);
-    locals[29] = Value(0, lobster::V_NIL);
-    locals[30] = Value(0, lobster::V_NIL);
-    locals[31] = Value(0, lobster::V_NIL);
-    locals[32] = Value(0, lobster::V_NIL);
-    locals[33] = Value(0, lobster::V_NIL);
-    locals[34] = Value(0, lobster::V_NIL);
-    locals[35] = Value(0, lobster::V_NIL);
+    *(locals + 18) = Value(0, lobster::V_NIL);
+    *(locals + 19) = Value(0, lobster::V_NIL);
+    *(locals + 20) = Value(0, lobster::V_NIL);
+    *(locals + 21) = Value(0, lobster::V_NIL);
+    *(locals + 22) = Value(0, lobster::V_NIL);
+    *(locals + 23) = Value(0, lobster::V_NIL);
+    *(locals + 24) = Value(0, lobster::V_NIL);
+    *(locals + 25) = Value(0, lobster::V_NIL);
+    *(locals + 26) = Value(0, lobster::V_NIL);
+    *(locals + 27) = Value(0, lobster::V_NIL);
+    *(locals + 28) = Value(0, lobster::V_NIL);
+    *(locals + 29) = Value(0, lobster::V_NIL);
+    *(locals + 30) = Value(0, lobster::V_NIL);
+    *(locals + 31) = Value(0, lobster::V_NIL);
+    *(locals + 32) = Value(0, lobster::V_NIL);
+    *(locals + 33) = Value(0, lobster::V_NIL);
+    *(locals + 34) = Value(0, lobster::V_NIL);
+    *(locals + 35) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2334, locals);
     vm.last = {8, 19};
     *(regs + 0) = Value(0);
@@ -18301,11 +18425,11 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {19, 19};
     U_NEWVEC(vm, regs + 0, 13, 0);
-    vm.temp_lval = &locals[0]; // edges
+    vm.temp_lval = locals + 0; // edges
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {20, 19};
     U_NEWVEC(vm, regs + 0, 13, 0);
-    vm.temp_lval = &locals[1]; // quads
+    vm.temp_lval = locals + 1; // quads
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {22, 19};
     vm.last = {36, 19};
@@ -18320,7 +18444,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {38, 19};
     U_NEWVEC(vm, regs + 0, 13, 0);
-    vm.temp_lval = &locals[0]; // edges
+    vm.temp_lval = locals + 0; // edges
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {39, 19};
     U_PUSHVARVF(vm, regs + 0, 743, 2); // wsize+0
@@ -18339,7 +18463,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {42, 19};
     vm.last = {46, 19};
     U_NEWVEC(vm, regs + 0, 1165, 0);
-    vm.temp_lval = &locals[2]; // pedges
+    vm.temp_lval = locals + 2; // pedges
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {47, 19};
     *(regs + 0) = Value(-1);
@@ -18348,12 +18472,12 @@ static void fun_355(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block3;
     vm.last = {47, 19};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[3]; // v+0
+    vm.temp_lval = locals + 3; // v+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {47, 19};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {48, 19};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 727); // verts
@@ -18361,35 +18485,37 @@ static void fun_355(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 4)) goto block5;
     vm.last = {48, 19};
     U_VFORELEM2S(vm, regs + 4);
-    vm.temp_lval = &locals[6]; // w+0
+    vm.temp_lval = locals + 6; // w+0
     U_LV_WRITEV(vm, regs + 6, 2);
     vm.last = {48, 19};
     U_FORLOOPI(vm, regs + 4);
-    vm.temp_lval = &locals[8]; // j
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 8; // j
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {49, 19};
-    regs[4] = locals[5]; // i
-    regs[5] = locals[8]; // j
+    *(regs + 4) = *(locals + 5); // i
+    *(regs + 5) = *(locals + 8); // j
     U_ILT(vm, regs + 6);
     if (!(regs + 4)->True()) goto block6;
     vm.last = {50, 19};
-    regs[4] = locals[6];regs[5] = locals[7]; // w
-    regs[6] = locals[3];regs[7] = locals[4]; // v
+    *(regs + 4) = *(locals + 6); // w.0
+    *(regs + 5) = *(locals + 7); // w.1
+    *(regs + 6) = *(locals + 3); // v.0
+    *(regs + 7) = *(locals + 4); // v.1
     U_FVVSUB(vm, regs + 8, 2);
     *(regs + 6) = Value(2);
     U_BCALLRETV(vm, regs + 7, 86, 1); // magnitude
-    vm.temp_lval = &locals[9]; // dist
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 9; // dist
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {51, 19};
-    regs[4] = locals[9]; // dist
+    *(regs + 4) = *(locals + 9); // dist
     *(regs + 5) = Value(2.000000);
     U_FLT(vm, regs + 6);
     if (!(regs + 4)->True()) goto block7;
     vm.last = {52, 19};
-    regs[4] = locals[2]; // pedges
-    regs[5] = locals[5]; // i
-    regs[6] = locals[8]; // j
-    regs[7] = locals[9]; // dist
+    *(regs + 4) = *(locals + 2); // pedges
+    *(regs + 5) = *(locals + 5); // i
+    *(regs + 6) = *(locals + 8); // j
+    *(regs + 7) = *(locals + 9); // dist
     *(regs + 8) = Value(3);
     U_BCALLRETV(vm, regs + 9, 15, 1); // push
     U_POP(vm, regs + 5);
@@ -18400,63 +18526,63 @@ static void fun_355(VMRef vm, StackPtr psp) {
     goto block2;
     block3:;
     vm.last = {53, 19};
-    regs[0] = locals[2]; // pedges
+    *(regs + 0) = *(locals + 2); // pedges
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_359);
     fun_588(vm, regs + 2); // call: qsort
-    vm.temp_lval = &locals[2]; // pedges
+    vm.temp_lval = locals + 2; // pedges
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {54, 19};
-    regs[0] = locals[2]; // pedges
+    *(regs + 0) = *(locals + 2); // pedges
     *(regs + 1) = Value(0);
     U_VPUSHIDXIS2V(vm, regs + 2, 1, 2);
     *(regs + 1) = Value(2.000000);
     U_BCALLRET1(vm, regs + 2, 56, 1); // sqrt
     U_FMUL(vm, regs + 2);
-    vm.temp_lval = &locals[10]; // edgedistnocross
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 10; // edgedistnocross
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {55, 19};
     U_PUSHVARF(vm, regs + 0, 727); // verts
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_592(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[11]; // vnbs
+    vm.temp_lval = locals + 11; // vnbs
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {56, 19};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[2]; // pedges
+    *(regs + 1) = *(locals + 2); // pedges
     block8:;
     if (!U_VFOR(vm, regs + 2)) goto block9;
     vm.last = {56, 19};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[12]; // pe+0
+    vm.temp_lval = locals + 12; // pe+0
     U_LV_WRITEV(vm, regs + 5, 3);
     vm.last = {57, 19};
-    regs[2] = locals[14]; // pe+2
-    regs[3] = locals[10]; // edgedistnocross
+    *(regs + 2) = *(locals + 14); // pe+2
+    *(regs + 3) = *(locals + 10); // edgedistnocross
     U_FLT(vm, regs + 4);
     if (!(regs + 2)->True()) goto block10;
     vm.last = {58, 19};
-    regs[2] = locals[0]; // edges
-    regs[3] = locals[12]; // pe+0
-    regs[4] = locals[13]; // pe+1
+    *(regs + 2) = *(locals + 0); // edges
+    *(regs + 3) = *(locals + 12); // pe+0
+    *(regs + 4) = *(locals + 13); // pe+1
     U_NEWVEC(vm, regs + 5, 7, 2);
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
     vm.last = {59, 19};
-    regs[2] = locals[11]; // vnbs
-    regs[3] = locals[12]; // pe+0
+    *(regs + 2) = *(locals + 11); // vnbs
+    *(regs + 3) = *(locals + 12); // pe+0
     U_VPUSHIDXI(vm, regs + 4);
-    regs[3] = locals[13]; // pe+1
+    *(regs + 3) = *(locals + 13); // pe+1
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
     vm.last = {60, 19};
-    regs[2] = locals[11]; // vnbs
-    regs[3] = locals[13]; // pe+1
+    *(regs + 2) = *(locals + 11); // vnbs
+    *(regs + 3) = *(locals + 13); // pe+1
     U_VPUSHIDXI(vm, regs + 4);
-    regs[3] = locals[12]; // pe+0
+    *(regs + 3) = *(locals + 12); // pe+0
     *(regs + 4) = Value(1);
     U_BCALLRETV(vm, regs + 5, 15, 1); // push
     U_POP(vm, regs + 3);
@@ -18465,22 +18591,22 @@ static void fun_355(VMRef vm, StackPtr psp) {
     block9:;
     vm.last = {61, 19};
     U_NEWVEC(vm, regs + 0, 1165, 0);
-    vm.temp_lval = &locals[2]; // pedges
+    vm.temp_lval = locals + 2; // pedges
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {64, 19};
-    regs[0] = locals[11]; // vnbs
+    *(regs + 0) = *(locals + 11); // vnbs
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_361);
     fun_593(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[11]; // vnbs
+    vm.temp_lval = locals + 11; // vnbs
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {65, 19};
     U_NEWVEC(vm, regs + 0, 13, 0);
-    vm.temp_lval = &locals[15]; // tris
+    vm.temp_lval = locals + 15; // tris
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {66, 19};
     U_NEWVEC(vm, regs + 0, 13, 0);
-    vm.temp_lval = &locals[1]; // quads
+    vm.temp_lval = locals + 1; // quads
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {67, 19};
     *(regs + 0) = Value(-1);
@@ -18490,78 +18616,78 @@ static void fun_355(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 2)) goto block12;
     vm.last = {67, 19};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[16]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 16; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {68, 19};
     *(regs + 2) = Value(-1);
-    regs[3] = locals[11]; // vnbs
-    regs[4] = locals[16]; // i
+    *(regs + 3) = *(locals + 11); // vnbs
+    *(regs + 4) = *(locals + 16); // i
     U_VPUSHIDXI(vm, regs + 5);
     block13:;
     if (!U_VFOR(vm, regs + 4)) goto block14;
     vm.last = {68, 19};
     U_VFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[17]; // j
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 17; // j
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {69, 19};
-    regs[4] = locals[16]; // i
-    regs[5] = locals[17]; // j
+    *(regs + 4) = *(locals + 16); // i
+    *(regs + 5) = *(locals + 17); // j
     U_NEWVEC(vm, regs + 6, 7, 2);
     U_LVAL_VARF(vm, regs + 5, 773); // shape
     U_LV_WRITEREF(vm, regs + 5);
     vm.last = {70, 19};
-    regs[4] = locals[16]; // i
+    *(regs + 4) = *(locals + 16); // i
     U_LVAL_VARF(vm, regs + 5, 774); // p
-    *vm.temp_lval = *(regs + 4);
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {71, 19};
     block15:;
     U_PUSHVARF(vm, regs + 4, 773); // shape
     U_BCALLRETV(vm, regs + 5, 16, 1); // pop
-    regs[5] = locals[16]; // i
+    *(regs + 5) = *(locals + 16); // i
     U_INE(vm, regs + 6);
     if (!(regs + 4)->True()) goto block16;
     vm.last = {72, 19};
     U_PUSHVARF(vm, regs + 4, 773); // shape
-    regs[5] = locals[17]; // j
+    *(regs + 5) = *(locals + 17); // j
     *(regs + 6) = Value(1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
     vm.last = {73, 19};
-    regs[4] = locals[11]; // vnbs
-    regs[5] = locals[17]; // j
+    *(regs + 4) = *(locals + 11); // vnbs
+    *(regs + 5) = *(locals + 17); // j
     U_VPUSHIDXI(vm, regs + 6);
     U_INCREF(vm, regs + 5, 0);
-    vm.temp_lval = &locals[18]; // nbl
+    vm.temp_lval = locals + 18; // nbl
     U_LV_WRITEREF(vm, regs + 5);
     vm.last = {74, 19};
-    regs[4] = locals[18]; // nbl
+    *(regs + 4) = *(locals + 18); // nbl
     U_PUSHFUN(vm, regs + 5, 0, fun_363);
     fun_597(vm, regs + 6); // call: find
-    vm.temp_lval = &locals[19]; // pidx
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 19; // pidx
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {75, 19};
-    regs[4] = locals[19]; // pidx
+    *(regs + 4) = *(locals + 19); // pidx
     *(regs + 5) = Value(0);
     U_IGE(vm, regs + 6);
     U_ASSERT(vm, regs + 5, 75, 19, 537);
     vm.last = {76, 19};
-    regs[4] = locals[17]; // j
+    *(regs + 4) = *(locals + 17); // j
     U_LVAL_VARF(vm, regs + 5, 774); // p
-    *vm.temp_lval = *(regs + 4);
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {77, 19};
-    regs[4] = locals[18]; // nbl
-    regs[5] = locals[19]; // pidx
+    *(regs + 4) = *(locals + 18); // nbl
+    *(regs + 5) = *(locals + 19); // pidx
     *(regs + 6) = Value(1);
     U_IADD(vm, regs + 7);
-    regs[6] = locals[18]; // nbl
+    *(regs + 6) = *(locals + 18); // nbl
     U_BCALLRET1(vm, regs + 7, 13, 1); // length
     U_IMOD(vm, regs + 7);
     U_VPUSHIDXI(vm, regs + 6);
-    vm.temp_lval = &locals[17]; // j
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 17; // j
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {78, 19};
     U_PUSHVARF(vm, regs + 4, 773); // shape
-    regs[5] = locals[17]; // j
+    *(regs + 5) = *(locals + 17); // j
     *(regs + 6) = Value(1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
     U_POP(vm, regs + 5);
@@ -18578,14 +18704,14 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 5, 0);
     U_PUSHFUN(vm, regs + 5, 0, fun_364);
     fun_598(vm, regs + 6); // call: reduce
-    vm.temp_lval = &locals[20]; // start
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 20; // start
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {81, 19};
     block18:;
     U_PUSHVARF(vm, regs + 4, 773); // shape
     *(regs + 5) = Value(0);
     U_VPUSHIDXI(vm, regs + 6);
-    regs[5] = locals[20]; // start
+    *(regs + 5) = *(locals + 20); // start
     U_INE(vm, regs + 6);
     if (!(regs + 4)->True()) goto block19;
     vm.last = {82, 19};
@@ -18605,14 +18731,14 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 6);
     if (!(regs + 4)->True()) goto block20;
     vm.last = {84, 19};
-    regs[4] = locals[1]; // quads
+    *(regs + 4) = *(locals + 1); // quads
     U_INCREF(vm, regs + 5, 0);
     U_PUSHFUN(vm, regs + 5, 0, fun_365);
     fun_599(vm, regs + 6); // call: exists
     U_LOGNOT(vm, regs + 5);
     if (!(regs + 4)->True()) goto block21;
     vm.last = {85, 19};
-    regs[4] = locals[1]; // quads
+    *(regs + 4) = *(locals + 1); // quads
     U_PUSHVARF(vm, regs + 5, 773); // shape
     U_INCREF(vm, regs + 6, 0);
     *(regs + 6) = Value(1);
@@ -18628,13 +18754,13 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_IEQ(vm, regs + 6);
     if (!(regs + 4)->True()) goto block23;
     vm.last = {87, 19};
-    regs[4] = locals[15]; // tris
+    *(regs + 4) = *(locals + 15); // tris
     U_PUSHFUN(vm, regs + 5, 0, fun_366);
     fun_600(vm, regs + 6); // call: exists
     U_LOGNOT(vm, regs + 5);
     if (!(regs + 4)->True()) goto block24;
     vm.last = {88, 19};
-    regs[4] = locals[15]; // tris
+    *(regs + 4) = *(locals + 15); // tris
     U_PUSHVARF(vm, regs + 5, 773); // shape
     U_INCREF(vm, regs + 6, 0);
     *(regs + 6) = Value(1);
@@ -18650,68 +18776,68 @@ static void fun_355(VMRef vm, StackPtr psp) {
     block12:;
     vm.last = {89, 19};
     block25:;
-    regs[0] = locals[15]; // tris
+    *(regs + 0) = *(locals + 15); // tris
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     if (!(regs + 0)->True()) goto block26;
     vm.last = {90, 19};
     *(regs + 0) = Value(-1);
-    vm.temp_lval = &locals[21]; // besti
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 21; // besti
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {91, 19};
     *(regs + 0) = Value(-1);
-    vm.temp_lval = &locals[22]; // bestqc
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 22; // bestqc
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {92, 19};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[15]; // tris
+    *(regs + 1) = *(locals + 15); // tris
     block27:;
     if (!U_VFOR(vm, regs + 2)) goto block28;
     vm.last = {92, 19};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[23]; // t
+    vm.temp_lval = locals + 23; // t
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {92, 19};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[24]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 24; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {93, 19};
     *(regs + 2) = Value(0);
-    vm.temp_lval = &locals[25]; // qc
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 25; // qc
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {94, 19};
     *(regs + 2) = Value(-1);
-    regs[3] = locals[23]; // t
+    *(regs + 3) = *(locals + 23); // t
     block29:;
     if (!U_VFOR(vm, regs + 4)) goto block30;
     vm.last = {94, 19};
     U_VFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[26]; // vi1
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 26; // vi1
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {95, 19};
     *(regs + 4) = Value(-1);
-    regs[5] = locals[1]; // quads
+    *(regs + 5) = *(locals + 1); // quads
     block31:;
     if (!U_VFOR(vm, regs + 6)) goto block32;
     vm.last = {95, 19};
     U_VFORELEMREF(vm, regs + 6);
-    vm.temp_lval = &locals[27]; // q
+    vm.temp_lval = locals + 27; // q
     U_LV_WRITEREF(vm, regs + 7);
     vm.last = {96, 19};
     *(regs + 6) = Value(-1);
-    regs[7] = locals[27]; // q
+    *(regs + 7) = *(locals + 27); // q
     block33:;
     if (!U_VFOR(vm, regs + 8)) goto block34;
     vm.last = {96, 19};
     U_VFORELEM(vm, regs + 8);
-    vm.temp_lval = &locals[28]; // vi2
-    *vm.temp_lval = *(regs + 8);
+    vm.temp_lval = locals + 28; // vi2
+    *(vm.temp_lval) = *(regs + 8);
     vm.last = {97, 19};
-    regs[8] = locals[26]; // vi1
-    regs[9] = locals[28]; // vi2
+    *(regs + 8) = *(locals + 26); // vi1
+    *(regs + 9) = *(locals + 28); // vi2
     U_IEQ(vm, regs + 10);
     if (!(regs + 8)->True()) goto block35;
     vm.last = {98, 19};
-    vm.temp_lval = &locals[25]; // qc
+    vm.temp_lval = locals + 25; // qc
     U_LV_IPP(vm, regs + 8);
     block35:;
     goto block33;
@@ -18721,108 +18847,108 @@ static void fun_355(VMRef vm, StackPtr psp) {
     goto block29;
     block30:;
     vm.last = {99, 19};
-    regs[2] = locals[25]; // qc
-    regs[3] = locals[22]; // bestqc
+    *(regs + 2) = *(locals + 25); // qc
+    *(regs + 3) = *(locals + 22); // bestqc
     U_IGT(vm, regs + 4);
     if (!(regs + 2)->True()) goto block36;
     vm.last = {100, 19};
-    regs[2] = locals[25]; // qc
-    vm.temp_lval = &locals[22]; // bestqc
-    *vm.temp_lval = *(regs + 2);
+    *(regs + 2) = *(locals + 25); // qc
+    vm.temp_lval = locals + 22; // bestqc
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {101, 19};
-    regs[2] = locals[24]; // i
-    vm.temp_lval = &locals[21]; // besti
-    *vm.temp_lval = *(regs + 2);
+    *(regs + 2) = *(locals + 24); // i
+    vm.temp_lval = locals + 21; // besti
+    *(vm.temp_lval) = *(regs + 2);
     block36:;
     goto block27;
     block28:;
     vm.last = {102, 19};
-    regs[0] = locals[15]; // tris
-    regs[1] = locals[21]; // besti
+    *(regs + 0) = *(locals + 15); // tris
+    *(regs + 1) = *(locals + 21); // besti
     U_BCALLRETV(vm, regs + 2, 19, 1); // remove
-    vm.temp_lval = &locals[29]; // t1
+    vm.temp_lval = locals + 29; // t1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {103, 19};
     *(regs + 0) = Value(0);
-    vm.temp_lval = &locals[30]; // found
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 30; // found
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {104, 19};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[29]; // t1
+    *(regs + 1) = *(locals + 29); // t1
     block37:;
     if (!U_VFOR(vm, regs + 2)) goto block38;
     vm.last = {104, 19};
     U_VFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[31]; // vi
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 31; // vi
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {104, 19};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[32]; // vii
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 32; // vii
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {105, 19};
-    regs[2] = locals[30]; // found
+    *(regs + 2) = *(locals + 30); // found
     U_LOGNOT(vm, regs + 3);
     if (!(regs + 2)->True()) goto block39;
     vm.last = {106, 19};
-    regs[2] = locals[29]; // t1
-    regs[3] = locals[32]; // vii
+    *(regs + 2) = *(locals + 29); // t1
+    *(regs + 3) = *(locals + 32); // vii
     *(regs + 4) = Value(1);
     U_IADD(vm, regs + 5);
     *(regs + 4) = Value(3);
     U_IMOD(vm, regs + 5);
     U_VPUSHIDXI(vm, regs + 4);
-    vm.temp_lval = &locals[33]; // ni
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 33; // ni
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {107, 19};
-    regs[2] = locals[29]; // t1
-    regs[3] = locals[32]; // vii
+    *(regs + 2) = *(locals + 29); // t1
+    *(regs + 3) = *(locals + 32); // vii
     *(regs + 4) = Value(2);
     U_IADD(vm, regs + 5);
     *(regs + 4) = Value(3);
     U_IMOD(vm, regs + 5);
     U_VPUSHIDXI(vm, regs + 4);
-    vm.temp_lval = &locals[34]; // li
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 34; // li
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {108, 19};
     *(regs + 2) = Value(-1);
-    regs[3] = locals[15]; // tris
+    *(regs + 3) = *(locals + 15); // tris
     block40:;
     if (!U_VFOR(vm, regs + 4)) goto block41;
     vm.last = {108, 19};
     U_VFORELEMREF(vm, regs + 4);
-    vm.temp_lval = &locals[35]; // t
+    vm.temp_lval = locals + 35; // t
     U_LV_WRITEREF(vm, regs + 5);
     vm.last = {109, 19};
-    regs[4] = locals[30]; // found
+    *(regs + 4) = *(locals + 30); // found
     U_LOGNOT(vm, regs + 5);
     if (!(regs + 4)->True()) goto block42;
     vm.last = {110, 19};
     *(regs + 4) = Value(1);
-    vm.temp_lval = &locals[30]; // found
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 30; // found
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {111, 19};
-    regs[4] = locals[35]; // t
+    *(regs + 4) = *(locals + 35); // t
     *(regs + 5) = Value(0);
     U_VPUSHIDXI(vm, regs + 6);
-    regs[5] = locals[33]; // ni
+    *(regs + 5) = *(locals + 33); // ni
     U_IEQ(vm, regs + 6);
     if (!(regs + 4)->True()) goto block43;
     U_POP(vm, regs + 5);
-    regs[4] = locals[35]; // t
+    *(regs + 4) = *(locals + 35); // t
     *(regs + 5) = Value(1);
     U_VPUSHIDXI(vm, regs + 6);
-    regs[5] = locals[31]; // vi
+    *(regs + 5) = *(locals + 31); // vi
     U_IEQ(vm, regs + 6);
     block43:;
     if (!(regs + 4)->True()) goto block44;
     vm.last = {112, 19};
-    regs[4] = locals[1]; // quads
-    regs[5] = locals[31]; // vi
-    regs[6] = locals[35]; // t
+    *(regs + 4) = *(locals + 1); // quads
+    *(regs + 5) = *(locals + 31); // vi
+    *(regs + 6) = *(locals + 35); // t
     *(regs + 7) = Value(2);
     U_VPUSHIDXI(vm, regs + 8);
-    regs[7] = locals[33]; // ni
-    regs[8] = locals[34]; // li
+    *(regs + 7) = *(locals + 33); // ni
+    *(regs + 8) = *(locals + 34); // li
     U_NEWVEC(vm, regs + 9, 7, 4);
     *(regs + 6) = Value(1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
@@ -18830,28 +18956,28 @@ static void fun_355(VMRef vm, StackPtr psp) {
     goto block45;
     block44:;
     vm.last = {113, 19};
-    regs[4] = locals[35]; // t
+    *(regs + 4) = *(locals + 35); // t
     *(regs + 5) = Value(1);
     U_VPUSHIDXI(vm, regs + 6);
-    regs[5] = locals[33]; // ni
+    *(regs + 5) = *(locals + 33); // ni
     U_IEQ(vm, regs + 6);
     if (!(regs + 4)->True()) goto block46;
     U_POP(vm, regs + 5);
-    regs[4] = locals[35]; // t
+    *(regs + 4) = *(locals + 35); // t
     *(regs + 5) = Value(2);
     U_VPUSHIDXI(vm, regs + 6);
-    regs[5] = locals[31]; // vi
+    *(regs + 5) = *(locals + 31); // vi
     U_IEQ(vm, regs + 6);
     block46:;
     if (!(regs + 4)->True()) goto block47;
     vm.last = {114, 19};
-    regs[4] = locals[1]; // quads
-    regs[5] = locals[31]; // vi
-    regs[6] = locals[35]; // t
+    *(regs + 4) = *(locals + 1); // quads
+    *(regs + 5) = *(locals + 31); // vi
+    *(regs + 6) = *(locals + 35); // t
     *(regs + 7) = Value(0);
     U_VPUSHIDXI(vm, regs + 8);
-    regs[7] = locals[33]; // ni
-    regs[8] = locals[34]; // li
+    *(regs + 7) = *(locals + 33); // ni
+    *(regs + 8) = *(locals + 34); // li
     U_NEWVEC(vm, regs + 9, 7, 4);
     *(regs + 6) = Value(1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
@@ -18859,28 +18985,28 @@ static void fun_355(VMRef vm, StackPtr psp) {
     goto block48;
     block47:;
     vm.last = {115, 19};
-    regs[4] = locals[35]; // t
+    *(regs + 4) = *(locals + 35); // t
     *(regs + 5) = Value(2);
     U_VPUSHIDXI(vm, regs + 6);
-    regs[5] = locals[33]; // ni
+    *(regs + 5) = *(locals + 33); // ni
     U_IEQ(vm, regs + 6);
     if (!(regs + 4)->True()) goto block49;
     U_POP(vm, regs + 5);
-    regs[4] = locals[35]; // t
+    *(regs + 4) = *(locals + 35); // t
     *(regs + 5) = Value(0);
     U_VPUSHIDXI(vm, regs + 6);
-    regs[5] = locals[31]; // vi
+    *(regs + 5) = *(locals + 31); // vi
     U_IEQ(vm, regs + 6);
     block49:;
     if (!(regs + 4)->True()) goto block50;
     vm.last = {116, 19};
-    regs[4] = locals[1]; // quads
-    regs[5] = locals[31]; // vi
-    regs[6] = locals[35]; // t
+    *(regs + 4) = *(locals + 1); // quads
+    *(regs + 5) = *(locals + 31); // vi
+    *(regs + 6) = *(locals + 35); // t
     *(regs + 7) = Value(1);
     U_VPUSHIDXI(vm, regs + 8);
-    regs[7] = locals[33]; // ni
-    regs[8] = locals[34]; // li
+    *(regs + 7) = *(locals + 33); // ni
+    *(regs + 8) = *(locals + 34); // li
     U_NEWVEC(vm, regs + 9, 7, 4);
     *(regs + 6) = Value(1);
     U_BCALLRETV(vm, regs + 7, 15, 1); // push
@@ -18889,17 +19015,17 @@ static void fun_355(VMRef vm, StackPtr psp) {
     block50:;
     vm.last = {118, 19};
     *(regs + 4) = Value(0);
-    vm.temp_lval = &locals[30]; // found
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 30; // found
+    *(vm.temp_lval) = *(regs + 4);
     block51:;
     block48:;
     block45:;
     vm.last = {119, 19};
-    regs[4] = locals[30]; // found
+    *(regs + 4) = *(locals + 30); // found
     if (!(regs + 4)->True()) goto block52;
     vm.last = {120, 19};
-    regs[4] = locals[15]; // tris
-    regs[5] = locals[35]; // t
+    *(regs + 4) = *(locals + 15); // tris
+    *(regs + 5) = *(locals + 35); // t
     U_BCALLRET2(vm, regs + 6, 21, 1); // remove_obj
     U_POP(vm, regs + 5);
     block52:;
@@ -18937,26 +19063,26 @@ static void fun_355(VMRef vm, StackPtr psp) {
 static void fun_356(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[13];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
-    locals[12] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
+    *(locals + 12) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2378, locals);
     vm.last = {23, 19};
     U_PUSHVARF(vm, regs + 0, 727); // verts
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_587(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[0]; // disps
+    vm.temp_lval = locals + 0; // disps
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {24, 19};
     *(regs + 0) = Value(-1);
@@ -18965,7 +19091,7 @@ static void fun_356(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {24, 19};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // v+0
+    vm.temp_lval = locals + 1; // v+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {25, 19};
     *(regs + 2) = Value(-1);
@@ -18974,47 +19100,53 @@ static void fun_356(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 4)) goto block3;
     vm.last = {25, 19};
     U_VFORELEM2S(vm, regs + 4);
-    vm.temp_lval = &locals[3]; // w+0
+    vm.temp_lval = locals + 3; // w+0
     U_LV_WRITEV(vm, regs + 6, 2);
     vm.last = {25, 19};
     U_FORLOOPI(vm, regs + 4);
-    vm.temp_lval = &locals[5]; // i
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 5; // i
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {26, 19};
-    regs[4] = locals[3];regs[5] = locals[4]; // w
-    regs[6] = locals[1];regs[7] = locals[2]; // v
+    *(regs + 4) = *(locals + 3); // w.0
+    *(regs + 5) = *(locals + 4); // w.1
+    *(regs + 6) = *(locals + 1); // v.0
+    *(regs + 7) = *(locals + 2); // v.1
     U_FVVSUB(vm, regs + 8, 2);
-    vm.temp_lval = &locals[6]; // tow+0
+    vm.temp_lval = locals + 6; // tow+0
     U_LV_WRITEV(vm, regs + 6, 2);
     vm.last = {27, 19};
-    regs[4] = locals[6];regs[5] = locals[7]; // tow
+    *(regs + 4) = *(locals + 6); // tow.0
+    *(regs + 5) = *(locals + 7); // tow.1
     *(regs + 6) = Value(2);
     U_BCALLRETV(vm, regs + 7, 86, 1); // magnitude
-    vm.temp_lval = &locals[8]; // dist
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 8; // dist
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {28, 19};
-    regs[4] = locals[8]; // dist
+    *(regs + 4) = *(locals + 8); // dist
     *(regs + 5) = Value(1.000000);
     U_FLT(vm, regs + 6);
     if (!(regs + 4)->True()) goto block4;
     U_POP(vm, regs + 5);
-    regs[4] = locals[1];regs[5] = locals[2]; // v
-    regs[6] = locals[3];regs[7] = locals[4]; // w
+    *(regs + 4) = *(locals + 1); // v.0
+    *(regs + 5) = *(locals + 2); // v.1
+    *(regs + 6) = *(locals + 3); // w.0
+    *(regs + 7) = *(locals + 4); // w.1
     U_STNE(vm, regs + 8, 2);
     block4:;
     if (!(regs + 4)->True()) goto block5;
     vm.last = {29, 19};
-    regs[4] = locals[6];regs[5] = locals[7]; // tow
+    *(regs + 4) = *(locals + 6); // tow.0
+    *(regs + 5) = *(locals + 7); // tow.1
     *(regs + 6) = Value(1.000000);
-    regs[7] = locals[8]; // dist
+    *(regs + 7) = *(locals + 8); // dist
     U_FDIV(vm, regs + 8);
     U_FVSMUL(vm, regs + 7, 2);
     *(regs + 6) = Value(1.000000);
-    regs[7] = locals[8]; // dist
+    *(regs + 7) = *(locals + 8); // dist
     U_FSUB(vm, regs + 8);
     U_FVSMUL(vm, regs + 7, 2);
-    regs[6] = locals[0]; // disps
-    regs[7] = locals[5]; // i
+    *(regs + 6) = *(locals + 0); // disps
+    *(regs + 7) = *(locals + 5); // i
     U_LVAL_IDXVI(vm, regs + 8, 0);
     U_LV_FVVADD(vm, regs + 6, 2);
     block5:;
@@ -19024,39 +19156,41 @@ static void fun_356(VMRef vm, StackPtr psp) {
     block1:;
     vm.last = {30, 19};
     *(regs + 0) = Value(0.000000);
-    vm.temp_lval = &locals[9]; // totaldisp
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 9; // totaldisp
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {31, 19};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[0]; // disps
+    *(regs + 1) = *(locals + 0); // disps
     block6:;
     if (!U_VFOR(vm, regs + 2)) goto block7;
     vm.last = {31, 19};
     U_VFORELEM2S(vm, regs + 2);
-    vm.temp_lval = &locals[10]; // d+0
+    vm.temp_lval = locals + 10; // d+0
     U_LV_WRITEV(vm, regs + 4, 2);
     vm.last = {31, 19};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[12]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 12; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {32, 19};
-    regs[2] = locals[10];regs[3] = locals[11]; // d
+    *(regs + 2) = *(locals + 10); // d.0
+    *(regs + 3) = *(locals + 11); // d.1
     U_PUSHVARF(vm, regs + 4, 727); // verts
-    regs[5] = locals[12]; // i
+    *(regs + 5) = *(locals + 12); // i
     U_LVAL_IDXVI(vm, regs + 6, 0);
     U_LV_FVVADD(vm, regs + 4, 2);
     vm.last = {33, 19};
-    regs[2] = locals[10];regs[3] = locals[11]; // d
+    *(regs + 2) = *(locals + 10); // d.0
+    *(regs + 3) = *(locals + 11); // d.1
     *(regs + 4) = Value(2);
     U_BCALLRETV(vm, regs + 5, 86, 1); // magnitude
-    vm.temp_lval = &locals[9]; // totaldisp
+    vm.temp_lval = locals + 9; // totaldisp
     U_LV_FADD(vm, regs + 3);
     goto block6;
     block7:;
     vm.last = {34, 19};
-    regs[0] = locals[9]; // totaldisp
+    *(regs + 0) = *(locals + 9); // totaldisp
     DecVal(vm, locals[0]);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19066,12 +19200,13 @@ static void fun_356(VMRef vm, StackPtr psp) {
 static void fun_358(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2394, locals);
     vm.last = {40, 19};
     U_PUSHVARF(vm, regs + 0, 727); // verts
-    regs[1] = locals[0];regs[2] = locals[1]; // p
+    *(regs + 1) = *(locals + 0); // p.0
+    *(regs + 2) = *(locals + 1); // p.1
     *(regs + 3) = Value(2);
     U_BCALLRETV(vm, regs + 4, 68, 1); // float
     fun_89(vm, regs + 3); // call: rnd_float2
@@ -19096,16 +19231,16 @@ static void fun_358(VMRef vm, StackPtr psp) {
 static void fun_359(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[6];
-    locals[0] = *(psp - 6);
-    locals[1] = *(psp - 5);
-    locals[2] = *(psp - 4);
-    locals[3] = *(psp - 3);
-    locals[4] = *(psp - 2);
-    locals[5] = *(psp - 1);
+    *(locals + 0) = *(psp - 6);
+    *(locals + 1) = *(psp - 5);
+    *(locals + 2) = *(psp - 4);
+    *(locals + 3) = *(psp - 3);
+    *(locals + 4) = *(psp - 2);
+    *(locals + 5) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2399, locals);
     vm.last = {53, 19};
-    regs[0] = locals[2]; // a+2
-    regs[1] = locals[5]; // b+2
+    *(regs + 0) = *(locals + 2); // a+2
+    *(regs + 1) = *(locals + 5); // b+2
     U_FLT(vm, regs + 2);
     Pop(psp);
     Pop(psp);
@@ -19113,7 +19248,7 @@ static void fun_359(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19123,17 +19258,17 @@ static void fun_359(VMRef vm, StackPtr psp) {
 static void fun_361(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 2);
+    *(locals + 0) = *(psp - 2);
     SwapVars(vm, 767, psp, 1);
     PushFunId(vm, funinfo_table + 2408, locals);
     vm.last = {63, 19};
-    regs[0] = locals[0]; // nbl
+    *(regs + 0) = *(locals + 0); // nbl
     U_INCREF(vm, regs + 1, 0);
     U_PUSHFUN(vm, regs + 1, 0, fun_362);
     fun_594(vm, regs + 2); // call: qsort
     psp = PopArg(vm, 767, psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19143,12 +19278,12 @@ static void fun_361(VMRef vm, StackPtr psp) {
 static void fun_362(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2413, locals);
     vm.last = {64, 19};
     U_PUSHVARF(vm, regs + 0, 727); // verts
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_VPUSHIDXI2V(vm, regs + 2);
     U_PUSHVARF(vm, regs + 2, 727); // verts
     U_PUSHVARF(vm, regs + 3, 767); // i
@@ -19157,7 +19292,7 @@ static void fun_362(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(2);
     U_BCALLRETV(vm, regs + 3, 81, 1); // atan2
     U_PUSHVARF(vm, regs + 1, 727); // verts
-    regs[2] = locals[1]; // b
+    *(regs + 2) = *(locals + 1); // b
     U_VPUSHIDXI2V(vm, regs + 3);
     U_PUSHVARF(vm, regs + 3, 727); // verts
     U_PUSHVARF(vm, regs + 4, 767); // i
@@ -19168,7 +19303,7 @@ static void fun_362(VMRef vm, StackPtr psp) {
     U_FLT(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19178,14 +19313,14 @@ static void fun_362(VMRef vm, StackPtr psp) {
 static void fun_363(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2418, locals);
     vm.last = {74, 19};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_PUSHVARF(vm, regs + 1, 774); // p
     U_IEQ(vm, regs + 2);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19195,16 +19330,16 @@ static void fun_363(VMRef vm, StackPtr psp) {
 static void fun_364(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2422, locals);
     vm.last = {80, 19};
-    regs[0] = locals[0]; // _a
-    regs[1] = locals[1]; // _b
+    *(regs + 0) = *(locals + 0); // _a
+    *(regs + 1) = *(locals + 1); // _b
     U_BCALLRET2(vm, regs + 2, 120, 1); // min
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19214,14 +19349,14 @@ static void fun_364(VMRef vm, StackPtr psp) {
 static void fun_365(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2427, locals);
     vm.last = {84, 19};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_PUSHVARF(vm, regs + 1, 773); // shape
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19231,14 +19366,14 @@ static void fun_365(VMRef vm, StackPtr psp) {
 static void fun_366(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2431, locals);
     vm.last = {87, 19};
-    regs[0] = locals[0]; // _
+    *(regs + 0) = *(locals + 0); // _
     U_PUSHVARF(vm, regs + 1, 773); // shape
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19248,38 +19383,38 @@ static void fun_366(VMRef vm, StackPtr psp) {
 static void fun_370(VMRef vm, StackPtr psp) {
     Value regs[19];
     Value locals[29];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     BackupVar(vm, 946);
     BackupVar(vm, 1015);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
-    locals[12] = Value(0, lobster::V_NIL);
-    locals[13] = Value(0, lobster::V_NIL);
-    locals[14] = Value(0, lobster::V_NIL);
-    locals[15] = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
+    *(locals + 12) = Value(0, lobster::V_NIL);
+    *(locals + 13) = Value(0, lobster::V_NIL);
+    *(locals + 14) = Value(0, lobster::V_NIL);
+    *(locals + 15) = Value(0, lobster::V_NIL);
     BackupVar(vm, 1030);
-    locals[16] = Value(0, lobster::V_NIL);
-    locals[17] = Value(0, lobster::V_NIL);
-    locals[18] = Value(0, lobster::V_NIL);
-    locals[19] = Value(0, lobster::V_NIL);
-    locals[20] = Value(0, lobster::V_NIL);
-    locals[21] = Value(0, lobster::V_NIL);
-    locals[22] = Value(0, lobster::V_NIL);
-    locals[23] = Value(0, lobster::V_NIL);
-    locals[24] = Value(0, lobster::V_NIL);
-    locals[25] = Value(0, lobster::V_NIL);
-    locals[26] = Value(0, lobster::V_NIL);
-    locals[27] = Value(0, lobster::V_NIL);
-    locals[28] = Value(0, lobster::V_NIL);
+    *(locals + 16) = Value(0, lobster::V_NIL);
+    *(locals + 17) = Value(0, lobster::V_NIL);
+    *(locals + 18) = Value(0, lobster::V_NIL);
+    *(locals + 19) = Value(0, lobster::V_NIL);
+    *(locals + 20) = Value(0, lobster::V_NIL);
+    *(locals + 21) = Value(0, lobster::V_NIL);
+    *(locals + 22) = Value(0, lobster::V_NIL);
+    *(locals + 23) = Value(0, lobster::V_NIL);
+    *(locals + 24) = Value(0, lobster::V_NIL);
+    *(locals + 25) = Value(0, lobster::V_NIL);
+    *(locals + 26) = Value(0, lobster::V_NIL);
+    *(locals + 27) = Value(0, lobster::V_NIL);
+    *(locals + 28) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2435, locals);
     vm.last = {9, 20};
     vm.last = {9, 20};
@@ -19289,16 +19424,16 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {25, 20};
     vm.last = {41, 20};
     *(regs + 0) = Value(1000.000000);
-    vm.temp_lval = &locals[0]; // bigrad
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // bigrad
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {42, 20};
     *(regs + 0) = Value(100.000000);
-    vm.temp_lval = &locals[1]; // lrad
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // lrad
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {44, 20};
-    regs[0] = locals[1]; // lrad
+    *(regs + 0) = *(locals + 1); // lrad
     *(regs + 1) = Value(50.000000);
-    regs[2] = locals[1]; // lrad
+    *(regs + 2) = *(locals + 1); // lrad
     U_PUSHFLT64(vm, regs + 3, 1717986918, 1079273062); // 81.6
     U_FADD(vm, regs + 4);
     *(regs + 3) = Value(1.000000);
@@ -19330,9 +19465,9 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_FVSMUL(vm, regs + 13, 3);
     *(regs + 12) = Value(1);
     U_NEWOBJECT(vm, regs + 13, 1185); // Sphere
-    regs[3] = locals[0]; // bigrad
+    *(regs + 3) = *(locals + 0); // bigrad
     *(regs + 4) = Value(50.000000);
-    regs[5] = locals[0]; // bigrad
+    *(regs + 5) = *(locals + 0); // bigrad
     U_FUMINUS(vm, regs + 6);
     U_PUSHFLT64(vm, regs + 6, 1717986918, 1079273062); // 81.6
     U_FADD(vm, regs + 7);
@@ -19343,9 +19478,9 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_FVSMUL(vm, regs + 14, 3);
     *(regs + 13) = Value(0);
     U_NEWOBJECT(vm, regs + 14, 1185); // Sphere
-    regs[4] = locals[0]; // bigrad
+    *(regs + 4) = *(locals + 0); // bigrad
     *(regs + 5) = Value(50.000000);
-    regs[6] = locals[0]; // bigrad
+    *(regs + 6) = *(locals + 0); // bigrad
     U_PUSHFLT64(vm, regs + 7, 1717986918, 1079273062); // 81.6
     U_PUSHVARVF(vm, regs + 8, 84, 3); // float3_0+0
     U_PUSHVARVF(vm, regs + 11, 87, 3); // float3_1+0
@@ -19353,10 +19488,10 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_FVSMUL(vm, regs + 15, 3);
     *(regs + 14) = Value(0);
     U_NEWOBJECT(vm, regs + 15, 1185); // Sphere
-    regs[5] = locals[0]; // bigrad
+    *(regs + 5) = *(locals + 0); // bigrad
     *(regs + 6) = Value(50.000000);
     U_PUSHFLT64(vm, regs + 7, 1717986918, 1078224486); // 40.8
-    regs[8] = locals[0]; // bigrad
+    *(regs + 8) = *(locals + 0); // bigrad
     U_FUMINUS(vm, regs + 9);
     *(regs + 9) = Value(170.000000);
     U_FADD(vm, regs + 10);
@@ -19364,18 +19499,18 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 12, 84, 3); // float3_0+0
     *(regs + 15) = Value(0);
     U_NEWOBJECT(vm, regs + 16, 1185); // Sphere
-    regs[6] = locals[0]; // bigrad
+    *(regs + 6) = *(locals + 0); // bigrad
     *(regs + 7) = Value(50.000000);
     U_PUSHFLT64(vm, regs + 8, 1717986918, 1078224486); // 40.8
-    regs[9] = locals[0]; // bigrad
+    *(regs + 9) = *(locals + 0); // bigrad
     U_PUSHVARVF(vm, regs + 10, 84, 3); // float3_0+0
     U_PUSHVARVF(vm, regs + 13, 87, 3); // float3_1+0
     *(regs + 16) = Value(0.750000);
     U_FVSMUL(vm, regs + 17, 3);
     *(regs + 16) = Value(0);
     U_NEWOBJECT(vm, regs + 17, 1185); // Sphere
-    regs[7] = locals[0]; // bigrad
-    regs[8] = locals[0]; // bigrad
+    *(regs + 7) = *(locals + 0); // bigrad
+    *(regs + 8) = *(locals + 0); // bigrad
     U_FUMINUS(vm, regs + 9);
     *(regs + 9) = Value(99.000000);
     U_FADD(vm, regs + 10);
@@ -19387,8 +19522,8 @@ static void fun_370(VMRef vm, StackPtr psp) {
     *(regs + 16) = Value(0.750000);
     *(regs + 17) = Value(0);
     U_NEWOBJECT(vm, regs + 18, 1185); // Sphere
-    regs[8] = locals[0]; // bigrad
-    regs[9] = locals[0]; // bigrad
+    *(regs + 8) = *(locals + 0); // bigrad
+    *(regs + 9) = *(locals + 0); // bigrad
     *(regs + 10) = Value(1.000000);
     U_FADD(vm, regs + 11);
     U_PUSHFLT64(vm, regs + 10, 1717986918, 1078224486); // 40.8
@@ -19406,11 +19541,11 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {112, 20};
     *(regs + 0) = Value(32);
     U_LVAL_VARF(vm, regs + 1, 1015); // w
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {113, 20};
     *(regs + 0) = Value(24);
-    vm.temp_lval = &locals[2]; // h
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 2; // h
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {115, 20};
     *(regs + 0) = Value(50.000000);
     *(regs + 1) = Value(50.000000);
@@ -19420,7 +19555,7 @@ static void fun_370(VMRef vm, StackPtr psp) {
     *(regs + 5) = Value(-1.000000);
     *(regs + 6) = Value(3);
     U_BCALLRETV(vm, regs + 7, 84, 1); // normalize
-    vm.temp_lval = &locals[3]; // cam+0
+    vm.temp_lval = locals + 3; // cam+0
     U_LV_WRITEV(vm, regs + 6, 6);
     vm.last = {116, 20};
     U_PUSHVARVF(vm, regs + 0, 90, 3); // float3_x+0
@@ -19428,46 +19563,50 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 4);
     U_PUSHFLT64(vm, regs + 4, -1924145349, 1071672983); // 0.5135
     U_FMUL(vm, regs + 5);
-    regs[4] = locals[2]; // h
+    *(regs + 4) = *(locals + 2); // h
     U_I2F(vm, regs + 5);
     U_FDIV(vm, regs + 5);
     U_FVSMUL(vm, regs + 4, 3);
-    vm.temp_lval = &locals[9]; // cx+0
+    vm.temp_lval = locals + 9; // cx+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {117, 20};
-    regs[0] = locals[9];regs[1] = locals[10];regs[2] = locals[11]; // cx
+    *(regs + 0) = *(locals + 9); // cx.0
+    *(regs + 1) = *(locals + 10); // cx.1
+    *(regs + 2) = *(locals + 11); // cx.2
     *(regs + 3) = Value(3);
-    regs[4] = locals[6];regs[5] = locals[7];regs[6] = locals[8]; // cam
+    *(regs + 4) = *(locals + 6); // cam.0
+    *(regs + 5) = *(locals + 7); // cam.1
+    *(regs + 6) = *(locals + 8); // cam.2
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 90, 1); // cross
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 84, 1); // normalize
     U_PUSHFLT64(vm, regs + 3, -1924145349, 1071672983); // 0.5135
     U_FVSMUL(vm, regs + 4, 3);
-    vm.temp_lval = &locals[12]; // cy+0
+    vm.temp_lval = locals + 12; // cy+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {119, 20};
-    regs[0] = locals[2]; // h
+    *(regs + 0) = *(locals + 2); // h
     U_PUSHFUN(vm, regs + 1, 0, fun_373);
     fun_601(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[15]; // c
+    vm.temp_lval = locals + 15; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {121, 20};
     *(regs + 0) = Value(0);
     U_LVAL_VARF(vm, regs + 1, 1030); // samples
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {123, 20};
     *(regs + 0) = Value(0);
     U_BCALLRET1(vm, regs + 1, 97, 0); // rnd_seed
     vm.last = {125, 20};
     *(regs + 0) = Value(-1);
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     block0:;
     if (!U_IFOR(vm, regs + 2)) goto block1;
     vm.last = {125, 20};
     U_IFORELEM(vm, regs + 2);
-    vm.temp_lval = &locals[16]; // y
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 16; // y
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {126, 20};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 1015); // w
@@ -19475,21 +19614,21 @@ static void fun_370(VMRef vm, StackPtr psp) {
     if (!U_IFOR(vm, regs + 4)) goto block3;
     vm.last = {126, 20};
     U_IFORELEM(vm, regs + 4);
-    vm.temp_lval = &locals[17]; // x
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 17; // x
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {127, 20};
     *(regs + 4) = Value(2.000000);
     U_BCALLRET0(vm, regs + 5, 95, 1); // rnd_float
     U_FMUL(vm, regs + 6);
-    vm.temp_lval = &locals[18]; // r1
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 18; // r1
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {128, 20};
-    regs[4] = locals[18]; // r1
+    *(regs + 4) = *(locals + 18); // r1
     *(regs + 5) = Value(1.000000);
     U_FLT(vm, regs + 6);
     if (!(regs + 4)->True()) goto block4;
     vm.last = {128, 20};
-    regs[4] = locals[18]; // r1
+    *(regs + 4) = *(locals + 18); // r1
     U_BCALLRET1(vm, regs + 5, 56, 1); // sqrt
     *(regs + 5) = Value(1.000000);
     U_FSUB(vm, regs + 6);
@@ -19498,26 +19637,26 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {128, 20};
     *(regs + 4) = Value(1.000000);
     *(regs + 5) = Value(2.000000);
-    regs[6] = locals[18]; // r1
+    *(regs + 6) = *(locals + 18); // r1
     U_FSUB(vm, regs + 7);
     U_BCALLRET1(vm, regs + 6, 56, 1); // sqrt
     U_FSUB(vm, regs + 6);
     block5:;
-    vm.temp_lval = &locals[19]; // dx
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 19; // dx
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {129, 20};
     *(regs + 4) = Value(2.000000);
     U_BCALLRET0(vm, regs + 5, 95, 1); // rnd_float
     U_FMUL(vm, regs + 6);
-    vm.temp_lval = &locals[20]; // r2
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 20; // r2
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {130, 20};
-    regs[4] = locals[20]; // r2
+    *(regs + 4) = *(locals + 20); // r2
     *(regs + 5) = Value(1.000000);
     U_FLT(vm, regs + 6);
     if (!(regs + 4)->True()) goto block6;
     vm.last = {130, 20};
-    regs[4] = locals[20]; // r2
+    *(regs + 4) = *(locals + 20); // r2
     U_BCALLRET1(vm, regs + 5, 56, 1); // sqrt
     *(regs + 5) = Value(1.000000);
     U_FSUB(vm, regs + 6);
@@ -19526,21 +19665,23 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {130, 20};
     *(regs + 4) = Value(1.000000);
     *(regs + 5) = Value(2.000000);
-    regs[6] = locals[20]; // r2
+    *(regs + 6) = *(locals + 20); // r2
     U_FSUB(vm, regs + 7);
     U_BCALLRET1(vm, regs + 6, 56, 1); // sqrt
     U_FSUB(vm, regs + 6);
     block7:;
-    vm.temp_lval = &locals[21]; // dy
-    *vm.temp_lval = *(regs + 4);
+    vm.temp_lval = locals + 21; // dy
+    *(vm.temp_lval) = *(regs + 4);
     vm.last = {131, 20};
-    regs[4] = locals[9];regs[5] = locals[10];regs[6] = locals[11]; // cx
+    *(regs + 4) = *(locals + 9); // cx.0
+    *(regs + 5) = *(locals + 10); // cx.1
+    *(regs + 6) = *(locals + 11); // cx.2
     *(regs + 7) = Value(1.000000);
-    regs[8] = locals[19]; // dx
+    *(regs + 8) = *(locals + 19); // dx
     U_FADD(vm, regs + 9);
     *(regs + 8) = Value(2.000000);
     U_FDIV(vm, regs + 9);
-    regs[8] = locals[17]; // x
+    *(regs + 8) = *(locals + 17); // x
     U_I2F(vm, regs + 9);
     U_FADD(vm, regs + 9);
     U_PUSHVARF(vm, regs + 8, 1015); // w
@@ -19549,53 +19690,67 @@ static void fun_370(VMRef vm, StackPtr psp) {
     *(regs + 8) = Value(0.500000);
     U_FSUB(vm, regs + 9);
     U_FVSMUL(vm, regs + 8, 3);
-    regs[7] = locals[12];regs[8] = locals[13];regs[9] = locals[14]; // cy
+    *(regs + 7) = *(locals + 12); // cy.0
+    *(regs + 8) = *(locals + 13); // cy.1
+    *(regs + 9) = *(locals + 14); // cy.2
     *(regs + 10) = Value(1.000000);
-    regs[11] = locals[21]; // dy
+    *(regs + 11) = *(locals + 21); // dy
     U_FADD(vm, regs + 12);
     *(regs + 11) = Value(2.000000);
     U_FDIV(vm, regs + 12);
-    regs[11] = locals[16]; // y
+    *(regs + 11) = *(locals + 16); // y
     U_I2F(vm, regs + 12);
     U_FADD(vm, regs + 12);
-    regs[11] = locals[2]; // h
+    *(regs + 11) = *(locals + 2); // h
     U_I2F(vm, regs + 12);
     U_FDIV(vm, regs + 12);
     *(regs + 11) = Value(0.500000);
     U_FSUB(vm, regs + 12);
     U_FVSMUL(vm, regs + 11, 3);
     U_FVVADD(vm, regs + 10, 3);
-    regs[7] = locals[6];regs[8] = locals[7];regs[9] = locals[8]; // cam
+    *(regs + 7) = *(locals + 6); // cam.0
+    *(regs + 8) = *(locals + 7); // cam.1
+    *(regs + 9) = *(locals + 8); // cam.2
     U_FVVADD(vm, regs + 10, 3);
-    vm.temp_lval = &locals[22]; // d+0
+    vm.temp_lval = locals + 22; // d+0
     U_LV_WRITEV(vm, regs + 7, 3);
     vm.last = {133, 20};
-    regs[4] = locals[22];regs[5] = locals[23];regs[6] = locals[24]; // d
+    *(regs + 4) = *(locals + 22); // d.0
+    *(regs + 5) = *(locals + 23); // d.1
+    *(regs + 6) = *(locals + 24); // d.2
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 84, 1); // normalize
-    vm.temp_lval = &locals[22]; // d+0
+    vm.temp_lval = locals + 22; // d+0
     U_LV_WRITEV(vm, regs + 7, 3);
     vm.last = {134, 20};
-    regs[4] = locals[3];regs[5] = locals[4];regs[6] = locals[5]; // cam
-    regs[7] = locals[22];regs[8] = locals[23];regs[9] = locals[24]; // d
+    *(regs + 4) = *(locals + 3); // cam.0
+    *(regs + 5) = *(locals + 4); // cam.1
+    *(regs + 6) = *(locals + 5); // cam.2
+    *(regs + 7) = *(locals + 22); // d.0
+    *(regs + 8) = *(locals + 23); // d.1
+    *(regs + 9) = *(locals + 24); // d.2
     *(regs + 10) = Value(140.000000);
     U_FVSMUL(vm, regs + 11, 3);
     U_FVVADD(vm, regs + 10, 3);
-    regs[7] = locals[22];regs[8] = locals[23];regs[9] = locals[24]; // d
+    *(regs + 7) = *(locals + 22); // d.0
+    *(regs + 8) = *(locals + 23); // d.1
+    *(regs + 9) = *(locals + 24); // d.2
     *(regs + 10) = Value(0);
     fun_372(vm, regs + 11); // call: radiance
-    vm.temp_lval = &locals[25]; // r+0
+    vm.temp_lval = locals + 25; // r+0
     U_LV_WRITEV(vm, regs + 7, 3);
     vm.last = {136, 20};
-    regs[4] = locals[25];regs[5] = locals[26];regs[6] = locals[27]; // r
-    regs[7] = locals[15]; // c
-    regs[8] = locals[2]; // h
-    regs[9] = locals[16]; // y
+    *(regs + 4) = *(locals + 25); // r.0
+    *(regs + 5) = *(locals + 26); // r.1
+    *(regs + 6) = *(locals + 27); // r.2
+    *(regs + 7) = *(locals + 15); // c
+    *(regs + 8) = *(locals + 2); // h
+    *(regs + 9) = *(locals + 16); // y
     U_ISUB(vm, regs + 10);
     *(regs + 9) = Value(1);
     U_ISUB(vm, regs + 10);
     U_VPUSHIDXI(vm, regs + 9);
-    regs[8] = locals[17]; // x
+    *(regs + 8) = *(locals + 17); // x
     U_LVAL_IDXVI(vm, regs + 9, 0);
     U_LV_FVVADD(vm, regs + 7, 3);
     goto block2;
@@ -19606,15 +19761,15 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_LVAL_VARF(vm, regs + 0, 1030); // samples
     U_LV_IPP(vm, regs + 0);
     vm.last = {138, 20};
-    regs[0] = locals[15]; // c
+    *(regs + 0) = *(locals + 15); // c
     U_PUSHFUN(vm, regs + 1, 0, fun_375);
     fun_603(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[28]; // r
+    vm.temp_lval = locals + 28; // r
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {139, 20};
-    regs[0] = locals[28]; // r
+    *(regs + 0) = *(locals + 28); // r
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
-    regs[1] = locals[2]; // h
+    *(regs + 1) = *(locals + 2); // h
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 139, 20, 538);
     DecOwned(vm, 946);
@@ -19632,60 +19787,70 @@ static void fun_370(VMRef vm, StackPtr psp) {
 static void fun_371(VMRef vm, StackPtr psp) {
     Value regs[9];
     Value locals[14];
-    locals[0] = *(psp - 7);
-    locals[1] = *(psp - 6);
-    locals[2] = *(psp - 5);
-    locals[3] = *(psp - 4);
-    locals[4] = *(psp - 3);
-    locals[5] = *(psp - 2);
-    locals[6] = *(psp - 1);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
-    locals[12] = Value(0, lobster::V_NIL);
-    locals[13] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 7);
+    *(locals + 1) = *(psp - 6);
+    *(locals + 2) = *(psp - 5);
+    *(locals + 3) = *(psp - 4);
+    *(locals + 4) = *(psp - 3);
+    *(locals + 5) = *(psp - 2);
+    *(locals + 6) = *(psp - 1);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
+    *(locals + 12) = Value(0, lobster::V_NIL);
+    *(locals + 13) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2470, locals);
     vm.last = {26, 20};
-    regs[0] = locals[0]; // sphere
+    *(regs + 0) = *(locals + 0); // sphere
     U_PUSHFLD2V(vm, regs + 1, 1, 3);
-    regs[3] = locals[1];regs[4] = locals[2];regs[5] = locals[3]; // r
+    *(regs + 3) = *(locals + 1); // r.0
+    *(regs + 4) = *(locals + 2); // r.1
+    *(regs + 5) = *(locals + 3); // r.2
     U_FVVSUB(vm, regs + 6, 3);
-    vm.temp_lval = &locals[7]; // op+0
+    vm.temp_lval = locals + 7; // op+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {27, 20};
     U_PUSHFLT64(vm, regs + 0, -350469331, 1058682594); // 0.0001
-    vm.temp_lval = &locals[10]; // eps
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 10; // eps
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {28, 20};
-    regs[0] = locals[7];regs[1] = locals[8];regs[2] = locals[9]; // op
+    *(regs + 0) = *(locals + 7); // op.0
+    *(regs + 1) = *(locals + 8); // op.1
+    *(regs + 2) = *(locals + 9); // op.2
     *(regs + 3) = Value(3);
-    regs[4] = locals[4];regs[5] = locals[5];regs[6] = locals[6]; // r
+    *(regs + 4) = *(locals + 4); // r.0
+    *(regs + 5) = *(locals + 5); // r.1
+    *(regs + 6) = *(locals + 6); // r.2
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
-    vm.temp_lval = &locals[11]; // b
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 11; // b
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {29, 20};
-    regs[0] = locals[11]; // b
-    regs[1] = locals[11]; // b
+    *(regs + 0) = *(locals + 11); // b
+    *(regs + 1) = *(locals + 11); // b
     U_FMUL(vm, regs + 2);
-    regs[1] = locals[7];regs[2] = locals[8];regs[3] = locals[9]; // op
+    *(regs + 1) = *(locals + 7); // op.0
+    *(regs + 2) = *(locals + 8); // op.1
+    *(regs + 3) = *(locals + 9); // op.2
     *(regs + 4) = Value(3);
-    regs[5] = locals[7];regs[6] = locals[8];regs[7] = locals[9]; // op
+    *(regs + 5) = *(locals + 7); // op.0
+    *(regs + 6) = *(locals + 8); // op.1
+    *(regs + 7) = *(locals + 9); // op.2
     *(regs + 8) = Value(3);
     U_BCALLRETV(vm, regs + 9, 85, 1); // dot
     U_FSUB(vm, regs + 2);
-    regs[1] = locals[0]; // sphere
+    *(regs + 1) = *(locals + 0); // sphere
     U_PUSHFLD(vm, regs + 2, 0);
-    regs[2] = locals[0]; // sphere
+    *(regs + 2) = *(locals + 0); // sphere
     U_PUSHFLD(vm, regs + 3, 0);
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
-    vm.temp_lval = &locals[12]; // det
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 12; // det
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {30, 20};
-    regs[0] = locals[12]; // det
+    *(regs + 0) = *(locals + 12); // det
     *(regs + 1) = Value(0.000000);
     U_FLT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
@@ -19699,42 +19864,42 @@ static void fun_371(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     block0:;
     vm.last = {31, 20};
-    regs[0] = locals[12]; // det
+    *(regs + 0) = *(locals + 12); // det
     U_BCALLRET1(vm, regs + 1, 56, 1); // sqrt
-    vm.temp_lval = &locals[12]; // det
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 12; // det
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {32, 20};
-    regs[0] = locals[11]; // b
-    regs[1] = locals[12]; // det
+    *(regs + 0) = *(locals + 11); // b
+    *(regs + 1) = *(locals + 12); // det
     U_FSUB(vm, regs + 2);
-    vm.temp_lval = &locals[13]; // t
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 13; // t
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 20};
-    regs[0] = locals[13]; // t
-    regs[1] = locals[10]; // eps
+    *(regs + 0) = *(locals + 13); // t
+    *(regs + 1) = *(locals + 10); // eps
     U_FGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block1;
     vm.last = {34, 20};
-    regs[0] = locals[13]; // t
+    *(regs + 0) = *(locals + 13); // t
     goto block2;
     block1:;
     vm.last = {36, 20};
-    regs[0] = locals[11]; // b
-    regs[1] = locals[12]; // det
+    *(regs + 0) = *(locals + 11); // b
+    *(regs + 1) = *(locals + 12); // det
     U_FADD(vm, regs + 2);
-    vm.temp_lval = &locals[13]; // t
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 13; // t
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {37, 20};
-    regs[0] = locals[13]; // t
-    regs[1] = locals[10]; // eps
+    *(regs + 0) = *(locals + 13); // t
+    *(regs + 1) = *(locals + 10); // eps
     U_FGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block3;
     vm.last = {37, 20};
-    regs[0] = locals[13]; // t
+    *(regs + 0) = *(locals + 13); // t
     goto block4;
     block3:;
     vm.last = {37, 20};
@@ -19749,7 +19914,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -19759,83 +19924,83 @@ static void fun_371(VMRef vm, StackPtr psp) {
 static void fun_372(VMRef vm, StackPtr psp) {
     Value regs[23];
     Value locals[68];
-    locals[0] = *(psp - 7);
-    locals[1] = *(psp - 6);
-    locals[2] = *(psp - 5);
-    locals[3] = *(psp - 4);
-    locals[4] = *(psp - 3);
-    locals[5] = *(psp - 2);
-    locals[6] = *(psp - 1);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
-    locals[10] = Value(0, lobster::V_NIL);
-    locals[11] = Value(0, lobster::V_NIL);
-    locals[12] = Value(0, lobster::V_NIL);
-    locals[13] = Value(0, lobster::V_NIL);
-    locals[14] = Value(0, lobster::V_NIL);
-    locals[15] = Value(0, lobster::V_NIL);
-    locals[16] = Value(0, lobster::V_NIL);
-    locals[17] = Value(0, lobster::V_NIL);
-    locals[18] = Value(0, lobster::V_NIL);
-    locals[19] = Value(0, lobster::V_NIL);
-    locals[20] = Value(0, lobster::V_NIL);
-    locals[21] = Value(0, lobster::V_NIL);
-    locals[22] = Value(0, lobster::V_NIL);
-    locals[23] = Value(0, lobster::V_NIL);
-    locals[24] = Value(0, lobster::V_NIL);
-    locals[25] = Value(0, lobster::V_NIL);
-    locals[26] = Value(0, lobster::V_NIL);
-    locals[27] = Value(0, lobster::V_NIL);
-    locals[28] = Value(0, lobster::V_NIL);
-    locals[29] = Value(0, lobster::V_NIL);
-    locals[30] = Value(0, lobster::V_NIL);
-    locals[31] = Value(0, lobster::V_NIL);
-    locals[32] = Value(0, lobster::V_NIL);
-    locals[33] = Value(0, lobster::V_NIL);
-    locals[34] = Value(0, lobster::V_NIL);
-    locals[35] = Value(0, lobster::V_NIL);
-    locals[36] = Value(0, lobster::V_NIL);
-    locals[37] = Value(0, lobster::V_NIL);
-    locals[38] = Value(0, lobster::V_NIL);
-    locals[39] = Value(0, lobster::V_NIL);
-    locals[40] = Value(0, lobster::V_NIL);
-    locals[41] = Value(0, lobster::V_NIL);
-    locals[42] = Value(0, lobster::V_NIL);
-    locals[43] = Value(0, lobster::V_NIL);
-    locals[44] = Value(0, lobster::V_NIL);
-    locals[45] = Value(0, lobster::V_NIL);
-    locals[46] = Value(0, lobster::V_NIL);
-    locals[47] = Value(0, lobster::V_NIL);
-    locals[48] = Value(0, lobster::V_NIL);
-    locals[49] = Value(0, lobster::V_NIL);
-    locals[50] = Value(0, lobster::V_NIL);
-    locals[51] = Value(0, lobster::V_NIL);
-    locals[52] = Value(0, lobster::V_NIL);
-    locals[53] = Value(0, lobster::V_NIL);
-    locals[54] = Value(0, lobster::V_NIL);
-    locals[55] = Value(0, lobster::V_NIL);
-    locals[56] = Value(0, lobster::V_NIL);
-    locals[57] = Value(0, lobster::V_NIL);
-    locals[58] = Value(0, lobster::V_NIL);
-    locals[59] = Value(0, lobster::V_NIL);
-    locals[60] = Value(0, lobster::V_NIL);
-    locals[61] = Value(0, lobster::V_NIL);
-    locals[62] = Value(0, lobster::V_NIL);
-    locals[63] = Value(0, lobster::V_NIL);
-    locals[64] = Value(0, lobster::V_NIL);
-    locals[65] = Value(0, lobster::V_NIL);
-    locals[66] = Value(0, lobster::V_NIL);
-    locals[67] = Value(0, lobster::V_NIL);
+    *(locals + 0) = *(psp - 7);
+    *(locals + 1) = *(psp - 6);
+    *(locals + 2) = *(psp - 5);
+    *(locals + 3) = *(psp - 4);
+    *(locals + 4) = *(psp - 3);
+    *(locals + 5) = *(psp - 2);
+    *(locals + 6) = *(psp - 1);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
+    *(locals + 10) = Value(0, lobster::V_NIL);
+    *(locals + 11) = Value(0, lobster::V_NIL);
+    *(locals + 12) = Value(0, lobster::V_NIL);
+    *(locals + 13) = Value(0, lobster::V_NIL);
+    *(locals + 14) = Value(0, lobster::V_NIL);
+    *(locals + 15) = Value(0, lobster::V_NIL);
+    *(locals + 16) = Value(0, lobster::V_NIL);
+    *(locals + 17) = Value(0, lobster::V_NIL);
+    *(locals + 18) = Value(0, lobster::V_NIL);
+    *(locals + 19) = Value(0, lobster::V_NIL);
+    *(locals + 20) = Value(0, lobster::V_NIL);
+    *(locals + 21) = Value(0, lobster::V_NIL);
+    *(locals + 22) = Value(0, lobster::V_NIL);
+    *(locals + 23) = Value(0, lobster::V_NIL);
+    *(locals + 24) = Value(0, lobster::V_NIL);
+    *(locals + 25) = Value(0, lobster::V_NIL);
+    *(locals + 26) = Value(0, lobster::V_NIL);
+    *(locals + 27) = Value(0, lobster::V_NIL);
+    *(locals + 28) = Value(0, lobster::V_NIL);
+    *(locals + 29) = Value(0, lobster::V_NIL);
+    *(locals + 30) = Value(0, lobster::V_NIL);
+    *(locals + 31) = Value(0, lobster::V_NIL);
+    *(locals + 32) = Value(0, lobster::V_NIL);
+    *(locals + 33) = Value(0, lobster::V_NIL);
+    *(locals + 34) = Value(0, lobster::V_NIL);
+    *(locals + 35) = Value(0, lobster::V_NIL);
+    *(locals + 36) = Value(0, lobster::V_NIL);
+    *(locals + 37) = Value(0, lobster::V_NIL);
+    *(locals + 38) = Value(0, lobster::V_NIL);
+    *(locals + 39) = Value(0, lobster::V_NIL);
+    *(locals + 40) = Value(0, lobster::V_NIL);
+    *(locals + 41) = Value(0, lobster::V_NIL);
+    *(locals + 42) = Value(0, lobster::V_NIL);
+    *(locals + 43) = Value(0, lobster::V_NIL);
+    *(locals + 44) = Value(0, lobster::V_NIL);
+    *(locals + 45) = Value(0, lobster::V_NIL);
+    *(locals + 46) = Value(0, lobster::V_NIL);
+    *(locals + 47) = Value(0, lobster::V_NIL);
+    *(locals + 48) = Value(0, lobster::V_NIL);
+    *(locals + 49) = Value(0, lobster::V_NIL);
+    *(locals + 50) = Value(0, lobster::V_NIL);
+    *(locals + 51) = Value(0, lobster::V_NIL);
+    *(locals + 52) = Value(0, lobster::V_NIL);
+    *(locals + 53) = Value(0, lobster::V_NIL);
+    *(locals + 54) = Value(0, lobster::V_NIL);
+    *(locals + 55) = Value(0, lobster::V_NIL);
+    *(locals + 56) = Value(0, lobster::V_NIL);
+    *(locals + 57) = Value(0, lobster::V_NIL);
+    *(locals + 58) = Value(0, lobster::V_NIL);
+    *(locals + 59) = Value(0, lobster::V_NIL);
+    *(locals + 60) = Value(0, lobster::V_NIL);
+    *(locals + 61) = Value(0, lobster::V_NIL);
+    *(locals + 62) = Value(0, lobster::V_NIL);
+    *(locals + 63) = Value(0, lobster::V_NIL);
+    *(locals + 64) = Value(0, lobster::V_NIL);
+    *(locals + 65) = Value(0, lobster::V_NIL);
+    *(locals + 66) = Value(0, lobster::V_NIL);
+    *(locals + 67) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2487, locals);
     vm.last = {57, 20};
     U_PUSHFLT64(vm, regs + 0, -1577058304, 1114446484); // 1000000000000.0
-    vm.temp_lval = &locals[7]; // t
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 7; // t
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {58, 20};
     *(regs + 0) = Value(-1);
-    vm.temp_lval = &locals[8]; // id
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 8; // id
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {59, 20};
     *(regs + 0) = Value(-1);
     U_PUSHVARF(vm, regs + 1, 946); // spheres
@@ -19843,43 +20008,48 @@ static void fun_372(VMRef vm, StackPtr psp) {
     if (!U_VFOR(vm, regs + 2)) goto block1;
     vm.last = {59, 20};
     U_VFORELEMREF(vm, regs + 2);
-    vm.temp_lval = &locals[9]; // s
+    vm.temp_lval = locals + 9; // s
     U_LV_WRITEREF(vm, regs + 3);
     vm.last = {59, 20};
     U_FORLOOPI(vm, regs + 2);
-    vm.temp_lval = &locals[10]; // i
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 10; // i
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {60, 20};
-    regs[2] = locals[9]; // s
+    *(regs + 2) = *(locals + 9); // s
     U_INCREF(vm, regs + 3, 0);
-    regs[3] = locals[0];regs[4] = locals[1];regs[5] = locals[2];regs[6] = locals[3];regs[7] = locals[4];regs[8] = locals[5]; // r
+    *(regs + 3) = *(locals + 0); // r.0
+    *(regs + 4) = *(locals + 1); // r.1
+    *(regs + 5) = *(locals + 2); // r.2
+    *(regs + 6) = *(locals + 3); // r.3
+    *(regs + 7) = *(locals + 4); // r.4
+    *(regs + 8) = *(locals + 5); // r.5
     fun_371(vm, regs + 9); // call: intersect
-    vm.temp_lval = &locals[11]; // d
-    *vm.temp_lval = *(regs + 2);
+    vm.temp_lval = locals + 11; // d
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {61, 20};
-    regs[2] = locals[11]; // d
+    *(regs + 2) = *(locals + 11); // d
     *(regs + 3) = Value(0.000000);
     U_FNE(vm, regs + 4);
     if (!(regs + 2)->True()) goto block2;
     U_POP(vm, regs + 3);
-    regs[2] = locals[11]; // d
-    regs[3] = locals[7]; // t
+    *(regs + 2) = *(locals + 11); // d
+    *(regs + 3) = *(locals + 7); // t
     U_FLT(vm, regs + 4);
     block2:;
     if (!(regs + 2)->True()) goto block3;
     vm.last = {62, 20};
-    regs[2] = locals[11]; // d
-    vm.temp_lval = &locals[7]; // t
-    *vm.temp_lval = *(regs + 2);
+    *(regs + 2) = *(locals + 11); // d
+    vm.temp_lval = locals + 7; // t
+    *(vm.temp_lval) = *(regs + 2);
     vm.last = {63, 20};
-    regs[2] = locals[10]; // i
-    vm.temp_lval = &locals[8]; // id
-    *vm.temp_lval = *(regs + 2);
+    *(regs + 2) = *(locals + 10); // i
+    vm.temp_lval = locals + 8; // id
+    *(vm.temp_lval) = *(regs + 2);
     block3:;
     goto block0;
     block1:;
     vm.last = {64, 20};
-    regs[0] = locals[8]; // id
+    *(regs + 0) = *(locals + 8); // id
     *(regs + 1) = Value(0);
     U_ILT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block4;
@@ -19894,92 +20064,106 @@ static void fun_372(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
     goto epilogue;
     block4:;
     vm.last = {65, 20};
     U_PUSHVARF(vm, regs + 0, 946); // spheres
-    regs[1] = locals[8]; // id
+    *(regs + 1) = *(locals + 8); // id
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[12]; // obj
+    vm.temp_lval = locals + 12; // obj
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {66, 20};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2]; // r
-    regs[3] = locals[3];regs[4] = locals[4];regs[5] = locals[5]; // r
-    regs[6] = locals[7]; // t
+    *(regs + 0) = *(locals + 0); // r.0
+    *(regs + 1) = *(locals + 1); // r.1
+    *(regs + 2) = *(locals + 2); // r.2
+    *(regs + 3) = *(locals + 3); // r.0
+    *(regs + 4) = *(locals + 4); // r.1
+    *(regs + 5) = *(locals + 5); // r.2
+    *(regs + 6) = *(locals + 7); // t
     U_FVSMUL(vm, regs + 7, 3);
     U_FVVADD(vm, regs + 6, 3);
-    vm.temp_lval = &locals[13]; // x+0
+    vm.temp_lval = locals + 13; // x+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {67, 20};
-    regs[0] = locals[13];regs[1] = locals[14];regs[2] = locals[15]; // x
-    regs[3] = locals[12]; // obj
+    *(regs + 0) = *(locals + 13); // x.0
+    *(regs + 1) = *(locals + 14); // x.1
+    *(regs + 2) = *(locals + 15); // x.2
+    *(regs + 3) = *(locals + 12); // obj
     U_PUSHFLD2V(vm, regs + 4, 1, 3);
     U_FVVSUB(vm, regs + 6, 3);
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 84, 1); // normalize
-    vm.temp_lval = &locals[16]; // n+0
+    vm.temp_lval = locals + 16; // n+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {68, 20};
-    regs[0] = locals[16];regs[1] = locals[17];regs[2] = locals[18]; // n
+    *(regs + 0) = *(locals + 16); // n.0
+    *(regs + 1) = *(locals + 17); // n.1
+    *(regs + 2) = *(locals + 18); // n.2
     *(regs + 3) = Value(3);
-    regs[4] = locals[3];regs[5] = locals[4];regs[6] = locals[5]; // r
+    *(regs + 4) = *(locals + 3); // r.0
+    *(regs + 5) = *(locals + 4); // r.1
+    *(regs + 6) = *(locals + 5); // r.2
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
     *(regs + 1) = Value(0.000000);
     U_FLT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block5;
     vm.last = {68, 20};
-    regs[0] = locals[16];regs[1] = locals[17];regs[2] = locals[18]; // n
+    *(regs + 0) = *(locals + 16); // n.0
+    *(regs + 1) = *(locals + 17); // n.1
+    *(regs + 2) = *(locals + 18); // n.2
     goto block6;
     block5:;
     vm.last = {68, 20};
-    regs[0] = locals[16];regs[1] = locals[17];regs[2] = locals[18]; // n
+    *(regs + 0) = *(locals + 16); // n.0
+    *(regs + 1) = *(locals + 17); // n.1
+    *(regs + 2) = *(locals + 18); // n.2
     *(regs + 3) = Value(-1.000000);
     U_FVSMUL(vm, regs + 4, 3);
     block6:;
-    vm.temp_lval = &locals[19]; // nl+0
+    vm.temp_lval = locals + 19; // nl+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {69, 20};
-    regs[0] = locals[12]; // obj
+    *(regs + 0) = *(locals + 12); // obj
     U_PUSHFLD2V(vm, regs + 1, 7, 3);
-    vm.temp_lval = &locals[22]; // f+0
+    vm.temp_lval = locals + 22; // f+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {70, 20};
-    regs[0] = locals[22]; // f+0
-    regs[1] = locals[23]; // f+1
+    *(regs + 0) = *(locals + 22); // f+0
+    *(regs + 1) = *(locals + 23); // f+1
     U_FGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block7;
     U_POP(vm, regs + 1);
-    regs[0] = locals[22]; // f+0
-    regs[1] = locals[24]; // f+2
+    *(regs + 0) = *(locals + 22); // f+0
+    *(regs + 1) = *(locals + 24); // f+2
     U_FGT(vm, regs + 2);
     block7:;
     if (!(regs + 0)->True()) goto block8;
     vm.last = {70, 20};
-    regs[0] = locals[22]; // f+0
+    *(regs + 0) = *(locals + 22); // f+0
     goto block9;
     block8:;
     vm.last = {70, 20};
-    regs[0] = locals[23]; // f+1
-    regs[1] = locals[24]; // f+2
+    *(regs + 0) = *(locals + 23); // f+1
+    *(regs + 1) = *(locals + 24); // f+2
     U_FGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block10;
     vm.last = {70, 20};
-    regs[0] = locals[23]; // f+1
+    *(regs + 0) = *(locals + 23); // f+1
     goto block11;
     block10:;
     vm.last = {70, 20};
-    regs[0] = locals[24]; // f+2
+    *(regs + 0) = *(locals + 24); // f+2
     block11:;
     block9:;
-    vm.temp_lval = &locals[25]; // p
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 25; // p
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {71, 20};
-    vm.temp_lval = &locals[6]; // depth
+    vm.temp_lval = locals + 6; // depth
     U_LV_IPP(vm, regs + 0);
     U_LV_DUP(vm, regs + 0);
     U_I2F(vm, regs + 1);
@@ -19988,21 +20172,23 @@ static void fun_372(VMRef vm, StackPtr psp) {
     if (!(regs + 0)->True()) goto block12;
     vm.last = {71, 20};
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
-    regs[1] = locals[25]; // p
+    *(regs + 1) = *(locals + 25); // p
     U_FLT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block13;
     vm.last = {71, 20};
-    regs[0] = locals[22];regs[1] = locals[23];regs[2] = locals[24]; // f
+    *(regs + 0) = *(locals + 22); // f.0
+    *(regs + 1) = *(locals + 23); // f.1
+    *(regs + 2) = *(locals + 24); // f.2
     *(regs + 3) = Value(1.000000);
-    regs[4] = locals[25]; // p
+    *(regs + 4) = *(locals + 25); // p
     U_FDIV(vm, regs + 5);
     U_FVSMUL(vm, regs + 4, 3);
-    vm.temp_lval = &locals[22]; // f+0
+    vm.temp_lval = locals + 22; // f+0
     U_LV_WRITEV(vm, regs + 3, 3);
     goto block14;
     block13:;
     vm.last = {71, 20};
-    regs[0] = locals[12]; // obj
+    *(regs + 0) = *(locals + 12); // obj
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
     DecVal(vm, locals[9]);
     DecVal(vm, locals[12]);
@@ -20013,14 +20199,14 @@ static void fun_372(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
     goto epilogue;
     block14:;
     block12:;
     vm.last = {72, 20};
-    regs[0] = locals[12]; // obj
+    *(regs + 0) = *(locals + 12); // obj
     U_PUSHFLD(vm, regs + 1, 10);
     *(regs + 1) = Value(0);
     U_IEQ(vm, regs + 2);
@@ -20029,23 +20215,25 @@ static void fun_372(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(360.000000);
     U_BCALLRET0(vm, regs + 1, 95, 1); // rnd_float
     U_FMUL(vm, regs + 2);
-    vm.temp_lval = &locals[26]; // r1
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 26; // r1
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {74, 20};
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
-    vm.temp_lval = &locals[27]; // r2
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 27; // r2
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {75, 20};
-    regs[0] = locals[27]; // r2
+    *(regs + 0) = *(locals + 27); // r2
     U_BCALLRET1(vm, regs + 1, 56, 1); // sqrt
-    vm.temp_lval = &locals[28]; // r2s
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 28; // r2s
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {76, 20};
-    regs[0] = locals[19];regs[1] = locals[20];regs[2] = locals[21]; // nl
-    vm.temp_lval = &locals[29]; // w+0
+    *(regs + 0) = *(locals + 19); // nl.0
+    *(regs + 1) = *(locals + 20); // nl.1
+    *(regs + 2) = *(locals + 21); // nl.2
+    vm.temp_lval = locals + 29; // w+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {77, 20};
-    regs[0] = locals[29]; // w+0
+    *(regs + 0) = *(locals + 29); // w+0
     U_BCALLRET1(vm, regs + 1, 113, 1); // abs
     U_PUSHFLT64(vm, regs + 1, -1717986918, 1069128089); // 0.1
     U_FGT(vm, regs + 2);
@@ -20058,53 +20246,71 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_PUSHVARVF(vm, regs + 0, 90, 3); // float3_x+0
     block17:;
     *(regs + 3) = Value(3);
-    regs[4] = locals[29];regs[5] = locals[30];regs[6] = locals[31]; // w
+    *(regs + 4) = *(locals + 29); // w.0
+    *(regs + 5) = *(locals + 30); // w.1
+    *(regs + 6) = *(locals + 31); // w.2
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 90, 1); // cross
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 84, 1); // normalize
-    vm.temp_lval = &locals[32]; // u+0
+    vm.temp_lval = locals + 32; // u+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {78, 20};
-    regs[0] = locals[29];regs[1] = locals[30];regs[2] = locals[31]; // w
+    *(regs + 0) = *(locals + 29); // w.0
+    *(regs + 1) = *(locals + 30); // w.1
+    *(regs + 2) = *(locals + 31); // w.2
     *(regs + 3) = Value(3);
-    regs[4] = locals[32];regs[5] = locals[33];regs[6] = locals[34]; // u
+    *(regs + 4) = *(locals + 32); // u.0
+    *(regs + 5) = *(locals + 33); // u.1
+    *(regs + 6) = *(locals + 34); // u.2
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 90, 1); // cross
-    vm.temp_lval = &locals[35]; // v+0
+    vm.temp_lval = locals + 35; // v+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {79, 20};
-    regs[0] = locals[32];regs[1] = locals[33];regs[2] = locals[34]; // u
-    regs[3] = locals[26]; // r1
+    *(regs + 0) = *(locals + 32); // u.0
+    *(regs + 1) = *(locals + 33); // u.1
+    *(regs + 2) = *(locals + 34); // u.2
+    *(regs + 3) = *(locals + 26); // r1
     U_BCALLRET1(vm, regs + 4, 71, 1); // cos
     U_FVSMUL(vm, regs + 4, 3);
-    regs[3] = locals[28]; // r2s
+    *(regs + 3) = *(locals + 28); // r2s
     U_FVSMUL(vm, regs + 4, 3);
-    regs[3] = locals[35];regs[4] = locals[36];regs[5] = locals[37]; // v
-    regs[6] = locals[26]; // r1
+    *(regs + 3) = *(locals + 35); // v.0
+    *(regs + 4) = *(locals + 36); // v.1
+    *(regs + 5) = *(locals + 37); // v.2
+    *(regs + 6) = *(locals + 26); // r1
     U_BCALLRET1(vm, regs + 7, 69, 1); // sin
     U_FVSMUL(vm, regs + 7, 3);
-    regs[6] = locals[28]; // r2s
+    *(regs + 6) = *(locals + 28); // r2s
     U_FVSMUL(vm, regs + 7, 3);
     U_FVVADD(vm, regs + 6, 3);
-    regs[3] = locals[29];regs[4] = locals[30];regs[5] = locals[31]; // w
+    *(regs + 3) = *(locals + 29); // w.0
+    *(regs + 4) = *(locals + 30); // w.1
+    *(regs + 5) = *(locals + 31); // w.2
     *(regs + 6) = Value(1.000000);
-    regs[7] = locals[27]; // r2
+    *(regs + 7) = *(locals + 27); // r2
     U_FSUB(vm, regs + 8);
     U_BCALLRET1(vm, regs + 7, 56, 1); // sqrt
     U_FVSMUL(vm, regs + 7, 3);
     U_FVVADD(vm, regs + 6, 3);
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 84, 1); // normalize
-    vm.temp_lval = &locals[38]; // d+0
+    vm.temp_lval = locals + 38; // d+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {80, 20};
-    regs[0] = locals[12]; // obj
+    *(regs + 0) = *(locals + 12); // obj
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
-    regs[3] = locals[22];regs[4] = locals[23];regs[5] = locals[24]; // f
-    regs[6] = locals[13];regs[7] = locals[14];regs[8] = locals[15]; // x
-    regs[9] = locals[38];regs[10] = locals[39];regs[11] = locals[40]; // d
-    regs[12] = locals[6]; // depth
+    *(regs + 3) = *(locals + 22); // f.0
+    *(regs + 4) = *(locals + 23); // f.1
+    *(regs + 5) = *(locals + 24); // f.2
+    *(regs + 6) = *(locals + 13); // x.0
+    *(regs + 7) = *(locals + 14); // x.1
+    *(regs + 8) = *(locals + 15); // x.2
+    *(regs + 9) = *(locals + 38); // d.0
+    *(regs + 10) = *(locals + 39); // d.1
+    *(regs + 11) = *(locals + 40); // d.2
+    *(regs + 12) = *(locals + 6); // depth
     fun_372(vm, regs + 13); // call: radiance
     U_FVVMUL(vm, regs + 9, 3);
     U_FVVADD(vm, regs + 6, 3);
@@ -20117,35 +20323,47 @@ static void fun_372(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
     goto epilogue;
     goto block18;
     block15:;
     vm.last = {81, 20};
-    regs[0] = locals[12]; // obj
+    *(regs + 0) = *(locals + 12); // obj
     U_PUSHFLD(vm, regs + 1, 10);
     *(regs + 1) = Value(1);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block19;
     vm.last = {82, 20};
-    regs[0] = locals[12]; // obj
+    *(regs + 0) = *(locals + 12); // obj
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
-    regs[3] = locals[22];regs[4] = locals[23];regs[5] = locals[24]; // f
-    regs[6] = locals[13];regs[7] = locals[14];regs[8] = locals[15]; // x
-    regs[9] = locals[3];regs[10] = locals[4];regs[11] = locals[5]; // r
-    regs[12] = locals[16];regs[13] = locals[17];regs[14] = locals[18]; // n
+    *(regs + 3) = *(locals + 22); // f.0
+    *(regs + 4) = *(locals + 23); // f.1
+    *(regs + 5) = *(locals + 24); // f.2
+    *(regs + 6) = *(locals + 13); // x.0
+    *(regs + 7) = *(locals + 14); // x.1
+    *(regs + 8) = *(locals + 15); // x.2
+    *(regs + 9) = *(locals + 3); // r.0
+    *(regs + 10) = *(locals + 4); // r.1
+    *(regs + 11) = *(locals + 5); // r.2
+    *(regs + 12) = *(locals + 16); // n.0
+    *(regs + 13) = *(locals + 17); // n.1
+    *(regs + 14) = *(locals + 18); // n.2
     *(regs + 15) = Value(2.000000);
     U_FVSMUL(vm, regs + 16, 3);
-    regs[15] = locals[16];regs[16] = locals[17];regs[17] = locals[18]; // n
+    *(regs + 15) = *(locals + 16); // n.0
+    *(regs + 16) = *(locals + 17); // n.1
+    *(regs + 17) = *(locals + 18); // n.2
     *(regs + 18) = Value(3);
-    regs[19] = locals[3];regs[20] = locals[4];regs[21] = locals[5]; // r
+    *(regs + 19) = *(locals + 3); // r.0
+    *(regs + 20) = *(locals + 4); // r.1
+    *(regs + 21) = *(locals + 5); // r.2
     *(regs + 22) = Value(3);
     U_BCALLRETV(vm, regs + 23, 85, 1); // dot
     U_FVSMUL(vm, regs + 16, 3);
     U_FVVSUB(vm, regs + 15, 3);
-    regs[12] = locals[6]; // depth
+    *(regs + 12) = *(locals + 6); // depth
     fun_372(vm, regs + 13); // call: radiance
     U_FVVMUL(vm, regs + 9, 3);
     U_FVVADD(vm, regs + 6, 3);
@@ -20158,94 +20376,119 @@ static void fun_372(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
     goto epilogue;
     block19:;
     block18:;
     vm.last = {83, 20};
-    regs[0] = locals[13];regs[1] = locals[14];regs[2] = locals[15]; // x
-    regs[3] = locals[3];regs[4] = locals[4];regs[5] = locals[5]; // r
-    regs[6] = locals[16];regs[7] = locals[17];regs[8] = locals[18]; // n
+    *(regs + 0) = *(locals + 13); // x.0
+    *(regs + 1) = *(locals + 14); // x.1
+    *(regs + 2) = *(locals + 15); // x.2
+    *(regs + 3) = *(locals + 3); // r.0
+    *(regs + 4) = *(locals + 4); // r.1
+    *(regs + 5) = *(locals + 5); // r.2
+    *(regs + 6) = *(locals + 16); // n.0
+    *(regs + 7) = *(locals + 17); // n.1
+    *(regs + 8) = *(locals + 18); // n.2
     *(regs + 9) = Value(2.000000);
     U_FVSMUL(vm, regs + 10, 3);
-    regs[9] = locals[16];regs[10] = locals[17];regs[11] = locals[18]; // n
+    *(regs + 9) = *(locals + 16); // n.0
+    *(regs + 10) = *(locals + 17); // n.1
+    *(regs + 11) = *(locals + 18); // n.2
     *(regs + 12) = Value(3);
-    regs[13] = locals[3];regs[14] = locals[4];regs[15] = locals[5]; // r
+    *(regs + 13) = *(locals + 3); // r.0
+    *(regs + 14) = *(locals + 4); // r.1
+    *(regs + 15) = *(locals + 5); // r.2
     *(regs + 16) = Value(3);
     U_BCALLRETV(vm, regs + 17, 85, 1); // dot
     U_FVSMUL(vm, regs + 10, 3);
     U_FVVSUB(vm, regs + 9, 3);
-    vm.temp_lval = &locals[41]; // reflRay+0
+    vm.temp_lval = locals + 41; // reflRay+0
     U_LV_WRITEV(vm, regs + 6, 6);
     vm.last = {84, 20};
-    regs[0] = locals[16];regs[1] = locals[17];regs[2] = locals[18]; // n
+    *(regs + 0) = *(locals + 16); // n.0
+    *(regs + 1) = *(locals + 17); // n.1
+    *(regs + 2) = *(locals + 18); // n.2
     *(regs + 3) = Value(3);
-    regs[4] = locals[19];regs[5] = locals[20];regs[6] = locals[21]; // nl
+    *(regs + 4) = *(locals + 19); // nl.0
+    *(regs + 5) = *(locals + 20); // nl.1
+    *(regs + 6) = *(locals + 21); // nl.2
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
     *(regs + 1) = Value(0.000000);
     U_FGT(vm, regs + 2);
-    vm.temp_lval = &locals[47]; // into
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 47; // into
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {85, 20};
     *(regs + 0) = Value(1.000000);
-    vm.temp_lval = &locals[48]; // nc
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 48; // nc
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {86, 20};
     *(regs + 0) = Value(1.500000);
-    vm.temp_lval = &locals[49]; // nt
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 49; // nt
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {87, 20};
-    regs[0] = locals[47]; // into
+    *(regs + 0) = *(locals + 47); // into
     if (!(regs + 0)->True()) goto block20;
     vm.last = {87, 20};
-    regs[0] = locals[48]; // nc
-    regs[1] = locals[49]; // nt
+    *(regs + 0) = *(locals + 48); // nc
+    *(regs + 1) = *(locals + 49); // nt
     U_FDIV(vm, regs + 2);
     goto block21;
     block20:;
     vm.last = {87, 20};
-    regs[0] = locals[49]; // nt
-    regs[1] = locals[48]; // nc
+    *(regs + 0) = *(locals + 49); // nt
+    *(regs + 1) = *(locals + 48); // nc
     U_FDIV(vm, regs + 2);
     block21:;
-    vm.temp_lval = &locals[50]; // nnt
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 50; // nnt
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {88, 20};
-    regs[0] = locals[3];regs[1] = locals[4];regs[2] = locals[5]; // r
+    *(regs + 0) = *(locals + 3); // r.0
+    *(regs + 1) = *(locals + 4); // r.1
+    *(regs + 2) = *(locals + 5); // r.2
     *(regs + 3) = Value(3);
-    regs[4] = locals[19];regs[5] = locals[20];regs[6] = locals[21]; // nl
+    *(regs + 4) = *(locals + 19); // nl.0
+    *(regs + 5) = *(locals + 20); // nl.1
+    *(regs + 6) = *(locals + 21); // nl.2
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
-    vm.temp_lval = &locals[51]; // ddn
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 51; // ddn
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {89, 20};
     *(regs + 0) = Value(1.000000);
-    regs[1] = locals[50]; // nnt
-    regs[2] = locals[50]; // nnt
+    *(regs + 1) = *(locals + 50); // nnt
+    *(regs + 2) = *(locals + 50); // nnt
     U_FMUL(vm, regs + 3);
     *(regs + 2) = Value(1.000000);
-    regs[3] = locals[51]; // ddn
-    regs[4] = locals[51]; // ddn
+    *(regs + 3) = *(locals + 51); // ddn
+    *(regs + 4) = *(locals + 51); // ddn
     U_FMUL(vm, regs + 5);
     U_FSUB(vm, regs + 4);
     U_FMUL(vm, regs + 3);
     U_FSUB(vm, regs + 2);
-    vm.temp_lval = &locals[52]; // cos2t
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 52; // cos2t
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {90, 20};
-    regs[0] = locals[52]; // cos2t
+    *(regs + 0) = *(locals + 52); // cos2t
     *(regs + 1) = Value(0.000000);
     U_FLT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block22;
     vm.last = {91, 20};
-    regs[0] = locals[12]; // obj
+    *(regs + 0) = *(locals + 12); // obj
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
-    regs[3] = locals[22];regs[4] = locals[23];regs[5] = locals[24]; // f
-    regs[6] = locals[41];regs[7] = locals[42];regs[8] = locals[43];regs[9] = locals[44];regs[10] = locals[45];regs[11] = locals[46]; // reflRay
-    regs[12] = locals[6]; // depth
+    *(regs + 3) = *(locals + 22); // f.0
+    *(regs + 4) = *(locals + 23); // f.1
+    *(regs + 5) = *(locals + 24); // f.2
+    *(regs + 6) = *(locals + 41); // reflRay.0
+    *(regs + 7) = *(locals + 42); // reflRay.1
+    *(regs + 8) = *(locals + 43); // reflRay.2
+    *(regs + 9) = *(locals + 44); // reflRay.3
+    *(regs + 10) = *(locals + 45); // reflRay.4
+    *(regs + 11) = *(locals + 46); // reflRay.5
+    *(regs + 12) = *(locals + 6); // depth
     fun_372(vm, regs + 13); // call: radiance
     U_FVVMUL(vm, regs + 9, 3);
     U_FVVADD(vm, regs + 6, 3);
@@ -20258,17 +20501,21 @@ static void fun_372(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
     goto epilogue;
     block22:;
     vm.last = {92, 20};
-    regs[0] = locals[3];regs[1] = locals[4];regs[2] = locals[5]; // r
-    regs[3] = locals[50]; // nnt
+    *(regs + 0) = *(locals + 3); // r.0
+    *(regs + 1) = *(locals + 4); // r.1
+    *(regs + 2) = *(locals + 5); // r.2
+    *(regs + 3) = *(locals + 50); // nnt
     U_FVSMUL(vm, regs + 4, 3);
-    regs[3] = locals[16];regs[4] = locals[17];regs[5] = locals[18]; // n
-    regs[6] = locals[47]; // into
+    *(regs + 3) = *(locals + 16); // n.0
+    *(regs + 4) = *(locals + 17); // n.1
+    *(regs + 5) = *(locals + 18); // n.2
+    *(regs + 6) = *(locals + 47); // into
     if (!(regs + 6)->True()) goto block23;
     vm.last = {92, 20};
     *(regs + 6) = Value(1);
@@ -20278,10 +20525,10 @@ static void fun_372(VMRef vm, StackPtr psp) {
     *(regs + 6) = Value(-1);
     block24:;
     U_I2F(vm, regs + 7);
-    regs[7] = locals[51]; // ddn
-    regs[8] = locals[50]; // nnt
+    *(regs + 7) = *(locals + 51); // ddn
+    *(regs + 8) = *(locals + 50); // nnt
     U_FMUL(vm, regs + 9);
-    regs[8] = locals[52]; // cos2t
+    *(regs + 8) = *(locals + 52); // cos2t
     U_BCALLRET1(vm, regs + 9, 56, 1); // sqrt
     U_FADD(vm, regs + 9);
     U_FMUL(vm, regs + 8);
@@ -20289,144 +20536,170 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_FVVSUB(vm, regs + 6, 3);
     *(regs + 3) = Value(3);
     U_BCALLRETV(vm, regs + 4, 84, 1); // normalize
-    vm.temp_lval = &locals[53]; // tdir+0
+    vm.temp_lval = locals + 53; // tdir+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {93, 20};
-    regs[0] = locals[49]; // nt
-    regs[1] = locals[48]; // nc
+    *(regs + 0) = *(locals + 49); // nt
+    *(regs + 1) = *(locals + 48); // nc
     U_FSUB(vm, regs + 2);
-    vm.temp_lval = &locals[56]; // a
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 56; // a
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {94, 20};
-    regs[0] = locals[49]; // nt
-    regs[1] = locals[48]; // nc
+    *(regs + 0) = *(locals + 49); // nt
+    *(regs + 1) = *(locals + 48); // nc
     U_FADD(vm, regs + 2);
-    vm.temp_lval = &locals[57]; // b
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 57; // b
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {95, 20};
-    regs[0] = locals[56]; // a
-    regs[1] = locals[56]; // a
+    *(regs + 0) = *(locals + 56); // a
+    *(regs + 1) = *(locals + 56); // a
     U_FMUL(vm, regs + 2);
-    regs[1] = locals[57]; // b
-    regs[2] = locals[57]; // b
+    *(regs + 1) = *(locals + 57); // b
+    *(regs + 2) = *(locals + 57); // b
     U_FMUL(vm, regs + 3);
     U_FDIV(vm, regs + 2);
-    vm.temp_lval = &locals[58]; // R0
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 58; // R0
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {96, 20};
     *(regs + 0) = Value(1.000000);
-    regs[1] = locals[47]; // into
+    *(regs + 1) = *(locals + 47); // into
     if (!(regs + 1)->True()) goto block25;
     vm.last = {96, 20};
-    regs[1] = locals[51]; // ddn
+    *(regs + 1) = *(locals + 51); // ddn
     U_FUMINUS(vm, regs + 2);
     goto block26;
     block25:;
     vm.last = {96, 20};
-    regs[1] = locals[53];regs[2] = locals[54];regs[3] = locals[55]; // tdir
+    *(regs + 1) = *(locals + 53); // tdir.0
+    *(regs + 2) = *(locals + 54); // tdir.1
+    *(regs + 3) = *(locals + 55); // tdir.2
     *(regs + 4) = Value(3);
-    regs[5] = locals[16];regs[6] = locals[17];regs[7] = locals[18]; // n
+    *(regs + 5) = *(locals + 16); // n.0
+    *(regs + 6) = *(locals + 17); // n.1
+    *(regs + 7) = *(locals + 18); // n.2
     *(regs + 8) = Value(3);
     U_BCALLRETV(vm, regs + 9, 85, 1); // dot
     block26:;
     U_FSUB(vm, regs + 2);
-    vm.temp_lval = &locals[59]; // c
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 59; // c
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {97, 20};
-    regs[0] = locals[58]; // R0
+    *(regs + 0) = *(locals + 58); // R0
     *(regs + 1) = Value(1.000000);
-    regs[2] = locals[58]; // R0
+    *(regs + 2) = *(locals + 58); // R0
     U_FSUB(vm, regs + 3);
-    regs[2] = locals[59]; // c
+    *(regs + 2) = *(locals + 59); // c
     U_FMUL(vm, regs + 3);
-    regs[2] = locals[59]; // c
+    *(regs + 2) = *(locals + 59); // c
     U_FMUL(vm, regs + 3);
-    regs[2] = locals[59]; // c
+    *(regs + 2) = *(locals + 59); // c
     U_FMUL(vm, regs + 3);
-    regs[2] = locals[59]; // c
+    *(regs + 2) = *(locals + 59); // c
     U_FMUL(vm, regs + 3);
-    regs[2] = locals[59]; // c
+    *(regs + 2) = *(locals + 59); // c
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
-    vm.temp_lval = &locals[60]; // Re
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 60; // Re
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {98, 20};
     *(regs + 0) = Value(1.000000);
-    regs[1] = locals[60]; // Re
+    *(regs + 1) = *(locals + 60); // Re
     U_FSUB(vm, regs + 2);
-    vm.temp_lval = &locals[61]; // Tr
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 61; // Tr
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {99, 20};
     *(regs + 0) = Value(0.250000);
     *(regs + 1) = Value(0.500000);
-    regs[2] = locals[60]; // Re
+    *(regs + 2) = *(locals + 60); // Re
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
-    vm.temp_lval = &locals[62]; // P
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 62; // P
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {100, 20};
-    regs[0] = locals[60]; // Re
-    regs[1] = locals[62]; // P
+    *(regs + 0) = *(locals + 60); // Re
+    *(regs + 1) = *(locals + 62); // P
     U_FDIV(vm, regs + 2);
-    vm.temp_lval = &locals[63]; // RP
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 63; // RP
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {101, 20};
-    regs[0] = locals[61]; // Tr
+    *(regs + 0) = *(locals + 61); // Tr
     *(regs + 1) = Value(1.000000);
-    regs[2] = locals[62]; // P
+    *(regs + 2) = *(locals + 62); // P
     U_FSUB(vm, regs + 3);
     U_FDIV(vm, regs + 2);
-    vm.temp_lval = &locals[64]; // TP
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 64; // TP
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {102, 20};
-    regs[0] = locals[6]; // depth
+    *(regs + 0) = *(locals + 6); // depth
     *(regs + 1) = Value(2);
     U_IGT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block27;
     vm.last = {104, 20};
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
-    regs[1] = locals[62]; // P
+    *(regs + 1) = *(locals + 62); // P
     U_FLT(vm, regs + 2);
     if (!(regs + 0)->True()) goto block28;
     vm.last = {105, 20};
-    regs[0] = locals[41];regs[1] = locals[42];regs[2] = locals[43];regs[3] = locals[44];regs[4] = locals[45];regs[5] = locals[46]; // reflRay
-    regs[6] = locals[6]; // depth
+    *(regs + 0) = *(locals + 41); // reflRay.0
+    *(regs + 1) = *(locals + 42); // reflRay.1
+    *(regs + 2) = *(locals + 43); // reflRay.2
+    *(regs + 3) = *(locals + 44); // reflRay.3
+    *(regs + 4) = *(locals + 45); // reflRay.4
+    *(regs + 5) = *(locals + 46); // reflRay.5
+    *(regs + 6) = *(locals + 6); // depth
     fun_372(vm, regs + 7); // call: radiance
-    regs[3] = locals[63]; // RP
+    *(regs + 3) = *(locals + 63); // RP
     U_FVSMUL(vm, regs + 4, 3);
     goto block29;
     block28:;
     vm.last = {107, 20};
-    regs[0] = locals[13];regs[1] = locals[14];regs[2] = locals[15]; // x
-    regs[3] = locals[53];regs[4] = locals[54];regs[5] = locals[55]; // tdir
-    regs[6] = locals[6]; // depth
+    *(regs + 0) = *(locals + 13); // x.0
+    *(regs + 1) = *(locals + 14); // x.1
+    *(regs + 2) = *(locals + 15); // x.2
+    *(regs + 3) = *(locals + 53); // tdir.0
+    *(regs + 4) = *(locals + 54); // tdir.1
+    *(regs + 5) = *(locals + 55); // tdir.2
+    *(regs + 6) = *(locals + 6); // depth
     fun_372(vm, regs + 7); // call: radiance
-    regs[3] = locals[64]; // TP
+    *(regs + 3) = *(locals + 64); // TP
     U_FVSMUL(vm, regs + 4, 3);
     block29:;
     goto block30;
     block27:;
     vm.last = {109, 20};
-    regs[0] = locals[41];regs[1] = locals[42];regs[2] = locals[43];regs[3] = locals[44];regs[4] = locals[45];regs[5] = locals[46]; // reflRay
-    regs[6] = locals[6]; // depth
+    *(regs + 0) = *(locals + 41); // reflRay.0
+    *(regs + 1) = *(locals + 42); // reflRay.1
+    *(regs + 2) = *(locals + 43); // reflRay.2
+    *(regs + 3) = *(locals + 44); // reflRay.3
+    *(regs + 4) = *(locals + 45); // reflRay.4
+    *(regs + 5) = *(locals + 46); // reflRay.5
+    *(regs + 6) = *(locals + 6); // depth
     fun_372(vm, regs + 7); // call: radiance
-    regs[3] = locals[60]; // Re
+    *(regs + 3) = *(locals + 60); // Re
     U_FVSMUL(vm, regs + 4, 3);
-    regs[3] = locals[13];regs[4] = locals[14];regs[5] = locals[15]; // x
-    regs[6] = locals[53];regs[7] = locals[54];regs[8] = locals[55]; // tdir
-    regs[9] = locals[6]; // depth
+    *(regs + 3) = *(locals + 13); // x.0
+    *(regs + 4) = *(locals + 14); // x.1
+    *(regs + 5) = *(locals + 15); // x.2
+    *(regs + 6) = *(locals + 53); // tdir.0
+    *(regs + 7) = *(locals + 54); // tdir.1
+    *(regs + 8) = *(locals + 55); // tdir.2
+    *(regs + 9) = *(locals + 6); // depth
     fun_372(vm, regs + 10); // call: radiance
-    regs[6] = locals[61]; // Tr
+    *(regs + 6) = *(locals + 61); // Tr
     U_FVSMUL(vm, regs + 7, 3);
     U_FVVADD(vm, regs + 6, 3);
     block30:;
-    vm.temp_lval = &locals[65]; // temp+0
+    vm.temp_lval = locals + 65; // temp+0
     U_LV_WRITEV(vm, regs + 3, 3);
     vm.last = {110, 20};
-    regs[0] = locals[12]; // obj
+    *(regs + 0) = *(locals + 12); // obj
     U_PUSHFLD2V(vm, regs + 1, 4, 3);
-    regs[3] = locals[22];regs[4] = locals[23];regs[5] = locals[24]; // f
-    regs[6] = locals[65];regs[7] = locals[66];regs[8] = locals[67]; // temp
+    *(regs + 3) = *(locals + 22); // f.0
+    *(regs + 4) = *(locals + 23); // f.1
+    *(regs + 5) = *(locals + 24); // f.2
+    *(regs + 6) = *(locals + 65); // temp.0
+    *(regs + 7) = *(locals + 66); // temp.1
+    *(regs + 8) = *(locals + 67); // temp.2
     U_FVVMUL(vm, regs + 9, 3);
     U_FVVADD(vm, regs + 6, 3);
     DecVal(vm, locals[9]);
@@ -20438,9 +20711,9 @@ static void fun_372(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -20454,7 +20727,7 @@ static void fun_373(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 0, 1015); // w
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
     fun_602(vm, regs + 2); // call: map
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -20464,14 +20737,14 @@ static void fun_373(VMRef vm, StackPtr psp) {
 static void fun_375(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2561, locals);
     vm.last = {138, 20};
-    regs[0] = locals[0]; // row
+    *(regs + 0) = *(locals + 0); // row
     U_PUSHFUN(vm, regs + 1, 0, fun_376);
     fun_604(vm, regs + 2); // call: map
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -20481,12 +20754,14 @@ static void fun_375(VMRef vm, StackPtr psp) {
 static void fun_376(VMRef vm, StackPtr psp) {
     Value regs[12];
     Value locals[3];
-    locals[0] = *(psp - 3);
-    locals[1] = *(psp - 2);
-    locals[2] = *(psp - 1);
+    *(locals + 0) = *(psp - 3);
+    *(locals + 1) = *(psp - 2);
+    *(locals + 2) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2565, locals);
     vm.last = {138, 20};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2]; // col
+    *(regs + 0) = *(locals + 0); // col.0
+    *(regs + 1) = *(locals + 1); // col.1
+    *(regs + 2) = *(locals + 2); // col.2
     U_PUSHVARF(vm, regs + 3, 1030); // samples
     U_I2F(vm, regs + 4);
     U_FVSDIV(vm, regs + 4, 3);
@@ -20504,10 +20779,10 @@ static void fun_376(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -20518,186 +20793,186 @@ static void fun_377(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value keepvar[32];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2571, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
-    keepvar[4] = Value(0, lobster::V_NIL);
-    keepvar[5] = Value(0, lobster::V_NIL);
-    keepvar[6] = Value(0, lobster::V_NIL);
-    keepvar[7] = Value(0, lobster::V_NIL);
-    keepvar[8] = Value(0, lobster::V_NIL);
-    keepvar[9] = Value(0, lobster::V_NIL);
-    keepvar[10] = Value(0, lobster::V_NIL);
-    keepvar[11] = Value(0, lobster::V_NIL);
-    keepvar[12] = Value(0, lobster::V_NIL);
-    keepvar[13] = Value(0, lobster::V_NIL);
-    keepvar[14] = Value(0, lobster::V_NIL);
-    keepvar[15] = Value(0, lobster::V_NIL);
-    keepvar[16] = Value(0, lobster::V_NIL);
-    keepvar[17] = Value(0, lobster::V_NIL);
-    keepvar[18] = Value(0, lobster::V_NIL);
-    keepvar[19] = Value(0, lobster::V_NIL);
-    keepvar[20] = Value(0, lobster::V_NIL);
-    keepvar[21] = Value(0, lobster::V_NIL);
-    keepvar[22] = Value(0, lobster::V_NIL);
-    keepvar[23] = Value(0, lobster::V_NIL);
-    keepvar[24] = Value(0, lobster::V_NIL);
-    keepvar[25] = Value(0, lobster::V_NIL);
-    keepvar[26] = Value(0, lobster::V_NIL);
-    keepvar[27] = Value(0, lobster::V_NIL);
-    keepvar[28] = Value(0, lobster::V_NIL);
-    keepvar[29] = Value(0, lobster::V_NIL);
-    keepvar[30] = Value(0, lobster::V_NIL);
-    keepvar[31] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
+    *(keepvar + 4) = Value(0, lobster::V_NIL);
+    *(keepvar + 5) = Value(0, lobster::V_NIL);
+    *(keepvar + 6) = Value(0, lobster::V_NIL);
+    *(keepvar + 7) = Value(0, lobster::V_NIL);
+    *(keepvar + 8) = Value(0, lobster::V_NIL);
+    *(keepvar + 9) = Value(0, lobster::V_NIL);
+    *(keepvar + 10) = Value(0, lobster::V_NIL);
+    *(keepvar + 11) = Value(0, lobster::V_NIL);
+    *(keepvar + 12) = Value(0, lobster::V_NIL);
+    *(keepvar + 13) = Value(0, lobster::V_NIL);
+    *(keepvar + 14) = Value(0, lobster::V_NIL);
+    *(keepvar + 15) = Value(0, lobster::V_NIL);
+    *(keepvar + 16) = Value(0, lobster::V_NIL);
+    *(keepvar + 17) = Value(0, lobster::V_NIL);
+    *(keepvar + 18) = Value(0, lobster::V_NIL);
+    *(keepvar + 19) = Value(0, lobster::V_NIL);
+    *(keepvar + 20) = Value(0, lobster::V_NIL);
+    *(keepvar + 21) = Value(0, lobster::V_NIL);
+    *(keepvar + 22) = Value(0, lobster::V_NIL);
+    *(keepvar + 23) = Value(0, lobster::V_NIL);
+    *(keepvar + 24) = Value(0, lobster::V_NIL);
+    *(keepvar + 25) = Value(0, lobster::V_NIL);
+    *(keepvar + 26) = Value(0, lobster::V_NIL);
+    *(keepvar + 27) = Value(0, lobster::V_NIL);
+    *(keepvar + 28) = Value(0, lobster::V_NIL);
+    *(keepvar + 29) = Value(0, lobster::V_NIL);
+    *(keepvar + 30) = Value(0, lobster::V_NIL);
+    *(keepvar + 31) = Value(0, lobster::V_NIL);
     vm.last = {4, 22};
     *(regs + 0) = Value(42);
-    vm.temp_lval = &locals[0]; // a
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // a
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {5, 22};
     U_PUSHFLT64(vm, regs + 0, 1374389535, 1074339512); // 3.14
     U_NEWVEC(vm, regs + 1, 9, 1);
-    vm.temp_lval = &locals[1]; // b
+    vm.temp_lval = locals + 1; // b
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {8, 22};
     U_PUSHSTR(vm, regs + 0, 539); // "a = "
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_A2S(vm, regs + 2, 0);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_PUSHSTR(vm, regs + 2, 540); // "!"
     U_SADDN(vm, regs + 3, 3);
-    keepvar[1] = TopM(regs + 1, 0);
+    *(keepvar + 1) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 541); // "a = "
-    regs[2] = locals[0]; // a
+    *(regs + 2) = *(locals + 0); // a
     U_A2S(vm, regs + 3, 0);
-    keepvar[2] = TopM(regs + 3, 0);
+    *(keepvar + 2) = *(regs + 2);
     U_PUSHSTR(vm, regs + 3, 542); // "!"
     U_SADDN(vm, regs + 4, 3);
-    keepvar[3] = TopM(regs + 2, 0);
+    *(keepvar + 3) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 9, 22, 543);
     vm.last = {10, 22};
     U_PUSHSTR(vm, regs + 0, 544); // "a = "
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_A2S(vm, regs + 2, 0);
-    keepvar[4] = TopM(regs + 2, 0);
+    *(keepvar + 4) = *(regs + 1);
     U_PUSHSTR(vm, regs + 2, 545); // " and b = "
-    regs[3] = locals[1]; // b
+    *(regs + 3) = *(locals + 1); // b
     U_A2S(vm, regs + 4, 9);
-    keepvar[5] = TopM(regs + 4, 0);
+    *(keepvar + 5) = *(regs + 3);
     U_PUSHSTR(vm, regs + 4, 546); // "!"
     U_SADDN(vm, regs + 5, 5);
-    keepvar[6] = TopM(regs + 1, 0);
+    *(keepvar + 6) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 547); // "a = "
-    regs[2] = locals[0]; // a
+    *(regs + 2) = *(locals + 0); // a
     U_A2S(vm, regs + 3, 0);
-    keepvar[7] = TopM(regs + 3, 0);
+    *(keepvar + 7) = *(regs + 2);
     U_PUSHSTR(vm, regs + 3, 548); // " and b = "
-    regs[4] = locals[1]; // b
+    *(regs + 4) = *(locals + 1); // b
     U_A2S(vm, regs + 5, 9);
-    keepvar[8] = TopM(regs + 5, 0);
+    *(keepvar + 8) = *(regs + 4);
     U_PUSHSTR(vm, regs + 5, 549); // "!"
     U_SADDN(vm, regs + 6, 5);
-    keepvar[9] = TopM(regs + 2, 0);
+    *(keepvar + 9) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 11, 22, 550);
     vm.last = {12, 22};
     *(regs + 0) = Value(3);
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_IADD(vm, regs + 2);
     U_A2S(vm, regs + 1, 0);
-    keepvar[10] = TopM(regs + 1, 0);
+    *(keepvar + 10) = *(regs + 0);
     *(regs + 1) = Value(3);
-    regs[2] = locals[0]; // a
+    *(regs + 2) = *(locals + 0); // a
     U_IADD(vm, regs + 3);
     U_A2S(vm, regs + 2, 0);
-    keepvar[11] = TopM(regs + 2, 0);
+    *(keepvar + 11) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 13, 22, 551);
     vm.last = {14, 22};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_A2S(vm, regs + 1, 0);
-    keepvar[12] = TopM(regs + 1, 0);
-    regs[1] = locals[1]; // b
+    *(keepvar + 12) = *(regs + 0);
+    *(regs + 1) = *(locals + 1); // b
     U_A2S(vm, regs + 2, 9);
-    keepvar[13] = TopM(regs + 2, 0);
+    *(keepvar + 13) = *(regs + 1);
     U_SADD(vm, regs + 2);
-    keepvar[14] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // a
+    *(keepvar + 14) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // a
     U_A2S(vm, regs + 2, 0);
-    keepvar[15] = TopM(regs + 2, 0);
-    regs[2] = locals[1]; // b
+    *(keepvar + 15) = *(regs + 1);
+    *(regs + 2) = *(locals + 1); // b
     U_A2S(vm, regs + 3, 9);
-    keepvar[16] = TopM(regs + 3, 0);
+    *(keepvar + 16) = *(regs + 2);
     U_SADD(vm, regs + 3);
-    keepvar[17] = TopM(regs + 2, 0);
+    *(keepvar + 17) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 15, 22, 552);
     vm.last = {16, 22};
     U_PUSHSTR(vm, regs + 0, 553); // "{ "
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_A2S(vm, regs + 2, 0);
-    keepvar[18] = TopM(regs + 2, 0);
+    *(keepvar + 18) = *(regs + 1);
     U_PUSHSTR(vm, regs + 2, 554); // " }"
     U_SADDN(vm, regs + 3, 3);
-    keepvar[19] = TopM(regs + 1, 0);
+    *(keepvar + 19) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 555); // "{ "
-    regs[2] = locals[0]; // a
+    *(regs + 2) = *(locals + 0); // a
     U_A2S(vm, regs + 3, 0);
-    keepvar[20] = TopM(regs + 3, 0);
+    *(keepvar + 20) = *(regs + 2);
     U_PUSHSTR(vm, regs + 3, 556); // " }"
     U_SADDN(vm, regs + 4, 3);
-    keepvar[21] = TopM(regs + 2, 0);
+    *(keepvar + 21) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 17, 22, 557);
     vm.last = {18, 22};
     U_PUSHSTR(vm, regs + 0, 558); // "{ "
-    regs[1] = locals[0]; // a
+    *(regs + 1) = *(locals + 0); // a
     U_A2S(vm, regs + 2, 0);
-    keepvar[22] = TopM(regs + 2, 0);
+    *(keepvar + 22) = *(regs + 1);
     U_PUSHSTR(vm, regs + 2, 559); // " }"
     U_SADDN(vm, regs + 3, 3);
-    keepvar[23] = TopM(regs + 1, 0);
+    *(keepvar + 23) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 560); // "{ "
-    regs[2] = locals[0]; // a
+    *(regs + 2) = *(locals + 0); // a
     U_A2S(vm, regs + 3, 0);
-    keepvar[24] = TopM(regs + 3, 0);
+    *(keepvar + 24) = *(regs + 2);
     U_PUSHSTR(vm, regs + 3, 561); // " }"
     U_SADDN(vm, regs + 4, 3);
-    keepvar[25] = TopM(regs + 2, 0);
+    *(keepvar + 25) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 19, 22, 562);
     vm.last = {20, 22};
     U_PUSHSTR(vm, regs + 0, 563); // "{"
     *(regs + 1) = Value(3);
-    regs[2] = locals[0]; // a
+    *(regs + 2) = *(locals + 0); // a
     U_IADD(vm, regs + 3);
     U_A2S(vm, regs + 2, 0);
-    keepvar[26] = TopM(regs + 2, 0);
+    *(keepvar + 26) = *(regs + 1);
     U_PUSHSTR(vm, regs + 2, 564); // "}"
     U_SADDN(vm, regs + 3, 3);
-    keepvar[27] = TopM(regs + 1, 0);
+    *(keepvar + 27) = *(regs + 0);
     U_PUSHSTR(vm, regs + 1, 565); // "{"
     *(regs + 2) = Value(3);
-    regs[3] = locals[0]; // a
+    *(regs + 3) = *(locals + 0); // a
     U_IADD(vm, regs + 4);
     U_A2S(vm, regs + 3, 0);
-    keepvar[28] = TopM(regs + 3, 0);
+    *(keepvar + 28) = *(regs + 2);
     U_PUSHSTR(vm, regs + 3, 566); // "}"
     U_SADDN(vm, regs + 4, 3);
-    keepvar[29] = TopM(regs + 2, 0);
+    *(keepvar + 29) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 21, 22, 567);
     vm.last = {22, 22};
-    regs[0] = locals[0]; // a
+    *(regs + 0) = *(locals + 0); // a
     U_A2S(vm, regs + 1, 0);
-    keepvar[30] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // a
+    *(keepvar + 30) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // a
     U_A2S(vm, regs + 2, 0);
-    keepvar[31] = TopM(regs + 2, 0);
+    *(keepvar + 31) = *(regs + 1);
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 24, 22, 568);
     DecVal(vm, locals[1]);
@@ -20743,13 +21018,13 @@ static void fun_378(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value keepvar[2];
     Value locals[4];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2576, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
     vm.last = {9, 23};
     U_BCALLRET0(vm, regs + 0, 164, 1); // vm_compiled_mode
     U_LOGNOT(vm, regs + 1);
@@ -20757,42 +21032,42 @@ static void fun_378(VMRef vm, StackPtr psp) {
     vm.last = {10, 23};
     U_PUSHSTR(vm, regs + 0, 569); // "return 1 + 2"
     U_NEWVEC(vm, regs + 1, 11, 0);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 187, 1); // compile_run_code
-    vm.temp_lval = &locals[1]; // comperr1
+    vm.temp_lval = locals + 1; // comperr1
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[0]; // compres1
+    vm.temp_lval = locals + 0; // compres1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {11, 23};
-    regs[0] = locals[1]; // comperr1
+    *(regs + 0) = *(locals + 1); // comperr1
     if (!(regs + 0)->True()) goto block1;
     vm.last = {12, 23};
-    regs[0] = locals[1]; // comperr1
+    *(regs + 0) = *(locals + 1); // comperr1
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
     block1:;
     vm.last = {13, 23};
-    regs[0] = locals[0]; // compres1
+    *(regs + 0) = *(locals + 0); // compres1
     U_PUSHSTR(vm, regs + 1, 570); // "3"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 13, 23, 571);
     vm.last = {15, 23};
     U_PUSHSTR(vm, regs + 0, 572); // "plugintest.lobster"
     U_NEWVEC(vm, regs + 1, 11, 0);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 188, 1); // compile_run_file
-    vm.temp_lval = &locals[3]; // comperr2
+    vm.temp_lval = locals + 3; // comperr2
     U_LV_WRITEREF(vm, regs + 2);
-    vm.temp_lval = &locals[2]; // compres2
+    vm.temp_lval = locals + 2; // compres2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {16, 23};
-    regs[0] = locals[3]; // comperr2
+    *(regs + 0) = *(locals + 3); // comperr2
     if (!(regs + 0)->True()) goto block2;
     vm.last = {17, 23};
-    regs[0] = locals[3]; // comperr2
+    *(regs + 0) = *(locals + 3); // comperr2
     U_BCALLRET1(vm, regs + 1, 0, 0); // print
     block2:;
     vm.last = {18, 23};
-    regs[0] = locals[2]; // compres2
+    *(regs + 0) = *(locals + 2); // compres2
     U_PUSHSTR(vm, regs + 1, 573); // "plugintest return value"
     U_SEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 18, 23, 574);
@@ -20812,21 +21087,21 @@ static void fun_378(VMRef vm, StackPtr psp) {
 static void fun_379(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2583, locals);
     vm.last = {8, 24};
     vm.last = {8, 24};
     U_PUSHFUN(vm, regs + 0, 0, fun_380);
-    vm.temp_lval = &locals[0]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_380(vm, regs + 0); // call: function347
     vm.last = {13, 24};
     vm.last = {13, 24};
     U_PUSHFUN(vm, regs + 0, 0, fun_381);
-    vm.temp_lval = &locals[1]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_381(vm, regs + 0); // call: function348
     goto epilogue;
@@ -20838,28 +21113,28 @@ static void fun_379(VMRef vm, StackPtr psp) {
 static void fun_380(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2588, locals);
     vm.last = {9, 24};
     U_PUSHSTR(vm, regs + 0, 575); // ""
     U_INCREF(vm, regs + 1, 0);
     U_NEWVEC(vm, regs + 1, 11, 1);
-    vm.temp_lval = &locals[0]; // v
+    vm.temp_lval = locals + 0; // v
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {10, 24};
-    regs[0] = locals[0]; // v
+    *(regs + 0) = *(locals + 0); // v
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[1]; // k
+    vm.temp_lval = locals + 1; // k
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {11, 24};
-    regs[0] = locals[0]; // v
+    *(regs + 0) = *(locals + 0); // v
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_INCREF(vm, regs + 1, 0);
-    vm.temp_lval = &locals[1]; // k
+    vm.temp_lval = locals + 1; // k
     U_LV_WRITEREF(vm, regs + 1);
     DecVal(vm, locals[0]);
     DecVal(vm, locals[1]);
@@ -20872,26 +21147,26 @@ static void fun_380(VMRef vm, StackPtr psp) {
 static void fun_381(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2593, locals);
     vm.last = {14, 24};
     *(regs + 0) = Value(1);
     U_NEWVEC(vm, regs + 1, 7, 1);
-    vm.temp_lval = &locals[0]; // v
+    vm.temp_lval = locals + 0; // v
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {15, 24};
-    regs[0] = locals[0]; // v
+    *(regs + 0) = *(locals + 0); // v
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // k
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // k
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {16, 24};
-    regs[0] = locals[0]; // v
+    *(regs + 0) = *(locals + 0); // v
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
-    vm.temp_lval = &locals[1]; // k
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 1; // k
+    *(vm.temp_lval) = *(regs + 0);
     DecVal(vm, locals[0]);
     goto epilogue;
     epilogue:;
@@ -20902,13 +21177,13 @@ static void fun_381(VMRef vm, StackPtr psp) {
 static void fun_382(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2598, locals);
     vm.last = {7, 25};
     vm.last = {7, 25};
     U_PUSHFUN(vm, regs + 0, 0, fun_383);
-    vm.temp_lval = &locals[0]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_383(vm, regs + 0); // call: function350
     goto epilogue;
@@ -20921,10 +21196,10 @@ static void fun_383(VMRef vm, StackPtr psp) {
     Value regs[9];
     Value keepvar[1];
     Value locals[2];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2602, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
     vm.last = {8, 25};
     vm.last = {8, 25};
     vm.last = {15, 25};
@@ -20947,42 +21222,42 @@ static void fun_383(VMRef vm, StackPtr psp) {
     U_NEWVEC(vm, regs + 9, 7, 2);
     U_NEWVEC(vm, regs + 8, 13, 2);
     U_NEWOBJECT(vm, regs + 7, 1260); // Nest
-    vm.temp_lval = &locals[0]; // nested
+    vm.temp_lval = locals + 0; // nested
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {16, 25};
-    regs[0] = locals[0]; // nested
+    *(regs + 0) = *(locals + 0); // nested
     *(regs + 1) = Value(10);
     U_BCALLRET2(vm, regs + 2, 30, 1); // deepcopy
-    vm.temp_lval = &locals[1]; // sub
+    vm.temp_lval = locals + 1; // sub
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {17, 25};
-    regs[0] = locals[1]; // sub
+    *(regs + 0) = *(locals + 1); // sub
     U_INCREF(vm, regs + 1, 0);
-    regs[1] = locals[0]; // nested
+    *(regs + 1) = *(locals + 0); // nested
     U_LVAL_FLD(vm, regs + 2, 4);
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {18, 25};
-    regs[0] = locals[0]; // nested
+    *(regs + 0) = *(locals + 0); // nested
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // sub
+    *(regs + 1) = *(locals + 1); // sub
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
     vm.last = {19, 25};
-    regs[0] = locals[0]; // nested
+    *(regs + 0) = *(locals + 0); // nested
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // sub
+    *(regs + 1) = *(locals + 1); // sub
     U_INCREF(vm, regs + 2, 0);
     *(regs + 2) = Value(1);
     U_BCALLRETV(vm, regs + 3, 15, 1); // push
     U_POP(vm, regs + 1);
     vm.last = {20, 25};
-    regs[0] = locals[0]; // nested
+    *(regs + 0) = *(locals + 0); // nested
     *(regs + 1) = Value(10);
     U_BCALLRET2(vm, regs + 2, 30, 1); // deepcopy
-    keepvar[0] = TopM(regs + 1, 0);
-    regs[1] = locals[0]; // nested
+    *(keepvar + 0) = *(regs + 0);
+    *(regs + 1) = *(locals + 0); // nested
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 20, 25, 579);
     DecVal(vm, locals[0]);
@@ -20997,74 +21272,74 @@ static void fun_383(VMRef vm, StackPtr psp) {
 static void fun_384(VMRef vm, StackPtr psp) {
     Value regs[6];
     Value locals[8];
-    locals[0] = *(psp - 8);
-    locals[1] = *(psp - 7);
-    locals[2] = *(psp - 6);
-    locals[3] = *(psp - 5);
-    locals[4] = *(psp - 4);
-    locals[5] = *(psp - 3);
-    locals[6] = *(psp - 2);
-    locals[7] = *(psp - 1);
+    *(locals + 0) = *(psp - 8);
+    *(locals + 1) = *(psp - 7);
+    *(locals + 2) = *(psp - 6);
+    *(locals + 3) = *(psp - 5);
+    *(locals + 4) = *(psp - 4);
+    *(locals + 5) = *(psp - 3);
+    *(locals + 6) = *(psp - 2);
+    *(locals + 7) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2607, locals);
     vm.last = {13, 27};
-    regs[0] = locals[3]; // this+3
-    regs[1] = locals[4]; // o+0
+    *(regs + 0) = *(locals + 3); // this+3
+    *(regs + 1) = *(locals + 4); // o+0
     U_FMUL(vm, regs + 2);
-    regs[1] = locals[0]; // this+0
-    regs[2] = locals[7]; // o+3
+    *(regs + 1) = *(locals + 0); // this+0
+    *(regs + 2) = *(locals + 7); // o+3
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
-    regs[1] = locals[1]; // this+1
-    regs[2] = locals[6]; // o+2
+    *(regs + 1) = *(locals + 1); // this+1
+    *(regs + 2) = *(locals + 6); // o+2
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
-    regs[1] = locals[2]; // this+2
-    regs[2] = locals[5]; // o+1
+    *(regs + 1) = *(locals + 2); // this+2
+    *(regs + 2) = *(locals + 5); // o+1
     U_FMUL(vm, regs + 3);
     U_FSUB(vm, regs + 2);
-    regs[1] = locals[3]; // this+3
-    regs[2] = locals[5]; // o+1
+    *(regs + 1) = *(locals + 3); // this+3
+    *(regs + 2) = *(locals + 5); // o+1
     U_FMUL(vm, regs + 3);
-    regs[2] = locals[0]; // this+0
-    regs[3] = locals[6]; // o+2
+    *(regs + 2) = *(locals + 0); // this+0
+    *(regs + 3) = *(locals + 6); // o+2
     U_FMUL(vm, regs + 4);
     U_FSUB(vm, regs + 3);
-    regs[2] = locals[1]; // this+1
-    regs[3] = locals[7]; // o+3
+    *(regs + 2) = *(locals + 1); // this+1
+    *(regs + 3) = *(locals + 7); // o+3
     U_FMUL(vm, regs + 4);
     U_FADD(vm, regs + 3);
-    regs[2] = locals[2]; // this+2
-    regs[3] = locals[4]; // o+0
+    *(regs + 2) = *(locals + 2); // this+2
+    *(regs + 3) = *(locals + 4); // o+0
     U_FMUL(vm, regs + 4);
     U_FADD(vm, regs + 3);
-    regs[2] = locals[3]; // this+3
-    regs[3] = locals[6]; // o+2
+    *(regs + 2) = *(locals + 3); // this+3
+    *(regs + 3) = *(locals + 6); // o+2
     U_FMUL(vm, regs + 4);
-    regs[3] = locals[0]; // this+0
-    regs[4] = locals[5]; // o+1
+    *(regs + 3) = *(locals + 0); // this+0
+    *(regs + 4) = *(locals + 5); // o+1
     U_FMUL(vm, regs + 5);
     U_FADD(vm, regs + 4);
-    regs[3] = locals[1]; // this+1
-    regs[4] = locals[4]; // o+0
+    *(regs + 3) = *(locals + 1); // this+1
+    *(regs + 4) = *(locals + 4); // o+0
     U_FMUL(vm, regs + 5);
     U_FSUB(vm, regs + 4);
-    regs[3] = locals[2]; // this+2
-    regs[4] = locals[7]; // o+3
+    *(regs + 3) = *(locals + 2); // this+2
+    *(regs + 4) = *(locals + 7); // o+3
     U_FMUL(vm, regs + 5);
     U_FADD(vm, regs + 4);
-    regs[3] = locals[3]; // this+3
-    regs[4] = locals[7]; // o+3
+    *(regs + 3) = *(locals + 3); // this+3
+    *(regs + 4) = *(locals + 7); // o+3
     U_FMUL(vm, regs + 5);
-    regs[4] = locals[0]; // this+0
-    regs[5] = locals[4]; // o+0
+    *(regs + 4) = *(locals + 0); // this+0
+    *(regs + 5) = *(locals + 4); // o+0
     U_FMUL(vm, regs + 6);
     U_FSUB(vm, regs + 5);
-    regs[4] = locals[1]; // this+1
-    regs[5] = locals[5]; // o+1
+    *(regs + 4) = *(locals + 1); // this+1
+    *(regs + 5) = *(locals + 5); // o+1
     U_FMUL(vm, regs + 6);
     U_FSUB(vm, regs + 5);
-    regs[4] = locals[2]; // this+2
-    regs[5] = locals[6]; // o+2
+    *(regs + 4) = *(locals + 2); // this+2
+    *(regs + 5) = *(locals + 6); // o+2
     U_FMUL(vm, regs + 6);
     U_FSUB(vm, regs + 5);
     Pop(psp);
@@ -21075,10 +21350,10 @@ static void fun_384(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21088,34 +21363,34 @@ static void fun_384(VMRef vm, StackPtr psp) {
 static void fun_385(VMRef vm, StackPtr psp) {
     Value regs[5];
     Value locals[5];
-    locals[0] = *(psp - 5);
-    locals[1] = *(psp - 4);
-    locals[2] = *(psp - 3);
-    locals[3] = *(psp - 2);
-    locals[4] = *(psp - 1);
+    *(locals + 0) = *(psp - 5);
+    *(locals + 1) = *(psp - 4);
+    *(locals + 2) = *(psp - 3);
+    *(locals + 3) = *(psp - 2);
+    *(locals + 4) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2618, locals);
     vm.last = {16, 27};
-    regs[0] = locals[0]; // this+0
-    regs[1] = locals[4]; // f
+    *(regs + 0) = *(locals + 0); // this+0
+    *(regs + 1) = *(locals + 4); // f
     U_FMUL(vm, regs + 2);
-    regs[1] = locals[1]; // this+1
-    regs[2] = locals[4]; // f
+    *(regs + 1) = *(locals + 1); // this+1
+    *(regs + 2) = *(locals + 4); // f
     U_FMUL(vm, regs + 3);
-    regs[2] = locals[2]; // this+2
-    regs[3] = locals[4]; // f
+    *(regs + 2) = *(locals + 2); // this+2
+    *(regs + 3) = *(locals + 4); // f
     U_FMUL(vm, regs + 4);
-    regs[3] = locals[3]; // this+3
-    regs[4] = locals[4]; // f
+    *(regs + 3) = *(locals + 3); // this+3
+    *(regs + 4) = *(locals + 4); // f
     U_FMUL(vm, regs + 5);
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21125,20 +21400,20 @@ static void fun_385(VMRef vm, StackPtr psp) {
 static void fun_396(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2626, locals);
     vm.last = {12, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // o
+    *(regs + 1) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 2, 0);
     U_IMUL(vm, regs + 2);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21148,16 +21423,16 @@ static void fun_396(VMRef vm, StackPtr psp) {
 static void fun_428(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2631, locals);
     vm.last = {56, 26};
-    regs[0] = locals[0]; // this+0
-    regs[1] = locals[1]; // o+0
+    *(regs + 0) = *(locals + 0); // this+0
+    *(regs + 1) = *(locals + 1); // o+0
     U_IMUL(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21167,43 +21442,67 @@ static void fun_428(VMRef vm, StackPtr psp) {
 static void fun_446(VMRef vm, StackPtr psp) {
     Value regs[10];
     Value locals[8];
-    locals[0] = *(psp - 8);
-    locals[1] = *(psp - 7);
-    locals[2] = *(psp - 6);
-    locals[3] = *(psp - 5);
-    locals[4] = *(psp - 4);
-    locals[5] = *(psp - 3);
-    locals[6] = *(psp - 2);
-    locals[7] = *(psp - 1);
+    *(locals + 0) = *(psp - 8);
+    *(locals + 1) = *(psp - 7);
+    *(locals + 2) = *(psp - 6);
+    *(locals + 3) = *(psp - 5);
+    *(locals + 4) = *(psp - 4);
+    *(locals + 5) = *(psp - 3);
+    *(locals + 6) = *(psp - 2);
+    *(locals + 7) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2636, locals);
     vm.last = {11, 29};
-    regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6];regs[3] = locals[7]; // o
+    *(regs + 0) = *(locals + 4); // o.0
+    *(regs + 1) = *(locals + 5); // o.1
+    *(regs + 2) = *(locals + 6); // o.2
+    *(regs + 3) = *(locals + 7); // o.3
     fun_70(vm, regs + 4); // call: xz
     *(regs + 2) = Value(2);
-    regs[3] = locals[0];regs[4] = locals[1];regs[5] = locals[2];regs[6] = locals[3]; // this
+    *(regs + 3) = *(locals + 0); // this.0
+    *(regs + 4) = *(locals + 1); // this.1
+    *(regs + 5) = *(locals + 2); // this.2
+    *(regs + 6) = *(locals + 3); // this.3
     U_POP(vm, regs + 7);
     U_POP(vm, regs + 6);
     *(regs + 5) = Value(2);
     U_BCALLRETV(vm, regs + 6, 85, 1); // dot
-    regs[1] = locals[4];regs[2] = locals[5];regs[3] = locals[6];regs[4] = locals[7]; // o
+    *(regs + 1) = *(locals + 4); // o.0
+    *(regs + 2) = *(locals + 5); // o.1
+    *(regs + 3) = *(locals + 6); // o.2
+    *(regs + 4) = *(locals + 7); // o.3
     fun_71(vm, regs + 5); // call: yw
     *(regs + 3) = Value(2);
-    regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // this
+    *(regs + 4) = *(locals + 0); // this.0
+    *(regs + 5) = *(locals + 1); // this.1
+    *(regs + 6) = *(locals + 2); // this.2
+    *(regs + 7) = *(locals + 3); // this.3
     U_POP(vm, regs + 8);
     U_POP(vm, regs + 7);
     *(regs + 6) = Value(2);
     U_BCALLRETV(vm, regs + 7, 85, 1); // dot
-    regs[2] = locals[4];regs[3] = locals[5];regs[4] = locals[6];regs[5] = locals[7]; // o
+    *(regs + 2) = *(locals + 4); // o.0
+    *(regs + 3) = *(locals + 5); // o.1
+    *(regs + 4) = *(locals + 6); // o.2
+    *(regs + 5) = *(locals + 7); // o.3
     fun_70(vm, regs + 6); // call: xz
     *(regs + 4) = Value(2);
-    regs[5] = locals[0];regs[6] = locals[1];regs[7] = locals[2];regs[8] = locals[3]; // this
+    *(regs + 5) = *(locals + 0); // this.0
+    *(regs + 6) = *(locals + 1); // this.1
+    *(regs + 7) = *(locals + 2); // this.2
+    *(regs + 8) = *(locals + 3); // this.3
     fun_72(vm, regs + 9); // call: zw
     *(regs + 7) = Value(2);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
-    regs[3] = locals[4];regs[4] = locals[5];regs[5] = locals[6];regs[6] = locals[7]; // o
+    *(regs + 3) = *(locals + 4); // o.0
+    *(regs + 4) = *(locals + 5); // o.1
+    *(regs + 5) = *(locals + 6); // o.2
+    *(regs + 6) = *(locals + 7); // o.3
     fun_71(vm, regs + 7); // call: yw
     *(regs + 5) = Value(2);
-    regs[6] = locals[0];regs[7] = locals[1];regs[8] = locals[2];regs[9] = locals[3]; // this
+    *(regs + 6) = *(locals + 0); // this.0
+    *(regs + 7) = *(locals + 1); // this.1
+    *(regs + 8) = *(locals + 2); // this.2
+    *(regs + 9) = *(locals + 3); // this.3
     fun_72(vm, regs + 10); // call: zw
     *(regs + 8) = Value(2);
     U_BCALLRETV(vm, regs + 9, 85, 1); // dot
@@ -21215,10 +21514,10 @@ static void fun_446(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21228,24 +21527,32 @@ static void fun_446(VMRef vm, StackPtr psp) {
 static void fun_447(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[6];
-    locals[0] = *(psp - 6);
-    locals[1] = *(psp - 5);
-    locals[2] = *(psp - 4);
-    locals[3] = *(psp - 3);
-    locals[4] = *(psp - 2);
-    locals[5] = *(psp - 1);
+    *(locals + 0) = *(psp - 6);
+    *(locals + 1) = *(psp - 5);
+    *(locals + 2) = *(psp - 4);
+    *(locals + 3) = *(psp - 3);
+    *(locals + 4) = *(psp - 2);
+    *(locals + 5) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2647, locals);
     vm.last = {15, 29};
-    regs[0] = locals[4];regs[1] = locals[5]; // o
+    *(regs + 0) = *(locals + 4); // o.0
+    *(regs + 1) = *(locals + 5); // o.1
     *(regs + 2) = Value(2);
-    regs[3] = locals[0];regs[4] = locals[1];regs[5] = locals[2];regs[6] = locals[3]; // this
+    *(regs + 3) = *(locals + 0); // this.0
+    *(regs + 4) = *(locals + 1); // this.1
+    *(regs + 5) = *(locals + 2); // this.2
+    *(regs + 6) = *(locals + 3); // this.3
     U_POP(vm, regs + 7);
     U_POP(vm, regs + 6);
     *(regs + 5) = Value(2);
     U_BCALLRETV(vm, regs + 6, 85, 1); // dot
-    regs[1] = locals[4];regs[2] = locals[5]; // o
+    *(regs + 1) = *(locals + 4); // o.0
+    *(regs + 2) = *(locals + 5); // o.1
     *(regs + 3) = Value(2);
-    regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // this
+    *(regs + 4) = *(locals + 0); // this.0
+    *(regs + 5) = *(locals + 1); // this.1
+    *(regs + 6) = *(locals + 2); // this.2
+    *(regs + 7) = *(locals + 3); // this.3
     fun_72(vm, regs + 8); // call: zw
     *(regs + 6) = Value(2);
     U_BCALLRETV(vm, regs + 7, 85, 1); // dot
@@ -21255,8 +21562,8 @@ static void fun_447(VMRef vm, StackPtr psp) {
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21266,27 +21573,27 @@ static void fun_447(VMRef vm, StackPtr psp) {
 static void fun_386(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2656, locals);
     vm.last = {19, 27};
-    regs[0] = locals[0]; // this+0
+    *(regs + 0) = *(locals + 0); // this+0
     U_FUMINUS(vm, regs + 1);
-    regs[1] = locals[1]; // this+1
+    *(regs + 1) = *(locals + 1); // this+1
     U_FUMINUS(vm, regs + 2);
-    regs[2] = locals[2]; // this+2
+    *(regs + 2) = *(locals + 2); // this+2
     U_FUMINUS(vm, regs + 3);
-    regs[3] = locals[3]; // this+3
+    *(regs + 3) = *(locals + 3); // this+3
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21296,16 +21603,16 @@ static void fun_386(VMRef vm, StackPtr psp) {
 static void fun_609(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2663, locals);
     vm.last = {40, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     U_IUMINUS(vm, regs + 1);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21315,15 +21622,15 @@ static void fun_609(VMRef vm, StackPtr psp) {
 static void fun_421(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2667, locals);
     vm.last = {40, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     U_IUMINUS(vm, regs + 1);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21333,19 +21640,19 @@ static void fun_421(VMRef vm, StackPtr psp) {
 static void fun_394(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2671, locals);
     vm.last = {10, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // o
+    *(regs + 1) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 2, 0);
     U_IADD(vm, regs + 2);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21355,16 +21662,16 @@ static void fun_394(VMRef vm, StackPtr psp) {
 static void fun_426(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2676, locals);
     vm.last = {54, 26};
-    regs[0] = locals[0]; // this+0
-    regs[1] = locals[1]; // o+0
+    *(regs + 0) = *(locals + 0); // this+0
+    *(regs + 1) = *(locals + 1); // o+0
     U_IADD(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21374,20 +21681,20 @@ static void fun_426(VMRef vm, StackPtr psp) {
 static void fun_395(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2681, locals);
     vm.last = {11, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // o
+    *(regs + 1) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 2, 0);
     U_ISUB(vm, regs + 2);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21397,16 +21704,16 @@ static void fun_395(VMRef vm, StackPtr psp) {
 static void fun_427(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2686, locals);
     vm.last = {55, 26};
-    regs[0] = locals[0]; // this+0
-    regs[1] = locals[1]; // o+0
+    *(regs + 0) = *(locals + 0); // this+0
+    *(regs + 1) = *(locals + 1); // o+0
     U_ISUB(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21416,20 +21723,20 @@ static void fun_427(VMRef vm, StackPtr psp) {
 static void fun_397(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2691, locals);
     vm.last = {13, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // o
+    *(regs + 1) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 2, 0);
     U_IDIV(vm, regs + 2);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21439,16 +21746,16 @@ static void fun_397(VMRef vm, StackPtr psp) {
 static void fun_429(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2696, locals);
     vm.last = {57, 26};
-    regs[0] = locals[0]; // this+0
-    regs[1] = locals[1]; // o+0
+    *(regs + 0) = *(locals + 0); // this+0
+    *(regs + 1) = *(locals + 1); // o+0
     U_IDIV(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21458,13 +21765,13 @@ static void fun_429(VMRef vm, StackPtr psp) {
 static void fun_404(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2701, locals);
     vm.last = {21, 26};
-    regs[0] = locals[1]; // o
+    *(regs + 0) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_LVAL_FLD(vm, regs + 2, 0);
     U_LV_IADD(vm, regs + 1);
     Pop(psp);
@@ -21478,18 +21785,18 @@ static void fun_404(VMRef vm, StackPtr psp) {
 static void fun_608(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2706, locals);
     vm.last = {32, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // o
+    *(regs + 1) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 2, 0);
     U_IEQ(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21499,19 +21806,19 @@ static void fun_608(VMRef vm, StackPtr psp) {
 static void fun_414(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2711, locals);
     vm.last = {32, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // o
+    *(regs + 1) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 2, 0);
     U_IEQ(vm, regs + 2);
     DecVal(vm, locals[0]);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21521,16 +21828,16 @@ static void fun_414(VMRef vm, StackPtr psp) {
 static void fun_436(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2716, locals);
     vm.last = {65, 26};
-    regs[0] = locals[0]; // this+0
-    regs[1] = locals[1]; // o+0
+    *(regs + 0) = *(locals + 0); // this+0
+    *(regs + 1) = *(locals + 1); // o+0
     U_IEQ(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21540,18 +21847,18 @@ static void fun_436(VMRef vm, StackPtr psp) {
 static void fun_415(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2721, locals);
     vm.last = {33, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[1]; // o
+    *(regs + 1) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 2, 0);
     U_INE(vm, regs + 2);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21561,15 +21868,15 @@ static void fun_415(VMRef vm, StackPtr psp) {
 static void fun_422(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2726, locals);
     vm.last = {41, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_LVAL_FLD(vm, regs + 1, 0);
     U_LV_DUP(vm, regs + 0);
     U_LV_IPP(vm, regs + 1);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21579,15 +21886,15 @@ static void fun_422(VMRef vm, StackPtr psp) {
 static void fun_423(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2730, locals);
     vm.last = {42, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_LVAL_FLD(vm, regs + 1, 0);
     U_LV_DUP(vm, regs + 0);
     U_LV_IMM(vm, regs + 1);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21597,15 +21904,15 @@ static void fun_423(VMRef vm, StackPtr psp) {
 static void fun_424(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2734, locals);
     vm.last = {44, 26};
-    regs[0] = locals[1]; // o
+    *(regs + 0) = *(locals + 1); // o
     U_PUSHFLD(vm, regs + 1, 0);
-    regs[1] = locals[0]; // this
+    *(regs + 1) = *(locals + 0); // this
     U_LVAL_FLD(vm, regs + 2, 0);
-    *vm.temp_lval = *(regs + 0);
+    *(vm.temp_lval) = *(regs + 0);
     Pop(psp);
     Pop(psp);
     goto epilogue;
@@ -21617,16 +21924,16 @@ static void fun_424(VMRef vm, StackPtr psp) {
 static void fun_425(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[2];
-    locals[0] = *(psp - 2);
-    locals[1] = *(psp - 1);
+    *(locals + 0) = *(psp - 2);
+    *(locals + 1) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2739, locals);
     vm.last = {46, 26};
-    regs[0] = locals[1]; // i
+    *(regs + 0) = *(locals + 1); // i
     *(regs + 1) = Value(0);
     U_IEQ(vm, regs + 2);
     if (!(regs + 0)->True()) goto block0;
     vm.last = {46, 26};
-    regs[0] = locals[0]; // this
+    *(regs + 0) = *(locals + 0); // this
     U_PUSHFLD(vm, regs + 1, 0);
     goto block1;
     block0:;
@@ -21635,7 +21942,7 @@ static void fun_425(VMRef vm, StackPtr psp) {
     block1:;
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21645,90 +21952,90 @@ static void fun_425(VMRef vm, StackPtr psp) {
 static void fun_445(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[8];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2744, locals);
     vm.last = {80, 26};
     *(regs + 0) = Value(1);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
-    vm.temp_lval = &locals[0]; // c1
+    vm.temp_lval = locals + 0; // c1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {81, 26};
     *(regs + 0) = Value(2);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
-    vm.temp_lval = &locals[1]; // c2
+    vm.temp_lval = locals + 1; // c2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {82, 26};
     *(regs + 0) = Value(3);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
-    vm.temp_lval = &locals[2]; // c3
+    vm.temp_lval = locals + 2; // c3
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {83, 26};
     *(regs + 0) = Value(4);
     U_NEWOBJECT(vm, regs + 1, 1309); // OC
-    vm.temp_lval = &locals[3]; // c4
+    vm.temp_lval = locals + 3; // c4
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {84, 26};
-    regs[0] = locals[0]; // c1
-    regs[1] = locals[1]; // c2
+    *(regs + 0) = *(locals + 0); // c1
+    *(regs + 1) = *(locals + 1); // c2
     fun_394(vm, regs + 2); // call: operator+
-    regs[1] = locals[0]; // c1
+    *(regs + 1) = *(locals + 0); // c1
     fun_395(vm, regs + 2); // call: operator-
-    regs[1] = locals[1]; // c2
+    *(regs + 1) = *(locals + 1); // c2
     fun_396(vm, regs + 2); // call: operator*
-    regs[1] = locals[0]; // c1
+    *(regs + 1) = *(locals + 0); // c1
     fun_397(vm, regs + 2); // call: operator/
-    regs[1] = locals[3]; // c4
+    *(regs + 1) = *(locals + 3); // c4
     fun_414(vm, regs + 2); // call: operator==
     U_ASSERT(vm, regs + 1, 84, 26, 580);
     vm.last = {85, 26};
-    regs[0] = locals[2]; // c3
-    regs[1] = locals[0]; // c1
+    *(regs + 0) = *(locals + 2); // c3
+    *(regs + 1) = *(locals + 0); // c1
     fun_404(vm, regs + 2); // call: operator+=
     vm.last = {86, 26};
-    regs[0] = locals[2]; // c3
-    regs[1] = locals[3]; // c4
+    *(regs + 0) = *(locals + 2); // c3
+    *(regs + 1) = *(locals + 3); // c4
     fun_608(vm, regs + 2); // call: operator==
     U_ASSERT(vm, regs + 1, 86, 26, 581);
     vm.last = {87, 26};
-    regs[0] = locals[2]; // c3
+    *(regs + 0) = *(locals + 2); // c3
     fun_423(vm, regs + 1); // call: operator--
     U_POP(vm, regs + 1);
     vm.last = {88, 26};
-    regs[0] = locals[3]; // c4
-    regs[1] = locals[2]; // c3
+    *(regs + 0) = *(locals + 3); // c4
+    *(regs + 1) = *(locals + 2); // c3
     fun_424(vm, regs + 2); // call: operator=
     vm.last = {89, 26};
-    regs[0] = locals[3]; // c4
-    regs[1] = locals[2]; // c3
+    *(regs + 0) = *(locals + 3); // c4
+    *(regs + 1) = *(locals + 2); // c3
     fun_608(vm, regs + 2); // call: operator==
     U_ASSERT(vm, regs + 1, 89, 26, 582);
     vm.last = {90, 26};
-    regs[0] = locals[3]; // c4
+    *(regs + 0) = *(locals + 3); // c4
     fun_422(vm, regs + 1); // call: operator++
     U_POP(vm, regs + 1);
     vm.last = {91, 26};
-    regs[0] = locals[3]; // c4
+    *(regs + 0) = *(locals + 3); // c4
     fun_421(vm, regs + 1); // call: operator-
     fun_609(vm, regs + 1); // call: operator-
-    regs[1] = locals[3]; // c4
+    *(regs + 1) = *(locals + 3); // c4
     fun_414(vm, regs + 2); // call: operator==
     U_ASSERT(vm, regs + 1, 91, 26, 583);
     vm.last = {92, 26};
-    regs[0] = locals[3]; // c4
-    regs[1] = locals[3]; // c4
+    *(regs + 0) = *(locals + 3); // c4
+    *(regs + 1) = *(locals + 3); // c4
     fun_415(vm, regs + 2); // call: operator!=
     *(regs + 1) = Value(0);
     U_IEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 92, 26, 584);
     vm.last = {93, 26};
-    regs[0] = locals[3]; // c4
+    *(regs + 0) = *(locals + 3); // c4
     *(regs + 1) = Value(0);
     fun_425(vm, regs + 2); // call: operator[]
     *(regs + 1) = Value(4);
@@ -21736,31 +22043,31 @@ static void fun_445(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 93, 26, 585);
     vm.last = {96, 26};
     *(regs + 0) = Value(1);
-    vm.temp_lval = &locals[4]; // s1+0
+    vm.temp_lval = locals + 4; // s1+0
     U_LV_WRITEV(vm, regs + 1, 1);
     vm.last = {97, 26};
     *(regs + 0) = Value(2);
-    vm.temp_lval = &locals[5]; // s2+0
+    vm.temp_lval = locals + 5; // s2+0
     U_LV_WRITEV(vm, regs + 1, 1);
     vm.last = {98, 26};
     *(regs + 0) = Value(3);
-    vm.temp_lval = &locals[6]; // s3+0
+    vm.temp_lval = locals + 6; // s3+0
     U_LV_WRITEV(vm, regs + 1, 1);
     vm.last = {99, 26};
     *(regs + 0) = Value(4);
-    vm.temp_lval = &locals[7]; // s4+0
+    vm.temp_lval = locals + 7; // s4+0
     U_LV_WRITEV(vm, regs + 1, 1);
     vm.last = {100, 26};
-    regs[0] = locals[4]; // s1
-    regs[1] = locals[5]; // s2
+    *(regs + 0) = *(locals + 4); // s1.0
+    *(regs + 1) = *(locals + 5); // s2.0
     fun_426(vm, regs + 2); // call: operator+
-    regs[1] = locals[4]; // s1
+    *(regs + 1) = *(locals + 4); // s1.0
     fun_427(vm, regs + 2); // call: operator-
-    regs[1] = locals[5]; // s2
+    *(regs + 1) = *(locals + 5); // s2.0
     fun_428(vm, regs + 2); // call: operator*
-    regs[1] = locals[4]; // s1
+    *(regs + 1) = *(locals + 4); // s1.0
     fun_429(vm, regs + 2); // call: operator/
-    regs[1] = locals[7]; // s4
+    *(regs + 1) = *(locals + 7); // s4.0
     fun_436(vm, regs + 2); // call: operator==
     U_ASSERT(vm, regs + 1, 100, 26, 586);
     vm.last = {103, 26};
@@ -21817,24 +22124,24 @@ static void fun_445(VMRef vm, StackPtr psp) {
 static void fun_448(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2755, locals);
     vm.last = {18, 29};
-    regs[0] = locals[0]; // this+0
-    regs[1] = locals[3]; // this+3
+    *(regs + 0) = *(locals + 0); // this+0
+    *(regs + 1) = *(locals + 3); // this+3
     U_FMUL(vm, regs + 2);
-    regs[1] = locals[1]; // this+1
-    regs[2] = locals[2]; // this+2
+    *(regs + 1) = *(locals + 1); // this+1
+    *(regs + 2) = *(locals + 2); // this+2
     U_FMUL(vm, regs + 3);
     U_FSUB(vm, regs + 2);
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21844,26 +22151,26 @@ static void fun_448(VMRef vm, StackPtr psp) {
 static void fun_449(VMRef vm, StackPtr psp) {
     Value regs[4];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2762, locals);
     vm.last = {21, 29};
-    regs[0] = locals[3]; // this+3
-    regs[1] = locals[1]; // this+1
+    *(regs + 0) = *(locals + 3); // this+3
+    *(regs + 1) = *(locals + 1); // this+1
     U_FUMINUS(vm, regs + 2);
-    regs[2] = locals[2]; // this+2
+    *(regs + 2) = *(locals + 2); // this+2
     U_FUMINUS(vm, regs + 3);
-    regs[3] = locals[0]; // this+0
+    *(regs + 3) = *(locals + 0); // this+0
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21873,25 +22180,31 @@ static void fun_449(VMRef vm, StackPtr psp) {
 static void fun_450(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2769, locals);
     vm.last = {24, 29};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // this
+    *(regs + 0) = *(locals + 0); // this.0
+    *(regs + 1) = *(locals + 1); // this.1
+    *(regs + 2) = *(locals + 2); // this.2
+    *(regs + 3) = *(locals + 3); // this.3
     fun_449(vm, regs + 4); // call: adjugate
-    regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // this
+    *(regs + 4) = *(locals + 0); // this.0
+    *(regs + 5) = *(locals + 1); // this.1
+    *(regs + 6) = *(locals + 2); // this.2
+    *(regs + 7) = *(locals + 3); // this.3
     fun_448(vm, regs + 8); // call: determinant
     U_FVSDIV(vm, regs + 5, 4);
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
-    Push(psp, regs[1]);
-    Push(psp, regs[2]);
-    Push(psp, regs[3]);
+    *(psp++) = *(regs + 0);
+    *(psp++) = *(regs + 1);
+    *(psp++) = *(regs + 2);
+    *(psp++) = *(regs + 3);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21901,20 +22214,20 @@ static void fun_450(VMRef vm, StackPtr psp) {
 static void fun_451(VMRef vm, StackPtr psp) {
     Value regs[2];
     Value locals[4];
-    locals[0] = *(psp - 4);
-    locals[1] = *(psp - 3);
-    locals[2] = *(psp - 2);
-    locals[3] = *(psp - 1);
+    *(locals + 0) = *(psp - 4);
+    *(locals + 1) = *(psp - 3);
+    *(locals + 2) = *(psp - 2);
+    *(locals + 3) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2776, locals);
     vm.last = {27, 29};
-    regs[0] = locals[0]; // this+0
-    regs[1] = locals[3]; // this+3
+    *(regs + 0) = *(locals + 0); // this+0
+    *(regs + 1) = *(locals + 3); // this+3
     U_FMUL(vm, regs + 2);
     Pop(psp);
     Pop(psp);
     Pop(psp);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -21924,13 +22237,13 @@ static void fun_451(VMRef vm, StackPtr psp) {
 static void fun_452(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2783, locals);
     vm.last = {6, 28};
     vm.last = {6, 28};
     U_PUSHFUN(vm, regs + 0, 0, fun_453);
-    vm.temp_lval = &locals[0]; // f
-    *vm.temp_lval = *(regs + 0);
+    vm.temp_lval = locals + 0; // f
+    *(vm.temp_lval) = *(regs + 0);
     vm.last = {253, 5};
     fun_453(vm, regs + 0); // call: function396
     goto epilogue;
@@ -21942,38 +22255,47 @@ static void fun_452(VMRef vm, StackPtr psp) {
 static void fun_453(VMRef vm, StackPtr psp) {
     Value regs[8];
     Value locals[10];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
-    locals[9] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
+    *(locals + 9) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2787, locals);
     vm.last = {7, 28};
     *(regs + 0) = Value(1.000000);
     *(regs + 1) = Value(2.000000);
     *(regs + 2) = Value(3.000000);
     *(regs + 3) = Value(4.000000);
-    vm.temp_lval = &locals[0]; // a+0
+    vm.temp_lval = locals + 0; // a+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {8, 28};
     *(regs + 0) = Value(5.000000);
     *(regs + 1) = Value(6.000000);
     *(regs + 2) = Value(7.000000);
     *(regs + 3) = Value(8.000000);
-    vm.temp_lval = &locals[4]; // b+0
+    vm.temp_lval = locals + 4; // b+0
     U_LV_WRITEV(vm, regs + 4, 4);
     vm.last = {10, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
+    *(regs + 4) = *(locals + 0); // a.0
+    *(regs + 5) = *(locals + 1); // a.1
+    *(regs + 6) = *(locals + 2); // a.2
+    *(regs + 7) = *(locals + 3); // a.3
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 10, 28, 590);
     vm.last = {11, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
     *(regs + 4) = Value(1.000000);
     *(regs + 5) = Value(2.000000);
     *(regs + 6) = Value(3.000000);
@@ -21981,13 +22303,22 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 11, 28, 591);
     vm.last = {12, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    regs[4] = locals[4];regs[5] = locals[5];regs[6] = locals[6];regs[7] = locals[7]; // b
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
+    *(regs + 4) = *(locals + 4); // b.0
+    *(regs + 5) = *(locals + 5); // b.1
+    *(regs + 6) = *(locals + 6); // b.2
+    *(regs + 7) = *(locals + 7); // b.3
     U_STNE(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 12, 28, 592);
     vm.last = {14, 28};
     *(regs + 0) = Value(5.000000);
-    regs[1] = locals[0];regs[2] = locals[1];regs[3] = locals[2];regs[4] = locals[3]; // a
+    *(regs + 1) = *(locals + 0); // a.0
+    *(regs + 2) = *(locals + 1); // a.1
+    *(regs + 3) = *(locals + 2); // a.2
+    *(regs + 4) = *(locals + 3); // a.3
     U_SFVADD(vm, regs + 5, 4);
     *(regs + 4) = Value(6.000000);
     *(regs + 5) = Value(7.000000);
@@ -21996,7 +22327,10 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 14, 28, 593);
     vm.last = {15, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
     *(regs + 4) = Value(5.000000);
     U_FVSADD(vm, regs + 5, 4);
     *(regs + 4) = Value(6.000000);
@@ -22006,8 +22340,14 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 15, 28, 594);
     vm.last = {16, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    regs[4] = locals[4];regs[5] = locals[5];regs[6] = locals[6];regs[7] = locals[7]; // b
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
+    *(regs + 4) = *(locals + 4); // b.0
+    *(regs + 5) = *(locals + 5); // b.1
+    *(regs + 6) = *(locals + 6); // b.2
+    *(regs + 7) = *(locals + 7); // b.3
     U_FVVADD(vm, regs + 8, 4);
     *(regs + 4) = Value(6.000000);
     *(regs + 5) = Value(8.000000);
@@ -22017,7 +22357,10 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 16, 28, 595);
     vm.last = {18, 28};
     *(regs + 0) = Value(5.000000);
-    regs[1] = locals[0];regs[2] = locals[1];regs[3] = locals[2];regs[4] = locals[3]; // a
+    *(regs + 1) = *(locals + 0); // a.0
+    *(regs + 2) = *(locals + 1); // a.1
+    *(regs + 3) = *(locals + 2); // a.2
+    *(regs + 4) = *(locals + 3); // a.3
     U_SFVSUB(vm, regs + 5, 4);
     *(regs + 4) = Value(4.000000);
     *(regs + 5) = Value(3.000000);
@@ -22026,7 +22369,10 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 18, 28, 596);
     vm.last = {19, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
     *(regs + 4) = Value(5.000000);
     U_FVSSUB(vm, regs + 5, 4);
     *(regs + 4) = Value(-4.000000);
@@ -22036,8 +22382,14 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 19, 28, 597);
     vm.last = {20, 28};
-    regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6];regs[3] = locals[7]; // b
-    regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // a
+    *(regs + 0) = *(locals + 4); // b.0
+    *(regs + 1) = *(locals + 5); // b.1
+    *(regs + 2) = *(locals + 6); // b.2
+    *(regs + 3) = *(locals + 7); // b.3
+    *(regs + 4) = *(locals + 0); // a.0
+    *(regs + 5) = *(locals + 1); // a.1
+    *(regs + 6) = *(locals + 2); // a.2
+    *(regs + 7) = *(locals + 3); // a.3
     U_FVVSUB(vm, regs + 8, 4);
     *(regs + 4) = Value(4.000000);
     *(regs + 5) = Value(4.000000);
@@ -22047,7 +22399,10 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_ASSERT(vm, regs + 1, 20, 28, 598);
     vm.last = {22, 28};
     *(regs + 0) = Value(5.000000);
-    regs[1] = locals[0];regs[2] = locals[1];regs[3] = locals[2];regs[4] = locals[3]; // a
+    *(regs + 1) = *(locals + 0); // a.0
+    *(regs + 2) = *(locals + 1); // a.1
+    *(regs + 3) = *(locals + 2); // a.2
+    *(regs + 4) = *(locals + 3); // a.3
     U_SFVMUL(vm, regs + 5, 4);
     *(regs + 4) = Value(5.000000);
     *(regs + 5) = Value(10.000000);
@@ -22056,8 +22411,14 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 22, 28, 599);
     vm.last = {26, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    regs[4] = locals[4];regs[5] = locals[5];regs[6] = locals[6];regs[7] = locals[7]; // b
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
+    *(regs + 4) = *(locals + 4); // b.0
+    *(regs + 5) = *(locals + 5); // b.1
+    *(regs + 6) = *(locals + 6); // b.2
+    *(regs + 7) = *(locals + 7); // b.3
     fun_446(vm, regs + 8); // call: operator*
     *(regs + 4) = Value(19.000000);
     *(regs + 5) = Value(22.000000);
@@ -22066,8 +22427,14 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 26, 28, 600);
     vm.last = {27, 28};
-    regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6];regs[3] = locals[7]; // b
-    regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // a
+    *(regs + 0) = *(locals + 4); // b.0
+    *(regs + 1) = *(locals + 5); // b.1
+    *(regs + 2) = *(locals + 6); // b.2
+    *(regs + 3) = *(locals + 7); // b.3
+    *(regs + 4) = *(locals + 0); // a.0
+    *(regs + 5) = *(locals + 1); // a.1
+    *(regs + 6) = *(locals + 2); // a.2
+    *(regs + 7) = *(locals + 3); // a.3
     fun_446(vm, regs + 8); // call: operator*
     *(regs + 4) = Value(23.000000);
     *(regs + 5) = Value(34.000000);
@@ -22076,19 +22443,28 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 27, 28, 601);
     vm.last = {29, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
     fun_448(vm, regs + 4); // call: determinant
     *(regs + 1) = Value(-2.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 29, 28, 602);
     vm.last = {30, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
     fun_451(vm, regs + 4); // call: trace
     *(regs + 1) = Value(4.000000);
     U_FEQ(vm, regs + 2);
     U_ASSERT(vm, regs + 1, 30, 28, 603);
     vm.last = {31, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
     fun_449(vm, regs + 4); // call: adjugate
     *(regs + 4) = Value(4.000000);
     *(regs + 5) = Value(-2.000000);
@@ -22097,7 +22473,10 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 31, 28, 604);
     vm.last = {32, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
     fun_450(vm, regs + 4); // call: inverse
     *(regs + 4) = Value(-2.000000);
     *(regs + 5) = Value(1.000000);
@@ -22106,8 +22485,14 @@ static void fun_453(VMRef vm, StackPtr psp) {
     U_STEQ(vm, regs + 8, 4);
     U_ASSERT(vm, regs + 1, 32, 28, 605);
     vm.last = {34, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    regs[4] = locals[0];regs[5] = locals[1];regs[6] = locals[2];regs[7] = locals[3]; // a
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
+    *(regs + 4) = *(locals + 0); // a.0
+    *(regs + 5) = *(locals + 1); // a.1
+    *(regs + 6) = *(locals + 2); // a.2
+    *(regs + 7) = *(locals + 3); // a.3
     fun_450(vm, regs + 8); // call: inverse
     fun_446(vm, regs + 8); // call: operator*
     U_PUSHVARVF(vm, regs + 4, 1150, 4); // mat2x2_identity+0
@@ -22116,19 +22501,27 @@ static void fun_453(VMRef vm, StackPtr psp) {
     vm.last = {38, 28};
     *(regs + 0) = Value(2.000000);
     *(regs + 1) = Value(3.000000);
-    vm.temp_lval = &locals[8]; // c+0
+    vm.temp_lval = locals + 8; // c+0
     U_LV_WRITEV(vm, regs + 2, 2);
     vm.last = {40, 28};
-    regs[0] = locals[0];regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // a
-    regs[4] = locals[8];regs[5] = locals[9]; // c
+    *(regs + 0) = *(locals + 0); // a.0
+    *(regs + 1) = *(locals + 1); // a.1
+    *(regs + 2) = *(locals + 2); // a.2
+    *(regs + 3) = *(locals + 3); // a.3
+    *(regs + 4) = *(locals + 8); // c.0
+    *(regs + 5) = *(locals + 9); // c.1
     fun_447(vm, regs + 6); // call: operator*
     *(regs + 2) = Value(8.000000);
     *(regs + 3) = Value(18.000000);
     U_STEQ(vm, regs + 4, 2);
     U_ASSERT(vm, regs + 1, 40, 28, 607);
     vm.last = {41, 28};
-    regs[0] = locals[4];regs[1] = locals[5];regs[2] = locals[6];regs[3] = locals[7]; // b
-    regs[4] = locals[8];regs[5] = locals[9]; // c
+    *(regs + 0) = *(locals + 4); // b.0
+    *(regs + 1) = *(locals + 5); // b.1
+    *(regs + 2) = *(locals + 6); // b.2
+    *(regs + 3) = *(locals + 7); // b.3
+    *(regs + 4) = *(locals + 8); // c.0
+    *(regs + 5) = *(locals + 9); // c.1
     fun_447(vm, regs + 6); // call: operator*
     *(regs + 2) = Value(28.000000);
     *(regs + 3) = Value(38.000000);
@@ -22144,22 +22537,22 @@ static void fun_454(VMRef vm, StackPtr psp) {
     Value regs[7];
     Value keepvar[6];
     Value locals[9];
-    locals[0] = Value(0, lobster::V_NIL);
-    locals[1] = Value(0, lobster::V_NIL);
-    locals[2] = Value(0, lobster::V_NIL);
-    locals[3] = Value(0, lobster::V_NIL);
-    locals[4] = Value(0, lobster::V_NIL);
-    locals[5] = Value(0, lobster::V_NIL);
-    locals[6] = Value(0, lobster::V_NIL);
-    locals[7] = Value(0, lobster::V_NIL);
-    locals[8] = Value(0, lobster::V_NIL);
+    *(locals + 0) = Value(0, lobster::V_NIL);
+    *(locals + 1) = Value(0, lobster::V_NIL);
+    *(locals + 2) = Value(0, lobster::V_NIL);
+    *(locals + 3) = Value(0, lobster::V_NIL);
+    *(locals + 4) = Value(0, lobster::V_NIL);
+    *(locals + 5) = Value(0, lobster::V_NIL);
+    *(locals + 6) = Value(0, lobster::V_NIL);
+    *(locals + 7) = Value(0, lobster::V_NIL);
+    *(locals + 8) = Value(0, lobster::V_NIL);
     PushFunId(vm, funinfo_table + 2800, locals);
-    keepvar[0] = Value(0, lobster::V_NIL);
-    keepvar[1] = Value(0, lobster::V_NIL);
-    keepvar[2] = Value(0, lobster::V_NIL);
-    keepvar[3] = Value(0, lobster::V_NIL);
-    keepvar[4] = Value(0, lobster::V_NIL);
-    keepvar[5] = Value(0, lobster::V_NIL);
+    *(keepvar + 0) = Value(0, lobster::V_NIL);
+    *(keepvar + 1) = Value(0, lobster::V_NIL);
+    *(keepvar + 2) = Value(0, lobster::V_NIL);
+    *(keepvar + 3) = Value(0, lobster::V_NIL);
+    *(keepvar + 4) = Value(0, lobster::V_NIL);
+    *(keepvar + 5) = Value(0, lobster::V_NIL);
     vm.last = {6, 30};
     vm.last = {6, 30};
     vm.last = {9, 30};
@@ -22190,92 +22583,92 @@ static void fun_454(VMRef vm, StackPtr psp) {
     *(regs + 6) = Value(5);
     U_NEWOBJECT(vm, regs + 7, 1677); // F
     U_NEWVEC(vm, regs + 4, 1336, 4);
-    vm.temp_lval = &locals[0]; // tests
+    vm.temp_lval = locals + 0; // tests
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {42, 30};
-    regs[0] = locals[0]; // tests
+    *(regs + 0) = *(locals + 0); // tests
     U_PUSHFUN(vm, regs + 1, 0, fun_455);
     fun_611(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[1]; // results1
+    vm.temp_lval = locals + 1; // results1
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {50, 30};
-    regs[0] = locals[1]; // results1
+    *(regs + 0) = *(locals + 1); // results1
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(3);
     *(regs + 3) = Value(4);
     *(regs + 4) = Value(5);
     U_NEWVEC(vm, regs + 5, 7, 4);
-    keepvar[0] = TopM(regs + 2, 0);
+    *(keepvar + 0) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 50, 30, 609);
     vm.last = {53, 30};
-    regs[0] = locals[0]; // tests
+    *(regs + 0) = *(locals + 0); // tests
     U_PUSHFUN(vm, regs + 1, 0, fun_456);
     fun_612(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[2]; // results2
+    vm.temp_lval = locals + 2; // results2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {60, 30};
-    regs[0] = locals[2]; // results2
+    *(regs + 0) = *(locals + 2); // results2
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(3);
     *(regs + 3) = Value(4);
     *(regs + 4) = Value(4);
     U_NEWVEC(vm, regs + 5, 7, 4);
-    keepvar[1] = TopM(regs + 2, 0);
+    *(keepvar + 1) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 60, 30, 610);
     vm.last = {63, 30};
-    regs[0] = locals[0]; // tests
+    *(regs + 0) = *(locals + 0); // tests
     U_PUSHFUN(vm, regs + 1, 0, fun_457);
     fun_613(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[3]; // results3
+    vm.temp_lval = locals + 3; // results3
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {69, 30};
-    regs[0] = locals[3]; // results3
+    *(regs + 0) = *(locals + 3); // results3
     *(regs + 1) = Value(1);
     *(regs + 2) = Value(2);
     *(regs + 3) = Value(2);
     *(regs + 4) = Value(2);
     U_NEWVEC(vm, regs + 5, 7, 4);
-    keepvar[2] = TopM(regs + 2, 0);
+    *(keepvar + 2) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 69, 30, 611);
     vm.last = {72, 30};
-    regs[0] = locals[0]; // tests
+    *(regs + 0) = *(locals + 0); // tests
     U_PUSHFUN(vm, regs + 1, 0, fun_458);
     fun_614(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[4]; // results4
+    vm.temp_lval = locals + 4; // results4
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {77, 30};
-    regs[0] = locals[4]; // results4
+    *(regs + 0) = *(locals + 4); // results4
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(0);
     *(regs + 3) = Value(0);
     *(regs + 4) = Value(5);
     U_NEWVEC(vm, regs + 5, 7, 4);
-    keepvar[3] = TopM(regs + 2, 0);
+    *(keepvar + 3) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 77, 30, 612);
     vm.last = {82, 30};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(0);
     U_NEWVEC(vm, regs + 2, 1338, 2);
-    vm.temp_lval = &locals[5]; // btests
+    vm.temp_lval = locals + 5; // btests
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {84, 30};
-    regs[0] = locals[5]; // btests
+    *(regs + 0) = *(locals + 5); // btests
     U_PUSHFUN(vm, regs + 1, 0, fun_459);
     fun_615(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[6]; // results5
+    vm.temp_lval = locals + 6; // results5
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {91, 30};
-    regs[0] = locals[6]; // results5
+    *(regs + 0) = *(locals + 6); // results5
     U_PUSHSTR(vm, regs + 1, 613); // "t"
     U_INCREF(vm, regs + 2, 0);
     U_PUSHSTR(vm, regs + 2, 614); // "f"
     U_INCREF(vm, regs + 3, 0);
     U_NEWVEC(vm, regs + 3, 11, 2);
-    keepvar[4] = TopM(regs + 2, 0);
+    *(keepvar + 4) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 91, 30, 615);
     vm.last = {93, 30};
@@ -22283,16 +22676,16 @@ static void fun_454(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     *(regs + 2) = Value(2);
     U_NEWVEC(vm, regs + 3, 1338, 3);
-    vm.temp_lval = &locals[7]; // btests2
+    vm.temp_lval = locals + 7; // btests2
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {95, 30};
-    regs[0] = locals[7]; // btests2
+    *(regs + 0) = *(locals + 7); // btests2
     U_PUSHFUN(vm, regs + 1, 0, fun_460);
     fun_616(vm, regs + 2); // call: map
-    vm.temp_lval = &locals[8]; // results6
+    vm.temp_lval = locals + 8; // results6
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {110, 30};
-    regs[0] = locals[8]; // results6
+    *(regs + 0) = *(locals + 8); // results6
     U_PUSHSTR(vm, regs + 1, 616); // "t"
     U_INCREF(vm, regs + 2, 0);
     U_PUSHSTR(vm, regs + 2, 617); // "f"
@@ -22300,7 +22693,7 @@ static void fun_454(VMRef vm, StackPtr psp) {
     U_PUSHSTR(vm, regs + 3, 618); // "?"
     U_INCREF(vm, regs + 4, 0);
     U_NEWVEC(vm, regs + 4, 11, 3);
-    keepvar[5] = TopM(regs + 2, 0);
+    *(keepvar + 5) = *(regs + 1);
     U_BCALLRET2(vm, regs + 2, 14, 1); // equal
     U_ASSERT(vm, regs + 1, 110, 30, 619);
     DecVal(vm, locals[0]);
@@ -22327,29 +22720,29 @@ static void fun_454(VMRef vm, StackPtr psp) {
 static void fun_455(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2812, locals);
     vm.last = {43, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     switch (GetTypeSwitchID(vm, regs[0], 0)) {
     case 0:
     vm.last = {44, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 1);
     goto block5;
     case 1:
     vm.last = {45, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 2);
     goto block6;
     case 2:
     vm.last = {46, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 2);
     goto block7;
     case 3:
     vm.last = {47, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 3);
     } // switch
     block5:;
@@ -22357,7 +22750,7 @@ static void fun_455(VMRef vm, StackPtr psp) {
     block7:;
     DecVal(vm, locals[0]);
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -22367,30 +22760,30 @@ static void fun_455(VMRef vm, StackPtr psp) {
 static void fun_456(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2816, locals);
     vm.last = {54, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     switch (GetTypeSwitchID(vm, regs[0], 1)) {
     case 0:
     vm.last = {55, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 1);
     goto block4;
     case 1:
     vm.last = {56, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 2);
     goto block5;
     case 2:
     vm.last = {57, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 2);
     } // switch
     block4:;
     block5:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -22400,24 +22793,24 @@ static void fun_456(VMRef vm, StackPtr psp) {
 static void fun_457(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2820, locals);
     vm.last = {64, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     switch (GetTypeSwitchID(vm, regs[0], 2)) {
     case 0:
     vm.last = {65, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 1);
     goto block3;
     case 1:
     vm.last = {66, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 1);
     } // switch
     block3:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -22427,24 +22820,24 @@ static void fun_457(VMRef vm, StackPtr psp) {
 static void fun_458(VMRef vm, StackPtr psp) {
     Value regs[1];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2824, locals);
     vm.last = {73, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     switch (GetTypeSwitchID(vm, regs[0], 3)) {
     case 0:
     vm.last = {75, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 3);
     goto block3;
     case 1:default:
     vm.last = {74, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_PUSHFLD(vm, regs + 1, 0);
     } // switch
     block3:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -22454,10 +22847,10 @@ static void fun_458(VMRef vm, StackPtr psp) {
 static void fun_459(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2828, locals);
     vm.last = {85, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_DUP(vm, regs + 1);
     *(regs + 2) = Value(1);
     U_IEQ(vm, regs + 3);
@@ -22483,7 +22876,7 @@ static void fun_459(VMRef vm, StackPtr psp) {
     block1:;
     block3:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -22493,10 +22886,10 @@ static void fun_459(VMRef vm, StackPtr psp) {
 static void fun_460(VMRef vm, StackPtr psp) {
     Value regs[3];
     Value locals[1];
-    locals[0] = *(psp - 1);
+    *(locals + 0) = *(psp - 1);
     PushFunId(vm, funinfo_table + 2832, locals);
     vm.last = {96, 30};
-    regs[0] = locals[0]; // t
+    *(regs + 0) = *(locals + 0); // t
     U_DUP(vm, regs + 1);
     *(regs + 2) = Value(1);
     U_IEQ(vm, regs + 3);
@@ -22524,7 +22917,7 @@ static void fun_460(VMRef vm, StackPtr psp) {
     block1:;
     block3:;
     Pop(psp);
-    Push(psp, regs[0]);
+    *(psp++) = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -26267,7 +26660,7 @@ int main(int argc, char *argv[]) {
         span(specidents),
         span(enums),
         span(ser_ids),
-        string_view("Sun Jun  8 20:40:36 2025", 24),
+        string_view("Sun Jun  8 21:39:23 2025", 24),
         0x883db8532f6e1faa,
         span(subfunctions_to_function),
     };

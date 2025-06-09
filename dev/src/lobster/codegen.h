@@ -477,6 +477,7 @@ struct CodeGen  {
                 "#define Pop(sp) (*--(sp))\n"
                 "#define Push(sp, V) (*(sp)++ = (V))\n"
                 "#define TopM(sp, N) (*((sp) - (N) - 1))\n"
+                // If you don't explicitly copy, libtcc will generate memcpy call for single 64-bit values :(
                 "struct ___tracy_source_location_data {\n"
                 "    const char *name;\n"
                 "    const char *function;\n"
@@ -584,6 +585,18 @@ struct CodeGen  {
         return lab;
     }
 
+    void GenValueCopy(string &sd, string_view dest, string_view src, string_view lf = "\n") {
+        if (cpp) {
+            append(sd, "    *(", dest, ") = *(", src, ");", lf);
+        } else {
+            #if RTT_ENABLED
+                append(sd, "    { StackPtr _d = ", dest, "; StackPtr _s = ", src, "; _d->ival = _s->ival; _d->type = _s->type; }", lf);
+            #else
+                append(sd, "    (", dest, ")->ival = (", src, ")->ival;", lf);
+            #endif
+        }
+    }
+
     void GenPushVar(size_t retval, TypeRef type, int offset, bool used_as_freevar) {
         if (!retval) return;
         if (IsStruct(type->t)) {
@@ -594,11 +607,10 @@ struct CodeGen  {
                 comment(IdName(offset, false));
             } else {
                 EmitOp(IL_PUSHVARVL, 0, width);
-                append(cb, "    ");
                 for (int i = 0; i < width; i++) {
-                    append(cb, spslot(-i), " = locals[", var_to_local[offset + i], "];");
+                    GenValueCopy(cb, sp(-i), cat("locals + ", var_to_local[offset + i]), "");
+                    comment(cat(IdName(offset, true), ".", i));
                 }
-                comment(IdName(offset, true));
             }
         } else {
             if (used_as_freevar) {
@@ -607,7 +619,7 @@ struct CodeGen  {
                 comment(IdName(offset, false));
             } else {
                 EmitOp(IL_PUSHVARL);
-                append(cb, "    ", spslot(0), " = locals[", var_to_local[offset], "];");
+                GenValueCopy(cb, sp(0), cat("locals + ", var_to_local[offset]), "");
                 comment(IdName(offset, false));
             }
         }
@@ -615,7 +627,7 @@ struct CodeGen  {
 
     void EmitLVAL_VARL(int offset) {
         EmitOp(IL_LVAL_VARL);
-        append(cb, "    ", vmref(), "temp_lval = &locals[", var_to_local[offset], "];");
+        append(cb, "    ", vmref(), "temp_lval = locals + ", var_to_local[offset], ";");
         comment(IdName(offset, false));
     }
 
@@ -700,9 +712,8 @@ struct CodeGen  {
         auto op = !loops.empty() ? IL_KEEPREFLOOP : IL_KEEPREF;
         EmitOp(op);
         auto offset = f_keepvars++ + keep_index_add;
-        append(cb, "    ");
-        if (opc == IL_KEEPREFLOOP) append(cb, "DecVal(vm, keepvar[", offset, "]); ");
-        append(cb, "keepvar[", offset, "] = TopM(", sp(), ", ", stack_offset, ");\n");
+        if (opc == IL_KEEPREFLOOP) append(cb, "    DecVal(vm, keepvar[", offset, "]);\n");
+        GenValueCopy(cb, cat("keepvar + ", offset), sp(stack_offset + 1));
 
     }
 
@@ -741,7 +752,7 @@ struct CodeGen  {
                        "Push(psp, regs[i + ", regso - nretslots, "]); }\n");
         } else {
             for (int i = 0; i < nretslots; i++) {
-                append(cb, "    Push(psp, ", spslot(nretslots - i), ");\n");
+                GenValueCopy(cb, "psp++", sp(nretslots - i));
             }
         }
         sdt.clear();  // FIXME: remove
@@ -861,9 +872,9 @@ struct CodeGen  {
 
     void SetToNil(string &sd, string_view target) {
         if (cpp)
-            append(sd, "    ", target, " = Value(0, lobster::V_NIL);\n");
+            append(sd, "    *(", target, ") = Value(0, lobster::V_NIL);\n");
         else
-            append(sd, "    { StackPtr _sp = &", target, "; _sp->ival = 0;", SetType(V_NIL), " }\n");
+            append(sd, "    { StackPtr _sp = ", target, "; _sp->ival = 0;", SetType(V_NIL), " }\n");
     }
 
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
@@ -904,7 +915,8 @@ struct CodeGen  {
             if (sids[varidx].used_as_freevar()) {
                 append(sd, "    SwapVars(vm, ", varidx, ", psp, ", (int)f_args.size() - i, ");\n");
             } else {
-                append(sd, "    locals[", var_to_local[varidx], "] = *(psp - ", (int)f_args.size() - i, ");\n");
+                GenValueCopy(sd, cat("locals + ", var_to_local[varidx]),
+                                 cat("psp - ", (int)f_args.size() - i));
             }
         }
         for (int i = 0; i < (int)f_defs.size(); i++) {
@@ -917,7 +929,7 @@ struct CodeGen  {
                 // FIXME: it should even be unnecessary to initialize them, but its possible
                 // there is a return before they're fully initialized, and then the decr of
                 // owned vars may cause these to be accessed.
-                SetToNil(sd, cat("locals[", var_to_local[varidx], "]"));
+                SetToNil(sd, cat("locals + ", var_to_local[varidx]));
             }
         }
         if (runtime_checks >= RUNTIME_STACK_TRACE && sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
@@ -933,7 +945,7 @@ struct CodeGen  {
             funstarttables.insert(funstarttables.end(), f_defs.begin(), f_defs.end());
         }
         for (int i = 0; i < f_keepvars; i++) {
-            SetToNil(sd, cat("keepvar[", i, "]"));
+            SetToNil(sd, cat("keepvar + ", i));
         }
 
         sd += cb;
@@ -1314,7 +1326,7 @@ struct CodeGen  {
     void GenLvalModifierOpWithStructInfo(ILOP op, TypeRef type) {
         EmitOp(op, ValWidth(type));
         if (op == IL_LV_WRITE) {
-            append(cb, "    *", vmref(), "temp_lval = *(", sp(1), ");\n");
+            GenValueCopy(cb, cat(vmref(), "temp_lval"), sp(1));
         } else {
             append(cb, "    U_", ILNames()[opc], "(vm, ", sp());
             if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
