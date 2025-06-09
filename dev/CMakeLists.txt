@@ -49,7 +49,6 @@ else()
     src/lobster/bytecode_generated.h
     src/lobster/codegen.h
     src/lobster/compiler.h
-    src/lobster/disasm.h
     src/lobster/geom.h
     src/lobster/idents.h
     src/lobster/il.h
@@ -81,7 +80,6 @@ else()
     src/lobster/wfc.h
     src/builtins.cpp
     src/compiler.cpp
-    src/disasm.cpp
     src/file.cpp
     src/lobsterreader.cpp
     src/main.cpp

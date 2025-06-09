@@ -18,7 +18,6 @@
 
 #include "lobster/stdafx.h"
 
-#include "lobster/disasm.h"  // Some shared bytecode utilities.
 #include "lobster/compiler.h"
 #include "lobster/tonative.h"
 
