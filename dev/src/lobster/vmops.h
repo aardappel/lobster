@@ -201,11 +201,7 @@ VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
     auto &i = TopMR(sp, 1);
     TYPE_ASSERT(i.type == V_INT);
     i.setival(i.ival() + 1);
-    if (i.ival() >= len) {
-        return false;
-    } else {
-        return true;
-    }
+    return i.ival() < len;
 }
 
 #define FORELEM(L) \
@@ -218,22 +214,31 @@ VM_INLINE bool U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval
 VM_INLINE bool U_SFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).sval()->len); }
 
 VM_INLINE void U_IFORELEM(VM &, StackPtr sp) {
-    FORELEM(iter.ival()); (void)iter; Push(sp, i);
+    FORELEM(iter.ival());
+    (void)iter;
+    Push(sp, i);
 }
 VM_INLINE void U_SFORELEM(VM &, StackPtr sp) {
-    FORELEM(iter.sval()->len); Push(sp, Value(((uint8_t *)iter.sval()->data())[i]));
+    FORELEM(iter.sval()->len);
+    Push(sp, Value(((uint8_t *)iter.sval()->data())[i]));
 }
 VM_INLINE void U_VFORELEM(VM &, StackPtr sp) {
-    FORELEM(iter.vval()->len); Push(sp, iter.vval()->AtS(i));
+    FORELEM(iter.vval()->len);
+    Push(sp, iter.vval()->AtS(i));
 }
 VM_INLINE void U_VFORELEM2S(VM &, StackPtr sp) {
-    FORELEM(iter.vval()->len); iter.vval()->AtVW(sp, i);
+    FORELEM(iter.vval()->len);
+    iter.vval()->AtVW(sp, i);
 }
 VM_INLINE void U_VFORELEMREF(VM &, StackPtr sp) {
-    FORELEM(iter.vval()->len); auto el = iter.vval()->AtS(i); el.LTINCRTNIL(); Push(sp, el);
+    FORELEM(iter.vval()->len);
+    auto el = iter.vval()->AtS(i);
+    el.LTINCRTNIL();
+    Push(sp, el);
 }
 VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp, int bitmask) {
-    FORELEM(iter.vval()->len); iter.vval()->AtVWInc(sp, i, bitmask);
+    FORELEM(iter.vval()->len);
+    iter.vval()->AtVWInc(sp, i, bitmask);
 }
 
 VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
@@ -728,27 +733,29 @@ VM_INLINE bool U_JUMP(VM &, StackPtr) {
     return false;
 }
 
-VM_INLINE bool U_JUMPFAIL(VM &, StackPtr sp) {
-    return Top(sp).True();
+VM_INLINE bool U_JUMPFAIL(VM &, StackPtr) {
+    assert(false);
+    return false;
 }
 
-VM_INLINE bool U_JUMPFAILR(VM &, StackPtr sp) {
-    return Top(sp).True();
+VM_INLINE bool U_JUMPFAILR(VM &, StackPtr) {
+    assert(false);
+    return false;
 }
 
-VM_INLINE bool U_JUMPNOFAIL(VM &, StackPtr sp) {
-    auto x = Pop(sp);
-    return x.False();
+VM_INLINE bool U_JUMPNOFAIL(VM &, StackPtr) {
+    assert(false);
+    return false;
 }
 
-VM_INLINE bool U_JUMPNOFAILR(VM &, StackPtr sp) {
-    auto x = Top(sp);
-    return x.False();
+VM_INLINE bool U_JUMPNOFAILR(VM &, StackPtr) {
+    assert(false);
+    return false;
 }
 
-VM_INLINE bool U_JUMPIFUNWOUND(VM &vm, StackPtr, int df) {
-    assert(vm.ret_unwind_to >= 0);
-    return vm.ret_unwind_to != df;
+VM_INLINE bool U_JUMPIFUNWOUND(VM &, StackPtr, int) {
+    assert(false);
+    return false;
 }
 
 VM_INLINE bool U_JUMPIFSTATICLF(VM &vm, StackPtr, int vidx) {

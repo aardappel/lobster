@@ -651,17 +651,38 @@ struct CodeGen  {
     int EmitOpJump1(ILOP op) {
         EmitOp(op);
         auto lab = Label();
-        append(cb, "    if (!U_", ILNames()[opc], "(vm, ", sp());
-        append(cb, ")) goto block", lab, ";\n");
+        append(cb, "    if (");
+        auto test = cpp ? "True()" : "ival";
+        switch (op) {
+            case IL_JUMPFAIL:
+            case IL_JUMPFAILR:
+                append(cb, "!(" + sp(1) + ")->", test);
+                break;
+            case IL_JUMPNOFAIL:
+            case IL_JUMPNOFAILR:
+                append(cb, "(" + sp(1) + ")->", test);
+                break;
+            default:
+                append(cb, "!U_", ILNames()[opc], "(vm, ", sp(), ")");
+                break;
+        }
+        append(cb, ") goto block", lab, ";\n");
         return lab;
     }
 
     int EmitOpJump2(ILOP op, int a1) {
         EmitOp(op);
         auto lab = Label();
-        append(cb, "    if (!U_", ILNames()[opc], "(vm, ", sp());
-        append(cb, ", ", a1);
-        append(cb, ")) goto block", lab, ";\n");
+        append(cb, "    if (");
+        switch (op) {
+            case IL_JUMPIFUNWOUND:
+                append(cb, vmref(), "ret_unwind_to == ", a1);
+                break;
+            default:
+                append(cb, "!U_", ILNames()[opc], "(vm, ", sp(), ", ", a1, ")");
+                break;
+        }
+        append(cb, ") goto block", lab, ";\n");
         return lab;
     }
 

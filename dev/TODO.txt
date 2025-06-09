@@ -231,9 +231,8 @@
   - reduce use of ElemType.
   - once things are faster, test with https://github.com/kostya/benchmarks/
   - frequent functions possibly worth inlining:
-        DecVal: 573   // This goes into object delete code.                                  
-        PushFunId: 400                                  
-        PopFunId: 400                                   
+        DecVal: 573               // This goes into object delete code.                                  
+        PushFunId,PopFunId: 400   // push/pop a vec and may call into profiler.
         U_LV_WRITE: 390                                 
         U_INCREF: 361                                   
         U_ASSERT: 324                                   
@@ -243,7 +242,6 @@
         U_PUSHVARF: 257                                 
         U_PUSHFLD: 231                                  
         U_POP: 222                                      
-        U_JUMPFAIL: 188                                 
         U_NEWVEC: 170                                   
         TopM: 163                                       
         U_BCALLRETV: 162                                
@@ -266,12 +264,10 @@
         U_IADD: 55                                      
         U_FMUL: 55                                      
         SwapVars: 54                                    
-        U_JUMPFAILR: 51                                 
         DecOwned: 45                                    
         U_IFOR: 45                                      
         U_IFORELEM: 40                                  
         U_FSUB: 36                                      
-        U_JUMPIFUNWOUND: 35                             
         RetSlots: 35                                    
         U_FVSMUL: 34                                    
         U_A: 33                                         
