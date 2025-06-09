@@ -905,11 +905,8 @@ VM_INLINE void U_LV_SADD(VM &vm, StackPtr sp) {
     a = res;
 }
 
-VM_INLINE void U_LV_WRITE(VM &vm, StackPtr sp) {
-    auto &a = *vm.temp_lval;
-    auto  b = Pop(sp);
-    TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL);
-    a = b;
+VM_INLINE void U_LV_WRITE(VM &, StackPtr) {
+    assert(false);
 }
 
 VM_INLINE void U_LV_WRITEREF(VM &vm, StackPtr sp) {

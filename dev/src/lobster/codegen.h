@@ -826,6 +826,7 @@ struct CodeGen  {
         #if RTT_ENABLED
             return cat(" _sp->type = ", (int)t, ";");
         #else
+            (void)t;
             return {};
         #endif
     }
@@ -1310,19 +1311,23 @@ struct CodeGen  {
         EmitPUSHINT( ValWidth(type));
     }
 
-    void GenOpWithStructInfo(ILOP op, TypeRef type) {
+    void GenLvalModifierOpWithStructInfo(ILOP op, TypeRef type) {
         EmitOp(op, ValWidth(type));
-        append(cb, "    U_", ILNames()[opc], "(vm, ", sp());
-        if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
-        if (op == IL_LV_WRITEREFV) append(cb, ", ", BitMaskForRefStuct(type));
-        cb += ");\n";
+        if (op == IL_LV_WRITE) {
+            append(cb, "    *", vmref(), "temp_lval = *(", sp(1), ");\n");
+        } else {
+            append(cb, "    U_", ILNames()[opc], "(vm, ", sp());
+            if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
+            if (op == IL_LV_WRITEREFV) append(cb, ", ", BitMaskForRefStuct(type));
+            cb += ");\n";
+        }
     }
 
     void GenAssignBasic(const SpecIdent &sid) {
         TakeTemp(1, true);
         GenLvalVar(sid, 0);
         auto op = AssignBaseOp({ sid });
-        GenOpWithStructInfo(op, sid.type);
+        GenLvalModifierOpWithStructInfo(op, sid.type);
     }
 
     void GenAssignLvalRec(const Node *lval, int offset, int take_temp, TypeRef type) {
@@ -1405,7 +1410,7 @@ struct CodeGen  {
         if (rhs) Gen(rhs, 1);
         GenAssignLvalRec(lval, 0, take_temp, type);
         if (!post) {
-            GenOpWithStructInfo(lvalop, type);
+            GenLvalModifierOpWithStructInfo(lvalop, type);
         }
         if (retval) {
             // FIXME: it seems these never need a refcount increase because they're always
@@ -1418,7 +1423,7 @@ struct CodeGen  {
             }
         }
         if (post) {
-            GenOpWithStructInfo(lvalop, type);
+            GenLvalModifierOpWithStructInfo(lvalop, type);
         }
     }
 
@@ -1706,7 +1711,7 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
         cg.EmitOp1(IL_LVAL_FLD, sfield.slot);
-        cg.GenOpWithStructInfo(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
+        cg.GenLvalModifierOpWithStructInfo(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
         cg.EmitLabelDef(lab);
     }
     if (!retval) return;

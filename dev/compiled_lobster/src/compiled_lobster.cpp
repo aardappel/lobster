@@ -685,7 +685,7 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {8, 2};
     U_PUSHFUN(vm, regs + 0, 0, fun_3);
     U_LVAL_VARF(vm, regs + 1, 0); // current_test_runner
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {10, 2};
     vm.last = {14, 2};
     U_PUSHSTR(vm, regs + 0, 0); // "example"
@@ -694,7 +694,7 @@ static void fun_0(VMRef vm, StackPtr psp) {
     vm.last = {7, 0};
     U_PUSHFUN(vm, regs + 0, 0, fun_6);
     U_LVAL_VARF(vm, regs + 1, 0); // current_test_runner
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {3, 5};
     vm.last = {9, 5};
     vm.last = {11, 5};
@@ -1635,11 +1635,11 @@ static void fun_616(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -1689,11 +1689,11 @@ static void fun_615(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -1747,7 +1747,7 @@ static void fun_614(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -1802,7 +1802,7 @@ static void fun_613(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -1857,7 +1857,7 @@ static void fun_612(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -1912,7 +1912,7 @@ static void fun_611(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -1970,7 +1970,7 @@ static void fun_604(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[6]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3];regs[4] = locals[4];regs[5] = locals[5]; // x
@@ -2024,7 +2024,7 @@ static void fun_603(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -2075,11 +2075,11 @@ static void fun_602(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {119, 20};
@@ -2129,11 +2129,11 @@ static void fun_601(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     fun_373(vm, regs + 3); // call: function340
@@ -2186,7 +2186,7 @@ static void fun_593(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -2244,7 +2244,7 @@ static void fun_592(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {55, 19};
@@ -2300,7 +2300,7 @@ static void fun_587(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {23, 19};
@@ -2351,11 +2351,11 @@ static void fun_586(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {13, 18};
@@ -2405,11 +2405,11 @@ static void fun_585(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {34, 18};
@@ -2459,11 +2459,11 @@ static void fun_584(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {33, 18};
@@ -2513,11 +2513,11 @@ static void fun_582(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -2567,11 +2567,11 @@ static void fun_581(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -2621,11 +2621,11 @@ static void fun_579(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -2675,11 +2675,11 @@ static void fun_576(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -2733,7 +2733,7 @@ static void fun_573(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -2789,7 +2789,7 @@ static void fun_566(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3];regs[4] = locals[4]; // x
@@ -2845,7 +2845,7 @@ static void fun_565(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3];regs[4] = locals[4]; // x
@@ -2895,11 +2895,11 @@ static void fun_564(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -2949,11 +2949,11 @@ static void fun_563(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -3007,7 +3007,7 @@ static void fun_562(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -3062,7 +3062,7 @@ static void fun_558(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -3113,11 +3113,11 @@ static void fun_543(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -3167,11 +3167,11 @@ static void fun_542(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -3221,11 +3221,11 @@ static void fun_532(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {120, 8};
@@ -3275,11 +3275,11 @@ static void fun_505(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {120, 8};
@@ -3329,11 +3329,11 @@ static void fun_502(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -3383,11 +3383,11 @@ static void fun_492(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {120, 8};
@@ -3437,11 +3437,11 @@ static void fun_485(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {120, 8};
@@ -3491,11 +3491,11 @@ static void fun_482(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     vm.last = {120, 8};
@@ -3545,11 +3545,11 @@ static void fun_471(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -3599,11 +3599,11 @@ static void fun_7(VMRef vm, StackPtr psp) {
     vm.last = {5, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {5, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {6, 5};
     regs[2] = locals[2]; // r
     regs[3] = locals[3]; // x
@@ -3651,7 +3651,7 @@ static void fun_567(VMRef vm, StackPtr psp) {
     vm.last = {13, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {14, 5};
     regs[2] = locals[3];regs[3] = locals[4]; // x
     fun_312(vm, regs + 4); // call: function282
@@ -3702,7 +3702,7 @@ static void fun_10(VMRef vm, StackPtr psp) {
     vm.last = {13, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {14, 5};
     regs[2] = locals[3];regs[3] = locals[4]; // x
     fun_310(vm, regs + 4); // call: function280
@@ -3754,11 +3754,11 @@ static void fun_595(VMRef vm, StackPtr psp) {
     vm.last = {39, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[4]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {39, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {40, 5};
     regs[2] = locals[4]; // x
     fun_596(vm, regs + 3); // call: function49
@@ -3830,7 +3830,7 @@ static void fun_590(VMRef vm, StackPtr psp) {
     vm.last = {39, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[7]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {40, 5};
     regs[2] = locals[4];regs[3] = locals[5];regs[4] = locals[6]; // x
     fun_591(vm, regs + 5); // call: function49
@@ -3896,11 +3896,11 @@ static void fun_13(VMRef vm, StackPtr psp) {
     vm.last = {39, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[4]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {39, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {40, 5};
     regs[2] = locals[4]; // x
     fun_49(vm, regs + 3); // call: function49
@@ -3960,7 +3960,7 @@ static void fun_600(VMRef vm, StackPtr psp) {
     vm.last = {57, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {58, 5};
     regs[2] = locals[2]; // x
     fun_366(vm, regs + 3); // call: function333
@@ -4009,7 +4009,7 @@ static void fun_599(VMRef vm, StackPtr psp) {
     vm.last = {57, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {58, 5};
     regs[2] = locals[2]; // x
     fun_365(vm, regs + 3); // call: function332
@@ -4060,7 +4060,7 @@ static void fun_568(VMRef vm, StackPtr psp) {
     vm.last = {57, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {58, 5};
     regs[2] = locals[2]; // x
     fun_333(vm, regs + 3); // call: function300
@@ -4107,11 +4107,11 @@ static void fun_15(VMRef vm, StackPtr psp) {
     vm.last = {57, 5};
     U_SFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[2]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {57, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {58, 5};
     regs[2] = locals[2]; // x
     fun_329(vm, regs + 3); // call: function296
@@ -4160,7 +4160,7 @@ static void fun_572(VMRef vm, StackPtr psp) {
     regs[3] = locals[3]; // _
     fun_322(vm, regs + 4); // call: function290
     vm.temp_lval = &locals[1]; // acc
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {69, 5};
@@ -4198,7 +4198,7 @@ static void fun_571(VMRef vm, StackPtr psp) {
     regs[3] = locals[3]; // _
     fun_321(vm, regs + 4); // call: function289
     vm.temp_lval = &locals[1]; // acc
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {69, 5};
@@ -4306,13 +4306,13 @@ static void fun_481(VMRef vm, StackPtr psp) {
     vm.last = {68, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // _
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {68, 5};
     regs[2] = locals[1]; // acc
     regs[3] = locals[3]; // _
     fun_183(vm, regs + 4); // call: function176
     vm.temp_lval = &locals[1]; // acc
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {69, 5};
@@ -4341,13 +4341,13 @@ static void fun_17(VMRef vm, StackPtr psp) {
     vm.last = {68, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // _
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {68, 5};
     regs[2] = locals[1]; // acc
     regs[3] = locals[3]; // _
     fun_30(vm, regs + 4); // call: function30
     vm.temp_lval = &locals[1]; // acc
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {69, 5};
@@ -4379,7 +4379,7 @@ static void fun_598(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     vm.temp_lval = &locals[2]; // acc
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {79, 5};
     *(regs + 0) = Value(-1);
     regs[1] = locals[0]; // xs
@@ -4391,7 +4391,7 @@ static void fun_598(VMRef vm, StackPtr psp) {
     vm.last = {79, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {79, 5};
     regs[2] = locals[2]; // acc
     regs[3] = locals[0]; // xs
@@ -4401,7 +4401,7 @@ static void fun_598(VMRef vm, StackPtr psp) {
     U_VPUSHIDXI(vm, regs + 5);
     fun_364(vm, regs + 4); // call: function331
     vm.temp_lval = &locals[2]; // acc
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {80, 5};
@@ -4446,7 +4446,7 @@ static void fun_19(VMRef vm, StackPtr psp) {
     vm.last = {79, 5};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {79, 5};
     regs[2] = locals[2]; // acc
     regs[3] = locals[0]; // xs
@@ -4487,11 +4487,11 @@ static void fun_597(VMRef vm, StackPtr psp) {
     vm.last = {93, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[2]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {93, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {94, 5};
     regs[2] = locals[2]; // x
     fun_363(vm, regs + 3); // call: function330
@@ -4538,7 +4538,7 @@ static void fun_23(VMRef vm, StackPtr psp) {
     vm.last = {93, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {94, 5};
     regs[2] = locals[2]; // x
     fun_280(vm, regs + 3); // call: function260
@@ -4582,15 +4582,15 @@ static void fun_26(VMRef vm, StackPtr psp) {
     vm.last = {115, 5};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[2]; // init
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {116, 5};
     regs[0] = locals[2]; // init
     vm.temp_lval = &locals[3]; // best
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {117, 5};
     *(regs + 0) = Value(-1);
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {118, 5};
     *(regs + 0) = Value(-1);
     regs[1] = locals[0]; // xs
@@ -4599,16 +4599,16 @@ static void fun_26(VMRef vm, StackPtr psp) {
     vm.last = {118, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[5]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {118, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[6]; // j
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {119, 5};
     regs[2] = locals[5]; // x
     fun_313(vm, regs + 3); // call: function283
     vm.temp_lval = &locals[7]; // v
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {120, 5};
     regs[2] = locals[4]; // i
     *(regs + 3) = Value(0);
@@ -4623,11 +4623,11 @@ static void fun_26(VMRef vm, StackPtr psp) {
     vm.last = {121, 5};
     regs[2] = locals[6]; // j
     vm.temp_lval = &locals[4]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {122, 5};
     regs[2] = locals[7]; // v
     vm.temp_lval = &locals[3]; // best
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     block3:;
     goto block0;
     block1:;
@@ -4652,7 +4652,7 @@ static void fun_472(VMRef vm, StackPtr psp) {
     vm.last = {140, 5};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[1]; // init
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {141, 5};
     regs[0] = locals[0]; // xs
     regs[1] = locals[1]; // init
@@ -4676,7 +4676,7 @@ static void fun_29(VMRef vm, StackPtr psp) {
     vm.last = {140, 5};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[1]; // init
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {141, 5};
     regs[0] = locals[0]; // xs
     regs[1] = locals[1]; // init
@@ -4735,7 +4735,7 @@ static void fun_594(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_LVAL_VARF(vm, regs + 1, 1550); // pivot
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {197, 5};
     regs[0] = locals[0]; // xs
     *(regs + 1) = Value(1);
@@ -4937,7 +4937,7 @@ static void fun_48(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     U_LVAL_VARF(vm, regs + 1, 54); // pivot
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {197, 5};
     regs[0] = locals[0]; // xs
     *(regs + 1) = Value(1);
@@ -5100,7 +5100,7 @@ static void fun_51(VMRef vm, StackPtr psp) {
     regs[1] = locals[0]; // s
     U_ISUB(vm, regs + 2);
     vm.temp_lval = &locals[2]; // l
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {205, 5};
     regs[0] = locals[2]; // l
     *(regs + 1) = Value(1);
@@ -5111,17 +5111,17 @@ static void fun_51(VMRef vm, StackPtr psp) {
     regs[1] = locals[0]; // s
     U_VPUSHIDXI(vm, regs + 2);
     vm.temp_lval = &locals[3]; // pivot
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {207, 5};
     regs[0] = locals[0]; // s
     *(regs + 1) = Value(1);
     U_IADD(vm, regs + 2);
     vm.temp_lval = &locals[4]; // sp
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {208, 5};
     regs[0] = locals[1]; // e
     vm.temp_lval = &locals[5]; // ep
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {209, 5};
     block1:;
     regs[0] = locals[4]; // sp
@@ -5133,7 +5133,7 @@ static void fun_51(VMRef vm, StackPtr psp) {
     regs[1] = locals[4]; // sp
     U_VPUSHIDXI(vm, regs + 2);
     vm.temp_lval = &locals[6]; // c
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {211, 5};
     regs[0] = locals[6]; // c
     regs[1] = locals[3]; // pivot
@@ -5148,7 +5148,7 @@ static void fun_51(VMRef vm, StackPtr psp) {
     *(regs + 3) = Value(1);
     U_ISUB(vm, regs + 4);
     U_LVAL_IDXVI(vm, regs + 3, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {213, 5};
     vm.temp_lval = &locals[4]; // sp
     U_LV_IPP(vm, regs + 0);
@@ -5163,13 +5163,13 @@ static void fun_51(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 1, 59); // xs
     regs[2] = locals[4]; // sp
     U_LVAL_IDXVI(vm, regs + 3, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {216, 5};
     regs[0] = locals[6]; // c
     U_PUSHVARF(vm, regs + 1, 59); // xs
     regs[2] = locals[5]; // ep
     U_LVAL_IDXVI(vm, regs + 3, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     block4:;
     goto block1;
     block2:;
@@ -5180,7 +5180,7 @@ static void fun_51(VMRef vm, StackPtr psp) {
     U_LV_IMM(vm, regs + 2);
     U_LV_DUP(vm, regs + 2);
     U_LVAL_IDXVI(vm, regs + 3, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {218, 5};
     regs[0] = locals[0]; // s
     regs[1] = locals[4]; // sp
@@ -5215,18 +5215,18 @@ static void fun_52(VMRef vm, StackPtr psp) {
     vm.last = {223, 5};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[2]; // key
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {223, 5};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {224, 5};
     regs[2] = locals[3]; // i
     if (!(regs + 2)->True()) goto block2;
     vm.last = {225, 5};
     regs[2] = locals[3]; // i
     vm.temp_lval = &locals[4]; // j
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {226, 5};
     block3:;
     regs[2] = locals[4]; // j
@@ -5254,7 +5254,7 @@ static void fun_52(VMRef vm, StackPtr psp) {
     U_LV_DUP(vm, regs + 4);
     U_LV_IMM(vm, regs + 5);
     U_LVAL_IDXVI(vm, regs + 5, 0);
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block3;
     block5:;
     vm.last = {228, 5};
@@ -5262,7 +5262,7 @@ static void fun_52(VMRef vm, StackPtr psp) {
     regs[3] = locals[0]; // xs
     regs[4] = locals[4]; // j
     U_LVAL_IDXVI(vm, regs + 5, 0);
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     block2:;
     goto block0;
     block1:;
@@ -5443,7 +5443,7 @@ static void fun_98(VMRef vm, StackPtr psp) {
     vm.last = {104, 4};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[3]; // y
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {104, 4};
     *(regs + 2) = Value(-1);
     regs[3] = locals[0]; // v+0
@@ -5452,7 +5452,7 @@ static void fun_98(VMRef vm, StackPtr psp) {
     vm.last = {104, 4};
     U_IFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[4]; // x
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {104, 4};
     regs[4] = locals[4]; // x
     regs[5] = locals[3]; // y
@@ -5594,70 +5594,70 @@ static void fun_110(VMRef vm, StackPtr psp) {
     vm.last = {7, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_111);
     vm.temp_lval = &locals[0]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_111(vm, regs + 0); // call: function108
     vm.last = {67, 3};
     vm.last = {67, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_112);
     vm.temp_lval = &locals[1]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_112(vm, regs + 0); // call: function109
     vm.last = {97, 3};
     vm.last = {97, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_113);
     vm.temp_lval = &locals[2]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_113(vm, regs + 0); // call: function110
     vm.last = {108, 3};
     vm.last = {108, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_114);
     vm.temp_lval = &locals[3]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_114(vm, regs + 0); // call: function111
     vm.last = {117, 3};
     vm.last = {117, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_117);
     vm.temp_lval = &locals[4]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_117(vm, regs + 0); // call: function114
     vm.last = {128, 3};
     vm.last = {128, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_120);
     vm.temp_lval = &locals[5]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_120(vm, regs + 0); // call: function116
     vm.last = {151, 3};
     vm.last = {151, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_123);
     vm.temp_lval = &locals[6]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_123(vm, regs + 0); // call: function119
     vm.last = {162, 3};
     vm.last = {162, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_125);
     vm.temp_lval = &locals[7]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_125(vm, regs + 0); // call: function121
     vm.last = {183, 3};
     vm.last = {183, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_126);
     vm.temp_lval = &locals[8]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_126(vm, regs + 0); // call: function122
     vm.last = {272, 3};
     vm.last = {272, 3};
     U_PUSHFUN(vm, regs + 0, 0, fun_127);
     vm.temp_lval = &locals[9]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_127(vm, regs + 0); // call: function123
     goto epilogue;
@@ -5966,7 +5966,7 @@ static void fun_111(VMRef vm, StackPtr psp) {
     *(regs + 3) = Value(0);
     *(regs + 4) = Value(0);
     U_LVAL_IDXVV(vm, regs + 5, 0, 3);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {55, 3};
     regs[0] = locals[11]; // tri
     *(regs + 1) = Value(0);
@@ -6096,7 +6096,7 @@ static void fun_112(VMRef vm, StackPtr psp) {
     vm.last = {71, 3};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[1]; // a+1
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {72, 3};
     regs[0] = locals[0];regs[1] = locals[1]; // a
     U_PUSHVARVF(vm, regs + 2, 129, 2); // int2_y+0
@@ -6119,7 +6119,7 @@ static void fun_112(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     regs[1] = locals[4]; // c
     U_LVAL_FLD(vm, regs + 2, 4);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {80, 3};
     regs[0] = locals[4]; // c
     U_PUSHFLD2V(vm, regs + 1, 3, 2);
@@ -6136,7 +6136,7 @@ static void fun_112(VMRef vm, StackPtr psp) {
     vm.last = {86, 3};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[9]; // s+4
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {87, 3};
     regs[0] = locals[8];regs[1] = locals[9]; // s
     U_PUSHVARVF(vm, regs + 2, 129, 2); // int2_y+0
@@ -6161,7 +6161,7 @@ static void fun_112(VMRef vm, StackPtr psp) {
     regs[1] = locals[10]; // v
     *(regs + 2) = Value(0);
     U_LVAL_IDXVI(vm, regs + 3, 1);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {94, 3};
     regs[0] = locals[10]; // v
     *(regs + 1) = Value(0);
@@ -6326,11 +6326,11 @@ static void fun_114(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(7);
     fun_116(vm, regs + 1); // call: g
     vm.temp_lval = &locals[3]; // mr3
-    U_LV_WRITE(vm, regs + 4);
+    *vm.temp_lval = *(regs + 3);
     vm.temp_lval = &locals[1]; // mr2+0
     U_LV_WRITEV(vm, regs + 3, 2);
     vm.temp_lval = &locals[0]; // mr1
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {114, 3};
     regs[0] = locals[1];regs[1] = locals[2]; // mr2
     *(regs + 2) = Value(7);
@@ -7454,7 +7454,7 @@ static void fun_128(VMRef vm, StackPtr psp) {
     vm.last = {6, 7};
     regs[0] = locals[2]; // err
     vm.temp_lval = &locals[4]; // _
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {33, 7};
     block0:;
     DecVal(vm, locals[2]);
@@ -7592,7 +7592,7 @@ static void fun_537(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[2]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -7660,7 +7660,7 @@ static void fun_535(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[2]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -7732,7 +7732,7 @@ static void fun_507(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[2]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -7803,7 +7803,7 @@ static void fun_497(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[4]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -7876,7 +7876,7 @@ static void fun_495(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[4]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -7950,7 +7950,7 @@ static void fun_490(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[2]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -8018,7 +8018,7 @@ static void fun_488(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[2]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -8090,7 +8090,7 @@ static void fun_483(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[2]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -8160,7 +8160,7 @@ static void fun_138(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 13, 1); // length
     U_IMOD(vm, regs + 2);
     vm.temp_lval = &locals[2]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 8};
     regs[0] = locals[0]; // this
     U_PUSHFLD(vm, regs + 1, 0);
@@ -8226,7 +8226,7 @@ static void fun_534(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 2, 0);
     fun_535(vm, regs + 2); // call: lookup
     vm.temp_lval = &locals[4]; // h
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[3]; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 8};
@@ -8236,7 +8236,7 @@ static void fun_534(VMRef vm, StackPtr psp) {
     regs[0] = locals[2]; // value
     regs[1] = locals[3]; // c
     U_LVAL_FLD(vm, regs + 2, 2);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     goto block1;
     block0:;
     vm.last = {38, 8};
@@ -8284,7 +8284,7 @@ static void fun_494(VMRef vm, StackPtr psp) {
     regs[1] = locals[1];regs[2] = locals[2];regs[3] = locals[3]; // key
     fun_495(vm, regs + 4); // call: lookup
     vm.temp_lval = &locals[8]; // h
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[7]; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 8};
@@ -8342,7 +8342,7 @@ static void fun_487(VMRef vm, StackPtr psp) {
     U_INCREF(vm, regs + 2, 0);
     fun_488(vm, regs + 2); // call: lookup
     vm.temp_lval = &locals[4]; // h
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[3]; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 8};
@@ -8398,7 +8398,7 @@ static void fun_139(VMRef vm, StackPtr psp) {
     regs[1] = locals[1]; // key
     fun_483(vm, regs + 2); // call: lookup
     vm.temp_lval = &locals[4]; // h
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[3]; // c
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {35, 8};
@@ -8408,7 +8408,7 @@ static void fun_139(VMRef vm, StackPtr psp) {
     regs[0] = locals[2]; // value
     regs[1] = locals[3]; // c
     U_LVAL_FLD(vm, regs + 2, 2);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     goto block1;
     block0:;
     vm.last = {38, 8};
@@ -8844,14 +8844,14 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {27, 6};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[0]; // vardef
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {28, 6};
     vm.temp_lval = &locals[0]; // vardef
     U_LV_IPP(vm, regs + 0);
     vm.last = {29, 6};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[1]; // constdef
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {32, 6};
     fun_153(vm, regs + 0); // call: test_namespace.f
     *(regs + 1) = Value(1);
@@ -8888,11 +8888,11 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {48, 6};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[60]; // x
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {48, 6};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[61]; // y
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {42, 6};
     *(regs + 0) = Value(1);
     *(regs + 1) = Value(1);
@@ -8902,11 +8902,11 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {49, 6};
     U_PUSHSTR(vm, regs + 0, 160); // ""
     vm.temp_lval = &locals[62]; // x
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {49, 6};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[63]; // y
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {43, 6};
     *(regs + 0) = Value(2);
     *(regs + 1) = Value(2);
@@ -9237,7 +9237,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {124, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_163);
     vm.temp_lval = &locals[65]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_163(vm, regs + 0); // call: function156
     vm.last = {130, 6};
@@ -9311,9 +9311,9 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(1);
     U_BCALLRET2(vm, regs + 2, 23, 1); // binary_search
     vm.temp_lval = &locals[24]; // findex
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[23]; // found
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {143, 6};
     regs[0] = locals[23]; // found
     *(regs + 1) = Value(2);
@@ -9330,9 +9330,9 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(9);
     U_BCALLRET2(vm, regs + 2, 23, 1); // binary_search
     vm.temp_lval = &locals[24]; // findex
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[23]; // found
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {145, 6};
     regs[0] = locals[23]; // found
     *(regs + 1) = Value(2);
@@ -9349,9 +9349,9 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(3);
     U_BCALLRET2(vm, regs + 2, 23, 1); // binary_search
     vm.temp_lval = &locals[24]; // findex
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[23]; // found
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {147, 6};
     regs[0] = locals[23]; // found
     *(regs + 1) = Value(2);
@@ -9387,7 +9387,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {156, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_169);
     vm.temp_lval = &locals[25]; // applyto4
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {157, 6};
     *(regs + 0) = Value(16);
     U_PUSHFUN(vm, regs + 1, 0, fun_170);
@@ -9434,7 +9434,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(1027);
     U_BCALLRET3(vm, regs + 3, 201, 1); // write_int16_le
     vm.temp_lval = &locals[27]; // ni
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[26]; // ns
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {163, 6};
@@ -9463,7 +9463,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(2050);
     U_BCALLRET3(vm, regs + 3, 207, 1); // write_int16_le_back
     vm.temp_lval = &locals[27]; // ni
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[26]; // ns
     U_LV_WRITEREF(vm, regs + 1);
     vm.last = {166, 6};
@@ -9516,7 +9516,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {174, 6};
     *(regs + 0) = Value(5);
     vm.temp_lval = &locals[30]; // aa
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {175, 6};
     *(regs + 0) = Value(2);
     vm.temp_lval = &locals[30]; // aa
@@ -9543,13 +9543,13 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(1);
     *(regs + 3) = Value(1);
     vm.temp_lval = &locals[34]; // ee
-    U_LV_WRITE(vm, regs + 4);
+    *vm.temp_lval = *(regs + 3);
     vm.temp_lval = &locals[33]; // dd
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.temp_lval = &locals[32]; // cc
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[31]; // bb
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {181, 6};
     regs[0] = locals[31]; // bb
     *(regs + 1) = Value(1);
@@ -9571,9 +9571,9 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(2);
     *(regs + 1) = Value(3);
     vm.temp_lval = &locals[36]; // gg
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[35]; // ff
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {183, 6};
     regs[0] = locals[35]; // ff
     *(regs + 1) = Value(2);
@@ -9589,9 +9589,9 @@ static void fun_156(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(8);
     *(regs + 1) = Value(9);
     vm.temp_lval = &locals[36]; // gg
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[35]; // ff
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {185, 6};
     regs[0] = locals[35]; // ff
     *(regs + 1) = Value(8);
@@ -9607,9 +9607,9 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {189, 6};
     fun_171(vm, regs + 0); // call: multiret
     vm.temp_lval = &locals[38]; // ii
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[37]; // hh
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {190, 6};
     regs[0] = locals[37]; // hh
     *(regs + 1) = Value(6);
@@ -9624,7 +9624,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {191, 6};
     fun_473(vm, regs + 0); // call: multiret
     vm.temp_lval = &locals[39]; // ll
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {192, 6};
     regs[0] = locals[39]; // ll
     *(regs + 1) = Value(6);
@@ -9634,9 +9634,9 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {194, 6};
     fun_172(vm, regs + 0); // call: multiretpassthru
     vm.temp_lval = &locals[41]; // kk
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[40]; // jj
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {195, 6};
     regs[0] = locals[40]; // jj
     *(regs + 1) = Value(6);
@@ -9654,7 +9654,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[43]; // mm
     U_LV_WRITEREF(vm, regs + 2);
     vm.temp_lval = &locals[42]; // nn
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {198, 6};
     regs[0] = locals[42]; // nn
     *(regs + 1) = Value(1.000000);
@@ -9802,7 +9802,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {259, 6};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[44]; // bit
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {260, 6};
     *(regs + 0) = Value(2);
     vm.temp_lval = &locals[44]; // bit
@@ -9867,7 +9867,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {272, 6};
     U_BCALLRET0(vm, regs + 2, 95, 1); // rnd_float
     vm.temp_lval = &locals[46]; // key
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {273, 6};
     regs[2] = locals[45]; // dict
     regs[3] = locals[46]; // key
@@ -9886,14 +9886,14 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {276, 6};
     U_BCALLRET0(vm, regs + 2, 95, 1); // rnd_float
     vm.temp_lval = &locals[47]; // key
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {277, 6};
     regs[2] = locals[45]; // dict
     regs[3] = locals[47]; // key
     *(regs + 4) = Value(-1.000000);
     fun_145(vm, regs + 5); // call: get
     vm.temp_lval = &locals[48]; // value
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {278, 6};
     regs[2] = locals[48]; // value
     regs[3] = locals[47]; // key
@@ -9957,7 +9957,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {290, 6};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[52]; // lc
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {291, 6};
     *(regs + 0) = Value(-1);
     *(regs + 1) = Value(10);
@@ -9966,7 +9966,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {291, 6};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[53]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {292, 6};
     regs[2] = locals[53]; // i
     *(regs + 3) = Value(5);
@@ -10041,7 +10041,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {338, 6};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[54]; // dav
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {339, 6};
     vm.last = {340, 6};
     vm.last = {341, 6};
@@ -10049,7 +10049,7 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {342, 6};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[66]; // a
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {341, 6};
     regs[0] = locals[66]; // a
     *(regs + 1) = Value(1);
@@ -10278,35 +10278,35 @@ static void fun_156(VMRef vm, StackPtr psp) {
     vm.last = {382, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_195);
     vm.temp_lval = &locals[67]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_195(vm, regs + 0); // call: function187
     vm.last = {389, 6};
     vm.last = {389, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_196);
     vm.temp_lval = &locals[68]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_196(vm, regs + 0); // call: function188
     vm.last = {404, 6};
     vm.last = {404, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_197);
     vm.temp_lval = &locals[69]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_197(vm, regs + 0); // call: function189
     vm.last = {413, 6};
     vm.last = {413, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_199);
     vm.temp_lval = &locals[70]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_199(vm, regs + 0); // call: function191
     vm.last = {428, 6};
     vm.last = {428, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_201);
     vm.temp_lval = &locals[71]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_201(vm, regs + 0); // call: function193
     DecVal(vm, locals[2]);
@@ -10430,7 +10430,7 @@ static void fun_162(VMRef vm, StackPtr psp) {
     vm.last = {110, 6};
     regs[0] = locals[0]; // i
     vm.temp_lval = &locals[1]; // x
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {111, 6};
     U_PUSHSTR(vm, regs + 0, 341); // "yes"
     regs[1] = locals[1]; // x
@@ -10469,7 +10469,7 @@ static void fun_163(VMRef vm, StackPtr psp) {
     vm.last = {125, 6};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[0]; // a
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {126, 6};
     vm.temp_lval = &locals[0]; // a
     U_LV_DUP(vm, regs + 0);
@@ -10773,7 +10773,7 @@ static void fun_174(VMRef vm, StackPtr psp) {
     U_BCALLRET3(vm, regs + 3, 201, 1); // write_int16_le
     regs[2] = locals[0]; // this
     U_LVAL_FLD(vm, regs + 3, 1);
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     regs[1] = locals[0]; // this
     U_LVAL_FLD(vm, regs + 2, 0);
     U_LV_WRITEREF(vm, regs + 1);
@@ -10799,7 +10799,7 @@ static void fun_175(VMRef vm, StackPtr psp) {
     vm.last = {209, 6};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[1]; // a
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {210, 6};
     regs[2] = locals[1]; // a
     regs[3] = locals[0]; // n
@@ -10901,7 +10901,7 @@ static void fun_178(VMRef vm, StackPtr psp) {
     vm.last = {224, 6};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[0]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {225, 6};
     regs[2] = locals[0]; // i
     if (!(regs + 2)->True()) goto block2;
@@ -11069,7 +11069,7 @@ static void fun_184(VMRef vm, StackPtr psp) {
     block2:;
     block1:;
     vm.temp_lval = &locals[0]; // a
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {306, 6};
     regs[0] = locals[0]; // a
     U_DUP(vm, regs + 1);
@@ -11090,7 +11090,7 @@ static void fun_184(VMRef vm, StackPtr psp) {
     block5:;
     block4:;
     vm.temp_lval = &locals[1]; // b
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {309, 6};
     regs[0] = locals[0]; // a
     regs[1] = locals[1]; // b
@@ -11294,7 +11294,7 @@ static void fun_195(VMRef vm, StackPtr psp) {
     vm.last = {383, 6};
     *(regs + 0) = Value(2.000000);
     vm.temp_lval = &locals[0]; // divisor
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {385, 6};
     *(regs + 0) = Value(5.000000);
     regs[1] = locals[0]; // divisor
@@ -11424,11 +11424,11 @@ static void fun_197(VMRef vm, StackPtr psp) {
     vm.last = {406, 6};
     *(regs + 0) = Value(1);
     U_LVAL_VARF(vm, regs + 1, 402); // state
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {407, 6};
     U_PUSHFUN(vm, regs + 0, 0, fun_198);
     vm.temp_lval = &locals[0]; // fv
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {410, 6};
     regs[0] = locals[0]; // fv
     U_BCALLRET1(vm, regs + 1, 154, 0); // call_function_value
@@ -11450,7 +11450,7 @@ static void fun_198(VMRef vm, StackPtr psp) {
     vm.last = {409, 6};
     *(regs + 0) = Value(2);
     U_LVAL_VARF(vm, regs + 1, 402); // state
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     goto epilogue;
     epilogue:;
     PopFunId(vm);
@@ -11576,14 +11576,14 @@ static void fun_202(VMRef vm, StackPtr psp) {
     vm.last = {10, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_203);
     vm.temp_lval = &locals[0]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_203(vm, regs + 0); // call: function195
     vm.last = {18, 9};
     vm.last = {18, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_209);
     vm.temp_lval = &locals[1]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_209(vm, regs + 0); // call: function201
     vm.last = {34, 9};
@@ -11595,70 +11595,70 @@ static void fun_202(VMRef vm, StackPtr psp) {
     vm.last = {36, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_211);
     vm.temp_lval = &locals[2]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_211(vm, regs + 0); // call: function203
     vm.last = {50, 9};
     vm.last = {50, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_214);
     vm.temp_lval = &locals[3]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_214(vm, regs + 0); // call: function206
     vm.last = {61, 9};
     vm.last = {61, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_215);
     vm.temp_lval = &locals[4]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_215(vm, regs + 0); // call: function207
     vm.last = {127, 9};
     vm.last = {127, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_236);
     vm.temp_lval = &locals[5]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_236(vm, regs + 0); // call: function217
     vm.last = {139, 9};
     vm.last = {139, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_238);
     vm.temp_lval = &locals[6]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_238(vm, regs + 0); // call: function219
     vm.last = {227, 9};
     vm.last = {227, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_253);
     vm.temp_lval = &locals[7]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_253(vm, regs + 0); // call: function234
     vm.last = {239, 9};
     vm.last = {239, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_254);
     vm.temp_lval = &locals[8]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_254(vm, regs + 0); // call: function235
     vm.last = {245, 9};
     vm.last = {245, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_257);
     vm.temp_lval = &locals[9]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_257(vm, regs + 0); // call: function237
     vm.last = {265, 9};
     vm.last = {265, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_259);
     vm.temp_lval = &locals[10]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_259(vm, regs + 0); // call: function239
     vm.last = {272, 9};
     vm.last = {272, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_260);
     vm.temp_lval = &locals[11]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_260(vm, regs + 0); // call: function240
     goto epilogue;
@@ -11735,7 +11735,7 @@ static void fun_205(VMRef vm, StackPtr psp) {
     vm.last = {14, 9};
     U_PUSHFUN(vm, regs + 0, 0, fun_206);
     vm.temp_lval = &locals[0]; // i
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {11, 9};
     fun_206(vm, regs + 0); // call: function198
     psp = PopArg(vm, 407, psp);
@@ -11935,11 +11935,11 @@ static void fun_214(VMRef vm, StackPtr psp) {
     vm.last = {52, 9};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[0]; // b
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {53, 9};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[0]; // b
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {54, 9};
     regs[0] = locals[0]; // b
     *(regs + 1) = Value(1);
@@ -12159,7 +12159,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     vm.temp_lval = &locals[4]; // mr2
     U_LV_WRITEREF(vm, regs + 2);
     vm.temp_lval = &locals[3]; // mr1
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {115, 9};
     regs[0] = locals[3]; // mr1
     *(regs + 1) = Value(2);
@@ -12183,7 +12183,7 @@ static void fun_215(VMRef vm, StackPtr psp) {
     vm.last = {123, 9};
     *(regs + 1) = Value(2);
     vm.temp_lval = &locals[8]; // i
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.last = {120, 9};
     regs[1] = locals[8]; // i
     U_IADD(vm, regs + 2);
@@ -12567,7 +12567,7 @@ static void fun_229(VMRef vm, StackPtr psp) {
     vm.last = {89, 9};
     regs[1] = locals[0]; // this
     vm.temp_lval = &locals[1]; // this
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.last = {81, 9};
     *(regs + 1) = Value(1);
     U_IADD(vm, regs + 2);
@@ -12856,11 +12856,11 @@ static void fun_238(VMRef vm, StackPtr psp) {
     vm.last = {196, 9};
     *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[4]; // x
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {196, 9};
     *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[5]; // y
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {195, 9};
     *(regs + 0) = Value(1);
     U_ASSERT(vm, regs + 1, 196, 9, 429);
@@ -12868,11 +12868,11 @@ static void fun_238(VMRef vm, StackPtr psp) {
     vm.last = {197, 9};
     *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[6]; // x
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {197, 9};
     *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[7]; // y
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {195, 9};
     *(regs + 0) = Value(1);
     U_ASSERT(vm, regs + 1, 197, 9, 430);
@@ -12893,9 +12893,9 @@ static void fun_238(VMRef vm, StackPtr psp) {
     vm.last = {203, 9};
     fun_245(vm, regs + 0); // call: q
     vm.temp_lval = &locals[3]; // s
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     vm.temp_lval = &locals[2]; // r
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {204, 9};
     vm.last = {205, 9};
     vm.last = {207, 9};
@@ -13067,7 +13067,7 @@ static void fun_241(VMRef vm, StackPtr psp) {
     vm.last = {152, 9};
     *(regs + 0) = Value(1);
     vm.temp_lval = &locals[1]; // x
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {153, 9};
     regs[0] = locals[1]; // x
     Pop(psp);
@@ -13574,7 +13574,7 @@ static void fun_560(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     U_PUSHVARF(vm, regs + 1, 1406); // n
     U_LVAL_FLD(vm, regs + 2, 7);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 1406); // n
     U_INCREF(vm, regs + 1, 0);
@@ -13720,7 +13720,7 @@ static void fun_549(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     U_PUSHVARF(vm, regs + 1, 1371); // n
     U_LVAL_FLD(vm, regs + 2, 9);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 1371); // n
     U_INCREF(vm, regs + 1, 0);
@@ -13866,7 +13866,7 @@ static void fun_263(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     U_PUSHVARF(vm, regs + 1, 479); // n
     U_LVAL_FLD(vm, regs + 2, 9);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {37, 11};
     U_PUSHVARF(vm, regs + 0, 479); // n
     U_INCREF(vm, regs + 1, 0);
@@ -13985,7 +13985,7 @@ static void fun_561(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 2);
     U_FADD(vm, regs + 2);
     vm.temp_lval = &locals[3]; // G
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {31, 11};
     regs[0] = locals[2]; // nn
     U_PUSHFLD(vm, regs + 1, 6);
@@ -14011,7 +14011,7 @@ static void fun_561(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     regs[1] = locals[2]; // nn
     U_LVAL_FLD(vm, regs + 2, 6);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {33, 11};
     regs[0] = locals[0]; // delta
     U_INCREF(vm, regs + 1, 0);
@@ -14031,12 +14031,12 @@ static void fun_561(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 1);
     regs[1] = locals[2]; // nn
     U_LVAL_FLD(vm, regs + 2, 1);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {36, 11};
     regs[0] = locals[3]; // G
     regs[1] = locals[2]; // nn
     U_LVAL_FLD(vm, regs + 2, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {37, 11};
     regs[0] = locals[3]; // G
     regs[1] = locals[2]; // nn
@@ -14044,7 +14044,7 @@ static void fun_561(VMRef vm, StackPtr psp) {
     U_FADD(vm, regs + 2);
     regs[1] = locals[2]; // nn
     U_LVAL_FLD(vm, regs + 2, 2);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     block3:;
     block0:;
     DecVal(vm, locals[0]);
@@ -14079,7 +14079,7 @@ static void fun_556(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 2);
     U_FADD(vm, regs + 2);
     vm.temp_lval = &locals[4]; // G
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {31, 11};
     regs[0] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 1, 8);
@@ -14105,7 +14105,7 @@ static void fun_556(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 8);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {33, 11};
     regs[0] = locals[0];regs[1] = locals[1]; // delta
     regs[2] = locals[3]; // nn
@@ -14124,12 +14124,12 @@ static void fun_556(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 1);
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 1);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {36, 11};
     regs[0] = locals[4]; // G
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {37, 11};
     regs[0] = locals[4]; // G
     regs[1] = locals[3]; // nn
@@ -14137,7 +14137,7 @@ static void fun_556(VMRef vm, StackPtr psp) {
     U_FADD(vm, regs + 2);
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 2);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     block3:;
     block0:;
     DecVal(vm, locals[3]);
@@ -14172,7 +14172,7 @@ static void fun_264(VMRef vm, StackPtr psp) {
     U_I2F(vm, regs + 2);
     U_FADD(vm, regs + 2);
     vm.temp_lval = &locals[4]; // G
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {31, 11};
     regs[0] = locals[3]; // nn
     U_PUSHFLD(vm, regs + 1, 8);
@@ -14198,7 +14198,7 @@ static void fun_264(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(1);
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 8);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {33, 11};
     regs[0] = locals[0];regs[1] = locals[1]; // delta
     regs[2] = locals[3]; // nn
@@ -14216,12 +14216,12 @@ static void fun_264(VMRef vm, StackPtr psp) {
     fun_269(vm, regs + 2); // call: function249
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 1);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {36, 11};
     regs[0] = locals[4]; // G
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {37, 11};
     regs[0] = locals[4]; // G
     regs[1] = locals[3]; // nn
@@ -14229,7 +14229,7 @@ static void fun_264(VMRef vm, StackPtr psp) {
     U_FADD(vm, regs + 2);
     regs[1] = locals[3]; // nn
     U_LVAL_FLD(vm, regs + 2, 2);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     block3:;
     block0:;
     DecVal(vm, locals[3]);
@@ -14380,7 +14380,7 @@ static void fun_555(VMRef vm, StackPtr psp) {
     regs[1] = locals[0]; // nn
     fun_286(vm, regs + 2); // call: function266
     vm.temp_lval = &locals[1]; // cost
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {60, 11};
     regs[0] = locals[1]; // cost
     U_I2F(vm, regs + 1);
@@ -14417,7 +14417,7 @@ static void fun_268(VMRef vm, StackPtr psp) {
     regs[1] = locals[0]; // nn
     fun_286(vm, regs + 2); // call: function266
     vm.temp_lval = &locals[1]; // cost
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {60, 11};
     regs[0] = locals[1]; // cost
     U_I2F(vm, regs + 1);
@@ -14693,24 +14693,24 @@ static void fun_273(VMRef vm, StackPtr psp) {
     regs[0] = locals[0]; // v+0
     U_BCALLRET1(vm, regs + 1, 112, 1); // abs
     vm.temp_lval = &locals[2]; // x
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {79, 11};
     regs[0] = locals[1]; // v+1
     U_BCALLRET1(vm, regs + 1, 112, 1); // abs
     vm.temp_lval = &locals[3]; // y
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {80, 11};
     regs[0] = locals[2]; // x
     regs[1] = locals[3]; // y
     U_BCALLRET2(vm, regs + 2, 128, 1); // max
     vm.temp_lval = &locals[4]; // big
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {81, 11};
     regs[0] = locals[2]; // x
     regs[1] = locals[3]; // y
     U_BCALLRET2(vm, regs + 2, 120, 1); // min
     vm.temp_lval = &locals[5]; // small
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {82, 11};
     *(regs + 0) = Value(2.000000);
     U_BCALLRET1(vm, regs + 1, 56, 1); // sqrt
@@ -14765,7 +14765,7 @@ static void fun_277(VMRef vm, StackPtr psp) {
     regs[0] = locals[0]; // initstate
     fun_302(vm, regs + 1); // call: function272
     vm.temp_lval = &locals[1]; // H
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {98, 11};
     *(regs + 0) = Value(0.000000);
     regs[1] = locals[1]; // H
@@ -14865,7 +14865,7 @@ static void fun_279(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 3, 0, fun_280);
     fun_23(vm, regs + 4); // call: find
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {107, 11};
     regs[2] = locals[3]; // i
     *(regs + 3) = Value(0);
@@ -14875,7 +14875,7 @@ static void fun_279(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 2, 527); // existingnodes
     U_BCALLRET1(vm, regs + 3, 13, 1); // length
     vm.temp_lval = &locals[3]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {109, 11};
     U_PUSHVARF(vm, regs + 2, 527); // existingnodes
     *(regs + 3) = Value(0.000000);
@@ -15080,7 +15080,7 @@ static void fun_282(VMRef vm, StackPtr psp) {
     *(regs + 2) = Value(1);
     regs[3] = locals[2]; // n
     U_LVAL_FLD(vm, regs + 4, 10);
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {60, 10};
@@ -15143,7 +15143,7 @@ static void fun_284(VMRef vm, StackPtr psp) {
     regs[1] = locals[0]; // x
     U_SPUSHIDXI(vm, regs + 2);
     vm.temp_lval = &locals[1]; // c
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {47, 10};
     regs[0] = locals[1]; // c
     *(regs + 1) = Value(83);
@@ -15867,7 +15867,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 1, 590); // board
     U_PUSHVARVF(vm, regs + 2, 591, 2); // cur+0
     U_LVAL_IDXVV(vm, regs + 4, 0, 2);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {13, 13};
     *(regs + 0) = Value(-1);
     U_PUSHVARF(vm, regs + 1, 588); // dim+0
@@ -15880,7 +15880,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     vm.last = {13, 13};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[0]; // step
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {14, 13};
     U_PUSHVARF(vm, regs + 2, 587); // knight_moves
     U_PUSHFUN(vm, regs + 3, 0, fun_308);
@@ -15935,7 +15935,7 @@ static void fun_306(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 3, 590); // board
     U_PUSHVARVF(vm, regs + 4, 591, 2); // cur+0
     U_LVAL_IDXVV(vm, regs + 6, 0, 2);
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {21, 13};
@@ -16476,15 +16476,15 @@ static void fun_326(VMRef vm, StackPtr psp) {
     vm.last = {44, 14};
     *(regs + 0) = Value(0);
     U_LVAL_VARF(vm, regs + 1, 626); // i
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {45, 14};
     *(regs + 0) = Value(1);
     U_LVAL_VARF(vm, regs + 1, 627); // line
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {46, 14};
     *(regs + 0) = Value(0);
     U_LVAL_VARF(vm, regs + 1, 628); // ival
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {47, 14};
     vm.last = {51, 14};
     vm.last = {61, 14};
@@ -16588,7 +16588,7 @@ static void fun_328(VMRef vm, StackPtr psp) {
     vm.last = {53, 14};
     U_PUSHVARF(vm, regs + 0, 626); // i
     vm.temp_lval = &locals[0]; // start
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {54, 14};
     block0:;
     U_PUSHVARF(vm, regs + 0, 623); // s
@@ -16640,15 +16640,15 @@ static void fun_328(VMRef vm, StackPtr psp) {
     vm.last = {58, 14};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[1]; // all
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {59, 14};
     U_PUSHVARF(vm, regs + 0, 625); // atom
     *(regs + 1) = Value(0);
     U_BCALLRET2(vm, regs + 2, 40, 1); // string_to_int
     vm.temp_lval = &locals[1]; // all
-    U_LV_WRITE(vm, regs + 2);
+    *vm.temp_lval = *(regs + 1);
     U_LVAL_VARF(vm, regs + 1, 628); // ival
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {60, 14};
     regs[0] = locals[1]; // all
     if (!(regs + 0)->True()) goto block5;
@@ -17172,7 +17172,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(0);
     regs[1] = locals[2]; // end
     U_LVAL_FLD(vm, regs + 2, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {17, 16};
     regs[0] = locals[2]; // end
     U_INCREF(vm, regs + 1, 0);
@@ -17198,7 +17198,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     vm.last = {30, 16};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[4]; // x
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {30, 16};
     *(regs + 2) = Value(-1);
     *(regs + 3) = Value(2);
@@ -17207,7 +17207,7 @@ static void fun_334(VMRef vm, StackPtr psp) {
     vm.last = {30, 16};
     U_IFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[5]; // y
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {31, 16};
     *(regs + 4) = Value(1);
     regs[5] = locals[5]; // y
@@ -17324,7 +17324,7 @@ static void fun_336(VMRef vm, StackPtr psp) {
     U_IADD(vm, regs + 2);
     regs[1] = locals[5]; // c
     U_LVAL_FLD(vm, regs + 2, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {24, 16};
     regs[0] = locals[0];regs[1] = locals[1]; // dir
     U_IVUMINUS(vm, regs + 2, 2);
@@ -17335,7 +17335,7 @@ static void fun_336(VMRef vm, StackPtr psp) {
     U_PUSHVARF(vm, regs + 0, 653); // pathq
     U_BCALLRET1(vm, regs + 1, 13, 1); // length
     vm.temp_lval = &locals[6]; // i
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {26, 16};
     block3:;
     regs[0] = locals[6]; // i
@@ -17432,11 +17432,11 @@ static void fun_339(VMRef vm, StackPtr psp) {
     vm.last = {16, 17};
     *(regs + 0) = Value(100);
     U_LVAL_VARF(vm, regs + 1, 666); // lssize
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {17, 17};
     U_PUSHFLT64(vm, regs + 0, -1717986918, 1070176665); // 0.2
     U_LVAL_VARF(vm, regs + 1, 667); // hmargin
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {19, 17};
     U_PUSHVARVF(vm, regs + 0, 123, 2); // int2_0+0
     U_LVAL_VARF(vm, regs + 2, 668); // highest+0
@@ -17448,11 +17448,11 @@ static void fun_339(VMRef vm, StackPtr psp) {
     vm.last = {21, 17};
     *(regs + 0) = Value(-1000.000000);
     U_LVAL_VARF(vm, regs + 1, 672); // highh
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {22, 17};
     *(regs + 0) = Value(1000.000000);
     U_LVAL_VARF(vm, regs + 1, 673); // lowh
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {24, 17};
     U_PUSHVARF(vm, regs + 0, 666); // lssize
     U_PUSHFUN(vm, regs + 1, 0, fun_340);
@@ -17475,19 +17475,19 @@ static void fun_339(VMRef vm, StackPtr psp) {
     vm.last = {54, 17};
     *(regs + 0) = Value(0.000000);
     vm.temp_lval = &locals[0]; // starting_extra_water
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {55, 17};
     *(regs + 0) = Value(4.000000);
     U_LVAL_VARF(vm, regs + 1, 691); // water_per_second
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {56, 17};
     *(regs + 0) = Value(40.000000);
     U_LVAL_VARF(vm, regs + 1, 692); // give_water_divider
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {57, 17};
     U_PUSHFLT64(vm, regs + 0, -1717986918, 1070176665); // 0.2
     U_LVAL_VARF(vm, regs + 1, 693); // minimum_water_accumulation
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {59, 17};
     regs[0] = locals[0]; // starting_extra_water
     U_PUSHVARF(vm, regs + 1, 674); // cells
@@ -17551,7 +17551,7 @@ static void fun_341(VMRef vm, StackPtr psp) {
     vm.last = {26, 17};
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
     vm.temp_lval = &locals[1]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {27, 17};
     *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[1]; // h
@@ -17561,13 +17561,13 @@ static void fun_341(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(3.000000);
     U_BCALLRET2(vm, regs + 2, 52, 1); // pow
     vm.temp_lval = &locals[1]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {29, 17};
     regs[0] = locals[1]; // h
     *(regs + 1) = Value(10.000000);
     U_FMUL(vm, regs + 2);
     vm.temp_lval = &locals[1]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {30, 17};
     regs[0] = locals[1]; // h
     U_PUSHVARF(vm, regs + 1, 672); // highh
@@ -17576,7 +17576,7 @@ static void fun_341(VMRef vm, StackPtr psp) {
     vm.last = {31, 17};
     regs[0] = locals[1]; // h
     U_LVAL_VARF(vm, regs + 1, 672); // highh
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {32, 17};
     regs[0] = locals[0]; // x
     U_PUSHVARF(vm, regs + 1, 675); // y
@@ -17591,7 +17591,7 @@ static void fun_341(VMRef vm, StackPtr psp) {
     vm.last = {34, 17};
     regs[0] = locals[1]; // h
     U_LVAL_VARF(vm, regs + 1, 673); // lowh
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {35, 17};
     regs[0] = locals[0]; // x
     U_PUSHVARF(vm, regs + 1, 675); // y
@@ -17626,7 +17626,7 @@ static void fun_583(VMRef vm, StackPtr psp) {
     vm.last = {39, 17};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[1]; // y
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {40, 17};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 666); // lssize
@@ -17635,7 +17635,7 @@ static void fun_583(VMRef vm, StackPtr psp) {
     vm.last = {40, 17};
     U_IFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[2]; // x
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {41, 17};
     regs[4] = locals[2]; // x
     regs[5] = locals[1]; // y
@@ -17671,7 +17671,7 @@ static void fun_342(VMRef vm, StackPtr psp) {
     vm.last = {39, 17};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[1]; // y
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {40, 17};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 666); // lssize
@@ -17680,7 +17680,7 @@ static void fun_342(VMRef vm, StackPtr psp) {
     vm.last = {40, 17};
     U_IFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[2]; // x
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {41, 17};
     regs[4] = locals[2]; // x
     regs[5] = locals[1]; // y
@@ -17849,7 +17849,7 @@ static void fun_347(VMRef vm, StackPtr psp) {
     vm.last = {65, 17};
     *(regs + 0) = Value(0.000000);
     U_LVAL_VARF(vm, regs + 1, 697); // totald
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {66, 17};
     U_NEWVEC(vm, regs + 0, 1138, 0);
     U_LVAL_VARF(vm, regs + 1, 698); // lower
@@ -17872,7 +17872,7 @@ static void fun_347(VMRef vm, StackPtr psp) {
     U_FDIV(vm, regs + 3);
     U_BCALLRET2(vm, regs + 2, 121, 1); // min
     vm.temp_lval = &locals[2]; // w
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {75, 17};
     *(regs + 0) = Value(-1);
     U_PUSHVARF(vm, regs + 1, 698); // lower
@@ -17893,7 +17893,7 @@ static void fun_347(VMRef vm, StackPtr psp) {
     regs[3] = locals[2]; // w
     U_FMUL(vm, regs + 4);
     vm.temp_lval = &locals[4]; // give
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {77, 17};
     regs[2] = locals[4]; // give
     regs[3] = locals[3]; // nc
@@ -17934,7 +17934,7 @@ static void fun_348(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 2, 1);
     U_FSUB(vm, regs + 2);
     vm.temp_lval = &locals[1]; // d
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {71, 17};
     regs[0] = locals[1]; // d
     U_PUSHVARF(vm, regs + 1, 667); // hmargin
@@ -17982,7 +17982,7 @@ static void fun_349(VMRef vm, StackPtr psp) {
     *(regs + 0) = Value(0.000000);
     regs[1] = locals[2]; // c
     U_LVAL_FLD(vm, regs + 2, 2);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     block0:;
     Pop(psp);
     Pop(psp);
@@ -18013,27 +18013,27 @@ static void fun_350(VMRef vm, StackPtr psp) {
     vm.last = {9, 18};
     *(regs + 0) = Value(100);
     U_LVAL_VARF(vm, regs + 1, 707); // N
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {10, 18};
     *(regs + 0) = Value(2.000000);
     U_PUSHVARF(vm, regs + 1, 707); // N
     U_I2F(vm, regs + 2);
     U_FDIV(vm, regs + 2);
     U_LVAL_VARF(vm, regs + 1, 708); // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {12, 18};
     vm.last = {29, 18};
     U_PUSHFLT64(vm, regs + 0, -1717986918, 1069128089); // 0.1
     vm.temp_lval = &locals[0]; // sigma
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {30, 18};
     U_PUSHFLT64(vm, regs + 0, -755914244, 1062232653); // 0.001
     vm.temp_lval = &locals[1]; // mu
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {31, 18};
     *(regs + 0) = Value(1000);
     vm.temp_lval = &locals[2]; // n_epochs
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {33, 18};
     U_PUSHVARF(vm, regs + 0, 707); // N
     U_PUSHFUN(vm, regs + 1, 0, fun_10000001);
@@ -18054,7 +18054,7 @@ static void fun_350(VMRef vm, StackPtr psp) {
     vm.last = {36, 18};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {37, 18};
     U_PUSHVARF(vm, regs + 2, 708); // f
     regs[3] = locals[5]; // i
@@ -18063,7 +18063,7 @@ static void fun_350(VMRef vm, StackPtr psp) {
     regs[3] = locals[3]; // x
     regs[4] = locals[5]; // i
     U_LVAL_IDXVI(vm, regs + 5, 0);
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {38, 18};
     *(regs + 2) = Value(3.000000);
     *(regs + 3) = Value(2.000000);
@@ -18079,7 +18079,7 @@ static void fun_350(VMRef vm, StackPtr psp) {
     regs[3] = locals[4]; // d
     regs[4] = locals[5]; // i
     U_LVAL_IDXVI(vm, regs + 5, 0);
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     goto block0;
     block1:;
     vm.last = {40, 18};
@@ -18135,11 +18135,11 @@ static void fun_351(VMRef vm, StackPtr psp) {
     vm.last = {14, 18};
     *(regs + 0) = Value(0.000000);
     vm.temp_lval = &locals[5]; // w0
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {15, 18};
     *(regs + 0) = Value(0.000000);
     vm.temp_lval = &locals[6]; // w1
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {16, 18};
     *(regs + 0) = Value(-1);
     regs[1] = locals[3]; // n_epochs
@@ -18148,11 +18148,11 @@ static void fun_351(VMRef vm, StackPtr psp) {
     vm.last = {17, 18};
     *(regs + 2) = Value(0.000000);
     vm.temp_lval = &locals[7]; // grad0
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {18, 18};
     *(regs + 2) = Value(0.000000);
     vm.temp_lval = &locals[8]; // grad1
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {19, 18};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 707); // N
@@ -18161,7 +18161,7 @@ static void fun_351(VMRef vm, StackPtr psp) {
     vm.last = {19, 18};
     U_IFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[9]; // i
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {20, 18};
     U_PUSHVARF(vm, regs + 4, 708); // f
     regs[5] = locals[1]; // d
@@ -18173,7 +18173,7 @@ static void fun_351(VMRef vm, StackPtr psp) {
     U_FSUB(vm, regs + 7);
     U_FMUL(vm, regs + 6);
     vm.temp_lval = &locals[10]; // err
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {21, 18};
     regs[4] = locals[10]; // err
     vm.temp_lval = &locals[7]; // grad0
@@ -18208,7 +18208,7 @@ static void fun_351(VMRef vm, StackPtr psp) {
     vm.last = {25, 18};
     U_IFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[11]; // i
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {26, 18};
     regs[4] = locals[5]; // w0
     regs[5] = locals[6]; // w1
@@ -18220,7 +18220,7 @@ static void fun_351(VMRef vm, StackPtr psp) {
     regs[5] = locals[4]; // y
     regs[6] = locals[11]; // i
     U_LVAL_IDXVI(vm, regs + 7, 0);
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     goto block4;
     block5:;
     goto block0;
@@ -18353,7 +18353,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {47, 19};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {48, 19};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 727); // verts
@@ -18366,7 +18366,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {48, 19};
     U_FORLOOPI(vm, regs + 4);
     vm.temp_lval = &locals[8]; // j
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {49, 19};
     regs[4] = locals[5]; // i
     regs[5] = locals[8]; // j
@@ -18379,7 +18379,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     *(regs + 6) = Value(2);
     U_BCALLRETV(vm, regs + 7, 86, 1); // magnitude
     vm.temp_lval = &locals[9]; // dist
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {51, 19};
     regs[4] = locals[9]; // dist
     *(regs + 5) = Value(2.000000);
@@ -18414,7 +18414,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_BCALLRET1(vm, regs + 2, 56, 1); // sqrt
     U_FMUL(vm, regs + 2);
     vm.temp_lval = &locals[10]; // edgedistnocross
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {55, 19};
     U_PUSHVARF(vm, regs + 0, 727); // verts
     U_INCREF(vm, regs + 1, 0);
@@ -18491,7 +18491,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {67, 19};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[16]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {68, 19};
     *(regs + 2) = Value(-1);
     regs[3] = locals[11]; // vnbs
@@ -18502,7 +18502,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {68, 19};
     U_VFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[17]; // j
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {69, 19};
     regs[4] = locals[16]; // i
     regs[5] = locals[17]; // j
@@ -18512,7 +18512,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {70, 19};
     regs[4] = locals[16]; // i
     U_LVAL_VARF(vm, regs + 5, 774); // p
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {71, 19};
     block15:;
     U_PUSHVARF(vm, regs + 4, 773); // shape
@@ -18538,7 +18538,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 5, 0, fun_363);
     fun_597(vm, regs + 6); // call: find
     vm.temp_lval = &locals[19]; // pidx
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {75, 19};
     regs[4] = locals[19]; // pidx
     *(regs + 5) = Value(0);
@@ -18547,7 +18547,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {76, 19};
     regs[4] = locals[17]; // j
     U_LVAL_VARF(vm, regs + 5, 774); // p
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {77, 19};
     regs[4] = locals[18]; // nbl
     regs[5] = locals[19]; // pidx
@@ -18558,7 +18558,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_IMOD(vm, regs + 7);
     U_VPUSHIDXI(vm, regs + 6);
     vm.temp_lval = &locals[17]; // j
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {78, 19};
     U_PUSHVARF(vm, regs + 4, 773); // shape
     regs[5] = locals[17]; // j
@@ -18579,7 +18579,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_PUSHFUN(vm, regs + 5, 0, fun_364);
     fun_598(vm, regs + 6); // call: reduce
     vm.temp_lval = &locals[20]; // start
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {81, 19};
     block18:;
     U_PUSHVARF(vm, regs + 4, 773); // shape
@@ -18656,11 +18656,11 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {90, 19};
     *(regs + 0) = Value(-1);
     vm.temp_lval = &locals[21]; // besti
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {91, 19};
     *(regs + 0) = Value(-1);
     vm.temp_lval = &locals[22]; // bestqc
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {92, 19};
     *(regs + 0) = Value(-1);
     regs[1] = locals[15]; // tris
@@ -18673,11 +18673,11 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {92, 19};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[24]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {93, 19};
     *(regs + 2) = Value(0);
     vm.temp_lval = &locals[25]; // qc
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {94, 19};
     *(regs + 2) = Value(-1);
     regs[3] = locals[23]; // t
@@ -18686,7 +18686,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {94, 19};
     U_VFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[26]; // vi1
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {95, 19};
     *(regs + 4) = Value(-1);
     regs[5] = locals[1]; // quads
@@ -18704,7 +18704,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {96, 19};
     U_VFORELEM(vm, regs + 8);
     vm.temp_lval = &locals[28]; // vi2
-    U_LV_WRITE(vm, regs + 9);
+    *vm.temp_lval = *(regs + 8);
     vm.last = {97, 19};
     regs[8] = locals[26]; // vi1
     regs[9] = locals[28]; // vi2
@@ -18728,11 +18728,11 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {100, 19};
     regs[2] = locals[25]; // qc
     vm.temp_lval = &locals[22]; // bestqc
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {101, 19};
     regs[2] = locals[24]; // i
     vm.temp_lval = &locals[21]; // besti
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     block36:;
     goto block27;
     block28:;
@@ -18745,7 +18745,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {103, 19};
     *(regs + 0) = Value(0);
     vm.temp_lval = &locals[30]; // found
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {104, 19};
     *(regs + 0) = Value(-1);
     regs[1] = locals[29]; // t1
@@ -18754,11 +18754,11 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {104, 19};
     U_VFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[31]; // vi
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {104, 19};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[32]; // vii
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {105, 19};
     regs[2] = locals[30]; // found
     U_LOGNOT(vm, regs + 3);
@@ -18772,7 +18772,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_IMOD(vm, regs + 5);
     U_VPUSHIDXI(vm, regs + 4);
     vm.temp_lval = &locals[33]; // ni
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {107, 19};
     regs[2] = locals[29]; // t1
     regs[3] = locals[32]; // vii
@@ -18782,7 +18782,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     U_IMOD(vm, regs + 5);
     U_VPUSHIDXI(vm, regs + 4);
     vm.temp_lval = &locals[34]; // li
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {108, 19};
     *(regs + 2) = Value(-1);
     regs[3] = locals[15]; // tris
@@ -18799,7 +18799,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {110, 19};
     *(regs + 4) = Value(1);
     vm.temp_lval = &locals[30]; // found
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {111, 19};
     regs[4] = locals[35]; // t
     *(regs + 5) = Value(0);
@@ -18890,7 +18890,7 @@ static void fun_355(VMRef vm, StackPtr psp) {
     vm.last = {118, 19};
     *(regs + 4) = Value(0);
     vm.temp_lval = &locals[30]; // found
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     block51:;
     block48:;
     block45:;
@@ -18979,7 +18979,7 @@ static void fun_356(VMRef vm, StackPtr psp) {
     vm.last = {25, 19};
     U_FORLOOPI(vm, regs + 4);
     vm.temp_lval = &locals[5]; // i
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {26, 19};
     regs[4] = locals[3];regs[5] = locals[4]; // w
     regs[6] = locals[1];regs[7] = locals[2]; // v
@@ -18991,7 +18991,7 @@ static void fun_356(VMRef vm, StackPtr psp) {
     *(regs + 6) = Value(2);
     U_BCALLRETV(vm, regs + 7, 86, 1); // magnitude
     vm.temp_lval = &locals[8]; // dist
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {28, 19};
     regs[4] = locals[8]; // dist
     *(regs + 5) = Value(1.000000);
@@ -19025,7 +19025,7 @@ static void fun_356(VMRef vm, StackPtr psp) {
     vm.last = {30, 19};
     *(regs + 0) = Value(0.000000);
     vm.temp_lval = &locals[9]; // totaldisp
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {31, 19};
     *(regs + 0) = Value(-1);
     regs[1] = locals[0]; // disps
@@ -19038,7 +19038,7 @@ static void fun_356(VMRef vm, StackPtr psp) {
     vm.last = {31, 19};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[12]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {32, 19};
     regs[2] = locals[10];regs[3] = locals[11]; // d
     U_PUSHVARF(vm, regs + 4, 727); // verts
@@ -19290,11 +19290,11 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {41, 20};
     *(regs + 0) = Value(1000.000000);
     vm.temp_lval = &locals[0]; // bigrad
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {42, 20};
     *(regs + 0) = Value(100.000000);
     vm.temp_lval = &locals[1]; // lrad
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {44, 20};
     regs[0] = locals[1]; // lrad
     *(regs + 1) = Value(50.000000);
@@ -19406,11 +19406,11 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {112, 20};
     *(regs + 0) = Value(32);
     U_LVAL_VARF(vm, regs + 1, 1015); // w
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {113, 20};
     *(regs + 0) = Value(24);
     vm.temp_lval = &locals[2]; // h
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {115, 20};
     *(regs + 0) = Value(50.000000);
     *(regs + 1) = Value(50.000000);
@@ -19455,7 +19455,7 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {121, 20};
     *(regs + 0) = Value(0);
     U_LVAL_VARF(vm, regs + 1, 1030); // samples
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {123, 20};
     *(regs + 0) = Value(0);
     U_BCALLRET1(vm, regs + 1, 97, 0); // rnd_seed
@@ -19467,7 +19467,7 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {125, 20};
     U_IFORELEM(vm, regs + 2);
     vm.temp_lval = &locals[16]; // y
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {126, 20};
     *(regs + 2) = Value(-1);
     U_PUSHVARF(vm, regs + 3, 1015); // w
@@ -19476,13 +19476,13 @@ static void fun_370(VMRef vm, StackPtr psp) {
     vm.last = {126, 20};
     U_IFORELEM(vm, regs + 4);
     vm.temp_lval = &locals[17]; // x
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {127, 20};
     *(regs + 4) = Value(2.000000);
     U_BCALLRET0(vm, regs + 5, 95, 1); // rnd_float
     U_FMUL(vm, regs + 6);
     vm.temp_lval = &locals[18]; // r1
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {128, 20};
     regs[4] = locals[18]; // r1
     *(regs + 5) = Value(1.000000);
@@ -19504,13 +19504,13 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_FSUB(vm, regs + 6);
     block5:;
     vm.temp_lval = &locals[19]; // dx
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {129, 20};
     *(regs + 4) = Value(2.000000);
     U_BCALLRET0(vm, regs + 5, 95, 1); // rnd_float
     U_FMUL(vm, regs + 6);
     vm.temp_lval = &locals[20]; // r2
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {130, 20};
     regs[4] = locals[20]; // r2
     *(regs + 5) = Value(1.000000);
@@ -19532,7 +19532,7 @@ static void fun_370(VMRef vm, StackPtr psp) {
     U_FSUB(vm, regs + 6);
     block7:;
     vm.temp_lval = &locals[21]; // dy
-    U_LV_WRITE(vm, regs + 5);
+    *vm.temp_lval = *(regs + 4);
     vm.last = {131, 20};
     regs[4] = locals[9];regs[5] = locals[10];regs[6] = locals[11]; // cx
     *(regs + 7) = Value(1.000000);
@@ -19657,7 +19657,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     vm.last = {27, 20};
     U_PUSHFLT64(vm, regs + 0, -350469331, 1058682594); // 0.0001
     vm.temp_lval = &locals[10]; // eps
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {28, 20};
     regs[0] = locals[7];regs[1] = locals[8];regs[2] = locals[9]; // op
     *(regs + 3) = Value(3);
@@ -19665,7 +19665,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
     vm.temp_lval = &locals[11]; // b
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {29, 20};
     regs[0] = locals[11]; // b
     regs[1] = locals[11]; // b
@@ -19683,7 +19683,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
     vm.temp_lval = &locals[12]; // det
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {30, 20};
     regs[0] = locals[12]; // det
     *(regs + 1) = Value(0.000000);
@@ -19706,13 +19706,13 @@ static void fun_371(VMRef vm, StackPtr psp) {
     regs[0] = locals[12]; // det
     U_BCALLRET1(vm, regs + 1, 56, 1); // sqrt
     vm.temp_lval = &locals[12]; // det
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {32, 20};
     regs[0] = locals[11]; // b
     regs[1] = locals[12]; // det
     U_FSUB(vm, regs + 2);
     vm.temp_lval = &locals[13]; // t
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {37, 20};
     regs[0] = locals[13]; // t
     regs[1] = locals[10]; // eps
@@ -19727,7 +19727,7 @@ static void fun_371(VMRef vm, StackPtr psp) {
     regs[1] = locals[12]; // det
     U_FADD(vm, regs + 2);
     vm.temp_lval = &locals[13]; // t
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {37, 20};
     regs[0] = locals[13]; // t
     regs[1] = locals[10]; // eps
@@ -19831,11 +19831,11 @@ static void fun_372(VMRef vm, StackPtr psp) {
     vm.last = {57, 20};
     U_PUSHFLT64(vm, regs + 0, -1577058304, 1114446484); // 1000000000000.0
     vm.temp_lval = &locals[7]; // t
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {58, 20};
     *(regs + 0) = Value(-1);
     vm.temp_lval = &locals[8]; // id
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {59, 20};
     *(regs + 0) = Value(-1);
     U_PUSHVARF(vm, regs + 1, 946); // spheres
@@ -19848,14 +19848,14 @@ static void fun_372(VMRef vm, StackPtr psp) {
     vm.last = {59, 20};
     U_FORLOOPI(vm, regs + 2);
     vm.temp_lval = &locals[10]; // i
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {60, 20};
     regs[2] = locals[9]; // s
     U_INCREF(vm, regs + 3, 0);
     regs[3] = locals[0];regs[4] = locals[1];regs[5] = locals[2];regs[6] = locals[3];regs[7] = locals[4];regs[8] = locals[5]; // r
     fun_371(vm, regs + 9); // call: intersect
     vm.temp_lval = &locals[11]; // d
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {61, 20};
     regs[2] = locals[11]; // d
     *(regs + 3) = Value(0.000000);
@@ -19870,11 +19870,11 @@ static void fun_372(VMRef vm, StackPtr psp) {
     vm.last = {62, 20};
     regs[2] = locals[11]; // d
     vm.temp_lval = &locals[7]; // t
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     vm.last = {63, 20};
     regs[2] = locals[10]; // i
     vm.temp_lval = &locals[8]; // id
-    U_LV_WRITE(vm, regs + 3);
+    *vm.temp_lval = *(regs + 2);
     block3:;
     goto block0;
     block1:;
@@ -19977,7 +19977,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     block11:;
     block9:;
     vm.temp_lval = &locals[25]; // p
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {71, 20};
     vm.temp_lval = &locals[6]; // depth
     U_LV_IPP(vm, regs + 0);
@@ -20030,16 +20030,16 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_BCALLRET0(vm, regs + 1, 95, 1); // rnd_float
     U_FMUL(vm, regs + 2);
     vm.temp_lval = &locals[26]; // r1
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {74, 20};
     U_BCALLRET0(vm, regs + 0, 95, 1); // rnd_float
     vm.temp_lval = &locals[27]; // r2
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {75, 20};
     regs[0] = locals[27]; // r2
     U_BCALLRET1(vm, regs + 1, 56, 1); // sqrt
     vm.temp_lval = &locals[28]; // r2s
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {76, 20};
     regs[0] = locals[19];regs[1] = locals[20];regs[2] = locals[21]; // nl
     vm.temp_lval = &locals[29]; // w+0
@@ -20188,15 +20188,15 @@ static void fun_372(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0.000000);
     U_FGT(vm, regs + 2);
     vm.temp_lval = &locals[47]; // into
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {85, 20};
     *(regs + 0) = Value(1.000000);
     vm.temp_lval = &locals[48]; // nc
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {86, 20};
     *(regs + 0) = Value(1.500000);
     vm.temp_lval = &locals[49]; // nt
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {87, 20};
     regs[0] = locals[47]; // into
     if (!(regs + 0)->True()) goto block20;
@@ -20212,7 +20212,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_FDIV(vm, regs + 2);
     block21:;
     vm.temp_lval = &locals[50]; // nnt
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {88, 20};
     regs[0] = locals[3];regs[1] = locals[4];regs[2] = locals[5]; // r
     *(regs + 3) = Value(3);
@@ -20220,7 +20220,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     *(regs + 7) = Value(3);
     U_BCALLRETV(vm, regs + 8, 85, 1); // dot
     vm.temp_lval = &locals[51]; // ddn
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {89, 20};
     *(regs + 0) = Value(1.000000);
     regs[1] = locals[50]; // nnt
@@ -20234,7 +20234,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_FMUL(vm, regs + 3);
     U_FSUB(vm, regs + 2);
     vm.temp_lval = &locals[52]; // cos2t
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {90, 20};
     regs[0] = locals[52]; // cos2t
     *(regs + 1) = Value(0.000000);
@@ -20296,13 +20296,13 @@ static void fun_372(VMRef vm, StackPtr psp) {
     regs[1] = locals[48]; // nc
     U_FSUB(vm, regs + 2);
     vm.temp_lval = &locals[56]; // a
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {94, 20};
     regs[0] = locals[49]; // nt
     regs[1] = locals[48]; // nc
     U_FADD(vm, regs + 2);
     vm.temp_lval = &locals[57]; // b
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {95, 20};
     regs[0] = locals[56]; // a
     regs[1] = locals[56]; // a
@@ -20312,7 +20312,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_FMUL(vm, regs + 3);
     U_FDIV(vm, regs + 2);
     vm.temp_lval = &locals[58]; // R0
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {96, 20};
     *(regs + 0) = Value(1.000000);
     regs[1] = locals[47]; // into
@@ -20331,7 +20331,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     block26:;
     U_FSUB(vm, regs + 2);
     vm.temp_lval = &locals[59]; // c
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {97, 20};
     regs[0] = locals[58]; // R0
     *(regs + 1) = Value(1.000000);
@@ -20349,13 +20349,13 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
     vm.temp_lval = &locals[60]; // Re
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {98, 20};
     *(regs + 0) = Value(1.000000);
     regs[1] = locals[60]; // Re
     U_FSUB(vm, regs + 2);
     vm.temp_lval = &locals[61]; // Tr
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {99, 20};
     *(regs + 0) = Value(0.250000);
     *(regs + 1) = Value(0.500000);
@@ -20363,13 +20363,13 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_FMUL(vm, regs + 3);
     U_FADD(vm, regs + 2);
     vm.temp_lval = &locals[62]; // P
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {100, 20};
     regs[0] = locals[60]; // Re
     regs[1] = locals[62]; // P
     U_FDIV(vm, regs + 2);
     vm.temp_lval = &locals[63]; // RP
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {101, 20};
     regs[0] = locals[61]; // Tr
     *(regs + 1) = Value(1.000000);
@@ -20377,7 +20377,7 @@ static void fun_372(VMRef vm, StackPtr psp) {
     U_FSUB(vm, regs + 3);
     U_FDIV(vm, regs + 2);
     vm.temp_lval = &locals[64]; // TP
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {102, 20};
     regs[0] = locals[6]; // depth
     *(regs + 1) = Value(2);
@@ -20556,7 +20556,7 @@ static void fun_377(VMRef vm, StackPtr psp) {
     vm.last = {4, 22};
     *(regs + 0) = Value(42);
     vm.temp_lval = &locals[0]; // a
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {5, 22};
     U_PUSHFLT64(vm, regs + 0, 1374389535, 1074339512); // 3.14
     U_NEWVEC(vm, regs + 1, 9, 1);
@@ -20819,14 +20819,14 @@ static void fun_379(VMRef vm, StackPtr psp) {
     vm.last = {8, 24};
     U_PUSHFUN(vm, regs + 0, 0, fun_380);
     vm.temp_lval = &locals[0]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_380(vm, regs + 0); // call: function347
     vm.last = {13, 24};
     vm.last = {13, 24};
     U_PUSHFUN(vm, regs + 0, 0, fun_381);
     vm.temp_lval = &locals[1]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_381(vm, regs + 0); // call: function348
     goto epilogue;
@@ -20885,13 +20885,13 @@ static void fun_381(VMRef vm, StackPtr psp) {
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     vm.temp_lval = &locals[1]; // k
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {16, 24};
     regs[0] = locals[0]; // v
     *(regs + 1) = Value(0);
     U_VPUSHIDXI(vm, regs + 2);
     vm.temp_lval = &locals[1]; // k
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     DecVal(vm, locals[0]);
     goto epilogue;
     epilogue:;
@@ -20908,7 +20908,7 @@ static void fun_382(VMRef vm, StackPtr psp) {
     vm.last = {7, 25};
     U_PUSHFUN(vm, regs + 0, 0, fun_383);
     vm.temp_lval = &locals[0]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_383(vm, regs + 0); // call: function350
     goto epilogue;
@@ -21605,7 +21605,7 @@ static void fun_424(VMRef vm, StackPtr psp) {
     U_PUSHFLD(vm, regs + 1, 0);
     regs[1] = locals[0]; // this
     U_LVAL_FLD(vm, regs + 2, 0);
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     Pop(psp);
     Pop(psp);
     goto epilogue;
@@ -21930,7 +21930,7 @@ static void fun_452(VMRef vm, StackPtr psp) {
     vm.last = {6, 28};
     U_PUSHFUN(vm, regs + 0, 0, fun_453);
     vm.temp_lval = &locals[0]; // f
-    U_LV_WRITE(vm, regs + 1);
+    *vm.temp_lval = *(regs + 0);
     vm.last = {253, 5};
     fun_453(vm, regs + 0); // call: function396
     goto epilogue;
@@ -26267,7 +26267,7 @@ int main(int argc, char *argv[]) {
         span(specidents),
         span(enums),
         span(ser_ids),
-        string_view("Sun Jun  8 20:39:43 2025", 24),
+        string_view("Sun Jun  8 20:40:36 2025", 24),
         0x883db8532f6e1faa,
         span(subfunctions_to_function),
     };
