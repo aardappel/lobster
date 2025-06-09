@@ -48,7 +48,6 @@ CPPSRCS= \
 	../src/builtins.cpp \
 	../src/compiler.cpp \
 	../src/cubegen.cpp \
-	../src/disasm.cpp \
 	../src/engine.cpp \
 	../src/file.cpp \
 	../src/font.cpp \
