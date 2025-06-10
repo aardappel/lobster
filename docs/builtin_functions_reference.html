@@ -1885,6 +1885,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.calc_text_size</b>(text<font color="#666666">: string</font>) -> <font color="#666666">float2</font></tt></td><td class="a">returns the amount of space used by the given text in the current font</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.calc_word_wrap_position</b>(text<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns the wrap point of the given text in the current font</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.mouse_clicked</b>(button<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether the given mouse button was clicked anywhere</td>
 
 </tr>
@@ -1895,6 +1898,12 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.text_bullet</b>(label<font color="#666666">: string</font>)</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.indent_start</b>(amount<font color="#666666">: float</font>)</tt></td><td class="a">(use im.indent instead)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.indent_end</b>()</tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.font_start</b>(font_idx<font color="#666666">: int</font>)</tt></td><td class="a">(use im.font instead)</td>
@@ -2156,6 +2165,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.set_style_param_slow</b>(name<font color="#666666">: string</font>, vals<font color="#666666">: [float]</font>)</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.get_style_param_slow</b>(name<font color="#666666">: string</font>, vals<font color="#666666">: [float]</font>)</tt></td><td class="a"></td>
 
 </tr>
 </table></td></tr>

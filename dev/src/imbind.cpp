@@ -69,9 +69,11 @@ enum Nesting {
     N_DRAG_DROP_TARGET,
     N_TABLE,
     N_DISABLED,
+    N_INDENT,
 };
 
 vector<Nesting> nstack;
+vector<float> indent_stack;
 ImGuiID last_dock_id = 0;
 struct ListSelect { int sel = -1; int64_t last_use = -1; };
 map<ImGuiID, ListSelect> list_state;
@@ -85,6 +87,7 @@ enum {
 
 void IMGUIFrameCleanup() {
     nstack.clear();
+    indent_stack.clear();
 }
 
 void IMGUICleanup() {
@@ -234,6 +237,12 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_DISABLED:
                 ImGui::EndDisabled();
+                break;
+            case N_INDENT:
+                if (!indent_stack.empty()) {
+                    ImGui::Unindent(indent_stack.back());
+                    indent_stack.pop_back();
+                }
                 break;
         }
         // If this was indeed the item we're looking for, we can stop popping.
@@ -1293,6 +1302,20 @@ nfr("calc_text_size", "text", "S", "F}:2",
         PushVec(sp, float2(size.x, size.y));
     });
 
+nfr("calc_word_wrap_position", "text", "S", "I",
+    "returns the wrap point of the given text in the current font",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto &text = *Pop(sp).sval();
+        auto text_sv = text.strvnt();
+        auto *ctext = text_sv.c_str();
+        auto *ctext_end = ctext + text_sv.size();
+        auto font_size = ImGui::GetFontSize();
+        auto width = ImGui::GetContentRegionAvail().x;
+        auto *wrap_ctext = ImGui::GetFont()->CalcWordWrapPosition(font_size, ctext, ctext_end, width);
+        Push(sp, wrap_ctext - ctext);
+    });
+
 nfr("mouse_clicked", "button", "I", "B",
     "returns whether the given mouse button was clicked anywhere",
     [](StackPtr &sp, VM &vm) {
@@ -1326,6 +1349,23 @@ nfr("text_bullet", "label", "S", "",
         auto &s = *text.sval();
         ImGui::BulletText("%s", s.data());
         return NilVal();
+    });
+
+nfr("indent_start", "amount", "F", "",
+    "(use im.indent instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto amount = Pop(sp).fltval();
+        ImGui::Indent(amount);
+        NPush(N_INDENT);
+        indent_stack.push_back(amount);
+    });
+
+nfr("indent_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_INDENT);
     });
 
 nfr("font_start", "font_idx", "I", "",
@@ -2199,6 +2239,55 @@ nfr("show_profiling_stats", "num,reset", "IB", "",
         return NilVal();
     });
 
+#define IMGUI_STYLE_PARAMS(FV, VV, BV, DV) \
+    FV(Alpha                      ) /* Global alpha applies to everything in Dear ImGui. */ \
+    FV(DisabledAlpha              ) /* Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha. */ \
+    VV(WindowPadding              ) /* Padding within a window. */ \
+    FV(WindowRounding             ) /* Radius of window corners rounding. Set to 0.0f to have rectangular windows. Large values tend to lead to variety of artifacts and are not recommended. */ \
+    FV(WindowBorderSize           ) /* Thickness of border around windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly). */ \
+    VV(WindowMinSize              ) /* Minimum window size. This is a global setting. If you want to constrain individual windows, use SetNextWindowSizeConstraints(). */ \
+    VV(WindowTitleAlign           ) /* Alignment for title bar text. Defaults to (0.0f,0.5f) for left-aligned,vertically centered. */ \
+    DV(WindowMenuButtonPosition   ) /* Side of the collapsing/docking button in the title bar (None/Left/Right). Defaults to ImGuiDir_Left. */ \
+    FV(ChildRounding              ) /* Radius of child window corners rounding. Set to 0.0f to have rectangular windows. */ \
+    FV(ChildBorderSize            ) /* Thickness of border around child windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly). */ \
+    FV(PopupRounding              ) /* Radius of popup window corners rounding. (Note that tooltip windows use WindowRounding) */ \
+    FV(PopupBorderSize            ) /* Thickness of border around popup/tooltip windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly). */ \
+    VV(FramePadding               ) /* Padding within a framed rectangle (used by most widgets). */ \
+    FV(FrameRounding              ) /* Radius of frame corners rounding. Set to 0.0f to have rectangular frame (used by most widgets). */ \
+    FV(FrameBorderSize            ) /* Thickness of border around frames. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly). */ \
+    VV(ItemSpacing                ) /* Horizontal and vertical spacing between widgets/lines. */ \
+    VV(ItemInnerSpacing           ) /* Horizontal and vertical spacing between within elements of a composed widget (e.g. a slider and its label). */ \
+    VV(CellPadding                ) /* Padding within a table cell. Cellpadding.x is locked for entire table. CellPadding.y may be altered between different rows. */ \
+    VV(TouchExtraPadding          ) /* Expand reactive bounding box for touch-based system where touch position is not accurate enough. Unfortunately we don't sort widgets so priority on overlap will always be given to the first widget. So don't grow this too much! */ \
+    FV(IndentSpacing              ) /* Horizontal indentation when e.g. entering a tree node. Generally == (FontSize + FramePadding.x*2). */ \
+    FV(ColumnsMinSpacing          ) /* Minimum horizontal spacing between two columns. Preferably > (FramePadding.x + 1). */ \
+    FV(ScrollbarSize              ) /* Width of the vertical scrollbar, Height of the horizontal scrollbar. */ \
+    FV(ScrollbarRounding          ) /* Radius of grab corners for scrollbar. */ \
+    FV(GrabMinSize                ) /* Minimum width/height of a grab box for slider/scrollbar. */ \
+    FV(GrabRounding               ) /* Radius of grabs corners rounding. Set to 0.0f to have rectangular slider grabs. */ \
+    FV(LogSliderDeadzone          ) /* The size in pixels of the dead-zone around zero on logarithmic sliders that cross zero. */ \
+    FV(TabRounding                ) /* Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs. */ \
+    FV(TabBorderSize              ) /* Thickness of border around tabs. */ \
+    FV(TabBarBorderSize           ) /* Thickness of tab-bar separator, which takes on the tab active color to denote focus. */ \
+    FV(TabBarOverlineSize         ) /* Thickness of tab-bar overline, which highlights the selected tab-bar. */ \
+    FV(TableAngledHeadersAngle    ) /* Angle of angled headers (supported values range from -50.0f degrees to +50.0f degrees). */ \
+    VV(TableAngledHeadersTextAlign) /* Alignment of angled headers within the cell */ \
+    DV(ColorButtonPosition        ) /* Side of the color button in the ColorEdit4 widget (left/right). Defaults to ImGuiDir_Right. */ \
+    VV(ButtonTextAlign            ) /* Alignment of button text when button is larger than text. Defaults to (0.5f, 0.5f) (centered). */ \
+    VV(SelectableTextAlign        ) /* Alignment of selectable text. Defaults to (0.0f, 0.0f) (top-left aligned). It's generally important to keep this left-aligned if you want to lay multiple items on a same line. */ \
+    FV(SeparatorTextBorderSize    ) /* Thickness of border in SeparatorText() */ \
+    VV(SeparatorTextAlign         ) /* Alignment of text within the separator. Defaults to (0.0f, 0.5f) (left aligned, center). */ \
+    VV(SeparatorTextPadding       ) /* Horizontal offset of text from each edge of the separator + spacing on other axis. Generally small values. .y is recommended to be == FramePadding.y. */ \
+    VV(DisplayWindowPadding       ) /* Apply to regular windows: amount which we enforce to keep visible when moving near edges of your screen. */ \
+    VV(DisplaySafeAreaPadding     ) /* Apply to every windows, menus, popups, tooltips: amount where we avoid displaying contents. Adjust if you cannot see the edges of your screen (e.g. on a TV where scaling has not been configured). */ \
+    FV(DockingSeparatorSize       ) /* Thickness of resizing border between docked windows */ \
+    FV(MouseCursorScale           ) /* Scale software rendered mouse cursor (when io.MouseDrawCursor is enabled). We apply per-monitor DPI scaling over this scale. May be removed later. */ \
+    BV(AntiAliasedLines           ) /* Enable anti-aliased lines/borders. Disable if you are really tight on CPU/GPU. Latched at the beginning of the frame (copied to ImDrawList). */ \
+    BV(AntiAliasedLinesUseTex     ) /* Enable anti-aliased lines/borders using textures where possible. Require backend to render with bilinear filtering (NOT point/nearest filtering). Latched at the beginning of the frame (copied to ImDrawList). */ \
+    BV(AntiAliasedFill            ) /* Enable anti-aliased edges around filled shapes (rounded rectangles, circles, etc.). Disable if you are really tight on CPU/GPU. Latched at the beginning of the frame (copied to ImDrawList). */ \
+    FV(CurveTessellationTol       ) /* Tessellation tolerance when using PathBezierCurveTo() without a specific number of segments. Decrease for highly tessellated curves (higher quality, more polygons), increase to reduce quality. */ \
+    FV(CircleTessellationMaxError ) /* Maximum error (in pixels) allowed when using AddCircle()/AddCircleFilled() or drawing rounded corner rectangles with no explicit segment count specified. Decrease for higher quality but more geometry. */
+
 nfr("set_style_param_slow", "name,vals", "SF]", "",
     "",
     [](StackPtr &, VM &vm, Value name, Value vals) {
@@ -2220,55 +2309,37 @@ nfr("set_style_param_slow", "name,vals", "SF]", "",
                 vv.y = vs->AtS(1).fltval();
             }
         }
-        if (n == "Alpha"                      ) st.Alpha                       = fv; // Global alpha applies to everything in Dear ImGui.
-        if (n == "DisabledAlpha"              ) st.DisabledAlpha               = fv; // Additional alpha multiplier applied by BeginDisabled(). Multiply over current value of Alpha.
-        if (n == "WindowPadding"              ) st.WindowPadding               = vv; // Padding within a window.
-        if (n == "WindowRounding"             ) st.WindowRounding              = fv; // Radius of window corners rounding. Set to 0.0f to have rectangular windows. Large values tend to lead to variety of artifacts and are not recommended.
-        if (n == "WindowBorderSize"           ) st.WindowBorderSize            = fv; // Thickness of border around windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly).
-        if (n == "WindowMinSize"              ) st.WindowMinSize               = vv; // Minimum window size. This is a global setting. If you want to constrain individual windows, use SetNextWindowSizeConstraints().
-        if (n == "WindowTitleAlign"           ) st.WindowTitleAlign            = vv; // Alignment for title bar text. Defaults to (0.0f,0.5f) for left-aligned,vertically centered.
-        if (n == "WindowMenuButtonPosition"   ) st.WindowMenuButtonPosition    = dv; // Side of the collapsing/docking button in the title bar (None/Left/Right). Defaults to ImGuiDir_Left.
-        if (n == "ChildRounding"              ) st.ChildRounding               = fv; // Radius of child window corners rounding. Set to 0.0f to have rectangular windows.
-        if (n == "ChildBorderSize"            ) st.ChildBorderSize             = fv; // Thickness of border around child windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly).
-        if (n == "PopupRounding"              ) st.PopupRounding               = fv; // Radius of popup window corners rounding. (Note that tooltip windows use WindowRounding)
-        if (n == "PopupBorderSize"            ) st.PopupBorderSize             = fv; // Thickness of border around popup/tooltip windows. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly).
-        if (n == "FramePadding"               ) st.FramePadding                = vv; // Padding within a framed rectangle (used by most widgets).
-        if (n == "FrameRounding"              ) st.FrameRounding               = fv; // Radius of frame corners rounding. Set to 0.0f to have rectangular frame (used by most widgets).
-        if (n == "FrameBorderSize"            ) st.FrameBorderSize             = fv; // Thickness of border around frames. Generally set to 0.0f or 1.0f. (Other values are not well tested and more CPU/GPU costly).
-        if (n == "ItemSpacing"                ) st.ItemSpacing                 = vv; // Horizontal and vertical spacing between widgets/lines.
-        if (n == "ItemInnerSpacing"           ) st.ItemInnerSpacing            = vv; // Horizontal and vertical spacing between within elements of a composed widget (e.g. a slider and its label).
-        if (n == "CellPadding"                ) st.CellPadding                 = vv; // Padding within a table cell. Cellpadding.x is locked for entire table. CellPadding.y may be altered between different rows.
-        if (n == "TouchExtraPadding"          ) st.TouchExtraPadding           = vv; // Expand reactive bounding box for touch-based system where touch position is not accurate enough. Unfortunately we don't sort widgets so priority on overlap will always be given to the first widget. So don't grow this too much!
-        if (n == "IndentSpacing"              ) st.IndentSpacing               = fv; // Horizontal indentation when e.g. entering a tree node. Generally == (FontSize + FramePadding.x*2).
-        if (n == "ColumnsMinSpacing"          ) st.ColumnsMinSpacing           = fv; // Minimum horizontal spacing between two columns. Preferably > (FramePadding.x + 1).
-        if (n == "ScrollbarSize"              ) st.ScrollbarSize               = fv; // Width of the vertical scrollbar, Height of the horizontal scrollbar.
-        if (n == "ScrollbarRounding"          ) st.ScrollbarRounding           = fv; // Radius of grab corners for scrollbar.
-        if (n == "GrabMinSize"                ) st.GrabMinSize                 = fv; // Minimum width/height of a grab box for slider/scrollbar.
-        if (n == "GrabRounding"               ) st.GrabRounding                = fv; // Radius of grabs corners rounding. Set to 0.0f to have rectangular slider grabs.
-        if (n == "LogSliderDeadzone"          ) st.LogSliderDeadzone           = fv; // The size in pixels of the dead-zone around zero on logarithmic sliders that cross zero.
-        if (n == "TabRounding"                ) st.TabRounding                 = fv; // Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.
-        if (n == "TabBorderSize"              ) st.TabBorderSize               = fv; // Thickness of border around tabs.
-        if (n == "TabBarBorderSize"           ) st.TabBarBorderSize            = fv; // Thickness of tab-bar separator, which takes on the tab active color to denote focus.
-        if (n == "TabBarOverlineSize"         ) st.TabBarOverlineSize          = fv; // Thickness of tab-bar overline, which highlights the selected tab-bar.
-        if (n == "TableAngledHeadersAngle"    ) st.TableAngledHeadersAngle     = fv; // Angle of angled headers (supported values range from -50.0f degrees to +50.0f degrees).
-        if (n == "TableAngledHeadersTextAlign") st.TableAngledHeadersTextAlign = vv; // Alignment of angled headers within the cell
-        if (n == "ColorButtonPosition"        ) st.ColorButtonPosition         = dv; // Side of the color button in the ColorEdit4 widget (left/right). Defaults to ImGuiDir_Right.
-        if (n == "ButtonTextAlign"            ) st.ButtonTextAlign             = vv; // Alignment of button text when button is larger than text. Defaults to (0.5f, 0.5f) (centered).
-        if (n == "SelectableTextAlign"        ) st.SelectableTextAlign         = vv; // Alignment of selectable text. Defaults to (0.0f, 0.0f) (top-left aligned). It's generally important to keep this left-aligned if you want to lay multiple items on a same line.
-        if (n == "SeparatorTextBorderSize"    ) st.SeparatorTextBorderSize     = fv; // Thickness of border in SeparatorText()
-        if (n == "SeparatorTextAlign"         ) st.SeparatorTextAlign          = vv; // Alignment of text within the separator. Defaults to (0.0f, 0.5f) (left aligned, center).
-        if (n == "SeparatorTextPadding"       ) st.SeparatorTextPadding        = vv; // Horizontal offset of text from each edge of the separator + spacing on other axis. Generally small values. .y is recommended to be == FramePadding.y.
-        if (n == "DisplayWindowPadding"       ) st.DisplayWindowPadding        = vv; // Apply to regular windows: amount which we enforce to keep visible when moving near edges of your screen.
-        if (n == "DisplaySafeAreaPadding"     ) st.DisplaySafeAreaPadding      = vv; // Apply to every windows, menus, popups, tooltips: amount where we avoid displaying contents. Adjust if you cannot see the edges of your screen (e.g. on a TV where scaling has not been configured).
-        if (n == "DockingSeparatorSize"       ) st.DockingSeparatorSize        = fv; // Thickness of resizing border between docked windows
-        if (n == "MouseCursorScale"           ) st.MouseCursorScale            = fv; // Scale software rendered mouse cursor (when io.MouseDrawCursor is enabled). We apply per-monitor DPI scaling over this scale. May be removed later.
-        if (n == "AntiAliasedLines"           ) st.AntiAliasedLines            = bv; // Enable anti-aliased lines/borders. Disable if you are really tight on CPU/GPU. Latched at the beginning of the frame (copied to ImDrawList).
-        if (n == "AntiAliasedLinesUseTex"     ) st.AntiAliasedLinesUseTex      = bv; // Enable anti-aliased lines/borders using textures where possible. Require backend to render with bilinear filtering (NOT point/nearest filtering). Latched at the beginning of the frame (copied to ImDrawList).
-        if (n == "AntiAliasedFill"            ) st.AntiAliasedFill             = bv; // Enable anti-aliased edges around filled shapes (rounded rectangles, circles, etc.). Disable if you are really tight on CPU/GPU. Latched at the beginning of the frame (copied to ImDrawList).
-        if (n == "CurveTessellationTol"       ) st.CurveTessellationTol        = fv; // Tessellation tolerance when using PathBezierCurveTo() without a specific number of segments. Decrease for highly tessellated curves (higher quality, more polygons), increase to reduce quality.
-        if (n == "CircleTessellationMaxError" ) st.CircleTessellationMaxError  = fv; // Maximum error (in pixels) allowed when using AddCircle()/AddCircleFilled() or drawing rounded corner rectangles with no explicit segment count specified. Decrease for higher quality but more geometry.
+        #define PARAM_FV(Name) if (n == #Name) st.Name = fv;
+        #define PARAM_VV(Name) if (n == #Name) st.Name = vv;
+        #define PARAM_BV(Name) if (n == #Name) st.Name = bv;
+        #define PARAM_DV(Name) if (n == #Name) st.Name = dv;
+        IMGUI_STYLE_PARAMS(PARAM_FV, PARAM_VV, PARAM_BV, PARAM_DV)
+        #undef PARAM_FV
+        #undef PARAM_VV
+        #undef PARAM_BV
+        #undef PARAM_DV
         return NilVal();
     });
+
+nfr("get_style_param_slow", "name,vals", "SF]", "",
+    "",
+    [](StackPtr &, VM &vm, Value name, Value vals) {
+        IsInit(vm, { N_NONE, N_NONE });
+        auto n = name.sval()->strv();
+        auto &st = ImGui::GetStyle();
+        auto vs = vals.vval();
+        #define PARAM_FV(Name) if (n == #Name) { vs->Push(vm, st.Name); }
+        #define PARAM_VV(Name) if (n == #Name) { vs->Push(vm, st.Name.x); vs->Push(vm, st.Name.y); }
+        #define PARAM_BV(Name) if (n == #Name) { vs->Push(vm, (float)st.Name); }
+        #define PARAM_DV(Name) if (n == #Name) { vs->Push(vm, (float)st.Name); }
+        IMGUI_STYLE_PARAMS(PARAM_FV, PARAM_VV, PARAM_BV, PARAM_DV)
+        #undef PARAM_FV
+        #undef PARAM_VV
+        #undef PARAM_BV
+        #undef PARAM_DV
+        return NilVal();
+    });
+
 
 }  // AddIMGUI
 
