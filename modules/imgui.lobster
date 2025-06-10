@@ -447,6 +447,11 @@ def group(body):
     body()
     group_end()
 
+def indent(amount, body):
+    indent_start(amount)
+    body()
+    indent_end()
+
 private let stack_traces = []
 // Collect stack traces for the location this function is called from,
 // as a rudimentary form of debugging.
