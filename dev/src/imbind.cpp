@@ -1307,18 +1307,29 @@ nfr("calc_text_size", "text", "S", "F}:2",
         PushVec(sp, float2(size.x, size.y));
     });
 
-nfr("calc_word_wrap_position", "text", "S", "I",
-    "returns the wrap point of the given text in the current font",
+nfr("calc_word_wrap_position", "text,width", "SF", "I",
+    "returns the wrap point of the given text in the current font. If width is 0 then use the current region's available width",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
+        auto width = Pop(sp).fltval();
         auto &text = *Pop(sp).sval();
         auto text_sv = text.strvnt();
         auto *ctext = text_sv.c_str();
         auto *ctext_end = ctext + text_sv.size();
         auto font_size = ImGui::GetFontSize();
-        auto width = ImGui::GetContentRegionAvail().x;
+        if (width == 0) {
+            width = ImGui::GetContentRegionAvail().x;
+        }
         auto *wrap_ctext = ImGui::GetFont()->CalcWordWrapPosition(font_size, ctext, ctext_end, width);
         Push(sp, wrap_ctext - ctext);
+    });
+
+nfr("calc_item_width", "", "", "F",
+    "returns the width of an item given the current cursor position",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto width = ImGui::CalcItemWidth();
+        Push(sp, width);
     });
 
 nfr("mouse_clicked", "button", "I", "B",

@@ -1885,7 +1885,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.calc_text_size</b>(text<font color="#666666">: string</font>) -> <font color="#666666">float2</font></tt></td><td class="a">returns the amount of space used by the given text in the current font</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.calc_word_wrap_position</b>(text<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns the wrap point of the given text in the current font</td>
+<tr class="a" valign=top><td class="a"><tt><b>im.calc_word_wrap_position</b>(text<font color="#666666">: string</font>, width<font color="#666666">: float</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns the wrap point of the given text in the current font. If width is 0 then use the current region's available width</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.calc_item_width</b>() -> <font color="#666666">float</font></tt></td><td class="a">returns the width of an item given the current cursor position</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.mouse_clicked</b>(button<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether the given mouse button was clicked anywhere</td>
