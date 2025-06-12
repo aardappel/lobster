@@ -103,7 +103,7 @@ bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
     if (imgui_init) return true;
     if (!_sdl_window || !_sdl_context) return false;
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    auto context = ImGui::CreateContext();
     auto &io = ImGui::GetIO();
     io.ConfigFlags |= (ImGuiConfigFlags)flags;
     io.ConfigDebugHighlightIdConflicts = true;
@@ -145,6 +145,11 @@ bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
             "#version 150"
         #endif
     );
+    // This disables ctrl+tab being a window switcher.
+    // TODO: may need to be exposed to be optional?
+    // https://github.com/ocornut/imgui/issues/3255
+    context->ConfigNavWindowingKeyNext = 0;
+    context->ConfigNavWindowingKeyPrev = 0;
     imgui_init = true;
     return true;
 }
