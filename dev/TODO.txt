@@ -1,3 +1,7 @@
+- A step debugger.
+  simply emit code that does a simple int comparison per statement, not too expensive.
+  More work is the UI to show all source code, allow to set breakpoints etc.
+
 - Fix defaultval typechecking in TypeCheckUDT
 
 - FIX:
@@ -185,13 +189,7 @@
     Would also improve build speeds.
     Downside is not having the ability to save a dll or whatever for offline use.
 - natgen refactor
-  - inline tocpp into codegen, removing bytecode entirely.
-    - will likely make all refactorings below easier!
-    - this stops us from being able to ship bytecode in a pak as a quick way to distribute programs
-      without building C++.. people have to now either ship C output or source.
-    - makes it easier to output C that looks like normal C, which would benefit libtcc codegen.
   - start moving vmops into tocpp for all simple ops.
-    - see vmcore experiment.
     - this is not so easy, any call to a function in vmdata.h would need a C wrapper, and
       pretty much all VM ops do this.
       In C, you'd replace a single call to the VM op (whose internals are fully optimized)
@@ -212,20 +210,17 @@
       be properly register allocated.
     - make args into actual C++ args?
       - this could help not having to pass parent pointers to regs which could help optimisation.
+      - tricky, because dynamic calls assume all signatures are the same.
   - somehow remove temp_lval
   - make all builtin calls direct
   - move more stuff into the epilogue.
   - de-inline vm ops that are big: check in disassembly
-  - NO RUNTIME STACKTRACES!
   - shrink fvars array in VM
   - can finally remove exceptions? could instead execute a return from -3 or whatever.
     - the big challenge is doing that for errors.
       - this may be easier after builtins are inlined.
   - Now that all bytecode goes to native gen, make bytecode more specific to it.
-  - threading appears broken (sequential?)
   - remove next_call_target
-  - test/enable
-    - --cpp mode for mac/ios
   - start regs sp at end to access top slightly more optimally?
     - need to flip all struct order etc.
   - reduce use of ElemType.
