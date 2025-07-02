@@ -190,7 +190,7 @@ void BindBufferObjectResource(VM &vm, Value buf, string_view_nt name) {
 
 OwnedTexture *CreateTextureFromValues(LVector *mat, int tf) {
     auto ys = mat->len;
-    auto xs = mat->AtS(0).vval()->len;
+    auto xs = ys ? mat->AtS(0).vval()->len : 0;
     if (tf & TF_TWO_CHANNEL)
         THROW_OR_ABORT("CreateTextureFromValues: two channel not supported yet");
     auto sz = tf & TF_SINGLE_CHANNEL
