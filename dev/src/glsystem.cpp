@@ -172,7 +172,7 @@ void OpenGLFrameEnd() {
     //glFlush();
     //glFinish();
     #if LOBSTER_FRAME_PROFILER == 2
-        FrameMark
+        FrameMark;
     #endif
 }
 
