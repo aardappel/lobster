@@ -26,8 +26,13 @@
 #  include <fcntl.h>
 #elif defined __FreeBSD__
 #  include <sys/thr.h>
-#elif defined __NetBSD__ || defined __DragonFly__
+#elif defined __NetBSD__
+#  include <lwp.h>
+#elif defined __DragonFly__
 #  include <sys/lwp.h>
+#elif defined __QNX__
+#  include <process.h>
+#  include <sys/neutrino.h>
 #endif
 
 #ifdef __MINGW32__
@@ -78,6 +83,11 @@ TRACY_API uint32_t GetThreadHandleImpl()
     return lwp_gettid();
 #elif defined __OpenBSD__
     return getthrid();
+#elif defined __QNX__
+    return (uint32_t) gettid();
+#elif defined __EMSCRIPTEN__
+    // Not supported, but let it compile.
+    return 0;
 #else
     // To add support for a platform, retrieve and return the kernel thread identifier here.
     //
@@ -93,16 +103,10 @@ TRACY_API uint32_t GetThreadHandleImpl()
 }
 
 #ifdef TRACY_ENABLE
-struct ThreadNameData
-{
-    uint32_t id;
-    const char* name;
-    ThreadNameData* next;
-};
 std::atomic<ThreadNameData*>& GetThreadNameData();
 #endif
 
-#ifdef _MSC_VER
+#if defined _MSC_VER && !defined __clang__
 #  pragma pack( push, 8 )
 struct THREADNAME_INFO
 {
@@ -111,7 +115,7 @@ struct THREADNAME_INFO
     DWORD dwThreadID;
     DWORD dwFlags;
 };
-#  pragma pack(pop)
+#  pragma pack( pop )
 
 void ThreadNameMsvcMagic( const THREADNAME_INFO& info )
 {
@@ -127,6 +131,11 @@ void ThreadNameMsvcMagic( const THREADNAME_INFO& info )
 
 TRACY_API void SetThreadName( const char* name )
 {
+    SetThreadNameWithHint( name, 0 );
+}
+
+TRACY_API void SetThreadNameWithHint( const char* name, int32_t groupHint )
+{
 #if defined _WIN32
 #  ifdef TRACY_UWP
     static auto _SetThreadDescription = &::SetThreadDescription;
@@ -141,7 +150,7 @@ TRACY_API void SetThreadName( const char* name )
     }
     else
     {
-#  if defined _MSC_VER
+#  if defined _MSC_VER && !defined __clang__
         THREADNAME_INFO info;
         info.dwType = 0x1000;
         info.szName = name;
@@ -173,6 +182,21 @@ TRACY_API void SetThreadName( const char* name )
 #endif
         }
     }
+#elif defined __QNX__
+    {
+        const auto sz = strlen( name );
+        if( sz <= _NTO_THREAD_NAME_MAX )
+        {
+            pthread_setname_np( pthread_self(), name );
+        }
+        else
+        {
+            char buf[_NTO_THREAD_NAME_MAX + 1];
+            memcpy( buf, name, _NTO_THREAD_NAME_MAX );
+            buf[_NTO_THREAD_NAME_MAX] = '\0';
+            pthread_setname_np( pthread_self(), buf );
+        }
+    };
 #endif
 #ifdef TRACY_ENABLE
     {
@@ -182,12 +206,29 @@ TRACY_API void SetThreadName( const char* name )
         buf[sz] = '\0';
         auto data = (ThreadNameData*)tracy_malloc_fast( sizeof( ThreadNameData ) );
         data->id = detail::GetThreadHandleImpl();
+        data->groupHint = groupHint;
         data->name = buf;
         data->next = GetThreadNameData().load( std::memory_order_relaxed );
         while( !GetThreadNameData().compare_exchange_weak( data->next, data, std::memory_order_release, std::memory_order_relaxed ) ) {}
     }
 #endif
 }
+
+#ifdef TRACY_ENABLE
+ThreadNameData* GetThreadNameData( uint32_t id )
+{
+    auto ptr = GetThreadNameData().load( std::memory_order_relaxed );
+    while( ptr )
+    {
+        if( ptr->id == id )
+        {
+            return ptr;
+        }
+        ptr = ptr->next;
+    }
+    return nullptr;
+}
+#endif
 
 TRACY_API const char* GetThreadName( uint32_t id )
 {
@@ -202,61 +243,65 @@ TRACY_API const char* GetThreadName( uint32_t id )
         }
         ptr = ptr->next;
     }
-#else
-#  if defined _WIN32
-#    ifdef TRACY_UWP
-    static auto _GetThreadDescription = &::GetThreadDescription;
-#    else
-    static auto _GetThreadDescription = (t_GetThreadDescription)GetProcAddress( GetModuleHandleA( "kernel32.dll" ), "GetThreadDescription" );
-#    endif
+#endif
+
+#if defined _WIN32
+# ifdef TRACY_UWP
+   static auto _GetThreadDescription = &::GetThreadDescription;
+# else
+   static auto _GetThreadDescription = (t_GetThreadDescription)GetProcAddress( GetModuleHandleA( "kernel32.dll" ), "GetThreadDescription" );
+# endif
     if( _GetThreadDescription )
     {
         auto hnd = OpenThread( THREAD_QUERY_LIMITED_INFORMATION, FALSE, (DWORD)id );
         if( hnd != 0 )
         {
             PWSTR tmp;
-            _GetThreadDescription( hnd, &tmp );
-            auto ret = wcstombs( buf, tmp, 256 );
-            CloseHandle( hnd );
-            if( ret != 0 )
+            if( SUCCEEDED( _GetThreadDescription( hnd, &tmp ) ) )
             {
-                return buf;
+                auto ret = wcstombs( buf, tmp, 256 );
+                CloseHandle( hnd );
+                LocalFree( tmp );
+                if( ret != static_cast<size_t>( -1 ) )
+                {
+                    return buf;
+                }
             }
         }
     }
-#  elif defined __linux__
-    int cs, fd;
-    char path[32];
-#   ifdef __ANDROID__
-    int tid = gettid();
-#   else
-    int tid = (int) syscall( SYS_gettid );
-#   endif
-    snprintf( path, sizeof( path ), "/proc/self/task/%d/comm", tid );
-    sprintf( buf, "%" PRIu32, id );
-#   ifndef __ANDROID__
-    pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, &cs );
-#   endif
-    if ( ( fd = open( path, O_RDONLY ) ) > 0) {
-        int len = read( fd, buf, 255 );
-        if( len > 0 )
-        {
-            buf[len] = 0;
-            if( len > 1 && buf[len-1] == '\n' )
-            {
-                buf[len-1] = 0;
-            }
-        }
-        close( fd );
-    }
-#   ifndef __ANDROID__
-    pthread_setcancelstate( cs, 0 );
-#   endif
-    return buf;
-#  endif
+#elif defined __linux__
+  int cs, fd;
+  char path[32];
+  snprintf( path, sizeof( path ), "/proc/self/task/%d/comm", id );
+  sprintf( buf, "%" PRIu32, id );
+# ifndef __ANDROID__
+   pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, &cs );
+# endif
+  if ( ( fd = open( path, O_RDONLY ) ) > 0) {
+      int len = read( fd, buf, 255 );
+      if( len > 0 )
+      {
+          buf[len] = 0;
+          if( len > 1 && buf[len-1] == '\n' )
+          {
+              buf[len-1] = 0;
+          }
+      }
+      close( fd );
+  }
+# ifndef __ANDROID__
+   pthread_setcancelstate( cs, 0 );
+# endif
+  return buf;
+#elif defined __QNX__
+    static char qnxNameBuf[_NTO_THREAD_NAME_MAX + 1] = {0};
+    if (pthread_getname_np(static_cast<int>(id), qnxNameBuf, _NTO_THREAD_NAME_MAX) == 0) {
+        return qnxNameBuf;
+    };
 #endif
-    sprintf( buf, "%" PRIu32, id );
-    return buf;
+
+  sprintf( buf, "%" PRIu32, id );
+  return buf;
 }
 
 TRACY_API const char* GetEnvVar( const char* name )

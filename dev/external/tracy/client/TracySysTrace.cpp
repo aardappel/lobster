@@ -16,16 +16,25 @@
 namespace tracy
 {
 
-static constexpr int GetSamplingFrequency()
+static int GetSamplingFrequency()
 {
+    int samplingHz = TRACY_SAMPLING_HZ;
+
+    auto env = GetEnvVar( "TRACY_SAMPLING_HZ" );
+    if( env )
+    {
+        int val = atoi( env );
+        if( val > 0 ) samplingHz = val;
+    }
+
 #if defined _WIN32
-    return TRACY_SAMPLING_HZ > 8000 ? 8000 : ( TRACY_SAMPLING_HZ < 1 ? 1 : TRACY_SAMPLING_HZ );
+    return samplingHz > 8000 ? 8000 : ( samplingHz < 1 ? 1 : samplingHz );
 #else
-    return TRACY_SAMPLING_HZ > 1000000 ? 1000000 : ( TRACY_SAMPLING_HZ < 1 ? 1 : TRACY_SAMPLING_HZ );
+    return samplingHz > 1000000 ? 1000000 : ( samplingHz < 1 ? 1 : samplingHz );
 #endif
 }
 
-static constexpr int GetSamplingPeriod()
+static int GetSamplingPeriod()
 {
     return 1000000000 / GetSamplingFrequency();
 }
@@ -164,8 +173,11 @@ void WINAPI EventRecordCallback( PEVENT_RECORD record )
             MemWrite( &item->contextSwitch.oldThread, cswitch->oldThreadId );
             MemWrite( &item->contextSwitch.newThread, cswitch->newThreadId );
             MemWrite( &item->contextSwitch.cpu, record->BufferContext.ProcessorNumber );
-            MemWrite( &item->contextSwitch.reason, cswitch->oldThreadWaitReason );
-            MemWrite( &item->contextSwitch.state, cswitch->oldThreadState );
+            MemWrite( &item->contextSwitch.oldThreadWaitReason, cswitch->oldThreadWaitReason );
+            MemWrite( &item->contextSwitch.oldThreadState, cswitch->oldThreadState );
+            MemWrite( &item->contextSwitch.newThreadPriority, cswitch->newThreadPriority );
+            MemWrite( &item->contextSwitch.oldThreadPriority, cswitch->oldThreadPriority );
+            MemWrite( &item->contextSwitch.previousCState, cswitch->previousCState );
             TracyLfqCommit;
         }
         else if( hdr.EventDescriptor.Opcode == 50 )
@@ -174,7 +186,10 @@ void WINAPI EventRecordCallback( PEVENT_RECORD record )
 
             TracyLfqPrepare( QueueType::ThreadWakeup );
             MemWrite( &item->threadWakeup.time, hdr.TimeStamp.QuadPart );
+            MemWrite( &item->threadWakeup.cpu, record->BufferContext.ProcessorNumber );
             MemWrite( &item->threadWakeup.thread, rt->threadId );
+            MemWrite( &item->threadWakeup.adjustReason, rt->adjustReason );
+            MemWrite( &item->threadWakeup.adjustIncrement, rt->adjustIncrement );
             TracyLfqCommit;
         }
         else if( hdr.EventDescriptor.Opcode == 1 || hdr.EventDescriptor.Opcode == 3 )
@@ -216,20 +231,6 @@ void WINAPI EventRecordCallback( PEVENT_RECORD record )
     }
 }
 
-static constexpr const char* VsyncName[] = {
-    "[0] Vsync",
-    "[1] Vsync",
-    "[2] Vsync",
-    "[3] Vsync",
-    "[4] Vsync",
-    "[5] Vsync",
-    "[6] Vsync",
-    "[7] Vsync",
-    "Vsync"
-};
-
-static uint32_t VsyncTarget[8] = {};
-
 void WINAPI EventRecordCallbackVsync( PEVENT_RECORD record )
 {
 #ifdef TRACY_ON_DEMAND
@@ -242,24 +243,9 @@ void WINAPI EventRecordCallbackVsync( PEVENT_RECORD record )
 
     const auto vs = (const VSyncInfo*)record->UserData;
 
-    int idx = 0;
-    do
-    {
-        if( VsyncTarget[idx] == 0 )
-        {
-            VsyncTarget[idx] = vs->vidPnTargetId;
-            break;
-        }
-        else if( VsyncTarget[idx] == vs->vidPnTargetId )
-        {
-            break;
-        }
-    }
-    while( ++idx < 8 );
-
-    TracyLfqPrepare( QueueType::FrameMarkMsg );
-    MemWrite( &item->frameMark.time, hdr.TimeStamp.QuadPart );
-    MemWrite( &item->frameMark.name, uint64_t( VsyncName[idx] ) );
+    TracyLfqPrepare( QueueType::FrameVsync );
+    MemWrite( &item->frameVsync.time, hdr.TimeStamp.QuadPart );
+    MemWrite( &item->frameVsync.id, vs->vidPnTargetId );
     TracyLfqCommit;
 }
 
@@ -350,7 +336,7 @@ static void SetupVsync()
 #endif
 }
 
-static constexpr int GetSamplingInterval()
+static int GetSamplingInterval()
 {
     return GetSamplingPeriod() / 100;
 }
@@ -438,6 +424,7 @@ bool SysTraceStart( int64_t& samplingPeriod )
         return false;
     }
 
+#ifndef TRACY_NO_SAMPLING
     if( isOs64Bit )
     {
         CLASSIC_EVENT_ID stackId[2] = {};
@@ -452,6 +439,7 @@ bool SysTraceStart( int64_t& samplingPeriod )
             return false;
         }
     }
+#endif
 
 #ifdef UNICODE
     WCHAR KernelLoggerName[sizeof( KERNEL_LOGGER_NAME )];
@@ -516,11 +504,11 @@ void SysTraceGetExternalName( uint64_t thread, const char*& threadName, const ch
         if( _GetThreadDescription )
         {
             PWSTR tmp;
-            _GetThreadDescription( hnd, &tmp );
-            char buf[256];
-            if( tmp )
+            if ( SUCCEEDED( _GetThreadDescription( hnd, &tmp ) ) )
             {
+                char buf[256];
                 auto ret = wcstombs( buf, tmp, 256 );
+                LocalFree(tmp);
                 if( ret != 0 )
                 {
                     threadName = CopyString( buf, ret );
@@ -637,6 +625,10 @@ void SysTraceGetExternalName( uint64_t thread, const char*& threadName, const ch
 #    include <sys/ioctl.h>
 #    include <sys/syscall.h>
 
+#    if defined __i386 || defined __x86_64__
+#      include "TracyCpuid.hpp"
+#    endif
+
 #    include "TracyProfiler.hpp"
 #    include "TracyRingBuffer.hpp"
 #    include "TracyThread.hpp"
@@ -690,8 +682,9 @@ enum TraceEventId
     EventCacheMiss,
     EventBranchRetired,
     EventBranchMiss,
+    EventVsync,
     EventContextSwitch,
-    EventWakeup,
+    EventWaking,
 };
 
 static void ProbePreciseIp( perf_event_attr& pe, unsigned long long config0, unsigned long long config1, pid_t pid )
@@ -780,13 +773,24 @@ bool SysTraceStart( int64_t& samplingPeriod )
     TracyDebug( "perf_event_paranoid: %i\n", paranoidLevel );
 #endif
 
-    int switchId = -1, wakeupId = -1;
+    int switchId = -1, wakingId = -1, vsyncId = -1;
     const auto switchIdStr = ReadFile( "/sys/kernel/debug/tracing/events/sched/sched_switch/id" );
     if( switchIdStr ) switchId = atoi( switchIdStr );
-    const auto wakeupIdStr = ReadFile( "/sys/kernel/debug/tracing/events/sched/sched_wakeup/id" );
-    if( wakeupIdStr ) wakeupId = atoi( wakeupIdStr );
+    const auto wakingIdStr = ReadFile( "/sys/kernel/debug/tracing/events/sched/sched_waking/id" );
+    if( wakingIdStr ) wakingId = atoi( wakingIdStr );
+    const auto vsyncIdStr = ReadFile( "/sys/kernel/debug/tracing/events/drm/drm_vblank_event/id" );
+    if( vsyncIdStr ) vsyncId = atoi( vsyncIdStr );
 
-    TracyDebug( "sched_switch id: %i\nsched_wakeup id: %i\n", switchId, wakeupId );
+    TracyDebug( "sched_switch id: %i\n", switchId );
+    TracyDebug( "sched_waking id: %i\n", wakingId );
+    TracyDebug( "drm_vblank_event id: %i\n", vsyncId );
+
+#ifdef TRACY_NO_SAMPLING
+    const bool noSoftwareSampling = true;
+#else
+    const char* noSoftwareSamplingEnv = GetEnvVar( "TRACY_NO_SAMPLING" );
+    const bool noSoftwareSampling = noSoftwareSamplingEnv && noSoftwareSamplingEnv[0] == '1';
+#endif
 
 #ifdef TRACY_NO_SAMPLE_RETIREMENT
     const bool noRetirement = true;
@@ -816,6 +820,13 @@ bool SysTraceStart( int64_t& samplingPeriod )
     const bool noCtxSwitch = noCtxSwitchEnv && noCtxSwitchEnv[0] == '1';
 #endif
 
+#ifdef TRACY_NO_VSYNC_CAPTURE
+    const bool noVsync = true;
+#else
+    const char* noVsyncEnv = GetEnvVar( "TRACY_NO_VSYNC_CAPTURE" );
+    const bool noVsync = noVsyncEnv && noVsyncEnv[0] == '1';
+#endif
+
     samplingPeriod = GetSamplingPeriod();
     uint32_t currentPid = (uint32_t)getpid();
 
@@ -826,7 +837,8 @@ bool SysTraceStart( int64_t& samplingPeriod )
         2 +     // CPU cycles + instructions retired
         2 +     // cache reference + miss
         2 +     // branch retired + miss
-        2       // context switches + wakeups
+        2 +     // context switches + waking ups
+        1       // vsync
     );
     s_ring = (RingBuffer*)tracy_malloc( sizeof( RingBuffer ) * maxNumBuffers );
     s_numBuffers = 0;
@@ -849,28 +861,31 @@ bool SysTraceStart( int64_t& samplingPeriod )
     pe.clockid = CLOCK_MONOTONIC_RAW;
 #endif
 
-    TracyDebug( "Setup software sampling\n" );
-    ProbePreciseIp( pe, currentPid );
-    for( int i=0; i<s_numCpus; i++ )
+    if( !noSoftwareSampling )
     {
-        int fd = perf_event_open( &pe, currentPid, i, -1, PERF_FLAG_FD_CLOEXEC );
-        if( fd == -1 )
+        TracyDebug( "Setup software sampling\n" );
+        ProbePreciseIp( pe, currentPid );
+        for( int i=0; i<s_numCpus; i++ )
         {
-            pe.exclude_kernel = 1;
-            ProbePreciseIp( pe, currentPid );
-            fd = perf_event_open( &pe, currentPid, i, -1, PERF_FLAG_FD_CLOEXEC );
+            int fd = perf_event_open( &pe, currentPid, i, -1, PERF_FLAG_FD_CLOEXEC );
             if( fd == -1 )
             {
-                TracyDebug( "  Failed to setup!\n");
-                break;
+                pe.exclude_kernel = 1;
+                ProbePreciseIp( pe, currentPid );
+                fd = perf_event_open( &pe, currentPid, i, -1, PERF_FLAG_FD_CLOEXEC );
+                if( fd == -1 )
+                {
+                    TracyDebug( "  Failed to setup!\n");
+                    break;
+                }
+                TracyDebug( "  No access to kernel samples\n" );
             }
-            TracyDebug( "  No access to kernel samples\n" );
-        }
-        new( s_ring+s_numBuffers ) RingBuffer( 64*1024, fd, EventCallstack );
-        if( s_ring[s_numBuffers].IsValid() )
-        {
-            s_numBuffers++;
-            TracyDebug( "  Core %i ok\n", i );
+            new( s_ring+s_numBuffers ) RingBuffer( 64*1024, fd, EventCallstack );
+            if( s_ring[s_numBuffers].IsValid() )
+            {
+                s_numBuffers++;
+                TracyDebug( "  Core %i ok\n", i );
+            }
         }
     }
 
@@ -1002,6 +1017,37 @@ bool SysTraceStart( int64_t& samplingPeriod )
 
     s_ctxBufferIdx = s_numBuffers;
 
+    // vsync
+    if( !noVsync && vsyncId != -1 )
+    {
+        pe = {};
+        pe.type = PERF_TYPE_TRACEPOINT;
+        pe.size = sizeof( perf_event_attr );
+        pe.sample_period = 1;
+        pe.sample_type = PERF_SAMPLE_TIME | PERF_SAMPLE_RAW;
+        pe.disabled = 1;
+        pe.config = vsyncId;
+#if !defined TRACY_HW_TIMER || !( defined __i386 || defined _M_IX86 || defined __x86_64__ || defined _M_X64 )
+        pe.use_clockid = 1;
+        pe.clockid = CLOCK_MONOTONIC_RAW;
+#endif
+
+        TracyDebug( "Setup vsync capture\n" );
+        for( int i=0; i<s_numCpus; i++ )
+        {
+            const int fd = perf_event_open( &pe, -1, i, -1, PERF_FLAG_FD_CLOEXEC );
+            if( fd != -1 )
+            {
+                new( s_ring+s_numBuffers ) RingBuffer( 64*1024, fd, EventVsync, i );
+                if( s_ring[s_numBuffers].IsValid() )
+                {
+                    s_numBuffers++;
+                    TracyDebug( "  Core %i ok\n", i );
+                }
+            }
+        }
+    }
+
     // context switches
     if( !noCtxSwitch && switchId != -1 )
     {
@@ -1036,18 +1082,31 @@ bool SysTraceStart( int64_t& samplingPeriod )
             }
         }
 
-        if( wakeupId != -1 )
+        if( wakingId != -1 )
         {
-            pe.config = wakeupId;
-            pe.config &= ~PERF_SAMPLE_CALLCHAIN;
+            pe = {};
+            pe.type = PERF_TYPE_TRACEPOINT;
+            pe.size = sizeof( perf_event_attr );
+            pe.sample_period = 1;
+            pe.sample_type = PERF_SAMPLE_TIME | PERF_SAMPLE_RAW;
+            // Coult ask for callstack here
+            //pe.sample_type |= PERF_SAMPLE_CALLCHAIN;
+            pe.disabled = 1;
+            pe.inherit = 1;
+            pe.config = wakingId;
+            pe.read_format = 0;
+#if !defined TRACY_HW_TIMER || !( defined __i386 || defined _M_IX86 || defined __x86_64__ || defined _M_X64 )
+            pe.use_clockid = 1;
+            pe.clockid = CLOCK_MONOTONIC_RAW;
+#endif
 
-            TracyDebug( "Setup wakeup capture\n" );
+            TracyDebug( "Setup waking up capture\n" );
             for( int i=0; i<s_numCpus; i++ )
             {
                 const int fd = perf_event_open( &pe, -1, i, -1, PERF_FLAG_FD_CLOEXEC );
                 if( fd != -1 )
                 {
-                    new( s_ring+s_numBuffers ) RingBuffer( 64*1024, fd, EventWakeup, i );
+                    new( s_ring+s_numBuffers ) RingBuffer( 64*1024, fd, EventWaking, i );
                     if( s_ring[s_numBuffers].IsValid() )
                     {
                         s_numBuffers++;
@@ -1113,16 +1172,19 @@ void SysTraceWorker( void* ptr )
     InitRpmalloc();
     sched_param sp = { 99 };
     if( pthread_setschedparam( pthread_self(), SCHED_FIFO, &sp ) != 0 ) TracyDebug( "Failed to increase SysTraceWorker thread priority!\n" );
-    for( int i=0; i<s_numBuffers; i++ ) s_ring[i].Enable();
+    auto ctxBufferIdx = s_ctxBufferIdx;
+    auto ringArray = s_ring;
+    auto numBuffers = s_numBuffers;
+    for( int i=0; i<numBuffers; i++ ) ringArray[i].Enable();
     for(;;)
     {
 #ifdef TRACY_ON_DEMAND
         if( !GetProfiler().IsConnected() )
         {
             if( !traceActive.load( std::memory_order_relaxed ) ) break;
-            for( int i=0; i<s_numBuffers; i++ )
+            for( int i=0; i<numBuffers; i++ )
             {
-                auto& ring = s_ring[i];
+                auto& ring = ringArray[i];
                 const auto head = ring.LoadHead();
                 const auto tail = ring.GetTail();
                 if( head != tail )
@@ -1138,10 +1200,10 @@ void SysTraceWorker( void* ptr )
 #endif
 
         bool hadData = false;
-        for( int i=0; i<s_ctxBufferIdx; i++ )
+        for( int i=0; i<ctxBufferIdx; i++ )
         {
             if( !traceActive.load( std::memory_order_relaxed ) ) break;
-            auto& ring = s_ring[i];
+            auto& ring = ringArray[i];
             const auto head = ring.LoadHead();
             const auto tail = ring.GetTail();
             if( head == tail ) continue;
@@ -1241,8 +1303,7 @@ void SysTraceWorker( void* ptr )
                             type = QueueType::HwSampleBranchMiss;
                             break;
                         default:
-                            assert( false );
-                            break;
+                            abort();
                         }
 
                         TracyLfqPrepare( type );
@@ -1258,24 +1319,24 @@ void SysTraceWorker( void* ptr )
         }
         if( !traceActive.load( std::memory_order_relaxed ) ) break;
 
-        if( s_ctxBufferIdx != s_numBuffers )
+        if( ctxBufferIdx != numBuffers )
         {
-            const auto ctxBufNum = s_numBuffers - s_ctxBufferIdx;
+            const auto ctxBufNum = numBuffers - ctxBufferIdx;
 
             int activeNum = 0;
-            bool active[512];
+            uint16_t active[512];
             uint32_t end[512];
             uint32_t pos[512];
             for( int i=0; i<ctxBufNum; i++ )
             {
-                const auto rbIdx = s_ctxBufferIdx + i;
-                const auto rbHead = s_ring[rbIdx].LoadHead();
-                const auto rbTail = s_ring[rbIdx].GetTail();
+                const auto rbIdx = ctxBufferIdx + i;
+                const auto rbHead = ringArray[rbIdx].LoadHead();
+                const auto rbTail = ringArray[rbIdx].GetTail();
                 const auto rbActive = rbHead != rbTail;
 
-                active[i] = rbActive;
                 if( rbActive )
                 {
+                    active[activeNum] = (uint16_t)i;
                     activeNum++;
                     end[i] = rbHead - rbTail;
                     pos[i] = 0;
@@ -1290,43 +1351,48 @@ void SysTraceWorker( void* ptr )
                 hadData = true;
                 while( activeNum > 0 )
                 {
+                    // Find the earliest event from the active buffers
                     int sel = -1;
+                    int selPos;
                     int64_t t0 = std::numeric_limits<int64_t>::max();
-                    for( int i=0; i<ctxBufNum; i++ )
+                    for( int i=0; i<activeNum; i++ )
                     {
-                        if( !active[i] ) continue;
-                        auto rbPos = pos[i];
-                        assert( rbPos < end[i] );
-                        const auto rbIdx = s_ctxBufferIdx + i;
+                        auto idx = active[i];
+                        auto rbPos = pos[idx];
+                        assert( rbPos < end[idx] );
+                        const auto rbIdx = ctxBufferIdx + idx;
                         perf_event_header hdr;
-                        s_ring[rbIdx].Read( &hdr, rbPos, sizeof( perf_event_header ) );
+                        ringArray[rbIdx].Read( &hdr, rbPos, sizeof( perf_event_header ) );
                         if( hdr.type == PERF_RECORD_SAMPLE )
                         {
                             int64_t rbTime;
-                            s_ring[rbIdx].Read( &rbTime, rbPos + sizeof( perf_event_header ), sizeof( int64_t ) );
+                            ringArray[rbIdx].Read( &rbTime, rbPos + sizeof( perf_event_header ), sizeof( int64_t ) );
                             if( rbTime < t0 )
                             {
                                 t0 = rbTime;
-                                sel = i;
+                                sel = idx;
+                                selPos = i;
                             }
                         }
                         else
                         {
                             rbPos += hdr.size;
-                            if( rbPos == end[i] )
+                            if( rbPos == end[idx] )
                             {
-                                active[i] = false;
+                                memmove( active+i, active+i+1, sizeof(*active) * ( activeNum - i - 1 ) );
                                 activeNum--;
+                                i--;
                             }
                             else
                             {
-                                pos[i] = rbPos;
+                                pos[idx] = rbPos;
                             }
                         }
                     }
+                    // Found any event
                     if( sel >= 0 )
                     {
-                        auto& ring = s_ring[s_ctxBufferIdx + sel];
+                        auto& ring = ringArray[ctxBufferIdx + sel];
                         auto rbPos = pos[sel];
                         auto offset = rbPos;
                         perf_event_header hdr;
@@ -1336,12 +1402,13 @@ void SysTraceWorker( void* ptr )
                         t0 = ring.ConvertTimeToTsc( t0 );
 #endif
 
-                        if( ring.GetId() == EventContextSwitch )
+                        const auto rid = ring.GetId();
+                        if( rid == EventContextSwitch )
                         {
-                            // Layout:
-                            //   u64 time
-                            //   u64 cnt
-                            //   u64 ip[cnt]
+                            // Layout: See /sys/kernel/debug/tracing/events/sched/sched_switch/format
+                            //   u64 time    // PERF_SAMPLE_TIME
+                            //   u64 cnt     // PERF_SAMPLE_CALLCHAIN
+                            //   u64 ip[cnt] // PERF_SAMPLE_CALLCHAIN
                             //   u32 size
                             //   u8  data[size]
                             // Data (not ABI stable, but has not changed since it was added, in 2009):
@@ -1362,35 +1429,43 @@ void SysTraceWorker( void* ptr )
                             const auto traceOffset = offset;
                             offset += sizeof( uint64_t ) * cnt + sizeof( uint32_t ) + 8 + 16;
 
-                            uint32_t prev_pid, next_pid;
+                            uint32_t prev_pid, prev_prio;
+                            uint32_t next_pid, next_prio;
                             long prev_state;
 
                             ring.Read( &prev_pid, offset, sizeof( uint32_t ) );
-                            offset += sizeof( uint32_t ) + sizeof( uint32_t );
+                            offset += sizeof( uint32_t );
+                            ring.Read( &prev_prio, offset, sizeof( uint32_t ) );
+                            offset += sizeof( uint32_t );
                             ring.Read( &prev_state, offset, sizeof( long ) );
                             offset += sizeof( long ) + 16;
                             ring.Read( &next_pid, offset, sizeof( uint32_t ) );
+                            offset += sizeof( uint32_t );
+                            ring.Read( &next_prio, offset, sizeof( uint32_t ) );
 
-                            uint8_t reason = 100;
-                            uint8_t state;
+                            uint8_t oldThreadWaitReason = 100;
+                            uint8_t oldThreadState;
 
-                            if(      prev_state & 0x0001 ) state = 104;
-                            else if( prev_state & 0x0002 ) state = 101;
-                            else if( prev_state & 0x0004 ) state = 105;
-                            else if( prev_state & 0x0008 ) state = 106;
-                            else if( prev_state & 0x0010 ) state = 108;
-                            else if( prev_state & 0x0020 ) state = 109;
-                            else if( prev_state & 0x0040 ) state = 110;
-                            else if( prev_state & 0x0080 ) state = 102;
-                            else                           state = 103;
+                            if(      prev_state & 0x0001 ) oldThreadState = 104;
+                            else if( prev_state & 0x0002 ) oldThreadState = 101;
+                            else if( prev_state & 0x0004 ) oldThreadState = 105;
+                            else if( prev_state & 0x0008 ) oldThreadState = 106;
+                            else if( prev_state & 0x0010 ) oldThreadState = 108;
+                            else if( prev_state & 0x0020 ) oldThreadState = 109;
+                            else if( prev_state & 0x0040 ) oldThreadState = 110;
+                            else if( prev_state & 0x0080 ) oldThreadState = 102;
+                            else                           oldThreadState = 103;
 
                             TracyLfqPrepare( QueueType::ContextSwitch );
                             MemWrite( &item->contextSwitch.time, t0 );
                             MemWrite( &item->contextSwitch.oldThread, prev_pid );
                             MemWrite( &item->contextSwitch.newThread, next_pid );
                             MemWrite( &item->contextSwitch.cpu, uint8_t( ring.GetCpu() ) );
-                            MemWrite( &item->contextSwitch.reason, reason );
-                            MemWrite( &item->contextSwitch.state, state );
+                            MemWrite( &item->contextSwitch.oldThreadWaitReason, oldThreadWaitReason );
+                            MemWrite( &item->contextSwitch.oldThreadState, oldThreadState );
+                            MemWrite( &item->contextSwitch.previousCState, uint8_t( 0 ) );
+                            MemWrite( &item->contextSwitch.newThreadPriority, int8_t( next_prio ) );
+                            MemWrite( &item->contextSwitch.oldThreadPriority, int8_t( prev_prio ) );
                             TracyLfqCommit;
 
                             if( cnt > 0 && prev_pid != 0 && CurrentProcOwnsThread( prev_pid ) )
@@ -1404,36 +1479,74 @@ void SysTraceWorker( void* ptr )
                                 TracyLfqCommit;
                             }
                         }
-                        else
+                        else if( rid == EventWaking)
                         {
-                            assert( ring.GetId() == EventWakeup );
-
+                            // See /sys/kernel/debug/tracing/events/sched/sched_waking/format
                             // Layout:
-                            //   u64 time
+                            //   u64 time // PERF_SAMPLE_TIME
                             //   u32 size
                             //   u8  data[size]
                             // Data:
                             //   u8  hdr[8]
                             //   u8  comm[16]
                             //   u32 pid
-                            //   u32 prio
-                            //   u64 target_cpu
-
-                            offset += sizeof( perf_event_header ) + sizeof( uint64_t ) + sizeof( uint32_t ) + 8 + 16;
-
+                            //   i32 prio
+                            //   i32 target_cpu
+                            const uint32_t dataOffset = sizeof( perf_event_header ) + sizeof( uint64_t ) + sizeof( uint32_t ); 
+                            offset += dataOffset + 8 + 16;
                             uint32_t pid;
                             ring.Read( &pid, offset, sizeof( uint32_t ) );
-
+                            
                             TracyLfqPrepare( QueueType::ThreadWakeup );
                             MemWrite( &item->threadWakeup.time, t0 );
                             MemWrite( &item->threadWakeup.thread, pid );
+                            MemWrite( &item->threadWakeup.cpu, (uint8_t)ring.GetCpu() );
+
+                            int8_t adjustReason = -1; // Does not exist on Linux
+                            int8_t adjustIncrement = 0; // Should perhaps store the new prio?
+                            MemWrite( &item->threadWakeup.adjustReason, adjustReason );
+                            MemWrite( &item->threadWakeup.adjustIncrement, adjustIncrement );
+                            TracyLfqCommit;
+                        }
+                        else
+                        {
+                            assert( rid == EventVsync );
+                            // Layout:
+                            //   u64 time
+                            //   u32 size
+                            //   u8  data[size]
+                            // Data (not ABI stable):
+                            //   u8  hdr[8]
+                            //   i32 crtc
+                            //   u32 seq
+                            //   i64 ktime
+                            //   u8  high precision
+
+                            offset += sizeof( perf_event_header ) + sizeof( uint64_t ) + sizeof( uint32_t ) + 8;
+
+                            int32_t crtc;
+                            ring.Read( &crtc, offset, sizeof( int32_t ) );
+
+                            // Note: The timestamp value t0 might be off by a number of microseconds from the
+                            // true hardware vblank event. The ktime value should be used instead, but it is
+                            // measured in CLOCK_MONOTONIC time. Tracy only supports the timestamp counter
+                            // register (TSC) or CLOCK_MONOTONIC_RAW clock.
+#if 0
+                            offset += sizeof( uint32_t ) * 2;
+                            int64_t ktime;
+                            ring.Read( &ktime, offset, sizeof( int64_t ) );
+#endif
+
+                            TracyLfqPrepare( QueueType::FrameVsync );
+                            MemWrite( &item->frameVsync.id, crtc );
+                            MemWrite( &item->frameVsync.time, t0 );
                             TracyLfqCommit;
                         }
 
                         rbPos += hdr.size;
                         if( rbPos == end[sel] )
                         {
-                            active[sel] = false;
+                            memmove( active+selPos, active+selPos+1, sizeof(*active) * ( activeNum - selPos - 1 ) );
                             activeNum--;
                         }
                         else
@@ -1444,7 +1557,7 @@ void SysTraceWorker( void* ptr )
                 }
                 for( int i=0; i<ctxBufNum; i++ )
                 {
-                    if( end[i] != 0 ) s_ring[s_ctxBufferIdx + i].Advance( end[i] );
+                    if( end[i] != 0 ) ringArray[ctxBufferIdx + i].Advance( end[i] );
                 }
             }
         }
@@ -1455,8 +1568,8 @@ void SysTraceWorker( void* ptr )
         }
     }
 
-    for( int i=0; i<s_numBuffers; i++ ) s_ring[i].~RingBuffer();
-    tracy_free_fast( s_ring );
+    for( int i=0; i<numBuffers; i++ ) ringArray[i].~RingBuffer();
+    tracy_free_fast( ringArray );
 }
 
 void SysTraceGetExternalName( uint64_t thread, const char*& threadName, const char*& name )
