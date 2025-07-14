@@ -31,6 +31,9 @@ struct CodeGen  {
     vector<type_elem_t> type_table;
     vector<type_elem_t> ser_ids;
     map<small_vector<type_elem_t, 2>, type_elem_t> type_lookup;  // Wasteful, but simple.
+    map<iint, type_elem_t> default_ints_lookup;
+    map<double, type_elem_t> default_floats_lookup;
+    map<small_vector<type_elem_t, 2>, type_elem_t> default_aggregate_lookup;
     vector<TypeLT> rettypes, temptypestack;
     vector<const Node *> loops;
     vector<int> breaks;
@@ -134,15 +137,28 @@ struct CodeGen  {
                 Value val = NoVal();
                 auto dv = udt->sfields[i].defaultval;
                 switch (dv ? dv->ConstVal(nullptr, val) : V_VOID) {
-                    case V_INT:
-                        tt.push_back((type_elem_t)(val.intval() == val.ival() ? val.intval() : 0));
+                    case V_INT: {
+                        auto iv = val.ival();
+                        auto &it = default_ints_lookup[iv];
+                        if (!it) {
+                            it = (type_elem_t)type_table.size();
+                            type_table.insert(type_table.end(), (type_elem_t *)&iv, (type_elem_t *)(&iv + 1));
+                        }
+                        tt.push_back(it);
                         break;
+                    }
                     case V_FLOAT: {
-                        tt.push_back((type_elem_t)int2float(val.fltval()).i);
+                        auto fv = val.fval();
+                        auto &it = default_floats_lookup[fv];
+                        if (!it) {
+                            it = (type_elem_t)type_table.size();
+                            type_table.insert(type_table.end(), (type_elem_t *)&fv, (type_elem_t *)(&fv + 1));
+                        }
+                        tt.push_back(it);
                         break;
                     }
                     default:
-                        tt.push_back((type_elem_t)0);  // or 0.0f
+                        tt.push_back((type_elem_t)0);
                         break;
                 }
             }

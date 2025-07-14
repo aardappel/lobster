@@ -136,7 +136,7 @@ struct VM;
 struct TIField {
     type_elem_t type;
     type_elem_t parent;
-    int defval;
+    type_elem_t defval;
 };
 
 struct TypeInfo {
@@ -523,7 +523,7 @@ struct Value {
     void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
     void ToStringNoVM(string &sd, ValueType t) const;
 
-    void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const;
+    void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, type_elem_t defval) const;
     void ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const;
 
     bool Equal(VM &vm, ValueType vtype, Value o, ValueType otype, bool structural) const;

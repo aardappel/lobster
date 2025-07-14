@@ -337,7 +337,7 @@ void Value::ToStringNoVM(string &sd, ValueType t) const {
     }
 }
 
-void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, int defval) const {
+void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, type_elem_t defval) const {
     if (IsRefNil(t)) {
         if (!ref_) {
             if (key.empty()) fbc.builder.Null();
@@ -361,21 +361,22 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
         }
     } else {
         switch (t) {
-            case V_INT:
-                if (ival() != defval || key.empty()) {
+            case V_INT: {
+                auto dv = defval ? *(iint *)&fbc.vm.GetTypeInfo(defval) : (iint)0;
+                if (ival() != dv || key.empty()) {
                     if (!key.empty()) fbc.builder.Key(key.data());
                     fbc.builder.Int(ival());
                 }
                 return;
-            case V_FLOAT:
-                // FIXME: this check misses most float values that
-                // are not simple 0.0 or 1.0.
-                // Really need to change defval to be 64-bit
-                if (fval() != int2float(defval).f || key.empty()) {
+            }
+            case V_FLOAT: {
+                auto dv = defval ? *(double *)&fbc.vm.GetTypeInfo(defval) : 0.0;
+                if (fval() != dv || key.empty()) {
                     if (!key.empty()) fbc.builder.Key(key.data());
                     fbc.builder.Double(fval());
                 }
                 return;
+            }
             default:
                 break;
         }
@@ -634,8 +635,8 @@ void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Va
     );
 }
 
-void ElemToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti,
-                      iint &i, iint width, const Value *elems, string_view key, int defval) {
+void ElemToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, iint &i, iint width,
+                      const Value *elems, string_view key, type_elem_t defval) {
     fbc.cur_depth++;
     if (IsStruct(ti.t)) {
         if (!key.empty()) fbc.builder.Key(key.data());
@@ -713,7 +714,7 @@ void LVector::ToFlexBuffer(ToFlexBufferContext &fbc) {
     auto start = fbc.builder.StartVector();
     auto &ti = ElemType(fbc.vm);
     for (iint i = 0; i < len; i++) {
-        ElemToFlexBuffer(fbc, ti, i, width, v, {}, -1);
+        ElemToFlexBuffer(fbc, ti, i, width, v, {}, (type_elem_t)0);
     }
     fbc.builder.EndVector(start, false, false);
 }

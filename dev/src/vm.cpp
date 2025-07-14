@@ -498,7 +498,7 @@ void VM::DumpStackTraceMemory(const string &err) {
             if (IsStruct(ti.t)) {
                 vm.StructToFlexBuffer(fbc, ti, x, false);
             } else {
-                x->ToFlexBuffer(fbc, ti.t, {}, -1);
+                x->ToFlexBuffer(fbc, ti.t, {}, (type_elem_t)0);
             }
         }
     };

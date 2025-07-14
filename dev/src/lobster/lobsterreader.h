@@ -50,15 +50,19 @@ struct Deserializer {
         is_ref.reserve(16);
     }
 
-    bool PushDefault(type_elem_t typeoff, int defval) {
+    bool PushDefault(type_elem_t typeoff, type_elem_t defval) {
         auto &ti = vm.GetTypeInfo(typeoff);
         switch (ti.t) {
-            case V_INT:
-                PushV(defval);
+            case V_INT: {
+                auto dv = defval ? *(iint *)&vm.GetTypeInfo(defval) : (iint)0;
+                PushV(dv);
                 break;
-            case V_FLOAT:
-                PushV(int2float(defval).f);
+            }
+            case V_FLOAT: {
+                auto dv = defval ? *(double *)&vm.GetTypeInfo(defval) : 0.0;
+                PushV(dv);
                 break;
+            }
             case V_NIL:
                 PushV(NilVal());
                 break;
