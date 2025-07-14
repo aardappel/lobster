@@ -789,7 +789,7 @@ void VM::StartWorkers(iint numthreads) {
         // Create a new VM that should own all its own memory and be completely independent
         // from this one.
         // We share nfr, metadata and programname for now since they're fully read-only.
-        auto vmargs = *(VMArgs *)this;
+        auto vmargs = vma;
         vmargs.program_args.resize(0);
         auto vmalloc = new VMAllocator(std::move(vmargs));
         vmalloc->vm->is_worker = true;
