@@ -510,7 +510,7 @@ void Nil(VM &vm, Value *v, const TypeInfo *ti) {
                 break;
             case V_CLASS: {
                 Deserializer des(vm);
-                if (des.PushDefault(vm.TypeInfoToIdx(ti), (type_elem_t)0)) {
+                if (des.PushDefault(vm.TypeInfoToIdx(ti), (type_elem_t)0, nullptr)) {
                     *v = des.PopV();
                 }
                 break;
@@ -523,7 +523,7 @@ void VectorOps(VM &vm, LVector *vec, const TypeInfo *ti) {
     ImGui::SameLine();
     if (ImGui::Button("+")) {
         Deserializer des(vm);
-        if (des.PushDefault(ti->subt, (type_elem_t)0)) {
+        if (des.PushDefault(ti->subt, (type_elem_t)0, nullptr)) {
             vec->Push(vm, des.PopV());
         }
     }

@@ -50,16 +50,16 @@ struct Deserializer {
         is_ref.reserve(16);
     }
 
-    bool PushDefault(type_elem_t typeoff, type_elem_t defval) {
+    bool PushDefault(type_elem_t typeoff, type_elem_t defval, const TIField *fields) {
         auto &ti = vm.GetTypeInfo(typeoff);
         switch (ti.t) {
             case V_INT: {
-                auto dv = defval ? *(iint *)&vm.GetTypeInfo(defval) : (iint)0;
+                auto dv = vm.GetDefaultScalar<iint>(defval);
                 PushV(dv);
                 break;
             }
             case V_FLOAT: {
-                auto dv = defval ? *(double *)&vm.GetTypeInfo(defval) : 0.0;
+                auto dv = vm.GetDefaultScalar<double>(defval);
                 PushV(dv);
                 break;
             }
@@ -75,9 +75,24 @@ struct Deserializer {
             case V_STRUCT_S:
             case V_STRUCT_R:
             case V_CLASS: {
-                for (int i = 0; i < ti.len; i++) {
-                    if (!PushDefault(ti.elemtypes[i].type, ti.elemtypes[i].defval))
-                        return false;
+                 if (defval) {
+                    // The parent's field's default value was a constructor with all constant values.
+                    for (int i = 0; i < ti.len; i++) {
+                        auto dv = ti.t == V_CLASS
+                            ? ((type_elem_t *)&vm.GetTypeInfo(defval))[i]
+                            : fields[i].defval;
+                        auto ok = PushDefault(ti.elemtypes[i].type, dv, nullptr);
+                        assert(ok);  // Codegen should only have emitted these for types we can handle.
+                        if (!ok)
+                            return false;
+                    }
+                } else {
+                    // No constructor default, can only succeed if all fields have default values.
+                    for (int i = 0; i < ti.len; i++) {
+                        // This deals with structs inline.
+                        if (!PushDefault(ti.elemtypes[i].type, ti.elemtypes[i].defval, nullptr))
+                            return false;
+                    }
                 }
                 if (ti.t == V_CLASS) {
                     auto vec = vm.NewObject(ti.len, typeoff);
@@ -202,7 +217,8 @@ struct LobsterBinaryParser : Deserializer {
                     for (int i = 0; NumElems() != ti->len; i++) {
                         auto eti = ti->GetElemOrParent(NumElems());
                         if (NumElems() >= elen) {
-                            if (!PushDefault(eti, ti->elemtypes[NumElems()].defval))
+                            if (!PushDefault(eti, ti->elemtypes[NumElems()].defval,
+                                             &ti->elemtypes[NumElems()]))
                                 Error("no default value exists for missing field " +
                                       vm.LookupField(ti->structidx, i));
                         } else {

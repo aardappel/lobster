@@ -98,6 +98,25 @@ run_test("misc"):
     // Just to see if it can parse a namespaced id.
     assert parse_data(typeof test_namespace.g, "test_namespace.g {{}}")
 
+    // Similar, but with default values, some of which are stored in the VM type data for use with
+    // (de)serialization.
+    class parsetestdefaults:
+        da = 1
+        db = 2.0
+        dc = int2 { 3, 4 }  // struct
+        dd = float2 { 5.0, 6.0 }  // struct
+        de = testb { 8, 9 }  // class
+        df = constdef  // Not currently a VM retained default, so 0 instead. TODO: support this.
+        dg = int2 { 7, constdef }  // Also not VM retained.
+        dh = int2_1  // Also not VM retained.
+    let flexdef = flexbuffers_json_to_binary("{{}}")
+    assert flexdef
+    let fdefval = flexbuffers_binary_to_value(typeof parsetestdefaults, flexdef)
+    let fdefexpected = parsetestdefaults { df: 0, dg: int2_0, dh: int2_0 }
+    assert(equal(fdefval, fdefexpected))
+    let fdefparsed = parse_data(typeof parsetestdefaults, "parsetestdefaults {{}}")
+    assert(equal(fdefval, fdefexpected))
+
     assert switch rnd(2):
         default: true
 

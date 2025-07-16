@@ -1071,6 +1071,12 @@ struct VM : VMBase {
     const TypeInfo &GetTypeInfo(type_elem_t offset) const {
         return *(TypeInfo *)(typetable + offset);
     }
+    template<typename T> T GetDefaultScalar(type_elem_t offset) const {
+        if (!offset) return T{};
+        T t;
+        memcpy(&t, typetable + offset, sizeof(T));
+        return t;
+    }
     type_elem_t TypeInfoToIdx(const TypeInfo *ti) const {
         return (type_elem_t)(ptrdiff_t)(((type_elem_t *)ti) - typetable);
     }

@@ -33,7 +33,7 @@ struct CodeGen  {
     map<small_vector<type_elem_t, 2>, type_elem_t> type_lookup;  // Wasteful, but simple.
     map<iint, type_elem_t> default_ints_lookup;
     map<double, type_elem_t> default_floats_lookup;
-    map<small_vector<type_elem_t, 2>, type_elem_t> default_aggregate_lookup;
+    map<small_vector<type_elem_t, 3>, type_elem_t> default_aggregate_lookup;
     vector<TypeLT> rettypes, temptypestack;
     vector<const Node *> loops;
     vector<int> breaks;
@@ -125,42 +125,79 @@ struct CodeGen  {
     const int ti_num_udt_fields = 6;
     const int ti_num_udt_per_field = 3;
 
+    type_elem_t PushDefaultValue(ValueType vt, Value val) {
+        switch (vt) {
+            case V_INT: {
+                auto iv = val.ival();
+                auto &it = default_ints_lookup[iv];
+                if (!it) {
+                    it = (type_elem_t)type_table.size();
+                    type_table.insert(type_table.end(), (type_elem_t *)&iv,
+                                      (type_elem_t *)(&iv + 1));
+                }
+                return it;
+            }
+            case V_FLOAT: {
+                auto fv = val.fval();
+                auto &it = default_floats_lookup[fv];
+                if (!it) {
+                    it = (type_elem_t)type_table.size();
+                    type_table.insert(type_table.end(), (type_elem_t *)&fv,
+                                      (type_elem_t *)(&fv + 1));
+                }
+                return it;
+            }
+            default:
+                return (type_elem_t)0;
+        }
+    }
+
+    type_elem_t PushDefaultValues(const SField &sfield) {
+        auto dv = sfield.defaultval;
+        if (!dv) {
+            return (type_elem_t)0;
+        }
+        // TODO: support more types of default values!
+        Value val = NoVal();
+        auto cons = Is<ObjectConstructor>(dv);
+        if (cons) {
+            vector<pair<ValueType, Value>> vals;
+            for (auto n : cons->children) {
+                auto vt = n->ConstVal(nullptr, val);
+                if (vt == V_INT || vt == V_FLOAT) {
+                    vals.push_back({ vt, val });
+                } else {
+                    return (type_elem_t)0;
+                }
+            }
+            vector<type_elem_t> idxs;
+            for (auto [vt, aval] : vals) {
+                idxs.push_back(PushDefaultValue(vt, aval));
+            }
+            auto &it = default_aggregate_lookup[idxs];
+            if (!it) {
+                it = (type_elem_t)type_table.size();
+                type_table.insert(type_table.end(), idxs.begin(), idxs.end());
+            }
+            return it;
+        }
+        auto vt = dv->ConstVal(nullptr, val);
+        return PushDefaultValue(vt, val);
+    }
+
     void PushFields(UDT *udt, small_vector<type_elem_t, 2> &tt,
-                    type_elem_t parent = (type_elem_t)-1) {
+                    type_elem_t parent = (type_elem_t)-1,
+                    type_elem_t dvs_overrides = (type_elem_t)0) {
         for (auto [i, sfield] : enumerate(udt->sfields)) {
             auto ti = GetTypeTableOffset(sfield.type);
+            auto dvs = PushDefaultValues(sfield);
             if (IsStruct(sfield.type->t)) {
-                PushFields(sfield.type->udt, tt, parent < 0 ? ti : parent);
+                // FIXME: in this case, we don't actually need to store the "dvs" list since it's used inline.
+                PushFields(sfield.type->udt, tt, parent < 0 ? ti : parent, dvs);
             } else {
                 tt.push_back(ti);
                 tt.push_back(parent);
-                Value val = NoVal();
-                auto dv = udt->sfields[i].defaultval;
-                switch (dv ? dv->ConstVal(nullptr, val) : V_VOID) {
-                    case V_INT: {
-                        auto iv = val.ival();
-                        auto &it = default_ints_lookup[iv];
-                        if (!it) {
-                            it = (type_elem_t)type_table.size();
-                            type_table.insert(type_table.end(), (type_elem_t *)&iv, (type_elem_t *)(&iv + 1));
-                        }
-                        tt.push_back(it);
-                        break;
-                    }
-                    case V_FLOAT: {
-                        auto fv = val.fval();
-                        auto &it = default_floats_lookup[fv];
-                        if (!it) {
-                            it = (type_elem_t)type_table.size();
-                            type_table.insert(type_table.end(), (type_elem_t *)&fv, (type_elem_t *)(&fv + 1));
-                        }
-                        tt.push_back(it);
-                        break;
-                    }
-                    default:
-                        tt.push_back((type_elem_t)0);
-                        break;
-                }
+                tt.push_back(dvs_overrides ? type_table[dvs_overrides + i] : dvs);
             }
         }
     }

@@ -68,7 +68,7 @@ struct ValueParser : Deserializer {
         if (!push) return;
         if (numelems >= 0) {
             while (NumElems() < numelems) {
-                if (!PushDefault(ti.elemtypes[NumElems()].type, ti.elemtypes[NumElems()].defval))
+                if (!PushDefault(ti.elemtypes[NumElems()].type, ti.elemtypes[NumElems()].defval, nullptr))
                     lex.Error("no default value exists for missing struct elements");
             }
         }
@@ -303,7 +303,9 @@ struct FlexBufferParser : Deserializer {
                     auto eti = ti->GetElemOrParent(NumElems());
                     auto e = m[fname.data()];
                     if (e.IsNull()) {
-                        if(!PushDefault(eti, ti->elemtypes[NumElems()].defval))
+                        if (!PushDefault(eti,
+                                         ti->elemtypes[NumElems()].defval,
+                                         &ti->elemtypes[NumElems()]))
                             Error("no default value exists for missing field " + fname);
                     } else {
                         ParseFactor(e, eti, fname);

@@ -354,6 +354,11 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
                 return;
             case V_CLASS:
                 if (!key.empty()) fbc.builder.Key(key.data());
+                // TODO: we could check if all values in this instance are equal to the defval, and
+                // then omit the whole object. This is complicated because we need to check against
+                // either defval or if 0, check against all field default values. Additionally we need
+                // to deal with inline structs much like how Deserializer::PushDefault does.
+                // A ton of complexity for what will happen infrequently.
                 oval()->ToFlexBuffer(fbc);
                 return;
             default:
@@ -362,7 +367,7 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
     } else {
         switch (t) {
             case V_INT: {
-                auto dv = defval ? *(iint *)&fbc.vm.GetTypeInfo(defval) : (iint)0;
+                auto dv = fbc.vm.GetDefaultScalar<iint>(defval);
                 if (ival() != dv || key.empty()) {
                     if (!key.empty()) fbc.builder.Key(key.data());
                     fbc.builder.Int(ival());
@@ -370,7 +375,7 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
                 return;
             }
             case V_FLOAT: {
-                auto dv = defval ? *(double *)&fbc.vm.GetTypeInfo(defval) : 0.0;
+                auto dv = fbc.vm.GetDefaultScalar<double>(defval);
                 if (fval() != dv || key.empty()) {
                     if (!key.empty()) fbc.builder.Key(key.data());
                     fbc.builder.Double(fval());
@@ -702,7 +707,8 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
     for (iint i = 0, f = 0; i < stti.len; i++, f++) {
         auto &eti = ElemTypeSP(fbc.vm, i);
         auto fname = fbc.vm.LookupField(stidx, f);
-        ElemToFlexBuffer(fbc, eti, i, 1, Elems(), fname, stti.elemtypes[i].defval);
+        auto dv = stti.elemtypes[i].defval;
+        ElemToFlexBuffer(fbc, eti, i, 1, Elems(), fname, dv);
     }
     fbc.builder.EndMap(start);
     if (inserted) {
