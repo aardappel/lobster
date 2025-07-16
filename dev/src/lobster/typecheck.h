@@ -3982,8 +3982,8 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
         }
         // These may include field initializers copied from the definition, which may include
         // type variables that are now bound.
-        for (auto [i, c] : enumerate(children)) {
-            tc.TT(c, 1, LT_KEEP, udt->sfields[i].type);
+        for (auto [i, sfield] : enumerate(udt->sfields)) {
+            tc.TT(children[i], 1, LT_KEEP, sfield.type);
         }
         tc.st.PopSuperGenerics(udt);
     }
