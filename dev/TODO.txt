@@ -1,6 +1,4 @@
-- The "defval" field in the VM is very limiting for the de-serializers, might be good to
-  instead store an index into a more complex serialized value store, so we can have things
-  like int2 { 3, 4 }, [ 1 ] and "hello" function correctly as defaults.
+- Make the optimizer replace constant variables by the value, esp nice for int2_0 etc.
 
 - A step debugger.
   simply emit code that does a simple int comparison per statement, not too expensive.

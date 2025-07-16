@@ -102,8 +102,8 @@ run_test("misc"):
     // (de)serialization.
     class parsetestdefaults:
         da = 1
-        db = 2.0
-        dc = int2 { 3, 4 }  // struct
+        db = 1.0 + 1.0  // Simple constant math is supported.
+        dc = int2 { 3, 3 + 1 }  // struct
         dd = float2 { 5.0, 6.0 }  // struct
         de = testb { 8, 9 }  // class
         df = constdef  // Not currently a VM retained default, so 0 instead. TODO: support this.
@@ -115,7 +115,7 @@ run_test("misc"):
     let fdefexpected = parsetestdefaults { df: 0, dg: int2_0, dh: int2_0 }
     assert(equal(fdefval, fdefexpected))
     let fdefparsed = parse_data(typeof parsetestdefaults, "parsetestdefaults {{}}")
-    assert(equal(fdefval, fdefexpected))
+    assert(equal(fdefparsed, fdefexpected))
 
     assert switch rnd(2):
         default: true
