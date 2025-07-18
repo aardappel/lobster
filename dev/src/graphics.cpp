@@ -112,7 +112,7 @@ void TestGL(VM &vm) {
 extern "C" void GLFrame(StackPtr sp, VM &vm) {
     TestGL(vm);
     auto cb = GraphicsFrameStart();
-    vm.FrameStart();
+    vm.FrameStart(1);
     Push(sp, Value(!cb));
 }
 
@@ -287,6 +287,13 @@ nfr("frame", "", "", "B",
     [](StackPtr &sp, VM &vm) {
         // Native backends call this directly rather than going thru the function pointer.
         GLFrame(sp, vm);
+    });
+
+nfr("frame_counter", "delta", "I", "",
+    "gl.frame advances the frame counter by 1, which affects features like member_frame."
+    " this function allows you insert extra frames or remove them",
+    [](StackPtr &sp, VM &vm) {
+        vm.FrameStart(Pop(sp).ival());
     });
 
 nfr("shutdown", "", "", "",

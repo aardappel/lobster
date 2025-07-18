@@ -1125,7 +1125,7 @@ struct VM : VMBase {
 
     void EvalProgram();
 
-    void FrameStart() { frame_count++; }
+    void FrameStart(iint delta) { frame_count += delta; }
 
     void CallFunctionValue(Value f);
 
