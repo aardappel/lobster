@@ -1,5 +1,7 @@
 - Add an "if let" and "guard let" that scopes to inside the if?
 
+- An exhaustiveness checking test also for virtual dispatch.
+
 - Nil chaining (typically x?.a) comes with all sorts of problems exacerbated by it being
   very terse syntax, if we could make it verbose with the obvious keyword of guard,
   it could be a good feature?

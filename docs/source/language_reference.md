@@ -63,6 +63,7 @@ stats = topexp … linefeed
 topexp = `namespace` ident
       \|`import` [ `from` ] ( string\_constant \| ( ident ... `.` ) )
       \| [ `private` ] ( functiondef \| class \| vardef \| enumdef )
+      \| `guard` condexp [ `:` body ]
       \| expstat \| attrdef
 
 class = ( `class` \| `struct` ) ident
@@ -93,7 +94,10 @@ type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` 
 
 call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
-expstat = exp \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ]
+expstat = exp \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ] \|
+`for` exp `:` body \| `while` condexp `:` body
+
+condexp = exp \| vardef
 
 exp = opexp [ ( `=` \| `+=` \| `-=` \| `*=` \| `/=` \| `%=` ) exp ]
 
@@ -106,11 +110,10 @@ unary = ( `-` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 \| `++` \| `--` \| `is` type ]
 
-factor = constant \| `(` exp `)` \| `super` \| ctrlflow \| pakfile string\_constant \| constructor \| `fn` functionargsbody \| ident [ call ]
+factor = constant \| `(` exp `)` \| `super` \| `if` ifpart \| `assert` condexp \| pakfile string\_constant \|
+constructor \| `fn` functionargsbody \| ident [ call ]
 
-ctrlflow = `if` ifpart \| (`for` \| `while`) exp `:` body \| `guard` exp [ `:` body ]
-
-ifpart = exp `:` body (`else` `:` body \| `elif` `:` ifpart)
+ifpart = condexp `:` body (`else` `:` body \| `elif` `:` ifpart)
 
 constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list( ident `:` exp \| exp ] `}`
 
@@ -182,7 +185,7 @@ a value of one of the following types:
 
 Lobster does not have a built-in boolean type, though it does have a pre-defined
 `bool` enum (see enums below). In general, for boolean tests such
-as the `not and or` operators (see below) or the builtin function `if`, the values
+as the `not and or` operators (see below) or control structures `if` `guard` `while` `assert`, the values
 `0 0.0 nil` (which includes the enum value `false`) are all considered to be false,
 and all other values are true.
 
@@ -1107,6 +1110,8 @@ Control Structures
 As noted, all of these follow closely the function call syntax introduced above
 as much as possible, but are otherwise treated specially by the language.
 
+### if
+
 `if` may be followed by multiple `elif` blocks and a single `else` block:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1123,6 +1128,8 @@ else:
 `elif` is simply short for writing `else: if`. You can also write these on a single
 line, which is only recommended when very short, e.g. `if a < 0: 0 else: a`
 
+### for
+
 `for` is the only built-in construct taking 0 to 2 arguments to the block: the element
 being iterated over, and iteration index.
 
@@ -1138,6 +1145,8 @@ Here `a` will contain the 5 characters and `i` will be just `0` to `4`.
 
 The module `std` contains further useful loop constructs on top of `for`, like
 `map`, `filter`, and `exists` etc.
+
+### while
 
 `while` is an odd function, since it is an exception to the rule of Lobster
 syntax:
@@ -1167,14 +1176,20 @@ used elsewhere.
 `while` returns void. A similar function int module `std` called `collectwhile`
 returns a vector of all body return values.
 
+### break
+
 Both `for` and `while` can have a break statement inside of them, that
 exits the enclosing loop. Alternatively, use `return` or `return from` (see
 above) for more complex cases.
+
+### User defined control structures
 
 Many other functions that look like regular functions are actually also control
 structures, like many of the graphics function that change the current rendering
 state. An example is `gl.translate`, that optionally takes a body, and will
 run the body and restore the previous transform afterwards.
+
+### switch
 
 `switch` has special syntax, since it does a lot of things different:
 
@@ -1194,6 +1209,8 @@ types which must exhaustively cover all non-abstract sub-classes of the class ty
 Enums are also required to be tested exhaustively. An enum value that doesn't correspond
 to a value in the current enum definition (such as one read from a file) will produce a runtime
 error if the switch does not have a default case.
+
+### guard
 
 `guard` is a special variant of `if` for writing code in "early-out" style:
 
@@ -1240,6 +1257,8 @@ if a >= 0:
 That reads like an `assert` except instead of aborting the program, it skips the
 rest of the block.
 
+### assert
+
 `assert` simply passes thru any expression, excepts halts the program with an error
 if the value is `nil` (or `0` / `0.0` / `false`):
 
@@ -1250,6 +1269,28 @@ let a = assert b
 `a` will always be assigned a non-nil value, or execution will never get there.
 `assert` also changes the type of value `b` from nillable to non-nillable for the
 current scope, so you can use it in contexts that require a non-nil value.
+
+### Conditional declaration
+
+All control structures that start with a condition (`if`, `guard`, `while` and `assert`)
+may have a single variable `let` or `var` declaration inside of them. The variable will
+then be assigned, then tested, and is only available inside the scope of the construct.
+As before, the type of the variable will always be non-nil.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if let a = maybe_nil():
+    // Here a is never nil.
+// Here a is not in scope.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Which is similar to, but better than:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let a = maybe_nil()
+if a:
+    // Here a is never nil.
+// Here a is still in scope!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Modules and Name Spaces

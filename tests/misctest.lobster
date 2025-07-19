@@ -445,5 +445,25 @@ run_test("misc"):
         assert false
 
     do():
+        // let/var inside conditions.
+        // Works with assert/if/guard/while.
+        def maybe() -> string?:
+            return "foo"
+        assert let a = maybe()
+        assert a == "foo"
+        if let b = maybe():
+            assert b == "foo"
+        else:
+            pass()  // Here, this gives and error because the var is out of scope: assert b == nil
+        guard let c = maybe()
+        assert c == "foo"
+        guard let d = maybe():
+            assert d == nil
+        assert d == "foo"
+        while let e = maybe():
+            assert e == "foo"
+            break
+
+    do():
         // Parse >> correctly.
         assert (dictionary<string, dictionary<string, int>>(17)).get("foo") == nil

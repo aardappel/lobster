@@ -283,51 +283,7 @@ struct Parser {
             }
             case T_VAR:
             case T_CONST: {
-                auto isconst = lex.token == T_CONST;
-                lex.Next();
-                auto def = new Define(lex, nullptr);
-                bool has_predeclaration_init = false;
-                for (;;) {
-                    auto idname = ExpectId();
-                    bool withtype = lex.token == T_TYPEIN;
-                    UnTypeRef type = (UnType *)nullptr;
-                    if (lex.token == T_COLON || withtype) {
-                        lex.Next();
-                        type = ParseType(withtype);
-                    }
-                    auto id = st.LookupDef(idname, true, withtype);
-                    if (id->predeclaration) {
-                        if (type.Null() || !type->Equal(*id->giventype))
-                            Error("must specify same type as pre-declaration");
-                        if (isconst != id->constant)
-                            Error("let/var doesn\'t match pre-declaration");
-                        if (isprivate != id->isprivate)
-                            Error("private doesn\'t match pre-declaration");
-                        has_predeclaration_init = true;
-                        id->predeclaration = false;
-                    }
-                    if (isconst)  id->constant = true;
-                    if (isprivate) id->isprivate = true;
-                    def->tsids.push_back({ id->cursid, type });
-                    id->giventype = type;
-                    if (!IsNext(T_COMMA)) break;
-                }
-                if (IsNext(T_ASSIGN)) {
-                    def->child = ParseMultiRet(ParseOpExp());
-                } else {
-                    if (has_predeclaration_init)
-                        Error("missing initialization");
-                    if (st.scopelevels.size() != 1)
-                        // For now, since we track it in Idents which don't work with specialization in TC.
-                        Error("variable pre-declarations only allowed at top level");
-                    for (auto &tsid : def->tsids) {
-                        if (tsid.giventype.Null())
-                            Error("a variable pre-declaration must have a type specified");
-                        tsid.sid->id->predeclaration = true;
-                    }
-                    def->child = new DefaultVal(lex);
-                }
-                list->Add(def);
+                list->Add(ParseDefine(isprivate, false));
                 break;
             }
             case T_STATIC:
@@ -428,14 +384,34 @@ struct Parser {
                 ParseAttribute(st.defsubfunctionstack.back()->attributes);
                 break;
             }
+            case T_GUARD: {
+                lex.Next();
+                list->Add(ParseGuard(lex, list));
+                break;
+            }
+            // These two also exist at factor level (where a declaration inside them is not allowed)
+            case T_IF: {
+                lex.Next();
+                list->Add(ParseIf(lex, list));
+                break;
+            }
+            case T_ASSERT: {
+                lex.Next();
+                Line line = lex;
+                auto cond = ParseExpCond(list);
+                list->Add(new Assert(line, cond));
+                break;
+            }
             default: {
                 if (isprivate)
                     Error("private only applies to declarations");
-                auto e = ParseExpStat();
+                ParseExpStat(list);
+                auto e = list->children.back();
                 // TODO: add Indexed to this.
                 if (Is<IdentRef>(e) || Is<Dot>(e) || Is<GenericCall>(e)) {
                     // Regular assign is handled in normal expression parsing below.
                     if (lex.token == T_COMMA) {
+                        list->children.pop_back();
                         auto al = new AssignList(lex, Modify(e));
                         while (IsNext(T_COMMA)) {
                             e = ParseDeref();
@@ -451,10 +427,63 @@ struct Parser {
                         break;
                     }
                 }
-                list->Add(e);
                 break;
             }
         }
+    }
+
+    Define *ParseDefine(bool isprivate, bool iscond) {
+        auto isconst = lex.token == T_CONST;
+        lex.Next();
+        auto def = new Define(lex, nullptr);
+        bool has_predeclaration_init = false;
+        for (;;) {
+            auto idname = ExpectId();
+            bool withtype = lex.token == T_TYPEIN;
+            UnTypeRef type = (UnType *)nullptr;
+            if (lex.token == T_COLON || withtype) {
+                lex.Next();
+                type = ParseType(withtype);
+            }
+            auto id = st.LookupDef(idname, true, withtype);
+            if (id->predeclaration) {
+                if (iscond)
+                    Error("can\'t define pre-declaration in condition");
+                if (type.Null() || !type->Equal(*id->giventype))
+                    Error("must specify same type as pre-declaration");
+                if (isconst != id->constant)
+                    Error("let/var doesn\'t match pre-declaration");
+                if (isprivate != id->isprivate)
+                    Error("private doesn\'t match pre-declaration");
+                has_predeclaration_init = true;
+                id->predeclaration = false;
+            }
+            if (isconst)  id->constant = true;
+            if (isprivate) id->isprivate = true;
+            def->tsids.push_back({ id->cursid, type });
+            id->giventype = type;
+            if (!IsNext(T_COMMA)) break;
+            if (iscond)
+                Error("can only declare a single variable in condition");
+        }
+        if (IsNext(T_ASSIGN)) {
+            def->child = ParseMultiRet(ParseOpExp());
+        } else {
+            if (iscond)
+                Error("variable definition in condition must have initializer");
+            if (has_predeclaration_init)
+                Error("missing initialization");
+            if (st.scopelevels.size() != 1)
+                // For now, since we track it in Idents which don't work with specialization in TC.
+                Error("variable pre-declarations only allowed at top level");
+            for (auto &tsid : def->tsids) {
+                if (tsid.giventype.Null())
+                    Error("a variable pre-declaration must have a type specified");
+                tsid.sid->id->predeclaration = true;
+            }
+            def->child = new DefaultVal(lex);
+        }
+        return def;
     }
 
     pair<string_view, string_view> ParseAttribute(map<string_view, string_view> &attributes) {
@@ -738,7 +767,7 @@ struct Parser {
         if (IsNext(T_INDENT)) {
             return ParseStatements(block, T_DEDENT);
         } else {
-            block->children.push_back(ParseExpStat());
+            ParseExpStat(block);
             CleanupStatements(block);
         }
         block_stack.pop_back();
@@ -1054,39 +1083,88 @@ struct Parser {
         return list;
     }
 
-    Node *ParseExpStat() {
-        if (IsNext(T_RETURN)) {
-            Node *rv = nullptr;
-            if (!Either(T_LINEFEED, T_DEDENT, T_FROM)) {
-                rv = ParseMultiRet(ParseOpExp());
-            } else {
-                rv = new DefaultVal(lex);
-            }
-            auto sf = st.toplevel;
-            if (IsNext(T_FROM)) {
-                if(!IsNext(T_PROGRAM)) {
-                    if (!IsNextId())
-                        Error(Q("return from"), " must be followed by function identifier or ",
-                              Q("program"));
-                    auto f = st.FindFunction(lastid);
-                    if (!f)
-                        Error(Q(lastid), " is not a known function for use with ",
-                              Q("return from"));
-                    if (f->sibf || f->overloads.size() > 1)
-                        Error("function ", Q(lastid),
-                              " must have single implementation to be used with ",
-                              Q("return from"));
-                    sf = f->overloads[0]->sf;
+    void ParseExpStat(Block *list) {
+        switch (lex.token) {
+            case T_FOR: {
+                lex.Next();
+                Line line = lex;
+                Node *iter;
+                if (IsNext(T_LEFTPAREN)) {
+                    iter = ParseExp(false);
+                    Expect(T_RIGHTPAREN);
+                    list->Add(new For(line, iter, ParseBlock(0, true)));
+                } else {
+                    iter = ParseExp(true);
+                    list->Add(new For(line, iter, ParseBlock(0)));
                 }
-            } else {
-                if (functionstack.size())
-                    sf = functionstack.back()->overloads.back()->sf;
+                break;
             }
-            return new Return(lex, rv, sf, false);
-        } else if (IsNext(T_BREAK)) {
-            return new Break(lex);
+            case T_WHILE: {
+                lex.Next();
+                Line line = lex;
+                st.BlockScopeStart();  // Just in case condition has a define.
+                auto cond = ParseExpCond(list);
+                auto w = new While(line, cond, ParseBlock());
+                st.BlockScopeCleanup();
+                list->Add(w);
+                break;
+            }
+            case T_RETURN: {
+                lex.Next();
+                Node *rv = nullptr;
+                if (!Either(T_LINEFEED, T_DEDENT, T_FROM)) {
+                    rv = ParseMultiRet(ParseOpExp());
+                } else {
+                    rv = new DefaultVal(lex);
+                }
+                auto sf = st.toplevel;
+                if (IsNext(T_FROM)) {
+                    if(!IsNext(T_PROGRAM)) {
+                        if (!IsNextId())
+                            Error(Q("return from"), " must be followed by function identifier or ",
+                                  Q("program"));
+                        auto f = st.FindFunction(lastid);
+                        if (!f)
+                            Error(Q(lastid), " is not a known function for use with ",
+                                  Q("return from"));
+                        if (f->sibf || f->overloads.size() > 1)
+                            Error("function ", Q(lastid),
+                                  " must have single implementation to be used with ",
+                                  Q("return from"));
+                        sf = f->overloads[0]->sf;
+                    }
+                } else {
+                    if (functionstack.size())
+                        sf = functionstack.back()->overloads.back()->sf;
+                }
+                list->Add(new Return(lex, rv, sf, false));
+                break;
+            }
+            case T_BREAK: {
+                lex.Next();
+                list->Add(new Break(lex));
+                break;
+            }
+            default: {
+                list->Add(ParseExp());
+                break;
+            }
         }
-        return ParseExp();
+    }
+
+    Node *ParseExpCond(Block *list) {
+        if (lex.token == T_CONST || lex.token == T_VAR) {
+            if (!list)
+                Error("declaration inside condition only allowed as statement");
+            DS<bool> ds(call_noparens, true);
+            auto def = ParseDefine(false, true);
+            list->Add(def);
+            // TODO: this reads the variable after it has been set. Unless codegen recognizes
+            // this case, it is slower than simply having the define leave a value on the stack.
+            return new IdentRef(lex, def->tsids[0].sid);
+        } else {
+            return ParseExp(true);
+        }
     }
 
     Node *Modify(Node *e) {
@@ -1463,38 +1541,16 @@ struct Parser {
                 pakfiles.insert(s);
                 return new StringConstant(lex, std::move(s));
             }
+            // These two also exist at statement level where they can also have a definition inside the condition.
             case T_ASSERT: {
                 lex.Next();
                 Line line = lex;
-                auto cond = ParseExp(true);
+                auto cond = ParseExpCond(nullptr);
                 return new Assert(line, cond);
             }
             case T_IF: {
                 lex.Next();
-                return ParseIf(lex);
-            }
-            case T_GUARD: {
-                lex.Next();
-                return ParseGuard(lex);
-            }
-            case T_WHILE: {
-                lex.Next();
-                Line line = lex;
-                auto cond = ParseExp(true);
-                return new While(line, cond, ParseBlock());
-            }
-            case T_FOR: {
-                lex.Next();
-                Line line = lex;
-                Node *iter;
-                if (IsNext(T_LEFTPAREN)) {
-                    iter = ParseExp(false);
-                    Expect(T_RIGHTPAREN);
-                    return new For(line, iter, ParseBlock(0, true));
-                } else {
-                    iter = ParseExp(true);
-                    return new For(line, iter, ParseBlock(0));
-                }
+                return ParseIf(lex, nullptr);
             }
             case T_SWITCH: {
                 lex.Next();
@@ -1555,12 +1611,16 @@ struct Parser {
         }
     }
 
-    Node *ParseIf(Line line) {
-        auto cond = ParseExp(true);
+    Node *ParseIf(Line line, Block *list) {
+        st.BlockScopeStart();  // Just in case condition has a define.
+        auto cond = ParseExpCond(list);
         auto thenp = ParseBlock();
+        st.BlockScopeCleanup();
         auto islf = IsNext(T_LINEFEED);
         if (IsNext(T_ELIF)) {
-            return new IfElse(line, cond, thenp, (new Block(lex))->Add(ParseIf(lex)));
+            // FIXME: we can't support a definition inside condition here because it would put it
+            // before the entire nested if!
+            return new IfElse(line, cond, thenp, (new Block(lex))->Add(ParseIf(lex, nullptr)));
         } else if (IsNext(T_ELSE)) {
             return new IfElse(line, cond, thenp, ParseBlock());
         } else {
@@ -1571,19 +1631,24 @@ struct Parser {
         }
     }
 
-    Node *ParseGuard(Line line) {
-        auto cond = ParseExp(true);
+    Node *ParseGuard(Line line, Block *list) {
+        st.BlockScopeStart();  // Just in case condition has a define.
+        auto cond = ParseExpCond(list);
         auto block = new Block(lex);
+        Node *grd = nullptr;
         if (lex.token != T_COLON) {
             Expect(T_LINEFEED);
             ParseStatements(block, T_NONE);
-            return new IfThen(line, cond, block);
+            grd = new IfThen(line, cond, block);
         } else {
+            // FIXME: make any variables in condition scope not available here as they are all nil/0 // etc.
             auto exitblock = ParseBlock();
             Expect(T_LINEFEED);
             ParseStatements(block, T_NONE);
-            return new IfElse(line, cond, block, exitblock);
+            grd = new IfElse(line, cond, block, exitblock);
         }
+        st.BlockScopeCleanup();
+        return grd;
     }
 
     void ForLoopVar(int existing, SpecIdent *sid, UnTypeRef type, node_small_vector &list) {

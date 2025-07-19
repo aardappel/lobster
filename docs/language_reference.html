@@ -80,7 +80,8 @@ level difference. <code>[rule]</code> Means optional.</p>
 <p>topexp = <code>namespace</code> ident |<code>import</code> [
 <code>from</code> ] ( string_constant | ( ident ... <code>.</code> ) ) |
 [ <code>private</code> ] ( functiondef | class | vardef | enumdef ) |
-expstat | attrdef</p>
+<code>guard</code> condexp [ <code>:</code> body ] | expstat |
+attrdef</p>
 <p>class = ( <code>class</code> | <code>struct</code> ) ident (
 <code>=</code> ident specializers | [ generics ] <code>:</code> [ ident
 [ specializers ] ] indlist( ident [ <code>:</code> type ] [
@@ -106,7 +107,10 @@ specializers ]</p>
 <p>call = [ specializers ] <code>(</code> [ list( exp ) ] <code>)</code>
 [ block [ <code>fn</code> block … ] ]</p>
 <p>expstat = exp | <code>return</code> ( [ list( opexp ) ] ) [
-<code>from</code> ( <code>program</code> | ident ) ]</p>
+<code>from</code> ( <code>program</code> | ident ) ] | <code>for</code>
+exp <code>:</code> body | <code>while</code> condexp <code>:</code>
+body</p>
+<p>condexp = exp | vardef</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> |
 <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
 <p>opexp = unary [ ( <code>*</code> | <code>/</code> | <code>%</code> ||
@@ -121,13 +125,11 @@ specializers ]</p>
 ident [ call ] | <code>-&gt;</code> ident | <code>++</code> |
 <code>--</code> | <code>is</code> type ]</p>
 <p>factor = constant | <code>(</code> exp <code>)</code> |
-<code>super</code> | ctrlflow | pakfile string_constant | constructor |
-<code>fn</code> functionargsbody | ident [ call ]</p>
-<p>ctrlflow = <code>if</code> ifpart | (<code>for</code> |
-<code>while</code>) exp <code>:</code> body | <code>guard</code> exp [
-<code>:</code> body ]</p>
-<p>ifpart = exp <code>:</code> body (<code>else</code> <code>:</code>
-body | <code>elif</code> <code>:</code> ifpart)</p>
+<code>super</code> | <code>if</code> ifpart | <code>assert</code>
+condexp | pakfile string_constant | constructor | <code>fn</code>
+functionargsbody | ident [ call ]</p>
+<p>ifpart = condexp <code>:</code> body (<code>else</code>
+<code>:</code> body | <code>elif</code> <code>:</code> ifpart)</p>
 <p>constructor = <code>[</code> [ list( exp ) ] <code>]</code> [
 <code>::</code> type ] | ident <code>{</code> [ list( ident
 <code>:</code> exp | exp ] <code>}</code></p>
@@ -195,7 +197,8 @@ like other reference types above.</p></li>
 <p>Lobster does not have a built-in boolean type, though it does have a
 pre-defined <code>bool</code> enum (see enums below). In general, for
 boolean tests such as the <code>not and or</code> operators (see below)
-or the builtin function <code>if</code>, the values
+or control structures <code>if</code> <code>guard</code>
+<code>while</code> <code>assert</code>, the values
 <code>0 0.0 nil</code> (which includes the enum value
 <code>false</code>) are all considered to be false, and all other values
 are true.</p>
@@ -937,6 +940,7 @@ management</a>.</p>
 <p>As noted, all of these follow closely the function call syntax
 introduced above as much as possible, but are otherwise treated
 specially by the language.</p>
+<h3 id="if">if</h3>
 <p><code>if</code> may be followed by multiple <code>elif</code> blocks
 and a single <code>else</code> block:</p>
 <pre><code>if a &lt; 0:
@@ -950,6 +954,7 @@ else:
 <p><code>elif</code> is simply short for writing <code>else: if</code>.
 You can also write these on a single line, which is only recommended
 when very short, e.g. <code>if a &lt; 0: 0 else: a</code></p>
+<h3 id="for">for</h3>
 <p><code>for</code> is the only built-in construct taking 0 to 2
 arguments to the block: the element being iterated over, and iteration
 index.</p>
@@ -962,6 +967,7 @@ will be just <code>0</code> to <code>4</code>.</p>
 <p>The module <code>std</code> contains further useful loop constructs
 on top of <code>for</code>, like <code>map</code>, <code>filter</code>,
 and <code>exists</code> etc.</p>
+<h3 id="while">while</h3>
 <p><code>while</code> is an odd function, since it is an exception to
 the rule of Lobster syntax:</p>
 <pre><code>while a &lt; 10: a++</code></pre>
@@ -983,15 +989,19 @@ used elsewhere.</p>
 <p><code>while</code> returns void. A similar function int module
 <code>std</code> called <code>collectwhile</code> returns a vector of
 all body return values.</p>
+<h3 id="break">break</h3>
 <p>Both <code>for</code> and <code>while</code> can have a break
 statement inside of them, that exits the enclosing loop. Alternatively,
 use <code>return</code> or <code>return from</code> (see above) for more
 complex cases.</p>
+<h3 id="user-defined-control-structures">User defined control
+structures</h3>
 <p>Many other functions that look like regular functions are actually
 also control structures, like many of the graphics function that change
 the current rendering state. An example is <code>gl.translate</code>,
 that optionally takes a body, and will run the body and restore the
 previous transform afterwards.</p>
+<h3 id="switch">switch</h3>
 <p><code>switch</code> has special syntax, since it does a lot of things
 different:</p>
 <pre><code>var st = switch i:
@@ -1009,6 +1019,7 @@ Enums are also required to be tested exhaustively. An enum value that
 doesn't correspond to a value in the current enum definition (such as
 one read from a file) will produce a runtime error if the switch does
 not have a default case.</p>
+<h3 id="guard">guard</h3>
 <p><code>guard</code> is a special variant of <code>if</code> for
 writing code in "early-out" style:</p>
 <pre><code>guard a &gt;= 0:
@@ -1038,6 +1049,7 @@ imagine_10_lines_of_code_processing_a_here()</code></pre>
     imagine_10_lines_of_code_processing_a_here()</code></pre>
 <p>That reads like an <code>assert</code> except instead of aborting the
 program, it skips the rest of the block.</p>
+<h3 id="assert">assert</h3>
 <p><code>assert</code> simply passes thru any expression, excepts halts
 the program with an error if the value is <code>nil</code> (or
 <code>0</code> / <code>0.0</code> / <code>false</code>):</p>
@@ -1046,6 +1058,21 @@ the program with an error if the value is <code>nil</code> (or
 will never get there. <code>assert</code> also changes the type of value
 <code>b</code> from nillable to non-nillable for the current scope, so
 you can use it in contexts that require a non-nil value.</p>
+<h3 id="conditional-declaration">Conditional declaration</h3>
+<p>All control structures that start with a condition (<code>if</code>,
+<code>guard</code>, <code>while</code> and <code>assert</code>) may have
+a single variable <code>let</code> or <code>var</code> declaration
+inside of them. The variable will then be assigned, then tested, and is
+only available inside the scope of the construct. As before, the type of
+the variable will always be non-nil.</p>
+<pre><code>if let a = maybe_nil():
+    // Here a is never nil.
+// Here a is not in scope.</code></pre>
+<p>Which is similar to, but better than:</p>
+<pre><code>let a = maybe_nil()
+if a:
+    // Here a is never nil.
+// Here a is still in scope!</code></pre>
 <h2 id="modules-and-name-spaces">Modules and Name Spaces</h2>
 <p>A module is simply a single <code>.lobster</code> file, that can be
 imported into another using the <code>import</code> keyword. You can
