@@ -24,6 +24,9 @@ run_test("typeswitch"):
     // 6 classes, but 2 are abstract, so this switch will demand that exactly 4 cases
     // must always be covered!
 
+    // By using "abstract" where possible, you get pretty much the same functionality
+    // as a discrimated union, with the same exhaustiveness checking.
+
     /*
 
     (A)
@@ -108,3 +111,19 @@ run_test("typeswitch"):
                 "?"
 
     assert equal(results6, [ "t", "f", "?" ])
+
+    // Now lets do the above type switches using dynamically dispatched calls.
+    // Lobster lets you use either switch or dynamic dispatch, they are both implemented using
+    // the same vtables, and give you the same exhaustiveness guarantees!
+
+    // Cases for B, D and E must all be present, or else it is a compile time error, again
+    // thanks to the use of abstract super classes.
+    // Case for F may be omitted, and E will be used instead.
+    def one_case(t::B): return b
+    def one_case(t::D): return d
+    def one_case(t::E): return e
+    def one_case(t::F): return f
+
+    let results7 = map(tests): one_case(_)
+
+    assert equal(results7, [ 1, 3, 4, 5 ])
