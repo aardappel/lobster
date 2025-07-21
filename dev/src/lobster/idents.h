@@ -56,10 +56,18 @@ struct Ident : Named {
     Line line;
 
     bool isprivate = false;
-    bool single_assignment = true;  // not declared const but def only, exp may or may not be const
-    bool constant = false;          // declared const
-    bool static_constant = false;   // not declared const but def only, exp is const.
-    bool read = false;              // has been read at least once.
+
+    // Not declared const but def only, exp may or may not be const.
+    bool single_assignment = true;
+    // Declared const.
+    bool constant = false;
+    // Not necessarily declared const but def only, exp is const.
+    // NOTE: not exact, since only takes parsed constructor arguments into account, could have non-const
+    // fields, but only used so far for reporting unused variables, so ok for now.
+    bool static_constant = false;
+    // Has been read at least once.
+    bool read = false;
+
     bool predeclaration = false;
 
     SpecIdent *cursid = nullptr;
