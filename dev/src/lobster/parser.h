@@ -1632,23 +1632,18 @@ struct Parser {
     }
 
     Node *ParseGuard(Line line, Block *list) {
-        st.BlockScopeStart();  // Just in case condition has a define.
         auto cond = ParseExpCond(list);
         auto block = new Block(lex);
-        Node *grd = nullptr;
         if (lex.token != T_COLON) {
             Expect(T_LINEFEED);
             ParseStatements(block, T_NONE);
-            grd = new IfThen(line, cond, block);
+            return new IfThen(line, cond, block);
         } else {
-            // FIXME: make any variables in condition scope not available here as they are all nil/0 // etc.
             auto exitblock = ParseBlock();
             Expect(T_LINEFEED);
             ParseStatements(block, T_NONE);
-            grd = new IfElse(line, cond, block, exitblock);
+            return new IfElse(line, cond, block, exitblock);
         }
-        st.BlockScopeCleanup();
-        return grd;
     }
 
     void ForLoopVar(int existing, SpecIdent *sid, UnTypeRef type, node_small_vector &list) {
