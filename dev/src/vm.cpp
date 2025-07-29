@@ -234,14 +234,24 @@ string VM::MemoryUsage(size_t show_max) {
     }
     sort(sorted.begin(), sorted.end(), _UsageSorter);
     if (!total) return sd;
-    append(sd, "TOTAL: ", total / 1024, " K (", totalgpu * 100 / total, "% on GPU)\n");
+    const char *suffixes[] = {
+        " B", " KB", " MB", " GB", " TB", " PB", " EB", " ZB", "YB"
+    };
+    auto show_amount = [&](size_t a) -> string {
+        for (size_t i = 0; ; i++) {
+            if (a < 10 * 1024)
+                return cat(a, suffixes[i]);
+            a /= 1024;
+        }
+    };
+    append(sd, "TOTAL: ", show_amount(total), " (", totalgpu * 100 / total, "% on GPU)\n");
     for (auto [i, p] : enumerate(sorted)) {
         if (i >= show_max || p.second.bytes < 1024) break;
         if (p.second.rt) append(sd, "resource<", p.second.rt->name, ">");
         else append(sd, ((const TypeInfo *)p.first)->Debug(*this, false));
-        append(sd, ": ", p.second.bytes / 1024, " K in ", p.second.num, " objects");
+        append(sd, ": ", show_amount(p.second.bytes), " in ", p.second.num, " objects");
         if (p.second.max >= 1024 && p.second.max != p.second.bytes / p.second.num) {
-            append(sd, " (biggest: ", p.second.max / 1024, " K)");
+            append(sd, " (biggest: ", show_amount(p.second.max), ")");
         }
         if (p.second.gpu) {
             append(sd, " (", p.second.gpu * 100 / p.second.bytes, "% on GPU)");
