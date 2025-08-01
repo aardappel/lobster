@@ -13,6 +13,20 @@
 - Fix defaultval typechecking in TypeCheckUDT
 
 - FIX:
+    class A:
+        x:bool = true
+        y:string? = nil
+
+    var a:A? = nil
+    if a:
+        if a.x:
+            a = nil
+        elif a.y:
+            pass()
+
+    test.lobster(9): error: type A? does not have field y
+
+- FIX:
   a = nil
   if not a:
     a = ..
