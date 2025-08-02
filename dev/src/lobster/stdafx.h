@@ -157,10 +157,20 @@ using namespace geom;
         ___tracy_c_zone_context ___tracy_emit_zone_begin(
             const struct ___tracy_source_location_data *srcloc, int active);
         void ___tracy_emit_zone_end(___tracy_c_zone_context ctx);
+        static const size_t PROF_WINDOW_SIZE = 64;
         struct ProfStat {
-            double time;
+            double time = 0;
+            float window[PROF_WINDOW_SIZE];
+            ProfStat() { memset(window, 0, sizeof(window)); }
         };
-        extern unordered_map<const struct ___tracy_source_location_data *, ProfStat> prof_stats;
+        struct ProfDB {
+            bool paused = false;
+            size_t window_pos = 0;
+            vector<pair<const struct ___tracy_source_location_data *, double>> stack;
+            unordered_map<const struct ___tracy_source_location_data *, ProfStat> stats;
+            void Advance();
+        };
+        extern ProfDB prof_db;
     #endif
 #else
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0

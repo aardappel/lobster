@@ -971,6 +971,10 @@ const char *Label(VM &vm, Value val) {
     return l;
 }
 
+static float prof_histogram_values_getter(void *data, int idx) {
+    return ((float *)data)[idx] * 1000.0f;
+}
+
 void AddIMGUI(NativeRegistry &nfr) {
 
 nfr("init", "dark_style,flags,rounding,border", "B?I?F?F?", "",
@@ -2219,22 +2223,23 @@ nfr("show_debug_metrics_window", "", "", "",
         return NilVal();
     });
 
-nfr("show_profiling_stats", "num,reset", "IB", "",
+nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
     "",
-    [](StackPtr &, VM &vm, Value num, Value reset) {
+    [](StackPtr &, VM &vm, Value num, Value reset, Value histogram, Value paused) {
         IsInit(vm);
         #if LOBSTER_FRAME_PROFILER == 1
-        if (reset.True()) prof_stats.clear();
-        vector<pair<const struct ___tracy_source_location_data *, ProfStat>> display;
-        for (auto &it : prof_stats) {
-            display.push_back(it);
+        prof_db.paused = paused.True();
+        if (reset.True()) prof_db.stats.clear();
+        vector<pair<const struct ___tracy_source_location_data *, ProfStat *>> display;
+        for (auto &it : prof_db.stats) {
+            display.push_back({ it.first, &it.second });
         }
         sort(display.begin(), display.end(),
-             [](pair<const struct ___tracy_source_location_data *, ProfStat> &a,
-                pair<const struct ___tracy_source_location_data *, ProfStat> &b) -> bool {
-                 return a.second.time >= b.second.time;
+             [](pair<const struct ___tracy_source_location_data *, ProfStat *> &a,
+                pair<const struct ___tracy_source_location_data *, ProfStat *> &b) -> bool {
+                 return a.second->time >= b.second->time;
             });
-        if (!ImGui::BeginTable("show_profiling_stats", 2,
+        if (!ImGui::BeginTable("show_profiling_stats", histogram.True() ? 3 : 2,
                                ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX |
                                    ImGuiTableFlags_Borders))
             return NilVal();
@@ -2244,7 +2249,15 @@ nfr("show_profiling_stats", "num,reset", "IB", "",
             ImGui::TableSetColumnIndex(0);
             Text(it.first->function);
             ImGui::TableSetColumnIndex(1);
-            Text(to_string_float(it.second.time, 3));
+            Text(to_string_float(it.second->time, 3));
+            if (histogram.True()) {
+                ImGui::TableSetColumnIndex(2);
+                ImGui::PlotHistogram(cat("##", it.first->function).c_str(),
+                                     prof_histogram_values_getter, it.second->window,
+                                     PROF_WINDOW_SIZE, (int)prof_db.window_pos + 1,
+                                     nullptr, FLT_MAX, FLT_MAX,
+                                     ImVec2 { PROF_WINDOW_SIZE * 4.0f, 0.0f });
+            }
             if (!--i) break;
         }
         ImGui::EndTable();

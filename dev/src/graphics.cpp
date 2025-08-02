@@ -97,6 +97,7 @@ bool GraphicsFrameStart() {
     extern void CullFonts(); CullFonts();
     extern void SteamUpdate(); SteamUpdate();
     OpenGLFrameEnd();
+    prof_db.Advance();
     bool cb = SDLFrame();
     GraphicsReset();
     return cb;

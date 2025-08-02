@@ -890,26 +890,37 @@ Value VM::WorkerCheck(type_elem_t tti) {
 
 #if LOBSTER_FRAME_PROFILER == 1
 
-vector<pair<const struct ___tracy_source_location_data *, double>> prof_stack;
-unordered_map<const struct ___tracy_source_location_data *, ProfStat> prof_stats;
+ProfDB prof_db;
 
 ___tracy_c_zone_context ___tracy_emit_zone_begin(const struct ___tracy_source_location_data *srcloc, int) {
-    prof_stack.push_back({ srcloc, 0.0 });
+    prof_db.stack.push_back({ srcloc, 0.0 });
     return { SecondsSinceStart() };
 }
 
 void ___tracy_emit_zone_end(___tracy_c_zone_context ctx) {
-    auto [srcloc, child_time] = prof_stack.back();
-    prof_stack.pop_back();
+    auto [srcloc, child_time] = prof_db.stack.back();
+    prof_db.stack.pop_back();
+    if (prof_db.paused) return;
     auto time = SecondsSinceStart() - ctx.start_time;
-    auto it = prof_stats.find(srcloc);
-    if (it == prof_stats.end()) {
-        prof_stats[srcloc] = ProfStat{ time - child_time };
+    auto it = prof_db.stats.find(srcloc);
+    ProfStat *el = nullptr;
+    if (it == prof_db.stats.end()) {
+        el = &prof_db.stats[srcloc];
     } else {
-        it->second.time += time - child_time;
+        el = &it->second;
     }
-    if (!prof_stack.empty()) {
-        prof_stack.back().second += time;
+    el->time += time - child_time;
+    el->window[prof_db.window_pos] += (float)(time - child_time);
+    if (!prof_db.stack.empty()) {
+        prof_db.stack.back().second += time;
+    }
+}
+
+void ProfDB::Advance() {
+    if (prof_db.paused) return;
+    window_pos = (window_pos + 1) % PROF_WINDOW_SIZE;
+    for (auto &it : stats) {
+        it.second.window[window_pos] = 0.0f;
     }
 }
 
