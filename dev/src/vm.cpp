@@ -910,6 +910,7 @@ void ___tracy_emit_zone_end(___tracy_c_zone_context ctx) {
         el = &it->second;
     }
     auto curtime = time - child_time;
+    el->n++;
     el->time += curtime;
     el->highest = std::max(curtime, el->highest);
     el->window[prof_db.window_pos] += (float)curtime;

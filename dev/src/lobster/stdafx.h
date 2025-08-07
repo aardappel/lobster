@@ -159,6 +159,7 @@ using namespace geom;
         void ___tracy_emit_zone_end(___tracy_c_zone_context ctx);
         static const size_t PROF_WINDOW_SIZE = 64;
         struct ProfStat {
+            uint64_t n = 0;
             double time = 0;
             double highest = 0;
             float window[PROF_WINDOW_SIZE];

@@ -2243,13 +2243,20 @@ nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
                                ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX |
                                    ImGuiTableFlags_Borders))
             return NilVal();
+        ImGui::TableSetupColumn("Function");
+        ImGui::TableSetupColumn("AVG ms");
+        ImGui::TableSetupColumn("HI ms");
+        if (histogram.True()) {
+            ImGui::TableSetupColumn("Histogram");
+        }
+        ImGui::TableHeadersRow();
         auto i = num.ival();
         for (auto &it : display) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             Text(it.first->function);
             ImGui::TableSetColumnIndex(1);
-            Text(to_string_float(it.second->time, 3));
+            Text(to_string_float(it.second->time * 1000.0 / it.second->n, 3));
             ImGui::TableSetColumnIndex(2);
             Text(to_string_float(it.second->highest * 1000.0, 3));
             if (histogram.True()) {
