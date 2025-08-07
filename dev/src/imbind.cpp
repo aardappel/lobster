@@ -971,9 +971,11 @@ const char *Label(VM &vm, Value val) {
     return l;
 }
 
+#if LOBSTER_FRAME_PROFILER == 1
 static float prof_histogram_values_getter(void *data, int idx) {
     return ((float *)data)[idx] * 1000.0f;
 }
+#endif
 
 void AddIMGUI(NativeRegistry &nfr) {
 
