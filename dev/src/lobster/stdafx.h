@@ -160,6 +160,7 @@ using namespace geom;
         static const size_t PROF_WINDOW_SIZE = 64;
         struct ProfStat {
             double time = 0;
+            double highest = 0;
             float window[PROF_WINDOW_SIZE];
             ProfStat() { memset(window, 0, sizeof(window)); }
         };

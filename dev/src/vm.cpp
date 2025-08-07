@@ -909,8 +909,10 @@ void ___tracy_emit_zone_end(___tracy_c_zone_context ctx) {
     } else {
         el = &it->second;
     }
-    el->time += time - child_time;
-    el->window[prof_db.window_pos] += (float)(time - child_time);
+    auto curtime = time - child_time;
+    el->time += curtime;
+    el->highest = std::max(curtime, el->highest);
+    el->window[prof_db.window_pos] += (float)curtime;
     if (!prof_db.stack.empty()) {
         prof_db.stack.back().second += time;
     }

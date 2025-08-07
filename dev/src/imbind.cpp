@@ -2237,9 +2237,9 @@ nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
         sort(display.begin(), display.end(),
              [](pair<const struct ___tracy_source_location_data *, ProfStat *> &a,
                 pair<const struct ___tracy_source_location_data *, ProfStat *> &b) -> bool {
-                 return a.second->time >= b.second->time;
+                 return a.second->highest >= b.second->highest;
             });
-        if (!ImGui::BeginTable("show_profiling_stats", histogram.True() ? 3 : 2,
+        if (!ImGui::BeginTable("show_profiling_stats", histogram.True() ? 4 : 3,
                                ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX |
                                    ImGuiTableFlags_Borders))
             return NilVal();
@@ -2250,8 +2250,10 @@ nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
             Text(it.first->function);
             ImGui::TableSetColumnIndex(1);
             Text(to_string_float(it.second->time, 3));
+            ImGui::TableSetColumnIndex(2);
+            Text(to_string_float(it.second->highest * 1000.0, 3));
             if (histogram.True()) {
-                ImGui::TableSetColumnIndex(2);
+                ImGui::TableSetColumnIndex(3);
                 ImGui::PlotHistogram(cat("##", it.first->function).c_str(),
                                      prof_histogram_values_getter, it.second->window,
                                      PROF_WINDOW_SIZE, (int)prof_db.window_pos + 1,
