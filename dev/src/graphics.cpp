@@ -97,7 +97,9 @@ bool GraphicsFrameStart() {
     extern void CullFonts(); CullFonts();
     extern void SteamUpdate(); SteamUpdate();
     OpenGLFrameEnd();
+    #if LOBSTER_FRAME_PROFILER == 1
     prof_db.Advance();
+    #endif
     bool cb = SDLFrame();
     GraphicsReset();
     return cb;
