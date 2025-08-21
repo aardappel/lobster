@@ -136,6 +136,11 @@ template<typename T, int N> struct vec : basevec<T, N> {
     // Use any of the explicit constants like float3_0 to get a default value only when needed.
     vec() = delete;
 
+    vec(const vec &) = default;
+    vec& operator=(const vec &) = default;
+    vec(vec &&) = default;
+    vec& operator=(vec &&) = default;
+
     explicit vec(T e) {
         DOVEC(c[i] = e);
     }
