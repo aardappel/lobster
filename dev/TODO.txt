@@ -383,6 +383,11 @@
   - Turn C++ crashes into Lobster errors so they can be saved with a lot of context.
   - For cycle objects, instead save object ids so a viewer can still find the original objects?
 
+- You can't use "break" from a HOF that wraps a "for", since it checks for presence of a surrounding "for"
+  in the typechecker where this is not inlined yet.
+  Move this check to optimizer or codegen?
+  You can always use "return from", but break is neater.
+
 - auto binding generated C++ headers from a Lobster decl
 
 - allow let inside if/guard as syntactic sugar
