@@ -282,6 +282,18 @@ run_test("misc"):
     assert (bit <<= 1) == 4
     assert (bit >>= 1) == 2
 
+    // Comparisons of strings, objects, with and without nil.
+    assert "hello" == "hello"  // By value.
+    assert testa { 1 } != testa { 1 }  // By reference.
+    let nils = nil::string
+    let nilo = nil::testa
+    assert nils == nils
+    assert nils != "foo"
+    assert (nil or "foo") == (nil or "foo")
+    assert (nil or "foo") != (nil or "bar")
+    assert nilo == nilo
+    assert nilo != testa { 1 }
+
     // Dictionary.
     let dict = dictionary<float, float>(17)
     // Check get before first set()

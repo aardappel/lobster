@@ -423,6 +423,11 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
 
 #define _SCAT() Value res = vm.NewString(a.sval()->strv(), b.sval()->strv())
 
+#define SNCOMPEN(op) { GETARGS(); \
+   if (a.any() op b.any()) Push(sp, true); \
+   else if (!a.any() or !b.any()) Push(sp, false); \
+   else { Value res = *a.sval() op *b.sval(); Push(sp, res); } }
+
 #define ACOMPEN(op)     { GETARGS(); Value res = a.any() op b.any(); Push(sp, res); }
 #define IOP(op, extras) { GETARGS(); _IOP(op, extras);               Push(sp, res); }
 #define FOP(op, extras) { GETARGS(); _FOP(op, extras);               Push(sp, res); }
@@ -513,6 +518,9 @@ VM_INLINE void U_SFVGE(VM &vm, StackPtr sp, int len)  { SFVOP(>=, 0); }
 
 VM_INLINE void U_AEQ(VM &, StackPtr sp)  { ACOMPEN(==); }
 VM_INLINE void U_ANE(VM &, StackPtr sp)  { ACOMPEN(!=); }
+
+VM_INLINE void U_SNEQ(VM &, StackPtr sp)  { SNCOMPEN(==); }
+VM_INLINE void U_SNNE(VM &, StackPtr sp)  { SNCOMPEN(!=); }
 
 VM_INLINE void U_STEQ(VM &, StackPtr sp, int len) { STCOMPEN(==, true,  &&); }
 VM_INLINE void U_STNE(VM &, StackPtr sp, int len) { STCOMPEN(!=, false, ||); }

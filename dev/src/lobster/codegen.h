@@ -1574,6 +1574,7 @@ struct CodeGen  {
         } else if (rtype->t == V_FLOAT && ltype->t == V_FLOAT) {
             EmitOp0(GENOP(IL_FADD + op));
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
+            // Nillable version handled below.
             EmitOp0(GENOP(IL_SADD + op));
         } else if ((rtype->t == V_FUNCTION && ltype->t == V_FUNCTION) ||
                    (rtype->t == V_TYPEID && ltype->t == V_TYPEID)) {
@@ -1587,7 +1588,12 @@ struct CodeGen  {
                 } else {
                     assert(IsRefNil(ltype->t) &&
                            IsRefNil(rtype->t));
-                    EmitOp0(GENOP(IL_AEQ + op - MOP_EQ));
+                    if ((ltype->t == V_NIL && ltype->sub->t == V_STRING) ||
+                        (rtype->t == V_NIL && rtype->sub->t == V_STRING)) {
+                        EmitOp0(GENOP(IL_SNEQ + op - MOP_EQ));
+                    } else {
+                        EmitOp0(GENOP(IL_AEQ + op - MOP_EQ));
+                    }
                 }
             } else {
                 bool leftisvec = ltype->t == V_STRUCT_S;
