@@ -1035,8 +1035,8 @@ import std
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The contents of that file will be merged into your main file at the location of
-the `import` for the purpose of compilation. If you you import the same file
-twice, the second occurrence will be ignored.
+the `import` for the purpose of compilation. If you import the same file twice,
+the second occurrence will be ignored.
 
 An identifier like `std` is the same as specifying `"std.lobster"`, similarly `a.b`
 is short for `"a/b.lobster"`.
