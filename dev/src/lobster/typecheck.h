@@ -3252,9 +3252,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
     }
     TypeRef type;
     UDT *udt = nullptr;
+    UDT *niludt = nullptr;
     if (children.size()) {
         type = children[0]->exptype;
         if (IsUDT(type->t)) udt = type->udt;
+        else if(type->t == V_NIL && IsUDT(type->sub->t)) niludt = type->sub->udt;
     }
     Node *r = nullptr;
     auto sup_err = [&]() {
@@ -3262,10 +3264,14 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             tc.Error(*this, "super must be used on a method that has a superclass implementation");
         }
     };
-    if (fld && fromdot && noparens && udt && udt->g.Has(fld) >= 0) {
+    auto likely_field_access = fld && fromdot && noparens;
+    if (likely_field_access && udt && udt->g.Has(fld) >= 0) {
         auto dot = new Dot(fld, *this);
         sup_err();
         r = dot->TypeCheck(tc, reqret, {});
+    } else if (likely_field_access && niludt && niludt->g.Has(fld) >= 0) {
+        // Specialized error for nil deref, since if we don't, it will try and interpret this as a function call with a nil arg.
+        tc.Error(*this, "dereferencing nillable type: ", Q(TypeName(type)));
     } else {
         bool prefer_ff = false;
         // Pick better match if any..
