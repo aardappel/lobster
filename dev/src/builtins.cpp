@@ -20,10 +20,6 @@
 
 namespace lobster {
 
-static RandomNumberGenerator<MersenneTwister> rndm;
-static vector<RandomNumberGenerator<Xoshiro256SS>> rndx(1, RandomNumberGenerator<Xoshiro256SS>());
-static size_t active_rng = 0;
-
 static int IntCompare(Value a, Value b) {
     return a.ival() < b.ival() ? -1 : a.ival() > b.ival();
 }
@@ -868,32 +864,32 @@ nfr("volume", "v", "I}", "I", "the volume of the area spanned by the vector",
 
 nfr("rnd", "max", "I", "I",
     "a random value [0..max).",
-    [](StackPtr &, VM &, Value a) {
-        return Value(rndx[active_rng].rnd_int64(std::max((iint)1, a.ival())));
+    [](StackPtr &, VM &vm, Value a) {
+        return Value(vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, a.ival())));
     });
 
 nfr("rnd", "max", "I}", "I}",
     "a random vector within the range of an input vector.",
-    [](StackPtr &sp, VM &) {
-        VECTOROP(rndx[active_rng].rnd_int64(std::max((iint)1, f.ival())));
+    [](StackPtr &sp, VM &vm) {
+        VECTOROP(vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, f.ival())));
     });
 
 nfr("rnd_float", "", "", "F",
     "a random float [0..1)",
-    [](StackPtr &, VM &) {
-        return Value(rndx[active_rng].rnd_double());
+    [](StackPtr &, VM &vm) {
+        return Value(vm.rndx[vm.active_rng].rnd_double());
     });
 
 nfr("rnd_gaussian", "", "", "F",
     "a random float in a gaussian distribution with mean 0 and stddev 1",
-    [](StackPtr &, VM &) {
-        return Value(rndx[active_rng].rnd_gaussian());
+    [](StackPtr &, VM &vm) {
+        return Value(vm.rndx[vm.active_rng].rnd_gaussian());
     });
 
 nfr("rnd_seed", "seed", "I", "",
     "explicitly set a random seed for reproducable randomness",
-    [](StackPtr &, VM &, Value seed) {
-        rndx[active_rng].seed(seed.ival());
+    [](StackPtr &, VM &vm, Value seed) {
+        vm.rndx[vm.active_rng].seed(seed.ival());
         return NilVal();
     });
 
@@ -902,22 +898,22 @@ nfr("rnd_select", "index", "I", "",
     [](StackPtr &, VM &vm, Value idx) {
         auto i = idx.ival();
         if (i > 1000000) vm.BuiltinError("rnd_select: too many random number generators");
-        active_rng = (size_t)i;
-        if (active_rng >= rndx.size())
-            rndx.resize(active_rng + 1, RandomNumberGenerator<Xoshiro256SS>());
+        vm.active_rng = (size_t)i;
+        if (vm.active_rng >= vm.rndx.size())
+            vm.rndx.resize(vm.active_rng + 1, RandomNumberGenerator<Xoshiro256SS>());
         return NilVal();
     });
 
 nfr("rndm", "max", "I", "I",
     "deprecated: old mersenne twister version of the above for backwards compat.",
-    [](StackPtr &, VM &, Value a) {
-        return Value(rndm.rnd_int(std::max(1, (int)a.ival())));
+    [](StackPtr &, VM &vm, Value a) {
+        return Value(vm.rndm.rnd_int(std::max(1, (int)a.ival())));
     });
 
 nfr("rndm_seed", "seed", "I", "",
     "deprecated: old mersenne twister version of the above for backwards compat.",
-    [](StackPtr &, VM &, Value seed) {
-        rndm.seed((int)seed.ival());
+    [](StackPtr &, VM &vm, Value seed) {
+        vm.rndm.seed((int)seed.ival());
         return NilVal();
     });
 
@@ -1333,7 +1329,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         for (int i = 0; i < sz.y; i++) outmap[i] = (char *)outstrings.vval()->AtS(i).sval()->data();
         int num_contradictions = 0;
         auto ok = WaveFunctionCollapse(int2(iint2(cols, ssize(inmap))), inmap.data(), sz, outmap.data(),
-                                       rndx[active_rng], num_contradictions);
+                                       vm.rndx[vm.active_rng], num_contradictions);
         if (!ok)
             vm.BuiltinError("tilemap contained too many tile ids");
         Push(sp,  outstrings);

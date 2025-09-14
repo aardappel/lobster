@@ -1032,6 +1032,11 @@ struct VM : VMBase {
     vector<thread> workers;
     TupleSpace *tuple_space = nullptr;
 
+    // These are used by builtins, sticking them here makes them thread-safe.
+    RandomNumberGenerator<MersenneTwister> rndm;
+    vector<RandomNumberGenerator<Xoshiro256SS>> rndx = vector<RandomNumberGenerator<Xoshiro256SS>>(1, RandomNumberGenerator<Xoshiro256SS>());
+    size_t active_rng = 0;
+
     // A runtime error triggers code that does extensive stack trace & variable dumping, which
     // for certain errors could trigger yet more errors. This vars ensures that we don't.
     bool error_has_occured = false;  // Don't error again.
