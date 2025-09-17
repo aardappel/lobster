@@ -1649,7 +1649,8 @@ nfr("thread_write", "object", "A", "",
 
 nfr("thread_read", "type", "T", "A1?",
     "get an object from the thread queue. pass the typeof object. blocks if no such"
-    "objects available. returns object, or nil if stop_worker_threads() was called",
+    " objects available. returns object, or nil if this was the result of thread_wake()"
+    " or stop_worker_threads() was called",
     [](StackPtr &, VM &vm, Value t) {
         return vm.WorkerRead((type_elem_t)t.ival());
     });
@@ -1662,8 +1663,9 @@ nfr("thread_check", "type", "T", "A1?",
     });
 
 nfr("thread_wake", "type", "T", "",
-    "wake up all threads that are currently blocked on a thread_read for this type. "
-    "this will cause them to return nil when no data is available",
+    "wakes up one thread that are currently blocked on a thread_read for this type. "
+    "this will cause them to return nil since no object is sent. "
+    "it is similar to thread_write(nil)",
     [](StackPtr &, VM &vm, Value t) {
         vm.WorkerWake((type_elem_t)t.ival());
         return NilVal();

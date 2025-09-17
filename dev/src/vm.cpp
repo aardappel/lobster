@@ -793,7 +793,8 @@ void VM::StartWorkers(iint numthreads) {
     if (is_worker) Error("workers can\'t start more worker threads");
     if (tuple_space) Error("workers already running");
     // Stop bad values from locking up the machine :)
-    numthreads = std::min(numthreads, 256_L64);
+    // FIXME: if the caller assumes more threads were started, some patterns won't work.
+    numthreads = std::min(numthreads, 1024_L64);
     tuple_space = new TupleSpace(vma.meta->udts.size());
     for (iint i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
@@ -871,6 +872,7 @@ Value VM::WorkerRead(type_elem_t tti) {
 
 Value VM::WorkerCheck(type_elem_t tti) {
     if (!tuple_space) return NilVal();
+    if (!!tuple_space->alive) return NilVal();
     auto &ti = GetTypeInfo(tti);
     if (ti.t != V_CLASS) Error("thread check: must be a class type");
     vector<uint8_t> buf;
@@ -891,7 +893,11 @@ void VM::WorkerWake(type_elem_t tti) {
     auto &ti = GetTypeInfo(tti);
     if (ti.t != V_CLASS) Error("thread check: must be a class type");
     auto &tt = tuple_space->tupletypes[ti.structidx];
-    tt.condition.notify_all();
+    {
+        unique_lock<mutex> lock(tt.mtx);
+        tt.tuples.emplace_back(vector<uint8_t>{});
+    }
+    tt.condition.notify_one();
 }
 
 }  // namespace lobster
