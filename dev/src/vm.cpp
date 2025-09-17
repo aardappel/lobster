@@ -886,6 +886,14 @@ Value VM::WorkerCheck(type_elem_t tti) {
     return parser.Parse(tti, buf.data(), buf.data() + buf.size());
 }
 
+void VM::WorkerWake(type_elem_t tti) {
+    if (!tuple_space) return;
+    auto &ti = GetTypeInfo(tti);
+    if (ti.t != V_CLASS) Error("thread check: must be a class type");
+    auto &tt = tuple_space->tupletypes[ti.structidx];
+    tt.condition.notify_all();
+}
+
 }  // namespace lobster
 
 #if LOBSTER_FRAME_PROFILER == 1

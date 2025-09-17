@@ -1125,6 +1125,7 @@ struct VM : VMBase {
     void WorkerWrite(RefObj *ref);
     Value WorkerRead(type_elem_t tti);
     Value WorkerCheck(type_elem_t tti);
+    void WorkerWake(type_elem_t tti);
 
     void EndEval(StackPtr &sp, Value ret, const TypeInfo &ti);
 

@@ -1640,25 +1640,33 @@ nfr("workers_alive", "", "", "B",
         return Value(vm.tuple_space && vm.tuple_space->alive);
     });
 
-nfr("thread_write", "struct", "A", "",
-    "put this struct in the thread queue",
+nfr("thread_write", "object", "A", "",
+    "put this object in the thread queue",
     [](StackPtr &, VM &vm, Value s) {
         vm.WorkerWrite(s.refnil());
         return NilVal();
     });
 
 nfr("thread_read", "type", "T", "A1?",
-    "get a struct from the thread queue. pass the typeof struct. blocks if no such"
-    "structs available. returns struct, or nil if stop_worker_threads() was called",
+    "get an object from the thread queue. pass the typeof object. blocks if no such"
+    "objects available. returns object, or nil if stop_worker_threads() was called",
     [](StackPtr &, VM &vm, Value t) {
         return vm.WorkerRead((type_elem_t)t.ival());
     });
 
 nfr("thread_check", "type", "T", "A1?",
-    "tests if a struct is available on the thread queue. pass the typeof struct. "
-    "returns struct, or nil if none available, or if stop_worker_threads() was called",
+    "tests if an object is available on the thread queue. pass the typeof object. "
+    "returns object, or nil if none available, or if stop_worker_threads() was called",
     [](StackPtr &, VM &vm, Value t) {
         return vm.WorkerCheck((type_elem_t)t.ival());
+    });
+
+nfr("thread_wake", "type", "T", "",
+    "wake up all threads that are currently blocked on a thread_read for this type. "
+    "this will cause them to return nil when no data is available",
+    [](StackPtr &, VM &vm, Value t) {
+        vm.WorkerWake((type_elem_t)t.ival());
+        return NilVal();
     });
 
 nfr("crash_test_cpp_nullptr_exception", "", "", "",
