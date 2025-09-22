@@ -243,6 +243,10 @@ struct CodeGen  {
                 std::copy(tt.begin(), tt.end(), type_table.begin() + udt->typeinfo);
                 return udt->typeinfo;
             }
+            case V_TYPEID:
+                // These are not strongly typed at runtime.
+                // TODO: could change this into an opaque enum type? Could even generate the enum?
+                return TYPE_ELEM_INT;
             case V_VAR:
             case V_UNDEFINED:
                 // This happens for values/types that are never accessed, common case are
