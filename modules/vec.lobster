@@ -62,6 +62,8 @@ let octant_directions = [
 def xy<T>(v:vec3<T>) -> vec2<T>: return v  // Shorten by subtyping.
 def xy<T>(v:vec4<T>) -> vec2<T>: return v  // Shorten by subtyping.
 def xz(v): return vec2 { v.x, v.z }
+def yz(v): return vec2 { v.y, v.z }
+def xw(v): return vec2 { v.x, v.w }
 def yw(v): return vec2 { v.y, v.w }
 def zw(v): return vec2 { v.z, v.w }
 
