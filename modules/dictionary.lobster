@@ -9,7 +9,7 @@
 
 // Initialize with a size that is near the amount of elements you are expecting
 // (or want it to be efficient for), e.g.: dictionary<string, float> { 1009 }
-// (prime numbers are most efficient: 67, 127, 251, 503, 1009, 2003, 4001,..).
+// (prime numbers are most efficient: 67, 127, 251, 503, 1009, 2003, 4001, 8009, 16001, 32003, 64007..).
 
 import std
 
