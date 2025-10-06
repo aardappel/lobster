@@ -1488,11 +1488,11 @@ nfr("input_text", "label,str,flags", "SSkI", "SB",
         Push(sp, enter);
     });
 
-nfr("input_text_multi_line", "label,str,num_lines", "SSkI", "S",
+nfr("input_text_multi_line", "label,str,num_lines,flags", "SSkII?", "S",
     "",
-    [](StackPtr &, VM &vm, Value text, Value str, Value num_lines) {
+    [](StackPtr &, VM &vm, Value text, Value str, Value num_lines, Value flags) {
         IsInit(vm);
-        return Value(LStringInputText(vm, Label(vm, text), str.sval(), num_lines.intval()).first);
+        return Value(LStringInputText(vm, Label(vm, text), str.sval(), num_lines.intval(), flags.intval()).first);
     });
 
 nfr("input_int", "label,val,min,max", "SIII", "I",

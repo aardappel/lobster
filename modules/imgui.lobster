@@ -166,6 +166,7 @@ enum_flags input_text:
     input_text_auto_select_all                 // Select entire text when first taking mouse focus
     input_text_no_horizontal_scroll = 1 << 15  // Disable following the cursor horizontally
     input_text_no_undo_redo                    // Disable undo/redo. Note that input text owns the text data while active, if you want to provide your own undo/redo stack you need e.g. to call ClearActiveID().
+    input_text_wordwrap = 1 << 24              // InputTextMultine(): word-wrap lines that are too long.
 
 enum cond:
     cond_always          = 1   // No condition (always set the variable), same as _None
