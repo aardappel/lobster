@@ -3,6 +3,7 @@
   it could be a good feature?
   x.guard.a
   (guard x).a
+  guard(x).a
 
 - Make the optimizer replace constant variables by the value, esp nice for int2_0 etc.
 
@@ -113,6 +114,10 @@
   Or somehow only store it for objects that have weak refs to them.
   It could overlap with the 1st field, and have some metadata for any field iterating code that
   the first field is not a user field.
+  Or split up LObject into 2 types, and have field accessors like At() have the correct type generated for them.
+  Field iterations code can still use a dynamic offset in the metadata.
+  Or maybe better yet, make the pointer to objects point directly at the fields, with normal tti/refc at negative offsets.
+  This could have additional speed benefits, though makes access to these fields messier.
 
 - in this configuration:
   def f_not_inlined():
