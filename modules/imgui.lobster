@@ -413,6 +413,13 @@ def drag_drop_target(body):
         drag_drop_target_end()
     return open
 
+def drag_drop_main_viewport_target(body):
+    let open = drag_drop_main_viewport_target_start()
+    if open:
+        body()
+        drag_drop_target_end()
+    return open
+
 def width(width, body):
     width_start(width)
     body()

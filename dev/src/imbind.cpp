@@ -2059,6 +2059,18 @@ nfr("drag_drop_target_start", "", "", "B",
         if (open) NPush(N_DRAG_DROP_TARGET);
     });
 
+nfr("drag_drop_main_viewport_target_start", "", "", "B",
+    "(use im.drag_drop_main_viewport_target instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        // See: https://github.com/ocornut/imgui/issues/5204
+        auto viewport = ImGui::GetMainViewport();
+        bool open = !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
+                    ImGui::BeginDragDropTargetViewport(viewport);
+        Push(sp, open);
+        if (open) NPush(N_DRAG_DROP_TARGET);
+    });
+
 nfr("drag_drop_target_end", "", "", "",
     "",
     [](StackPtr &, VM &vm) {
