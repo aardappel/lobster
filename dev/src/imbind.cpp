@@ -1001,7 +1001,7 @@ nfr("clear_fonts", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm,  { N_NONE, N_NONE });
         ClearFonts();
-        ImGui_ImplOpenGL3_DestroyFontsTexture();
+        //ImGui_ImplOpenGL3_DestroyFontsTexture();
     });
 
 nfr("set_style_color", "i,color", "IF}:4", "",
