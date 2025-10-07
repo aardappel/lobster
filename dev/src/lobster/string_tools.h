@@ -64,7 +64,7 @@ inline auto to_string_conv(const char *cs) {
 }
 
 template<int I> auto to_string_conv(const char cs[I]) {
-    return[sv = string_view(cs, I)]() { return sv; };  // Static strlen!
+    return[sv = string_view(cs, cs + I)]() { return sv; };  // Static strlen!
 }
 
 template<typename T> auto to_string_conv(const T *p) {
