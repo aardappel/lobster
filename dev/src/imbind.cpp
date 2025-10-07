@@ -1268,6 +1268,15 @@ nfr("want_capture_mouse", "", "", "B",
         Push(sp, result);
     });
 
+nfr("get_modifiers", "", "", "BBB",
+    "returns the status of the shift, ctrl and alt keys",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm, { N_NONE, N_NONE });
+        Push(sp, ImGui::GetIO().KeyShift);
+        Push(sp, ImGui::GetIO().KeyCtrl);
+        Push(sp, ImGui::GetIO().KeyAlt);
+    });
+
 nfr("get_layout_pos", "", "", "F}:2", "",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
