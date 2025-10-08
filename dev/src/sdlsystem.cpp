@@ -487,7 +487,6 @@ void SDLSetFullscreen(InitFlags flags) {
             SDL_GetDesktopDisplayMode(0, &desktop_mode);
             SDL_DisplayMode bestdm;
             int bestres = 0;
-            int besthz = 0;
             for (int i = 0; i < display_mode_count; ++i) {
                 SDL_DisplayMode dm;
                 if (SDL_GetDisplayMode(display_in_use, i, &dm) != 0) return;
@@ -495,7 +494,6 @@ void SDLSetFullscreen(InitFlags flags) {
                 // TODO: allow caller to specify hz? Fallback on other hz if none equal?
                 if (res > bestres && dm.refresh_rate == desktop_mode.refresh_rate) {
                     bestres = res;
-                    besthz = dm.refresh_rate;
                     bestdm = dm;
                 }
             }
