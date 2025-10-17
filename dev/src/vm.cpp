@@ -575,6 +575,7 @@ Value VM::Error(string err) {
 // in an inconsistent state.
 Value VM::SeriousError(string err) {
     ErrorBase(err);
+    assert(false);
     UnwindOnError();
     return NilVal();
 }

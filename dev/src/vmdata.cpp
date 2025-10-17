@@ -252,7 +252,6 @@ void RefObj::DECDELETE(VM &vm) {
     if (refc) {
         //vm.DumpVal(this, "double delete");
         vm.SeriousError("double delete");
-        assert(false);
     }
     #if DELETE_DELAY
         vm.DumpVal(this, "delay delete");
