@@ -2042,6 +2042,10 @@ struct TypeChecker {
         TT(condition, 1, LT_BORROW);
         NoStruct(*condition, name);
         DecBorrowers(condition->lt, *context);
+        if (IsRef(condition->exptype->t)) {
+            Warn(*condition, "condition will always succeed with non-nil reference type ",
+                Q(TypeName(condition->exptype)));
+        }
         Value cval = NilVal();
         if (condition->ConstVal(this, cval) != V_VOID) return cval;
         return {};
