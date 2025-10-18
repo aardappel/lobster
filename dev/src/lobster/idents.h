@@ -469,13 +469,13 @@ struct SubFunction {
         ov.sf->overload = &ov;
     }
 
-    bool AddFreeVar(SpecIdent &sid) {
+    bool AddFreeVar(SpecIdent &sid, TypeRef flowtype) {
         auto lower = std::lower_bound(freevars.begin(), freevars.end(), sid.id,
                                       [&](const Arg &e, Ident *id) {
                 return e.sid->id < id;
             });
         if (lower != freevars.end() && lower->sid->id == sid.id) return true;
-        freevars.insert(lower, Arg(&sid, sid.type));
+        freevars.insert(lower, Arg(&sid, flowtype));
         return false;
     }
 

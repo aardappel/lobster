@@ -78,6 +78,7 @@ struct TypeChecker {
         const Node *call_context = nullptr;
         int loop_count = 0;
         vector<Member *> scoped_fields;
+        size_t flowstack_size = 0;
     };
     vector<Scope> scopes, named_scopes;
     vector<FlowItem> flowstack;
@@ -910,6 +911,7 @@ struct TypeChecker {
         Scope scope;
         scope.sf = &sf;
         scope.call_context = &call_context;
+        scope.flowstack_size = flowstack.size();
         scopes.push_back(scope);
         //for (auto &ns : named_scopes) LOG_DEBUG("named scope: ", ns.sf->parent->name);
         if (!sf.parent->anonymous) named_scopes.push_back(scope);
@@ -1014,7 +1016,10 @@ struct TypeChecker {
             //auto atype = Promote(freevar.id->type);
             auto sid = freevar.sid;
             auto cur = sid->Current();
-            if (sid != cur || !freevar.spec_type->Equal(*cur->type)) {
+            FlowItem fi(cur, cur->type, cur->type);
+            assert(fi.IsValid());
+            auto curtype = UseFlow(fi);
+            if (sid != cur || !freevar.spec_type->Equal(*curtype)) {
                 (void)prespecialize;
                 assert(prespecialize || sid == cur || (sid && cur));
                 return false;
@@ -1115,12 +1120,6 @@ struct TypeChecker {
                 // This has to happen even to dead args:
                 DecBorrowers(c->lt, call_args);
             }
-        }
-        for (auto &freevar : sf->freevars) {
-            // New freevars may have been added during the function def typecheck above.
-            // In case their types differ from the flow-sensitive value at the callsite (here),
-            // we want to override them.
-            freevar.spec_type = freevar.sid->Current()->type;
         }
         // See if this call is recursive:
         for (auto &sc : scopes) {
@@ -1835,7 +1834,7 @@ struct TypeChecker {
 
     Node *TypeCheckDynCall(DynCall *dc, size_t reqret) {
         UpdateCurrentSid(dc->sid);
-        TypeCheckId(dc->sid);
+        CheckFreeVariable(*dc->sid);
         auto ftype = dc->sid->type;
         if (!ftype->IsFunction()) {
             Error(*dc, "dynamic function call value doesn\'t have a function type ",
@@ -1974,15 +1973,18 @@ struct TypeChecker {
         }
         return type;
     }
-
-    TypeRef UseFlow(const FlowItem &left) {
+    TypeRef UseFlow(const FlowItem &left, size_t max_flowstack_size) {
         if (left.now->Numeric()) return left.now;  // Early out, same as above.
-        for (auto &flow : reverse(flowstack)) {
+        for (size_t i = max_flowstack_size; i > 0; i--) {
+            auto &flow = flowstack[i - 1];
             if (flow.sid == left.sid &&	flow.DerefsEqual(left)) {
                 return flow.now;
             }
         }
         return left.now;
+    }
+    TypeRef UseFlow(const FlowItem &left) {
+        return UseFlow(left, flowstack.size());
     }
 
     void CleanUpFlow(size_t start) {
@@ -2127,9 +2129,10 @@ struct TypeChecker {
             // Check if we arrived at the definition point.
             if (sid.sf_def == sf)
                 break;
-            // We use the id's type, not the flow sensitive type, just in case there's multiple uses
-            // of the var. This will get corrected after the call this is part of.
-            if (sf->AddFreeVar(sid))
+            FlowItem fi(&sid, sid.type, sid.type);
+            assert(fi.IsValid());
+            auto flowtype = UseFlow(fi, scopes[i].flowstack_size);
+            if (sf->AddFreeVar(sid, flowtype))
                 // If the freevar was already there, a previous call must have added it all the way
                 // to the definition point, so we can stop here too.
                 break;
@@ -2151,12 +2154,6 @@ struct TypeChecker {
         for (auto &c : n->children) {
             TT(c, 1, lt, parent_bound);
         }
-    }
-
-    TypeRef TypeCheckId(SpecIdent *sid) {
-        auto type = sid->type;
-        CheckFreeVariable(*sid);
-        return type;
     }
 
     const Coercion *IsCoercion(const Node *n) {
@@ -3184,7 +3181,8 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_b
     in_scope:
     if (sid->id->predeclaration)
         tc.Error(*this, "access of ", Q(sid->id->name), " before being initialized");
-    exptype = tc.TypeCheckId(sid);
+    tc.CheckFreeVariable(*sid);
+    exptype = sid->type;
     FlowItem fi(*this, exptype);
     assert(fi.IsValid());
     exptype = tc.UseFlow(fi);

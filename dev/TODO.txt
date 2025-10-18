@@ -1,11 +1,13 @@
+- Make the optimizer replace constant variables by the value, esp nice for int2_0 etc.
+  This is really causing an insane amount of free variable propagation right now.
+
+
 - Nil chaining (typically x?.a) comes with all sorts of problems exacerbated by it being
   very terse syntax, if we could make it verbose with the obvious keyword of guard,
   it could be a good feature?
   x.guard.a
   (guard x).a
   guard(x).a
-
-- Make the optimizer replace constant variables by the value, esp nice for int2_0 etc.
 
 - A step debugger.
   simply emit code that does a simple int comparison per statement, not too expensive.
