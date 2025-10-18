@@ -395,6 +395,15 @@ def disabled_because(disabled, reason, body):
     if disabled:
         tooltip(reason)
 
+def disabled_because2(disabled1, reason1, disabled2, reason2, body):
+    disabled_start(disabled1 or disabled2)
+    body()
+    disabled_end()
+    if disabled1:
+        tooltip(reason1)
+    if disabled2:
+        tooltip(reason2)
+
 def button_repeat(repeat, body):
     button_repeat_start(repeat)
     body()
@@ -488,6 +497,10 @@ def show_stack_traces():
 def text_font(font_idx, msg):
     font(font_idx):
         text(msg)
+
+def text_wrapped_font(font_idx, msg):
+    font(font_idx):
+        text_wrapped(msg)
 
 def spaced_separator():
     im.spacing()
