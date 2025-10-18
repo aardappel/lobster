@@ -14,47 +14,6 @@
 
 namespace lobster {
 
-struct LValContext {
-    // For now, only: ident ( . field )*.
-    const SpecIdent *sid;
-    small_vector<SharedField *, 3> derefs;
-    LValContext(SpecIdent *sid) : sid(sid) {}
-    LValContext(const Node &n) {
-        auto t = &n;
-        while (auto dot = Is<Dot>(t)) {
-            derefs.insert(0, dot->fld);
-            t = dot->child;
-        }
-        auto idr = Is<IdentRef>(t);
-        sid = idr ? idr->sid : nullptr;
-    }
-    bool IsValid() const { return sid; }
-    bool DerefsEqual(const LValContext &o) {
-        if (derefs.size() != o.derefs.size()) return false;
-        for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
-        return true;
-    }
-    bool IsPrefix(const LValContext &o) {  // Is o a prefix of this?
-        if (sid != o.sid || derefs.size() < o.derefs.size()) return false;
-        for (auto &shf : o.derefs) if (shf != derefs[&shf - &o.derefs[0]]) return false;
-        return true;
-    }
-    string Name() {
-        auto s = sid ? sid->id->name : "<invalid>";
-        for (auto &shf : derefs) {
-            s += ".";
-            s += shf->name;
-        }
-        return s;
-    }
-};
-
-struct FlowItem : LValContext {
-    TypeRef old, now;
-    FlowItem(const Node &n, TypeRef type) : LValContext(n), old(n.exptype), now(type) {}
-    FlowItem(SpecIdent *sid, TypeRef old, TypeRef now) : LValContext(sid), old(old), now(now) {}
-};
-
 struct Borrow : LValContext {
     int refc = 1;  // Number of outstanding borrowed values. While >0 can't assign.
     Borrow(const Node &n) : LValContext(n) {}
@@ -1026,6 +985,10 @@ struct TypeChecker {
             }
             //if (atype->t == V_FUNCTION) return false;
         }
+        for (auto &fvfi : sf.freevarflowfields) {
+            auto curtype = UseFlow(fvfi);
+            if (!ConvertsTo(curtype, fvfi.now, CF_NONE)) return false;
+        }
         return true;
     }
 
@@ -1934,6 +1897,13 @@ struct TypeChecker {
         }
     }
 
+    void AssignFlowPromoteFI(FlowItem &fi) {
+        assert(fi.IsValid());
+        if (fi.now->t != V_NIL && fi.old->t == V_NIL) {
+            flowstack.push_back(fi);
+        }
+    }
+
     // FIXME: this can in theory find the wrong node, if the same function nests, and the outer
     // one was specialized to a nilable and the inner one was not.
     // This would be very rare though, and benign.
@@ -1981,7 +1951,7 @@ struct TypeChecker {
                 return flow.now;
             }
         }
-        return left.now;
+        return left.old;
     }
     TypeRef UseFlow(const FlowItem &left) {
         return UseFlow(left, flowstack.size());
@@ -2135,11 +2105,15 @@ struct TypeChecker {
                 break;
             FlowItem fi(&sid, sid.type, sid.type);
             assert(fi.IsValid());
-            auto flowtype = UseFlow(fi, scopes[i].flowstack_size);
-            if (sf->AddFreeVar(sid, flowtype))
+            auto it = sf->IterFreeVar(sid);
+            if (sf->IsFreeVar(it, sid)) {
                 // If the freevar was already there, a previous call must have added it all the way
                 // to the definition point, so we can stop here too.
                 break;
+            } else {
+                auto flowtype = UseFlow(fi, scopes[i].flowstack_size);
+                sf->AddFreeVar(it, sid, flowtype);
+            }
         }
     }
 
@@ -2151,6 +2125,37 @@ struct TypeChecker {
         if (freevar_check_preempt.find({ sf, par }) == freevar_check_preempt.end()) {
             for (auto &fv : sf->freevars) CheckFreeVariable(*fv.sid);
             freevar_check_preempt.insert({ sf, par });
+        }
+    }
+
+    void FlowFieldAddToFreeVariables(FlowItem &fi, TypeRef unpromoted) {
+        // Here we do a specialized thing: if this field was upgraded, and it is on
+        // the basis of a free variable, then future checks for compatible free variables
+        // need to check if the new callsite has this upgrade also.
+        // FIXME: this needs to be on the basis of the flowstack at the point of each of these functions!
+        for (int i = (int)scopes.size() - 1; i >= 0; i--) {
+            auto sf = scopes[i].sf;
+            // Check if we arrived at the definition point.
+            if (fi.sid->sf_def == sf)
+                break;
+            auto it = sf->IterFreeVar(*fi.sid);
+            if (sf->IsFreeVar(it, *fi.sid)) {
+                for(auto &fvfi : sf->freevarflowfields) {
+                    if (fvfi.sid == fi.sid && fvfi.DerefsEqual(fi)) {
+                        // If the flow item was already there, a previous call must have added it all the way
+                        // to the definition point, so we can stop here.
+                        return;
+                    }
+                }
+                auto flowtype = UseFlow(fi, scopes[i].flowstack_size);
+                if (!flowtype->Equal(*unpromoted)) {
+                    fi.now = flowtype;
+                    sf->freevarflowfields.push_back(fi);
+                } else {
+                    // We've crossed the point where the field was promoted, so we can stop.
+                    return;
+                }
+            }
         }
     }
 
@@ -2924,8 +2929,7 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
                 // In addition, the initializer may already cause the type to be promoted.
                 // a:string? = ""
                 FlowItem fi(p.sid, var.type, child->exptype);
-                // Similar to AssignFlowPromote (TODO: refactor):
-                if (fi.now->t != V_NIL && fi.old->t == V_NIL) tc.flowstack.push_back(fi);
+                tc.AssignFlowPromoteFI(fi);
             }
         }
         auto sid = p.sid;
@@ -4026,7 +4030,13 @@ Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
     if (!field.in_scope) tc.Error(*this, "field ", Q(field.id->name), " is not in scope");
     exptype = udt->sfields[fieldidx].type;
     FlowItem fi(*this, exptype);
-    if (fi.IsValid()) exptype = tc.UseFlow(fi);
+    if (fi.IsValid()) {
+        auto flowtype = tc.UseFlow(fi);
+        if (!flowtype->Equal(*exptype)) {
+            tc.FlowFieldAddToFreeVariables(fi, exptype);
+        }
+        exptype = flowtype;
+    }
     lt = tc.PushBorrow(this);
     //lt = children[0]->lt;  // Also LT_BORROW, also depending on the same variable.
     return this;

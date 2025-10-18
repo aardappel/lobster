@@ -922,6 +922,20 @@ bool SpecUDT::IsGeneric() const {
     return !gudt->generics.empty();
 }
 
+
+LValContext::LValContext(const Node &n) {
+    auto t = &n;
+    while (auto dot = Is<Dot>(t)) {
+        derefs.insert(0, dot->fld);
+        t = dot->child;
+    }
+    auto idr = Is<IdentRef>(t);
+    sid = idr ? idr->sid : nullptr;
+}
+
+FlowItem::FlowItem(const Node &n, TypeRef type)
+    : LValContext(n), old(n.exptype), now(type) {}
+
 }  // namespace lobster
 
 

@@ -391,6 +391,39 @@ inline const SField *FindSlot(const UDT &udt, int i) {
     return nullptr;
 }
 
+struct LValContext {
+    // For now, only: ident ( . field )*.
+    const SpecIdent *sid;
+    small_vector<SharedField *, 3> derefs;
+    LValContext(SpecIdent *sid) : sid(sid) {}
+    LValContext(const Node &n);
+    bool IsValid() const { return sid; }
+    bool DerefsEqual(const LValContext &o) {
+        if (derefs.size() != o.derefs.size()) return false;
+        for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
+        return true;
+    }
+    bool IsPrefix(const LValContext &o) {  // Is o a prefix of this?
+        if (sid != o.sid || derefs.size() < o.derefs.size()) return false;
+        for (auto &shf : o.derefs) if (shf != derefs[&shf - &o.derefs[0]]) return false;
+        return true;
+    }
+    string Name() {
+        auto s = sid ? sid->id->name : "<invalid>";
+        for (auto &shf : derefs) {
+            s += ".";
+            s += shf->name;
+        }
+        return s;
+    }
+};
+
+struct FlowItem : LValContext {
+    TypeRef old, now;
+    FlowItem(const Node &n, TypeRef type);
+    FlowItem(SpecIdent *sid, TypeRef old, TypeRef now) : LValContext(sid), old(old), now(now) {}
+};
+
 struct Arg {
     TypeRef spec_type = type_undefined;
     SpecIdent *sid = nullptr;
@@ -429,6 +462,7 @@ struct SubFunction {
     vector<Arg> args;
     vector<Arg> locals;
     vector<Arg> freevars;       // any used from outside this scope
+    vector<FlowItem> freevarflowfields;
     UnTypeRef returngiventype = (UnType *)nullptr;
     TypeRef returntype = type_undefined;
     size_t num_returns = 0;
@@ -469,14 +503,19 @@ struct SubFunction {
         ov.sf->overload = &ov;
     }
 
-    bool AddFreeVar(SpecIdent &sid, TypeRef flowtype) {
-        auto lower = std::lower_bound(freevars.begin(), freevars.end(), sid.id,
-                                      [&](const Arg &e, Ident *id) {
+    auto IterFreeVar(const SpecIdent &sid) {
+        return std::lower_bound(freevars.begin(), freevars.end(), sid.id,
+            [&](const Arg &e, Ident *id) {
                 return e.sid->id < id;
             });
-        if (lower != freevars.end() && lower->sid->id == sid.id) return true;
+    }
+
+    void AddFreeVar(vector<Arg>::iterator lower, SpecIdent &sid, TypeRef flowtype) {
         freevars.insert(lower, Arg(&sid, flowtype));
-        return false;
+    }
+
+    bool IsFreeVar(vector<Arg>::iterator lower, const SpecIdent &sid) {
+        return lower != freevars.end() && lower->sid->id == sid.id;
     }
 
     ~SubFunction();
