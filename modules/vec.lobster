@@ -47,6 +47,9 @@ let cardinal_directions = [ int2 {  0, -1 }, int2 { 1, 0 }, int2 { 0,  1 }, int2
 let diagonal_directions = [ int2 { -1, -1 }, int2 { 1, 1 }, int2 { 1, -1 }, int2 { -1, 1 } ]
 let positive_directions = [ int2 {  0,  0 }, int2 { 1, 0 }, int2 { 1,  1 }, int2 {  0, 1 } ]
 
+let axes_directions_int = [ int3_x, int3_y, int3_z ]
+let axes_directions_float = [ float3_x, float3_y, float3_z ]
+
 let octant_directions = [
     int3 {  1,  1,  1 },
     int3 {  1,  1, -1 },
