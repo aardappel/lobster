@@ -103,8 +103,7 @@ struct TypeChecker {
         return n.Name();
     }
 
-    template<typename... Ts> void Error(const Node &n, const Ts &...args) {
-        auto err = cat(args...);
+    void AddStackTrace(string &err) {
         set<Ident *> already_seen;
         if (!scopes.empty()) {
             size_t scope_count = 0;
@@ -126,17 +125,23 @@ struct TypeChecker {
                     scope_count++;
                     if (scope_count == 5 && scopes.size() > 7) {
                         err += cat("\n  (", scopes.size() - scope_count,
-                                   " more functions omitted, --full-error to see more) ");
+                            " more functions omitted, --full-error to see more) ");
                         break;
                     }
                 }
             }
         }
+    }
+
+    template<typename... Ts> void Error(const Node &n, const Ts &...args) {
+        auto err = cat(args...);
+        AddStackTrace(err);
         parser.ErrorAt(&n, err);
     }
 
     template<typename... Ts> void Warn(const Node &n, const Ts &...args) {
         auto err = cat(args...);
+        if (full_error) AddStackTrace(err);
         parser.lex.Warn(err, &n.line);
     }
 

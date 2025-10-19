@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
             "--verbose              Output additional informational text.\n"
             "--debug                Output compiler internal logging.\n"
             "--silent               Only output errors.\n"
-            "--full-error           Output full compile time stack traces.\n"
+            "--full-error           Output full compile time stack traces, also for warnings.\n"
             "--runtime-no-asserts   Compile with asserts off.\n"
             "--runtime-asserts      Compile with asserts on (default).\n"
             "--runtime-stack-traces Asserts on + code locations + stack traces.\n"
