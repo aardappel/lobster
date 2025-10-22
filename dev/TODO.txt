@@ -1,6 +1,15 @@
+- It seems to allow function overloads to be declared in different branches of an if and still work together?
+  That should probably be disallowed.
+
 - Make the optimizer replace constant variables by the value, esp nice for int2_0 etc.
   This is really causing an insane amount of free variable propagation right now.
 
+- "if let" could allow chaining with "and": if let x = foo() and let y = bar(x):
+  Note, using `,` instead `and` like Swift does would allow the if let RHS itself to still contain `and`.
+  Also, since we are not likely going to support `or` or other operators, this is more of an
+  indication that it is a special purpose feature?
+  Then again, if an `and` is happening, I'd rather read that directly than having to spot a `,`.
+  And you can still use `and` in the RHS using ().
 
 - Nil chaining (typically x?.a) comes with all sorts of problems exacerbated by it being
   very terse syntax, if we could make it verbose with the obvious keyword of guard,
@@ -8,6 +17,36 @@
   x.guard.a
   (guard x).a
   guard(x).a
+
+- "guard" can't be used if there is code following the transformed if-then-else.
+  While it is maybe taking things a bit far, you could imagine a guard-finally:
+
+  guard x:
+      // The else branch.
+  finally:
+      // The ending/cleanup code.
+  // The main code, which is the then branch.
+
+  Which is equivalent to the familiar:
+
+  if x:
+      // The main code.
+  else:
+      // The else branch.
+  // The ending/cleanup code.
+
+  Now this seems like taking things a bit too far, but it could feel logical if the main code
+  is really gigantic and the else/ending code is small.
+  In theory, it would allow you to get rid of if-then-else entirely, recognizing the idea
+  that most code should really be differentiating what is the linear, main line flow from
+  the exceptions, though in real code there are cases where the ending code is of course
+  the longest.
+
+  And you'd also want a version for guard without else:
+
+  guard x finally:
+      // The ending/cleanup code.
+  // The main code.
 
 - A step debugger.
   simply emit code that does a simple int comparison per statement, not too expensive.
