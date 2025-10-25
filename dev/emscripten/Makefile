@@ -4,22 +4,26 @@ CXX= emcc
 CC= emcc
 
 # LTO only has an effect for the cppout target, where it gives a huge speedup.
-LTOFLAGS= --llvm-opts 3 --llvm-lto 1 -s WASM_OBJECT_FILES=0
+LTOFLAGS= --llvm-opts 3 --llvm-lto 1 -sWASM_OBJECT_FILES=0
 
 # Pure debug mode.
 # use a minimal amount of optimisation to reduce locals, but hopefully avoid
 # inlining for good stack traces.
-#OPTLEVEL= -g4 -O -s ASSERTIONS=2 -s SAFE_HEAP=1
+#OPTLEVEL= -g4 -O -sSAFE_HEAP=1
+#OPTLEVELLINK= -sASSERTIONS=2
 # Fast debug mode.
-#OPTLEVEL= -g4 -O2 -s ASSERTIONS=1
+#OPTLEVEL= -g4 -O2
+#OPTLEVELLINK= -sASSERTIONS=1
 # Release/Shipping mode regular
-OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0
+OPTLEVEL= -O3 -DNDEBUG
+OPTLEVELLINK= -sASSERTIONS=0
 # Release/Shipping/benchmark mode with LTO
-#OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS)
+#OPTLEVEL= -O3 -DNDEBUG $(LTOFLAGS)
+#OPTLEVELLINK= -sASSERTIONS=0
 
 CFLAGS= $(OPTLEVEL)
 CXXFLAGS= $(OPTLEVEL)
-SHAREDFLAGS= -s USE_SDL=2 -s USE_SDL_MIXER=0 -s USE_FREETYPE=1 -s \
+SHAREDFLAGS= -sUSE_SDL=2 -sUSE_SDL_MIXER=0 -sUSE_FREETYPE=1 \
          -Wall -pedantic -Wno-switch \
          -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types \
 		 -Wno-nontrivial-memcall -Wno-strict-prototypes -Wno-empty-translation-unit
@@ -28,7 +32,7 @@ override CFLAGS+= $(SHAREDFLAGS)
 # to exit the evaluation loop anymore, and we don't support the interpreter mode in Wasm.
 # Also, asyncify relies on there not being any call_indirects in the path to the yield,
 # which exception handling currently inserts.
-override CXXFLAGS+= $(SHAREDFLAGS) -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING \
+override CXXFLAGS+= $(SHAREDFLAGS) -fno-exceptions -sDISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING \
                     -std=c++20
 
 INCLUDES=   -I. \
@@ -96,13 +100,13 @@ $(COBJS): CFLAGS += $(INCLUDES)
 
 #$(CPPOBJS): $(CPPSRCS) $(HEADERS)
 
-EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
+EFLAGS= -sWASM=1 -sUSE_WEBGL2=1 -sFULL_ES3=1 \
 		--source-map-base http://localhost:6931/ \
-		-s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
+		-sALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
 		--emrun --profiling-funcs \
-		-s BINARYEN_IGNORE_IMPLICIT_TRAPS=1 \
-		-s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT
-		#-s BINARYEN_EXTRA_PASSES='"--always-inline-max-function-size=5,--flexible-inline-max-function-size=50,--one-caller-inline-max-function-size=200"'
+		-sBINARYEN_IGNORE_IMPLICIT_TRAPS=1 \
+		-sASYNCIFY -sASYNCIFY_IGNORE_INDIRECT
+		#-sBINARYEN_EXTRA_PASSES='"--always-inline-max-function-size=5,--flexible-inline-max-function-size=50,--one-caller-inline-max-function-size=200"'
 
 #EMCC_DEBUG=1
 #EMCC_WASM_BACKEND=1
@@ -111,7 +115,7 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 
 cpp: CXXFLAGS += -DVM_COMPILED_CODE_MODE -DIMGUI_IMPL_OPENGL_ES3
 cpp: $(CPPOBJS) $(COBJS)
-	emcc $(CFLAGS) $(COBJS) $(CXXFLAGS) $(CPPOBJS) $(EFLAGS)
+	emcc $(OPTLEVELLINK) $(CFLAGS) $(COBJS) $(CXXFLAGS) $(CPPOBJS) $(EFLAGS)
 
 clean:
 	-$(RM) $(CPPOBJS) $(COBJS)
