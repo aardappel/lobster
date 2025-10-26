@@ -898,6 +898,7 @@ Function::~Function() {
 
 Overload::~Overload() {
     delete gbody;
+    for (auto fvd : freevardecls) delete fvd;
 }
 
 int Overload::NumSubf() {

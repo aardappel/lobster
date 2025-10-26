@@ -543,8 +543,8 @@ of it.</p>
 level, this means they can access variables from enclosing scopes,
 called <em>free variables</em>. Free variables are essential to make
 Lobster's higher order functions convenient. References to free
-variables are only valid within the scope they are defined, which
-luckily is almost always the case, but can be broken by storing a
+variables are only valid within the lexical scope they are defined,
+which luckily is almost always the case, but can be broken by storing a
 function value and then calling it at a later time outside of the
 context where its free variables were valid, which will result in a
 runtime error. Other languages use <em>closures</em> to ensure
@@ -552,6 +552,32 @@ availability in all cases, which are very costly (parent stackframe(s)
 may have to be dynamically allocated) as opposed to Lobster's approach
 which makes function values and free variables have no overhead compared
 to regular functions and variables.</p>
+<h3 id="explicit-free-variables">Explicit Free Variables</h3>
+<p>You can access free variables outside of their natural scope by
+declaring them explicitly, for example:</p>
+<pre><code>def foo(a, b) [c, d]:
+    c = a
+    d = b
+def bar():
+    var c = 0
+    var d = &quot;&quot;
+    foo(1, &quot;hello&quot;)</code></pre>
+<p>Which is pretty much identical to the more familiar:</p>
+<pre><code>def bar():
+    var c = 0
+    var d = &quot;&quot;
+    def foo(a, b):
+        c = a
+        d = b
+    foo(1, &quot;hello&quot;)</code></pre>
+<p>With the only difference that the former is of course more flexible
+in code structure, as <code>foo</code> can be used from more contexts.
+You may refer to both variables and members that are in scope in the
+call stack context. You may give these free variable declaration a type,
+to enforce the type you expect the free variable to have. Using these
+explicit free variables, you can often avoid using global variables
+entirely, and it is easy to create functions that can be used used in
+different contexts, or have their context overridden.</p>
 <h3 id="overloading-and-dynamic-dispatch">Overloading and dynamic
 dispatch</h3>
 <p>Overloading and dynamic dispatch are part of the same system, the
@@ -876,7 +902,7 @@ program:</p>
 <pre><code>import std</code></pre>
 <p>The contents of that file will be merged into your main file at the
 location of the <code>import</code> for the purpose of compilation. If
-you you import the same file twice, the second occurrence will be
+you import the same file twice, the second occurrence will be
 ignored.</p>
 <p>An identifier like <code>std</code> is the same as specifying
 <code>"std.lobster"</code>, similarly <code>a.b</code> is short for

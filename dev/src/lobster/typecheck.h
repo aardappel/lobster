@@ -871,6 +871,52 @@ struct TypeChecker {
     void TypeCheckFunctionDef(SubFunction &sf, const Node &call_context) {
         if (sf.typechecked) return;
         STACK_PROFILE;
+        // Look up explicit free variables. expensive?
+        vector<ExplicitFreeVarSpec> freevardeclsbackup;
+        for (auto fvd : sf.overload->freevardecls) {
+            freevardeclsbackup.push_back(fvd->spec);
+            if (!fvd->giventype.Null()) {
+                fvd->spec.bound = st.ResolveTypeVars(fvd->giventype, sf.sbody->children[0]->line);
+            }
+            // FIXME: this scope scanning does not respect if a variable is declared after when a call is made.
+            for (auto &sc : reverse(scopes)) {
+                auto &ssf = *sc.sf;
+                auto lookup = [&](vector<Arg> &args) {
+                    for (auto &arg : args) {
+                        if (arg.sid->id->name == fvd->name) {
+                            fvd->spec.sid = arg.sid;
+                            if (!fvd->spec.bound.Null()) {
+                                if (!ConvertsTo(fvd->spec.sid->type, fvd->spec.bound, CF_NONE))
+                                    Error(*sf.sbody->children[0], "explicit free variable ", Q(fvd->name),
+                                          " has type ", TypeName(fvd->spec.sid->type));
+                            }
+                            return;
+                        }
+                        if (arg.sid->withtype && IsUDT(arg.spec_type->t)) {
+                            auto udt = arg.spec_type->udt;
+                            for (auto [i, field] : enumerate(udt->g.fields)) {
+                                if (field.id->name == fvd->name) {
+                                    fvd->spec.sid = arg.sid;
+                                    fvd->spec.field = field.id;
+                                    if (!fvd->spec.bound.Null()) {
+                                        if (!ConvertsTo(udt->sfields[i].type, fvd->spec.bound, CF_NONE))
+                                            Error(*sf.sbody->children[0], "explicit free variable ", Q(fvd->name),
+                                            " has type ", TypeName(fvd->spec.sid->type));
+                                    }
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                };
+                lookup(ssf.locals);
+                if (fvd->spec.sid) break;
+                lookup(ssf.args);
+                if (fvd->spec.sid) break;
+            }
+            if (!fvd->spec.sid)
+                Error(*sf.sbody->children[0], "explicit free variable ", Q(fvd->name), " not found in context");
+        }
         LOG_DEBUG("function start: ", SignatureWithFreeVars(sf, nullptr));
         Scope scope;
         scope.sf = &sf;
@@ -919,7 +965,7 @@ struct TypeChecker {
                         sf.returntype = nt;
                     }
                 } else if (len < sf.reqret) {
-                    Error(call_context, cat("returning ", len, " values, caller requires ", sf.reqret));
+                    Error(call_context, "returning ", len, " values, caller requires ", sf.reqret);
                 }
             }
         } else {
@@ -973,6 +1019,11 @@ struct TypeChecker {
         scopes.pop_back();
         LOG_DEBUG("function end ", Signature(sf), " returns ",
                              TypeName(sf.returntype));
+        for (auto [i, fvd] : enumerate(sf.overload->freevardecls)) {
+            if (!fvd->spec.used)
+                Warn(*sf.sbody->children.back(), "unused explicit free variable ", Q(fvd->name));
+            fvd->spec = freevardeclsbackup[i];
+        }
     }
 
     bool FreeVarsSameAsCurrent(const SubFunction &sf, bool prespecialize) {
@@ -3203,6 +3254,17 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_b
     return this;
 }
 
+Node *FreeVarRef::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound) {
+    assert(fvd->spec.sid);  // Must be set by function entry.
+    fvd->spec.used = true;
+    Node *nn = new IdentRef(line, fvd->spec.sid);;
+    if (fvd->spec.field) {
+        nn = new Dot(fvd->spec.field, line, nn);
+    }
+    nn->TypeCheck(tc, reqret, parent_bound);
+    delete this;
+    return nn;
+}
 Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.DecBorrowers(left->lt, *this);

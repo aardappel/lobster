@@ -368,6 +368,10 @@ ValueType IdentRef::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }
 
+ValueType FreeVarRef::ConstVal(TypeChecker *, Value &) const {
+    return V_VOID;
+}
+
 ValueType StringConstant::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }

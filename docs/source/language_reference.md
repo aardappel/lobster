@@ -641,7 +641,7 @@ a variable always refers to the closest enclosing definition of it.
 Since functions and function values can be defined at any scope level, this
 means they can access variables from enclosing scopes, called *free variables*.
 Free variables are essential to make Lobster's higher order functions
-convenient. References to free variables are only valid within the scope they
+convenient. References to free variables are only valid within the lexical scope they
 are defined, which luckily is almost always the case, but can be broken by
 storing a function value and then calling it at a later time outside of the
 context where its free variables were valid, which will result in a runtime
@@ -649,6 +649,42 @@ error. Other languages use *closures* to ensure availability in all cases, which
 are very costly (parent stackframe(s) may have to be dynamically allocated) as
 opposed to Lobster's approach which makes function values and free variables
 have no overhead compared to regular functions and variables.
+
+### Explicit Free Variables
+
+You can access free variables outside of their natural scope by declaring them
+explicitly, for example:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def foo(a, b) [c, d]:
+    c = a
+    d = b
+def bar():
+    var c = 0
+    var d = ""
+    foo(1, "hello")
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Which is pretty much identical to the more familiar:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def bar():
+    var c = 0
+    var d = ""
+    def foo(a, b):
+        c = a
+        d = b
+    foo(1, "hello")
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the only difference that the former is of course more flexible in code structure,
+as `foo` can be used from more contexts.
+You may refer to both variables and members that are in scope in the call stack context.
+You may give these free variable declaration a type, to enforce the type you expect
+the free variable to have.
+Using these explicit free variables, you can often avoid using global variables
+entirely, and it is easy to create functions that can be used used in different
+contexts, or have their context overridden.
 
 ### Overloading and dynamic dispatch
 

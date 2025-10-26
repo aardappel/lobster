@@ -19,7 +19,7 @@ struct Parser {
     Lex &lex;
     Node *root = nullptr;
     SymbolTable &st;
-    vector<Function *> functionstack;
+    vector<Function *> namedfunctionstack;
     vector<GUDT *> gudtstack;
     bool call_noparens = false;
     set<string> pakfiles;
@@ -870,6 +870,31 @@ struct Parser {
         f.overloads.emplace_back(ov);
         ov->method_of = self;
         sf->SetParent(f, *ov);
+        if (name && IsNext(T_LEFTBRACKET)) {
+            for (;;) {
+                auto id = ExpectId();
+                for (auto fvd : ov->freevardecls) {
+                    if (id == fvd->name) {
+                        Error("explicit free variable double declaration: ", Q(id));
+                    }
+                }
+                for (auto f : reverse(namedfunctionstack)) {
+                    auto ov = f->overloads.back();
+                    for (auto fvd : ov->freevardecls) {
+                        if (id == fvd->name) {
+                            Warn("explicit free variable shadowing: ", Q(id));
+                        }
+                    }
+                }
+                UnTypeRef type = (UnType *)nullptr;
+                if (IsNext(T_COLON)) {
+                    type = ParseType(false);
+                }
+                ov->freevardecls.push_back(new ExplicitFreeVar { id, type });
+                if (!IsNext(T_COMMA)) break;
+            }
+            Expect(T_RIGHTBRACKET);
+        }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
         }
@@ -909,7 +934,7 @@ struct Parser {
                 // type checker.
                 if (!f.nargs()) Error("double declaration of ", Q(f.name));
             }
-            functionstack.push_back(&f);
+            namedfunctionstack.push_back(&f);
             if (is_constructor_of) {
                 is_constructor_of->has_constructor_function = true;
             }
@@ -926,7 +951,7 @@ struct Parser {
             ImplicitReturn(*ov);
         }
         if (self_withtype) gudtstack.pop_back();
-        if (name) functionstack.pop_back();
+        if (name) namedfunctionstack.pop_back();
         if (non_inline_method) st.bound_typevars_stack.pop_back();
         st.bound_typevars_stack.pop_back();
         st.FunctionScopeCleanup(ov->gbody ? ov->gbody->Count() : 0);
@@ -1134,8 +1159,8 @@ struct Parser {
                         sf = f->overloads[0]->sf;
                     }
                 } else {
-                    if (functionstack.size())
-                        sf = functionstack.back()->overloads.back()->sf;
+                    if (namedfunctionstack.size())
+                        sf = namedfunctionstack.back()->overloads.back()->sf;
                 }
                 list->Add(new Return(lex, rv, sf, false));
                 break;
@@ -1174,7 +1199,7 @@ struct Parser {
     }
 
     void CheckOpEq(Node *e) {
-        if (!Is<IdentRef>(e) && !Is<Indexing>(e) && !Is<GenericCall>(e) && !Is<Dot>(e))
+        if (!Is<IdentRef>(e) && !Is<Indexing>(e) && !Is<GenericCall>(e) && !Is<Dot>(e) && !Is<FreeVarRef>(e))
             Error("illegal left hand side of assignment");
         Modify(e);
         lex.Next();
@@ -1744,7 +1769,7 @@ struct Parser {
         // First see if this a type constructor.
         auto udt = st.LookupSpecialization(idname);
         auto gudt = udt ? &udt->g : st.LookupStruct(idname);
-        auto curf = functionstack.empty() ? nullptr : functionstack.back();
+        auto curf = namedfunctionstack.empty() ? nullptr : namedfunctionstack.back();
         UnTypeRef type = (UnType *)nullptr;
         if (gudt &&
             lex.token == T_LT &&
@@ -1910,6 +1935,15 @@ struct Parser {
         // Check for field reference in function with :: arguments.
         if (field) {
             return new Dot(field, lex, new IdentRef(lex, fieldid->cursid));
+        }
+        // Check any non-lexical-scope freevars.
+        for (auto f : reverse(namedfunctionstack)) {
+            auto ov = f->overloads.back();
+            for (auto fvd : ov->freevardecls) {
+                if (idname == fvd->name) {
+                    return new FreeVarRef(lex, fvd);
+                }
+            }
         }
         // It's likely a regular variable.
         if (!id) {

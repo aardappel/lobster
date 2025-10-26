@@ -1,3 +1,6 @@
+- Improve native compilation pipeline / emscripten support.
+  https://github.com/aardappel/lobster/issues/375
+
 - It seems to allow function overloads to be declared in different branches of an if and still work together?
   That should probably be disallowed.
 

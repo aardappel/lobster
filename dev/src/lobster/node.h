@@ -330,6 +330,17 @@ struct IdentRef : Node {
     SIMPLEMETHOD
 };
 
+struct FreeVarRef : Node {
+    ExplicitFreeVar *fvd;
+    FreeVarRef(const Line &ln, ExplicitFreeVar *_fvd)
+        : Node(ln), fvd(_fvd) {}
+    void Dump(string &sd) const { sd += fvd->name; }
+    bool EqAttr(const Node *o) const {
+        return fvd == ((FreeVarRef *)o)->fvd;
+    }
+    SHARED_SIGNATURE(FreeVarRef, "free variable", false)
+};
+
 struct IntConstant : Node {
     int64_t integer;
     EnumVal *from;

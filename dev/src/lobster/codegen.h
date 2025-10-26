@@ -1790,6 +1790,10 @@ void IdentRef::Generate(CodeGen &cg, size_t retval) const {
     cg.GenPushVar(retval, sid->type, sid->Idx(), sid->used_as_freevar);
 }
 
+void FreeVarRef::Generate(CodeGen &, size_t) const {
+    assert(false);  // Should be replaced by typechecker.
+}
+
 void Dot::Generate(CodeGen &cg, size_t retval) const {
     auto stype = child->exptype;
     assert(IsUDT(stype->t));

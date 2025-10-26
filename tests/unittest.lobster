@@ -28,5 +28,6 @@ import builtintest
 import operators
 import matrixtest
 import typeswitch
+import freevars
 
 "the end"  // FIXME: a file can not be only import files?

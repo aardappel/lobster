@@ -442,9 +442,23 @@ struct Caller {
     DispatchEntry *de = nullptr;    // Null if static call.
 };
 
+struct ExplicitFreeVarSpec {
+    TypeRef bound = nullptr;
+    SpecIdent *sid = nullptr;
+    SharedField *field = nullptr;  // May be null.
+    bool used = false;
+};
+
+struct ExplicitFreeVar {
+    string_view name;
+    UnTypeRef giventype = (UnType *)nullptr;   // May be null if not specified.
+    ExplicitFreeVarSpec spec;
+};
+
 struct Overload {
     SubFunction *sf = nullptr;
     vector<UnTypeRef> givenargs;
+    vector<ExplicitFreeVar *> freevardecls;
     Block *gbody = nullptr;
     Line declared_at;
     bool isprivate;
