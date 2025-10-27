@@ -465,6 +465,7 @@ struct Lex : LoadedFile {
                             if (sattr == TName(T_NOT)) return T_NOT;
                             if (sattr == TName(T_NAMESPACE)) return T_NAMESPACE;
                             if (sattr == "nan") return Float();
+                            if (sattr == TName(T_PREFERFREE)) return T_PREFERFREE;
                             break;
                         case 'o':
                             if (sattr == TName(T_OR)) { cont = true; return T_OR; }

@@ -69,6 +69,7 @@ struct Ident : Named {
     bool read = false;
 
     bool predeclaration = false;
+    bool preferfree = false;
 
     SpecIdent *cursid = nullptr;
 

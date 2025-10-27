@@ -283,7 +283,14 @@ struct Parser {
             }
             case T_VAR:
             case T_CONST: {
-                list->Add(ParseDefine(isprivate, false));
+                list->Add(ParseDefine(isprivate, false, false));
+                break;
+            }
+            case T_PREFERFREE: {
+                lex.Next();
+                if (lex.token != T_VAR && lex.token != T_CONST)
+                    Error("nonlocal must be followed by var or let");
+                list->Add(ParseDefine(isprivate, false, true));
                 break;
             }
             case T_STATIC:
@@ -432,7 +439,7 @@ struct Parser {
         }
     }
 
-    Define *ParseDefine(bool isprivate, bool iscond) {
+    Define *ParseDefine(bool isprivate, bool iscond, bool ispreferfree) {
         auto isconst = lex.token == T_CONST;
         lex.Next();
         auto def = new Define(lex, nullptr);
@@ -460,6 +467,7 @@ struct Parser {
             }
             if (isconst)  id->constant = true;
             if (isprivate) id->isprivate = true;
+            if (ispreferfree) id->preferfree = true;
             def->tsids.push_back({ id->cursid, type });
             id->giventype = type;
             if (!IsNext(T_COMMA)) break;
@@ -1182,7 +1190,7 @@ struct Parser {
             if (!list)
                 Error("declaration inside condition only allowed as statement");
             DS<bool> ds(call_noparens, true);
-            auto def = ParseDefine(false, true);
+            auto def = ParseDefine(false, true, false);
             list->Add(def);
             // TODO: this reads the variable after it has been set. Unless codegen recognizes
             // this case, it is slower than simply having the define leave a value on the stack.

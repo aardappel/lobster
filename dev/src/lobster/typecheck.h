@@ -42,6 +42,7 @@ struct TypeChecker {
     vector<Scope> scopes, named_scopes;
     vector<FlowItem> flowstack;
     vector<Borrow> borrowstack;
+    vector<SpecIdent *> preferfreestack;
     set<pair<Line, int64_t>> integer_literal_warnings;
     Query *query;
     bool full_error;
@@ -868,6 +869,31 @@ struct TypeChecker {
         }
     }
 
+    void CheckExplicitFreeVarSid(ExplicitFreeVar *fvd, SpecIdent *sid, TypeRef type, bool checkfields, Node &context) {
+        if (sid->id->name == fvd->name) {
+            fvd->spec.sid = sid;
+            if (!fvd->spec.bound.Null()) {
+                if (!ConvertsTo(fvd->spec.sid->type, fvd->spec.bound, CF_NONE))
+                    Error(context, "explicit free variable ", Q(fvd->name),
+                        " has type ", TypeName(fvd->spec.sid->type));
+            }
+        } else if (checkfields && IsUDT(type->t)) {
+            auto udt = type->udt;
+            for (auto [i, field] : enumerate(udt->g.fields)) {
+                if (field.id->name == fvd->name) {
+                    fvd->spec.sid = sid;
+                    fvd->spec.field = field.id;
+                    if (!fvd->spec.bound.Null()) {
+                        if (!ConvertsTo(udt->sfields[i].type, fvd->spec.bound, CF_NONE))
+                            Error(context, "explicit free variable ", Q(fvd->name),
+                                " has type ", TypeName(fvd->spec.sid->type));
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
     void TypeCheckFunctionDef(SubFunction &sf, const Node &call_context) {
         if (sf.typechecked) return;
         STACK_PROFILE;
@@ -878,36 +904,20 @@ struct TypeChecker {
             if (!fvd->giventype.Null()) {
                 fvd->spec.bound = st.ResolveTypeVars(fvd->giventype, sf.sbody->children[0]->line);
             }
+            // First check any preferred ones.
+            for (auto sid : reverse(preferfreestack)) {
+                CheckExplicitFreeVarSid(fvd, sid, sid->type, true, *sf.sbody->children[0]);
+                if (fvd->spec.sid) break;
+            }
+            // If not, fall back to a full scan of scopes.
             // FIXME: this scope scanning does not respect if a variable is declared after when a call is made,
             // or if its inside control structures etc!
             for (auto &sc : reverse(scopes)) {
                 auto &ssf = *sc.sf;
                 auto lookup = [&](vector<Arg> &args) {
                     for (auto &arg : args) {
-                        if (arg.sid->id->name == fvd->name) {
-                            fvd->spec.sid = arg.sid;
-                            if (!fvd->spec.bound.Null()) {
-                                if (!ConvertsTo(fvd->spec.sid->type, fvd->spec.bound, CF_NONE))
-                                    Error(*sf.sbody->children[0], "explicit free variable ", Q(fvd->name),
-                                          " has type ", TypeName(fvd->spec.sid->type));
-                            }
-                            return;
-                        }
-                        if (arg.sid->withtype && IsUDT(arg.spec_type->t)) {
-                            auto udt = arg.spec_type->udt;
-                            for (auto [i, field] : enumerate(udt->g.fields)) {
-                                if (field.id->name == fvd->name) {
-                                    fvd->spec.sid = arg.sid;
-                                    fvd->spec.field = field.id;
-                                    if (!fvd->spec.bound.Null()) {
-                                        if (!ConvertsTo(udt->sfields[i].type, fvd->spec.bound, CF_NONE))
-                                            Error(*sf.sbody->children[0], "explicit free variable ", Q(fvd->name),
-                                            " has type ", TypeName(fvd->spec.sid->type));
-                                    }
-                                    return;
-                                }
-                            }
-                        }
+                        CheckExplicitFreeVarSid(fvd, arg.sid, arg.spec_type, arg.sid->withtype, *sf.sbody->children[0]);
+                        if (fvd->spec.sid) return;
                     }
                 };
                 lookup(ssf.locals);
@@ -924,6 +934,7 @@ struct TypeChecker {
         scope.call_context = &call_context;
         scope.flowstack_size = flowstack.size();
         scopes.push_back(scope);
+        auto pfvss = preferfreestack.size();
         //for (auto &ns : named_scopes) LOG_DEBUG("named scope: ", ns.sf->parent->name);
         if (!sf.parent->anonymous) named_scopes.push_back(scope);
         st.BlockScopeStart();
@@ -1012,6 +1023,7 @@ struct TypeChecker {
             Error(*sf.sbody->children.back(), "constructor must return value of its own type");
         }
         st.BlockScopeCleanup();
+        preferfreestack.resize(pfvss);
         for (auto member : scopes.back().scoped_fields) {
             auto f = member->field();
             f->in_scope = false;
@@ -3002,6 +3014,9 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
         tc.StorageType(var.type, *this);
         sid->type = var.type;
         sid->lt = var.lt;
+        if (sid->id->preferfree && !Is<DefaultVal>(child)) {
+            tc.preferfreestack.push_back(sid);
+        }
         LOG_DEBUG("var: ", sid->id->name, ":", TypeName(var.type));
     }
     exptype = type_void;
