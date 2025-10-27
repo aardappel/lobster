@@ -16,10 +16,10 @@ export default function setupFeature(lsp: LSPInstance) {
       )!;
       const content = document.getText();
       let offset = document.offsetAt(_textDocumentPosition.position);
-      
+
       do {
         var c = content.charAt(--offset);
-      } while(isAlphaNumeric(c) || c == '.');
+      } while(isAlphaNumeric(c) || c == '.' || c == '_');
 
       const range = Range.create(document.positionAt(offset + 1), _textDocumentPosition.position);
       const tgtText = document.getText(range).trimStart();
