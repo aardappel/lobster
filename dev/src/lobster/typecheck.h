@@ -878,7 +878,8 @@ struct TypeChecker {
             if (!fvd->giventype.Null()) {
                 fvd->spec.bound = st.ResolveTypeVars(fvd->giventype, sf.sbody->children[0]->line);
             }
-            // FIXME: this scope scanning does not respect if a variable is declared after when a call is made.
+            // FIXME: this scope scanning does not respect if a variable is declared after when a call is made,
+            // or if its inside control structures etc!
             for (auto &sc : reverse(scopes)) {
                 auto &ssf = *sc.sf;
                 auto lookup = [&](vector<Arg> &args) {
@@ -1040,6 +1041,14 @@ struct TypeChecker {
                 return false;
             }
             //if (atype->t == V_FUNCTION) return false;
+            // For the sake of explicit free variables which (unlike lexical free vars) can
+            // refer to multiple different variables, we must check if the variable is reachable at all.
+            // FIXME: we should really be able to see this without looping if cursid is null?
+            for (auto &sc : reverse(scopes)) {
+                if (sc.sf == sid->sf_def) goto found;
+            }
+            return false;
+            found:;
         }
         for (auto &fvfi : sf.freevarflowfields) {
             auto curtype = UseFlow(fvfi);

@@ -70,3 +70,23 @@ run_test("freevars"):
         // This would produce a type error:
         //access_freevars_not_in_lexical_scope(3, 4)
         pass()
+
+    // Two contexts.
+
+    class Test4:
+        a = 0
+
+    // This function will be specialized because it is accessing two different free variables.
+    // The fact that the types is the same doesn't matter, because it is not actually passed
+    // as parameter, it is direct access to the variable.
+    def access_from_two_sources() [test4:Test4]:
+        assert test4.a == 0
+
+    do():
+        let test4 = Test4 {}
+        access_from_two_sources()
+
+    do():
+        let test4 = Test4 {}
+        access_from_two_sources()
+
