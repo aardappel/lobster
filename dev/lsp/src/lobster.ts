@@ -79,7 +79,7 @@ export async function parseLobster(
         const output: Diagnostic[] = [];
 
         function scanLine(at: string, thisLine: integer, relInfo: DiagnosticRelatedInformation[]): integer | undefined {
-            var result: integer | undefined = undefined;
+            let result: integer | undefined = undefined;
             if (file.endsWith(at)) {
                 result = thisLine;
             } else {
@@ -101,8 +101,8 @@ export async function parseLobster(
 
         while ((match = regex.exec(input))) {
             const relInfo: DiagnosticRelatedInformation[] = [];
-            var line = scanLine(match[1], parseInt(match[2]) - 1, relInfo);
-            let innerMsg = match[5];
+            let line = scanLine(match[1], parseInt(match[2]) - 1, relInfo);
+            const innerMsg = match[5];
             if (innerMsg && !line) {
                 while ((innerMatch = regexInner.exec(innerMsg))) {
                     line ||= scanLine(innerMatch[1], parseInt(innerMatch[2]) - 1, relInfo);
