@@ -20,8 +20,8 @@
 	],
 	"activationEvents": [
 		"onDebugResolve:lobster",
-    	"onDebugDynamicConfigurations:lobster",
-    	"onCommand:extension.lobster.getProgramName"
+		"onDebugDynamicConfigurations:lobster",
+		"onCommand:extension.lobster.getProgramName"
 	],
 	"main": "./webpack-out/lobster_ext.js",
 	"contributes": {
@@ -153,29 +153,29 @@
 		],
 		"initialConfigurations": [
 			{
-			  "type": "lobster",
-			  "request": "launch",
-			  "name": "Ask for file name",
-			  "program": "${workspaceFolder}/${command:AskForProgramName}",
-			  "stopOnEntry": true
-			}
-		  ],
-		  "configurationSnippets": [
-			{
-			  "label": "Lobster: Launch",
-			  "description": "A new configuration for 'debugging' a user selected markdown file.",
-			  "body": {
 				"type": "lobster",
 				"request": "launch",
 				"name": "Ask for file name",
-				"program": "^\"\\${workspaceFolder}/\\${command:AskForProgramName}\"",
+				"program": "${workspaceFolder}/${command:AskForProgramName}",
 				"stopOnEntry": true
-			  }
 			}
-		  ],
-		  "variables": {
+		],
+		"configurationSnippets": [
+			{
+				"label": "Lobster: Launch",
+				"description": "A new configuration for 'debugging' a user selected markdown file.",
+				"body": {
+					"type": "lobster",
+					"request": "launch",
+					"name": "Ask for file name",
+					"program": "^\"\\${workspaceFolder}/\\${command:AskForProgramName}\"",
+					"stopOnEntry": true
+				}
+			}
+		],
+		"variables": {
 			"AskForProgramName": "extension.lobster.getProgramName"
-		  }
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run webpack && shx cp ../lsp/webpack-out/* ./webpack-out/ && npm run icons",
@@ -187,19 +187,19 @@
 		"icons": "shx mkdir -p icons && shx cp ../../docs/lobster.svg ./icons/lobster.svg"
 	},
 	"dependencies": {
-		"vscode-languageclient": "^8.1.0",
-		"@vscode/debugadapter": "^1.61.0"
+		"@vscode/debugadapter": "^1.61.0",
+		"vscode-languageclient": "^8.1.0"
 	},
 	"devDependencies": {
 		"@types/node": "^16.11.7",
+		"@types/vscode": "^1.75.1",
 		"@typescript-eslint/eslint-plugin": "^5.54.0",
 		"@typescript-eslint/parser": "^5.54.0",
-		"@types/vscode": "^1.75.1",
 		"eslint": "^8.35.0",
-		"webpack": "^5.94.0",
-		"webpack-cli": "^4.10.0",
-		"typescript": "^5.0.2",
 		"shx": "0.3.4",
-		"ts-loader": "^9.3.1"
+		"ts-loader": "^9.3.1",
+		"typescript": "^5.0.2",
+		"webpack": "^5.102.1",
+		"webpack-cli": "^4.10.0"
 	}
 }
