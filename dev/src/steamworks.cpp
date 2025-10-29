@@ -46,9 +46,14 @@ struct SteamState {
     CSteamID created_lobby;           // The most recently created lobby.
     CSteamID joined_lobby;            // The most recently joined lobby.
     vector<CSteamID> joined_lobbies;  // A list of all joined lobbies.
-    int matched_lobbies = -1;         // -1: not requested, or in progress. >= 0: number of matches
+    int matched_lobbies = 0;          // -1: in progress. 0: not requested, or no matches. > 0: number of matches
 
     ~SteamState() {
+        // Leave all lobbies.
+        for (const auto &lobby_id : joined_lobbies) {
+            SteamMatchmaking()->LeaveLobby(lobby_id);
+        }
+        SteamAPI_RunCallbacks();
         for (auto &peer: peers) {
             // Don't close connections that were connected via the listen
             // socket, that seems to crash Steam.
@@ -404,6 +409,12 @@ struct SteamState {
 
     bool LeaveLobby(CSteamID steam_id) {
         SteamMatchmaking()->LeaveLobby(steam_id);
+        if (steam_id == joined_lobby) {
+            joined_lobby.Clear();
+        }
+        if (steam_id == created_lobby) {
+            created_lobby.Clear();
+        }
         auto iter = find(joined_lobbies.begin(), joined_lobbies.end(), steam_id);
         if (iter != joined_lobbies.end()) {
             joined_lobbies.erase(iter);
@@ -478,7 +489,8 @@ struct SteamState {
     }
 
     bool LobbyListReset() {
-        matched_lobbies = -1;
+        OnLobbyMatchListCallback.Cancel();
+        matched_lobbies = 0;
         return true;
     }
 

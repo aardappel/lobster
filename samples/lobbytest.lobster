@@ -117,18 +117,24 @@ while gl.frame():
                 if to_remove >= 0:
                     filters.remove(to_remove)
             // Request Lobbies
-            if im.button("Request Lobbies"):
-                for(filters) f:
-                    switch f.type:
-                        case FT_Numerical:
-                            steam.lobby_request_add_numerical_filter(f.key, f.int_value, f.cmp)
-                        case FT_String:
-                            steam.lobby_request_add_string_filter(f.key, f.string_value, f.cmp)
-                        case FT_ResultCount:
-                            steam.lobby_request_add_result_count_filter(f.int_value)
-                steam.lobby_request_list()
-            let matched = steam.lobby_request_get_lobbies()
-            if im.button("Refresh lobby data"):
-                for(matched) id:
-                    steam.lobby_request_data(id)
+            let is_list_ready = steam.lobby_request_is_ready()
+            var matched = []
+            im.disabled(not is_list_ready):
+                if im.button("Request Lobbies"):
+                    for(filters) f:
+                        switch f.type:
+                            case FT_Numerical:
+                                steam.lobby_request_add_numerical_filter(f.key, f.int_value, f.cmp)
+                            case FT_String:
+                                steam.lobby_request_add_string_filter(f.key, f.string_value, f.cmp)
+                            case FT_ResultCount:
+                                steam.lobby_request_add_result_count_filter(f.int_value)
+                    steam.lobby_request_list()
+                matched = steam.lobby_request_get_lobbies()
+                if im.button("Refresh lobby data"):
+                    for(matched) id:
+                        steam.lobby_request_data(id)
+            if not is_list_ready:
+                if im.button("Cancel"):
+                    steam.lobby_request_list_reset()
             lobby_tree("Matched:", matched, false)
