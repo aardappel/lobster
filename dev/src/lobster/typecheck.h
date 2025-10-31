@@ -3279,7 +3279,11 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_b
 }
 
 Node *FreeVarRef::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound) {
-    assert(fvd->spec.sid);  // Must be set by function entry.
+    if (!fvd->spec.sid) {
+        // This can happen if this was used in the init exp of a "member" decl.
+        // Only way to stop this from happening is to make the parser not find this explicit freevar.
+        tc.Error(*this, "explicit free variable ", Q(fvd->name), " not in scope");
+    }
     fvd->spec.used = true;
     Node *nn = new IdentRef(line, fvd->spec.sid);;
     if (fvd->spec.field) {

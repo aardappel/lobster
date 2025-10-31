@@ -359,6 +359,8 @@ struct Parser {
                 if (gudt->has_subclasses) Error("member cannot be added in freestanding method to class that has been subclassed");
                 st.bound_typevars_stack.push_back(gudt->generics);
                 auto field_idx = gudt->fields.size();
+                // FIXME: this will lookup idents in this exp in the current context, and it should do so
+                // outside the current class it is in somehow.
                 ParseField(gudt, true, true);
                 st.bound_typevars_stack.pop_back();
                 auto initc = gudt->fields.back().gdefaultval->Clone(true);
