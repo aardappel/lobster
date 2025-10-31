@@ -734,7 +734,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
             typedef matrix<int, 3, 3> int3x3;
             map<int32_t, int3x3> node_rots;
             uint8_t palette_index_remap[256];
-            bool has_palette_index_remap = false;
+            const uint8_t *index_remap_start = nullptr;
             while (bufs.size() >= 8) {
                 auto id = (const char *)bufs.data();
                 bufs = bufs.subspan(4);
@@ -967,31 +967,33 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                     // If you don't, it's better to just leave it as-is since
                     // it's faster to load without remapping.
                     // See https://github.com/ephtracy/voxel-model/issues/19 for more discussion.
-                    auto imap = p.data();
-                    if (remap_palettes.True()) {
-                        // FIXME: how does this affect material ids???
-                        vector<byte4> remapped_palette = palette;
-                        for (int i = 0; i < 255; i++) {
-                            palette_index_remap[imap[i]] = (uint8_t)(i + 1);
-                            remapped_palette[i + 1] = palette[imap[i]];
-                        }
-                        // Index 0 is never remapped.
-                        palette_index_remap[0] = 0;
-                        palette = remapped_palette;
-                        has_palette_index_remap = true;
-                    }
+                    index_remap_start = p.data();
+                    // We don't process the chunk here, because any  MATL chunk that comes
+                    // after this still refers to the old indices. See below.
                 } else {
                     chunks_skipped = true;
                 }
             }
-            // Now finalize the palette once we have read palette + material data.
+            // See IMAP chunk comment above.
+            // Remap now that MATL chunks have been processed.
+            if (remap_palettes.True() && index_remap_start) {
+                vector<byte4> remapped_palette = palette;
+                for (int i = 0; i < 255; i++) {
+                    palette_index_remap[index_remap_start[i]] = (uint8_t)(i + 1);
+                    remapped_palette[i + 1] = palette[index_remap_start[i]];
+                }
+                // Index 0 is never remapped.
+                palette_index_remap[0] = 0;
+                palette = remapped_palette;
+            }
+            // Now finalize the palette once we have read palette + material data + remapping.
             clone_if_default();
             if (!palette.empty()) {
                 auto pi = NewPalette(palette.data());
                 for (iint i = 0; i < voxvec->len; i++) {
                     auto *voxels = &GetVoxels(voxvec->AtS(i));
                     voxels->palette_idx = pi;
-                    if (has_palette_index_remap) {
+                    if (remap_palettes.True() && index_remap_start) {
                         for (int z = 0; z < voxels->grid.dim.z; ++z) {
                             for (int y = 0; y < voxels->grid.dim.y; ++y) {
                                 for (int x = 0; x < voxels->grid.dim.x; ++x) {
