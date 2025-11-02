@@ -37,6 +37,7 @@ struct CodeGen  {
     vector<TypeLT> rettypes, temptypestack;
     vector<const Node *> loops;
     vector<int> breaks;
+    vector<int> continues;
     vector<string_view> stringtable;  // sized strings.
     vector<const Node *> node_context;
     int runtime_checks;
@@ -480,6 +481,7 @@ struct CodeGen  {
 
         assert(temptypestack.empty());
         assert(breaks.empty());
+        assert(continues.empty());
         assert(tstack.empty());
         f_regs_max = (int)tstack_max;
         linenumbernodes.pop_back();
@@ -2280,12 +2282,14 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
 void While::Generate(CodeGen &cg, size_t retval) const {
     auto loopback = cg.EmitLabelDefBackwards();
     cg.loops.push_back(this);
+    cg.continues.push_back(loopback);
     cg.Gen(condition, 1);
     cg.TakeTemp(1, false);
     auto jumpout = cg.EmitOpJump1(IL_JUMPFAIL);
     auto break_level = cg.breaks.size();
     cg.Gen(wbody, 0);
     cg.loops.pop_back();
+    cg.continues.pop_back();
     cg.EmitJUMPback(loopback);
     cg.EmitLabelDef(jumpout);
     cg.ApplyBreaks(break_level);
@@ -2298,6 +2302,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(iter, 1);
     cg.loops.push_back(this);
     auto startloop = cg.EmitLabelDefBackwards();
+    cg.continues.push_back(startloop);
     auto break_level = cg.breaks.size();
     auto tstack_level = cg.tstack.size();
     int exitloop = -1;
@@ -2311,6 +2316,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitJUMPback(startloop);
     cg.EmitLabelDef(exitloop);
     cg.loops.pop_back();
+    cg.continues.pop_back();
     cg.TakeTemp(2, false);
     assert(tstack_level == cg.tstack.size()); (void)tstack_level;
     cg.PopTemp();
@@ -2377,6 +2383,15 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
         lab = cg.EmitJUMP();
     }
     cg.breaks.push_back(lab);
+}
+
+void Continue::Generate(CodeGen &cg, size_t retval) const {
+    assert(!retval);
+    (void)retval;
+    assert(!cg.rettypes.size());
+    assert(!cg.loops.empty());
+    int startloop = cg.continues.back();
+    cg.EmitJUMPback(startloop);
 }
 
 void Switch::Generate(CodeGen &cg, size_t retval) const {

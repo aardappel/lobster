@@ -328,6 +328,18 @@ run_test("misc"):
         lc--
     assert lc == 1
 
+    // Continue.
+    lc = 0
+    for (10) i:
+        if i == 5: continue
+        lc++
+    assert lc == 9
+    while lc > 0:
+        lc--
+        if lc == 0: continue
+        lc--
+    assert lc == 0
+
     // Non-local control still works with returning values.
     def outer():
         def error():
