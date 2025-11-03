@@ -26,5 +26,13 @@
         ["(", ")"],
         ["\"", "\""],
         ["'", "'"]
+    ],
+    "onEnterRules": [
+        {
+            "beforeText": ".*:\\s*$",
+            "action": {
+                "indent": "indent"
+            }
+        }
     ]
 }
