@@ -1218,6 +1218,11 @@ Both `for` and `while` can have a break statement inside of them, that
 exits the enclosing loop. Alternatively, use `return` or `return from` (see
 above) for more complex cases.
 
+### continue
+
+Both `for` and `while` can have a continue statement inside of them, that
+interrupts the current loop iteration.
+
 ### User defined control structures
 
 Many other functions that look like regular functions are actually also control
