@@ -426,6 +426,7 @@ struct Lex : LoadedFile {
                             if (sattr == TName(T_CLASS)) return T_CLASS;
                             if (sattr == TName(T_CASE)) return T_CASE;
                             if (sattr == TName(T_CONSTRUCTOR)) return T_CONSTRUCTOR;
+                            if (sattr == TName(T_CONTINUE)) return T_CONTINUE;
                             break;
                         case 'd':
                             if (sattr == TName(T_FUN)) return T_FUN;

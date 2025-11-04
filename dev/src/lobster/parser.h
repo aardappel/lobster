@@ -1180,6 +1180,11 @@ struct Parser {
                 list->Add(new Break(lex));
                 break;
             }
+            case T_CONTINUE: {
+                lex.Next();
+                list->Add(new Continue(lex));
+                break;
+            }
             default: {
                 list->Add(ParseExp());
                 break;

@@ -2801,6 +2801,14 @@ Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_boun
     return this;
 }
 
+Node *Continue::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
+    if (!tc.scopes.back().loop_count)
+        tc.Error(*this, Q("continue"), " must occur inside a ", Q("while"), " or ", Q("for"));
+    exptype = type_void;
+    lt = LT_ANY;
+    return this;
+}
+
 Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     // TODO: much like If, should only typecheck one case if the value is constant, and do
     // the corresponding work in the optimizer.
@@ -4253,6 +4261,10 @@ bool While::Terminal(TypeChecker &tc) const {
 }
 
 bool Break::Terminal(TypeChecker &) const {
+    return true;
+}
+
+bool Continue::Terminal(TypeChecker &) const {
     return true;
 }
 

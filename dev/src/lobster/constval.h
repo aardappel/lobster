@@ -364,6 +364,10 @@ ValueType Break::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }
 
+ValueType Continue::ConstVal(TypeChecker *, Value &) const {
+    return V_VOID;
+}
+
 ValueType IdentRef::ConstVal(TypeChecker *, Value &) const {
     return V_VOID;
 }
