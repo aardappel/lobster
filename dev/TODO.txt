@@ -14,6 +14,24 @@
   Then again, if an `and` is happening, I'd rather read that directly than having to spot a `,`.
   And you can still use `and` in the RHS using ().
 
+- We could add further syntactic sugar to the disciminated union use case.
+  E.g.
+  union Foo:
+      Bar(b:int)
+      Baz(f:float)
+  Could expand to:
+  abstract class Foo
+  class Bar : Foo
+      b:int
+  class Baz : Foo
+      f:float
+  Also a way to access members even more easily in a switch. That could be done by pattern matching
+  which is a complicated feature, but maybe also a way to simply make the var have :: semantics?
+  case Baz: print o.f  // Current style
+  case Baz(g): print g  // Swift style: name your own member variable.
+  case Baz:: print f  // Lobster new style: add all members much like a function that uses ::
+  See discussion here: https://discord.com/channels/656280102451281940/1097536296869712015/1434969547320070144
+
 - Nil chaining (typically x?.a) comes with all sorts of problems exacerbated by it being
   very terse syntax, if we could make it verbose with the obvious keyword of guard,
   it could be a good feature?
