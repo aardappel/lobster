@@ -158,6 +158,21 @@
   Should either know a UDT has not been typechecked and attempt to do so before typechecking constructor,
   or this should be part of separating out a separate pass?
 
+- Thanks to FunctionDeclTT, this code still compiles, need some kind of lexical scope tracking.
+  Can't check this in the parser anymore.
+  It is very benign though, since bar() is not a method, its a free standing function with a free variable
+  called "this", and that exact same free variable is still in scope when baz calls it.
+  You could consider it a feature :P
+  Call graph scope.
+  class A:
+      def foo():
+          def bar():
+              pass()
+          bar()
+          baz()
+  def baz():
+      bar()
+
 - gl.polygon (and presumably any RenderArraySlow) leaks vbo/vao on Linux/Mesa?
   https://github.com/aardappel/lobster/issues/366
 
