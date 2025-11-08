@@ -95,6 +95,30 @@
     a = ..
   assert a
 
+- FIX:
+    class A:
+        s:string? = "hi"
+    let a = A {}
+    assert a.s
+    assert a.s.length == 2
+    def foo(a2):
+        // This used to fail because the flowtype is a.s, not a2.s
+        assert a2.s.length == 2
+        //print a2.s
+    foo(a)
+    foo(A {})  // Should still fail.
+    let a3 = A {}
+    foo(a3)   // Should still fail.
+  This is complicated.
+  First call of foo we should check if the caller is a single var, then copy any
+  flow items with the new variable name.
+  Second call will be a different specialization because own vs keep.
+  Third call though will normally reuse, but shouldn't.
+  To avoid this, this specialization needs to be marked as having copied flowitems
+  on an arg, and then checking in the 3rd call if there are compatible flow items.
+  This is a new construct, because typechecking a2 though does not result in any new
+  freevar flow types, since it is entirely local.
+
 - a tuple-like feature, in particular for the "temp vector with 2 elements" use case.
   It is pretty easy to declare a new struct, but it feel overdone sometimes.
   * we could simply declare a struct pair<A,B> in the modules and be done with it, but
