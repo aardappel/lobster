@@ -1089,12 +1089,12 @@ will never get there. <code>assert</code> also changes the type of value
 <code>b</code> from nillable to non-nillable for the current scope, so
 you can use it in contexts that require a non-nil value.</p>
 <h3 id="conditional-declaration">Conditional declaration</h3>
-<p>All control structures that start with a condition (<code>if</code>,
-<code>guard</code>, <code>while</code> and <code>assert</code>) may have
-<code>let</code> or <code>var</code> declarations inside of them. The
-variables will be assigned, then tested, and are only available inside
-the scope of the construct. As before, the type of the variable will
-always be non-nil.</p>
+<p>Some control structures that start with a condition (<code>if</code>,
+<code>guard</code> and <code>assert</code>) may have <code>let</code> or
+<code>var</code> declarations inside of them. The variables will be
+assigned, then tested, and are only available inside the scope of the
+construct. As before, the type of the variable will always be
+non-nil.</p>
 <pre><code>if let a = maybe_nil():
     // Here a is never nil.
 // Here a is not in scope.</code></pre>

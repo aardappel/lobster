@@ -1137,10 +1137,13 @@ struct Parser {
             case T_WHILE: {
                 lex.Next();
                 Line line = lex;
-                st.BlockScopeStart();  // Just in case condition has a define.
-                auto cond = ParseExpCond(list);
+                //st.BlockScopeStart();  // Just in case condition has a define.
+                // TODO: This could call ParseExpCond(list) which supports "while let", but that gives the impression the initializer will be
+                // evaluated in a loop, and it will only be done once. So for now, disable. To support, we'd need to move while to be
+                // Made out of two blocks, an outer which can hold all these defines, and a body.
+                auto cond = ParseExp(true);
                 auto w = new While(line, cond, ParseBlock());
-                st.BlockScopeCleanup();
+                //st.BlockScopeCleanup();
                 list->Add(w);
                 break;
             }

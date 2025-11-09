@@ -484,9 +484,6 @@ run_test("misc"):
         guard let d = maybe():
             assert d == nil
         assert d == "foo"
-        while let e = maybe():
-            assert e == "foo"
-            break
         // We can chain them!
         if let f = maybe() and let g = maybe():
             assert f + g == "foofoo"
