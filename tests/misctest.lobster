@@ -487,6 +487,9 @@ run_test("misc"):
         while let e = maybe():
             assert e == "foo"
             break
+        // We can chain them!
+        if let f = maybe() and let g = maybe():
+            assert f + g == "foofoo"
 
     do():
         // Parse >> correctly.

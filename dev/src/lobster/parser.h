@@ -477,7 +477,7 @@ struct Parser {
                 Error("can only declare a single variable in condition");
         }
         if (IsNext(T_ASSIGN)) {
-            def->child = ParseMultiRet(ParseOpExp());
+            def->child = iscond ? ParseOpExp(5 /* no and/or */) : ParseMultiRet(ParseOpExp());
         } else {
             if (iscond)
                 Error("variable definition in condition must have initializer");
@@ -1197,11 +1197,20 @@ struct Parser {
             if (!list)
                 Error("declaration inside condition only allowed as statement");
             DS<bool> ds(call_noparens, true);
-            auto def = ParseDefine(false, true, false);
-            list->Add(def);
-            // TODO: this reads the variable after it has been set. Unless codegen recognizes
-            // this case, it is slower than simply having the define leave a value on the stack.
-            return new IdentRef(lex, def->tsids[0].sid);
+            Node *andexp = nullptr;
+            for (;;) {
+                auto def = ParseDefine(false, true, false);
+                list->Add(def);
+                // TODO: this reads the variable after it has been set. Unless codegen recognizes
+                // this case, it is slower than simply having the define leave a value on the stack.
+                auto idexp = new IdentRef(lex, def->tsids[0].sid);
+                andexp = andexp ? (Node *)new And(lex, andexp, idexp) : (Node *)idexp;
+                if (lex.token != T_AND) break;
+                lex.Next();
+                if (lex.token != T_CONST && lex.token != T_VAR)
+                    Error("expected ", Q("let"), " or ", Q("var"), " after ", Q("and"));
+            }
+            return andexp;
         } else {
             return ParseExp(true);
         }

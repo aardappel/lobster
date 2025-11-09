@@ -4,16 +4,6 @@
 - It seems to allow function overloads to be declared in different branches of an if and still work together?
   That should probably be disallowed.
 
-- Make the optimizer replace constant variables by the value, esp nice for int2_0 etc.
-  This is really causing an insane amount of free variable propagation right now.
-
-- "if let" could allow chaining with "and": if let x = foo() and let y = bar(x):
-  Note, using `,` instead `and` like Swift does would allow the if let RHS itself to still contain `and`.
-  Also, since we are not likely going to support `or` or other operators, this is more of an
-  indication that it is a special purpose feature?
-  Then again, if an `and` is happening, I'd rather read that directly than having to spot a `,`.
-  And you can still use `and` in the RHS using ().
-
 - We could add further syntactic sugar to the disciminated union use case.
   E.g.
   union Foo:

@@ -42,7 +42,7 @@ conventions where possible, but has a lot of unique syntax too.</p>
 delimited by <code>/*</code> and <code>*/</code> or single line comments
 starting with <code>//</code></p></li>
 <li><p>Operator tokens are
-<code>( ) [ ] { } : , &amp; | + ++ += - -- -= * *= / /= % %= ==     != &lt; &gt; &lt;= &gt;= &lt;- = ? . -&gt; ^ &lt;&lt; &gt;&gt;</code></p></li>
+<code>( ) [ ] { } : , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = ? . -&gt; ^ &lt;&lt; &gt;&gt;</code></p></li>
 <li><p>Strings delimited by <code>"</code> and character constants with
 <code>'</code> using escape codes <code>\n \t \r \" \' \ \x</code>
 (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with
@@ -58,7 +58,7 @@ constant (e.g. <code>123</code>) or hex digits with a leading
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
 <li><p>Keywords:
-<code>nil return class struct import int float string any void     def fn is from program private resource enum enum_flags typeof     var let pakfile switch case default namespace not and or attribute     if for while super constructor guard abstract member member_frame     static static_frame attribute operator</code></p></li>
+<code>nil return class struct import int float string any void def fn is from program private resource enum enum_flags typeof var let pakfile switch case default namespace not and or attribute if for while super constructor guard abstract member member_frame static static_frame attribute operator</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an
 incomplete expression (such as <code>+</code> or <code>,</code>) and an
 actual token otherwise (used to separate lists of expressions inside a
@@ -1091,10 +1091,10 @@ you can use it in contexts that require a non-nil value.</p>
 <h3 id="conditional-declaration">Conditional declaration</h3>
 <p>All control structures that start with a condition (<code>if</code>,
 <code>guard</code>, <code>while</code> and <code>assert</code>) may have
-a single variable <code>let</code> or <code>var</code> declaration
-inside of them. The variable will then be assigned, then tested, and is
-only available inside the scope of the construct. As before, the type of
-the variable will always be non-nil.</p>
+<code>let</code> or <code>var</code> declarations inside of them. The
+variables will be assigned, then tested, and are only available inside
+the scope of the construct. As before, the type of the variable will
+always be non-nil.</p>
 <pre><code>if let a = maybe_nil():
     // Here a is never nil.
 // Here a is not in scope.</code></pre>
@@ -1103,6 +1103,10 @@ the variable will always be non-nil.</p>
 if a:
     // Here a is never nil.
 // Here a is still in scope!</code></pre>
+<p>To do this with multiple variables, just use <code>and</code>:</p>
+<pre><code>if let a = maybe_nil() and let b = also_maybe_nil():
+    // Here a and b are never nil.
+// Here a and b are not in scope.</code></pre>
 <h2 id="modules-and-name-spaces">Modules and Name Spaces</h2>
 <p>A module is simply a single <code>.lobster</code> file, that can be
 imported into another using the <code>import</code> keyword. You can

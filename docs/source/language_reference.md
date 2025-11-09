@@ -1314,8 +1314,8 @@ current scope, so you can use it in contexts that require a non-nil value.
 ### Conditional declaration
 
 All control structures that start with a condition (`if`, `guard`, `while` and `assert`)
-may have a single variable `let` or `var` declaration inside of them. The variable will
-then be assigned, then tested, and is only available inside the scope of the construct.
+may have `let` or `var` declarations inside of them. The variables will
+be assigned, then tested, and are only available inside the scope of the construct.
 As before, the type of the variable will always be non-nil.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1333,6 +1333,13 @@ if a:
 // Here a is still in scope!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+To do this with multiple variables, just use `and`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if let a = maybe_nil() and let b = also_maybe_nil():
+    // Here a and b are never nil.
+// Here a and b are not in scope.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Modules and Name Spaces
 ----------------------
