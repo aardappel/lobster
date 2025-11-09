@@ -102,6 +102,7 @@ struct SpecIdent {
     SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
     bool used_as_freevar = false;   // determined in codegen.
     bool withtype = false;
+    Node *constprop = nullptr;      // We are going to constant propagate this var, which avoids it being a freevar, and the optimizer will replace it.
 
     SpecIdent(Ident *_id, TypeRef _type, int idx, bool withtype)
         : id(_id), type(_type), idx(idx), withtype(withtype) {}

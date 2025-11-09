@@ -33,6 +33,9 @@ struct Node {
     virtual bool IsConstInit() const {
         return false;
     }
+    virtual bool IsConstProp(TypeRef) const {
+        return false;
+    }
     // Does control flow continue beyond this node?
     virtual bool Terminal(TypeChecker &) const { return false; }
     // Node will have this type regardless of type-checking context.
@@ -329,6 +332,7 @@ struct IdentRef : Node {
     }
     SHARED_SIGNATURE(IdentRef, TName(T_IDENT), false)
     SIMPLEMETHOD
+    OPTMETHOD
 };
 
 struct FreeVarRef : Node {
@@ -347,6 +351,7 @@ struct IntConstant : Node {
     EnumVal *from;
     IntConstant(const Line &ln, int64_t i) : Node(ln), integer(i), from(nullptr) {}
     bool IsConstInit() const { return true; }
+    bool IsConstProp(TypeRef) const { return true; }
     TypeRef CFType() { return from ? &from->e->thistype : type_int; }
     void Dump(string &sd) const { if (from) sd += from->name; else append(sd, integer); }
     bool EqAttr(const Node *o) const {
@@ -360,6 +365,7 @@ struct FloatConstant : Node {
     double flt;
     FloatConstant(const Line &ln, double f) : Node(ln), flt(f) {}
     bool IsConstInit() const { return true; }
+    bool IsConstProp(TypeRef) const { return true; }
     TypeRef CFType() { return type_float; }
     void Dump(string &sd) const { sd += to_string_float(flt); }
     bool EqAttr(const Node *o) const {
@@ -469,6 +475,15 @@ struct ObjectConstructor : List {
     bool IsConstInit() const {
         for (auto n : children) {
             if (!n->IsConstInit()) return false;
+        }
+        return true;
+    }
+    bool IsConstProp(TypeRef resolved) const {
+        // Use resolved instead of giventype.
+        if (resolved->t != V_STRUCT_S) return false;
+        if (children.size() != resolved->udt->sfields.size()) return false;
+        for (auto n : children) {
+            if (!n->IsConstProp(n->exptype)) return false;
         }
         return true;
     }

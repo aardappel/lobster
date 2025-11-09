@@ -116,6 +116,14 @@ Node *FloatConstant::Optimize(Optimizer &) {
     return this;
 }
 
+Node *IdentRef::Optimize(Optimizer &) {
+    if (!sid->constprop) return this;
+    auto con = sid->constprop->Clone(false);
+    con->line = line;
+    delete this;
+    return con;
+}
+
 Node *Call::Optimize(Optimizer &opt) {
     Node::Optimize(opt);
     assert(sf->numcallers > 0);

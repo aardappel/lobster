@@ -301,14 +301,16 @@ struct CodeGen  {
                         // We only set this here, because any inlining of anonymous functions in
                         // the optimizers is likely to reduce the amount of vars for which this is
                         // true a great deal.
-                        for (auto &fv : sf->freevars) fv.sid->used_as_freevar = true;
+                        for (auto &fv : sf->freevars) {
+                            fv.sid->used_as_freevar = true;
+                        }
                     }
                 }
             }
         }
         int sidx = 0;
         for (auto sid : st.specidents) {
-            if (!sid->type.Null()) {  // Null ones are in unused functions.
+            if (!sid->type.Null() && !sid->constprop) {  // Null ones are in unused functions.
                 auto tti = GetTypeTableOffset(sid->type);
                 assert(!IsStruct(sid->type->t) || sid->type->udt->numslots >= 0);
                 sid->sidx = sidx;
@@ -440,6 +442,9 @@ struct CodeGen  {
         auto emitvars = [&](const vector<Arg> &v, vector<int> &f_ad) {
             f_ad.clear();
             for (auto &arg : v) {
+                if (arg.sid->constprop) {
+                    continue;
+                }
                 auto n = ValWidth(arg.sid->type);
                 for (int i = 0; i < n; i++) {
                     auto varidx = arg.sid->Idx() + i;
@@ -1855,6 +1860,9 @@ void AssignList::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Define::Generate(CodeGen &cg, size_t retval) const {
+    if (tsids.size() == 1 && tsids[0].sid->constprop) {
+        return;
+    }
     if (Is<DefaultVal>(child)) {
         return;  // Pre-decl. 
     }

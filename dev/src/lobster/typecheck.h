@@ -2179,6 +2179,9 @@ struct TypeChecker {
             }
             return;
         }
+        // These will be removed by the optimizer. No need to count them as free variables either.
+        if (sid.constprop)
+            return;
         // If this is a free variable, record it in all parents up to the definition point.
         // FIXME: this is technically not the same as a "free variable" in the literature,
         // since HOFs get marked with freevars of their functionvalue this way.
@@ -3037,6 +3040,13 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
         }
         LOG_DEBUG("var: ", sid->id->name, ":", TypeName(var.type));
     }
+    if (tsids.size() == 1) {
+        auto &sid = *tsids[0].sid;
+        if (sid.id->constant && child->IsConstProp(sid.type)) {
+            // We will have the optimizer remove this var, and not use it as a freevar.
+            sid.constprop = child;
+        }
+    }
     exptype = type_void;
     lt = LT_ANY;
     return this;
@@ -3292,7 +3302,7 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_b
     FlowItem fi(*this, exptype);
     assert(fi.IsValid());
     exptype = tc.UseFlow(fi);
-    lt = tc.PushBorrow(this);
+    lt = sid->constprop ? LT_ANY : tc.PushBorrow(this);
     return this;
 }
 
@@ -4119,7 +4129,7 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
         TypeRef elemtype = exptype->udt->sfields[i].type;
         tc.SubType(c, elemtype, tc.ArgName(i), *this);
     }
-    lt = LT_KEEP;
+    lt = LT_KEEP;  // Or LT_ANY if this is a numeric struct?
     return this;
 }
 
