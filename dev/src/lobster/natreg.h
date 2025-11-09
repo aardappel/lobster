@@ -150,6 +150,8 @@ struct Type {
         return IsRuntimeConcrete(t) || (Wrapped() && Element()->IsConcrete());
     }
 
+    bool FlowSensitive() const;
+
     size_t NumValues() const {
         if (t == V_VOID) return 0;
         if (t == V_TUPLE) return tup->size();

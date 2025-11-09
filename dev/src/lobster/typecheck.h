@@ -2169,6 +2169,16 @@ struct TypeChecker {
     }
 
     void CheckFreeVariable(SpecIdent &sid) {
+        // We mostly don't track variables from top level scope as freevars, since they
+        // are the same for everyone, unless the type could be changed by flow typing.
+        // This check typically culls >90% of free variables.
+        if (sid.sf_def->parent->scopelevel == 1 && !sid.type->FlowSensitive()) {
+            if (scopes.size() > 1) {
+                // Set this already for codegen, since it won't show up in freevars.
+                sid.used_as_freevar = true;
+            }
+            return;
+        }
         // If this is a free variable, record it in all parents up to the definition point.
         // FIXME: this is technically not the same as a "free variable" in the literature,
         // since HOFs get marked with freevars of their functionvalue this way.

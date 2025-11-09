@@ -873,6 +873,26 @@ bool Type::Equal(const Type &o, bool allow_unresolved) const {
     }
 }
 
+// Can this type be upgraded to a different type by flow?
+bool Type::FlowSensitive() const {
+    switch (t) {
+    case V_NIL:
+        return true;
+    case V_VECTOR:
+        return sub->FlowSensitive();
+    case V_CLASS:
+        return udt->g.has_subclasses;
+        // We can't be sure:
+    case V_VAR:  
+    case V_TYPEVAR:
+    case V_UUDT:
+    case V_TUPLE:
+        return true;
+    default:
+        return false;
+    }
+}
+
 SubFunction::~SubFunction() { if (sbody) delete sbody; }
 
 Field::~Field() { delete gdefaultval; }
