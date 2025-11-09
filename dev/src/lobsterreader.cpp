@@ -55,7 +55,7 @@ struct ValueParser : Deserializer {
                 if (NumElems() == numelems) {
                     ParseFactor(TYPE_ELEM_ANY, false);
                 } else {
-                    auto eti = ti.t == V_VECTOR ? ti.subt : ti.GetElemOrParent(NumElems());
+                    auto eti = ti.t == RTT_VECTOR ? ti.subt : ti.GetElemOrParent(NumElems());
                     ParseFactor(eti, push);
                 }
                 bool haslf = lex.token == T_LINEFEED;
@@ -72,15 +72,15 @@ struct ValueParser : Deserializer {
                     lex.Error("no default value exists for missing struct elements");
             }
         }
-        if (ti.t == V_CLASS) {
+        if (ti.t == RTT_CLASS) {
             auto len = NumElems();
             auto vec = vm.NewObject(len, typeoff);
             if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
             PopVN(len);
             PushV(vec, true);
-        } else if (ti.t == V_VECTOR) {
+        } else if (ti.t == RTT_VECTOR) {
             auto &sti = vm.GetTypeInfo(ti.subt);
-            auto width = IsStruct(sti.t) ? sti.len : 1;
+            auto width = RTIsStruct(sti.t) ? sti.len : 1;
             auto len = NumElems();
             auto n = len / width;
             auto vec = vm.NewVec(n, n, typeoff);
@@ -88,11 +88,11 @@ struct ValueParser : Deserializer {
             PopVN(len);
             PushV(vec, true);
         }
-        // else if ti.t == V_STRUCT_* then.. do nothing!
+        // else if ti.t == RT_STRUCT_* then.. do nothing!
     }
 
-    void ExpectType(ValueType given, ValueType needed) {
-        if (given != needed && needed != V_ANY) {
+    void ExpectType(RTType given, RTType needed) {
+        if (given != needed && needed != RTT_INVALID) {
             lex.Error("type " +
                       BaseTypeName(needed) +
                       " required, " +
@@ -103,27 +103,27 @@ struct ValueParser : Deserializer {
 
     void ParseFactor(type_elem_t typeoff, bool push) {
         auto ti = &vm.GetTypeInfo(typeoff);
-        if (ti->t == V_NIL && lex.token != T_NIL) {
+        if (ti->t == RTT_NIL && lex.token != T_NIL) {
             ti = &vm.GetTypeInfo(typeoff = ti->subt);
         }
         auto vt = ti->t;
         switch (lex.token) {
             case T_INT: {
-                ExpectType(V_INT, vt);
+                ExpectType(RTT_INT, vt);
                 auto i = lex.ival;
                 lex.Next();
                 if (push) PushV(i);
                 break;
             }
             case T_FLOAT: {
-                ExpectType(V_FLOAT, vt);
+                ExpectType(RTT_FLOAT, vt);
                 auto f = lex.fval;
                 lex.Next();
                 if (push) PushV(f);
                 break;
             }
             case T_STR: {
-                ExpectType(V_STRING, vt);
+                ExpectType(RTT_STRING, vt);
                 string s = std::move(lex.sval);
                 lex.Next();
                 if (push) {
@@ -133,7 +133,7 @@ struct ValueParser : Deserializer {
                 break;
             }
             case T_NIL: {
-                ExpectType(V_NIL, vt);
+                ExpectType(RTT_NIL, vt);
                 lex.Next();
                 if (push) PushV(NilVal());
                 break;
@@ -151,7 +151,7 @@ struct ValueParser : Deserializer {
                 break;
             }
             case T_LEFTBRACKET: {
-                ExpectType(V_VECTOR, vt);
+                ExpectType(RTT_VECTOR, vt);
                 lex.Next();
                 ParseElems(T_RIGHTBRACKET, typeoff, -1, push);
                 break;
@@ -167,13 +167,13 @@ struct ValueParser : Deserializer {
                     sname += lex.sattr;
                     lex.Next();
                 }
-                if (vt == V_INT && ti->enumidx >= 0) {
+                if (vt == RTT_INT && ti->enumidx >= 0) {
                     auto opt = vm.LookupEnum(sname, ti->enumidx);
                     if (!opt) lex.Error("unknown enum value " + sname);
                     if (push) PushV(*opt);
                     break;
                 }
-                if (!IsUDT(vt) && vt != V_ANY)
+                if (!RTIsUDT(vt) && vt != RTT_INVALID)
                     lex.Error("class/struct type required, " + BaseTypeName(vt) + " given");
                 Expect(T_LEFTCURLY);
                 auto name = vm.StructName(*ti);
@@ -220,8 +220,8 @@ struct FlexBufferParser : Deserializer {
         THROW_OR_ABORT(cat("flexbuffers_binary_to_value: ", s));
     }
 
-    void ExpectType(ValueType given, ValueType needed, string_view parent_field_name) {
-        if (given != needed && needed != V_ANY) {
+    void ExpectType(RTType given, RTType needed, string_view parent_field_name) {
+        if (given != needed && needed != RTT_INVALID) {
             Error(cat(parent_field_name, ": type ", BaseTypeName(needed), " required, ",
                       BaseTypeName(given),
                                " given"));
@@ -231,47 +231,47 @@ struct FlexBufferParser : Deserializer {
     void ParseFactor(flexbuffers::Reference r, type_elem_t typeoff, string_view parent_field_name) {
         auto ti = &vm.GetTypeInfo(typeoff);
         auto ft = r.GetType();
-        if (ti->t == V_NIL && ft != flexbuffers::FBT_NULL) {
+        if (ti->t == RTT_NIL && ft != flexbuffers::FBT_NULL) {
             ti = &vm.GetTypeInfo(typeoff = ti->subt);
         }
         auto vt = ti->t;
         switch (ft) {
             case flexbuffers::FBT_INT:
             case flexbuffers::FBT_BOOL: {
-                if (vt == V_FLOAT) {
+                if (vt == RTT_FLOAT) {
                     PushV((double)r.AsInt64());
                 } else {
-                    ExpectType(V_INT, vt, parent_field_name);
+                    ExpectType(RTT_INT, vt, parent_field_name);
                     PushV(r.AsInt64());
                 }
                 break;
             }
             case flexbuffers::FBT_FLOAT: {
-                ExpectType(V_FLOAT, vt, parent_field_name);
+                ExpectType(RTT_FLOAT, vt, parent_field_name);
                 PushV(r.AsDouble());
                 break;
             }
             case flexbuffers::FBT_STRING: {
-                ExpectType(V_STRING, vt, parent_field_name);
+                ExpectType(RTT_STRING, vt, parent_field_name);
                 auto s = r.AsString();
                 auto str = vm.NewString(string_view(s.c_str(), s.size()));
                 PushV(str, true);
                 break;
             }
             case flexbuffers::FBT_NULL: {
-                ExpectType(V_NIL, vt, parent_field_name);
+                ExpectType(RTT_NIL, vt, parent_field_name);
                 PushV(NilVal());
                 break;
             }
             case flexbuffers::FBT_VECTOR: {
-                ExpectType(V_VECTOR, vt, parent_field_name);
+                ExpectType(RTT_VECTOR, vt, parent_field_name);
                 auto v = r.AsVector();
                 auto stack_start = stack.size();
                 for (size_t i = 0; i < v.size(); i++) {
                     ParseFactor(v[i], ti->subt, parent_field_name);
                 }
                 auto &sti = vm.GetTypeInfo(ti->subt);
-                auto width = IsStruct(sti.t) ? sti.len : 1;
+                auto width = RTIsStruct(sti.t) ? sti.len : 1;
                 auto len = iint(stack.size() - stack_start);
                 auto n = len / width;
                 auto vec = vm.NewVec(n, n, typeoff);
@@ -281,7 +281,7 @@ struct FlexBufferParser : Deserializer {
                 break;
             }
             case flexbuffers::FBT_MAP: {
-                if (!IsUDT(vt) && vt != V_ANY)
+                if (!RTIsUDT(vt) && vt != RTT_INVALID)
                     Error(cat(parent_field_name, ": class/struct type required, ", BaseTypeName(vt),
                               " given"));
                 auto m = r.AsMap();
@@ -311,14 +311,14 @@ struct FlexBufferParser : Deserializer {
                         ParseFactor(e, eti, fname);
                     }
                 }
-                if (vt == V_CLASS) {
+                if (vt == RTT_CLASS) {
                     auto len = NumElems();
                     auto vec = vm.NewObject(len, typeoff);
                     if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
                     PopVN(len);
                     PushV(vec, true);
                 }
-                // else if vt == V_STRUCT_* then.. do nothing!
+                // else if vt == RT_STRUCT_* then.. do nothing!
                 break;
             }
             default:
@@ -404,7 +404,7 @@ nfr("flexbuffers_value_to_binary", "val,max_nesting,cycle_detection", "AI?B?", "
         auto mn = maxnest.ival();
         if (mn > 0) fbc.max_depth = mn;
         fbc.cycle_detect = cycle_detect.True();
-        val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : V_NIL, {}, (type_elem_t)0);
+        val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL, {}, (type_elem_t)0);
         fbc.builder.Finish();
         if (!fbc.cycle_hit.empty())
             vm.BuiltinError("flexbuffers_value_to_binary: data structure contains a cycle: " +
@@ -480,7 +480,7 @@ nfr("lobster_value_to_binary", "val", "A", "S",
     "does not provide protection against cycles, use flexbuffers if that is a concern. ",
     [](StackPtr &, VM &vm, Value val) {
         vector<uint8_t> buf;
-        val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : V_NIL);
+        val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL);
         // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?
         auto s = vm.NewString(
             string_view((const char *)buf.data(), buf.size()));

@@ -331,7 +331,7 @@ nfr("binary_search_first_field_string", "xs,key", "A]*S", "II",
     "object version where key is the first field (must be string, runtime error if it is not)",
     [](StackPtr &sp, VM &vm, Value l, Value key) {
         auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
-        if (et.t != V_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != V_STRING)
+        if (et.t != RTT_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != RTT_STRING)
             vm.BuiltinError(
                 "binary_search_first_field_string: elements not objects with first string field");
         auto r = BinarySearch(sp, l, key, FirstStringCompare);
@@ -342,7 +342,7 @@ nfr("binary_search_first_field_object", "xs,key", "A]*A", "II",
     "object version where key is the first field (must be object, runtime error if it is not)",
     [](StackPtr &sp, VM &vm, Value l, Value key) {
         auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
-        if (et.t != V_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != V_CLASS)
+        if (et.t != RTT_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != RTT_CLASS)
             vm.BuiltinError(
                 "binary_search_first_field_object: elements not objects with first object field");
         auto r = BinarySearch(sp, l, key, FirstObjectCompare);
@@ -1339,7 +1339,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
 nfr("hash", "x", "I", "I",
     "hashes an int value into a positive int; may be the identity function",
     [](StackPtr &, VM &vm, Value a) {
-        auto h = positive_bits(a.Hash(vm, V_INT));
+        auto h = positive_bits(a.Hash(vm, RTT_INT));
         return Value(h);
     });
 nfr("hash", "x", "A", "I",
@@ -1351,26 +1351,26 @@ nfr("hash", "x", "A", "I",
 nfr("hash", "x", "L", "I",
     "hashes a function value into a positive int",
     [](StackPtr &, VM &vm, Value a) {
-        auto h = positive_bits(a.Hash(vm, V_FUNCTION));
+        auto h = positive_bits(a.Hash(vm, RTT_FUNCTION));
         return Value(h);
     });
 nfr("hash", "x", "F", "I",
     "hashes a float value into a positive int",
     [](StackPtr &, VM &vm, Value a) {
-        auto h = positive_bits(a.Hash(vm, V_FLOAT));
+        auto h = positive_bits(a.Hash(vm, RTT_FLOAT));
         return Value(h);
     });
 nfr("hash", "v", "I}", "I",
     "hashes a int vector into a positive int",
     [](StackPtr &sp, VM &vm) {
         auto a = DangleVec<iint>(sp);
-        Push(sp, positive_bits(a.Hash(vm, V_INT)));
+        Push(sp, positive_bits(a.Hash(vm, RTT_INT)));
     });
 nfr("hash", "v", "F}", "I",
     "hashes a float vector into a positive int",
     [](StackPtr &sp, VM &vm) {
         auto a = DangleVec<double>(sp);
-        Push(sp, positive_bits(a.Hash(vm, V_FLOAT)));
+        Push(sp, positive_bits(a.Hash(vm, RTT_FLOAT)));
     });
 
 nfr("call_function_value", "x", "L", "",
@@ -1413,7 +1413,7 @@ nfr("type_field_count", "obj", "A", "I",
     [](StackPtr &sp, VM &vm) {
         auto a = Pop(sp);
         auto &ti = a.ref()->ti(vm);
-        Push(sp, IsUDT(ti.t) ? ti.len : 0);
+        Push(sp, RTIsUDT(ti.t) ? ti.len : 0);
     });
 
 nfr("type_field_string", "obj,idx", "AI", "S",
@@ -1423,7 +1423,7 @@ nfr("type_field_string", "obj,idx", "AI", "S",
         auto a = Pop(sp);
         auto &ti = a.ref()->ti(vm);
         string sd;
-        if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
+        if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
             vm.GetTypeInfo(ti.elemtypes[i].type).Print(vm, sd, nullptr);
         }
         Push(sp, vm.NewString(sd));
@@ -1436,7 +1436,7 @@ nfr("type_field_name", "obj,idx", "AI", "S",
         auto a = Pop(sp);
         auto &ti = a.ref()->ti(vm);
         string sd;
-        if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
+        if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
             sd = vm.LookupFieldByOffset(ti.structidx, i);
         }
         Push(sp, vm.NewString(sd));
@@ -1448,7 +1448,7 @@ nfr("type_field_value", "obj,idx", "AI", "S",
         auto i = Pop(sp).ival();
         auto a = Pop(sp);
         auto &ti = a.ref()->ti(vm);
-        if (IsUDT(ti.t) && i >= 0 && i < ti.len) {
+        if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
             auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
             Push(sp, vm.ToString(a.oval()->At(i), sti));
         } else {
@@ -1463,7 +1463,7 @@ nfr("type_enum_value_name", "enum_type_id,idx", "TI", "S",
         auto id = Pop(sp).ival();
         auto &ti = vm.GetTypeInfo((type_elem_t)id);
         string sd;
-        if (ti.t == V_INT && ti.enumidx >= 0) {
+        if (ti.t == RTT_INT && ti.enumidx >= 0) {
             vm.EnumName(sd, i, ti.enumidx);
         }
         Push(sp, vm.NewString(sd));

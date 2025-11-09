@@ -80,7 +80,7 @@ struct Node {
     // Used by type-checker to and optimizer.
     // If it returns true, sets val to a value that gives the correct True().
     // Also sets correct scalar values.
-    virtual ValueType ConstVal(TypeChecker *, Value &) const = 0;
+    virtual ValueType ConstVal(TypeChecker *, VTValue &) const = 0;
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound = {}) = 0;
     virtual Node *Optimize(Optimizer &opt);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
@@ -131,7 +131,7 @@ template<typename T> T *DoClone(T *dest, T *src, bool notype) {
     bool SideEffect() const { return SE; } \
     void Generate(CodeGen &cg, size_t retval) const; \
     Node *Clone(bool notype) { return DoClone<NAME>(new NAME(), this, notype); } \
-    ValueType ConstVal(TypeChecker *tc, Value &val) const;
+    ValueType ConstVal(TypeChecker *tc, VTValue &val) const;
 #define SHARED_SIGNATURE(NAME, STR, SE) \
     Node *TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound); \
     SHARED_SIGNATURE_NO_TT(NAME, STR, SE)

@@ -429,10 +429,10 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
             s += cat(doc_tags[Tags::ParamName][0], argname, doc_tags[Tags::ParamName][1]);
             s += doc_tags[Tags::Font][0];
             s += doc_tags[Tags::ParamType][0];
-            if (a.type->t != V_ANY) {
+            if (a.vttype->t != V_ANY) {
                 s += a.flags & NF_BOOL
                     ? "bool"
-                    : escape(TypeName(a.type->ElementIfNil()));
+                    : escape(TypeName(a.vttype->ElementIfNil()));
             } else {
                 s += "any";
             }
@@ -440,7 +440,7 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
             s += doc_tags[Tags::Font][1];
             if (a.optional && (int)i > last_not_optional) {
                 s += doc_tags[Tags::ParamDefault][0];
-                switch (a.type->t) {
+                switch (a.vttype->t) {
                     case V_INT:
                         if (a.flags & NF_BOOL)
                             append(s, a.default_val ? "true" : "false");
@@ -463,7 +463,7 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
             for (auto [i, a] : enumerate(nf->retvals)) {
                 s += doc_tags[Tags::RetTypeWrap][0];
                 s += doc_tags[Tags::Font][0];
-                s += escape(TypeName(a.type));
+                s += escape(TypeName(a.vttype));
                 s += doc_tags[Tags::Font][1];
                 s += doc_tags[Tags::RetTypeWrap][1];
                 if (i < nf->retvals.size() - 1) s += ", ";

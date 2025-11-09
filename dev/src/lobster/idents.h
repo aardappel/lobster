@@ -1461,14 +1461,14 @@ inline string Signature(const NativeFun &nf) {
     string r = nf.name;
     r += "(";
     for (auto [i, arg] : enumerate(nf.args)) {
-        FormatArg(r, arg.name, i, arg.type);
+        FormatArg(r, arg.name, i, arg.vttype);
     }
     r += ")";
     if (nf.retvals.size() > 0) {
         r += " -> ";
         for (auto [i, retval] : enumerate(nf.retvals)) {
             if (i) r += ", ";
-            r += TypeName(retval.type);
+            r += TypeName(retval.vttype);
         }
     }
     return r;
@@ -1583,7 +1583,7 @@ inline string TypeName(UnTypeRef type, bool tuple_brackets) {
         case V_RESOURCE:
             return type->rt ? cat("resource<", type->rt->name, ">") : "resource";
         default:
-            return string(BaseTypeName(type->t));
+            return string(VTBaseTypeName(type->t));
     }
 }
 

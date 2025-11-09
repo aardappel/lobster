@@ -140,12 +140,12 @@ void VM::DumpLeaks() {
         for (auto p : leaks) {
             auto ro = (RefObj *)p;
             switch(ro->ti(*this).t) {
-                case V_VALUEBUF:
+                case RTT_VALUEBUF:
                     break;
-                case V_STRING:
-                case V_RESOURCE:
-                case V_VECTOR:
-                case V_CLASS: {
+                case RTT_STRING:
+                case RTT_RESOURCE:
+                case RTT_VECTOR:
+                case RTT_CLASS: {
                     ro->CycleStr(sd);
                     sd += " = ";
                     RefToString(*this, sd, ro, leakpp);
@@ -205,19 +205,19 @@ string VM::MemoryUsage(size_t show_max) {
         auto ro = (RefObj *)p;
         auto &ti = ro->ti(*this);
         switch(ti.t) {
-            case V_VALUEBUF:
+            case RTT_VALUEBUF:
                 break;
-            case V_STRING:
+            case RTT_STRING:
                 stats[&ti].Add(((LString *)ro)->MemoryUsage());
                 break;
-            case V_RESOURCE:
+            case RTT_RESOURCE:
                 stats[((LResource *)ro)->type].Add(((LResource *)ro)->MemoryUsage(),
                                                    ((LResource *)ro)->type);
                 break;
-            case V_VECTOR:
+            case RTT_VECTOR:
                 stats[&ti].Add(((LVector *)ro)->MemoryUsage());
                 break;
-            case V_CLASS:
+            case RTT_CLASS:
                 stats[&ti].Add(((LObject *)ro)->MemoryUsage(*this));
                 break;
             default:
@@ -272,14 +272,14 @@ void VM::OnAlloc(RefObj *ro) {
 #undef new
 
 LVector *VM::NewVec(iint initial, iint max, type_elem_t tti) {
-    assert(GetTypeInfo(tti).t == V_VECTOR);
+    assert(GetTypeInfo(tti).t == RTT_VECTOR);
     auto v = new (pool.alloc_small(sizeof(LVector))) LVector(*this, initial, max, tti);
     OnAlloc(v);
     return v;
 }
 
 LObject *VM::NewObject(iint max, type_elem_t tti) {
-    assert(IsUDT(GetTypeInfo(tti).t));
+    assert(RTIsUDT(GetTypeInfo(tti).t));
     auto s = new (pool.alloc(ssizeof<LObject>() + ssizeof<Value>() * max)) LObject(tti);
     OnAlloc(s);
     return s;
@@ -348,7 +348,7 @@ void VM::DumpVar(Value *locals, int idx, int &j, int &jl, const DumperFun &dump)
     auto is_freevar = sid.used_as_freevar;
     auto name = string_view_nt(sid.name);
     auto &ti = GetVarTypeInfo(idx);
-    auto width = IsStruct(ti.t) ? ti.len : 1;
+    auto width = RTIsStruct(ti.t) ? ti.len : 1;
     auto x = is_freevar ? &fvars[idx] : locals + jl;
     // FIXME: this is not ideal, it filters global "let" declared vars.
     // It should probably instead filter global let vars whose values are entirely
@@ -420,12 +420,12 @@ void VM::DumpStackTrace(string &sd, bool python_ordering) {
         #else
             auto debug_type = ti.t;
         #endif
-        if (debug_type == V_NIL && ti.t != V_NIL) {
+        if (debug_type == RTT_NIL && ti.t != RTT_NIL) {
             // Uninitialized.
             append(sd, ":");
             ti.Print(vm, sd, nullptr);
             append(sd, " (uninitialized)");
-        } else if (ti.t != debug_type && !IsStruct(ti.t)) {
+        } else if (ti.t != debug_type && !RTIsStruct(ti.t)) {
             // Some runtime type corruption, show the problem rather than crashing.
             append(sd, ":");
             ti.Print(vm, sd, nullptr);
@@ -433,7 +433,7 @@ void VM::DumpStackTrace(string &sd, bool python_ordering) {
         } else {
             append(sd, " = ");
             PrintPrefs minipp { 1, 20, true, -1 };
-            if (IsStruct(ti.t)) {
+            if (RTIsStruct(ti.t)) {
                 vm.StructToString(sd, minipp, ti, x);
             } else {
                 x->ToString(vm, sd, ti, minipp);
@@ -499,13 +499,13 @@ void VM::DumpStackTraceMemory(const string &err) {
         #else
             auto debug_type = ti.t;
         #endif
-        if (debug_type == V_NIL && ti.t != V_NIL) {
+        if (debug_type == RTT_NIL && ti.t != RTT_NIL) {
             // Just skip, only useful in debug.
-        } else if (ti.t != debug_type && !IsStruct(ti.t)) {
+        } else if (ti.t != debug_type && !RTIsStruct(ti.t)) {
             // Just skip, only useful in debug.
         } else {
             fbc.builder.Key(name.data(), name.size());
-            if (IsStruct(ti.t)) {
+            if (RTIsStruct(ti.t)) {
                 vm.StructToFlexBuffer(fbc, ti, x, false);
             } else {
                 x->ToFlexBuffer(fbc, ti.t, {}, (type_elem_t)0);
@@ -651,12 +651,12 @@ void VM::CallFunctionValue(Value f) {
 
 string VM::ProperTypeName(const TypeInfo &ti) {
     switch (ti.t) {
-        case V_STRUCT_R:
-        case V_STRUCT_S:
-        case V_CLASS: return string(ReverseLookupType(ti.structidx));
-        case V_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
-        case V_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
-        case V_INT: return ti.enumidx >= 0 ? string(EnumName(ti.enumidx)) : "int";
+        case RTT_STRUCT_R:
+        case RTT_STRUCT_S:
+        case RTT_CLASS: return string(ReverseLookupType(ti.structidx));
+        case RTT_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
+        case RTT_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
+        case RTT_INT: return ti.enumidx >= 0 ? string(EnumName(ti.enumidx)) : "int";
         default: return string(BaseTypeName(ti.t));
     }
 }
@@ -669,8 +669,8 @@ void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {
         for (size_t i = 0; i < nf->retvals.size(); i++) {
             #ifndef NDEBUG
             auto t = (TopPtr(sp) - nf->retvals.size() + i)->type;
-            auto u = nf->retvals[i].type->t;
-            assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && IsUDT(t)));
+            auto u = nf->retvals[i].rttype;
+            assert(t == u || u == RTT_INVALID || u == RTT_NIL || (u == RTT_VECTOR && RTIsUDT(t)));
             #endif
         }
     #else
@@ -840,7 +840,7 @@ void VM::WorkerWrite(RefObj *ref) {
     if (!tuple_space) return;
     if (!ref) Error("thread write: nil reference");
     auto &ti = ref->ti(*this);
-    if (ti.t != V_CLASS) Error("thread write: must be a class");
+    if (ti.t != RTT_CLASS) Error("thread write: must be a class");
     auto st = (LObject *)ref;
     vector<uint8_t> buf;
     st->ToLobsterBinary(*this, buf);
@@ -855,7 +855,7 @@ void VM::WorkerWrite(RefObj *ref) {
 Value VM::WorkerRead(type_elem_t tti) {
     if (!tuple_space) return NilVal();
     auto &ti = GetTypeInfo(tti);
-    if (ti.t != V_CLASS) Error("thread read: must be a class type");
+    if (ti.t != RTT_CLASS) Error("thread read: must be a class type");
     vector<uint8_t> buf;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
@@ -875,7 +875,7 @@ Value VM::WorkerCheck(type_elem_t tti) {
     if (!tuple_space) return NilVal();
     if (!!tuple_space->alive) return NilVal();
     auto &ti = GetTypeInfo(tti);
-    if (ti.t != V_CLASS) Error("thread check: must be a class type");
+    if (ti.t != RTT_CLASS) Error("thread check: must be a class type");
     vector<uint8_t> buf;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
@@ -892,7 +892,7 @@ Value VM::WorkerCheck(type_elem_t tti) {
 void VM::WorkerWake(type_elem_t tti) {
     if (!tuple_space) return;
     auto &ti = GetTypeInfo(tti);
-    if (ti.t != V_CLASS) Error("thread check: must be a class type");
+    if (ti.t != RTT_CLASS) Error("thread check: must be a class type");
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
         unique_lock<mutex> lock(tt.mtx);

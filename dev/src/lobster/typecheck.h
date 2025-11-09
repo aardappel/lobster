@@ -2085,7 +2085,7 @@ struct TypeChecker {
         }
     }
 
-    optional<Value> TypeCheckCondition(Node *&condition, Node *context, const char *name) {
+    optional<VTValue> TypeCheckCondition(Node *&condition, Node *context, const char *name) {
         TT(condition, 1, LT_BORROW);
         NoStruct(*condition, name);
         DecBorrowers(condition->lt, *context);
@@ -2093,7 +2093,7 @@ struct TypeChecker {
             Warn(*condition, "condition will always succeed with non-nil reference type ",
                 Q(TypeName(condition->exptype)));
         }
-        Value cval = NilVal();
+        VTValue cval;
         if (condition->ConstVal(this, cval) != V_VOID) return cval;
         return {};
     }
@@ -2685,13 +2685,13 @@ Node *And::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
 
 Node *IfThen::TypeCheck(TypeChecker &tc, size_t, TypeRef /*parent_bound*/) {
     auto constant = tc.TypeCheckCondition(condition, this, "if");
-    if (!constant || constant->True()) {
+    if (!constant || constant->i) {
         tc.TypeCheckBranch(true, condition, truepart, 0);
         if (truepart->Terminal(tc)) {
             // This is an if ..: return, we should leave promotions for code after the if.
             tc.CheckFlowTypeChanges(false, condition);
         }
-        if (constant && constant->True()) {
+        if (constant && constant->i) {
             // Replace if-then by just the branch.
             auto r = truepart;
             truepart = nullptr;
@@ -2734,7 +2734,7 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
             lt = tc.LifetimeUnion(truepart->children.back(), falsepart->children.back(), false);
         }
         return this;
-    } else if (constant->True()) {
+    } else if (constant->i) {
         // Ignore the else part, and delete it, since we don't want to TT it.
         tc.TypeCheckBranch(true, condition, truepart, reqret);
         auto r = truepart;
@@ -2851,9 +2851,9 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
                 tc.DecBorrowers(c->lt, *cas);
                 if (ptype->IsEnum()) {
                     assert(c->exptype->IsEnum());
-                    Value v = NilVal();
+                    VTValue v;
                     if (c->ConstVal(&tc, v) != V_VOID) {
-                        for (auto [i, ev] : enumerate(ptype->e->vals)) if (ev->val == v.ival()) {
+                        for (auto [i, ev] : enumerate(ptype->e->vals)) if (ev->val == v.i) {
                             enum_cases[i] = true;
                             break;
                         }
@@ -3363,7 +3363,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         if (nf && !ff && !fld) {
             if (i < nf->args.size() && !nf->overloads) {
                 auto &arg = nf->args[i];
-                parent_bound = tc.ActualBuiltinType(arg.type, arg.flags, type_undefined, nf, true,
+                parent_bound = tc.ActualBuiltinType(arg.vttype, arg.flags, type_undefined, nf, true,
                                                     i + 1, *this);
             }
         } else if (ff && !nf && !fld) {
@@ -3565,11 +3565,11 @@ Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
         tc.Warn(*this, "assert will always succeed with non-nil reference type ",
                 Q(TypeName(exptype)));
     }
-    Value val = NoVal();
+    VTValue val;
     auto t = child->ConstVal(&tc, val);
-    if (t != V_VOID && val.True()) {
+    if (t != V_VOID && val.i) {
         string sd;
-        val.ToStringNoVM(sd, t);
+        val.ToString(sd, t);
         tc.Warn(*this, "assert will always succeed with constant value: ", sd);
     }
     // Also make result non-nil, if it was.
@@ -3598,13 +3598,13 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                 // length() etc.
                 auto etype = children[i]->exptype;
                 auto cf = CF_NUMERIC_NIL;
-                if (arg.type->t != V_STRING) cf = ConvertFlags(cf | CF_COERCIONS);
-                if (arg.type->t != V_ANY &&
-                    (arg.type->t != V_VECTOR ||
+                if (arg.vttype->t != V_STRING) cf = ConvertFlags(cf | CF_COERCIONS);
+                if (arg.vttype->t != V_ANY &&
+                    (arg.vttype->t != V_VECTOR ||
                      etype->t != V_VECTOR ||
-                     arg.type->sub->t != V_ANY) &&
+                     arg.vttype->sub->t != V_ANY) &&
                     !tc.ConvertsTo(etype,
-                                   tc.ActualBuiltinType(arg.type, arg.flags,
+                                   tc.ActualBuiltinType(arg.vttype, arg.flags,
                                                         etype, nf, true, i + 1, *this),
                                    cf)) goto nomatch;
             }
@@ -3618,7 +3618,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     for (auto [i, arg] : enumerate(nf->args)) {
         if (i >= Arity()) {
             if (arg.optional) {
-                auto type = tc.ActualBuiltinType(arg.type, arg.flags,
+                auto type = tc.ActualBuiltinType(arg.vttype, arg.flags,
                                                  type_undefined,
                                                  nf, true, i + 1, *this);
                 switch (type->t) {
@@ -3664,7 +3664,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     vector<TypeRef> argtypes(children.size());
     for (auto [i, c] : enumerate(children)) {
         auto &arg = nf->args[i];
-        auto argtype = tc.ActualBuiltinType(arg.type, arg.flags, children[i]->exptype, nf, false, i + 1, *this);
+        auto argtype = tc.ActualBuiltinType(arg.vttype, arg.flags, children[i]->exptype, nf, false, i + 1, *this);
         // Filter out functions that are not struct aware.
         bool typed = false;
         if (arg.flags & NF_CONVERTANYTOSTRING && c->exptype->t != V_STRING) {
@@ -3682,7 +3682,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                                             CF_NONE, this);
                 }
                 tc.SubType(c,
-                           nf->args[sa].type->t == V_VECTOR && argtypes[sa]->t == V_VECTOR && argtype->t != V_VECTOR
+                           nf->args[sa].vttype->t == V_VECTOR && argtypes[sa]->t == V_VECTOR && argtype->t != V_VECTOR
                             ? argtypes[sa]->sub
                             : argtypes[sa],
                         tc.ArgName(i),
@@ -3716,7 +3716,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                 tc.Error(*this, "function does not support this struct type");
             }
         }
-        if (nf->fun.fnargs >= 0 && arg.type->t != V_STRUCT_NUM && !(arg.flags & NF_PUSHVALUEWIDTH))
+        if (nf->fun.fnargs >= 0 && arg.vttype->t != V_STRUCT_NUM && !(arg.flags & NF_PUSHVALUEWIDTH))
             tc.NoStruct(*c, nf->name);
         if (!typed) {
             tc.SubType(c, argtype, tc.ArgName(i), nf->name, cf_const);
@@ -3732,14 +3732,14 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     if (nf->retvals.size() > 1) exptype = tc.st.NewTuple(nf->retvals.size());
     for (auto [i, ret] : enumerate(nf->retvals)) {
         int sa = 0;
-        auto type = ret.type;
+        auto type = ret.vttype;
         auto rlt = ret.lt;
         switch (ret.flags) {
             case NF_SUBARG3: sa++; [[fallthrough]];
             case NF_SUBARG2: sa++; [[fallthrough]];
             case NF_SUBARG1: {
                 type = argtypes[sa];
-                auto nftype = nf->args[sa].type;
+                auto nftype = nf->args[sa].vttype;
 
                 if (nftype->t == V_TYPEID) {
                     assert(!sa);  // assumes always first.
@@ -3752,7 +3752,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                         tc.Error(*this, "argument ", sa + 1, " to ", Q(nf->name),
                                         " has to be a reference type");
                     type = tc.st.Wrap(type, V_NIL, &line);
-                } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
+                } else if (nftype->t == V_VECTOR && ret.vttype->t != V_VECTOR) {
                     if (type->t == V_VECTOR) type = type->sub;
                 } else if (nftype->t == V_FUNCTION) {
                     auto csf = type->sf;
@@ -3768,8 +3768,8 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                 break;
             }
             case NF_ANYVAR:
-                type = ret.type->t == V_VECTOR ? tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR, &line)
-                                               : tc.st.NewTypeVar();
+                type = ret.vttype->t == V_VECTOR ? tc.st.Wrap(tc.st.NewTypeVar(), V_VECTOR, &line)
+                                                 : tc.st.NewTypeVar();
                 assert(rlt == LT_KEEP);
                 break;
             default:
@@ -3939,10 +3939,10 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
         tc.Warn(*this, "testing for super class ", Q(resolvedtype->udt->name), " will not work for sub class");
     // Check for constness early, to be able to lift out side effects, which
     // makes downstream if-then optimisations easier.
-    Value cval = NilVal();
+    VTValue cval;
     auto t = ConstVal(&tc, cval);
     if (t == V_INT) {
-        auto intc = (new IntConstant(line, cval.ival()))->TypeCheck(tc, 1, {});
+        auto intc = (new IntConstant(line, cval.i))->TypeCheck(tc, 1, {});
         if (child->SideEffectRec()) {
             // must retain side effects.
             auto seq = new Seq(child->line, child, intc);
@@ -4276,8 +4276,8 @@ bool While::Terminal(TypeChecker &tc) const {
     // NOTE: if wbody is terminal, that does not entail the loop is, since
     // condition may be false on first iteration.
     // Instead, it is only terminal if this is an infinite loop.
-    Value val = NilVal();
-    return condition->ConstVal(&tc, val) != V_VOID && val.True();
+    VTValue val;
+    return condition->ConstVal(&tc, val) != V_VOID && val.i;
 }
 
 bool Break::Terminal(TypeChecker &) const {

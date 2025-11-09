@@ -16,6 +16,7 @@
 #define LOBSTER_NATREG
 
 #include "lobster/vmdata.h"
+#include "lobster/type.h"
 
 namespace lobster {
 
@@ -301,7 +302,8 @@ struct SpecIdent;
 struct NativeFun;
 
 struct Narg {
-    TypeRef type = type_undefined;
+    TypeRef vttype = type_undefined;
+    RTType rttype = RTT_NIL;
     NArgFlags flags = NF_NONE;
     string_view name;
     char default_val = 0;
@@ -313,14 +315,14 @@ struct Narg {
         flags = NF_NONE;
         lt = def;
         switch (t) {
-            case 'A': type = type_any; break;
-            case 'I': type = type_int; break;
-            case 'B': type = type_int; flags = flags | NF_BOOL; break;
-            case 'F': type = type_float; break;
-            case 'S': type = type_string; break;
-            case 'L': type = type_function_null_void; break;  // NOTE: only used by call_function_value(), and hash(), in gui.lobster
-            case 'R': type = type_resource; break;
-            case 'T': type = type_typeid; break;
+            case 'A': vttype = type_any; break;
+            case 'I': vttype = type_int; break;
+            case 'B': vttype = type_int; flags = flags | NF_BOOL; break;
+            case 'F': vttype = type_float; break;
+            case 'S': vttype = type_string; break;
+            case 'L': vttype = type_function_null_void; break;  // NOTE: only used by call_function_value(), and hash(), in gui.lobster
+            case 'R': vttype = type_resource; break;
+            case 'T': vttype = type_typeid; break;
             default: nf->Error("illegal type code");
         }
         while (*tid && !isupper(*tid)) {
@@ -337,48 +339,49 @@ struct Narg {
                 case 'k': lt = LT_KEEP; break;
                 case 'b': lt = LT_BORROW; break;
                 case ']': {
-                    auto wrapped = WrapKnown(type, V_VECTOR);
+                    auto wrapped = WrapKnown(vttype, V_VECTOR);
                     if (wrapped.Null()) nf->Error("unknown vector type");
-                    type = wrapped;
+                    vttype = wrapped;
                     break;
                 }
                 case '}':
-                    type = WrapKnown(type, V_STRUCT_NUM);
-                    if (type.Null()) nf->Error("unknown numeric struct type");
+                    vttype = WrapKnown(vttype, V_STRUCT_NUM);
+                    if (vttype.Null()) nf->Error("unknown numeric struct type");
                     break;
                 case '?':
                     optional = true;
-                    if (IsRef(type->t)) {
-                        auto wrapped = WrapKnown(type, V_NIL);
+                    if (IsRef(vttype->t)) {
+                        auto wrapped = WrapKnown(vttype, V_NIL);
                         if (wrapped.Null()) nf->Error("unknown nillable type");
-                        type = wrapped;
+                        vttype = wrapped;
                     }
                     break;
                 case ':':
-                    if (type->t == V_RESOURCE) {
+                    if (vttype->t == V_RESOURCE) {
                         auto nstart = tid;
                         while (islower(*tid)) tid++;
                         auto rname = string_view(nstart, tid - nstart);
                         auto rt = LookupResourceType(rname);
                         if (!rt) nf->Error("unknown resource type " + rname);
-                        type = &rt->thistype;
+                        vttype = &rt->thistype;
                     } else {
                         if (*tid < '/' || *tid > '9') nf->Error("int out of range");
                         char val = *tid++ - '0';
-                        if (type->ElementIfNil()->Numeric())
+                        if (vttype->ElementIfNil()->Numeric())
                             default_val = val;
-                        else if (type->t == V_STRUCT_NUM)
-                            type = FixedNumStruct(type->ns->t, val);
+                        else if (vttype->t == V_STRUCT_NUM)
+                            vttype = FixedNumStruct(vttype->ns->t, val);
                         else
-                            nf->Error(cat("illegal type: ", type->t));
+                            nf->Error(cat("illegal type: ", vttype->t));
                     }
                     break;
                 default:
                     nf->Error("illegal type modifier");
             }
         }
-        if (type->t == V_RESOURCE && !type->rt)
+        if (vttype->t == V_RESOURCE && !vttype->rt)
             nf->Error("all uses of type R must have :name specifier");
+        rttype = VT2RT(vttype->t);
     }
 };
 
@@ -445,7 +448,7 @@ struct NativeFun : Named {
           help(help) {
         if ((int)args.size() != f.fnargs && f.fnargs >= 0) Error("mismatching argument count");
         auto StructArgsVararg = [&](const Narg &arg) {
-            if (arg.type->t == V_STRUCT_NUM && f.fnargs >= 0)
+            if (arg.vttype->t == V_STRUCT_NUM && f.fnargs >= 0)
                 Error("struct types can only be used by vararg builtins");
             (void)arg;
         };

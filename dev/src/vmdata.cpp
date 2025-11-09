@@ -83,7 +83,7 @@ void LString::ToString(string &sd, PrintPrefs &pp) {
 LVector::LVector(VM &vm, iint _initial, iint _max, type_elem_t _tti)
     : RefObj(_tti), len(_initial), maxl(_max) {
     auto &sti = vm.GetTypeInfo(ti(vm).subt);
-    width = IsStruct(sti.t) ? sti.len : 1;
+    width = RTIsStruct(sti.t) ? sti.len : 1;
     v = maxl ? AllocSubBuf<Value>(vm, maxl * width, TYPE_ELEM_VALUEBUF) : nullptr;
 }
 
@@ -148,8 +148,8 @@ void LVector::AtVWSub(StackPtr &sp, iint i, int w, int off) const {
 
 void LVector::DestructElementRange(VM& vm, iint from, iint to) {
     auto &eti = ElemType(vm);
-    if (!IsRefNil(eti.t)) return;
-    if (eti.t == V_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
+    if (!RTIsRefNil(eti.t)) return;
+    if (eti.t == RTT_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
         // We only run this special loop for mixed ref/scalar.
         for (int j = 0; j < width; j++) {
             if ((1 << j) & eti.vtable_start_or_bitmask) {
@@ -167,8 +167,8 @@ void LVector::DestructElementRange(VM& vm, iint from, iint to) {
 
 void LVector::IncElementRange(VM &vm, iint from, iint to) {
     auto &eti = ElemType(vm);
-    if (!IsRefNil(eti.t)) return;
-    if (eti.t == V_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
+    if (!RTIsRefNil(eti.t)) return;
+    if (eti.t == RTT_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
         // We only run this special loop for mixed ref/scalar.
         for (int j = 0; j < width; j++) {
             if ((1 << j) & eti.vtable_start_or_bitmask) {
@@ -188,7 +188,7 @@ bool LVector::Equal(VM &vm, const LVector &o) const {
     // RefObj::Equal has already guaranteed the typeoff's are the same.
     if (len != o.len) return false;
     auto &eti = ElemType(vm);
-    if (IsStruct(eti.t)) {
+    if (RTIsStruct(eti.t)) {
         for (int j = 0; j < width; j++) {
             auto t = vm.GetTypeInfo(eti.elemtypes[j].type).t;
             for (iint i = 0; i < len; i++) {
@@ -240,10 +240,10 @@ LResource *VM::NewResource(const ResourceType *type, Resource *res) {
 
 void RefObj::DECDELETENOW(VM &vm) {
     switch (ti(vm).t) {
-        case V_STRING:     ((LString *)this)->DeleteSelf(vm); break;
-        case V_VECTOR:     ((LVector *)this)->DeleteSelf(vm); break;
-        case V_CLASS:      ((LObject *)this)->DeleteSelf(vm); break;
-        case V_RESOURCE:   ((LResource *)this)->DeleteSelf(vm); break;
+        case RTT_STRING:     ((LString *)this)->DeleteSelf(vm); break;
+        case RTT_VECTOR:     ((LVector *)this)->DeleteSelf(vm); break;
+        case RTT_CLASS:      ((LObject *)this)->DeleteSelf(vm); break;
+        case RTT_RESOURCE:   ((LResource *)this)->DeleteSelf(vm); break;
         default:           assert(false);
     }
 }
@@ -268,20 +268,20 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
     if (!a || !b) return false;
     if (a->tti != b->tti) return false;
     switch (a->ti(vm).t) {
-        case V_STRING:      return *((LString *)a) == *((LString *)b);
-        case V_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
-        case V_CLASS:       return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
-        case V_RESOURCE:    return false;
+        case RTT_STRING:      return *((LString *)a) == *((LString *)b);
+        case RTT_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
+        case RTT_CLASS:       return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
+        case RTT_RESOURCE:    return false;
         default:            assert(0); return false;
     }
 }
 
-bool Value::Equal(VM &vm, ValueType vtype, Value o, ValueType otype, bool structural) const {
+bool Value::Equal(VM &vm, RTType vtype, Value o, RTType otype, bool structural) const {
     if (vtype != otype) return false;
     switch (vtype) {
-        case V_INT: return ival_ == o.ival_;
-        case V_FLOAT: return fval_ == o.fval_;
-        case V_FUNCTION: return ip_ == o.ip_;
+        case RTT_INT: return ival_ == o.ival_;
+        case RTT_FLOAT: return fval_ == o.fval_;
+        case RTT_FUNCTION: return ip_ == o.ip_;
         default: return RefEqual(vm, refnil(), o.ref_, structural);
     }
 }
@@ -290,30 +290,30 @@ void RefToString(VM &vm, string &sd, const RefObj *ro, PrintPrefs &pp) {
     if (!ro) { sd += "nil"; return; }
     auto &roti = ro->ti(vm);
     switch (roti.t) {
-        case V_STRING:    ((LString *)ro)->ToString(sd, pp);          break;
-        case V_VECTOR:    ((LVector *)ro)->ToString(vm, sd, pp);      break;
-        case V_CLASS:     ((LObject *)ro)->ToString(vm, sd, pp);      break;
-        case V_RESOURCE:  ((LResource *)ro)->ToString(sd);            break;
+        case RTT_STRING:    ((LString *)ro)->ToString(sd, pp);          break;
+        case RTT_VECTOR:    ((LVector *)ro)->ToString(vm, sd, pp);      break;
+        case RTT_CLASS:     ((LObject *)ro)->ToString(vm, sd, pp);      break;
+        case RTT_RESOURCE:  ((LResource *)ro)->ToString(sd);            break;
         default:          append(sd, "(", BaseTypeName(roti.t), ")"); break;
     }
 }
 
 void Value::ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const {
-    if (ti.t == V_INT && ti.enumidx >= 0 && vm.EnumName(sd, ival(), ti.enumidx)) return;
+    if (ti.t == RTT_INT && ti.enumidx >= 0 && vm.EnumName(sd, ival(), ti.enumidx)) return;
     ToStringBase(vm, sd, ti.t, pp);
 }
 
-void Value::ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const {
-    if (IsRefNil(t)) {
+void Value::ToStringBase(VM &vm, string &sd, RTType t, PrintPrefs &pp) const {
+    if (RTIsRefNil(t)) {
         RefToString(vm, sd, ref_, pp);
     } else switch (t) {
-        case V_INT:
+        case RTT_INT:
             append(sd, ival());
             break;
-        case V_FLOAT:
+        case RTT_FLOAT:
             sd += to_string_float(fval(), (int)pp.decimals);
             break;
-        case V_FUNCTION:
+        case RTT_FUNCTION:
             append(sd, "<FUNCTION:", ival_, ">");
             break;
         default:
@@ -322,36 +322,22 @@ void Value::ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const 
     }
 }
 
-void Value::ToStringNoVM(string &sd, ValueType t) const {
-    switch (t) {
-        case V_INT:
-            append(sd, ival());
-            break;
-        case V_FLOAT:
-            sd += to_string_float(fval());
-            break;
-        default:
-            append(sd, "(", BaseTypeName(t), ")");
-            break;
-    }
-}
-
-void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, type_elem_t defval) const {
-    if (IsRefNil(t)) {
+void Value::ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, type_elem_t defval) const {
+    if (RTIsRefNil(t)) {
         if (!ref_) {
             if (key.empty()) fbc.builder.Null();
             return;
         }
         switch (t) {
-            case V_STRING:
+            case RTT_STRING:
                 if (!key.empty()) fbc.builder.Key(key.data());
                 fbc.builder.String(sval()->strv().data(), sval()->strv().size());
                 return;
-            case V_VECTOR:
+            case RTT_VECTOR:
                 if (!key.empty()) fbc.builder.Key(key.data());
                 vval()->ToFlexBuffer(fbc);
                 return;
-            case V_CLASS:
+            case RTT_CLASS:
                 if (!key.empty()) fbc.builder.Key(key.data());
                 // TODO: we could check if all values in this instance are equal to the defval, and
                 // then omit the whole object. This is complicated because we need to check against
@@ -365,7 +351,7 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
         }
     } else {
         switch (t) {
-            case V_INT: {
+            case RTT_INT: {
                 auto dv = fbc.vm.GetDefaultScalar<iint>(defval);
                 if (ival() != dv || key.empty()) {
                     if (!key.empty()) fbc.builder.Key(key.data());
@@ -373,7 +359,7 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
                 }
                 return;
             }
-            case V_FLOAT: {
+            case RTT_FLOAT: {
                 auto dv = fbc.vm.GetDefaultScalar<double>(defval);
                 if (fval() != dv || key.empty()) {
                     if (!key.empty()) fbc.builder.Key(key.data());
@@ -395,33 +381,33 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key,
     }
 }
 
-void Value::ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const {
-    if (IsRefNil(t)) {
+void Value::ToLobsterBinary(VM &vm, vector<uint8_t> &buf, RTType t) const {
+    if (RTIsRefNil(t)) {
         if (!ref_) {
             EncodeVarintZero(buf);  // Length of the types below.
             return;
         }
         switch (t) {
-            case V_STRING: {
+            case RTT_STRING: {
                 auto strv = sval()->strv();
                 EncodeVarintU(strv.size(), buf);
                 auto data = (const uint8_t *)strv.data();
                 buf.insert(buf.end(), data, data + strv.size());
                 return;
             }
-            case V_VECTOR:
+            case RTT_VECTOR:
                 vval()->ToLobsterBinary(vm, buf);
                 return;
-            case V_CLASS:
+            case RTT_CLASS:
                 oval()->ToLobsterBinary(vm, buf);
                 return;
             default:
                 break;
         }
-    } else if (t == V_INT) {
+    } else if (t == RTT_INT) {
         EncodeVarintS(ival_, buf);
         return;
-    } else if (t == V_FLOAT) {
+    } else if (t == RTT_FLOAT) {
         // Serialize as 32-bit by default, native endianness!
         auto f = fltval();
         buf.insert(buf.end(), (const uint8_t *)&f, (const uint8_t *)(&f + 1));
@@ -435,7 +421,7 @@ void Value::ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const {
 
 
 uint64_t RefObj::Hash(VM &vm) {
-    return ti(vm).t == V_STRING
+    return ti(vm).t == RTT_STRING
         ? ((LString *)this)->Hash()
         : SplitMix64Hash((uint64_t)this);
 }
@@ -444,12 +430,12 @@ uint64_t LString::Hash() {
     return FNV1A64(strv());
 }
 
-uint64_t Value::Hash(VM &vm, ValueType vtype) {
+uint64_t Value::Hash(VM &vm, RTType vtype) {
     switch (vtype) {
-        case V_INT:
-        case V_FUNCTION:
+        case RTT_INT:
+        case RTT_FUNCTION:
             return SplitMix64Hash((uint64_t)ival_);
-        case V_FLOAT:
+        case RTT_FLOAT:
             return SplitMix64Hash(ReadMem<uint64_t>(&fval_));
         default:
             return refnil() ? ref()->Hash(vm) : 0;
@@ -461,7 +447,7 @@ Value Value::CopyRef(VM &vm, iint depth) {
     auto &ti = ref()->ti(vm);
     depth--;
     switch (ti.t) {
-        case V_VECTOR: {
+        case RTT_VECTOR: {
             auto len = vval()->len;
             auto nv = vm.NewVec(len, len, vval()->tti);
             if (len) {
@@ -474,7 +460,7 @@ Value Value::CopyRef(VM &vm, iint depth) {
             }
             return Value(nv);
         }
-        case V_CLASS: {
+        case RTT_CLASS: {
             auto len = oval()->Len(vm);
             auto nv = vm.NewObject(len, oval()->tti);
             if (len) {
@@ -487,7 +473,7 @@ Value Value::CopyRef(VM &vm, iint depth) {
             }
             return Value(nv);
         }
-        case V_STRING: {
+        case RTT_STRING: {
             auto s = vm.NewString(sval()->strv());
             return Value(s);
         }
@@ -498,11 +484,11 @@ Value Value::CopyRef(VM &vm, iint depth) {
 }
 
 string TypeInfo::Debug(VM &vm, bool rec) const {
-    if (t == V_VECTOR) {
+    if (t == RTT_VECTOR) {
         return cat("[", vm.GetTypeInfo(subt).Debug(vm, false), "]");
-    } else if (t == V_NIL) {
+    } else if (t == RTT_NIL) {
         return cat(vm.GetTypeInfo(subt).Debug(vm, false), "?");
-    } else if (IsUDT(t)) {
+    } else if (RTIsUDT(t)) {
         string s = string(vm.StructName(*this));
         if (rec) {
             s += "{";
@@ -518,21 +504,21 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
 
 void TypeInfo::Print(VM &vm, string &sd, void *ref) const {
     switch (t) {
-        case V_VECTOR:
+        case RTT_VECTOR:
             append(sd, "[");
             vm.GetTypeInfo(subt).Print(vm, sd, nullptr);
             append(sd, "]");
             break;
-        case V_NIL:
+        case RTT_NIL:
             vm.GetTypeInfo(subt).Print(vm, sd, ref);
             append(sd, "?");
             break;
-        case V_CLASS:
-        case V_STRUCT_R:
-        case V_STRUCT_S:
+        case RTT_CLASS:
+        case RTT_STRUCT_R:
+        case RTT_STRUCT_S:
             append(sd, vm.StructName(*this));
             break;
-        case V_RESOURCE:
+        case RTT_RESOURCE:
             append(sd, "resource");
             if (ref) {
                 auto res = (LResource *)ref;
@@ -549,7 +535,7 @@ void TypeInfo::Print(VM &vm, string &sd, void *ref) const {
     auto &_ti = ti(vm); \
     ass; \
     auto &sti = vm.GetTypeInfo(_ti.acc); \
-    return sti.t == V_NIL ? vm.GetTypeInfo(sti.subt) : sti;
+    return sti.t == RTT_NIL ? vm.GetTypeInfo(sti.subt) : sti;
 
 const TypeInfo &LObject::ElemTypeS(VM &vm, iint i) const {
     ELEMTYPE(elemtypes[i].type, assert(i < _ti.len));
@@ -584,12 +570,12 @@ void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char
             break;
         }
         auto &ti = getti(i);
-        if (pp.depth || !IsRef(ti.t)) {
+        if (pp.depth || !RTIsRef(ti.t)) {
             PrintPrefs subpp(pp.depth - 1, pp.budget - iint(sd.size() - start_size), true,
                              pp.decimals);
             subpp.indent = pp.indent;
             subpp.cur_indent = pp.cur_indent;
-            if (IsStruct(ti.t)) {
+            if (RTIsStruct(ti.t)) {
                 vm.StructToString(sd, subpp, ti, elems + i * width);
                 if (!is_vector) i += ti.len - 1;
             } else {
@@ -642,7 +628,7 @@ void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Va
 void ElemToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, iint &i, iint width,
                       const Value *elems, string_view key, type_elem_t defval) {
     fbc.cur_depth++;
-    if (IsStruct(ti.t)) {
+    if (RTIsStruct(ti.t)) {
         if (!key.empty()) fbc.builder.Key(key.data());
         bool emitted = fbc.vm.StructToFlexBuffer(fbc, ti, elems + i * width, !key.empty());
         if (!key.empty()) {
@@ -740,7 +726,7 @@ bool VM::StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti,
 
 void ElemToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, iint &i, iint width,
                          const Value *elems, bool is_object) {
-    if (IsStruct(ti.t)) {
+    if (RTIsStruct(ti.t)) {
         vm.StructToLobsterBinary(vm, buf, ti, elems + i * width);
         if (is_object) i += ti.len - 1;
     } else {
@@ -784,7 +770,7 @@ type_elem_t LVector::SingleType(VM &vm) {
     auto &vect = ti(vm);
     auto eto = vect.subt;
     auto &ti = vm.GetTypeInfo(eto);
-    return IsStruct(ti.t) ? ti.SingleType() : eto;
+    return RTIsStruct(ti.t) ? ti.SingleType() : eto;
 }
 
 

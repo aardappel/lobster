@@ -52,48 +52,35 @@ namespace lobster {
     #define VM_INLINEM inline
 #endif
 
-enum ValueType : int {
+// This is the runtime equivalent of the compile-time ValueType enum.
+enum RTType : int {
     // refc types are negative
-    V_MINVMTYPES = -8,
-    V_ANY = -7,         // any other reference type.
-    V_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, not used by Value.
-    V_STRUCT_R = -5,
-    V_RESOURCE = -4,
-    V_STRING = -3,
-    V_CLASS = -2,
-    V_VECTOR = -1,
-    V_NIL = 0,          // VM: null reference, Type checker: nillable.
-    V_INT,
-    V_FLOAT,
-    V_FUNCTION,
-    V_STRUCT_S,
-    V_STRUCT_NUM,       // [typechecker only] like V_STRUCT_S but an unknown set of ints or floats, used by builtins.
-    V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
-    V_TYPEVAR,          // [typechecker only] refers to an explicit type variable in code, e.g. "T".
-    V_TYPEID,           // [typechecker only] a typetable offset. Present at runtime as V_INT.
-    V_VOID,             // [typechecker/codegen only] this exp does not produce a value.
-    V_TUPLE,            // [typechecker/codegen only] this exp produces >1 value.
-    V_UUDT,             // [parser/typechecker only] udt with unresolved generics.
-    V_UNDEFINED,        // [typechecker only] this type should never be accessed.
-    V_MAXVMTYPES
+    RTT_MINVMTYPES = -8,
+    RTT_INVALID = -7,     // Aka ANY.
+    RTT_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, not used by Value.
+    RTT_STRUCT_R = -5,
+    RTT_RESOURCE = -4,
+    RTT_STRING = -3,
+    RTT_CLASS = -2,
+    RTT_VECTOR = -1,
+    RTT_NIL = 0,          // VM: null reference, Type checker: nillable.
+    RTT_INT,
+    RTT_FLOAT,
+    RTT_FUNCTION,
+    RTT_STRUCT_S,
+    // Here the compile time variant has enums that are not present at runtime.
+    RTT_MAXVMTYPES
 };
 
-inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
-inline bool IsUnBoxed(ValueType t) { return t == V_INT || t == V_FLOAT || t == V_FUNCTION; }
-inline bool IsRef(ValueType t) { return t <  V_NIL; }
-inline bool IsRefNil(ValueType t) { return t <= V_NIL; }
-inline bool IsRefNilVar(ValueType t) { return t <= V_NIL || t == V_VAR; }
-inline bool IsRefNilStruct(ValueType t) { return t <= V_NIL || t == V_STRUCT_S; }
-inline bool IsRefNilNoStruct(ValueType t) { return t <= V_NIL && t != V_STRUCT_R; }
-inline bool IsRuntime(ValueType t) { return t < V_STRUCT_NUM; }
-inline bool IsRuntimeConcrete(ValueType t) { return t < V_STRUCT_NUM && t >= V_STRUCT_R; }
-inline bool IsStruct(ValueType t) { return t == V_STRUCT_R || t == V_STRUCT_S; }
-inline bool IsUnBoxedOrStruct(ValueType t) { return IsUnBoxed(t) || IsStruct(t); }
-inline bool IsUDT(ValueType t) { return t == V_CLASS || IsStruct(t); }
+inline bool RTIsRef(RTType t) { return t <  RTT_NIL; }
+inline bool RTIsRefNil(RTType t) { return t <= RTT_NIL; }
+inline bool RTIsStruct(RTType t) { return t == RTT_STRUCT_R || t == RTT_STRUCT_S; }
+inline bool RTIsUDT(RTType t) { return t == RTT_CLASS || RTIsStruct(t); }
 
-inline string_view BaseTypeName(ValueType t) {
+inline string_view BaseTypeName(RTType t) {
     static const char *typenames[] = {
-        "any", "<value_buffer>",
+        "invalid",
+        "<value_buffer>",
         "struct_ref",
         "resource", "string", "class", "vector",
         "nil",
@@ -102,14 +89,12 @@ inline string_view BaseTypeName(ValueType t) {
         "function",
         "struct_scalar",
         "numeric_struct",
-        "unknown", "type_variable", "typeid", "void",
-        "tuple", "unresolved_udt", "undefined",
     };
-    if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES) {
+    if (t <= RTT_MINVMTYPES || t >= RTT_MAXVMTYPES) {
         assert(false);
         return "<internal-error-type>";
     }
-    return typenames[t - V_MINVMTYPES - 1];
+    return typenames[t - RTT_MINVMTYPES - 1];
 }
 
 enum type_elem_t : int {  // Strongly typed element of typetable.
@@ -140,10 +125,10 @@ struct TIField {
 };
 
 struct TypeInfo {
-    ValueType t;
+    RTType t;
     union {
-        type_elem_t subt;  // V_VECTOR | V_NIL
-        struct {           // V_CLASS, V_STRUCT_*
+        type_elem_t subt;  // RTT_VECTOR | RTT_NIL
+        struct {           // RTT_CLASS, RT_STRUCT_*
             int structidx;
             int len;
             int vtable_start_or_bitmask;
@@ -151,8 +136,8 @@ struct TypeInfo {
             int serializable_id;
             TIField elemtypes[1];  // len elems.
         };
-        int enumidx;       // V_INT, -1 if not an enum.
-        int sfidx;         // V_FUNCTION;
+        int enumidx;       // RTT_INT, -1 if not an enum.
+        int sfidx;         // RTT_FUNCTION;
     };
 
     TypeInfo() = delete;
@@ -429,41 +414,41 @@ struct Value {
     #if RTT_ENABLED
         // This one comes second, since that allows e.g. the Wasm codegen to access the above
         // data without knowing if we're in debug mode.
-        ValueType type;
+        RTType type;
     #endif
 
     // These asserts help track down any invalid code generation issues.
-    VM_INLINEM iint        ival   () const { TYPE_ASSERT(type == V_INT);                       return ival_;        }
-    VM_INLINEM double      fval   () const { TYPE_ASSERT(type == V_FLOAT);                     return fval_;        }
-    VM_INLINEM int         intval () const { TYPE_ASSERT(type == V_INT);                       return (int)ival_;   }
-    VM_INLINEM float       fltval () const { TYPE_ASSERT(type == V_FLOAT);                     return (float)fval_; }
-    VM_INLINEM LString    *sval   () const { TYPE_ASSERT(type == V_STRING);                    return sval_;        }
-    VM_INLINEM LString    *svalnil() const { TYPE_ASSERT(type == V_STRING || type == V_NIL);   return sval_;        }
-    VM_INLINEM LVector    *vval   () const { TYPE_ASSERT(type == V_VECTOR);                    return vval_;        }
-    VM_INLINEM LVector    *vvalnil() const { TYPE_ASSERT(type == V_VECTOR || type == V_NIL);   return vval_;        }
-    VM_INLINEM LObject    *oval   () const { TYPE_ASSERT(type == V_CLASS);                     return oval_;        }
-    VM_INLINEM LObject    *ovalnil() const { TYPE_ASSERT(type == V_CLASS || type == V_NIL);    return oval_;        }
-    VM_INLINEM LResource  *xval   () const { TYPE_ASSERT(type == V_RESOURCE);                  return xval_;        }
-    VM_INLINEM LResource  *xvalnil() const { TYPE_ASSERT(type == V_RESOURCE || type == V_NIL); return xval_;        }
-    VM_INLINEM RefObj     *ref    () const { TYPE_ASSERT(IsRef(type));                         return ref_;         }
-    VM_INLINEM RefObj     *refnil () const { TYPE_ASSERT(IsRefNil(type));                      return ref_;         }
-    VM_INLINEM FunPtr      ip     () const { TYPE_ASSERT(type >= V_FUNCTION);                  return ip_;          }
-    VM_INLINEM void       *any    () const {                                                   return ref_;         }
-    VM_INLINEM TypeInfo   *tival  () const { TYPE_ASSERT(type == V_STRUCT_S);                  return ti_;          }
+    VM_INLINEM iint        ival   () const { TYPE_ASSERT(type == RTT_INT);                         return ival_;        }
+    VM_INLINEM double      fval   () const { TYPE_ASSERT(type == RTT_FLOAT);                       return fval_;        }
+    VM_INLINEM int         intval () const { TYPE_ASSERT(type == RTT_INT);                         return (int)ival_;   }
+    VM_INLINEM float       fltval () const { TYPE_ASSERT(type == RTT_FLOAT);                       return (float)fval_; }
+    VM_INLINEM LString    *sval   () const { TYPE_ASSERT(type == RTT_STRING);                      return sval_;        }
+    VM_INLINEM LString    *svalnil() const { TYPE_ASSERT(type == RTT_STRING || type == RTT_NIL);   return sval_;        }
+    VM_INLINEM LVector    *vval   () const { TYPE_ASSERT(type == RTT_VECTOR);                      return vval_;        }
+    VM_INLINEM LVector    *vvalnil() const { TYPE_ASSERT(type == RTT_VECTOR || type == RTT_NIL);   return vval_;        }
+    VM_INLINEM LObject    *oval   () const { TYPE_ASSERT(type == RTT_CLASS);                       return oval_;        }
+    VM_INLINEM LObject    *ovalnil() const { TYPE_ASSERT(type == RTT_CLASS || type == RTT_NIL);    return oval_;        }
+    VM_INLINEM LResource  *xval   () const { TYPE_ASSERT(type == RTT_RESOURCE);                    return xval_;        }
+    VM_INLINEM LResource  *xvalnil() const { TYPE_ASSERT(type == RTT_RESOURCE || type == RTT_NIL); return xval_;        }
+    VM_INLINEM RefObj     *ref    () const { TYPE_ASSERT(RTIsRef(type));                           return ref_;         }
+    VM_INLINEM RefObj     *refnil () const { TYPE_ASSERT(RTIsRefNil(type));                        return ref_;         }
+    VM_INLINEM FunPtr      ip     () const { TYPE_ASSERT(type >= RTT_FUNCTION);                    return ip_;          }
+    VM_INLINEM void       *any    () const {                                                       return ref_;         }
+    VM_INLINEM TypeInfo   *tival  () const { TYPE_ASSERT(type == RTT_STRUCT_S);                    return ti_;          }
 
     template<typename T> T ifval() const {
-        if constexpr (is_floating_point<T>()) { TYPE_ASSERT(type == V_FLOAT); return (T)fval_; }
-        else                                  { TYPE_ASSERT(type == V_INT);   return (T)ival_; }
+        if constexpr (is_floating_point<T>()) { TYPE_ASSERT(type == RTT_FLOAT); return (T)fval_; }
+        else                                  { TYPE_ASSERT(type == RTT_INT);   return (T)ival_; }
     }
 
-    VM_INLINEM void setival(iint i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
-    VM_INLINEM void setfval(double f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
+    VM_INLINEM void setival(iint i)   { TYPE_ASSERT(type == RTT_INT);   ival_ = i; }
+    VM_INLINEM void setfval(double f) { TYPE_ASSERT(type == RTT_FLOAT); fval_ = f; }
 
     // We have NO default constructor! This is because a) doing so is typically an error,
     // you should always construct these values with an actual contained value, and b)
-    // supplying a default constructor that initializes to 0/V_UNDEFINED would lead to
+    // supplying a default constructor that initializes to 0/RT_UNDEFINED would lead to
     // cases where silently these are used, causing inefficiency (and errors).
-    // Instead, in the few places you actually need a default value, use NoVal() or NilVal().
+    // Instead, in the few places you actually need a default value, use NilVal().
     #if VM_JIT_MODE==0
     // FIXME: Sadly, we rely on uninitialized Value's for a certain level of optimization in
     // the C++ AOT builds.
@@ -472,62 +457,61 @@ struct Value {
 
     // We underlying types here, because types like int64_t etc can be defined as different types
     // on different platforms, causing ambiguities between multiple types that are long or long long
-    VM_INLINEM Value(int i)                : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    VM_INLINEM Value(unsigned int i)       : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    VM_INLINEM Value(long i)               : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    VM_INLINEM Value(unsigned long i)      : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    VM_INLINEM Value(long long i)          : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    VM_INLINEM Value(unsigned long long i) : ival_((iint)i)   TYPE_INIT(V_INT)      {}
-    VM_INLINEM Value(int i, ValueType t)   : ival_(i)         TYPE_INIT(t)          { (void)t; }
-    VM_INLINEM Value(bool b)               : ival_(b)         TYPE_INIT(V_INT)      {}
-    VM_INLINEM Value(float f)              : fval_(f)         TYPE_INIT(V_FLOAT)    {}
-    VM_INLINEM Value(double f)             : fval_((double)f) TYPE_INIT(V_FLOAT)    {}
-    VM_INLINEM Value(FunPtr i)             : ip_(i)           TYPE_INIT(V_FUNCTION) {}
+    VM_INLINEM Value(int i)                : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
+    VM_INLINEM Value(unsigned int i)       : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
+    VM_INLINEM Value(long i)               : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
+    VM_INLINEM Value(unsigned long i)      : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
+    VM_INLINEM Value(long long i)          : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
+    VM_INLINEM Value(unsigned long long i) : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
+    VM_INLINEM Value(int i, RTType t)      : ival_(i)         TYPE_INIT(t)            { (void)t; }
+    VM_INLINEM Value(bool b)               : ival_(b)         TYPE_INIT(RTT_INT)      {}
+    VM_INLINEM Value(float f)              : fval_(f)         TYPE_INIT(RTT_FLOAT)    {}
+    VM_INLINEM Value(double f)             : fval_((double)f) TYPE_INIT(RTT_FLOAT)    {}
+    VM_INLINEM Value(FunPtr i)             : ip_(i)           TYPE_INIT(RTT_FUNCTION) {}
 
-    VM_INLINEM Value(LString *s)         : sval_(s)         TYPE_INIT(V_STRING)     {}
-    VM_INLINEM Value(LVector *v)         : vval_(v)         TYPE_INIT(V_VECTOR)     {}
-    VM_INLINEM Value(LObject *s)         : oval_(s)         TYPE_INIT(V_CLASS)      {}
-    VM_INLINEM Value(LResource *r)       : xval_(r)         TYPE_INIT(V_RESOURCE)   {}
-    VM_INLINEM Value(RefObj *r)          : ref_(r)          TYPE_INIT(V_NIL)        { assert(false); }
+    VM_INLINEM Value(LString *s)         : sval_(s)         TYPE_INIT(RTT_STRING)     {}
+    VM_INLINEM Value(LVector *v)         : vval_(v)         TYPE_INIT(RTT_VECTOR)     {}
+    VM_INLINEM Value(LObject *s)         : oval_(s)         TYPE_INIT(RTT_CLASS)      {}
+    VM_INLINEM Value(LResource *r)       : xval_(r)         TYPE_INIT(RTT_RESOURCE)   {}
+    VM_INLINEM Value(RefObj *r)          : ref_(r)          TYPE_INIT(RTT_NIL)        { assert(false); }
 
-    VM_INLINEM Value(TypeInfo *ti) : ti_(ti) TYPE_INIT(V_STRUCT_S) {}
+    VM_INLINEM Value(TypeInfo *ti) : ti_(ti) TYPE_INIT(RTT_STRUCT_S) {}
 
     VM_INLINEM bool True() const { return ival_ != 0; }
     VM_INLINEM bool False() const { return ival_ == 0; }
 
     inline void LTINCRT() {
-        TYPE_ASSERT(IsRef(type) && ref_);
+        TYPE_ASSERT(RTIsRef(type) && ref_);
         ref_->Inc();
     }
     inline void LTINCRTNIL() {
-        // Can't assert IsRefNil here, since scalar 0 are valid NIL values due to e.g. and/or.
+        // Can't assert RTIsRefNil here, since scalar 0 are valid NIL values due to e.g. and/or.
         if (ref_) LTINCRT();
     }
-    inline void LTINCTYPE(ValueType t) {
-        if(IsRefNil(t)) LTINCRTNIL();
+    inline void LTINCTYPE(RTType t) {
+        if(RTIsRefNil(t)) LTINCRTNIL();
     }
 
     inline void LTDECRT(VM &vm) const {  // we already know its a ref type
-        TYPE_ASSERT(IsRef(type) && ref_);
+        TYPE_ASSERT(RTIsRef(type) && ref_);
         ref_->Dec(vm);
     }
     inline void LTDECRTNIL(VM &vm) const {
-        // Can't assert IsRefNil here, since scalar 0 are valid NIL values due to e.g. and/or.
+        // Can't assert RTIsRefNil here, since scalar 0 are valid NIL values due to e.g. and/or.
         if (ref_) LTDECRT(vm);
     }
-    inline void LTDECTYPE(VM &vm, ValueType t) const {
-        if (IsRefNil(t)) LTDECRTNIL(vm);
+    inline void LTDECTYPE(VM &vm, RTType t) const {
+        if (RTIsRefNil(t)) LTDECRTNIL(vm);
     }
 
     void ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const;
-    void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
-    void ToStringNoVM(string &sd, ValueType t) const;
+    void ToStringBase(VM &vm, string &sd, RTType t, PrintPrefs &pp) const;
 
-    void ToFlexBuffer(ToFlexBufferContext &fbc, ValueType t, string_view key, type_elem_t defval) const;
-    void ToLobsterBinary(VM &vm, vector<uint8_t> &buf, ValueType t) const;
+    void ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, type_elem_t defval) const;
+    void ToLobsterBinary(VM &vm, vector<uint8_t> &buf, RTType t) const;
 
-    bool Equal(VM &vm, ValueType vtype, Value o, ValueType otype, bool structural) const;
-    uint64_t Hash(VM &vm, ValueType vtype);
+    bool Equal(VM &vm, RTType vtype, Value o, RTType otype, bool structural) const;
+    uint64_t Hash(VM &vm, RTType vtype);
     Value CopyRef(VM &vm, iint depth);
 };
 
@@ -625,7 +609,7 @@ template<typename T> struct ValueVec {
         return true;
     }
 
-    uint64_t Hash(VM &vm, ValueType vt) {
+    uint64_t Hash(VM &vm, RTType vt) {
         auto hash = SplitMix64Hash((uint64_t)len);
         for (iint i = 0; i < len; i++) {
             hash = hash * 31 + vals[i].Hash(vm, vt);
@@ -723,7 +707,7 @@ struct LObject : RefObj {
 
     void CopyRefElemsDeep(VM &vm, iint len, iint depth) {
         for (iint i = 0; i < len; i++) {
-            if (IsRefNil(ElemTypeS(vm, i).t)) AtR(i) = At(i).CopyRef(vm, depth);
+            if (RTIsRefNil(ElemTypeS(vm, i).t)) AtR(i) = At(i).CopyRef(vm, depth);
         }
     }
 
@@ -857,9 +841,9 @@ struct LVector : RefObj {
 
     void CopyRefElemsDeep(VM &vm, iint depth) {
         auto &eti = ElemType(vm);
-        if (!IsRefNil(eti.t)) return;
+        if (!RTIsRefNil(eti.t)) return;
         for (int j = 0; j < width; j++) {
-            if (eti.t != V_STRUCT_R || (1 << j) & eti.vtable_start_or_bitmask) {
+            if (eti.t != RTT_STRUCT_R || (1 << j) & eti.vtable_start_or_bitmask) {
                 for (iint i = 0; i < len; i++) {
                     auto l = i * width + j;
                     auto &slot = AtSlotR(l);
@@ -1195,11 +1179,7 @@ VM_INLINE void SwapVars(VM &vm, int i, StackPtr psp, int off) {
 }
 
 VM_INLINE Value NilVal() {
-    return Value(0, V_NIL);
-}
-
-VM_INLINE Value NoVal() {
-    return Value(0, V_UNDEFINED);
+    return Value(0, RTT_NIL);
 }
 
 VM_INLINE void BackupVar(VM &vm, int i) {

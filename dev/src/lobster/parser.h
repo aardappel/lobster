@@ -261,12 +261,12 @@ struct Parser {
                     auto evname = st.MaybeMakeNameSpace(ExpectId(), true);
                     if (IsNext(T_ASSIGN)) {
                         auto e = ParseExp();
-                        Value val = NilVal();
+                        VTValue val;
                         auto t = e->ConstVal(nullptr, val);
                         delete e;
                         if (t != V_INT)
                             Error("enum value expression must evaluate to an integer constant");
-                        cur = val.ival();
+                        cur = val.i;
                     }
                     auto ev = st.EnumValLookup(evname, true);
                     ev->isprivate = isprivate;

@@ -80,13 +80,13 @@ Node *Node::Optimize(Optimizer &opt) {
     for (size_t i = 0; i < Arity(); i++) {
         Children()[i] = Children()[i]->Optimize(opt);
     }
-    Value cval = NilVal();
+    VTValue cval;
     auto t = ConstVal(&opt.tc, cval);
     if (t == V_VOID) return this;
     Node *r;
     switch (t) {
-        case V_INT:   r = new IntConstant(line, cval.ival()); break;
-        case V_FLOAT: r = new FloatConstant(line, cval.fval()); break;
+        case V_INT:   r = new IntConstant(line, cval.i); break;
+        case V_FLOAT: r = new FloatConstant(line, cval.f); break;
         case V_NIL:   r = new Nil(line, { exptype }); break;
         default:      assert(false); return this;
     }

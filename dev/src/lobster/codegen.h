@@ -126,10 +126,10 @@ struct CodeGen  {
     const int ti_num_udt_fields = 6;
     const int ti_num_udt_per_field = 3;
 
-    type_elem_t PushDefaultValue(ValueType vt, Value val) {
+    type_elem_t PushDefaultValue(ValueType vt, VTValue val) {
         switch (vt) {
             case V_INT: {
-                auto iv = val.ival();
+                auto iv = val.i;
                 auto &it = default_ints_lookup[iv];
                 if (!it) {
                     it = (type_elem_t)type_table.size();
@@ -139,7 +139,7 @@ struct CodeGen  {
                 return it;
             }
             case V_FLOAT: {
-                auto fv = val.fval();
+                auto fv = val.f;
                 auto &it = default_floats_lookup[fv];
                 if (!it) {
                     it = (type_elem_t)type_table.size();
@@ -159,10 +159,10 @@ struct CodeGen  {
             return (type_elem_t)0;
         }
         // TODO: support more types of default values!
-        Value val = NoVal();
+        VTValue val;
         auto cons = Is<ObjectConstructor>(dv);
         if (cons) {
-            vector<pair<ValueType, Value>> vals;
+            vector<pair<ValueType, VTValue>> vals;
             for (auto n : cons->children) {
                 auto vt = n->ConstVal(nullptr, val);
                 if (vt == V_INT || vt == V_FLOAT) {
@@ -206,7 +206,7 @@ struct CodeGen  {
     // Make a table for use as VM runtime type.
     type_elem_t GetTypeTableOffset(TypeRef type) {
         small_vector<type_elem_t, 2> tt;
-        tt.push_back((type_elem_t)type->t);
+        tt.push_back((type_elem_t)VT2RT(type->t));
         switch (type->t) {
             case V_INT:
                 tt.push_back((type_elem_t)(type->e ? type->e->idx : -1));
@@ -620,7 +620,7 @@ struct CodeGen  {
         auto idx = sids[i].idx();
         auto &basename = st.identtable[ididx]->name;
         auto ti = (TypeInfo *)(&type_table[sids[i].typeidx()]);
-        if (is_whole_struct || !IsStruct(ti->t)) {
+        if (is_whole_struct || !IsStruct(RT2VT(ti->t))) {
             return basename;
         } else {
             int j = i;
@@ -886,7 +886,7 @@ struct CodeGen  {
         EmitOp(IL_ISTYPE);
         append(cb, "    U_ISTYPE(vm, ", sp(), ", ", type_idx, ");");
         auto ti = ((TypeInfo *)(&type_table[type_idx]));
-        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
+        if (IsUDT(RT2VT(ti->t))) comment(st.udttable[ti->structidx]->name);
         else cb += "\n";
     }
 
@@ -894,7 +894,7 @@ struct CodeGen  {
         EmitOp(IL_NEWOBJECT, uses);
         append(cb, "    U_NEWOBJECT(vm, ", sp(), ", ", type_idx, ");");
         auto ti = ((TypeInfo *)(&type_table[type_idx]));
-        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
+        if (IsUDT(RT2VT(ti->t))) comment(st.udttable[ti->structidx]->name);
         else cb += "\n";
     }
 
@@ -902,7 +902,7 @@ struct CodeGen  {
         EmitOp(IL_ST2S, uses, defs);
         append(cb, "    U_ST2S(vm, ", sp(), ", ", type_idx, ");");
         auto ti = ((TypeInfo *)(&type_table[type_idx]));
-        if (IsUDT(ti->t)) comment(st.udttable[ti->structidx]->name);
+        if (IsUDT(RT2VT(ti->t))) comment(st.udttable[ti->structidx]->name);
         else cb += "\n";
     }
 
@@ -1340,7 +1340,7 @@ struct CodeGen  {
                 // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
                     EmitOp0(IsRefNil(FindSlot(*typelt.type->udt, j)->type->t) ? IL_POPREF
-                                                                             : IL_POP);
+                                                                              : IL_POP);
                 }
             } else {
                 EmitOp1(IL_POPV, typelt.type->udt->numslots, typelt.type->udt->numslots, 0);

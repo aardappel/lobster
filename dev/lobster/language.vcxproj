@@ -321,6 +321,7 @@
     <ClInclude Include="..\src\lobster\tonative.h" />
     <ClInclude Include="..\src\lobster\tools.h" />
     <ClInclude Include="..\src\lobster\ttypes.h" />
+    <ClInclude Include="..\src\lobster\type.h" />
     <ClInclude Include="..\src\lobster\typecheck.h" />
     <ClInclude Include="..\src\lobster\unicode.h" />
     <ClInclude Include="..\src\lobster\varint.h" />

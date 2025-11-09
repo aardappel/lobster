@@ -502,13 +502,13 @@ void Nil(VM &vm, Value *v, const TypeInfo *ti) {
     ImGui::SameLine();
     if (v && ImGui::Button("+")) {
         switch (ti->t) {
-            case V_STRING:
+            case RTT_STRING:
                 *v = vm.NewString(0);
                 break;
-            case V_VECTOR:
+            case RTT_VECTOR:
                 *v = vm.NewVec(0, 0, vm.TypeInfoToIdx(ti));
                 break;
-            case V_CLASS: {
+            case RTT_CLASS: {
                 Deserializer des(vm);
                 if (des.PushDefault(vm.TypeInfoToIdx(ti), (type_elem_t)0, nullptr)) {
                     *v = des.PopV();
@@ -539,7 +539,7 @@ void VectorOps(VM &vm, LVector *vec, const TypeInfo *ti) {
 void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool expanded, bool in_table = true) {
     if (in_table) {
         // Early out for types that don't make sense to display.
-        if (ti->t == V_FUNCTION) return;
+        if (ti->t == RTT_FUNCTION) return;
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         Text(label.sv);
@@ -553,7 +553,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
     auto l = label.c_str();
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
     switch (ti->t) {
-        case V_INT: {
+        case RTT_INT: {
             if (ti->enumidx == 0) {
                 assert(vm.EnumName(ti->enumidx) == "bool");
                 bool b = v->True();
@@ -577,12 +577,12 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             }
             break;
         }
-        case V_FLOAT: {
+        case RTT_FLOAT: {
             double f = v->fval();
             if (ImGui::InputDouble(l, &f)) *v = f;
             break;
         }
-        case V_VECTOR:
+        case RTT_VECTOR:
             if (v->False()) {
                 Nil(vm, v, ti);
                 break;
@@ -605,7 +605,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                 ImGui::TreePop();
             }
             break;
-        case V_CLASS:
+        case RTT_CLASS:
             if (v->False()) {
                 Nil(vm, v, ti);
                 break;
@@ -613,8 +613,8 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             // Upgrade to dynamic type if maybe subclass.
             ti = &v->oval()->ti(vm);
             v = v->oval()->Elems();  // To iterate it like a struct.
-        case V_STRUCT_R:
-        case V_STRUCT_S: {
+        case RTT_STRUCT_R:
+        case RTT_STRUCT_S: {
             auto &st = vm.vma.meta->udts[ti->structidx];
             // Special case for numeric structs & colors.
             if (ti->len >= 2 && ti->len <= 4) {
@@ -656,7 +656,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                         auto &sti = vm.GetTypeInfo(ti->GetElemOrParent(i));
                         ValToGUI(vm, v + i, &sti, string_view_nt(st.fields[fi++].name),
                                     false);
-                        if (IsStruct(sti.t)) i += sti.len - 1;
+                        if (RTIsStruct(sti.t)) i += sti.len - 1;
                     }
                     EndTable();
                 }
@@ -664,7 +664,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             }
             break;
         }
-        case V_STRING: {
+        case RTT_STRING: {
             if (v->False()) {
                 Nil(vm, v, ti);
                 break;
@@ -672,10 +672,10 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             *v = LStringInputText(vm, l, v->sval()).first;
             break;
         }
-        case V_NIL:
+        case RTT_NIL:
             ValToGUI(vm, v, &vm.GetTypeInfo(ti->subt), label, expanded, false);
             break;
-        case V_RESOURCE: {
+        case RTT_RESOURCE: {
             if (v->False()) {
                 Nil(vm, nullptr, ti);
                 break;
@@ -727,7 +727,7 @@ void VarsToGUI(VM &vm) {
                 if (ti.t != val.type) continue;  // Likely uninitialized.
                 #endif
                 ValToGUI(vm, &val, &ti, name, false);
-                if (IsStruct(ti.t)) i += ti.len - 1;
+                if (RTIsStruct(ti.t)) i += ti.len - 1;
             }
             EndTable();
         }
@@ -812,14 +812,14 @@ void DumpStackTrace(VM &vm) {
         #else
             auto debug_type = ti.t;
         #endif
-        if (debug_type == V_NIL && ti.t != V_NIL) {
+        if (debug_type == RTT_NIL && ti.t != RTT_NIL) {
             // Uninitialized.
             auto sd = string(name.sv);
             append(sd, ":");
             ti.Print(vm, sd, nullptr);
             append(sd, " (uninitialized)");
             Text(sd);
-        } else if (ti.t != debug_type && !IsStruct(ti.t)) {
+        } else if (ti.t != debug_type && !RTIsStruct(ti.t)) {
             // Some runtime type corruption, show the problem rather than crashing.
             auto sd = string(name.sv);
             append(sd, ":");

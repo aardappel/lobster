@@ -287,15 +287,15 @@ nfr("vector_to_buffer", "vec,width", "A]*I?:4", "S",
         auto eto = vect.subt;
         auto &ti = vm.GetTypeInfo(eto);
         int64_t float_mask = 0;
-        if (ti.t == V_INT) {
-        } else if (ti.t == V_FLOAT) {
+        if (ti.t == RTT_INT) {
+        } else if (ti.t == RTT_FLOAT) {
             float_mask = 1;
-        } else if (ti.t == V_STRUCT_S) {
+        } else if (ti.t == RTT_STRUCT_S) {
             if (ti.len >= 63) vm.Error("vector_to_buffer: struct too big");
             for (int i = 0; i < ti.len; i++) {
                 auto &seti = vm.GetTypeInfo(ti.elemtypes[i].type);
-                if (seti.t == V_INT) {
-                } else if (seti.t == V_FLOAT) {
+                if (seti.t == RTT_INT) {
+                } else if (seti.t == RTT_FLOAT) {
                     float_mask |= int64_t(1) << i;
                 } else {
                     vm.Error("vector_to_buffer: struct field of non-numeric data");

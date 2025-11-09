@@ -53,32 +53,32 @@ struct Deserializer {
     bool PushDefault(type_elem_t typeoff, type_elem_t defval, const TIField *fields) {
         auto &ti = vm.GetTypeInfo(typeoff);
         switch (ti.t) {
-            case V_INT: {
+            case RTT_INT: {
                 auto dv = vm.GetDefaultScalar<iint>(defval);
                 PushV(dv);
                 break;
             }
-            case V_FLOAT: {
+            case RTT_FLOAT: {
                 auto dv = vm.GetDefaultScalar<double>(defval);
                 PushV(dv);
                 break;
             }
-            case V_NIL:
+            case RTT_NIL:
                 PushV(NilVal());
                 break;
-            case V_STRING:
+            case RTT_STRING:
                 PushV(vm.NewString(0), true);
                 break;
-            case V_VECTOR:
+            case RTT_VECTOR:
                 PushV(vm.NewVec(0, 0, typeoff), true);
                 break;
-            case V_STRUCT_S:
-            case V_STRUCT_R:
-            case V_CLASS: {
+            case RTT_STRUCT_S:
+            case RTT_STRUCT_R:
+            case RTT_CLASS: {
                  if (defval) {
                     // The parent's field's default value was a constructor with all constant values.
                     for (int i = 0; i < ti.len; i++) {
-                        auto dv = ti.t == V_CLASS
+                        auto dv = ti.t == RTT_CLASS
                             ? ((type_elem_t *)&vm.GetTypeInfo(defval))[i]
                             : fields[i].defval;
                         auto ok = PushDefault(ti.elemtypes[i].type, dv, nullptr);
@@ -94,7 +94,7 @@ struct Deserializer {
                             return false;
                     }
                 }
-                if (ti.t == V_CLASS) {
+                if (ti.t == RTT_CLASS) {
                     auto vec = vm.NewObject(ti.len, typeoff);
                     if (ti.len) vec->CopyElemsShallow(&stack[stack.size() - (size_t)ti.len], ti.len);
                     PopVN(ti.len);
@@ -153,16 +153,16 @@ struct LobsterBinaryParser : Deserializer {
     void ParseElem(const uint8_t *&data, const uint8_t *end, type_elem_t typeoff) {
         auto base_ti = &vm.GetTypeInfo(typeoff);
         auto ti = base_ti;
-        if (ti->t == V_NIL) {
+        if (ti->t == RTT_NIL) {
             ti = &vm.GetTypeInfo(typeoff = ti->subt);
         }
         if (end == data) Truncated();
         switch (ti->t) {
-            case V_INT: {
+            case RTT_INT: {
                 PushV(DecodeVarintS(data, end));
                 break;
             }
-            case V_FLOAT: {
+            case RTT_FLOAT: {
                 float f;
                 if (end - data < (ptrdiff_t)sizeof(float)) Truncated();
                 memcpy(&f, data, sizeof(float));
@@ -170,9 +170,9 @@ struct LobsterBinaryParser : Deserializer {
                 PushV(f);
                 break;
             }
-            case V_STRING: {
+            case RTT_STRING: {
                 auto len = DecodeVarintU(data, end);
-                if (!len && base_ti->t == V_NIL) {
+                if (!len && base_ti->t == RTT_NIL) {
                     PushV(NilVal());
                 } else {
                     auto str = vm.NewString(string_view((const char *)data, (size_t)len));
@@ -181,9 +181,9 @@ struct LobsterBinaryParser : Deserializer {
                 }
                 break;
             }
-            case V_VECTOR: {
+            case RTT_VECTOR: {
                 auto len = DecodeVarintU(data, end);
-                if (!len && base_ti->t == V_NIL) {
+                if (!len && base_ti->t == RTT_NIL) {
                     PushV(NilVal());
                 } else {
                     auto stack_start = stack.size();
@@ -191,7 +191,7 @@ struct LobsterBinaryParser : Deserializer {
                         ParseElem(data, end, ti->subt);
                     }
                     auto &sti = vm.GetTypeInfo(ti->subt);
-                    auto width = IsStruct(sti.t) ? sti.len : 1;
+                    auto width = RTIsStruct(sti.t) ? sti.len : 1;
                     auto len = iint(stack.size() - stack_start);
                     auto n = len / width;
                     auto vec = vm.NewVec(n, n, typeoff);
@@ -201,9 +201,9 @@ struct LobsterBinaryParser : Deserializer {
                 }
                 break;
             }
-            case V_CLASS: {
+            case RTT_CLASS: {
                 auto elen = (int)DecodeVarintU(data, end);
-                if (!elen && base_ti->t == V_NIL) {
+                if (!elen && base_ti->t == RTT_NIL) {
                     PushV(NilVal());
                 } else {
                     auto ser_id = DecodeVarintU(data, end);
@@ -238,8 +238,8 @@ struct LobsterBinaryParser : Deserializer {
                 }
                 break;
             }
-            case V_STRUCT_S:
-            case V_STRUCT_R: {
+            case RTT_STRUCT_S:
+            case RTT_STRUCT_R: {
                 auto stack_start = stack.size();
                 auto NumElems = [&]() { return iint(stack.size() - stack_start); };
                 // NOTE: this provides no protection against structs changing in size,

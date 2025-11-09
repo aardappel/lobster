@@ -227,5 +227,8 @@
     <ClInclude Include="..\src\lobster\tonative.h">
       <Filter>compiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\type.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

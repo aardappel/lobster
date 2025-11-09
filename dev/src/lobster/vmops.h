@@ -156,13 +156,13 @@ VM_INLINE void U_CALL(VM &, StackPtr, int) {
 
 VM_INLINE void U_CALLV(VM &vm, StackPtr sp) {
     Value fun = Pop(sp);
-    VMTYPEEQ(fun, V_FUNCTION);
+    VMTYPEEQ(fun, RTT_FUNCTION);
     vm.next_call_target = fun.ip();
 }
 
 VM_INLINE void U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     auto self = TopM(sp, stack_idx);
-    VMTYPEEQ(self, V_CLASS);
+    VMTYPEEQ(self, RTT_CLASS);
     auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
     vm.next_call_target = vm.vma.native_vtables[start + vtable_idx];
     assert(vm.next_call_target);
@@ -199,7 +199,7 @@ VM_INLINE void U_EXIT(VM &vm, StackPtr sp, int tidx) {
 
 VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
     auto &i = TopMR(sp, 1);
-    TYPE_ASSERT(i.type == V_INT);
+    TYPE_ASSERT(i.type == RTT_INT);
     i.setival(i.ival() + 1);
     return i.ival() < len;
 }
@@ -243,7 +243,7 @@ VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp, int bitmask) {
 
 VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
     auto i = TopM(sp, 1);  // This relies on for being inlined, otherwise it would be 2.
-    TYPE_ASSERT(i.type == V_INT);
+    TYPE_ASSERT(i.type == RTT_INT);
     Push(sp, i);
 }
 
@@ -357,46 +357,46 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
     if constexpr ((extras & 2) != 0) res = (decltype(res))fmod((double)av, (double)bv);
 
 #define _IOP(op, extras) \
-    TYPE_ASSERT(a.type == V_INT && b.type == V_INT); \
+    TYPE_ASSERT(a.type == RTT_INT && b.type == RTT_INT); \
     TYPEOP(op, extras, a.ival(), b.ival())
 #define _FOP(op, extras) \
-    TYPE_ASSERT(a.type == V_FLOAT && b.type == V_FLOAT); \
+    TYPE_ASSERT(a.type == RTT_FLOAT && b.type == RTT_FLOAT); \
     TYPEOP(op, extras, a.fval(), b.fval())
 
-#define _VOPS(op, extras, V_T, field, geta) { \
+#define _VOPS(op, extras, RT_T, field, geta) { \
     auto b = Pop(sp); \
-    VMTYPEEQ(b, V_T) \
+    VMTYPEEQ(b, RT_T) \
     auto veca = geta; \
     for (int j = 0; j < len; j++) { \
         auto &a = veca[j]; \
-        VMTYPEEQ(a, V_T) \
+        VMTYPEEQ(a, RT_T) \
         auto bv = b.field(); \
         TYPEOP(op, extras, a.field(), bv) \
         a = res; \
     } \
 }
-#define _SOPV(op, extras, V_T, field, geta) { \
+#define _SOPV(op, extras, RT_T, field, geta) { \
     PopN(sp, len); \
     auto vecb = TopPtr(sp); \
     auto a = geta; \
-    VMTYPEEQ(a, V_T) \
+    VMTYPEEQ(a, RT_T) \
     for (int j = 0; j < len; j++) { \
         auto &b = vecb[j]; \
-        VMTYPEEQ(b, V_T) \
+        VMTYPEEQ(b, RT_T) \
         auto av = a.field(); \
         TYPEOP(op, extras, av, b.field()) \
         Push(sp, res); \
     } \
 }
-#define _VOPV(op, extras, V_T, field, geta) { \
+#define _VOPV(op, extras, RT_T, field, geta) { \
     PopN(sp, len); \
     auto vecb = TopPtr(sp); \
     auto veca = geta; \
     for (int j = 0; j < len; j++) { \
         auto b = vecb[j]; \
-        VMTYPEEQ(b, V_T) \
+        VMTYPEEQ(b, RT_T) \
         auto &a = veca[j]; \
-        VMTYPEEQ(a, V_T) \
+        VMTYPEEQ(a, RT_T) \
         auto bv = b.field(); \
         TYPEOP(op, extras, a.field(), bv) \
         a = res; \
@@ -414,12 +414,12 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
     Push(sp, all); \
 }
 
-#define _IVOPS(op, extras, geta) _VOPS(op, extras, V_INT,   ival, geta)
-#define _IVOPV(op, extras, geta) _VOPV(op, extras, V_INT,   ival, geta)
-#define _SOPIV(op, extras, geta) _SOPV(op, extras, V_INT,   ival, geta)
-#define _FVOPS(op, extras, geta) _VOPS(op, extras, V_FLOAT, fval, geta)
-#define _FVOPV(op, extras, geta) _VOPV(op, extras, V_FLOAT, fval, geta)
-#define _SOPFV(op, extras, geta) _SOPV(op, extras, V_FLOAT, fval, geta)
+#define _IVOPS(op, extras, geta) _VOPS(op, extras, RTT_INT,   ival, geta)
+#define _IVOPV(op, extras, geta) _VOPV(op, extras, RTT_INT,   ival, geta)
+#define _SOPIV(op, extras, geta) _SOPV(op, extras, RTT_INT,   ival, geta)
+#define _FVOPS(op, extras, geta) _VOPS(op, extras, RTT_FLOAT, fval, geta)
+#define _FVOPV(op, extras, geta) _VOPV(op, extras, RTT_FLOAT, fval, geta)
+#define _SOPFV(op, extras, geta) _SOPV(op, extras, RTT_FLOAT, fval, geta)
 
 #define _SCAT() Value res = vm.NewString(a.sval()->strv(), b.sval()->strv())
 
@@ -571,7 +571,7 @@ VM_INLINE void U_IVUMINUS(VM &vm, StackPtr sp, int len) {
     auto vec = TopPtr(sp) - len;
     for (int i = 0; i < len; i++) {
         auto &a = vec[i];
-        VMTYPEEQ(a, V_INT);
+        VMTYPEEQ(a, RTT_INT);
         a = -a.ival();
     }
 }
@@ -580,7 +580,7 @@ VM_INLINE void U_FVUMINUS(VM &vm, StackPtr sp, int len) {
     auto vec = TopPtr(sp) - len;
     for (int i = 0; i < len; i++) {
         auto &a = vec[i];
-        VMTYPEEQ(a, V_FLOAT);
+        VMTYPEEQ(a, RTT_FLOAT);
         a = -a.fval();
     }
 }
@@ -606,7 +606,7 @@ VM_INLINE void U_NEG(VM &, StackPtr sp)    { auto a = Pop(sp); Push(sp, ~a.ival(
 
 VM_INLINE void U_I2F(VM &vm, StackPtr sp) {
     Value a = Pop(sp);
-    VMTYPEEQ(a, V_INT);
+    VMTYPEEQ(a, RTT_INT);
     Push(sp, (double)a.ival());
 }
 
@@ -794,7 +794,7 @@ VM_INLINE void U_ISTYPE(VM &vm, StackPtr sp, int ty) {
     auto v = Pop(sp);
     // Optimizer guarantees we don't have to deal with scalars.
     if (v.refnil()) Push(sp, v.ref()->tti == to);
-    else Push(sp, vm.GetTypeInfo(to).t == V_NIL);  // FIXME: can replace by fixed type_elem_t ?
+    else Push(sp, vm.GetTypeInfo(to).t == RTT_NIL);  // FIXME: can replace by fixed type_elem_t ?
 }
 
 VM_INLINE void U_ABORT(VM &vm, StackPtr) {
@@ -921,7 +921,7 @@ VM_INLINE void U_LV_WRITEREF(VM &vm, StackPtr sp) {
     auto &a = *vm.temp_lval;
     auto  b = Pop(sp);
     a.LTDECRTNIL(vm);
-    TYPE_ASSERT(a.type == b.type || a.type == V_NIL || b.type == V_NIL);
+    TYPE_ASSERT(a.type == b.type || a.type == RTT_NIL || b.type == RTT_NIL);
     a = b;
 }
 
