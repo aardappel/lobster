@@ -214,7 +214,7 @@ run_test("types"):
         def o<T>(): return []::T        // As vector type.
         assert equal(o<string>(), []::string)
         def p<T>(): return typeof T     // Use with typeof.
-        assert p<string>() == 3
+        assert p<string>() == 5
 
         // Use without an named specialization type.
         def t1<V>(aa:A<V>) -> A<V>:

@@ -52,6 +52,10 @@ struct Deserializer {
 
     bool PushDefault(type_elem_t typeoff, type_elem_t defval, const TIField *fields) {
         auto &ti = vm.GetTypeInfo(typeoff);
+        if (ti.is_nil) {
+            PushV(NilVal());
+            return true;
+        }
         switch (ti.t) {
             case RTT_INT: {
                 auto dv = vm.GetDefaultScalar<iint>(defval);
@@ -63,9 +67,6 @@ struct Deserializer {
                 PushV(dv);
                 break;
             }
-            case RTT_NIL:
-                PushV(NilVal());
-                break;
             case RTT_STRING:
                 PushV(vm.NewString(0), true);
                 break;
@@ -151,11 +152,7 @@ struct LobsterBinaryParser : Deserializer {
     }
 
     void ParseElem(const uint8_t *&data, const uint8_t *end, type_elem_t typeoff) {
-        auto base_ti = &vm.GetTypeInfo(typeoff);
-        auto ti = base_ti;
-        if (ti->t == RTT_NIL) {
-            ti = &vm.GetTypeInfo(typeoff = ti->subt);
-        }
+        auto ti = &vm.GetTypeInfo(typeoff);
         if (end == data) Truncated();
         switch (ti->t) {
             case RTT_INT: {
@@ -172,7 +169,7 @@ struct LobsterBinaryParser : Deserializer {
             }
             case RTT_STRING: {
                 auto len = DecodeVarintU(data, end);
-                if (!len && base_ti->t == RTT_NIL) {
+                if (!len && ti->is_nil) {
                     PushV(NilVal());
                 } else {
                     auto str = vm.NewString(string_view((const char *)data, (size_t)len));
@@ -183,7 +180,7 @@ struct LobsterBinaryParser : Deserializer {
             }
             case RTT_VECTOR: {
                 auto len = DecodeVarintU(data, end);
-                if (!len && base_ti->t == RTT_NIL) {
+                if (!len && ti->is_nil) {
                     PushV(NilVal());
                 } else {
                     auto stack_start = stack.size();
@@ -203,7 +200,7 @@ struct LobsterBinaryParser : Deserializer {
             }
             case RTT_CLASS: {
                 auto elen = (int)DecodeVarintU(data, end);
-                if (!elen && base_ti->t == RTT_NIL) {
+                if (!elen && ti->is_nil) {
                     PushV(NilVal());
                 } else {
                     auto ser_id = DecodeVarintU(data, end);

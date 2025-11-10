@@ -484,22 +484,21 @@ Value Value::CopyRef(VM &vm, iint depth) {
 }
 
 string TypeInfo::Debug(VM &vm, bool rec) const {
+    string r;
     if (t == RTT_VECTOR) {
-        return cat("[", vm.GetTypeInfo(subt).Debug(vm, false), "]");
-    } else if (t == RTT_NIL) {
-        return cat(vm.GetTypeInfo(subt).Debug(vm, false), "?");
+        r = cat("[", vm.GetTypeInfo(subt).Debug(vm, false), "]");
     } else if (RTIsUDT(t)) {
-        string s = string(vm.StructName(*this));
+        r = string(vm.StructName(*this));
         if (rec) {
-            s += "{";
+            r += "{";
             for (int i = 0; i < len; i++)
-                s += vm.GetTypeInfo(elemtypes[i].type).Debug(vm, false) + ",";
-            s += "}";
+                r += vm.GetTypeInfo(elemtypes[i].type).Debug(vm, false) + ",";
+            r += "}";
         }
-        return s;
     } else {
-        return string(BaseTypeName(t));
+        r = string(BaseTypeName(t));
     }
+    return is_nil ? r + "?" : r;
 }
 
 void TypeInfo::Print(VM &vm, string &sd, void *ref) const {
@@ -508,10 +507,6 @@ void TypeInfo::Print(VM &vm, string &sd, void *ref) const {
             append(sd, "[");
             vm.GetTypeInfo(subt).Print(vm, sd, nullptr);
             append(sd, "]");
-            break;
-        case RTT_NIL:
-            vm.GetTypeInfo(subt).Print(vm, sd, ref);
-            append(sd, "?");
             break;
         case RTT_CLASS:
         case RTT_STRUCT_R:
@@ -529,24 +524,26 @@ void TypeInfo::Print(VM &vm, string &sd, void *ref) const {
             append(sd, BaseTypeName(t));
             break;
     }
+    if (is_nil) append(sd, "?");
 }
 
 #define ELEMTYPE(acc, ass) \
-    auto &_ti = ti(vm); \
-    ass; \
-    auto &sti = vm.GetTypeInfo(_ti.acc); \
-    return sti.t == RTT_NIL ? vm.GetTypeInfo(sti.subt) : sti;
 
 const TypeInfo &LObject::ElemTypeS(VM &vm, iint i) const {
-    ELEMTYPE(elemtypes[i].type, assert(i < _ti.len));
+    auto &_ti = ti(vm);
+    assert(i < _ti.len);
+    return vm.GetTypeInfo(_ti.elemtypes[i].type);
 }
 
 const TypeInfo &LObject::ElemTypeSP(VM &vm, iint i) const {
-    ELEMTYPE(GetElemOrParent(i), assert(i < _ti.len));
+    auto &_ti = ti(vm);
+    assert(i < _ti.len);
+    return vm.GetTypeInfo(_ti.GetElemOrParent(i));
 }
 
 const TypeInfo &LVector::ElemType(VM &vm) const {
-    ELEMTYPE(subt, {})
+    auto &_ti = ti(vm);
+    return vm.GetTypeInfo(_ti.subt);
 }
 
 void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char closeb,

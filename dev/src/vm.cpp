@@ -420,7 +420,7 @@ void VM::DumpStackTrace(string &sd, bool python_ordering) {
         #else
             auto debug_type = ti.t;
         #endif
-        if (debug_type == RTT_NIL && ti.t != RTT_NIL) {
+        if (debug_type == RTT_NIL && !ti.is_nil) {
             // Uninitialized.
             append(sd, ":");
             ti.Print(vm, sd, nullptr);
@@ -499,7 +499,7 @@ void VM::DumpStackTraceMemory(const string &err) {
         #else
             auto debug_type = ti.t;
         #endif
-        if (debug_type == RTT_NIL && ti.t != RTT_NIL) {
+        if (debug_type == RTT_NIL && !ti.is_nil) {
             // Just skip, only useful in debug.
         } else if (ti.t != debug_type && !RTIsStruct(ti.t)) {
             // Just skip, only useful in debug.
@@ -650,15 +650,24 @@ void VM::CallFunctionValue(Value f) {
 }
 
 string VM::ProperTypeName(const TypeInfo &ti) {
+    string r;
     switch (ti.t) {
         case RTT_STRUCT_R:
         case RTT_STRUCT_S:
-        case RTT_CLASS: return string(ReverseLookupType(ti.structidx));
-        case RTT_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
-        case RTT_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
-        case RTT_INT: return ti.enumidx >= 0 ? string(EnumName(ti.enumidx)) : "int";
-        default: return string(BaseTypeName(ti.t));
+        case RTT_CLASS:
+            r = string(ReverseLookupType(ti.structidx));
+            break;
+        case RTT_VECTOR:
+            r = "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
+            break;
+        case RTT_INT:
+            r = ti.enumidx >= 0 ? string(EnumName(ti.enumidx)) : "int";
+            break;
+        default:
+            r = string(BaseTypeName(ti.t));
+            break;
     }
+    return ti.is_nil ? r + "?" : r;
 }
 
 void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {

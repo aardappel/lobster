@@ -103,9 +103,6 @@ struct ValueParser : Deserializer {
 
     void ParseFactor(type_elem_t typeoff, bool push) {
         auto ti = &vm.GetTypeInfo(typeoff);
-        if (ti->t == RTT_NIL && lex.token != T_NIL) {
-            ti = &vm.GetTypeInfo(typeoff = ti->subt);
-        }
         auto vt = ti->t;
         switch (lex.token) {
             case T_INT: {
@@ -133,7 +130,8 @@ struct ValueParser : Deserializer {
                 break;
             }
             case T_NIL: {
-                ExpectType(RTT_NIL, vt);
+                if (!ti->is_nil)
+                    lex.Error("nillable type required, " + BaseTypeName(vt) + " given");
                 lex.Next();
                 if (push) PushV(NilVal());
                 break;
@@ -231,9 +229,6 @@ struct FlexBufferParser : Deserializer {
     void ParseFactor(flexbuffers::Reference r, type_elem_t typeoff, string_view parent_field_name) {
         auto ti = &vm.GetTypeInfo(typeoff);
         auto ft = r.GetType();
-        if (ti->t == RTT_NIL && ft != flexbuffers::FBT_NULL) {
-            ti = &vm.GetTypeInfo(typeoff = ti->subt);
-        }
         auto vt = ti->t;
         switch (ft) {
             case flexbuffers::FBT_INT:
@@ -259,7 +254,9 @@ struct FlexBufferParser : Deserializer {
                 break;
             }
             case flexbuffers::FBT_NULL: {
-                ExpectType(RTT_NIL, vt, parent_field_name);
+                if (!ti->is_nil)
+                    Error(cat(parent_field_name, ": nillable type required, ",
+                        BaseTypeName(vt), " given"));
                 PushV(NilVal());
                 break;
             }

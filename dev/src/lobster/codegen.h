@@ -123,7 +123,7 @@ struct CodeGen  {
         //LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs, " -> ", tstack.size());
     }
 
-    const int ti_num_udt_fields = 6;
+    const int ti_num_udt_fields = 7;
     const int ti_num_udt_per_field = 3;
 
     type_elem_t PushDefaultValue(ValueType vt, VTValue val) {
@@ -204,14 +204,16 @@ struct CodeGen  {
     }
 
     // Make a table for use as VM runtime type.
-    type_elem_t GetTypeTableOffset(TypeRef type) {
+    type_elem_t GetTypeTableOffset(TypeRef type, bool is_nil = false) {
         small_vector<type_elem_t, 2> tt;
         tt.push_back((type_elem_t)VT2RT(type->t));
+        tt.push_back((type_elem_t)is_nil);
         switch (type->t) {
             case V_INT:
                 tt.push_back((type_elem_t)(type->e ? type->e->idx : -1));
                 break;
             case V_NIL:
+                return GetTypeTableOffset(type->sub, true);
             case V_VECTOR:
                 tt.push_back(GetTypeTableOffset(type->sub));
                 break;

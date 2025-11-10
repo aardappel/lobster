@@ -672,9 +672,6 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             *v = LStringInputText(vm, l, v->sval()).first;
             break;
         }
-        case RTT_NIL:
-            ValToGUI(vm, v, &vm.GetTypeInfo(ti->subt), label, expanded, false);
-            break;
         case RTT_RESOURCE: {
             if (v->False()) {
                 Nil(vm, nullptr, ti);
@@ -812,7 +809,7 @@ void DumpStackTrace(VM &vm) {
         #else
             auto debug_type = ti.t;
         #endif
-        if (debug_type == RTT_NIL && ti.t != RTT_NIL) {
+        if (debug_type == RTT_NIL && !ti.is_nil) {
             // Uninitialized.
             auto sd = string(name.sv);
             append(sd, ":");

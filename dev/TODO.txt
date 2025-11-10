@@ -1557,13 +1557,6 @@
       - or you could introduce bit-fields, essentially: multiple fields that share the same
         64-bit struct entry.
 
-- remove RTT_NIL from elemtypes and ElemTypeS, no users need this information, in fact all are
-  working around it.
-  - Also maybe replace uses that just want to know if its a ref or not by a table that lists
-    all refs. could be two lists for nil and non-nil?
-  - For vectors can just stick a bool in TypeInfo to speed up this case?
-    - does its type-info even need vector wrapped?
-
 - remove or bound LT_ANY, it makes checks for keep/borrow fragile and can perculate.
   - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
 

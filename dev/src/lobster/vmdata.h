@@ -63,7 +63,7 @@ enum RTType : int {
     RTT_STRING = -3,
     RTT_CLASS = -2,
     RTT_VECTOR = -1,
-    RTT_NIL = 0,          // VM: null reference, Type checker: nillable.
+    RTT_NIL = 0,          // Only used as the type of a nullptr value in debug mode, not a nillable type, see is_nil.
     RTT_INT,
     RTT_FLOAT,
     RTT_FUNCTION,
@@ -101,19 +101,19 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
     // These must correspond to typetable init in Codegen constructor.
     TYPE_ELEM_UNDEFINED = -1,
     TYPE_ELEM_INT = 0,  // This has -1 for its enumidx.
-    TYPE_ELEM_FLOAT = 2,
-    TYPE_ELEM_STRING = 3,
-    TYPE_ELEM_RESOURCE = 4,
-    TYPE_ELEM_ANY = 5,
-    TYPE_ELEM_VALUEBUF = 6,
-    TYPE_ELEM_VECTOR_OF_INT = 7,   // 2 each.
-    TYPE_ELEM_VECTOR_OF_FLOAT = 9,
-    TYPE_ELEM_VECTOR_OF_STRING = 11,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 13,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 15,
-    TYPE_ELEM_VECTOR_OF_RESOURCE = 17,
+    TYPE_ELEM_FLOAT = 3,
+    TYPE_ELEM_STRING = 5,
+    TYPE_ELEM_RESOURCE = 7,
+    TYPE_ELEM_ANY = 9,
+    TYPE_ELEM_VALUEBUF = 11,
+    TYPE_ELEM_VECTOR_OF_INT = 13,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 16,
+    TYPE_ELEM_VECTOR_OF_STRING = 19,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 22,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 25,
+    TYPE_ELEM_VECTOR_OF_RESOURCE = 28,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 19
+    TYPE_ELEM_FIXED_OFFSET_END = 31
 };
 
 struct VM;
@@ -126,8 +126,9 @@ struct TIField {
 
 struct TypeInfo {
     RTType t;
+    int is_nil;
     union {
-        type_elem_t subt;  // RTT_VECTOR | RTT_NIL
+        type_elem_t subt;  // RTT_VECTOR
         struct {           // RTT_CLASS, RT_STRUCT_*
             int structidx;
             int len;

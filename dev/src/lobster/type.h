@@ -29,7 +29,7 @@ enum ValueType : int {
     V_STRING = -3,
     V_CLASS = -2,
     V_VECTOR = -1,
-    V_NIL = 0,          // VM: null reference, Type checker: nillable.
+    V_NIL = 0,          // Nillable type of the above.
     V_INT,
     V_FLOAT,
     V_FUNCTION,
