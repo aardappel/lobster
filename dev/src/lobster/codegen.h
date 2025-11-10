@@ -615,12 +615,11 @@ struct CodeGen  {
         append(sd, "static void fun_", sf.idx, "(VMRef, StackPtr);\n");
     }
 
-    string IdName(int i, bool is_whole_struct) {
+    string IdName(int i, bool is_whole_struct, TypeRef type) {
         auto ididx = sids[i].ididx();
         auto idx = sids[i].idx();
         auto &basename = st.identtable[ididx]->name;
-        auto ti = (TypeInfo *)(&type_table[sids[i].typeidx()]);
-        if (is_whole_struct || !IsStruct(RT2VT(ti->t))) {
+        if (is_whole_struct || !IsStruct(type->t)) {
             return basename;
         } else {
             int j = i;
@@ -677,37 +676,37 @@ struct CodeGen  {
             if (used_as_freevar) {
                 EmitOp(IL_PUSHVARVF, 0, width);
                 append(cb, "    U_PUSHVARVF(vm, ", sp(), ", ", offset, ", ", width, ");");
-                comment(IdName(offset, false));
+                comment(IdName(offset, false, type));
             } else {
                 EmitOp(IL_PUSHVARVL, 0, width);
                 for (int i = 0; i < width; i++) {
                     GenValueCopy(cb, sp(-i), cat("locals + ", var_to_local[offset + i]), "");
-                    comment(cat(IdName(offset, true), ".", i));
+                    comment(cat(IdName(offset, true, type), ".", i));
                 }
             }
         } else {
             if (used_as_freevar) {
                 EmitOp(IL_PUSHVARF);
                 append(cb, "    U_PUSHVARF(vm, ", sp(), ", ", offset, ");");
-                comment(IdName(offset, false));
+                comment(IdName(offset, false, type));
             } else {
                 EmitOp(IL_PUSHVARL);
                 GenValueCopy(cb, sp(0), cat("locals + ", var_to_local[offset]), "");
-                comment(IdName(offset, false));
+                comment(IdName(offset, false, type));
             }
         }
     }
 
-    void EmitLVAL_VARL(int offset) {
+    void EmitLVAL_VARL(int offset, TypeRef type) {
         EmitOp(IL_LVAL_VARL);
         append(cb, "    ", vmref(), "temp_lval = locals + ", var_to_local[offset], ";");
-        comment(IdName(offset, false));
+        comment(IdName(offset, false, type));
     }
 
-    void EmitLVAL_VARF(int offset) {
+    void EmitLVAL_VARF(int offset, TypeRef type) {
         EmitOp(IL_LVAL_VARF);
         append(cb, "    U_LVAL_VARF(vm, ", sp(), ", ", offset, ");");
-        comment(IdName(offset, false));
+        comment(IdName(offset, false, type));
     }
 
     void EmitPUSHSTR(int stringtableindex) {
@@ -882,27 +881,24 @@ struct CodeGen  {
         has_profile = true;
     }
 
-    void EmitISTYPE(int type_idx) {
+    void EmitISTYPE(int type_idx, TypeRef type) {
         EmitOp(IL_ISTYPE);
         append(cb, "    U_ISTYPE(vm, ", sp(), ", ", type_idx, ");");
-        auto ti = ((TypeInfo *)(&type_table[type_idx]));
-        if (IsUDT(RT2VT(ti->t))) comment(st.udttable[ti->structidx]->name);
+        if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
     }
 
-    void EmitNEWOBJECT(int type_idx, int uses) {
+    void EmitNEWOBJECT(int type_idx, int uses, TypeRef type) {
         EmitOp(IL_NEWOBJECT, uses);
         append(cb, "    U_NEWOBJECT(vm, ", sp(), ", ", type_idx, ");");
-        auto ti = ((TypeInfo *)(&type_table[type_idx]));
-        if (IsUDT(RT2VT(ti->t))) comment(st.udttable[ti->structidx]->name);
+        if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
     }
 
-    void EmitST2S(int type_idx, int uses, int defs) {
+    void EmitST2S(int type_idx, int uses, int defs, TypeRef type) {
         EmitOp(IL_ST2S, uses, defs);
         append(cb, "    U_ST2S(vm, ", sp(), ", ", type_idx, ");");
-        auto ti = ((TypeInfo *)(&type_table[type_idx]));
-        if (IsUDT(RT2VT(ti->t))) comment(st.udttable[ti->structidx]->name);
+        if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
     }
 
@@ -1643,9 +1639,9 @@ struct CodeGen  {
 
     void GenLvalVar(const SpecIdent &sid, int offset) {
         if (sid.used_as_freevar)
-            EmitLVAL_VARF(sid.Idx() + offset);
+            EmitLVAL_VARF(sid.Idx() + offset, sid.type);
         else
-            EmitLVAL_VARL(sid.Idx() + offset);
+            EmitLVAL_VARL(sid.Idx() + offset, sid.type);
     }
 
     void GenPushField(size_t retval, Node *object, TypeRef stype, TypeRef ftype, int offset) {
@@ -1985,7 +1981,7 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
         case V_STRUCT_R:
         case V_STRUCT_S: {
             // TODO: can also roll these into A2S?
-            cg.EmitST2S(cg.GetTypeTableOffset(child->exptype), ValWidth(child->exptype), 1);
+            cg.EmitST2S(cg.GetTypeTableOffset(child->exptype), ValWidth(child->exptype), 1, child->exptype);
             break;
         }
         default: {
@@ -2643,7 +2639,7 @@ void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
     if (IsStruct(exptype->t)) {
         // This is now a no-op! Struct elements sit inline on the stack.
     } else {
-        cg.EmitNEWOBJECT(offset, arg_width);
+        cg.EmitNEWOBJECT(offset, arg_width, exptype);
     }
 }
 
@@ -2659,7 +2655,7 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     assert(!IsUnBoxed(child->exptype->t));
     if (retval) {
         cg.TakeTemp(1, false);
-        cg.EmitISTYPE(cg.GetTypeTableOffset(resolvedtype));
+        cg.EmitISTYPE(cg.GetTypeTableOffset(resolvedtype), resolvedtype);
     }
 }
 

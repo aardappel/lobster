@@ -77,11 +77,6 @@ inline RTType VT2RT(ValueType t) {
     }
 }
 
-// This one should never be needed, and should later be removed, but here now for gradual refactoring.
-inline ValueType RT2VT(RTType t) {
-    return (ValueType)t;
-}
-
 inline string_view VTBaseTypeName(ValueType t) {
     static const char *typenames[] = {
         "any", "<value_buffer>",
@@ -115,10 +110,10 @@ union VTValue {
 
     void ToString(string &sd, ValueType t) const {
         switch (t) {
-            case RTT_INT:
+            case V_INT:
                 append(sd, i);
                 break;
-            case RTT_FLOAT:
+            case V_FLOAT:
                 sd += to_string_float(f);
                 break;
             default:
