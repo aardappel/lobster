@@ -943,7 +943,7 @@ struct CodeGen  {
 
     void SetToNil(string &sd, string_view target) {
         if (cpp)
-            append(sd, "    *(", target, ") = Value(0, lobster::V_NIL);\n");
+            append(sd, "    *(", target, ") = Value(0, lobster::RTT_NIL);\n");
         else
             append(sd, "    { StackPtr _sp = ", target, "; _sp->ival = 0;", SetType(V_NIL), " }\n");
     }
