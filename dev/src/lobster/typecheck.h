@@ -3556,9 +3556,7 @@ Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
     tc.TT(child, 1, reqret ? LT_ANY : LT_BORROW);
     exptype = child->exptype;
     lt = child->lt;
-
     tc.NoStruct(*child, "assert");
-
     // Special case, add to flow:
     tc.CheckFlowTypeChanges(true, child);
     if (IsRef(exptype->t)) {

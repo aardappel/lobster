@@ -77,27 +77,6 @@ inline RTType VT2RT(ValueType t) {
     }
 }
 
-inline string_view VTBaseTypeName(ValueType t) {
-    static const char *typenames[] = {
-        "any", "<value_buffer>",
-        "struct_ref",
-        "resource", "string", "class", "vector",
-        "nil",
-        "int",
-        "float",
-        "function",
-        "struct_scalar",
-        "numeric_struct",
-        "unknown", "type_variable", "typeid", "void",
-        "tuple", "unresolved_udt", "undefined",
-    };
-    if (t <= V_MINVTTYPES || t >= V_MAXVTTYPES) {
-        assert(false);
-        return "<internal-error-type>";
-    }
-    return typenames[t - V_MINVTTYPES - 1];
-}
-
 // The compile time equivalent to Value, used in ConstVal etc.
 union VTValue {
     int64_t i;
@@ -110,14 +89,11 @@ union VTValue {
 
     void ToString(string &sd, ValueType t) const {
         switch (t) {
-            case V_INT:
+            default:
                 append(sd, i);
                 break;
             case V_FLOAT:
                 sd += to_string_float(f);
-                break;
-            default:
-                append(sd, "(", VTBaseTypeName(t), ")");
                 break;
         }
     }

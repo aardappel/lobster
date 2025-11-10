@@ -1582,8 +1582,20 @@ inline string TypeName(UnTypeRef type, bool tuple_brackets) {
             return string(type->tv->name);
         case V_RESOURCE:
             return type->rt ? cat("resource<", type->rt->name, ">") : "resource";
+        case V_STRING:
+            return "string";
+        case V_FLOAT:
+            return "float";
+        case V_VOID:
+            return "void";
+        case V_VAR:
+            return "unknown";
+        case V_UNDEFINED:
+            return "undefined";
+        case V_ANY:
+            return "any";
         default:
-            return string(VTBaseTypeName(type->t));
+            return "<internal-error-type>";
     }
 }
 
