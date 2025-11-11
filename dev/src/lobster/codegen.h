@@ -204,16 +204,16 @@ struct CodeGen  {
     }
 
     // Make a table for use as VM runtime type.
-    type_elem_t GetTypeTableOffset(TypeRef type, bool is_nil = false) {
+    type_elem_t GetTypeTableOffset(TypeRef type, type_elem_t non_nil_version = (type_elem_t)0) {
         small_vector<type_elem_t, 2> tt;
         tt.push_back((type_elem_t)VT2RT(type->t));
-        tt.push_back((type_elem_t)is_nil);
+        tt.push_back(non_nil_version);
         switch (type->t) {
             case V_INT:
                 tt.push_back((type_elem_t)(type->e ? type->e->idx : -1));
                 break;
             case V_NIL:
-                return GetTypeTableOffset(type->sub, true);
+                return GetTypeTableOffset(type->sub, GetTypeTableOffset(type->sub));
             case V_VECTOR:
                 tt.push_back(GetTypeTableOffset(type->sub));
                 break;

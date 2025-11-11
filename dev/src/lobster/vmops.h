@@ -794,7 +794,7 @@ VM_INLINE void U_ISTYPE(VM &vm, StackPtr sp, int ty) {
     auto v = Pop(sp);
     // Optimizer guarantees we don't have to deal with scalars.
     if (v.refnil()) Push(sp, v.ref()->tti == to);
-    else Push(sp, vm.GetTypeInfo(to).is_nil);
+    else Push(sp, vm.GetTypeInfo(to).is_nil != 0);
 }
 
 VM_INLINE void U_ABORT(VM &vm, StackPtr) {

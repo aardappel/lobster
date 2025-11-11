@@ -126,7 +126,7 @@ struct TIField {
 
 struct TypeInfo {
     RTType t;
-    int is_nil;
+    type_elem_t is_nil;    // If not 0, offset to non-nil version.
     union {
         type_elem_t subt;  // RTT_VECTOR
         struct {           // RTT_CLASS, RT_STRUCT_*

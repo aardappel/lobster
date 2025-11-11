@@ -103,6 +103,9 @@ struct ValueParser : Deserializer {
 
     void ParseFactor(type_elem_t typeoff, bool push) {
         auto ti = &vm.GetTypeInfo(typeoff);
+        if (ti->is_nil && lex.token != T_NIL) {
+            ti = &vm.GetTypeInfo(typeoff = ti->is_nil);
+        }
         auto vt = ti->t;
         switch (lex.token) {
             case T_INT: {
@@ -229,6 +232,9 @@ struct FlexBufferParser : Deserializer {
     void ParseFactor(flexbuffers::Reference r, type_elem_t typeoff, string_view parent_field_name) {
         auto ti = &vm.GetTypeInfo(typeoff);
         auto ft = r.GetType();
+        if (ti->is_nil && ft != flexbuffers::FBT_NULL) {
+            ti = &vm.GetTypeInfo(typeoff = ti->is_nil);
+        }
         auto vt = ti->t;
         switch (ft) {
             case flexbuffers::FBT_INT:
