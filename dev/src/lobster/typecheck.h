@@ -3127,7 +3127,7 @@ Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
         exptype = tc.st.Wrap(tc.st.NewTypeVar(), V_NIL, &line);
     } else {
         exptype = tc.st.ResolveTypeVars(giventype, this->line);
-        if (!tc.st.IsNillable(exptype->sub)) tc.Error(*this, "illegal nil type");
+        if (exptype->sub->n != NL_REF) tc.Error(*this, "illegal nil type");
     }
     lt = LT_ANY;
     return this;
@@ -3746,7 +3746,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                 }
 
                 if (ret.optional) {
-                    if (!tc.st.IsNillable(type))
+                    if (type->n != NL_REF)
                         tc.Error(*this, "argument ", sa + 1, " to ", Q(nf->name),
                                         " has to be a reference type");
                     type = tc.st.Wrap(type, V_NIL, &line);

@@ -87,8 +87,8 @@ struct Narg {
                     break;
                 case '?':
                     optional = true;
-                    if (IsRef(vttype->t)) {
-                        auto wrapped = WrapKnown(vttype, V_NIL);
+                    if (vttype->n == NL_REF) {
+                        auto wrapped = WrapKnownNil(vttype);
                         if (wrapped.Null()) nf->Error("unknown nillable type");
                         vttype = wrapped;
                     }
@@ -104,7 +104,7 @@ struct Narg {
                     } else {
                         if (*tid < '/' || *tid > '9') nf->Error("int out of range");
                         char val = *tid++ - '0';
-                        if (vttype->ElementIfNil()->Numeric())
+                        if (vttype->Numeric())
                             default_val = val;
                         else if (vttype->t == V_STRUCT_NUM)
                             vttype = FixedNumStruct(vttype->ns->t, val);

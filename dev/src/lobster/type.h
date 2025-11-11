@@ -29,7 +29,7 @@ enum ValueType : int {
     V_STRING = -3,
     V_CLASS = -2,
     V_VECTOR = -1,
-    V_NIL = 0,          // Nillable type of the above.
+    V_NIL_UNUSED = 0,          // Nillable type of the above.
     V_INT,
     V_FLOAT,
     V_FUNCTION,
@@ -45,12 +45,18 @@ enum ValueType : int {
     V_MAXVTTYPES
 };
 
+// Indicating if a type is nillable. This enum is better than a boolean, since you
+// can test with one comparison if something is "not nillable or a value type" or
+// "nillable but not a value type" for example.
+enum Nillable : int {
+    NL_VAL = -1,
+    NL_NIL = 0,
+    NL_REF = 1,
+};
+
 inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
 inline bool IsUnBoxed(ValueType t) { return t == V_INT || t == V_FLOAT || t == V_FUNCTION; }
-inline bool IsRef(ValueType t) { return t <  V_NIL; }
-inline bool IsRefNil(ValueType t) { return t <= V_NIL; }
-inline bool IsRefNilVar(ValueType t) { return t <= V_NIL || t == V_VAR; }
-inline bool IsRefNilNoStruct(ValueType t) { return t <= V_NIL && t != V_STRUCT_R; }
+inline bool IsRef(ValueType t) { return t <= V_VECTOR; }  // NL_REF + V_STRUCT_R
 inline bool IsStruct(ValueType t) { return t == V_STRUCT_R || t == V_STRUCT_S; }
 inline bool IsUDT(ValueType t) { return t == V_CLASS || IsStruct(t); }
 inline bool IsUnBoxedOrStruct(ValueType t) { return IsUnBoxed(t) || IsStruct(t); }
@@ -105,7 +111,7 @@ union VTValue {
 // If recipient wants to borrow, but value is keep, dec ref or delete after recipient is done.
 // NOTE: all positive values are an index of the SpecIdent being borrowed.
 // If you're borrowing, you are "locking" the modification of the variable you borrow from.
-enum Lifetime {
+enum Lifetime : int {
     // Value: you are receiving a value stored elsewhere, do not hold on.
     // Recipient: I do not want to be responsible for managing this value.
     LT_BORROW = -1,
@@ -153,11 +159,12 @@ struct NumStruct {
 
 struct Type {
     const ValueType t = V_UNDEFINED;
+    const Nillable n = NL_VAL;
 
     struct TupleElem { const Type *type; Lifetime lt; };
 
     union {
-        const Type *sub;         // V_VECTOR | V_NIL | V_VAR | V_TYPEID
+        const Type *sub;         // V_VECTOR | V_VAR | V_TYPEID
         SubFunction *sf;         // V_FUNCTION
         UDT *udt;                // V_CLASS | V_STRUCT_*
         NumStruct *ns;           // V_STRUCT_NUM
@@ -170,14 +177,14 @@ struct Type {
         TypeVariable *tv;        // V_TYPEVAR
     };
 
-    Type()                               :                  sub(nullptr) {}
-    explicit Type(ValueType _t)          : t(_t),           sub(nullptr) {}
-    Type(ValueType _t, const Type *_s)   : t(_t),           sub(_s)      {}
-    Type(ValueType _t, SubFunction *_sf) : t(_t),           sf(_sf)      {}
-    Type(NumStruct *_ns)                 : t(V_STRUCT_NUM), ns(_ns)      {}
-    Type(ValueType _t, UDT *_udt)        : t(_t),           udt(_udt)    {}
-    Type(Enum *_e)                       : t(V_INT),        e(_e)        {}
-    Type(ResourceType *_rt)              : t(V_RESOURCE),   rt(_rt)      {}
+    Type()                                          :                  sub(nullptr)        {}
+    explicit Type(ValueType _t, Nillable _n)        : t(_t),           sub(nullptr), n(_n) {}
+    Type(ValueType _t, const Type *_s, Nillable _n) : t(_t),           sub(_s),      n(_n) {}
+    Type(ValueType _t, SubFunction *_sf)            : t(_t),           sf(_sf)             {}
+    Type(NumStruct *_ns)                            : t(V_STRUCT_NUM), ns(_ns)             {}
+    Type(ValueType _t, UDT *_udt, Nillable _n)      : t(_t),           udt(_udt),    n(_n) {}
+    Type(Enum *_e)                                  : t(V_INT),        e(_e)               {}
+    Type(ResourceType *_rt, Nillable _n)            : t(V_RESOURCE),   rt(_rt),      n(_n) {}
 
     protected:
     Type(SpecUDT *_su)                   : t(V_UUDT),       spec_udt(_su){}
@@ -199,17 +206,13 @@ struct Type {
         return sub;
     }
 
-    const Type *ElementIfNil() const {
-        return t == V_NIL ? sub : this;
-    }
-
-    Type *Wrap(Type *dest, ValueType with) const {
+    Type *Wrap(Type *dest, ValueType with, Nillable _n) const {
         assert(dest != this);
-        *dest = Type(with, this);
+        *dest = Type(with, this, _n);
         return dest;
     }
 
-    bool Wrapped() const { return t == V_VECTOR || t == V_NIL; }
+    bool Wrapped() const { return t == V_VECTOR; }
 
     const Type *UnWrapped() const { return Wrapped() ? sub : this; }
     const Type *UnWrapAll() const { return Wrapped() ? sub->UnWrapped() : this; }
@@ -287,6 +290,11 @@ class UnTypeRef {
     bool Null() const { return type == nullptr; }
 };
 
+// FIXME: clean up use of V_STRUCT_R etc?
+inline bool IsRefNil(UnTypeRef type) { return type->n != NL_VAL || type->t == V_STRUCT_R; }
+inline bool IsRefNilVar(UnTypeRef type) { return type->n != NL_VAL || type->t == V_STRUCT_R || type->t == V_VAR; }
+inline bool IsRefNilNoStruct(UnTypeRef type) { return type->n != NL_VAL; }
+
 // This is essentially a smart-pointer, but behaves a little bit differently:
 // - initialized to type_undefined instead of nullptr
 // - pointer is const
@@ -325,6 +333,7 @@ extern TypeRef type_void;
 extern TypeRef type_undefined;
 
 TypeRef WrapKnown(UnTypeRef elem, ValueType with);
+TypeRef WrapKnownNil(UnTypeRef elem);
 TypeRef FixedNumStruct(ValueType num, int flen);
 
 // There must be a single of these per type, since they are compared by pointer.
@@ -336,8 +345,8 @@ struct ResourceType {
     const Type thistypevec;
 
     ResourceType(string_view n)
-        : name(n), next(nullptr), thistype(this),
-          thistypenil(V_NIL, &thistype), thistypevec(V_VECTOR, &thistype) {
+        : name(n), next(nullptr), thistype(this, NL_REF),
+          thistypenil(this, NL_NIL), thistypevec(V_VECTOR, &thistype, NL_REF) {
         next = g_resource_type_list;
         g_resource_type_list = this;
     }

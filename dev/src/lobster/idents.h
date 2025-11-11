@@ -259,7 +259,7 @@ struct UDT : Named {
     UDT *ssuperclass = nullptr;
     bool hasref = false;
     bool unnamed_specialization = false;
-    Type thistype;  // convenient place to store the type corresponding to this.
+    Type thistypenon, thistypenil;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
     type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
     int numslots = -1;
@@ -275,7 +275,8 @@ struct UDT : Named {
     vector<unique_ptr<DispatchEntry>> dispatch_table;
 
     UDT(string_view _name, int _idx, GUDT &g) : Named(_name, _idx), g(g) {
-        thistype = g.is_struct ? Type { V_STRUCT_R, this } : Type { V_CLASS, this };
+        thistypenon = g.is_struct ? Type { V_STRUCT_R, this, NL_VAL } : Type { V_CLASS, this, NL_REF };
+        thistypenil = g.is_struct ? Type { V_STRUCT_R, this, NL_VAL } : Type { V_CLASS, this, NL_NIL };
     }
 
     ~UDT();
@@ -326,7 +327,7 @@ GUDT *GetGUDTAny(UnTypeRef type) {
 inline TypeRef SingleNonGenericSpecialization(GUDT &gudt) {
     // Not generic, so must have just 1 specialization:
     assert(!gudt.IsGeneric() && gudt.first && !gudt.first->next);
-    return &gudt.first->thistype;
+    return &gudt.first->thistypenon;
 }
 
     // Distance to the exact type "super".
@@ -614,7 +615,7 @@ template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
     }
 }
 
-inline string TypeName(UnTypeRef type, bool tuple_brackets = true);
+inline string TypeName(UnTypeRef type, bool tuple_brackets = true, bool ignore_nil = false);
 
 struct SymbolTable {
     Lex &lex;
@@ -993,7 +994,8 @@ struct SymbolTable {
 
     UDT *MakeSpecialization(GUDT &gudt, string_view sname, bool named, bool from_generic) {
         auto st = new UDT(sname, (int)udttable.size(), gudt);
-        st->thistype.udt = st;
+        st->thistypenon.udt = st;
+        st->thistypenil.udt = st;
         st->unnamed_specialization = !named;
         st->next = gudt.first;
         gudt.first = st;
@@ -1159,24 +1161,21 @@ struct SymbolTable {
         return t;
     }
 
-    TypeRef NewTypeVar() {
+    TypeRef NewTypeVar(Nillable n) {
         auto var = NewType();
-        *var = Type(V_VAR);
+        *var = Type(V_VAR, n);
         // Vars store a cycle of all vars its been unified with, starting with itself.
         var->sub = var;
         return var;
     }
 
     TypeRef NewNilTypeVar() {
-        auto nil = NewType();
-        *nil = Type(V_NIL);
-        nil->sub = &*NewTypeVar();
-        return nil;
+        return NewTypeVar(NL_NIL);
     }
 
     TypeRef NewTuple(size_t sz) {
         auto type = NewType();
-        *type = Type(V_TUPLE);
+        *type = Type(V_TUPLE, NL_VAL);
         type->tup = new vector<Type::TupleElem>(sz);
         tuplelist.push_back(type->tup);
         return type;
@@ -1190,15 +1189,26 @@ struct SymbolTable {
         return nt;
     }
 
-    template<typename T> T Wrap(T elem, ValueType with, const Line *errl = nullptr) {
-        if (with == V_NIL) {
-            if (elem->t == V_NIL) return elem;
-            if (elem->t != V_VAR && elem->t != V_TYPEVAR && !IsNillable(elem))
-                lex.Error("cannot construct nillable type from " + Q(TypeName(elem)), errl);
-        }
+    template<typename T> T WrapType(T elem, ValueType with, Nillable n) {
         auto wt = WrapKnown(elem, with);
+        if (!wt.Null()) {
+            if (n != NL_NIL) return wt;
+            wt = WrapKnownNil(wt);
+            if (!wt.Null()) return wt;
+        }
+        return elem->Wrap(NewType(), with, n);
+    }
+
+    template<typename T> T WrapNil(T elem, const Line *errl = nullptr) {
+        if (elem->n == NL_NIL) return elem;
+        if (elem->t != V_VAR && elem->t != V_TYPEVAR && elem->n != NL_REF)
+            lex.Error("cannot construct nillable type from " + Q(TypeName(elem)), errl);
+        auto wt = WrapKnownNil(elem);
         if (!wt.Null()) return wt;
-        return elem->Wrap(NewType(), with);
+        auto nt = NewType();
+        *nt = *elem;
+        nt->n = NL_NIL;
+        return nt;
     }
 
     bool RegisterTypeVector(vector<TypeRef> *sv, const char **names) {
@@ -1211,8 +1221,8 @@ struct SymbolTable {
             // Can't use stucts.find, since all are out of scope.
             for (auto udt : udttable) if (udt->name == *name) {
                 for (size_t i = 0; i < NUM_VECTOR_TYPE_WRAPPINGS; i++) {
-                    auto vt = TypeRef(&udt->thistype);
-                    for (size_t j = 0; j < i; j++) vt = Wrap(vt, V_VECTOR);
+                    auto vt = TypeRef(&udt->thistypenon);
+                    for (size_t j = 0; j < i; j++) vt = WrapType(vt, V_VECTOR, NL_REF);
                     sv[i].push_back(vt);
                 }
                 goto found;
@@ -1267,11 +1277,6 @@ struct SymbolTable {
                (u->t == V_UUDT && u->spec_udt->IsGeneric());
     }
 
-    bool IsNillable(UnTypeRef type) {
-        return (IsRef(type->t) && type->t != V_STRUCT_R) ||
-               (type->t == V_UUDT && !type->spec_udt->gudt->is_struct);
-    }
-
     TypeVariable *NewGeneric(string_view name) {
         auto tv = new TypeVariable { name };
         typevars.push_back(tv);
@@ -1280,15 +1285,15 @@ struct SymbolTable {
 
     TypeRef ResolveTypeVars(UnTypeRef type, const Line &errl) {
         switch (type->t) {
-            case V_NIL:
             case V_VECTOR: {
                 auto nt = ResolveTypeVars({ type->Element() }, errl);
                 if (&*nt != &*type->Element()) {
-                    return Wrap(nt, type->t, &errl);
+                    return WrapType(nt, type->t, type->n);
                 }
                 return &*type;
             }
             case V_TUPLE: {
+                assert(type->n == NL_VAL);
                 vector<TypeRef> types;
                 bool same = true;
                 for (auto [i, te] : enumerate(*type->tup)) {
@@ -1314,7 +1319,7 @@ struct SymbolTable {
                     for (auto [i, gtype] : enumerate(udti->bound_generics)) {
                         if (!gtype->Equal(*types[i])) goto nomatch;
                     }
-                    return &udti->thistype;
+                    return type->n == NL_NIL ? &udti->thistypenil : &udti->thistypenon;
                     nomatch:;
                 }
                 // No existing specialization found, create a new one.
@@ -1329,12 +1334,15 @@ struct SymbolTable {
                 udt->bound_generics = types;
                 ResolveFields(*udt, errl);
                 type_check_call_back(*udt);
-                return &udt->thistype;
+                return type->n == NL_NIL ? &udt->thistypenil : &udt->thistypenon;
             }
             case V_TYPEVAR: {
                 for (auto &bvec : reverse(bound_typevars_stack)) {
                     for (auto &gtv : bvec) {
-                        if (gtv.tv == type->tv && !gtv.type.Null()) return gtv.type;
+                        if (gtv.tv == type->tv && !gtv.type.Null()) {
+                            if (type->n == NL_NIL) return WrapNil(gtv.type, &errl);
+                            return gtv.type;
+                        }
                     }
                 }
                 lex.Error(cat("could not resolve type variable ", Q(type->tv->name)), &errl);
@@ -1387,12 +1395,14 @@ struct SymbolTable {
         // Update the type to the correct struct type.
         if (udt.g.is_struct) {
             for (auto &sfield : udt.sfields) {
-                if (IsRefNil(sfield.type->t)) {
+                if (sfield.type->n != NL_VAL || sfield.type->t == V_STRUCT_R) {
                     udt.hasref = true;
                     break;
                 }
             }
-            const_cast<ValueType &>(udt.thistype.t) = udt.hasref ? V_STRUCT_R : V_STRUCT_S;
+            auto t = udt.hasref ? V_STRUCT_R : V_STRUCT_S;
+            const_cast<ValueType &>(udt.thistypenon.t) = t;
+            const_cast<ValueType &>(udt.thistypenil.t) = t;
         }
     }
 
@@ -1516,7 +1526,12 @@ inline string Signature(const SubFunction &sf) {
     return r;
 }
 
-inline string TypeName(UnTypeRef type, bool tuple_brackets) {
+inline string TypeName(UnTypeRef type, bool tuple_brackets, bool ignore_nil) {
+    if (type->n == NL_NIL && !ignore_nil) {
+        return type->t == V_VAR
+            ? "nil"
+            : TypeName(type, tuple_brackets, true) + "?";
+    }
     switch (type->t) {
         case V_STRUCT_NUM: {
             auto nvt = SymbolTable::GetVectorName(type->ns->t, type->ns->flen);
@@ -1559,11 +1574,6 @@ inline string TypeName(UnTypeRef type, bool tuple_brackets) {
             return type->sf
                 ? Signature(*type->sf)
                 : "function";
-
-        case V_NIL:
-            return type->Element()->t == V_VAR
-                ? "nil"
-                : TypeName(type->Element()) + "?";
         case V_TUPLE: {
             string s;
             if (tuple_brackets) s += "(";

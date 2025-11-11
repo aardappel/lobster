@@ -978,7 +978,7 @@ struct Parser {
         } while (IsNext(T_COMMA));
         dest = st.NewTuple(types.size());
         for (auto [i, type] : enumerate(types))
-            dest->Set(i, &*type, IsRefNil(type->t) ? lt : LT_ANY);
+            dest->Set(i, &*type, IsRefNil(type) ? lt : LT_ANY);
         return dest;
     }
 
@@ -1083,7 +1083,7 @@ struct Parser {
                 lex.Next();
                 T elem = ParseType<T>(false, nullptr, allow_unresolved);
                 Expect(T_RIGHTBRACKET);
-                dest = st.Wrap(elem, V_VECTOR);
+                dest = st.WrapType(elem, V_VECTOR, NL_REF);
                 break;
             }
             case T_VOIDTYPE:
@@ -1099,9 +1099,9 @@ struct Parser {
         }
         assert(!dest.Null() && dest->t != V_UNDEFINED);
         if (IsNext(T_QUESTIONMARK)) {
-            if (!st.IsNillable(dest) && dest->t != V_TYPEVAR)
+            if (dest->n != NL_REF && dest->t != V_TYPEVAR)
                 Error("value types can\'t be made nilable");
-            dest = st.Wrap(dest, V_NIL);
+            dest = st.WrapNil(dest);
         }
         if (withtype && dest->t != V_UUDT && !IsUDT(dest->t))
             Error(":: must be used with a class type");

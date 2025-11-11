@@ -36,19 +36,19 @@ SlabAlloc *g_current_slaballoc = nullptr;
 
 namespace lobster {
 
-const Type g_type_int(V_INT);
-const Type g_type_float(V_FLOAT);
-const Type g_type_string(V_STRING);
-const Type g_type_any(V_ANY);
-const Type g_type_vector_any(V_VECTOR, &g_type_any);
-const Type g_type_vector_int(V_VECTOR, &g_type_int);
-const Type g_type_vector_float(V_VECTOR, &g_type_float);
-const Type g_type_function_null_void(V_FUNCTION);  // no args, void return.
-const Type g_type_resource(V_RESOURCE);
-const Type g_type_vector_resource(V_VECTOR, &g_type_resource);
-const Type g_type_typeid(V_TYPEID, &g_type_any);
-const Type g_type_void(V_VOID);
-const Type g_type_undefined(V_UNDEFINED);
+const Type g_type_int(V_INT, NL_VAL);
+const Type g_type_float(V_FLOAT, NL_VAL);
+const Type g_type_string(V_STRING, NL_REF);
+const Type g_type_any(V_ANY, NL_VAL);
+const Type g_type_vector_any(V_VECTOR, &g_type_any, NL_REF);
+const Type g_type_vector_int(V_VECTOR, &g_type_int, NL_REF);
+const Type g_type_vector_float(V_VECTOR, &g_type_float, NL_REF);
+const Type g_type_function_null_void(V_FUNCTION, NL_VAL);  // no args, void return.
+const Type g_type_resource(V_RESOURCE, NL_REF);
+const Type g_type_vector_resource(V_VECTOR, &g_type_resource, NL_REF);
+const Type g_type_typeid(V_TYPEID, &g_type_any, NL_VAL);
+const Type g_type_void(V_VOID, NL_VAL);
+const Type g_type_undefined(V_UNDEFINED, NL_VAL);
 
 TypeRef type_int = &g_type_int;
 TypeRef type_float = &g_type_float;
@@ -63,10 +63,10 @@ TypeRef type_typeid = &g_type_typeid;
 TypeRef type_void = &g_type_void;
 TypeRef type_undefined = &g_type_undefined;
 
-const Type g_type_vector_string(V_VECTOR, &g_type_string);
-const Type g_type_vector_vector_int(V_VECTOR, &g_type_vector_int);
-const Type g_type_vector_vector_float(V_VECTOR, &g_type_vector_float);
-const Type g_type_vector_vector_vector_float(V_VECTOR, &g_type_vector_vector_float);
+const Type g_type_vector_string(V_VECTOR, &g_type_string, NL_REF);
+const Type g_type_vector_vector_int(V_VECTOR, &g_type_vector_int, NL_REF);
+const Type g_type_vector_vector_float(V_VECTOR, &g_type_vector_float, NL_REF);
+const Type g_type_vector_vector_vector_float(V_VECTOR, &g_type_vector_vector_float, NL_REF);
 
 NumStruct g_ns_int_unknown{ V_INT, -1 };
 NumStruct g_ns_float_unknown{ V_FLOAT, -1 };
@@ -81,36 +81,36 @@ const Type g_type_ns_int[] = { &g_ns_int[0], &g_ns_int[1], &g_ns_int[2], &g_ns_i
 const Type g_type_ns_float[] = { &g_ns_float[0], &g_ns_float[1], &g_ns_float[2], &g_ns_float[3] };
 
 const Type g_type_vector_ns_int[] = {
-    { V_VECTOR, &g_type_ns_int_unknown },
-    { V_VECTOR, &g_type_ns_int_unknown },
-    { V_VECTOR, &g_type_ns_int[0] },
-    { V_VECTOR, &g_type_ns_int[1] },
-    { V_VECTOR, &g_type_ns_int[2] },
-    { V_VECTOR, &g_type_ns_int[3] }
+    { V_VECTOR, &g_type_ns_int_unknown, NL_REF },
+    { V_VECTOR, &g_type_ns_int_unknown, NL_REF },
+    { V_VECTOR, &g_type_ns_int[0], NL_REF },
+    { V_VECTOR, &g_type_ns_int[1], NL_REF },
+    { V_VECTOR, &g_type_ns_int[2], NL_REF },
+    { V_VECTOR, &g_type_ns_int[3], NL_REF }
 };
 const Type g_type_vector_ns_float[] = {
-    { V_VECTOR, &g_type_ns_float_unknown },
-    { V_VECTOR, &g_type_ns_float_unknown },
-    { V_VECTOR, &g_type_ns_float[0] },
-    { V_VECTOR, &g_type_ns_float[1] },
-    { V_VECTOR, &g_type_ns_float[2] },
-    { V_VECTOR, &g_type_ns_float[3] }
+    { V_VECTOR, &g_type_ns_float_unknown, NL_REF },
+    { V_VECTOR, &g_type_ns_float_unknown, NL_REF },
+    { V_VECTOR, &g_type_ns_float[0], NL_REF },
+    { V_VECTOR, &g_type_ns_float[1], NL_REF },
+    { V_VECTOR, &g_type_ns_float[2], NL_REF },
+    { V_VECTOR, &g_type_ns_float[3], NL_REF }
 };
 const Type g_type_vector_vector_ns_int[] = {
-    { V_VECTOR, &g_type_vector_ns_int[0] },
-    { V_VECTOR, &g_type_vector_ns_int[1] },
-    { V_VECTOR, &g_type_vector_ns_int[2] },
-    { V_VECTOR, &g_type_vector_ns_int[3] },
-    { V_VECTOR, &g_type_vector_ns_int[4] },
-    { V_VECTOR, &g_type_vector_ns_int[5] }
+    { V_VECTOR, &g_type_vector_ns_int[0], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_int[1], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_int[2], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_int[3], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_int[4], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_int[5], NL_REF }
 };
 const Type g_type_vector_vector_ns_float[] = {
-    { V_VECTOR, &g_type_vector_ns_float[0] },
-    { V_VECTOR, &g_type_vector_ns_float[1] },
-    { V_VECTOR, &g_type_vector_ns_float[2] },
-    { V_VECTOR, &g_type_vector_ns_float[3] },
-    { V_VECTOR, &g_type_vector_ns_float[4] },
-    { V_VECTOR, &g_type_vector_ns_float[5] }
+    { V_VECTOR, &g_type_vector_ns_float[0], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_float[1], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_float[2], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_float[3], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_float[4], NL_REF },
+    { V_VECTOR, &g_type_vector_ns_float[5], NL_REF }
 };
 
 ResourceType *g_resource_type_list = nullptr;
@@ -148,22 +148,6 @@ TypeRef WrapKnown(UnTypeRef elem, ValueType with) {
             default:
                 return nullptr;
         }
-    } else if (with == V_NIL) {
-        switch (elem->t) {
-            case V_ANY:       { static const Type t(V_NIL, &g_type_any); return &t; }
-            case V_INT:       { static const Type t(V_NIL, &g_type_int); return elem->e ? nullptr : &t; }
-            case V_FLOAT:     { static const Type t(V_NIL, &g_type_float); return &t; }
-            case V_STRING:    { static const Type t(V_NIL, &g_type_string); return &t; }
-            //case V_FUNCTION:  { static const Type t(V_NIL, &g_type_function_null); return &t; }
-            case V_RESOURCE:  { return &elem->rt->thistypenil; }
-            case V_VECTOR: switch (elem->sub->t) {
-                case V_INT:    { static const Type t(V_NIL, &g_type_vector_int); return elem->sub->e ? nullptr : &t; }
-                case V_FLOAT:  { static const Type t(V_NIL, &g_type_vector_float); return &t; }
-                case V_STRING: { static const Type t(V_NIL, &g_type_vector_string); return &t; }
-                default: return nullptr;
-            }
-            default: return nullptr;
-        }
     } else if (with == V_STRUCT_NUM) {
         switch (elem->t) {
             case V_INT:      return &g_type_ns_int_unknown;
@@ -172,6 +156,27 @@ TypeRef WrapKnown(UnTypeRef elem, ValueType with) {
         }
     } else {
         return nullptr;
+    }
+}
+
+TypeRef WrapKnownNil(UnTypeRef elem) {
+    switch (elem->t) {
+        case V_ANY:       { static const Type t(V_ANY, NL_NIL); return &t; }
+        case V_INT:       { static const Type t(V_INT, NL_NIL); return elem->e ? nullptr : &t; }
+        case V_FLOAT:     { static const Type t(V_FLOAT, NL_NIL); return &t; }
+        case V_STRING:    { static const Type t(V_STRING, NL_NIL); return &t; }
+        //case V_FUNCTION:  { static const Type t(V_FUNCTION, NL_NIL); return &t; }
+        case V_RESOURCE:  { return &elem->rt->thistypenil; }
+        case V_VECTOR: switch (elem->sub->t) {
+            case V_INT:    { static const Type t(V_VECTOR, &g_type_int, NL_NIL); return elem->sub->e ? nullptr : &t; }
+            case V_FLOAT:  { static const Type t(V_VECTOR, &g_type_float, NL_NIL); return &t; }
+            case V_STRING: { static const Type t(V_VECTOR, &g_type_string, NL_NIL); return &t; }
+            default: return nullptr;
+        }
+        case V_CLASS:
+            return &elem->udt->thistypenil;
+        default:
+            return nullptr;
     }
 }
 
