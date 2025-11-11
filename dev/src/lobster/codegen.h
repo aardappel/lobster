@@ -904,7 +904,7 @@ struct CodeGen  {
         else cb += "\n";
     }
 
-    string SetType(ValueType t) {
+    string SetType(RTType t) {
         #if RTT_ENABLED
             return cat(" _sp->type = ", (int)t, ";");
         #else
@@ -918,7 +918,7 @@ struct CodeGen  {
         if (cpp) {
             append(cb, "    *(", sp(), ") = Value(", val, ");\n");
         } else {
-            append(cb, "    { StackPtr _sp = ", sp(), "; _sp->ival = ", val, ";", SetType(V_INT), " }\n");
+            append(cb, "    { StackPtr _sp = ", sp(), "; _sp->ival = ", val, ";", SetType(RTT_INT), " }\n");
         }
     }
 
@@ -931,7 +931,7 @@ struct CodeGen  {
             if (cpp) {
                 append(cb, "    *(", sp(), ") = Value(", (float)f, ");\n");
             } else {
-                append(cb, "    { StackPtr _sp = ", sp(), "; _sp->fval = ", (float)f, ";", SetType(V_FLOAT), " }\n");
+                append(cb, "    { StackPtr _sp = ", sp(), "; _sp->fval = ", (float)f, ";", SetType(RTT_FLOAT), " }\n");
             }
         } else {
             int2float64 i2f(f);
@@ -945,7 +945,7 @@ struct CodeGen  {
         if (cpp)
             append(sd, "    *(", target, ") = Value(0, lobster::RTT_NIL);\n");
         else
-            append(sd, "    { StackPtr _sp = ", target, "; _sp->ival = 0;", SetType(V_NIL), " }\n");
+            append(sd, "    { StackPtr _sp = ", target, "; _sp->ival = 0;", SetType(RTT_NIL), " }\n");
     }
 
     void EmitINCREF(int off, TypeRef type) {
