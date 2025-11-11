@@ -261,7 +261,8 @@ struct UDT : Named {
     bool unnamed_specialization = false;
     Type thistype;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
-    type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
+    type_elem_t typeinfonon = (type_elem_t)-1;  // Runtime type.
+    type_elem_t typeinfonil = (type_elem_t)-1;  // Runtime type.
     int numslots = -1;
     int vtable_start = -1;
     int serializable_id = -1;
@@ -311,7 +312,7 @@ struct UDT : Named {
             fieldoffsets.push_back(
                 metadata::CreateField(fbb, fbb.CreateString(g.fields[i].id->name), sfield.slot));
         return metadata::CreateUDT(fbb, fbb.CreateString(name), idx, fbb.CreateVector(fieldoffsets),
-                                   numslots, ssuperclass ? ssuperclass->idx : -1, typeinfo);
+                                   numslots, ssuperclass ? ssuperclass->idx : -1, typeinfonon);
     }
 };
 

@@ -224,9 +224,10 @@ struct CodeGen  {
             case V_STRUCT_R:
             case V_STRUCT_S: {
                 auto udt = type->udt;
-                if (udt->typeinfo >= 0)
-                    return udt->typeinfo;
-                udt->typeinfo = (type_elem_t)type_table.size();
+                auto &typeinfo = non_nil_version ? udt->typeinfonil : udt->typeinfonon;
+                if (typeinfo >= 0)
+                    return typeinfo;
+                typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
                 assert(udt->numslots >= 0);
                 auto ttsize = (udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
@@ -243,8 +244,8 @@ struct CodeGen  {
                 tt.push_back((type_elem_t)udt->serializable_id);
                 PushFields(udt, tt);
                 assert(ssize(tt) == ttsize);
-                std::copy(tt.begin(), tt.end(), type_table.begin() + udt->typeinfo);
-                return udt->typeinfo;
+                std::copy(tt.begin(), tt.end(), type_table.begin() + typeinfo);
+                return typeinfo;
             }
             case V_TYPEID:
                 // These are not strongly typed at runtime.
@@ -1147,7 +1148,7 @@ struct CodeGen  {
                 gen_string(udt->name);
                 auto fspan = udt->sfields.empty() ? "{}" : cat("span(", fieldsname(udt), ")");
                 append(sd, ", ", udt->idx, ", ", udt->numslots, ", ",
-                           (udt->ssuperclass ? udt->ssuperclass->idx : -1), ", ", udt->typeinfo, ", ",
+                           (udt->ssuperclass ? udt->ssuperclass->idx : -1), ", ", udt->typeinfonon, ", ",
                            fspan, " },\n");
             }
             sd += "};\n\n";
