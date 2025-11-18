@@ -85,6 +85,18 @@
     a = ..
   assert a
 
+- This simple code produces: access of x before being initialized
+    foo()
+    var x = 1
+    def foo():
+        print x
+  Which is probably what we want, however:
+  It however checks this with a stop-gap error check against an
+  uninitialized type (See IdentRef::TypeCheck), instead, both this
+  code and the free variable scanning code need to take into account
+  which variables in a scope have been defined at a particular point
+  in the callgraph for more robust checks like this.
+
 - FIX:
     class A:
         s:string? = "hi"

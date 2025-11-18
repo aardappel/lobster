@@ -3298,6 +3298,14 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_b
     if (sid->id->predeclaration)
         tc.Error(*this, "access of ", Q(sid->id->name), " before being initialized");
     tc.CheckFreeVariable(*sid);
+    if (sid->type->t == V_UNDEFINED) {
+        // FIXME: this is a stop-gap error and should be checked differently:
+        // When we scan scopes above, we need to somehow detect if the variable has
+        // already been declared at that point we are in the callgraph.
+        // This could also help with our free variable checking which may have a similar
+        // issue.
+        tc.Error(*this, "access of ", Q(sid->id->name), " before being initialized");
+    }
     exptype = sid->type;
     FlowItem fi(*this, exptype);
     assert(fi.IsValid());
