@@ -289,6 +289,8 @@ pair<bool, bool> IMGUIEvent(SDL_Event *event) {
         }
     }
     ImGui_ImplSDL2_ProcessEvent(event);
+    // Always pass through key up events after processing them by ImGui.
+    if (event->type == SDL_KEYUP) return { false, false };
     return { ImGui::GetIO().WantCaptureMouse, ImGui::GetIO().WantCaptureKeyboard };
 }
 
