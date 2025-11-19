@@ -986,6 +986,13 @@ nfr("init", "dark_style,flags,rounding,border", "B?I?F?F?", "",
         return NilVal();
     });
 
+nfr("cleanup", "", "", "",
+    "not required to be called, this is done automatically, but useful if you want to call im.init again",
+    [](StackPtr &, VM &vm) {
+        IMGUICleanup();
+        return NilVal();
+    });
+
 nfr("add_font", "font_path,size,glyph_ranges", "SFS?", "B",
     "glyph_ranges will activate additional unicode ranges to be rasterized, and can be"
     " Default (most European languages), SimplifiedChinese, Chinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..",
