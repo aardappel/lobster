@@ -440,6 +440,11 @@ def font(font_idx, body):
     body()
     font_end()
 
+def font_size(size, body):
+    font_size_start(size)
+    body()
+    font_size_end()
+
 def color(col, body):
     color_start(col)
     body()

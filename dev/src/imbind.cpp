@@ -1421,6 +1421,22 @@ nfr("font_end", "", "", "",
         NPop(vm, N_FONT);
     });
 
+nfr("font_size_start", "size", "F", "",
+    "(use im.font instead)",
+    [](StackPtr &sp, VM &vm) {
+        IsInit(vm);
+        auto f = Pop(sp).fltval();
+        ImGui::PushFont(nullptr, f);
+        NPush(N_FONT);
+    });
+
+nfr("font_size_end", "", "", "",
+    "",
+    [](StackPtr &, VM &vm) {
+        IsInit(vm);
+        NPop(vm, N_FONT);
+    });
+
 nfr("color_start", "color", "F}:4", "",
     "(use im.color instead)",
     [](StackPtr &sp, VM &vm) {
