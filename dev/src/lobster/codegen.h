@@ -46,6 +46,7 @@ struct CodeGen  {
     size_t tstack_max = 0;
     const SubFunction *cursf = nullptr;
     bool cpp = false;
+    size_t nil_type_table_size = 0;
 
     // C/C++ codegen related.
     string &c_codegen;
@@ -245,6 +246,7 @@ struct CodeGen  {
                 PushFields(udt, tt);
                 assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + typeinfo);
+                if (non_nil_version) nil_type_table_size += ttsize;
                 return typeinfo;
             }
             case V_TYPEID:
@@ -271,6 +273,7 @@ struct CodeGen  {
         auto offset = (type_elem_t)type_table.size();
         type_lookup[tt] = offset;
         type_table.insert(type_table.end(), tt.begin(), tt.end());
+        if (non_nil_version) nil_type_table_size += tt.size();
         return offset;
     }
 

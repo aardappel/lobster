@@ -178,6 +178,14 @@
 - gl.polygon (and presumably any RenderArraySlow) leaks vbo/vao on Linux/Mesa?
   https://github.com/aardappel/lobster/issues/366
 
+- In our largest project to date, the codegen type_table is 134K in size (34K int entries).
+  16% of that is nillable types, since a nillable class type has a full copy of all its
+  fields much like the non-nillable version.
+  If we separetely serialized fields from the class (by referring it over an offset used by both),
+  we'd probably save an estimated 12% of total space.
+  see nil_type_table_size.
+  This may be worth it for a tiny speed reduction looking up field types.
+
 - Weak ref feature.
   we use the informal system of having a "destruct" method on classes that contain members
   causing cycles, and this works well enough to clean up cycles when a tree of objects is deleted in
