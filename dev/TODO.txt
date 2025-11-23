@@ -579,10 +579,6 @@
 
 - & is not implemented for structs.
 
-- Enable writing to struct fields.
-  Maybe explicit opt in per field or per struct? If per field then also can do the opposite for
-  read-only class members.
-
 - Migrate to SDL 3:
   https://www.libsdl.org/gdc2023/
   https://github.com/libsdl-org/SDL/blob/main/docs/README-migration.md
@@ -680,14 +676,6 @@
   It is clearly an idea that appeals to my inner optimizer more than there's a need.
 
 - Inline structs, further improvements:
-  - These were immutable in the past, because values were shared by pointer, but now there
-    really is no reason to anymore, as they're always copied, so modifying a field of
-    a struct that sits in a variable would totally be fine and useful.
-    - allow fields in a struct to be preceded by var, and similarly in a class by let
-      to change their respective defaults.
-    - Will greatly expand the zero abstraction use cases where
-    - once structs are mutable, maybe introduce a way to annotate both structs and classes
-      as immutable?
   - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
     for anything vector related, like MathCheckVector
   - finally split builtins into one op per len.

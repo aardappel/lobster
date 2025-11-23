@@ -66,7 +66,7 @@ run_test("struct"):
     // Member assign.
     do():
         // This should be use carefully, because structs pass by copy.
-        let a = int2_0
+        var a = int2_0
         let b = a  // Copy, not ref.
         a.y = 1
         assert a == int2_y  // Not surprising.
@@ -82,7 +82,7 @@ run_test("struct"):
         struct S:
             g = int3_1
             f = int2_0
-        let s = S {}
+        var s = S {}
         s.f.y = 1
         assert s.f == int2_y
         // Nested struct assign.
@@ -271,3 +271,4 @@ run_test("struct"):
     // Misc.
     do():
         assert equal([ int2 { 1, 2 } ], [ int2 { 1, 2 } ])
+

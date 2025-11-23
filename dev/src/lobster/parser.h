@@ -138,25 +138,16 @@ struct Parser {
                 auto f = fr->sf->parent;
                 if (!f->anonymous) st.Unregister(f);
             } else if (auto d = Is<Define>(def)) {
-                // For now, don't warn when declaring multiple vars and they are mixed const,
-                // since there is no way to use var for one and let for the other.
-                bool warn_all = true;
+                // TODO: move more of this to TypeCheckFunctionDef ?
                 for (auto p : d->tsids) {
                     auto id = p.sid->id;
                     id->static_constant =
                         id->single_assignment && d->child->IsConstInit();
-                    if (!id->single_assignment || id->constant || d->line.fileidx != 0)
-                        warn_all = false;
                     if (!id->read && !id->static_constant && id->scopelevel != 1 &&
                         (id->name[0] != '_' || d->tsids.size() == 1))
                         Warn("unused variable ", Q(id->name));
                     if (id->predeclaration)
                         Error("missing declaration for ", id->name);
-                }
-                if (warn_all) {
-                    for (auto p : d->tsids) {
-                        WarnAt(d, "use ", Q("let"), " to declare ", Q(p.sid->id->name));
-                    }
                 }
             } else if (auto r = Is<Return>(def)) {
                 if (r != list->children.back())
@@ -1220,8 +1211,9 @@ struct Parser {
     }
 
     Node *Modify(Node *e) {
-        if (auto idr = Is<IdentRef>(e))
+        if (auto idr = Is<IdentRef>(e)) {
             idr->sid->id->Assign(lex);
+        }
         return e;
     }
 

@@ -67,6 +67,10 @@ struct Ident : Named {
     bool static_constant = false;
     // Has been read at least once.
     bool read = false;
+    // This is var contains a struct whose fields have been assigned to.
+    // Instead of having this bool, we could set single_assignment to false, but since
+    // they are set at very different times this is probably clearer for now.
+    bool struct_field_assign = false;
 
     bool predeclaration = false;
     bool preferfree = false;
@@ -81,6 +85,11 @@ struct Ident : Named {
     void Assign(Lex &lex) {
         single_assignment = false;
         if (constant) lex.Error("variable " + name + " is constant");
+    }
+
+    void StructAssign(Lex &lex) {
+        struct_field_assign = true;
+        if (constant) lex.Error("variable " + name + " is a constant struct, cannot modify its fields");
     }
 
     Ident *Read() {

@@ -43,6 +43,7 @@ struct TypeChecker {
     vector<FlowItem> flowstack;
     vector<Borrow> borrowstack;
     vector<SpecIdent *> preferfreestack;
+    vector<Define *> definestack;
     set<pair<Line, int64_t>> integer_literal_warnings;
     Query *query;
     bool full_error;
@@ -935,6 +936,7 @@ struct TypeChecker {
         scope.flowstack_size = flowstack.size();
         scopes.push_back(scope);
         auto pfvss = preferfreestack.size();
+        auto dss = definestack.size();
         //for (auto &ns : named_scopes) LOG_DEBUG("named scope: ", ns.sf->parent->name);
         if (!sf.parent->anonymous) named_scopes.push_back(scope);
         st.BlockScopeStart();
@@ -996,8 +998,12 @@ struct TypeChecker {
         auto exit_scope = [&](const Arg &var) {
             DecBorrowers(var.sid->lt, call_context);
         };
-        for (auto &local : reverse(sf.locals)) exit_scope(local);
-        for (auto &arg : sf.args) exit_scope(arg);  // No order.
+        for (auto &local : reverse(sf.locals)) {
+            exit_scope(local);
+        }
+        for (auto &arg : sf.args) {
+            exit_scope(arg);  // No order.
+        }
         while (borrowstack.size() > start_borrowed_vars) {
             auto &b = borrowstack.back();
             if (b.refc) {
@@ -1006,8 +1012,30 @@ struct TypeChecker {
             }
             borrowstack.pop_back();
         }
-        for (auto &back : backup_args)   RevertCurrentSid(back.sid);
-        for (auto &back : backup_locals) RevertCurrentSid(back.sid);
+        while (dss < definestack.size()) {
+            auto def = definestack.back();
+            definestack.pop_back();
+            // For now, don't warn when declaring multiple vars and they are mixed const,
+            // since there is no way to use var for one and let for the other.
+            // FIXME: this runs for every specialization, but for now Warn filters this anyway.
+            bool warn_all = true;
+            for (auto p : def->tsids) {
+                auto id = p.sid->id;
+                if (!id->single_assignment || id->constant || id->struct_field_assign)
+                    warn_all = false;
+            }
+            if (warn_all) {
+                for (auto p : def->tsids) {
+                    parser.WarnAt(def, "use ", Q("let"), " to declare ", Q(p.sid->id->name));
+                }
+            }
+        }
+        for (auto &back : backup_args) {
+            RevertCurrentSid(back.sid);
+        }
+        for (auto &back : backup_locals) {
+            RevertCurrentSid(back.sid);
+        }
         if (sf.returntype->HasValueType(V_VAR)) {
             // If this function return something with a variable in it, then it likely will get
             // bound by the caller. If the function then gets reused without specialization, it will
@@ -2119,6 +2147,19 @@ struct TypeChecker {
             }
         }
         CheckLvalBorrowed(n, lv);
+        if (auto idr = Is<IdentRef>(n)) {
+            // This has been done before in the parser, but that missed FreeVarRef's etc.
+            // FIXME: what if this is the only assignement, and other checks against
+            // single_assignment make the wrong decision?
+            idr->sid->id->single_assignment = false;
+        } else if (auto dot = Is<Dot>(n)) {
+            while (auto dotc = Is<Dot>(dot->child)) dot = dotc;
+            if (auto idr = Is<IdentRef>(dot->child)) {
+                if (IsStruct(idr->exptype->t)) {
+                    idr->sid->id->StructAssign(parser.lex);
+                }
+            }
+        }
     }
 
     void CheckLvalBorrowed(Node *n, Borrow &lv) {
@@ -3047,6 +3088,7 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
             sid.constprop = child;
         }
     }
+    tc.definestack.push_back(this);
     exptype = type_void;
     lt = LT_ANY;
     return this;
