@@ -169,7 +169,7 @@ void VM::DumpLeaks() {
             }
         #endif
     }
-    pool.printstats(false);
+    if (!is_worker) pool.printstats(false);
 }
 
 
