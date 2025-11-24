@@ -2130,6 +2130,24 @@ struct TypeChecker {
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
             Error(*n, "function-call cannot be an l-value");
+        if (auto idr = Is<IdentRef>(n)) {
+            // This has been done before in the parser, but that missed FreeVarRef's etc.
+            // FIXME: what if this is the only assignement, and other checks against
+            // single_assignment make the wrong decision?
+            idr->sid->id->single_assignment = false;
+        } else {
+            auto fn = n;
+            for (;;) {
+                if (auto dot = Is<Dot>(fn)) fn = dot->child;
+                else if (auto idx = Is<Indexing>(fn)) fn = idx->object;
+                else break;
+            }
+            if (auto idr = Is<IdentRef>(fn)) {
+                if (IsStruct(idr->exptype->t)) {
+                    idr->sid->id->StructAssign(parser.lex);
+                }
+            }
+        }
         Borrow lv(*n);
         if (!lv.IsValid()) return;  // FIXME: force these to LT_KEEP?
         if (IsRefNil(n->exptype->t)) {
@@ -2147,19 +2165,6 @@ struct TypeChecker {
             }
         }
         CheckLvalBorrowed(n, lv);
-        if (auto idr = Is<IdentRef>(n)) {
-            // This has been done before in the parser, but that missed FreeVarRef's etc.
-            // FIXME: what if this is the only assignement, and other checks against
-            // single_assignment make the wrong decision?
-            idr->sid->id->single_assignment = false;
-        } else if (auto dot = Is<Dot>(n)) {
-            while (auto dotc = Is<Dot>(dot->child)) dot = dotc;
-            if (auto idr = Is<IdentRef>(dot->child)) {
-                if (IsStruct(idr->exptype->t)) {
-                    idr->sid->id->StructAssign(parser.lex);
-                }
-            }
-        }
     }
 
     void CheckLvalBorrowed(Node *n, Borrow &lv) {
