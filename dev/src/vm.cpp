@@ -705,6 +705,12 @@ void VM::IDXErr(iint i, iint n, const RefObj *v) {
     Error(sd);
 }
 
+void VM::IDXErrS(iint i, iint n) {
+    string sd;
+    append(sd, "index ", i, " out of range ", n, " of struct");
+    Error(sd);
+}
+
 string_view VM::StructName(const TypeInfo &ti) {
     return vma.meta->udts[ti.structidx].name;
 }

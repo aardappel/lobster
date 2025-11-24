@@ -988,7 +988,7 @@ nfr("init", "dark_style,flags,rounding,border", "B?I?F?F?", "",
 
 nfr("cleanup", "", "", "",
     "not required to be called, this is done automatically, but useful if you want to call im.init again",
-    [](StackPtr &, VM &vm) {
+    [](StackPtr &, VM &) {
         IMGUICleanup();
         return NilVal();
     });

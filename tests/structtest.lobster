@@ -92,6 +92,15 @@ run_test("struct"):
         let v = [ int2_0 ]
         v[0].y = 1
         assert v[0] == int2_y
+        // Indexing on struct fields!
+        a[1] = 2
+        assert a[1] == 2
+        s.f[1] = 2
+        assert s.f[2] == 2
+        c.f[1] = 2
+        assert c.f[1] == 2
+        v[0][1] = 2
+        assert v[0][1] == 2
 
     // Control structures.
     do():

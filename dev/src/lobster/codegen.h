@@ -1457,9 +1457,16 @@ struct CodeGen  {
                 GenAssignLvalRec(dot->child, sfield.slot + offset, take_temp, type);
             }
         } else if (auto indexing = Is<Indexing>(lval)) {
-            Gen(indexing->object, 1);
-            Gen(indexing->index, 1);
-            TakeTemp(take_temp + 2, true);
+            if (IsStruct(indexing->object->exptype->t)) {
+                // This generates an LVAL producing OP which is then indexed below and turned into another LVAL!
+                GenAssignLvalRec(indexing->object, offset, take_temp, type);
+                Gen(indexing->index, 1);
+                TakeTemp(1, true);
+            } else {
+                Gen(indexing->object, 1);
+                Gen(indexing->index, 1);
+                TakeTemp(take_temp + 2, true);
+            }
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
                     if (indexing->index->exptype->t == V_INT) {
@@ -1478,6 +1485,11 @@ struct CodeGen  {
                     break;
                 case V_STRUCT_R:
                 case V_STRUCT_S:
+                    assert(indexing->index->exptype->t == V_INT &&
+                           indexing->object->exptype->udt->sametype->Numeric());
+                    EmitOp2(IL_LVAL_IDXSI, offset, indexing->object->exptype->udt->numslots);
+                    assert(!IsStruct(type->t));
+                    break;
                 case V_STRING:
                     // FIXME: Would be better to catch this in typechecking, but typechecker does
                     // not currently distinquish lvalues.

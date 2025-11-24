@@ -1125,6 +1125,7 @@ struct VM : VMBase {
     void DivErr(iint divisor) { Error(divisor ? "integer overflow" : "division by zero"); }
     void DivErr(double) { assert(false); }
     void IDXErr(iint i, iint n, const RefObj *v);
+    void IDXErrS(iint i, iint n);
     void BCallRetCheck(StackPtr sp, const NativeFun *nf);
     iint GrabIndex(StackPtr &sp, int len);
 
@@ -1399,6 +1400,9 @@ void EscapeAndQuote(string_view s, string &sd, bool cpp = false);
 
 #define RANGECHECK(vm, I, BOUND, VEC) \
     if ((uint64_t)I >= (uint64_t)BOUND) vm.IDXErr(I, BOUND, VEC);
+
+#define RANGECHECKS(vm, I, BOUND) \
+    if ((uint64_t)I >= (uint64_t)BOUND) vm.IDXErrS(I, BOUND);
 
 }  // namespace lobster
 

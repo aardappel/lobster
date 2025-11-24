@@ -94,6 +94,12 @@ VM_INLINE Value &GetFieldILVal(VM &vm, StackPtr &sp, iint i) {
     return vec.oval()->AtR(i);
 }
 
+VM_INLINE Value &GetFieldISLVal(VM &vm, iint i, int maxfields) {
+    RANGECHECKS(vm, i, maxfields);
+    // This is the only time we turn one lval into another!
+    return vm.temp_lval[i];
+}
+
 VM_INLINE Value &GetVecLVal(VM &vm, StackPtr &sp, iint i) {
     Value vec = Pop(sp);
     auto v = vec.vval();
@@ -831,6 +837,12 @@ VM_INLINE void U_LVAL_IDXVV(VM &vm, StackPtr sp, int offset, int l) {
 VM_INLINE void U_LVAL_IDXNI(VM &vm, StackPtr sp, int offset) {
     auto x = Pop(sp).ival();
     vm.temp_lval = &GetFieldILVal(vm, sp, x) + offset;
+}
+
+// Struct accessed by index.
+VM_INLINE void U_LVAL_IDXSI(VM &vm, StackPtr sp, int offset, int maxfields) {
+    auto x = Pop(sp).ival();
+    vm.temp_lval = &GetFieldISLVal(vm, x, maxfields) + offset;
 }
 
 VM_INLINE void U_LV_DUP(VM &vm, StackPtr sp) {
