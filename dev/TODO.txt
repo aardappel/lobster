@@ -1,3 +1,8 @@
+- Must call this.foo() if foo is a superclass method, otherwise automatic this
+  insertion does not work.
+
+- using an enum constant twice in a switch does not error!
+
 - Improve native compilation pipeline / emscripten support.
   https://github.com/aardappel/lobster/issues/375
 
