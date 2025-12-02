@@ -18,6 +18,11 @@ private class chain<K,V>:
     key:K
     value:V
 
+// Helper class for serialization below.
+private class SerializedDictionaryHolder<K,V>:
+    keys:[K]
+    values:[V]
+
 class dictionary<K,V>:
     private buckets:[chain<K,V>?]
 
@@ -115,6 +120,22 @@ class dictionary<K,V>:
             while c:
                 fun(c.key, c.value)
                 c = c.next
+
+    // These serialization methods are not exactly efficient, but a very easy way to serialize
+    // most dictionaries.
+
+    def serialize_to_flexbuffer():
+        let sdh = SerializedDictionaryHolder<K,V> { get_keys(), get_values() }
+        return flexbuffers_value_to_binary(sdh)
+
+    def deserialize_from_flexbuffer(flex:string):
+        let sdh, err = flexbuffers_binary_to_value(typeof SerializedDictionaryHolder<K,V>, flex)
+        if err:
+            return err
+        if sdh:
+            for(sdh.keys) key, i:
+                set(key, sdh.values[i])
+        return nil  // No error.
 
 constructor dictionary<K,V>(size:int):
     return dictionary<K,V> { map(size): nil }
