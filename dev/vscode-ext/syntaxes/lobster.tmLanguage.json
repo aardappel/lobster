@@ -184,16 +184,24 @@
         {
           "name": "string.quoted.triple.lobster",
           "begin": "\"{3}",
-          "end": "\"{3}"
+          "end": "\"{3}",
+          "patterns": [
+            {
+              "name": "constant.character.escape.lobster",
+              "match": "(\\\\n|\\\\t|\\\\r|\\\\\"|\\\\'|\\\\x\\h{2}|\\\\w|\\\\)"
+            }
+          ]
         },
         {
           "name": "string.quoted.double.lobster",
           "begin": "\"",
-          "end": "\""
-        },
-        {
-          "name": "constant.character.escape.lobster",
-          "match": "'(\\\\n|\\\\t|\\\\r|\\\\\"|\\\\'|\\\\x\\h{2}|\\w|\\\\|)'"
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.lobster",
+              "match": "(\\\\n|\\\\t|\\\\r|\\\\\"|\\\\'|\\\\x\\h{2}|\\\\w|\\\\)"
+            }
+          ]
         }
       ]
     },
