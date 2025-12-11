@@ -151,7 +151,7 @@
           "begin": "\\b(class|struct)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "beginCaptures": {
             "1": {
-              "name": "support.class.lobster"
+              "name": "keyword.declaration.class.lobster"
             },
             "2": {
               "name": "entity.name.class.lobster"
@@ -161,21 +161,16 @@
         },
         {
           "name": "meta.enum.definition.lobster",
-          "begin": "\\b(enum|enum_flags)\\s+(\\w+)",
+          "begin": "\\b(enum|enum_flags)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "beginCaptures": {
             "1": {
-              "name": "support.modifier.lobster"
+              "name": "keyword.declaration.enum.lobster"
             },
             "2": {
               "name": "entity.name.type.enum.lobster"
             }
           },
-          "end": ":",
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.section.enum.end.lobster"
-            }
-          }
+          "end": ":"
         }
       ]
     },
