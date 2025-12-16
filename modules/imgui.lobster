@@ -326,6 +326,14 @@ def tab(label, font_idx, flags, body):
     font_end()
     return open
 
+def tab_tooltip(label, tt, body):
+    let open = tab_start(label, tabitem_none)
+    im.tooltip(tt)
+    if open:
+        body()
+        tab_end()
+    return open
+
 def menu_bar(main, body):
     let open = menu_bar_start(main)
     if open:
