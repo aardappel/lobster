@@ -54,6 +54,17 @@ template<typename T> class Chunk3DGrid : NonCopyable {
         }
     }
 
+    // This can read the above buffer back, with optional offset.
+    void FromContinousGrid(const T *buf, int3 offset, int3 size) {
+        for (int z = 0; z < size.z; z++) {
+            for (int y = 0; y < size.y; y++) {
+                for (int x = 0; x < size.x; x++) {
+                    Get(int3(x, y, z) + offset) = *buf++;
+                }
+            }
+        }
+    }  
+
     void Shrink(const int3 &ndim) {
         assert(ndim <= dim);
         for (auto [i, p] : enumerate(grid)) if ((int)i >= ndim.x) delete[] p;

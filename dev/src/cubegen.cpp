@@ -1277,6 +1277,18 @@ nfr("get_buf", "block", "R:voxels", "S",
         return Value(buf);
     });
 
+nfr("set_buf", "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
+    "sets the data as a string of all palette indices, in z-major order",
+    [](StackPtr &sp, VM &vm) {
+        auto size = PopVec<int3>(sp);
+        auto offset = PopVec<int3>(sp);
+        auto buf = Pop(sp).sval()->strv();
+        auto &v = GetVoxels(Pop(sp));
+        if (size.volume() != buf.size()) vm.BuiltinError("cg.set_buf: buf does not match size");
+        if (offset + size > v.grid.dim) vm.BuiltinError("cg.set_buf: out of bounds");
+        v.grid.FromContinousGrid((uint8_t *)buf.data(), offset, size);
+    });
+
 // Should probably be renamed because it collects a bunch of stats beyond color.
 nfr("average_surface_color", "world", "R:voxels", "F}:3III}:3I}:3", "",
 	[](StackPtr &sp, VM &) {
