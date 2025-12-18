@@ -9,6 +9,19 @@
 - It seems to allow function overloads to be declared in different branches of an if and still work together?
   That should probably be disallowed.
 
+- This gives the confusing error: error: `)` expected, found `"foo"`
+    print "baz" + (if 1:
+        print "hah"
+        "foo"
+    else:
+        "bar")
+  (and similar for lambdas inside ())
+  This is because we don't generate indent tokens between ().
+  There should maybe be an escape hatch to that for block parsing.
+  If that is too iffy, then at least a better error somehow?
+  Tried this out, see branch "block_inside_parens".
+  Biggest issue is how to generate a DEDENT token inside a like, i.e. before the last )
+
 - We could add further syntactic sugar to the disciminated union use case.
   E.g.
   union Foo:
