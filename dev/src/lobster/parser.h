@@ -114,7 +114,9 @@ struct Parser {
             }
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
-        if (terminator != T_NONE) Expect(terminator);
+        if (terminator != T_NONE) {
+            if (lex.IsInBracketBlock()) IsNext(terminator); else Expect(terminator);
+        }
         auto b = block->children.back();
         if (Is<EnumRef>(b) || Is<GUDTRef>(b) || Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
             if (terminator == T_ENDOFFILE) block->Add(new IntConstant(lex, 0));
@@ -899,6 +901,7 @@ struct Parser {
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf, LT_KEEP);
         }
+        lex.BlockStart();
         if (!IsNext(T_COLON)) {
             // This must be a function type.
             if (lex.token == T_IDENT || !name) Expect(T_COLON);
@@ -951,6 +954,7 @@ struct Parser {
             ParseBody(block, -1);
             ImplicitReturn(*ov);
         }
+        lex.BlockEnd();
         if (self_withtype) gudtstack.pop_back();
         if (name) namedfunctionstack.pop_back();
         if (non_inline_method) st.bound_typevars_stack.pop_back();
@@ -1728,8 +1732,10 @@ struct Parser {
             }
             if (parens) Expect(T_RIGHTPAREN);
         }
+        lex.BlockStart();
         Expect(T_COLON);
         ParseBody(block, for_args);
+        lex.BlockEnd();
         st.BlockScopeCleanup();
         return block;
     }

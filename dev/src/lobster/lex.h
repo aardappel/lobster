@@ -38,6 +38,7 @@ struct LoadedFile : Line {
     double fval;
 
     vector<pair<TType, TType>> bracketstack;
+    vector<size_t> block_level_bracket_index_stack;
     vector<pair<int, bool>> indentstack;
     const char *prevline = nullptr, *prevlinetok = nullptr;
 
@@ -226,6 +227,24 @@ struct Lex : LoadedFile {
             Error("mismatched \'" + TokStr(c) + "\', expected \'" +
                   TokStr(bracketstack.back().second) + "\'");
         bracketstack.pop_back();
+        if (!block_level_bracket_index_stack.empty() &&
+            block_level_bracket_index_stack.back() > bracketstack.size()) {
+            // We are generating a closing bracket that terminates a block.
+            // We should somehow generate a DEDENT here but only if the block started with an INDENT.
+        }
+    }
+
+    void BlockStart() {
+        block_level_bracket_index_stack.push_back(bracketstack.size());
+    }
+
+    void BlockEnd() {
+        block_level_bracket_index_stack.pop_back();
+    }
+
+    bool IsInBracketBlock() {
+        return !block_level_bracket_index_stack.empty() &&
+               block_level_bracket_index_stack.back();
     }
 
     // The ones from ctype.h assert on negative values, even though char is signed on most
@@ -261,7 +280,9 @@ struct Lex : LoadedFile {
 
             case '\n':
                 tokline++;
-                islf = bracketstack.empty();
+                islf = bracketstack.empty() ||
+                       (!block_level_bracket_index_stack.empty() &&
+                        block_level_bracket_index_stack.back() == bracketstack.size());
                 linestart = p;
                 break;
             case ' ': case '\t': case '\r': case '\f':
