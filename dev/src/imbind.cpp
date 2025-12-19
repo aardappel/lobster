@@ -79,6 +79,9 @@ struct ListSelect { int sel = -1; int64_t last_use = -1; };
 map<ImGuiID, ListSelect> list_state;
 int64_t imgui_frame = 0;
 ImVec2 tabs_extra_padding(0.0f, 0.0f);
+float tooltip_font_size = 0.0f;
+ImVec2 tooltip_frame(4.0f, 4.0f);
+
 
 // Flags we use in our implementation, in addition to DearImGui.
 enum {
@@ -97,6 +100,7 @@ void IMGUICleanup() {
     ImGui::DestroyContext();
     imgui_init = false;
     IMGUIFrameCleanup();
+    tooltip_font_size = 0.0f;
 }
 
 bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
@@ -152,6 +156,20 @@ bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
     context->ConfigNavWindowingKeyPrev = 0;
     imgui_init = true;
     return true;
+}
+
+void PushToolTipStyle() {
+    if (tooltip_font_size) {
+        ImGui::PushFont(nullptr, tooltip_font_size);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, tooltip_frame);
+    }
+}
+
+void PopToolTipStyle() {
+    if (tooltip_font_size) {
+        ImGui::PopFont();
+        ImGui::PopStyleVar();
+    }
 }
 
 void NPush(Nesting n) {
@@ -224,6 +242,7 @@ void NPop(VM &vm, Nesting n) {
                 break;
             case N_TOOLTIP:
                 ImGui::EndTooltip();
+                PopToolTipStyle();
                 break;
             case N_FONT:
                 ImGui::PopFont();
@@ -1457,8 +1476,11 @@ nfr("tooltip", "label", "S", "",
     "",
     [](StackPtr &, VM &vm, Value text) {
         IsInit(vm);
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            PushToolTipStyle();
             ImGui::SetTooltip("%s", Label(vm, text));
+            PopToolTipStyle();
+        }
         return NilVal();
     });
 
@@ -1467,6 +1489,7 @@ nfr("tooltip_multi_start", "", "", "B",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            PushToolTipStyle();
             ImGui::BeginTooltip();  // The bool it returns is currently always true?
             Push(sp, true);
             NPush(N_TOOLTIP);
@@ -1480,6 +1503,14 @@ nfr("tooltip_multi_end", "", "", "",
     [](StackPtr &, VM &vm) {
         IsInit(vm);
         NPop(vm, N_TOOLTIP);
+    });
+
+nfr("tooltip_style", "font_size,frame_size", "FF}:2", "",
+    "",
+    [](StackPtr &sp, VM &) {
+        auto sz = PopVec<float2>(sp);
+        tooltip_frame = ImVec2{ sz.x, sz.y };
+        tooltip_font_size = Pop(sp).fltval();
     });
 
 nfr("checkbox", "label,bool", "SI", "I2",
