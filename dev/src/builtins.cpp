@@ -454,6 +454,44 @@ nfr("find_string_reverse", "s,substr,offset", "SSI?", "I",
         return Value((ssize_t)sv.rfind(sub.sval()->strv()));
     });
 
+nfr("split_string", "s,delimiter", "SS", "SS",
+    "returns two strings, the parts of the input before and after the first delimiter."
+    " if not found, returns the input and an empty string",
+    [](StackPtr &sp, VM &vm, Value input, Value delim) {
+        auto s = input.sval()->strv();
+        auto d = delim.sval()->strv();
+        auto pos = s.find(d, 0);
+        if (pos == string_view::npos) {
+            input.LTINCRT();
+            Push(sp, input);
+            return Value(vm.NewString(0));  // FIXME: need to have a way to not allocate empty strings.
+        } else {
+            auto left = vm.NewString(string_view(s.data(), pos));
+            auto right = vm.NewString(string_view(s.begin() + (pos + d.size()), s.end()));
+            Push(sp, Value(left));
+            return Value(right);
+        }
+    });
+
+nfr("split_string_reverse", "s,delimiter", "SS", "SS",
+    "returns two strings, the parts of the input before and after the last delimiter."
+    " if not found, returns an empty string and the input",
+    [](StackPtr &sp, VM &vm, Value input, Value delim) {
+        auto s = input.sval()->strv();
+        auto d = delim.sval()->strv();
+        auto pos = s.rfind(d);
+        if (pos == string_view::npos) {
+            Push(sp, Value(vm.NewString(0)));  // FIXME: need to have a way to not allocate empty strings.
+            input.LTINCRT();
+            return input;
+        } else {
+            auto left = vm.NewString(string_view(s.data(), pos));
+            auto right = vm.NewString(string_view(s.begin() + (pos + d.size()), s.end()));
+            Push(sp, Value(left));
+            return Value(right);
+        }
+    });
+
 nfr("replace_string", "s,a,b,count", "SSSI?", "S",
     "returns a copy of s where all occurrences of a have been replaced with b."
     " if a is empty, no replacements are made."

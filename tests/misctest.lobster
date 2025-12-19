@@ -392,6 +392,14 @@ run_test("misc"):
     assert find_string_reverse("abcdabcd", "bc", 4) == 1
     assert replace_string("abcdabcd", "bc", "X") == "aXdaXd"
     assert replace_string("abcdabcd", "bc", "X", 1) == "aXdabcd"
+    var sleft, sright = split_string("foo->bar->baz", "->")
+    assert sleft == "foo" and sright == "bar->baz"
+    sleft, sright = split_string("foobar", "->")
+    assert sleft == "foobar" and sright == ""
+    sleft, sright = split_string_reverse("foo->bar->baz", "->")
+    assert sleft == "foo->bar" and sright == "baz"
+    sleft, sright = split_string_reverse("foobar", "->")
+    assert sleft == "" and sright == "foobar"
 
     assert equal(tokenize(" A | B C |", "|", " ", true), ["A", "B C", ""])
     assert equal(tokenize("; A ; B C;; ", ";", " "), ["", "A", "B C", ""])
