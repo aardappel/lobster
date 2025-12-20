@@ -467,7 +467,7 @@ nfr("split_string", "s,delimiter", "SS", "SS",
             return Value(vm.NewString(0));  // FIXME: need to have a way to not allocate empty strings.
         } else {
             auto left = vm.NewString(string_view(s.data(), pos));
-            auto right = vm.NewString(string_view(s.begin() + (pos + d.size()), s.end()));
+            auto right = vm.NewString(string_view(s.data() + (pos + d.size()), s.size() - (pos + d.size())));
             Push(sp, Value(left));
             return Value(right);
         }
@@ -486,7 +486,7 @@ nfr("split_string_reverse", "s,delimiter", "SS", "SS",
             return input;
         } else {
             auto left = vm.NewString(string_view(s.data(), pos));
-            auto right = vm.NewString(string_view(s.begin() + (pos + d.size()), s.end()));
+            auto right = vm.NewString(string_view(s.data() + (pos + d.size()), s.size() - (pos + d.size())));
             Push(sp, Value(left));
             return Value(right);
         }
