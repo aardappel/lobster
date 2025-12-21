@@ -47,42 +47,51 @@ class CustomStackWalker : public StackWalker {
 // Even better:
 // http://blog.kalmbach-software.de/2013/05/23/improvedpreventsetunhandledexceptionfilter/
 
-#if defined _M_X64 || defined _M_IX86
-static BOOL PreventSetUnhandledExceptionFilter() {
-    HMODULE hKernel32 = LoadLibrary(_T("kernel32.dll"));
-    if (hKernel32 == NULL) return FALSE;
-    void *pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
-    if (pOrgEntry == NULL) return FALSE;
 
-#   ifdef _M_IX86
-    // Code for x86:
-    // 33 C0                xor         eax,eax
-    // C2 04 00             ret         4
-    unsigned char szExecute[] = { 0x33, 0xC0, 0xC2, 0x04, 0x00 };
-#   elif _M_X64
-    // 33 C0                xor         eax,eax
-    // C3                   ret
-    unsigned char szExecute[] = { 0x33, 0xC0, 0xC3 };
-#   else
-#        error "The following code only works for x86 and x64!"
-#   endif
+#if defined(_M_X64) || defined(_M_IX86) || defined(_M_ARM64)
+static BOOL PreventSetUnhandledExceptionFilter()
+{
+  HMODULE hKernel32 = LoadLibrary(_T("kernel32.dll"));
+  if (hKernel32 == NULL)
+    return FALSE;
+  void* pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
+  if (pOrgEntry == NULL)
+    return FALSE;
 
-    DWORD dwOldProtect = 0;
-    BOOL bProt =
-        VirtualProtect(pOrgEntry, sizeof(szExecute), PAGE_EXECUTE_READWRITE, &dwOldProtect);
+#ifdef _M_IX86
+  // Code for x86:
+  // 33 C0                xor         eax,eax
+  // C2 04 00             ret         4
+  unsigned char szExecute[] = {0x33, 0xC0, 0xC2, 0x04, 0x00};
+#elif _M_X64
+  // 33 C0                xor         eax,eax
+  // C3                   ret
+  unsigned char szExecute[] = {0x33, 0xC0, 0xC3};
+#elif _M_ARM64  
+    unsigned char szExecute[] = {
+        0x00, 0x00, 0x80, 0xD2, // mov x0, #0
+        0xC0, 0x03, 0x5F, 0xD6 // ret
+    };
+#else
+#error "The following code only works for x86 and x64!"
+#endif
 
-    SIZE_T bytesWritten = 0;
-    BOOL bRet = WriteProcessMemory(GetCurrentProcess(), pOrgEntry, szExecute, sizeof(szExecute),
-                                   &bytesWritten);
+  DWORD dwOldProtect = 0;
+  BOOL  bProt = VirtualProtect(pOrgEntry, sizeof(szExecute), PAGE_EXECUTE_READWRITE, &dwOldProtect);
 
-    if ((bProt != FALSE) && (dwOldProtect != PAGE_EXECUTE_READWRITE)) {
-        DWORD dwBuf;
-        VirtualProtect(pOrgEntry, sizeof(szExecute), dwOldProtect, &dwBuf);
-    }
-    return bRet;
+  SIZE_T bytesWritten = 0;
+  BOOL   bRet = WriteProcessMemory(GetCurrentProcess(), pOrgEntry, szExecute, sizeof(szExecute),
+                                 &bytesWritten);
+
+  if ((bProt != FALSE) && (dwOldProtect != PAGE_EXECUTE_READWRITE))
+  {
+    DWORD dwBuf;
+    VirtualProtect(pOrgEntry, sizeof(szExecute), dwOldProtect, &dwBuf);
+  }
+  return bRet;
 }
 #else
-#    pragma message("This code works only for x86 and x64!")
+#pragma message("This code works only for x86, x64 and arm64!")
 #endif
 
 static LONG __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS *pExPtrs) {
