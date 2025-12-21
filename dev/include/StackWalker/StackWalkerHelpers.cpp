@@ -149,7 +149,7 @@ void InitUnhandledExceptionFilter(int _argc, char *_argv[]) {
     if (s_bUnhandledExeptionFilterSet == FALSE) {
         // set global exception handler (for handling all unhandled exceptions)
         SetUnhandledExceptionFilter(CrashHandlerExceptionFilter);
-#   if defined _M_X64 || defined _M_IX86
+#   if defined _M_X64 || defined _M_IX86 || defined _M_ARM64
         PreventSetUnhandledExceptionFilter();
 #   endif
         s_bUnhandledExeptionFilterSet = TRUE;
