@@ -30,7 +30,7 @@ enum float_abi {
 #ifdef NEED_RELOC_TYPE
 /* Returns 1 for a code relocation, 0 for a data relocation. For unknown
    relocations, returns -1. */
-int code_reloc (int reloc_type)
+ST_FUNC int code_reloc (int reloc_type)
 {
     switch (reloc_type) {
 	case R_ARM_MOVT_ABS:
@@ -68,7 +68,7 @@ int code_reloc (int reloc_type)
 /* Returns an enumerator to describe whether and when the relocation needs a
    GOT and/or PLT entry to be created. See tcc.h for a description of the
    different values. */
-int gotplt_entry_type (int reloc_type)
+ST_FUNC int gotplt_entry_type (int reloc_type)
 {
     switch (reloc_type) {
 	case R_ARM_NONE:
@@ -179,7 +179,7 @@ ST_FUNC void relocate_plt(TCCState *s1)
 #endif
 #endif
 
-void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t addr, addr_t val)
+ST_FUNC void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t addr, addr_t val)
 {
     ElfW(Sym) *sym;
     int sym_index, esym_index;
@@ -194,17 +194,18 @@ void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t 
         case R_ARM_PLT32:
             {
                 int x, is_thumb, is_call, h, blx_avail, is_bl, th_ko;
-                x = (*(int *) ptr) & 0xffffff;
+                unsigned code = read32le(ptr);
+                x = code & 0x00ffffff;
 #ifdef DEBUG_RELOC
 		printf ("reloc %d: x=0x%x val=0x%x ", type, x, val);
 #endif
-                (*(int *)ptr) &= 0xff000000;
-                if (x & 0x800000)
-                    x -= 0x1000000;
+                code &= 0xff000000;
                 x <<= 2;
-                blx_avail = (TCC_CPU_VERSION >= 5);
+                if (x & 0x2000000)
+                    x -= 0x4000000;
+                blx_avail = (CONFIG_TCC_CPUVER >= 5);
                 is_thumb = val & 1;
-                is_bl = (*(unsigned *) ptr) >> 24 == 0xeb;
+                is_bl = code == 0xeb000000;
                 is_call = (type == R_ARM_CALL || (type == R_ARM_PC24 && is_bl));
                 x += val - addr;
 #ifdef DEBUG_RELOC
@@ -214,15 +215,15 @@ void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t 
                 h = x & 2;
                 th_ko = (x & 3) && (!blx_avail || !is_call);
                 if (th_ko || x >= 0x2000000 || x < -0x2000000)
-                    tcc_error("can't relocate value at %x,%d",addr, type);
+                    tcc_error_noabort("can't relocate value at %x,%d",addr, type);
                 x >>= 2;
                 x &= 0xffffff;
                 /* Only reached if blx is avail and it is a call */
                 if (is_thumb) {
                     x |= h << 24;
-                    (*(int *)ptr) = 0xfa << 24; /* bl -> blx */
+                    code = 0xfa000000; /* bl -> blx */
                 }
-                (*(int *) ptr) |= x;
+                write32le(ptr, code | x);
             }
             return;
         /* Since these relocations only concern Thumb-2 and blx instruction was
@@ -241,8 +242,8 @@ void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t 
                     return;
 
                 /* Get initial offset */
-                hi = (*(uint16_t *)ptr);
-                lo = (*(uint16_t *)(ptr+2));
+                hi = read16le(ptr);
+                lo = read16le(ptr+2);
                 s = (hi >> 10) & 1;
                 j1 = (lo >> 13) & 1;
                 j2 = (lo >> 11) & 1;
@@ -303,7 +304,7 @@ void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t 
                      - instruction must be a call (bl) or a jump to PLT */
                 if (!to_thumb || x >= 0x1000000 || x < -0x1000000)
                     if (to_thumb || (val & 2) || (!is_call && !to_plt))
-                        tcc_error("can't relocate value at %x,%d",addr, type);
+                        tcc_error_noabort("can't relocate value at %x,%d",addr, type);
 
                 /* Compute and store final offset */
                 s = (x >> 24) & 1;
@@ -313,11 +314,11 @@ void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t 
                 j2 = s ^ (i2 ^ 1);
                 imm10 = (x >> 12) & 0x3ff;
                 imm11 = (x >> 1) & 0x7ff;
-                (*(uint16_t *)ptr) = (uint16_t) ((hi & 0xf800) |
-                                     (s << 10) | imm10);
-                (*(uint16_t *)(ptr+2)) = (uint16_t) ((lo & 0xc000) |
-                                (j1 << 13) | blx_bit | (j2 << 11) |
-                                imm11);
+                write16le(ptr, (hi & 0xf800) |
+                               (s << 10) | imm10);
+                write16le(ptr+2, (lo & 0xc000) |
+                                 (j1 << 13) | blx_bit | (j2 << 11) |
+                                 imm11);
             }
             return;
         case R_ARM_MOVT_ABS:
@@ -330,23 +331,23 @@ void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t 
                 imm4 = (val >> 12) & 0xf;
                 x = (imm4 << 16) | imm12;
                 if (type == R_ARM_THM_MOVT_ABS)
-                    *(int *)ptr |= x;
+                    write32le(ptr, read32le(ptr) | x);
                 else
-                    *(int *)ptr += x;
+                    add32le(ptr, x);
             }
             return;
         case R_ARM_MOVT_PREL:
         case R_ARM_MOVW_PREL_NC:
             {
-		int insn = *(int *)ptr;
+		int insn = read32le(ptr);
                 int addend = ((insn >> 4) & 0xf000) | (insn & 0xfff);
 
 		addend = (addend ^ 0x8000) - 0x8000;
 		val += addend - addr;
 		if (type == R_ARM_MOVT_PREL)
 		    val >>= 16;
-		*(int *)ptr = (insn & 0xfff0f000) |
-			      ((val & 0xf000) << 4) | (val & 0xfff);
+		write32le(ptr, (insn & 0xfff0f000) |
+			       ((val & 0xf000) << 4) | (val & 0xfff));
             }
             return;
         case R_ARM_THM_MOVT_ABS:
@@ -361,26 +362,26 @@ void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t 
                 imm4 = (val >> 12) & 0xf;
                 x = (imm3 << 28) | (imm8 << 16) | (i << 10) | imm4;
                 if (type == R_ARM_THM_MOVT_ABS)
-                    *(int *)ptr |= x;
+                    write32le(ptr, read32le(ptr) | x);
                 else
-                    *(int *)ptr += x;
+                    add32le(ptr, x);
             }
             return;
         case R_ARM_PREL31:
             {
                 int x;
-                x = (*(int *)ptr) & 0x7fffffff;
-                (*(int *)ptr) &= 0x80000000;
+                x = read32le(ptr) & 0x7fffffff;
+                write32le(ptr, read32le(ptr) & 0x80000000);
                 x = (x * 2) / 2;
                 x += val - addr;
                 if((x^(x>>1))&0x40000000)
-                    tcc_error("can't relocate value at %x,%d",addr, type);
-                (*(int *)ptr) |= x & 0x7fffffff;
+                    tcc_error_noabort("can't relocate value at %x,%d",addr, type);
+                write32le(ptr, read32le(ptr) | (x & 0x7fffffff));
             }
             return;
         case R_ARM_ABS32:
         case R_ARM_TARGET1:
-            if (s1->output_type == TCC_OUTPUT_DLL) {
+            if (s1->output_type & TCC_OUTPUT_DYN) {
                 esym_index = get_sym_attr(s1, sym_index, 0)->dyn_index;
                 qrel->r_offset = rel->r_offset;
                 if (esym_index) {
@@ -392,37 +393,37 @@ void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t 
                     qrel++;
                 }
             }
-            *(int *)ptr += val;
+            add32le(ptr, val);
             return;
         case R_ARM_REL32:
-            *(int *)ptr += val - addr;
+            add32le(ptr, val - addr);
             return;
         case R_ARM_GOTPC:
-            *(int *)ptr += s1->got->sh_addr - addr;
+            add32le(ptr, s1->got->sh_addr - addr);
             return;
         case R_ARM_GOTOFF:
-            *(int *)ptr += val - s1->got->sh_addr;
+            add32le(ptr, val - s1->got->sh_addr);
             return;
         case R_ARM_GOT32:
             /* we load the got offset */
-            *(int *)ptr += get_sym_attr(s1, sym_index, 0)->got_offset;
+            add32le(ptr, get_sym_attr(s1, sym_index, 0)->got_offset);
             return;
 	case R_ARM_GOT_PREL:
             /* we load the pc relative got offset */
-            *(int *)ptr += s1->got->sh_addr +
-			   get_sym_attr(s1, sym_index, 0)->got_offset -
-			   addr;
+            add32le(ptr, s1->got->sh_addr +
+			 get_sym_attr(s1, sym_index, 0)->got_offset -
+			 addr);
             return;
         case R_ARM_COPY:
             return;
         case R_ARM_V4BX:
             /* trade Thumb support for ARMv4 support */
-            if ((0x0ffffff0 & *(int*)ptr) == 0x012FFF10)
-                *(int*)ptr ^= 0xE12FFF10 ^ 0xE1A0F000; /* BX Rm -> MOV PC, Rm */
+            if ((0x0ffffff0 & read32le(ptr)) == 0x012FFF10)
+                write32le(ptr, read32le(ptr) ^ 0xE12FFF10 ^ 0xE1A0F000); /* BX Rm -> MOV PC, Rm */
             return;
         case R_ARM_GLOB_DAT:
         case R_ARM_JUMP_SLOT:
-            *(addr_t *)ptr = val;
+            write32le(ptr, val);
             return;
         case R_ARM_NONE:
             /* Nothing to do.  Normally used to indicate a dependency

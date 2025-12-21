@@ -159,7 +159,12 @@ typedef struct
 #define ELFOSABI_TRU64		10	/* Compaq TRU64 UNIX.  */
 #define ELFOSABI_MODESTO	11	/* Novell Modesto.  */
 #define ELFOSABI_OPENBSD	12	/* OpenBSD.  */
-#define ELFOSABI_ARM_AEABI	64	/* ARM EABI */
+#define ELFOSABI_OPENVMS        13
+#define ELFOSABI_NSK            14      /* Hewlett-Packard Non-Stop Kernel.  */
+#define ELFOSABI_AROS           15      /* Amiga Research OS.  */
+#define ELFOSABI_FENIXOS        16      /* FenixOS.  */
+#define ELFOSABI_ARM_AEABI	64	/* ARM EABI.  */
+#define ELFOSABI_C6000_LINUX    65      /* Linux TMS320C6000.  */
 #define ELFOSABI_ARM		97	/* ARM */
 #define ELFOSABI_STANDALONE	255	/* Standalone (embedded) application */
 
@@ -820,6 +825,7 @@ typedef struct
 #define	DF_1_SYMINTPOSE	0x00800000	/* Object has individual interposers.  */
 #define	DF_1_GLOBAUDIT	0x01000000	/* Global auditing required.  */
 #define	DF_1_SINGLETON	0x02000000	/* Singleton symbols are used.  */
+#define	DF_1_PIE	0x08000000
 
 /* Flags for the feature selection in DT_FEATURE_1.  */
 #define DTF_1_PARINIT	0x00000001
@@ -3307,8 +3313,12 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_RISCV_SET16		55
 #define R_RISCV_SET32		56
 #define R_RISCV_32_PCREL	57
+#define R_RISCV_IRELATIVE	58
+#define R_RISCV_PLT32		59
+#define R_RISCV_SET_ULEB128	60
+#define R_RISCV_SUB_ULEB128	61
 
-#define R_RISCV_NUM		58
+#define R_RISCV_NUM		62
 
 
 #endif	/* elf.h */

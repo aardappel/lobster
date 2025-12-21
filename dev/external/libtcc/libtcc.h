@@ -9,11 +9,13 @@
 extern "C" {
 #endif
 
-struct TCCState;
+/*****************************/
+/* set custom allocator for all allocations (optional), NULL for default. */
+typedef void *TCCReallocFunc(void *ptr, unsigned long size);
+LIBTCCAPI void tcc_set_realloc(TCCReallocFunc *my_realloc);
 
+/*****************************/
 typedef struct TCCState TCCState;
-
-typedef void (*TCCErrorFunc)(void *opaque, const char *msg);
 
 /* create a new TCC compilation context */
 LIBTCCAPI TCCState *tcc_new(void);
@@ -24,17 +26,12 @@ LIBTCCAPI void tcc_delete(TCCState *s);
 /* set CONFIG_TCCDIR at runtime */
 LIBTCCAPI void tcc_set_lib_path(TCCState *s, const char *path);
 
-/* set error/warning display callback */
-LIBTCCAPI void tcc_set_error_func(TCCState *s, void *error_opaque, TCCErrorFunc error_func);
-
-/* return error/warning callback */
-LIBTCCAPI TCCErrorFunc tcc_get_error_func(TCCState *s);
-
-/* return error/warning callback opaque pointer */
-LIBTCCAPI void *tcc_get_error_opaque(TCCState *s);
+/* set error/warning callback (optional) */
+typedef void TCCErrorFunc(void *opaque, const char *msg);
+LIBTCCAPI void tcc_set_error_func(TCCState *s, void *error_opaque, TCCErrorFunc *error_func);
 
 /* set options as from command line (multiple supported) */
-LIBTCCAPI void tcc_set_options(TCCState *s, const char *str);
+LIBTCCAPI int tcc_set_options(TCCState *s, const char *str);
 
 /*****************************/
 /* preprocessor */
@@ -60,16 +57,19 @@ LIBTCCAPI int tcc_add_file(TCCState *s, const char *filename);
 /* compile a string containing a C source. Return -1 if error. */
 LIBTCCAPI int tcc_compile_string(TCCState *s, const char *buf);
 
+/* Tip: to have more specific errors/warnings from tcc_compile_string(),
+   you can prefix the string with "#line <num> \"<filename>\"\n" */
+
 /*****************************/
 /* linking commands */
 
 /* set output type. MUST BE CALLED before any compilation */
 LIBTCCAPI int tcc_set_output_type(TCCState *s, int output_type);
-#define TCC_OUTPUT_MEMORY   1 /* output will be run in memory (default) */
+#define TCC_OUTPUT_MEMORY   1 /* output will be run in memory */
 #define TCC_OUTPUT_EXE      2 /* executable file */
-#define TCC_OUTPUT_DLL      3 /* dynamic library */
-#define TCC_OUTPUT_OBJ      4 /* object file */
-#define TCC_OUTPUT_PREPROCESS 5 /* only preprocess (used internally) */
+#define TCC_OUTPUT_DLL      4 /* dynamic library */
+#define TCC_OUTPUT_OBJ      3 /* object file */
+#define TCC_OUTPUT_PREPROCESS 5 /* only preprocess */
 
 /* equivalent to -Lpath option */
 LIBTCCAPI int tcc_add_library_path(TCCState *s, const char *pathname);
@@ -89,20 +89,25 @@ LIBTCCAPI int tcc_output_file(TCCState *s, const char *filename);
 LIBTCCAPI int tcc_run(TCCState *s, int argc, char **argv);
 
 /* do all relocations (needed before using tcc_get_symbol()) */
-LIBTCCAPI int tcc_relocate(TCCState *s1, void *ptr);
-/* possible values for 'ptr':
-   - TCC_RELOCATE_AUTO : Allocate and manage memory internally
-   - NULL              : return required memory size for the step below
-   - memory address    : copy code to memory passed by the caller
-   returns -1 if error. */
-#define TCC_RELOCATE_AUTO (void*)1
+LIBTCCAPI int tcc_relocate(TCCState *s1);
 
 /* return symbol value or NULL if not found */
 LIBTCCAPI void *tcc_get_symbol(TCCState *s, const char *name);
 
-/* return symbol value or NULL if not found */
+/* list all (global) symbols and their values via 'symbol_cb()' */
 LIBTCCAPI void tcc_list_symbols(TCCState *s, void *ctx,
     void (*symbol_cb)(void *ctx, const char *name, const void *val));
+
+/* experimental/advanced section (see libtcc_test_mt.c for an example) */
+
+/* catch runtime exceptions (optionally limit backtraces at top_func),
+   when using tcc_set_options("-bt") and when not using tcc_run() */
+LIBTCCAPI void *_tcc_setjmp(TCCState *s1, void *jmp_buf, void *top_func, void *longjmp);
+#define tcc_setjmp(s1,jb,f) setjmp(_tcc_setjmp(s1, jb, f, longjmp))
+
+/* custom error printer for runtime exceptions. Returning 0 stops backtrace */
+typedef int TCCBtFunc(void *udata, void *pc, const char *file, int line, const char* func, const char *msg);
+LIBTCCAPI void tcc_set_backtrace_func(TCCState *s1, void* userdata, TCCBtFunc*);
 
 #ifdef __cplusplus
 }

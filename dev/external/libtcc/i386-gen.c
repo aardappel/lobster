@@ -31,10 +31,10 @@
 #define RC_INT     0x0001 /* generic integer register */
 #define RC_FLOAT   0x0002 /* generic float register */
 #define RC_EAX     0x0004
-#define RC_ST0     0x0008 
+#define RC_EDX     0x0008
 #define RC_ECX     0x0010
-#define RC_EDX     0x0020
-#define RC_EBX     0x0040
+#define RC_EBX     0x0020
+#define RC_ST0     0x0040
 
 #define RC_IRET    RC_EAX /* function return: integer register */
 #define RC_IRE2    RC_EDX /* function return: second integer register */
@@ -218,11 +218,6 @@ ST_FUNC void load(int r, SValue *sv)
     int v, t, ft, fc, fr;
     SValue v1;
 
-#ifdef TCC_TARGET_PE
-    SValue v2;
-    sv = pe_getimport(sv, &v2);
-#endif
-
     fr = sv->r;
     ft = sv->type.t & ~VT_DEFSIGN;
     fc = sv->c.i;
@@ -296,11 +291,6 @@ ST_FUNC void load(int r, SValue *sv)
 ST_FUNC void store(int r, SValue *v)
 {
     int fr, bt, ft, fc;
-
-#ifdef TCC_TARGET_PE
-    SValue v2;
-    v = pe_getimport(v, &v2);
-#endif
 
     ft = v->type.t;
     fc = v->c.i;
@@ -380,14 +370,15 @@ static const uint8_t fastcallw_regs[2] = { TREG_ECX, TREG_EDX };
 ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret, int *ret_align, int *regsize)
 {
 #if defined(TCC_TARGET_PE) || TARGETOS_FreeBSD || TARGETOS_OpenBSD
-    int size, align;
+    int size, align, nregs;
     *ret_align = 1; // Never have to re-align return values for x86
     *regsize = 4;
     size = type_size(vt, &align);
     if (size > 8 || (size & (size - 1)))
         return 0;
+    nregs = 1;
     if (size == 8)
-        ret->t = VT_LLONG;
+        ret->t = VT_INT, nregs = 2;
     else if (size == 4)
         ret->t = VT_INT;
     else if (size == 2)
@@ -395,7 +386,7 @@ ST_FUNC int gfunc_sret(CType *vt, int variadic, CType *ret, int *ret_align, int 
     else
         ret->t = VT_BYTE;
     ret->ref = NULL;
-    return 1;
+    return nregs;
 #else
     *ret_align = 1; // Never have to re-align return values for x86
     return 0;
@@ -409,11 +400,13 @@ ST_FUNC void gfunc_call(int nb_args)
 {
     int size, align, r, args_size, i, func_call;
     Sym *func_sym;
-    
+
 #ifdef CONFIG_TCC_BCHECK
     if (tcc_state->do_bounds_check)
         gbound_args(nb_args);
 #endif
+
+    save_regs(nb_args + 1);
 
     args_size = 0;
     for(i = 0;i < nb_args; i++) {
@@ -424,6 +417,7 @@ ST_FUNC void gfunc_call(int nb_args)
             /* allocate the necessary size on stack */
 #ifdef TCC_TARGET_PE
             if (size >= 4096) {
+                save_reg(TREG_EDX);
                 r = get_reg(RC_EAX);
                 oad(0x68, size); // push size
                 /* cannot call normal 'alloca' with bound checking */
@@ -472,17 +466,20 @@ ST_FUNC void gfunc_call(int nb_args)
         }
         vtop--;
     }
-    save_regs(0); /* save used temporary registers */
+
     func_sym = vtop->type.ref;
     func_call = func_sym->f.func_call;
     /* fast call case */
     if ((func_call >= FUNC_FASTCALL1 && func_call <= FUNC_FASTCALL3) ||
-        func_call == FUNC_FASTCALLW) {
+        func_call == FUNC_FASTCALLW || func_call == FUNC_THISCALL) {
         int fastcall_nb_regs;
         const uint8_t *fastcall_regs_ptr;
         if (func_call == FUNC_FASTCALLW) {
             fastcall_regs_ptr = fastcallw_regs;
             fastcall_nb_regs = 2;
+        } else if (func_call == FUNC_THISCALL) {
+            fastcall_regs_ptr = fastcallw_regs;
+            fastcall_nb_regs = 1;
         } else {
             fastcall_regs_ptr = fastcall_regs;
             fastcall_nb_regs = func_call - FUNC_FASTCALL1 + 1;
@@ -502,7 +499,7 @@ ST_FUNC void gfunc_call(int nb_args)
 
     gcall_or_jmp(0);
 
-    if (args_size && func_call != FUNC_STDCALL && func_call != FUNC_FASTCALLW)
+    if (args_size && func_call != FUNC_STDCALL && func_call != FUNC_THISCALL && func_call != FUNC_FASTCALLW)
         gadd_sp(args_size);
     vtop--;
 }
@@ -534,6 +531,9 @@ ST_FUNC void gfunc_prolog(Sym *func_sym)
         fastcall_regs_ptr = fastcall_regs;
     } else if (func_call == FUNC_FASTCALLW) {
         fastcall_nb_regs = 2;
+        fastcall_regs_ptr = fastcallw_regs;
+    } else if (func_call == FUNC_THISCALL) {
+        fastcall_nb_regs = 1;
         fastcall_regs_ptr = fastcallw_regs;
     } else {
         fastcall_nb_regs = 0;
@@ -578,13 +578,12 @@ ST_FUNC void gfunc_prolog(Sym *func_sym)
             param_addr = addr;
             addr += size;
         }
-        sym_push(sym->v & ~SYM_FIELD, type,
-                 VT_LOCAL | VT_LVAL, param_addr);
+        gfunc_set_param(sym, param_addr, 0);
         param_index++;
     }
     func_ret_sub = 0;
     /* pascal type call or fastcall ? */
-    if (func_call == FUNC_STDCALL || func_call == FUNC_FASTCALLW)
+    if (func_call == FUNC_STDCALL || func_call == FUNC_FASTCALLW || func_call == FUNC_THISCALL)
         func_ret_sub = addr - 8;
 #if !defined(TCC_TARGET_PE) && !TARGETOS_FreeBSD || TARGETOS_OpenBSD
     else if (func_vc)

@@ -62,7 +62,7 @@ bool RunC(const char *source,
     if (object_name) {
         return tcc_output_file(state.get(), object_name) == 0;
     } else {
-        if (tcc_relocate(state.get(), TCC_RELOCATE_AUTO) < 0) return false;
+        if (tcc_relocate(state.get()) < 0) return false;
         vector<void *> exports;
         while (*export_names) {
             exports.push_back(tcc_get_symbol(state.get(), *export_names++));

@@ -7,9 +7,8 @@ Features:
 - SMALL! You can compile and execute C code everywhere, for example on
   rescue disks.
 
-- FAST! tcc generates optimized x86 code. No byte code
-  overhead. Compile, assemble and link about 7 times faster than 'gcc
-  -O0'.
+- FAST! tcc generates machine code for i386, x86_64, arm, aarch64 or
+  riscv64.  Compiles and links about 10 times faster than 'gcc -O0'.
 
 - UNLIMITED! Any C dynamic library can be used directly. TCC is
   heading toward full ISOC99 compliance. TCC can of course compile
@@ -28,15 +27,14 @@ Features:
 Documentation:
 -------------
 
-1) Installation on a i386/x86_64/arm/aarch64/riscv64
-   Linux/macOS/FreeBSD/NetBSD/OpenBSD hosts.
+1) Installation on Linux, BSD variants or macOS hosts:
 
    ./configure
    make
    make test
    make install
 
-   Notes: For FreeBSD, NetBSD and OpenBSD, gmake should be used instead of make.
+   Notes: On BSD hosts, gmake should be used instead of make.
    For Windows read tcc-win32.txt.
 
 makeinfo must be installed to compile the doc.  By default, tcc is
@@ -83,9 +81,8 @@ when doing 'make test'.
 
 4) Full Documentation
 
-Please read tcc-doc.html to have all the features of TCC.
-
-Additional information is available for the Windows port in tcc-win32.txt.
+Please read tcc-doc.html to have all the features of TCC.  Additional
+information for the Windows port is in tcc-win32.txt.
 
 License:
 -------

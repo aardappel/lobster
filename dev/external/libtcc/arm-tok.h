@@ -20,8 +20,26 @@
  DEF_ASM(r14) /* lr */
  DEF_ASM(r15) /* pc */
 
-/* register macros */
+/* synonym register names */
 
+ DEF_ASM(a1) /* argument/result/scratch register 1: alias for r0 */
+ DEF_ASM(a2) /* argument/result/scratch register 2: alias for r1 */
+ DEF_ASM(a3) /* argument/result/scratch register 3: alias for r2 */
+ DEF_ASM(a4) /* argument/result/scratch register 4: alias for r3 */
+
+ DEF_ASM(v1) /* variable register 1: alias for r4 */
+ DEF_ASM(v2) /* variable register 2: alias for r5 */
+ DEF_ASM(v3) /* variable register 3: alias for r6 */
+ DEF_ASM(v4) /* variable register 4: alias for r7 */
+ DEF_ASM(v5) /* ARM state variable register 5: alias for r8 */
+ DEF_ASM(v6) /* ARM state variable register 6: alias for r9 */
+ DEF_ASM(v7) /* ARM state variable register 7: alias for r10 */
+ DEF_ASM(v8) /* ARM state variable register 8: alias for r11 */
+
+/* special register names */
+
+ DEF_ASM(sb) /* alias for r9  */
+ DEF_ASM(sl) /* alias for r10 */
  DEF_ASM(fp) /* alias for r11 */
  DEF_ASM(ip) /* alias for r12 */
  DEF_ASM(sp) /* alias for r13 */
@@ -238,6 +256,9 @@
  DEF_ASM_CONDED(smlals)
  DEF_ASM_CONDED(umlal)
  DEF_ASM_CONDED(umlals)
+ DEF_ASM_CONDED(mls)
+ DEF_ASM_CONDED(udiv)
+ DEF_ASM_CONDED(sdiv)
 
  /* load/store */
 
@@ -247,8 +268,10 @@
  DEF_ASM_CONDED(strb)
  DEF_ASM_CONDED(ldrex)
  DEF_ASM_CONDED(ldrexb)
+ DEF_ASM_CONDED(ldrexh)
  DEF_ASM_CONDED(strex)
  DEF_ASM_CONDED(strexb)
+ DEF_ASM_CONDED(strexh)
  DEF_ASM_CONDED(ldrh)
  DEF_ASM_CONDED(ldrsh)
  DEF_ASM_CONDED(ldrsb)
