@@ -179,15 +179,15 @@ extern long double strtold (const char *__nptr, char **__endptr);
 /* only native compiler supports -run */
 #if defined _WIN32 == defined TCC_TARGET_PE \
     && defined __APPLE__ == defined TCC_TARGET_MACHO
-# if defined __i386__ && defined TCC_TARGET_I386
+# if (defined __i386__ || defined _M_IX86) && defined TCC_TARGET_I386
 #  define TCC_IS_NATIVE
-# elif defined __x86_64__ && defined TCC_TARGET_X86_64
+# elif (defined __x86_64__ || defined _M_X64 || defined _M_AMD64) && defined TCC_TARGET_X86_64
 #  define TCC_IS_NATIVE
-# elif defined __arm__ && defined TCC_TARGET_ARM
+# elif (defined __arm__  || defined _M_ARM) && defined TCC_TARGET_ARM
 #  define TCC_IS_NATIVE
-# elif defined __aarch64__ && defined TCC_TARGET_ARM64
+# elif (defined __aarch64__ || defined _M_ARM64) && defined TCC_TARGET_ARM64
 #  define TCC_IS_NATIVE
-# elif defined __riscv && defined __LP64__ && defined TCC_TARGET_RISCV64
+# elif (defined __riscv ) && defined __LP64__ && defined TCC_TARGET_RISCV64
 #  define TCC_IS_NATIVE
 # endif
 #endif

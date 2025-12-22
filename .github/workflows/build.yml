@@ -60,14 +60,22 @@ jobs:
 
   build-windows:
     name: Build Windows
-    runs-on: windows-2022
+    strategy:
+      matrix:
+        os: [windows-2022, windows-11-arm]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v2
-    - name: build
+    - name: build on x64
       working-directory: dev/lobster
+      if: matrix.os == 'windows-2022'
       run: msbuild.exe lobster.sln /p:Configuration=Release /p:Platform=x64
+    - name: build on arm64
+      working-directory: dev/lobster
+      if: matrix.os == 'windows-11-arm'
+      run: msbuild.exe lobster.sln /p:Configuration=Debug /p:Platform="Any CPU" /p:PlatformTarget=ARM64
     - name: test
       run: bin/lobster.exe tests/unittest.lobster
     - name: test lsp
@@ -75,7 +83,7 @@ jobs:
     - name: upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Windows Lobster binary
+        name: Windows ${{ matrix.os }} Lobster binary
         path: bin/lobster.exe
 
   build-mac:
