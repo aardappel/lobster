@@ -421,8 +421,10 @@ bool SDLSoundInit() {
         LOG_INFO("Audio driver available ", SDL_GetAudioDriver(i));
     }
 
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO))
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+        LOG_ERROR("SDL FAILED init audio subsystem: ", SDL_GetError());
         return false;
+    }
 
     #ifdef _WIN32
         // It defaults to wasapi which doesn't output any sound?
