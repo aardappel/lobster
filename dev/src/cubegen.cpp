@@ -1285,7 +1285,8 @@ nfr("set_buf", "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
         auto buf = Pop(sp).sval()->strv();
         auto &v = GetVoxels(Pop(sp));
         if (size.volume() != (int)buf.size()) vm.BuiltinError("cg.set_buf: buf does not match size");
-        if (offset + size > v.grid.dim) vm.BuiltinError("cg.set_buf: out of bounds");
+        if (!in_range(offset, v.grid.dim)) vm.BuiltinError("cg.set_buf: out of bounds");
+        if (!in_range(offset + size - 1, v.grid.dim)) vm.BuiltinError("cg.set_buf: out of bounds");
         v.grid.FromContinousGrid((uint8_t *)buf.data(), offset, size);
     });
 
