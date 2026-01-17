@@ -1,0 +1,68 @@
+Syntax Tests For imgui_markdown
+
+Test - Headers
+
+# Header 1
+Paragraph
+## Header 2
+Paragraph
+### Header 3
+Paragraph
+
+Test - Emphasis
+
+*Emphasis with stars*
+_Emphasis with underscores_
+**Strong emphasis with stars**
+__Strong emphasis with underscores__
+_*_
+**_**
+
+Test - Emphasis In List
+
+  * *List emphasis with stars*
+    * *Sublist with emphasis*
+    * Sublist without emphasis
+    * **Sublist** with *some* emphasis
+  * _List emphasis with underscores_
+
+Test - Emphasis In Indented Paragraph
+
+  *Indented emphasis with stars*  
+    *Double indent with emphasis*
+    Double indent without emphasis
+    **Double indent** with *some* emphasis
+  _Indented emphasis with underscores_
+  
+Test - Horizontal Rule
+
+***
+****
+***********************************
+___
+____________________
+
+___
+
+
+Unsupported Syntax Combinations (non exhaustive)
+
+# Header with [unsupported link](url) included
+# Header with ![unsupported image alt text](unsupported image identifier e.g. filename) included
+# Header with **unsupported emphasis** included
+**# Strong emphasis with unsupported header included**
+[Link with *unsupported emphasis* included](url)
+*Unsupported emphasis with [link](url) included*
+_Unsupported emphasis with image ![image alt text](image identifier e.g. filename) included_
+*Unsupported emphasis 
+on multiple lines*
+_Unsupported emphasis
+on multiple lines_
+  * *List with unsupported emphasis
+on multiple lines*
+  * _List with unsupported emphasis
+on multiple lines_
+  _Indent with unsupported emphasis
+on multiple lines_
+  _Indent [with *an unsupported emphasized* link](url) with unsupported emphasis
+on multiple lines_

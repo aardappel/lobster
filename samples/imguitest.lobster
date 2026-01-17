@@ -77,3 +77,21 @@ while gl.frame():
             im.treenode("Memory Usage"):
                 im.text(get_memory_usage(20))
             im.show_vars()
+
+        im.window("Markdown example", 0):
+            im.text_markdown("""
+# H1 Header: Text and Links
+You can add [link to lobster home page](https://strlen.com/lobster/) and lines will wrap well.
+You can also insert images ![image alt text](data/textures/lobster_small.jpg)
+Horizontal rules:
+***
+___
+*Emphasis* and **strong emphasis** change the appearance of the text.
+## H2 Header: indented text.
+  This text has an indent (two leading spaces).
+    This one has two.
+### H3 Header: Lists
+  * Unordered lists
+    * Lists can be indented with two extra spaces.
+  * Lists can have [link to lobster home page](https://strlen.com/lobster/) and *emphasized text*
+            """)

@@ -15,6 +15,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
+#include "external/imgui_markdown/imgui_markdown.h"
 
 #include "lobster/stdafx.h"
 
@@ -968,6 +969,87 @@ string BreakPoint(VM &vm, string_view reason) {
     return "";
 }
 
+void LinkCallback(ImGui::MarkdownLinkCallbackData data_) {
+    std::string url(data_.link, data_.linkLength);
+    if (!data_.isImage) {
+        SDL_OpenURL(url.c_str());
+    }
+}
+
+// FIXME: this is terrible, but needed to let this thing load textures.
+// Instead, must somehow let the caller load these.
+map<string, Texture> tempmarkdowntexturelookup;
+inline ImGui::MarkdownImageData ImageCallback(ImGui::MarkdownLinkCallbackData data_) {
+    std::string_view fn(data_.link, data_.linkLength);
+    Texture tex;
+    auto it = tempmarkdowntexturelookup.find(string(fn));
+    if (it == tempmarkdowntexturelookup.end()) {
+        tex = CreateTextureFromFile(fn, 0);
+        tempmarkdowntexturelookup[string(fn)] = tex;
+    } else {
+        tex = it->second;
+    }
+    // FIXME: if we can't load, then display what? Something better than a font texture.
+    ImTextureID image = tex.id ? (ImTextureID)(size_t)tex.id : ImGui::GetIO().Fonts->TexRef.GetTexID();
+    ImGui::MarkdownImageData imageData;
+    imageData.isValid =         true;
+    imageData.useLinkCallback = false;
+    imageData.user_texture_id = image;
+    imageData.size =            tex.size.x > 0 ? ImVec2((float)tex.size.x, (float)tex.size.y) : ImVec2(20.0f, 20.0f);
+    // For image resize when available size.x > image width, add
+    ImVec2 const contentSize = ImGui::GetContentRegionAvail();
+    if (imageData.size.x > contentSize.x) {
+        float const ratio = imageData.size.y/imageData.size.x;
+        imageData.size.x = contentSize.x;
+        imageData.size.y = contentSize.x*ratio;
+    }
+    return imageData;
+}
+
+void ExampleMarkdownFormatCallback(const ImGui::MarkdownFormatInfo &markdownFormatInfo_, bool start_) {
+    // Call the default first so any settings can be overwritten by our implementation.
+    // Alternatively could be called or not called in a switch statement on a case by case basis.
+    // See defaultMarkdownFormatCallback definition for furhter examples of how to use it.
+    ImGui::defaultMarkdownFormatCallback(markdownFormatInfo_, start_);        
+    switch(markdownFormatInfo_.type) {
+        // example: change the colour of heading level 2
+        case ImGui::MarkdownFormatType::HEADING: {
+            if (markdownFormatInfo_.level == 2) {
+                if (start_) {
+                    //ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                } else {
+                    //ImGui::PopStyleColor();
+                }
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
+void Markdown(string_view markdown_) {
+    float fontSize = ImGui::GetCurrentContext()->FontSizeBase;
+    ImGuiIO& io = ImGui::GetIO();
+    // TODO: this all needs to be more flexible.
+    assert(io.Fonts->Fonts.size() > 0);
+    ImFont* H1 = io.Fonts->Fonts[0];
+    ImFont* H2 = io.Fonts->Fonts[0];
+    ImFont* H3 = io.Fonts->Fonts[0];
+    ImGui::MarkdownConfig mdConfig; 
+    mdConfig.linkCallback =         LinkCallback;
+    mdConfig.tooltipCallback =      NULL;
+    mdConfig.imageCallback =        ImageCallback;
+    mdConfig.linkIcon =             "";//ICON_FA_LINK;
+    mdConfig.headingFormats[0] =    { H1, true,  fontSize * 1.6f };
+    mdConfig.headingFormats[1] =    { H2, true,  fontSize * 1.4f };
+    mdConfig.headingFormats[2] =    { H3, false, fontSize * 1.2f };
+    mdConfig.userData =             NULL;
+    mdConfig.formatCallback =       ExampleMarkdownFormatCallback;
+    ImGui::Markdown(markdown_.data(), markdown_.size(), mdConfig);
+}
+
 int &ListState(int &cur, const char* label, iint max, int def) {
     auto pcur = &cur;
     if (cur < -1) {
@@ -1407,6 +1489,15 @@ nfr("text_bullet", "label", "S", "",
         return NilVal();
     });
 
+nfr("text_markdown", "text", "S", "",
+    "",
+    [](StackPtr &, VM &vm, Value text) {
+        IsInit(vm);
+        auto &s = *text.sval();
+        Markdown(s.strv());
+        return NilVal();
+    });
+
 nfr("indent_start", "amount", "F", "",
     "(use im.indent instead)",
     [](StackPtr &sp, VM &vm) {
@@ -1441,7 +1532,7 @@ nfr("font_end", "", "", "",
     });
 
 nfr("font_size_start", "size", "F", "",
-    "(use im.font instead)",
+    "(use im.font_size instead)",
     [](StackPtr &sp, VM &vm) {
         IsInit(vm);
         auto f = Pop(sp).fltval();
