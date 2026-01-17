@@ -38,6 +38,7 @@ struct Texture {
     unsigned type;
     unsigned internalformat;
 
+    Texture();
     Texture(int _id, const int2 &_size, int es, unsigned t, unsigned f)
         : id(_id), size(int3(_size, 0)), elemsize(es), type(t), internalformat(f) {}
     Texture(int _id, const int3 &_size, int es, unsigned t, unsigned f)
@@ -47,8 +48,6 @@ struct Texture {
         return { sizeof(Texture), size_t(max(size, int3_1).volume() * elemsize) };
     }
 };
-
-extern Texture DummyTexture();
 
 struct OwnedTexture : lobster::Resource {
     Texture t;
@@ -126,7 +125,7 @@ struct Textured {
 
     Texture &Get(size_t i) {
         while (i >= textures.size())
-            textures.emplace_back(DummyTexture());
+            textures.emplace_back(Texture());
         return textures[i];
     }
 };
@@ -302,8 +301,8 @@ extern bool SaveTexture(const Texture &tex, string_view_nt filename, bool flip);
 extern int MaxTextureSize();
 extern void SetTextureFlags(const Texture &tex, int tf);
 extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,
-                                bool depth = false, int tf = 0, const Texture &resolvetex = DummyTexture(),
-                                const Texture &depthtex = DummyTexture());
+                                bool depth = false, int tf = 0, const Texture &resolvetex = Texture(),
+                                const Texture &depthtex = Texture());
 extern int2 GetFrameBufferSize(const int2 &screensize);
 
 extern uint8_t *LoadImageFile(string_view fn, int2 &dim);

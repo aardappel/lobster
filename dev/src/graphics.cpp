@@ -40,7 +40,7 @@ Mesh &GetMesh(Value res) {
     return GetResourceDec<Mesh>(res, &mesh_type);
 }
 Texture GetTexture(Value res) {
-    if (res.False()) return DummyTexture();
+    if (res.False()) return Texture();
     return GetResourceDec<OwnedTexture>(res, &texture_type).t;
 }
 Shader &GetShader(Value res) {

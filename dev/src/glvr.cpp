@@ -57,8 +57,8 @@ float4x4 FromOpenVR(const vr::HmdMatrix34_t &mat) {
 #endif  // PLATFORM_VR
 
 static int3 rtsize = int3_0;
-static Texture mstex[2] = { DummyTexture(), DummyTexture() };
-static Texture retex[2] = { DummyTexture(), DummyTexture() };
+static Texture mstex[2] = { Texture(), Texture() };
+static Texture retex[2] = { Texture(), Texture() };
 static float4x4 hmdpose = float4x4_1;
 struct MotionController {
     float4x4 mat;
@@ -200,7 +200,7 @@ void VREye(int eye, float znear, float zfar) {
 void VRFinish() {
     #ifdef PLATFORM_VR
     if (!vrsys) return;
-    SwitchToFrameBuffer(DummyTexture(), GetScreenSize());
+    SwitchToFrameBuffer(Texture(), GetScreenSize());
     for (int i = 0; i < 2; i++) {
         vr::Texture_t vrtex = {
             (void *)(size_t)retex[i].id,

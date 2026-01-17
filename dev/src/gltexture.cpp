@@ -209,7 +209,7 @@ Texture CreateTextureFromFile(string_view name, int tf) {
     tf &= ~TF_FLOAT;  // Not supported yet.
     string fbuf;
     vector<uint8_t *> bufs;
-    Texture tex = DummyTexture();
+    Texture tex;
     int3 adim = int3_0;
     static const char *cubesides[6] = { "_ft", "_bk", "_up", "_dn", "_rt", "_lf" };
     for (int i = 0; i < (tf & TF_CUBEMAP ? 6 : 1); i++) {
@@ -296,8 +296,12 @@ Texture CreateColoredTexture(string_view name, const int3 &size, const float4 &c
     }
 }
 
-Texture DummyTexture() {
-    return Texture(0, int3_0, sizeof(byte4), GL_TEXTURE_2D, GL_RGBA8);
+Texture::Texture()
+    : id(0),
+      size(int3_0),
+      elemsize(sizeof(byte4)),
+      type(GL_TEXTURE_2D),
+      internalformat(GL_RGBA8) {
 }
 
 void DeleteTexture(Texture &tex) {
@@ -402,7 +406,7 @@ int CreateFrameBuffer(const Texture &tex, int tf) {
 static int fb = 0;
 static int rb = 0;
 // Texture to resolve to at the end when fb refers to a multisample texture.
-static Texture retex = DummyTexture();
+static Texture retex;
 static int retf = 0;
 static bool hasdepthtex = false;
 static int2 framebuffersize(0);
@@ -440,7 +444,7 @@ bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize, bool depth, i
                                         0, 0, retex.size.x, retex.size.y,
                                         GL_COLOR_BUFFER_BIT, GL_NEAREST));
             GL_CALL(glDeleteFramebuffers(1, (GLuint *)&refb));
-            retex = DummyTexture();
+            retex = Texture();
             retf = 0;
         }
         GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));

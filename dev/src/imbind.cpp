@@ -949,7 +949,7 @@ string BreakPoint(VM &vm, string_view reason) {
         ImGui::End();
 
         ImGui::Render();
-        SetTexture(0, DummyTexture());
+        SetTexture(0, Texture());
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 
