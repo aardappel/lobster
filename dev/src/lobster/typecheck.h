@@ -797,15 +797,16 @@ struct TypeChecker {
             }
         }
         for (auto u = &udt; u; u = u->ssuperclass) {
-            if (u->subudts_dispatched) {
+            if (!u->subudts_dispatched_where.empty()) {
+                // DISPATCH_BEFORE_CLASS_DEF 1
                 // This is unfortunate, but code ordering has made it such that a
                 // dispatch has already been typechecked before this gudt has been
                 // fully processed. This should be solved by doing type-checking more
                 // safely multipass, but until then, this error. Without this error,
                 // the VM could run into empty vtable entries.
-                // TODO: output the name of the method that caused this?
-                Error(errn, "class ", Q(udt.name), " already used in dynamic dispatch on ",
-                        Q(u->name), " before it has been declared");
+                Error(errn, "class ", Q(udt.name), " already used in dynamic dispatch of ",
+                            Q(u->subudts_dispatched_where), " on ", Q(u->name),
+                            " before it has been declared");
             }
             u->subudts.push_back(&udt);
             // May have already been added by predeclaration, but rather than skipping it in
@@ -1476,7 +1477,7 @@ struct TypeChecker {
                                   int &vtable_idx) {
         // FIXME: this is to lock the subudts, since adding to them later would invalidate
         // this dispatch.. would be better to solve ordering problems differently.
-        dispatch_udt.subudts_dispatched = true;
+        dispatch_udt.subudts_dispatched_where = csf->parent->name;
         Function &f = *csf->parent;
         // We must assume the instance may dynamically be different, so go thru vtable.
         // See if we already have a vtable entry for this type of call.
@@ -1522,12 +1523,19 @@ struct TypeChecker {
             }
             fail:;
         }
+        if (dispatch_udt.subudts.empty()) {
+            // DISPATCH_BEFORE_CLASS_DEF 2
+            // There is an error for when any classes are defined after a dispatch, but in
+            // this case ALL of them are defined after, which needs this specialized error
+            // since we have no methods to work on below.
+            Error(call_args, "dynamic dispatch of ", Q(f.name), " on ", Q(dispatch_udt.name),
+                             " before its subclasses have been declared");
+        }
         // Must create a new vtable entry.
         // TODO: would be good to search superclass if it has this method also.
         // Probably not super important since dispatching on the "middle" type in a
         // hierarchy will be rare.
         // Find subclasses and max vtable size.
-        assert(!dispatch_udt.subudts.empty());  // We are dispatching because we found a subclass.
         {
             struct Pick { Overload *ov; bool supcall; };
             vector<Pick> overload_picks;
@@ -2929,7 +2937,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
     if (exptype.Null()) exptype = type_void;  // Empty switch or all return statements.
     if (ptype->t == V_CLASS) {
         auto &dispatch_udt = *ptype->udt;
-        dispatch_udt.subudts_dispatched = true;
+        dispatch_udt.subudts_dispatched_where = "switch";
         vtable_idx = -1;
         vector<int> case_picks;
         for (auto udt : dispatch_udt.subudts) {
