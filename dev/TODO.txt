@@ -22,6 +22,15 @@
   Tried this out, see branch "block_inside_parens".
   Biggest issue is how to generate a DEDENT token inside a like, i.e. before the last )
 
+- we should really gather `subudts` before the start of typechecking so these two dumb errors
+  can be removed:
+  https://github.com/aardappel/lobster/issues/391
+  Though in what ways does typechecking of the methods rely on those classes?
+  It almost feels like maybe classes should be treated like functions: typechecked when touched.
+  But to do that properly need to deal with type recursion gracefully.
+  This also related to the attempt to typecheck fields thru initializers which also doesn't always
+  work because of similar ordering issues.
+
 - We could add further syntactic sugar to the disciminated union use case.
   E.g.
   union Foo:
