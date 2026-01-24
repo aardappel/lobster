@@ -2152,7 +2152,7 @@ struct TypeChecker {
             }
             if (auto idr = Is<IdentRef>(fn)) {
                 if (IsStruct(idr->exptype->t)) {
-                    idr->sid->id->StructAssign(parser.lex);
+                    idr->sid->id->StructAssign(parser.lex,&fn->line);
                 }
             }
         }

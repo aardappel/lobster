@@ -87,9 +87,9 @@ struct Ident : Named {
         if (constant) lex.Error("variable " + name + " is constant");
     }
 
-    void StructAssign(Lex &lex) {
+    void StructAssign(Lex &lex,Line *ln = nullptr) {
         struct_field_assign = true;
-        if (constant) lex.Error("variable " + name + " is a constant struct, cannot modify its fields");
+        if (constant) lex.Error("variable " + name + " is a constant struct, cannot modify its fields", ln);
     }
 
     Ident *Read() {
