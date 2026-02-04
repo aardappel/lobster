@@ -1369,7 +1369,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         auto ok = WaveFunctionCollapse(int2(iint2(cols, ssize(inmap))), inmap.data(), sz, outmap.data(),
                                        vm.rndx[vm.active_rng], num_contradictions);
         if (!ok)
-            vm.BuiltinError("tilemap contained too many tile ids");
+            vm.BuiltinError("tilemap contained too many tile ids, or characters outside of 0..127 range");
         Push(sp,  outstrings);
         Push(sp,  num_contradictions);
     });

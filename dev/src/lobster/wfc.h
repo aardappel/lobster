@@ -32,7 +32,7 @@
 // inmap & outmap must point to row-major 2D arrays of the given size.
 // each in tile char must be in range 0..127, of which max 64 may actually be in use (may be
 // sparse).
-// Returns false if too many unique tiles in input.
+// Returns false if too many unique tiles in input, or a char out of range 0..127.
 template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **inmap,
                                                const int2 &outsize, char **outmap,
                                                RandomNumberGenerator<T> &rnd,
@@ -49,6 +49,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
     for (int iny = 0; iny < insize.y; iny++) {
         for (int inx = 0; inx < insize.x; inx++) {
             auto t = inmap[iny][inx];
+            if (t < 0) return false;
             if (tile_lookup[t] < 0) {
                 // We use a bitmask_t mask for valid neighbors.
                 if (tiles.size() == nbits - 1) return false;
