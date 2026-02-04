@@ -624,7 +624,7 @@ template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
     }
 }
 
-inline string TypeName(UnTypeRef type, bool tuple_brackets = true);
+inline string TypeName(UnTypeRef type, bool tuple_brackets = true, int depth = 0);
 
 struct SymbolTable {
     Lex &lex;
@@ -1458,12 +1458,12 @@ struct SymbolTable {
     }
 };
 
-inline void FormatArg(string &r, string_view name, size_t i, UnTypeRef type) {
+inline void FormatArg(string &r, string_view name, size_t i, UnTypeRef type, int depth = 0) {
     if (i) r += ", ";
     r += name;
     if (type->t != V_ANY) {
         r += ":";
-        r += TypeName(type);
+        r += TypeName(type, true, depth);
     }
 }
 
@@ -1504,7 +1504,7 @@ inline string Signature(const GUDT &gudt) {
     return r;
 }
 
-inline string Signature(const SubFunction &sf) {
+inline string Signature(const SubFunction &sf, int depth = 0) {
     string r = sf.parent->name;
     if (!sf.generics.empty() && sf.explicit_generics) {
         r += "<";
@@ -1516,7 +1516,12 @@ inline string Signature(const SubFunction &sf) {
     }
     r += "(";
     for (auto [i, arg] : enumerate(sf.args)) {
-        FormatArg(r, arg.sid->id->name, i, arg.spec_type);
+        auto type = arg.spec_type;
+        if (arg.spec_type->t == V_FUNCTION && depth > 1) {
+            // Avoid recursive function types.
+            type = type_function_null_void;
+        }
+        FormatArg(r, arg.sid->id->name, i, type, depth + 1);
     }
     r += ")";
     if (sf.returntype->t != V_VOID && sf.returntype->t != V_UNDEFINED && sf.returntype->t != V_VAR) {
@@ -1526,7 +1531,7 @@ inline string Signature(const SubFunction &sf) {
     return r;
 }
 
-inline string TypeName(UnTypeRef type, bool tuple_brackets) {
+inline string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
     switch (type->t) {
         case V_STRUCT_NUM: {
             auto nvt = SymbolTable::GetVectorName(type->ns->t, type->ns->flen);
@@ -1567,7 +1572,7 @@ inline string TypeName(UnTypeRef type, bool tuple_brackets) {
                         : "[" + TypeName(type->Element()) + "]";
         case V_FUNCTION:
             return type->sf
-                ? Signature(*type->sf)
+                ? Signature(*type->sf, depth)
                 : "function";
 
         case V_NIL:
