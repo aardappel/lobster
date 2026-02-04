@@ -115,10 +115,14 @@ struct Parser {
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
         if (terminator != T_NONE) Expect(terminator);
+        if (!block->Arity()) {
+            // Typically can't happen, but statements like "attribute" don't generate a node.
+            Error("block can\'t be empty");
+        }
         auto b = block->children.back();
         if (Is<EnumRef>(b) || Is<GUDTRef>(b) || Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
             if (terminator == T_ENDOFFILE) block->Add(new IntConstant(lex, 0));
-            else Error("last expression in list can\'t be a definition");
+            else Error("last expression in block can\'t be a definition");
         }
         CleanupStatements(block);
     }
