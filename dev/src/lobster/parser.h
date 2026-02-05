@@ -48,7 +48,7 @@ struct Parser {
     }
 
     template<typename... Ts> void ErrorAtLine(const Line *line, const Ts &...args) {
-        lex.Error(cat(args...), line ? line : nullptr);
+        lex.Error(cat(args...), line);
     }
 
     template<typename... Ts> void Warn(const Ts &...args) {
