@@ -47,6 +47,10 @@ struct Parser {
         lex.Error(cat(args...), what ? &what->line : nullptr);
     }
 
+    template<typename... Ts> void ErrorAtLine(const Line *line, const Ts &...args) {
+        lex.Error(cat(args...), line ? line : nullptr);
+    }
+
     template<typename... Ts> void Warn(const Ts &...args) {
         lex.Warn(cat(args...), nullptr);
     }
@@ -151,7 +155,7 @@ struct Parser {
                         (id->name[0] != '_' || d->tsids.size() == 1))
                         Warn("unused variable ", Q(id->name));
                     if (id->predeclaration)
-                        Error("missing declaration for ", id->name);
+                      ErrorAtLine(&id->line,"missing declaration for ", id->name);
                 }
             } else if (auto r = Is<Return>(def)) {
                 if (r != list->children.back())
