@@ -151,7 +151,7 @@ struct Parser {
                         (id->name[0] != '_' || d->tsids.size() == 1))
                         Warn("unused variable ", Q(id->name));
                     if (id->predeclaration)
-                        Error("missing declaration for ", id->name);
+                      ErrorAt(d,"missing declaration for ", id->name);
                 }
             } else if (auto r = Is<Return>(def)) {
                 if (r != list->children.back())
