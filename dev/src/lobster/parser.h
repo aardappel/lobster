@@ -1039,6 +1039,9 @@ struct Parser {
                 lex.Next();
                 if (udt) {
                     dest = &udt->thistype;
+                    if (lex.token == T_LT) {
+                        Error("concrete type ", Q(udt->g.name), " does not take generic parameters");
+                    }
                 } else {
                     if (IsNext(T_LT)) {
                         if (!allow_unresolved) {
