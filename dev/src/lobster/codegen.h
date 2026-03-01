@@ -860,7 +860,7 @@ struct CodeGen  {
     void EmitCALL(int fidx, int uses, int defs) {
         EmitOp(IL_CALL, uses, defs);
         append(cb, "    fun_", fidx, "(vm, ", sp(), ");");
-        comment("call: " + st.subfunctiontable[fidx]->parent->name);
+        comment("call: " + Signature(*st.subfunctiontable[fidx]));
     }
 
     void EmitCALLV(int uses, int defs) {
@@ -998,7 +998,7 @@ struct CodeGen  {
         sd += "\n";
         auto sf_idx = f_function_idx;
         if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
-            append(sd, "// ", st.subfunctiontable[sf_idx]->parent->name, "\n");
+            append(sd, "// ", Signature(*st.subfunctiontable[sf_idx]), "\n");
         append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
         // NOTE: f_keepvars and f_regs_max are not known until end of codegen of function!
         // FIXME: don't emit array.
