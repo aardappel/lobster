@@ -150,7 +150,7 @@ def renderpointytriangle(pos, dir):
     gl.translate pos:
         gl.rotate_z dir:
             gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])
-
+local_ident = steam.net_identity()
 while gl.frame():
     // Update networking
     steam.update()
