@@ -64,8 +64,7 @@ struct Voxels : lobster::Resource {
         const_cast<Voxels &>(src).Do(src_p, sz, [&](const int3 &pos, uint8_t &vox) {
             auto d = (pos - src_p) * flip + dst_p;
             if (vox == transparant) return;
-            if (d < int3_0 || d >= grid.dim) return;
-            grid.Get(d) = vox;
+            if (d >= int3_0 && d < grid.dim) grid.Get(d) = vox;
         });
     }
 
