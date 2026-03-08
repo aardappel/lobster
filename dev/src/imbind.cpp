@@ -2291,10 +2291,17 @@ nfr("table_start", "id,num_colums,flags", "SII", "B",
 
 nfr("table_setup_column", "label,flags,init_width_or_weight", "SIF", "",
     "(use im.table instead)",
-    [](StackPtr &, VM &vm, Value label, Value flags, Value init) {
+    [](StackPtr &, VM &vm, Value label, Value flags_, Value init_) {
         IsInit(vm);
+        auto flags = flags_.intval();
+        auto init = init_.fltval();
+        // There's an annoying assert in TableSetupColumn that wants this enforced:
+        if ((flags & ImGuiTableColumnFlags_WidthMask_) == 0 &&
+            (flags & ImGuiTableFlags_ScrollX) == 0 &&
+            init > 0.0f)
+            vm.BuiltinError("im.table_setup_column: can only set init width/height if flags require it");
         if (NTop() == N_TABLE)
-            ImGui::TableSetupColumn(label.sval()->strvnt().c_str(), flags.intval(), init.fltval());
+            ImGui::TableSetupColumn(label.sval()->strvnt().c_str(), flags, init);
         return NilVal();
     });
 
