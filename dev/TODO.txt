@@ -1,3 +1,5 @@
+- in C++ impl, replace x<y etc with all(x<y), the automatic all is too error prone.
+
 - Must call this.foo() if foo is a superclass method, otherwise automatic this
   insertion does not work.
 
