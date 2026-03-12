@@ -288,7 +288,7 @@ struct SteamState {
         if (result != k_EResultOK) {
             LOG_ERROR("SendMessage(): trying to send message to \"", str_identity, "\" of size ", buf.size() ," got result ",  result);
         }
-        return result == k_EResultOK;
+        return result == k_EResultOK || result == k_EResultNoConnection;  // Log it, but don't error out if we are sending to a closed connection.
     }
 
     bool BroadcastMessage(string_view buf, bool reliable) {
