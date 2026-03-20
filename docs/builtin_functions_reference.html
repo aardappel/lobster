@@ -1700,7 +1700,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_rename_peer</b>(ident<font color="#666666">: string</font>, new_ident<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">use a different identifier for this peer. This can be useful when connecting multiple users using peer-to-peer, so you can have all peers in the network use the listen socket IP address and port as the identifier.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_send_message</b>(ident<font color="#666666">: string</font>, data<font color="#666666">: string</font>, reliable<font color="#666666">: bool</font>) -> <font color="#666666">int</font></tt></td><td class="a">send a reliable message to a given steam identity</td>
+<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_send_message</b>(ident<font color="#666666">: string</font>, data<font color="#666666">: string</font>, reliable<font color="#666666">: bool</font>) -> <font color="#666666">int</font>, <font color="#666666">int</font></tt></td><td class="a">send a reliable message to a given steam identity</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_broadcast_message</b>(data<font color="#666666">: string</font>, reliable<font color="#666666">: bool</font>) -> <font color="#666666">int</font></tt></td><td class="a">send a reliable message to all connected peers</td>

@@ -265,7 +265,7 @@ struct SteamState {
         return result;
     }
 
-    bool SendMessage(string_view_nt str_identity, string_view buf, bool reliable) {
+    bool SendMessage(string_view_nt str_identity, string_view buf, bool reliable, EResult *result) {
         auto peer = FindPeer(str_identity.sv);
         if (peer == peers.end()) {
             LOG_ERROR("SendMessage(): no peer named ", str_identity);
@@ -284,11 +284,11 @@ struct SteamState {
         const char *data = buf.data();
         uint32_t size = (uint32_t)buf.size();
         int flags = reliable ? k_nSteamNetworkingSend_Reliable : k_nSteamNetworkingSend_Unreliable;
-        auto result = SteamNetworkingSockets()->SendMessageToConnection(peer->connection, data, size, flags, nullptr);
-        if (result != k_EResultOK) {
-            LOG_ERROR("SendMessage(): trying to send message to \"", str_identity, "\" of size ", buf.size() ," got result ",  result);
+        *result = SteamNetworkingSockets()->SendMessageToConnection(peer->connection, data, size, flags, nullptr);
+        if (*result != k_EResultOK) {
+            LOG_ERROR("SendMessage(): trying to send message to \"", str_identity, "\" of size ", buf.size() ," got result ",  *result);
         }
-        return result == k_EResultOK || result == k_EResultNoConnection;  // Log it, but don't error out if we are sending to a closed connection.
+        return *result == k_EResultOK;
     }
 
     bool BroadcastMessage(string_view buf, bool reliable) {
@@ -1046,9 +1046,15 @@ nfr("p2p_rename_peer", "ident,new_ident", "SS", "B", "use a different identifier
         return STEAM_BOOL_VALUE(steam->RenamePeer(ident.sval()->strvnt(), new_ident.sval()->strvnt()));
     });
 
-nfr("p2p_send_message", "ident,data,reliable", "SSB", "B", "send a reliable message to a given steam identity",
-    [](StackPtr &, VM &, Value ident, Value data, Value reliable) {
-        return STEAM_BOOL_VALUE(steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval()));
+nfr("p2p_send_message", "ident,data,reliable", "SSB", "BI", "send a reliable message to a given steam identity",
+    [](StackPtr &sp, VM &) {
+        auto reliable = Pop(sp);
+        auto data = Pop(sp);
+        auto ident = Pop(sp);
+        EResult result = k_EResultNone;
+        auto ok = STEAM_BOOL_VALUE(steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval(), &result));
+        Push(sp, Value(ok));
+        Push(sp, Value(result));
     });
 
 nfr("p2p_broadcast_message", "data,reliable", "SB", "B", "send a reliable message to all connected peers",
