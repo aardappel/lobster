@@ -124,6 +124,12 @@
 <tr class="a" valign=top><td class="a"><tt><b>find_string_reverse</b>(s<font color="#666666">: string</font>, substr<font color="#666666">: string</font>, offset<font color="#666666">: int</font> = 0) -> <font color="#666666">int</font></tt></td><td class="a">finds the index at which substr first appears when searching from the end, or -1 if none. optionally start at a position other than the end of the string</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>split_string</b>(s<font color="#666666">: string</font>, delimiter<font color="#666666">: string</font>) -> <font color="#666666">string</font>, <font color="#666666">string</font></tt></td><td class="a">returns two strings, the parts of the input before and after the first delimiter. if not found, returns the input and an empty string</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>split_string_reverse</b>(s<font color="#666666">: string</font>, delimiter<font color="#666666">: string</font>) -> <font color="#666666">string</font>, <font color="#666666">string</font></tt></td><td class="a">returns two strings, the parts of the input before and after the last delimiter. if not found, returns an empty string and the input</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>replace_string</b>(s<font color="#666666">: string</font>, a<font color="#666666">: string</font>, b<font color="#666666">: string</font>, count<font color="#666666">: int</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a">returns a copy of s where all occurrences of a have been replaced with b. if a is empty, no replacements are made. if count is specified, makes at most that many replacements</td>
 
 </tr>
@@ -556,13 +562,16 @@
 <tr class="a" valign=top><td class="a"><tt><b>workers_alive</b>() -> <font color="#666666">int</font></tt></td><td class="a">whether workers should continue doing work. returns false after stop_worker_threads() has been called.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>thread_write</b>(struct<font color="#666666">: any</font>)</tt></td><td class="a">put this struct in the thread queue</td>
+<tr class="a" valign=top><td class="a"><tt><b>thread_write</b>(object<font color="#666666">: any</font>)</tt></td><td class="a">put this object in the thread queue</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>thread_read</b>(type<font color="#666666">: typeid(any)</font>) -> <font color="#666666">any?</font></tt></td><td class="a">get a struct from the thread queue. pass the typeof struct. blocks if no suchstructs available. returns struct, or nil if stop_worker_threads() was called</td>
+<tr class="a" valign=top><td class="a"><tt><b>thread_read</b>(type<font color="#666666">: typeid(any)</font>) -> <font color="#666666">any?</font></tt></td><td class="a">get an object from the thread queue. pass the typeof object. blocks if no such objects available. returns object, or nil if this was the result of thread_wake() or stop_worker_threads() was called</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>thread_check</b>(type<font color="#666666">: typeid(any)</font>) -> <font color="#666666">any?</font></tt></td><td class="a">tests if a struct is available on the thread queue. pass the typeof struct. returns struct, or nil if none available, or if stop_worker_threads() was called</td>
+<tr class="a" valign=top><td class="a"><tt><b>thread_check</b>(type<font color="#666666">: typeid(any)</font>) -> <font color="#666666">any?</font></tt></td><td class="a">tests if an object is available on the thread queue. pass the typeof object. returns object, or nil if none available, or if stop_worker_threads() was called</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>thread_wake</b>(type<font color="#666666">: typeid(any)</font>)</tt></td><td class="a">wakes up one thread that are currently blocked on a thread_read for this type. this will cause them to return nil since no object is sent. it is similar to thread_write(nil)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>crash_test_cpp_nullptr_exception</b>()</tt></td><td class="a">only for testing crash dump functionality, don't use! :)</td>
@@ -830,6 +839,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.frame</b>() -> <font color="#666666">int</font></tt></td><td class="a">advances rendering by one frame, swaps buffers, and collects new input events. returns false if the closebutton on the window was pressed</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.frame_counter</b>(delta<font color="#666666">: int</font>)</tt></td><td class="a">gl.frame advances the frame counter by 1, which affects features like member_frame. this function allows you insert extra frames or remove them</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.shutdown</b>()</tt></td><td class="a">shuts down the OpenGL window. you only need to call this function if you wish to close it before the end of the program</td>
@@ -1166,6 +1178,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.screenshot</b>(filename<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">saves a screenshot in .png format, returns true if succesful</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.get_renderer_info_string</b>() -> <font color="#666666">string</font></tt></td><td class="a">Get a string describing the renderer, typically OpenGL vendor - renderer - version</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.dropped_file</b>() -> <font color="#666666">string</font></tt></td><td class="a">if a file was dropped on the window this frame, the filename, otherwise empty</td>
@@ -1528,6 +1543,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>cg.get_buf</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>) -> <font color="#666666">string</font></tt></td><td class="a">returns the data as a string of all palette indices, in z-major order</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>cg.set_buf</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>, indices<font color="#666666">: string</font>, offset<font color="#666666">: int3</font>, size<font color="#666666">: int3</font>)</tt></td><td class="a">sets the data as a string of all palette indices, in z-major order</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>cg.average_surface_color</b>(world<font color="#666666">: resource&lt;voxels&gt;</font>) -> <font color="#666666">float3</font>, <font color="#666666">int</font>, <font color="#666666">int</font>, <font color="#666666">int3</font>, <font color="#666666">int3</font></tt></td><td class="a"></td>
 
 </tr>
@@ -1771,6 +1789,9 @@
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>im.init</b>(dark_style<font color="#666666">: bool</font> = false, flags<font color="#666666">: int</font> = 0, rounding<font color="#666666">: float</font> = 0.000000, border<font color="#666666">: float</font> = 0.000000)</tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.cleanup</b>()</tt></td><td class="a">not required to be called, this is done automatically, but useful if you want to call im.init again</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.add_font</b>(font_path<font color="#666666">: string</font>, size<font color="#666666">: float</font>, glyph_ranges<font color="#666666">: string</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">glyph_ranges will activate additional unicode ranges to be rasterized, and can be Default (most European languages), SimplifiedChinese, Chinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..</td>
 
 </tr>
@@ -1867,6 +1888,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.want_capture_mouse</b>() -> <font color="#666666">int</font></tt></td><td class="a">returns true if imgui wants to capture the mouse</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.get_modifiers</b>() -> <font color="#666666">int</font>, <font color="#666666">int</font>, <font color="#666666">int</font></tt></td><td class="a">returns the status of the shift, ctrl and alt keys</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.get_layout_pos</b>() -> <font color="#666666">float2</font></tt></td><td class="a"></td>
 
 </tr>
@@ -1903,6 +1927,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.text_bullet</b>(label<font color="#666666">: string</font>)</tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.text_markdown</b>(text<font color="#666666">: string</font>)</tt></td><td class="a"></td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.indent_start</b>(amount<font color="#666666">: float</font>)</tt></td><td class="a">(use im.indent instead)</td>
 
 </tr>
@@ -1913,6 +1940,12 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.font_end</b>()</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.font_size_start</b>(size<font color="#666666">: float</font>)</tt></td><td class="a">(use im.font_size instead)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.font_size_end</b>()</tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.color_start</b>(color<font color="#666666">: float4</font>)</tt></td><td class="a">(use im.color instead)</td>
@@ -1930,6 +1963,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.tooltip_multi_end</b>()</tt></td><td class="a"></td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.tooltip_style</b>(font_size<font color="#666666">: float</font>, frame_size<font color="#666666">: float2</font>)</tt></td><td class="a"></td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.checkbox</b>(label<font color="#666666">: string</font>, bool<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td>
 
 </tr>
@@ -1939,7 +1975,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.input_text</b>(label<font color="#666666">: string</font>, str<font color="#666666">: string</font>, flags<font color="#666666">: int</font>) -> <font color="#666666">string</font>, <font color="#666666">int</font></tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.input_text_multi_line</b>(label<font color="#666666">: string</font>, str<font color="#666666">: string</font>, num_lines<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a"></td>
+<tr class="a" valign=top><td class="a"><tt><b>im.input_text_multi_line</b>(label<font color="#666666">: string</font>, str<font color="#666666">: string</font>, num_lines<font color="#666666">: int</font>, flags<font color="#666666">: int</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.input_int</b>(label<font color="#666666">: string</font>, val<font color="#666666">: int</font>, min<font color="#666666">: int</font>, max<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td>
@@ -2113,6 +2149,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.drag_drop_target_start</b>() -> <font color="#666666">int</font></tt></td><td class="a">(use im.drag_drop_target instead)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.drag_drop_main_viewport_target_start</b>() -> <font color="#666666">int</font></tt></td><td class="a">(use im.drag_drop_main_viewport_target instead)</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.drag_drop_target_end</b>()</tt></td><td class="a"></td>
 
 </tr>
@@ -2164,7 +2203,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.show_debug_metrics_window</b>()</tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.show_profiling_stats</b>(num<font color="#666666">: int</font>, reset<font color="#666666">: bool</font>)</tt></td><td class="a"></td>
+<tr class="a" valign=top><td class="a"><tt><b>im.show_profiling_stats</b>(num<font color="#666666">: int</font>, reset<font color="#666666">: bool</font>, histogram<font color="#666666">: bool</font>, paused<font color="#666666">: bool</font>)</tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.set_style_param_slow</b>(name<font color="#666666">: string</font>, vals<font color="#666666">: [float]</font>)</tt></td><td class="a"></td>
