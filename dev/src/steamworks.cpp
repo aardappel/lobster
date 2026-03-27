@@ -1051,10 +1051,18 @@ nfr("p2p_send_message", "ident,data,reliable", "SSB", "BI", "send a reliable mes
         auto reliable = Pop(sp);
         auto data = Pop(sp);
         auto ident = Pop(sp);
-        EResult result = k_EResultNone;
-        auto ok = STEAM_BOOL_VALUE(steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval(), &result));
-        Push(sp, Value(ok));
-        Push(sp, Value(result));
+        #ifdef PLATFORM_STEAMWORKS
+            EResult result = k_EResultNone;
+            auto ok = steam && steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval(), &result);
+            Push(sp, Value(ok));
+            Push(sp, Value(result));
+        #else
+            (void)reliable;
+            (void)data;
+            (void)ident;
+            Push(sp, Value(false));
+            Push(sp, Value(k_EResultFail));
+        #endif
     });
 
 nfr("p2p_broadcast_message", "data,reliable", "SB", "B", "send a reliable message to all connected peers",
