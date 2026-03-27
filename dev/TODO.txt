@@ -1,3 +1,5 @@
+- in C++ impl, replace x<y etc with all(x<y), the automatic all is too error prone.
+
 - Must call this.foo() if foo is a superclass method, otherwise automatic this
   insertion does not work.
 
@@ -21,6 +23,12 @@
   If that is too iffy, then at least a better error somehow?
   Tried this out, see branch "block_inside_parens".
   Biggest issue is how to generate a DEDENT token inside a like, i.e. before the last )
+
+- The removal of functions that have been inlined and whose usage count drops to zero does not
+  work for calls inside the initializer of a member, presumably because that code is copied
+  and the original initializer expression remains.
+  This then causes functions in C/C++ output that are never called.
+  (an example of this is map(ITEX_MAX): nil inside the Generator class)
 
 - we should really gather `subudts` before the start of typechecking so these two dumb errors
   can be removed:

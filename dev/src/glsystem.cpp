@@ -212,11 +212,15 @@ void DebugCallBack(GLenum source, GLenum type, GLuint id, GLenum severity, GLsiz
 }
 #endif
 
+string OpenGLVendorStr() {
+    return cat((const char *)glGetString(GL_VENDOR), " - ",
+               (const char *)glGetString(GL_RENDERER), " - ",
+               (const char *)glGetString(GL_VERSION));
+}
+
 string OpenGLInit(int samples, bool srgb) {
     GL_CHECK("before_init");
-    LOG_INFO((const char *)glGetString(GL_VENDOR), " - ",
-             (const char *)glGetString(GL_RENDERER), " - ",
-             (const char *)glGetString(GL_VERSION));
+    LOG_INFO(OpenGLVendorStr());
     // If not called, flashes red framebuffer on OS X before first gl.clear() is called.
     ClearFrameBuffer(float3(0.25f));
     #ifdef PLATFORM_WINNIX

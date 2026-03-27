@@ -1491,6 +1491,13 @@ nfr("screenshot", "filename", "S", "B",
         return Value(ok);
     });
 
+nfr("get_renderer_info_string", "", "", "S",
+    "Get a string describing the renderer, typically OpenGL vendor - renderer - version",
+    [](StackPtr &, VM &vm) {
+        TestGL(vm);
+        return Value(vm.NewString(OpenGLVendorStr()));
+    });
+
 nfr("dropped_file", "", "", "S",
     "if a file was dropped on the window this frame, the filename, otherwise empty",
     [](StackPtr &, VM &vm) {

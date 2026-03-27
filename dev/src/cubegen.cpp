@@ -263,6 +263,8 @@ Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zof
     return NewVoxelResource(vm, v);
 }
 
+enum { M_DIFFUSE, M_METAL, M_GLASS, M_EMIT };
+
 }
 
 using namespace lobster;
@@ -875,7 +877,6 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                     int32_t layer_id;
                     if (!ParseNames(layer_names, layer_id)) return erreof();
                 } else if (!strncmp(id, "MATL", 4)) {
-                    enum { M_DIFFUSE, M_METAL, M_GLASS, M_EMIT };
                     auto type = M_DIFFUSE;
                     float emit = 0.0f;
                     float flux = 0.0f;    // 0..4

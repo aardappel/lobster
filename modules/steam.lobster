@@ -22,3 +22,13 @@ enum friend_flag:
     friend_ignored                 = 0x200  // Users that the current user has ignored from contacting them.
     friend_ignored_friend          = 0x400  // Users that have ignored the current user; but the current user still knows about them.
     friend_chat_member             = 0x1000 // Users in one of the same chats.
+
+// https://partner.steamgames.com/doc/api/steam_api#EResult
+enum result:
+	result_none = 0,                // no result
+	result_ok	= 1,                // success
+	result_no_connection = 3,       // no/failed network connection
+	result_invalid_param = 8,       // a parameter is incorrect
+	result_invalid_state = 11,      // called object was in an invalid state
+	result_limit_exceeded = 25,     // Too much of a good thing
+	result_ignored = 41,            // target is ignoring sender

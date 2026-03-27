@@ -235,6 +235,7 @@ struct Light {
     float2 params;
 };
 
+extern string OpenGLVendorStr();
 extern string OpenGLInit(int samples, bool srgb);
 extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
