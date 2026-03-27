@@ -1061,7 +1061,7 @@ nfr("p2p_send_message", "ident,data,reliable", "SSB", "BI", "send a reliable mes
             (void)data;
             (void)ident;
             Push(sp, Value(false));
-            Push(sp, Value(k_EResultFail));
+            Push(sp, Value(0));
         #endif
     });
 
