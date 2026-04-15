@@ -47,6 +47,30 @@ def quat_from_2vecs(u:float3, v:float3):
             cross(u, v)
     return normalize(quat{ w.x, w.y, w.z, real_part })
 
+// See https://stackoverflow.com/a/52551983, with y and z swapped on input vectors and output quats.
+// R = right, F = forward, U = up
+def quat_from_orthonormal_basis(R:float3, F:float3, U:float3):
+    let trace = R.x + F.y + U.z
+    return if trace > 0.0:
+        let s = 0.5 / sqrt(trace + 1.0)
+        quat { (F.z - U.y) * s, (U.x - R.z) * s, (R.y - F.x) * s, 0.25 / s }
+    else:
+        if R.x > U.z and R.x > F.y:
+            let s = 2.0 * sqrt(1.0 + R.x - U.z - F.y)
+            quat { 0.25 * s, (R.y + F.x) / s, (R.z + U.x) / s, (F.z - U.y) / s }
+        elif U.z > F.y:
+            let s = 2.0 * sqrt(1.0 + U.z - R.x - F.y)
+            quat { (R.z + U.x) / s, (U.y + F.z) / s, 0.25 * s, (R.y - F.x) / s }
+        else:
+            let s = 2.0 * sqrt(1.0 + F.y - R.x - U.z)
+            quat { (R.y + F.x) / s, 0.25 * s, (U.y + F.z) / s, (U.x - R.z) / s }
+
+def quat_from_dir_and_up(dir:float3, world_up:float3):
+    let F = normalize(dir)
+    let R = normalize(cross(F, world_up))
+    let U = cross(R, F)
+    return quat_from_orthonormal_basis(R, F, U)
+
 def quat_from_euler(yaw, pitch):
     let cy = cos(yaw * 0.5)
     let sy = sin(yaw * 0.5)
