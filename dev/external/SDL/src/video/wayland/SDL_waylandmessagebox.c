@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,176 +19,24 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "../../SDL_internal.h"
+#include "SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_WAYLAND
-
-#include "SDL.h"
-#include <stdlib.h> /* fgets */
-#include <stdio.h> /* FILE, STDOUT_FILENO, fdopen, fclose */
-#include <unistd.h> /* pid_t, pipe, fork, close, dup2, execvp, _exit */
-#include <sys/wait.h> /* waitpid, WIFEXITED, WEXITSTATUS */
-#include <string.h>   /* strerr */
-#include <errno.h>
+#ifdef SDL_VIDEO_DRIVER_WAYLAND
 
 #include "SDL_waylandmessagebox.h"
+#include "../../dialog/unix/SDL_zenitymessagebox.h"
 
-#define MAX_BUTTONS 8 /* Maximum number of buttons supported */
-
-int Wayland_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid)
+bool Wayland_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonID)
 {
-    int fd_pipe[2]; /* fd_pipe[0]: read end of pipe, fd_pipe[1]: write end of pipe */
-    pid_t pid1;
-
-    if (messageboxdata->numbuttons > MAX_BUTTONS) {
-        return SDL_SetError("Too many buttons (%d max allowed)", MAX_BUTTONS);
-    }
-
-    if (pipe(fd_pipe) != 0) { /* create a pipe */
-        return SDL_SetError("pipe() failed: %s", strerror(errno));
-    }
-
-    pid1 = fork();
-    if (pid1 == 0) { /* child process */
-        int argc = 5, i;
-        const char *argv[5 + 2 /* icon name */ + 2 /* title */ + 2 /* message */ + 2 * MAX_BUTTONS + 1 /* NULL */] = {
-            "zenity", "--question", "--switch", "--no-wrap", "--no-markup"
-        };
-
-        close(fd_pipe[0]); /* no reading from pipe */
-        /* write stdout in pipe */
-        if (dup2(fd_pipe[1], STDOUT_FILENO) == -1) {
-            _exit(128);
-        }
-
-        argv[argc++] = "--icon-name";
-        switch (messageboxdata->flags) {
-        case SDL_MESSAGEBOX_ERROR:
-            argv[argc++] = "dialog-error";
-            break;
-        case SDL_MESSAGEBOX_WARNING:
-            argv[argc++] = "dialog-warning";
-            break;
-        case SDL_MESSAGEBOX_INFORMATION:
-        default:
-            argv[argc++] = "dialog-information";
-            break;
-        }
-
-        if (messageboxdata->title && messageboxdata->title[0]) {
-            argv[argc++] = "--title";
-            argv[argc++] = messageboxdata->title;
-        } else {
-            argv[argc++] = "--title=\"\"";
-        }
-
-        if (messageboxdata->message && messageboxdata->message[0]) {
-            argv[argc++] = "--text";
-            argv[argc++] = messageboxdata->message;
-        } else {
-            argv[argc++] = "--text=\"\"";
-        }
-
-        for (i = 0; i < messageboxdata->numbuttons; ++i) {
-            if (messageboxdata->buttons[i].text && messageboxdata->buttons[i].text[0]) {
-                argv[argc++] = "--extra-button";
-                argv[argc++] = messageboxdata->buttons[i].text;
-            } else {
-                argv[argc++] = "--extra-button=\"\"";
-            }
-        }
-        argv[argc] = NULL;
-
-        /* const casting argv is fine:
-         * https://pubs.opengroup.org/onlinepubs/9699919799/functions/fexecve.html -> rational
-         */
-        execvp("zenity", (char **)argv);
-        _exit(129);
-    } else if (pid1 < 0) {
-        close(fd_pipe[0]);
-        close(fd_pipe[1]);
-        return SDL_SetError("fork() failed: %s", strerror(errno));
-    } else {
-        int status;
-        if (waitpid(pid1, &status, 0) == pid1) {
-            if (WIFEXITED(status)) {
-                if (WEXITSTATUS(status) < 128) {
-                    int i;
-                    size_t output_len = 1;
-                    char *output = NULL;
-                    char *tmp = NULL;
-                    FILE *outputfp = NULL;
-
-                    close(fd_pipe[1]); /* no writing to pipe */
-                    /* At this point, if no button ID is needed, we can just bail as soon as the
-                     * process has completed.
-                     */
-                    if (buttonid == NULL) {
-                        close(fd_pipe[0]);
-                        return 0;
-                    }
-                    *buttonid = -1;
-
-                    /* find button with longest text */
-                    for (i = 0; i < messageboxdata->numbuttons; ++i) {
-                        if (messageboxdata->buttons[i].text != NULL) {
-                            const size_t button_len = SDL_strlen(messageboxdata->buttons[i].text);
-                            if (button_len > output_len) {
-                                output_len = button_len;
-                            }
-                        }
-                    }
-                    output = SDL_malloc(output_len + 1);
-                    if (output == NULL) {
-                        close(fd_pipe[0]);
-                        return SDL_OutOfMemory();
-                    }
-                    output[0] = '\0';
-
-                    outputfp = fdopen(fd_pipe[0], "r");
-                    if (outputfp == NULL) {
-                        SDL_free(output);
-                        close(fd_pipe[0]);
-                        return SDL_SetError("Couldn't open pipe for reading: %s", strerror(errno));
-                    }
-                    tmp = fgets(output, output_len + 1, outputfp);
-                    (void)fclose(outputfp);
-
-                    if ((tmp == NULL) || (*tmp == '\0') || (*tmp == '\n')) {
-                        SDL_free(output);
-                        return 0; /* User simply closed the dialog */
-                    }
-
-                    /* It likes to add a newline... */
-                    tmp = SDL_strrchr(output, '\n');
-                    if (tmp != NULL) {
-                        *tmp = '\0';
-                    }
-
-                    /* Check which button got pressed */
-                    for (i = 0; i < messageboxdata->numbuttons; i += 1) {
-                        if (messageboxdata->buttons[i].text != NULL) {
-                            if (SDL_strcmp(output, messageboxdata->buttons[i].text) == 0) {
-                                *buttonid = messageboxdata->buttons[i].buttonid;
-                                break;
-                            }
-                        }
-                    }
-
-                    SDL_free(output);
-                    return 0; /* success! */
-                } else {
-                    return SDL_SetError("zenity reported error or failed to launch: %d", WEXITSTATUS(status));
-                }
-            } else {
-                return SDL_SetError("zenity failed for some reason");
-            }
-        } else {
-            return SDL_SetError("Waiting on zenity failed: %s", strerror(errno));
+    // Are we trying to connect to or are currently in a Wayland session?
+    if (!SDL_getenv("WAYLAND_DISPLAY")) {
+        const char *session = SDL_getenv("XDG_SESSION_TYPE");
+        if (session && SDL_strcasecmp(session, "wayland") != 0) {
+            return SDL_SetError("Not on a wayland display");
         }
     }
+
+    return SDL_Zenity_ShowMessageBox(messageboxdata, buttonID);
 }
 
-#endif /* SDL_VIDEO_DRIVER_WAYLAND */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_VIDEO_DRIVER_WAYLAND

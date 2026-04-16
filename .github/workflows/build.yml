@@ -29,7 +29,8 @@ jobs:
     - name: apt update
       run: sudo apt-get -o Acquire::Retries=3 update
     - name: install deps
-      run: sudo apt-get -o Acquire::Retries=3 install mesa-common-dev libgl1-mesa-dev libgl1 libglx-mesa0 libxext-dev libpulse-dev libasound2-dev libpipewire-0.3-dev libspa-0.2-dev
+      # See https://wiki.libsdl.org/SDL3/README-linux#build-dependencies
+      run: sudo apt-get -o Acquire::Retries=3 install build-essential git make pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev libaudio-dev libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev
     - name: cmake
       working-directory: dev
       run: CXX=${{ matrix.cxx }} CC=${{ matrix.cc }} cmake -DCMAKE_BUILD_TYPE=Release -DLOBSTER_WERROR=ON .

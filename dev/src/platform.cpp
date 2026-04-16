@@ -259,8 +259,8 @@ bool InitPlatform(string _maindir, string_view auxfilepath, bool from_bundle,
         // FIXME: removed SDL dependency for other platforms. So on Android, move calls to
         // SDL_AndroidGetInternalStoragePath into SDL and pass the results into here somehow.
         SDL_Init(0); // FIXME: Is this needed? bad dependency.
-        auto internalstoragepath = SDL_AndroidGetInternalStoragePath();
-        auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
+        auto internalstoragepath = SDL_GetAndroidInternalStoragePath();
+        auto externalstoragepath = SDL_GetAndroidExternalStoragePath();
         LOG_DEBUG(internalstoragepath);
         LOG_DEBUG(externalstoragepath);
         if (internalstoragepath) data_dirs.push_back(internalstoragepath + string_view("/"));

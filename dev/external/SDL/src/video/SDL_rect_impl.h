@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,23 +19,39 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-/* This file is #included twice to support int and float versions with the same code. */
+// This file is #included twice to support int and float versions with the same code.
 
-SDL_bool SDL_HASINTERSECTION(const RECTTYPE *A, const RECTTYPE *B)
+static bool SDL_RECT_CAN_OVERFLOW(const RECTTYPE *rect)
+{
+    if (rect->x <= (SCALARTYPE)(SDL_MIN_SINT32 / 2) ||
+        rect->x >= (SCALARTYPE)(SDL_MAX_SINT32 / 2) ||
+        rect->y <= (SCALARTYPE)(SDL_MIN_SINT32 / 2) ||
+        rect->y >= (SCALARTYPE)(SDL_MAX_SINT32 / 2) ||
+        rect->w >= (SCALARTYPE)(SDL_MAX_SINT32 / 2) ||
+        rect->h >= (SCALARTYPE)(SDL_MAX_SINT32 / 2)) {
+        return true;
+    }
+    return false;
+}
+
+bool SDL_HASINTERSECTION(const RECTTYPE *A, const RECTTYPE *B)
 {
     SCALARTYPE Amin, Amax, Bmin, Bmax;
 
-    if (A == NULL) {
+    CHECK_PARAM(!A) {
         SDL_InvalidParamError("A");
-        return SDL_FALSE;
-    } else if (B == NULL) {
+        return false;
+    }
+    CHECK_PARAM(!B) {
         SDL_InvalidParamError("B");
-        return SDL_FALSE;
-    } else if (SDL_RECTEMPTY(A) || SDL_RECTEMPTY(B)) {
-        return SDL_FALSE; /* Special cases for empty rects */
+        return false;
+    }
+    CHECK_PARAM(SDL_RECT_CAN_OVERFLOW(A) || SDL_RECT_CAN_OVERFLOW(B)) {
+        SDL_SetError("Potential rect math overflow");
+        return false;
     }
 
-    /* Horizontal intersection */
+    // Horizontal intersection
     Amin = A->x;
     Amax = Amin + A->w;
     Bmin = B->x;
@@ -46,10 +62,10 @@ SDL_bool SDL_HASINTERSECTION(const RECTTYPE *A, const RECTTYPE *B)
     if (Bmax < Amax) {
         Amax = Bmax;
     }
-    if (Amax <= Amin) {
-        return SDL_FALSE;
+    if ((Amax - ENCLOSEPOINTS_EPSILON) < Amin) {
+        return false;
     }
-    /* Vertical intersection */
+    // Vertical intersection
     Amin = A->y;
     Amax = Amin + A->h;
     Bmin = B->y;
@@ -60,32 +76,34 @@ SDL_bool SDL_HASINTERSECTION(const RECTTYPE *A, const RECTTYPE *B)
     if (Bmax < Amax) {
         Amax = Bmax;
     }
-    if (Amax <= Amin) {
-        return SDL_FALSE;
+    if ((Amax - ENCLOSEPOINTS_EPSILON) < Amin) {
+        return false;
     }
-    return SDL_TRUE;
+    return true;
 }
 
-SDL_bool SDL_INTERSECTRECT(const RECTTYPE *A, const RECTTYPE *B, RECTTYPE *result)
+bool SDL_INTERSECTRECT(const RECTTYPE *A, const RECTTYPE *B, RECTTYPE *result)
 {
     SCALARTYPE Amin, Amax, Bmin, Bmax;
 
-    if (A == NULL) {
+    CHECK_PARAM(!A) {
         SDL_InvalidParamError("A");
-        return SDL_FALSE;
-    } else if (B == NULL) {
+        return false;
+    }
+    CHECK_PARAM(!B) {
         SDL_InvalidParamError("B");
-        return SDL_FALSE;
-    } else if (result == NULL) {
+        return false;
+    }
+    CHECK_PARAM(SDL_RECT_CAN_OVERFLOW(A) || SDL_RECT_CAN_OVERFLOW(B)) {
+        SDL_SetError("Potential rect math overflow");
+        return false;
+    }
+    CHECK_PARAM(!result) {
         SDL_InvalidParamError("result");
-        return SDL_FALSE;
-    } else if (SDL_RECTEMPTY(A) || SDL_RECTEMPTY(B)) { /* Special cases for empty rects */
-        result->w = 0;
-        result->h = 0;
-        return SDL_FALSE;
+        return false;
     }
 
-    /* Horizontal intersection */
+    // Horizontal intersection
     Amin = A->x;
     Amax = Amin + A->w;
     Bmin = B->x;
@@ -99,7 +117,7 @@ SDL_bool SDL_INTERSECTRECT(const RECTTYPE *A, const RECTTYPE *B, RECTTYPE *resul
     }
     result->w = Amax - Amin;
 
-    /* Vertical intersection */
+    // Vertical intersection
     Amin = A->y;
     Amax = Amin + A->h;
     Bmin = B->y;
@@ -116,32 +134,36 @@ SDL_bool SDL_INTERSECTRECT(const RECTTYPE *A, const RECTTYPE *B, RECTTYPE *resul
     return !SDL_RECTEMPTY(result);
 }
 
-void SDL_UNIONRECT(const RECTTYPE *A, const RECTTYPE *B, RECTTYPE *result)
+bool SDL_UNIONRECT(const RECTTYPE *A, const RECTTYPE *B, RECTTYPE *result)
 {
     SCALARTYPE Amin, Amax, Bmin, Bmax;
 
-    if (A == NULL) {
-        SDL_InvalidParamError("A");
-        return;
-    } else if (B == NULL) {
-        SDL_InvalidParamError("B");
-        return;
-    } else if (result == NULL) {
-        SDL_InvalidParamError("result");
-        return;
-    } else if (SDL_RECTEMPTY(A)) { /* Special cases for empty Rects */
-        if (SDL_RECTEMPTY(B)) {    /* A and B empty */
-            SDL_zerop(result);
-        } else { /* A empty, B not empty */
-            *result = *B;
-        }
-        return;
-    } else if (SDL_RECTEMPTY(B)) { /* A not empty, B empty */
-        *result = *A;
-        return;
+    CHECK_PARAM(!A) {
+        return SDL_InvalidParamError("A");
+    }
+    CHECK_PARAM(!B) {
+        return SDL_InvalidParamError("B");
+    }
+    CHECK_PARAM(SDL_RECT_CAN_OVERFLOW(A) || SDL_RECT_CAN_OVERFLOW(B)) {
+        return SDL_SetError("Potential rect math overflow");
+    }
+    CHECK_PARAM(!result) {
+        return SDL_InvalidParamError("result");
     }
 
-    /* Horizontal union */
+    if (SDL_RECTEMPTY(A)) { // Special cases for empty Rects
+        if (SDL_RECTEMPTY(B)) {    // A and B empty
+            SDL_zerop(result);
+        } else { // A empty, B not empty
+            *result = *B;
+        }
+        return true;
+    } else if (SDL_RECTEMPTY(B)) { // A not empty, B empty
+        *result = *A;
+        return true;
+    }
+
+    // Horizontal union
     Amin = A->x;
     Amax = Amin + A->w;
     Bmin = B->x;
@@ -155,7 +177,7 @@ void SDL_UNIONRECT(const RECTTYPE *A, const RECTTYPE *B, RECTTYPE *result)
     }
     result->w = Amax - Amin;
 
-    /* Vertical union */
+    // Vertical union
     Amin = A->y;
     Amax = Amin + A->h;
     Bmin = B->y;
@@ -168,10 +190,10 @@ void SDL_UNIONRECT(const RECTTYPE *A, const RECTTYPE *B, RECTTYPE *result)
         Amax = Bmax;
     }
     result->h = Amax - Amin;
+    return true;
 }
 
-SDL_bool SDL_ENCLOSEPOINTS(const POINTTYPE *points, int count, const RECTTYPE *clip,
-                           RECTTYPE *result)
+bool SDL_ENCLOSEPOINTS(const POINTTYPE *points, int count, const RECTTYPE *clip, RECTTYPE *result)
 {
     SCALARTYPE minx = 0;
     SCALARTYPE miny = 0;
@@ -180,24 +202,25 @@ SDL_bool SDL_ENCLOSEPOINTS(const POINTTYPE *points, int count, const RECTTYPE *c
     SCALARTYPE x, y;
     int i;
 
-    if (points == NULL) {
+    CHECK_PARAM(!points) {
         SDL_InvalidParamError("points");
-        return SDL_FALSE;
-    } else if (count < 1) {
+        return false;
+    }
+    CHECK_PARAM(count < 1) {
         SDL_InvalidParamError("count");
-        return SDL_FALSE;
+        return false;
     }
 
     if (clip) {
-        SDL_bool added = SDL_FALSE;
+        bool added = false;
         const SCALARTYPE clip_minx = clip->x;
         const SCALARTYPE clip_miny = clip->y;
-        const SCALARTYPE clip_maxx = clip->x + clip->w - 1;
-        const SCALARTYPE clip_maxy = clip->y + clip->h - 1;
+        const SCALARTYPE clip_maxx = clip->x + clip->w - ENCLOSEPOINTS_EPSILON;
+        const SCALARTYPE clip_maxy = clip->y + clip->h - ENCLOSEPOINTS_EPSILON;
 
-        /* Special case for empty rectangle */
+        // Special case for empty rectangle
         if (SDL_RECTEMPTY(clip)) {
-            return SDL_FALSE;
+            return false;
         }
 
         for (i = 0; i < count; ++i) {
@@ -209,15 +232,15 @@ SDL_bool SDL_ENCLOSEPOINTS(const POINTTYPE *points, int count, const RECTTYPE *c
                 continue;
             }
             if (!added) {
-                /* Special case: if no result was requested, we are done */
-                if (result == NULL) {
-                    return SDL_TRUE;
+                // Special case: if no result was requested, we are done
+                if (!result) {
+                    return true;
                 }
 
-                /* First point added */
+                // First point added
                 minx = maxx = x;
                 miny = maxy = y;
-                added = SDL_TRUE;
+                added = true;
                 continue;
             }
             if (x < minx) {
@@ -232,15 +255,15 @@ SDL_bool SDL_ENCLOSEPOINTS(const POINTTYPE *points, int count, const RECTTYPE *c
             }
         }
         if (!added) {
-            return SDL_FALSE;
+            return false;
         }
     } else {
-        /* Special case: if no result was requested, we are done */
-        if (result == NULL) {
-            return SDL_TRUE;
+        // Special case: if no result was requested, we are done
+        if (!result) {
+            return true;
         }
 
-        /* No clipping, always add the first point */
+        // No clipping, always add the first point
         minx = maxx = points[0].x;
         miny = maxy = points[0].y;
 
@@ -264,30 +287,30 @@ SDL_bool SDL_ENCLOSEPOINTS(const POINTTYPE *points, int count, const RECTTYPE *c
     if (result) {
         result->x = minx;
         result->y = miny;
-        result->w = (maxx - minx) + 1;
-        result->h = (maxy - miny) + 1;
+        result->w = (maxx - minx) + ENCLOSEPOINTS_EPSILON;
+        result->h = (maxy - miny) + ENCLOSEPOINTS_EPSILON;
     }
-    return SDL_TRUE;
+    return true;
 }
 
-/* Use the Cohen-Sutherland algorithm for line clipping */
+// Use the Cohen-Sutherland algorithm for line clipping
 static int COMPUTEOUTCODE(const RECTTYPE *rect, SCALARTYPE x, SCALARTYPE y)
 {
     int code = 0;
     if (y < rect->y) {
         code |= CODE_TOP;
-    } else if (y >= rect->y + rect->h) {
+    } else if (y > (rect->y + rect->h - ENCLOSEPOINTS_EPSILON)) {
         code |= CODE_BOTTOM;
     }
     if (x < rect->x) {
         code |= CODE_LEFT;
-    } else if (x >= rect->x + rect->w) {
+    } else if (x > (rect->x + rect->w - ENCLOSEPOINTS_EPSILON)) {
         code |= CODE_RIGHT;
     }
     return code;
 }
 
-SDL_bool SDL_INTERSECTRECTANDLINE(const RECTTYPE *rect, SCALARTYPE *X1, SCALARTYPE *Y1, SCALARTYPE *X2, SCALARTYPE *Y2)
+bool SDL_INTERSECTRECTANDLINE(const RECTTYPE *rect, SCALARTYPE *X1, SCALARTYPE *Y1, SCALARTYPE *X2, SCALARTYPE *Y2)
 {
     SCALARTYPE x = 0;
     SCALARTYPE y = 0;
@@ -299,23 +322,33 @@ SDL_bool SDL_INTERSECTRECTANDLINE(const RECTTYPE *rect, SCALARTYPE *X1, SCALARTY
     SCALARTYPE recty2;
     int outcode1, outcode2;
 
-    if (rect == NULL) {
+    CHECK_PARAM(!rect) {
         SDL_InvalidParamError("rect");
-        return SDL_FALSE;
-    } else if (X1 == NULL) {
+        return false;
+    }
+    CHECK_PARAM(SDL_RECT_CAN_OVERFLOW(rect)) {
+        SDL_SetError("Potential rect math overflow");
+        return false;
+    }
+    CHECK_PARAM(!X1) {
         SDL_InvalidParamError("X1");
-        return SDL_FALSE;
-    } else if (Y1 == NULL) {
+        return false;
+    }
+    CHECK_PARAM(!Y1) {
         SDL_InvalidParamError("Y1");
-        return SDL_FALSE;
-    } else if (X2 == NULL) {
+        return false;
+    }
+    CHECK_PARAM(!X2) {
         SDL_InvalidParamError("X2");
-        return SDL_FALSE;
-    } else if (Y2 == NULL) {
+        return false;
+    }
+    CHECK_PARAM(!Y2) {
         SDL_InvalidParamError("Y2");
-        return SDL_FALSE;
-    } else if (SDL_RECTEMPTY(rect)) {
-        return SDL_FALSE; /* Special case for empty rect */
+        return false;
+    }
+
+    if (SDL_RECTEMPTY(rect)) {
+        return false; // Special case for empty rect
     }
 
     x1 = *X1;
@@ -324,22 +357,22 @@ SDL_bool SDL_INTERSECTRECTANDLINE(const RECTTYPE *rect, SCALARTYPE *X1, SCALARTY
     y2 = *Y2;
     rectx1 = rect->x;
     recty1 = rect->y;
-    rectx2 = rect->x + rect->w - 1;
-    recty2 = rect->y + rect->h - 1;
+    rectx2 = rect->x + rect->w - ENCLOSEPOINTS_EPSILON;
+    recty2 = rect->y + rect->h - ENCLOSEPOINTS_EPSILON;
 
-    /* Check to see if entire line is inside rect */
+    // Check to see if entire line is inside rect
     if (x1 >= rectx1 && x1 <= rectx2 && x2 >= rectx1 && x2 <= rectx2 &&
         y1 >= recty1 && y1 <= recty2 && y2 >= recty1 && y2 <= recty2) {
-        return SDL_TRUE;
+        return true;
     }
 
-    /* Check to see if entire line is to one side of rect */
+    // Check to see if entire line is to one side of rect
     if ((x1 < rectx1 && x2 < rectx1) || (x1 > rectx2 && x2 > rectx2) ||
         (y1 < recty1 && y2 < recty1) || (y1 > recty2 && y2 > recty2)) {
-        return SDL_FALSE;
+        return false;
     }
 
-    if (y1 == y2) { /* Horizontal line, easy to clip */
+    if (y1 == y2) { // Horizontal line, easy to clip
         if (x1 < rectx1) {
             *X1 = rectx1;
         } else if (x1 > rectx2) {
@@ -350,10 +383,10 @@ SDL_bool SDL_INTERSECTRECTANDLINE(const RECTTYPE *rect, SCALARTYPE *X1, SCALARTY
         } else if (x2 > rectx2) {
             *X2 = rectx2;
         }
-        return SDL_TRUE;
+        return true;
     }
 
-    if (x1 == x2) { /* Vertical line, easy to clip */
+    if (x1 == x2) { // Vertical line, easy to clip
         if (y1 < recty1) {
             *Y1 = recty1;
         } else if (y1 > recty2) {
@@ -364,55 +397,55 @@ SDL_bool SDL_INTERSECTRECTANDLINE(const RECTTYPE *rect, SCALARTYPE *X1, SCALARTY
         } else if (y2 > recty2) {
             *Y2 = recty2;
         }
-        return SDL_TRUE;
+        return true;
     }
 
-    /* More complicated Cohen-Sutherland algorithm */
+    // More complicated Cohen-Sutherland algorithm
     outcode1 = COMPUTEOUTCODE(rect, x1, y1);
     outcode2 = COMPUTEOUTCODE(rect, x2, y2);
     while (outcode1 || outcode2) {
         if (outcode1 & outcode2) {
-            return SDL_FALSE;
+            return false;
         }
 
         if (outcode1) {
             if (outcode1 & CODE_TOP) {
                 y = recty1;
-                x = x1 + ((x2 - x1) * (y - y1)) / (y2 - y1);
+                x = (SCALARTYPE) (x1 + ((BIGSCALARTYPE)(x2 - x1) * (y - y1)) / (y2 - y1));
             } else if (outcode1 & CODE_BOTTOM) {
                 y = recty2;
-                x = x1 + ((x2 - x1) * (y - y1)) / (y2 - y1);
+                x = (SCALARTYPE) (x1 + ((BIGSCALARTYPE)(x2 - x1) * (y - y1)) / (y2 - y1));
             } else if (outcode1 & CODE_LEFT) {
                 x = rectx1;
-                y = y1 + ((y2 - y1) * (x - x1)) / (x2 - x1);
+                y = (SCALARTYPE) (y1 + ((BIGSCALARTYPE)(y2 - y1) * (x - x1)) / (x2 - x1));
             } else if (outcode1 & CODE_RIGHT) {
                 x = rectx2;
-                y = y1 + ((y2 - y1) * (x - x1)) / (x2 - x1);
+                y = (SCALARTYPE) (y1 + ((BIGSCALARTYPE)(y2 - y1) * (x - x1)) / (x2 - x1));
             }
             x1 = x;
             y1 = y;
             outcode1 = COMPUTEOUTCODE(rect, x, y);
         } else {
             if (outcode2 & CODE_TOP) {
-                SDL_assert(y2 != y1); /* if equal: division by zero. */
+                SDL_assert(y2 != y1); // if equal: division by zero.
                 y = recty1;
-                x = x1 + ((x2 - x1) * (y - y1)) / (y2 - y1);
+                x = (SCALARTYPE) (x1 + ((BIGSCALARTYPE)(x2 - x1) * (y - y1)) / (y2 - y1));
             } else if (outcode2 & CODE_BOTTOM) {
-                SDL_assert(y2 != y1); /* if equal: division by zero. */
+                SDL_assert(y2 != y1); // if equal: division by zero.
                 y = recty2;
-                x = x1 + ((x2 - x1) * (y - y1)) / (y2 - y1);
+                x = (SCALARTYPE) (x1 + ((BIGSCALARTYPE)(x2 - x1) * (y - y1)) / (y2 - y1));
             } else if (outcode2 & CODE_LEFT) {
                 /* If this assertion ever fires, here's the static analysis that warned about it:
                    http://buildbot.libsdl.org/sdl-static-analysis/sdl-macosx-static-analysis/sdl-macosx-static-analysis-1101/report-b0d01a.html#EndPath */
-                SDL_assert(x2 != x1); /* if equal: division by zero. */
+                SDL_assert(x2 != x1); // if equal: division by zero.
                 x = rectx1;
-                y = y1 + ((y2 - y1) * (x - x1)) / (x2 - x1);
+                y = (SCALARTYPE) (y1 + ((BIGSCALARTYPE)(y2 - y1) * (x - x1)) / (x2 - x1));
             } else if (outcode2 & CODE_RIGHT) {
                 /* If this assertion ever fires, here's the static analysis that warned about it:
                    http://buildbot.libsdl.org/sdl-static-analysis/sdl-macosx-static-analysis/sdl-macosx-static-analysis-1101/report-39b114.html#EndPath */
-                SDL_assert(x2 != x1); /* if equal: division by zero. */
+                SDL_assert(x2 != x1); // if equal: division by zero.
                 x = rectx2;
-                y = y1 + ((y2 - y1) * (x - x1)) / (x2 - x1);
+                y = (SCALARTYPE) (y1 + ((BIGSCALARTYPE)(y2 - y1) * (x - x1)) / (x2 - x1));
             }
             x2 = x;
             y2 = y;
@@ -423,18 +456,19 @@ SDL_bool SDL_INTERSECTRECTANDLINE(const RECTTYPE *rect, SCALARTYPE *X1, SCALARTY
     *Y1 = y1;
     *X2 = x2;
     *Y2 = y2;
-    return SDL_TRUE;
+    return true;
 }
 
 #undef RECTTYPE
 #undef POINTTYPE
 #undef SCALARTYPE
+#undef BIGSCALARTYPE
 #undef COMPUTEOUTCODE
+#undef ENCLOSEPOINTS_EPSILON
+#undef SDL_RECT_CAN_OVERFLOW
 #undef SDL_HASINTERSECTION
 #undef SDL_INTERSECTRECT
 #undef SDL_RECTEMPTY
 #undef SDL_UNIONRECT
 #undef SDL_ENCLOSEPOINTS
 #undef SDL_INTERSECTRECTANDLINE
-
-/* vi: set ts=4 sw=4 expandtab: */

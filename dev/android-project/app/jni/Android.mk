@@ -16,18 +16,19 @@ FLATBUFFERS_PATH := $(LOBSTER_PATH)/external/flatbuffers/src
 IMGUI_PATH := $(LOBSTER_PATH)/external/imgui
 
 LOCAL_C_INCLUDES := \
-    $(LOCAL_PATH)/$(SDL_PATH)/include \
-	$(LOCAL_PATH)/$(SDL_MIXER_PATH) \
-	$(LOCAL_PATH)/$(SDL_MIXER_PATH)/codecs \
-    $(LOCAL_PATH)/$(FREETYPE_PATH)/include \
-    $(LOBSTER_PATH)/dev/src \
-    $(LOCAL_PATH)/$(LOBSTER_PATH)/include \
-    $(LOCAL_PATH)/$(IMGUI_PATH) \
+	$(LOCAL_PATH)/$(SDL_PATH)/src \
+	$(LOCAL_PATH)/$(SDL_PATH)/include \
+	$(LOCAL_PATH)/$(SDL_PATH)/include/build_config \
+	$(LOCAL_PATH)/$(SDL_MIXER_PATH)/include \
+	$(LOCAL_PATH)/$(FREETYPE_PATH)/include \
+	$(LOBSTER_PATH)/dev/src \
+	$(LOCAL_PATH)/$(LOBSTER_PATH)/include \
+	$(LOCAL_PATH)/$(IMGUI_PATH) \
 	$(ANDROID_NDK_ROOT)/sources/android/cpufeatures
 
 LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/compiled_lobster/src/compiled_lobster.cpp \
-    $(LOBSTER_PATH)/src/compiler.cpp \
+	$(LOBSTER_PATH)/src/compiler.cpp \
 	$(LOBSTER_PATH)/src/audio.cpp \
 	$(LOBSTER_PATH)/src/builtins.cpp \
 	$(LOBSTER_PATH)/src/engine.cpp \
@@ -65,7 +66,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/$(BOX2D_PATH)/Particle/*.cpp) \
 	$(wildcard $(LOCAL_PATH)/$(BOX2D_PATH)/Rope/*.cpp) \
 	) \
-    $(FREETYPE_PATH)/src/autofit/autofit.c \
+	$(FREETYPE_PATH)/src/autofit/autofit.c \
 	$(FREETYPE_PATH)/src/cff/cff.c \
 	$(FREETYPE_PATH)/src/base/ftbase.c \
 	$(FREETYPE_PATH)/src/base/ftbbox.c \
@@ -84,48 +85,63 @@ LOCAL_SRC_FILES := \
 	$(FREETYPE_PATH)/src/sfnt/sfnt.c \
 	$(FREETYPE_PATH)/src/smooth/smooth.c \
 	$(FREETYPE_PATH)/src/truetype/truetype.c \
-    $(SDL_PATH)/src/main/android/SDL_android_main.c \
-	$(SDL_PATH)/src/atomic/SDL_atomic.c \
-	$(SDL_PATH)/src/atomic/SDL_spinlock.c.arm \
 	$(subst $(LOCAL_PATH)/,, \
 	$(wildcard $(LOCAL_PATH)/$(FLATBUFFERS_PATH)/*.cpp) \
 	$(wildcard $(LOCAL_PATH)/$(IMGUI_PATH)/*.cpp) \
-	$(wildcard $(LOCAL_PATH)/$(SDL_MIXER_PATH)/*.c) \
-	$(wildcard $(LOCAL_PATH)/$(SDL_MIXER_PATH)/codecs/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_MIXER_PATH)/src/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/atomic/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/*.c) \
-	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/aaudio/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/openslES/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/dummy/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/camera/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/camera/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/core/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/cpuinfo/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/dialog/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/dialog/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/dynapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/events/*.c) \
-	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/file/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/filesystem/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/filesystem/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/filesystem/posix/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/gpu/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/gpu/vulkan/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/hidapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/hidapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/hidapi/android/*.cpp) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/io/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/io/generic/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/virtual/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/hidapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/loadso/dlopen/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/locale/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/locale/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/main/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/misc/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/misc/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/power/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/power/android/*.c) \
-	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/filesystem/android/*.c) \
-	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/sensor/*.c) \
-	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/sensor/android/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/process/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/process/dummy/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/render/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/render/*/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/sensor/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/sensor/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/stdlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/thread/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/thread/pthread/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/time/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/time/unix/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/timer/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/timer/unix/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/tray/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/tray/dummy/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/video/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/video/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/video/yuv2rgb/*.c) \
@@ -135,7 +151,7 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES :=
 LOCAL_STATIC_LIBRARIES :=
 
-LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY=1 -DGL_GLEXT_PROTOTYPES -DMUSIC_WAV -DMUSIC_OGG -DOGG_USE_STB
+LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY=1 -DGL_GLEXT_PROTOTYPES -DDECODER_WAV -DDECODER_OGGVORBIS_STB
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -lGLESv3 -lEGL -llog -ldl -landroid -lOpenSLES
 include $(BUILD_SHARED_LIBRARY)

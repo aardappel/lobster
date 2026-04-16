@@ -128,7 +128,7 @@ if(LOBSTER_ENGINE)
     external/freetype/src/truetype/truetype.c
   )
   add_definitions(-DFT2_BUILD_LIBRARY=1)
-  add_definitions(-DMUSIC_WAV -DMUSIC_OGG -DOGG_USE_STB)
+  add_definitions(-DDECODER_WAV -DDECODER_OGGVORBIS_STB)
   list (APPEND EXTERNAL_SRCS ${EXTERNAL_ENGINE_SRCS})
 endif()
 
@@ -167,17 +167,16 @@ include_directories(include
 
 include_directories(SYSTEM
                     external/steamworks/include
-                    external/SDL/include-config-/SDL2
                     external/SDL/include
-                    external/SDLMixer
-                    external/SDLMixer/codecs
+                    external/SDL/include/build_config
+                    external/SDLMixer/include
                     external/freetype/include
                     external/imgui
                     external/libtcc)
 
 if(LOBSTER_ENGINE)
   find_package(OpenGL REQUIRED)
-  set(SDL_LIBRARIES SDL2-static)
+  set(SDL_LIBRARIES SDL3-static)
   set(ADDITIONAL_LIBRARIES "")
   if(APPLE)
     find_library(OPENGL_LIBRARIES NAMES GL GLU)
@@ -186,7 +185,7 @@ if(LOBSTER_ENGINE)
   if(WIN32)
     add_definitions(-D_USE_MATH_DEFINES)
     set(OPENGL_LIBRARIES opengl32)
-    set(SDL_LIBRARIES SDL2main ${SDL_LIBRARIES})
+    set(SDL_LIBRARIES SDL3main ${SDL_LIBRARIES})
     if(MSVC)
       set(ADDITIONAL_LIBRARIES "winmm.lib imm32.lib version.lib")
       link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")

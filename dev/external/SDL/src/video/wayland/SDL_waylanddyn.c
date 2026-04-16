@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,9 +18,9 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "../../SDL_internal.h"
+#include "SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_WAYLAND
+#ifdef SDL_VIDEO_DRIVER_WAYLAND
 
 #define DEBUG_DYNAMIC_WAYLAND 0
 
@@ -28,58 +28,93 @@
 
 #ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC
 
-#include "SDL_name.h"
-#include "SDL_loadso.h"
+SDL_ELF_NOTE_DLOPEN(
+    "wayland",
+    "Support for Wayland video",
+    SDL_ELF_NOTE_DLOPEN_PRIORITY_SUGGESTED,
+    SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC
+)
+#ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL
+SDL_ELF_NOTE_DLOPEN(
+    "wayland",
+    "Support for Wayland video",
+    SDL_ELF_NOTE_DLOPEN_PRIORITY_SUGGESTED,
+    SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL
+)
+#endif
+#ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR
+SDL_ELF_NOTE_DLOPEN(
+    "wayland",
+    "Support for Wayland video",
+    SDL_ELF_NOTE_DLOPEN_PRIORITY_SUGGESTED,
+    SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR
+)
+#endif
+#ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_XKBCOMMON
+SDL_ELF_NOTE_DLOPEN(
+    "wayland",
+    "Support for Wayland video",
+    SDL_ELF_NOTE_DLOPEN_PRIORITY_SUGGESTED,
+    SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_XKBCOMMON
+)
+#endif
+#ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_LIBDECOR
+SDL_ELF_NOTE_DLOPEN(
+    "wayland",
+    "Support for Wayland video",
+    SDL_ELF_NOTE_DLOPEN_PRIORITY_SUGGESTED,
+    SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_LIBDECOR
+)
+#endif
 
 typedef struct
 {
-    void *lib;
+    SDL_SharedObject *lib;
     const char *libname;
+    const char *hint;
+    bool hint_default;
 } waylanddynlib;
 
-#ifndef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL
-#define SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL NULL
-#endif
-#ifndef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR
-#define SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR NULL
-#endif
-#ifndef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_XKBCOMMON
-#define SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_XKBCOMMON NULL
-#endif
-#ifndef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_LIBDECOR
-#define SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_LIBDECOR NULL
-#endif
-
 static waylanddynlib waylandlibs[] = {
-    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC },
-    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL },
-    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR },
-    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_XKBCOMMON },
-    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_LIBDECOR }
+    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC, NULL, false },
+#ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL
+    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL, NULL, false },
+#endif
+#ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR
+    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR, NULL, false },
+#endif
+#ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_XKBCOMMON
+    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_XKBCOMMON, NULL, false },
+#endif
+#ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_LIBDECOR
+    { NULL, SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_LIBDECOR, SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR, true },
+#endif
+    { NULL, NULL, NULL, false }
 };
 
-static void *WAYLAND_GetSym(const char *fnname, int *pHasModule, SDL_bool required)
+static void *WAYLAND_GetSym(const char *fnname, int *pHasModule, bool required)
 {
-    int i;
     void *fn = NULL;
-    for (i = 0; i < SDL_TABLESIZE(waylandlibs); i++) {
-        if (waylandlibs[i].lib != NULL) {
-            fn = SDL_LoadFunction(waylandlibs[i].lib, fnname);
-            if (fn != NULL) {
+    waylanddynlib *dynlib;
+    for (dynlib = waylandlibs; dynlib->libname; dynlib++) {
+        if (dynlib->lib) {
+            fn = SDL_LoadFunction(dynlib->lib, fnname);
+            if (fn) {
                 break;
             }
         }
     }
 
 #if DEBUG_DYNAMIC_WAYLAND
-    if (fn != NULL)
-        SDL_Log("WAYLAND: Found '%s' in %s (%p)\n", fnname, waylandlibs[i].libname, fn);
-    else
-        SDL_Log("WAYLAND: Symbol '%s' NOT FOUND!\n", fnname);
+    if (fn) {
+        SDL_Log("WAYLAND: Found '%s' in %s (%p)", fnname, dynlib->libname, fn);
+    } else {
+        SDL_Log("WAYLAND: Symbol '%s' NOT FOUND!", fnname);
+    }
 #endif
 
-    if (fn == NULL && required) {
-        *pHasModule = 0; /* kill this module. */
+    if (!fn && required) {
+        *pHasModule = 0; // kill this module.
     }
 
     return fn;
@@ -89,9 +124,9 @@ static void *WAYLAND_GetSym(const char *fnname, int *pHasModule, SDL_bool requir
 
 #include <wayland-egl.h>
 
-#endif /* SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC */
+#endif // SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC
 
-/* Define all the function pointers and wrappers... */
+// Define all the function pointers and wrappers...
 #define SDL_WAYLAND_MODULE(modname)         int SDL_WAYLAND_HAVE_##modname = 0;
 #define SDL_WAYLAND_SYM(rc, fn, params)     SDL_DYNWAYLANDFN_##fn WAYLAND_##fn = NULL;
 #define SDL_WAYLAND_SYM_OPT(rc, fn, params) SDL_DYNWAYLANDFN_##fn WAYLAND_##fn = NULL;
@@ -102,14 +137,14 @@ static int wayland_load_refcount = 0;
 
 void SDL_WAYLAND_UnloadSymbols(void)
 {
-    /* Don't actually unload if more than one module is using the libs... */
+    // Don't actually unload if more than one module is using the libs...
     if (wayland_load_refcount > 0) {
         if (--wayland_load_refcount == 0) {
 #ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC
             int i;
 #endif
 
-            /* set all the function pointers to NULL. */
+            // set all the function pointers to NULL.
 #define SDL_WAYLAND_MODULE(modname)         SDL_WAYLAND_HAVE_##modname = 0;
 #define SDL_WAYLAND_SYM(rc, fn, params)     WAYLAND_##fn = NULL;
 #define SDL_WAYLAND_SYM_OPT(rc, fn, params) WAYLAND_##fn = NULL;
@@ -117,8 +152,8 @@ void SDL_WAYLAND_UnloadSymbols(void)
 #include "SDL_waylandsym.h"
 
 #ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC
-            for (i = 0; i < SDL_TABLESIZE(waylandlibs); i++) {
-                if (waylandlibs[i].lib != NULL) {
+            for (i = 0; i < SDL_arraysize(waylandlibs); i++) {
+                if (waylandlibs[i].lib) {
                     SDL_UnloadObject(waylandlibs[i].lib);
                     waylandlibs[i].lib = NULL;
                 }
@@ -128,43 +163,50 @@ void SDL_WAYLAND_UnloadSymbols(void)
     }
 }
 
-/* returns non-zero if all needed symbols were loaded. */
-int SDL_WAYLAND_LoadSymbols(void)
+// returns non-zero if all needed symbols were loaded.
+bool SDL_WAYLAND_LoadSymbols(void)
 {
-    int rc = 1; /* always succeed if not using Dynamic WAYLAND stuff. */
+    bool result = true; // always succeed if not using Dynamic WAYLAND stuff.
 
-    /* deal with multiple modules (dga, wayland, etc) needing these symbols... */
+    // deal with multiple modules (dga, wayland, etc) needing these symbols...
     if (wayland_load_refcount++ == 0) {
 #ifdef SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC
         int i;
         int *thismod = NULL;
-        for (i = 0; i < SDL_TABLESIZE(waylandlibs); i++) {
-            if (waylandlibs[i].libname != NULL) {
+        for (i = 0; i < SDL_arraysize(waylandlibs); i++) {
+            if (waylandlibs[i].libname) {
+                if (waylandlibs[i].hint &&
+                    !SDL_GetHintBoolean(waylandlibs[i].hint, waylandlibs[i].hint_default)) {
+                    continue;
+                }
                 waylandlibs[i].lib = SDL_LoadObject(waylandlibs[i].libname);
             }
         }
 
-#define SDL_WAYLAND_MODULE(modname) SDL_WAYLAND_HAVE_##modname = 1; /* default yes */
+#define SDL_WAYLAND_MODULE(modname) SDL_WAYLAND_HAVE_##modname = 1; // default yes
 #include "SDL_waylandsym.h"
 
 #define SDL_WAYLAND_MODULE(modname)         thismod = &SDL_WAYLAND_HAVE_##modname;
-#define SDL_WAYLAND_SYM(rc, fn, params)     WAYLAND_##fn = (SDL_DYNWAYLANDFN_##fn)WAYLAND_GetSym(#fn, thismod, SDL_TRUE);
-#define SDL_WAYLAND_SYM_OPT(rc, fn, params) WAYLAND_##fn = (SDL_DYNWAYLANDFN_##fn)WAYLAND_GetSym(#fn, thismod, SDL_FALSE);
-#define SDL_WAYLAND_INTERFACE(iface)        WAYLAND_##iface = (struct wl_interface *)WAYLAND_GetSym(#iface, thismod, SDL_TRUE);
+#define SDL_WAYLAND_SYM(rc, fn, params)     WAYLAND_##fn = (SDL_DYNWAYLANDFN_##fn)WAYLAND_GetSym(#fn, thismod, true);
+#define SDL_WAYLAND_SYM_OPT(rc, fn, params) WAYLAND_##fn = (SDL_DYNWAYLANDFN_##fn)WAYLAND_GetSym(#fn, thismod, false);
+#define SDL_WAYLAND_INTERFACE(iface)        WAYLAND_##iface = (struct wl_interface *)WAYLAND_GetSym(#iface, thismod, true);
 #include "SDL_waylandsym.h"
 
-        if (SDL_WAYLAND_HAVE_WAYLAND_CLIENT) {
-            /* all required symbols loaded. */
+        if (SDL_WAYLAND_HAVE_WAYLAND_CLIENT &&
+            SDL_WAYLAND_HAVE_WAYLAND_CURSOR &&
+            SDL_WAYLAND_HAVE_WAYLAND_EGL &&
+            SDL_WAYLAND_HAVE_WAYLAND_XKB) {
+            // All required symbols loaded, only libdecor is optional.
             SDL_ClearError();
         } else {
-            /* in case something got loaded... */
+            // in case something got loaded...
             SDL_WAYLAND_UnloadSymbols();
-            rc = 0;
+            result = false;
         }
 
-#else /* no dynamic WAYLAND */
+#else // no dynamic WAYLAND
 
-#define SDL_WAYLAND_MODULE(modname)         SDL_WAYLAND_HAVE_##modname = 1; /* default yes */
+#define SDL_WAYLAND_MODULE(modname)         SDL_WAYLAND_HAVE_##modname = 1; // default yes
 #define SDL_WAYLAND_SYM(rc, fn, params)     WAYLAND_##fn = fn;
 #define SDL_WAYLAND_SYM_OPT(rc, fn, params) WAYLAND_##fn = fn;
 #define SDL_WAYLAND_INTERFACE(iface)        WAYLAND_##iface = &iface;
@@ -173,9 +215,7 @@ int SDL_WAYLAND_LoadSymbols(void)
 #endif
     }
 
-    return rc;
+    return result;
 }
 
-#endif /* SDL_VIDEO_DRIVER_WAYLAND */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_VIDEO_DRIVER_WAYLAND

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,9 +18,9 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "../../SDL_internal.h"
+#include "SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_VITA
+#ifdef SDL_VIDEO_DRIVER_VITA
 
 #include "SDL_vitavideo.h"
 
@@ -63,9 +63,9 @@ void vita_gpu_free(SceUID uid)
     sceKernelFreeMemBlock(uid);
 }
 
-int VITA_CreateWindowFramebuffer(_THIS, SDL_Window *window, Uint32 *format, void **pixels, int *pitch)
+bool VITA_CreateWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window *window, SDL_PixelFormat *format, void **pixels, int *pitch)
 {
-    SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
+    SDL_WindowData *data = window->internal;
     SceDisplayFrameBuf framebuf;
 
     *format = SDL_PIXELFORMAT_ABGR8888;
@@ -79,7 +79,7 @@ int VITA_CreateWindowFramebuffer(_THIS, SDL_Window *window, Uint32 *format, void
     // SDL_memset the buffer to black
     SDL_memset(data->buffer, 0x0, SCREEN_W * SCREEN_H * 4);
 
-    SDL_memset(&framebuf, 0x00, sizeof(SceDisplayFrameBuf));
+    SDL_zero(framebuf);
     framebuf.size = sizeof(SceDisplayFrameBuf);
     framebuf.base = data->buffer;
     framebuf.pitch = SCREEN_W;
@@ -90,21 +90,21 @@ int VITA_CreateWindowFramebuffer(_THIS, SDL_Window *window, Uint32 *format, void
 
     *pixels = data->buffer;
 
-    return 0;
+    return true;
 }
 
-int VITA_UpdateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects, int numrects)
+bool VITA_UpdateWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window *window, const SDL_Rect *rects, int numrects)
 {
     // do nothing
-    return 0;
+    return true;
 }
 
-void VITA_DestroyWindowFramebuffer(_THIS, SDL_Window *window)
+void VITA_DestroyWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window *window)
 {
-    SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
+    SDL_WindowData *data = window->internal;
 
-    if (data == NULL) {
-        /* The window wasn't fully initialized */
+    if (!data) {
+        // The window wasn't fully initialized
         return;
     }
 
@@ -113,6 +113,4 @@ void VITA_DestroyWindowFramebuffer(_THIS, SDL_Window *window)
     return;
 }
 
-#endif /* SDL_VIDEO_DRIVER_VITA */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_VIDEO_DRIVER_VITA

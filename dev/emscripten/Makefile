@@ -23,7 +23,7 @@ OPTLEVELLINK= -sASSERTIONS=0
 
 CFLAGS= $(OPTLEVEL)
 CXXFLAGS= $(OPTLEVEL)
-SHAREDFLAGS= -sUSE_SDL=2 -sUSE_SDL_MIXER=0 -sUSE_FREETYPE=1 \
+SHAREDFLAGS= -sUSE_SDL=3 -sUSE_SDL_MIXER=0 -sUSE_FREETYPE=1 \
          -Wall -pedantic -Wno-switch \
          -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types \
 		 -Wno-nontrivial-memcall -Wno-strict-prototypes -Wno-empty-translation-unit
@@ -40,8 +40,9 @@ INCLUDES=   -I. \
 			-I../src \
 			-I../external/freetype/include \
 			-I../external/imgui \
-			-I../external/SDLMixer \
-			-I../external/SDLMixer/codecs
+			-I../external/SDL/include \
+			-I../external/SDL/include/build_config \
+			-I../external/SDLMixer/include
 LIBS=
 
 HEADERS= $(wildcard ../src/lobster/*.h)
@@ -89,8 +90,7 @@ CPPSRCS= \
     $(wildcard ../external/imgui/*.cpp) \
 
 CSRCS= \
-    $(wildcard ../external/SDLMixer/*.c) \
-    $(wildcard ../external/SDLMixer/codecs/*.c)
+    $(wildcard ../external/SDLMixer/src/*.c) \
 
 CPPOBJS := $(patsubst %.cpp,%.o,$(CPPSRCS))
 COBJS := $(patsubst %.c,%.o,$(CSRCS))

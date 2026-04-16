@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,15 +19,18 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-/* These are values used in the controller type byte of the controller GUID */
+// These are values used in the controller type byte of the controller GUID
 
-/* These values come directly out of the hardware, so don't change them */
+// These values come directly out of the hardware, so don't change them
 typedef enum
 {
     k_eSwitchDeviceInfoControllerType_Unknown = 0,
     k_eSwitchDeviceInfoControllerType_JoyConLeft = 1,
     k_eSwitchDeviceInfoControllerType_JoyConRight = 2,
     k_eSwitchDeviceInfoControllerType_ProController = 3,
+    k_eSwitchDeviceInfoControllerType_LicProController = 6,
+    k_eSwitchDeviceInfoControllerType_HVCLeft = 7,
+    k_eSwitchDeviceInfoControllerType_HVCRight = 8,
     k_eSwitchDeviceInfoControllerType_NESLeft = 9,
     k_eSwitchDeviceInfoControllerType_NESRight = 10,
     k_eSwitchDeviceInfoControllerType_SNES = 11,
@@ -35,7 +38,7 @@ typedef enum
     k_eSwitchDeviceInfoControllerType_SEGA_Genesis = 13,
 } ESwitchDeviceInfoControllerType;
 
-/* These values are used internally but can be updated as needed */
+// These values are used internally but can be updated as needed
 typedef enum
 {
     k_eWiiExtensionControllerType_Unknown = 0,
@@ -44,5 +47,3 @@ typedef enum
     k_eWiiExtensionControllerType_Gamepad = 130,
     k_eWiiExtensionControllerType_WiiUPro = 131,
 } EWiiExtensionControllerType;
-
-/* vi: set ts=4 sw=4 expandtab: */

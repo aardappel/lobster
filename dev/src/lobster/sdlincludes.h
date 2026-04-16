@@ -12,28 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DECLSPEC
-#define SDL_NO_COMPAT
-// hack: so we can share one include folder for SDL
-#ifdef __APPLE__
-    #ifdef __IOS__
-        #include "SDL_config_iphoneos.h"
-    #else
-        #include "SDL_config_macosx.h"
-    #endif
-#else
-    #ifdef __ANDROID__
-        #include "SDL_config_android.h"
-    #else
-        #ifdef _WIN32
-            #include "SDL_config_windows.h"
-        #else
-            #include "SDL_config.h"
-        #endif
-    #endif
-#endif
-#define _SDL_config_h
-//#define SDL_MAIN_HANDLED
-#include "SDL.h"
-//#include "SDL_main.h"
+#include "SDL_build_config.h"
+#include "SDL3/SDL.h"
 
