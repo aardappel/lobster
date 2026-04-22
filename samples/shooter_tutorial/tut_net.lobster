@@ -8,13 +8,6 @@ let MAX_PLAYERS = 4
 let HOST_PORT = 5101
 let CLIENT_LISTEN_PORT = 5102
 
-fatal(gl.window("Shooter Tutorial Co-op", 640, 480))
-
-check(gl.set_font_name("data/fonts/US101/US101.ttf"), "can\'t load font!")
-
-im.init(false, im.config_docking_enable, 3.0)
-check(im.add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0), "can\'t load font!")
-
 let steamerr = steam.init(0, true, true)
 if steamerr == 0:
     print "Steam init failed"
@@ -25,6 +18,13 @@ elif steamerr < 0:
     return
 else:
     print "Welcome Steam user {steam.username()}"
+
+fatal(gl.window("Shooter Tutorial Co-op", 640, 480))
+
+check(gl.set_font_name("data/fonts/US101/US101.ttf"), "can\'t load font!")
+
+im.init(false, im.config_docking_enable, 3.0)
+check(im.add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0), "can\'t load font!")
 
 var local_ident = ""
 var host_ident = ""
