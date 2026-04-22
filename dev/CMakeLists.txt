@@ -166,6 +166,7 @@ include_directories(include
                     src)
 
 include_directories(SYSTEM
+                    external/steamworks/include
                     external/SDL/include-config-/SDL2
                     external/SDL/include
                     external/SDLMixer
@@ -193,6 +194,10 @@ if(LOBSTER_ENGINE)
     if(MINGW)
       SET(CMAKE_CXX_LINK_FLAGS "-mconsole -lmingw32")
     endif()
+  endif()
+  if(UNIX)
+    set(ADDITIONAL_LIBRARIES "libsteam_api.so")
+    link_directories("${CMAKE_SOURCE_DIR}/external/steamworks/lib/linux64")
   endif()
 endif()
 
