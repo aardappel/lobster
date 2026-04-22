@@ -336,7 +336,6 @@ while gl.frame():
                             game_state = GS_CREATING_LOBBY
                             local_ident = steam.net_identity()
                         if im.button("Find Lobby"):
-                            check(steam.p2p_listen(), "Unable to open listen, ip_addr socket")
                             steam.lobby_request_add_string_filter("game", "tut_net", 0)
                             steam.lobby_request_list()
                         im.separator()
@@ -376,6 +375,7 @@ while gl.frame():
                         if matched_idx >= 0 and im.button("Join Lobby"):
                             steam.lobby_join(matched[matched_idx])
                             steam.lobby_request_list_reset()
+                            check(steam.p2p_listen(), "Unable to open listen")
                             game_state = GS_JOINING_LOBBY
                             local_ident = steam.net_identity()
                     case GS_CREATING_LOBBY:
