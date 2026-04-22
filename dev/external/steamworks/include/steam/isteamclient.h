@@ -91,9 +91,6 @@ public:
 	// user screenshots
 	virtual ISteamScreenshots *GetISteamScreenshots( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
 
-	// game search
-	virtual ISteamGameSearch *GetISteamGameSearch( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
-
 	// Deprecated. Applications should use SteamAPI_RunCallbacks() or SteamGameServer_RunCallbacks() instead.
 	STEAM_PRIVATE_API( virtual void RunFrame() = 0; )
 
@@ -115,23 +112,14 @@ public:
 	// Expose HTTP interface
 	virtual ISteamHTTP *GetISteamHTTP( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
 
-	// Deprecated - the ISteamUnifiedMessages interface is no longer intended for public consumption.
-	STEAM_PRIVATE_API( virtual void *DEPRECATED_GetISteamUnifiedMessages( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0 ; )
-
 	// Exposes the ISteamController interface - deprecated in favor of Steam Input
 	virtual ISteamController *GetISteamController( HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
 
 	// Exposes the ISteamUGC interface
 	virtual ISteamUGC *GetISteamUGC( HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
 
-	// returns app list interface, only available on specially registered apps
-	virtual ISteamAppList *GetISteamAppList( HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
-	
 	// Music Player
 	virtual ISteamMusic *GetISteamMusic( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
-
-	// Music Player Remote
-	virtual ISteamMusicRemote *GetISteamMusicRemote(HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion) = 0;
 
 	// html page display
 	virtual ISteamHTMLSurface *GetISteamHTMLSurface(HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion) = 0;
@@ -162,7 +150,7 @@ public:
 	STEAM_PRIVATE_API( virtual void DestroyAllInterfaces() = 0; )
 
 };
-#define STEAMCLIENT_INTERFACE_VERSION		"SteamClient020"
+#define STEAMCLIENT_INTERFACE_VERSION		"SteamClient023"
 
 #ifndef STEAM_API_EXPORTS
 

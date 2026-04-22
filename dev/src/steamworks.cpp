@@ -712,7 +712,6 @@ int SteamInit(iint appid, bool screenshots, bool initrelay) {
         if (!steaminit) return 0;
         SteamUtils()->SetWarningMessageHook(&SteamAPIDebugTextHook);
         steam = new SteamState();
-        SteamUserStats()->RequestCurrentStats();
         if (screenshots) SteamScreenshots()->HookScreenshots(true);
         if (initrelay) SteamNetworkingUtils()->InitRelayNetworkAccess();
         return 1;

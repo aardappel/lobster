@@ -88,9 +88,11 @@ struct LeaderboardEntry_t
 class ISteamUserStats
 {
 public:
-	// Ask the server to send down this user's data and achievements for this game
-	STEAM_CALL_BACK( UserStatsReceived_t )
-	virtual bool RequestCurrentStats() = 0;
+
+	// Note: this call is no longer required as it is managed by the Steam client
+	// The game stats and achievements will be synchronized with Steam before
+	// the game process begins.
+	// virtual bool RequestCurrentStats() = 0;
 
 	// Data accessors
 	STEAM_FLAT_NAME( GetStatInt32 )
@@ -303,7 +305,7 @@ public:
 
 };
 
-#define STEAMUSERSTATS_INTERFACE_VERSION "STEAMUSERSTATS_INTERFACE_VERSION012"
+#define STEAMUSERSTATS_INTERFACE_VERSION "STEAMUSERSTATS_INTERFACE_VERSION013"
 
 // Global interface accessor
 inline ISteamUserStats *SteamUserStats();
@@ -352,7 +354,7 @@ struct UserAchievementStored_t
 	enum { k_iCallback = k_iSteamUserStatsCallbacks + 3 };
 
 	uint64		m_nGameID;				// Game this is for
-	bool		m_bGroupAchievement;	// if this is a "group" achievement
+	bool		m_bGroupAchievement;	// unused. if this is a "group" achievement
 	char		m_rgchAchievementName[k_cchStatNameMax];		// name of the achievement
 	uint32		m_nCurProgress;			// current progress towards the achievement
 	uint32		m_nMaxProgress;			// "out of" this many
@@ -454,19 +456,6 @@ struct LeaderboardUGCSet_t
 	enum { k_iCallback = k_iSteamUserStatsCallbacks + 11 };
 	EResult m_eResult;				// The result of the operation
 	SteamLeaderboard_t m_hSteamLeaderboard;	// the leaderboard handle that was
-};
-
-
-//-----------------------------------------------------------------------------
-// Purpose: callback indicating that PS3 trophies have been installed
-//-----------------------------------------------------------------------------
-struct PS3TrophiesInstalled_t
-{
-	enum { k_iCallback = k_iSteamUserStatsCallbacks + 12 };
-	uint64	m_nGameID;				// Game these stats are for
-	EResult m_eResult;				// The result of the operation
-	uint64 m_ulRequiredDiskSpace;	// If m_eResult is k_EResultDiskFull, will contain the amount of space needed to install trophies
-
 };
 
 
