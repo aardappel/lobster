@@ -177,7 +177,6 @@ while gl.frame():
             case m_start_game:
                 localplayer = player { local_ident }
                 print "start_game: {msg.players}"
-                var ok = true
                 players = map(msg.players) c:
                     if c == local_ident:
                         localplayer
@@ -192,10 +191,7 @@ while gl.frame():
                             // Notify peers of our correct identity.
                             send(m_peer_joined { local_ident })
                         player { c }
-                if ok:
-                    game_state = GS_PEER_WAITING_FOR_PEERS
-                else:
-                    game_state = GS_RESET
+                game_state = GS_PEER_WAITING_FOR_PEERS
             case m_peer_joined:
                 guard ident != local_ident
                 guard (is_host and game_state == GS_STARTING_IPADDR_GAME) or
