@@ -102,8 +102,8 @@ class player:
     score=0
 
 let playerspeed = 10
-var localplayer = player{ local_ident }
-var players = [ localplayer ]
+var localplayer = player { "" }
+var players = []::player
 var playerhealth = 0.0
 
 class bullet:
@@ -338,6 +338,7 @@ while gl.frame():
                             check(steam.p2p_listen(), "Unable to open listen socket")
                             steam.lobby_create(MAX_PLAYERS)
                             game_state = GS_CREATING_LOBBY
+                            local_ident = steam.net_identity()
                         if im.button("Find Lobby"):
                             check(steam.p2p_listen(), "Unable to open listen, ip_addr socket")
                             steam.lobby_request_add_string_filter("game", "tut_net", 0)
@@ -380,6 +381,7 @@ while gl.frame():
                             steam.lobby_join(matched[matched_idx])
                             steam.lobby_request_list_reset()
                             game_state = GS_JOINING_LOBBY
+                            local_ident = steam.net_identity()
                     case GS_CREATING_LOBBY:
                         if joined_lobby_id != 0:
                             steam.lobby_set_data(joined_lobby_id, "game", "tut_net")
