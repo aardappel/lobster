@@ -918,14 +918,14 @@ string BreakPoint(VM &vm, string_view reason, bool also_flex_dump) {
 
         if (also_flex_dump) {
             Text(reason);
-            ImGui::Text("");
-            ImGui::Text("Saving .flex dump of memory, please wait...");
+            Text("");
+            Text("Saving .flex dump of memory, please wait...");
             if (++dumpc == 3) {
                 vm.DumpStackTraceMemory(string(reason));
                 also_flex_dump = false;
             }
         } else if (cont) {
-            ImGui::Text("Program Running, debugger inactive");
+            Text("Program Running, debugger inactive");
             first_stack_trace = true;
             // Ensure we've rendered a full frame with the above text before aborting,
             // since this window will get no rendering updates.
