@@ -891,7 +891,8 @@ enum {
     RUNTIME_STACK_TRACE,   // --runtime-stack-traces: Also is able to show correct line numbers and functions on runtime errors, mild slowdown.
     RUNTIME_DEBUG,         // --runtime-debug: Also reduces inlining for better stacktraces, a little more slowdown.
     RUNTIME_DEBUG_DUMP,    // --runtime-debug-dump: In Addition will dump memory dump files.
-    RUNTIME_DEBUGGER       // --runtime-debugger: Instead of a memory dump, will invoke debugger on errors.
+    RUNTIME_DEBUGGER,      // --runtime-debugger: Instead of a memory dump, will invoke debugger on errors.
+    RUNTIME_DEBUGGER_DUMP  // --runtime-debugger-dump: saves dump, the debugger afterwards on errors.
 };
 
 struct VMEnumVal {

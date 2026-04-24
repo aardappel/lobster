@@ -560,7 +560,7 @@ Value VM::Error(string err) {
         ErrorBase(err);
         #if LOBSTER_ENGINE
             if (vma.runtime_checks >= RUNTIME_DEBUGGER) {
-                BreakPoint(*this, errmsg);
+                BreakPoint(*this, errmsg, vma.runtime_checks >= RUNTIME_DEBUGGER_DUMP);
             } else if (vma.runtime_checks >= RUNTIME_DEBUG_DUMP) {
                 DumpStackTraceMemory(err);
             }

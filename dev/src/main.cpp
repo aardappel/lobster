@@ -83,34 +83,35 @@ int main(int argc, char* argv[]) {
         string helptext = "Usage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
-            "--help                 This help.\n"
-            "--cpp                  Compile to C++ code, don't run (see implementation.md!).\n"
-            "--pak                  Generate lpak file, don't run.\n"
-            "--rpak                 Generate lpak file, include runnable code, don't run.\n"
-            "--import RELDIR        Additional dir (relative to FILE) to load imports from\n"
-            "--main MAIN            if present, run this main program file after compiling FILE.\n"
-            "--parsedump            Also dump parse tree.\n"
-            "--verbose              Output additional informational text.\n"
-            "--debug                Output compiler internal logging.\n"
-            "--silent               Only output errors.\n"
-            "--full-error           Output full compile time stack traces, also for warnings.\n"
-            "--runtime-no-asserts   Compile with asserts off.\n"
-            "--runtime-asserts      Compile with asserts on (default).\n"
-            "--runtime-stack-traces Asserts on + code locations + stack traces.\n"
-            "--runtime-debug        Also minimize inlining.\n"
-            "--runtime-debug-dump   Also create debug dumps.\n"
-            "--runtime-debugger     Also break into debugger on error.\n"
-            "--invert-stacktraces   Shows stacktraces most recent call last.\n"
-            "--noconsole            Close console window (Windows).\n"
-            "--gen-builtins-html    Write builtin commands help file.\n"
-            "--gen-builtins-names   Write builtin commands - just names.\n"
+            "--help                  This help.\n"
+            "--cpp                   Compile to C++ code, don't run (see implementation.md!).\n"
+            "--pak                   Generate lpak file, don't run.\n"
+            "--rpak                  Generate lpak file, include runnable code, don't run.\n"
+            "--import RELDIR         Additional dir (relative to FILE) to load imports from\n"
+            "--main MAIN             if present, run this main program file after compiling FILE.\n"
+            "--parsedump             Also dump parse tree.\n"
+            "--verbose               Output additional informational text.\n"
+            "--debug                 Output compiler internal logging.\n"
+            "--silent                Only output errors.\n"
+            "--full-error            Output full compile time stack traces, also for warnings.\n"
+            "--runtime-no-asserts    Compile with asserts off.\n"
+            "--runtime-asserts       Compile with asserts on (default).\n"
+            "--runtime-stack-traces  Asserts on + code locations + stack traces.\n"
+            "--runtime-debug         Also minimize inlining.\n"
+            "--runtime-debug-dump    Also create debug dumps.\n"
+            "--runtime-debugger      Also break into debugger on error.\n"
+            "--runtime-debugger-dump Also create dump + break into debugger on error.\n"
+            "--invert-stacktraces    Shows stacktraces most recent call last.\n"
+            "--noconsole             Close console window (Windows).\n"
+            "--gen-builtins-html     Write builtin commands help file.\n"
+            "--gen-builtins-names    Write builtin commands - just names.\n"
             #if LOBSTER_ENGINE
-            "--non-interactive-test Quit after running 1 frame.\n"
+            "--non-interactive-test  Quit after running 1 frame.\n"
             #endif
-            "--tcc-out              Output tcc .o file instead of running.\n"
-            "--wait                 Wait for input before exiting.\n"
-            "--query QUERY_ARGS     Queries about definitions in the program being compiled.\n"
-            "--errors N             Output up to N errors (default 1).\n";
+            "--tcc-out               Output tcc .o file instead of running.\n"
+            "--wait                  Wait for input before exiting.\n"
+            "--query QUERY_ARGS      Queries about definitions in the program being compiled.\n"
+            "--errors N              Output up to N errors (default 1).\n";
             int arg = 1;
         for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {
@@ -129,6 +130,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--runtime-debug") { runtime_checks = RUNTIME_DEBUG; }
                 else if (a == "--runtime-debug-dump") { runtime_checks = RUNTIME_DEBUG_DUMP; }
                 else if (a == "--runtime-debugger") { runtime_checks = RUNTIME_DEBUGGER; }
+                else if (a == "--runtime-debugger-dump") { runtime_checks = RUNTIME_DEBUGGER_DUMP; }
                 else if (a == "--invert-stacktraces") { stack_trace_python_ordering = true; }
                 else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-json") { dump_builtins_json = true; }

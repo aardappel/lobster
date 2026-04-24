@@ -869,7 +869,7 @@ void DumpStackTrace(VM &vm) {
     }
 }
 
-string BreakPoint(VM &vm, string_view reason) {
+string BreakPoint(VM &vm, string_view reason, bool also_flex_dump) {
     // Init just in case it wasn't already.
     // NOTE: this inits on main window first.
     if (!IMGUIInit(0, false, 3.0f, 1.0f)) {
@@ -897,6 +897,7 @@ string BreakPoint(VM &vm, string_view reason) {
 
     bool quit = false;
     int cont = 0;
+    int dumpc = 0;
     bool first_stack_trace = true;
     for (;;) {
         quit = SDLDebuggerFrame();
@@ -915,7 +916,15 @@ string BreakPoint(VM &vm, string_view reason) {
         ImGui::Begin("Lobster Debugger", nullptr,
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
-        if (cont) {
+        if (also_flex_dump) {
+            Text(reason);
+            ImGui::Text("");
+            ImGui::Text("Saving .flex dump of memory, please wait...");
+            if (++dumpc == 3) {
+                vm.DumpStackTraceMemory(string(reason));
+                also_flex_dump = false;
+            }
+        } else if (cont) {
             ImGui::Text("Program Running, debugger inactive");
             first_stack_trace = true;
             // Ensure we've rendered a full frame with the above text before aborting,
@@ -2562,7 +2571,7 @@ nfr("breakpoint", "condition", "I", "",
     " debugger needs --runtime-stack-trace on, and im.init() to have run.",
     [](StackPtr &, VM &vm, Value c) {
         if (c.True()) {
-            auto err = BreakPoint(vm, "Conditional breakpoint hit!");
+            auto err = BreakPoint(vm, "Conditional breakpoint hit!", false);
             if (!err.empty()) vm.Error(err);
         }
         return NilVal();
@@ -2572,7 +2581,7 @@ nfr("breakpoint", "", "", "",
     "stops the program in the debugger always."
     " debugger needs --runtime-stack-trace on, and im.init() to have run.",
     [](StackPtr &, VM &vm) {
-        auto err = BreakPoint(vm, "Breakpoint hit!");
+        auto err = BreakPoint(vm, "Breakpoint hit!", false);
         if (!err.empty()) vm.Error(err);
         return NilVal();
     });
