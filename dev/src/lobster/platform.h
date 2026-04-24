@@ -134,7 +134,7 @@ extern void SetConsole(bool on);
 	#define PLATFORM_WINNIX
 #endif
 
-#if defined(__linux__) && !defined(SKIP_SDKS)
+#if defined(__linux__) && !defined(PLATFORM_ES3) && !defined(__APPLE__) && !defined(SKIP_SDKS)
     #define PLATFORM_STEAMWORKS
 #endif
 
