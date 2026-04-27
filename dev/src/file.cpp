@@ -142,7 +142,7 @@ nfr("format_time", "format,time,localtime", "SIB", "S",
     " the time will be displayed using the local timezone, otherwise it will use UTC."
     " Returns an empty string on error.",
     [](StackPtr &, VM &vm, Value format, Value time, Value use_localtime) {
-        chrono::system_clock::time_point tp { chrono::system_clock::duration(time.ival()) };
+        chrono::system_clock::time_point tp { chrono::seconds(time.ival()) };
         time_t tt = chrono::system_clock::to_time_t(tp);
         tm ctm{};
         bool ok = false;
