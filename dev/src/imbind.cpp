@@ -2586,4 +2586,12 @@ nfr("breakpoint", "", "", "",
         return NilVal();
     });
 
+nfr("write_debug_dump", "", "", "",
+    "writes a .flex file at this point. "
+    " needs --runtime-stack-trace on.",
+    [](StackPtr &, VM &vm) {
+        vm.DumpStackTraceMemory("called from write_debug_dump()");
+        return NilVal();
+    });
+
 }  // AddIMGUIDebug
