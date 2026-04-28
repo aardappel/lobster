@@ -2456,6 +2456,8 @@ nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
         #else
         (void)num;
         (void)reset;
+        (void)histogram;
+        (void)paused;
         #endif
         return NilVal();
     });
