@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,9 +23,7 @@
 
 #include "../SDL_sysvideo.h"
 
-#include "SDL_touch.h"
-
-#if !TARGET_OS_TV && defined(__IPHONE_13_4)
+#if !defined(SDL_PLATFORM_TVOS)
 @interface SDL_uikitview : UIView <UIPointerInteractionDelegate>
 #else
 @interface SDL_uikitview : UIView
@@ -34,17 +32,24 @@
 - (instancetype)initWithFrame:(CGRect)frame;
 
 - (void)setSDLWindow:(SDL_Window *)window;
+- (SDL_Window *)getSDLWindow;
 
-#if !TARGET_OS_TV && defined(__IPHONE_13_4)
+#if !defined(SDL_PLATFORM_TVOS)
+- (void)pencilHovering:(UIHoverGestureRecognizer *)recognizer API_AVAILABLE(ios(13.0));
+
 - (UIPointerRegion *)pointerInteraction:(UIPointerInteraction *)interaction regionForRequest:(UIPointerRegionRequest *)request defaultRegion:(UIPointerRegion *)defaultRegion API_AVAILABLE(ios(13.4));
-- (UIPointerStyle *)pointerInteraction:(UIPointerInteraction *)interaction styleForRegion:(UIPointerRegion *)region  API_AVAILABLE(ios(13.4));
+- (UIPointerStyle *)pointerInteraction:(UIPointerInteraction *)interaction styleForRegion:(UIPointerRegion *)region API_AVAILABLE(ios(13.4));
+- (void)indirectPointerHovering:(UIHoverGestureRecognizer *)recognizer API_AVAILABLE(ios(13.4));
 #endif
 
 - (CGPoint)touchLocation:(UITouch *)touch shouldNormalize:(BOOL)normalize;
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event;
+#if !defined(SDL_PLATFORM_TVOS)
+- (IBAction)sdlPinchGesture:(UIPinchGestureRecognizer *)sender;
+#endif
+
+- (void)safeAreaInsetsDidChange;
 
 @end
-
-/* vi: set ts=4 sw=4 expandtab: */

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,30 +18,37 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "../../SDL_internal.h"
+#include "SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_UIKIT
+#ifdef SDL_VIDEO_DRIVER_UIKIT
 
 #include "SDL_uikitvideo.h"
 #include "../../events/SDL_clipboardevents_c.h"
 
 #import <UIKit/UIPasteboard.h>
 
-int UIKit_SetClipboardText(_THIS, const char *text)
+bool UIKit_SetClipboardText(SDL_VideoDevice *_this, const char *text)
 {
-#if TARGET_OS_TV
+#ifdef SDL_PLATFORM_TVOS
     return SDL_SetError("The clipboard is not available on tvOS");
 #else
     @autoreleasepool {
-        [UIPasteboard generalPasteboard].string = @(text);
-        return 0;
+        SDL_UIKitVideoData *data = (__bridge SDL_UIKitVideoData *)_this->internal;
+        data.setting_clipboard = true;
+        if (text && *text) {
+            [UIPasteboard generalPasteboard].string = @(text);
+        } else {
+            [UIPasteboard generalPasteboard].string = nil;
+        }
+        data.setting_clipboard = false;
+        return true;
     }
 #endif
 }
 
-char *UIKit_GetClipboardText(_THIS)
+char *UIKit_GetClipboardText(SDL_VideoDevice *_this)
 {
-#if TARGET_OS_TV
+#ifdef SDL_PLATFORM_TVOS
     return SDL_strdup(""); // Unsupported.
 #else
     @autoreleasepool {
@@ -57,41 +64,45 @@ char *UIKit_GetClipboardText(_THIS)
 #endif
 }
 
-SDL_bool UIKit_HasClipboardText(_THIS)
+bool UIKit_HasClipboardText(SDL_VideoDevice *_this)
 {
     @autoreleasepool {
-#if !TARGET_OS_TV
-        if ([UIPasteboard generalPasteboard].string != nil) {
-            return SDL_TRUE;
+#ifndef SDL_PLATFORM_TVOS
+        if ([UIPasteboard generalPasteboard].hasStrings) {
+            return true;
         }
 #endif
-        return SDL_FALSE;
+        return false;
     }
 }
 
-void UIKit_InitClipboard(_THIS)
+void UIKit_InitClipboard(SDL_VideoDevice *_this)
 {
-#if !TARGET_OS_TV
+#ifndef SDL_PLATFORM_TVOS
     @autoreleasepool {
-        SDL_VideoData *data = (__bridge SDL_VideoData *) _this->driverdata;
+        SDL_UIKitVideoData *data = (__bridge SDL_UIKitVideoData *)_this->internal;
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
 
         id observer = [center addObserverForName:UIPasteboardChangedNotification
-                                         object:nil
-                                          queue:nil
-                                     usingBlock:^(NSNotification *note) {
-                                         SDL_SendClipboardUpdate();
-                                     }];
+                                          object:nil
+                                           queue:nil
+                                      usingBlock:^(NSNotification *note) {
+                                        if (!data.setting_clipboard) {
+                                            // TODO: compute mime types
+                                            SDL_SendClipboardUpdate(false, NULL, 0);
+                                        }
+                                      }];
 
         data.pasteboardObserver = observer;
+        data.setting_clipboard = false;
     }
 #endif
 }
 
-void UIKit_QuitClipboard(_THIS)
+void UIKit_QuitClipboard(SDL_VideoDevice *_this)
 {
     @autoreleasepool {
-        SDL_VideoData *data = (__bridge SDL_VideoData *) _this->driverdata;
+        SDL_UIKitVideoData *data = (__bridge SDL_UIKitVideoData *)_this->internal;
 
         if (data.pasteboardObserver != nil) {
             [[NSNotificationCenter defaultCenter] removeObserver:data.pasteboardObserver];
@@ -101,6 +112,4 @@ void UIKit_QuitClipboard(_THIS)
     }
 }
 
-#endif /* SDL_VIDEO_DRIVER_UIKIT */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_VIDEO_DRIVER_UIKIT

@@ -225,7 +225,7 @@ string OpenGLInit(int samples, bool srgb) {
     ClearFrameBuffer(float3(0.25f));
     #ifdef PLATFORM_WINNIX
         #define GLEXT(type, name, needed) { \
-                union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
+                union { void (*proc)(); type fun; } funcast; /* regular cast causes gcc warning */ \
                 funcast.proc = SDL_GL_GetProcAddress(#name); \
                 name = funcast.fun; \
                 if (!name && needed) return "no " #name; \

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "imgui.h"
-#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
 #include "external/imgui_markdown/imgui_markdown.h"
 
@@ -97,7 +97,7 @@ void IMGUIFrameCleanup() {
 void IMGUICleanup() {
     if (!imgui_init) return;
     ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
     imgui_init = false;
     IMGUIFrameCleanup();
@@ -142,7 +142,7 @@ bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
             cols[i].z = powf(cols[i].z, 2.2f);
         }
     }
-    ImGui_ImplSDL2_InitForOpenGL(_sdl_window, _sdl_context);
+    ImGui_ImplSDL3_InitForOpenGL(_sdl_window, _sdl_context);
     ImGui_ImplOpenGL3_Init(
         #ifdef PLATFORM_ES3
             "#version 300 es"
@@ -298,19 +298,19 @@ void RequireMenuNesting(VM &vm) {
 pair<bool, bool> IMGUIEvent(SDL_Event *event) {
     if (!imgui_init) return { false, false };
     switch (event->type) {
-        case SDL_KEYDOWN:
-        case SDL_KEYUP: {
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP: {
             // ImGui likes to use ESC for cancelling edit actions, but pretty much
             // every game uses ESC to switch menus, which would cause users wanting to
             // switch menus to lose their edits unintentionally.
             // TODO: make this behavior configurable from Lobster code?
-            if (event->key.keysym.sym == SDLK_ESCAPE) return { false, false };
+            if (event->key.key == SDLK_ESCAPE) return { false, false };
             break;
         }
     }
-    ImGui_ImplSDL2_ProcessEvent(event);
+    ImGui_ImplSDL3_ProcessEvent(event);
     // Always pass through key up events after processing them by ImGui.
-    if (event->type == SDL_KEYUP) return { false, false };
+    if (event->type == SDL_EVENT_KEY_UP) return { false, false };
     return { ImGui::GetIO().WantCaptureMouse, ImGui::GetIO().WantCaptureKeyboard };
 }
 
@@ -889,7 +889,7 @@ string BreakPoint(VM &vm, string_view reason, bool also_flex_dump) {
     ImGuiContext *debugger_imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(debugger_imgui_context);
 
-    ImGui_ImplSDL2_InitForOpenGL(_sdl_debugger_window, _sdl_debugger_context);
+    ImGui_ImplSDL3_InitForOpenGL(_sdl_debugger_window, _sdl_debugger_context);
     ImGui_ImplOpenGL3_Init("#version 150");
 
     // Set our own font.. would be better to inherit the one from the game.
@@ -906,7 +906,7 @@ string BreakPoint(VM &vm, string_view reason, bool also_flex_dump) {
         ClearFrameBuffer(float3(0.5f));
 
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
 
         ImGui::NewFrame();
 
@@ -964,7 +964,7 @@ string BreakPoint(VM &vm, string_view reason, bool also_flex_dump) {
     }
 
     ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
 
     ImGui::SetCurrentContext(existing_context);
     ImGui::DestroyContext(debugger_imgui_context);
@@ -1176,7 +1176,7 @@ nfr("frame_start", "", "", "",
         IsInit(vm, { N_NONE, N_NONE });
         IMGUIFrameCleanup();
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
         NPush(N_FRAME);
         imgui_frame++;

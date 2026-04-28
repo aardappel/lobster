@@ -1,3 +1,4 @@
+#include "SDL_internal.h"
 /*
  * ====================================================
  * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
@@ -148,7 +149,7 @@ double attribute_hidden __ieee754_sqrt(double x)
 	    t  = s0;
 	    if((t<ix0)||((t==ix0)&&(t1<=ix1))) {
 		s1  = t1+r;
-		if(((t1&sign)==sign)&&(s1&sign)==0) s0 += 1;
+		if(((t1&sign)==(u_int32_t)sign)&&(s1&sign)==0) s0 += 1;
 		ix0 -= t;
 		if (ix1 < t1) ix0 -= 1;
 		ix1 -= t1;
@@ -330,7 +331,7 @@ B.  sqrt(x) by Reciproot Iteration
 
 	Let x0 and x1 be the leading and the trailing 32-bit words of
 	a floating point number x (in IEEE double format) respectively
-	(see section A). By performing shifs and subtracts on x0 and y0,
+	(see section A). By performing shifts and subtracts on x0 and y0,
 	we obtain a 7.8-bit approximation of 1/sqrt(x) as follows.
 
 	    k := 0x5fe80000 - (x0>>1);

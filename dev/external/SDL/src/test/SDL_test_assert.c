@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -24,22 +24,32 @@
  Used by the test framework and test cases.
 
 */
+#include <SDL3/SDL_test.h>
+#include "SDL_test_internal.h"
 
-#include "SDL_config.h"
-
-#include "SDL_test.h"
-
-/* Assert check message format */
-#define SDLTEST_ASSERT_CHECK_FORMAT "Assert '%s': %s"
-
-/* Assert summary message format */
-#define SDLTEST_ASSERT_SUMMARY_FORMAT "Assert Summary: Total=%d Passed=%d Failed=%d"
-
-/* ! \brief counts the failed asserts */
+/* ! counts the failed asserts */
 static int SDLTest_AssertsFailed = 0;
 
-/* ! \brief counts the passed asserts */
+/* ! counts the passed asserts */
 static int SDLTest_AssertsPassed = 0;
+
+static void SDLTest_LogAssertMessage(bool success, const char *assertion)
+{
+    SDL_LogPriority priority;
+    const char *color;
+    const char *message;
+
+    if (success) {
+        priority = SDL_LOG_PRIORITY_INFO;
+        color = COLOR_GREEN;
+        message = "Passed";
+    } else {
+        priority = SDL_LOG_PRIORITY_ERROR;
+        color = COLOR_RED;
+        message = "Failed";
+    }
+    SDLTest_LogMessage(priority, "Assert '%s': %s%s%s", assertion, color, message, COLOR_END);
+}
 
 /*
  *  Assert that logs and break execution flow on failures (i.e. for harness errors).
@@ -76,10 +86,10 @@ int SDLTest_AssertCheck(int assertCondition, SDL_PRINTF_FORMAT_STRING const char
     /* Log pass or fail message */
     if (assertCondition == ASSERT_FAIL) {
         SDLTest_AssertsFailed++;
-        SDLTest_LogError(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, "Failed");
+        SDLTest_LogAssertMessage(false, logMessage);
     } else {
         SDLTest_AssertsPassed++;
-        SDLTest_Log(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, "Passed");
+        SDLTest_LogAssertMessage(true, logMessage);
     }
 
     return assertCondition;
@@ -101,13 +111,13 @@ void SDLTest_AssertPass(SDL_PRINTF_FORMAT_STRING const char *assertDescription, 
 
     /* Log pass message */
     SDLTest_AssertsPassed++;
-    SDLTest_Log(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, "Passed");
+    SDLTest_LogAssertMessage(true, logMessage);
 }
 
 /*
  * Resets the assert summary counters to zero.
  */
-void SDLTest_ResetAssertSummary()
+void SDLTest_ResetAssertSummary(void)
 {
     SDLTest_AssertsPassed = 0;
     SDLTest_AssertsFailed = 0;
@@ -117,20 +127,21 @@ void SDLTest_ResetAssertSummary()
  * Logs summary of all assertions (total, pass, fail) since last reset
  * as INFO (failed==0) or ERROR (failed > 0).
  */
-void SDLTest_LogAssertSummary()
+void SDLTest_LogAssertSummary(void)
 {
     int totalAsserts = SDLTest_AssertsPassed + SDLTest_AssertsFailed;
-    if (SDLTest_AssertsFailed == 0) {
-        SDLTest_Log(SDLTEST_ASSERT_SUMMARY_FORMAT, totalAsserts, SDLTest_AssertsPassed, SDLTest_AssertsFailed);
-    } else {
-        SDLTest_LogError(SDLTEST_ASSERT_SUMMARY_FORMAT, totalAsserts, SDLTest_AssertsPassed, SDLTest_AssertsFailed);
-    }
+    bool success = SDLTest_AssertsFailed == 0;
+
+    SDLTest_LogMessage(success ? SDL_LOG_PRIORITY_INFO : SDL_LOG_PRIORITY_ERROR,
+        "Assert Summary: Total=%d " "%s" "Passed=%d" "%s" " " "%s" "Failed=%d" "%s",
+        totalAsserts, COLOR_GREEN, SDLTest_AssertsPassed, COLOR_END,
+        success ? COLOR_GREEN : COLOR_RED, SDLTest_AssertsFailed, COLOR_END);
 }
 
 /*
  * Converts the current assert state into a test result
  */
-int SDLTest_AssertSummaryToTestResult()
+int SDLTest_AssertSummaryToTestResult(void)
 {
     if (SDLTest_AssertsFailed > 0) {
         return TEST_RESULT_FAILED;
@@ -142,5 +153,3 @@ int SDLTest_AssertSummaryToTestResult()
         }
     }
 }
-
-/* vi: set ts=4 sw=4 expandtab: */

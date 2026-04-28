@@ -37,6 +37,9 @@ typedef enum
 	k_eControllerType_UnknownSteamController = 1,
 	k_eControllerType_SteamController = 2,
 	k_eControllerType_SteamControllerV2 = 3,
+	k_eControllerType_SteamControllerNeptune = 4,
+
+	k_eControllerType_SteamControllerTriton = 10,
 
 	// Other Controllers
 	k_eControllerType_UnknownNonSteamController = 30,
@@ -75,5 +78,3 @@ extern EControllerType GuessControllerType( int nVID, int nPID );
 extern const char *GuessControllerName( int nVID, int nPID );
 
 #endif // CONTROLLER_TYPE_H
-
-/* vi: set ts=4 sw=4 noexpandtab: */

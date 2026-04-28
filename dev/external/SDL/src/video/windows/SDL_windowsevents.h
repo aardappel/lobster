@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,7 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "../../SDL_internal.h"
+#include "SDL_internal.h"
 
 #ifndef SDL_windowsevents_h_
 #define SDL_windowsevents_h_
@@ -28,12 +28,11 @@ extern Uint32 SDL_Appstyle;
 extern HINSTANCE SDL_Instance;
 
 extern LRESULT CALLBACK WIN_KeyboardHookProc(int nCode, WPARAM wParam, LPARAM lParam);
-extern LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam,
-                                       LPARAM lParam);
-extern void WIN_PumpEvents(_THIS);
-extern void WIN_SendWakeupEvent(_THIS, SDL_Window *window);
-extern int WIN_WaitEventTimeout(_THIS, int timeout);
+extern LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern void WIN_PollRawInput(SDL_VideoDevice *_this, Uint64 poll_start);
+extern void WIN_PumpEvents(SDL_VideoDevice *_this);
+extern void WIN_PumpEventsForHWND(SDL_VideoDevice *_this, HWND hwnd);
+extern void WIN_SendWakeupEvent(SDL_VideoDevice *_this, SDL_Window *window);
+extern int WIN_WaitEventTimeout(SDL_VideoDevice *_this, Sint64 timeoutNS);
 
-#endif /* SDL_windowsevents_h_ */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_windowsevents_h_

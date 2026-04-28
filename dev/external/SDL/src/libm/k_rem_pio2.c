@@ -1,3 +1,4 @@
+#include "SDL_internal.h"
 /*
  * ====================================================
  * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
@@ -47,7 +48,7 @@
  *			64-bit  precision	2
  *			113-bit precision	3
  *		The actual value is the sum of them. Thus for 113-bit
- *		precison, one may have to do something like:
+ *		precision, one may have to do something like:
  *
  *		long double t,w,r_head, r_tail;
  *		t = (long double)y[2] + (long double)y[1];
@@ -128,7 +129,6 @@
 #include "math_libm.h"
 #include "math_private.h"
 
-#include "SDL_assert.h"
 
 static const int init_jk[] = {2,3,4,6}; /* initial value for jk */
 
@@ -271,12 +271,10 @@ recompute:
 	}
 
     /* compute PIo2[0,...,jp]*q[jz,...,0] */
+	SDL_zero(fq);
 	for(i=jz;i>=0;i--) {
 	    for(fw=0.0,k=0;k<=jp&&k<=jz-i;k++) fw += PIo2[k]*q[i+k];
 	    fq[jz-i] = fw;
-	}
-	if ((jz+1) < SDL_arraysize(f)) {
-	    SDL_memset(&fq[jz+1], 0, sizeof (fq) - ((jz+1) * sizeof (fq[0])));
 	}
 
     /* compress fq[] into y[] */

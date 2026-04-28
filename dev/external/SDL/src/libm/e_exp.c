@@ -1,3 +1,4 @@
+#include "SDL_internal.h"
 /*
  * ====================================================
  * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
@@ -26,7 +27,7 @@
  *	the interval [0,0.34658]:
  *	Write
  *	    R(r**2) = r*(exp(r)+1)/(exp(r)-1) = 2 + r*r/6 - r**4/360 + ...
- *      We use a special Reme algorithm on [0,0.34658] to generate
+ *      We use a special Remez algorithm on [0,0.34658] to generate
  * 	a polynomial of degree 5 to approximate R. The maximum error
  *	of this polynomial approximation is bounded by 2**-59. In
  *	other words,
@@ -75,10 +76,6 @@
 #include "math_libm.h"
 #include "math_private.h"
 
-#ifdef __WATCOMC__ /* Watcom defines huge=__huge */
-#undef huge
-#endif
-
 static const double
 one	= 1.0,
 halF[2]	= {0.5,-0.5,},
@@ -96,6 +93,13 @@ P2   = -2.77777777770155933842e-03, /* 0xBF66C16C, 0x16BEBD93 */
 P3   =  6.61375632143793436117e-05, /* 0x3F11566A, 0xAF25DE2C */
 P4   = -1.65339022054652515390e-06, /* 0xBEBBBD41, 0xC5D26BF1 */
 P5   =  4.13813679705723846039e-08; /* 0x3E663769, 0x72BEA4D0 */
+
+union {
+	Uint64 u64;
+	double d;
+} inf_union = {
+	SDL_UINT64_C(0x7ff0000000000000)  /* Binary representation of a 64-bit infinite double (sign=0, exponent=2047, mantissa=0) */
+};
 
 double __ieee754_exp(double x)	/* default IEEE double exp */
 {
@@ -122,6 +126,8 @@ double __ieee754_exp(double x)	/* default IEEE double exp */
 		else return (xsb==0)? x:0.0;	/* exp(+-inf)={inf,0} */
 	    }
 		#if 1
+		if(x > o_threshold) return inf_union.d; /* overflow */
+		#elif 1
 		if(x > o_threshold) return huge*huge; /* overflow */
 		#else  /* !!! FIXME: check this: "huge * huge" is a compiler warning, maybe they wanted +Inf? */
 		if(x > o_threshold) return INFINITY; /* overflow */
