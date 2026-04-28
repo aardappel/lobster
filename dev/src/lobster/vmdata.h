@@ -1227,11 +1227,11 @@ VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {
 VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {
     vm.fun_id_stack.push_back({ funstart, locals, vm.last.line, vm.last.fileidx
     #if LOBSTER_FRAME_PROFILER_FUNCTIONS
-        , ___tracy_emit_zone_begin(&vm.pre_allocated_function_locations[*funstart], true)
+        , ___tracy_emit_zone_begin(&vm.pre_allocated_function_locations[vm.vma.meta->subfunctions_to_function[*funstart]], true)
     #endif
     });
     #if LOBSTER_FRAME_PROFILER_GLOBAL
-        g_function_locations.push_back(vm.pre_allocated_function_locations[*funstart]);
+        g_function_locations.push_back(vm.pre_allocated_function_locations[vm.vma.meta->subfunctions_to_function[*funstart]]);
     #endif
 }
 VM_INLINE void PopFunId(VM &vm) {

@@ -254,13 +254,13 @@ VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
 }
 
 #if LOBSTER_FRAME_PROFILER_BUILTINS
-    #define BPROF(NFI) tracy::ScopedZone ___tracy_scoped_zone(&vm.nfr.pre_allocated_function_locations[NFI])
+    #define BPROF(NFI) tracy::ScopedZone ___tracy_scoped_zone(&vm.vma.nfr.pre_allocated_function_locations[NFI])
 #else
     #define BPROF(NFI)
 #endif
 
 #if LOBSTER_FRAME_PROFILER_GLOBAL
-    #define GPROF_START(NFI) g_builtin_locations.push_back(vm.nfr.pre_allocated_function_locations[NFI]);
+    #define GPROF_START(NFI) g_builtin_locations.push_back(vm.vma.nfr.pre_allocated_function_locations[NFI]);
     #define GPROF_END() g_builtin_locations.pop_back();
 #else
     #define GPROF_START(NFI) 
