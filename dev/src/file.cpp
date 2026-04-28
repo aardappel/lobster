@@ -184,8 +184,9 @@ nfr("scan_folder", "folder,rel", "SB?", "S]?I]?I]?",
         for (auto &entry : dir) {
             nlist->Push(vm, Value(vm.NewString(entry.name)));
             slist->Push(vm, Value(entry.size));
-            auto sys_time = std::chrono::clock_cast<std::chrono::system_clock>(entry.last_write_time);
-            auto seconds = std::chrono::duration_cast<std::chrono::seconds>(sys_time.time_since_epoch()).count();
+            auto sys_time = chrono::clock_cast<chrono::system_clock>(entry.last_write_time);
+            auto seconds =
+                chrono::duration_cast<chrono::seconds>(sys_time.time_since_epoch()).count();
             tlist->Push(vm, Value((int64_t)seconds));
         }
         Push(sp, Value(nlist));
