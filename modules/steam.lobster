@@ -25,10 +25,31 @@ enum friend_flag:
 
 // https://partner.steamgames.com/doc/api/steam_api#EResult
 enum result:
-	result_none = 0,                // no result
-	result_ok	= 1,                // success
-	result_no_connection = 3,       // no/failed network connection
-	result_invalid_param = 8,       // a parameter is incorrect
-	result_invalid_state = 11,      // called object was in an invalid state
-	result_limit_exceeded = 25,     // Too much of a good thing
-	result_ignored = 41,            // target is ignoring sender
+    result_none = 0                 // no result
+    result_ok	= 1                   // success
+    result_no_connection = 3        // no/failed network connection
+    result_invalid_param = 8        // a parameter is incorrect
+    result_invalid_state = 11       // called object was in an invalid state
+    result_limit_exceeded = 25      // Too much of a good thing
+    result_ignored = 41             // target is ignoring sender
+
+enum global_config_value:
+    /// [global float, 0--100] Randomly discard N pct of packets instead of sending/recv
+    fake_packet_loss_send = 2
+    fake_packet_loss_recv = 3
+    /// [global int32].  Delay all outbound/inbound packets by N ms
+    fake_packet_lag_send = 4
+    fake_packet_lag_recv = 5
+    /// [global float] 0-100 Percentage of packets we will add additional delay
+    /// to (causing them to be reordered)
+    fake_packet_reorder_send = 6
+    fake_packet_reorder_recv = 7
+    /// [global int32] Extra delay, in ms, to apply to reordered packets.
+    fake_packet_reorder_time = 8
+    /// [global float 0--100] Globally duplicate some percentage of packets we send
+    fake_packet_dup_send = 26
+    fake_packet_dup_recv = 27
+    /// [global int32] Amount of delay, in ms, to delay duplicated packets.
+    /// (We chose a random delay between 0 and this value)
+    fake_packet_dup_time_max = 28
+

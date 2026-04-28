@@ -376,6 +376,16 @@ struct SteamState {
         return true;
     }
 
+    bool SetGlobalConfigValue(int enum_, int value) {
+        return SteamNetworkingUtils()->SetGlobalConfigValueInt32(ESteamNetworkingConfigValue(enum_),
+                                                                 value);
+    }
+
+    bool SetGlobalConfigValue(int enum_, float value) {
+        return SteamNetworkingUtils()->SetGlobalConfigValueFloat(ESteamNetworkingConfigValue(enum_),
+                                                                 value);
+    }
+
     // Lobby Functions
     STEAM_CALLBACK(SteamState, OnLobbyDataUpdate, LobbyDataUpdate_t);
 
@@ -1093,6 +1103,16 @@ nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
 
         Push(sp, data_vec);
         Push(sp, client_vec);
+    });
+
+nfr("p2p_set_global_config_value", "enum,value", "II", "", "",
+    [](StackPtr &, VM &, Value enum_, Value value) {
+        return STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(enum_.intval(), value.intval()));
+    });
+
+nfr("p2p_set_global_config_value", "enum,value", "IF", "", "",
+    [](StackPtr &, VM &, Value enum_, Value value) {
+        return STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(enum_.intval(), value.fltval()));
     });
 
 nfr("lobby_create", "max_members", "I", "B",

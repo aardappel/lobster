@@ -3,6 +3,7 @@ import vec
 import color
 import gl
 import imgui
+import steam
 
 let MAX_PLAYERS = 4
 let HOST_PORT = 5101
@@ -29,6 +30,12 @@ check(im.add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0), "can\'t load fon
 var local_ident = ""
 var host_ident = ""
 var is_host = false
+
+// Some fake packet errors for testing.
+var fake_packet_loss_send = 0.0  // percentage
+var fake_packet_loss_recv = 0.0  // percentage
+var fake_packet_lag_send = 0     // lag in ms
+var fake_packet_lag_recv = 0     // lag in ms
 
 enum GameState:
     GS_INIT
@@ -367,6 +374,24 @@ while gl.frame():
                                 send(m_peer_joined { local_ident })
                                 game_state = GS_PEER_WAITING_FOR_HOST
                                 is_host = false
+                        im.separator()
+                        im.treenode("Global Config"):
+                            let new_fake_packet_loss_send = im.sliderfloat("Fake packet loss (send)", fake_packet_loss_send, 0.0, 100.0)
+                            if new_fake_packet_loss_send != fake_packet_loss_send:
+                                fake_packet_loss_send = new_fake_packet_loss_send
+                                steam.p2p_set_global_config_value(steam.fake_packet_loss_send, fake_packet_loss_send)
+                            let new_fake_packet_loss_recv = im.sliderfloat("Fake packet loss (recv)", fake_packet_loss_recv, 0.0, 100.0)
+                            if new_fake_packet_loss_recv != fake_packet_loss_recv:
+                                fake_packet_loss_recv = new_fake_packet_loss_recv
+                                steam.p2p_set_global_config_value(steam.fake_packet_loss_recv, fake_packet_loss_recv)
+                            let new_fake_packet_lag_send = im.sliderint("Fake packet lag (send) (ms)", fake_packet_lag_send, 0, 100)
+                            if new_fake_packet_lag_send != fake_packet_lag_send:
+                                fake_packet_lag_send = new_fake_packet_lag_send
+                                steam.p2p_set_global_config_value(steam.fake_packet_lag_send, fake_packet_lag_send)
+                            let new_fake_packet_lag_recv = im.sliderint("Fake packet lag (recv) (ms)", fake_packet_lag_recv, 0, 100)
+                            if new_fake_packet_lag_recv != fake_packet_lag_recv:
+                                fake_packet_lag_recv = new_fake_packet_lag_recv
+                                steam.p2p_set_global_config_value(steam.fake_packet_lag_recv, fake_packet_lag_recv)
                         im.separator()
                         if im.button("Quit"):
                             return
