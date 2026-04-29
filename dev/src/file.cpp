@@ -184,36 +184,10 @@ nfr("scan_folder", "folder,rel", "SB?", "S]?I]?I]?",
         for (auto &entry : dir) {
             nlist->Push(vm, Value(vm.NewString(entry.name)));
             slist->Push(vm, Value(entry.size));
-            // For a fun change of pace, MSVC C++ standard library has support
-            // for clock_cast but libstdc++ and libc++ don't. This is a
-            // workaround for converting between the file_clock time (used for
-            // the filesystem) and system_clock time (used for formatting
-            // times). Sadly, even if we could use clock_cast, it seems to have
-            // a known memory leak on Windows:
-            // See https://developercommunity.visualstudio.com/t/reported-memory-leak-when-converting-file-time-typ/1467739
-            //
-            // According to https://stackoverflow.com/a/73748610 (written by Howard Hinnant,
-            // the designer of the chrono library):
-            //     "I believe the Windows file_clock epoch is 1601-01-01 00:00:00 UTC. The
-            //     difference between that and the system_clock epoch (1970-01-01 00:00:00
-            //     UTC) is 13,4774 days or 3'234'576h."
-            using namespace literals;
-            #if defined(_WIN32)
-                const chrono::duration file_to_system_clock_epoch_offset = 3'234'576h;
-            #elif defined(__GLIBCXX__)  // libstdc++
-                // From the same stack overflow article above: "On gcc I believe
-                // the epoch is 2174-01-01 00:00:00 UTC".
-                // I calculated the following value locally on my linux laptop.
-                const chrono::duration file_to_system_clock_epoch_offset = -1'788'240h;
-            #else  // libc++ or other
-                const chrono::duration file_to_system_clock_epoch_offset = 0h;
-            #endif
-            auto system_time = chrono::system_clock::time_point{
-                chrono::duration_cast<chrono::system_clock::duration>(
-                    entry.last_write_time.time_since_epoch() -
-                    file_to_system_clock_epoch_offset)
-            };
-            tlist->Push(vm, Value((int64_t)system_time.time_since_epoch().count()));
+            auto sys_time = chrono::clock_cast<chrono::system_clock>(entry.last_write_time);
+            auto seconds =
+                chrono::duration_cast<chrono::seconds>(sys_time.time_since_epoch()).count();
+            tlist->Push(vm, Value((int64_t)seconds));
         }
         Push(sp, Value(nlist));
         Push(sp, Value(slist));
