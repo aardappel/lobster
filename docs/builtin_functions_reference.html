@@ -1709,6 +1709,18 @@
 <tr class="a" valign=top><td class="a"><tt><b>steam.p2p_receive_messages</b>() -> <font color="#666666">[string]</font>, <font color="#666666">[string]</font></tt></td><td class="a">receive messages from all connected peers. The first return value is an array of messages, the second return value is an array of the steam identities that sent each message</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_set_global_config_value</b>(enum<font color="#666666">: int</font>, value<font color="#666666">: int</font>)</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_set_global_config_value</b>(enum<font color="#666666">: int</font>, value<font color="#666666">: float</font>)</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_set_debug_output_level</b>(level<font color="#666666">: int</font>)</tt></td><td class="a">set the debug level for networking output.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.p2p_get_debug_output</b>() -> <font color="#666666">[string]</font></tt></td><td class="a">get the debug networking output.</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.lobby_create</b>(max_members<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">create a new lobby that allows at most a given number of members; this lobby will be automatically joined. use lobby_get_created() to get the newly created lobby's steam id</td>
 
 </tr>
@@ -2218,6 +2230,9 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>breakpoint</b>()</tt></td><td class="a">stops the program in the debugger always. debugger needs --runtime-stack-trace on, and im.init() to have run.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>write_debug_dump</b>()</tt></td><td class="a">writes a .flex file at this point.  needs --runtime-stack-trace on.</td>
 
 </tr>
 </table></td></tr>

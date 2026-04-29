@@ -47,6 +47,9 @@ struct SteamState {
     CSteamID joined_lobby;            // The most recently joined lobby.
     vector<CSteamID> joined_lobbies;  // A list of all joined lobbies.
     int matched_lobbies = 0;          // -1: in progress. 0: not requested, or no matches. > 0: number of matches
+    // Needs to be static because the callback function doesn't have user-data.
+    static mutex debug_output_mutex;
+    static vector<string> debug_output;
 
     ~SteamState() {
         // Leave all lobbies.
@@ -386,6 +389,33 @@ struct SteamState {
                                                                  value);
     }
 
+    // Note from steamworks API about this callback:
+    //
+    /// IMPORTANT: This may be called from a service thread, while we own a mutex, etc.
+    /// Your output function must be threadsafe and fast!  Do not make any other
+    /// Steamworks calls from within the handler.
+    static void DebugOutputFn(ESteamNetworkingSocketsDebugOutputType nType, const char *pszMsg) {
+        lock_guard<mutex> guard(debug_output_mutex);
+        debug_output.push_back(string(pszMsg));
+    }
+
+    vector<string> GetDebugOutput() {
+        lock_guard<mutex> guard(debug_output_mutex);
+        auto result = move(debug_output);
+        debug_output.clear();
+        return result;
+    }
+
+    void SetDebugOutputLevel(int level) {
+        auto elevel = (ESteamNetworkingSocketsDebugOutputType)level;
+        if (elevel == k_ESteamNetworkingSocketsDebugOutputType_None) {
+            SteamNetworkingUtils()->SetDebugOutputFunction(elevel, nullptr);
+        } else {
+            // No userdata...
+            SteamNetworkingUtils()->SetDebugOutputFunction(elevel, DebugOutputFn);
+        }
+    }
+
     // Lobby Functions
     STEAM_CALLBACK(SteamState, OnLobbyDataUpdate, LobbyDataUpdate_t);
 
@@ -539,6 +569,9 @@ struct SteamState {
         return SteamFriends()->HasFriend(steam_id, friend_flags);
     }
 };
+
+mutex SteamState::debug_output_mutex;
+vector<string> SteamState::debug_output;
 
 void SteamState::OnGameOverlayActivated(GameOverlayActivated_t *callback) {
     steamoverlayactive = callback->m_bActive;
@@ -1113,6 +1146,32 @@ nfr("p2p_set_global_config_value", "enum,value", "II", "", "",
 nfr("p2p_set_global_config_value", "enum,value", "IF", "", "",
     [](StackPtr &, VM &, Value enum_, Value value) {
         return STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(enum_.intval(), value.fltval()));
+    });
+
+nfr("p2p_set_debug_output_level", "level", "I", "",
+    "set the debug level for networking output.",
+    [](StackPtr &, VM &, Value level) {
+        #ifdef PLATFORM_STEAMWORKS
+            steam->SetDebugOutputLevel(level.intval());
+        #endif
+        return NilVal();
+    });
+
+nfr("p2p_get_debug_output", "", "", "S]",
+    "get the debug networking output.",
+    [](StackPtr &, VM &vm) {
+        auto *output_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) {
+                for (auto &output : steam->GetDebugOutput()) {
+                    output_vec->Push(vm, vm.NewString(output));
+                }
+                steam->debug_output.clear();
+            }
+        #endif  // PLATFORM_STEAMWORKS
+
+        return Value(output_vec);
     });
 
 nfr("lobby_create", "max_members", "I", "B",

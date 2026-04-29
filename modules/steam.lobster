@@ -53,3 +53,14 @@ enum global_config_value:
     /// (We chose a random delay between 0 and this value)
     fake_packet_dup_time_max = 28
 
+enum debug_output_level:
+    debug_output_level_none = 0
+    debug_output_level_bug = 1         // You used the API incorrectly, or an internal error happened
+    debug_output_level_error = 2,      // Run-time error condition that isn't the result of a bug.  (E.g. we are offline, cannot bind a port, etc)
+    debug_output_level_important = 3   // Nothing is wrong, but this is an important notification
+    debug_output_level_warning = 4
+    debug_output_level_msg = 5         // Recommended amount
+    debug_output_level_verbose = 6     // Quite a bit
+    debug_output_level_debug = 7       // Practically everything
+    debug_output_level_everything = 8  // Wall of text, detailed packet contents breakdown, etc
+

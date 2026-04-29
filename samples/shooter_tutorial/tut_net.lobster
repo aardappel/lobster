@@ -36,6 +36,7 @@ var fake_packet_loss_send = 0.0  // percentage
 var fake_packet_loss_recv = 0.0  // percentage
 var fake_packet_lag_send = 0     // lag in ms
 var fake_packet_lag_recv = 0     // lag in ms
+var debug_output_level = steam.debug_output_level_none
 
 enum GameState:
     GS_INIT
@@ -161,6 +162,8 @@ def renderpointytriangle(pos, dir):
 while gl.frame():
     // Update networking
     steam.update()
+    for(steam.p2p_get_debug_output()) output:
+        print "STEAM: {output}"
     let peers = steam.p2p_get_connections()
     def has_peer(id):
         return id == local_ident or (find(peers): _ == id) != -1
@@ -376,6 +379,11 @@ while gl.frame():
                                 is_host = false
                         im.separator()
                         im.treenode("Global Config"):
+                            let debug_output_level_names = [ "none", "bug", "error", "important", "warning", "msg", "verbose", "debug", "everything" ]
+                            let new_debug_output_level = steam.debug_output_level(im.combo("Debug output level", debug_output_level_names, debug_output_level))
+                            if new_debug_output_level != debug_output_level:
+                                debug_output_level = new_debug_output_level
+                                steam.p2p_set_debug_output_level(debug_output_level)
                             let new_fake_packet_loss_send = im.sliderfloat("Fake packet loss (send)", fake_packet_loss_send, 0.0, 100.0)
                             if new_fake_packet_loss_send != fake_packet_loss_send:
                                 fake_packet_loss_send = new_fake_packet_loss_send
