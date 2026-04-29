@@ -471,6 +471,9 @@ static int PlaySoundAudio(MIX_Audio *audio, float vol, int loops, int pri) {
         if (!MIX_SetTrackAudio(track, audio)) {
             LOG_ERROR("MIX_SetTrackAudio: ", SDL_GetError());
         }
+        if (!MIX_SetTrack3DPosition(track, nullptr)) {
+            LOG_ERROR("MIX_SetTrack3DPosition: ", SDL_GetError());
+        }
         auto props = SDL_CreateProperties();
         SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, loops);
         if (!MIX_PlayTrack(track, props)) {
@@ -574,6 +577,15 @@ void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, float at
     auto P = float3(dot(R, vecfromlistener), dot(F, vecfromlistener), dot(U, vecfromlistener));
     MIX_Point3D pos = { P.x, P.z, -P.y };  // SDL uses +X: right, +Y: up, +Z: backward
     if (!MIX_SetTrack3DPosition(track, &pos)) {
+        LOG_ERROR("MIX_SetTrack3DPosition: ", SDL_GetError());
+    }
+}
+
+void SDLUnsetPosition(int ch) {
+    if (!SDLSoundInit()) return;
+    auto *track = get_sound_track(ch);
+    if (!track) return;
+    if (!MIX_SetTrack3DPosition(track, nullptr)) {
         LOG_ERROR("MIX_SetTrack3DPosition: ", SDL_GetError());
     }
 }

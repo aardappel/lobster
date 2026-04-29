@@ -76,6 +76,7 @@ extern void SDLPauseSound(int ch);
 extern void SDLResumeSound(int ch);
 extern void SDLSetVolume(int ch, float vol);
 extern void SDLSetPosition(int ch, float3 vecfromlistener, float3 listenerfwd, float attnscale);
+extern void SDLUnsetPosition(int ch);
 extern int SDLSoundStatus(int ch);
 extern float SDLGetTimeLength(int ch);
 extern int SDLRegisterEffect(int ch, SDLEffectFunc func, SDLEffectDone done, void *userdata);

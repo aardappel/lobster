@@ -141,6 +141,14 @@ nfr("sound_position", "channel,vecfromlistener,listenerfwd,attnscale", "IF}:3F}:
             SDLSetPosition(ch_idx, src, fwd, scale);
     });
 
+nfr("sound_no_position", "channel", "I", "",
+    "clears the channel position previously set by \"sound_position\"",
+    [](StackPtr &sp, VM &) {
+        auto ch_idx = Pop(sp).intval();
+        if (ch_idx > 0)
+            SDLUnsetPosition(ch_idx);
+    });
+
 nfr("sound_time_length", "channel", "I", "F",
     "returns the length in seconds of the sound playing on this channel",
     [](StackPtr &, VM &, Value ch_idx) {

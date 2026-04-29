@@ -394,7 +394,8 @@ struct SteamState {
     /// IMPORTANT: This may be called from a service thread, while we own a mutex, etc.
     /// Your output function must be threadsafe and fast!  Do not make any other
     /// Steamworks calls from within the handler.
-    static void DebugOutputFn(ESteamNetworkingSocketsDebugOutputType nType, const char *pszMsg) {
+    static void DebugOutputFn(ESteamNetworkingSocketsDebugOutputType /*nType*/,
+                              const char *pszMsg) {
         lock_guard<mutex> guard(debug_output_mutex);
         debug_output.push_back(string(pszMsg));
     }
