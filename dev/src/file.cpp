@@ -213,7 +213,9 @@ nfr("scan_folder", "folder,rel", "SB?", "S]?I]?I]?",
                     entry.last_write_time.time_since_epoch() -
                     file_to_system_clock_epoch_offset)
             };
-            tlist->Push(vm, Value((int64_t)system_time.time_since_epoch().count()));
+            tlist->Push(vm, Value((int64_t)chrono::duration_cast<chrono::seconds>(
+                                      system_time.time_since_epoch())
+                                      .count()));
         }
         Push(sp, Value(nlist));
         Push(sp, Value(slist));
