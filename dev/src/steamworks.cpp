@@ -402,7 +402,7 @@ struct SteamState {
 
     vector<string> GetDebugOutput() {
         lock_guard<mutex> guard(debug_output_mutex);
-        auto result = move(debug_output);
+        auto result = std::move(debug_output);
         debug_output.clear();
         return result;
     }
