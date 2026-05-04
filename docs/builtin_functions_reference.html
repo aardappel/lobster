@@ -1319,6 +1319,18 @@
 <tr class="a" valign=top><td class="a"><tt><b>music_set_general_volume</b>(vol<font color="#666666">: float</font>)</tt></td><td class="a">set the general music volume in the range 0..1.</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>mic_devices</b>() -> <font color="#666666">[int]</font>, <font color="#666666">[string]</font></tt></td><td class="a">returns the available microphone devices as two lists: their ids (used with mic_start) and their names</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>mic_start</b>(id<font color="#666666">: int</font>, freq<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">start recording audio from the given device id, at the given frequency. Returns a mic_id.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>mic_stop</b>(id<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">stop recording. Returns false if the mic_id is invalid</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>mic_get</b>(id<font color="#666666">: int</font>) -> <font color="#666666">[float]</font></tt></td><td class="a">gets audio sample data in float format from the given microphone device.</td>
+
+</tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>physics</h3></td></tr>
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>ph.initialize</b>(gravityvector<font color="#666666">: float2</font>)</tt></td><td class="a">initializes or resets the physical world, gravity typically [0, -10].</td>

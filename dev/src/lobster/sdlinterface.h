@@ -93,6 +93,11 @@ extern void SDLSetMusicVolume(int mus_id, float vol);
 extern bool SDLMusicIsPlaying(int mus_id);
 extern void SDLSetGeneralMusicVolume(float vol);
 
+extern bool SDLGetRecordingDeviceNames(vector<int> &out_ids, vector<string> &out_names);
+extern int SDLRecordingStart(int device_id, int freq);
+extern bool SDLRecordingStop(int id);
+extern vector<float> SDLRecordingGet(int id);
+
 extern int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int64_t len);
 
 extern bool ScreenShot(string_view_nt filename);

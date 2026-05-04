@@ -37,6 +37,14 @@ struct Music {
 static vector<Music> musics;
 static float music_volume = 1.f;
 
+struct Recording {
+    int device_id;
+    unique_ptr<SDL_AudioStream, decltype(&SDL_DestroyAudioStream)> stream;
+    explicit Recording(int device_id, SDL_AudioStream *stream)
+        : device_id(device_id), stream(stream, SDL_DestroyAudioStream) {}
+};
+static vector<Recording> recordings;
+
 struct Audio {
     unique_ptr<MIX_Audio, decltype(&MIX_DestroyAudio)> audio;
     Audio() : audio(nullptr, MIX_DestroyAudio) {}
@@ -63,6 +71,12 @@ bool SDLSoundInit() {
 }
 
 void SDLSoundClose() {
+    for (auto &r : recordings) {
+        if (r.device_id >= 0) {
+            SDL_CloseAudioDevice(r.device_id);
+            r.stream.reset();
+        }
+    }
     MIX_Quit();
 }
 
@@ -710,6 +724,102 @@ void SDLSetGeneralMusicVolume(float vol) {
             LOG_ERROR("MIX_SetTrackGain: ", SDL_GetError());
         }
     }
+}
+
+static Recording *get_recording(int id) {
+    return (id >= 1 && id <= (int)recordings.size()) ? &recordings[id - 1] : nullptr;
+}
+
+bool SDLGetRecordingDeviceNames(vector<int> &out_ids, vector<string> &out_names) {
+    if (!SDLSoundInit()) return false;
+    int count;
+    auto *devices = SDL_GetAudioRecordingDevices(&count);
+    if (!devices) {
+        LOG_ERROR("SDL_GetAudioRecordingDevices: ", SDL_GetError());
+    }
+    for (int i = 0; i < count; ++i) {
+        auto id = devices[i];
+        out_ids.push_back((int)id);
+        out_names.push_back(SDL_GetAudioDeviceName(id));
+    }
+    return true;
+}
+
+int SDLRecordingStart(int phys_device_id, int freq) {
+    if (!SDLSoundInit()) return 0;
+    SDL_AudioSpec spec = { SDL_AUDIO_F32, 1, freq };
+    int device_id = SDL_OpenAudioDevice(phys_device_id, &spec);
+    if (!device_id) {
+        LOG_ERROR("SDL_OpenAudioDevice: ", SDL_GetError());
+        return 0;
+    }
+    const char *format;
+    switch (spec.format) {
+      default:              format = "SDL_AUDIO_UNKNOWN"; break;
+      case SDL_AUDIO_U8:    format = "SDL_AUDIO_U8"; break;
+      case SDL_AUDIO_S8:    format = "SDL_AUDIO_S8"; break;
+      case SDL_AUDIO_S16LE: format = "SDL_AUDIO_S16LE"; break;
+      case SDL_AUDIO_S16BE: format = "SDL_AUDIO_S16BE"; break;
+      case SDL_AUDIO_S32LE: format = "SDL_AUDIO_S32LE"; break;
+      case SDL_AUDIO_S32BE: format = "SDL_AUDIO_S32BE"; break;
+      case SDL_AUDIO_F32LE: format = "SDL_AUDIO_F32LE"; break;
+      case SDL_AUDIO_F32BE: format = "SDL_AUDIO_F32BE"; break;
+    }
+    LOG_INFO("SDL opened recording device \"", SDL_GetAudioDeviceName(phys_device_id),
+             "\": format:", format, " channels:", spec.channels, " freq:", spec.freq, "\n");
+    auto *stream = SDL_CreateAudioStream(&spec, &spec);
+    if (!SDL_BindAudioStream(device_id, stream)) {
+        LOG_ERROR("SDL_BindAudioStream: ", SDL_GetError());
+        return 0;
+    }
+    int index = -1;
+    for (int i = 0; i < (int)recordings.size(); ++i) {
+        if (recordings[i].device_id < 0) {
+            index = i;
+            break;
+        }
+    }
+    if (index < 0) {
+        index = recordings.size();
+        recordings.push_back(Recording{ device_id, stream });
+    } else {
+        recordings[index] = Recording{ device_id, stream };
+    }
+    return index + 1;
+}
+
+bool SDLRecordingStop(int id) {
+    if (!SDLSoundInit()) return false;
+    auto *recording = get_recording(id);
+    if (!recording) return false;
+    SDL_UnbindAudioStream(recording->stream.get());
+    SDL_CloseAudioDevice(recording->device_id);
+    recording->device_id = -1;
+    recording->stream.reset();
+    return true;
+}
+
+vector<float> SDLRecordingGet(int id) {
+    vector<float> data;
+    if (!SDLSoundInit()) return data;
+    auto *recording = get_recording(id);
+    if (!recording) return data;
+    auto avail = SDL_GetAudioStreamAvailable(recording->stream.get());
+    if (avail < 0) {
+        LOG_ERROR("SDL_GetAudioStreamAvailable: ", SDL_GetError());
+        return data;
+    }
+    if (avail == 0) return data;
+    data.resize(avail);
+    auto read_bytes =
+        SDL_GetAudioStreamData(recording->stream.get(), data.data(), data.size() * sizeof(float));
+    if (read_bytes < 0) {
+        LOG_ERROR("SDL_GetAudioStreamData: ", SDL_GetError());
+        data.clear();
+        return data;
+    }
+    data.resize(read_bytes / sizeof(float));
+    return data;
 }
 
 #ifdef _MSC_VER

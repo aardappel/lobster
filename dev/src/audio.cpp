@@ -242,6 +242,45 @@ nfr("music_set_general_volume", "vol", "F", "",
         return NilVal();
     });
 
+nfr("mic_devices", "", "", "I]S]",
+    "returns the available microphone devices as two lists: their ids (used with mic_start) and their names",
+    [](StackPtr &sp, VM &vm) {
+        vector<int> ids;
+        vector<string> names;
+        SDLGetRecordingDeviceNames(ids, names);
+        assert(ids.size() == names.size());
+        auto vids = (LVector *)vm.NewVec(0, (int)ids.size(), TYPE_ELEM_VECTOR_OF_INT);
+        auto vnames = (LVector *)vm.NewVec(0, (int)names.size(), TYPE_ELEM_VECTOR_OF_STRING);
+        for (int i = 0; i < (int)ids.size(); ++i) {
+            vids->Push(vm, Value(ids[i]));
+            vnames->Push(vm, Value(vm.NewString(names[i])));
+        }
+        Push(sp, Value(vids));
+        Push(sp, Value(vnames));
+    });
+
+nfr("mic_start", "id,freq", "II", "I",
+    "start recording audio from the given device id, at the given frequency. Returns a mic_id.",
+    [](StackPtr &, VM &, Value id, Value freq) {
+        auto ok = SDLRecordingStart(id.intval(), freq.intval());
+        return Value(ok);
+    });
+
+nfr("mic_stop", "id", "I", "B",
+    "stop recording. Returns false if the mic_id is invalid",
+    [](StackPtr &, VM &, Value id) {
+        auto ok = SDLRecordingStop(id.intval());
+        return Value(ok);
+    });
+
+nfr("mic_get", "id", "I", "F]",
+    "gets audio sample data in float format from the given microphone device.",
+    [](StackPtr &, VM &vm, Value id) {
+        auto data = SDLRecordingGet(id.intval());
+        auto vdata = (LVector *)vm.NewVec(0, (int)data.size(), TYPE_ELEM_VECTOR_OF_FLOAT);
+        for (auto val : data) vdata->Push(vm, Value(val));
+        return Value(vdata);
+    });
 
 
 }
