@@ -1259,6 +1259,15 @@
 <tr class="a" valign=top><td class="a"><tt><b>load_ogg</b>(filename<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">loads a sound the same way play_ogg does, but ahead of playback, to avoid any delays later. returns false on error</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>play_audio_stream</b>(freq<font color="#666666">: int</font>, channels<font color="#666666">: int</font>, prio<font color="#666666">: int</font> = 0) -> <font color="#666666">int</font></tt></td><td class="a">plays an audio stream which can be filled via audio_stream_put(). the default volume is the max volume (1.0) prio is the priority of the sound which determines whether it can be deleted or not in case of too many play function calls (defaults to 0) returns the assigned channel number (1..8) or 0 on error</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>audio_stream_put</b>(channel<font color="#666666">: int</font>, data<font color="#666666">: [float]</font>) -> <font color="#666666">int</font></tt></td><td class="a">puts audio samples in range [-1.0,1.0] into an audio stream created with play_audio_stream().</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>has_audio_stream</b>(channel<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether the given channel has an audio stream</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>sound_status</b>(channel<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">provides the status of the specified sound channel. returns -1 on error or if the channel does not exist, 0 if the channel is free, 1 if it is playing, and 2 if the channel is active but paused.</td>
 
 </tr>

@@ -456,11 +456,13 @@ static MIX_Track *get_sound_track(int ch) {
     return (ch >= 1 && ch <= sound_track_count) ? sound_tracks[ch - 1] : nullptr;
 }
 
-static int PlaySoundAudio(MIX_Audio *audio, float vol, int loops, int pri) {
+static int GetAvailableSoundTrack(int pri) {
     int tr = -1;
     // First look for an available track.
     for (int i = 0; i < sound_track_count; ++i) {
         if (MIX_TrackPlaying(sound_tracks[i])) continue;
+        // If a track has an audio stream, consider it playing.
+        if (MIX_GetTrackAudioStream(sound_tracks[i])) continue;
         tr = i;
         break;
     }
@@ -480,26 +482,35 @@ static int PlaySoundAudio(MIX_Audio *audio, float vol, int loops, int pri) {
             }
         }
     }
-    if (tr >= 0) {
-        auto *track = sound_tracks[tr];
-        if (!MIX_SetTrackAudio(track, audio)) {
-            LOG_ERROR("MIX_SetTrackAudio: ", SDL_GetError());
-        }
-        if (!MIX_SetTrack3DPosition(track, nullptr)) {
-            LOG_ERROR("MIX_SetTrack3DPosition: ", SDL_GetError());
-        }
-        auto props = SDL_CreateProperties();
-        SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, loops);
-        if (!MIX_PlayTrack(track, props)) {
-            LOG_ERROR("MIX_PlayTrack: ", SDL_GetError());
-        }
-        SDL_DestroyProperties(props);
-        if (!MIX_SetTrackGain(track, vol)) {
-            LOG_ERROR("MIX_SetTrackGain: ", SDL_GetError());
-        }
-        sound_pri[tr] = pri;
-        sound_age[tr] = sounds_played++;
+    return tr;
+}
+
+static void PlayTrack(int tr, float vol, int loops, int pri) {
+    auto *track = sound_tracks[tr];
+    if (!MIX_SetTrack3DPosition(track, nullptr)) {
+        LOG_ERROR("MIX_SetTrack3DPosition: ", SDL_GetError());
     }
+    auto props = SDL_CreateProperties();
+    SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, loops);
+    if (!MIX_PlayTrack(track, props)) {
+        LOG_ERROR("MIX_PlayTrack: ", SDL_GetError());
+    }
+    SDL_DestroyProperties(props);
+    if (!MIX_SetTrackGain(track, vol)) {
+        LOG_ERROR("MIX_SetTrackGain: ", SDL_GetError());
+    }
+    sound_pri[tr] = pri;
+    sound_age[tr] = sounds_played++;
+}
+
+static int PlaySoundAudio(MIX_Audio *audio, float vol, int loops, int pri) {
+    int tr = GetAvailableSoundTrack(pri);
+    if (tr < 0) return 0;
+    auto *track = sound_tracks[tr];
+    if (!MIX_SetTrackAudio(track, audio)) {
+        LOG_ERROR("MIX_SetTrackAudio: ", SDL_GetError());
+    }
+    PlayTrack(tr, vol, loops, pri);
     return sound_channel_from_track(tr);
 }
 
@@ -517,10 +528,66 @@ int SDLPlaySoundFromBuffer(string_view buffer, SoundType st, float vol, int loop
     return PlaySoundAudio(audio, vol, loops, pri);
 }
 
+int SDLPlayAudioStream(int freq, int channels, float vol, int pri) {
+    if (!SDLSoundInit()) return 0;
+    int tr = GetAvailableSoundTrack(pri);
+    if (tr < 0) return 0;
+    auto *track = sound_tracks[tr];
+    SDL_AudioSpec spec = { SDL_AUDIO_F32, channels, freq };
+    auto *stream = SDL_CreateAudioStream(&spec, &spec);
+    if (!stream) {
+        LOG_ERROR("SDL_CreateAudioStream: ", SDL_GetError());
+        return 0;
+    }
+    if (!MIX_SetTrackAudioStream(track, stream)) {
+        LOG_ERROR("MIX_SetTrackAudioStream: ", SDL_GetError());
+        return 0;
+    }
+    printf("Playing audio stream on track %d\n", tr);
+    PlayTrack(tr, vol, 0, pri);
+    return sound_channel_from_track(tr);
+}
+
+bool SDLPutAudioStream(int ch, vector<float> data) {
+    if (!SDLSoundInit()) return 0;
+    auto *track = get_sound_track(ch);
+    if (!track) return 0;
+    auto *stream = MIX_GetTrackAudioStream(track);
+    if (!stream) return 0;
+    if (!SDL_PutAudioStreamData(stream, data.data(), (int)(data.size() * sizeof(float)))) {
+        LOG_ERROR("SDL_PutAudioStreamData: ", SDL_GetError());
+        return false;
+    }
+    // Restart the track, in case it stopped.
+    if (!MIX_TrackPlaying(track)) {
+        auto props = SDL_CreateProperties();
+        if (!MIX_PlayTrack(track, props)) {
+            LOG_ERROR("MIX_PlayTrack: ", SDL_GetError());
+        }
+        SDL_DestroyProperties(props);
+    }
+    return true;
+}
+
+bool SDLHasAudioStream(int ch) {
+    if (!SDLSoundInit()) return false;
+    auto *track = get_sound_track(ch);
+    if (!track) return false;
+    auto *stream = MIX_GetTrackAudioStream(track);
+    return stream != nullptr;
+}
+
 void SDLHaltSound(int ch) {
     if (!SDLSoundInit()) return;
     auto *track = get_sound_track(ch);
     if (!track) return;
+    // If a track has an audio stream, remove it.
+    auto *stream = MIX_GetTrackAudioStream(track);
+    if (stream) {
+        if (!MIX_SetTrackAudioStream(track, nullptr)) {
+            LOG_ERROR("MIX_SetTrackAudioStream: ", SDL_GetError());
+        }
+    }
     if (!MIX_StopTrack(track, 0)) {
         LOG_ERROR("MIX_StopTrack: ", SDL_GetError());
     }
@@ -780,7 +847,7 @@ int SDLRecordingStart(int phys_device_id, int freq) {
         }
     }
     if (index < 0) {
-        index = recordings.size();
+        index = (int)recordings.size();
         recordings.push_back(Recording{ device_id, stream });
     } else {
         recordings[index] = Recording{ device_id, stream };
@@ -811,8 +878,8 @@ vector<float> SDLRecordingGet(int id) {
     }
     if (avail == 0) return data;
     data.resize(avail);
-    auto read_bytes =
-        SDL_GetAudioStreamData(recording->stream.get(), data.data(), data.size() * sizeof(float));
+    auto read_bytes = SDL_GetAudioStreamData(recording->stream.get(), data.data(),
+                                             (int)(data.size() * sizeof(float)));
     if (read_bytes < 0) {
         LOG_ERROR("SDL_GetAudioStreamData: ", SDL_GetError());
         data.clear();
