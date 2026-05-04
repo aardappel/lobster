@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14)
 
 if(NOT UNIX)
   message(FATAL_ERROR "Cmake configuration is only supported for Linux. For "
@@ -198,6 +198,17 @@ if(LOBSTER_ENGINE)
     set(ADDITIONAL_LIBRARIES "libsteam_api.so")
     link_directories("${CMAKE_SOURCE_DIR}/external/steamworks/lib/linux64")
   endif()
+  # Opus audio codec
+  include(FetchContent)
+  FetchContent_Declare(
+    opus
+    GIT_REPOSITORY https://github.com/xiph/opus.git
+    GIT_TAG        v1.5.2
+  )
+  FetchContent_MakeAvailable(opus)
+
+  include_directories(${opus_SOURCE_DIR})
+  list(APPEND ADDITIONAL_LIBRARIES Opus::opus)
 endif()
 
 if(UNIX)

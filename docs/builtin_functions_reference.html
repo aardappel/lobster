@@ -1259,10 +1259,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>load_ogg</b>(filename<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">loads a sound the same way play_ogg does, but ahead of playback, to avoid any delays later. returns false on error</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>play_audio_stream</b>(freq<font color="#666666">: int</font>, channels<font color="#666666">: int</font>, prio<font color="#666666">: int</font> = 0) -> <font color="#666666">int</font></tt></td><td class="a">plays an audio stream which can be filled via audio_stream_put(). the default volume is the max volume (1.0) prio is the priority of the sound which determines whether it can be deleted or not in case of too many play function calls (defaults to 0) returns the assigned channel number (1..8) or 0 on error</td>
+<tr class="a" valign=top><td class="a"><tt><b>play_audio_stream</b>(freq<font color="#666666">: int</font>, channels<font color="#666666">: int</font>, prio<font color="#666666">: int</font> = 0) -> <font color="#666666">int</font></tt></td><td class="a">plays an audio stream which can be filled via put_audio_stream(). the default volume is the max volume (1.0) prio is the priority of the sound which determines whether it can be deleted or not in case of too many play function calls (defaults to 0) returns the assigned channel number (1..8) or 0 on error</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>audio_stream_put</b>(channel<font color="#666666">: int</font>, data<font color="#666666">: [float]</font>) -> <font color="#666666">int</font></tt></td><td class="a">puts audio samples in range [-1.0,1.0] into an audio stream created with play_audio_stream().</td>
+<tr class="a" valign=top><td class="a"><tt><b>put_audio_stream</b>(channel<font color="#666666">: int</font>, data<font color="#666666">: [float]</font>) -> <font color="#666666">int</font></tt></td><td class="a">puts audio samples in range [-1.0,1.0] into an audio stream created with play_audio_stream().</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>has_audio_stream</b>(channel<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether the given channel has an audio stream</td>
@@ -2257,6 +2257,20 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>write_debug_dump</b>()</tt></td><td class="a">writes a .flex file at this point.  needs --runtime-stack-trace on.</td>
+
+</tr>
+</table></td></tr>
+<tr class="a" valign=top><td><h3>opus</h3></td></tr>
+<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>opus.encoder_create</b>(sample_rate<font color="#666666">: int</font>, channels<font color="#666666">: int</font>) -> <font color="#666666">resource&lt;opusencoder&gt;</font></tt></td><td class="a">create an opus encoder object with the given sample rate and channel count. opus requires that the sample rate be: 8000, 12000, 16000, 24000, or 48000. the channel count must be either 1 or 2</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>opus.encode_float</b>(encoder<font color="#666666">: resource&lt;opusencoder&gt;</font>, data<font color="#666666">: [float]</font>, frame_size<font color="#666666">: int</font>) -> <font color="#666666">[string]</font></tt></td><td class="a">encode float data in the range [-1.0, 1.0] into packets. opus requires that the frame_size be: 2.5ms, 5ms, 10ms, 20ms, 40ms, 60ms (e.g. at 48kHz the permitted values are 120, 240, 480, 960, 1920, 2880)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>opus.decoder_create</b>(sample_rate<font color="#666666">: int</font>, channels<font color="#666666">: int</font>) -> <font color="#666666">resource&lt;opusdecoder&gt;</font></tt></td><td class="a">create an opus encoder object with the given sample rate and channel count. opus requires that the sample rate be: 8000, 12000, 16000, 24000, or 48000. the channel count must be either 1 or 2.  this does not have to match the encoded sample rate and channel count.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>opus.decode_float</b>(decoder<font color="#666666">: resource&lt;opusdecoder&gt;</font>, packets<font color="#666666">: [string]</font>, frame_size<font color="#666666">: int</font>) -> <font color="#666666">[float]</font></tt></td><td class="a">decode opus-encoded packets. opus requires that the frame_size be: 2.5ms, 5ms, 10ms, 20ms, 40ms, 60ms (e.g. at 48kHz the permitted values are 120, 240, 480, 960, 1920, 2880) the frame size does not have to match the encoded frame size.</td>
 
 </tr>
 </table></td></tr>

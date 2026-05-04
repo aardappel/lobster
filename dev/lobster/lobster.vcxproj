@@ -91,7 +91,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer\include;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\SDL\src;..\external\SDL\include\build_config;..\external\tracy;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer\include;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\SDL\src;..\external\SDL\include\build_config;..\external\tracy;..\external\opus\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -129,7 +129,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer\include;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\SDL\src;..\external\SDL\include\build_config;..\external\tracy;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer\include;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\SDL\src;..\external\SDL\include\build_config;..\external\tracy;..\external\opus\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
@@ -171,7 +171,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer\include;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\SDL\src;..\external\SDL\include\build_config;..\external\tracy;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\imgui;..\external\freetype\include;..\external\SDLMixer\include;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;..\external\SDL\src;..\external\SDL\include\build_config;..\external\tracy;..\external\opus\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
@@ -215,6 +215,12 @@
     <ClInclude Include="..\external\imgui\imstb_rectpack.h" />
     <ClInclude Include="..\external\imgui\imstb_textedit.h" />
     <ClInclude Include="..\external\imgui\imstb_truetype.h" />
+    <ClInclude Include="..\external\opus\include\opus.h" />
+    <ClInclude Include="..\external\opus\include\opus_custom.h" />
+    <ClInclude Include="..\external\opus\include\opus_defines.h" />
+    <ClInclude Include="..\external\opus\include\opus_multistream.h" />
+    <ClInclude Include="..\external\opus\include\opus_projection.h" />
+    <ClInclude Include="..\external\opus\include\opus_types.h" />
     <ClInclude Include="..\external\SDL\src\audio\directsound\SDL_directsound.h" />
     <ClInclude Include="..\external\SDL\src\audio\disk\SDL_diskaudio.h" />
     <ClInclude Include="..\external\SDL\src\audio\dsp\SDL_dspaudio.h" />
@@ -3808,6 +3814,7 @@
     </ClCompile>
     <ClCompile Include="..\src\meshgen.cpp" />
     <ClCompile Include="..\src\glsystem.cpp" />
+    <ClCompile Include="..\src\opus.cpp" />
     <ClCompile Include="..\src\physics.cpp" />
     <ClCompile Include="..\src\sdlsystem.cpp" />
     <ClCompile Include="..\src\sdlaudiosfxr.cpp">
@@ -3835,6 +3842,9 @@
     <Natvis Include="NatvisFile.natvis">
       <SubType>Designer</SubType>
     </Natvis>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\external\opus\lib\opus.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

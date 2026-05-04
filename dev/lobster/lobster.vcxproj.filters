@@ -59,6 +59,15 @@
     <Filter Include="engine\sdlmixer">
       <UniqueIdentifier>{bc3b59a1-1e53-4541-8d41-70550087ce05}</UniqueIdentifier>
     </Filter>
+    <Filter Include="engine\opus">
+      <UniqueIdentifier>{95e6029b-7e9b-4077-9cbc-0062d01a8d29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\opus\headers">
+      <UniqueIdentifier>{23d80bd5-476a-44e4-8bc8-8a04281f6705}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\opus\lib">
+      <UniqueIdentifier>{5698d9d9-7018-4a18-8ea2-c62eebaee2d6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\StackWalker\StackWalker.h">
@@ -1092,6 +1101,24 @@
     </ClInclude>
     <ClInclude Include="..\external\imgui\imgui_impl_sdl3.h">
       <Filter>engine\imgui\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\opus\include\opus.h">
+      <Filter>engine\opus\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\opus\include\opus_custom.h">
+      <Filter>engine\opus\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\opus\include\opus_defines.h">
+      <Filter>engine\opus\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\opus\include\opus_multistream.h">
+      <Filter>engine\opus\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\opus\include\opus_projection.h">
+      <Filter>engine\opus\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\opus\include\opus_types.h">
+      <Filter>engine\opus\headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -2346,6 +2373,9 @@
     <ClCompile Include="..\external\SDLMixer\src\SDL_mixer_spatialization.c">
       <Filter>engine\sdlmixer</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\opus.cpp">
+      <Filter>engine\opus</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
@@ -2359,5 +2389,10 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="NatvisFile.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\external\opus\lib\opus.lib">
+      <Filter>engine\opus\lib</Filter>
+    </Library>
   </ItemGroup>
 </Project>
