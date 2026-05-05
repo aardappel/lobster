@@ -209,6 +209,7 @@ if(LOBSTER_ENGINE)
 
   include_directories(${opus_SOURCE_DIR})
   list(APPEND ADDITIONAL_LIBRARIES Opus::opus)
+  add_definitions(-DWITH_OPUS=1)
 endif()
 
 if(UNIX)

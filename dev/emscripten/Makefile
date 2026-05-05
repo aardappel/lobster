@@ -32,7 +32,7 @@ override CFLAGS+= $(SHAREDFLAGS)
 # to exit the evaluation loop anymore, and we don't support the interpreter mode in Wasm.
 # Also, asyncify relies on there not being any call_indirects in the path to the yield,
 # which exception handling currently inserts.
-override CXXFLAGS+= $(SHAREDFLAGS) -fno-exceptions -sDISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING \
+override CXXFLAGS+= $(SHAREDFLAGS) -fno-exceptions -sDISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING -DWITH_OPUS=0 \
                     -std=c++20
 
 INCLUDES=   -I. \

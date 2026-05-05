@@ -42,6 +42,11 @@
     void AddPlugins(NativeRegistry &nfr);
 #endif
 
+// Include opus by default, except where explicitly disabled.
+#ifndef WITH_OPUS
+    #define WITH_OPUS 1
+#endif
+
 
 using namespace lobster;
 
@@ -72,7 +77,9 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "steam", "steam", AddSteam);
     RegisterBuiltin(nfr, "im", "imgui", AddIMGUI);
     RegisterBuiltin(nfr, "", "imguidebug", AddIMGUIDebug);
-    RegisterBuiltin(nfr, "opus", "opus", AddOpus);
+    #if WITH_OPUS
+        RegisterBuiltin(nfr, "opus", "opus", AddOpus);
+    #endif
     #ifdef HAVE_PLUGINS
         RegisterBuiltin(nfr, "", "plugin", AddPlugins);
     #endif
