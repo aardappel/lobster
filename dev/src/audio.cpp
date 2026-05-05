@@ -81,6 +81,34 @@ nfr("load_ogg", "filename", "S", "B",
         return Value(ok);
     });
 
+nfr("play_audio_stream", "freq,channels,prio", "III?", "I",
+    "plays an audio stream which can be filled via put_audio_stream()."
+    " the default volume is the max volume (1.0)"
+    " prio is the priority of the sound which determines whether it can be deleted or not"
+    " in case of too many play function calls (defaults to 0)"
+    " returns the assigned channel number (1..8) or 0 on error",
+    [](StackPtr &, VM &, Value freq, Value channels, Value prio) {
+        auto ch = SDLPlayAudioStream(freq.intval(), channels.intval(), 1.0, prio.intval());
+        return Value(ch);
+    });
+
+nfr("put_audio_stream", "channel,data", "IF]", "B",
+    "puts audio samples in range [-1.0,1.0] into an audio stream created with play_audio_stream().",
+    [](StackPtr &, VM &, Value channel, Value vdata) {
+        vector<float> data;
+        data.reserve(vdata.vval()->len);
+        for (int i = 0; i < vdata.vval()->len; i++)
+            data.push_back(vdata.vval()->AtSt(i)->fltval());
+        auto ok = SDLPutAudioStream(channel.intval(), std::move(data));
+        return Value(ok);
+    });
+
+nfr("has_audio_stream", "channel", "I", "B",
+    "returns whether the given channel has an audio stream",
+    [](StackPtr &, VM &, Value channel) {
+        return Value(SDLHasAudioStream(channel.intval()));
+    });
+
 nfr("sound_status", "channel", "I", "I",
     "provides the status of the specified sound channel."
     " returns -1 on error or if the channel does not exist, 0 if the channel is free,"
@@ -282,8 +310,5 @@ nfr("mic_get", "id", "I", "F]",
         return Value(vdata);
     });
 
-
 }
-
-
 
