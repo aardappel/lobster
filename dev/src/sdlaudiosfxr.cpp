@@ -553,7 +553,10 @@ bool SDLPutAudioStream(int ch, vector<float> data) {
     auto *track = get_sound_track(ch);
     if (!track) return 0;
     auto *stream = MIX_GetTrackAudioStream(track);
-    if (!stream) return 0;
+    if (!stream) {
+        LOG_ERROR("MIX_GetTrackAudioStream: ", SDL_GetError());
+        return 0;
+    }
     if (!SDL_PutAudioStreamData(stream, data.data(), (int)(data.size() * sizeof(float)))) {
         LOG_ERROR("SDL_PutAudioStreamData: ", SDL_GetError());
         return false;
@@ -567,6 +570,22 @@ bool SDLPutAudioStream(int ch, vector<float> data) {
         SDL_DestroyProperties(props);
     }
     return true;
+}
+
+int SDLAudioStreamAvailable(int ch) {
+    if (!SDLSoundInit()) return 0;
+    auto *track = get_sound_track(ch);
+    if (!track) return 0;
+    auto *stream = MIX_GetTrackAudioStream(track);
+    if (!stream) {
+        LOG_ERROR("MIX_GetTrackAudioStream: ", SDL_GetError());
+        return 0;
+    }
+    int result = SDL_GetAudioStreamAvailable(stream);
+    if (result < 0) {
+        LOG_ERROR("SDL_GetAudioStreamAvailable: ", SDL_GetError());
+    }
+    return result;
 }
 
 bool SDLHasAudioStream(int ch) {

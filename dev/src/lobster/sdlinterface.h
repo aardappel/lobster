@@ -73,6 +73,7 @@ extern int SDLLoadSoundFromBuffer(string_view buffer, SoundType st);
 extern int SDLPlaySoundFromBuffer(string_view buffer, SoundType st, float vol, int loops, int pri);
 extern int SDLPlayAudioStream(int freq, int channels, float vol, int pri);
 extern bool SDLPutAudioStream(int ch, vector<float> data);
+extern int SDLAudioStreamAvailable(int ch);
 extern bool SDLHasAudioStream(int ch);
 extern void SDLHaltSound(int ch);
 extern void SDLPauseSound(int ch);

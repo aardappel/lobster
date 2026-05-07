@@ -109,6 +109,13 @@ nfr("has_audio_stream", "channel", "I", "B",
         return Value(SDLHasAudioStream(channel.intval()));
     });
 
+nfr("audio_stream_available", "channel", "I", "I",
+    "returns the number of samples available in the audio stream",
+    [](StackPtr &, VM &, Value channel) {
+        auto ok = SDLAudioStreamAvailable(channel.intval());
+        return Value(ok);
+    });
+
 nfr("sound_status", "channel", "I", "I",
     "provides the status of the specified sound channel."
     " returns -1 on error or if the channel does not exist, 0 if the channel is free,"
