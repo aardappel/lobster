@@ -146,8 +146,9 @@ elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libstdc++ ${COMMON_GCC_STYLE} -Wno-deprecated-declarations")
 elseif(CMAKE_COMPILER_IS_GNUCXX)
     # These warnings seem pretty broken in GCC, with lots of false positives.
+    # FIXME: -fno-aggressive-loop-optimizations currently needed for FastNoiseLite :(
     set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE} -Wno-array-bounds -Wno-stringop-overflow -Wno-maybe-uninitialized")
+    "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE} -Wno-array-bounds -Wno-stringop-overflow -Wno-maybe-uninitialized -fno-aggressive-loop-optimizations")
 endif()
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FS")
