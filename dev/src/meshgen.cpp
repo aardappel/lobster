@@ -214,10 +214,10 @@ struct IFLandscape : ImplicitFunctionImpl<IFLandscape> {
 
     inline float Eval(const float3 &pos) const {
         if (!(abs(pos) <= 1)) return false;
-        auto dpos = pos + float3(SimplexNoise(8, 0.5f, 1, float4(pos.xy() + 1, 0)),
-                                 SimplexNoise(8, 0.5f, 1, float4(pos.xy() + 2, 0)),
+        auto dpos = pos + float3(SimplexNoise(8, 0.5f, 1, float3(pos.xy() + 1, 0)),
+                                 SimplexNoise(8, 0.5f, 1, float3(pos.xy() + 2, 0)),
                                  0) / 2;
-        auto f = SimplexNoise(8, 0.5f, xyscale, float4(dpos.xy(), 0)) * zscale;
+        auto f = SimplexNoise(8, 0.5f, xyscale, float3(dpos.xy(), 0)) * zscale;
         // FIXME: this is obviously not the correct distance for anything but peaks.
         return dpos.z - f;
     }
@@ -573,9 +573,9 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         float persistence = 0.5f;
 
         for (auto &v : verts) {
-            auto n = float3(SimplexNoise(octaves, persistence, scale, float4(v.pos, 0.0f / scale)),
-                            SimplexNoise(octaves, persistence, scale, float4(v.pos, 0.3f / scale)),
-                            SimplexNoise(octaves, persistence, scale, float4(v.pos, 0.6f / scale)));
+            auto n = float3(SimplexNoise(octaves, persistence, scale, float3(v.pos)),
+                            SimplexNoise(octaves, persistence, scale, float3(v.pos + 100.0f / scale)),
+                            SimplexNoise(octaves, persistence, scale, float3(v.pos + 200.0f / scale)));
             v.col = quantizec(color2vec(v.col).xyz() *
                               (float3_1 - (n + float3_1) / 2 * noiseintensity), 1);
         }
