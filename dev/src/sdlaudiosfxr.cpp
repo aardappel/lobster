@@ -80,9 +80,9 @@ void SDLSoundClose() {
     MIX_Quit();
 }
 
-static MIX_Audio *AllocAudio(short *buf, size_t num_samples) {
+static MIX_Audio *AllocAudioMono(short *buf, size_t num_samples) {
     auto *io = SDL_IOFromMem(buf, num_samples * 2);
-    SDL_AudioSpec spec = { SDL_AUDIO_S16, 2, 44100 };
+    SDL_AudioSpec spec = { SDL_AUDIO_S16, 1, 44100 };
     auto *audio = MIX_LoadRawAudio_IO(mixer, io, &spec, true);
     if (!audio) {
         LOG_ERROR("MIX_LoadRawAudio_IO: ", SDL_GetError());
@@ -397,7 +397,7 @@ static MIX_Audio *RenderSFXR(string_view buf) {
         synth.push_back(0);
     }
     synth.pop_back();
-    return AllocAudio(synth.data(), synth.size());
+    return AllocAudioMono(synth.data(), synth.size());
 }
 
 static MIX_Audio *LoadAudioFromBuffer(string_view buf, SoundType st) {
