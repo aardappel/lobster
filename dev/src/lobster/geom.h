@@ -1088,6 +1088,22 @@ inline byte4 quantizec(const float4 &v) { return byte4(v * 255); }
 
 inline float4 color2vec(const byte4 &col) { return float4(col) / 255; }
 
+
+const float3 LUMINANCE = float3(0.2126f, 0.7152f, 0.0722f);
+
+inline float luminance(float3 color) {
+    return dot(LUMINANCE, color);
+}
+
+inline float3 saturation(float3 color, float f) {
+    auto s1 = 1.0f - f;
+    auto r = float3(LUMINANCE.x * s1) + float3(f, 0.0f, 0.0f);
+    auto g = float3(LUMINANCE.y * s1) + float3(0.0f, f, 0.0f);
+    auto b = float3(LUMINANCE.z * s1) + float3(0.0f, 0.0f, f);
+    auto m = float4x4(float4(r, 0.0f), float4(g, 0.0f), float4(b, 0.0f), float4(0.0f, 0.0f, 0.0f, 1.0f));
+    return (m * float4(color, 1.0f)).xyz();
+}
+
 // Spline interpolation.
 template<typename T>
 inline vec<T, 3> cardinal_spline(const vec<T, 3> &z, const vec<T, 3> &a, const vec<T, 3> &b,
