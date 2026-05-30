@@ -1264,9 +1264,9 @@ struct SymbolTable {
                default_bool_type;
     }
 
-    TypeRef GetVectorType(TypeRef vt, size_t level, int arity) const {
+    TypeRef GetVectorType(ValueType et, size_t level, int arity) const {
         if (arity > 4) return nullptr;
-        return vt->sub->t == V_INT
+        return et == V_INT
             ? default_int_vector_types[level][arity]
             : default_float_vector_types[level][arity];
     }

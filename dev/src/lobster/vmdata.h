@@ -112,8 +112,8 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
     TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 22,
     TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 25,
     TYPE_ELEM_VECTOR_OF_RESOURCE = 28,
-
-    TYPE_ELEM_FIXED_OFFSET_END = 31
+    TYPE_ELEM_VECTOR_OF_FLOAT4 = 79,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4 = 82,
 };
 
 struct VM;

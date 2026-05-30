@@ -673,7 +673,7 @@ struct TypeChecker {
 
     void StructCompResult(BinOp &n, TypeRef u) {
         auto nfields = u->udt->sfields.size();
-        n.exptype = st.GetVectorType(type_vector_int, 0, (int)nfields);
+        n.exptype = st.GetVectorType(V_INT, 0, (int)nfields);
         if (n.exptype.Null())
             Error(n, "no suitable struct of int type of size ", nfields, " known");
     }
@@ -2525,7 +2525,7 @@ struct TypeChecker {
                 return etype;
             } else {
                 // Require xy/xyz/xyzw
-                auto nvt = st.GetVectorType(vt, num_wrappings, flen);
+                auto nvt = st.GetVectorType(vt->ns->t, num_wrappings, flen);
                 if (!nvt.Null())
                     return nvt;
             }

@@ -281,25 +281,36 @@ struct CodeGen  {
             uint64_t src_hash, string &c_codegen, string_view custom_pre_init_name)
         : parser(_p), st(_st), runtime_checks(runtime_checks), cpp(cpp), c_codegen(c_codegen) {
         node_context.push_back(parser.root);
+
         // Reserve space and index for all vtables.
         for (auto udt : st.udttable) {
             udt->vtable_start = (int)vtables.size();
             vtables.insert(vtables.end(), udt->dispatch_table.size(), -1);
         }
-        // Pre-load some types into the table, must correspond to order of type_elem_t enums.
-                                                            GetTypeTableOffset(type_int);
-                                                            GetTypeTableOffset(type_float);
-                                                            GetTypeTableOffset(type_string);
-                                                            GetTypeTableOffset(type_resource);
-                                                            GetTypeTableOffset(type_any);
-        Type type_valuebuf(V_VALUEBUF);                     GetTypeTableOffset(&type_valuebuf);
-                                                            GetTypeTableOffset(type_vector_int);
-                                                            GetTypeTableOffset(type_vector_float);
-        Type type_vec_str(V_VECTOR, &*type_string);         GetTypeTableOffset(&type_vec_str);
-        Type type_v_v_int(V_VECTOR, &*type_vector_int);     GetTypeTableOffset(&type_v_v_int);
-        Type type_v_v_float(V_VECTOR, &*type_vector_float); GetTypeTableOffset(&type_v_v_float);
-                                                            GetTypeTableOffset(type_vector_resource);
-        assert(type_table.size() == TYPE_ELEM_FIXED_OFFSET_END);
+
+        // Pre-load some types into the table, must correspond to type_elem_t enums.
+        Type type_valuebuf(V_VALUEBUF);
+        Type type_vec_str(V_VECTOR, &*type_string);        
+        Type type_v_v_int(V_VECTOR, &*type_vector_int);    
+        Type type_v_v_float(V_VECTOR, &*type_vector_float);
+        TypeRef type_vector_float4 = st.GetVectorType(V_FLOAT, 1, 4);
+        TypeRef type_vector_vector_float4 = st.GetVectorType(V_FLOAT, 2, 4);
+        type_elem_t o = TYPE_ELEM_UNDEFINED;
+        o = GetTypeTableOffset(type_int);                  assert(o == TYPE_ELEM_INT);
+        o = GetTypeTableOffset(type_float);                assert(o == TYPE_ELEM_FLOAT);
+        o = GetTypeTableOffset(type_string);               assert(o == TYPE_ELEM_STRING);
+        o = GetTypeTableOffset(type_resource);             assert(o == TYPE_ELEM_RESOURCE);
+        o = GetTypeTableOffset(type_any);                  assert(o == TYPE_ELEM_ANY);
+        o = GetTypeTableOffset(&type_valuebuf);            assert(o == TYPE_ELEM_VALUEBUF);
+        o = GetTypeTableOffset(type_vector_int);           assert(o == TYPE_ELEM_VECTOR_OF_INT);
+        o = GetTypeTableOffset(type_vector_float);         assert(o == TYPE_ELEM_VECTOR_OF_FLOAT);
+        o = GetTypeTableOffset(&type_vec_str);             assert(o == TYPE_ELEM_VECTOR_OF_STRING);
+        o = GetTypeTableOffset(&type_v_v_int);             assert(o == TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
+        o = GetTypeTableOffset(&type_v_v_float);           assert(o == TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT);
+        o = GetTypeTableOffset(type_vector_resource);      assert(o == TYPE_ELEM_VECTOR_OF_RESOURCE);
+        o = GetTypeTableOffset(type_vector_float4);        assert(o == TYPE_ELEM_VECTOR_OF_FLOAT4);
+        o = GetTypeTableOffset(type_vector_vector_float4); assert(o == TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4);
+
         for (auto f : parser.st.functiontable) {
             if (!f->istype) {
                 for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
@@ -314,6 +325,7 @@ struct CodeGen  {
                 }
             }
         }
+
         int sidx = 0;
         for (auto sid : st.specidents) {
             if (!sid->type.Null() && !sid->constprop) {  // Null ones are in unused functions.
@@ -326,6 +338,7 @@ struct CodeGen  {
                     sids.push_back(metadata::SpecIdent(sid->id->idx, tti, sid->used_as_freevar, sid->idx));
             }
         }
+
         auto max_ser_ids = parser.serializable_id_max + 1;
         ser_ids.resize(max_ser_ids, (type_elem_t)-1);
         for (auto udt : parser.st.udttable) {
