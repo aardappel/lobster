@@ -1960,6 +1960,8 @@ struct Parser {
         }
         // Check for field reference in function with :: arguments.
         if (field) {
+            assert(fieldid);
+            fieldid->Read();
             return new Dot(field, lex, new IdentRef(lex, fieldid->cursid));
         }
         // Check any non-lexical-scope freevars.
