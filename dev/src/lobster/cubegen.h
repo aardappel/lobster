@@ -56,7 +56,7 @@ struct Voxels : lobster::Resource {
     void Copy(const int3 &p, const int3 &sz, const int3 &dest, const int3 &flip) {
         Do(p, sz, [&](const int3 &pos, uint8_t &vox) {
             auto d = (pos - p) * flip + dest;
-            if (d >= int3_0 && d < grid.dim) grid.Get(d) = vox;
+            if (all(d >= int3_0) && all(d < grid.dim)) grid.Get(d) = vox;
         });
     }
 
@@ -64,7 +64,7 @@ struct Voxels : lobster::Resource {
         const_cast<Voxels &>(src).Do(src_p, sz, [&](const int3 &pos, uint8_t &vox) {
             auto d = (pos - src_p) * flip + dst_p;
             if (vox == transparant) return;
-            if (d >= int3_0 && d < grid.dim) grid.Get(d) = vox;
+            if (all(d >= int3_0) && all(d < grid.dim)) grid.Get(d) = vox;
         });
     }
 

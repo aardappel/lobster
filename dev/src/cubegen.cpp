@@ -252,7 +252,7 @@ Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zof
                 auto pos = int3(x, y, z);
                 auto spos = pos + off;
                 uint8_t np = transparant;
-                if (spos >= 0 && spos < grid.dim) {
+                if (all(spos >= 0) && all(spos < grid.dim)) {
                     auto &dgc = grid.Get(spos);
                     np = v.Color2Palette(float4(color2vec(dgc.color).xyz(), dgc.dist <= 0));
                 }
@@ -513,7 +513,7 @@ nfr("stretch", "newsize,world", "I}:3R:voxels", "R:voxels", "",
     [](StackPtr &sp, VM &vm) {
         auto &v = GetVoxels(Pop(sp));
         auto ns = PopVec<int3>(sp);
-        if (!(v.grid.dim <= ns) || !(ns < 256))
+        if (!(all(v.grid.dim <= ns)) || !(all(ns < 256)))
             vm.Error("cg.stretch: newsize out of range");
         auto &d = *NewWorld(ns, v.palette_idx);
         auto delta = ns - v.grid.dim;
@@ -575,8 +575,8 @@ nfr("create_mesh", "block", "R:voxels", "R:mesh",
                     if (c != transparant) {
                         for (int n = 0; n < 6; n++) {
                             auto npos = pos + neighbors[n];
-                            auto nc = npos >= 0 && npos < v.grid.dim ? v.grid.Get(npos)
-                                                                     : transparant;
+                            auto nc = all(npos >= 0) && all(npos < v.grid.dim) ? v.grid.Get(npos)
+                                                                               : transparant;
                             if (nc == transparant) {
                                 auto face = faces[n];
                                 int vindices[4];
@@ -790,7 +790,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                     for (int i = 0; i < numvoxels; i++) {
                         auto vox = byte4((vp + i * 4));
                         auto pos = int3(vox.xyz());
-                        if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
+                        if (all(pos < voxels->grid.dim)) voxels->grid.Get(pos) = vox.w;
                     }
                 } else if (!strncmp(id, "MAIN", 4)) {
                     // Ignore, wrapper around the above chunks.
@@ -1042,7 +1042,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                         auto& rot = node_rots[node_id];
                         v.grid.Rotate(rot);
                         // Adjust pivot point due to rotation.
-                        v.offset -= sign(int3_1 * rot).eq(-1) * (v.grid.dim & 1);
+                        v.offset -= sign(int3_1 * rot).equal(-1) * (v.grid.dim & 1);
                     }
                     auto it = node_offset.find(node_id);
                     if (it != node_offset.end()) {
@@ -1074,7 +1074,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
             auto p = (const uint8_t *)buf_c_str;
             int3 size = int3((int *)p);
             p += sizeof(int3);
-            if (!(size > 0) || !(size <= 1024)) return errf("voxlap XYZ size out of range");
+            if (!all(size > 0) || !all(size <= 1024)) return errf("voxlap XYZ size out of range");
             auto vol = size.volume();
             if (vol + voxlap_palette_size + sizeof(int3) != buf_size)
                 return errf("voxlap XYZ size does not match file size");
@@ -1218,7 +1218,7 @@ nfr("save_vox", "block,name", "R:voxelsS", "B",
     " this format can only save blocks <= 256^3, will fail if bigger",
     [](StackPtr &, VM &, Value wid, Value name) {
         auto &v = GetVoxels(wid);
-        if (!(v.grid.dim <= 256)) { return Value(false); }
+        if (!all(v.grid.dim <= 256)) { return Value(false); }
         vector<byte4> voxels;
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
@@ -1319,7 +1319,7 @@ nfr("average_surface_color", "world", "R:voxels", "F}:3III}:3I}:3", "",
 						// Only count voxels that lay on the surface for color average.
 						for (int i = 0; i < 6; i++) {
 							auto p = pos + neighbors[i];
-							if (!(p >= 0) || !(p < v.grid.dim) || !v.grid.Get(p)) {
+							if (!all(p >= 0) || !all(p < v.grid.dim) || !v.grid.Get(p)) {
                                 if (!cache_set[c]) {
                                     srgb_cache[c] = from_srgb(float3(palette[c].xyz()) / 255.0f);
                                     cache_set[c] = true;
@@ -1554,7 +1554,7 @@ nfr("erode", "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "",
                             for (int zd = -1; zd <= 1; zd++) {
                                 auto vd = int3(xd, yd, zd);
                                 auto pp = pos + vd;
-                                if (pp >= 0 && pp < v.grid.dim) {
+                                if (all(pp >= 0) && all(pp < v.grid.dim)) {
                                     auto n = v.grid.Get(pp);
                                     if (n) {
                                         nsolid++;
@@ -1590,7 +1590,7 @@ nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
                 for (int y = -rad; y <= rad; y++) {
                     for (int z = -rad; z <= rad; z++) {
                         int3 s = int3(x, y, z) + c;
-                        if (!(s < v.grid.dim && s >= 0) || v.grid.Get(s) == 0) {
+                        if (!(all(s < v.grid.dim) && all(s >= 0)) || v.grid.Get(s) == 0) {
                             normal += s - c;
                         }
                     }
@@ -1613,7 +1613,7 @@ nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
                         continue;
                     }
                     // If the voxel is on the edge of the model it is visible.
-                    if (max(pos.eq(0)) != 1 && max(pos.eq(v.grid.dim - 1)) != 1) {
+                    if (max(pos.equal(0)) != 1 && max(pos.equal(v.grid.dim - 1)) != 1) {
                         // Check the 6 neighbors, if any are empty, it is visble.
                         for (int i = 0; i < 6; i++) {
                             if (v.grid.Get(pos + neighbors[i]) == 0) goto visible;
@@ -1670,7 +1670,7 @@ nfr("load_image", "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
                             for (int e = 1; e <= edge; e++) {
                                 for (int c = 0; c < 4; c++) {
                                     auto p = int2(x, y) + neighbors[c] * e;
-                                    if (!(p >= 0 && p < dim) || Get(p).w < 0x80) {
+                                    if (!(all(p >= 0) && all(p < dim)) || Get(p).w < 0x80) {
                                         ndist = edge - e + 1;
                                         goto done;
                                     }

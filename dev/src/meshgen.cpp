@@ -78,7 +78,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
     void FillGrid(const int3 &start, const int3 &end, DistGrid *distgrid,
                   const float3 &gridscale, const float3 &gridtrans,
                   const float3x3 &gridrot, ThreadPool &threadpool) const override {
-        assert(end <= distgrid->dim && int3(0) <= start);
+        assert(all(end <= distgrid->dim) && all(int3(0) <= start));
         auto uniform_scale = average(size);
         max_smoothmink = max(max_smoothmink, uniform_scale * smoothmink);
         vector<future<void>> results(end.x - start.x);
@@ -213,7 +213,7 @@ struct IFLandscape : ImplicitFunctionImpl<IFLandscape> {
     float zscale = 0.0f, xyscale = 0.0f;
 
     inline float Eval(const float3 &pos) const {
-        if (!(abs(pos) <= 1)) return false;
+        if (!(all(abs(pos) <= 1))) return false;
         auto dpos = pos + float3(SimplexNoise(8, 0.5f, 1, float3(pos.xy() + 1, 0)),
                                  SimplexNoise(8, 0.5f, 1, float3(pos.xy() + 2, 0)),
                                  0) / 2;
@@ -258,7 +258,7 @@ struct Group : ImplicitFunctionImpl<Group> {
                 auto start = int3(trans - rsize * gridscale - grid_epsilon);
                 auto end   = int3(trans + rsize * gridscale + grid_epsilon + 2.0f);
                 auto bs    = end - start;
-                if (bs > 1) c->FillGrid(start, end, distgrid, scale, trans, c->rot, threadpool);
+                if (all(bs > 1)) c->FillGrid(start, end, distgrid, scale, trans, c->rot, threadpool);
             }
         }
     }
@@ -511,7 +511,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         delete dcellindices;
     } else {
         for (edge &e : edges) {
-            assert(e.fmid >= 0 && e.fmid <= float3(gridsize));
+            assert(all(e.fmid >= 0) && all(e.fmid <= float3(gridsize)));
             verts.push_back(mgvert{ e.fmid, float3_0, e.material });
         }
         triangles.assign(mctriangles.begin(), mctriangles.end());

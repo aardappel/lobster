@@ -229,18 +229,14 @@ template<typename T, int N> struct vec : basevec<T, N> {
     vec &operator/=(T e) { DOVEC(c[i] /= e); return *this; }
     vec &operator&=(T e) { DOVEC(c[i] &= e); return *this; }
 
-    bool operator<=(const vec &v) const {
-        DOVECB(true, _ && c[i] <= v.c[i]);
-    }
-    bool operator< (const vec &v) const {
-        DOVECB(true, _ && c[i] < v.c[i]);
-    }
-    bool operator>=(const vec &v) const {
-        DOVECB(true, _ && c[i] >= v.c[i]);
-    }
-    bool operator> (const vec &v) const {
-        DOVECB(true, _ && c[i] > v.c[i]);
-    }
+    // NOTE:
+    // == implies "all"
+    // != implies "any"
+    // The other 4 comparators return a bool vec and need explicit all/any.
+    // This is the same system as both Lobster and GLSL use, so best for portability.
+    // GLSL additionally has vector equal/notEqual which we also provide.
+    // GLSL wants lessThan etc instead of <, but we allow both, to match Lobster also.
+
     bool operator==(const vec &v) const {
         DOVECB(true, _ && c[i] == v.c[i]);
     }
@@ -248,26 +244,30 @@ template<typename T, int N> struct vec : basevec<T, N> {
         DOVECB(false, _ || c[i] != v.c[i]);
     }
 
-    bool operator<=(T e) const { DOVECB(true, _ && c[i] <= e); }
-    bool operator< (T e) const { DOVECB(true, _ && c[i] <  e); }
-    bool operator>=(T e) const { DOVECB(true, _ && c[i] >= e); }
-    bool operator> (T e) const { DOVECB(true, _ && c[i] >  e); }
-    bool operator==(T e) const { DOVECB(true, _ && c[i] == e); }
-    bool operator!=(T e) const { DOVECB(false, _ || c[i] != e); }
+    bool operator==(T e) const {
+        DOVECB(true, _ && c[i] == e);
+    }
+    bool operator!=(T e) const {
+        DOVECB(false, _ || c[i] != e);
+    }
 
-    vec<int, N> lte(T e) const { DOVECRI(c[i] <= e); }
-    vec<int, N> lt (T e) const { DOVECRI(c[i] <  e); }
-    vec<int, N> gte(T e) const { DOVECRI(c[i] >= e); }
-    vec<int, N> gt (T e) const { DOVECRI(c[i] >  e); }
-    vec<int, N> eq (T e) const { DOVECRI(c[i] == e); }
-    vec<int, N> ne (T e) const { DOVECRI(c[i] != e); }
+    vec<int, N> operator<=(T e) const { DOVECRI(c[i] <= e); }
+    vec<int, N> operator< (T e) const { DOVECRI(c[i] <  e); }
+    vec<int, N> operator>=(T e) const { DOVECRI(c[i] >= e); }
+    vec<int, N> operator> (T e) const { DOVECRI(c[i] >  e); }
 
-    vec<int, N> lte(const vec &v) const { DOVECRI(c[i] <= v.c[i]); }
-    vec<int, N> lt (const vec &v) const { DOVECRI(c[i] <  v.c[i]); }
-    vec<int, N> gte(const vec &v) const { DOVECRI(c[i] >= v.c[i]); }
-    vec<int, N> gt (const vec &v) const { DOVECRI(c[i] >  v.c[i]); }
-    vec<int, N> eq (const vec &v) const { DOVECRI(c[i] == v.c[i]); }
-    vec<int, N> ne (const vec &v) const { DOVECRI(c[i] != v.c[i]); }
+    vec<int, N> operator<=(const vec &v) const { DOVECRI(c[i] <= v.c[i]); }
+    vec<int, N> operator< (const vec &v) const { DOVECRI(c[i] <  v.c[i]); }
+    vec<int, N> operator>=(const vec &v) const { DOVECRI(c[i] >= v.c[i]); }
+    vec<int, N> operator> (const vec &v) const { DOVECRI(c[i] >  v.c[i]); }
+
+    // GLSL compat bool vector result.
+
+    vec<int, N> equal             (T e) const { DOVECRI(c[i] == e); }
+    vec<int, N> not_equal         (T e) const { DOVECRI(c[i] != e); }
+
+    vec<int, N> equal             (const vec &v) const { DOVECRI(c[i] == v.c[i]); }
+    vec<int, N> not_equal         (const vec &v) const { DOVECRI(c[i] != v.c[i]); }
 
     vec iflt(T e, const vec &a, const vec &b) const {
         DOVECR(c[i] < e ? a.c[i] : b.c[i]);
@@ -421,6 +421,13 @@ template<typename T, int N> inline T min(const vec<T,N> &a) {
 }
 template<typename T, int N> inline T max(const vec<T,N> &a) {
     DOVECF(-std::numeric_limits<T>::max(), std::max(a.c[i], _));
+}
+
+template<typename T, int N> inline bool all(const vec<T,N> &v) {
+    DOVECB(true, _ && v.c[i] != (T)0);
+}
+template<typename T, int N> inline bool any(const vec<T,N> &v) {
+    DOVECB(false, _ || v.c[i] != (T)0);
 }
 
 template<typename T, int N> inline T sum(const vec<T,N> &a) {
@@ -1145,7 +1152,7 @@ bool line_intersect(const vec<T, 2> &l1a, const vec<T, 2> &l1b, const vec<T, 2> 
 // Vector from a point to the closest point on a box.
 template<typename T, int N>
 const vec<T, N> point_to_box(const vec<T, N> &p, const vec<T, N> &bmin, const vec<T, N> &bmax) {
-    return std::max(bmin - p, std::max(vec<T, N>((T)0), p - bmax));
+    return geom::max(bmin - p, geom::max(vec<T, N>((T)0), p - bmax));
 }
 
 template<typename T, int N>
