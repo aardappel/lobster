@@ -283,9 +283,18 @@ struct Parser {
             }
             case T_PREFERFREE: {
                 lex.Next();
-                if (lex.token != T_VAR && lex.token != T_CONST)
-                    Error("nonlocal must be followed by var or let");
-                list->Add(ParseDefine(isprivate, false, true));
+                if (lex.token == T_FROM) {
+                    lex.Next();
+                    for (;;) {
+                        auto id = ExpectId();
+                        st.declared_explicit_free_variables.insert(id);
+                        if (!IsNext(T_COMMA)) break;
+                    }
+                } else {
+                    if (lex.token != T_VAR && lex.token != T_CONST)
+                        Error("nonlocal must be followed by var, let or from");
+                    list->Add(ParseDefine(isprivate, false, true));
+                }
                 break;
             }
             case T_STATIC:
@@ -889,6 +898,11 @@ struct Parser {
                         if (id == fvd->name) {
                             Warn("explicit free variable shadowing: ", Q(id));
                         }
+                    }
+                }
+                if (!st.declared_explicit_free_variables.empty()) {
+                    if (!st.declared_explicit_free_variables.count(id)) {
+                        Error("explicit free variable not declared in ", Q("nonlocal from"), " : ", Q(id));
                     }
                 }
                 UnTypeRef type = (UnType *)nullptr;

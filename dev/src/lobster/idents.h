@@ -682,6 +682,8 @@ struct SymbolTable {
     string_view current_namespace;
     vector<string_view> namespace_stack;
 
+    set<string_view> declared_explicit_free_variables;
+
     // FIXME: because we cleverly use string_view's into source code everywhere, we now have
     // no way to refer to constructed strings, and need to store them seperately :(
     // TODO: instead use larger buffers and constuct directly into those, so no temp string?
