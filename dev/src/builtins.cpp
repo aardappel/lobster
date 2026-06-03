@@ -931,15 +931,17 @@ nfr("rnd_seed", "seed", "I", "",
         return NilVal();
     });
 
-nfr("rnd_select", "index", "I", "",
-    "select a different random number generator to be active. default is 0, max is 1000000",
+nfr("rnd_select", "index", "I", "I",
+    "select a different random number generator to be active. default is 0, max is 1000000."
+    " returns previous value.",
     [](StackPtr &, VM &vm, Value idx) {
         auto i = idx.ival();
         if (i > 1000000) vm.BuiltinError("rnd_select: too many random number generators");
+        auto old = vm.active_rng;
         vm.active_rng = (size_t)i;
         if (vm.active_rng >= vm.rndx.size())
             vm.rndx.resize(vm.active_rng + 1, RandomNumberGenerator<Xoshiro256SS>());
-        return NilVal();
+        return Value(old);
     });
 
 nfr("rndm", "max", "I", "I",
