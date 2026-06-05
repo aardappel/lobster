@@ -248,10 +248,7 @@ nfr("set_shader", "id,shadername", "R:fixture?S", "",
     [](StackPtr &, VM &vm, Value fixture_id, Value shader) {
         auto &r = GetRenderable(vm, fixture_id);
         auto sh = LookupShader(shader.sval()->strv());
-        if (sh.get()) {
-            r.sh.reset();
-            r.sh = sh;
-        }
+        if (sh.get()) r.sh = sh;
         return NilVal();
     });
 

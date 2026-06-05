@@ -25,3 +25,16 @@ extern lobster::Value UpdateBufferObjectResource(lobster::VM &vm, lobster::Value
 extern void BindBufferObjectResource(lobster::VM &vm, lobster::Value buf, string_view_nt name);
 
 extern Texture GetTexture(const lobster::Value res);
+
+struct GraphicsState {
+    Primitive polymode = PRIM_FAN;
+    bool cull_front = true;
+    lobster::LResourceRefCPointer<Shader> currentshader;
+    float3 lasthitsize = float3_0;
+    float3 lastframehitsize = float3_0;
+    bool graphics_initialized = false;
+    lobster::LResourceRefCPointer<Shader> fonttexturedshader;
+    map<string, lobster::LResourceRefCPointer<Shader>, less<>> shadermap;
+};
+
+extern GraphicsState *gs;

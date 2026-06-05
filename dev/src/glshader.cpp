@@ -21,17 +21,14 @@
 #include "lobster/glincludes.h"
 #include "lobster/sdlinterface.h"
 
+#include "lobster/graphics.h"
+
 lobster::ResourceType shader_type = { "shader" };
-map<string, lobster::LResourceRefCPointer<Shader>, less<>> shadermap;
 
 lobster::LResourceRefCPointer<Shader> LookupShader(string_view name) {
-    auto shi = shadermap.find(name);
-    if (shi != shadermap.end()) return shi->second;
+    auto shi = gs->shadermap.find(name);
+    if (shi != gs->shadermap.end()) return shi->second;
     return {};
-}
-
-void ShaderShutDown() {
-    shadermap.clear();
 }
 
 string GLSLError(int obj, bool isprogram, const char *source) {
@@ -151,7 +148,7 @@ string ParseMaterialFile(string_view mbuf, string_view prefix, lobster::VM &vm) 
             if (!err.empty()) {
                 return true;
             }
-            shadermap[shader] = lobster::LResourceRefCPointer<Shader>(vm.NewResource(&shader_type, sh.release()), vm);
+            gs->shadermap[shader] = lobster::LResourceRefCPointer<Shader>(vm.NewResource(&shader_type, sh.release()), vm);
             shader.clear();
         }
         return false;

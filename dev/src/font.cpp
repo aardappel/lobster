@@ -19,6 +19,8 @@
 #include "lobster/glinterface.h"
 #include "lobster/fontrenderer.h"
 
+#include "lobster/graphics.h"
+
 using namespace lobster;
 
 map<string, BitmapFont *> fontcache;
@@ -30,9 +32,6 @@ int maxfontsize = 256;
 map<string, OutlineFont *, less<>> loadedfaces;
 OutlineFont *curface = nullptr;
 string curfacename;
-
-extern LResourceRefCPointer<Shader> currentshader;
-LResourceRefCPointer<Shader> texturedshader;
 
 void CullFonts() {
     for(auto it = fontcache.begin(); it != fontcache.end(); ) {
@@ -55,11 +54,11 @@ void FontCleanup() {
     loadedfaces.clear();
     curface = nullptr;
     FTClosedown();
-    texturedshader.reset();
+    gs->fonttexturedshader.reset();
 }
 
 void SetDefaultFontShader() {
-    texturedshader = LookupShader("textured");
+    gs->fonttexturedshader = LookupShader("textured");
 }
 
 void AddFont(NativeRegistry &nfr) {
@@ -148,8 +147,8 @@ nfr("text", "text", "S", "Sb",
             otransforms.append_object2view(scaling(curfontsize / float(maxfontsize)));
         }
         SetTexture(0, f->tex);
-        if (texturedshader.get()) texturedshader->Set();
-        else currentshader->Set();
+        if (gs->fonttexturedshader.get()) gs->fonttexturedshader->Set();
+        else gs->currentshader->Set();
         f->RenderText(s.sval()->strv());
         if (curfontsize > maxfontsize) {
             otransforms.pop();
@@ -190,7 +189,7 @@ nfr("use_default_font_shader", "on", "B", "",
         if (on.True())  {
             SetDefaultFontShader();
         } else {
-            texturedshader.reset();
+            gs->fonttexturedshader.reset();
         }
         return NilVal();
     });

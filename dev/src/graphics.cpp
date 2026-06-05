@@ -23,12 +23,7 @@
 
 using namespace lobster;
 
-Primitive polymode = PRIM_FAN;
-bool cull_front = true;
-LResourceRefCPointer<Shader> currentshader;
-float3 lasthitsize = float3_0;
-float3 lastframehitsize = float3_0;
-bool graphics_initialized = false;
+GraphicsState *gs = nullptr;
 
 ResourceType mesh_type = { "mesh" };
 ResourceType texture_type = { "texture" };
@@ -59,8 +54,10 @@ void GraphicsShutDown() {
     extern void CubeGenClear(); CubeGenClear();
     extern void FontCleanup(); FontCleanup();
     extern void IMGUICleanup(); IMGUICleanup();
-    currentshader.reset();
-    ShaderShutDown();
+    if (gs) {
+        delete gs;
+        gs = nullptr;
+    }
     OpenGLCleanup();
     SDLSoundClose();
     SDLShutdown();
@@ -68,24 +65,24 @@ void GraphicsShutDown() {
     // reinitialized
     #ifdef __ANDROID__
         // FIXME: really only allow this if the app has been killed
-        graphics_initialized = false;
+        gs = nullptr;
     #endif
 }
 
 void ResetShader() {
-    currentshader = LookupShader("color");
-    assert(currentshader.get());
+    gs->currentshader = LookupShader("color");
+    assert(gs->currentshader.get());
 }
 
 // Runs both at graphics init and frame start.
 void GraphicsReset() {
-    lastframehitsize = lasthitsize;
-    lasthitsize = float3_0;
+    gs->lastframehitsize = gs->lasthitsize;
+    gs->lasthitsize = float3_0;
     OpenGLFrameStart(GetScreenSize());
     Set2DMode(GetScreenSize(), true);
     ResetShader();
-    polymode = PRIM_FAN;
-    CullFront(cull_front = true);
+    gs->polymode = PRIM_FAN;
+    CullFront(gs->cull_front = true);
 }
 
 bool GraphicsFrameStart() {
@@ -101,7 +98,7 @@ bool GraphicsFrameStart() {
 }
 
 void TestGL(VM &vm) {
-    if (!graphics_initialized)
+    if (!gs)
         vm.BuiltinError("graphics system not initialized yet, call gl.window() first");
 }
 
@@ -149,26 +146,26 @@ Mesh *CreatePolygon(VM &vm, Value vl, bool render) {
         vbuf[i].norm = norm;
     }
     if (render) {
-        currentshader->Set();
-        RenderArraySlow("CreatePolygon", polymode, span(vbuf), "PNTC");
+        gs->currentshader->Set();
+        RenderArraySlow("CreatePolygon", gs->polymode, span(vbuf), "PNTC");
         return nullptr;
     } else {
-        auto m = new Mesh(new Geometry("CreatePolygon", span(vbuf), "PNTC"), polymode);
+        auto m = new Mesh(new Geometry("CreatePolygon", span(vbuf), "PNTC"), gs->polymode);
         return m;
     }
 }
 
 Value SetUniform(VM &vm, Value name, const float *data, int len) {
     TestGL(vm);
-    currentshader->Activate();
-    auto ok = currentshader->SetUniform(name.sval()->strvnt(), data, len);
+    gs->currentshader->Activate();
+    auto ok = gs->currentshader->SetUniform(name.sval()->strvnt(), data, len);
     return Value(ok);
 }
 
 Value SetUniform(VM &vm, Value name, const int *data, int len) {
     TestGL(vm);
-    currentshader->Activate();
-    auto ok = currentshader->SetUniform(name.sval()->strvnt(), data, len);
+    gs->currentshader->Activate();
+    auto ok = gs->currentshader->SetUniform(name.sval()->strvnt(), data, len);
     return Value(ok);
 }
 
@@ -182,7 +179,7 @@ Value UpdateBufferObjectResource(VM &vm, Value buf, const void *data, size_t len
 void BindBufferObjectResource(VM &vm, Value buf, string_view_nt name) {
     assert(buf.True());
     auto bo = &GetBufferObject(buf);
-    auto ok = BindBufferObject(currentshader.get(), bo, name);
+    auto ok = BindBufferObject(gs->currentshader.get(), bo, name);
     if (!ok) vm.BuiltinError("bufferobject binding failed");
 }
 
@@ -225,8 +222,9 @@ nfr("window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
     "opens a window for OpenGL rendering. returns error string if any problems, nil"
     " otherwise. For flags, see modules/gl.lobster",
     [](StackPtr &, VM &vm, Value title, Value xs, Value ys, Value flags, Value samples) {
-        if (graphics_initialized)
+        if (gs)
             vm.BuiltinError("cannot call gl.window() twice");
+        gs = new GraphicsState();
         string err = SDLInit(title.sval()->strvnt(), int2(iint2(xs.ival(), ys.ival())),
                              (InitFlags)flags.intval(), max(1, samples.intval()));
         if (err.empty()) {
@@ -236,11 +234,9 @@ nfr("window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
             LOG_INFO(err);
             return Value(vm.NewString(err));
         }
-        ResetShader();
         GraphicsReset();
-        LOG_INFO("graphics fully initialized...");
         vm.engine_shutdown = GraphicsShutDown;
-        graphics_initialized = true;
+        LOG_INFO("graphics fully initialized...");
         return NilVal();
     });
 
@@ -561,7 +557,7 @@ nfr("rounded_rectangle", "size,segments,corner_ratio", "F}:2IF", "",
         auto corner_ratio = Pop(sp).fltval();
         auto segments = Pop(sp).intval();
         auto size = PopVec<float2>(sp);
-        geomcache->RenderRoundedRectangle(currentshader.get(), polymode, max(segments, 12), size, corner_ratio);
+        geomcache->RenderRoundedRectangle(gs->currentshader.get(), gs->polymode, max(segments, 12), size, corner_ratio);
     });
 
 nfr("rounded_rectangle_border", "size,segments,corner_ratio,border_thickness", "F}:2IFF", "",
@@ -571,7 +567,7 @@ nfr("rounded_rectangle_border", "size,segments,corner_ratio,border_thickness", "
         auto corner_ratio = Pop(sp).fltval();
         auto segments = Pop(sp).intval();
         auto size = PopVec<float2>(sp);
-        geomcache->RenderRoundedRectangleBorder(currentshader.get(), max(segments, 12), size,
+        geomcache->RenderRoundedRectangleBorder(gs->currentshader.get(), max(segments, 12), size,
                                                 corner_ratio, border_thickness);
     });
 
@@ -579,7 +575,7 @@ nfr("circle", "radius,segments", "FI", "",
     "renders a circle",
     [](StackPtr &, VM &vm, Value radius, Value segments) {
         TestGL(vm);
-        geomcache->RenderCircle(currentshader.get(), polymode, max(segments.intval(), 3), radius.fltval());
+        geomcache->RenderCircle(gs->currentshader.get(), gs->polymode, max(segments.intval(), 3), radius.fltval());
         return NilVal();
     });
 
@@ -589,7 +585,7 @@ nfr("open_circle", "radius,segments,thickness", "FIF", "",
     [](StackPtr &, VM &vm, Value radius, Value segments, Value thickness) {
         TestGL(vm);
 
-        geomcache->RenderOpenCircle(currentshader.get(), max(segments.intval(), 3), radius.fltval(),
+        geomcache->RenderOpenCircle(gs->currentshader.get(), max(segments.intval(), 3), radius.fltval(),
                                     thickness.fltval());
 
         return NilVal();
@@ -599,7 +595,7 @@ nfr("unit_cube", "insideout", "I?", "",
     "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
     " out",
     [](StackPtr &, VM &, Value inside) {
-        geomcache->RenderUnitCube(currentshader.get(), inside.True());
+        geomcache->RenderUnitCube(gs->currentshader.get(), inside.True());
         return NilVal();
     });
 
@@ -724,18 +720,18 @@ nfr("point_scale", "factor", "F", "",
 nfr("line_mode", "on", "I", "I",
     "set line mode (true == on), returns previous mode",
     [](StackPtr &sp, VM &) {
-        auto oldmode = polymode;
+        auto oldmode = gs->polymode;
         auto on = Pop(sp);
-        polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
+        gs->polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         Push(sp, oldmode == PRIM_LOOP);
     });
 
 nfr("cull_front", "on", "B", "B",
     "set culling front (true) or back (false), returns previous value.",
     [](StackPtr &sp, VM &) {
-        auto oldmode = cull_front;
-        cull_front = Pop(sp).True();
-        CullFront(cull_front);
+        auto oldmode = gs->cull_front;
+        gs->cull_front = Pop(sp).True();
+        CullFront(gs->cull_front);
         Push(sp, oldmode);
     });
 
@@ -752,7 +748,7 @@ nfr("hit", "vec,i", "F}I", "B",
                    localmousepos.y >= 0 &&
                    localmousepos.x < size.x &&
                    localmousepos.y < size.y;
-        if (hit) lasthitsize = size;
+        if (hit) gs->lasthitsize = size;
         /*
         #ifdef PLATFORM_TOUCH
         // Inefficient for fingers other than 0, which is going to be rare.
@@ -765,7 +761,7 @@ nfr("hit", "vec,i", "F}I", "B",
         if (ks.wentdown && hit) return true;
         #endif
         */
-        Push(sp,  size == lastframehitsize && hit);
+        Push(sp,  size == gs->lastframehitsize && hit);
     });
 
 nfr("rect", "size,centered", "F}:2I?", "",
@@ -775,7 +771,7 @@ nfr("rect", "size,centered", "F}:2I?", "",
         auto centered = Pop(sp).True();
         auto vec = PopVec<float2>(sp);
         TestGL(vm);
-        geomcache->RenderQuad(currentshader.get(), polymode, centered,
+        geomcache->RenderQuad(gs->currentshader.get(), gs->polymode, centered,
                               float4x4(float4(vec, 1)));
     });
 
@@ -798,7 +794,7 @@ nfr("rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
             { sz.x, sz.y, 0, te.x, te.y, _GETCOL(2) },
             { sz.x, 0,    0, te.x, t.y,  _GETCOL(3) }
         };
-        currentshader->Set();
+        gs->currentshader->Set();
         RenderArraySlow("gl.rect_tc_col", PRIM_FAN, span(vb_square, 4), "PTC");
     });
 
@@ -806,7 +802,7 @@ nfr("unit_square", "centered", "I?", "",
     "renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)",
     [](StackPtr &, VM &vm, Value centered) {
         TestGL(vm);
-        geomcache->RenderUnitSquare(currentshader.get(), polymode, centered.True());
+        geomcache->RenderUnitSquare(gs->currentshader.get(), gs->polymode, centered.True());
         return NilVal();
     });
 
@@ -817,8 +813,8 @@ nfr("line", "start,end,thickness", "F}F}1F", "",
         auto thickness = Pop(sp).fltval();
         auto v2 = PopVec<float3>(sp);
         auto v1 = PopVec<float3>(sp);
-        if (Is2DMode()) geomcache->RenderLine2D(currentshader.get(), polymode, v1, v2, thickness);
-        else geomcache->RenderLine3D(currentshader.get(), v1, v2, float3_0, thickness);
+        if (Is2DMode()) geomcache->RenderLine2D(gs->currentshader.get(), gs->polymode, v1, v2, thickness);
+        else geomcache->RenderLine3D(gs->currentshader.get(), v1, v2, float3_0, thickness);
     });
 
 nfr("perspective", "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,nodepth", "FFFI}:2?I}:2?I?", "",
@@ -1030,7 +1026,7 @@ nfr("render_mesh", "m", "R:mesh", "",
     "renders the specified mesh",
     [](StackPtr &, VM &vm, Value i) {
         TestGL(vm);
-        GetMesh(i).Render(currentshader.get());
+        GetMesh(i).Render(gs->currentshader.get());
         return NilVal();
     });
 
@@ -1061,8 +1057,8 @@ nfr("set_shader", "shader", "S", "",
     " color / textured / phong",
     [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
-        currentshader = LookupShader(shader.sval()->strv());
-        if (!currentshader.get()) vm.BuiltinError("no such shader: " + shader.sval()->strv());
+        gs->currentshader = LookupShader(shader.sval()->strv());
+        if (!gs->currentshader.get()) vm.BuiltinError("no such shader: " + shader.sval()->strv());
         return NilVal();
     });
 
@@ -1070,7 +1066,7 @@ nfr("set_shader", "shader", "R:shader", "",
     "changes the current shader from a value received from gl.get_shader",
     [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
-        currentshader = shader.xval();
+        gs->currentshader = shader.xval();
         return NilVal();
     });
 
@@ -1130,8 +1126,8 @@ nfr("set_uniform_array", "name,value", "SF}:4]", "B",
         vals.reserve(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++)
             vals.push_back(ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width));
-        currentshader->Activate();
-        auto ok = currentshader->SetUniform(name.sval()->strvnt(), vals.data()->data(), 4,
+        gs->currentshader->Activate();
+        auto ok = gs->currentshader->SetUniform(name.sval()->strvnt(), vals.data()->data(), 4,
                                             (int)vals.size());
         return Value(ok);
     });
@@ -1144,8 +1140,8 @@ nfr("set_uniform_matrix", "name,value,morerows", "SF]B?", "B",
         TestGL(vm);
         vector<float> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->AtS(i).fltval();
-        currentshader->Activate();
-        auto ok = currentshader->SetUniformMatrix(name.sval()->strvnt(), vals.data(),
+        gs->currentshader->Activate();
+        auto ok = gs->currentshader->SetUniformMatrix(name.sval()->strvnt(), vals.data(),
                                                   (int)vals.size(), 1, morerows.True());
         return Value(ok);
     });
@@ -1168,7 +1164,7 @@ nfr("bind_buffer_object", "name,bo", "SR:bufferobject", "I",
     " returns false for error.",
     [](StackPtr &, VM &vm, Value name, Value buf) {
         TestGL(vm);
-        return Value(BindBufferObject(currentshader.get(), &GetBufferObject(buf), name.sval()->strvnt()));
+        return Value(BindBufferObject(gs->currentshader.get(), &GetBufferObject(buf), name.sval()->strvnt()));
     });
 
 nfr("copy_buffer_object", "source,destination,srcoffset,dstoffset,length", "R:bufferobject?R:bufferobject?III", "",
@@ -1187,7 +1183,7 @@ nfr("bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
     " unbind.",
     [](StackPtr &, VM &vm, Value mesh, Value name) {
         TestGL(vm);
-        BindAsSSBO(currentshader.get(), name.sval()->strvnt(), mesh.True() ? GetMesh(mesh).geom->vbo : 0);
+        BindAsSSBO(gs->currentshader.get(), name.sval()->strvnt(), mesh.True() ? GetMesh(mesh).geom->vbo : 0);
         return NilVal();
     });
 
@@ -1197,7 +1193,7 @@ nfr("dispatch_compute", "groups", "I}:3", "",
     [](StackPtr &sp, VM &vm) {
         auto groups = PopVec<int3>(sp);
         TestGL(vm);
-        currentshader->Set();
+        gs->currentshader->Set();
         DispatchCompute(groups);
     });
 
@@ -1207,8 +1203,8 @@ nfr("dump_shader", "filename,stripnonascii", "SB", "B",
     " pass true for stripnonascii if you're only interested in that part.",
     [](StackPtr &, VM &vm, Value filename, Value stripnonascii) {
         TestGL(vm);
-        currentshader->Activate();
-        auto ok = currentshader->DumpBinary(filename.sval()->strv(), stripnonascii.True());
+        gs->currentshader->Activate();
+        auto ok = gs->currentshader->DumpBinary(filename.sval()->strv(), stripnonascii.True());
         return Value(ok);
     });
 
@@ -1438,7 +1434,7 @@ nfr("render_tiles", "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2]I
             vbuf[i * 6 + 4].tc = t + float2_1 / msize;
             vbuf[i * 6 + 5].tc = t + float2_x / msize;
         }
-        currentshader->Set();
+        gs->currentshader->Set();
         RenderArraySlow("gl.render_tiles", PRIM_TRIS, span(vbuf), "pT");
     });
 
@@ -1457,21 +1453,21 @@ nfr("debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
         curcolor = float4(0, 1, 0, 1);
         for (float z = 0; z <= m.z; z += step.x) {
             for (float x = 0; x <= m.x; x += step.x) {
-                geomcache->RenderLine3D(currentshader.get(), float3(x, 0, z), float3(x, m.y, z), cp,
+                geomcache->RenderLine3D(gs->currentshader.get(), float3(x, 0, z), float3(x, m.y, z), cp,
                              thickness);
             }
         }
         curcolor = float4(1, 0, 0, 1);
         for (float z = 0; z <= m.z; z += step.y) {
             for (float y = 0; y <= m.y; y += step.y) {
-                geomcache->RenderLine3D(currentshader.get(), float3(0, y, z), float3(m.x, y, z), cp,
+                geomcache->RenderLine3D(gs->currentshader.get(), float3(0, y, z), float3(m.x, y, z), cp,
                     thickness);
             }
         }
         curcolor = float4(0, 0, 1, 1);
         for (float y = 0; y <= m.y; y += step.z) {
             for (float x = 0; x <= m.x; x += step.z) {
-                geomcache->RenderLine3D(currentshader.get(), float3(x, y, 0), float3(x, y, m.z), cp,
+                geomcache->RenderLine3D(gs->currentshader.get(), float3(x, y, 0), float3(x, y, m.z), cp,
                     thickness);
             }
         }

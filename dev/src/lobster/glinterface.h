@@ -258,7 +258,6 @@ extern void SetPointSprite(float size);
 extern string LoadMaterialFile(string_view mfile, string_view prefix, lobster::VM &vm);
 extern string ParseMaterialFile(string_view mfile, string_view prefix, lobster::VM &vm);
 extern lobster::LResourceRefCPointer<Shader> LookupShader(string_view name);
-extern void ShaderShutDown();
 extern void ResetProgram();
 
 extern void DispatchCompute(const int3 &groups);
