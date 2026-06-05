@@ -602,6 +602,7 @@ void VM::EndEval(StackPtr &, Value ret, const TypeInfo &ti) {
         delete_delay.pop_back();
         ro->DECDELETENOW(*this);
     }
+    if (engine_shutdown) engine_shutdown();
     DumpLeaks();
 }
 

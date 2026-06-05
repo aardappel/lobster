@@ -25,14 +25,13 @@ using namespace lobster;
 
 Primitive polymode = PRIM_FAN;
 bool cull_front = true;
-Shader *currentshader = NULL;
+LResourceRefCPointer<Shader> currentshader;
 float3 lasthitsize = float3_0;
 float3 lastframehitsize = float3_0;
 bool graphics_initialized = false;
 
 ResourceType mesh_type = { "mesh" };
 ResourceType texture_type = { "texture" };
-ResourceType shader_type = { "shader" };
 ResourceType timequery_type = { "timequery" };
 ResourceType buffer_object_type = { "bufferobject" };
 
@@ -42,9 +41,6 @@ Mesh &GetMesh(Value res) {
 Texture GetTexture(Value res) {
     if (res.False()) return Texture();
     return GetResourceDec<OwnedTexture>(res, &texture_type).t;
-}
-Shader &GetShader(Value res) {
-    return GetResourceDec<Shader>(res, &shader_type);
 }
 BufferObject &GetBufferObject(Value res) {
     return GetResourceDec<BufferObject>(res, &buffer_object_type);
@@ -63,8 +59,8 @@ void GraphicsShutDown() {
     extern void CubeGenClear(); CubeGenClear();
     extern void FontCleanup(); FontCleanup();
     extern void IMGUICleanup(); IMGUICleanup();
+    currentshader.reset();
     ShaderShutDown();
-    currentshader = NULL;
     OpenGLCleanup();
     SDLSoundClose();
     SDLShutdown();
@@ -77,9 +73,8 @@ void GraphicsShutDown() {
 }
 
 void ResetShader() {
-    auto colorshader = LookupShader("color");
-    assert(colorshader);
-    currentshader = colorshader;
+    currentshader = LookupShader("color");
+    assert(currentshader.get());
 }
 
 // Runs both at graphics init and frame start.
@@ -187,7 +182,7 @@ Value UpdateBufferObjectResource(VM &vm, Value buf, const void *data, size_t len
 void BindBufferObjectResource(VM &vm, Value buf, string_view_nt name) {
     assert(buf.True());
     auto bo = &GetBufferObject(buf);
-    auto ok = BindBufferObject(currentshader, bo, name);
+    auto ok = BindBufferObject(currentshader.get(), bo, name);
     if (!ok) vm.BuiltinError("bufferobject binding failed");
 }
 
@@ -235,7 +230,7 @@ nfr("window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
         string err = SDLInit(title.sval()->strvnt(), int2(iint2(xs.ival(), ys.ival())),
                              (InitFlags)flags.intval(), max(1, samples.intval()));
         if (err.empty()) {
-            err = LoadMaterialFile("data/shaders/default.materials", "");
+            err = LoadMaterialFile("data/shaders/default.materials", "", vm);
         }
         if (!err.empty()) {
             LOG_INFO(err);
@@ -244,8 +239,8 @@ nfr("window", "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
         ResetShader();
         GraphicsReset();
         LOG_INFO("graphics fully initialized...");
+        vm.engine_shutdown = GraphicsShutDown;
         graphics_initialized = true;
-        atexit(GraphicsShutDown);
         return NilVal();
     });
 
@@ -265,8 +260,8 @@ nfr("load_materials", "materialdefs,inline,prefix", "SI?S?", "S?",
     [](StackPtr &, VM &vm, Value fn, Value isinline, Value prefix) {
         TestGL(vm);
         auto pf = prefix.True() ? prefix.sval()->strv() : string_view{};
-        auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv(), pf)
-                                   : LoadMaterialFile(fn.sval()->strv(), pf);
+        auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv(), pf, vm)
+                                   : LoadMaterialFile(fn.sval()->strv(), pf, vm);
         ResetShader();
         return err.empty() ? NilVal() : Value(vm.NewString(err));
     });
@@ -566,7 +561,7 @@ nfr("rounded_rectangle", "size,segments,corner_ratio", "F}:2IF", "",
         auto corner_ratio = Pop(sp).fltval();
         auto segments = Pop(sp).intval();
         auto size = PopVec<float2>(sp);
-        geomcache->RenderRoundedRectangle(currentshader, polymode, max(segments, 12), size, corner_ratio);
+        geomcache->RenderRoundedRectangle(currentshader.get(), polymode, max(segments, 12), size, corner_ratio);
     });
 
 nfr("rounded_rectangle_border", "size,segments,corner_ratio,border_thickness", "F}:2IFF", "",
@@ -576,7 +571,7 @@ nfr("rounded_rectangle_border", "size,segments,corner_ratio,border_thickness", "
         auto corner_ratio = Pop(sp).fltval();
         auto segments = Pop(sp).intval();
         auto size = PopVec<float2>(sp);
-        geomcache->RenderRoundedRectangleBorder(currentshader, max(segments, 12), size,
+        geomcache->RenderRoundedRectangleBorder(currentshader.get(), max(segments, 12), size,
                                                 corner_ratio, border_thickness);
     });
 
@@ -584,7 +579,7 @@ nfr("circle", "radius,segments", "FI", "",
     "renders a circle",
     [](StackPtr &, VM &vm, Value radius, Value segments) {
         TestGL(vm);
-        geomcache->RenderCircle(currentshader, polymode, max(segments.intval(), 3), radius.fltval());
+        geomcache->RenderCircle(currentshader.get(), polymode, max(segments.intval(), 3), radius.fltval());
         return NilVal();
     });
 
@@ -594,7 +589,7 @@ nfr("open_circle", "radius,segments,thickness", "FIF", "",
     [](StackPtr &, VM &vm, Value radius, Value segments, Value thickness) {
         TestGL(vm);
 
-        geomcache->RenderOpenCircle(currentshader, max(segments.intval(), 3), radius.fltval(),
+        geomcache->RenderOpenCircle(currentshader.get(), max(segments.intval(), 3), radius.fltval(),
                                     thickness.fltval());
 
         return NilVal();
@@ -604,7 +599,7 @@ nfr("unit_cube", "insideout", "I?", "",
     "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
     " out",
     [](StackPtr &, VM &, Value inside) {
-        geomcache->RenderUnitCube(currentshader, inside.True());
+        geomcache->RenderUnitCube(currentshader.get(), inside.True());
         return NilVal();
     });
 
@@ -780,7 +775,7 @@ nfr("rect", "size,centered", "F}:2I?", "",
         auto centered = Pop(sp).True();
         auto vec = PopVec<float2>(sp);
         TestGL(vm);
-        geomcache->RenderQuad(currentshader, polymode, centered,
+        geomcache->RenderQuad(currentshader.get(), polymode, centered,
                               float4x4(float4(vec, 1)));
     });
 
@@ -811,7 +806,7 @@ nfr("unit_square", "centered", "I?", "",
     "renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)",
     [](StackPtr &, VM &vm, Value centered) {
         TestGL(vm);
-        geomcache->RenderUnitSquare(currentshader, polymode, centered.True());
+        geomcache->RenderUnitSquare(currentshader.get(), polymode, centered.True());
         return NilVal();
     });
 
@@ -822,8 +817,8 @@ nfr("line", "start,end,thickness", "F}F}1F", "",
         auto thickness = Pop(sp).fltval();
         auto v2 = PopVec<float3>(sp);
         auto v1 = PopVec<float3>(sp);
-        if (Is2DMode()) geomcache->RenderLine2D(currentshader, polymode, v1, v2, thickness);
-        else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness);
+        if (Is2DMode()) geomcache->RenderLine2D(currentshader.get(), polymode, v1, v2, thickness);
+        else geomcache->RenderLine3D(currentshader.get(), v1, v2, float3_0, thickness);
     });
 
 nfr("perspective", "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,nodepth", "FFFI}:2?I}:2?I?", "",
@@ -1035,7 +1030,7 @@ nfr("render_mesh", "m", "R:mesh", "",
     "renders the specified mesh",
     [](StackPtr &, VM &vm, Value i) {
         TestGL(vm);
-        GetMesh(i).Render(currentshader);
+        GetMesh(i).Render(currentshader.get());
         return NilVal();
     });
 
@@ -1066,9 +1061,8 @@ nfr("set_shader", "shader", "S", "",
     " color / textured / phong",
     [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
-        auto sh = LookupShader(shader.sval()->strv());
-        if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
-        currentshader = sh;
+        currentshader = LookupShader(shader.sval()->strv());
+        if (!currentshader.get()) vm.BuiltinError("no such shader: " + shader.sval()->strv());
         return NilVal();
     });
 
@@ -1076,7 +1070,7 @@ nfr("set_shader", "shader", "R:shader", "",
     "changes the current shader from a value received from gl.get_shader",
     [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
-        currentshader = &GetShader(shader);
+        currentshader = shader.xval();
         return NilVal();
     });
 
@@ -1085,8 +1079,8 @@ nfr("get_shader", "shader", "S", "R:shader",
     [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
         auto sh = LookupShader(shader.sval()->strv());
-        if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
-        return Value(vm.NewResource(&shader_type, sh)->NotOwned());
+        if (!sh.get()) vm.BuiltinError("no such shader: " + shader.sval()->strv());
+        return Value(sh.move_lresource());
     });
 
 nfr("set_uniform", "name,value", "SF}", "B",
@@ -1174,7 +1168,7 @@ nfr("bind_buffer_object", "name,bo", "SR:bufferobject", "I",
     " returns false for error.",
     [](StackPtr &, VM &vm, Value name, Value buf) {
         TestGL(vm);
-        return Value(BindBufferObject(currentshader, &GetBufferObject(buf), name.sval()->strvnt()));
+        return Value(BindBufferObject(currentshader.get(), &GetBufferObject(buf), name.sval()->strvnt()));
     });
 
 nfr("copy_buffer_object", "source,destination,srcoffset,dstoffset,length", "R:bufferobject?R:bufferobject?III", "",
@@ -1193,7 +1187,7 @@ nfr("bind_mesh_to_compute", "mesh,name", "R:mesh?S", "",
     " unbind.",
     [](StackPtr &, VM &vm, Value mesh, Value name) {
         TestGL(vm);
-        BindAsSSBO(currentshader, name.sval()->strvnt(), mesh.True() ? GetMesh(mesh).geom->vbo : 0);
+        BindAsSSBO(currentshader.get(), name.sval()->strvnt(), mesh.True() ? GetMesh(mesh).geom->vbo : 0);
         return NilVal();
     });
 
@@ -1463,21 +1457,21 @@ nfr("debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
         curcolor = float4(0, 1, 0, 1);
         for (float z = 0; z <= m.z; z += step.x) {
             for (float x = 0; x <= m.x; x += step.x) {
-                geomcache->RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y, z), cp,
+                geomcache->RenderLine3D(currentshader.get(), float3(x, 0, z), float3(x, m.y, z), cp,
                              thickness);
             }
         }
         curcolor = float4(1, 0, 0, 1);
         for (float z = 0; z <= m.z; z += step.y) {
             for (float y = 0; y <= m.y; y += step.y) {
-                geomcache->RenderLine3D(currentshader, float3(0, y, z), float3(m.x, y, z), cp,
+                geomcache->RenderLine3D(currentshader.get(), float3(0, y, z), float3(m.x, y, z), cp,
                     thickness);
             }
         }
         curcolor = float4(0, 0, 1, 1);
         for (float y = 0; y <= m.y; y += step.z) {
             for (float x = 0; x <= m.x; x += step.z) {
-                geomcache->RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z), cp,
+                geomcache->RenderLine3D(currentshader.get(), float3(x, y, 0), float3(x, y, m.z), cp,
                     thickness);
             }
         }

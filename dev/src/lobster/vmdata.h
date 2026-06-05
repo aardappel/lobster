@@ -279,7 +279,7 @@ extern ResourceType *g_resource_type_list;
 
 struct Resource : NonCopyable {
     // This is a "nested" refc, for the cases where more than 1 LResource can be constructed to
-    // point to a single Resource, e.g. with Shader.
+    // point to a single Resource.
     int refc = 0;
     virtual ~Resource() {}
     virtual size_t2 MemoryUsage() const {
@@ -305,6 +305,89 @@ struct LResource : RefObj {
     LResource *NotOwned() {
         owned = false;
         return this;
+    }
+};
+
+template <typename T> requires is_base_of_v<Resource, T> struct LResourceRefCPointer {
+private:
+    LResource *value = nullptr;
+    VM *vm = nullptr;
+
+public:
+    LResourceRefCPointer() = default;
+
+    explicit LResourceRefCPointer(LResource *value, VM &_vm) : value(value), vm(&_vm) {
+        // Since we get a value here from NewResource with a refc==1, we don't inc here.
+        assert(value->refc == 1);
+    }
+
+    LResourceRefCPointer(const LResourceRefCPointer &other) : value(other.value), vm(other.vm) {
+        if (value) value->Inc();
+    }
+
+    LResourceRefCPointer(LResourceRefCPointer &&other) : value(other.value), vm(other.vm) {
+        other.value = nullptr;
+    }
+
+    LResourceRefCPointer &operator=(const LResourceRefCPointer &rhs) {
+        reset();
+        value = rhs.value;
+        vm = rhs.vm;
+        if (value) value->Inc();
+        return *this;
+    }
+
+    LResourceRefCPointer &operator=(LResource *new_value) {
+        assert(vm);  // If assigning a default init, use a LResourceRefCPointer rhs.
+        reset();
+        value = new_value;
+        value->Inc();
+        return *this;
+    }
+
+    LResourceRefCPointer &operator=(LResourceRefCPointer &&rhs) {
+        reset();
+        value = rhs.value;
+        vm = rhs.vm;
+        rhs.value = nullptr;
+        return *this;
+    }
+
+    ~LResourceRefCPointer() {
+        reset();
+    }
+
+    void reset() {
+        if (!value) return;
+        LResource *old_value = value;
+        value = nullptr;
+        assert(vm);
+        old_value->Dec(*vm);
+    }
+
+    T *operator->() {
+        assert(value);
+        return (T *)value->res;
+    }
+
+    T &operator*() {
+        assert(value);
+        return *(T *)value->res;
+    }
+
+    T *get() {
+        assert(value);
+        return (T *)value->res;
+    }
+
+    LResource *get_lresource() {
+        return value;
+    }
+
+    LResource *move_lresource() {
+        LResource *old_value = value;
+        value = nullptr;
+        return old_value;
     }
 };
 
@@ -978,6 +1061,8 @@ struct VMBase {
     Value *temp_lval = nullptr;
 };
 
+typedef void (*EngineShutdownFunctionPtr)();
+
 struct VM : VMBase {
     VMArgs vma;
     SlabAlloc pool;
@@ -1049,6 +1134,8 @@ struct VM : VMBase {
 
     map<string_view, vector<const VMUDT *>> UDTLookup;
     void EnsureUDTLookupPopulated();
+
+    EngineShutdownFunctionPtr engine_shutdown = nullptr;
 
     // We stick this in here directly, since the constant offsets into this array in
     // compiled mode a big win.
@@ -1304,6 +1391,13 @@ template<typename T> inline void DeallocSubBuf(VM &vm, T *v, iint size) {
     auto header_sz = std::max(salignof<T>(), ssizeof<DynAlloc>());
     auto mem = ((uint8_t *)v) - header_sz;
     vm.pool.dealloc(mem, size * ssizeof<T>() + header_sz);
+}
+
+template <typename T, typename... Args> requires is_base_of_v<Resource, T>
+pair<T *, lobster::LResource *> static NewResLRes(VM &vm, lobster::ResourceType &resource_type, Args &&...args) {
+    auto *value = new T(args...);
+    auto *resource = vm.NewResource(&resource_type, value);
+    return { value, resource };
 }
 
 template<bool back> LString *WriteMem(VM &vm, LString *s, iint i, const void *data, iint size) {

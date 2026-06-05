@@ -14,19 +14,20 @@
 
 #include "lobster/stdafx.h"
 
+#include "lobster/natreg.h"
+
 #include "lobster/vmdata.h"
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 #include "lobster/sdlinterface.h"
 
-// We use a vector here because gl.get_shader may cause there to be references to
-// old versions of a shader with a given name that has since been reloaded.
-map<string, vector<unique_ptr<Shader>>, less<>> shadermap;
+lobster::ResourceType shader_type = { "shader" };
+map<string, lobster::LResourceRefCPointer<Shader>, less<>> shadermap;
 
-Shader *LookupShader(string_view name) {
+lobster::LResourceRefCPointer<Shader> LookupShader(string_view name) {
     auto shi = shadermap.find(name);
-    if (shi != shadermap.end()) return shi->second.back().get();
-    return nullptr;
+    if (shi != shadermap.end()) return shi->second;
+    return {};
 }
 
 void ShaderShutDown() {
@@ -88,7 +89,7 @@ int CompileGLSLShader(GLenum type, int program, const GLchar *source, string &er
     return 0;
 }
 
-string ParseMaterialFile(string_view mbuf, string_view prefix) {
+string ParseMaterialFile(string_view mbuf, string_view prefix, lobster::VM &vm) {
     auto p = mbuf;
     string err;
     string_view last;
@@ -150,19 +151,8 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
             if (!err.empty()) {
                 return true;
             }
-            auto &v = shadermap[shader];
-            // Put latest shader version at the end.
-            v.emplace_back(std::move(sh));
+            shadermap[shader] = lobster::LResourceRefCPointer<Shader>(vm.NewResource(&shader_type, sh.release()), vm);
             shader.clear();
-            // Typically, all versions below the latest will not be in used and can be
-            // deleted here, unless still referenced by gl.get_shader.
-            for (size_t i = 0; i < v.size() - 1; ) {
-                if (!v[i]->refc) {
-                    v.erase(v.begin() + i);
-                } else {
-                    i++;
-                }
-            }
         }
         return false;
     };
@@ -377,10 +367,10 @@ string ParseMaterialFile(string_view mbuf, string_view prefix) {
     return err;
 }
 
-string LoadMaterialFile(string_view mfile, string_view prefix) {
+string LoadMaterialFile(string_view mfile, string_view prefix, lobster::VM &vm) {
     string mbuf;
     if (LoadFile(mfile, &mbuf) < 0) return string_view("cannot load material file: ") + mfile;
-    auto err = ParseMaterialFile(mbuf, prefix);
+    auto err = ParseMaterialFile(mbuf, prefix, vm);
     return err;
 }
 

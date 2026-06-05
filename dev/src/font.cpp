@@ -31,8 +31,8 @@ map<string, OutlineFont *, less<>> loadedfaces;
 OutlineFont *curface = nullptr;
 string curfacename;
 
-extern Shader *currentshader;
-Shader *texturedshader = nullptr;
+extern LResourceRefCPointer<Shader> currentshader;
+LResourceRefCPointer<Shader> texturedshader;
 
 void CullFonts() {
     for(auto it = fontcache.begin(); it != fontcache.end(); ) {
@@ -55,6 +55,7 @@ void FontCleanup() {
     loadedfaces.clear();
     curface = nullptr;
     FTClosedown();
+    texturedshader.reset();
 }
 
 void SetDefaultFontShader() {
@@ -147,7 +148,7 @@ nfr("text", "text", "S", "Sb",
             otransforms.append_object2view(scaling(curfontsize / float(maxfontsize)));
         }
         SetTexture(0, f->tex);
-        if (texturedshader) texturedshader->Set();
+        if (texturedshader.get()) texturedshader->Set();
         else currentshader->Set();
         f->RenderText(s.sval()->strv());
         if (curfontsize > maxfontsize) {
@@ -189,7 +190,7 @@ nfr("use_default_font_shader", "on", "B", "",
         if (on.True())  {
             SetDefaultFontShader();
         } else {
-            texturedshader = nullptr;
+            texturedshader.reset();
         }
         return NilVal();
     });

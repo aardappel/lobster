@@ -255,9 +255,9 @@ extern void ClearFrameBuffer(const float3 &c);
 extern BlendMode SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);
 
-extern string LoadMaterialFile(string_view mfile, string_view prefix);
-extern string ParseMaterialFile(string_view mfile, string_view prefix);
-extern Shader *LookupShader(string_view name);
+extern string LoadMaterialFile(string_view mfile, string_view prefix, lobster::VM &vm);
+extern string ParseMaterialFile(string_view mfile, string_view prefix, lobster::VM &vm);
+extern lobster::LResourceRefCPointer<Shader> LookupShader(string_view name);
 extern void ShaderShutDown();
 extern void ResetProgram();
 

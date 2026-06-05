@@ -30,9 +30,9 @@ using namespace lobster;
 
 struct Renderable : Textured {
     float4 color = float4_1;
-    Shader *sh;
+    LResourceRefCPointer<Shader> sh;
 
-    Renderable(const char *shname) : sh(LookupShader(shname)) { assert(sh); }
+    Renderable(const char *shname) : sh(LookupShader(shname)) { assert(sh.get()); }
 
     void Set() {
         sh->Set();
@@ -86,8 +86,10 @@ void CleanPhysics() {
     if (world) delete world;
     world = nullptr;
     particlesystem = nullptr;
-    delete particlematerial;
-    particlematerial = nullptr;
+    if (particlematerial) {
+        delete particlematerial;
+        particlematerial = nullptr;
+    }
 }
 
 void InitPhysics(const float2 &gv) {
@@ -162,7 +164,7 @@ nfr("create_box", "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R:fi
         auto &body = GetBody(sp, vm, other_id, wp);
         b2PolygonShape shape;
         shape.SetAsBox(sz.x, sz.y, offset, rot * RAD);
-        Push(sp,  CreateFixture(vm, body, shape));
+        Push(sp, CreateFixture(vm, body, shape));
     });
 
 nfr("create_circle", "position,radius,offset,attachto", "F}:2FF}:2?R:fixture?", "R:fixture",
@@ -178,7 +180,7 @@ nfr("create_circle", "position,radius,offset,attachto", "F}:2FF}:2?R:fixture?", 
         b2CircleShape shape;
         shape.m_p.Set(offset.x, offset.y);
         shape.m_radius = radius;
-        Push(sp,  CreateFixture(vm, body, shape));
+        Push(sp, CreateFixture(vm, body, shape));
     });
 
 nfr("create_polygon", "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:fixture",
@@ -198,7 +200,7 @@ nfr("create_polygon", "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:fi
         }
         shape.Set(verts, (int)vertices->len);
         delete[] verts;
-        Push(sp,  CreateFixture(vm, body, shape));
+        Push(sp, CreateFixture(vm, body, shape));
     });
 
 nfr("dynamic", "shape,on", "R:fixtureB", "",
@@ -246,7 +248,10 @@ nfr("set_shader", "id,shadername", "R:fixture?S", "",
     [](StackPtr &, VM &vm, Value fixture_id, Value shader) {
         auto &r = GetRenderable(vm, fixture_id);
         auto sh = LookupShader(shader.sval()->strv());
-        if (sh) r.sh = sh;
+        if (sh.get()) {
+            r.sh.reset();
+            r.sh = sh;
+        }
         return NilVal();
     });
 
@@ -419,7 +424,7 @@ nfr("render", "", "", "",
                         r.sh->SetTextures(r.textures);  // FIXME
                         auto polyshape = (b2CircleShape *)fixture->GetShape();
                         Transform(translation(float3(B2ToFloat2(polyshape->m_p), 0)), [&]() {
-                            geomcache->RenderCircle(r.sh, PRIM_FAN, 20, polyshape->m_radius);
+                            geomcache->RenderCircle(r.sh.get(), PRIM_FAN, 20, polyshape->m_radius);
                         });
                         break;
                     }
