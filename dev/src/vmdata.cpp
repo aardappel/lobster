@@ -23,7 +23,6 @@ LString::LString(iint _l) : RefObj(TYPE_ELEM_STRING), len(_l) { ((char *)data())
 
 LResource::LResource(const ResourceType *t, Resource *res)
     : RefObj(TYPE_ELEM_RESOURCE), type(t), res(res) {
-    res->refc++;
 }
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
@@ -220,11 +219,7 @@ void LObject::DeleteSelf(VM &vm) {
 }
 
 void LResource::DeleteSelf(VM &vm) {
-    res->refc--;
-    if (owned) {
-        assert(!res->refc);
-        delete res;
-    }
+    delete res;
     vm.pool.dealloc(this, sizeof(LResource));
 }
 

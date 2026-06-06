@@ -278,9 +278,6 @@ struct ResourceType;
 extern ResourceType *g_resource_type_list;
 
 struct Resource : NonCopyable {
-    // This is a "nested" refc, for the cases where more than 1 LResource can be constructed to
-    // point to a single Resource.
-    int refc = 0;
     virtual ~Resource() {}
     virtual size_t2 MemoryUsage() const {
         return size_t2(sizeof(Resource), 0);
@@ -291,7 +288,6 @@ struct Resource : NonCopyable {
 struct LResource : RefObj {
     const ResourceType *type;
     Resource *res;
-    bool owned = true;
 
     LResource(const ResourceType *t, Resource *res);
 
@@ -300,11 +296,6 @@ struct LResource : RefObj {
 
     size_t2 MemoryUsage() const {
         return res->MemoryUsage() + size_t2(sizeof(LResource), 0);
-    }
-
-    LResource *NotOwned() {
-        owned = false;
-        return this;
     }
 };
 
