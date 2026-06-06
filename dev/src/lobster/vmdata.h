@@ -318,7 +318,6 @@ public:
 
     explicit LResourceRefCPointer(LResource *value, VM &_vm) : value(value), vm(&_vm) {
         // Since we get a value here from NewResource with a refc==1, we don't inc here.
-        assert(value->refc == 1);
     }
 
     LResourceRefCPointer(const LResourceRefCPointer &other) : value(other.value), vm(other.vm) {
@@ -370,6 +369,11 @@ public:
         return (T *)value->res;
     }
 
+    const T *operator->() const {
+        assert(value);
+        return (const T *)value->res;
+    }
+
     T &operator*() {
         assert(value);
         return *(T *)value->res;
@@ -380,7 +384,25 @@ public:
         return (T *)value->res;
     }
 
+    const T *get() const {
+        assert(value);
+        return (const T *)value->res;
+    }
+
+    T *get_or_nil() {
+        return value ? (T *)value->res : nullptr;
+    }
+
+    const T *get_or_nil() const {
+        return value ? (const T *)value->res : nullptr;
+    }
+
     LResource *get_lresource() {
+        return value;
+    }
+
+    LResource *inc_lresource() {
+        value->Inc();
         return value;
     }
 
@@ -1394,10 +1416,10 @@ template<typename T> inline void DeallocSubBuf(VM &vm, T *v, iint size) {
 }
 
 template <typename T, typename... Args> requires is_base_of_v<Resource, T>
-pair<T *, lobster::LResource *> static NewResLRes(VM &vm, lobster::ResourceType &resource_type, Args &&...args) {
+LResourceRefCPointer<T> NewResLRes(VM &vm, lobster::ResourceType &resource_type, Args &&...args) {
     auto *value = new T(args...);
     auto *resource = vm.NewResource(&resource_type, value);
-    return { value, resource };
+    return LResourceRefCPointer<T>(resource, vm);
 }
 
 template<bool back> LString *WriteMem(VM &vm, LString *s, iint i, const void *data, iint size) {
@@ -1453,12 +1475,21 @@ inline iint RangeCheck(VM &vm, Value idx, iint range, iint bias = 0) {
 }
 
 
-template<typename T> inline T &GetResourceDec(Value val, const ResourceType *type) {
+template<typename T> T &GetResourceDec(Value val, const ResourceType *type) {
     assert(val.True());
     auto x = val.xval();
     assert(x->type == type);  // If hit, the `R:type` you specified is not the same as `type`.
     (void)type;
     return *(T *)x->res;
+}
+
+template<typename T> LResourceRefCPointer<T> GetResourceRP(Value val, const ResourceType *type, VM &vm) {
+    assert(val.True());
+    auto x = val.xval();
+    assert(x->type == type);  // If hit, the `R:type` you specified is not the same as `type`.
+    (void)type;
+    x->Inc();
+    return LResourceRefCPointer<T>(x, vm);
 }
 
 inline vector<string> ValueToVectorOfStrings(Value v) {

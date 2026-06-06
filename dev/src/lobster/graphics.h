@@ -38,3 +38,5 @@ struct GraphicsState {
 };
 
 extern GraphicsState *gs;
+
+extern lobster::ResourceType shader_type;

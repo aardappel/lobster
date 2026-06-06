@@ -1066,7 +1066,7 @@ nfr("set_shader", "shader", "R:shader", "",
     "changes the current shader from a value received from gl.get_shader",
     [](StackPtr &, VM &vm, Value shader) {
         TestGL(vm);
-        gs->currentshader = shader.xval();
+        gs->currentshader = GetResourceRP<Shader>(shader, &shader_type, vm);
         return NilVal();
     });
 

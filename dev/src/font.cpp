@@ -147,7 +147,7 @@ nfr("text", "text", "S", "Sb",
             otransforms.append_object2view(scaling(curfontsize / float(maxfontsize)));
         }
         SetTexture(0, f->tex);
-        if (gs->fonttexturedshader.get()) gs->fonttexturedshader->Set();
+        if (gs->fonttexturedshader.get_or_nil()) gs->fonttexturedshader->Set();
         else gs->currentshader->Set();
         f->RenderText(s.sval()->strv());
         if (curfontsize > maxfontsize) {
