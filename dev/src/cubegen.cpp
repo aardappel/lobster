@@ -1573,25 +1573,36 @@ nfr("erode", "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "",
         return Value(NewVoxelResource(vm, d));
     });
 
-nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
+nfr("normal_indices", "block,radius,adjacents", "R:voxelsIF]", "R:voxels",
     "creates a new block with normal indices based on voxel surface shape."
     "the indices refer to the associated pallette."
     "empty voxels will have a 0 length normal."
     "2 is a good radius that balances speed/quality, use 1 for speed, 3 for max quality",
     [](StackPtr &sp, VM &vm) {
+        auto adjacents = Pop(sp).vval();
         auto radius = Pop(sp).intval();
         auto res = Pop(sp);
         auto &v = GetVoxels(res);
+        auto have_adjacents = adjacents->len == 27;
 
         auto nw = NewWorld(v.grid.dim, normal_palette_idx);
         auto ComputeNormal = [&](int3 c, int rad) {
-            int3 normal = int3_0;
+            float3 normal = float3_0;
             for (int x = -rad; x <= rad; x++) {
                 for (int y = -rad; y <= rad; y++) {
                     for (int z = -rad; z <= rad; z++) {
                         int3 s = int3(x, y, z) + c;
-                        if (!(all(s < v.grid.dim) && all(s >= 0)) || v.grid.Get(s) == 0) {
-                            normal += s - c;
+                        auto quadrant = (s + v.grid.dim) / v.grid.dim;
+                        if (quadrant == int3_1) {
+                            if (v.grid.Get(s) == 0) {
+                                normal += normalize(float3(s - c));
+                            }
+                        } else if (have_adjacents) {
+                            quadrant = min(int3_1 * 2, max(int3_0, quadrant));
+                            auto alpha = adjacents->AtS(quadrant.z * 9 + quadrant.y * 3 + quadrant.x).fltval();
+                            normal += normalize(float3(s - c)) * (1.0f - alpha);
+                        } else {
+                            normal += normalize(float3(s - c));
                         }
                     }
                 }
@@ -1625,16 +1636,16 @@ nfr("normal_indices", "block,radius", "R:voxelsI", "R:voxels",
                     }
                     // For surface voxels we compute a normal.
                     auto cn = ComputeNormal(pos, radius);
-                    if (manhattan(cn) <= 1) {
+                    if (length(cn) < 1.0f) {
                         // Most normals cancelled eachother out, let's try once more
                         // with a wider radius.
                         cn = ComputeNormal(pos, radius * 2);
                     }
-                    if (manhattan(cn) == 0) {
+                    if (length(cn) <= 0.1f) {
                         // This should be very rare in actual models, just use Z-up.
-                        cn = int3(0, 0, 1);
+                        cn = float3(0.0f, 0.0f, 1.0f);
                     }
-                    nw->grid.Get(pos) = FindClosestNormalCached(normalize(float3(cn)));
+                    nw->grid.Get(pos) = FindClosestNormalCached(normalize(cn));
                 }
             }
         }
