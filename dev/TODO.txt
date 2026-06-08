@@ -57,6 +57,14 @@
   case Baz:: print f  // Lobster new style: add all members much like a function that uses ::
   See discussion here: https://discord.com/channels/656280102451281940/1097536296869712015/1434969547320070144
 
+- Lobster's ability to run other code dynamically:
+  - It can already load entirely new Lobster programs on the fly.
+  - It can run glsl compute shaders.
+  - It should really expose the ability to run libtcc C programs.. could do so tru a single API like
+    realloc.. first buffer would contain the input, last the output, auto dealloc.
+  - QuickJS would be super easy to add, or Duktape if its too complicated.
+  - Lua also but maybe too much code.
+
 - Nil chaining (typically x?.a) comes with all sorts of problems exacerbated by it being
   very terse syntax, if we could make it verbose with the obvious keyword of guard,
   it could be a good feature?
