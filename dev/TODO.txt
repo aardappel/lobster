@@ -1,4 +1,5 @@
-- in C++ impl, replace x<y etc with all(x<y), the automatic all is too error prone.
+- "mybool and myint" will result in the int value, which is a bit surprising.
+  We should do the "force to bool" it does for other unrelated types also for enums.
 
 - Must call this.foo() if foo is a superclass method, otherwise automatic this
   insertion does not work.
