@@ -276,13 +276,21 @@ nfr("launch_subprocess", "commandline,stdin", "S]S?", "IS",
         Push(sp, vm.NewString(out));
     });
 
-nfr("vector_to_buffer", "vec,width", "A]*I?:4", "S",
+nfr("vector_to_buffer", "vec,width,offset,len", "A]*I?:4I?I?", "S",
     "converts a vector of ints/floats (or structs of them) to a buffer, where"
     " each scalar is written with \"width\" bytes (1/2/4/8, default 4). Returns nil if the"
-    " type couldn't be converted. Uses native endianness.",
-    [](StackPtr &, VM &vm, Value vec, Value width) {
+    " type couldn't be converted. Uses native endianness."
+    " Offset and len can specify a slice of the input, but if not specified default to all.",
+    [](StackPtr &, VM &vm, Value vec, Value width, Value _offset, Value _len) {
         auto v = vec.vval();
         auto w = width.intval();
+        auto offset = _offset.ival();
+        if (offset > v->len)
+            vm.Error("vector_to_buffer: offset out of range");
+        auto len = _len.ival();
+        if (!len) len = v->len - offset;
+        else if (len > v->len - offset)
+            vm.Error("vector_to_buffer: len out of range");
         if (w != 1 && w != 2 && w != 4 && w != 8)
             vm.Error("vector_to_buffer: width out of range");
         auto &vect = v->ti(vm);
@@ -308,9 +316,9 @@ nfr("vector_to_buffer", "vec,width", "A]*I?:4", "S",
         }
         if (float_mask && (w == 1 || w == 2))
             vm.Error("vector_to_buffer: 8/16 floats not supported yet");
-        auto s = vm.NewString(v->len * v->width * w);
+        auto s = vm.NewString(len * v->width * w);
         auto buf = (uint8_t *)s->data();
-        for (iint i = 0; i < v->len; i++) {
+        for (iint i = offset; i < offset + len; i++) {
             for (int j = 0; j < (int)v->width; j++) {
                 auto is_float = float_mask & (int64_t(1) << j);
                 if (is_float) {
