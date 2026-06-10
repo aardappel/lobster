@@ -609,7 +609,7 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t dat
                 // range then its a bug.
                 if ((size_t)offset > buf->size) {
                     // Don't allow appending with a gap. Error and do nothing.
-                    LOG_ERROR("UpdateBufferObject: offset out of range");
+                    LOG_ERROR("UpdateBufferObject: ", name, ": offset ", offset, " out of range ", buf->size, " len ", datalen);
                 } else {
                     if ((size_t)offset + datalen > buf->allocsize) {
                         // Realloc automatically.
