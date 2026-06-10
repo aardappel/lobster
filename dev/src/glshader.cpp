@@ -559,7 +559,7 @@ void DispatchCompute(const int3 &groups) {
 
 // If offset < 0 then its a buffer replacement/creation.
 // If buf == nullptr then it is always creation. 
-BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len, ptrdiff_t offset,
+BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t datalen, ptrdiff_t offset,
                                  bool ssbo, bool dyn, string_view name) {
     #ifndef PLATFORM_WINNIX
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
@@ -567,14 +567,15 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
     #else
         LOBSTER_FRAME_PROFILE_THIS_SCOPE;
         LOBSTER_FRAME_PROFILE_GPU;
-        if (len > size_t(ssbo ? max_ssbo : max_ubo)) {
+        auto max_buf_size = size_t(ssbo ? max_ssbo : max_ubo);
+        if (datalen > max_buf_size) {
             return 0;
         }
         auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
         if (!buf) {
             assert(offset < 0);
-            auto bo = GenBO_(name, type, len, data, dyn);
-            return new BufferObject(bo, type, len, dyn);
+            auto bo = GenBO_(name, type, datalen, data, dyn);
+            return new BufferObject(bo, type, datalen, dyn);
 		} else {
             GL_CALL(glBindBuffer(type, buf->bo));
             // We're going to re-upload the buffer.
@@ -584,10 +585,10 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
             if (offset < 0) {
                 LOBSTER_FRAME_PROFILE_THIS_SCOPE;
                 // Whole buffer.
-                if (false && len == buf->size) {
+                if (false && datalen == buf->size) {
                     // Is this faster than glBufferData if same size?
                     // Actually, this might cause *more* sync issues than glBufferData.
-                    GL_CALL(glBufferSubData(type, 0, len, data));
+                    GL_CALL(glBufferSubData(type, 0, datalen, data));
                 } else {
                     auto drawt = buf->dyn ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
                     // We can "orphan" the buffer before uploading, that way if a draw
@@ -595,13 +596,60 @@ BufferObject *UpdateBufferObject(BufferObject *buf, const void *data, size_t len
                     // This doesn't actually seem faster in testing sofar:
                     // supposedly drivers do this for you nowadays.
                     //glBufferData(type, len, nullptr, drawt);
-                    GL_CALL(glBufferData(type, len, data, drawt));
-                    buf->size = len;
+                    GL_CALL(glBufferData(type, datalen, data, drawt));
+                    buf->size = datalen;
+                    buf->allocsize = datalen;
                 }
             } else {
                 LOBSTER_FRAME_PROFILE_THIS_SCOPE;
                 // Partial buffer.
-                GL_CALL(glBufferSubData(type, offset, len, data));
+                // Special functionality: we allow automatically extending the buffer if
+                // offset is trying to write to or past the end of the buffer, signalling
+                // it wants to append. If instead it tries to write outside the
+                // range then its a bug.
+                if ((size_t)offset > buf->size) {
+                    // Don't allow appending with a gap. Error and do nothing.
+                    LOG_ERROR("UpdateBufferObject: offset out of range");
+                } else {
+                    if ((size_t)offset + datalen > buf->allocsize) {
+                        // Realloc automatically.
+                        // Because we're appending, we're going to assume more appends may follow
+                        // and try to 2x the buffer. TODO: make this configurable.
+                        auto new_size = std::max(std::min(buf->size * 2, max_buf_size), (size_t)offset + datalen);
+                        // This appears to be needed to ensure the copies below don't think old buffers are still in use.
+                        GL_CALL(glBindVertexArray(0));
+                        GLuint nbo, tbo;
+                        // New buffer.
+                        GL_CALL(glGenBuffers(1, &nbo));
+                        GL_CALL(glBindBuffer(GL_COPY_WRITE_BUFFER, nbo));
+                        GL_CALL(glBufferData(GL_COPY_WRITE_BUFFER, new_size, nullptr, GL_DYNAMIC_DRAW));
+                        GL_CALL(glBindBuffer(GL_COPY_READ_BUFFER, buf->bo));
+                        // GPU copy of existing data, typically much faster than re-init from CPU.
+                        GL_CALL(glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, buf->size));
+                        // Copy new CPU data into temp GPU buffer. This is to avoid a stall where the driver
+                        // thinks the CPU needs access to the new buffer while the GPU copy isn't done yet,
+                        // and its going to do something dumb like copy the whole thing back to the CPU!
+                        GL_CALL(glGenBuffers(1, &tbo));
+                        GL_CALL(glBindBuffer(GL_COPY_READ_BUFFER, tbo));
+                        GL_CALL(glBufferData(GL_COPY_READ_BUFFER, datalen, data, GL_STREAM_DRAW));
+                        // New appended data. Since this is also a GPU copy it can be async queued with the
+                        // first copy above.
+                        // FIXME: this still triggers:
+                        // "Pixel-path performance warning: Pixel transfer is synchronized with 3D rendering."
+                        // Likely because we're just done copying this data from the CPU, it probably is no big deal.
+                        GL_CALL(glBindBuffer(GL_COPY_READ_BUFFER, tbo));
+                        GL_CALL(glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, buf->size, datalen));
+                        GL_CALL(glDeleteBuffers(1, (GLuint *)&buf->bo));
+                        GL_CALL(glDeleteBuffers(1, (GLuint *)&tbo));
+                        buf->bo = nbo;
+                        buf->allocsize = new_size;
+                    } else {
+                        // An update that already fits.
+                        GL_CALL(glBufferSubData(type, offset, datalen, data));
+                    }
+                    // Since this may make use of previously allocated space, update the size.
+                    buf->size = std::max(buf->size, (size_t)offset + datalen);
+                }
             }
             return buf;
         }

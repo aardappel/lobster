@@ -321,17 +321,18 @@ struct BufferObject : lobster::Resource {
     int bo;
     int type;
     size_t size;
+    size_t allocsize;
     bool dyn;
 
     BufferObject(int bo, int type, size_t size, bool dyn)
-        : bo(bo), type(type), size(size), dyn(dyn) {}
+        : bo(bo), type(type), size(size), allocsize(size), dyn(dyn) {}
 
     ~BufferObject() {
         DeleteBO(bo);
     }
 
     size_t2 MemoryUsage() const {
-        return { sizeof(BufferObject), size };
+        return { sizeof(BufferObject), allocsize };
     }
 };
 
