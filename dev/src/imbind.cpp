@@ -2420,15 +2420,17 @@ nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
         sort(display.begin(), display.end(),
              [](pair<const struct ___tracy_source_location_data *, ProfStat *> &a,
                 pair<const struct ___tracy_source_location_data *, ProfStat *> &b) -> bool {
-                 return a.second->highest >= b.second->highest;
+                 return a.second->time >= b.second->time;
             });
-        if (!ImGui::BeginTable("show_profiling_stats", histogram.True() ? 4 : 3,
+        if (!ImGui::BeginTable("show_profiling_stats", histogram.True() ? 6 : 5,
                                ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX |
                                    ImGuiTableFlags_Borders))
             return NilVal();
         ImGui::TableSetupColumn("Function");
         ImGui::TableSetupColumn("AVG ms");
         ImGui::TableSetupColumn("HI ms");
+        ImGui::TableSetupColumn("TOTAL sec");
+        ImGui::TableSetupColumn("COUNT");
         if (histogram.True()) {
             ImGui::TableSetupColumn("Histogram");
         }
@@ -2442,8 +2444,12 @@ nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
             Text(to_string_float(it.second->time * 1000.0 / it.second->n, 3));
             ImGui::TableSetColumnIndex(2);
             Text(to_string_float(it.second->highest * 1000.0, 3));
+            ImGui::TableSetColumnIndex(3);
+            Text(to_string_float(it.second->time, 3));
+            ImGui::TableSetColumnIndex(4);
+            Text(to_string(it.second->n));
             if (histogram.True()) {
-                ImGui::TableSetColumnIndex(3);
+                ImGui::TableSetColumnIndex(5);
                 ImGui::PlotHistogram(cat("##", it.first->function).c_str(),
                                      prof_histogram_values_getter, it.second->window,
                                      PROF_WINDOW_SIZE, (int)prof_db.window_pos + 1,
