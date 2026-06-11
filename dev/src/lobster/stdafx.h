@@ -172,7 +172,7 @@ using namespace geom;
             unordered_map<const struct ___tracy_source_location_data *, ProfStat> stats;
             void Advance();
         };
-        extern ProfDB prof_db;
+        extern thread_local ProfDB prof_db_thread_local;
     #endif
 #else
     #define LOBSTER_FRAME_PROFILER_BUILTINS 0

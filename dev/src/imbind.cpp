@@ -2411,6 +2411,7 @@ nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
     [](StackPtr &, VM &vm, Value num, Value reset, Value histogram, Value paused) {
         IsInit(vm);
         #if LOBSTER_FRAME_PROFILER == 1
+        auto &prof_db = prof_db_thread_local;
         prof_db.paused = paused.True();
         if (reset.True()) prof_db.stats.clear();
         vector<pair<const struct ___tracy_source_location_data *, ProfStat *>> display;

@@ -23,10 +23,9 @@
 namespace lobster {
 
 #if LOBSTER_FRAME_PROFILER_GLOBAL
-// This is a global, so doesn't work well with multithreading :)
-// It's only here to debug difficult crashes on platforms without a stack trace.
-vector<___tracy_source_location_data> g_function_locations;
-vector<tracy::SourceLocationData> g_builtin_locations;
+// This is only here to debug difficult crashes on platforms without a stack trace.
+thread_local vector<___tracy_source_location_data> g_function_locations;
+thread_local vector<___tracy_source_location_data> g_builtin_locations;
 #endif
 
 VM::VM(VMArgs &&vmargs)
@@ -921,14 +920,15 @@ void VM::WorkerWake(type_elem_t tti) {
 
 #if LOBSTER_FRAME_PROFILER == 1
 
-ProfDB prof_db;
+thread_local ProfDB prof_db_thread_local;
 
 ___tracy_c_zone_context ___tracy_emit_zone_begin(const struct ___tracy_source_location_data *srcloc, int) {
-    prof_db.stack.push_back({ srcloc, 0.0 });
+    prof_db_thread_local.stack.push_back({ srcloc, 0.0 });
     return { SecondsSinceStart() };
 }
 
 void ___tracy_emit_zone_end(___tracy_c_zone_context ctx) {
+    auto &prof_db = prof_db_thread_local;  // Accessing TLS slow, do it just once.
     auto [srcloc, child_time] = prof_db.stack.back();
     prof_db.stack.pop_back();
     if (prof_db.paused) return;
@@ -951,7 +951,7 @@ void ___tracy_emit_zone_end(___tracy_c_zone_context ctx) {
 }
 
 void ProfDB::Advance() {
-    if (prof_db.paused) return;
+    if (paused) return;
     window_pos = (window_pos + 1) % PROF_WINDOW_SIZE;
     for (auto &it : stats) {
         it.second.window[window_pos] = 0.0f;

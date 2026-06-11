@@ -254,9 +254,11 @@ VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
 }
 
 #if LOBSTER_FRAME_PROFILER_BUILTINS
-    #define BPROF(NFI) tracy::ScopedZone ___tracy_scoped_zone(&vm.vma.nfr.pre_allocated_function_locations[NFI])
+    #define BPROF_START(NFI) auto ctx = ___tracy_emit_zone_begin(&vm.vma.nfr.pre_allocated_function_locations[NFI], true)
+    #define BPROF_END() ___tracy_emit_zone_end(ctx)
 #else
-    #define BPROF(NFI)
+    #define BPROF_START(NFI)
+    #define BPROF_END() 
 #endif
 
 #if LOBSTER_FRAME_PROFILER_GLOBAL
@@ -270,20 +272,22 @@ VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
 
 VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
     auto nf = vm.vma.nfr.nfuns[nfi];
-    BPROF(nfi);
+    BPROF_START(nfi);
     GPROF_START(nfi);
     nf->fun.fV(sp, vm);
     GPROF_END();
+    BPROF_END();
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
 VM_INLINE void U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
     auto nf = vm.vma.nfr.nfuns[nfi]; \
-    BPROF(nfi); \
+    BPROF_START(nfi); \
     GPROF_START(nfi); \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
     GPROF_END(); \
+    BPROF_END(); \
     if (has_ret) { Push(sp, v); vm.BCallRetCheck(sp, nf); } \
 }
 

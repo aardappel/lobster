@@ -90,7 +90,7 @@ bool GraphicsFrameStart() {
     extern void SteamUpdate(); SteamUpdate();
     OpenGLFrameEnd();
     #if LOBSTER_FRAME_PROFILER == 1
-    prof_db.Advance();
+        prof_db_thread_local.Advance();
     #endif
     bool cb = SDLFrame();
     GraphicsReset();

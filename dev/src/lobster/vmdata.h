@@ -1320,8 +1320,8 @@ VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {
 }
 
 #if LOBSTER_FRAME_PROFILER_GLOBAL
-    extern vector<___tracy_source_location_data> g_function_locations;
-    extern vector<tracy::SourceLocationData> g_builtin_locations;
+    extern thread_local vector<___tracy_source_location_data> g_function_locations;
+    extern thread_local vector<___tracy_source_location_data> g_builtin_locations;
 #endif
 
 VM_INLINE void PushFunId(VM &vm, const int *funstart, StackPtr locals) {
