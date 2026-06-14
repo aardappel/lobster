@@ -12,6 +12,7 @@ option(LOBSTER_TOCPP "Build Lobster with the output of --to-cpp" OFF)
 option(LOBSTER_JIT "Build Lobster with JIT" ON)
 option(LOBSTER_WERROR "Treat warnings as errors" OFF)
 option(LOBSTER_OSX_X86 "On OSX, build for x86-64 instead of Arm" OFF)
+option(LOBSTER_VALVE_SDKS "Enable use of Steam/VR sdks on supported platforms" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -156,9 +157,12 @@ if(MSVC)
   #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
   add_compile_options("/std:c++latest")
 endif()
-if(WIN32)
+if(NOT LOBSTER_VALVE_SDKS)
   # Valve SDKs only used in VS project for now.
   add_compile_definitions(SKIP_SDKS)
+  set(STEAM_INCLUDES "")
+else()
+  set(STEAM_INCLUDES "external/steamworks/include")
 endif()
 
 find_package(Threads)
@@ -167,13 +171,13 @@ include_directories(include
                     src)
 
 include_directories(SYSTEM
-                    external/steamworks/include
                     external/SDL/include
                     external/SDL/include/build_config
                     external/SDLMixer/include
                     external/freetype/include
                     external/imgui
-                    external/libtcc)
+                    external/libtcc
+                    $(STEAM_INCLUDES))
 
 if(LOBSTER_ENGINE)
   find_package(OpenGL REQUIRED)
@@ -195,7 +199,8 @@ if(LOBSTER_ENGINE)
       SET(CMAKE_CXX_LINK_FLAGS "-mconsole -lmingw32")
     endif()
   endif()
-  if(UNIX AND (NOT APPLE))
+  if(UNIX AND (NOT APPLE) AND LOBSTER_VALVE_SDKS)
+    # Note: user will need this installed at runtime, where do we provide this?
     set(ADDITIONAL_LIBRARIES "libsteam_api.so")
     link_directories("${CMAKE_SOURCE_DIR}/external/steamworks/lib/linux64")
   endif()
