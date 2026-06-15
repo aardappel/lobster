@@ -451,11 +451,6 @@ int SDLLoadSound(string_view filename, SoundType st) {
     return LoadAudio(filename, st) != nullptr;
 }
 
-int SDLLoadSoundFromBuffer(string_view buffer, SoundType st) {
-    if (!SDLSoundInit()) return 0;
-    return LoadAudioFromBuffer(buffer, st) != nullptr;
-}
-
 // Tracks are used internally and are 0-based. Channels are used by the lobster
 // API and are 1-based.
 static int sound_channel_from_track(int tr) {
@@ -527,13 +522,6 @@ static int PlaySoundAudio(MIX_Audio *audio, float vol, int loops, int pri) {
 int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int pri) {
     if (!SDLSoundInit()) return 0;
     auto *audio = LoadAudio(filename, st);
-    if (!audio) return 0;
-    return PlaySoundAudio(audio, vol, loops, pri);
-}
-
-int SDLPlaySoundFromBuffer(string_view buffer, SoundType st, float vol, int loops, int pri) {
-    if (!SDLSoundInit()) return 0;
-    auto *audio = LoadAudioFromBuffer(buffer, st);
     if (!audio) return 0;
     return PlaySoundAudio(audio, vol, loops, pri);
 }

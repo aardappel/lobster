@@ -69,8 +69,6 @@ typedef void (*SDLEffectDone)(int ch, void *userdata);
 enum SoundType { SOUND_WAV, SOUND_SFXR, SOUND_OGG };
 extern int SDLLoadSound(string_view filename, SoundType st);
 extern int SDLPlaySound(string_view filename, SoundType st, float vol, int loops, int pri);
-extern int SDLLoadSoundFromBuffer(string_view buffer, SoundType st);
-extern int SDLPlaySoundFromBuffer(string_view buffer, SoundType st, float vol, int loops, int pri);
 extern int SDLPlayAudioStream(int freq, int channels, float vol, int pri);
 extern bool SDLPutAudioStream(int ch, vector<float> data);
 extern int SDLAudioStreamAvailable(int ch);
