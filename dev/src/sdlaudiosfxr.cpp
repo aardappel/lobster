@@ -23,10 +23,10 @@
 
 static const int sound_track_count = 16;
 
-static MIX_Mixer *mixer;
-static MIX_Track *sound_tracks[sound_track_count];
-static int sound_pri[sound_track_count];
-static uint64_t sound_age[sound_track_count];
+static MIX_Mixer *mixer = nullptr;
+static MIX_Track *sound_tracks[sound_track_count] = {};
+static int sound_pri[sound_track_count] = {};
+static uint64_t sound_age[sound_track_count] = {};
 static uint64_t sounds_played = 0;
 
 struct Music {
@@ -77,11 +77,20 @@ void SDLSoundClose() {
             r.stream.reset();
         }
     }
+    audio_files.clear();
+    mixer = nullptr;
+    for (int i = 0; i < sound_track_count; ++i) {
+        sound_tracks[i] = nullptr;
+        sound_pri[i] = 0;
+        sound_age[i] = 0;
+    }
     MIX_Quit();
 }
 
 static MIX_Audio *AllocAudioMono(short *buf, size_t num_samples) {
+    if (!num_samples) return nullptr;
     auto *io = SDL_IOFromMem(buf, num_samples * 2);
+    if (!io) return nullptr;
     SDL_AudioSpec spec = { SDL_AUDIO_S16, 1, 44100 };
     auto *audio = MIX_LoadRawAudio_IO(mixer, io, &spec, true);
     if (!audio) {
@@ -396,6 +405,7 @@ static MIX_Audio *RenderSFXR(string_view buf) {
         synth.push_back(ss);
         synth.push_back(0);
     }
+    if (synth.empty()) return nullptr;   // Nothing was synthesized, degenerate SFXR params?
     synth.pop_back();
     return AllocAudioMono(synth.data(), synth.size());
 }
