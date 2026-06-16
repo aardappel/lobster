@@ -66,6 +66,19 @@ bool SDLSoundInit() {
     }
     for (int i = 0; i < sound_track_count; ++i) {
         sound_tracks[i] = MIX_CreateTrack(mixer);
+        if (!sound_tracks[i]) {
+            LOG_ERROR("MIX_CreateTrack: ", SDL_GetError());
+            // Roll back fully rather than leaving a half-initialized mixer: once
+            // we return with mixer != null, the rest of this file can assume all
+            // sound_tracks are valid, so no null checks are needed below.
+            for (int j = 0; j < i; ++j) {
+                MIX_DestroyTrack(sound_tracks[j]);
+                sound_tracks[j] = nullptr;
+            }
+            MIX_DestroyMixer(mixer);
+            mixer = nullptr;
+            return false;
+        }
     }
     return true;
 }
@@ -77,12 +90,31 @@ void SDLSoundClose() {
             r.stream.reset();
         }
     }
-    audio_files.clear();
-    mixer = nullptr;
+    recordings.clear();
+    // Detach audio from every track and destroy the tracks *before* we free the
+    // MIX_Audio objects they reference, so no track is left holding a dangling
+    // audio pointer. (We currently only shut down at full teardown, but this keeps
+    // a hypothetical shutdown-then-reinit cycle from reusing freed/dangling state.)
     for (int i = 0; i < sound_track_count; ++i) {
-        sound_tracks[i] = nullptr;
+        if (sound_tracks[i]) {
+            MIX_SetTrackAudio(sound_tracks[i], nullptr);
+            MIX_DestroyTrack(sound_tracks[i]);
+            sound_tracks[i] = nullptr;
+        }
         sound_pri[i] = 0;
         sound_age[i] = 0;
+    }
+    for (auto &music : musics) {
+        if (music.track) {
+            MIX_SetTrackAudio(music.track, nullptr);
+            MIX_DestroyTrack(music.track);
+        }
+    }
+    musics.clear();
+    audio_files.clear();
+    if (mixer) {
+        MIX_DestroyMixer(mixer);
+        mixer = nullptr;
     }
     MIX_Quit();
 }
@@ -513,7 +545,9 @@ static int PlaySoundAudio(MIX_Audio *audio, float vol, int loops, int pri) {
     if (tr < 0) return 0;
     auto *track = sound_tracks[tr];
     if (!MIX_SetTrackAudio(track, audio)) {
+        // Don't start a track whose audio we failed to set.
         LOG_ERROR("MIX_SetTrackAudio: ", SDL_GetError());
+        return 0;
     }
     PlayTrack(tr, vol, loops, pri);
     return sound_channel_from_track(tr);
@@ -709,8 +743,13 @@ static int PlayMusicAudio(MIX_Audio *audio, int loops, int fade_ms) {
         }
     }
     if (tr == -1) {
+        auto *new_track = MIX_CreateTrack(mixer);
+        if (!new_track) {
+            LOG_ERROR("MIX_CreateTrack: ", SDL_GetError());
+            return 0;
+        }
         tr = (int)musics.size();
-        musics.push_back(Music { MIX_CreateTrack(mixer), 1.0f });
+        musics.push_back(Music { new_track, 1.0f });
     }
     if (tr >= 0) {
         auto &music = musics[tr];
