@@ -179,7 +179,8 @@ static bool SDLCALL OPUS_init_audio(SDL_IOStream *io, SDL_AudioSpec *spec, SDL_P
     opus.op_raw_seek(of, 0);  // !!! FIXME: it's not clear if this seek is necessary, but https://stackoverflow.com/a/72482773 suggests it might be, at least on older libvorbisfile releases...
     const Sint64 full_length = (Sint64) opus.op_pcm_total(of, -1);
 
-    if (adata->loop.end > full_length) {
+    const bool ignore_loops = SDL_GetBooleanProperty(props, MIX_PROP_AUDIO_LOAD_IGNORE_LOOPS_BOOLEAN, false);
+    if (ignore_loops || (adata->loop.end > full_length)) {
         adata->loop.active = false;
     }
 

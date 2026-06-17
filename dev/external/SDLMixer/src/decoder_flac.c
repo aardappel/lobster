@@ -376,7 +376,8 @@ static bool SDLCALL FLAC_init_audio(SDL_IOStream *io, SDL_AudioSpec *spec, SDL_P
 
     SDL_copyp(spec, &tdata.spec);
 
-    if (adata->loop.end > total_frames) {
+    const bool ignore_loops = SDL_GetBooleanProperty(props, MIX_PROP_AUDIO_LOAD_IGNORE_LOOPS_BOOLEAN, false);
+    if (ignore_loops || (adata->loop.end > total_frames)) {
         adata->loop.active = false;
     }
 

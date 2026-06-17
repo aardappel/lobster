@@ -106,6 +106,7 @@ static VOC_Block *AddVocLoopBlock(VOC_AudioData *adata, int loop_count)
 // this runs during VOC_audio_init to walk the whole .VOC for metadata and sanity checks.
 static bool ParseVocFile(SDL_IOStream *io, VOC_AudioData *adata, SDL_PropertiesID props, SDL_AudioSpec *spec, Sint64 *duration_frames)
 {
+    const bool ignore_loops = SDL_GetBooleanProperty(props, MIX_PROP_AUDIO_LOAD_IGNORE_LOOPS_BOOLEAN, false);
     Sint64 total_frames = 0;
     VOC_Block *loop_start = NULL;
     int loop_start_loop_count = 0;
@@ -255,6 +256,10 @@ static bool ParseVocFile(SDL_IOStream *io, VOC_AudioData *adata, SDL_PropertiesI
             }
 
             case VOC_LOOP: {
+                if (ignore_loops) {
+                    break;  // technically this can make a file with bogus loops load where it wouldn't otherwise, but good enough.
+                }
+
                 Uint16 iterations = 0;
 
                 // !!! FIXME: can LOOP/LOOPEND sections nest? https://moddingwiki.shikadi.net/wiki/VOC_Format suggests no, saying LOOPEND goes back to _most recent_ LOOP start.
@@ -286,6 +291,10 @@ static bool ParseVocFile(SDL_IOStream *io, VOC_AudioData *adata, SDL_PropertiesI
             }
 
             case VOC_LOOPEND: {
+                if (ignore_loops) {
+                    break;  // technically this can make a file with bogus loops load where it wouldn't otherwise, but good enough.
+                }
+
                 if (!loop_start) {
                     return SDL_SetError("VOC has a LOOPEND without a matching LOOP");
                 }

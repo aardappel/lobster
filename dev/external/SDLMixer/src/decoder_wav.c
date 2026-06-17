@@ -1242,6 +1242,7 @@ static bool BuildSeekBlocks(WAV_AudioData *adata)
 
 static bool WAV_init_audio_internal(WAV_AudioData *adata, SDL_IOStream *io, SDL_AudioSpec *spec, SDL_PropertiesID props)
 {
+    const bool ignore_loops = SDL_GetBooleanProperty(props, MIX_PROP_AUDIO_LOAD_IGNORE_LOOPS_BOOLEAN, false);
     Sint64 flen = SDL_GetIOSize(io);
     bool found_FMT = false;
     bool found_DATA = false;
@@ -1299,7 +1300,9 @@ static bool WAV_init_audio_internal(WAV_AudioData *adata, SDL_IOStream *io, SDL_
             chunk_okay = ParseDATA(adata, io, chunk_length);
             break;
         case SMPL:
-            chunk_okay = ParseSMPL(adata, io, chunk_length);
+            if (!ignore_loops) {
+                chunk_okay = ParseSMPL(adata, io, chunk_length);
+            }
             break;
         case LIST:
             chunk_okay = ParseLIST(adata, io, props, chunk_length);

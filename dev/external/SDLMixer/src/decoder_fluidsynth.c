@@ -50,6 +50,7 @@ SDL_ELF_NOTE_DLOPEN(
     MIX_LOADER_FUNCTION(true,int,fluid_player_get_total_ticks,(fluid_player_t *)) \
     MIX_LOADER_FUNCTION(true,int,fluid_settings_setint,(fluid_settings_t*, const char*, int)) \
     MIX_LOADER_FUNCTION(true,int,fluid_settings_setnum,(fluid_settings_t*, const char*, double)) \
+    MIX_LOADER_FUNCTION(true,int,fluid_settings_setstr,(fluid_settings_t*, const char*, const char *)) \
     MIX_LOADER_FUNCTION(true,int,fluid_settings_getnum,(fluid_settings_t*, const char*, double*)) \
     MIX_LOADER_FUNCTION(true,int,fluid_sfloader_set_callbacks,(fluid_sfloader_t *,fluid_sfloader_callback_open_t,fluid_sfloader_callback_read_t,fluid_sfloader_callback_seek_t,fluid_sfloader_callback_tell_t,fluid_sfloader_callback_close_t)) \
     MIX_LOADER_FUNCTION(true,void,fluid_synth_add_sfloader,(fluid_synth_t *, fluid_sfloader_t *)) \
@@ -129,9 +130,15 @@ static bool SDLCALL FLUIDSYNTH_init_audio(SDL_IOStream *io, SDL_AudioSpec *spec,
         }
     }
 
-    #ifdef SDL_PLATFORM_UNIX  // this happens to be where Ubuntu stores a usable soundfont, at least on my laptop. Try it if nothing else worked out.
-    if (!sfio) {
+    #ifdef SDL_PLATFORM_UNIX
+    if (!sfio) {  // this happens to be where Ubuntu stores a usable soundfont, at least on my laptop. Try it if nothing else worked out.
         sfio = SDL_IOFromFile("/usr/share/sounds/sf2/default-GM.sf2", "rb");
+    }
+    if (!sfio) { // Fedora is storing it here.
+        sfio = SDL_IOFromFile("/usr/share/soundfonts/default.sf2", "rb");
+    }
+    if (!sfio) { // Fedora is _also_ storing it here. Both are symlinks to the same thing elsewhere, but try both in case one was an older path.
+        sfio = SDL_IOFromFile("/usr/share/sounds/sf2/default.sf2", "rb");
     }
     #endif
 
@@ -252,6 +259,9 @@ static void SDLCALL SetCustomFluidsynthProperties(void *userdata, SDL_Properties
             break;
         case SDL_PROPERTY_TYPE_FLOAT:
             fluidsynth.fluid_settings_setnum(tdata->settings, name, (double) SDL_GetFloatProperty(props, name, 0.0f));
+            break;
+        case SDL_PROPERTY_TYPE_STRING:
+            fluidsynth.fluid_settings_setstr(tdata->settings, name, SDL_GetStringProperty(props, name, ""));
             break;
         default: break;  // oh well.
     }

@@ -159,8 +159,20 @@ static const ov_callbacks VORBIS_IoCallbacks = { VORBIS_IoRead, VORBIS_IoSeek, V
 
 static bool SDLCALL VORBIS_init_audio(SDL_IOStream *io, SDL_AudioSpec *spec, SDL_PropertiesID props, Sint64 *duration_frames, void **audio_userdata)
 {
+    Uint8 buffer[17];
+    if (SDL_ReadIO(io, buffer, sizeof (buffer)) != sizeof (buffer)) {
+        return false;
+    } else if (SDL_memcmp(buffer, "Extended Module: ", 17) == 0) {  // this is an XM file that _might_ be OXM and we would incorrectly claim it. Drop out now.
+        return SDL_SetError("Not an Ogg Vorbis audio stream");
+    }
+
+    // Go back and let ov_test_callbacks() take a run at it, too.
+    if (SDL_SeekIO(io, 0, SDL_IO_SEEK_SET) < 0) {
+        return false;
+    }
+
     // just load the bare minimum from the IOStream to verify it's an Ogg Vorbis file.
-    // !!! FIXME: is ov_open_callbacks going to return more slowly if this isn't an Opus file? It's probably better to just do the full open.
+    // !!! FIXME: is ov_open_callbacks going to return more slowly if this isn't a Vorbis file? It's probably better to just do the full open.
     OggVorbis_File vf;
     if (vorbis.ov_test_callbacks(io, &vf, NULL, 0, VORBIS_IoCallbacks) < 0) {
         return SDL_SetError("Not an Ogg Vorbis audio stream");
@@ -205,7 +217,8 @@ static bool SDLCALL VORBIS_init_audio(SDL_IOStream *io, SDL_AudioSpec *spec, SDL
     vorbis.ov_raw_seek(&vf, 0);  // !!! FIXME: it's not clear if this seek is necessary, but https://stackoverflow.com/a/72482773 suggests it might be, at least on older libvorbisfile releases...
     const Sint64 full_length = (Sint64) vorbis.ov_pcm_total(&vf, -1);
 
-    if (adata->loop.end > full_length) {
+    const bool ignore_loops = SDL_GetBooleanProperty(props, MIX_PROP_AUDIO_LOAD_IGNORE_LOOPS_BOOLEAN, false);
+    if (ignore_loops || (adata->loop.end > full_length)) {
         adata->loop.active = false;
     }
 

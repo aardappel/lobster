@@ -118,8 +118,10 @@ static void id3v1_set_tag(SDL_PropertiesID props, const char *key, const Uint8 *
 {
     if (!SDL_HasProperty(props, key)) {  // in case there are multiple ID3v1 tags appended to a file, we'll take the last one, since we parse backwards from the end of file.
         char *src_buf = parse_id3v1_ansi_string(buffer, len);
-        if (src_buf && *src_buf) {
-            SDL_SetStringProperty(props, key, src_buf);
+        if (src_buf) {
+            if (*src_buf) {
+                SDL_SetStringProperty(props, key, src_buf);
+            }
             SDL_free(src_buf);
         }
     }
