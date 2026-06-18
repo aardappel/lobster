@@ -579,6 +579,7 @@ static void SDLCALL MixerCallback(void *userdata, SDL_AudioStream *stream, int a
         int group_bytes = 0;
         MIX_Track *next_track = NULL;
         for (MIX_Track *track = group->tracks; track; track = next_track) {
+            LockTrack(track);
             next_track = track->group_next;  // this won't save you from a callback going totally rogue, but it'll deal with the current track leaving the group.
 
             track->currently_inuse = true;
@@ -616,7 +617,10 @@ static void SDLCALL MixerCallback(void *userdata, SDL_AudioStream *stream, int a
             }
 
             track->currently_inuse = false;
-            if (track->destroy_requested) {  // callback asked to destroy the track while we were still using it.
+            const bool destroy_requested = track->destroy_requested;  // save this off just in case, but if the callback destroyed the track, _nothing_ else should touch it once this unlocks.
+            UnlockTrack(track);
+
+            if (destroy_requested) {  // callback asked to destroy the track while we were still using it.
                 MIX_DestroyTrack(track);  // actually kill it now.
             }
         }
