@@ -647,12 +647,32 @@ bool SDLFrame() {
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP: {
                 if (nomousekeyb.second) break;
-                const char *kn = SDL_GetKeyName(event.key.key);
-                if (!*kn) break;
-                string name = kn;
-                std::transform(name.begin(), name.end(), name.begin(),
-                               [](char c) { return (char)::tolower(c); });
-                updatebutton(name, event.key.down, 0, event.key.repeat);
+                auto toLowerInPlace = [](std::string& text) {
+                    std::transform(text.begin(), text.end(), text.begin(),
+                        [](unsigned char c) {
+                            return static_cast<char>(std::tolower(c));
+                        }
+                    );
+                };
+
+                auto updateKeyButton = [&](std::string name) {
+                    if (name.empty()) return;
+                    toLowerInPlace(name);
+                    updatebutton(name, event.key.down, 0, event.key.repeat);
+                };
+
+                // Key name, e.g. "a", "space", "return"
+                updateKeyButton(SDL_GetKeyName(event.key.key));
+
+                // Numeric scancode, e.g. "scancode 44"
+                std::string scancodeNumber =
+                    "scancode " + std::to_string(static_cast<int>(event.key.scancode));
+
+                updatebutton(scancodeNumber, event.key.down, 0, event.key.repeat);
+
+                // Named scancode, e.g. "scancode space"
+                updateKeyButton("scancode " + std::string(SDL_GetScancodeName(event.key.scancode)));
+
                 if (event.type == SDL_EVENT_KEY_DOWN) {
                     // Built-in key-press functionality.
                     switch (event.key.key) {
