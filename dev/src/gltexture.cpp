@@ -18,7 +18,6 @@
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 
-#define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #ifdef _MSC_VER
     #pragma warning(push)

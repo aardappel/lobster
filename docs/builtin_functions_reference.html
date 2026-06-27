@@ -451,6 +451,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>line_intersect</b>(line1a<font color="#666666">: float2</font>, line1b<font color="#666666">: float2</font>, line2a<font color="#666666">: float2</font>, line2b<font color="#666666">: float2</font>) -> <font color="#666666">int</font>, <font color="#666666">float2</font></tt></td><td class="a">computes if there is an intersection point between 2 line segments, with the point as second return value</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>load_image</b>(name<font color="#666666">: string</font>) -> <font color="#666666">[int]</font>, <font color="#666666">int3</font></tt></td><td class="a">Load image from provided file name. Returns array of image pixels and image shape as heigt,width,colors. To load texture use gl.load_texture instead</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>circles_within_range</b>(dist<font color="#666666">: float</font>, positions<font color="#666666">: [float2]</font>, radiuses<font color="#666666">: [float]</font>, positions2<font color="#666666">: [float2]</font>, radiuses2<font color="#666666">: [float]</font>, gridsize<font color="#666666">: int2</font>) -> <font color="#666666">[[int]]</font></tt></td><td class="a">Given a vector of 2D positions (and same size vectors of radiuses), returns a vector of vectors of indices (to the second set of positions and radiuses) of the circles that are within dist of eachothers radius. If the second set are [], the first set is used for both (and the self element is excluded). gridsize optionally specifies the size of the grid to use for accellerated lookup of nearby points. This is essential for the algorithm to be fast, too big or too small can cause slowdown. Omit it, and a heuristic will be chosen for you, which is currently sqrt(num_circles) * 2 along each dimension, e.g. 100 elements would use a 20x20 grid. Efficiency wise this algorithm is fastest if there is not too much variance in the radiuses of the second set and/or the second set has smaller radiuses than the first.</td>
 
 </tr>
@@ -1413,10 +1416,13 @@
 </tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>noise</h3></td></tr>
-<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D or 4D location, the number of octaves (try 8), a scale (try 1), and persistence from one octave to the next (try 0.5)</td>
+<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). This function is the same as calling fast_noise with simplex/fbm flags.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D or 4D location</td>
+<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>fast_noise</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>, noise_type<font color="#666666">: int</font>, fractal_type<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). see noise.lobster for constants for the type params.</td>
 
 </tr>
 </table></td></tr>
