@@ -44,7 +44,8 @@ OwnedTexture::~OwnedTexture() {
     DeleteTexture(t);
 }
 
-void SetFilterClampWrap(int tf, GLenum textype) {
+// MUST be called in a context where glBindTexture just happened.
+void SetFilterClampWrap(int tf, unsigned textype) {
     auto wrap = tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
     GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_S, wrap));
     GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_T, wrap));
@@ -380,11 +381,6 @@ void SetImageTexture(int textureunit, const Texture &tex, int level, int tf) {
 
 // from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards
 int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); return mts; }
-
-void SetTextureFlags(const Texture &tex, int tf) {
-    GL_CALL(glBindTexture(tex.type, tex.id));
-    SetFilterClampWrap(tf, tex.type);
-}
 
 int CreateFrameBuffer(const Texture &tex, int tf) {
 	#ifdef PLATFORM_WINNIX

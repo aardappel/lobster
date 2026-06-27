@@ -1126,7 +1126,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.save_texture</b>(tex<font color="#666666">: resource&lt;texture&gt;</font>, filename<font color="#666666">: string</font>, flip<font color="#666666">: bool</font> = false) -> <font color="#666666">int</font></tt></td><td class="a">saves the texture in .png format, returns true if succesful</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.set_primitive_texture</b>(i<font color="#666666">: int</font>, tex<font color="#666666">: resource&lt;texture&gt;</font>)</tt></td><td class="a">sets texture unit i to texture (for use with rect/circle/polygon/line)</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_primitive_texture</b>(i<font color="#666666">: int</font>, tex<font color="#666666">: resource&lt;texture&gt;</font>, tf<font color="#666666">: int</font> = 0)</tt></td><td class="a">sets texture unit i to texture (for use with rect/circle/polygon/line). if texture flags are given, sets those on the texture also</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.set_mesh_texture</b>(mesh<font color="#666666">: resource&lt;mesh&gt;</font>, part<font color="#666666">: int</font>, i<font color="#666666">: int</font>, texture<font color="#666666">: resource&lt;texture&gt;</font>)</tt></td><td class="a">sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)</td>
@@ -1157,9 +1157,6 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.generate_texture_mipmap</b>(tex<font color="#666666">: resource&lt;texture&gt;</font> = nil)</tt></td><td class="a">generate mipmaps for the specified texture</td>
-
-</tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.set_texture_flags</b>(tex<font color="#666666">: resource&lt;texture&gt;</font>, tf<font color="#666666">: int</font>)</tt></td><td class="a">change texture filter/wrap/clamp flags on an existing texture</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.switch_to_framebuffer</b>(tex<font color="#666666">: resource&lt;texture&gt;</font> = nil, hasdepth<font color="#666666">: int</font> = 0, multisampleformat<font color="#666666">: int</font> = 0, resolvetex<font color="#666666">: resource&lt;texture&gt;</font> = nil, depthtex<font color="#666666">: resource&lt;texture&gt;</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">switches to a new framebuffer, that renders into the given texture. also allocates a depth buffer for it if depth is true. pass the multisample flags that was used for this texture. pass a resolve texture if the base texture is multisample. pass your own depth texture if desired. pass a nil texture to switch back to the original framebuffer. performance note: do not recreate texture passed in unless necessary.</td>

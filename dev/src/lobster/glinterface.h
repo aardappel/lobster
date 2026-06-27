@@ -266,7 +266,8 @@ extern void BindAsSSBO(Shader *sh, string_view_nt name, int id);
 
 // These must correspond to the constants in texture.lobster
 enum TextureFlag {
-    TF_NONE            = 1 << 0,
+    TF_DONTSET         = 0,      // Do not change the texture flags, leave them as they were before.
+    TF_NONE            = 1 << 0, // Set texture flags to not have the values below.
     TF_CLAMP           = 1 << 1,
     TF_NOMIPMAP        = 1 << 2,
     TF_NEAREST_MAG     = 1 << 3,
@@ -294,12 +295,12 @@ extern Texture CreateColoredTexture(string_view name, const int3 &size, const fl
                                   int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
 extern void SetTexture(int textureunit, const Texture &tex);
+extern void SetFilterClampWrap(int tf, unsigned textype);
 extern void UnbindAllTextures();
 extern void GenerateTextureMipMap(const Texture &tex);
 extern uint8_t *ReadTexture(const Texture &tex);
 extern bool SaveTexture(const Texture &tex, string_view_nt filename, bool flip);
 extern int MaxTextureSize();
-extern void SetTextureFlags(const Texture &tex, int tf);
 extern bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize,
                                 bool depth = false, int tf = 0, const Texture &resolvetex = Texture(),
                                 const Texture &depthtex = Texture());
