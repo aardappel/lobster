@@ -307,7 +307,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>rnd_seed</b>(seed<font color="#666666">: int</font>)</tt></td><td class="a">explicitly set a random seed for reproducable randomness</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>rnd_select</b>(index<font color="#666666">: int</font>)</tt></td><td class="a">select a different random number generator to be active. default is 0, max is 1000000</td>
+<tr class="a" valign=top><td class="a"><tt><b>rnd_select</b>(index<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">select a different random number generator to be active. default is 0, max is 1000000. returns previous value.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>rndm</b>(max<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">deprecated: old mersenne twister version of the above for backwards compat.</td>
@@ -611,7 +611,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>launch_subprocess</b>(commandline<font color="#666666">: [string]</font>, stdin<font color="#666666">: string</font> = nil) -> <font color="#666666">int</font>, <font color="#666666">string</font></tt></td><td class="a">launches a sub process, with optionally a stdin for the process, and returns its return code (or -1 if it couldn't launch at all), and any output</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>vector_to_buffer</b>(vec<font color="#666666">: [any]</font>, width<font color="#666666">: int</font> = 4) -> <font color="#666666">string</font></tt></td><td class="a">converts a vector of ints/floats (or structs of them) to a buffer, where each scalar is written with "width" bytes (1/2/4/8, default 4). Returns nil if the type couldn't be converted. Uses native endianness.</td>
+<tr class="a" valign=top><td class="a"><tt><b>vector_to_buffer</b>(vec<font color="#666666">: [any]</font>, width<font color="#666666">: int</font> = 4, offset<font color="#666666">: int</font> = 0, len<font color="#666666">: int</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a">converts a vector of ints/floats (or structs of them) to a buffer, where each scalar is written with "width" bytes (1/2/4/8, default 4). Returns nil if the type couldn't be converted. Uses native endianness. Offset and len can specify a slice of the input, but if not specified default to all.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>ensure_size</b>(string<font color="#666666">: string</font>, size<font color="#666666">: int</font>, char<font color="#666666">: int</font>, extra<font color="#666666">: int</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a">ensures a string is at least size characters. if it is, just returns the existing string, otherwise returns a new string of that size (with optionally extra bytes added), with any new characters set to char. You can specify a negative size to mean relative to the end, i.e. new characters will be added at the start. </td>
@@ -1410,10 +1410,13 @@
 </tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>noise</h3></td></tr>
-<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D or 4D location, the number of octaves (try 8), a scale (try 1), and persistence from one octave to the next (try 0.5)</td>
+<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). This function is the same as calling fast_noise with simplex/fbm flags.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D or 4D location</td>
+<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>fast_noise</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>, noise_type<font color="#666666">: int</font>, fractal_type<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). see noise.lobster for constants for the type params.</td>
 
 </tr>
 </table></td></tr>
@@ -1594,7 +1597,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>cg.erode</b>(world<font color="#666666">: resource&lt;voxels&gt;</font>, minsolid<font color="#666666">: int</font>, maxsolid<font color="#666666">: int</font>) -> <font color="#666666">resource&lt;voxels&gt;</font></tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>cg.normal_indices</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>, radius<font color="#666666">: int</font>) -> <font color="#666666">resource&lt;voxels&gt;</font></tt></td><td class="a">creates a new block with normal indices based on voxel surface shape.the indices refer to the associated pallette.empty voxels will have a 0 length normal.2 is a good radius that balances speed/quality, use 1 for speed, 3 for max quality</td>
+<tr class="a" valign=top><td class="a"><tt><b>cg.normal_indices</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>, radius<font color="#666666">: int</font>, adjacents<font color="#666666">: [float]</font>) -> <font color="#666666">resource&lt;voxels&gt;</font></tt></td><td class="a">creates a new block with normal indices based on voxel surface shape.the indices refer to the associated pallette.empty voxels will have a 0 length normal.2 is a good radius that balances speed/quality, use 1 for speed, 3 for max quality</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>cg.load_image</b>(name<font color="#666666">: string</font>, depth<font color="#666666">: int</font>, edge<font color="#666666">: int</font>, numtiles<font color="#666666">: int2</font>) -> <font color="#666666">[resource&lt;voxels&gt;]</font></tt></td><td class="a">loads an image file (same formats as gl.load_texture) and turns it into blocks. returns blocks or [] if file failed to load</td>
