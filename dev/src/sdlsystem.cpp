@@ -871,8 +871,17 @@ void SDLWindowMinMax(int dir) {
 double SDLTime() { return lasttime; }
 double SDLDeltaTime() { return frametime; }
 
+// All this to avoid the allocation that operator[] forces.
+KeyState &keymap_lookup(string_view name) {
+    auto it = keymap.find(name);
+    if (it == keymap.end()) {
+        it = keymap.insert({ string(name), KeyState {} }).first;
+    }
+    return it->second;
+}
+
 pair<int64_t, int64_t> GetKS(string_view name) {
-    auto &ks = keymap[string(name)];
+    auto &ks = keymap_lookup(name);
     #ifdef PLATFORM_TOUCH
         // delayed results by one frame, that way they get 1 frame over finger hovering over target,
         // which makes gl_hit work correctly
@@ -885,17 +894,17 @@ pair<int64_t, int64_t> GetKS(string_view name) {
 }
 
 bool KeyRepeat(string_view name) {
-    auto &ks = keymap[string(name)];
+    auto &ks = keymap_lookup(name);
     return ks.repeat;
 }
 
 double GetKeyTime(string_view name, int on) {
-    auto &ks = keymap[string(name)];
+    auto &ks = keymap_lookup(name);
     return ks.lasttime[on];
 }
 
 int2 GetKeyPos(string_view name, int on) {
-    auto &ks = keymap[string(name)];
+    auto &ks = keymap_lookup(name);
     return ks.lastpos[on];
 }
 
