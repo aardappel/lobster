@@ -42,6 +42,7 @@ extern const int2 &GetFinger(int i, bool delta);
 extern pair<int64_t, int64_t> GetKS(string_view name);
 extern bool KeyRepeat(string_view name);
 extern double GetKeyTime(string_view name, int on);
+extern const char *GetUserKey(string_view_nt name);
 extern int2 GetKeyPos(string_view name, int on);
 extern float GetJoyAxis(int i);
 extern float GetControllerAxis(int i);

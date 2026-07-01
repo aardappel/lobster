@@ -373,6 +373,13 @@ nfr("key_repeat", "name", "S", "B",
         return Value(ks.first == 1 || (ks.first > 1 && KeyRepeat(name.sval()->strv())));
     });
 
+nfr("user_key", "name", "S", "S",
+    "if name refers to a scancode key, returns the virtual key name, otherwise just"
+    " the original name. Useful for showing users with non-US keyboards what keys to press",
+    [](StackPtr &, VM &vm, Value name) {
+        return Value(vm.NewString(GetUserKey(name.sval()->strvnt())));
+    });
+
 nfr("start_text_input", "pos,size", "I}:2I}:2", "",
     "starts text input. unlike gl.button which gets you keyboard keys, this is for input of"
     " strings, that can deal with unicode IME etc. pos & size are a hint where the string"

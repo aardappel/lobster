@@ -53,6 +53,16 @@ f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
 numlock caps lock scroll lock right shift left shift right ctrl left ctrl right alt left alt
 right meta left meta left super right super alt gr compose help print screen sys req break
 
+The above are virtual keys, i.e. "w" will trigger only exactly for a key with "w" on it,
+and thus may have different locations depending on the keyboard layout.
+
+We also support key names but prefixed with scancode_, for example scancode_w
+corresponds to the key that has "w" on it on a standard US keyboard, but will
+correspond to the "z" key on an AZERTY keyboard. This is useful if you want
+controls like WASD to always be in the same location on any keyboard type.
+You can map these scancode keys to virtual keys using gl.user_key, such
+that you can show an AZERTY user to press "z" to move forward :)
+
 For controllers (all starting with controller_):
 
 a b x y back guide start leftstick rightstick leftshoulder rightshoulder
@@ -151,6 +161,8 @@ struct Finger {
 const int MAXFINGERS = 10;
 Finger fingers[MAXFINGERS];
 
+auto scancode_prefix = string_view("scancode_");
+map<string, string, less<>> scancode_lookup;
 
 void updatebutton(string &name, bool on, int posfinger, bool repeat) {
     auto &ks = keymap[name];
@@ -598,6 +610,12 @@ float SDLGetRollingAverage(size_t n) {
 
 void SetTargetFrameTime(double ft) { target_frametime = ft; }
 
+void NameToLower(string &name) {
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+}
+
 bool SDLFrame() {
     if (minimized) {
         SDL_Delay(100);  // save CPU/battery
@@ -647,28 +665,13 @@ bool SDLFrame() {
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP: {
                 if (nomousekeyb.second) break;
-                auto toLowerInPlace = [](std::string &text) {
-                    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
-                        return static_cast<char>(std::tolower(c));
-                    });
-                };
-
-                auto updateKeyButton = [&](std::string name) {
+                auto updatebuttonlower = [&](string name) {
                     if (name.empty()) return;
-                    toLowerInPlace(name);
+                    NameToLower(name);
                     updatebutton(name, event.key.down, 0, event.key.repeat);
                 };
-
-                // Scancodes take precedence over keycodes due to code structure, this would only
-                // be an issue if for some reason there's a key named "scancode <name>" introduced
-                // at some point. Still, leaving this here for future reference.
-
-                // Key name, e.g. "a", "space", "return"
-                updateKeyButton(SDL_GetKeyName(event.key.key));
-
-                // Named scancode, e.g. "scancode space"
-                updateKeyButton("scancode " + std::string(SDL_GetScancodeName(event.key.scancode)));
-
+                updatebuttonlower(SDL_GetKeyName(event.key.key));
+                updatebuttonlower(scancode_prefix + string(SDL_GetScancodeName(event.key.scancode)));
                 if (event.type == SDL_EVENT_KEY_DOWN) {
                     // Built-in key-press functionality.
                     switch (event.key.key) {
@@ -891,6 +894,23 @@ pair<int64_t, int64_t> GetKS(string_view name) {
     #else
         return ks.State();
     #endif
+}
+
+const char *GetUserKey(string_view_nt name) {
+    if (!name.sv.starts_with(scancode_prefix)) {
+        return name.c_str();
+    }
+    auto rest = name.sv.substr(scancode_prefix.size());
+    auto it = scancode_lookup.find(rest);
+    if (it == scancode_lookup.end()) {
+        // This iterates thru an array and is slow, so we only do it once.
+        auto sc = SDL_GetScancodeFromName(rest.data());
+        auto kc = SDL_GetKeyFromScancode(sc, SDL_KMOD_NONE, false);
+        auto kn = string(SDL_GetKeyName(kc));
+        NameToLower(kn);
+        it = scancode_lookup.insert({ string(rest), kn }).first;
+    }
+    return it->second.c_str();
 }
 
 bool KeyRepeat(string_view name) {
