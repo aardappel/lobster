@@ -636,10 +636,10 @@ bool SDLFrame() {
     bool closebutton = false;
 
     SDL_Event event;
-    while(SDL_PollEvent(&event)) {
-        extern pair<bool, bool> IMGUIEvent(SDL_Event *event);
+    while (SDL_PollEvent(&event)) {
+        extern pair<bool, bool> IMGUIEvent(SDL_Event * event);
         auto nomousekeyb = IMGUIEvent(&event);
-        switch(event.type) {
+        switch (event.type) {
             case SDL_EVENT_QUIT:
                 closebutton = true;
                 break;
@@ -647,12 +647,10 @@ bool SDLFrame() {
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP: {
                 if (nomousekeyb.second) break;
-                auto toLowerInPlace = [](std::string& text) {
-                    std::transform(text.begin(), text.end(), text.begin(),
-                        [](unsigned char c) {
-                            return static_cast<char>(std::tolower(c));
-                        }
-                    );
+                auto toLowerInPlace = [](std::string &text) {
+                    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
+                        return static_cast<char>(std::tolower(c));
+                    });
                 };
 
                 auto updateKeyButton = [&](std::string name) {
@@ -661,14 +659,12 @@ bool SDLFrame() {
                     updatebutton(name, event.key.down, 0, event.key.repeat);
                 };
 
+                // Scancodes take precedence over keycodes due to code structure, this would only
+                // be an issue if for some reason there's a key named "scancode <name>" introduced
+                // at some point. Still, leaving this here for future reference.
+
                 // Key name, e.g. "a", "space", "return"
                 updateKeyButton(SDL_GetKeyName(event.key.key));
-
-                // Numeric scancode, e.g. "scancode 44"
-                std::string scancodeNumber =
-                    "scancode " + std::to_string(static_cast<int>(event.key.scancode));
-
-                updatebutton(scancodeNumber, event.key.down, 0, event.key.repeat);
 
                 // Named scancode, e.g. "scancode space"
                 updateKeyButton("scancode " + std::string(SDL_GetScancodeName(event.key.scancode)));
@@ -708,7 +704,7 @@ bool SDLFrame() {
                 break;
             }
 
-#else
+            #else
 
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
             case SDL_EVENT_MOUSE_BUTTON_UP: {
