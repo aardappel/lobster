@@ -1237,11 +1237,15 @@ nfr("save_texture", "tex,filename,flip", "R:textureSB?", "B",
         return Value(ok);
     });
 
-nfr("set_primitive_texture", "i,tex", "IR:texture", "",
-    "sets texture unit i to texture (for use with rect/circle/polygon/line)",
-    [](StackPtr &, VM &vm, Value i, Value id) {
+nfr("set_primitive_texture", "i,tex,tf", "IR:textureI?", "",
+    "sets texture unit i to texture (for use with rect/circle/polygon/line)."
+    " if texture flags are given, sets those on the texture also",
+    [](StackPtr &, VM &vm, Value i, Value id, Value _tf) {
         TestGL(vm);
-        SetTexture(GetSampler(vm, i), GetTexture(id));
+        auto tf = _tf.intval();
+        auto tex = GetTexture(id);
+        SetTexture(GetSampler(vm, i), tex);
+        if (tf != TF_DONTSET) SetFilterClampWrap(tf, tex.type);
         return NilVal();
     });
 
@@ -1343,14 +1347,6 @@ nfr("generate_texture_mipmap", "tex", "R:texture?", "",
         TestGL(vm);
         auto tex = GetTexture(t);
         GenerateTextureMipMap(tex);
-        return NilVal();
-    });
-
-nfr("set_texture_flags", "tex,tf", "R:textureI", "",
-    "change texture filter/wrap/clamp flags on an existing texture",
-    [](StackPtr &, VM &vm, Value id, Value tf) {
-        TestGL(vm);
-        SetTextureFlags(GetTexture(id), tf.intval());
         return NilVal();
     });
 
