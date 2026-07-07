@@ -31,6 +31,25 @@
   This then causes functions in C/C++ output that are never called.
   (an example of this is map(ITEX_MAX): nil inside the Generator class)
 
+- The combination of flow typing upgrades with free variable based specialization often
+  causes unexpected issues.
+  Typically caused by: a global var foo with a nillable type. foo is used deep down in the
+  call-graph. The root of the call graph is called twice, once inside an "if foo" and once
+  not, and because it is a free variable causes 2 copies of the entire call graph.
+  Besides that, the deep use may give warnings like
+  "condition will always succeed with non-nil reference type"
+  for one of the copies, which you can't fix because it would error with the other.
+  Possible improvements:
+  - We could allow a non-nil foo to reuse the nil foo specialization, but we really can't,
+    since there may be cases when we want these to compile differently?
+    Also, that only works if non-nil compiles first. If its the reverse, we'd have to
+    detect this and delete the first specialization somehow :(
+  - For the warning, detect that we're in a specialization, ideally specifically that there's
+    another specialization where this variable is nil :(
+  - (for expert use): we already dump "most clones" on --verbose, but have a quick way to
+    dump all specializations of a function too, so we can see what causes the difference.
+
+
 - we should really gather `subudts` before the start of typechecking so these two dumb errors
   can be removed:
   https://github.com/aardappel/lobster/issues/391
