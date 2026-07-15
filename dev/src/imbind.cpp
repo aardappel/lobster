@@ -810,6 +810,16 @@ void FlexBufferGUI(flexbuffers::Reference r, const char *label, bool in_table) {
             }
             break;
         }
+        case flexbuffers::FBT_STRING: {
+            string s;
+            r.ToString(true, false, s);
+            ImGui::LabelText(label, "%s", s.c_str());
+            break;
+        }
+        case flexbuffers::FBT_NULL: {
+            ImGui::LabelText(label, "nil");
+            break;
+        }
         default: {
             auto s = r.ToString();
             ImGui::LabelText(label, "%s", s.c_str());
