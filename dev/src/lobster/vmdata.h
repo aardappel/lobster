@@ -481,6 +481,8 @@ struct ToFlexBufferContext {
 
     PrintPrefs pp = PrintPrefs(2, 50, true, -1);
 
+    bool save_default_value_fields = false;
+
     ToFlexBufferContext(VM &vm, size_t initial_size, flexbuffers::BuilderFlag flags)
         : vm(vm), builder(initial_size, flags) {}
 };

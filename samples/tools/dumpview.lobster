@@ -27,7 +27,7 @@ if not fb:
     fatal("dumpview: can\'t read file: " + args[0])
 assert fb
 
-fatal(gl.window("Crash dump viewer", 640, 1024))
+fatal(gl.window("Crash dump viewer", 640, 640))
 
 im.init(false, im.config_docking_enable, 3.0)
 assert im.add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)

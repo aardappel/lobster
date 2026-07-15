@@ -487,6 +487,7 @@ void VM::DumpStackTraceMemory(const string &err) {
     fbc.cycle_detect = true;
     fbc.max_depth = 64;
     fbc.ignore_unsupported_types = true;
+    fbc.save_default_value_fields = true;  // Confusing to have fields missing when debugging.
 
     #ifdef USE_EXCEPTION_HANDLING
     try {

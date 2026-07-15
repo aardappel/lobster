@@ -320,7 +320,10 @@ void Value::ToStringBase(VM &vm, string &sd, RTType t, PrintPrefs &pp) const {
 void Value::ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, type_elem_t defval) const {
     if (RTIsRefNil(t)) {
         if (!ref_) {
-            if (key.empty()) fbc.builder.Null();
+            if (key.empty() || fbc.save_default_value_fields) {
+                if (!key.empty()) fbc.builder.Key(key.data());
+                fbc.builder.Null();
+            }
             return;
         }
         switch (t) {
@@ -348,7 +351,7 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, ty
         switch (t) {
             case RTT_INT: {
                 auto dv = fbc.vm.GetDefaultScalar<iint>(defval);
-                if (ival() != dv || key.empty()) {
+                if (ival() != dv || key.empty() || fbc.save_default_value_fields) {
                     if (!key.empty()) fbc.builder.Key(key.data());
                     fbc.builder.Int(ival());
                 }
@@ -356,7 +359,7 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, ty
             }
             case RTT_FLOAT: {
                 auto dv = fbc.vm.GetDefaultScalar<double>(defval);
-                if (fval() != dv || key.empty()) {
+                if (fval() != dv || key.empty() || fbc.save_default_value_fields) {
                     if (!key.empty()) fbc.builder.Key(key.data());
                     fbc.builder.Double(fval());
                 }
